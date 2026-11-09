@@ -1,0 +1,39 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+set -e
+exec 1>&2
+
+user_to_remove=${MODULE_ID:+${MODULE_ID}-adm}
+users_admin_url=$(sed -n 's/^NETHVOICE_USER_PORTAL_URL=//p' "${AGENT_STATE_DIR}/environment" | tail -n 1)
+
+if [ -z "${user_to_remove}" ] || [ -z "${users_admin_url}" ] || [ -z "${REDIS_USER}" ] || [ -z "${REDIS_PASSWORD}" ]; then
+    exit 0
+fi
+
+users_admin_api=${users_admin_url%/}/api
+login_payload=$(jq -cn \
+    --arg username "${REDIS_USER}" \
+    --arg password "${REDIS_PASSWORD}" \
+    '{username: $username, password: $password, auth_backend: "api-server"}')
+
+token=$(
+    curl -fsS --connect-timeout 5 --max-time 15 "${users_admin_api}/login" \
+        -H "Content-Type: application/json" \
+        --data-raw "${login_payload}" |
+        jq -r '.token // empty' 2>/dev/null || true
+)
+
+if [ -z "${token}" ]; then
+    exit 0
+fi
+
+remove_payload=$(jq -cn --arg user "${user_to_remove}" '{user: $user}')
+curl -fsS --connect-timeout 5 --max-time 15 "${users_admin_api}/remove-user" \
+    -H "Content-Type: application/json" \
+    -H "authorization: Bearer ${token}" \
+    --data-raw "${remove_payload}" >/dev/null || :

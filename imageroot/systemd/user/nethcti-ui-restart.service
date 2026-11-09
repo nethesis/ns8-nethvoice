@@ -4,7 +4,7 @@ Description=Restart nethcti-ui to update timezone
 [Service]
 Type=oneshot
 ExecStart=systemctl --user try-restart nethcti-ui.service
-WorkingDirectory=%S/state
+WorkingDirectory=%E/state
 SyslogIdentifier=%u/%N
 
 [Install]

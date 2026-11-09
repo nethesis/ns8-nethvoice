@@ -26,7 +26,7 @@ jobs:
           - group: freepbx
             images: freepbx
           - group: app-support
-            images: tancredi,cti-server,phonebook,sftp
+            images: tancredi,cti-server,phonebook,sftp,saml2-proxy,oauth2-proxy,ejabberd
           - group: reports
             images: reports-api,reports-ui
           - group: wrappers
@@ -45,7 +45,6 @@ jobs:
     uses: NethServer/ns8-github-actions/.github/workflows/module-info.yml@v1
   trivy:
     needs: module
-    if: ${{ needs.module.outputs.release == 'stable' || needs.module.outputs.release == 'latest' || github.event_name == 'workflow_dispatch' }}
     uses: NethServer/ns8-github-actions/.github/workflows/scan-with-trivy.yml@v1
     with:
       images: ${{ needs.module.outputs.images }}

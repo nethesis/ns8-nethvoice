@@ -22,11 +22,48 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+include_once('lib/libMiddleware.php');
+include_once('lib/libUsers.php');
+
+/**
+ * Validate a sharing value ('public' or 'group:<g1,g2>'). Group names are checked
+ * against the existing CTI groups; unknown ones are dropped. A group scope where no
+ * requested group exists throws InvalidArgumentException so the caller can fail closed
+ * (reject) rather than silently downgrading a restricted source to public. A DB error
+ * throws a generic Exception, also to be treated as fail closed.
+ */
+function validatePhonebookSharing($rawType) {
+    $sharing = empty($rawType) ? 'public' : $rawType;
+    if (strpos($sharing, 'group:') !== 0) {
+        return 'public';
+    }
+    $requested = array_filter(array_map('trim', explode(',', substr($sharing, strlen('group:')))));
+    $existingGroups = array();
+    $dbh = FreePBX::Database();
+    $rows = $dbh->sql('SELECT name FROM rest_cti_groups', 'getAll', \PDO::FETCH_ASSOC);
+    if (is_array($rows)) {
+        foreach ($rows as $r) {
+            $existingGroups[] = $r['name'];
+        }
+    }
+    $validGroups = array_values(array_intersect($requested, $existingGroups));
+    if (!count($validGroups)) {
+        // Fail closed: a group scope was requested but none of the groups exist
+        // (deleted/renamed after configuration, or a typo). Downgrading to public
+        // would expose previously group-restricted contacts.
+        throw new \InvalidArgumentException('none of the selected sharing groups exist');
+    }
+    return 'group:'.implode(',', $validGroups);
+}
+
 $app->get('/phonebook/fields', function (Request $request, Response $response, $args) {
     $fields = array(
        'cellphone',
+       'cellphone2',
        'company',
+       'facebook',
        'fax',
+       'firstname',
        'homecity',
        'homecountry',
        'homeemail',
@@ -35,8 +72,14 @@ $app->get('/phonebook/fields', function (Request $request, Response $response, $
        'homepostalcode',
        'homeprovince',
        'homestreet',
+       'instagram',
+       'job',
+       'lastname',
+       'linkedin',
        'name',
        'notes',
+       'otheremail',
+       'otherphone',
        'owner_id',
        'title',
        'url',
@@ -44,12 +87,13 @@ $app->get('/phonebook/fields', function (Request $request, Response $response, $
        'workcountry',
        'workemail',
        'workphone',
+       'workphone2',
        'workpob',
        'workpostalcode',
        'workprovince',
        'workstreet'
     );
-    return $response->withJson($fields, 200);
+    return jsonResponse($response, $fields, 200);
 });
 
 $app->get('/phonebook/config', function (Request $request, Response $response, $args) {
@@ -66,10 +110,10 @@ $app->get('/phonebook/config', function (Request $request, Response $response, $
             }
         }
         closedir($handle);
-        return $response->withJson($config, 200);
+        return jsonResponse($response, $config, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -90,26 +134,46 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             $new = true;
         }
         if(!isset($data['dbtype'])) {
-            return $response->withJson(array("status"=>"Missing value: dbtype"), 400);
-        } else if($data['dbtype'] == 'mysql') {
+            return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
+        } else if($data['dbtype'] == 'mysql' || $data['dbtype'] == 'mssql') {
             $mandatory_params = array('host','port','user','password','dbname','query','mapping');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url','mapping');
+        } else if($data['dbtype'] == 'infinity') {
+            // Infinity has a fixed field mapping applied by the importer, so no mapping.
+            $mandatory_params = array('url','username','password');
         } else {
-            return $response->withJson(array("status"=>"Bad dbtype value"), 400);
+            return jsonResponse($response, array("status"=>"Bad dbtype value"), 400);
         }
         // validate mandatory parameters
         foreach ($mandatory_params as $var) {
             if (!isset($data[$var]) || empty($data[$var])) {
                 error_log("Missing value: $var");
-                return $response->withJson(array("status"=>"Missing value: $var"), 400);
+                return jsonResponse($response, array("status"=>"Missing value: $var"), 400);
             }
             $newsource[$var] = $data[$var];
         }
         $newsource['dbtype'] = $data['dbtype'];
         // optional parameters
         $newsource['interval'] = empty($data['interval']) ? 1440 : $data['interval'];
-        $newsource['type'] = empty($data['type']) ? $id : $data['type'];
+        // `type` is the free-text source label/name (shown as the card title and stored
+        // in the phonebook `type` column, kept free for the customer import scripts).
+        $sourceName = isset($data['type']) ? trim($data['type']) : '';
+        if ($sourceName === '') {
+            return jsonResponse($response, array("status"=>"Missing value: type"), 400);
+        }
+        $newsource['type'] = $sourceName;
+        // Sharing goes in the dedicated `access` field: 'public' or
+        // 'group:<comma-separated group names>', validated against the existing CTI
+        // groups. Fail closed if the groups cannot be validated.
+        try {
+            $newsource['access'] = validatePhonebookSharing(isset($data['access']) ? $data['access'] : '');
+        } catch (\InvalidArgumentException $e) {
+            return jsonResponse($response, array("status"=>"None of the selected sharing groups exist"), 400);
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            return jsonResponse($response, array("status"=>"Cannot validate sharing groups"), 500);
+        }
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
         $file = $config_dir.'/'.$id.'.json';
@@ -121,7 +185,7 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -151,7 +215,7 @@ $app->delete('/phonebook/config/{id}', function (Request $request, Response $res
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -164,19 +228,27 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
         $file = '/tmp/'.$id.'.json';
         $newsource = array();
         if(!isset($data['dbtype'])) {
-            return $response->withJson(array("status"=>"Missing value: dbtype"), 400);
-        } else if($data['dbtype'] == 'mysql') {
+            return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
+        } else if($data['dbtype'] == 'mysql' || $data['dbtype'] == 'mssql') {
             $mandatory_params = array('host','port','user','password','dbname','query');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url');
+            if (!empty($data['cti_import'])) {
+                $csvPath = isset($data['url']) ? uploadedCsvPath($data['url']) : false;
+                if ($csvPath !== false && !csvHeaderIsCommaSeparated($csvPath)) {
+                    return jsonResponse($response, array("status"=>"CSV separator must be a comma"), 400);
+                }
+            }
+        } else if($data['dbtype'] == 'infinity') {
+            $mandatory_params = array('url','username','password');
         } else {
-            return $response->withJson(array("status"=>"Bad dbtype value"), 400);
+            return jsonResponse($response, array("status"=>"Bad dbtype value"), 400);
         }
         // validate mandatory parameters
         foreach ($mandatory_params as $var) {
             if (!isset($data[$var]) || empty($data[$var])) {
                 error_log("Missing value: $var");
-                return $response->withJson(array("status"=>"Missing value: $var"), 400);
+                return jsonResponse($response, array("status"=>"Missing value: $var"), 400);
             }
             $newsource[$id][$var] = $data[$var];
         }
@@ -195,13 +267,16 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
 
         if ($return!=0) {
             unlink_local_csv($newsource[$id]);
-            return $response->withJson(array("status"=>false),200);
+            return jsonResponse($response, array("status"=>false),200);
         }
-        $res = json_decode($output[0]);
-        return $response->withJson(array_slice($res, 0, 3),200);
+        $res = isset($output[0]) ? json_decode($output[0]) : null;
+        if (!is_array($res)) {
+            return jsonResponse($response, array("status"=>false),200);
+        }
+        return jsonResponse($response, array_slice($res, 0, 3),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -215,12 +290,12 @@ $app->post('/phonebook/syncnow/{id}', function (Request $request, Response $resp
         exec("/usr/share/phonebooks/phonebook-import /etc/phonebook/sources.d/$id.json",$output,$return);
 
         if ($return!=0) {
-            return $response->withJson(array("status"=>false),500);
+            return jsonResponse($response, array("status"=>false),500);
         }
-        return $response->withJson(array("status"=>true),200);
+        return jsonResponse($response, array("status"=>true),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -228,19 +303,126 @@ $app->post('/phonebook/syncnow/{id}', function (Request $request, Response $resp
 $app->post('/phonebook/uploadfile', function (Request $request, Response $response, $args) {
     $upload_dest = sprintf('/var/lib/nethvoice/phonebook/uploads/%s.csv', uniqid());
     try {
-        $file = array_pop($request->getUploadedFiles());
+        $uploaded_files = $request->getUploadedFiles();
+        $file = reset($uploaded_files);
+        if ($file === false) {
+            return jsonResponse($response, array("status"=>"File upload is required"), 400);
+        }
         if ($file->getError() != UPLOAD_ERR_OK) {
-            return $response->withJson(array("status"=>"File upload error"), 500);
+            return jsonResponse($response, array("status"=>"File upload error"), 400);
         }
         $file->moveTo($upload_dest);
-        return $response->withJson(array(
+        return jsonResponse($response, array(
             "status" => true,
             "uri" => "file://" . $upload_dest,
         ), 200);
-    } catch (Exception $e) {
-        unlink($upload_dest);
+    } catch (Throwable $e) {
+        if (is_file($upload_dest)) {
+            unlink($upload_dest);
+        }
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
+    }
+});
+
+/*
+* POST /phonebook/import-cti
+* One-shot import of an uploaded CSV into the personal CTI phonebook (cti_phonebook)
+* via the middleware admin endpoint. Unlike the recurring sources, this is not stored
+* under sources.d: contacts are appended once, assigned to a single owner, with a
+* single visibility (sharing) applied to every row.
+*/
+$app->post('/phonebook/import-cti', function (Request $request, Response $response, $args) {
+    try {
+        $data = $request->getParsedBody();
+
+        // Owner is mandatory and must be an existing user (fail closed).
+        $owner = isset($data['owner']) ? trim($data['owner']) : '';
+        if ($owner === '' || !userExists($owner)) {
+            return jsonResponse($response, array("status"=>"Invalid or missing owner"), 400);
+        }
+
+        // Sharing value applied to every imported contact.
+        try {
+            $sharing = validatePhonebookSharing(isset($data['type']) ? $data['type'] : '');
+        } catch (\InvalidArgumentException $e) {
+            return jsonResponse($response, array("status"=>"None of the selected sharing groups exist"), 400);
+        } catch (Exception $e) {
+            error_log($e->getMessage());
+            return jsonResponse($response, array("status"=>"Cannot validate sharing groups"), 500);
+        }
+
+        // Column mapping source->destination; must map to 'name' or to 'firstname'/'lastname',
+        // otherwise the middleware skips every row (nameless rows are discarded). When 'name'
+        // is empty the middleware composes it as "firstname lastname".
+        $mapping = isset($data['mapping']) ? (array)$data['mapping'] : array();
+        if (empty($mapping)) {
+            return jsonResponse($response, array("status"=>"Missing value: mapping"), 400);
+        }
+        if (empty(array_intersect(array('name', 'firstname', 'lastname'), array_values($mapping)))) {
+            return jsonResponse($response, array("status"=>"Mapping must include the 'name' or 'firstname'/'lastname' destination"), 400);
+        }
+
+        $url = isset($data['url']) ? $data['url'] : '';
+        $srcPath = uploadedCsvPath($url);
+        if ($srcPath === false) {
+            return jsonResponse($response, array("status"=>"CSV file not found"), 400);
+        }
+        if (!csvHeaderIsCommaSeparated($srcPath)) {
+            return jsonResponse($response, array("status"=>"CSV separator must be a comma"), 400);
+        }
+
+        $in = fopen($srcPath, 'r');
+        if ($in === false) {
+            return jsonResponse($response, array("status"=>"Cannot read CSV file"), 500);
+        }
+        $header = fgetcsv($in);
+        if ($header === false) {
+            fclose($in);
+            return jsonResponse($response, array("status"=>"Empty CSV file"), 400);
+        }
+
+        // Map each source column index to its destination name; unmapped columns are
+        // dropped. A 'type' column carrying the sharing value is appended to every row.
+        $destForIndex = array();
+        foreach ($header as $i => $col) {
+            $col = trim($col);
+            if (isset($mapping[$col]) && $mapping[$col] !== '') {
+                $destForIndex[$i] = $mapping[$col];
+            }
+        }
+        if (empty($destForIndex)) {
+            fclose($in);
+            return jsonResponse($response, array("status"=>"No mapped columns found in CSV"), 400);
+        }
+        $destHeader = array_values($destForIndex);
+        $destHeader[] = 'type';
+
+        $tmp = tempnam(sys_get_temp_dir(), 'cti_csv_');
+        $out = fopen($tmp, 'w');
+        fputcsv($out, $destHeader);
+        while (($row = fgetcsv($in)) !== false) {
+            $vals = array();
+            foreach ($destForIndex as $i => $dest) {
+                $vals[] = isset($row[$i]) ? $row[$i] : '';
+            }
+            $vals[] = $sharing;
+            fputcsv($out, $vals);
+        }
+        fclose($in);
+        fclose($out);
+
+        $res = importCtiPhonebookCsv($owner, $tmp);
+        unlink($tmp);
+        if ($res === false) {
+            return jsonResponse($response, array("status"=>"Middleware not reachable"), 502);
+        }
+        $decoded = json_decode($res['body'], true);
+        $status = $res['httpCode'] ? $res['httpCode'] : 500;
+        return jsonResponse($response, $decoded !== null ? $decoded : array("status"=>$res['body']), $status);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
     }
 });
 
@@ -266,7 +448,7 @@ $app->get('/phonebook/ldap', function (Request $request, Response $response, $ar
         $configuration['ldaps']['number_filter'] = '(|(telephoneNumber=%)(mobile=%)(homePhone=%))';
         $configuration['ldaps']['name_filter'] = '(|(cn=%)(o=%))';
 
-        return $response->withJson($configuration, 200);
+        return jsonResponse($response, $configuration, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -285,7 +467,7 @@ $app->get('/phonebook/sources', function (Request $request, Response $response, 
         $sources['nethcti'] = true;
         $sources['speeddial'] = true;
 
-        return $response->withJson($sources, 200);
+        return jsonResponse($response, $sources, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -301,6 +483,42 @@ $app->post('/phonebook/sources/{prop:speeddial|extensions|nethcti}/{status:enabl
     return $response->withStatus(200);
 });
 
+/**
+ * Resolve an uploaded CSV file:// URL to its real path, constrained to the uploads
+ * directory to avoid reading arbitrary files. Returns false when invalid or missing.
+ */
+function uploadedCsvPath($url)
+{
+    $baseDir = '/var/lib/nethvoice/phonebook/uploads/';
+    if (!is_string($url) || strpos($url, 'file://' . $baseDir) !== 0) {
+        return false;
+    }
+    $path = realpath(substr($url, strlen('file://')));
+    if ($path === false || strpos($path, $baseDir) !== 0 || !is_file($path)) {
+        return false;
+    }
+    return $path;
+}
+
+/**
+ * The CTI phonebook import reads the CSV with the comma delimiter only: reject a
+ * header that is clearly split by semicolons or tabs instead.
+ */
+function csvHeaderIsCommaSeparated($path)
+{
+    $in = fopen($path, 'r');
+    if ($in === false) {
+        return false;
+    }
+    $line = fgets($in);
+    fclose($in);
+    if ($line === false) {
+        return true;
+    }
+    $commas = substr_count($line, ',');
+    return $commas >= substr_count($line, ';') && $commas >= substr_count($line, "\t");
+}
+
 function unlink_local_csv($config)
 {
     if(isset($config['dbtype'], $config['url'])
@@ -310,4 +528,3 @@ function unlink_local_csv($config)
         unlink(substr($config['url'], 7));
     }
 }
-

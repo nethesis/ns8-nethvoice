@@ -7,7 +7,7 @@ $ext = $_REQUEST['ext'];
 $group = $_REQUEST['group'];
 $ntabs = $_REQUEST['ntab'];
 
-switch($_REQUEST['action']) 
+switch($_REQUEST['action'] ?? '') 
 {
     case "set":
         if (setGroup($ext,$group))
@@ -21,4 +21,3 @@ switch($_REQUEST['action'])
         break;
 
 }
-

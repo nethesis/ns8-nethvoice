@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Keep retry state until both destination consumers confirm the current target.
+# Update hooks are independent: a failure or best-effort skip in either consumer
+# must not discard the ports still needed by the next update.
+
+import agent
+
+env = agent.read_envfile('environment')
+new_port = env.get('ASTERISK_SIP_UDP_PORT')
+if new_port and all(env.get(key) == new_port for key in (
+    'SIP_PORTFORWARD_MIGRATED', 'SIP_PROXY_TRUNKS_MIGRATED',
+)):
+    agent.unset_env('PREVIOUS_SIP_UDP_PORT')
+    agent.unset_env('PREVIOUS_SIP_UDP_PORTS')
+    agent.unset_env('SIP_PORTFORWARD_MIGRATED')
+    agent.unset_env('SIP_PROXY_TRUNKS_MIGRATED')

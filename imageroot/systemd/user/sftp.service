@@ -4,8 +4,8 @@ After=mariadb.service
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
-EnvironmentFile=%S/state/environment
-WorkingDirectory=%S/state
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
 Restart=always
 TimeoutStopSec=70
 ExecStartPre=/bin/rm -f %t/sftp.pid %t/sftp.ctr-id
@@ -24,7 +24,7 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/sftp.pid \
 	--env=AMPDBHOST \
 	--env=AMPDBNAME \
 	--env=NETHVOICE_MARIADB_PORT \
-	--env-file=%S/state/passwords.env \
+	--env-file=%E/state/passwords.env \
 	--network=host \
 	--tz=${TIMEZONE} \
 	--hostname=${NETHVOICE_HOST} \

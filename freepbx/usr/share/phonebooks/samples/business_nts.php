@@ -67,9 +67,9 @@ while ($record = $sth->fetch(PDO::FETCH_ASSOC,PDO::FETCH_ORI_NEXT)) {
     }
 
     $query_ins = "INSERT INTO phonebook
-        (company,name,workphone,fax,workemail,workstreet,workcity,workprovince,workpostalcode,cellphone,type,sid_imported)
+        (company,name,workphone,fax,workemail,workstreet,workcity,workprovince,workpostalcode,cellphone,firstname,lastname,job,facebook,instagram,linkedin,workphone2,cellphone2,otherphone,otheremail,type,access,sid_imported)
         VALUES
-        (?,?,?,?,?,?,?,?,?,?,?,?)";
+        (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     try {
         $sth2 = $phonebookDB->prepare($query_ins);
@@ -84,7 +84,18 @@ while ($record = $sth->fetch(PDO::FETCH_ASSOC,PDO::FETCH_ORI_NEXT)) {
             $prov,
             $cap,
             $cell,
-            'business',
+            '', // firstname
+            '', // lastname
+            '', // job
+            '', // facebook
+            '', // instagram
+            '', // linkedin
+            '', // workphone2
+            '', // cellphone2
+            '', // otherphone
+            '', // otheremail
+            'business', // type (source category)
+            'public',   // access (sharing)
             'business'
         ));
     } catch (Exception $e) {

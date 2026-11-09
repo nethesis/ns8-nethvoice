@@ -17,6 +17,28 @@
             "description": "Enable call summary generation",
             "type": "boolean"
         },
+        "chat_enabled": {
+            "description": "Enable the NethVoice chat",
+            "type": "boolean"
+        },
+        "chat_retention_days": {
+            "description": "Days chat messages and attachments are kept",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+        },
+        "chat_upload_quota_mb": {
+            "description": "Chat attachments space per user, in MB",
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 100000
+        },
+        "chat_upload_max_file_mb": {
+            "description": "Largest chat attachment, in MB",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1024
+        },
         "deepgram_api_key": {
             "description": "Deepgram API key for real-time call and voicemail transcription",
             "type": "string",

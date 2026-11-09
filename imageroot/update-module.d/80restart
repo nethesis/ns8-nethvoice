@@ -1,8 +1,52 @@
 #!/bin/bash
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -euo pipefail
+exec 1>&2
+umask 077
 
-# reload systemd changes
 systemctl --user daemon-reload
+# Keep consumers stopped until the new schema AND FreePBX modules are ready.
+services=(watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus nethcti-server satellite-mqtt satellite-pgsql nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite)
+active=()
+for service in "${services[@]}"; do
+    if systemctl --user is-active --quiet "$service"; then active+=("$service"); fi
+done
+# Save the running image identities before systemd replaces their containers.
+mkdir -p upgrade-backups
+backup=$(mktemp -d ./upgrade-backups/pre-freepbx-XXXXXXXX)
+for container in mariadb freepbx; do
+    podman inspect --format '{{.ImageName}} {{.Image}}' "$container" > "$backup/$container-image" 2>/dev/null || true
+done
+printf '%s\n' "${active[@]}" > "$backup/active-services"
+if ((${#active[@]})); then restart-services-when-convenient --stop "${active[@]}"; fi
+# Report initialization failure before starting any downstream consumers.
+trap 'echo "Upgrade failed. Consumers remain stopped; recovery data: $backup" >&2' ERR
+systemctl --user start mariadb
+# Include non-transactional FreePBX tables under a global read lock.
+podman exec mariadb sh -ec 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mariadb-dump -u root --all-databases --lock-all-tables --routines --events' | gzip > "$backup/databases.sql.gz"
+# Preserve generated dialplan, scripts and AstDB alongside the database dump.
+podman run --rm --network=none --entrypoint=tar \
+    --volume=asterisk:/snapshot/asterisk:ro,z \
+    --volume=agi-bin:/snapshot/agi-bin:ro,z \
+    --volume=astdb:/snapshot/astdb:ro,z \
+    --volume=nethcti:/snapshot/nethcti:ro,z \
+    "${NETHVOICE_FREEPBX_IMAGE}" -czf - -C /snapshot . > "$backup/configuration.tar.gz"
+touch "$backup/complete"
+runagent mysql-update-postprocess --migrate
+# Rewrite saved bindings offline; never generate a v16 dialplan for Asterisk 22.
+runagent prepare-asterisk-config
+systemctl --user restart mariadb
+if [[ " ${active[*]} " == *' freepbx '* ]]; then
+    # ExecStartPost waits for freepbx-ready and fails on freepbx-failed.
+    systemctl --user start freepbx
+fi
+for service in "${active[@]}"; do
+    [[ $service == freepbx ]] || systemctl --user start "$service"
+done
+touch "$backup/succeeded"
+echo "Upgrade recovery snapshot retained in $backup" >&2
 
-# launch background tasks that restart freepbx only if there aren't any calls in progress
-echo "Restarting FreePBX, Janus, NethCTI and Middleware server when there are no active calls"
-restart-services-when-convenient mariadb freepbx janus nethcti-server nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite satellite-mqtt satellite-pgsql
+if compgen -G "./restore_background/*.sql" >/dev/null; then
+    systemctl --user start --no-block nethvoice-restore-background.service
+fi

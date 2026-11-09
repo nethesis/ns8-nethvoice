@@ -1,0 +1,28 @@
+--- a/agi-bin/dialparties.agi
++++ b/agi-bin/dialparties.agi
+@@ -890,8 +890,11 @@
+ 		// a user can be logged into multipe devices, append the dial string for each
+ 		$device_array = preg_split( '/&/', $device );
+ 		foreach ($device_array as $adevice) {
++			$dds = $agi->database_get('DEVICE',$adevice.'/dial');
++			if (empty($dds['data'])) {
++				continue;
++			}
+ 			if (trim($use_confirmation) == "FALSE") {
+-				$dds = $agi->database_get('DEVICE',$adevice.'/dial');
+ 				// Check to see if this is a PJSIP device. If so, grab
+ 				// the correct dial string from PJSIP_DIAL_CONTACTS.
+ 
+--- a/Dialplan/dialparties.php
++++ b/Dialplan/dialparties.php
+@@ -625,8 +625,9 @@
+ 		// Check to see if this is a PJSIP device. If so, grab
+ 		// the correct dial string from PJSIP_DIAL_CONTACTS.
+ 
++		$ext->add($c, 'internal', '', new \ext_setvar('HASH(dialparties,DEVICE_DS)','${DB(DEVICE/${DEVICE}/dial)}'));
++		$ext->add($c, 'internal', '', new \ext_gotoif('$["${HASH(dialparties,DEVICE_DS)}"=""]','next'));
+ 		$ext->add($c, 'internal', '', new \ext_gotoif('$["${HASH(dialparties,USE_CONFIRMATION)}"!="FALSE"]','useconfirmation'));
+-		$ext->add($c, 'internal', '', new \ext_setvar('HASH(dialparties,DEVICE_DS)','${DB(DEVICE/${DEVICE}/dial)}'));
+ 
+ 		$ext->add($c, 'internal', '', new \ext_gotoif('$[${REGEX("^PJSIP" ${HASH(dialparties,DEVICE_DS)})}]','pjsip','setds'));
+ 

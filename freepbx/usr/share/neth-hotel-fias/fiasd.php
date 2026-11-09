@@ -177,6 +177,16 @@ $state= "stStart";
 logMessage("Starting daemon", INFO, "fiasd");
 while ( TRUE ) {
     logMessage("state: $state", DEBUGVERBOSE, "fiasd");
+    // Probe only states which access SQL, reconnecting after wait_timeout or
+    // a database restart. Never replay a partially executed write.
+    if (in_array($state, ['stStart', 'stReadDB', 'stWriteDB', 'stSendData'], true)) {
+        try {
+            $fiasdb->query('SELECT 1');
+        } catch (PDOException $e) {
+            if (!in_array((int) ($e->errorInfo[1] ?? 0), [2006, 2013], true)) { throw $e; }
+            $fiasdb = connectFiasDatabase();
+        }
+    }
     switch($state) {
     case "stStart":
         // Remove waiting LE commands
@@ -317,7 +327,7 @@ while ( TRUE ) {
             $sth = $fiasdb->prepare($query);
             $rs = $sth->execute(array($record,$record_id));
             if ($rs === false) {
-                logMessage("Error updating record; record_id: $record_id; ".mysql_error(), ERROR, "fiasd");
+                logMessage("Error updating record; record_id: $record_id; ".getPDOErrorMessage($sth), ERROR, "fiasd");
             }
             $state = "stWaitForData";
         }
@@ -359,7 +369,7 @@ while ( TRUE ) {
                 $sth = $fiasdb->prepare($query);
                 $rs = $sth->execute(array());
                 if (!$rs) {
-                    throw new Exception('Mysql Error reading messages; '.mysql_error());
+                    throw new Exception('Database error reading messages; '.getPDOErrorMessage($sth));
                 }
 
                 $data = $sth->fetchAll();
@@ -384,7 +394,7 @@ while ( TRUE ) {
                         $sth = $fiasdb->prepare($query);
                         $rs = $sth->execute(array($record,$record_id));
                         if ($rs === false) {
-                            logMessage('Mysql Error updating messages; '.mysql_error(), INFO, "fiasd");
+                            logMessage('Database error updating messages; '.getPDOErrorMessage($sth), INFO, "fiasd");
                         }
                         logMessage("LE (Link End) message sent. Exiting", INFO, "fiasd");
                         exit(0);
@@ -405,26 +415,20 @@ while ( TRUE ) {
             if (($params === false) or (empty($params))) {
                 throw new Exception('Error: wrong parameters '.print_r($params,true));
             }
-            logMessage("INSERT INTO messages (cmd, dir, raw) VALUES (\"{$params[0]}\",\"PBX\",\"{$record}\")'", DEBUGVERBOSE, "fias");
-            $query = 'INSERT INTO messages (cmd, dir, raw) VALUES (?,"PBX",?)';
-            $sth = $fiasdb->prepare($query);
-            $rs = $sth->execute(array($params[0],$record));
-            if (!$rs) {
-                throw new Exception('Error writing message to DB; '.mysql_error());
-            }
-
-            $last_id = $fiasdb->lastInsertId();
-            $query = 'INSERT INTO messagesparameters (msgid, param, value) VALUES (?,?,?)';
-            $sth = $fiasdb->prepare($query);
+            $parameters = array();
             for ($i=1; $i<count($params)-1; $i++) {
-                logMessage("INSERT INTO messagesparameters (msgid, param, value) VALUES ({$last_id},\"".substr($params[$i],0,2)."\",\"".substr($params[$i],2)."\")'", DEBUGVERBOSE, "fiasd");
-                $rs = $sth->execute(array($last_id, substr($params[$i],0,2), substr($params[$i],2)));
-                if (!$rs) {
-                    throw new Exception('Error writing messageparameters to DB; '.mysql_error());
-                }
+                $parameters[] = array(substr($params[$i],0,2), substr($params[$i],2));
             }
+            logMessage(
+                'Storing received record: ' . json_encode(
+                    array('command' => $params[0], 'direction' => 'PBX', 'parameters' => $parameters)
+                ),
+                DEBUGVERBOSE,
+                'fiasd'
+            );
+            insertFiasMessage($fiasdb, $params[0], 'PBX', $parameters, $record);
             $state = "stReadDB";
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             logMessage($e->getMessage(), ERROR, "fiasd");
             $state = "stDisconnected";
         }

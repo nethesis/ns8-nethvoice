@@ -8,6 +8,7 @@
 # Allocate new port for sftp service
 import sys
 import os
+import json
 import agent
 
 if not hasattr(agent, 'allocate_ports'):
@@ -52,8 +53,6 @@ if not 'ASTERISK_RECORDING_SFTP_PORT' in env:
 		allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
 		sftp_port = allocated_ports[0]
 		print(f"New port allocated for SFTP: {sftp_port}", file=sys.stderr)
-		# Open the port in the firewall
-		agent.add_public_service(os.environ['MODULE_ID'], [str(sftp_port)+"/tcp"])
 	# Update the environment file: this will be used as flag to avoid re-allocating the port
 	agent.set_env('ASTERISK_RECORDING_SFTP_PORT', sftp_port)
 
@@ -94,32 +93,170 @@ if not 'SATELLITE_HTTP_PORT' in env:
 	# Update the environment file
 	agent.set_env('SATELLITE_HTTP_PORT', http_port)
 
-# Get RTP UDP port for SATELLITE
-# Since udp ports are not allocated by the core for historical reasons, we need to allocate them manually
-def allocate_rtp_ports_range(size):
-    """Allocate in "node_id" a RTP port range of the given "size" for
-        "module_id" RTP range goes from 10000 to 20000.
-    """
-    key_path = f'module/{os.environ["MODULE_ID"]}/rtp_ports_sequence'
-    prdb = agent.redis_connect(privileged=True)
-    # Setup lower limit to 20002
-    if not prdb.get(key_path):
-        prdb.set(key_path, '20002')
-    # Check overflow
-    if (size + int(prdb.get(key_path))) > 60002:
-        print(agent.SD_ERROR + "RTP range exhausted", file=sys.stderr)
-        sys.exit(3)
-    # Allocate RTP ports
-    seq = prdb.incrby(key_path, size)
-    agent.assert_exp(int(seq) > 0)
-    return (seq - size, seq - 1)
+# Keep track of Asterisk RTP range with values from the current env file;
+# block below will override these if a migration is performed.
+asterisk_rtp_start = int(env.get('ASTERISK_RTPSTART', 0))
+asterisk_rtp_end = int(env.get('ASTERISK_RTPEND', 0))
 
-# SATELLITE_RTP_PORT is no longer needed: satellite reuses SATELLITE_HTTP_PORT
-# (same port number, UDP protocol). Unset any existing value so the env file
-# stays clean. The variable is kept in the environment for backward compat only.
-if os.getenv('SATELLITE_RTP_PORT') is not None:
-	agent.unset_env('SATELLITE_RTP_PORT')
-	print("SATELLITE_RTP_PORT removed: satellite now reuses SATELLITE_HTTP_PORT for RTP", file=sys.stderr)
+# Collect the client-facing ports that change during this update, so the Status
+# page can show the old -> new mapping and the admin can fix any external
+# firewall/NAT/trunk rule that still references the old ports (rules outside NS8
+# cannot be migrated automatically). Filled by both the full-migration branch
+# and the partial (per-port) branch below.
+migration = []
+
+# UDP block layout: Asterisk RTP + Janus SIP RTP + Janus WebRTC RTP
+# + 1 Satellite + 1 IAX + 1 SIP UDP. Must match create-module/05setenvs.
+asterisk_rtp_ports = 399
+janus_sip_rtp_ports = 399
+janus_rtp_ports = 199
+udp_block_size = asterisk_rtp_ports + janus_sip_rtp_ports + janus_rtp_ports + 3
+
+# Size of the current UDP block, 0 if not allocated by ns8-core yet
+try:
+	udp_range = env['UDP_PORTS_RANGE'].split("-")
+	udp_range_size = int(udp_range[1]) - int(udp_range[0]) + 1
+except (KeyError, IndexError, ValueError):
+	udp_range_size = 0
+
+# Previous SIP UDP listener port, to repoint forwards/trunks if it moves.
+# Instances not yet migrated listen for SIP UDP on ASTERISK_SIP_PORT.
+old_sip_udp_port = env.get('ASTERISK_SIP_UDP_PORT') or env.get('ASTERISK_SIP_PORT')
+
+# Allocate RTP/UDP ports via ns8-core if:
+# - UDP_PORTS_RANGE is absent (old instances that used the fake Redis-based allocation), OR
+# - the UDP block has a different size (e.g. the 2003 ports block of 1.7.10), OR
+# - any of the RTP env vars is missing
+full_allocation = udp_range_size != udp_block_size or any(env_name not in env for env_name in (
+    'ASTERISK_RTPSTART',
+    'ASTERISK_RTPEND',
+    'JANUS_RTPSTART',
+    'JANUS_RTPEND',
+    'JANUS_SIP_RTPSTART',
+    'JANUS_SIP_RTPEND',
+    'SATELLITE_RTP_PORT',
+))
+
+rtp_start = None
+allocation_failed = False
+if full_allocation:
+	try:
+		rtp_start, rtp_end = agent.allocate_ports(udp_block_size, "udp")
+	except Exception as ex:
+		# No room left in the node UDP range. Never leave the instance without
+		# a SIP UDP port: keep (or restore) the legacy shared ports and retry on
+		# the next update.
+		print(agent.SD_ERR + f"UDP ports allocation failed ({ex}): keeping the current ports", file=sys.stderr)
+		allocation_failed = True
+		if 'ASTERISK_SIP_UDP_PORT' not in env and env.get('ASTERISK_SIP_PORT'):
+			agent.set_env('ASTERISK_SIP_UDP_PORT', env['ASTERISK_SIP_PORT'])
+		if 'SATELLITE_RTP_PORT' not in env and env.get('SATELLITE_HTTP_PORT'):
+			agent.set_env('SATELLITE_RTP_PORT', env['SATELLITE_HTTP_PORT'])
+
+if rtp_start is not None:
+	# Set UDP_PORTS_RANGE so this migration block is not triggered again on
+	# subsequent updates (ns8-core only sets this at install time, not here).
+	agent.set_env('UDP_PORTS_RANGE', f'{rtp_start}-{rtp_end}')
+	asterisk_rtp_start = rtp_start
+	asterisk_rtp_end = asterisk_rtp_start + asterisk_rtp_ports - 1
+	janus_sip_rtp_start = asterisk_rtp_end + 1
+	janus_sip_rtp_end = janus_sip_rtp_start + janus_sip_rtp_ports - 1
+	janus_rtp_start = janus_sip_rtp_end + 1
+	janus_rtp_end = janus_rtp_start + janus_rtp_ports - 1
+	satellite_rtp_port = janus_rtp_end + 1
+	iax_udp_port = satellite_rtp_port + 1
+	sip_udp_port = iax_udp_port + 1
+
+	print(f"New Asterisk RTP range allocated: {asterisk_rtp_start}-{asterisk_rtp_end}", file=sys.stderr)
+	print(f"New Janus SIP RTP range allocated: {janus_sip_rtp_start}-{janus_sip_rtp_end}", file=sys.stderr)
+	print(f"New Janus RTP range allocated: {janus_rtp_start}-{janus_rtp_end}", file=sys.stderr)
+	print(f"New port allocated for SATELLITE RTP: {satellite_rtp_port}", file=sys.stderr)
+	print(f"New UDP port allocated for Asterisk IAX: {iax_udp_port}", file=sys.stderr)
+	print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)
+	agent.set_env('ASTERISK_RTPSTART', asterisk_rtp_start)
+	agent.set_env('ASTERISK_RTPEND', asterisk_rtp_end)
+	agent.set_env('JANUS_RTPSTART', janus_rtp_start)
+	agent.set_env('JANUS_RTPEND', janus_rtp_end)
+	agent.set_env('JANUS_SIP_RTPSTART', janus_sip_rtp_start)
+	agent.set_env('JANUS_SIP_RTPEND', janus_sip_rtp_end)
+	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
+	agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
+	agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
+
+	# The firewall is opened authoritatively at step 21firewall_ports (which
+	# re-runs create-module/90firewall with replace_ports=True), so we do not
+	# open the ports here: an append would leave the old ranges behind.
+	# MariaDB is prepared with the allocated ports before services restart in 80restart.
+
+	# Record the old -> new mapping of the reassigned client-facing ports.
+	old_asterisk_rtp = None
+	if env.get('ASTERISK_RTPSTART') and env.get('ASTERISK_RTPEND'):
+		old_asterisk_rtp = f"{env['ASTERISK_RTPSTART']}-{env['ASTERISK_RTPEND']}"
+	old_janus_rtp = None
+	if env.get('JANUS_RTPSTART') and env.get('JANUS_RTPEND'):
+		old_janus_rtp = f"{env['JANUS_RTPSTART']}-{env['JANUS_RTPEND']}"
+	for service, protocol, old_value, new_value in (
+		("Asterisk SIP UDP", "udp", old_sip_udp_port, sip_udp_port),
+		("Asterisk RTP", "udp", old_asterisk_rtp, f"{asterisk_rtp_start}-{asterisk_rtp_end}"),
+		("Janus RTP", "udp", old_janus_rtp, f"{janus_rtp_start}-{janus_rtp_end}"),
+		("Satellite RTP", "udp", env.get('SATELLITE_RTP_PORT') or env.get('SATELLITE_HTTP_PORT'), satellite_rtp_port),
+		("Asterisk IAX", "udp", env.get('ASTERISK_IAX_PORT'), iax_udp_port),
+	):
+		if old_value and str(old_value) != str(new_value):
+			migration.append({
+				"service": service,
+				"protocol": protocol,
+				"old": str(old_value),
+				"new": str(new_value),
+			})
+
+elif not full_allocation:
+	# For instances that already have UDP_PORTS_RANGE and all RTP vars set
+	# (block above did not run): migrate each port independently so that a
+	# partially-migrated instance (only one var missing) is handled correctly.
+	if 'ASTERISK_IAX_PORT' not in env:
+		iax_udp = agent.allocate_ports(1, "udp", keep_existing=True)
+		iax_udp_port = iax_udp[0]
+		print(f"New UDP port allocated for Asterisk IAX: {iax_udp_port}", file=sys.stderr)
+		agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
+
+	if 'ASTERISK_SIP_UDP_PORT' not in env:
+		sip_udp = agent.allocate_ports(1, "udp", keep_existing=True)
+		sip_udp_port = sip_udp[0]
+		print(f"New UDP port allocated for Asterisk SIP UDP: {sip_udp_port}", file=sys.stderr)
+		agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
+		# SIP UDP moved off the old shared SIP port: record it for the notice.
+		if env.get('ASTERISK_SIP_PORT'):
+			migration.append({
+				"service": "Asterisk SIP UDP",
+				"protocol": "udp",
+				"old": str(env['ASTERISK_SIP_PORT']),
+				"new": str(sip_udp_port),
+			})
+
+# Persist the port-migration notice for the Status page. Only written when at
+# least one client-facing port actually changed during this update, so it shows
+# once (on the migrating update) and never on fresh installs or no-op updates.
+if migration:
+	agent.set_env('PORTS_MIGRATION_REPORT', json.dumps(migration))
+	agent.set_env('PORTS_MIGRATION_SEEN', '0')
+
+# Retain all pending SIP UDP ports across updates (including another port move)
+# until both destination consumers have confirmed migration. Import the singular
+# key for handoffs recorded by earlier versions.
+previous_sip_udp_ports = set(json.loads(env.get('PREVIOUS_SIP_UDP_PORTS', '[]')))
+if env.get('PREVIOUS_SIP_UDP_PORT'):
+	previous_sip_udp_ports.add(env['PREVIOUS_SIP_UDP_PORT'])
+new_sip_udp_port = agent.read_envfile('environment').get('ASTERISK_SIP_UDP_PORT')
+if old_sip_udp_port and new_sip_udp_port and str(old_sip_udp_port) != str(new_sip_udp_port):
+	agent.set_env('PREVIOUS_SIP_UDP_PORT', old_sip_udp_port)
+	previous_sip_udp_ports.add(str(old_sip_udp_port))
+if previous_sip_udp_ports:
+	agent.set_env('PREVIOUS_SIP_UDP_PORTS', json.dumps(sorted(previous_sip_udp_ports)))
+# An interrupted or skipped consumer must never inherit a success marker from
+# an earlier update. Each consumer confirms the current target after its scan.
+agent.unset_env('SIP_PORTFORWARD_MIGRATED')
+agent.unset_env('SIP_PROXY_TRUNKS_MIGRATED')
 
 # add port for Asterisk WSS
 if not 'ASTERISK_WSS_PORT' in env:
@@ -127,13 +264,25 @@ if not 'ASTERISK_WSS_PORT' in env:
 	wss_port = allocated_ports[0]
 	print(f"New port allocated for Asterisk WSS: {wss_port}", file=sys.stderr)
 	agent.set_env('ASTERISK_WSS_PORT', wss_port)
-	# Open the port in the firewall
-	agent.add_public_service(os.environ['MODULE_ID'], [str(wss_port)+"/tcp"])
-	# Add Asterisk RTP port range for WSS
-	agent.add_public_service(os.environ['MODULE_ID'], [str(os.environ['ASTERISK_RTPSTART'])+"-"+str(os.environ['ASTERISK_RTPEND'])+"/udp"])
+	# The firewall (WSS + RTP) is opened authoritatively at step
+	# 21firewall_ports via create-module/90firewall.
 
 if not 'SATELLITE_PGSQL_PORT' in env:
 	allocated_ports = agent.allocate_ports(1, "tcp", keep_existing=True)
 	pgsql_port = allocated_ports[0]
 	print(f"New port allocated for SATELLITE PGSQL: {pgsql_port}", file=sys.stderr)
 	agent.set_env('SATELLITE_PGSQL_PORT', pgsql_port)
+
+# NethVoice chat: four loopback ports, allocated once
+if 'CHAT_GW_PORT' not in env:
+	start, end = agent.allocate_ports(4, "tcp", keep_existing=True)
+	print(f"New ports allocated for chat: {start}-{end}", file=sys.stderr)
+	agent.set_env('CHAT_C2S_PORT', start)
+	agent.set_env('CHAT_HTTP_PORT', start + 1)
+	agent.set_env('CHAT_COMPONENT_PORT', start + 2)
+	agent.set_env('CHAT_GW_PORT', start + 3)
+
+# The instance keeps working on its current ports, but the update must report
+# the failed allocation
+if allocation_failed:
+	sys.exit(1)

@@ -5,6 +5,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+# A restarted container must not advertise readiness from a previous start.
+rm -f /var/run/nethvoice/freepbx-ready /var/run/nethvoice/freepbx-failed || exit $?
+
+# Migration can turn the image's absolute dialplan link into a relative link.
+extensions_link=/etc/asterisk/extensions.conf
+extensions_target=/var/www/html/freepbx/admin/modules/core/etc/extensions.conf
+if [[ -L "$extensions_link" && "$(readlink "$extensions_link")" != "$extensions_target" ]]; then
+    if ! ln -sfn "$extensions_target" "$extensions_link"; then
+        echo "Error: cannot repair $extensions_link; continuing startup" >&2
+    fi
+fi
+
 # Configure asterisk manager
 cat > /etc/asterisk/manager.conf <<EOF
 [general]
@@ -24,6 +36,37 @@ writetimeout = 5000
 #include manager_additional.conf
 #include manager_custom.conf
 EOF
+
+# The HTTP and HTTPS/WSS listeners share metric routes. Require credentials
+# even for local scraping, and refresh the persistent config on every start.
+install -o asterisk -g asterisk -m 0640 /dev/null /etc/asterisk/prometheus.conf || exit $?
+if [[ -n "${ASTERISK_PROMETHEUS_PASSWORD:-}" ]]; then
+	# NS8 generates a hex password; reject configuration-file metacharacters.
+	if [[ ! "${ASTERISK_PROMETHEUS_PASSWORD}" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+		echo 'Invalid ASTERISK_PROMETHEUS_PASSWORD format' >&2
+		exit 1
+	fi
+	cat > /etc/asterisk/prometheus.conf <<EOF
+[general]
+enabled = yes
+core_metrics_enabled = yes
+uri = metrics
+auth_username = prometheus
+auth_password = ${ASTERISK_PROMETHEUS_PASSWORD}
+EOF
+else
+	# Standalone image users must supply a password to enable metrics.
+	printf '[general]\nenabled = no\n' > /etc/asterisk/prometheus.conf
+fi
+
+# Preserve the metrics credential permissions on later `fwconsole chown` runs.
+cat > /etc/asterisk/nethvoice_chown.conf <<'EOF'
+[custom]
+file = /etc/asterisk/prometheus.conf,0640,asterisk,asterisk
+EOF
+if ! grep -Fxq '#include nethvoice_chown.conf' /etc/asterisk/freepbx_chown.conf 2>/dev/null; then
+    printf '\n#include nethvoice_chown.conf\n' >> /etc/asterisk/freepbx_chown.conf
+fi
 
 # create asterisk.conf
 cat > /etc/asterisk/asterisk.conf <<EOF
@@ -80,6 +123,17 @@ noload = res_http_media_cache.so
 noload = res_phoneprov.so
 EOF
 
+# Opus in-band FEC needs packet_loss > 0; codecs.conf lives in the persistent volume
+if ! grep -q '^type *= *opus' /etc/asterisk/codecs.conf 2>/dev/null; then
+	cat >> /etc/asterisk/codecs.conf <<EOF
+
+[opus]
+type=opus
+packet_loss=10
+fec=yes
+EOF
+fi
+
 # Show Asterisk logfiles module on FreePBX interface
 sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/asterisk/freepbx_menu.conf
 
@@ -89,6 +143,7 @@ sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/a
 install -d -o asterisk -g asterisk -m 0755 /var/log/asterisk /var/log/apache2
 
 chown -c asterisk:asterisk /etc/asterisk/*.conf
+chown -R asterisk:asterisk /var/www/html/freepbx/admin/modules/pm2/node
 
 # Configure ODBC for asteriskcdrdb
 cat > /etc/odbc.ini <<EOF
@@ -108,17 +163,23 @@ chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/s
 mkdir -p /etc/nethcti
 chown -R asterisk:asterisk /etc/nethcti
 
-# Keep the CSV upload volume non-empty. NS8 backup mounts module volumes in a
+# Keep the phonebook volumes non-empty. NS8 backup mounts module volumes in a
 # helper container, and an empty named volume can be re-initialized there with
 # root ownership. Seeding a hidden file prevents ownership drift.
-mkdir -p /var/lib/nethvoice/phonebook/uploads
-touch /var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard
-chown -R asterisk:asterisk /var/lib/nethvoice/phonebook/uploads
+mkdir -p \
+	/etc/phonebook/sources.d \
+	/var/lib/nethvoice/phonebook/uploads
+touch \
+	/etc/phonebook/sources.d/.nethvoice-volume-guard \
+	/var/lib/nethvoice/phonebook/uploads/.nethvoice-volume-guard
+chown -R asterisk:asterisk \
+	/etc/phonebook/sources.d \
+	/var/lib/nethvoice/phonebook/uploads
 
 # Don't continue with initialization if the database is not ready
 if [[ -z "${AMPDBUSER}" || -z "${AMPDBPASS}" ]]; then
 
-	if [ "$@" == "/usr/bin/supervisord" ]; then
+	if [[ "${1:-}" == "/usr/bin/supervisord" ]]; then
 		echo "AMPDBUSER and AMPDBPASS are not set, exiting."
 		exit 0
 	fi
@@ -158,12 +219,19 @@ fi
 
 wizard_navbar_logo_url="${wizard_login_logo_url}"
 
+# Serialize configuration values as JavaScript strings instead of interpolating
+# them into quoted literals. Rebranding values are operator-controlled and may
+# contain quotes or other characters with special meaning in JavaScript.
+js_string() {
+	php -r 'echo json_encode($argv[1], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);' "$1"
+}
+
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
-  BRAND_NAME: '${wizard_brand_name}',
+  BRAND_NAME: $(js_string "${wizard_brand_name}"),
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
-  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethserver.org/projects/ns8/it/latest/nethvoice.html}',
+  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethvoice.com/it/}',
   NAVBAR_LOGO_URL: '${wizard_navbar_logo_url}',
   LOGIN_LOGO_URL: '${wizard_login_logo_url}',
   FAVICON_URL: '${wizard_favicon_url}',
@@ -203,9 +271,12 @@ fi
 if ! grep -q '^mailcmd=' /etc/asterisk/voicemail.conf; then
 	# write mailcmd if it isn't already set
 	sed -i "s|^\[general\]$|[general]\nmailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
-elif grep -q '^mailcmd=/usr/sbin/sendmail' /etc/asterisk/voicemail.conf; then
-	# replace mailcmd if it is already set and is the old binary
-	sed -i "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/var/lib/asterisk/bin/send_email|" /etc/asterisk/voicemail.conf
+elif grep -Eq '^mailcmd=(/usr/sbin/sendmail|/var/lib/asterisk/bin/googlestt_sendmail\.php)' /etc/asterisk/voicemail.conf; then
+	# replace mailcmd if it references a retired delivery binary
+	sed -i \
+		-e "s|^mailcmd=/usr/sbin/sendmail.*|mailcmd=/var/lib/asterisk/bin/send_email|" \
+		-e "s|^mailcmd=/var/lib/asterisk/bin/googlestt_sendmail\.php.*|mailcmd=/var/lib/asterisk/bin/send_email|" \
+		/etc/asterisk/voicemail.conf
 fi
 
 # Configure mysql
@@ -266,8 +337,8 @@ while (\$row = \$sth->fetch(\PDO::FETCH_ASSOC)) {
   '${NETHCTI_DB_PASSWORD}');
 EOF
 
-# create recallonbusy configuration if it doesn't exist
-if [[ ! -f /etc/asterisk/recallonbusy.cfg ]]; then
+# create recallonbusy configuration if it doesn't exist or exists but is empty
+if [[ ! -s /etc/asterisk/recallonbusy.cfg ]]; then
   cat > /etc/asterisk/recallonbusy.cfg <<EOF
 [recallonbusy]
 Host: 127.0.0.1
@@ -279,8 +350,8 @@ CheckInterval: 20
 EOF
 fi
 
-# create freepbx chown configuration if it doesn't exist
-if [[ ! -f /etc/asterisk/freepbx_chown.conf ]]; then
+# create freepbx chown configuration if it doesn't exist or is empty
+if [[ ! -s /etc/asterisk/freepbx_chown.conf ]]; then
   cat > /etc/asterisk/freepbx_chown.conf <<EOF
 [blacklist]
 directory = /var/www/html/freepbx/rest
@@ -330,6 +401,9 @@ psmode=M
 [record_LDLR]
 0="LD|DA|TI|V#2.0.2|IFPB|"
 1="LR|RIGI|FLRNG#GNGLGSSFA0A1A2A3|"
+; Optional FIAS Guest Group Number (GG) support: replace the active row
+; above with the following row to manage NethHotel room groups from GI.
+;1="LR|RIGI|FLRNG#GNGLGGGSSFA0A1A2A3|"
 2="LR|RIGO|FLRNG#GSSF|"
 3="LR|RIGC|FLRNG#GNGLGSROA0A1A2A3|"
 4="LR|RIRE|FLRNRSMLCSDN|"
@@ -374,6 +448,9 @@ format=DA_TI_RN
 [GI2PBX]
 command=/usr/share/neth-hotel-fias/gi2pbx.php
 format=RN_G#_GN_GL_GS_SF_A0_A1_A2_A3
+; When GG support is enabled in the RIGI row, replace the active format
+; above with this one. GG follows GL in the expected FIAS field order.
+;format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3
 
 [GO2PBX]
 command=/usr/share/neth-hotel-fias/go2pbx.php
@@ -400,12 +477,39 @@ command=/usr/share/neth-hotel-fias/minibar.php
 format=DA_TI_RN_MA_M#_TA
 
 [custom_fields]
-A0='logger -t fias "Check-in room %ROOM% #%RESERVATION% Guest: %GUESTNAME% %GUESTLANGUAGE%. Custom field A0: %ARG%"'
+A0[]="/usr/bin/logger"
+A0[]="-t"
+A0[]="fias"
+A0[]="--"
+A0[]="Check-in room"
+A0[]="%ROOM%"
+A0[]="reservation"
+A0[]="%RESERVATION%"
+A0[]="guest"
+A0[]="%GUESTNAME%"
+A0[]="%GUESTLANGUAGE%"
+A0[]="custom field A0"
+A0[]="%ARG%"
 A1=
 A2=
 A3=
 
 EOF
+fi
+
+# Add the optional GG configuration to FIAS files kept in the persistent
+# Asterisk volume. Keep the legacy format active until administrators opt in.
+if ! grep -Fq 'FLRNG#GNGLGGGSSFA0A1A2A3' /etc/asterisk/fias.conf; then
+  sed -i '/^1="LR|RIGI|FLRNG#GNGLGSSFA0A1A2A3|"$/a\
+; Optional FIAS Guest Group Number (GG) support: replace the active row\
+; above with the following row to manage NethHotel room groups from GI.\
+;1="LR|RIGI|FLRNG#GNGLGGGSSFA0A1A2A3|"' /etc/asterisk/fias.conf
+fi
+if ! grep -Fq 'format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3' /etc/asterisk/fias.conf; then
+  sed -i '/^format=RN_G#_GN_GL_GS_SF_A0_A1_A2_A3$/a\
+; When GG support is enabled in the RIGI row, replace the active format\
+; above with this one. GG follows GL in the expected FIAS field order.\
+;format=RN_G#_GN_GL_GG_GS_SF_A0_A1_A2_A3' /etc/asterisk/fias.conf
 fi
 
 # configure fias
@@ -415,6 +519,7 @@ if [[ "${NETHVOICE_HOTEL}" -eq True && -n "${NETHVOICE_HOTEL_FIAS_ADDRESS}" && -
   cat > /etc/supervisor/conf.d/fias.conf <<EOF
 [program:fias]
 command=/usr/share/neth-hotel-fias/fiasd.php
+user=asterisk
 autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
@@ -426,6 +531,7 @@ stderr_logfile_backups=0
 
 [program:fiasdispatcher]
 command=/usr/share/neth-hotel-fias/dispatcher.php
+user=asterisk
 autostart=true
 autorestart=true
 stdout_logfile=/dev/stdout
@@ -438,7 +544,10 @@ EOF
 fi
 
 # migrate database
-php /initdb.d/migration.php
+if ! php /initdb.d/migration.php; then
+    echo 'Database migration failed' >&2
+    exit 1
+fi
 # update database
 php /initdb.d/update.php
 
@@ -456,6 +565,13 @@ sed -i "s/Listen 80/Listen ${APACHE_PORT}/" /etc/apache2/ports.conf
 
 # Load apache envvars
 source /etc/apache2/envvars
+
+# Asterisk 22 cannot execute the FreePBX 16 dialplan. Quarantine it until
+# freepbx_init installs all modules and generates the new Gosub dialplan.
+if grep -qE '(^|[,=])Macro(Exit)?\(' /etc/asterisk/extensions_additional.conf 2>/dev/null; then
+    cp -p /etc/asterisk/extensions_additional.conf /etc/asterisk/extensions_additional.conf.pre-freepbx17
+    printf '; Awaiting FreePBX 17 initialization\n' > /etc/asterisk/extensions_additional.conf
+fi
 
 # Install freepbx modules and apply changes after asterisk is started by supervisor
 /freepbx_init.sh &
@@ -477,5 +593,18 @@ url_encode() {
 # customize voicemail branding
 sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
 sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'\/history/' -i /etc/asterisk/voicemail.conf*
+
+# translate FREEPBX_LOG_LEVEL into the supervisord level
+case "${FREEPBX_LOG_LEVEL:-warn}" in
+    warn)  supervisord_level=warn ;;
+    info)  supervisord_level=info ;;
+    debug) supervisord_level=debug ;;
+    *)
+        echo "entrypoint: unknown FREEPBX_LOG_LEVEL '${FREEPBX_LOG_LEVEL}', using 'warn'" >&2
+        supervisord_level=warn ;;
+esac
+
+# at info supervisord reports every reaped grandchild of a cron job
+sed -i -E "s/^loglevel=.*/loglevel=${supervisord_level}/" /etc/supervisor/conf.d/supervisord.conf
 
 exec "$@"

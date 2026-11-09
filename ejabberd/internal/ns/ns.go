@@ -1,0 +1,26 @@
+// Package ns: the XMPP namespaces the chat programs speak, in one place.
+package ns
+
+const (
+	Component      = "jabber:component:accept"
+	Data           = "jabber:x:data"
+	Delay          = "urn:xmpp:delay"
+	DiscoInfo      = "http://jabber.org/protocol/disco#info"
+	Fallback       = "urn:xmpp:fallback:0"
+	Forward        = "urn:xmpp:forward:0"
+	Group          = "urn:nethesis:chat:group:0" // the chat-island's group notices
+	Hints          = "urn:xmpp:hints"
+	MAM            = "urn:xmpp:mam:2"
+	MucSub         = "urn:xmpp:mucsub:0"
+	MucSubMessages = "urn:xmpp:mucsub:nodes:messages"
+	OOB            = "jabber:x:oob"
+	Pubsub         = "http://jabber.org/protocol/pubsub"
+	Push           = "urn:xmpp:push:0"
+	RSM            = "http://jabber.org/protocol/rsm"
+	Reactions      = "urn:xmpp:reactions:0"
+	Reply          = "urn:xmpp:reply:0"
+	Retract        = "urn:xmpp:message-retract:1"
+	SID            = "urn:xmpp:sid:0"
+	Upload         = "urn:xmpp:http:upload:0"
+	VCard          = "vcard-temp"
+)

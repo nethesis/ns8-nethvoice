@@ -164,25 +164,30 @@
               :light="!isProxyConfigured"
               ref="iface"
             />
+            <label class="bx--label mb-0" v-if="isProxyConfigured">
+              {{ $t("welcome.proxy.behind_nat", { node: nodeLabel }) }}
+            </label>
+            <NsToggle
+              value="behindNat"
+              :label="
+                isProxyConfigured
+                  ? undefined
+                  : $t('welcome.proxy.behind_nat', { node: nodeLabel })
+              "
+              v-model="isBehindNat"
+              :disabled="loading.configureModule || isProxyConfigured"
+            >
+              <template v-if="!isProxyConfigured" #tooltip>
+                {{ $t("welcome.proxy.behind_nat_tooltip") }}
+              </template>
+              <template slot="text-left">{{ $t("common.disabled") }}</template>
+              <template slot="text-right">{{ $t("common.enabled") }}</template>
+            </NsToggle>
             <!-- public address -->
-            <div class="flex flex-col">
+            <div v-if="isBehindNat" class="flex flex-col">
               <div class="flex">
                 <label class="bx--label mb-0">
-                  {{
-                    `${$t("welcome.proxy.address")} (${core.$t(
-                      "common.optional"
-                    )})`
-                  }}
-                  <cv-interactive-tooltip
-                    v-if="!isProxyConfigured"
-                    alignment="start"
-                    direction="bottom"
-                    class="info relative top-0.5"
-                  >
-                    <template slot="content">
-                      {{ $t("welcome.proxy.address_tooltip") }}
-                    </template>
-                  </cv-interactive-tooltip>
+                  {{ $t("welcome.proxy.address") }}
                 </label>
                 <cv-loading
                   v-if="loading.resolveFqdn"
@@ -192,6 +197,7 @@
               </div>
               <cv-text-input
                 v-model="address"
+                :placeholder="$t('common.eg_value', { value: '203.0.113.10' })"
                 :readonly="isProxyConfigured"
                 :disabled="loading.configureModule"
                 :class="{ 'input-with-gray-bg': isProxyConfigured }"
@@ -301,6 +307,7 @@ export default {
       isLetsEncryptEnabled: false,
       isLetsEncryptCurrentlyEnabled: false,
       validationErrorDetails: [],
+      isBehindNat: false,
       address: "",
       resolvedIp: "",
       iface: "",
@@ -332,7 +339,12 @@ export default {
   computed: {
     ...mapState(["core", "instanceStatus"]),
     addressAndInterfaceDontMatch() {
-      return this.address && this.iface && this.address !== this.iface;
+      return (
+        this.isBehindNat &&
+        this.address &&
+        this.iface &&
+        this.address !== this.iface
+      );
     },
     isProxyConfigured() {
       if (
@@ -545,14 +557,23 @@ export default {
         isValidationOk = false;
       }
 
-      if (this.address && this.address === this.iface) {
-        this.error.public_address = this.$t(
-          "welcome.proxy.address_cannot_be_same_as_iface"
-        );
+      if (this.isBehindNat) {
+        if (!this.address) {
+          this.error.public_address = this.$t("common.required");
 
-        if (isValidationOk) {
-          this.focusElement("public_address");
-          isValidationOk = false;
+          if (isValidationOk) {
+            this.focusElement("public_address");
+            isValidationOk = false;
+          }
+        } else if (this.address === this.iface) {
+          this.error.public_address = this.$t(
+            "welcome.proxy.address_cannot_be_same_as_iface"
+          );
+
+          if (isValidationOk) {
+            this.focusElement("public_address");
+            isValidationOk = false;
+          }
         }
       }
       return isValidationOk;
@@ -610,7 +631,7 @@ export default {
       };
 
       // check if public_address exists and is different from local ip address
-      if (this.address && this.address !== this.iface) {
+      if (this.isBehindNat && this.address && this.address !== this.iface) {
         dataPayload.addresses.public_address = this.address;
       }
 
@@ -826,6 +847,7 @@ export default {
 
       if (this.proxyConfig.addresses.public_address) {
         this.address = this.proxyConfig.addresses.public_address;
+        this.isBehindNat = true;
       } else {
         this.resolveFqdn();
       }

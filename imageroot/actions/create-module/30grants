@@ -12,3 +12,14 @@ exec 1>&2 # ensure any output is sent to stderr
 # Allow other modules with role pbookreader to read phonebook credentials
 #
 redis-exec SADD "${AGENT_ID}/roles/pbookreader" "get-phonebook-credentials"
+
+#
+# Allow restore-module and update-module to submit only the self actions they need.
+#
+selfadm_actions=(
+    configure-module
+    get-configuration
+    set-integrations
+    set-nethvoice-hotel
+)
+redis-exec SADD "${AGENT_ID}/roles/selfadm" "${selfadm_actions[@]}"

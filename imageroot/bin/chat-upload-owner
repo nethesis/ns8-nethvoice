@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# NethVoice chat: a restore recreates the uploads volume as root; give it back to ejabberd (9000) or uploads fail.
+podman volume exists chat-upload || exit 0
+dir=$(podman volume inspect chat-upload --format '{{.Mountpoint}}')
+podman unshare sh -c '[ "$(stat -c %u "$1")" = 9000 ] || chown -R 9000:9000 "$1"' _ "$dir"

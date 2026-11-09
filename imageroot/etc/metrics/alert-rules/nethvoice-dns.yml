@@ -1,0 +1,61 @@
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# The NethVoice, CTI and proxy names must resolve on the resolver of the
+# node, the proxy name must point to the proxy public or private IP, the
+# resolver must answer, and within 3 seconds. One failure alert, the reason
+# label tells which check failed. The slow alert is only for a resolver that
+# answers correctly: a name with a failure alert never has the slow one too.
+# Series come from export-metrics (pypkg/nvmetrics/dnscheck.py) every 5
+# minutes, so "for: 15m" means 3 failed checks in a row.
+groups:
+  - name: dns
+    rules:
+      - alert: NethVoiceDnsFailure
+        expr: nethvoice_dns_resolves == 0
+        for: 15m
+        labels:
+          severity: warning
+          alertgroup: dns
+          reason: not_resolved
+        annotations:
+          summary_en: "{{ $labels.name }} does not resolve"
+          summary_it: "{{ $labels.name }} non è risolto"
+          description_en: "The DNS resolver of the node does not resolve {{ $labels.name }} ({{ $labels.role }} of {{ $labels.module_id }}): NethVoice and its clients may not reach it. Check the DNS records and the resolver configuration."
+          description_it: "Il resolver DNS del nodo non risolve {{ $labels.name }} ({{ $labels.role }} di {{ $labels.module_id }}): NethVoice e i suoi client potrebbero non raggiungerlo. Verificare i record DNS e la configurazione del resolver."
+      - alert: NethVoiceDnsFailure
+        expr: nethvoice_dns_proxy_ip_match == 0
+        for: 15m
+        labels:
+          severity: warning
+          alertgroup: dns
+          reason: ip_mismatch
+        annotations:
+          summary_en: "{{ $labels.name }} does not point to the proxy IP"
+          summary_it: "{{ $labels.name }} non punta all'IP del proxy"
+          description_en: "The DNS resolver of the node resolves {{ $labels.name }} to {{ $labels.records }}, but the proxy IP is {{ $labels.expected }}. Phones and providers may reach the wrong address. Update the DNS record."
+          description_it: "Il resolver DNS del nodo risolve {{ $labels.name }} in {{ $labels.records }}, ma l'IP del proxy è {{ $labels.expected }}. Telefoni e provider potrebbero raggiungere l'indirizzo sbagliato. Aggiornare il record DNS."
+      - alert: NethVoiceDnsFailure
+        expr: nethvoice_dns_resolver_up == 0
+        for: 15m
+        labels:
+          severity: warning
+          alertgroup: dns
+          reason: no_answer
+        annotations:
+          summary_en: "The DNS resolver does not answer for {{ $labels.name }}"
+          summary_it: "Il resolver DNS non risponde per {{ $labels.name }}"
+          description_en: "The DNS resolver of the node has not answered the queries for {{ $labels.name }} ({{ $labels.role }} of {{ $labels.module_id }}) within 5 seconds: NethVoice and its clients may not reach it, calls and registrations may fail. Check that the resolver in /etc/resolv.conf of the node is reachable and working."
+          description_it: "Il resolver DNS del nodo non ha risposto alle richieste per {{ $labels.name }} ({{ $labels.role }} di {{ $labels.module_id }}) entro 5 secondi: NethVoice e i suoi client potrebbero non raggiungerlo, chiamate e registrazioni potrebbero fallire. Verificare che il resolver in /etc/resolv.conf del nodo sia raggiungibile e funzionante."
+      - alert: NethVoiceDnsSlow
+        expr: nethvoice_dns_response_seconds > 3 unless on(module_id, node, name) (nethvoice_dns_resolves == 0 or nethvoice_dns_proxy_ip_match == 0 or nethvoice_dns_resolver_up == 0)
+        for: 15m
+        labels:
+          severity: warning
+          alertgroup: dns
+        annotations:
+          summary_en: "Slow DNS resolution of {{ $labels.name }}"
+          summary_it: "Risoluzione DNS lenta di {{ $labels.name }}"
+          description_en: "The DNS resolver of the node took {{ $value | humanize }}s to resolve {{ $labels.name }} ({{ $labels.role }} of {{ $labels.module_id }}): calls and registrations may be delayed or fail. Check the resolver configuration and its upstream servers."
+          description_it: "Il resolver DNS del nodo ha impiegato {{ $value | humanize }}s per risolvere {{ $labels.name }} ({{ $labels.role }} di {{ $labels.module_id }}): chiamate e registrazioni potrebbero subire ritardi o fallire. Verificare la configurazione del resolver e i suoi server upstream."

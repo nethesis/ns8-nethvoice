@@ -8,7 +8,7 @@
  * Controller of the nethvoiceWizardUiApp
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('DashboardCtrl', function ($rootScope, $scope, $interval, $location, DashboardService) {
+  .controller('DashboardCtrl', function ($rootScope, $scope, $interval, $location, DashboardService, UserService) {
     if ($scope.wizard.isWizard) {
       if (typeof $scope.redirectToCurrentWizardStep === 'function') {
         $scope.redirectToCurrentWizardStep();
@@ -23,6 +23,7 @@ angular.module('nethvoiceWizardUiApp')
       extensions: {},
       trunks: {},
       selExten: {},
+      selNethLink: null,
       updateInterval: undefined,
       userChangingPresenceUsername: undefined,
       userChangingPresenceName: undefined
@@ -100,7 +101,18 @@ angular.module('nethvoiceWizardUiApp')
             $scope.data.selExten.type = $scope.data.users[u].endpoints.extension[i].type;
           }
         }
-        $('#extenDetailsModal').modal('show');
+        $scope.data.selNethLink = null;
+        if ($scope.data.selExten.type && $scope.data.selExten.type.indexOf('nethlink') === 0) {
+          UserService.getNethLinkInfo(u).then(function (info) {
+            $scope.data.selNethLink = info.data || null;
+            $('#extenDetailsModal').modal('show');
+          }, function (err) {
+            console.log(err);
+            $('#extenDetailsModal').modal('show');
+          });
+        } else {
+          $('#extenDetailsModal').modal('show');
+        }
       }, function (err) {
         console.log(err);
       });

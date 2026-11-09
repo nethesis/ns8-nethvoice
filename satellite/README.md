@@ -54,6 +54,8 @@ satellite/final {"uniqueid": "1750153516.571", "summary": "- Foo 1: \"Prova\"\n-
 
 `MQTT_TOPIC_PREFIX`: satellite
 
+`LOG_LEVEL`: ${SATELLITE_LOG_LEVEL}
+
 `MQTT_USERNAME`: ${SATELLITE_MQTT_USERNAME}
 
 `DEEPGRAM_API_KEY`: ${SATELLITE_DEEPGRAM_API_KEY}
@@ -86,6 +88,10 @@ satellite/final {"uniqueid": "1750153516.571", "summary": "- Foo 1: \"Prova\"\n-
 `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED`:
 
 `SATELLITE_MQTT_USERNAME`: satellite
+
+`SATELLITE_LOG_LEVEL`: verbosity of the satellite container, `WARNING` by default.
+`INFO` restores the per-stream, per-channel and per-request lines; `DEBUG` adds more.
+The value also sets uvicorn's level, so it governs the HTTP access log too.
 
 `SATELLITE_ARI_APP`: satellite
 

@@ -88,14 +88,17 @@ function nethcti3_get_config($engine) {
                 $dbh = \FreePBX::Database();
                 $stmt = $dbh->prepare('SELECT value FROM soundlang_settings WHERE keyword = "language"');
                 $stmt->execute();
-                $res = $stmt->fetch();
+                $language = $stmt->fetchColumn();
+                if ($language === false) {
+                    $language = '';
+                }
 
                 /* set admin bridge */
                 $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'record_conference', 'yes');
-                $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'language', $res['value']);
+                $conferences_conf->addConfBridge("cti_admin_bridge_conf", 'language', $language);
 
                 /* set admin bridge */
-                $conferences_conf->addConfBridge("cti_bridge_conf", 'language', $res['value']);
+                $conferences_conf->addConfBridge("cti_bridge_conf", 'language', $language);
 
                 /* set admin user conf*/
                 $conferences_conf->addConfUser("cti_admin_user_conf", 'marked', 'yes');
@@ -146,8 +149,177 @@ function nethcti3_get_config($engine) {
             $context = 'from-pstn-asserted';
             $ext->add($context, '_X!', '', new ext_set('CALLERID(num)','${CUT(CUT(PJSIP_HEADER(read,P-Asserted-Identity),@,1),:,2)}'));
             $ext->add($context, '_X!', '', new ext_goto('from-pstn,${EXTEN},1'));
+            /* Multi-number trunks whose provider sends the called DID in P-Preferred-Identity (#8179):
+               same structure as the Core from-pstn-toheader context, falling back to the called
+               number when the channel is not PJSIP or the header is missing. */
+            $context = 'from-pstn-preferredin';
+            $ext->add($context, '_.', '', new ext_noop('Attempting to extract DID from SIP P-Preferred-Identity header'));
+            $ext->add($context, '_.', '', new ext_gotoif('$["${CHANNEL(channeltype)}"!="PJSIP"]', 'from-pstn,${EXTEN},1'));
+            $ext->add($context, '_.', '', new ext_set('PPI_DID', '${CUT(CUT(PJSIP_HEADER(read,P-Preferred-Identity),@,1),:,2)}'));
+            $ext->add($context, '_.', '', new ext_gotoif('$["${PPI_DID}"=""]', 'from-pstn,${EXTEN},1'));
+            $ext->add($context, '_.', '', new ext_goto('from-pstn,${PPI_DID},1'));
         break;
     }
+}
+
+/** Add the forwarding identity without replacing Core's loop check. */
+function nethcti3_configure_forward_identity($ext) {
+    $context = 'macro-dial-one';
+    $extension = 'cf';
+    $loopCheck = 'ExecIf($["${DB(CF/${DEXTEN})}"="${CFAMPUSER}" | "${DB(CF/${DEXTEN})}"="${REALCALLERIDNUM}" | "${CUT(CUT(BLINDTRANSFER,-,1),/,1)}" = "${DB(CF/${DEXTEN})}" | "${DEXTEN}"="${DB(CF/${DEXTEN})}"]?Return())';
+    $matches = [];
+    foreach ($ext->_exts[$context][' cf '] ?? [] as $index => $step) {
+        if ($step['cmd']->output() === $loopCheck) {
+            $matches[] = $index;
+        }
+        if (($step['tag'] ?? '') === 'nethvoice-cf-destination') {
+            return;
+        }
+    }
+    if (count($matches) !== 1) {
+        error_log('NethCTI: Cannot find the Core call-forward loop check; skipping forwarding identity hook');
+        return;
+    }
+
+    // splice() takes a zero-based position, unlike replace() priorities.
+    $position = $matches[0] + 1;
+    $ext->splice($context, $extension, (string) $position, new ext_set('NETHVOICE_CF_DEST', '${DB(CF/${DEXTEN})}'), 'nethvoice-cf-destination');
+    $ext->splice($context, $extension, (string) ($position + 1), new ext_execif('$["${CFIGNORE}"="" & "${NETHVOICE_CF_DEST}"!="" & "${NETHVOICE_CF_DEST:0:2}"!="vm" & "${DB(AMPUSER/${NETHVOICE_CF_DEST}/cidnum)}"=""]', 'Set', '__REALCALLERIDNUM=${DEXTEN}'), 'nethvoice-cf-identity');
+}
+
+/** Preserve the TIM Answer/Ringing response on the forwarding path (#7321). */
+function nethcti3_configure_forward_progress($ext) {
+    $matches = [];
+    foreach ($ext->_exts['macro-dial-one'][' cf '] ?? [] as $index => $step) {
+        if (($step['tag'] ?? '') === 'nethvoice-cf-answer') {
+            return;
+        }
+        if ($step['cmd']->output() === 'ExecIf($["${DEXTEN}"!=""]?Return())') {
+            $matches[] = $index;
+        }
+    }
+    if (count($matches) !== 1) {
+        error_log('NethCTI: Cannot find the Core call-forward return; skipping TIM progress hook');
+        return;
+    }
+    $ext->splice('macro-dial-one', 'cf', (string) $matches[0], new ext_answer(), 'nethvoice-cf-answer');
+    $ext->splice('macro-dial-one', 'cf', (string) ($matches[0] + 1), new ext_ringing());
+}
+
+/** Keep the transferer identity instead of the outbound CID on the consultation leg of DTMF/AMI attended transfers. */
+function nethcti3_configure_attended_transfer_colp($ext) {
+    $tag = 'nethvoice-atxfer-colp';
+    $context = 'macro-user-callerid';
+    $steps = $ext->_exts[$context][' s '] ?? [];
+    if (in_array($tag, array_column($steps, 'tag'), true)) {
+        return;
+    }
+    $commands = array_map(fn($step) => $step['cmd']->output(), $steps);
+    $identity = array_search('ExecIf($["${REALCALLERIDNUM:1:2}" = ""]?Set(REALCALLERIDNUM=${CALLERID(number)}))', $commands, true);
+    $callerid = array_search('Set(CALLERID(all)="${AMPUSERCIDNAME}" <${AMPUSERCID}>)', $commands, true);
+    if ($identity === false || $callerid === false || $callerid < $identity) {
+        error_log('NethCTI: Cannot find the Core identity steps of macro-user-callerid; skipping the attended transfer identity hook');
+        return;
+    }
+    // The transferer device is in TRANSFERERNAME (e.g. PJSIP/201-00000012): resolve it before Core computes the
+    // identity, so CALLERID, cnum/cnam and the connected line announced to the transferer follow the Core rules.
+    $device = '${CUT(CUT(TRANSFERERNAME,/,2),-,1)}';
+    $consultation = '$["${TRANSFERERNAME}" != "" & "${DB(DEVICE/' . $device . '/user)}" != ""]';
+    $ext->splice($context, 's', (string) ($callerid + 1), new ext_execif($consultation, 'Set', '__NV_ATXFER_IDENTITY=${CALLERID(all)}'));
+    $ext->splice($context, 's', (string) $identity, new ext_execif($consultation, 'Set', 'REALCALLERIDNUM=' . $device), $tag);
+    $ext->splice($context, 's', (string) ($identity + 1), new ext_execif($consultation, 'Set', '__NV_ATXFER_TRANSFERER=${TRANSFERERNAME}'));
+    $ext->splice($context, 's', (string) ($identity + 2), new ext_execif($consultation, 'Set', '__CONNECTED_LINE_SEND_SUB=nethvoice-atxfer-colp,s,1'));
+    // Core makes Dial() ignore connected line updates on inbound calls (option I): on this leg the subroutine below
+    // takes care of them, and the one carrying the original caller when the transfer completes before the answer
+    // must reach the target.
+    $ext->splice('macro-dial-one', 's', 'dial', new ext_execif($consultation, 'Set', 'D_OPTIONS=${STRREPLACE(D_OPTIONS,I)}'), $tag);
+    // Connected line updates reaching the devices called by the consultation leg: the one mirroring the transferer
+    // channel CALLERID (rewritten by macro-outbound-callerid) is replaced by the restored identity, any other one
+    // (the original caller once the transfer completes) goes through untouched.
+    $sub = 'nethvoice-atxfer-colp';
+    $ext->add($sub, 's', '', new ext_gotoif('$["${CHANNEL(channeltype)}" = "Local"]', 'check'));
+    $ext->add($sub, 's', '', new ext_gotoif('$["${DB(DEVICE/${CHANNEL(endpoint)}/user)}" = ""]', 'end'));
+    $ext->add($sub, 's', 'check', new ext_execif('$["${CONNECTEDLINE(num)}" != "" & "${CONNECTEDLINE(num)}" = "${IMPORT(${NV_ATXFER_TRANSFERER},CALLERID(num))}"]', 'Set', 'CONNECTEDLINE(all,i)=${NV_ATXFER_IDENTITY}'));
+    $ext->add($sub, 's', 'end', new ext_return());
+}
+
+function nethcti3_is_route_context($context) {
+    return $context === 'outbound-allroutes' || strpos($context, 'outrt-') === 0;
+}
+
+function nethcti3_reaches_routes($ext, $context, $seen = []) {
+    $seen[$context] = true;
+    foreach ($ext->_includes[$context] ?? [] as $include) {
+        $name = $include['include'];
+        if (nethcti3_is_route_context($name) || (!isset($seen[$name]) && nethcti3_reaches_routes($ext, $name, $seen))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/** Return the contexts included by $context without the outbound routes, expanding the ones that include them. */
+function nethcti3_internal_includes($ext, $context, &$seen = []) {
+    $includes = [];
+    foreach ($ext->_includes[$context] ?? [] as $include) {
+        $name = $include['include'];
+        if (nethcti3_is_route_context($name) || isset($seen[$name])) {
+            continue;
+        }
+        $seen[$name] = true;
+        if (nethcti3_reaches_routes($ext, $name)) {
+            $includes = array_merge($includes, nethcti3_internal_includes($ext, $name, $seen));
+        } else {
+            $includes[] = $name;
+        }
+    }
+    return $includes;
+}
+
+/** Send external transfer destinations through the transferer's profile, like the transferer's own calls (#7742). */
+function nethcti3_configure_transfer_profile($ext) {
+    $sub = 'func-nethvoice-transfer-context';
+    if (isset($ext->_exts[$sub])) {
+        return;
+    }
+    $dest = 'from-internal-xfer-dest';
+    $dial = 'Dial(Local/${EXTEN}@from-internal-xfer/n,,${DIAL_OPTIONS})';
+    $found = false;
+    foreach ($ext->_exts[$dest] ?? [] as $extension => $steps) {
+        foreach ($steps as $index => $step) {
+            if ($step['cmd']->output() !== $dial) {
+                continue;
+            }
+            // Keep Dial() right after the subroutine: the transferred leg CDR must still see a dial.
+            $ext->_exts[$dest][$extension][$index]['cmd'] = new ext_dial('Local/${EXTEN}@${NETHVOICE_TRANSFER_CONTEXT}/n', ',${DIAL_OPTIONS}');
+            $ext->splice($dest, trim($extension), (string) $index, new ext_gosub(1, 's', 'func-nethvoice-transfer-context', '${EXTEN}'));
+            $found = true;
+        }
+    }
+    if (!$found) {
+        error_log('NethCTI: Cannot find the Core transfer destination dial; skipping the transfer profile hook');
+        return;
+    }
+
+    // Destinations a transfer reaches without the outbound routes: these keep the transfer context.
+    // from-internal-xfer (extensions.conf) includes from-internal-custom and from-internal-additional.
+    $internal = 'nethvoice-xfer-internal';
+    $ext->addInclude($internal, 'from-internal-custom');
+    foreach (nethcti3_internal_includes($ext, 'from-internal-additional') as $include) {
+        $ext->addInclude($internal, $include);
+    }
+    // FreePBX writes only the contexts that have extensions.
+    $ext->add($internal, 'h', '', new ext_hangup());
+
+    // ARG1: destination. The transferer is TRANSFERERNAME on attended transfers, BLINDTRANSFER on blind ones.
+    $ext->add($sub, 's', '', new ext_set('NETHVOICE_TRANSFER_CONTEXT', 'from-internal-xfer'));
+    $ext->add($sub, 's', '', new ext_gotoif('$[${DIALPLAN_EXISTS(' . $internal . ',${ARG1},1)}]', 'done'));
+    $ext->add($sub, 's', '', new ext_set('LOCAL(transferer)', '${IF($["${TRANSFERERNAME}"!=""]?${TRANSFERERNAME}:${BLINDTRANSFER})}'));
+    $ext->add($sub, 's', '', new ext_set('LOCAL(owner)', '${CUT(CUT(transferer,/,2),-,1)}'));
+    $ext->add($sub, 's', '', new ext_gotoif('$["${owner}" = "" | "${DB(DEVICE/${owner}/user)}" = ""]', 'done'));
+    $ext->add($sub, 's', '', new ext_gosub(1, 's', 'func-nethvoice-forward-context', '${owner}'));
+    $ext->add($sub, 's', '', new ext_execif('$["${NETHVOICE_FORWARD_CONTEXT}" != "" & "${NETHVOICE_FORWARD_CONTEXT}" != "from-internal"]', 'Set', 'NETHVOICE_TRANSFER_CONTEXT=${NETHVOICE_FORWARD_CONTEXT}'));
+    $ext->add($sub, 's', 'done', new ext_return());
 }
 
 function nethcti3_get_config_late($engine) {
@@ -156,8 +328,8 @@ function nethcti3_get_config_late($engine) {
     global $db;
     switch($engine) {
         case "asterisk":
-            /* Change CF for CTI voicemail status */
-            $ext->replace('macro-dial-one', 'cf', '2', new ext_execif('$["${DB(AMPUSER/${DB_RESULT}/cidnum)}" == "" && "${DB_RESULT:0:2}" != "vm"]', 'Set','__REALCALLERIDNUM=${DEXTEN}'));
+            nethcti3_configure_forward_identity($ext);
+            nethcti3_configure_transfer_profile($ext);
 
             /* get featurecodes */
             $query='SELECT featurename,IF(customcode IS NULL OR customcode = "",defaultcode,customcode) as defaultcode FROM featurecodes WHERE ( modulename="nethcti3" OR modulename="donotdisturb" ) AND ( featurename="que_toggle") AND enabled="1"';
@@ -186,14 +358,18 @@ function nethcti3_get_config_late($engine) {
             if (!isset($amp_conf['ATX_CID_OVERRIDE']) || $amp_conf['ATX_CID_OVERRIDE'] == 1) {
                 $ext->splice('macro-dial-one','s','dial', new ext_execif('$["${DB(AMPUSER/${ARG3}/cidname)}" != "" && "${DB(AMPUSER/${CALLERID(num)}/cidname)}" = "" && "${ATTENDEDTRANSFER}" != "" && "${DB(AMPUSER/${FROMEXTEN}/cidname)}" != ""]', 'Set', 'CALLERID(num)=${DB(AMPUSER/${FROMEXTEN}/cidnum)}'),'',-1);
                 $ext->splice('macro-dial-one','s','dial', new ext_execif('$["${DB(AMPUSER/${CALLERID(num)}/cidname)}" != "" && "${ATTENDEDTRANSFER}" != ""]', 'Set', 'CALLERID(name)=${DB(AMPUSER/${CALLERID(num)}/cidname)}'),'',-1);
+                nethcti3_configure_attended_transfer_colp($ext);
             }
             $nethcti3 = \FreePBX::Nethcti3();
             $trunks = FreePBX::Core()->listTrunks();
+            $add_unset_topos = false;
+            $add_unset_istrunk = false;
             foreach ($trunks as $trunk) {
                 try {
                     /*Add isTrunk = 1 header to VoIP trunks that doesn't require SRTP encryption*/
                     $disable_srtp_header = $nethcti3->getConfig('disable_srtp_header', $trunk['trunkid']);
                     if ($disable_srtp_header==1) {
+                        $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_execif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'Set', '__FROMMACRODIALOUTTRUNK=1'),'',6);
                         $ext->splice('macro-dialout-trunk', 's', 'gocall', new ext_gosubif('$["${DIAL_TRUNK}" = "' . $trunk['trunkid'] . '"]', 'func-set-sipheader,s,1', false, 'isTrunk,1'),'',6);
                         $add_unset_istrunk = true;
                     }
@@ -220,10 +396,11 @@ function nethcti3_get_config_late($engine) {
         $no_srtp_extensions = array_column($res, 'extension');
         // add FROMMACRODIALONE variable before the Dial() in macro-dial-one
         $ext->splice('macro-dial-one', 's', 'dial', new ext_setvar('__FROMMACRODIALONE','1'), '',0);
+        $ext->splice('macro-dial-one', 's', 'dial', new ext_setvar('__FROMMACRODIALOUTTRUNK','0'), '',0);
         if (!empty($no_srtp_extensions)) {
-            // add isTrunk header to calls to extensions with encryption disabled
-            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x1x]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), '',2);
-            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x0x]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',3);
+            // Only apply the extension SRTP guardrails to extension legs, never to outbound trunk legs.
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x1x]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), '',2);
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x0x]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',3);
         }
 
         /* Add inboundlookup agi for each inbound routes*/
@@ -394,8 +571,7 @@ function nethcti3_get_config_late($engine) {
         /* Change SIP response for unregistered extensions #7321*/
         $ext->replace('macro-exten-vm', '_s-!', '4', new extension('HangUp(20)'));
         /* Add Answer() and Ringing() to macro-dial-one on call forwarding #7321*/
-        $ext->splice('macro-dial-one', 'cf', '', new ext_answer(), '', 7);
-        $ext->splice('macro-dial-one', 'cf', '', new ext_ringing(), '', 8);
+        nethcti3_configure_forward_progress($ext);
         break;
     }
 
@@ -411,8 +587,9 @@ function nethcti3_get_config_late($engine) {
         $users = \FreePBX::create()->Userman->getAllUsers();
         $dbh = \FreePBX::Database();
         $freepbxVoicemails = \FreePBX::Voicemail()->getVoicemail();
-        $enabledVoicemails = ($freepbxVoicemails['default'] != null) ? array_keys($freepbxVoicemails['default']) : array();
-        $domainName = end(explode('.', gethostname(), 2));
+        $enabledVoicemails = !empty($freepbxVoicemails['default']) ? array_keys($freepbxVoicemails['default']) : array();
+        $hostnameParts = explode('.', gethostname(), 2);
+        $domainName = end($hostnameParts);
         $enableJanus = false;
 
         foreach ($users as $user) {
@@ -422,10 +599,10 @@ function nethcti3_get_config_late($engine) {
                     // Retrieve profile id and mobile
                     $stmt = $dbh->prepare('SELECT profile_id,mobile FROM rest_users WHERE user_id = ?');
                     $stmt->execute(array($user['id']));
-                    $profileRes = $stmt->fetch();
+                    $profileRes = $stmt->fetch(\PDO::FETCH_ASSOC);
 
                     // Skip user if he doesn't have a profile associated
-                    if ($profileRes['profile_id'] == null) {
+                    if (!is_array($profileRes) || empty($profileRes['profile_id'])) {
                         continue;
                     }
 
@@ -463,7 +640,7 @@ function nethcti3_get_config_late($engine) {
                                 $stmt->execute(array($e['extension']));
                                 $sipres = $stmt->fetchAll();
 
-                                if ($sipres[0]['data'] && $sipres[1]['data']) {
+                                if (count($sipres) >= 2 && !empty($sipres[0]['data']) && !empty($sipres[1]['data'])) {
                                     $settings['user'] = $sipres[0]['data'];
                                     $settings['password'] = $sipres[1]['data'];
                                 } else {
@@ -493,8 +670,10 @@ function nethcti3_get_config_late($engine) {
                     // Join configuration
                     $userJson = array(
                         'name' => $user['displayname'],
+                        'firstname' => isset($user['fname']) ? (string)$user['fname'] : '',
+                        'lastname' => isset($user['lname']) ? (string)$user['lname'] : '',
                         'endpoints' => $endpoints,
-                        'profile_id' => $profileRes['profile_id']
+                        'profile_id' => (string) $profileRes['profile_id']
                     );
 
                     $json[preg_replace('/@[\.a-zA-Z0-9]*/','',$user['username'])] = $userJson;
@@ -513,9 +692,11 @@ function nethcti3_get_config_late($engine) {
         }
 
         // Write operator.json configuration file
+        $out = [];
         $results = getCTIGroups();
-        if (!$results) {
-            error_log('Empty operator config');
+        if ($results === false) {
+            error_log('Failed to load CTI groups for operator config');
+            $results = [];
         }
         foreach ($results as $r) {
             $out[$r['name']][] = $r['username'];
@@ -532,13 +713,30 @@ function nethcti3_get_config_late($engine) {
         */
         $out = [];
         $results = getCTIPermissionProfiles(false,true,false);
-        if (!$results) {
-            error_log('Empty profile config');
+        if ($results === false) {
+            error_log('Failed to load CTI profiles for profiles config');
+            $results = [];
         }
         foreach ($results as $r) {
             // Add oppanel waiting queue
             if ($r['macro_permissions']['operator_panel']['value']) {
                 $r['macro_permissions']['operator_panel']['permissions'][] = array('name' => 'waiting_queue_'.$r['id'], 'value' => true);
+            }
+
+            $r['id'] = (string) $r['id'];
+            foreach ($r['macro_permissions'] as $macroPermissionName => $macroPermission) {
+                foreach ($macroPermission['permissions'] as $permissionIndex => $permission) {
+                    if (isset($permission['id'])) {
+                        $r['macro_permissions'][$macroPermissionName]['permissions'][$permissionIndex]['id'] = (string) $permission['id'];
+                    }
+                }
+            }
+            if (isset($r['outbound_routes_permissions'])) {
+                foreach ($r['outbound_routes_permissions'] as $routeIndex => $routePermission) {
+                    if (isset($routePermission['route_id'])) {
+                        $r['outbound_routes_permissions'][$routeIndex]['route_id'] = (string) $routePermission['route_id'];
+                    }
+                }
             }
 
             $out[$r['id']] = $r;
@@ -571,10 +769,14 @@ function nethcti3_get_config_late($engine) {
         $sth->execute();
         $results = $sth->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$results) {
-            error_log('Empty profile config');
+        if ($results === false) {
+            error_log('Failed to load CTI streaming config');
+            $results = [];
         }
         foreach ($results as $r) {
+            foreach ($r as $key => $value) {
+                if ($value !== null) { $r[$key] = (string) $value; }
+            }
             $pername = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$r['descr'])));
             $out[$pername] = $r;
         }
@@ -666,23 +868,23 @@ function nethcti3_get_config_early($engine) {
     $variables = array();
 
     //featurcodes
-    $variables['cftimeouton'] = $featurecodes['callforwardcfuon'];
-    $variables['cftimeoutoff'] = $featurecodes['callforwardcfuoff'];
-    $variables['cfbusyoff'] = $featurecodes['callforwardcfboff'];
-    $variables['cfbusyon'] = $featurecodes['callforwardcfbon'];
-    $variables['cfalwaysoff'] = $featurecodes['callforwardcfoff'];
-    $variables['cfalwayson'] = $featurecodes['callforwardcfon'];
-    $variables['dndoff'] = $featurecodes['donotdisturbdnd_off'];
-    $variables['dndon'] = $featurecodes['donotdisturbdnd_on'];
-    $variables['dndtoggle'] = $featurecodes['donotdisturbdnd_toggle'];
-    $variables['call_waiting_off'] = $featurecodes['callwaitingcwoff'];
-    $variables['call_waiting_on'] = $featurecodes['callwaitingcwon'];
-    $variables['pickup_direct'] = $featurecodes['corepickup'];
-    $variables['pickup_group'] = $featurecodes['corepickupexten'];
-    $variables['queuetoggle'] = $featurecodes['queuesque_toggle'];
+    $variables['cftimeouton'] = $featurecodes['callforwardcfuon'] ?? '';
+    $variables['cftimeoutoff'] = $featurecodes['callforwardcfuoff'] ?? '';
+    $variables['cfbusyoff'] = $featurecodes['callforwardcfboff'] ?? '';
+    $variables['cfbusyon'] = $featurecodes['callforwardcfbon'] ?? '';
+    $variables['cfalwaysoff'] = $featurecodes['callforwardcfoff'] ?? '';
+    $variables['cfalwayson'] = $featurecodes['callforwardcfon'] ?? '';
+    $variables['dndoff'] = $featurecodes['donotdisturbdnd_off'] ?? '';
+    $variables['dndon'] = $featurecodes['donotdisturbdnd_on'] ?? '';
+    $variables['dndtoggle'] = $featurecodes['donotdisturbdnd_toggle'] ?? '';
+    $variables['call_waiting_off'] = $featurecodes['callwaitingcwoff'] ?? '';
+    $variables['call_waiting_on'] = $featurecodes['callwaitingcwon'] ?? '';
+    $variables['pickup_direct'] = $featurecodes['corepickup'] ?? '';
+    $variables['pickup_group'] = $featurecodes['corepickupexten'] ?? '';
+    $variables['queuetoggle'] = $featurecodes['queuesque_toggle'] ?? '';
 
     // FreePBX settings
-    $variables['cftimeout'] = $amp_conf['CFRINGTIMERDEFAULT'];
+    $variables['cftimeout'] = $amp_conf['CFRINGTIMERDEFAULT'] ?? '';
 
     /*********************
     * Extension specific *
@@ -715,6 +917,10 @@ function nethcti3_get_config_early($engine) {
     $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
     $stmt->execute(array($user));
     $user = $stmt->fetchAll();
+    if (empty($user)) {
+        error_log('Failed to find the FreePBX admin user for Tancredi configuration');
+        return;
+    }
     $password_sha1 = $user[0]['password_sha1'];
     $username = $user[0]['username'];
     $secretkey = sha1($username . $password_sha1 . $secret);
@@ -723,6 +929,11 @@ function nethcti3_get_config_early($engine) {
     foreach ($extdata as $ext) {
         $extension = $ext['extension'];
         $mainextension = $ext['mainextension'];
+
+        $deviceMac = $ext['mac'] ?? '';
+        if ($deviceMac === '') {
+            continue;
+        }
 
         // Get extension sip parameters
         $sql = 'SELECT keyword,data FROM sip WHERE id = ?';
@@ -741,11 +952,11 @@ function nethcti3_get_config_early($engine) {
         $user_variables['account_dnd_allow_1'] = '1';
         $user_variables['account_fwd_allow_1'] = '1';
         if (array_key_exists('profile_id',$ext)
-            && is_array($permission)
-            && array_key_exists($ext['profile_id'],$permission)
+            && is_array($permissions)
+            && array_key_exists($ext['profile_id'],$permissions)
             && array_key_exists('macro_permissions',$permissions[$ext['profile_id']])
             && array_key_exists('settings',$permissions[$ext['profile_id']]['macro_permissions'])
-            && array_key_exists('permissions',$$permissions[$ext['profile_id']]['macro_permissions']['settings']))
+            && array_key_exists('permissions',$permissions[$ext['profile_id']]['macro_permissions']['settings']))
         {
             foreach ($permissions[$ext['profile_id']]['macro_permissions']['settings']['permissions'] as $permission) {
                 if ($permission['name'] == 'dnd') {
@@ -773,7 +984,7 @@ function nethcti3_get_config_early($engine) {
         }
 
         $user_variables['account_username_1'] = $extension;
-        $user_variables['account_password_1'] = $sip['secret'];
+        $user_variables['account_password_1'] = $sip['secret'] ?? ($ext['secret'] ?? '');
         $user_variables['account_dtmf_type_1'] = 'rfc4733';
         if (array_key_exists('dtmfmode',$sip)) {
             if ($sip['dtmfmode'] == 'inband') $user_variables['account_dtmf_type_1'] = 'inband';
@@ -781,8 +992,8 @@ function nethcti3_get_config_early($engine) {
             elseif ($sip['dtmfmode'] == 'info') $user_variables['account_dtmf_type_1'] = 'sip_info';
             elseif ($sip['dtmfmode'] == 'rfc4733') $user_variables['account_dtmf_type_1'] = 'rfc4733';
         }
-        $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'];
-        $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$ext['mac']), $username, $secretkey, array("variables" => $user_variables));
+        $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'] ?? '';
+        $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$deviceMac), $username, $secretkey, array("variables" => $user_variables));
     }
     /***********************************
     * call Tancredi /defaults REST API *
@@ -826,7 +1037,15 @@ function nethvoice_report_config() {
     $users = array();
     $queues = array();
     $groups = getCTIGroups();
+    if ($groups === false) {
+        error_log('Failed to load CTI groups for nethvoice report');
+        $groups = array();
+    }
     $profiles = getCTIPermissionProfiles();
+    if ($profiles === false) {
+        error_log('Failed to load CTI profiles for nethvoice report');
+        $profiles = array();
+    }
 
     // Add special X and admin users for API access
     $config = array(
@@ -838,14 +1057,17 @@ function nethvoice_report_config() {
     foreach (\FreePBX::Queues()->listQueues() as $q) {
         $queues[$q[0]] = array();
         $queue_details = queues_get($q[0]);
-        foreach (explode(PHP_EOL,$queue_details['dynmembers']) as $m) {
+        if (!is_array($queue_details)) {
+            continue;
+        }
+        foreach (explode(PHP_EOL, $queue_details['dynmembers'] ?? '') as $m) {
             // $m format is 201,0
             $tmp = explode(",",$m);
             if ($tmp[0]) {
                 $queues[$q[0]][] = $tmp[0];
             }
         }
-        foreach($queue_details['member'] as $m) {
+        foreach($queue_details['member'] ?? array() as $m) {
             // $m format Local/200@from-queue/n,0
             $tmp = explode("@",$m);
             $tmp = explode("/",$tmp[0]);
@@ -891,16 +1113,20 @@ function nethvoice_report_config() {
         // Get user permission profile
         $stmt = $dbh->prepare('SELECT profile_id FROM rest_users WHERE user_id = ?');
         $stmt->execute(array($user_id));
-        $profileRes = $stmt->fetch();
+        $profileRes = $stmt->fetch(\PDO::FETCH_ASSOC);
         // Skip user if he doesn't have a profile associated
-        if ($profileRes['profile_id'] == null) {
+        if (!is_array($profileRes) || empty($profileRes['profile_id'])) {
             continue;
         }
+        $profile = null;
         foreach ($profiles as $p) {
             if ($p['id'] === $profileRes['profile_id']) {
                 $profile = $p;
                 break;
             }
+        }
+        if ($profile === null) {
+            continue;
         }
 
         // Check if user has privacy permission enabled
@@ -929,7 +1155,7 @@ function nethvoice_report_config() {
                 // Add queue to user queues list
                 $user['queues'][] = $queue_name;
                 // Add agent displaynames from queues
-                foreach ($queues[$queue_name] as $member_extension) {
+                foreach ($queues[$queue_name] ?? array() as $member_extension) {
                     if (isset($ext2user[$member_extension])) {
                         $user['agents'][] = $ext2user[$member_extension];
                     }
@@ -967,7 +1193,7 @@ function nethvoice_report_config() {
                         if ($group["username"] == $username) {
                             $user["groups"][] = $group["name"];
                             foreach ($groups as $g) {
-                                if($g["name"] == $group["name"]) {
+                                if($g["name"] == $group["name"] && isset($g["id"])) {
                                     foreach ($res_devices as $device) {
                                         if ($g["id"] == $device["user_id"]) {
                                             $user["users"][] = $device["extension"];

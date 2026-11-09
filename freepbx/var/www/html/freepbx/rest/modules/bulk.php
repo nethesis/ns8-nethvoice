@@ -39,7 +39,7 @@ $app->get('/contexts', function (Request $request, Response $response, $args) {
     if (!$results) {
         return $response->withStatus(500);
     }
-    return $response->withJson($results,200);
+    return jsonResponse($response, $results,200);
 });
 
 $blkfunc = array('displayname',
@@ -93,7 +93,7 @@ $app->get('/bulk/{mainextensions}', function (Request $request, Response $respon
             $r[$action] = $oldValue;
         }
     }
-    return $response->withJson($r,200);
+    return jsonResponse($response, $r,200);
 });
 
 /*GET /destinations  - return FreePBX available destinations*/
@@ -106,7 +106,7 @@ $app->get('/destinations', function (Request $request, Response $response, $args
     include_once('/var/www/html/freepbx/admin/modules/timeconditions/functions.inc.php');
     include_once('/var/www/html/freepbx/admin/modules/voicemail/functions.inc.php');
     $destinations = drawselects('app-blackhole,hangup,1','unavailable_destination',false,false,'',false,true,true);
-    return $response->withJson($destinations,200);
+    return jsonResponse($response, $destinations,200);
 });
 
 /* POST /bulk/200,201,202,... 
@@ -129,9 +129,12 @@ $app->post('/bulk/{mainextensions}', function (Request $request, Response $respo
         $route = $request->getAttribute('route');
         $mainextensions = explode(',',$route->getArgument('mainextensions'));
         $params = $request->getParsedBody();
-        $status = true;
+        if (!is_array($params)) {
+            return jsonResponse($response, array('status' => false, 'error' => 'Invalid request body'), 400);
+        }
+        $err = '';
         foreach ($params as $action => $data) {
-            if (in_array($action,$blkfunc)) {
+            if (in_array($action,$blkfunc,true)) {
                 $function = 'post_'.$action;
                 $res = $function($mainextensions,$data);
                 if ($res !== true) {
@@ -142,21 +145,26 @@ $app->post('/bulk/{mainextensions}', function (Request $request, Response $respo
         //outboundcid
         if (isset($params['outboundcid_fixed']) && !is_null($params['outboundcid_fixed'])) {
             if (!isset($params['outboundcid_variable']) || $params['outboundcid_variable'] == 0 || $params['outboundcid_variable'] == '') {
-                post_outboundcid($mainextensions,$params['outboundcid_fixed']);
+                $res = post_outboundcid($mainextensions,$params['outboundcid_fixed']);
+                if ($res !== true) {
+                    $err .= $res."\n";
+                }
             } else {
                 foreach ($mainextensions as $mainextension) {
-                     post_outboundcid(array($mainextension), $params['outboundcid_fixed'].substr($mainextension,-$params['outboundcid_variable']));
+                    $res = post_outboundcid(array($mainextension), $params['outboundcid_fixed'].substr($mainextension,-$params['outboundcid_variable']));
+                    if ($res !== true) {
+                        $err .= $res."\n";
+                    }
                 }
             }
         }
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        if (isset($err)) {
+        if ($err !== '') {
             throw new Exception($err);
         }
-        return $response->withJson(array('status' => true), 200);
-    } catch (Exception $e) {
+        return jsonResponse($response, array('status' => true), 200);
+    } catch (Throwable $e) {
         error_log($e->getMessage());
-        return $response->withJson(array("status"=>$e->getMessage()), 500);
+        return jsonResponse($response, array('status' => false, 'error' => 'Unable to apply bulk settings'), 500);
     }
 });
-

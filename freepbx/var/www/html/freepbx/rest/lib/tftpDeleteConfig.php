@@ -26,7 +26,10 @@ try {
     $bootstrap_settings['freepbx_error_handler'] = false;
     define('FREEPBX_IS_AUTH',1);
     $tftpdir = "/var/lib/tftpboot";
-    $name = $argv[1];
+    $name = $argv[1] ?? '';
+    if ($name === '') {
+        throw new InvalidArgumentException('Missing gateway name');
+    }
 
     $sql = "SELECT `id`,`model_id`,`ipv4`,`ipv4_new`,`gateway`,`mac` FROM `gateway_config` WHERE `name` = ?";
     $prep = array($name);
@@ -42,13 +45,15 @@ try {
     $config = $sth->fetch(\PDO::FETCH_ASSOC);
     if ($config === false){
         /*Configuration doesn't exist*/
-        error_log("Configuration not found");
-        exit(1);
+        throw new RuntimeException('Gateway configuration not found');
     }
     $sql = "SELECT `model`,`manufacturer` FROM `gateway_models` WHERE `id` = ?";
     $sth = FreePBX::Database()->prepare($sql);
     $sth->execute(array($config['model_id']));
     $res = $sth->fetch(\PDO::FETCH_ASSOC);
+    if ($res === false) {
+        throw new RuntimeException('Gateway model not found');
+    }
     $config['model'] = $res['model'];
     $config['manufacturer'] = $res['manufacturer'];
 
@@ -56,12 +61,19 @@ try {
         $config['mac'] = 'AAAAAAAAAAAA';
     }
     if ($config['manufacturer'] == 'Sangoma'){
-        unlink($tftpdir."/".preg_replace('/:/','',$config['mac'])."config.txt");
-        unlink($tftpdir."/".preg_replace('/:/','',$config['mac'])."script.txt");
+        $files = array(
+            $tftpdir."/".preg_replace('/:/','',$config['mac'])."config.txt",
+            $tftpdir."/".preg_replace('/:/','',$config['mac'])."script.txt",
+        );
     } else {
-        unlink($tftpdir."/".preg_replace('/:/','',$config['mac']).".cfg");
+        $files = array($tftpdir."/".preg_replace('/:/','',$config['mac']).".cfg");
     }
-} catch (Exception $e){
+    foreach ($files as $file) {
+        if (is_file($file) && !unlink($file)) {
+            throw new RuntimeException("Unable to delete gateway configuration: $file");
+        }
+    }
+} catch (Throwable $e){
         error_log($e->getMessage());
         exit(1);
 

@@ -12,3 +12,9 @@ Timezone must be part of the accepted list
     ...    {"nethvoice_host": "voice.ns8.local", "nethcti_ui_host": "cti.ns8.local", "user_domain": "${users_domain}", "reports_international_prefix": "+39", "timezone": "Mars/Phobos"}
     ...    rc_expected=2    decode_json=False
     Should Contain    ${response}    timezone_not_available
+
+Hostnames differing only in case are rejected
+    ${response} =  Run task    module/${module_id}/configure-module
+    ...    {"nethvoice_host": "Same.ns8.local", "nethcti_ui_host": "sAME.NS8.LOCAL", "user_domain": "${users_domain}", "reports_international_prefix": "+39"}
+    ...    rc_expected=2    decode_json=False
+    Should Contain    ${response}    same_host

@@ -43,8 +43,11 @@ if (empty($arguments['RO'])) {
 if (empty($arguments['G#'])) {
     $query = "SELECT reservation_number FROM `reservations` WHERE `room_number`= ?";
     $sth = $fiasdb->prepare($query);
-    $sth->execute(array($old_room_number));
-    $arguments['G#'] = $sth->fetchAll()[0][0];
+    $sth->execute(array($arguments['RO']));
+    $reservation_number = $sth->fetchColumn();
+    if ($reservation_number !== false) {
+        $arguments['G#'] = $reservation_number;
+    }
 }
 
 if (!insertMessageIntoDB($section,$arguments)) {

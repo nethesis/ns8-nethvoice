@@ -2,7 +2,7 @@
 # Watch for files named <action>_<service>
 #
 [Path]
-PathExistsGlob=%S/state/notify/*_*
+PathExistsGlob=%E/state/notify/*_*
 
 [Install]
 WantedBy=default.target

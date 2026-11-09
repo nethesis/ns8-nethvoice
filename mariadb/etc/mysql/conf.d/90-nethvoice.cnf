@@ -1,0 +1,7 @@
+# Keep the collation defaults of MariaDB 10.11. From 11.5 the server
+# defaults to the uca1400 collations: tables created without an explicit
+# collation would not compare with the existing ones ("Illegal mix of
+# collations").
+[mariadbd]
+collation-server = utf8mb4_general_ci
+character-set-collations = utf8mb3=utf8mb3_general_ci,utf8mb4=utf8mb4_general_ci

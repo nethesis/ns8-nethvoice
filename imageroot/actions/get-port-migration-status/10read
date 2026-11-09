@@ -1,0 +1,25 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Return the last service-port migration mapping (old -> new), recorded by
+# update-module.d/20allocate_ports when an update moved the client-facing ports.
+# The Status page shows it as a banner so the admin can update any external
+# firewall/NAT/trunk rule that still points to the old ports.
+
+import json
+import os
+import sys
+
+report = os.environ.get("PORTS_MIGRATION_REPORT", "")
+seen = os.environ.get("PORTS_MIGRATION_SEEN", "1")
+
+try:
+    migration = json.loads(report) if report else []
+except (ValueError, TypeError):
+    migration = []
+
+json.dump({"migration": migration, "seen": seen == "1"}, fp=sys.stdout)

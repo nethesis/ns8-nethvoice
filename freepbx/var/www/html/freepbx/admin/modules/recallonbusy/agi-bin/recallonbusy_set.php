@@ -81,7 +81,7 @@ function book_callback($callerid,$calledid) {
         $agi->verbose("Recall on Busy booked for extension ".$calledid);
     }
     $agi->stream_file('callback-booked');
-    $agi->exec("Macro","hangupcall");
+    $agi->hangup();
     exit(0);
 }
 

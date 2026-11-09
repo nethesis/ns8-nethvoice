@@ -208,9 +208,9 @@ class Nethhotel implements \BMO
     // This is also documented at http://wiki.freepbx.org/display/FOP/BMO+Ajax+Calls
     public function ajaxHandler()
     {
-        switch ($_REQUEST['command']) {
+        switch ($_REQUEST['command'] ?? '') {
             case 'getJSON':
-                switch ($_REQUEST['jdata']) {
+                switch ($_REQUEST['jdata'] ?? '') {
                     case 'grid':
                         $ret = array();
                         /*code here to generate array*/
@@ -240,7 +240,7 @@ class Nethhotel implements \BMO
     // http://wiki.freepbx.org/display/FOP/HTML+Output+from+BMO
     public function showPage()
     {
-        echo load_view(__DIR__.'/htdocs/index.php', array('subhead' => $subhead, 'content' => $content));
+        echo load_view(__DIR__.'/htdocs/index.php');
     }
 
     /**

@@ -11,6 +11,9 @@
 angular.module('nethvoiceWizardUiApp')
   .filter('toBase64', function () {
     return function (input) {
-      return btoa(input);
+      if (input === null || input === undefined) {
+        return '';
+      }
+      return btoa(unescape(encodeURIComponent(input)));
     };
   });

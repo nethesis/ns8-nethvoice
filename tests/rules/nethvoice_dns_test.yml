@@ -1,0 +1,133 @@
+rule_files:
+  - ../../imageroot/etc/metrics/alert-rules/nethvoice-dns.yml
+
+evaluation_interval: 1m
+
+tests:
+  # A public name that does not resolve for 15 minutes
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_resolves{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 14m
+        alertname: NethVoiceDnsFailure
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: NethVoiceDnsFailure
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: dns, reason: not_resolved, module_id: nethvoice1, node: "1", name: voice.example.com, role: nethvoice}
+            exp_annotations:
+              summary_en: "voice.example.com does not resolve"
+              summary_it: "voice.example.com non è risolto"
+              description_en: "The DNS resolver of the node does not resolve voice.example.com (nethvoice of nethvoice1): NethVoice and its clients may not reach it. Check the DNS records and the resolver configuration."
+              description_it: "Il resolver DNS del nodo non risolve voice.example.com (nethvoice di nethvoice1): NethVoice e i suoi client potrebbero non raggiungerlo. Verificare i record DNS e la configurazione del resolver."
+
+  # One failed export is not enough
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_resolves{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '0 1x10'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: NethVoiceDnsFailure
+        exp_alerts: []
+
+  # The proxy name points to another address
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_proxy_ip_match{module_id="nethvoice1",node="1",name="proxy.example.com",expected="203.0.113.5,10.5.4.1",records="198.51.100.9"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: NethVoiceDnsFailure
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: dns, reason: ip_mismatch, module_id: nethvoice1, node: "1", name: proxy.example.com, expected: "203.0.113.5,10.5.4.1", records: 198.51.100.9}
+            exp_annotations:
+              summary_en: "proxy.example.com does not point to the proxy IP"
+              summary_it: "proxy.example.com non punta all'IP del proxy"
+              description_en: "The DNS resolver of the node resolves proxy.example.com to 198.51.100.9, but the proxy IP is 203.0.113.5,10.5.4.1. Phones and providers may reach the wrong address. Update the DNS record."
+              description_it: "Il resolver DNS del nodo risolve proxy.example.com in 198.51.100.9, ma l'IP del proxy è 203.0.113.5,10.5.4.1. Telefoni e provider potrebbero raggiungere l'indirizzo sbagliato. Aggiornare il record DNS."
+
+  # The resolver answers slowly for 15 minutes
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '5x10'
+    alert_rule_test:
+      - eval_time: 14m
+        alertname: NethVoiceDnsSlow
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: NethVoiceDnsSlow
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: dns, module_id: nethvoice1, node: "1", name: voice.example.com, role: nethvoice}
+            exp_annotations:
+              summary_en: "Slow DNS resolution of voice.example.com"
+              summary_it: "Risoluzione DNS lenta di voice.example.com"
+              description_en: "The DNS resolver of the node took 5s to resolve voice.example.com (nethvoice of nethvoice1): calls and registrations may be delayed or fail. Check the resolver configuration and its upstream servers."
+              description_it: "Il resolver DNS del nodo ha impiegato 5s per risolvere voice.example.com (nethvoice di nethvoice1): chiamate e registrazioni potrebbero subire ritardi o fallire. Verificare la configurazione del resolver e i suoi server upstream."
+
+  # The resolver does not answer for 15 minutes: a failure, not a slow answer
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_resolver_up{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '0x10'
+    alert_rule_test:
+      - eval_time: 14m
+        alertname: NethVoiceDnsFailure
+        exp_alerts: []
+      - eval_time: 16m
+        alertname: NethVoiceDnsFailure
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: dns, reason: no_answer, module_id: nethvoice1, node: "1", name: voice.example.com, role: nethvoice}
+            exp_annotations:
+              summary_en: "The DNS resolver does not answer for voice.example.com"
+              summary_it: "Il resolver DNS non risponde per voice.example.com"
+              description_en: "The DNS resolver of the node has not answered the queries for voice.example.com (nethvoice of nethvoice1) within 5 seconds: NethVoice and its clients may not reach it, calls and registrations may fail. Check that the resolver in /etc/resolv.conf of the node is reachable and working."
+              description_it: "Il resolver DNS del nodo non ha risposto alle richieste per voice.example.com (nethvoice di nethvoice1) entro 5 secondi: NethVoice e i suoi client potrebbero non raggiungerlo, chiamate e registrazioni potrebbero fallire. Verificare che il resolver in /etc/resolv.conf del nodo sia raggiungibile e funzionante."
+      - eval_time: 16m
+        alertname: NethVoiceDnsSlow
+        exp_alerts: []
+
+  # A slow answer that is also a failure (not resolved, wrong proxy IP, or
+  # a stale response time of a resolver that stopped answering) is not slow:
+  # only the failure fires. Another name on the same node stays slow.
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '4x10'
+      - series: 'nethvoice_dns_resolves{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '0x10'
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="proxy.example.com",role="proxy"}'
+        values: '4x10'
+      - series: 'nethvoice_dns_proxy_ip_match{module_id="nethvoice1",node="1",name="proxy.example.com",expected="203.0.113.5",records="198.51.100.9"}'
+        values: '0x10'
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="cti.example.com",role="cti"}'
+        values: '4x10'
+      - series: 'nethvoice_dns_resolver_up{module_id="nethvoice1",node="1",name="cti.example.com",role="cti"}'
+        values: '0x10'
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="other.example.com",role="nethvoice"}'
+        values: '4x10'
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: NethVoiceDnsSlow
+        exp_alerts:
+          - exp_labels: {severity: warning, alertgroup: dns, module_id: nethvoice1, node: "1", name: other.example.com, role: nethvoice}
+            exp_annotations:
+              summary_en: "Slow DNS resolution of other.example.com"
+              summary_it: "Risoluzione DNS lenta di other.example.com"
+              description_en: "The DNS resolver of the node took 4s to resolve other.example.com (nethvoice of nethvoice1): calls and registrations may be delayed or fail. Check the resolver configuration and its upstream servers."
+              description_it: "Il resolver DNS del nodo ha impiegato 4s per risolvere other.example.com (nethvoice di nethvoice1): chiamate e registrazioni potrebbero subire ritardi o fallire. Verificare la configurazione del resolver e i suoi server upstream."
+
+  # Answers within 3 seconds, or one slow answer, are not slow
+  - interval: 5m
+    input_series:
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="voice.example.com",role="nethvoice"}'
+        values: '3x10'
+      - series: 'nethvoice_dns_response_seconds{module_id="nethvoice1",node="1",name="cti.example.com",role="cti"}'
+        values: '5 0.1x10'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: NethVoiceDnsSlow
+        exp_alerts: []

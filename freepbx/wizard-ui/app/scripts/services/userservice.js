@@ -229,6 +229,16 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    this.getNethLinkInfo = function (username) {
+      return $q(function (resolve, reject) {
+        RestService.get('/nethlink/info/' + encodeURIComponent(username)).then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
     this.createNethLinkExtension = function (obj) {
       return $q(function (resolve, reject) {
         RestService.post('/nethlink', obj).then(function (res) {

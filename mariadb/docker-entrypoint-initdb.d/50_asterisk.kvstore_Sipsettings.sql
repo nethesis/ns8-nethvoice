@@ -3,14 +3,14 @@
 /*!40103 SET TIME_ZONE='+00:00' */;
 USE `asterisk`;
 INSERT INTO `kvstore_Sipsettings` (`key`,`val`,`type`,`id`) VALUES
-("voicecodecs","{\"ulaw\":1,\"alaw\":2,\"gsm\":3,\"g726\":4,\"g722\":5}","json-arr","noid"),
+("voicecodecs","{\"g722\":1,\"ulaw\":2,\"alaw\":3,\"opus\":4}","json-arr","noid"),
 ("pjsip_allow_reload","no",NULL,"noid"),
 ("allow.reload","no",NULL,"noid"),
 ("tcpdomain-0.0.0.0","",NULL,"noid"),
 ("tcpextip-0.0.0.0","",NULL,"noid"),
 ("tcplocalnet-0.0.0.0","none",NULL,"noid"),
 ("binds","{\"wss\":{\"0.0.0.0\":\"on\"},\"udp\":{\"0.0.0.0\":\"on\"},\"tcp\":{\"0.0.0.0\":\"on\"},\"ws\":{\"0.0.0.0\":\"on\"},\"tls\":{\"0.0.0.0\":\"on\"}}","json-arr","noid"),
-("videocodecs","{\"vp8\":1,\"h264\":2}","json-arr","noid"),
+("videocodecs","{\"h264\":1,\"vp8\":2}","json-arr","noid"),
 ("ice-blacklist","[]","json-arr","noid"),
 ("ice-host-candidates","[]","json-arr","noid"),
 ("pjsip_identifers_order","[\"header\",\"ip\",\"username\",\"auth_username\",\"anonymous\"]",NULL,"noid"),

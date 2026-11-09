@@ -1,0 +1,20 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "get-idp-info input",
+    "$id": "http://nethserver.org/json-schema/task/input/nethvoice/get-idp-info",
+    "description": "Fetch the SAML2 IdP metadata and return its branding",
+    "examples": [
+        {
+            "url": "https://idp.example.com/idp/shibboleth"
+        }
+    ],
+    "type": "object",
+    "required": ["url"],
+    "properties": {
+        "url": {
+            "description": "URL of the SAML2 Identity Provider metadata",
+            "type": "string",
+            "pattern": "^https://"
+        }
+    }
+}

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# NethVoice chat: routes and units follow CHAT_ENABLED.
+set -e
+"${AGENT_INSTALL_DIR}/actions/configure-module/45chat_routes" </dev/null
+exec "${AGENT_INSTALL_DIR}/actions/configure-module/46chat" </dev/null

@@ -1,0 +1,29 @@
+--- a/install.php
++++ b/install.php
+@@ -806,12 +806,12 @@
+ $set['type'] = CONF_TYPE_BOOL;
+ $freepbx_conf->define_conf_setting('HTTPTLSENABLE',$set);
+ 
+-// HTTPBINDADDRESS
+-$set['value'] = '::';
++// HTTPS bind address: WSS is reached through the NethVoice proxy.
++$set['value'] = '0.0.0.0';
+ $set['defaultval'] =& $set['value'];
+ $set['options'] = '';
+ $set['name'] = 'HTTPS Bind Address';
+-$set['description'] = 'Address to bind to. Default is ::';
++$set['description'] = 'Address to bind to. Default is 0.0.0.0';
+ $set['emptyok'] = 0;
+ $set['type'] = CONF_TYPE_TEXT;
+ $set['level'] = 4;
+@@ -1268,9 +1268,7 @@
+ }
+ 
+ $current_httptlsbindaddress = $freepbx_conf->get_conf_setting('HTTPTLSBINDADDRESS');
+-if ($current_httptlsbindaddress === '::') {
+-	$freepbx_conf->set('HTTPTLSBINDADDRESS', '127.0.0.1');
+-}
++// Preserve the WSS bind address prepared by NethVoice, including custom binds.
+ 
+ if ($current_httpbindaddress == '::' || $current_httptlsbindaddress == '::') {
+ 	$uid = 'core_bindaddress_changed';

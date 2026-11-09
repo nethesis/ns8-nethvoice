@@ -1,0 +1,135 @@
+#!/usr/bin/env php
+<?php
+// Usage: php forward_context_test.php <patched-core-directory> <framework-directory>
+if ($argc !== 3) { exit(2); }
+require $argv[2] . '/amp_conf/htdocs/admin/libraries/extensions.class.php';
+require $argv[1] . '/Dialplan/macroDialone.php';
+require $argv[1] . '/Dialplan/dialparties.php';
+require $argv[1] . '/Dialplan/macroDial.php';
+class FreePBX {
+    public static function Config() { return new self(); }
+    public function get($key) { return 'none'; }
+}
+function check($condition, $message) {
+    if (!$condition) { throw new RuntimeException($message); }
+}
+function commands($ext, $context, $extension) {
+    return array_map(fn($step) => $step['cmd']->output(), $ext->_exts[$context][' '.$extension.' ']);
+}
+$ext = new extensions();
+$chan_dahdi = false;
+FreePBX\modules\Core\Dialplan\macroDialone::add($ext);
+$local = commands($ext, 'macro-dial-one', 'dlocal');
+check($local[0] === 'Gosub(func-nethvoice-forward-context,s,1(${EXTTOCALL}))', 'unconditional forward lost the original owner');
+check(str_contains($local[1], 'Hangup(21)'), 'unknown forwarding owner is not rejected');
+check(str_contains($local[2], '@${NETHVOICE_FORWARD_CONTEXT}/n'), 'timed unconditional forward ignores the profile');
+check(in_array('Goto(${NETHVOICE_FORWARD_CONTEXT},${DSTRING},1)', commands($ext, 'macro-dial-one', 'usegoto'), true), 'untimed forward ignores the profile');
+// cf runs in its own Gosub frame, so its timer must survive the frame's ARG1 restore.
+$main = commands($ext, 'macro-dial-one', 's');
+$cfCall = array_search('GosubIf($["${DB(CF/${DEXTEN})}"!=""]?cf,1())', $main, true);
+check($cfCall !== false && $main[$cfCall-1] === 'Set(NETHVOICE_DIAL_TIMER=${ARG1})' && $main[$cfCall+1] === 'Set(ARG1=${NETHVOICE_DIAL_TIMER})', 'forward timer does not reach the dial');
+check(!str_contains(implode("\n", commands($ext, 'macro-dial-one', 'cf')), 'Set(ARG1='), 'forward timer is lost with the cf frame');
+check(str_contains($local[2], '${NETHVOICE_DIAL_TIMER}') && str_contains($local[3], '${NETHVOICE_DIAL_TIMER}'), 'timed forward reads the restored ARG1');
+$source = file_get_contents($argv[1] . '/functions.inc.php');
+$amp_conf = ['DIVERSIONHEADER' => false];
+foreach (['macro-exten-vm', 'macro-simple-dial'] as $mcontext) {
+    $start = strpos($source, "\t\$mcontext = '$mcontext';");
+    $start = strpos($source, "\t\$exten = 'docfu';", $start);
+    $end = strpos($source, $mcontext === 'macro-exten-vm' ? '// If we are here it was determined' : "\t\$exten = '_s-.';", $start);
+    eval(substr($source, $start, $end-$start));
+    foreach (['docfu', 'docfb'] as $extension) {
+        $out = commands($ext, $mcontext, $extension);
+        check($out[0] === 'Gosub(func-nethvoice-forward-context,s,1(${EXTTOCALL}))', 'conditional forward does not resolve its owner');
+        check(str_contains($out[1], 'Hangup(21)'), 'conditional forward falls back for an unknown owner');
+        foreach ($out as $command) {
+            check(!str_contains($command, '@from-internal/n') && !str_contains($command, "?'from-internal"), 'conditional forward retains unrestricted outbound routing');
+        }
+        check(str_contains(implode("\n", $out), '@${NETHVOICE_FORWARD_CONTEXT}/n'), 'conditional forward has no profile route');
+    }
+}
+check(str_contains(implode("\n", commands($ext, 'macro-simple-dial', 'docfu')), '@ext-local'), 'internal Follow Me handling changed');
+$resolverStart = strpos($source, "\t\$ext->add('func-nethvoice-forward-context'");
+$resolverEnd = strpos($source, "\tDialplan\\macroDialone", $resolverStart);
+eval(substr($source, $resolverStart, $resolverEnd-$resolverStart));
+$resolver = commands($ext, 'func-nethvoice-forward-context', 's');
+check($resolver[0] === 'Set(NETHVOICE_FORWARD_CONTEXT=)', 'resolver retains a previous owner context');
+foreach (['pjsip' => 'PJSIP_ENDPOINT', 'iax2' => 'IAXPEER', 'sip' => 'SIPPEER'] as $tech => $function) {
+    check(in_array('GotoIf($["${DB(DEVICE/${ARG1}/tech)}"="'.$tech.'"]?'.$tech.',1)', $resolver, true), 'resolver does not select the owner technology');
+    check(commands($ext, 'func-nethvoice-forward-context', $tech) === [
+        'Set(NETHVOICE_FORWARD_CONTEXT=${'.$function.'(${ARG1},context)})', 'Return()'
+    ], 'resolver queries the wrong peer or does not return');
+}
+check(end($resolver) === 'Return()', 'unknown owner technology does not return an empty context');
+
+$agiSource = file_get_contents($argv[1] . '/agi-bin/dialparties.agi');
+$start = strpos($agiSource, 'function get_dial_string(');
+$end = strpos($agiSource, 'function debug(', $start);
+eval(substr($agiSource, $start, $end-$start));
+function debug($message, $level) {}
+function get_var($agi, $variable) { return $agi->values[$variable] ?? ''; }
+class TestForwardAgi {
+    public array $values = [
+        'DB(DEVICE/201/tech)' => 'pjsip', 'PJSIP_ENDPOINT(201,context)' => 'cti-profile-2',
+        'DB(DEVICE/202/tech)' => 'pjsip', 'PJSIP_ENDPOINT(202,context)' => 'cti-profile-3',
+        'DB(DEVICE/301/tech)' => 'iax2', 'IAXPEER(301,context)' => 'cti-profile-4',
+        'DB(DEVICE/302/tech)' => 'sip', 'SIPPEER(302,context)' => 'cti-profile-5',
+        'DB(DEVICE/303/tech)' => 'iax2', // Stale device with no live peer.
+        'DB(DEVICE/304/tech)' => 'unknown',
+    ];
+    public function database_get($family, $key) { return ['data' => '', 'result' => 0]; }
+    public function set_variable($key, $value) { $this->values[$key] = $value; }
+}
+$agi = new TestForwardAgi();
+foreach (['201' => 'cti-profile-2', '202' => 'cti-profile-3', '301' => 'cti-profile-4', '302' => 'cti-profile-5'] as $owner => $context) {
+    check(get_dial_string($agi, '1234#', 'FALSE', '601', $owner) === 'Local/1234@'.$context.'/n', 'group forward uses the wrong owner context');
+    check(get_dial_string($agi, '1234#', 'TRUE', '601', $owner) === 'Local/RG-601*-1234#@'.$context, 'confirmation lost the owner context');
+}
+foreach (['missing', '303', '304'] as $owner) {
+    check(get_dial_string($agi, '1234#', 'FALSE', '601', $owner) === '', 'group forward falls back for a missing peer or unknown technology');
+}
+check(get_dial_string($agi, '1234#', 'FALSE', '601') === 'Local/1234@from-internal/n', 'explicit external group destination changed');
+
+// Run the actual main AGI loop with different forwarding owners and technologies. A stale
+// index from the preceding CF loop must not select the context for every leg.
+$AGI = $agi;
+$ext = ['1234#', '5678#', '8910#', '9999#'];
+$forward_owners = [0 => '201', 1 => '202', 2 => '301'];
+$kk = 99;
+$skipremaining = $mastermode = $cwignore = 0;
+$dsarray = $ext_hunt = [];
+$use_confirmation = 'FALSE';
+$ringgroup_index = '601';
+$rgmethod = 'ringall';
+$cidnum = '203';
+$fmgrp = '';
+$start = strpos($agiSource, "\$ds = '';\nforeach (");
+$end = strpos($agiSource, '} // end foreach ( $ext as $k )', $start);
+eval(substr($agiSource, $start, $end-$start+1));
+check($ds === 'Local/1234@cti-profile-2/n&Local/5678@cti-profile-3/n&Local/8910@cti-profile-4/n&Local/9999@from-internal/n&', 'AGI mixed group members lost their own forwarding context');
+
+// External Follow Me destinations use the Follow Me owner context, while
+// forwarded list members keep their own forwarding owner.
+$ext = ['1234#', '9999#'];
+$forward_owners = [0 => '202'];
+$fmgrp = '201';
+$dsarray = $ext_hunt = [];
+eval(substr($agiSource, $start, $end-$start+1));
+check($ds === 'Local/1234@cti-profile-3/n&Local/9999@cti-profile-2/n&', 'AGI Follow Me external destination ignores the owner context');
+
+$ext = new extensions();
+FreePBX\modules\Core\Dialplan\dialparties::add($ext);
+$external = implode("\n", commands($ext, 'dialparties-getdialstring', 's'));
+check(str_contains($external, 'FORWARD_OWNER') && str_contains($external, '@${NETHVOICE_FORWARD_CONTEXT}'), 'native group forward ignores the owner context');
+check(str_contains($external, 'HASH(dialparties,FORWARD_OWNER)=${HASH(dialparties,FMGRP)}'), 'native Follow Me external destination ignores the owner context');
+$unconditional = implode("\n", commands($ext, 'dialparties-checkcfextensions', 's'));
+check(str_contains($unconditional, 'HASH(dialparties,CF)}#') && str_contains($unconditional, 'dialparties_FORWARD_OWNER'), 'native unconditional forward loses its target or owner');
+check(str_contains($unconditional, 'HASH(dialparties_FORWARD_OWNER,${I})=${HASH(dialparties,workingext)}'), 'native CF owners collide when destinations are shared');
+$mainloop = implode("\n", commands($ext, 'dialparties-mainloop', 's'));
+check(str_contains($mainloop, 'FORWARD_OWNER)=${HASH(dialparties_FORWARD_OWNER,${I})}'), 'native main loop selects another member owner');
+$noanswer = implode("\n", commands($ext, 'dialparties-checkcfextension', 'check1-1-1'));
+check(str_contains($noanswer, 'FORWARD_OWNER') && str_contains($noanswer, '${HASH(dialparties,EXTCFU)}#'), 'native unavailable forward loses its target or owner');
+// Native dialparties reads the timer, options and members from its arguments.
+$ext = new extensions();
+FreePBX\modules\Core\Dialplan\macroDial::add($ext);
+check(in_array('Gosub(dialparties,s,1(${ARG1},${ARG2},${ARG3}))', commands($ext, 'macro-dial', 's'), true), 'native dialparties loses the group members');
+echo "PASS: unconditional, conditional, timed, untimed, group and Follow Me forwarding contexts\n";

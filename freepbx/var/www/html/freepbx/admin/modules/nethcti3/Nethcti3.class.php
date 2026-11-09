@@ -23,12 +23,122 @@ namespace FreePBX\modules;
 
 class Nethcti3 extends \FreePBX_Helpers implements \BMO
 {
+    private const DISPLAY_NAME_MAX_LENGTH = 50;
+
+    protected $FreePBX;
+    protected $db;
+    protected $astman;
+    private static $displayNameReloadScheduled = false;
+
     public function __construct($freepbx = null) {
         if ($freepbx == null)
             throw new Exception("Not given a FreePBX Object");
 
         $this->FreePBX = $freepbx;
         $this->db = $freepbx->Database;
+        $this->astman = $freepbx->astman;
+    }
+
+    /**
+     * Set the same display name on a list of FreePBX extensions.
+     * Names are normalized to the 50-character users.name field width.
+     * SIP callerid includes the main extension; users.name and AstDB cidname do not.
+     *
+     * @return bool true when at least one stored value changed
+     */
+    public function setExtensionsDisplayName($extensions, $displayname, $mainextension) {
+        if (!is_array($extensions)) {
+            throw new \InvalidArgumentException('Extensions must be an array');
+        }
+
+        $displayname = iconv_substr((string) $displayname, 0, self::DISPLAY_NAME_MAX_LENGTH, 'UTF-8');
+        if ($displayname === false) {
+            throw new \InvalidArgumentException('Display name must be valid UTF-8');
+        }
+        $mainextension = trim((string) $mainextension);
+        if ($mainextension === '') {
+            throw new \InvalidArgumentException('Main extension must not be empty');
+        }
+        $callerid = $displayname.' <'.$mainextension.'>';
+        $extensions = array_unique(array_map('strval', $extensions));
+
+        $selectUserName = $this->db->prepare('SELECT `name` FROM `users` WHERE `extension` = ?');
+        $updateUserName = $this->db->prepare('UPDATE `users` SET `name` = ? WHERE `extension` = ?');
+        $selectSipCallerId = $this->db->prepare('SELECT `data` FROM `sip` WHERE `id` = ? AND `keyword` = "callerid"');
+        $writeSipCallerId = $this->db->prepare('REPLACE INTO `sip` SET `id` = ?, `keyword` = "callerid", `data` = ?');
+        $changed = false;
+
+        foreach ($extensions as $extension) {
+            $extension = trim($extension);
+            if ($extension === '') {
+                continue;
+            }
+
+            $selectUserName->execute(array($extension));
+            $userName = $selectUserName->fetch(\PDO::FETCH_ASSOC);
+            if ($userName !== false && (string) $userName['name'] !== $displayname) {
+                $updateUserName->execute(array($displayname, $extension));
+                $changed = true;
+            }
+
+            $selectSipCallerId->execute(array($extension));
+            $sipCallerId = $selectSipCallerId->fetch(\PDO::FETCH_ASSOC);
+            if ($sipCallerId === false || (string) $sipCallerId['data'] !== $callerid) {
+                $writeSipCallerId->execute(array($extension, $callerid));
+                $changed = true;
+            }
+
+            $astdbName = $this->astman->database_get('AMPUSER', $extension.'/cidname');
+            if ($astdbName === false || (string) $astdbName !== $displayname) {
+                if (!$this->astman->database_put('AMPUSER', $extension.'/cidname', $displayname)) {
+                    throw new \RuntimeException('Unable to update AstDB display name for extension '.$extension);
+                }
+                $changed = true;
+            }
+        }
+
+        return $changed;
+    }
+
+    /**
+     * Synchronize an updated Userman display name with its FreePBX extensions.
+     */
+    public function usermanUpdateUser($id, $display, $data) {
+        try {
+            $user = $this->FreePBX->Userman->getUserByID($id);
+            if (empty($user) || empty($user['default_extension']) || $user['default_extension'] === 'none') {
+                return false;
+            }
+
+            $extensions = array($user['default_extension']);
+            $stmt = $this->db->prepare(
+                'SELECT `extension` FROM `rest_devices_phones`'.
+                ' WHERE `user_id` = ? AND `extension` IS NOT NULL AND `extension` != ""'
+            );
+            $stmt->execute(array($id));
+            $extensions = array_merge($extensions, $stmt->fetchAll(\PDO::FETCH_COLUMN));
+
+            $displayname = isset($user['displayname']) ? $user['displayname'] : '';
+            $changed = $this->setExtensionsDisplayName($extensions, $displayname, $user['default_extension']);
+            if ($changed) {
+                $this->scheduleDisplayNameReload();
+            }
+            return $changed;
+        } catch (\Throwable $e) {
+            error_log('Unable to synchronize display name for Userman user '.$id.': '.$e->getMessage());
+            return false;
+        }
+    }
+
+    private function scheduleDisplayNameReload() {
+        if (self::$displayNameReloadScheduled) {
+            return;
+        }
+
+        self::$displayNameReloadScheduled = true;
+        register_shutdown_function(function () {
+            system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null 2>&1 &');
+        });
     }
 
     public function install() {
@@ -141,10 +251,16 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
         try {
             $result = array();
             $queues = \FreePBX::Queues()->listQueues();
+            if (!is_array($queues)) {
+                $queues = array();
+            }
 
             //get dynmembers
             global $astman;
             $dbqpenalities = $astman->database_show('QPENALTY');
+            if (!is_array($dbqpenalities)) {
+                $dbqpenalities = array();
+            }
             $penalities=array();
             //build an array of members for each queue
             foreach ($dbqpenalities as $dbqpenality => $tmp) {
@@ -160,10 +276,14 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
                 if (!isset($penalities[$queue[0]])) {
                     $penalities[$queue[0]] = array();
                 }
-                $result[$queue[0]] = (object) array("id" => $queue[0], "name" => $queue[1], "dynmembers" => $penalities[$queue[0]], "sla"=>$queue_details['servicelevel']);
+                $result[$queue[0]] = (object) array("id" => $queue[0], "name" => $queue[1], "dynmembers" => $penalities[$queue[0]], "sla"=>($queue_details['servicelevel'] ?? ''));
             }
             //add oppanel special queues
-            foreach (getCTIPermissionProfiles(false,false,false) as $profile){
+            $profiles = getCTIPermissionProfiles(false,false,false);
+            if (!is_array($profiles)) {
+                $profiles = array();
+            }
+            foreach ($profiles as $profile){
                 if (isset($profile['macro_permissions']['operator_panel']) && $profile['macro_permissions']['operator_panel']['value'] == true) {
                     $exten = "ctiopqueue".$profile['id'];
                     $result[$exten] = (object) array("id" => $exten, "name" => "Waiting Queue ".$profile['id'], "dynmembers" => array(),"sla" => "60");
@@ -179,9 +299,12 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
     /*Get FeatureCodes configuration*/
     public function getFeaturecodesConfiguration() {
     try {
-        $result = array();
+        $results = array();
         $codes_to_pick = array("pickup","confbridge_conf","que_toggle","dnd_toggle","incall_audio","audio_test"); //Add here more codes
         $featurecodes = featurecodes_getAllFeaturesDetailed();
+        if (!is_array($featurecodes)) {
+            $featurecodes = array();
+        }
         foreach ($featurecodes as $featurcode) {
             if (in_array($featurcode['featurename'],$codes_to_pick)) {
                 if (isset($featurcode['customcode']) && $featurcode['customcode'] != '') {
@@ -204,7 +327,10 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
             $sql = 'SELECT `value` FROM `freepbx_settings` WHERE `keyword` = "TRANSFER_CONTEXT"';
             $sth = $dbh->prepare($sql);
             $sth->execute();
-            $res = $sth->fetchAll()[0][0];
+            $res = $sth->fetchColumn();
+            if ($res === false) {
+                $res = '';
+            }
         } catch (Exception $e) {
             error_log($e->getMessage());
             return FALSE;
@@ -231,7 +357,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 
     // Generate configuration for Operator Panel waiting queues
     public function genConfig() {
-        $out = array();
+        $out = array('queues_nethcti.conf' => '');
         include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
         foreach (getCTIPermissionProfiles(false,false,false) as $profile){
             if (isset($profile['macro_permissions']['operator_panel']) && $profile['macro_permissions']['operator_panel']['value'] == true) {
@@ -244,14 +370,32 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 
     // Add custom headers for trunks to trunks module
     public static function myGuiHooks() {
-        return array("core", "INTERCEPT" => array("modules/core/page.trunks.php","modules/core/page.routing.php"));
+        return array("core", "INTERCEPT" => array("modules/core/page.routing.php"));
     }
 
-    public function doGuiHook($filename, &$output){}
+    public function doGuiHook(&$currentcomponent, $module) {
+        if (($_REQUEST['display'] ?? '') != 'trunks') {
+            return;
+        }
+
+        $marker = '<!--END OUTBOUND PROXY-->';
+        $replacement = $marker;
+        $this->doGuiIntercept('modules/core/page.trunks.php', $replacement);
+        if ($replacement === $marker) {
+            return;
+        }
+
+        // Let config.php include Core in its own scope: the trunk page relies on
+        // its $module_hook variable, which GuiHooks::getOutput() does not have.
+        // Prepare the fields now, then insert them when the response is flushed.
+        ob_start(static function ($output) use ($marker, $replacement) {
+            return str_replace($marker, $replacement, $output);
+        });
+    }
 
     public function doGuiIntercept($filename, &$output) {
         # Show the custom field in the trunks module
-        if ($filename == "modules/core/page.trunks.php" && $_REQUEST['display'] == "trunks" && strtolower($_REQUEST['tech']) == "pjsip") {
+        if ($filename == "modules/core/page.trunks.php" && $_REQUEST['display'] == "trunks" && !empty($_REQUEST['tech']) && strtolower($_REQUEST['tech']) == "pjsip") {
             $trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
             $disable_topos_header = $this->getConfig('disable_topos_header', $trunkid);
             $disable_srtp_header = $this->getConfig('disable_srtp_header', $trunkid);
@@ -343,7 +487,8 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
                 needreload();
         } elseif ($display == "trunks") {
             global $db;
-            if ($_REQUEST['action'] == "edittrunk" && !empty($_REQUEST['extdisplay'])) {
+            $action = $_REQUEST['action'] ?? '';
+            if ($action == "edittrunk" && !empty($_REQUEST['extdisplay'])) {
                 if (!empty($_REQUEST['disable_topos_header'])) {
                     // save topos configuratino for the trunk on trunk edit
                     $disable_topos_header = $_REQUEST['disable_topos_header'] == "yes" ? 1 : 0;
@@ -356,7 +501,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
                     $trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
                     $this->setConfig('disable_srtp_header', $disable_srtp_header, $trunkid);
                 }
-            } elseif ($_REQUEST['action'] == "addtrunk") {
+            } elseif ($action == "addtrunk") {
                 // Get the future trunk id
                 $sql = 'SELECT trunkid FROM trunks';
                 $sth = $db->prepare($sql);
@@ -381,7 +526,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
                     $disable_srtp_header = $_REQUEST['disable_srtp_header'] == "yes" ? 1 : 0;
                     $this->setConfig('disable_srtp_header', $disable_srtp_header, $trunkid);
                 }
-            } elseif ($_REQUEST['action'] == "deltrunk") {
+            } elseif ($action == "deltrunk") {
                 $trunkid = str_replace("OUT_", "", $_REQUEST['extdisplay']);
                 // delete topos configuration for the trunk
                 $this->delConfig('disable_topos_header', $trunkid);

@@ -4,7 +4,7 @@ require_once("session.inc.php");
 require("translations.php");
 
 $ntabs = $_REQUEST['ntab'];
-switch($_REQUEST['action']) {
+switch($_REQUEST['action'] ?? '') {
 
   case "edit":
     if(editAlarm($_REQUEST['ext'],$_REQUEST['hour'],$_REQUEST['enabled'],$_REQUEST['start'],$_REQUEST['days'],$_REQUEST['group']))
@@ -18,7 +18,8 @@ switch($_REQUEST['action']) {
 
   case "disableAlarmAlert":
      global $db;
-     $sql = "UPDATE roomsdb.alarms_history SET retry = 98 WHERE retry = 99 AND extension = {$_REQUEST['ext']}";
+     $ext = (int)$_REQUEST['ext'];
+     $sql = "UPDATE roomsdb.alarms_history SET retry = 98 WHERE retry = 99 AND extension = $ext";
      $db->query($sql);
      return true;
      break;
@@ -29,4 +30,3 @@ switch($_REQUEST['action']) {
     echo "</response>";
     return;
 }
-

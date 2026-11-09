@@ -7,6 +7,11 @@ languages.it = {
     "toolbar_not_save_log_string": "Controllare i log della console per dettagli",
 
     "base_no_elements_string": "Nessun elemento trovato",
+    "base_no_recording_string": "Nessuna registrazione",
+    "base_recording_error_string": "Errore: registrazione mancante o non disponibile",
+    "base_block_error_string": "Errore nel caricamento del blocco",
+    "base_block_unavailable_string": "Dati del blocco mancanti o non disponibili",
+    "toolbar_error_blocks_string": "Correggere o rimuovere i blocchi rossi di errore prima di salvare",
     "base_delete_night_service_string": "Elimina Servizio Notte",
     "base_add_night_service_string": "Aggiungi Servizio Notte",
     "base_add_ivr_opt_string": "Aggiungi opzione",

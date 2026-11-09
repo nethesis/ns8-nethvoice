@@ -133,7 +133,7 @@ if (empty($results)) {
 
 	$id = $results[0]['id'];
 	$sql = "UPDATE IGNORE `userman_directories` SET `name`= ?, `driver` = ?, `active` = 1, `order` = 5, `default` = 1, `locked` = 0 WHERE `id` = ?";
-	$stmt = $db->prepare($sql);
+	$update_directory_stmt = $db->prepare($sql);
 
 	if ($results[0]['name'] === 'NethServer AD' || $results[0]['name'] === 'NethServer LDAP') {
 		// Default NethServer7
@@ -145,17 +145,21 @@ if (empty($results)) {
 		$ldap_settings['name'] = 'NethServer8 [custom]';
 		// get old User Object Filter
 		$sql = "SELECT `val` FROM `kvstore_FreePBX_modules_Userman` WHERE `id` = ?";
-		$stmt = $db->prepare($sql);
-		$stmt->execute();
-		$results = $stmt->fetchAll(\PDO::FETCH_ASSOC)[0];
-		$old_data = json_decode($results);
-		$ldap_settings['userobjectfilter'] = $old_data['userobjectfilter'];
+		$settings_stmt = $db->prepare($sql);
+		$settings_stmt->execute([$id]);
+		$old_settings = $settings_stmt->fetchColumn();
+		if ($old_settings !== false) {
+			$old_data = json_decode($old_settings, true);
+			if (is_array($old_data) && isset($old_data['userobjectfilter'])) {
+				$ldap_settings['userobjectfilter'] = $old_data['userobjectfilter'];
+			}
+		}
 	} else {
 		// NethServer8 default,
 		echo "Default NethServer 8 userbase found...\n";
 		$ldap_settings['name'] = 'NethServer8';
 	}
-	$stmt->execute([$ldap_settings['name'], $driver, $id]);
+	$update_directory_stmt->execute([$ldap_settings['name'], $driver, $id]);
 }
 
 $sql = "DELETE FROM kvstore_FreePBX_modules_Userman WHERE `id` = ? ; INSERT INTO kvstore_FreePBX_modules_Userman (`key`, `val`, `type`, `id`) VALUES ('auth-settings',?,'json-arr',?)";

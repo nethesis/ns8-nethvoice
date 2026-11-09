@@ -4,6 +4,11 @@
 
 set -e
 
+operation=try-restart
+if [[ ${1:-} == --stop ]]; then
+    operation=stop
+    shift
+fi
 TIMEOUT=10800 # 3h
 
 for SECONDS in $(seq 1 $TIMEOUT); do
@@ -21,4 +26,4 @@ done
 
 # Restart services
 echo "Restarting services $@ wich was postponed for $SECONDS seconds"
-systemctl --user try-restart $@
+systemctl --user "$operation" "$@"

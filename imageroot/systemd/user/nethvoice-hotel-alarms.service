@@ -5,6 +5,9 @@ Requisite=freepbx.service
 [Service]
 Type=oneshot
 ExecStart=podman exec --user asterisk freepbx php /var/lib/asterisk/bin/alarms.php
+StandardOutput=null
+StandardError=null
+LogLevelMax=warning
 
 [Install]
 WantedBy=default.target

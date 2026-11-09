@@ -89,6 +89,8 @@ def collect_cti(facts):
     facts['nethvoice_offhour_count'] = int(rows[6])
 
 def collect_cti_2fa(facts):
+    # The middleware stays stopped until the configuration wizard completes.
+    facts['nethvoice_cti_2fa_enabled_count'] = 0
     result = subprocess.run(
         ["podman", "exec", "nethcti-middleware", "find", "/var/lib/whale/secrets/",
          "-type", "f", "-name", "status", "-exec", "grep", "-qE", "^1$", "{}", ";", "-print"],
@@ -102,6 +104,32 @@ def collect_nethcti3(facts):
         "UNION ALL SELECT COUNT(*) FROM user_nethlink WHERE timestamp >= NOW() - INTERVAL 14 DAY;")
     facts['nethvoice_customer_cards_count'] = int(rows[0])
     facts['nethvoice_nethlink_active_count'] = int(rows[1])
+
+def collect_nethlink(facts):
+    columns = {
+        'nethlink_version': 'nethvoice_nethlink_by_version',
+        'os_type': 'nethvoice_nethlink_by_os_type',
+        'os_release': 'nethvoice_nethlink_by_os_release',
+        'arch': 'nethvoice_nethlink_by_arch',
+    }
+    os_type_names = {
+        'win32': 'Windows',
+        'darwin': 'macOS',
+        'linux': 'Linux',
+    }
+    for key in columns.values():
+        facts[key] = {}
+    for column, key in columns.items():
+        rows = sql_rows("nethcti3",
+            f"SELECT IFNULL(NULLIF({column}, ''), 'unknown'), COUNT(*) FROM user_nethlink "
+            f"WHERE timestamp >= NOW() - INTERVAL 14 DAY GROUP BY 1;")
+        for row in rows:
+            parts = row.split('\t')
+            if len(parts) == 2:
+                value = parts[0]
+                if column == 'os_type':
+                    value = os_type_names.get(value.lower(), value)
+                facts[key][value] = facts[key].get(value, 0) + int(parts[1])
 
 def collect_devices(facts):
     rows = sql_rows(AMPDBNAME,
@@ -154,12 +182,15 @@ def collect_trunks_by_provider(facts):
 
 
 def collect_env_features(facts):
+    facts['nethvoice_authentication_method'] = os.getenv('AUTHENTICATION_METHOD') or 'password'
     facts['nethvoice_hotel_enabled'] = os.getenv('NETHVOICE_HOTEL', 'False') == 'True'
+    facts['nethvoice_chat_enabled'] = os.getenv('CHAT_ENABLED', 'false').lower() == 'true'
     facts['nethvoice_ai_call_summary_enabled'] = os.getenv('SATELLITE_CALL_SUMMARY_ENABLED', 'False') == 'True'
     facts['nethvoice_ai_call_transcription_enabled'] = os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False') == 'True'
     facts['nethvoice_ai_voicemail_transcription_enabled'] = os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False') == 'True'
     # SUBSCRIPTION_SYSTEMID= if empty is community edition, otherwise the system has a subscription
     facts['nethvoice_subscription_enabled'] = os.getenv('SUBSCRIPTION_SYSTEMID', '') != ''
+    facts['nethvoice_alerts_enabled'] = os.getenv('NETHVOICE_ALERTS_ENABLED', 'False') == 'True'
 
 
 def collect_user_domain(facts):
@@ -180,6 +211,7 @@ safe("cdr", collect_cdr, facts)
 safe("cti", collect_cti, facts)
 safe("cti-2fa", collect_cti_2fa, facts)
 safe("nethcti3", collect_nethcti3, facts)
+safe("nethlink", collect_nethlink, facts)
 safe("devices", collect_devices, facts)
 safe("physical-devices-by-vendor", collect_physical_devices_by_vendor, facts)
 safe("physical-devices-by-model", collect_physical_devices_by_model, facts)

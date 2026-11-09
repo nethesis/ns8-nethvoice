@@ -1,0 +1,10 @@
+[Unit]
+Description=Synchronize external FreePBX calendars every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+Persistent=true
+Unit=nethvoice-calendar-sync.service
+
+[Install]
+WantedBy=timers.target

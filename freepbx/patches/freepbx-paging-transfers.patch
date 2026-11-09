@@ -1,0 +1,11 @@
+--- a/functions.inc.php
++++ b/functions.inc.php
+@@ -703,7 +703,7 @@
+ 
+ 		$extpaging = 'ext-paging';
+ 		if(!empty($paging_groups)) {
+-			$ext->addInclude('from-internal-noxfer-additional',$extpaging);
++			$ext->addInclude('from-internal-additional',$extpaging);
+ 		}
+ 		foreach ($paging_groups as $thisgroup) {
+ 			$grp=freepbx_trim ($thisgroup['page_group']);

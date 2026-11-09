@@ -1,10 +1,10 @@
-FROM debian:bullseye-slim
+FROM docker.io/library/debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2 AS builder
 
-ARG JANUS_COMMIT=94408ffccbc1a7c39dac82d55e5dd475c807e770
+ARG JANUS_TAG=v1.4.2
 ARG JANUS_REPO=https://github.com/meetecho/janus-gateway.git
 
 RUN apt-get -y update && \
-	apt-get install -y \
+	apt-get install -y --no-install-recommends \
 		libavutil-dev \
 		libavformat-dev \
 		libavcodec-dev \
@@ -22,45 +22,21 @@ RUN apt-get -y update && \
 		libwebsockets-dev \
 		libnanomsg-dev \
 		librabbitmq-dev \
+		libnice-dev \
+		libsrtp2-dev \
 		pkg-config \
 		gengetopt \
 		libtool \
 		automake \
 		build-essential \
-		wget \
-		git \
-		gtk-doc-tools && \
+		ca-certificates \
+		git && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
-
 RUN cd /tmp && \
-	wget -O v2.3.0.tar.gz https://github.com/cisco/libsrtp/archive/v2.3.0.tar.gz && \
-	artifact_checksum=$(grep "  v2.3.0.tar.gz$" remote-artifacts.sha256) && \
-	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
-	tar xfv v2.3.0.tar.gz && \
-	cd libsrtp-2.3.0 && \
-	./configure --prefix=/usr --enable-openssl && \
-	make -j"$(nproc)" shared_library && \
-	make install
-
-RUN cd /tmp && \
-	git clone https://gitlab.freedesktop.org/libnice/libnice && \
-	cd libnice && \
-	git checkout 0.1.17 && \
-	./autogen.sh && \
-	./configure --prefix=/usr && \
-	make -j"$(nproc)" && \
-	make install
-
-RUN cd /tmp && \
-    mkdir janus-gateway && \
+    git clone --depth 1 --branch ${JANUS_TAG} ${JANUS_REPO} && \
     cd janus-gateway && \
-    git init -q && \
-    git remote add origin ${JANUS_REPO} && \
-    git fetch --depth 1 origin ${JANUS_COMMIT} && \
-    git checkout -q FETCH_HEAD && \
     cp -r . /usr/local/src/janus-gateway
 
 RUN cd /usr/local/src/janus-gateway && \
@@ -70,45 +46,39 @@ RUN cd /usr/local/src/janus-gateway && \
 	make install && \
 	make configs
 
-FROM debian:bullseye-slim
-
+FROM docker.io/library/debian:trixie-slim@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 
 RUN apt-get -y update && \
-	apt-get install -y \
-		libmicrohttpd12 \
-		libavutil-dev \
-		libavformat-dev \
-		libavcodec-dev \
+	apt-get install -y --no-install-recommends \
+		libmicrohttpd12t64 \
+		libavutil59 \
+		libavformat61 \
+		libavcodec61 \
 		libjansson4 \
-		libssl1.1 \
-		libsofia-sip-ua0 \
-		libglib2.0-0 \
+		libssl3t64 \
+		libsofia-sip-ua0t64 \
+		libglib2.0-0t64 \
 		libopus0 \
 		libogg0 \
-		libcurl4 \
+		libcurl4t64 \
 		liblua5.3-0 \
-		libconfig9 \
-		libusrsctp1 \
-		libwebsockets16 \
+		libconfig11 \
+		libusrsctp2 \
+		libwebsockets19t64 \
 		libnanomsg5 \
-		librabbitmq4 && \
+		librabbitmq4 \
+		libnice10 \
+		libsrtp2-1 \
+		ca-certificates && \
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
 
-COPY --from=0 /usr/lib/libsrtp2.so.1 /usr/lib/libsrtp2.so.1
-RUN ln -s /usr/lib/libsrtp2.so.1 /usr/lib/libsrtp2.so
-
-COPY --from=0 /usr/lib/libnice.la /usr/lib/libnice.la
-COPY --from=0 /usr/lib/libnice.so.10.10.0 /usr/lib/libnice.so.10.10.0
-RUN ln -s /usr/lib/libnice.so.10.10.0 /usr/lib/libnice.so.10
-RUN ln -s /usr/lib/libnice.so.10.10.0 /usr/lib/libnice.so
-
-COPY --from=0 /usr/local/bin/janus /usr/local/bin/janus
-COPY --from=0 /usr/local/bin/janus-pp-rec /usr/local/bin/janus-pp-rec
-COPY --from=0 /usr/local/bin/janus-cfgconv /usr/local/bin/janus-cfgconv
-COPY --from=0 /usr/local/etc/janus /usr/local/etc/janus
-COPY --from=0 /usr/local/lib/janus /usr/local/lib/janus
-COPY --from=0 /usr/local/share/janus /usr/local/share/janus
+COPY --from=builder /usr/local/bin/janus /usr/local/bin/janus
+COPY --from=builder /usr/local/bin/janus-pp-rec /usr/local/bin/janus-pp-rec
+COPY --from=builder /usr/local/bin/janus-cfgconv /usr/local/bin/janus-cfgconv
+COPY --from=builder /usr/local/etc/janus /usr/local/etc/janus
+COPY --from=builder /usr/local/lib/janus /usr/local/lib/janus
+COPY --from=builder /usr/local/share/janus /usr/local/share/janus
 
 
 EXPOSE 10000-10200/udp

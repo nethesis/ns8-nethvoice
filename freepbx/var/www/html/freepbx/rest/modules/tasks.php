@@ -26,6 +26,6 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 $app->get('/tasks/{task}', function (Request $request, Response $response, $args) {
 	//TODO Dummy task check API. Remove when APIs from UI are removed too
-	return $response->withJson(['progress'=>100], 200);
+	return jsonResponse($response, ['progress'=>100], 200);
 });
 

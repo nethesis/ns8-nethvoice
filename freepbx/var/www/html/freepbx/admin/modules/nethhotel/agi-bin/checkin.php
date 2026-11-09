@@ -151,8 +151,8 @@ if(count($res))
 		}
 
 	checkOut($target);
-		if($res2[0][0]!="1") { # se non gestisco il clean faccio automaticamente il clean
-		neth_debug("Clean != 1 ".$res2[0]);
+		if(($res2[0][0] ?? '')!="1") { # se non gestisco il clean faccio automaticamente il clean
+		neth_debug("Clean != 1 ".($res2[0][0] ?? ''));
 		cleanRoom($target);
 		} 
 	set_lamp('off',$target);

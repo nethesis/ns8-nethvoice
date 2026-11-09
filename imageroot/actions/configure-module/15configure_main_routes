@@ -18,6 +18,16 @@ import json
 import agent
 
 data = json.load(sys.stdin)
+nethvoice_host = data.get("nethvoice_host", "").lower()
+nethcti_ui_host = data.get("nethcti_ui_host", "").lower()
+
+if nethvoice_host and nethvoice_host == nethcti_ui_host:
+    agent.set_status('validation-failed')
+    json.dump([
+        {'field': field, 'parameter': field, 'value': data[field], 'error': 'same_host'}
+        for field in ('nethvoice_host', 'nethcti_ui_host')
+    ], fp=sys.stdout)
+    sys.exit(2)
 
 # Build route parameters, only including lets_encrypt if present in data
 route_params_base = {}
@@ -26,7 +36,6 @@ if "lets_encrypt" in data:
 
 
 # Routes for NETHVOICE_HOST (main PBX host)
-nethvoice_host = data.get("nethvoice_host", "")
 if nethvoice_host:
     # Configure Traefik to route "/" - Wizard/FreePBX main interface
     agent.set_route({
@@ -38,7 +47,6 @@ if nethvoice_host:
     })
 
 # Routes for NETHCTI_UI_HOST (CTI interface)
-nethcti_ui_host = data.get("nethcti_ui_host", "")
 if nethcti_ui_host:
     agent.set_route({
         'instance': os.environ['MODULE_ID'] + '-ui',

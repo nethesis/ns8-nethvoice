@@ -97,7 +97,7 @@ switch ($res['action']) {
         $agi->stream_file($res['message']);
         $agi->stream_file($res['message']);
         $agi->stream_file($res['message']);
-        $agi->exec("Macro","hangupcall");
+        $agi->hangup();
     break;
     case "1":
         //Message and voicemail
@@ -106,9 +106,9 @@ switch ($res['action']) {
         $agi->stream_file($res['message']);
         if ($res['param'] != '') {
             @$agi->verbose("[offhour] Message on Voicemail: ".$res['param'],4);
-            $agi->exec("Macro","vm,{$res['param']},NOMESSAGE");
+            $agi->exec("Gosub","macro-vm,s,1({$res['param']},NOMESSAGE)");
         } 
-        $agi->exec("Macro","hangupcall");
+        $agi->hangup();
     break;
     case "2":
         //Call forward
@@ -121,7 +121,7 @@ switch ($res['action']) {
         } else {
             @$agi->verbose("[offhour] Off-Hour NethCTI mode: call forward ERROR! MISSING DESTINATION!",1);
         }
-        $agi->exec("Macro","hangupcall");
+        $agi->hangup();
      break;
      default:
          @$agi->verbose("[offhour] Unknow action: ".$res['action'],1);

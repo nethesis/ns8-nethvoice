@@ -7,6 +7,11 @@ languages.en = {
     "toolbar_not_save_log_string": "See console log for details",
 
     "base_no_elements_string": "No elements found",
+    "base_no_recording_string": "No recording",
+    "base_recording_error_string": "Error: recording missing or unavailable",
+    "base_block_error_string": "Error loading block",
+    "base_block_unavailable_string": "Block data is missing or could not be loaded",
+    "toolbar_error_blocks_string": "Fix or remove the red error blocks before saving",
     "base_delete_night_service_string": "Delete Night Service",
     "base_add_night_service_string": "Add Night Service",
     "base_add_ivr_opt_string": "Add option",

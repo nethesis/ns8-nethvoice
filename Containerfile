@@ -1,10 +1,12 @@
-FROM docker.io/library/node:24.11.1-slim as ui_builder
+FROM docker.io/library/node:26.13.0-slim as ui_builder
 WORKDIR /app
 # install deps
 COPY ui/package.json .
 COPY ui/yarn.lock .
+COPY ui/.yarnrc.yml .
 RUN --mount=type=cache,id=nethvoice-module-ui-yarn,target=/var/cache/yarn \
-    yarn install --frozen-lockfile --cache-folder /var/cache/yarn
+    npm install -g corepack && corepack enable && \
+    YARN_CACHE_FOLDER=/var/cache/yarn yarn install --immutable
 # copy application
 COPY ui/public public
 COPY ui/src src
@@ -22,10 +24,12 @@ COPY imageroot /imageroot
 # copy ui from ui_builder
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
-LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm cluster:accountconsumer"
-LABEL org.nethserver.tcp-ports-demand="37"
+LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm,trunkadm cluster:accountconsumer openldap@any:domadm samba@any:domadm"
+LABEL org.nethserver.tcp-ports-demand="43"
+LABEL org.nethserver.udp-ports-demand="3000"
+LABEL org.nethserver.max-per-node="22"
 LABEL org.nethserver.rootfull="0"
-LABEL org.nethserver.min-core="3.16.0-0"
+LABEL org.nethserver.min-core="3.24.0"
 ARG REPOBASE=ghcr.io/nethserver
 ARG IMAGETAG=latest
 LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
@@ -42,4 +46,5 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-sftp:${IMAGETAG} \
     docker.io/library/eclipse-mosquitto:2 \
     ${REPOBASE}/nethvoice-satellite:${IMAGETAG}\
-    docker.io/pgvector/pgvector:0.8.1-pg18-trixie"
+    docker.io/pgvector/pgvector:0.8.1-pg18-trixie \
+    ${REPOBASE}/nethvoice-ejabberd:${IMAGETAG}"

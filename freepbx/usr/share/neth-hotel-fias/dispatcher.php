@@ -40,28 +40,58 @@ while (TRUE) {
     // Launch a command foreach message
     foreach ($messages as $id => $message){
         $section = $message['section'];
+        // LR records advertise protocol capabilities during link negotiation.
+        // They do not map to a PBX-side hotel command, so acknowledge them
+        // silently instead of reporting a missing LR2PBX configuration section.
+        if ($section === 'LR2PBX') {
+            $query = "UPDATE messages SET elaborationtime = CURRENT_TIMESTAMP WHERE id = ?";
+            $sth = $fiasdb->prepare($query);
+            $sth->execute(array($id));
+            continue;
+        }
         if (!isset($ini_file[$section])) {
             logMessage("Command section $section not defined in configuration file /etc/asterisk/fias.conf", ERROR, "dispatcher");
             continue;
         }
-        $command = $ini_file[$section]["command"];
-        $format = explode("_", $ini_file[$section]["format"]);
-        foreach ($format as $parameter) {
-	    $command .= ' ';
-            if (empty($parameter) || !isset($message['parameters'][$parameter])) {
-                $command .= "''";
-	    } else {
-                $command .= escapeshellarg($message['parameters'][$parameter]);
+        $command = array();
+        try {
+            $command = fiasBuildCommand($ini_file[$section]["command"]);
+            $format = explode("_", $ini_file[$section]["format"]);
+            foreach ($format as $parameter) {
+                if (empty($parameter) || !isset($message['parameters'][$parameter])) {
+                    $command[] = '';
+                } else {
+                    $command[] = $message['parameters'][$parameter];
+                }
             }
+            logMessage(
+                "Message $id ($section) launching argv: " . fiasFormatCommandForLog($command),
+                INFO,
+                "dispatcher"
+            );
+            $result = fiasRunProcess($command);
+        } catch (Throwable $exception) {
+            $result = array(
+                'exit_code' => -1,
+                'output' => array($exception->getMessage()),
+                'argv' => isset($command) && is_array($command) ? $command : array(),
+            );
         }
-        logMessage("Launching command: $command", INFO, "dispatcher");
-        exec($command, $output, $exit_val);
+        foreach ($result['output'] as $line) {
+            logMessage("Message $id ($section) handler: $line", INFO, "dispatcher");
+        }
         $query = "UPDATE messages SET elaborationtime = CURRENT_TIMESTAMP WHERE id = ?";
         $sth = $fiasdb->prepare($query);
         $sth->execute(array($id));
-        if ($exit_val != 0) {
-            logMessage("ERROR executing command \"$command\": ".implode("\n",$output), ERROR, "dispatcher");
+        if ($result['exit_code'] != 0) {
+            logMessage(
+                "Message $id ($section) failed with exit code {$result['exit_code']} for argv "
+                    . fiasFormatCommandForLog($result['argv']),
+                ERROR,
+                "dispatcher"
+            );
+        } else {
+            logMessage("Message $id ($section) completed with exit code 0", INFO, "dispatcher");
         }
     }
 }
-
