@@ -202,7 +202,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev l
 	make -j"$(nproc)" && \
 	install -D -m 0755 .libs/codec_g729.so ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
 
-FROM docker.io/library/php:8.2.35-apache-trixie@sha256:7b7574ed556f3cd450aafbdcb1424acdfbd67d540ce50c2c9f03e5698bca93d0
+FROM docker.io/library/php:8.3.36-apache-trixie@sha256:0d46cb96775228313d3997c155f78227de13bf9972e0c736e653fb23aded79b2
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
 RUN groupadd -g 991 -r asterisk && \
