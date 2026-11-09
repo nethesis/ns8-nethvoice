@@ -1,5 +1,5 @@
 # Stage 1: Build Asterisk
-FROM docker.io/debian:trixie@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1 as builder
+FROM docker.io/debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6 as builder
 
 # Set fixed Asterisk version
 ARG ASTERISK_VERSION=22.10.0
@@ -202,7 +202,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev l
 	make -j"$(nproc)" && \
 	install -D -m 0755 .libs/codec_g729.so ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
 
-FROM docker.io/library/php:8.2.35-apache-trixie@sha256:7b7574ed556f3cd450aafbdcb1424acdfbd67d540ce50c2c9f03e5698bca93d0
+FROM docker.io/library/php:8.3.36-apache-trixie@sha256:a800bbd2c0aa322702259ed475556b2cbc311076a8d3c4bba9bfe96838745472
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
 RUN groupadd -g 991 -r asterisk && \
@@ -562,6 +562,13 @@ RUN chown asterisk:asterisk \
 	/var/www/html/freepbx/admin/assets/js/
 
 # Direct links to modules
+# Asterisk starts before retrieve_conf creates the module configuration links.
+RUN ln -s /var/www/html/freepbx/admin/modules/core/etc/extensions.conf /etc/asterisk/extensions.conf && \
+    touch /etc/asterisk/extensions_override_freepbx.conf \
+          /etc/asterisk/extensions_additional.conf \
+          /etc/asterisk/extensions_custom.conf && \
+    chown -h asterisk:asterisk /etc/asterisk/extensions*.conf
+
 RUN ln -s /var/www/html/freepbx/admin/modules/visualplan/htdocs /var/www/html/freepbx/visualplan \
 	&& ln -s /var/www/html/freepbx/admin/modules/nethhotel/htdocs /var/www/html/freepbx/hotel
 
@@ -671,6 +678,7 @@ COPY apply-instance-bindings.php /apply-instance-bindings.php
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
+COPY initdb.d/gateway-migration.php /initdb.d/
 COPY etc/logrotate.d/asterisk /etc/logrotate.d/asterisk
 COPY initdb.d/update.php /initdb.d/
 COPY initdb.d/slow_database_updates.php /initdb.d/

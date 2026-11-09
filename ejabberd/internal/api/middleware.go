@@ -29,6 +29,7 @@ type Middleware struct {
 
 	mu      sync.Mutex
 	tokens  map[string]cachedToken // sha256(user:password) -> jwt
+	refused map[string]time.Time   // sha256(user:password) -> refused again without asking until
 	whoami  map[string]cachedWho   // sha256(jwt) -> its owner, or why it was refused
 	users   *userCache
 	lastJWT string // the newest token seen valid, to refresh the user list for pushes
@@ -38,6 +39,10 @@ type Middleware struct {
 }
 
 const tokenTTL = 2 * time.Minute
+
+// refusedTTL: an app keeps an old password until it is provisioned again, and retries it on every
+// push; each try would be a failed login on the CTI (a CrowdSec ban, an AD lockout).
+const refusedTTL = 15 * time.Minute
 
 // whoTTL: how long a token's check is reused, as chat-extauth does; a refusal too, so a flood
 // of bad tokens costs the middleware one call each per minute at most.
@@ -72,7 +77,7 @@ type userCache struct {
 const presenceTTL = 15 * time.Second
 
 func NewMiddleware(url string) *Middleware {
-	return &Middleware{URL: url, client: &http.Client{Timeout: 10 * time.Second}, tokens: map[string]cachedToken{}, whoami: map[string]cachedWho{}}
+	return &Middleware{URL: url, client: &http.Client{Timeout: 10 * time.Second}, tokens: map[string]cachedToken{}, refused: map[string]time.Time{}, whoami: map[string]cachedWho{}}
 }
 
 // Login exchanges NethVoice credentials for a CTI JWT. The cache is short: a changed password stops working within tokenTTL.
@@ -82,6 +87,10 @@ func (m *Middleware) Login(ctx context.Context, username, password string) (stri
 	if c, ok := m.tokens[key]; ok && time.Now().Before(c.till) {
 		m.mu.Unlock()
 		return c.jwt, nil
+	}
+	if till, ok := m.refused[key]; ok && time.Now().Before(till) {
+		m.mu.Unlock()
+		return "", ErrUnauthorized
 	}
 	m.mu.Unlock()
 
@@ -95,6 +104,14 @@ func (m *Middleware) Login(ctx context.Context, username, password string) (stri
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == 401 || resp.StatusCode == 403 {
+		m.mu.Lock()
+		for k, till := range m.refused {
+			if time.Now().After(till) {
+				delete(m.refused, k)
+			}
+		}
+		m.refused[key] = time.Now().Add(refusedTTL)
+		m.mu.Unlock()
 		return "", ErrUnauthorized
 	}
 	if resp.StatusCode != 200 {
