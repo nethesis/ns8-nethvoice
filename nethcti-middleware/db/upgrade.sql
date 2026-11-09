@@ -1,2 +1,0 @@
--- nethcti-middleware: db/upgrade.sql
--- Placeholder for database upgrade scripts.
