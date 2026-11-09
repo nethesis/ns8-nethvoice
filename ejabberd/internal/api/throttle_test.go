@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync/atomic"
@@ -84,8 +86,8 @@ func TestWindowSweep(t *testing.T) {
 }
 
 func TestGuestFileOK(t *testing.T) {
-	ok := [][2]string{{"photo.jpg", "image/jpeg"}, {"note.m4a", "audio/mp4"}, {"doc.pdf", "application/pdf"}, {"a.txt", "text/plain"}}
-	bad := [][2]string{{"x.html", "text/plain"}, {"x.png", "text/html"}, {"x.svg", "image/svg+xml"}, {"x.SVG", ""}, {"x.js", "application/octet-stream"}, {"x", "application/xhtml+xml"}}
+	ok := [][2]string{{"photo.jpg", "image/jpeg"}, {"note.m4a", "audio/mp4"}, {"doc.pdf", "application/pdf"}, {"a.txt", "text/plain"}, {"voice-1.webm", "audio/webm"}, {"image.PNG", "image/png"}, {"offer.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}}
+	bad := [][2]string{{"x.html", "text/plain"}, {"x.png", "text/html"}, {"x.svg", "image/svg+xml"}, {"x.SVG", ""}, {"x.js", "application/octet-stream"}, {"x", "application/xhtml+xml"}, {"setup.exe", "application/octet-stream"}, {"x.hta", ""}, {"x.ps1", "text/plain"}, {"x.lnk", ""}, {"x.docm", ""}, {"x.zip", "application/zip"}, {"x.iso", ""}, {"x.pdf.exe", ""}, {"noext", "text/plain"}}
 	for _, c := range ok {
 		if !guestFileOK(c[0], c[1]) {
 			t.Errorf("%v refused", c)
@@ -95,5 +97,33 @@ func TestGuestFileOK(t *testing.T) {
 		if guestFileOK(c[0], c[1]) {
 			t.Errorf("%v accepted", c)
 		}
+	}
+}
+
+// Refused credentials are refused again without a login on the CTI; the right password still gets in.
+func TestLoginRefusedCache(t *testing.T) {
+	var calls atomic.Int32
+	mw := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		var in map[string]string
+		json.NewDecoder(r.Body).Decode(&in)
+		if in["password"] != "new" {
+			w.WriteHeader(401)
+			return
+		}
+		w.Write([]byte(`{"token":"jwt"}`))
+	}))
+	defer mw.Close()
+	m := NewMiddleware(mw.URL)
+	for i := 0; i < 5; i++ {
+		if _, err := m.Login(context.Background(), "mario", "old"); !errors.Is(err, ErrUnauthorized) {
+			t.Fatalf("old password: %v", err)
+		}
+	}
+	if calls.Load() != 1 {
+		t.Errorf("CTI asked %d times for the old password, want 1", calls.Load())
+	}
+	if jwt, err := m.Login(context.Background(), "mario", "new"); jwt != "jwt" || err != nil {
+		t.Errorf("new password: %q %v", jwt, err)
 	}
 }

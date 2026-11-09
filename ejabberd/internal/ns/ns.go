@@ -8,6 +8,7 @@ const (
 	DiscoInfo      = "http://jabber.org/protocol/disco#info"
 	Fallback       = "urn:xmpp:fallback:0"
 	Forward        = "urn:xmpp:forward:0"
+	Group          = "urn:nethesis:chat:group:0" // the chat-island's group notices
 	Hints          = "urn:xmpp:hints"
 	MAM            = "urn:xmpp:mam:2"
 	MucSub         = "urn:xmpp:mucsub:0"

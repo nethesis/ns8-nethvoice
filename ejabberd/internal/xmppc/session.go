@@ -171,6 +171,18 @@ func (ses *Session) ReactGroup(ctx context.Context, room, target string, emojis 
 	return ses.s.Send(ctx, msg.Wrap(xml.NewDecoder(strings.NewReader(sb.String()))))
 }
 
+// Notice is a line in a room without a body, so without a push: who joined, who was added. Each
+// client words it itself, the chat-island's way.
+func (ses *Session) Notice(ctx context.Context, room, event string, users ...string) error {
+	dest, err := jid.Parse(room)
+	if err != nil {
+		return err
+	}
+	payload := fmt.Sprintf(`<x xmlns="%s" event="%s" users="%s"/><store xmlns="%s"/>`, ns.Group, attr(event), attr(strings.Join(users, ",")), ns.Hints)
+	msg := stanza.Message{To: dest, Type: stanza.GroupChatMessage, ID: newID()}
+	return ses.s.Send(ctx, msg.Wrap(xml.NewDecoder(strings.NewReader(payload))))
+}
+
 // Retract takes back one of my messages for everyone (XEP-0424): ref is its origin-id, or the
 // room's id in a group. No body, so no push; archived, so every client and the app see it.
 func (ses *Session) Retract(ctx context.Context, to, ref string, group bool) error {

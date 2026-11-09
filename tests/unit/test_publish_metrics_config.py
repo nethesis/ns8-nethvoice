@@ -5,6 +5,8 @@
 
 import importlib.machinery
 import importlib.util
+import json
+import re
 import sys
 import tempfile
 import types
@@ -20,6 +22,8 @@ SCRIPT_PATH = (
 )
 KEY = "module/nethvoice1/metrics_alert_rules"
 EVENT = "module/nethvoice1/event/metrics-alert-rules-changed"
+DASHBOARDS_KEY = "module/nethvoice1/metrics_dashboards"
+DASHBOARDS_EVENT = "module/nethvoice1/event/metrics-dashboard-changed"
 
 
 def load_script():
@@ -151,6 +155,70 @@ class DesiredRulesTest(unittest.TestCase):
 
     def test_shipped_rules(self):
         self.assertIn("nethvoice-services", self.script.desired_rules())
+
+
+class PublishDashboardsTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.script = load_script()
+
+    def publish(self, redis, dashboards):
+        return self.script.publish_dashboards(redis, "nethvoice1", "module/nethvoice1", dashboards)
+
+    def test_first_publish_writes_and_emits_dashboard_event(self):
+        redis = FakeRedis()
+        self.assertTrue(self.publish(redis, {"nethvoice-overview": "{}"}))
+        self.assertEqual(redis.hashes[DASHBOARDS_KEY], {"nethvoice-overview": "{}"})
+        self.assertEqual(redis.events(), [("publish", DASHBOARDS_EVENT, "{}")])
+
+    def test_second_publish_is_noop(self):
+        redis = FakeRedis({DASHBOARDS_KEY: {"nethvoice-overview": "{}"}})
+        self.assertFalse(self.publish(redis, {"nethvoice-overview": "{}"}))
+        self.assertEqual(redis.commands, [])
+
+    def test_rules_and_dashboards_are_separate(self):
+        redis = FakeRedis({KEY: {"nethvoice-services": "x\n"}})
+        self.publish(redis, {"nethvoice-overview": "{}"})
+        self.assertEqual(redis.hashes[KEY], {"nethvoice-services": "x\n"})
+
+
+class DesiredDashboardsTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.script = load_script()
+
+    def test_module_id_is_replaced(self):
+        with tempfile.TemporaryDirectory() as dashboards_dir:
+            Path(dashboards_dir, "nethvoice-overview.json").write_text('{"uid": "ns8-__MODULE_ID__"}')
+            Path(dashboards_dir, "other.json").write_text("{}")
+            self.assertEqual(
+                self.script.desired_dashboards("nethvoice3", dashboards_dir),
+                {"nethvoice-overview": '{"uid": "ns8-nethvoice3"}'},
+            )
+
+    def test_shipped_dashboard(self):
+        dashboards = self.script.desired_dashboards("nethvoice12")
+        self.assertIn("nethvoice-overview", dashboards)
+        text = dashboards["nethvoice-overview"]
+        self.assertNotIn("__MODULE_ID__", text)
+        dashboard = json.loads(text)
+        # One dashboard per instance: Grafana keeps only one dashboard per uid
+        self.assertEqual(dashboard["uid"], "ns8-nethvoice12")
+        self.assertLessEqual(len(dashboard["uid"]), 40)
+        self.assertEqual(dashboard["title"], "NethVoice nethvoice12")
+        ids = [panel["id"] for panel in dashboard["panels"]]
+        self.assertEqual(len(ids), len(set(ids)))
+        exprs = []
+        for panel in dashboard["panels"]:
+            for target in panel.get("targets", []):
+                self.assertEqual(target["datasource"], {"type": "prometheus", "uid": "prometheus"})
+                exprs.append(target["expr"])
+        self.assertTrue(exprs)
+        for expr in exprs:
+            self.assertEqual(expr.count("("), expr.count(")"), expr)
+            # Every NethVoice series is read for this instance only
+            for selector in re.findall(r"\b(?:nethvoice_(?!proxy_)\w+|asterisk_\w+|satellite_\w+)\{([^}]*)\}", expr):
+                self.assertIn('module_id="nethvoice12"', selector, expr)
 
 
 if __name__ == "__main__":

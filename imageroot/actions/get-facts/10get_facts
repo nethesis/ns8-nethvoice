@@ -190,6 +190,7 @@ def collect_env_features(facts):
     facts['nethvoice_ai_voicemail_transcription_enabled'] = os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False') == 'True'
     # SUBSCRIPTION_SYSTEMID= if empty is community edition, otherwise the system has a subscription
     facts['nethvoice_subscription_enabled'] = os.getenv('SUBSCRIPTION_SYSTEMID', '') != ''
+    facts['nethvoice_alerts_enabled'] = os.getenv('NETHVOICE_ALERTS_ENABLED', 'False') == 'True'
 
 
 def collect_user_domain(facts):
