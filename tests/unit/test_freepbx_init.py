@@ -68,7 +68,6 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
 
     def test_required_step_failures_stop_initialization(self):
         for command in ['fwconsole moduleadmin install core',
-                        'php /convert-legacy-sip-trunks.php',
                         'fwconsole userman --syncall --force --verbose']:
             with self.subTest(command=command):
                 self.calls.unlink(missing_ok=True)
@@ -79,13 +78,18 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
                 self.assertNotIn('slow_database_updates.php', calls)
                 self.assertFalse(self.ready.exists())
 
-    def test_permission_fix_failure_does_not_skip_final_initialization(self):
-        result, calls = self.run_init(TEST_FAILURE='ionice -c2 -n7 nice -n 10 fwconsole chown')
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('su asterisk', calls)
-        self.assertIn('phonesRpsResetHelper', calls)
-        self.assertIn('slow_database_updates.php', calls)
-        self.assertTrue(self.ready.exists())
+    def test_optional_step_failures_do_not_skip_final_initialization(self):
+        for command in ['ionice -c2 -n7 nice -n 10 fwconsole chown',
+                        'php /convert-legacy-sip-trunks.php']:
+            with self.subTest(command=command):
+                self.calls.unlink(missing_ok=True)
+                result, calls = self.run_init(TEST_FAILURE=command)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('fwconsole userman --syncall --force --verbose', calls)
+                self.assertIn('su asterisk', calls)
+                self.assertIn('phonesRpsResetHelper', calls)
+                self.assertIn('slow_database_updates.php', calls)
+                self.assertTrue(self.ready.exists())
 
 
 if __name__ == '__main__':
