@@ -13,7 +13,7 @@ dest = Path(sys.argv[1]).resolve()
 dest.mkdir(parents=True, exist_ok=True)
 containerfile = (root / 'freepbx/Containerfile').read_text()
 checksums = dict(line.split()[::-1] for line in (root / 'freepbx/remote-artifacts.sha256').read_text().splitlines())
-for module in ('core', 'framework', 'paging', 'iaxsettings', 'sipsettings'):
+for module in ('core', 'framework', 'paging', 'iaxsettings'):
     url = re.search(r'install_module ' + module + r' (\S+)', containerfile)[1]
     version = url.removesuffix('.tar.gz').rsplit('/', 1)[1]
     archive = dest / f'{module}-{version}.tar.gz'
@@ -33,7 +33,6 @@ for module in ('core', 'framework', 'paging', 'iaxsettings', 'sipsettings'):
     patches = sorted((root / 'freepbx/patches').glob('freepbx-core-821*.patch')) + [root / 'freepbx/patches/freepbx-core-bindaddress.patch'] if module == 'core' else {
         'paging': [root / 'freepbx/patches/freepbx-paging-transfers.patch'],
         'iaxsettings': [root / 'freepbx/patches/freepbx-iaxsettings-preserve.patch'],
-        'sipsettings': [root / 'freepbx/patches/freepbx-sipsettings-remove-chansip.patch'],
     }.get(module, [])
     for patch in patches:
         subprocess.run(['patch', '--batch', '--fuzz=0', '-p1', '-d', str(target), '-i', str(patch)], check=True)

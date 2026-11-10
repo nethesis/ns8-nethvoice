@@ -36,7 +36,9 @@ try {
                 ('rtpstart', '10000'), ('voicecodecs', '{\"g722\":1,\"alaw\":2}');
             INSERT INTO asterisk.sipsettings VALUES
                 ('tlsenable', 'yes', 10, 0), ('csipcertid', '1', 0, 0),
-                ('bindport', '5160', 1, 0), ('sendrpid', 'yes', 1, 9);
+                ('bindport', '5160', 1, 0), ('sendrpid', 'yes', 1, 9),
+                ('tlsbindport', '5161', 0, 0), ('tlsenable', 'custom', 2, 9),
+                ('alaw', '1', 0, 1);
             REPLACE INTO asterisk.admin VALUES ('MIGRATION_SCRIPT', '$version');
             INSERT INTO asterisk.sip (id, keyword, data, flags) VALUES
                 ('201', 'account', '201', 1),
@@ -51,6 +53,13 @@ try {
                 ('206', 'context', 'from-internal', 10)");
         $before = $db->query('SELECT * FROM asterisk.sip ORDER BY id, keyword')->fetchAll(PDO::FETCH_ASSOC);
         $pjsipBefore = $db->query('SELECT * FROM asterisk.kvstore_Sipsettings ORDER BY `key`')->fetchAll(PDO::FETCH_ASSOC);
+        $expectedSettings = $db->query('SELECT * FROM asterisk.sipsettings ORDER BY keyword, type, seq')->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($expectedSettings as &$setting) {
+            if ($setting['keyword'] === 'tlsenable' && (int)$setting['type'] === 0) {
+                $setting['data'] = 'no';
+            }
+        }
+        unset($setting);
         $expected = array_values(array_filter($before, static function ($row) {
             return !($row['keyword'] === 'mailbox' && in_array($row['id'], ['202', '203'], true));
         }));
@@ -66,8 +75,8 @@ try {
             if ($actual !== $expected) {
                 throw new RuntimeException("Version $version, run $run: invalid mailbox cleanup or unrelated settings changed");
             }
-            if ((int)$db->query('SELECT COUNT(*) FROM asterisk.sipsettings')->fetchColumn() !== 0) {
-                throw new RuntimeException('Obsolete chan_sip settings survived migration');
+            if ($db->query('SELECT * FROM asterisk.sipsettings ORDER BY keyword, type, seq')->fetchAll(PDO::FETCH_ASSOC) !== $expectedSettings) {
+                throw new RuntimeException('chan_sip TLS was not disabled or other sipsettings rows changed');
             }
             if ($db->query('SELECT * FROM asterisk.kvstore_Sipsettings ORDER BY `key`')->fetchAll(PDO::FETCH_ASSOC) !== $pjsipBefore) {
                 throw new RuntimeException('PJSIP settings changed during chan_sip cleanup');
@@ -76,7 +85,7 @@ try {
                 throw new RuntimeException('Migration completion marker changed');
             }
         }
-        echo "PASS: migration version $version, mailbox/chan_sip cleanup, PJSIP preservation and repeat execution\n";
+        echo "PASS: migration version $version, chan_sip TLS disabled, other SIP settings preserved and repeat execution\n";
     }
 } finally {
     unlink($script);
