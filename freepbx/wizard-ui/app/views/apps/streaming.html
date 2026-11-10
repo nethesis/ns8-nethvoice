@@ -73,6 +73,9 @@
                 <span class="fa {{gate.type === 'dtmf' ? 'fa-th' : 'fa-globe'}}"></span> {{gate.name}}
                 <span class="right-only"><strong>{{gate.type === 'dtmf' ? ('DTMF' | translate) + ' ' + gate.code : gate.method + ' URL'}}</strong></span>
               </div>
+              <div ng-if="g.tls_skip_verify" class="progress-description full-size-max">
+                {{'TLS certificate' | translate}} <span class="right-only"><strong>{{'Not verified' | translate}}</strong></span>
+              </div>
               <div ng-if="g.check.video" class="progress-description full-size-max">
                 {{'Video' | translate}} <span class="right-only"><strong>{{codecDescription(g.check)}}</strong></span>
               </div>
@@ -216,6 +219,17 @@
               <button type="button" class="btn btn-default" ng-disabled="newSource.gates.length >= maxGates" ng-click="addGate()"><span class="fa fa-plus"></span> {{'Add gate' | translate}}</button>
             </div>
           </div>
+          <div ng-if="tlsRelevant(newSource)" class="form-group streaming-tls">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="checkbox">
+                <label>
+                  <input id="streaming-tls-skip-verify" type="checkbox" ng-model="newSource.tls_skip_verify" ng-change="sourceChanged(newSource)">
+                  {{'Skip TLS certificate verification' | translate}}
+                </label>
+              </div>
+              <span class="help-block">{{'Only for devices with a self-signed certificate: applies to the source URL and to the URL gates' | translate}}</span>
+            </div>
+          </div>
           <div class="form-group">
             <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Profile' | translate}}</label>
             <div class="col-sm-9">
@@ -237,6 +251,7 @@
               <div class="alert alert-danger no-margin-bottom">
                 <span class="pficon pficon-error-circle-o"></span>
                 <strong>{{reasonMessage(newSource.check.reason) | translate}}</strong>
+                <span ng-if="newSource.check.reason === 'tls_error' && !tlsSkipVerify(newSource)"><br>{{'If the device has a self-signed certificate, enable Skip TLS certificate verification' | translate}}</span>
                 <span ng-if="newSource.check.message"><br><small>{{newSource.check.message}}</small></span>
               </div>
             </div>
@@ -261,6 +276,20 @@
                 <span class="pficon pficon-warning-triangle-o"></span>
                 {{'This video codec cannot be played in the browser: configure the device to send H.264' | translate}}
               </div>
+            </div>
+          </div>
+          <div ng-if="newSource.verified && hasWarning(newSource.check, 'tls_certificate_changed')" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="alert alert-warning no-margin-bottom">
+                <span class="pficon pficon-warning-triangle-o"></span>
+                {{'The device certificate changed: the video gateway refuses the device until the source is saved again' | translate}}
+              </div>
+            </div>
+          </div>
+          <div ng-if="newSource.verified && newSource.check.tls_fingerprint" class="form-group">
+            <label class="col-sm-3 control-label">{{'Device certificate' | translate}}</label>
+            <div class="col-sm-9">
+              <p class="form-control-static"><small>SHA-256 <code class="streaming-fingerprint">{{newSource.check.tls_fingerprint}}</code></small></p>
             </div>
           </div>
           <div ng-if="newSource.verified" class="form-group">
