@@ -1013,7 +1013,7 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
 
 /*
  * GET /cti/streaming
- * Return the video sources: [{ descr, type, url, user, has_secret, frame-rate, exten, open, gates, permission, gateway_path, profiles }]
+ * Return the video sources: [{ descr, type, url, user, has_secret, frame-rate, exten, open, gates, tls_skip_verify, tls_fingerprint, permission, gateway_path, profiles }]
  * Secrets (source and gate passwords) are never returned.
  */
 $app->get('/cti/streaming', function (Request $request, Response $response, $args) {
@@ -1087,8 +1087,22 @@ function streamingErrorResponse(Response $response, Throwable $e): Response
 }
 
 /*
+ * Pin the certificate of a rtsps:// source that skips the TLS verification:
+ * the gateway trusts the certificate the device presents now.
+ */
+function streamingPinCertificate(array $source): array
+{
+    [$source, $error] = streaming_refresh_fingerprint($source);
+    if ($error !== '') {
+        error_log("video source {$source['descr']}: cannot read the device certificate, " .
+            ($source['tls_fingerprint'] !== null ? 'the stored one is kept' : 'the gateway will verify it') . ": $error");
+    }
+    return $source;
+}
+
+/*
  * PUT /cti/streaming/:descr
- * { currentDescr, descr, url, user, secret, exten, frame-rate, open, gates: [{ id, name, type, code | url, method, username, password }], profiles }
+ * { currentDescr, descr, url, user, secret, exten, frame-rate, open, gates: [{ id, name, type, code | url, method, username, password }], tls_skip_verify, profiles }
  * "currentDescr" (or the route argument) is the current name of the source.
  * An empty or missing "secret" (or gate "password") keeps the stored one; an empty "user" (or gate "username") removes the credentials.
  * Without "gates", the legacy "open" code replaces the first DTMF gate.
@@ -1107,6 +1121,7 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
         }
         $source = streaming_normalize_source($data, $sources[$currentDescr]);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
+        $source = streamingPinCertificate($source);
         streaming_store_source($dbh, $source, $profiles, $currentDescr);
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
@@ -1117,9 +1132,12 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
 
 /*
  * POST /cti/streaming
- * { descr, url, user, secret, exten, frame-rate, open, gates: [{ name, type, code | url, method, username, password }], profiles }
+ * { descr, url, user, secret, exten, frame-rate, open, gates: [{ name, type, code | url, method, username, password }], tls_skip_verify, profiles }
  * The type ("image" for http(s), "rtsp" for rtsp(s)) follows the URL scheme;
  * credentials pasted into the URL are stored separately.
+ * "tls_skip_verify" (default false, stored as false when neither the URL nor
+ * a URL gate uses TLS) skips the certificate verification for the source URL
+ * and its URL gates; for rtsps:// the gateway pins the certificate read now.
  */
 $app->post('/cti/streaming', function (Request $request, Response $response, $args) {
     try {
@@ -1129,6 +1147,7 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         }
         $source = streaming_normalize_source($data);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
+        $source = streamingPinCertificate($source);
         streaming_store_source(FreePBX::Database(), $source, $profiles);
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
@@ -1138,18 +1157,22 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
 });
 
 /*
- * POST /cti/sources/test { url, user, secret, descr, details }
+ * POST /cti/sources/test { url, user, secret, descr, tls_skip_verify, details }
  *
  * Check a video source and return a preview. "descr" is the name of a stored
- * source: when "secret" is empty its stored password is used, but only for
- * the same scheme, host and port.
+ * source: when "secret" is empty its stored password is used, and when
+ * "tls_skip_verify" is absent its stored value is used, but only for the same
+ * scheme, host and port.
+ *
+ * TLS certificates (https://, rtsps://) are verified unless "tls_skip_verify".
  *
  * RTSP sources, or any source with "details": true, answer 200 with
  * { success, type, image (base64), mime, video: { codec, width, height },
- *   audio: { codec, sample_rate }, h265, warnings, reason, message }
+ *   audio: { codec, sample_rate }, h265, warnings, reason, message,
+ *   tls_fingerprint }
  * where reason is one of auth_failed, connection_refused, timeout, not_found,
- * unsupported, unknown. Legacy clients (http(s) URL, no "details") get the
- * base64 image as a JSON string, or 500 on error.
+ * tls_error, unsupported, unknown. Legacy clients (http(s) URL, no "details")
+ * get the base64 image as a JSON string, or 500 on error.
  */
 $app->post('/cti/sources/test', function (Request $request, Response $response, $args) {
     try {
@@ -1168,19 +1191,29 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
             $user = $user !== '' ? $user : $parsed['user'];
             $secret = $secret !== '' ? $secret : $parsed['secret'];
         }
-        if ($user !== '' && $secret === '' && isset($data['descr']) && is_string($data['descr']) && $data['descr'] !== '') {
+        $stored = null;
+        if (isset($data['descr']) && is_string($data['descr']) && $data['descr'] !== '') {
             $sources = streaming_load_sources(FreePBX::Database());
             $stored = $sources[$data['descr']] ?? null;
             // Never send a stored password to another device
-            if ($stored !== null && $stored['user'] === $user && streaming_url_endpoint((string) $stored['url']) === streaming_url_endpoint($parsed['url'])) {
-                $secret = (string) $stored['secret'];
+            if ($stored !== null && streaming_url_endpoint((string) $stored['url']) !== streaming_url_endpoint($parsed['url'])) {
+                $stored = null;
             }
+        }
+        if ($user !== '' && $secret === '' && $stored !== null && $stored['user'] === $user) {
+            $secret = (string) $stored['secret'];
+        }
+        try {
+            $tlsSkipVerify = streaming_bool_field($data, 'tls_skip_verify', $stored !== null && !empty($stored['tls_skip_verify']));
+        } catch (StreamingValidationException $e) {
+            return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
         }
 
         if ($parsed['type'] === 'rtsp') {
-            return jsonResponse($response, streaming_probe_rtsp($parsed['url'], $user, $secret));
+            $result = streaming_probe_rtsp($parsed['url'], $user, $secret, $tlsSkipVerify);
+            return jsonResponse($response, streaming_tls_check_warnings($result, $stored, $parsed['url']));
         }
-        $result = streaming_probe_image($parsed['url'], $user, $secret);
+        $result = streaming_probe_image($parsed['url'], $user, $secret, $tlsSkipVerify);
         if (!empty($data['details'])) {
             return jsonResponse($response, $result);
         }

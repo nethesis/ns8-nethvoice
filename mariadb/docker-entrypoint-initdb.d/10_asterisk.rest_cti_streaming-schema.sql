@@ -12,5 +12,7 @@ CREATE TABLE `rest_cti_streaming` (
   `frame-rate` int(11) DEFAULT '1000',
   `exten` int(11) DEFAULT NULL,
   `open` varchar(30) DEFAULT '',
+  `tls_skip_verify` tinyint(1) NOT NULL DEFAULT 0,
+  `tls_fingerprint` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`descr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
