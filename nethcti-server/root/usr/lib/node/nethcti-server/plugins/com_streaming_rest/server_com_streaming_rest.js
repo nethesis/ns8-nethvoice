@@ -59,6 +59,20 @@ var port = '9011';
 var address = 'localhost';
 
 /**
+ * The path of the authentication hook of the video gateway (MediaMTX). It is
+ * outside the "/streaming" prefix forwarded by the HTTP proxy, so it can be
+ * reached only on the loopback address of the REST server.
+ *
+ * @property GATEWAY_AUTH_PATH
+ * @type string
+ * @private
+ * @final
+ * @readOnly
+ * @default "/mediamtx/auth"
+ */
+var GATEWAY_AUTH_PATH = '/mediamtx/auth';
+
+/**
  * The architect component to be used for authorization.
  *
  * @property compAuthorization
@@ -209,6 +223,46 @@ function execute(req, res, next) {
     }
     return next();
 
+  } catch (err) {
+    logger.log.error(IDLOG, err.stack);
+  }
+}
+
+/**
+ * Executed by the authentication hook requests of the video gateway. The
+ * request must come from the loopback address and must not have been
+ * forwarded by a proxy: otherwise it is denied without being evaluated.
+ *
+ * @method executeGatewayAuth
+ * @private
+ */
+function executeGatewayAuth(req, res, next) {
+  try {
+    var remote = req.connection && req.connection.remoteAddress;
+    var loopback = (remote === '127.0.0.1' || remote === '::1' || remote === '::ffff:127.0.0.1');
+    var forwarded = (
+      req.headers['x-forwarded-for'] !== undefined ||
+      req.headers['x-forwarded-host'] !== undefined ||
+      req.headers['x-real-ip'] !== undefined ||
+      req.headers.forwarded !== undefined ||
+      req.headers.authorization_user !== undefined
+    );
+    if (!loopback || forwarded) {
+      logger.log.warn(IDLOG, 'video gateway authentication request refused: not a local request (' + remote + ')');
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('forbidden');
+      return next();
+    }
+    var p;
+    for (p in plugins) {
+      if (typeof plugins[p].gatewayAuth === 'function') {
+        plugins[p].gatewayAuth.apply(plugins[p], [req, res, next]);
+        return next();
+      }
+    }
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('not found');
+    return next();
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
   }
@@ -373,6 +427,11 @@ function start() {
         server.post('/' + root + '/' + post[k], execute);
       }
     }
+
+    // authentication hook of the video gateway: no user authorization, it
+    // is evaluated by the streaming plugin
+    logger.log.info(IDLOG, 'Binding POST: ' + GATEWAY_AUTH_PATH);
+    server.post(GATEWAY_AUTH_PATH, executeGatewayAuth);
 
     // start the REST server
     server.listen(port, address, function() {
