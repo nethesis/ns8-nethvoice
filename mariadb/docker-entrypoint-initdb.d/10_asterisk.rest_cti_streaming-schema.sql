@@ -5,11 +5,12 @@
 USE `asterisk`;
 CREATE TABLE `rest_cti_streaming` (
   `descr` varchar(50) NOT NULL,
+  `type` varchar(10) NOT NULL DEFAULT 'image',
   `url` varchar(8000) NOT NULL DEFAULT 'localhost',
-  `user` varchar(30) DEFAULT '',
-  `secret` varchar(90) DEFAULT '',
+  `user` varchar(255) DEFAULT '',
+  `secret` varchar(255) DEFAULT '',
   `frame-rate` int(11) DEFAULT '1000',
   `exten` int(11) DEFAULT NULL,
-  `open` varchar(10) DEFAULT '',
+  `open` varchar(30) DEFAULT '',
   PRIMARY KEY (`descr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
