@@ -85,6 +85,29 @@ function migrateStreamingSchema(\PDO $db): void
 }
 
 /*
+ * Video sources: per-source "skip TLS certificate verification" and the
+ * pinned certificate of the device (NethServer/dev#7535). Added after
+ * MIGRATION_SCRIPT 3 was released to test instances, so it does not depend on
+ * the version: it runs at every start and only adds the missing columns.
+ */
+function migrateStreamingTlsSchema(\PDO $db): void
+{
+    $columns = $db->query("SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_cti_streaming'")->fetchAll(\PDO::FETCH_COLUMN);
+    if (empty($columns)) {
+        // The table is created by the MariaDB initialization: nothing to migrate.
+        return;
+    }
+    if (!in_array('tls_skip_verify', $columns, true)) {
+        $db->exec("ALTER TABLE `asterisk`.`rest_cti_streaming` ADD COLUMN `tls_skip_verify` tinyint(1) NOT NULL DEFAULT 0");
+    }
+    if (!in_array('tls_fingerprint', $columns, true)) {
+        $db->exec("ALTER TABLE `asterisk`.`rest_cti_streaming` ADD COLUMN `tls_fingerprint` varchar(64) DEFAULT NULL");
+    }
+}
+
+/*
  * Return the URL without its user info and the decoded credentials, or null
  * when the URL has no credentials (or cannot be parsed).
  */
