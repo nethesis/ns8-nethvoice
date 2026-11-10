@@ -2,22 +2,77 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import axios from 'axios'
 import { useEventListener } from '../lib/hooks/useEventListener'
 import { getVideoSources, openVideoSource, subscribe, unsubscribe } from '../services/streaming'
-import { callPhoneNumber } from '../lib/utils'
+import { callPhoneNumber, openToast } from '../lib/utils'
+
+export interface VideoSourceGate {
+  // empty for the implicit gate of the servers that do not send the gates list
+  id: string
+  name: string
+  type?: string
+}
 
 export interface VideoSource {
   id: string
+  // "image" sources: last JPEG frame (data URI) received from the websocket, empty until then
   url: string
   user: string
   cmdOpen: string
   password: string
   frameRate: string
-  extension: string
+  extension: string | null
   description: string
+  // "image": JPEG frames sampled by the server, "rtsp": WebRTC stream from the video gateway
+  type: 'image' | 'rtsp'
+  // WHEP endpoint path of "rtsp" sources
+  whep: string | null
+  gates: VideoSourceGate[]
 }
 
+// Older servers do not send type, whep and gates
+const normalizeSource = (key: string, raw: any): VideoSource => {
+  const type = raw?.type === 'rtsp' ? 'rtsp' : 'image'
+  let gates: VideoSourceGate[]
+  if (Array.isArray(raw?.gates)) {
+    gates = raw.gates.map((gate: any) => ({
+      id: String(gate?.id ?? ''),
+      name: gate?.name || '',
+      type: gate?.type,
+    }))
+  } else {
+    gates = raw?.cmdOpen ? [{ id: '', name: '' }] : []
+  }
+  return {
+    ...raw,
+    id: raw?.id || key,
+    url: type === 'image' ? raw?.url || '' : '',
+    extension: raw?.extension ? String(raw.extension) : null,
+    type,
+    whep: type === 'rtsp' ? raw?.whep || null : null,
+    gates,
+  }
+}
+
+const isImageSource = (source: VideoSource) => source.type === 'image'
+
+// Error codes of POST /streaming/open
+const OPEN_ERROR_CODES = [
+  'no_gates',
+  'no_extension',
+  'no_code',
+  'no_url',
+  'gate_not_found',
+  'gate_failed',
+  'gate_unreachable',
+  'dtmf_failed',
+  'gate_timeout',
+]
+
 export const useVideoSources = () => {
+  const { t } = useTranslation()
   const [streamingError, setStreamingError] = useState('')
   const [isLoaded, setIsLoaded] = useState(false)
   const [videoSources, setVideoSources] = useState<VideoSource[]>([])
@@ -32,18 +87,39 @@ export const useVideoSources = () => {
     }))
   }, [])
 
-  // Handle unlock source action
-  const handleUnlockSource = useCallback(async (source: VideoSource) => {
-    try {
-      await openVideoSource({ id: source.id })
-    } catch (error) {
-      console.error('Error unlocking source:', error)
-    }
-  }, [])
+  // Handle unlock source action (the server opens the first gate when none is given)
+  const handleUnlockSource = useCallback(
+    async (source: VideoSource, gate?: VideoSourceGate) => {
+      const gateName = gate?.name || source.description || source.id
+      try {
+        await openVideoSource(gate?.id ? { id: source.id, gate: gate.id } : { id: source.id })
+        openToast(
+          'success',
+          t('Streaming.Open gate success message', { name: gateName }),
+          t('Streaming.Gate opened'),
+        )
+      } catch (error) {
+        console.error('Error unlocking source:', error)
+        let message = t('Streaming.open_error_generic')
+        if (axios.isAxiosError(error)) {
+          const code = (error.response?.data as any)?.code
+          if (code && OPEN_ERROR_CODES.includes(code)) {
+            message = t(`Streaming.open_error_${code}`)
+          } else if (error.response?.status === 403) {
+            message = t('Streaming.open_error_forbidden')
+          }
+        }
+        openToast('error', message, t('Streaming.Unable to open', { name: gateName }))
+      }
+    },
+    [t],
+  )
 
   // Handle call source action
   const handleCallSource = useCallback((source: VideoSource) => {
-    callPhoneNumber(source?.extension || source.id)
+    if (source?.extension) {
+      callPhoneNumber(source.extension)
+    }
   }, [])
 
   // Subscribe to streaming updates
@@ -69,18 +145,21 @@ export const useVideoSources = () => {
     try {
       const response = await getVideoSources()
 
-      const sourcesArray = Object.keys(response).map((key) => {
-        return {
-          ...response[key],
-          id: response[key].id || key,
-        }
-      })
+      const sourcesArray = Object.keys(response || {}).map((key) =>
+        normalizeSource(key, response[key]),
+      )
 
-      setVideoSources(sourcesArray)
+      // Keep the last frame of the image sources while reloading
+      setVideoSources((prevSources) =>
+        sourcesArray.map((source) => {
+          const prev = prevSources.find((item) => item.id === source.id)
+          return isImageSource(source) && prev?.url ? { ...source, url: prev.url } : source
+        }),
+      )
       setIsLoaded(true)
 
-      // Subscribe to all sources
-      sourcesArray.forEach((source: VideoSource) => {
+      // Subscribe to the image sources, rtsp sources are streamed through WebRTC
+      sourcesArray.filter(isImageSource).forEach((source: VideoSource) => {
         subscribeToSource(source.id)
       })
     } catch (error) {
@@ -94,7 +173,7 @@ export const useVideoSources = () => {
     if (data.res?.streaming && data.res.streaming.source && data.res.streaming.image) {
       setVideoSources((prevSources) =>
         prevSources.map((source) =>
-          source.id === data.res.streaming.source
+          source.id === data.res.streaming.source && isImageSource(source)
             ? { ...source, url: data.res.streaming.image }
             : source,
         ),
@@ -122,7 +201,7 @@ export const useVideoSources = () => {
   // Manage visibility changes to optimize subscriptions
   useEffect(() => {
     const handleVisibilityChange = () => {
-      const sources: VideoSource[] = videoSourcesRef.current
+      const sources: VideoSource[] = videoSourcesRef.current.filter(isImageSource)
 
       if (document.hidden) {
         sources.forEach((source: VideoSource) => {
@@ -150,7 +229,7 @@ export const useVideoSources = () => {
   // Cleanup subscriptions on unmount
   useEffect(() => {
     return () => {
-      videoSourcesRef.current.forEach((source: VideoSource) => {
+      videoSourcesRef.current.filter(isImageSource).forEach((source: VideoSource) => {
         unsubscribeFromSource(source.id)
       })
     }
