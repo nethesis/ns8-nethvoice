@@ -58,6 +58,10 @@ function convertLegacySipTrunks(PDO $db, $core): void
                 throw new RuntimeException("Cannot disable legacy SIP trunk $id");
             }
             $core->chansipToPJSIP('', $id);
+            // Core dials channelid; the upstream converter names endpoints from name.
+            $endpoint = $db->prepare("UPDATE pjsip SET data = ? WHERE id = ?
+                AND keyword IN ('trunk_name', 'sv_trunk_name', 'sv_channelid')");
+            $endpoint->execute([$original['trunk']['channelid'], $id]);
             if (!$core->disableTrunk($id)) {
                 throw new RuntimeException("Cannot disable converted PJSIP trunk $id");
             }
