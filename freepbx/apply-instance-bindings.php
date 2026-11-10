@@ -34,8 +34,4 @@ if (is_file($bindsFile)) {
     json_decode($binds, true, 512, JSON_THROW_ON_ERROR);
     $update->execute([$binds, 'binds']);
 }
-$update = $db->prepare('UPDATE sipsettings SET data = ? WHERE keyword = ?');
-foreach (['rtpstart' => 'ASTERISK_RTPSTART', 'rtpend' => 'ASTERISK_RTPEND', 'bindport' => 'ASTERISK_SIP_UDP_PORT'] as $key => $name) {
-    $update->execute([getenv($name), $key]);
-}
 $db->prepare("UPDATE iaxsettings SET data = ? WHERE keyword = 'bindport'")->execute([getenv('ASTERISK_IAX_PORT')]);

@@ -14,6 +14,8 @@ try {
     $db->exec("CREATE TABLE asterisk.admin (variable varchar(80) PRIMARY KEY, value varchar(80));
         CREATE TABLE asterisk.sip (id varchar(20), keyword varchar(80), data varchar(255), flags int DEFAULT 0);
         CREATE TABLE asterisk.rest_devices_phones (extension varchar(20));
+        CREATE TABLE asterisk.sipsettings (keyword varchar(50), data varchar(255), seq int, type int);
+        CREATE TABLE asterisk.kvstore_Sipsettings (`key` varchar(255) PRIMARY KEY, val text);
         CREATE TABLE asterisk.soundlang_packages (
             type varchar(20), module varchar(20), language varchar(20), author varchar(80),
             installed varchar(20), version varchar(20));
@@ -28,6 +30,13 @@ try {
 
     foreach ([1, 2] as $version) {
         $db->exec("TRUNCATE asterisk.sip;
+            TRUNCATE asterisk.sipsettings;
+            REPLACE INTO asterisk.kvstore_Sipsettings VALUES
+                ('pjsipcertid', '1'), ('tlsport-0.0.0.0', '20216'),
+                ('rtpstart', '10000'), ('voicecodecs', '{\"g722\":1,\"alaw\":2}');
+            INSERT INTO asterisk.sipsettings VALUES
+                ('tlsenable', 'yes', 10, 0), ('csipcertid', '1', 0, 0),
+                ('bindport', '5160', 1, 0), ('sendrpid', 'yes', 1, 9);
             REPLACE INTO asterisk.admin VALUES ('MIGRATION_SCRIPT', '$version');
             INSERT INTO asterisk.sip (id, keyword, data, flags) VALUES
                 ('201', 'account', '201', 1),
@@ -41,6 +50,7 @@ try {
                 ('205', 'account', '205', 9),
                 ('206', 'context', 'from-internal', 10)");
         $before = $db->query('SELECT * FROM asterisk.sip ORDER BY id, keyword')->fetchAll(PDO::FETCH_ASSOC);
+        $pjsipBefore = $db->query('SELECT * FROM asterisk.kvstore_Sipsettings ORDER BY `key`')->fetchAll(PDO::FETCH_ASSOC);
         $expected = array_values(array_filter($before, static function ($row) {
             return !($row['keyword'] === 'mailbox' && in_array($row['id'], ['202', '203'], true));
         }));
@@ -56,11 +66,17 @@ try {
             if ($actual !== $expected) {
                 throw new RuntimeException("Version $version, run $run: invalid mailbox cleanup or unrelated settings changed");
             }
+            if ((int)$db->query('SELECT COUNT(*) FROM asterisk.sipsettings')->fetchColumn() !== 0) {
+                throw new RuntimeException('Obsolete chan_sip settings survived migration');
+            }
+            if ($db->query('SELECT * FROM asterisk.kvstore_Sipsettings ORDER BY `key`')->fetchAll(PDO::FETCH_ASSOC) !== $pjsipBefore) {
+                throw new RuntimeException('PJSIP settings changed during chan_sip cleanup');
+            }
             if ($db->query("SELECT value FROM asterisk.admin WHERE variable = 'MIGRATION_SCRIPT'")->fetchColumn() !== '2') {
                 throw new RuntimeException('Migration completion marker changed');
             }
         }
-        echo "PASS: migration version $version, valid/empty mailboxes, unrelated settings and repeat execution\n";
+        echo "PASS: migration version $version, mailbox/chan_sip cleanup, PJSIP preservation and repeat execution\n";
     }
 } finally {
     unlink($script);

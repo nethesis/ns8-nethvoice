@@ -46,6 +46,10 @@ function setMigrationScriptVersion(\PDO $db, int $version): void
 	$stmt->execute([$version]);
 }
 
+# Asterisk 22 has no chan_sip. PJSIP settings live in kvstore_Sipsettings.
+# Run before the version guard to also clean already-migrated installations.
+$db->exec('DELETE FROM `asterisk`.`sipsettings`');
+
 # FreePBX 17 reads account whenever mailbox exists, even if its value is empty.
 # Run before the version guard to repair installations whose first reload failed.
 $db->exec("DELETE `mailbox` FROM `asterisk`.`sip` AS `mailbox`
@@ -150,9 +154,7 @@ if (count($res) > 0) {
 	}
 }
 
-# set allowed video codecs in freepbx sipsettings table
-$db->query("UPDATE `asterisk`.`sipsettings` SET `data` = '{\"vp8\":1, \"h264\":2}' WHERE `keyword` = 'videocodecs'");
-$db->query("UPDATE `asterisk`.`sipsettings` SET `data` = 'yes' WHERE `keyword` = 'videosupport'");
+# set allowed video codecs in PJSIP settings
 $db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = '{\"vp8\":1,\"h264\":2}' WHERE `key` = 'videocodecs'");
 $db->query("UPDATE `asterisk`.`kvstore_Sipsettings` SET `val` = 'yes' WHERE `key` = 'videosupport'");
 
