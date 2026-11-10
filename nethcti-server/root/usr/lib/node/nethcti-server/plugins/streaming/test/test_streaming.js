@@ -46,7 +46,23 @@ var fakeAuthorization = {
   }
 };
 var dtmfCalls = [];
+// conversations of the extensions as returned by astproxy getJSONExtension()
+var extenConvs = {};
+function fakeConv(exten, status, incoming) {
+  // incoming: the extension is called (e.g. by the gate opening originate),
+  // otherwise it is the caller (the intercom calling a user)
+  var mine = { channel: 'PJSIP/' + exten + '-0000002a', channelStatus: status };
+  var other = { channel: 'PJSIP/204-0000002b', channelStatus: status === 'up' ? 'up' : (incoming ? 'ring' : 'ringing') };
+  var c = incoming ? { chSource: other, chDest: mine } : { chSource: mine, chDest: other };
+  var r = {};
+  r[c.chSource.channel + '>' + c.chDest.channel] = c;
+  return r;
+}
 var fakeAstProxy = {
+  isExten: function(exten) { return exten === '301' || exten === '302'; },
+  getJSONExtension: function(exten) {
+    return { exten: exten, conversations: extenConvs[exten] || {} };
+  },
   sendDTMFSequence: function(exten, seq, callerid, fromExten, cb) {
     dtmfCalls.push({ exten: exten, seq: seq });
     cb(exten === 'fail' ? 'error' : null);
@@ -421,6 +437,54 @@ async function main() {
   assert.strictEqual(r[0], null, 'old open() signature');
   SECRETS.forEach(function(sec) { assert(logs.join('\n').indexOf(sec) < 0, 'log leaks ' + sec); });
   ok('gates: selection, fallbacks, DTMF, URL with Basic/Digest/timeout/redirect');
+
+  // DTMF only on an answered call: the tones played on a ringing channel get lost
+  var states = [
+    // [conversations of the extension, DTMF sent]
+    [{}, true], // no call: the DTMF sequence calls the extension
+    [fakeConv('302', 'ring', false), false], // the intercom calls, the user phone is ringing
+    [fakeConv('302', 'down', true), false], // the intercom is called, not ringing yet
+    [fakeConv('302', 'ringing', true), false], // the intercom is called and ringing
+    [fakeConv('302', 'up', false), true], // answered call made by the intercom
+    [fakeConv('302', 'up', true), true] // answered call to the intercom
+  ];
+  for (i = 0; i < states.length; i++) {
+    extenConvs = { '302': states[i][0], '301': states[i][0] };
+    dtmfCalls = [];
+    r = await open('vs_img', '1');
+    if (states[i][1]) {
+      assert.strictEqual(r[0], null, 'state ' + i + ': gate opened');
+      assert.deepStrictEqual(dtmfCalls, [{ exten: '302', seq: '5' }]);
+    } else {
+      assert.strictEqual(r[0].status, 409, 'state ' + i + ': not answered');
+      assert.strictEqual(r[0].code, 'call_not_answered');
+      assert(/not answered/.test(r[0].message));
+      assert.deepStrictEqual(dtmfCalls, [], 'state ' + i + ': no DTMF');
+    }
+  }
+  // the legacy open code (source without gates) and the old open() signature
+  extenConvs = { '301': fakeConv('301', 'ring', false), '302': fakeConv('302', 'ringing', true) };
+  dtmfCalls = [];
+  r = await open('vs_old');
+  assert.strictEqual(r[0].code, 'call_not_answered', 'legacy open code while ringing');
+  r = await p(function(cb) { streaming.open('vs_img', '"alice" <201>', '201', cb); });
+  assert.strictEqual(r[0].status, 409, 'old open() while ringing');
+  assert.deepStrictEqual(dtmfCalls, []);
+  // only the channels of the extension count: here 302 is the counterpart of 301
+  extenConvs = { '301': fakeConv('302', 'ringing', false) };
+  r = await open('vs_old');
+  assert.strictEqual(r[0], null);
+  assert.deepStrictEqual(dtmfCalls, [{ exten: '301', seq: '0*' }]);
+  // a second answered call of the extension allows the DTMF
+  extenConvs = { '302': Object.assign(fakeConv('302', 'ringing', true), fakeConv('302', 'up', false)) };
+  r = await open('vs_img');
+  assert.strictEqual(r[0], null, 'one answered call');
+  // URL gates do not depend on the call
+  extenConvs = { '302': fakeConv('302', 'ring', false) };
+  r = await open('vs_rtsp', '4');
+  assert.strictEqual(r[0], null, 'URL gate while ringing');
+  extenConvs = {};
+  ok('DTMF gates only on answered calls (or without calls), URL gates always');
 
   // --- snapshots --------------------------------------------------------------
   r = await p(function(cb) { streaming.getVideoSample('vs_img', cb); });
