@@ -88,6 +88,22 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(source.gates[0].code).toBe('*1');
   });
 
+  it('edits the stored profiles with the ids of /cti/profiles', function () {
+    // /cti/profiles returns numeric ids, /cti/streaming string ids
+    scope.allProfiles = [{ id: 1, name: 'Base' }, { id: 2, name: 'Standard' }, { id: 3, name: 'Advanced' }];
+    var source = storedSource();
+    source.profiles = ['3', '1', '99'];
+    scope.modifySource(source);
+    expect(scope.newSource.profiles).toEqual([3, 1, '99']);
+    expect(source.profiles).toEqual(['3', '1', '99']);
+    scope.saveSource(scope.newSource);
+    expect(ApplicationService.updateVideoSource.calls.mostRecent().args[1].profiles).toEqual([3, 1, '99']);
+
+    source.profiles = undefined;
+    scope.modifySource(source);
+    expect(scope.newSource.profiles).toEqual([]);
+  });
+
   it('sends only the fields of the API, empty passwords keep the stored ones', function () {
     scope.modifySource(storedSource());
     var payload = scope.sourcePayload(scope.newSource);
