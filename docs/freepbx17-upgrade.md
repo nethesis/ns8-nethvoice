@@ -12,6 +12,31 @@ Restoring a backup from version 16 runs the schema/catalog/permission migrations
 
 The REST dependencies are locked for PHP 8.2. Anonymous REST access is limited to the exact `/freepbx/rest/testauth` path; other routes return 403 before routing. Boss Secretary group changes require a session CSRF token and deletion uses POST. The cleartext Asterisk HTTP listener binds to loopback; remote metrics clients must use the existing HTTPS listener with certificate verification and Basic Auth.
 
+## Legacy SIP prerequisite and recovery
+
+Asterisk 22 cannot run chan_sip trunks or devices. Convert them to PJSIP and verify them on the previous release before upgrading. Disabled legacy trunks also block FreePBX reload. The upgrade checks the database before stopping the running FreePBX container; configure and restore check before starting application services. These checks run even when `admin.MIGRATION_SCRIPT` is already `2`. They do not modify trunk data or bypass FreePBX's compatibility check.
+
+If the check fails, the update action is marked `validation-failed`, and its log explains the prerequisite. NS8 has already installed the new module files and image references at this point; this is a guard before the FreePBX container replacement, not a rollback of the module installation. Earlier update hooks may also have changed port/proxy settings. Keep the instance in maintenance and follow the recovery procedure below before restarting services or rebooting. A reported module version alone does not establish that the upgrade completed.
+
+Use a protected database session to inventory the legacy objects without exposing credentials:
+
+```sql
+SELECT trunkid, tech FROM asterisk.trunks WHERE tech = 'sip';
+SELECT id, tech FROM asterisk.devices WHERE tech = 'sip';
+```
+
+Use a maintenance window and an isolated restore to prepare the migration:
+
+1. Take a full NS8 backup and restore it into an isolated instance of the previous release. Save a private inventory of trunk IDs and settings, credentials, registration strings, outbound route trunk order, inbound routes, caller-ID rules, codecs, transport/TLS settings, and proxy rules. Prevent the isolated instance from registering with real providers while the original instance is active.
+2. Recreate each legacy trunk as PJSIP through the supported trunk configuration interface on the previous release. Transfer authentication credentials, provider addresses/ports, registration/contact details, caller-ID rules, codecs and proxy settings explicitly. Map legacy options to their PJSIP equivalents with the provider; copying a chan_sip registration string into a server field is not a conversion. Keep only one of the old and replacement trunks active for registration at a time.
+3. If recreating a trunk assigns a new ID, update every route reference to that replacement and preserve route order and failover behavior. Update the corresponding proxy configuration through the NethVoice interfaces. Compare the private inventories before removing the old trunk. Migrate any remaining chan_sip devices as well; simply disabling a legacy object does not satisfy FreePBX's check.
+4. In the authorized test environment, verify registration and inbound/outbound calls, route selection, caller ID, authentication and proxy traversal. Remove the legacy objects through the configuration interface only after these checks pass. Both inventory queries must then return no rows. Take a new full backup of this working PJSIP configuration, and upgrade that instance.
+5. Confirm FreePBX and NethCTI remain running, compare their restart counters across several former restart intervals, and run a phonebook update. Recheck registration, inbound/outbound calls, route references and proxy settings. Verify normal chan_sip `tlsenable` remains `no` while unrelated SIP settings stay intact.
+
+For an installation already looping after `1.8.1-testing.3`, restore the full pre-upgrade NS8 backup with its previous module/images and persistent files, then follow the same steps. Do not downgrade images against the migrated database, clear `MIGRATION_SCRIPT`, delete legacy rows manually, or create `freepbx-ready` by hand. If no full backup is available, retain the private upgrade snapshot and escalate for a reviewed recovery; that snapshot is not a full restore procedure.
+
+The pinned FreePBX Core `17.0.18.54` exposes `fwconsole trunks --convert2pjsip <all/trunkid>`; the compatibility error's `--converttopjsip` spelling is incorrect. The converter deletes the legacy rows, and its parser assumes a simple `username:password@host` registration string. This upgrade deliberately does not invoke it automatically. A converter-based recovery needs separate preservation and partial-failure validation before it can replace the procedure above.
+
 ## Recovery
 
 Take an NS8 backup before upgrading and verify it can be restored to an isolated instance of the previous release. Downgrading the module image against an already migrated FreePBX 17 database is unsupported. Recovery to version 16 requires restoring the pre-upgrade database **and** persistent files, together with the old module/images.
@@ -31,6 +56,7 @@ These checks require a real version-16 instance, an old backup and test SIP trun
 5. Inject a required module installation failure and then a reload failure in separate disposable restores. Verify startup/update fail, downstream services remain stopped and recovery files remain. Restore the pre-upgrade NS8 backup to the old release and verify calls, credentials, files and database contents; never just switch the image tag back.
 6. Restore the old backup directly into the new release. Verify provider/gateway catalogs, `rest_pjsip_trunks_custom_flags`, phonebook permissions 10/14 and bindings. Run configure a second time and confirm it neither re-enables transports nor re-grants administrator-revoked permissions. Verify historic CDR import does not block the action.
 7. Complete the wizard and exercise gateway create/edit/push failure, notification write failure, CSV sync failure, users without extensions, and physical-device line selection. Test REST without headers on `/users/testauth`, `/trunks/testauth` and PUT `/cti/customer_card/template/testauth`: all must return 403. Test valid auth, invalid auth, JSON errors and OPTIONS. Check Boss Secretary POST/CSRF, malicious labels and group IDs, queue reports, MP3 playback and authenticated HTTPS metrics.
+8. Restore a synthetic chan_sip trunk with credentials, registration, outbound and inbound routes, and proxy configuration. Test both enabled and disabled trunks, and a chan_sip device. Verify upgrade refuses to replace FreePBX and reports `validation-failed`; configure/restore must also refuse application startup. Repeat with `MIGRATION_SCRIPT=2` and after a failed initialization. Run the checks twice and confirm all trunk/device rows, credentials, routes and proxy settings are unchanged. Follow the legacy SIP recovery procedure, compare the migrated settings and route references, then repeat the upgrade and the service, phonebook and call checks above. Repeat with the database unavailable: the check must fail, never assume compatibility.
 
 ## Automated checks
 
