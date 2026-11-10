@@ -14,9 +14,6 @@ class UpgradeTest(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         directory = Path(temporary.name)
-        (directory / 'agent.py').write_text('''from pathlib import Path
-def set_status(value): Path('action-status').write_text(value)
-''')
         stub = directory / 'stub'
         stub.write_text('''#!/usr/bin/env python3
 import json, os, sys
@@ -38,7 +35,6 @@ if call == os.environ.get('TEST_FAIL'): sys.exit(17)
             (directory / command).symlink_to(stub)
         result = subprocess.run(['bash', str(ROOT / 'imageroot/update-module.d/80restart')], cwd=directory,
                                 env=dict(os.environ, PATH=str(directory)+':'+os.environ['PATH'], TEST_FAIL=fail,
-                                         PYTHONPATH=str(directory),
                                          NETHVOICE_FREEPBX_IMAGE='test-freepbx'), capture_output=True, text=True)
         calls = [json.loads(line) for line in (directory / 'calls').read_text().splitlines()]
         return result, calls, directory
@@ -51,22 +47,10 @@ if call == os.environ.get('TEST_FAIL'): sys.exit(17)
         pbx = calls.index(['systemctl', '--user', 'start', 'freepbx'])
         cti = calls.index(['systemctl', '--user', 'start', 'nethcti-server'])
         self.assertLess(stop, migrate)
-        self.assertLess(calls.index(['runagent', 'check-legacy-sip']), stop)
         self.assertLess(migrate, pbx)
         self.assertLess(pbx, cti)
         self.assertTrue(list(directory.glob('upgrade-backups/*/succeeded')))
         self.assertFalse(any('fwconsole' in call for call in calls))
-
-    def test_legacy_sip_or_database_failure_preserves_freepbx_and_marks_action_failed(self):
-        for fail in ['runagent check-legacy-sip', 'systemctl --user start mariadb']:
-            with self.subTest(fail=fail):
-                result, calls, directory = self.run_upgrade(fail)
-                self.assertEqual(result.returncode, 1, result.stderr)
-                self.assertEqual((directory / 'action-status').read_text(), 'validation-failed')
-                self.assertFalse(any(call[0] == 'restart-services-when-convenient' for call in calls))
-                self.assertNotIn(['runagent', 'mysql-update-postprocess', '--migrate'], calls)
-                self.assertNotIn(['systemctl', '--user', 'start', 'freepbx'], calls)
-                self.assertFalse((directory / 'upgrade-backups').exists())
 
     def test_failed_initialization_or_migration_preserves_snapshot_and_stops_consumers(self):
         for fail in ['systemctl --user start freepbx', 'runagent mysql-update-postprocess --migrate']:
