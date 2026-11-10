@@ -761,30 +761,8 @@ function nethcti3_get_config_late($engine) {
             error_log('fail to write trunks config');
         }
 
-        // write streaming.json
-        $out = [];
-        $dbh = FreePBX::Database();
-        $sql = 'SELECT * FROM rest_cti_streaming';
-        $sth = $dbh->prepare($sql);
-        $sth->execute();
-        $results = $sth->fetchAll(PDO::FETCH_ASSOC);
-
-        if ($results === false) {
-            error_log('Failed to load CTI streaming config');
-            $results = [];
-        }
-        foreach ($results as $r) {
-            foreach ($r as $key => $value) {
-                if ($value !== null) { $r[$key] = (string) $value; }
-            }
-            $pername = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$r['descr'])));
-            $out[$pername] = $r;
-        }
-        // Write streaming.json configuration file
-        $res = $nethcti3->writeCTIConfigurationFile('/streaming.json',(object) $out);
-        if ($res === FALSE) {
-            error_log('fail to write streaming config');
-        }
+        // write streaming.json and the video gateway (MediaMTX) configuration
+        nethcti3_write_streaming_config($nethcti3);
 
         // Write recallonbusy.json configuration file
         $out = [];
@@ -820,6 +798,41 @@ function nethcti3_get_config_late($engine) {
         system("/var/www/html/freepbx/rest/lib/ctiReloadHelper.sh > /dev/null 2>&1 &");
     } catch (Exception $e) {
         error_log($e->getMessage());
+    }
+}
+
+/*
+ * Video sources: /etc/nethcti/streaming.json for nethcti-server and
+ * /etc/mediamtx/mediamtx.yml for the RTSP to WebRTC gateway. Both files are
+ * regenerated at every reload, so a restored or cloned instance needs no
+ * extra step.
+ */
+function nethcti3_write_streaming_config($nethcti3) {
+    include_once('/var/www/html/freepbx/rest/lib/libStreaming.php');
+    try {
+        $sources = streaming_load_sources(FreePBX::Database());
+    } catch (Exception $e) {
+        error_log('Failed to load CTI streaming config: ' . $e->getMessage());
+        return;
+    }
+
+    $res = $nethcti3->writeCTIConfigurationFile('/streaming.json', (object) streaming_cti_config($sources));
+    if ($res === FALSE) {
+        error_log('fail to write streaming config');
+    }
+
+    require('/var/www/html/freepbx/rest/config.inc.php');
+    $gateway = $config['streaming_gateway'] ?? [];
+    $settings = streaming_gateway_settings($gateway);
+    $path = (string) ($gateway['config_path'] ?? '/etc/mediamtx/mediamtx.yml');
+    if ($settings === null) {
+        error_log('video gateway ports are not allocated: ' . $path . ' not written');
+        return;
+    }
+    // The file contains the device passwords: readable only by asterisk,
+    // the user of both FreePBX and the gateway container.
+    if (!streaming_write_file_atomic($path, streaming_mediamtx_config($sources, $settings), 0640, 'asterisk')) {
+        error_log('fail to write video gateway config ' . $path);
     }
 }
 

@@ -47,6 +47,10 @@ Check if the facts are returned as expected
     Should Be Empty    ${response['nethvoice_physical_devices_by_model']}
 
     Should Be Equal As Integers    ${response['nethvoice_streaming_count']}    0
+    Dictionary Should Contain Key    ${response}    nethvoice_streaming_by_type
+    Should Be Equal As Integers    ${response['nethvoice_streaming_by_type']['image']}    0
+    Should Be Equal As Integers    ${response['nethvoice_streaming_by_type']['rtsp']}    0
+    Dictionary Should Contain Key    ${response}    nethvoice_streaming_gates_by_type
     Should Be Equal As Integers    ${response['nethvoice_paramurl_count']}    0
 
     Dictionary Should Contain Key    ${response}    nethvoice_customer_cards_count

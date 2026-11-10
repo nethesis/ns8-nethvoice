@@ -30,7 +30,7 @@ jobs:
           - group: reports
             images: reports-api,reports-ui
           - group: wrappers
-            images: mariadb,cti-middleware,cti-ui,satellite
+            images: mariadb,cti-middleware,cti-ui,satellite,mediamtx
           - group: janus
             images: janus
           - group: module

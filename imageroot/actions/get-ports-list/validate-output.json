@@ -13,7 +13,9 @@
       {"name": "Asterisk RTP (WSS)",       "port": "20000-20100", "protocol": "udp"},
       {"name": "NethCTI TLS (Nethifier)",  "port": "9001",        "protocol": "tcp"},
       {"name": "Phonebook LDAPS",          "port": "636",         "protocol": "tcp"},
-      {"name": "Janus WebRTC RTP",         "port": "10000-10200", "protocol": "udp"}
+      {"name": "Janus WebRTC RTP",         "port": "10000-10200", "protocol": "udp"},
+      {"name": "Video gateway ICE (UDP)",  "port": "21000",       "protocol": "udp"},
+      {"name": "Video gateway ICE (TCP)",  "port": "20045",       "protocol": "tcp"}
     ]
   ],
   "type": "array",

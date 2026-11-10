@@ -1,0 +1,47 @@
+#
+# Video gateway of the video sources (NethServer/dev#7535): MediaMTX pulls the
+# RTSP(S) stream of a door intercom or camera on demand and serves it to the
+# CTI clients over WebRTC (WHEP, behind traefik on /streaming-gw/).
+#
+# The whole configuration is /etc/mediamtx/mediamtx.yml in the mediamtx
+# volume, written by FreePBX (nethcti3 module) at every reload and start and
+# reloaded by MediaMTX when it changes. Listeners not in use are disabled
+# there, so the container writes nothing: it runs read-only, as the asterisk
+# uid/gid of the FreePBX image (the owner of that file), without capabilities.
+#
+[Unit]
+Description=MediaMTX video gateway (RTSP to WebRTC) for NethVoice CTI
+Wants=freepbx.service
+After=freepbx.service
+# The configuration may be missing until FreePBX completes its first start:
+# keep retrying instead of hitting the start rate limit
+StartLimitIntervalSec=0
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+EnvironmentFile=%E/state/environment
+WorkingDirectory=%E/state
+Restart=always
+RestartSec=10s
+ExecStartPre=/bin/rm -f %t/mediamtx.pid %t/mediamtx.ctr-id
+ExecStart=/usr/bin/podman run \
+    --detach \
+    --conmon-pidfile=%t/mediamtx.pid \
+    --cidfile=%t/mediamtx.ctr-id \
+    --cgroups=no-conmon \
+    --log-opt=tag=%u \
+    --replace --name=%N \
+    --network=host \
+    --read-only \
+    --user=990:991 \
+    --cap-drop=all \
+    --security-opt=no-new-privileges \
+    --volume=mediamtx:/etc/mediamtx:ro,z \
+    ${NETHVOICE_MEDIAMTX_IMAGE} \
+    /etc/mediamtx/mediamtx.yml
+ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/mediamtx.ctr-id
+PIDFile=%t/mediamtx.pid
+Type=forking
+
+[Install]
+WantedBy=default.target

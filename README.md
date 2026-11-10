@@ -188,6 +188,58 @@ image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, 
   api-cli run module/nethvoice1/set-integrations --data '{"chat_enabled": true, "chat_retention_days": 180}'
   ```
 
+## Video sources and video gateway
+
+Video sources (door intercoms, cameras, NethServer/dev#7535) are configured in the wizard
+(Applications > Video sources). The URL scheme sets the type:
+
+- `http(s)://`: legacy image source, a JPEG polled by nethcti-server;
+- `rtsp(s)://`: video stream, pulled on demand by the `mediamtx` unit and served to the CTI clients
+  over WebRTC (WHEP). The device is always read over RTSP/TCP: when it sits in a customer LAN, a single
+  TCP port-forward of its RTSP port (allowed only from the PBX public IP, shown in the wizard) or a VPN is enough.
+
+Credentials are stored apart from the URL (pasted credentials are split out) and are write-only in the
+REST API. Every source has up to 10 ordered gates (door openers): `dtmf` (code sent to the source
+extension) or `url` (HTTP GET/POST with optional credentials). The legacy `open` field is kept in
+sync with the first DTMF gate. The wizard "Check" probes the device directly with ffprobe/ffmpeg
+(a minimal build in the FreePBX image) and shows a preview frame, the codecs and the specific reason
+of a failure; H.265 is reported because most browsers cannot play it.
+
+- Unit: `mediamtx.service`, image `nethvoice-mediamtx` (mirror of `docker.io/bluenviron/mediamtx`),
+  host network, read-only, uid/gid 990:991, no capabilities. Unused listeners (RTMP, SRT, HLS, MoQ,
+  playback, metrics) are disabled.
+- Configuration: `/etc/mediamtx/mediamtx.yml` in the `mediamtx` volume, written atomically by FreePBX
+  (nethcti3 `retrieve_conf`) at every reload and start, together with `/etc/nethcti/streaming.json`, and
+  hot-reloaded by MediaMTX. It is the only source of truth (changes through the MediaMTX API are lost)
+  and it is never backed up: restore and clone regenerate it from the database. It holds the device
+  passwords: mode 0640, owner asterisk.
+- One gateway path per RTSP source, `streaming-gw/<permission>` (e.g. `streaming-gw/vs_front_door`,
+  the CTI permission of the source). Traefik routes `https://<NETHCTI_UI_HOST>/streaming-gw/` to the
+  WHEP listener without stripping the prefix, so the WHEP `Location` header stays valid. CORS is
+  answered by MediaMTX.
+- Viewer authorization: `authMethod: http`, every read (local RTSP readers included) is checked with
+  `POST http://127.0.0.1:${NETHCTI_INTERNAL_REST_PORT9}/mediamtx/auth` on nethcti-server: until it
+  implements that endpoint every viewer is denied.
+- Ports (environment):
+
+  | Variable | Protocol | Exposure | Use |
+  | --- | --- | --- | --- |
+  | `MEDIAMTX_WHEP_PORT` | TCP | 127.0.0.1, behind traefik | WHEP HTTP |
+  | `MEDIAMTX_API_PORT` | TCP | 127.0.0.1 only, never routed | control API (returns the device passwords) |
+  | `MEDIAMTX_RTSP_PORT` | TCP | 127.0.0.1 only | RTSP server for local readers |
+  | `MEDIAMTX_ICE_UDP_PORT` | UDP | public, firewall | WebRTC ICE |
+  | `MEDIAMTX_ICE_TCP_PORT` | TCP | public, firewall | WebRTC ICE over TCP (fallback) |
+
+  New installs take the TCP ports from the module range (indexes 42-45). The ICE UDP port is always a
+  separate single-port allocation, outside `UDP_PORTS_RANGE`, so it never changes the size of the RTP
+  block (a different size makes `update-module.d/20allocate_ports` move all the RTP/SIP ports).
+  Existing instances get all of them from `update-module.d/20allocate_video_gateway_ports`; if
+  `20allocate_ports` ever moves the UDP block it also drops the ICE UDP allocation, which is then
+  allocated again. The ICE ports are listed by `get-ports-list` and opened by `create-module/90firewall`.
+- ICE addresses: `MEDIAMTX_ICE_HOSTS` (public and, behind NAT, private address of the node) and
+  `MEDIAMTX_PUBLIC_IP` come from the nethvoice-proxy service record, like `ICEENFORCE` for Janus.
+  When the PBX is behind NAT, the ICE ports must be forwarded too.
+
 ## Timer logs
 
 These units are silenced to keep the journal small:
@@ -266,7 +318,7 @@ still exported.
 
 Notes:
 
-- Services are read from systemd: freepbx (Asterisk), mariadb, janus,
+- Services are read from systemd: freepbx (Asterisk), mariadb, janus, mediamtx,
   nethcti-ui, nethcti-server, nethcti-middleware, phonebook, tancredi,
   satellite, satellite-mqtt, satellite-pgsql, reports-api, reports-redis,
   reports-ui, sftp, saml2-proxy, oauth2-proxy. Disabled services and services
@@ -437,7 +489,7 @@ Both callers build the same ordered matrix groups with `max-parallel: 3`:
 1. `freepbx`
 2. `app-support` (`tancredi,cti-server,phonebook,sftp`)
 3. `reports` (`reports-api,reports-ui`)
-4. `wrappers` (`mariadb,cti-middleware,cti-ui,satellite`)
+4. `wrappers` (`mariadb,cti-middleware,cti-ui,satellite,mediamtx`)
 5. `janus`
 6. `module` (`nethvoice`)
 

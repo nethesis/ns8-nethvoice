@@ -261,6 +261,26 @@ else
 fi
 
 
+##############################
+##  Video gateway (MediaMTX) ##
+##############################
+# Mirror of the upstream MediaMTX (RTSP to WebRTC/WHEP gateway of the video
+# sources). The plain image is enough: no ffmpeg, configured by the yml file
+# that FreePBX writes into the mediamtx volume.
+reponame="nethvoice-mediamtx"
+if should_build "${reponame}"; then
+    start_timing "${reponame}"
+    container=$(buildah from docker.io/bluenviron/mediamtx:1.21.3)
+    buildah commit "${container}" "${repobase}/${reponame}"
+    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    finish_timing
+    # Append the image URL to the images array
+    images+=("${repobase}/${reponame}")
+else
+    skip_build "${reponame}"
+fi
+
+
 #############################
 ##      Janus Gateway      ##
 #############################

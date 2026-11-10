@@ -163,6 +163,13 @@ chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/s
 mkdir -p /etc/nethcti
 chown -R asterisk:asterisk /etc/nethcti
 
+# Configuration of the video gateway (MediaMTX), shared through the mediamtx
+# volume: written by FreePBX, read by the gateway container that runs as the
+# same asterisk uid/gid. It holds the device passwords, so no world access.
+mkdir -p /etc/mediamtx
+chown asterisk:asterisk /etc/mediamtx
+chmod 0750 /etc/mediamtx
+
 # Keep the phonebook volumes non-empty. NS8 backup mounts module volumes in a
 # helper container, and an empty named volume can be re-initialized there with
 # root ownership. Seeding a hidden file prevents ownership drift.
@@ -226,6 +233,11 @@ js_string() {
 	php -r 'echo json_encode($argv[1], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);' "$1"
 }
 
+# Serialize a value as a PHP string literal for config.inc.php
+php_string() {
+	php -r 'var_export($argv[1]);' "$1"
+}
+
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
@@ -258,6 +270,17 @@ cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
           'name' => 'nethcti3',
           'user' => '${NETHCTI_DB_USER}',
           'pass' => '${NETHCTI_DB_PASSWORD}'
+      ],
+    'streaming_gateway' => [
+          'config_path' => '/etc/mediamtx/mediamtx.yml',
+          'MEDIAMTX_WHEP_PORT' => $(php_string "${MEDIAMTX_WHEP_PORT:-}"),
+          'MEDIAMTX_API_PORT' => $(php_string "${MEDIAMTX_API_PORT:-}"),
+          'MEDIAMTX_RTSP_PORT' => $(php_string "${MEDIAMTX_RTSP_PORT:-}"),
+          'MEDIAMTX_ICE_UDP_PORT' => $(php_string "${MEDIAMTX_ICE_UDP_PORT:-}"),
+          'MEDIAMTX_ICE_TCP_PORT' => $(php_string "${MEDIAMTX_ICE_TCP_PORT:-}"),
+          'MEDIAMTX_ICE_HOSTS' => $(php_string "${MEDIAMTX_ICE_HOSTS:-}"),
+          'MEDIAMTX_PUBLIC_IP' => $(php_string "${MEDIAMTX_PUBLIC_IP:-}"),
+          'NETHCTI_INTERNAL_REST_PORT9' => $(php_string "${NETHCTI_INTERNAL_REST_PORT9:-}")
       ]
 ];
 EOF

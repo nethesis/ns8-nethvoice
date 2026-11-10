@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Allocate the video gateway (MediaMTX) ports on instances created before it:
+# three loopback TCP ports and the public ICE port on TCP and UDP. New
+# installs get them from create-module/05setenvs.
+#
+# Every allocation is a single extra range with keep_existing=True: the
+# instance TCP range and the UDP block (UDP_PORTS_RANGE) are never resized,
+# so this step can never trigger the RTP/SIP port migration of
+# 20allocate_ports. The file name sorts after 20allocate_ports (which drops
+# all UDP allocations when it moves the UDP block, and then unsets
+# MEDIAMTX_ICE_UDP_PORT) and before 21firewall_ports, which opens the ICE
+# ports with the rest of the public ports.
+import sys
+
+import agent
+import video_gateway
+
+if not hasattr(agent, 'allocate_ports'):
+    print("Core version too old, not allocating video gateway ports. Try on next update", file=sys.stderr)
+    sys.exit(0)
+
+# read the env file, the real environment may not be updated yet
+env = agent.read_envfile('environment')
+
+try:
+    video_gateway.allocate_missing_ports(agent, env, lambda message: print(message, file=sys.stderr))
+except Exception as ex:
+    # Video sources are optional: do not block the update. The gateway
+    # configuration is not written without its ports (see nethcti3).
+    print(agent.SD_WARNING + f"Cannot allocate the video gateway ports: {ex}. RTSP video sources will not be available until the next update", file=sys.stderr)

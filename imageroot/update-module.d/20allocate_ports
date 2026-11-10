@@ -182,6 +182,10 @@ if rtp_start is not None:
 	agent.set_env('SATELLITE_RTP_PORT', satellite_rtp_port)
 	agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
 	agent.set_env('ASTERISK_SIP_UDP_PORT', sip_udp_port)
+	# allocate_ports() without keep_existing dropped every UDP allocation of
+	# the instance, the video gateway ICE port included: let
+	# 20allocate_video_gateway_ports allocate it again.
+	agent.unset_env('MEDIAMTX_ICE_UDP_PORT')
 
 	# The firewall is opened authoritatively at step 21firewall_ports (which
 	# re-runs create-module/90firewall with replace_ports=True), so we do not
