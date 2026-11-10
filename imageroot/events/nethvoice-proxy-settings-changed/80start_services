@@ -10,4 +10,5 @@ exec 1>&2 # ensure any output is sent to stderr
 
 #restart services if they are already running
 
+# freepbx rewrites the video gateway configuration (ICE addresses) at start
 systemctl --user try-restart freepbx tancredi janus

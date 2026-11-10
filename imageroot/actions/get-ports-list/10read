@@ -24,6 +24,8 @@ SERVICES = [
     ("NethCTI TLS (Nethifier)",   "NETHCTI_TLS_PORT",                            "tcp"),
     ("Phonebook LDAPS",           "PHONEBOOK_LDAP_PORT",                         "tcp"),
     ("Janus WebRTC RTP",          ("JANUS_RTPSTART",    "JANUS_RTPEND"),         "udp"),
+    ("Video gateway ICE (UDP)",   "MEDIAMTX_ICE_UDP_PORT",                       "udp"),
+    ("Video gateway ICE (TCP)",   "MEDIAMTX_ICE_TCP_PORT",                       "tcp"),
 ]
 
 ports = []
