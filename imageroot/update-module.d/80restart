@@ -5,13 +5,6 @@ set -euo pipefail
 exec 1>&2
 umask 077
 
-# Check before stopping the old FreePBX, independently of MIGRATION_SCRIPT.
-if ! systemctl --user start mariadb || ! runagent check-legacy-sip; then
-    # The core hook runner ignores exit codes; report failure to the action too.
-    python3 -c 'import agent; agent.set_status("validation-failed")'
-    exit 1
-fi
-
 systemctl --user daemon-reload
 # Keep consumers stopped until the new schema AND FreePBX modules are ready.
 services=(watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus nethcti-server satellite-mqtt satellite-pgsql nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite)
@@ -29,6 +22,7 @@ printf '%s\n' "${active[@]}" > "$backup/active-services"
 if ((${#active[@]})); then restart-services-when-convenient --stop "${active[@]}"; fi
 # Report initialization failure before starting any downstream consumers.
 trap 'echo "Upgrade failed. Consumers remain stopped; recovery data: $backup" >&2' ERR
+systemctl --user start mariadb
 # Include non-transactional FreePBX tables under a global read lock.
 podman exec mariadb sh -ec 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mariadb-dump -u root --all-databases --lock-all-tables --routines --events' | gzip > "$backup/databases.sql.gz"
 # Preserve generated dialplan, scripts and AstDB alongside the database dump.

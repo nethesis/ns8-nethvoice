@@ -51,6 +51,9 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         result, calls = self.run_init()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertLess(calls.index('fwconsole moduleadmin install core'), calls.index('su asterisk'))
+        conversion = calls.index('php /convert-legacy-sip-trunks.php')
+        self.assertLess(calls.index('fwconsole moduleadmin install core'), conversion)
+        self.assertLess(conversion, calls.index('fwconsole userman --syncall'))
         self.assertNotIn('core restart', calls)
         self.assertNotIn('HTTPTLSBINDADDRESS', calls)
         self.assertTrue(self.ready.exists())
@@ -65,6 +68,7 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
 
     def test_required_step_failures_stop_initialization(self):
         for command in ['fwconsole moduleadmin install core',
+                        'php /convert-legacy-sip-trunks.php',
                         'fwconsole userman --syncall --force --verbose']:
             with self.subTest(command=command):
                 self.calls.unlink(missing_ok=True)
