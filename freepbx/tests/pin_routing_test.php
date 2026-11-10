@@ -7,6 +7,7 @@ function check($condition, $message) {
     if (!$condition) { throw new RuntimeException($message); }
 }
 interface BMO {}
+if (!function_exists('_')) { function _($value) { return $value; } }
 class FreePBX {
     public static $database;
     public static function Database() { return self::$database; }
