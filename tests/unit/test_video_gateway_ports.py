@@ -81,8 +81,8 @@ class VideoGatewayPortsTest(unittest.TestCase):
 
     def install(self):
         """create-module/05setenvs on a new instance: ns8-core allocated the
-        label demands (46 TCP, 3000 UDP) before the action runs."""
-        tcp = self.ports.allocate(46, "tcp")
+        label demands (47 TCP, 3000 UDP) before the action runs."""
+        tcp = self.ports.allocate(47, "tcp")
         udp = self.ports.allocate(3000, "udp")
         self.ports.calls.clear()
         self.run_script("actions/create-module/05setenvs", {
