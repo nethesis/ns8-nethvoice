@@ -448,7 +448,7 @@ function start() {
                 if (err1) {
                   if (streamingErrors[id] === undefined) {
                     streamingErrors[id] = 'logged';
-                    logger.log.warn(IDLOG, 'streaming "' + id + '" error: ' + err1.toString());
+                    logger.log.warn(IDLOG, 'streaming "' + id + '" error: ' + deviceHttp.describeError(err1));
                   }
                   return;
                 }
@@ -683,14 +683,19 @@ function openGate(streamId, gateId, callerid, fromExten, username, cb) {
       uri: gate.url,
       method: gate.method,
       timeout: GATE_URL_TIMEOUT,
-      followRedirect: false
+      followRedirect: false,
+      // only this source: devices with a self-signed certificate
+      strictSSL: !streamings[streamId].getTlsSkipVerify()
     }, gate.username !== '' ? { username: gate.username, password: gate.password } : null,
     gateAuthMemos[memoKey], function(err, res) {
       try {
         if (err) {
-          logger.log.error(IDLOG, who + ' failed to open ' + gateStr + ': ' + (err.code || err.message));
+          logger.log.error(IDLOG, who + ' failed to open ' + gateStr + ': ' + deviceHttp.describeError(err));
           if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
             cb(streamingError(504, 'gate_timeout', 'the gate device did not answer in time'));
+          } else if (deviceHttp.isTlsCertError(err)) {
+            // same code as any unreachable device: only the message is specific
+            cb(streamingError(502, 'gate_unreachable', 'the TLS certificate of the gate device is not valid'));
           } else {
             cb(streamingError(502, 'gate_unreachable', 'the gate device is not reachable'));
           }
@@ -923,7 +928,7 @@ function getVideoSample(id, cb) {
       streamings[id].getSample(function(err, id, img) {
         try {
           if (err) {
-            logger.log.error(IDLOG, 'getting video sample for source "' + id + '": ' + err)
+            logger.log.error(IDLOG, 'getting video sample for source "' + id + '": ' + deviceHttp.describeError(err));
           }
           cb(err, img);
         } catch (err1) {
