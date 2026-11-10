@@ -449,6 +449,7 @@ RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-bindaddress.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/sipsettings < /tmp/nethvoice-core-patches/freepbx-sipsettings-remove-chansip.patch && \
     rm -rf /tmp/nethvoice-core-patches
 
 # PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries

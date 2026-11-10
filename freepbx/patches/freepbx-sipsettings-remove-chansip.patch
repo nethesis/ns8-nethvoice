@@ -1,0 +1,252 @@
+--- a/functions.inc.php
++++ b/functions.inc.php
+@@ -100,249 +100,6 @@
+ 	}
+ }
+ 
+-function sipsettings_hookGet_config($engine) {
+-	global $core_conf;
+-	global $ext;	// is this the best way to pass this?
+-
+-	switch($engine) {
+-		case "asterisk":
+-			if (isset($core_conf) && is_a($core_conf, "core_conf")) {
+-				$raw_settings = sipsettings_get(true);
+-
+-				/* TODO: This is example concept code
+-
+-					 The only real conflicts are codecs (mainly cause
+-					 it will look ugly. So we should strip those but
+-					 leave the rest. If we overrite it, oh well
+-
+-				 */
+-				$idx = 0;
+-				foreach ($core_conf->_sip_general as $entry) {
+-					switch (strtolower((string) $entry['key'])) {
+-						case 'allow':
+-						case 'disallow':
+-							unset($core_conf->_sip_general[$idx]);
+-						break;
+-						default:
+-							// do nothing
+-					}
+-					$idx++;
+-				}
+-				$interim_settings = [];
+-				foreach ($raw_settings as $var) {
+-					switch ($var['type']) {
+-						case SIP_NORMAL:
+-							$interim_settings[$var['keyword']] = $var['data'];
+-						break;
+-						case SIP_CUSTOM:
+-							$sip_settings[] = [$var['keyword'], $var['data']];
+-						break;
+-						default:
+-							// Error should be above
+-					}
+-				}
+-				unset($raw_settings);
+-
+-				// Add any defaults that should be in there
+-				$def = FreePBX::Sipsettings()->getChanSipDefaults();
+-				foreach ($def as $k => $v) {
+-					if (!isset($interim_settings[$k]) && $v) {
+-						$interim_settings[$k] = $v;
+-					}
+-				}
+-
+-				/* Codecs First */
+-				$core_conf->addSipGeneral('disallow','all');
+-				foreach (FreePBX::Sipsettings()->getCodecs('audio') as $codec => $enabled) {
+-					if ($enabled != '') {
+-						$core_conf->addSipGeneral('allow',$codec);
+-					}
+-				}
+-				unset($codecs);
+-
+-				if ($interim_settings['videosupport'] == 'yes') {
+-					foreach (FreePBX::Sipsettings()->getCodecs('video') as $codec => $enabled) {
+-						if ($enabled != '') {
+-							$core_conf->addSipGeneral('allow',$codec);
+-						}
+-					}
+-				}
+-				unset($video_codecs);
+-
+-				/* next figure out what we need to write out (deal with things like nat combos, etc. */
+-
+-				$nat_mode = $interim_settings['nat_mode'];
+-				$jbenable = $interim_settings['jbenable'];
+-
+-	      $foundexternip = false;
+-
+-	      // Ensure default TLS Settings for chansip are available
+-      	if(empty($interim_settings['tlsbindport'])) {
+-      		// Note - this is TCP, not UDP.
+-      		$interim_settings['tlsbindport'] = 5061;
+-      	}
+-
+-      	if(!empty($interim_settings['tlsbindaddr'])) {
+-      		$interim_settings['tlsbindaddr'] = ($interim_settings['tlsbindaddr'] === '::' ? '[::]' : $interim_settings['tlsbindaddr']).":".$interim_settings['tlsbindport'];
+-      	} else {
+-      		// [::] means 'listen on all interfaces, both ipv4 and ipv6' when in sipsettings.
+-      		$interim_settings['tlsbindaddr'] = "[::]:".$interim_settings['tlsbindport'];
+-      	}
+-
+-	// There is no sip setting 'tlsbindport', so make sure we remove it before writing the file.
+-	unset($interim_settings['tlsbindport']);
+-
+-	foreach ($interim_settings as $key => $value) {
+-		switch ($key) {
+-		case 'csipcertid':
+-			if(!empty($value) && $interim_settings['tlsenable'] == 'yes' && FreePBX::Modules()->moduleHasMethod("certman","getDefaultCertDetails")) {
+-				$cert = FreePBX::Certman()->getCertificateDetails($value);
+-				if(!empty($cert['files']['crt']) && !empty($cert['files']['key'])) {
+-					$sip_settings[] = ['tlsprivatekey', $cert['files']['key']];
+-					$sip_settings[] = ['tlscertfile', $cert['files']['pem']];
+-				}
+-			}
+-			break;
+-		case 'nat_mode':
+-			break;
+-		case 'externhost_val':
+-			if ($nat_mode == 'externhost' && $value != '') {
+-				$sip_settings[] = ['externhost', $value];
+-			}
+-			break;
+-
+-		case 'externrefresh':
+-			if ($nat_mode == 'externhost' && $value != '') {
+-				$sip_settings[] = [$key, $value];
+-			}
+-			break;
+-
+-		case 'externip_val':
+-			if ($nat_mode == 'externip' && $value != '') {
+-				$foundexternip = true;
+-				$sip_settings[] = ['externip', $value];
+-			}
+-			break;
+-
+-		case 'jbforce':
+-		case 'jbimpl':
+-		case 'jbmaxsize':
+-		case 'jbresyncthreshold':
+-		case 'jblog':
+-			if ($jbenable == 'yes' && $value != '') {
+-				$sip_settings[] = [$key, $value];
+-			}
+-		break;
+-
+-		case 'language':
+-			if ($value != '') {
+-				$sip_settings[] = ['language', $value];
+-				$ext->addGlobal('SIPLANG',$value);
+-			}
+-		break;
+-		//FREEPBX-9737 AND FREEPBX-6518 In Asterisk 11+ nat=yes is deprecated.
+-		case 'nat':
+-			global $amp_conf;
+-			$astge11 = version_compare($amp_conf['ASTVERSION'],'11.5','ge');
+-			if($astge11){
+-				switch ($value) {
+-					case 'yes':
+-						$value = "force_rport,comedia";
+-					break;
+-					case 'never':
+-						$value = "no";
+-					break;
+-					case 'route':
+-						$value = "force_rport";
+-					break;
+-				}
+-			}
+-			$sip_settings[] = [$key, $value];
+-		break;
+-
+-		case 't38pt_udptl':
+-			if ($value != 'no') {
+-				if($value == 'yes') {
+-					$sip_settings[] = ['t38pt_udptl', 'yes,redundancy,maxdatagram=400'];
+-				} elseif($value == 'fec') {
+-					$sip_settings[] = ['t38pt_udptl', 'yes,fec'];
+-				} elseif($value == 'redundancy') {
+-					$sip_settings[] = ['t38pt_udptl', 'yes,redundancy'];
+-				} elseif($value == 'none') {
+-					$sip_settings[] = ['t38pt_udptl', 'yes,none'];
+-				}
+-
+-			}
+-			break;
+-		case "webrtcstunaddr":
+-		case "webrtcturnaddr":
+-		case "webrtcturnpassword":
+-		case "webrtcturnusername":
+-		case "bindport":
+-		case "bindaddr":
+-		break;
+-		default:
+-			// Ignore localnet settings from chansip sipsettings, they're now in general
+-			if (str_starts_with($key, "localnet_") || str_starts_with($key, "netmask_")) {
+-				break;
+-			}
+-
+-			$sip_settings[] = [$key, $value];
+-			break;
+-		}
+-	}
+-
+-	$udpbindaddrr = (!empty($interim_settings['bindaddr']) ? ($interim_settings['bindaddr'] === '::' ? '[::]' : $interim_settings['bindaddr']) : '0.0.0.0').":".(!empty($interim_settings['bindport']) ? $interim_settings['bindport'] : '5060');
+-	$sip_settings[] = ['udpbindaddr', $udpbindaddrr];
+-
+-	if(FreePBX::Modules()->moduleHasMethod("certman","getCABundle")) {
+-		$cafile = FreePBX::Certman()->getCABundle();
+-		if(!empty($cafile)) {
+-			$sip_settings[] = ['tlscafile', $cafile];
+-		}
+-	}
+-
+-	// Is there a global external IP settings? If there wasn't one specified
+-	// as part of the chan_sip settings, check to see if there's one here.
+-	if (!$foundexternip && $nat_mode == "externip") {
+-		$externip = FreePBX::create()->Sipsettings->getConfig('externip');
+-		if ($externip) {
+-			$sip_settings[] = ["externip", $externip];
+-		}
+-	}
+-
+-	// Now do the localnets
+-	$localnets = FreePBX::create()->Sipsettings->getConfig('localnets');
+-	if(!empty($localnets) && is_array($localnets)) {
+-		foreach ($localnets as $arr) {
+-			$net = trim((string) $arr['net']);
+-			$mask = trim((string) $arr['mask']);
+-			$sip_settings[] = ["localnet", $net."/".$mask];
+-		}
+-	}
+-					global $version;
+-					$core_conf->addSipGeneral('context','from-sip-external');
+-					$core_conf->addSipGeneral('callerid','Unknown');
+-					$core_conf->addSipGeneral('notifyringing','yes');
+-					$core_conf->addSipGeneral('notifyhold','yes');
+-					$core_conf->addSipGeneral('tos_sip','cs3');		// Recommended setting from doc/ip-tos.txt
+-					$core_conf->addSipGeneral('tos_audio','ef');	 // Recommended setting from doc/ip-tos.txt
+-					$core_conf->addSipGeneral('tos_video','af41'); // Recommended setting from doc/ip-tos.txt
+-					$core_conf->addSipGeneral('alwaysauthreject','yes');
+-					$core_conf->addSipGeneral('limitonpeers','yes');
+-					unset($interim_settings);
+-					if (is_array($sip_settings)) foreach ($sip_settings as $entry) {
+-						if ($entry[1] != '') {
+-							$core_conf->addSipGeneral($entry[0],$entry[1]);
+-						}
+-					}
+-			}
+-		break;
+-	}
+-
+-	return true;
+-}
+-
+ function sipsettings_get($raw=false) {
+ 	return FreePBX::Sipsettings()->getChanSipSettings($raw);
+ }

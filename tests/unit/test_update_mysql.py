@@ -77,7 +77,8 @@ fi
                                  'UPDATE sip s JOIN rest_devices_phones',
                                  "WHEN 'voicecodecs' THEN"]:
                     self.assertEqual(mutation in calls, '--migrate' in options, mutation)
-                self.assertIn('INSERT INTO sipsettings', calls)
+                self.assertNotIn('INSERT INTO sipsettings', calls)
+                self.assertIn('UPDATE kvstore_Sipsettings', calls)
 
     def test_first_sql_failure_stops_preparation(self):
         result = self.run_init()
