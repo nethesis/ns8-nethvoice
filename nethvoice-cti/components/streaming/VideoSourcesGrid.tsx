@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import React from 'react'
-import { VideoSource } from '../../hooks/useVideoSources'
+import { VideoSource, VideoSourceGate } from '../../hooks/useVideoSources'
 import { VideoSourceCard } from './VideoSourceCard'
 
 interface VideoSourcesGridProps {
   sources: VideoSource[]
   failedImages: Record<string, boolean>
+  expandedId?: string | null
   onImageError: (sourceId: string) => void
-  onUnlockSource: (source: VideoSource) => void
+  onUnlockSource: (source: VideoSource, gate?: VideoSourceGate) => void
   onCallSource: (source: VideoSource) => void
   onExpand: (sourceId: string) => void
 }
@@ -17,6 +18,7 @@ interface VideoSourcesGridProps {
 export const VideoSourcesGrid: React.FC<VideoSourcesGridProps> = ({
   sources,
   failedImages,
+  expandedId,
   onImageError,
   onUnlockSource,
   onCallSource,
@@ -29,6 +31,7 @@ export const VideoSourcesGrid: React.FC<VideoSourcesGridProps> = ({
           key={source.id}
           source={source}
           hasFailedImage={failedImages[source.id] || false}
+          isExpanded={expandedId === source.id}
           onImageError={onImageError}
           onUnlockSource={onUnlockSource}
           onCallSource={onCallSource}
