@@ -11,7 +11,9 @@
 #
 [Unit]
 Description=MediaMTX video gateway (RTSP to WebRTC) for NethVoice CTI
-Wants=freepbx.service
+# Only ordered after FreePBX, never Wants= it: an automatic restart of this
+# unit would enqueue a start job for freepbx.service and cancel a stop or
+# restart of it in progress (update-module.d/80restart)
 After=freepbx.service
 # The configuration may be missing until FreePBX completes its first start:
 # keep retrying instead of hitting the start rate limit
