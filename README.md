@@ -218,14 +218,20 @@ of a failure; H.265 is reported because most browsers cannot play it.
   WHEP listener without stripping the prefix, so the WHEP `Location` header stays valid. CORS is
   answered by MediaMTX.
 - Viewer authorization: `authMethod: http`, every read (local RTSP readers included) is checked with
-  `POST http://127.0.0.1:${NETHCTI_INTERNAL_REST_PORT9}/mediamtx/auth` on nethcti-server: until it
-  implements that endpoint every viewer is denied.
+  `POST http://127.0.0.1:${NETHCTI_INTERNAL_REST_PORT9}/mediamtx/auth` on nethcti-server. That path
+  is served only on the loopback REST port of the streaming plugin (the nethcti-server HTTP proxy
+  forwards only `/streaming`). nethcti-server allows only WebRTC readers that present a short-lived
+  token (`POST /streaming/token`, sent as `Authorization: Bearer <token>` on the WHEP request) of a
+  user with the permission of the source; local RTSP readers are denied. nethcti-server records the
+  allowed sessions and kicks them through the control API (`mediamtx.api_port` in
+  `/etc/nethcti/services.json`, from `MEDIAMTX_API_PORT`) when the user loses the permission or the
+  source is removed.
 - Ports (environment):
 
   | Variable | Protocol | Exposure | Use |
   | --- | --- | --- | --- |
   | `MEDIAMTX_WHEP_PORT` | TCP | 127.0.0.1, behind traefik | WHEP HTTP |
-  | `MEDIAMTX_API_PORT` | TCP | 127.0.0.1 only, never routed | control API (returns the device passwords) |
+  | `MEDIAMTX_API_PORT` | TCP | 127.0.0.1 only, never routed | control API (returns the device passwords), used by nethcti-server to kick sessions |
   | `MEDIAMTX_RTSP_PORT` | TCP | 127.0.0.1 only | RTSP server for local readers |
   | `MEDIAMTX_ICE_UDP_PORT` | UDP | public, firewall | WebRTC ICE |
   | `MEDIAMTX_ICE_TCP_PORT` | TCP | public, firewall | WebRTC ICE over TCP (fallback) |
