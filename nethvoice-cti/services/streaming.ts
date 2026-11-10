@@ -41,7 +41,11 @@ export const openVideoSource = async (obj: { id: string; gate?: string }) => {
     await axios.post(`${PATH}/open`, obj)
     return true
   } catch (error) {
-    handleNetworkError(error)
+    // refusals of the gate ({ code, message }) are shown to the user, they are not errors
+    const isRefusal =
+      axios.isAxiosError(error) &&
+      ((error.response?.data as any)?.code || error.response?.status === 403)
+    if (!isRefusal) handleNetworkError(error)
     throw error
   }
 }

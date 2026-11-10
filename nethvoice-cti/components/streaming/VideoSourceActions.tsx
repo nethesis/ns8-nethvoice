@@ -1,7 +1,7 @@
 // Copyright (C) 2025 Nethesis S.r.l.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import { faPhone, faCamera, faLock } from '@fortawesome/free-solid-svg-icons'
@@ -38,6 +38,19 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
 }) => {
   const { t } = useTranslation()
   const gates = source.gates || []
+  const barRef = useRef<HTMLDivElement>(null)
+  // the gates menu opens above the action bar and stays inside the media area
+  const [menuMaxHeight, setMenuMaxHeight] = useState<number>()
+  const measureMenuSpace = () => {
+    if (barRef.current) setMenuMaxHeight(barRef.current.offsetTop)
+  }
+
+  let unlockTooltip = t('Common.Open door')
+  if (gates.length > 1) {
+    unlockTooltip = t('Streaming.Open gate')
+  } else if (gates.length === 1 && gates[0].name) {
+    unlockTooltip = t('Streaming.Open gate name', { name: gates[0].name })
+  }
 
   const unlockButton = (onClick?: () => void) => (
     <Button
@@ -45,7 +58,7 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
       aria-label='Open door'
       size='full'
       data-tooltip-id={`secure-tooltip-${tooltipKey}`}
-      data-tooltip-content={t('Common.Open door')}
+      data-tooltip-content={unlockTooltip}
       onClick={onClick}
     >
       <FontAwesomeIcon icon={faLock} className='w-6 h-6' />
@@ -54,7 +67,10 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
 
   return (
     // kept visible while the gates menu is open
-    <div className='absolute bottom-0 left-0 right-0 bg-black/30 p-4 translate-y-full group-hover:translate-y-0 has-[[data-open]]:translate-y-0 transition-transform duration-200 ease-in-out flex justify-center gap-3'>
+    <div
+      ref={barRef}
+      className='absolute bottom-0 left-0 right-0 bg-black/30 p-4 translate-y-full group-hover:translate-y-0 has-[[data-open]]:translate-y-0 transition-transform duration-200 ease-in-out flex justify-center gap-3'
+    >
       {source.extension && (
         <>
           <Button
@@ -86,27 +102,34 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
 
       {gates.length === 1 && unlockButton(() => onUnlockSource(source, gates[0]))}
       {gates.length > 1 && (
-        <Dropdown
-          anchor='top'
-          items={
-            <>
-              <Dropdown.Header>
-                <span>{t('Streaming.Choose the gate to open')}</span>
-              </Dropdown.Header>
-              {gates.map((gate) => (
-                <Dropdown.Item
-                  key={gate.id}
-                  icon={faLock}
-                  onClick={() => onUnlockSource(source, gate)}
-                >
-                  <span className='truncate'>{gate.name || gate.id}</span>
-                </Dropdown.Item>
-              ))}
-            </>
-          }
-        >
-          {unlockButton()}
-        </Dropdown>
+        <div onPointerDownCapture={measureMenuSpace} onKeyDownCapture={measureMenuSpace}>
+          <Dropdown
+            anchor='top'
+            itemsStyle={
+              menuMaxHeight
+                ? ({ '--anchor-max-height': `${menuMaxHeight}px` } as React.CSSProperties)
+                : undefined
+            }
+            items={
+              <>
+                <Dropdown.Header>
+                  <span>{t('Streaming.Choose the gate to open')}</span>
+                </Dropdown.Header>
+                {gates.map((gate) => (
+                  <Dropdown.Item
+                    key={gate.id}
+                    icon={faLock}
+                    onClick={() => onUnlockSource(source, gate)}
+                  >
+                    <span className='truncate'>{gate.name || gate.id}</span>
+                  </Dropdown.Item>
+                ))}
+              </>
+            }
+          >
+            {unlockButton()}
+          </Dropdown>
+        </div>
       )}
       {gates.length > 0 && <CustomThemedTooltip id={`secure-tooltip-${tooltipKey}`} />}
 
