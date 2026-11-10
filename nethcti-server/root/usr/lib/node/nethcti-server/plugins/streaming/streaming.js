@@ -565,6 +565,58 @@ function streamingError(status, code, message) {
 }
 
 /**
+ * Returns the error for a DTMF gate of an extension whose call is not
+ * answered yet.
+ *
+ * @method callNotAnsweredError
+ * @param {string} exten The extension identifier
+ * @return {object} The error.
+ * @private
+ */
+function callNotAnsweredError(exten) {
+  return streamingError(409, 'call_not_answered',
+    'the call of extension ' + exten + ' is not answered yet: answer the call to send the DTMF code');
+}
+
+/**
+ * Returns true if the extension is in a call that is not answered yet on
+ * its side, i.e. it has at least one channel and none of them has the
+ * "up" status. The DTMF played by the PBX on a channel that is still
+ * ringing (incoming call: "ring", outgoing call: "down", "ringing", ...)
+ * gets lost, even if Asterisk reports success. Without channels the DTMF
+ * sequence calls the extension and sends the tones after the answer.
+ *
+ * @method isExtenCallNotAnswered
+ * @param {string} exten The extension identifier
+ * @return {boolean} True if the call of the extension is not answered yet.
+ * @private
+ */
+function isExtenCallNotAnswered(exten) {
+  if (typeof exten !== 'string' || exten === '' || !compAstProxy.isExten(exten)) {
+    return false;
+  }
+  var convs = compAstProxy.getJSONExtension(exten).conversations || {};
+  var found = false;
+  var convid, chs, i, ch;
+  for (convid in convs) {
+    chs = [convs[convid].chSource, convs[convid].chDest];
+    for (i = 0; i < chs.length; i++) {
+      ch = chs[i];
+      // only the channels of the extension, e.g. "PJSIP/205-0000002a"
+      if (ch && typeof ch.channel === 'string' &&
+        ch.channel.substring(0, ch.channel.lastIndexOf('-')).split('/')[1] === exten) {
+
+        if (ch.channelStatus === 'up') {
+          return false;
+        }
+        found = true;
+      }
+    }
+  }
+  return found;
+}
+
+/**
  * Executes the command associated with the streaming source to open
  * the associated device, e.g. a door.
  *
@@ -583,7 +635,8 @@ function open(streamId, callerid, fromExten, cb) {
  * first gate is opened. Sources without gates in the configuration use the
  * "open" code (older FreePBX). A "dtmf" gate sends its code as DTMF tones to
  * the extension of the source, an "url" gate is opened by an HTTP request
- * done by the server.
+ * done by the server. The DTMF code is not sent while the extension is in a
+ * call not answered yet: the tones would get lost (error "call_not_answered").
  *
  * The callback error has the properties "status" (HTTP status code) and
  * "code" when the cause is known.
@@ -625,6 +678,12 @@ function openGate(streamId, gateId, callerid, fromExten, username, cb) {
         cb(streamingError(400, 'no_gates', 'streaming source "' + streamId + '" has no gates'));
         return;
       }
+      if (isExtenCallNotAnswered(streamings[streamId].getExtension())) {
+        logger.log.warn(IDLOG, who + ' cannot open streaming source "' + streamId + '" with its open code: the call of extension ' +
+          streamings[streamId].getExtension() + ' is not answered');
+        cb(callNotAnsweredError(streamings[streamId].getExtension()));
+        return;
+      }
       logger.log.warn(IDLOG, who + ' opens streaming source "' + streamId + '" with its open code');
       openLegacy(streamId, callerid, fromExten, cb);
       return;
@@ -656,6 +715,11 @@ function openGate(streamId, gateId, callerid, fromExten, username, cb) {
       if (gate.code === '') {
         logger.log.warn(IDLOG, who + ' cannot open ' + gateStr + ': the gate has no code');
         cb(streamingError(400, 'no_code', 'gate "' + gate.id + '" of streaming source "' + streamId + '" has no code'));
+        return;
+      }
+      if (isExtenCallNotAnswered(exten)) {
+        logger.log.warn(IDLOG, who + ' cannot open ' + gateStr + ': the call of extension ' + exten + ' is not answered');
+        cb(callNotAnsweredError(exten));
         return;
       }
       compAstProxy.sendDTMFSequence(exten, gate.code, callerid, fromExten, function(err) {
