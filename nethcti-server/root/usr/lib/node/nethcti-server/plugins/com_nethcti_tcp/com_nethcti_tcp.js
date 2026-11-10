@@ -676,8 +676,8 @@ function getFilteredStreamData(username, callerNum) {
     if (compAuthorization.authorizeStreamingSourceUser(username, streamJSON.id) === true) {
       return {
         id: streamJSON.id,
-        url: streamJSON.url,
-        open: ((streamJSON.cmdOpen && streamJSON.cmdOpen !== '') ? true : false),
+        open: ((streamJSON.cmdOpen && streamJSON.cmdOpen !== '') ||
+          (Array.isArray(streamJSON.gates) && streamJSON.gates.length > 0) ? true : false),
         description: streamJSON.description
       };
     }
