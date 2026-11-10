@@ -207,6 +207,18 @@ angular.module('nethvoiceWizardUiApp')
         gate.method = gate.method || 'GET';
         return gate;
       });
+      // GET /cti/streaming returns the profile ids as strings, /cti/profiles as
+      // numbers and ng-options compares them strictly: use the ids of
+      // allProfiles, so the stored profiles appear selected. Unknown ids are
+      // kept as they are, a save must not drop them.
+      copy.profiles = (copy.profiles || []).map(function (id) {
+        for (var i in $scope.allProfiles) {
+          if (String($scope.allProfiles[i].id) === String(id)) {
+            return $scope.allProfiles[i].id;
+          }
+        }
+        return id;
+      });
       $scope.newSource = copy;
     };
 
