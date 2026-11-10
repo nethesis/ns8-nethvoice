@@ -27,10 +27,12 @@
   },
   "homepage": "https://github.com/nethesis/astproxy",
   "dependencies": {
-    "asterisk-ami": "0.2.0-beta1",
     "async": "3.2.6",
-    "jsplugs": "0.1.0",
     "moment": "2.31.0"
+  },
+  "peerDependencies": {
+    "asterisk-ami": "0.2.0-beta1",
+    "jsplugs": "0.1.0"
   },
   "publishConfig": {
     "access": "public"

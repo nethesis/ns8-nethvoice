@@ -12,7 +12,8 @@ COPY root/usr/lib/node/nethcti-server/package.json .
 COPY root/usr/lib/node/nethcti-server/package-lock.json .
 COPY root/usr/lib/node/nethcti-server/packages packages
 RUN --mount=type=cache,id=nethvoice-cti-server-npm,target=/root/.npm \
-    npm ci --cache /root/.npm
+    npm ci --cache /root/.npm && \
+    npm ci --production --cache /root/.npm --prefix packages/astproxy
 # asterisk-ami@0.2.0-beta1 is published on npm with a parser that only
 # accepts single-digit AMI major versions. Asterisk 22 reports AMI 11.0.0.
 RUN sed -i 's|^var versionRegexp = .*|var versionRegexp = /^Asterisk Call Manager\\/(\\d+\\.\\d)/;|' \
@@ -46,3 +47,4 @@ COPY root/usr/local/bin/rpm /usr/local/bin/rpm
 COPY --from=node_modules /app/package.json .
 COPY --from=node_modules /app/package-lock.json .
 COPY --from=node_modules /app/node_modules node_modules
+COPY --from=node_modules /app/packages/astproxy/node_modules packages/astproxy/node_modules
