@@ -22,7 +22,7 @@ jobs:
       IMAGES: >-
         nethvoice nethvoice-mariadb nethvoice-freepbx nethvoice-tancredi
         nethvoice-cti-server nethvoice-cti-middleware nethvoice-cti-ui
-        nethvoice-saml2-proxy nethvoice-oauth2-proxy nethvoice-janus
+        nethvoice-saml2-proxy nethvoice-oauth2-proxy nethvoice-janus nethvoice-mediamtx
         nethvoice-phonebook nethvoice-reports-api nethvoice-reports-ui
         nethvoice-satellite nethvoice-sftp nethvoice-ejabberd
     steps:

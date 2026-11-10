@@ -89,6 +89,7 @@ declare -A image_sources=(
     [nethvoice-cti-ui]="nethvoice-cti"
     [nethvoice-saml2-proxy]="saml2-proxy"
     [nethvoice-oauth2-proxy]=""
+    [nethvoice-mediamtx]=""
     [nethvoice-janus]="janus"
     [nethvoice-phonebook]="phonebook"
     [nethvoice-reports-api]="reports"
@@ -315,6 +316,26 @@ reponame="nethvoice-oauth2-proxy"
 if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     container=$(buildah from quay.io/oauth2-proxy/oauth2-proxy:v7.15.6)
+    buildah commit "${container}" "${repobase}/${reponame}"
+    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    finish_timing
+    # Append the image URL to the images array
+    images+=("${repobase}/${reponame}")
+else
+    skip_build "${reponame}"
+fi
+
+
+##############################
+##  Video gateway (MediaMTX) ##
+##############################
+# Mirror of the upstream MediaMTX (RTSP to WebRTC/WHEP gateway of the video
+# sources). The plain image is enough: no ffmpeg, configured by the yml file
+# that FreePBX writes into the mediamtx volume.
+reponame="nethvoice-mediamtx"
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
+    start_timing "${reponame}"
+    container=$(buildah from docker.io/bluenviron/mediamtx:1.21.3)
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
     finish_timing

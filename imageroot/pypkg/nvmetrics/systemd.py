@@ -21,6 +21,7 @@ SERVICES = (
     "freepbx",
     "mariadb",
     "janus",
+    "mediamtx",
     "nethcti-ui",
     "nethcti-server",
     "nethcti-middleware",
