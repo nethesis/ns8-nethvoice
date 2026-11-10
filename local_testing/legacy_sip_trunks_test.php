@@ -120,7 +120,13 @@ try {
     check($db->query('SELECT COUNT(*) FROM sip')->fetchColumn() == 0, 'Legacy rows remain');
     check($db->query('SELECT * FROM pjsip WHERE id=2 ORDER BY id, keyword')->fetchAll(PDO::FETCH_ASSOC) === $existingPjsip, 'Existing PJSIP modified');
     // Once an administrator enables a reviewed trunk, restart must leave it enabled.
-    $core->enableTrunk(1);
+    foreach ([1, 3] as $id) {
+        $core->enableTrunk($id);
+        $activeTrunks = $core->getDriver('pjsip')->getAllTrunks();
+        $dialplanTarget = $db->query("SELECT channelid FROM trunks WHERE trunkid=$id")->fetchColumn();
+        check($activeTrunks[$id]['trunk_name'] === $dialplanTarget,
+            "Enabled trunk $id has an endpoint name that differs from its dialplan target");
+    }
     $before = array_map(function ($table) use ($db) { return rows($db, $table); },
         ['trunks', 'sip', 'pjsip', 'outbound_route_trunks', 'nethvoice_legacy_sip_trunks', 'admin', 'sipsettings']);
     convertLegacySipTrunks($db, $core);
@@ -156,7 +162,7 @@ try {
         check(strpos($error->getMessage(), 'positive trunk IDs') !== false, 'Unsafe trunk ID not rejected');
     }
     check($db->query('SELECT tech FROM trunks WHERE trunkid=4')->fetchColumn() === 'sip', 'Other legacy trunk converted by mistake');
-    echo "PASS: pinned converter, disabled trunks, originals, credentials, proxy, routes, rollback, retry and existing marker\n";
+    echo "PASS: pinned converter, disabled trunks, originals, credentials, proxy, routes, endpoint/dialplan targets, rollback, retry and existing marker\n";
 } finally {
     $db->exec('DROP DATABASE nethvoice_legacy_sip_test');
 }
