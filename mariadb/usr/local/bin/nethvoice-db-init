@@ -170,6 +170,9 @@ fi
 
 # Instance bindings have one owner. Module installers must preserve these rows.
 db asterisk <<SQL
+INSERT INTO sipsettings (keyword,data,seq,type) VALUES
+('rtpstart','${ASTERISK_RTPSTART}',0,0),('rtpend','${ASTERISK_RTPEND}',0,0),('bindport','${ASTERISK_SIP_UDP_PORT}',1,0)
+ON DUPLICATE KEY UPDATE data=VALUES(data);
 INSERT INTO iaxsettings (keyword,data,seq,type) VALUES ('bindport','${ASTERISK_IAX_PORT}',1,0)
 ON DUPLICATE KEY UPDATE data=VALUES(data);
 UPDATE kvstore_Sipsettings SET val=CASE \`key\`
