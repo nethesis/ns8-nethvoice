@@ -1362,6 +1362,7 @@
     "open_error_gate_unreachable": "The gate is not reachable",
     "open_error_dtmf_failed": "Sending the opening code failed",
     "open_error_gate_timeout": "The gate did not answer in time",
+    "open_error_call_not_answered": "Answer the call to open: the opening code is sent into the call",
     "Reconnecting": "Reconnecting...",
     "The video source is not reachable, retrying": "The video source is not reachable, retrying...",
     "Your browser cannot play the video format of this source": "Your browser cannot play the video format of this source",

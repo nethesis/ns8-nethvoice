@@ -69,6 +69,7 @@ const OPEN_ERROR_CODES = [
   'gate_unreachable',
   'dtmf_failed',
   'gate_timeout',
+  'call_not_answered',
 ]
 
 export const useVideoSources = () => {
