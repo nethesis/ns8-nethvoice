@@ -1,0 +1,29 @@
+#!/bin/bash
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+set -euo pipefail
+exec 1>&2
+
+# Query the database directly: fwconsole reload refuses to run with these rows.
+if ! count=$(podman exec -i mariadb sh -ec '
+    export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"
+    exec mariadb -u root --batch --skip-column-names asterisk
+' <<'SQL'
+SELECT (SELECT COUNT(*) FROM trunks WHERE tech = 'sip')
+     + (SELECT COUNT(*) FROM devices WHERE tech = 'sip');
+SQL
+); then
+    echo 'Cannot check legacy SIP configuration. FreePBX must not be replaced until the database check succeeds.'
+    exit 1
+fi
+if [[ ! $count =~ ^[0-9]+$ ]]; then
+    echo 'Invalid legacy SIP check result. FreePBX must not be replaced until the database check succeeds.'
+    exit 1
+fi
+if [[ $count != 0 ]]; then
+    echo "Found $count legacy chan_sip trunks/devices. Asterisk 22 cannot load this configuration."
+    echo 'Migrate these trunks/devices to PJSIP on the previous release before retrying the upgrade. Preserve credentials, routes and proxy settings, and verify calls.'
+    echo 'If initialization already failed, restore the full pre-upgrade NS8 backup with the previous release first; do not downgrade images against the migrated database or reset MIGRATION_SCRIPT.'
+    echo 'See docs/freepbx17-upgrade.md, Legacy SIP prerequisite and recovery.'
+    exit 1
+fi

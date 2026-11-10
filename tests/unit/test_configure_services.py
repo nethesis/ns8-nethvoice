@@ -12,7 +12,7 @@ SCRIPT = Path(__file__).resolve().parents[2] / 'imageroot/actions/configure-modu
 
 
 class ConfigureServicesTest(unittest.TestCase):
-    def run_configure(self, *, active=True, fail=False):
+    def run_configure(self, *, active=True, fail=False, legacy_sip=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             stub = root / 'stub'
@@ -28,6 +28,8 @@ if name=='systemctl' and args==['--user','is-active','mariadb.service']:
     sys.exit(0 if active else 3)
 if name=='runagent' and args==['mysql-update-postprocess'] and os.environ['TEST_PREP_FAIL']=='1':
     sys.exit(17)
+if name=='runagent' and args==['check-legacy-sip'] and os.environ['TEST_LEGACY_SIP']=='1':
+    sys.exit(1)
 ''')
             stub.chmod(0o755)
             for name in ['systemctl','runagent']:
@@ -37,6 +39,7 @@ if name=='runagent' and args==['mysql-update-postprocess'] and os.environ['TEST_
                                   env=dict(os.environ,PATH=str(root)+':'+os.environ['PATH'],
                                            TEST_CALLS=str(calls),TEST_DB_ACTIVE=str(int(active)),
                                            TEST_PREP_FAIL=str(int(fail)),NETHVOICE_HOTEL='False',
+                                           TEST_LEGACY_SIP=str(int(legacy_sip)),
                                            SATELLITE_CALL_TRANSCRIPTION_ENABLED='False',
                                            SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED='False'))
             return result,[json.loads(line) for line in calls.read_text().splitlines()]
@@ -51,6 +54,8 @@ if name=='runagent' and args==['mysql-update-postprocess'] and os.environ['TEST_
         self.assertLess(calls.index(['runagent','mysql-update-postprocess']),
                         calls.index(['runagent','prepare-asterisk-config']))
         self.assertLess(calls.index(['runagent','prepare-asterisk-config']),calls.index(restarts[0]))
+        self.assertLess(calls.index(['runagent','check-legacy-sip']),
+                        calls.index(['runagent','prepare-asterisk-config']))
 
     def test_fresh_database_is_started_before_preparation_without_an_extra_restart(self):
         result,calls=self.run_configure(active=False)
@@ -66,6 +71,13 @@ if name=='runagent' and args==['mysql-update-postprocess'] and os.environ['TEST_
         self.assertEqual(result.returncode,17)
         self.assertFalse(any('try-restart' in call for call in calls))
         self.assertNotIn(['runagent','prepare-asterisk-config'],calls)
+
+    def test_legacy_sip_prevents_configure_and_restore_application_restarts(self):
+        result,calls=self.run_configure(legacy_sip=True)
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertFalse(any('try-restart' in call for call in calls))
+        self.assertNotIn(['runagent','prepare-asterisk-config'],calls)
+        self.assertNotIn(['systemctl','--user','enable','--now','freepbx.service'],calls)
 
 
 if __name__=='__main__':

@@ -12,6 +12,7 @@ exec 1>&2 # ensure any output is sent to stderr
 mariadb_was_active=$(systemctl --user is-active mariadb.service || true)
 systemctl --user enable --now mariadb.service
 runagent mysql-update-postprocess
+runagent check-legacy-sip
 runagent prepare-asterisk-config
 
 # Restart applications that are already running.
