@@ -1357,6 +1357,7 @@
     "open_error_gate_unreachable": "Il varco non è raggiungibile",
     "open_error_dtmf_failed": "Invio del codice di apertura non riuscito",
     "open_error_gate_timeout": "Il varco non ha risposto in tempo",
+    "open_error_call_not_answered": "Rispondi alla chiamata per aprire: il codice di apertura viene inviato nella chiamata",
     "Reconnecting": "Riconnessione in corso...",
     "The video source is not reachable, retrying": "La sorgente video non è raggiungibile, nuovo tentativo in corso...",
     "Your browser cannot play the video format of this source": "Il browser non supporta il formato video di questa sorgente",
