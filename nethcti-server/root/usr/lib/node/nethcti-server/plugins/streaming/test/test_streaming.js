@@ -1,7 +1,8 @@
 /**
  * Tests of the streaming component: configuration parsing, data sent to the
  * clients, stream tokens, video gateway authentication hook, sessions
- * revocation, gates and authenticated snapshots.
+ * revocation, gates, authenticated snapshots and the per source TLS
+ * certificate verification (self-signed devices, needs the openssl command).
  *
  * Run with: node plugins/streaming/test/test_streaming.js
  *
@@ -9,9 +10,11 @@
  * @submodule test
  */
 var assert = require('assert');
+var childProcess = require('child_process');
 var crypto = require('crypto');
 var fs = require('fs');
 var http = require('http');
+var https = require('https');
 var os = require('os');
 var path = require('path');
 
@@ -450,6 +453,68 @@ async function main() {
   assert(sampled.length > 0);
   assert(sampled.every(function(id) { return id === 'vs_old' || id === 'vs_img'; }), 'rtsp sources not sampled: ' + sampled);
   ok('authenticated snapshots and no sampling of rtsp sources');
+
+  // --- TLS certificate verification -----------------------------------------
+  // a device with a self-signed certificate, generated for this run only
+  var keyFile = path.join(tmp, 'device.key');
+  var certFile = path.join(tmp, 'device.crt');
+  childProcess.execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
+    '-subj', '/CN=door.example', '-keyout', keyFile, '-out', certFile], { stdio: 'ignore' });
+  var tlsSrv = https.createServer({ key: fs.readFileSync(keyFile), cert: fs.readFileSync(certFile) }, deviceHandler);
+  await new Promise(function(resolve) { tlsSrv.listen(0, '127.0.0.1', resolve); });
+  var tlsBase = 'https://127.0.0.1:' + tlsSrv.address().port;
+  function tlsSource(descr, skip) {
+    var s = {
+      descr: descr, url: tlsBase + '/basic.jpg', user: '', secret: '', 'frame-rate': '1000', exten: null, open: '',
+      type: 'image', gateway_path: null, image_auth: { username: 'cam', password: 'Img-Secret-9' },
+      gates: [{ id: '1', name: 'Gate', type: 'url', url: tlsBase + '/basic', method: 'GET', username: 'gate', password: 'Gate-Spike-77' }]
+    };
+    if (skip !== undefined) {
+      s.tls_skip_verify = skip;
+    }
+    return s;
+  }
+  var tlsCfg = path.join(tmp, 'streaming-tls.json');
+  fs.writeFileSync(tlsCfg, JSON.stringify({
+    vs_tls_absent: tlsSource('No key'),
+    vs_tls_off: tlsSource('Off', false),
+    vs_tls_string: tlsSource('String', 'true'),
+    vs_tls_on: tlsSource('On', true)
+  }));
+  streaming.config(tlsCfg);
+  logs = [];
+  deviceCalls = [];
+  var sources = ['vs_tls_absent', 'vs_tls_off', 'vs_tls_string'];
+  for (i = 0; i < sources.length; i++) {
+    r = await p(function(cb) { streaming.getVideoSample(sources[i], cb); });
+    assert(r[0] && r[0].code === 'DEPTH_ZERO_SELF_SIGNED_CERT', sources[i] + ': snapshot verified: ' + (r[0] && r[0].code));
+    r = await open(sources[i], '1');
+    assert.strictEqual(r[0].status, 502, sources[i] + ': gate verified');
+    assert.strictEqual(r[0].code, 'gate_unreachable');
+    assert.strictEqual(r[0].message, 'the TLS certificate of the gate device is not valid');
+  }
+  assert.strictEqual(deviceCalls.length, 0, 'nothing sent to an untrusted device');
+  assert(logs.some(function(l) { return l.indexOf('failed to open gate "1"') >= 0 && l.indexOf('DEPTH_ZERO_SELF_SIGNED_CERT') >= 0 && l.indexOf('Skip TLS certificate verification') >= 0; }), 'gate TLS error logged');
+  assert(logs.some(function(l) { return l.indexOf('getting video sample') >= 0 && l.indexOf('DEPTH_ZERO_SELF_SIGNED_CERT') >= 0; }), 'snapshot TLS error logged');
+  r = await p(function(cb) { streaming.getVideoSample('vs_tls_on', cb); });
+  assert.strictEqual(r[0], null, 'snapshot with tls_skip_verify');
+  assert.strictEqual(r[1], 'data:image/jpeg;base64,' + Buffer.from('JPEGDATA').toString('base64'));
+  r = await open('vs_tls_on', '1');
+  assert.strictEqual(r[0], null, 'gate with tls_skip_verify');
+  assert.deepStrictEqual(deviceCalls.map(function(c) { return c.url + ' ' + c.auth; }),
+    ['/basic.jpg ', '/basic.jpg Basic', '/basic ', '/basic Basic']);
+  // the skip of a source never leaks to the others (pooled connections)
+  r = await p(function(cb) { streaming.getVideoSample('vs_tls_off', cb); });
+  assert.strictEqual(r[0] && r[0].code, 'DEPTH_ZERO_SELF_SIGNED_CERT', 'other source still verified');
+  r = await open('vs_tls_off', '1');
+  assert.strictEqual(r[0].message, 'the TLS certificate of the gate device is not valid');
+  assert.strictEqual(new Streaming({ id: 'a', url: 'https://x' }).getTlsSkipVerify(), false);
+  assert.strictEqual(new Streaming({ id: 'b', url: 'https://x', tls_skip_verify: 1 }).getTlsSkipVerify(), false);
+  assert.strictEqual(new Streaming({ id: 'c', url: 'https://x', tls_skip_verify: true }).getTlsSkipVerify(), true);
+  assert(JSON.stringify(streaming.getSourceJSONByExten('302')).indexOf('tls') < 0);
+  SECRETS.forEach(function(sec) { assert(logs.join('\n').indexOf(sec) < 0, 'log leaks ' + sec); });
+  tlsSrv.close();
+  ok('TLS certificate verified by default, skipped only for the sources with tls_skip_verify');
 
   dev[0].close();
   gw[0].close();

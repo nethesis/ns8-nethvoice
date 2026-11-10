@@ -36,7 +36,8 @@ function isSuccess(statusCode) {
  * expires.
  *
  * @method deviceRequest
- * @param {object} opts The options of the "request" library (uri, method, timeout, ...)
+ * @param {object} opts The options of the "request" library (uri, method, timeout,
+ *   strictSSL: false to skip the TLS certificate verification of this request only, ...)
  * @param {object} auth The credentials ({ username, password }) or null
  * @param {object} memo An object kept by the caller between requests to the same device
  * @param {function} cb The callback function (err, response, body)
@@ -158,5 +159,62 @@ function deviceRequest(opts, auth, memo, cb) {
   }
 }
 
+/**
+ * Codes of the errors of the "tls" module of Node.js about a certificate
+ * that cannot be verified (self-signed, unknown CA, expired, wrong name).
+ *
+ * @property TLS_CERT_ERRORS
+ * @type {array}
+ * @private
+ */
+var TLS_CERT_ERRORS = [
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'UNABLE_TO_GET_ISSUER_CERT',
+  'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+  'CERT_HAS_EXPIRED',
+  'CERT_NOT_YET_VALID',
+  'CERT_UNTRUSTED',
+  'CERT_REJECTED',
+  'CERT_SIGNATURE_FAILURE',
+  'ERR_TLS_CERT_ALTNAME_INVALID'
+];
+
+/**
+ * Returns true if the error is a failed verification of the TLS certificate
+ * of the device.
+ *
+ * @method isTlsCertError
+ * @param {object} err The error of a request
+ * @return {boolean} True for a TLS certificate error.
+ */
+function isTlsCertError(err) {
+  return !!err && typeof err === 'object' && TLS_CERT_ERRORS.indexOf(err.code) >= 0;
+}
+
+/**
+ * Returns a short description of the error of a device request, for the
+ * logs: the error code (never the URL, that can carry credentials) and, for
+ * a TLS certificate error, a hint about the "Skip TLS certificate
+ * verification" option of the source.
+ *
+ * @method describeError
+ * @param {object} err The error of a request
+ * @return {string} The description.
+ */
+function describeError(err) {
+  if (isTlsCertError(err)) {
+    return 'TLS certificate of the device not valid (' + err.code +
+      '): enable "Skip TLS certificate verification" for a device with a self-signed certificate';
+  }
+  if (err && typeof err === 'object') {
+    return String(err.code || err.message);
+  }
+  return String(err);
+}
+
 exports.isSuccess = isSuccess;
+exports.isTlsCertError = isTlsCertError;
+exports.describeError = describeError;
 exports.deviceRequest = deviceRequest;

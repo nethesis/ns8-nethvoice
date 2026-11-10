@@ -73,6 +73,8 @@ function parseGates(gates) {
  *   @param {object} data.gateway_path The video gateway path of an "rtsp" source
  *   @param {object} data.image_auth The credentials ({ username, password }) of the snapshot URL
  *   @param {object} data.gates      The gates that can be opened ("dtmf" or "url")
+ *   @param {boolean} data.tls_skip_verify Do not verify the TLS certificate of the
+ *                                   snapshot URL and of the URL gates (self-signed devices)
  * @constructor
  * @return {object} The streaming object.
  */
@@ -215,6 +217,17 @@ exports.Streaming = function(data) {
   var gates = parseGates(data.gates);
 
   /**
+   * True if the TLS certificate of the device is not verified, for the
+   * snapshot URL and the URL gates of this source only (devices with a
+   * self-signed certificate). Anything but the boolean true means false.
+   *
+   * @property tlsSkipVerify
+   * @type {boolean}
+   * @private
+   */
+  var tlsSkipVerify = data.tls_skip_verify === true;
+
+  /**
    * Authentication state of the snapshot URL shared by the samples.
    *
    * @property sampleAuthMemo
@@ -315,6 +328,17 @@ exports.Streaming = function(data) {
   }
 
   /**
+   * Returns true if the TLS certificate of the device must not be verified
+   * (snapshot URL and URL gates of this source).
+   *
+   * @method getTlsSkipVerify
+   * @return {boolean} True to skip the certificate verification.
+   */
+  function getTlsSkipVerify() {
+    return tlsSkipVerify;
+  }
+
+  /**
    * Return the readable string of the streaming source.
    *
    * @method toString
@@ -388,7 +412,8 @@ exports.Streaming = function(data) {
         deviceRequest({
           uri: new URL(url).href,
           encoding: null,
-          timeout: 2000
+          timeout: 2000,
+          strictSSL: !tlsSkipVerify
         }, imageAuth, sampleAuthMemo, function(err, res, body) {
           if (!err && res.statusCode === 200) {
             var data = "data:" + res.headers["content-type"] + ";base64," + Buffer.from(body).toString('base64');
@@ -413,6 +438,7 @@ exports.Streaming = function(data) {
     getId: getId,
     getType: getType,
     getGates: getGates,
+    getTlsSkipVerify: getTlsSkipVerify,
     getWhepUrl: getWhepUrl,
     getExtension: getExtension,
     getGatewayPath: getGatewayPath,
