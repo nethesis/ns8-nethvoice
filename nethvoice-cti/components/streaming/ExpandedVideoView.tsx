@@ -72,7 +72,7 @@ export const ExpandedVideoView: React.FC<ExpandedVideoViewProps> = ({
         <VideoSourceView
           source={source}
           variant='expanded'
-          className='flex-1 flex items-center justify-center bg-elevationL2Invert dark:bg-elevationL2InvertDark rounded-3xl overflow-hidden group min-h-[600px]'
+          className='mx-auto bg-elevationL2Invert dark:bg-elevationL2InvertDark rounded-3xl overflow-hidden group'
           hasFailedImage={hasFailedImage}
           onImageError={onImageError}
           onUnlockSource={onUnlockSource}

@@ -11,6 +11,7 @@ import {
   faVolumeHigh,
   faVolumeXmark,
   faCircleNotch,
+  faPause,
 } from '@fortawesome/free-solid-svg-icons'
 import { useTranslation } from 'react-i18next'
 import { Skeleton } from '../common/Skeleton'
@@ -43,6 +44,11 @@ interface VideoSourceViewProps {
   fetchToken?: (sourceId: string) => Promise<WhepToken>
   resolveUrl?: (path: string) => string
 }
+
+// Until the size of the picture is known
+const DEFAULT_ASPECT_RATIO = 16 / 9
+// Height of the header of the expanded view, out of its 80vh
+const EXPANDED_HEADER_HEIGHT = '2.5rem'
 
 const snapshotFilename = (source: VideoSource) =>
   source.description
@@ -87,6 +93,11 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
   const videoRef = useRef<HTMLVideoElement>(null)
   const watched = useIsWatched(containerRef)
   const [muted, setMuted] = useState(true)
+  // the expanded media area follows the picture, without bands around it
+  const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO)
+  const updateAspectRatio = useCallback((width: number, height: number) => {
+    if (width && height) setAspectRatio(width / height)
+  }, [])
 
   const player = useWhepPlayer({
     sourceId: source.id,
@@ -101,6 +112,18 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
   useEffect(() => {
     if (videoRef.current) videoRef.current.muted = muted
   }, [muted, player.status])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!isExpanded || !video) return
+    const onResize = () => updateAspectRatio(video.videoWidth, video.videoHeight)
+    video.addEventListener('loadedmetadata', onResize)
+    video.addEventListener('resize', onResize)
+    return () => {
+      video.removeEventListener('loadedmetadata', onResize)
+      video.removeEventListener('resize', onResize)
+    }
+  }, [isExpanded, updateAspectRatio])
 
   const hasVideoFrame = player.status === 'playing' || player.status === 'reconnecting'
   const canSnapshot = isRtsp ? hasVideoFrame : !!source.url && !hasFailedImage
@@ -150,10 +173,21 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
         fill
         unoptimized
         className={isExpanded ? 'object-contain' : 'object-cover'}
+        onLoad={(e) =>
+          updateAspectRatio(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)
+        }
         onError={() => onImageError(source.id)}
       />
     )
   }
+
+  // the stream is closed while the source is shown in the expanded view
+  const paused = (
+    <div className='absolute inset-0 flex flex-col items-center justify-center text-center px-4 text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
+      <FontAwesomeIcon icon={faPause} className='w-8 h-8 mb-3' />
+      <p>{t('Streaming.Shown in the expanded view')}</p>
+    </div>
+  )
 
   const unavailableMessage = () => {
     switch (player.failure) {
@@ -181,7 +215,8 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
           !hasVideoFrame && 'invisible',
         )}
       />
-      {player.status === 'connecting' && loading}
+      {!active && paused}
+      {active && player.status === 'connecting' && loading}
       {player.status === 'unavailable' && unavailable(unavailableMessage())}
       {player.status === 'reconnecting' && (
         <div className='absolute inset-0 flex items-center justify-center bg-black/40 text-white text-sm font-medium'>
@@ -211,7 +246,18 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
   )
 
   return (
-    <div ref={containerRef} className={classNames('relative', className)}>
+    <div
+      ref={containerRef}
+      className={classNames('relative', className)}
+      style={
+        isExpanded
+          ? {
+              aspectRatio,
+              width: `min(100%, calc((80vh - ${EXPANDED_HEADER_HEIGHT}) * ${aspectRatio}))`,
+            }
+          : undefined
+      }
+    >
       {isRtsp ? renderStream() : renderImage()}
 
       <VideoSourceActions

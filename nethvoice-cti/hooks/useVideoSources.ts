@@ -99,7 +99,7 @@ export const useVideoSources = () => {
           t('Streaming.Gate opened'),
         )
       } catch (error) {
-        console.error('Error unlocking source:', error)
+        // unexpected failures are logged by openVideoSource
         let message = t('Streaming.open_error_generic')
         if (axios.isAxiosError(error)) {
           const code = (error.response?.data as any)?.code

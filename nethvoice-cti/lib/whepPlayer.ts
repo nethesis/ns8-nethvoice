@@ -91,7 +91,8 @@ export class WhepPlayer {
   private generation = 0
   private session: WhepSession | null = null
   private token: { value: string; whep: string; expiresAt: number } | null = null
-  private abort: AbortController | null = null
+  // WHEP requests that may still create or free a gateway session: a new offer waits for them
+  private pending = new Set<Promise<void>>()
   private retryTimer: ReturnType<typeof setTimeout> | null = null
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null
   private stableTimer: ReturnType<typeof setTimeout> | null = null
@@ -119,6 +120,7 @@ export class WhepPlayer {
     this.clearRetry()
     this.teardown()
     this.opts.video.srcObject = null
+    this.opts.video.removeAttribute('poster')
   }
 
   getState() {
@@ -183,7 +185,8 @@ export class WhepPlayer {
 
     const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' })
     const stream = new MediaStream()
-    this.session = { pc, location: null, token: token.value, stream }
+    const session: WhepSession = { pc, location: null, token: token.value, stream }
+    this.session = session
     pc.addTransceiver('video', { direction: 'recvonly' })
     pc.addTransceiver('audio', { direction: 'recvonly' })
     pc.ontrack = (event) => {
@@ -208,26 +211,46 @@ export class WhepPlayer {
     try {
       await pc.setLocalDescription(await pc.createOffer())
       await this.waitIceGathering(pc)
+      // at most one gateway session per player: let the previous requests settle first
+      await this.settle()
       if (!isCurrent()) return
 
-      const abort = new AbortController()
-      this.abort = abort
-      const abortTimer = setTimeout(() => abort.abort(), WHEP_REQUEST_TIMEOUT_MS)
-      let response: Response
-      try {
-        response = await fetch(this.opts.resolveUrl(token.whep), {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/sdp',
-            Authorization: `Bearer ${token.value}`,
-          },
-          body: pc.localDescription?.sdp,
-          signal: abort.signal,
-        })
-      } finally {
-        clearTimeout(abortTimer)
-      }
-      if (!isCurrent()) return
+      // The POST is never aborted by a teardown: the gateway creates the session before
+      // answering, and without its Location it could not be deleted. A stale answer frees it.
+      const exchange = (async () => {
+        const abort = new AbortController()
+        const abortTimer = setTimeout(() => abort.abort(), WHEP_REQUEST_TIMEOUT_MS)
+        let response: Response
+        try {
+          response = await fetch(this.opts.resolveUrl(token.whep), {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/sdp',
+              Authorization: `Bearer ${token.value}`,
+            },
+            body: pc.localDescription?.sdp,
+            signal: abort.signal,
+          })
+        } finally {
+          clearTimeout(abortTimer)
+        }
+        const location = response.headers.get('Location')
+        const created =
+          (response.status === 201 || response.status === 200) && location
+            ? new URL(location, response.url).toString()
+            : null
+        if (!isCurrent()) {
+          this.log('stale WHEP answer, closing its session')
+          if (created) await this.deleteSession(created, token.value)
+          return null
+        }
+        // from now on the teardown deletes it
+        session.location = created
+        return response
+      })()
+      this.track(exchange)
+      const response = await exchange
+      if (!response || !isCurrent()) return
 
       if (response.status === 401) {
         // token expired or revoked: get a new one, retry at once only the first time
@@ -261,10 +284,6 @@ export class WhepPlayer {
         return
       }
 
-      const location = response.headers.get('Location')
-      if (location && this.session) {
-        this.session.location = new URL(location, response.url).toString()
-      }
       const answer = await response.text()
       if (!isCurrent()) return
       await pc.setRemoteDescription({ type: 'answer', sdp: answer })
@@ -377,13 +396,65 @@ export class WhepPlayer {
     }, delay)
   }
 
+  // Keeps a request in `pending` until it settles
+  private track(request: Promise<unknown>) {
+    const settled: Promise<void> = request.then(
+      () => {
+        this.pending.delete(settled)
+      },
+      () => {
+        this.pending.delete(settled)
+      },
+    )
+    this.pending.add(settled)
+  }
+
+  private async settle() {
+    while (this.pending.size) {
+      await Promise.all(Array.from(this.pending))
+    }
+  }
+
+  // DELETE of a gateway session (keepalive survives a page unload), settles in at most
+  // DELETE_CLOSE_TIMEOUT_MS
+  private deleteSession(location: string, token: string) {
+    return new Promise<void>((resolve) => {
+      const timer = setTimeout(resolve, DELETE_CLOSE_TIMEOUT_MS)
+      fetch(location, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+        keepalive: true,
+      })
+        .catch(() => {})
+        .finally(() => {
+          clearTimeout(timer)
+          resolve()
+        })
+    })
+  }
+
+  // Closing the connection ends its tracks and the <video> turns black: while reconnecting,
+  // the last frame is kept on screen as the poster (shown until the next stream plays)
+  private freezeLastFrame(session: WhepSession) {
+    const video = this.opts.video
+    if (video.srcObject !== session.stream) return
+    if (video.videoWidth && video.videoHeight) {
+      try {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height)
+        video.poster = canvas.toDataURL('image/jpeg', 0.9)
+      } catch {
+        // no frame to keep
+      }
+    }
+    video.srcObject = null
+  }
+
   // Close the current session (if any) and invalidate its pending async steps
   private teardown() {
     this.generation++
-    if (this.abort) {
-      this.abort.abort()
-      this.abort = null
-    }
     if (this.watchdogTimer) {
       clearTimeout(this.watchdogTimer)
       this.watchdogTimer = null
@@ -398,27 +469,17 @@ export class WhepPlayer {
 
     session.pc.ontrack = null
     session.pc.onconnectionstatechange = null
-    // the <video> keeps showing the last frame while reconnecting
+    if (this.running) this.freezeLastFrame(session)
+    // no Location yet: an in-flight POST deletes its session when it completes
     if (!session.location) {
       session.pc.close()
       return
     }
-    // free the gateway session at once (keepalive survives a page unload), then close the
-    // connection: closing it first makes the gateway drop the session before the DELETE arrives
-    let closed = false
-    const close = () => {
-      if (closed) return
-      closed = true
-      clearTimeout(closeTimer)
-      session.pc.close()
-    }
-    const closeTimer = setTimeout(close, DELETE_CLOSE_TIMEOUT_MS)
-    fetch(session.location, {
-      method: 'DELETE',
-      headers: { Authorization: `Bearer ${session.token}` },
-      keepalive: true,
-    })
-      .catch(() => {})
-      .finally(close)
+    // free the gateway session at once, then close the connection: closing it first makes the
+    // gateway drop the session before the DELETE arrives
+    const deleted = this.deleteSession(session.location, session.token).then(() =>
+      session.pc.close(),
+    )
+    this.track(deleted)
   }
 }
