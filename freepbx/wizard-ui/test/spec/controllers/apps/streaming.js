@@ -45,6 +45,8 @@ describe('Controller: AppsStreamingCtrl', function () {
       has_secret: true,
       exten: '201',
       profiles: ['1'],
+      permission: 'vs_front_door',
+      tls_skip_verify: false,
       gates: [
         { id: 7, name: 'Door', type: 'dtmf', code: '*1' },
         { id: 8, name: 'Car gate', type: 'url', url: 'http://192.0.2.10/open', method: 'POST', username: 'gate', has_password: true }
@@ -141,7 +143,7 @@ describe('Controller: AppsStreamingCtrl', function () {
     scope.checkConnection(source);
     scope.$apply();
     var request = ApplicationService.checkConnectionVideoSource.calls.mostRecent().args[0];
-    expect(request).toEqual({ url: 'rtsp://192.0.2.10:554/live', user: 'admin', secret: '', details: true, descr: 'Front door' });
+    expect(request).toEqual({ url: 'rtsp://192.0.2.10:554/live', user: 'admin', secret: '', tls_skip_verify: false, details: true, descr: 'Front door' });
     expect(source.verified).toBe(true);
     expect(source.preview).toBe('data:image/jpeg;base64,AAAA');
     expect(source.check.h265).toBe(true);
@@ -159,6 +161,48 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(source.verified).toBe(false);
     expect(scope.reasonMessage(source.check.reason)).toBe('Wrong username or password');
     expect(scope.reasonMessage('something else')).toBe('Connection error');
+  });
+
+  it('offers the TLS option only when the source or a gate uses TLS', function () {
+    expect(scope.newSource.tls_skip_verify).toBe(false);
+    expect(scope.tlsRelevant({ url: 'rtsps://cam/x', gates: [] })).toBe(true);
+    expect(scope.tlsRelevant({ url: 'HTTPS://cam/x.jpg' })).toBe(true);
+    expect(scope.tlsRelevant({ url: 'rtsp://cam/x', gates: [{ type: 'dtmf', code: '1' }, { type: 'url', url: 'http://cam/open' }] })).toBe(false);
+    expect(scope.tlsRelevant({ url: 'rtsp://cam/x', gates: [{ type: 'url', url: 'https://cam/open' }] })).toBe(true);
+    // a DTMF gate keeps the URL of a previous type in the model: ignored
+    expect(scope.tlsRelevant({ url: 'rtsp://cam/x', gates: [{ type: 'dtmf', code: '1', url: 'https://cam/open' }] })).toBe(false);
+    expect(scope.tlsRelevant(null)).toBe(false);
+  });
+
+  it('sends the TLS option only when it is relevant', function () {
+    scope.modifySource(storedSource());
+    scope.newSource.tls_skip_verify = true;
+    expect(scope.sourcePayload(scope.newSource).tls_skip_verify).toBe(false);
+    scope.newSource.gates[1].url = 'https://192.0.2.10/open';
+    expect(scope.sourcePayload(scope.newSource).tls_skip_verify).toBe(true);
+    scope.newSource.gates[1].url = 'http://192.0.2.10/open';
+    scope.newSource.url = 'rtsps://192.0.2.10:322/live';
+    expect(scope.sourcePayload(scope.newSource).tls_skip_verify).toBe(true);
+    scope.newSource.tls_skip_verify = false;
+    expect(scope.sourcePayload(scope.newSource).tls_skip_verify).toBe(false);
+  });
+
+  it('checks with the TLS option and reports an untrusted certificate', function () {
+    ApplicationService.checkConnectionVideoSource.and.callFake(function () {
+      return resolved({ success: false, reason: 'tls_error', message: 'certificate verify failed' });
+    });
+    var source = { url: 'rtsps://192.0.2.10:322/live', user: '', tls_skip_verify: true, gates: [] };
+    scope.checkConnection(source);
+    scope.$apply();
+    var request = ApplicationService.checkConnectionVideoSource.calls.mostRecent().args[0];
+    expect(request.tls_skip_verify).toBe(true);
+    expect(request.descr).toBeUndefined();
+    expect(source.verified).toBe(false);
+    expect(scope.reasonMessage(source.check.reason)).toBe('TLS certificate not valid');
+
+    source.url = 'rtsp://192.0.2.10/live';
+    scope.checkConnection(source);
+    expect(ApplicationService.checkConnectionVideoSource.calls.mostRecent().args[0].tls_skip_verify).toBe(false);
   });
 
   it('requires a new check when the URL or the credentials change', function () {

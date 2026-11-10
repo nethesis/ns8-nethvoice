@@ -65,6 +65,9 @@ if ($migration_version !== false) {
 # Video sources: type, credentials and gates (NethServer/dev#7535)
 require_once __DIR__ . '/streaming-migration.php';
 
+# Video sources TLS options: schema-checked, runs on every version
+migrateStreamingTlsSchema($db);
+
 if ($migration_version !== false && $migration_version >= 3) {
 	echo "Migration already done\n";
 	exit(0);

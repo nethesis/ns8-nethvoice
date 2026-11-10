@@ -271,6 +271,10 @@ reponame="nethvoice-mediamtx"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
     container=$(buildah from docker.io/bluenviron/mediamtx:1.21.3)
+    # The upstream image has no CA certificates: add them, to verify the
+    # rtsps:// devices that do not skip the TLS verification
+    buildah copy --from docker.io/library/alpine:3.22 "${container}" \
+        /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
     finish_timing

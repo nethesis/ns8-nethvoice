@@ -238,29 +238,196 @@ $fake = function (array $command, int $timeout) use (&$calls) {
     }
     return [0, "\xff\xd8\xff\xe0jpeg", '', false];
 };
-$result = streaming_probe_rtsp('rtsp://192.0.2.10/live', 'admin', 'p w', $fake);
+$result = streaming_probe_rtsp('rtsp://192.0.2.10/live', 'admin', 'p w', false, $fake);
 check($result['success'] && $result['h265'] && $result['warnings'] === ['h265'], 'H.265 is detected');
 check($result['video'] === ['codec' => 'hevc', 'width' => 1920, 'height' => 1080] && $result['audio']['sample_rate'] === 8000, 'codecs and resolution');
 check(base64_decode($result['image']) === "\xff\xd8\xff\xe0jpeg" && $result['mime'] === 'image/jpeg', 'preview');
 check(end($calls[0]) === 'rtsp://admin:p%20w@192.0.2.10/live' && in_array('tcp', $calls[0], true), 'ffprobe arguments: encoded credentials, TCP');
 check(in_array('-i', $calls[1], true) && $calls[1][array_search('-i', $calls[1], true) + 1] === 'rtsp://admin:p%20w@192.0.2.10/live', 'ffmpeg input argument');
 
-$denied = streaming_probe_rtsp('rtsp://192.0.2.10/live', 'admin', 'bad', function () {
+$denied = streaming_probe_rtsp('rtsp://192.0.2.10/live', 'admin', 'bad', false, function () {
     return [1, '{}', "[rtsp @ 0x1] method DESCRIBE failed: 401 (Unauthorized)\nrtsp://admin:bad@192.0.2.10/live: Server returned 401 Unauthorized (authorization failed)\n", false];
 });
 check(!$denied['success'] && $denied['reason'] === 'auth_failed', 'auth failure reason');
 check(strpos($denied['message'], 'bad@') === false && strpos($denied['message'], 'rtsp://192.0.2.10/live') !== false, 'credentials removed from the message');
 
-$noVideo = streaming_probe_rtsp('rtsp://192.0.2.10/live', '', '', function () {
+$noVideo = streaming_probe_rtsp('rtsp://192.0.2.10/live', '', '', false, function () {
     return [0, json_encode(['streams' => [['codec_type' => 'audio', 'codec_name' => 'aac']]]), '', false];
 });
 check(!$noVideo['success'] && $noVideo['reason'] === 'unsupported', 'audio-only stream');
 
-$mpeg4 = streaming_probe_rtsp('rtsp://192.0.2.10/live', '', '', function (array $command) {
+$mpeg4 = streaming_probe_rtsp('rtsp://192.0.2.10/live', '', '', false, function (array $command) {
     return $command[0] === 'ffprobe' ? [0, json_encode(['streams' => [['codec_type' => 'video', 'codec_name' => 'mpeg4']]]), '', false] : [1, '', 'error', false];
 });
 check($mpeg4['success'] && $mpeg4['warnings'] === ['codec_not_supported_by_webrtc', 'preview_failed'] && $mpeg4['image'] === null, 'codec and preview warnings');
-check(streaming_probe_rtsp('http://h/x', '', '', $fake)['reason'] === 'unsupported', 'RTSP probe rejects other schemes');
+check(streaming_probe_rtsp('http://h/x', '', '', false, $fake)['reason'] === 'unsupported', 'RTSP probe rejects other schemes');
+check(!in_array('-tls_verify', $calls[0], true), 'no TLS options for plain RTSP');
+
+// --- TLS: skip verification option, certificate pinning ----------------------
+
+$fpA = str_repeat('ab', 32);
+$fpB = str_repeat('cd', 32);
+check(STREAMING_REASONS === array_values(array_unique(STREAMING_REASONS)) && in_array('tls_error', STREAMING_REASONS, true), 'tls_error reason');
+check(!streaming_tls_relevant('rtsp://h/x', []) && streaming_tls_relevant('rtsps://h/x', []) && streaming_tls_relevant('https://h/x', []), 'TLS relevance from the URL');
+check(streaming_tls_relevant('rtsp://h/x', [['type' => 'url', 'url' => 'https://h/open']]), 'TLS relevance from an https gate');
+check(!streaming_tls_relevant('http://h/x', [['type' => 'url', 'url' => 'http://h/open'], ['type' => 'dtmf', 'code' => '1']]), 'no TLS anywhere');
+check(streaming_normalize_fingerprint('AB:' . substr(strtoupper($fpA), 2)) === $fpA && streaming_normalize_fingerprint('xyz') === null && streaming_normalize_fingerprint(null) === null, 'fingerprint normalization');
+
+$tlsNew = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsps://u:p@192.0.2.30:322/live']);
+check($tlsNew['tls_skip_verify'] === false && $tlsNew['tls_fingerprint'] === null, 'TLS verification is on by default');
+$tlsOn = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsps://u:p@192.0.2.30:322/live', 'tls_skip_verify' => true]);
+check($tlsOn['tls_skip_verify'] === true && streaming_needs_fingerprint($tlsOn), 'skip verification on a rtsps source needs a fingerprint');
+foreach ([true, 1, '1', 'true'] as $value) {
+    check(streaming_normalize_source(['descr' => 'Tls', 'url' => 'https://h/s.jpg', 'tls_skip_verify' => $value])['tls_skip_verify'] === true, 'true value ' . json_encode($value));
+}
+foreach ([false, 0, '0', 'false', '', null] as $value) {
+    check(streaming_normalize_source(['descr' => 'Tls', 'url' => 'https://h/s.jpg', 'tls_skip_verify' => $value])['tls_skip_verify'] === false, 'false value ' . json_encode($value));
+}
+expect_validation(function () { streaming_normalize_source(['descr' => 'Tls', 'url' => 'https://h/s.jpg', 'tls_skip_verify' => 'yes please']); }, 'tls_skip_verify', 'bad boolean');
+expect_validation(function () { streaming_normalize_source(['descr' => 'Tls', 'url' => 'https://h/s.jpg', 'tls_skip_verify' => [true]]); }, 'tls_skip_verify', 'array boolean');
+$plain = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsp://192.0.2.30/live', 'tls_skip_verify' => true, 'gates' => [['type' => 'url', 'url' => 'http://192.0.2.30/open']]]);
+check($plain['tls_skip_verify'] === false, 'not relevant: stored as false');
+$httpsGate = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsp://192.0.2.30/live', 'tls_skip_verify' => true, 'gates' => [['type' => 'url', 'url' => 'https://192.0.2.30/open']]]);
+check($httpsGate['tls_skip_verify'] === true && !streaming_needs_fingerprint($httpsGate), 'an https gate makes it relevant, no fingerprint for plain RTSP');
+
+$tlsStored = array_merge($tlsOn, ['tls_fingerprint' => $fpA]);
+$kept = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsps://192.0.2.30:322/other', 'user' => 'u'], $tlsStored);
+check($kept['tls_skip_verify'] === true && $kept['tls_fingerprint'] === $fpA, 'absent option keeps the stored value and the pinned certificate of the same device');
+$movedTls = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsps://192.0.2.31:322/live', 'user' => 'u', 'secret' => 'x'], $tlsStored);
+check($movedTls['tls_skip_verify'] === true && $movedTls['tls_fingerprint'] === null, 'another device: the pinned certificate is dropped');
+$offTls = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsps://192.0.2.30:322/live', 'tls_skip_verify' => false], $tlsStored);
+check($offTls['tls_skip_verify'] === false && $offTls['tls_fingerprint'] === null, 'option off: no pinned certificate');
+
+[$refreshed, $error] = streaming_refresh_fingerprint($kept, function ($url) use ($fpB) {
+    return [strtoupper($fpB), ''];
+});
+check($refreshed['tls_fingerprint'] === $fpB && $error === '', 'save pins the current certificate');
+[$offline, $error] = streaming_refresh_fingerprint($kept, function ($url) {
+    return [null, 'Connection refused'];
+});
+check($offline['tls_fingerprint'] === $fpA && $error === 'Connection refused', 'device offline at save: the stored certificate is kept');
+[$offlineNew, $error] = streaming_refresh_fingerprint($tlsOn, function ($url) {
+    return [null, ''];
+});
+check($offlineNew['tls_fingerprint'] === null && $error !== '', 'device offline at the first save: no certificate pinned');
+[$noPin, $error] = streaming_refresh_fingerprint($httpsGate, function () {
+    check(false, 'no certificate read when not needed');
+    return [null, ''];
+});
+check($noPin['tls_fingerprint'] === null && $error === '', 'nothing to pin');
+
+$tlsSources = [
+    'Tls' => array_merge($refreshed, ['frame-rate' => '1000', 'exten' => null]),
+    'Snap' => array_merge(streaming_normalize_source(['descr' => 'Snap', 'url' => 'https://192.0.2.32/s.jpg', 'tls_skip_verify' => true]), ['tls_fingerprint' => $fpA]),
+    'Strict' => array_merge(streaming_normalize_source(['descr' => 'Strict', 'url' => 'rtsps://192.0.2.33/live']), ['tls_fingerprint' => $fpA]),
+];
+$public = streaming_public_source($tlsSources['Tls']);
+check($public['tls_skip_verify'] === true && $public['tls_fingerprint'] === $fpB, 'REST view: option and pinned certificate');
+check(streaming_public_source($tlsSources['Snap'])['tls_fingerprint'] === null && streaming_public_source($stored['Garden'])['tls_skip_verify'] === false, 'REST view: no fingerprint without pinning, false by default');
+$cti = streaming_cti_config($tlsSources);
+check($cti['vs_tls']['tls_skip_verify'] === true && $cti['vs_snap']['tls_skip_verify'] === true && $cti['vs_strict']['tls_skip_verify'] === false, 'streaming.json has tls_skip_verify');
+check(strpos(json_encode($cti), $fpB) === false, 'the fingerprint is not in streaming.json');
+check(streaming_cti_config($stored)['vs_garden']['tls_skip_verify'] === false, 'streaming.json default');
+$yml = streaming_mediamtx_config($tlsSources, $settings);
+check(strpos($yml, "  \"streaming-gw/vs_tls\":\n    source: \"rtsps://u:p@192.0.2.30:322/other\"\n    sourceFingerprint: \"$fpB\"\n") !== false, 'gateway pins the certificate');
+check(strpos($yml, "  \"streaming-gw/vs_strict\":\n    source: \"rtsps://192.0.2.33/live\"\n") !== false && substr_count($yml, 'sourceFingerprint') === 1, 'gateway verifies the certificate without the option');
+$unpinned = streaming_mediamtx_config(['x' => array_merge($tlsOn, ['tls_fingerprint' => null])], $settings);
+check(strpos($unpinned, 'sourceFingerprint') === false, 'no fingerprint, no pinning');
+
+check(streaming_failure_reason("[tls @ 0x55a0f87a3a80] error:0A000086:SSL routines::certificate verify failed\nrtsps://127.0.0.1:28322/cam: Input/output error") === 'tls_error', 'ffmpeg certificate error');
+check(streaming_failure_reason('SSL certificate problem: self-signed certificate') === 'tls_error', 'curl certificate error');
+check(streaming_failure_reason("SSL: no alternative certificate subject name matches target host name 'h'") === 'tls_error', 'curl host name error');
+check(streaming_failure_reason('error:0A00010B:SSL routines::wrong version number') === 'unknown', 'a TLS protocol error is not a certificate error');
+
+$tlsCalls = [];
+$tlsFake = function (array $command, int $timeout) use (&$tlsCalls) {
+    $tlsCalls[] = $command;
+    if ($command[0] === 'ffprobe') {
+        return [0, json_encode(['streams' => [['codec_name' => 'h264', 'codec_type' => 'video']]]), '', false];
+    }
+    return [0, "\xff\xd8jpeg", '', false];
+};
+$fetched = [];
+$fetchFake = function (string $url) use (&$fetched, $fpB) {
+    $fetched[] = $url;
+    return [$fpB, ''];
+};
+$strict = streaming_probe_rtsp('rtsps://192.0.2.30:322/live', 'u', 'p', false, $tlsFake, $fetchFake);
+check($strict['success'] && $strict['tls_fingerprint'] === null && $fetched === [], 'verified check: no certificate read');
+foreach ($tlsCalls as $command) {
+    $at = array_search('-tls_verify', $command, true);
+    check($at !== false && $command[$at + 1] === '1' && $at < count($command) - 1 && array_search('rtsps://u:p@192.0.2.30:322/live', $command, true) > $at, $command[0] . ' verifies the certificate');
+}
+$tlsCalls = [];
+$skipped = streaming_probe_rtsp('rtsps://192.0.2.30:322/live', 'u', 'p', true, $tlsFake, $fetchFake);
+check($skipped['success'] && $skipped['tls_fingerprint'] === $fpB && $fetched === ['rtsps://192.0.2.30:322/live'], 'skipped check returns the device certificate, read without credentials');
+check(count($tlsCalls) === 2 && $tlsCalls[0][array_search('-tls_verify', $tlsCalls[0], true) + 1] === '0' && $tlsCalls[1][array_search('-tls_verify', $tlsCalls[1], true) + 1] === '0', 'ffprobe and ffmpeg skip the verification');
+$untrusted = streaming_probe_rtsp('rtsps://192.0.2.30:322/live', 'u', 'p', false, function () {
+    return [1, '', "[tls @ 0x1] error:0A000086:SSL routines::certificate verify failed\nrtsps://u:p@192.0.2.30:322/live: Input/output error\n", false];
+});
+check(!$untrusted['success'] && $untrusted['reason'] === 'tls_error' && strpos($untrusted['message'], 'u:p@') === false, 'untrusted certificate: tls_error');
+
+$storedTls = $tlsSources['Tls'];
+check(streaming_tls_check_warnings($skipped, $storedTls, 'rtsps://192.0.2.30:322/live')['warnings'] === [], 'same certificate: no warning');
+check(streaming_tls_check_warnings(array_merge($skipped, ['tls_fingerprint' => $fpA]), $storedTls, 'rtsps://192.0.2.30:322/live')['warnings'] === ['tls_certificate_changed'], 'changed certificate: warning');
+check(streaming_tls_check_warnings(array_merge($skipped, ['tls_fingerprint' => $fpA]), $storedTls, 'rtsps://192.0.2.99:322/live')['warnings'] === [], 'another device: no warning');
+check(streaming_tls_check_warnings($skipped, array_merge($storedTls, ['tls_fingerprint' => null]), 'rtsps://192.0.2.30:322/live')['warnings'] === ['tls_certificate_changed'], 'nothing pinned: warning');
+check(streaming_tls_check_warnings($skipped, array_merge($storedTls, ['tls_skip_verify' => false]), 'rtsps://192.0.2.30:322/live')['warnings'] === [], 'option just enabled: the save pins it, no warning');
+check(streaming_tls_check_warnings($skipped, null, 'rtsps://192.0.2.30:322/live')['warnings'] === [], 'new source: no warning');
+
+// Real TLS: a local HTTPS server with a self-signed certificate
+$tlsDir = sys_get_temp_dir() . '/streaming-tls-test-' . getmypid();
+mkdir($tlsDir);
+$key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+$csr = openssl_csr_new(['commonName' => '127.0.0.1'], $key, ['digest_alg' => 'sha256']);
+$cert = openssl_csr_sign($csr, null, $key, 2, ['digest_alg' => 'sha256'], 1);
+openssl_x509_export($cert, $certPem);
+openssl_pkey_export($key, $keyPem);
+file_put_contents("$tlsDir/server.pem", $certPem . $keyPem);
+file_put_contents("$tlsDir/server.php", <<<'SERVER'
+<?php
+$context = stream_context_create(['ssl' => ['local_cert' => $argv[1]]]);
+$server = stream_socket_server('tls://127.0.0.1:0', $errno, $errstr, STREAM_SERVER_BIND | STREAM_SERVER_LISTEN, $context);
+echo stream_socket_get_name($server, false), "\n";
+while (true) {
+    $conn = @stream_socket_accept($server, 30);
+    if ($conn === false) {
+        continue;
+    }
+    $request = '';
+    while (!feof($conn) && strpos($request, "\r\n\r\n") === false && ($chunk = fread($conn, 4096)) !== false && $chunk !== '') {
+        $request .= $chunk;
+    }
+    if ($request !== '') {
+        @fwrite($conn, "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: 6\r\nConnection: close\r\n\r\n\xff\xd8\xff\xe0ok");
+    }
+    @fclose($conn);
+}
+SERVER);
+$serverPipes = [];
+$serverProcess = proc_open([PHP_BINARY, "$tlsDir/server.php", "$tlsDir/server.pem"], [1 => ['pipe', 'w'], 2 => ['file', '/dev/null', 'w']], $serverPipes);
+$address = trim((string) fgets($serverPipes[1]));
+check(preg_match('/^127\.0\.0\.1:\d+$/', $address) === 1, "test TLS server listening on $address");
+$expected = openssl_x509_fingerprint($certPem, 'sha256');
+[$fingerprint, $error] = streaming_fetch_fingerprint("rtsps://$address/live");
+check($fingerprint === $expected && $error === '', 'fingerprint of a self-signed certificate: ' . $error);
+check(streaming_fetch_fingerprint("https://$address/snap.jpg")[0] === $expected, 'fingerprint of an https device');
+check(streaming_fetch_fingerprint('rtsp://127.0.0.1:1/x')[0] === null, 'no fingerprint for plain RTSP');
+[$fingerprint, $error] = streaming_fetch_fingerprint('rtsps://127.0.0.1:1/x', 2);
+check($fingerprint === null && $error !== '', 'no fingerprint when the device is unreachable');
+if (function_exists('curl_init')) {
+    $verified = streaming_probe_image("https://$address/snap.jpg", '', '');
+    check(!$verified['success'] && $verified['reason'] === 'tls_error', 'image check verifies the certificate: ' . $verified['reason'] . ' ' . $verified['message']);
+    $skippedImage = streaming_probe_image("https://$address/snap.jpg", '', '', true);
+    check($skippedImage['success'] && base64_decode($skippedImage['image']) === "\xff\xd8\xff\xe0ok", 'image check skips the verification: ' . $skippedImage['message']);
+} else {
+    fwrite(STDERR, "SKIP: curl extension not available\n");
+}
+proc_terminate($serverProcess);
+fclose($serverPipes[1]);
+proc_close($serverProcess);
+array_map('unlink', glob("$tlsDir/*"));
+rmdir($tlsDir);
 
 // --- Atomic write --------------------------------------------------------------
 

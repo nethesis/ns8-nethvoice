@@ -1606,6 +1606,10 @@ paths:
         from the device. HTTP(S) sources are fetched with the given
         credentials. With `descr` of a stored source and an empty `secret`,
         the stored password is used, only for the same scheme, host and port.
+        TLS certificates of https:// and rtsps:// devices are verified (system
+        CA store and host name) unless `tls_skip_verify`; an untrusted
+        certificate fails with reason `tls_error`. Without `tls_skip_verify`,
+        the value stored for `descr` is used (same scheme, host and port).
         RTSP sources, or `details: true`, answer with a `VideoSourceCheck`
         object (HTTP 200 also on failure); legacy clients (HTTP URL without
         `details`) get the Base64 image as a JSON string, or HTTP 500.'
@@ -1643,6 +1647,10 @@ paths:
                   type: string
                   description: Name of a stored source whose password is used
                     when `secret` is empty
+                tls_skip_verify:
+                  type: boolean
+                  description: Do not verify the TLS certificate of the device
+                    (self-signed certificates)
                 details:
                   type: boolean
                   description: Return a VideoSourceCheck also for HTTP sources
@@ -4166,6 +4174,15 @@ components:
           maxItems: 10
           items:
             $ref: '#/components/schemas/VideoSourceGate'
+        tls_skip_verify:
+          type: boolean
+          default: false
+          description: 'Skip the TLS certificate verification for the source
+            URL and all its URL gates (devices with a self-signed
+            certificate). Absent on update: the stored value is kept. Stored
+            as false when neither the URL nor a URL gate uses TLS. For a
+            rtsps:// source the gateway pins the SHA-256 fingerprint of the
+            certificate the device presents when the source is saved.'
         profiles:
           type: array
           items:
@@ -4197,6 +4214,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/VideoSourceGate'
+        tls_skip_verify:
+          type: boolean
+        tls_fingerprint:
+          type: string
+          nullable: true
+          readOnly: true
+          description: SHA-256 of the device certificate pinned by the gateway
+            (rtsps:// sources with `tls_skip_verify`), null if none
         permission:
           type: string
           example: vs_front_door
@@ -4250,14 +4275,22 @@ components:
           type: array
           items:
             type: string
-            enum: [h265, codec_not_supported_by_webrtc, preview_failed]
+            enum: [h265, codec_not_supported_by_webrtc, preview_failed, tls_certificate_changed]
+          description: '`tls_certificate_changed`: the device certificate is
+            not the one pinned by the gateway, which refuses the device until
+            the source is saved again'
         reason:
           type: string
           nullable: true
-          enum: [auth_failed, connection_refused, timeout, not_found, unsupported, unknown, null]
+          enum: [auth_failed, connection_refused, timeout, not_found, tls_error, unsupported, unknown, null]
         message:
           type: string
           description: Raw error message, without credentials
+        tls_fingerprint:
+          type: string
+          nullable: true
+          description: SHA-256 of the certificate of a rtsps:// device, read
+            when `tls_skip_verify` is set
     VideoSourceError:
       type: object
       properties:

@@ -205,6 +205,22 @@ sync with the first DTMF gate. The wizard "Check" probes the device directly wit
 (a minimal build in the FreePBX image) and shows a preview frame, the codecs and the specific reason
 of a failure; H.265 is reported because most browsers cannot play it.
 
+TLS certificates of `https://` and `rtsps://` devices are verified (system CA store, host name or IP
+address) by the wizard Check (`ffprobe -tls_verify 1`, curl), by nethcti-server (snapshots of image
+sources, URL gates) and by the gateway; an untrusted certificate makes the Check fail with reason
+`tls_error`. For devices with a self-signed certificate a source has the option "Skip TLS certificate
+verification" (`tls_skip_verify`, off by default, shown only when the source URL or a URL gate uses
+TLS). It applies to everything the PBX contacts for that source: the Check, the nethcti-server
+requests of that source only (`tls_skip_verify` in `streaming.json`) and the gateway. MediaMTX cannot
+skip the verification, it can only pin the certificate (`sourceFingerprint`): when an `rtsps://`
+source with the option is saved, FreePBX reads the SHA-256 fingerprint of the certificate the device
+presents (column `tls_fingerprint`, kept when the device is unreachable at save time and it is the
+same device) and writes it in the path. If the device certificate changes later (renewal, reset), the
+gateway refuses the device until the source is saved again; the Check of the stored source reports it
+with the warning `tls_certificate_changed`. Without a fingerprint MediaMTX verifies the certificate
+with the Go defaults (system roots, host name); the CA certificates are added to
+the `nethvoice-mediamtx` image by `build-images.sh` (the upstream image has none).
+
 - Unit: `mediamtx.service`, image `nethvoice-mediamtx` (mirror of `docker.io/bluenviron/mediamtx`),
   host network, read-only, uid/gid 990:991, no capabilities. Unused listeners (RTMP, SRT, HLS, MoQ,
   playback, metrics) are disabled.

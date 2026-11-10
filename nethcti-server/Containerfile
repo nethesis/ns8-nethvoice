@@ -2,7 +2,7 @@
 FROM docker.io/library/alpine:3.24.4 as repofetcher
 WORKDIR /app
 RUN apk add --no-cache git
-ARG NETHCTI_SERVER_COMMIT=80c0cb105b62c9c0361f5fc02b1e93da828ff038
+ARG NETHCTI_SERVER_COMMIT=9359ac0334b038eb29a1d9bca1ab3895dc9e4abe
 RUN git clone https://github.com/nethesis/nethcti-server.git . \
     && git checkout "${NETHCTI_SERVER_COMMIT}"
 

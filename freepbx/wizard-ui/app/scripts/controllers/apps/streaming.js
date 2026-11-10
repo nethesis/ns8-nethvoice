@@ -12,6 +12,8 @@
  * optional credentials and a list of gates (door openers) opened by DTMF or
  * by an HTTP request. Passwords are write-only: the API returns only
  * has_secret / has_password, and an empty password keeps the stored one.
+ * TLS certificates are verified unless "tls_skip_verify" is set: the option
+ * is shown, and sent as true, only when the source URL or a URL gate uses TLS.
  */
 angular.module('nethvoiceWizardUiApp')
   .controller('AppsStreamingCtrl', function ($scope, ProfileService, ApplicationService, UserService) {
@@ -30,6 +32,7 @@ angular.module('nethvoiceWizardUiApp')
       connection_refused: 'Connection refused: check the address, the port and the port-forward of the device',
       timeout: 'The device does not answer: check the address and the firewall',
       not_found: 'Stream not found: check the path in the URL',
+      tls_error: 'TLS certificate not valid',
       unsupported: 'Unsupported URL or stream',
       unknown: 'Connection error'
     };
@@ -42,6 +45,7 @@ angular.module('nethvoiceWizardUiApp')
         onMod: false,
         user: '',
         secret: '',
+        tls_skip_verify: false,
         gates: [],
         profiles: []
       };
@@ -50,6 +54,24 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.isRtsp = function (s) {
       return !!(s && s.url && /^rtsps?:\/\//i.test(s.url));
+    };
+
+    // The TLS option matters only if the PBX contacts the device over TLS:
+    // rtsps:// or https:// source URL, or at least one https:// URL gate
+    $scope.tlsRelevant = function (s) {
+      if (!s) {
+        return false;
+      }
+      if (s.url && /^(rtsps|https):\/\//i.test(s.url)) {
+        return true;
+      }
+      return (s.gates || []).some(function (gate) {
+        return gate.type === 'url' && !!gate.url && /^https:\/\//i.test(gate.url);
+      });
+    };
+
+    $scope.tlsSkipVerify = function (s) {
+      return $scope.tlsRelevant(s) && !!s.tls_skip_verify;
     };
 
     $scope.reasonMessage = function (reason) {
@@ -86,6 +108,7 @@ angular.module('nethvoiceWizardUiApp')
         user: s.user || '',
         secret: s.user ? (s.secret || '') : '',
         exten: s.exten,
+        tls_skip_verify: $scope.tlsSkipVerify(s),
         profiles: s.profiles,
         gates: (s.gates || []).map(function (gate) {
           var item = {
@@ -228,11 +251,14 @@ angular.module('nethvoiceWizardUiApp')
         url: s.url,
         user: s.user || '',
         secret: s.user ? (s.secret || '') : '',
+        tls_skip_verify: $scope.tlsSkipVerify(s),
         details: true
       };
-      // Stored source: the API uses the stored password if none is typed
-      if (s.has_secret && (s.currentDescr || s.descr)) {
-        request.descr = s.currentDescr || s.descr;
+      // Stored source: the API uses the stored password if none is typed and
+      // reports a change of the device certificate pinned by the gateway
+      var storedDescr = s.currentDescr || (s.permission ? s.descr : null);
+      if (storedDescr) {
+        request.descr = storedDescr;
       }
       ApplicationService.checkConnectionVideoSource(request).then(function (res) {
         var check = res.data || {};

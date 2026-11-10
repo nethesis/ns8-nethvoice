@@ -1155,5 +1155,13 @@
   "Connection refused: check the address, the port and the port-forward of the device": "Connessione rifiutata: verifica l'indirizzo, la porta e l'inoltro della porta del dispositivo",
   "The device does not answer: check the address and the firewall": "Il dispositivo non risponde: verifica l'indirizzo e il firewall",
   "Stream not found: check the path in the URL": "Flusso non trovato: verifica il percorso nell'URL",
+  "TLS certificate not valid": "Certificato TLS non valido",
+  "If the device has a self-signed certificate, enable Skip TLS certificate verification": "Se il dispositivo ha un certificato autofirmato, abilita Salta la verifica del certificato TLS",
+  "Skip TLS certificate verification": "Salta la verifica del certificato TLS",
+  "Only for devices with a self-signed certificate: applies to the source URL and to the URL gates": "Solo per dispositivi con un certificato autofirmato: vale per l'URL della sorgente e per i varchi URL",
+  "The device certificate changed: the video gateway refuses the device until the source is saved again": "Il certificato del dispositivo è cambiato: il gateway video rifiuta il dispositivo finché la sorgente non viene salvata di nuovo",
+  "Device certificate": "Certificato del dispositivo",
+  "TLS certificate": "Certificato TLS",
+  "Not verified": "Non verificato",
   "Unsupported URL or stream": "URL o flusso non supportato"
 }

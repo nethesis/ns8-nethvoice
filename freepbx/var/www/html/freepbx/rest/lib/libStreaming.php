@@ -14,13 +14,23 @@
  * and every source has zero or more ordered gates (door openers), opened by
  * DTMF through the source extension or by an HTTP request.
  *
+ * TLS: certificates of https:// and rtsps:// devices are verified (system CA
+ * store and host name) by the admin check, by nethcti-server and by the
+ * gateway. A source can skip the verification ("tls_skip_verify", for devices
+ * with a self-signed certificate): it then applies to the source URL and to
+ * all its URL gates. MediaMTX has no switch to skip it, only the pinning of the
+ * SHA-256 fingerprint of the device certificate ("sourceFingerprint"): the
+ * fingerprint is read from the device when the source is saved and stored in
+ * "tls_fingerprint". If the device certificate changes later, the gateway
+ * refuses the device until the source is saved again; the check reports it.
+ *
  * The functions in this file have no FreePBX dependency, so they can be used
  * by the REST API, by the nethcti3 configuration generator and by tests.
  */
 
 const STREAMING_GATEWAY_PREFIX = 'streaming-gw';
 const STREAMING_MAX_GATES = 10;
-const STREAMING_REASONS = ['auth_failed', 'connection_refused', 'timeout', 'not_found', 'unsupported', 'unknown'];
+const STREAMING_REASONS = ['auth_failed', 'connection_refused', 'timeout', 'not_found', 'tls_error', 'unsupported', 'unknown'];
 // Video codecs that MediaMTX can forward to a browser over WebRTC
 const STREAMING_WEBRTC_VIDEO_CODECS = ['h264', 'vp8', 'vp9', 'av1', 'hevc'];
 
@@ -164,6 +174,127 @@ function streaming_string_field(array $data, string $field, int $maxLength, stri
         throw new StreamingValidationException($field, "$field contains control characters");
     }
     return $value;
+}
+
+function streaming_bool_field(array $data, string $field, bool $default = false): bool
+{
+    if (!array_key_exists($field, $data) || $data[$field] === null) {
+        return $default;
+    }
+    $value = $data[$field];
+    if (is_bool($value)) {
+        return $value;
+    }
+    if (in_array($value, [1, '1', 'true'], true)) {
+        return true;
+    }
+    if (in_array($value, [0, '0', 'false', ''], true)) {
+        return false;
+    }
+    throw new StreamingValidationException($field, "$field must be a boolean");
+}
+
+/*
+ * True when something the PBX contacts for this source uses TLS: a rtsps://
+ * or https:// source URL or at least one https:// URL gate. Only then the
+ * "skip TLS certificate verification" option has a meaning.
+ */
+function streaming_tls_relevant(string $url, array $gates): bool
+{
+    $parsed = streaming_parse_url($url);
+    if ($parsed !== null && in_array($parsed['scheme'], ['https', 'rtsps'], true)) {
+        return true;
+    }
+    foreach ($gates as $gate) {
+        if (($gate['type'] ?? '') === 'url') {
+            $gateUrl = streaming_parse_url((string) ($gate['url'] ?? ''));
+            if ($gateUrl !== null && $gateUrl['scheme'] === 'https') {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+/* True when the gateway must pin the device certificate of the source */
+function streaming_needs_fingerprint(array $source): bool
+{
+    $parsed = streaming_parse_url((string) $source['url']);
+    return !empty($source['tls_skip_verify']) && $parsed !== null && $parsed['scheme'] === 'rtsps';
+}
+
+/* A SHA-256 fingerprint as MediaMTX wants it: 64 lowercase hex digits, or null */
+function streaming_normalize_fingerprint($fingerprint): ?string
+{
+    if (!is_string($fingerprint)) {
+        return null;
+    }
+    $fingerprint = strtolower(str_replace(':', '', trim($fingerprint)));
+    return preg_match('/^[0-9a-f]{64}$/', $fingerprint) ? $fingerprint : null;
+}
+
+/*
+ * Read the SHA-256 fingerprint of the certificate presented by a TLS device
+ * (https:// or rtsps://, TLS from the first byte), without verifying it.
+ * Return [fingerprint or null, error message].
+ */
+function streaming_fetch_fingerprint(string $url, int $timeout = 5): array
+{
+    $parsed = streaming_parse_url($url);
+    if ($parsed === null || !in_array($parsed['scheme'], ['https', 'rtsps'], true)) {
+        return [null, 'not a TLS URL'];
+    }
+    $port = $parsed['port'] !== '' ? $parsed['port'] : ($parsed['scheme'] === 'https' ? '443' : '322');
+    $isIp = filter_var($parsed['host'], FILTER_VALIDATE_IP) !== false;
+    $host = strpos($parsed['host'], ':') !== false ? '[' . $parsed['host'] . ']' : $parsed['host'];
+    $ssl = [
+        'capture_peer_cert' => true,
+        'verify_peer' => false,
+        'verify_peer_name' => false,
+        'allow_self_signed' => true,
+        'SNI_enabled' => !$isIp,
+    ];
+    if (!$isIp) {
+        $ssl['peer_name'] = $parsed['host'];
+    }
+    $context = stream_context_create(['ssl' => $ssl]);
+    $errno = 0;
+    $errstr = '';
+    $stream = @stream_socket_client('tls://' . $host . ':' . $port, $errno, $errstr, $timeout, STREAM_CLIENT_CONNECT, $context);
+    if ($stream === false) {
+        $error = error_get_last();
+        return [null, $errstr !== '' ? $errstr : (string) ($error['message'] ?? 'TLS connection failed')];
+    }
+    $params = stream_context_get_params($stream);
+    fclose($stream);
+    $certificate = $params['options']['ssl']['peer_certificate'] ?? null;
+    if ($certificate === null) {
+        return [null, 'the device did not send a certificate'];
+    }
+    $fingerprint = streaming_normalize_fingerprint(@openssl_x509_fingerprint($certificate, 'sha256'));
+    return $fingerprint !== null ? [$fingerprint, ''] : [null, 'cannot read the device certificate'];
+}
+
+/*
+ * Pin the device certificate of a source that skips the TLS verification of
+ * its rtsps:// URL: read the fingerprint now, keep the stored one if the device
+ * cannot be reached. Return the source with "tls_fingerprint" set and the
+ * error of the read ("" on success).
+ */
+function streaming_refresh_fingerprint(array $source, ?callable $fetch = null): array
+{
+    if (!streaming_needs_fingerprint($source)) {
+        $source['tls_fingerprint'] = null;
+        return [$source, ''];
+    }
+    [$fingerprint, $error] = ($fetch ?? 'streaming_fetch_fingerprint')((string) $source['url']);
+    $fingerprint = streaming_normalize_fingerprint($fingerprint);
+    if ($fingerprint !== null) {
+        $source['tls_fingerprint'] = $fingerprint;
+        return [$source, ''];
+    }
+    $source['tls_fingerprint'] = streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null);
+    return [$source, $error !== '' ? $error : 'cannot read the device certificate'];
 }
 
 /*
@@ -354,7 +485,13 @@ function streaming_normalize_source(array $data, ?array $current = null): array
         $gates = $currentGates;
     }
 
-    return [
+    // Absent: keep the stored value (legacy clients). Stored as false when
+    // nothing of the source uses TLS.
+    $tlsSkipVerify = streaming_bool_field($data, 'tls_skip_verify', $current !== null && !empty($current['tls_skip_verify']));
+    if (!streaming_tls_relevant($parsed['url'], $gates)) {
+        $tlsSkipVerify = false;
+    }
+    $source = [
         'descr' => $descr,
         'type' => $parsed['type'],
         'url' => $parsed['url'],
@@ -364,7 +501,15 @@ function streaming_normalize_source(array $data, ?array $current = null): array
         'exten' => $exten,
         'gates' => $gates,
         'open' => streaming_open_code($gates),
+        'tls_skip_verify' => $tlsSkipVerify,
+        'tls_fingerprint' => null,
     ];
+    // The pinned certificate stays valid only for the same device
+    if (streaming_needs_fingerprint($source) && $current !== null
+        && streaming_url_endpoint((string) $current['url']) === streaming_url_endpoint($parsed['url'])) {
+        $source['tls_fingerprint'] = streaming_normalize_fingerprint($current['tls_fingerprint'] ?? null);
+    }
+    return $source;
 }
 
 /* Read all sources with their gates, secrets included. Keyed by descr. */
@@ -376,6 +521,8 @@ function streaming_load_sources(\PDO $db): array
         $row['type'] = isset($row['type']) && $row['type'] !== '' ? $row['type'] : streaming_type_from_url((string) $row['url']);
         $row['user'] = (string) ($row['user'] ?? '');
         $row['secret'] = (string) ($row['secret'] ?? '');
+        $row['tls_skip_verify'] = !empty($row['tls_skip_verify']);
+        $row['tls_fingerprint'] = streaming_normalize_fingerprint($row['tls_fingerprint'] ?? null);
         $row['gates'] = [];
         $sources[$row['descr']] = $row;
     }
@@ -418,6 +565,9 @@ function streaming_public_source(array $source): array
         'exten' => isset($source['exten']) ? (string) $source['exten'] : null,
         'open' => (string) ($source['open'] ?? ''),
         'gates' => $gates,
+        'tls_skip_verify' => !empty($source['tls_skip_verify']),
+        // Informative: SHA-256 of the device certificate trusted by the gateway
+        'tls_fingerprint' => streaming_needs_fingerprint($source) ? streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null) : null,
         'permission' => streaming_permission_name((string) $source['descr']),
         'gateway_path' => $source['type'] === 'rtsp' ? streaming_gateway_path((string) $source['descr']) : null,
     ];
@@ -558,12 +708,14 @@ function streaming_store_source(\PDO $db, array $source, array $profiles, ?strin
             $source['frame-rate'],
             $source['exten'],
             $source['open'],
+            empty($source['tls_skip_verify']) ? 0 : 1,
+            streaming_needs_fingerprint($source) ? streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null) : null,
         ];
         if ($currentDescr === null) {
-            $stmt = $db->prepare('INSERT INTO `rest_cti_streaming` (`descr`, `type`, `url`, `user`, `secret`, `frame-rate`, `exten`, `open`) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt = $db->prepare('INSERT INTO `rest_cti_streaming` (`descr`, `type`, `url`, `user`, `secret`, `frame-rate`, `exten`, `open`, `tls_skip_verify`, `tls_fingerprint`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute($values);
         } else {
-            $stmt = $db->prepare('UPDATE `rest_cti_streaming` SET `descr` = ?, `type` = ?, `url` = ?, `user` = ?, `secret` = ?, `frame-rate` = ?, `exten` = ?, `open` = ? WHERE `descr` = ?');
+            $stmt = $db->prepare('UPDATE `rest_cti_streaming` SET `descr` = ?, `type` = ?, `url` = ?, `user` = ?, `secret` = ?, `frame-rate` = ?, `exten` = ?, `open` = ?, `tls_skip_verify` = ?, `tls_fingerprint` = ? WHERE `descr` = ?');
             $stmt->execute(array_merge($values, [$currentDescr]));
             if ($currentDescr !== $source['descr']) {
                 $stmt = $db->prepare('UPDATE `rest_cti_streaming_gates` SET `source` = ? WHERE `source` = ?');
@@ -649,6 +801,8 @@ function streaming_cti_config(array $sources): array
             'type' => $isRtsp ? 'rtsp' : 'image',
             'gateway_path' => $isRtsp ? streaming_gateway_path((string) $source['descr']) : null,
             'image_auth' => (!$isRtsp && $source['user'] !== '') ? ['username' => $source['user'], 'password' => $source['secret']] : null,
+            // Snapshot (image source) and URL gate requests of this source only
+            'tls_skip_verify' => !empty($source['tls_skip_verify']),
             'gates' => $gates,
         ];
     }
@@ -763,15 +917,22 @@ function streaming_mediamtx_config(array $sources, array $settings): string
         if ($source['type'] !== 'rtsp') {
             continue;
         }
-        $url = streaming_url_with_credentials((string) $source['url'], (string) $source['user'], (string) $source['secret']);
-        $paths[streaming_gateway_path((string) $source['descr'])] = $url;
+        $paths[streaming_gateway_path((string) $source['descr'])] = [
+            'url' => streaming_url_with_credentials((string) $source['url'], (string) $source['user'], (string) $source['secret']),
+            // Without a fingerprint the device certificate is verified
+            // (system CA store, host name)
+            'fingerprint' => streaming_needs_fingerprint($source) ? streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null) : null,
+        ];
     }
     ksort($paths);
     if ($paths) {
         $lines[] = 'paths:';
-        foreach ($paths as $name => $url) {
+        foreach ($paths as $name => $path) {
             $lines[] = '  ' . streaming_yaml_string($name) . ':';
-            $lines[] = '    source: ' . streaming_yaml_string($url);
+            $lines[] = '    source: ' . streaming_yaml_string($path['url']);
+            if ($path['fingerprint'] !== null) {
+                $lines[] = '    sourceFingerprint: ' . streaming_yaml_string($path['fingerprint']);
+            }
         }
     } else {
         $lines[] = 'paths: {}';
@@ -884,6 +1045,8 @@ function streaming_failure_reason(string $message, bool $timedOut = false): stri
         return 'timeout';
     }
     $rules = [
+        // ffmpeg (OpenSSL) and curl messages of an untrusted certificate
+        'tls_error' => '/certificate verify failed|ssl certificate problem|self[- ]signed certificate|unable to get local issuer|certificate has expired|no alternative certificate subject name|certificate subject name .* does not match|fingerprint does not match/i',
         'auth_failed' => '/\b40[13]\b|unauthori[sz]ed|forbidden|authentication|authorization/i',
         'not_found' => '/\b404\b|not found|no such file|454 session not found/i',
         'connection_refused' => '/connection refused|couldn\'t connect|could not connect|failed to connect/i',
@@ -927,15 +1090,41 @@ function streaming_probe_result(string $type, bool $success, ?string $reason = n
         'warnings' => [],
         'reason' => $reason,
         'message' => $message,
+        // SHA-256 of the device certificate, read when the verification is skipped
+        'tls_fingerprint' => null,
     ];
+}
+
+/*
+ * Check of a stored source whose rtsps:// certificate is pinned: warn when the
+ * device now presents another certificate (or none was pinned), because the
+ * gateway refuses it until the source is saved again.
+ */
+function streaming_tls_check_warnings(array $result, ?array $stored, string $url): array
+{
+    if (empty($result['success']) || ($result['tls_fingerprint'] ?? null) === null || $stored === null
+        || !streaming_needs_fingerprint($stored)
+        || streaming_url_endpoint((string) $stored['url']) !== streaming_url_endpoint($url)) {
+        return $result;
+    }
+    if (streaming_normalize_fingerprint($stored['tls_fingerprint'] ?? null) !== $result['tls_fingerprint']) {
+        $result['warnings'][] = 'tls_certificate_changed';
+    }
+    return $result;
 }
 
 /*
  * Probe a RTSP source: codecs with ffprobe, then one JPEG frame with ffmpeg.
  * The device is contacted directly (not through the gateway) to report the
  * specific reason of a failure.
+ *
+ * rtsps://: ffmpeg does not verify certificates by default, "-tls_verify 1"
+ * verifies the chain against the system CA store (OpenSSL default paths of
+ * the image) and the host name or IP address of the URL. With
+ * $tlsSkipVerify the verification is off and the fingerprint of the device
+ * certificate, the one the gateway would pin, is returned.
  */
-function streaming_probe_rtsp(string $url, string $user, string $secret, ?callable $run = null): array
+function streaming_probe_rtsp(string $url, string $user, string $secret, bool $tlsSkipVerify = false, ?callable $run = null, ?callable $fetch = null): array
 {
     $run = $run ?? 'streaming_run';
     $parsed = streaming_parse_url($url);
@@ -943,19 +1132,27 @@ function streaming_probe_rtsp(string $url, string $user, string $secret, ?callab
         return streaming_probe_result('rtsp', false, 'unsupported', 'invalid RTSP URL');
     }
     $target = streaming_url_with_credentials($parsed['url'], $user, $secret);
+    $tlsOptions = $parsed['scheme'] === 'rtsps' ? ['-tls_verify', $tlsSkipVerify ? '0' : '1'] : [];
+    $fingerprint = null;
+    if ($tlsSkipVerify && $parsed['scheme'] === 'rtsps') {
+        [$fingerprint] = ($fetch ?? 'streaming_fetch_fingerprint')($parsed['url']);
+        $fingerprint = streaming_normalize_fingerprint($fingerprint);
+    }
 
-    [$exit, $stdout, $stderr, $timedOut] = $run([
+    [$exit, $stdout, $stderr, $timedOut] = $run(array_merge([
         'ffprobe', '-hide_banner', '-v', 'error',
         '-rtsp_transport', 'tcp', '-timeout', '5000000',
+    ], $tlsOptions, [
         '-show_entries', 'stream=codec_type,codec_name,width,height,sample_rate',
         '-of', 'json', $target,
-    ], 12);
+    ]), 12);
     $message = trim(str_replace($target, $parsed['url'], $stderr));
     if ($exit !== 0) {
         return streaming_probe_result('rtsp', false, streaming_failure_reason($message, $timedOut), $message);
     }
     $info = json_decode($stdout, true);
     $result = streaming_probe_result('rtsp', true);
+    $result['tls_fingerprint'] = $fingerprint;
     foreach ((is_array($info) && isset($info['streams']) && is_array($info['streams'])) ? $info['streams'] : [] as $stream) {
         if (($stream['codec_type'] ?? '') === 'video' && $result['video'] === null) {
             $result['video'] = [
@@ -979,15 +1176,16 @@ function streaming_probe_rtsp(string $url, string $user, string $secret, ?callab
     $result['warnings'] = streaming_codec_warnings($result['video']['codec']);
     $result['h265'] = in_array('h265', $result['warnings'], true);
 
-    [$exit, $stdout, $stderr, $timedOut] = $run([
+    [$exit, $stdout, $stderr, $timedOut] = $run(array_merge([
         'ffmpeg', '-hide_banner', '-loglevel', 'error', '-nostdin',
         '-rtsp_transport', 'tcp', '-timeout', '5000000',
+    ], $tlsOptions, [
         '-probesize', '32k', '-analyzeduration', '0', '-fflags', 'nobuffer',
         // decode only key frames: the first frame is never a broken one
         '-skip_frame', 'nokey',
         '-i', $target, '-an', '-frames:v', '1', '-q:v', '5',
         '-f', 'mjpeg', 'pipe:1',
-    ], 12);
+    ]), 12);
     if ($exit === 0 && $stdout !== '') {
         $result['image'] = chunk_split(base64_encode($stdout));
         $result['mime'] = 'image/jpeg';
@@ -999,8 +1197,12 @@ function streaming_probe_rtsp(string $url, string $user, string $secret, ?callab
     return $result;
 }
 
-/* Fetch a JPEG from a HTTP image source, with optional credentials */
-function streaming_probe_image(string $url, string $user, string $secret): array
+/*
+ * Fetch a JPEG from a HTTP image source, with optional credentials. The
+ * https:// certificate is verified (CA store and host name) unless
+ * $tlsSkipVerify.
+ */
+function streaming_probe_image(string $url, string $user, string $secret, bool $tlsSkipVerify = false): array
 {
     $parsed = streaming_parse_url($url);
     if ($parsed === null || $parsed['type'] !== 'image') {
@@ -1013,8 +1215,8 @@ function streaming_probe_image(string $url, string $user, string $secret): array
         CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_TIMEOUT => 10,
-        CURLOPT_SSL_VERIFYPEER => false,
-        CURLOPT_SSL_VERIFYHOST => 0,
+        CURLOPT_SSL_VERIFYPEER => !$tlsSkipVerify,
+        CURLOPT_SSL_VERIFYHOST => $tlsSkipVerify ? 0 : 2,
     ]);
     if ($user !== '') {
         curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
@@ -1027,7 +1229,12 @@ function streaming_probe_image(string $url, string $user, string $secret): array
     $mime = (string) curl_getinfo($curl, CURLINFO_CONTENT_TYPE);
     curl_close($curl);
     if ($body === false) {
-        $reason = $errno === CURLE_OPERATION_TIMEDOUT ? 'timeout' : ($errno === CURLE_COULDNT_CONNECT ? 'connection_refused' : streaming_failure_reason($error));
+        if (in_array($errno, [51, 60], true)) {
+            // CURLE_PEER_FAILED_VERIFICATION (51 before curl 7.62, then 60)
+            $reason = 'tls_error';
+        } else {
+            $reason = $errno === CURLE_OPERATION_TIMEDOUT ? 'timeout' : ($errno === CURLE_COULDNT_CONNECT ? 'connection_refused' : streaming_failure_reason($error));
+        }
         return streaming_probe_result('image', false, $reason, $error);
     }
     if ($status === 401 || $status === 403) {
