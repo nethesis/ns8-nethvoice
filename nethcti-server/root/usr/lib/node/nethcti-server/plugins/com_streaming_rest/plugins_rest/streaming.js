@@ -231,16 +231,21 @@ function setCompConfigManager(comp) {
         * The request must contains the following parameters:
         *
         * * `id: the streaming identifier`
-        * * `[gate]: the gate identifier`
+        * * `[gate]: the gate identifier (string)`
         *
         * Example JSON request parameters:
         *
         *     { "id": "vs_door", "gate": "2" }
         *
         * Errors are returned with a JSON body `{ "code": "...", "message": "..." }`:
-        * 400 (`missing_id`, `no_gates`, `no_extension`, `no_code`, `no_url`),
-        * 403, 404 (`source_not_found`, `gate_not_found`), 502 (`gate_failed`,
-        * `gate_unreachable`, `dtmf_failed`), 504 (`gate_timeout`).
+        * 400 (`missing_id`, `invalid_gate`, `no_gates`, `no_extension`, `no_code`, `no_url`),
+        * 403, 404 (`source_not_found`, `gate_not_found`), 409
+        * (`call_not_answered`: a DTMF gate while the call of the source
+        * extension is not answered yet), 502 (`gate_failed`,
+        * `gate_unreachable`, `gate_certificate_changed`: the TLS certificate
+        * of the device is not the one pinned when the source was saved,
+        * `gate_address_not_allowed`: loopback or link-local address,
+        * `dtmf_failed`), 504 (`gate_timeout`).
         *
         * ---
         *
@@ -455,8 +460,11 @@ function setCompConfigManager(comp) {
             }
             var callerid = '"' + username + '" <' + defaultExten + '>';
             var gate = req.params.gate;
-            if (gate !== undefined && gate !== null) {
+            if (typeof gate === 'number' && isFinite(gate)) {
               gate = String(gate);
+            } else if (gate !== undefined && gate !== null && typeof gate !== 'string') {
+              res.send(400, { code: 'invalid_gate', message: 'the gate identifier must be a string' });
+              return;
             }
 
             compStreaming.openGate(stream, gate, callerid, defaultExten, username, function(err) {
