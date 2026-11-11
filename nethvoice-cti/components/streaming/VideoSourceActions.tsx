@@ -120,7 +120,7 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
             items={
               <>
                 <Dropdown.Header>
-                  <span>{t('Streaming.Choose the gate to open')}</span>
+                  <span>{t('Streaming.Choose what to open')}</span>
                 </Dropdown.Header>
                 {gates.map((gate) => (
                   <Dropdown.Item
