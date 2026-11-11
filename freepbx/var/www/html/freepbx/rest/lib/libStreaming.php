@@ -23,6 +23,13 @@
  * fingerprint is read from the device when the source is saved and stored in
  * "tls_fingerprint". If the device certificate changes later, the gateway
  * refuses the device until the source is saved again; the check reports it.
+ * The https:// devices of a source that skips the verification (image URL and
+ * URL gates, contacted by nethcti-server) are pinned the same way: a source is
+ * never saved with the option on and a device certificate that cannot be read.
+ *
+ * Devices live on the LAN: loopback, link-local and unspecified addresses
+ * (the PBX itself, the cloud metadata services) are refused when a source is
+ * saved and checked, after resolving the host name.
  *
  * The functions in this file have no FreePBX dependency, so they can be used
  * by the REST API, by the nethcti3 configuration generator and by tests.
@@ -41,16 +48,24 @@ const STREAMING_WEBRTC_VIDEO_CODECS = ['h264', 'vp8', 'vp9', 'av1', 'hevc'];
 class StreamingValidationException extends \InvalidArgumentException
 {
     private $field;
+    private $detail;
 
-    public function __construct(string $field, string $message)
+    /* $message is a fixed text (translated by the wizard), $detail the cause, for the log */
+    public function __construct(string $field, string $message, string $detail = '')
     {
         parent::__construct($message);
         $this->field = $field;
+        $this->detail = $detail;
     }
 
     public function getField(): string
     {
         return $this->field;
+    }
+
+    public function getDetail(): string
+    {
+        return $this->detail;
     }
 }
 
@@ -336,11 +351,43 @@ function streaming_tls_relevant(string $url, array $gates): bool
     return false;
 }
 
-/* True when the gateway must pin the device certificate of the source */
+/*
+ * True when the device certificate of the source URL must be pinned: the
+ * source skips the TLS verification and its URL is rtsps:// (pinned by the
+ * gateway) or https:// (pinned by nethcti-server).
+ */
 function streaming_needs_fingerprint(array $source): bool
 {
     $parsed = streaming_parse_url((string) $source['url']);
-    return !empty($source['tls_skip_verify']) && $parsed !== null && $parsed['scheme'] === 'rtsps';
+    return !empty($source['tls_skip_verify']) && $parsed !== null && in_array($parsed['scheme'], ['rtsps', 'https'], true);
+}
+
+/* True when the device certificate of a URL gate of the source must be pinned */
+function streaming_gate_needs_fingerprint(array $source, array $gate): bool
+{
+    if (empty($source['tls_skip_verify']) || ($gate['type'] ?? '') !== 'url') {
+        return false;
+    }
+    $parsed = streaming_parse_url((string) ($gate['url'] ?? ''));
+    return $parsed !== null && $parsed['scheme'] === 'https';
+}
+
+/*
+ * True when a device of the source skips the TLS verification without a
+ * pinned certificate (saved by an older version): it still works, unpinned,
+ * until the source is saved again.
+ */
+function streaming_tls_unpinned(array $source): bool
+{
+    if (streaming_needs_fingerprint($source) && streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null) === null) {
+        return true;
+    }
+    foreach ($source['gates'] ?? [] as $gate) {
+        if (streaming_gate_needs_fingerprint($source, $gate) && streaming_normalize_fingerprint($gate['tls_fingerprint'] ?? null) === null) {
+            return true;
+        }
+    }
+    return false;
 }
 
 /* A SHA-256 fingerprint as MediaMTX wants it: 64 lowercase hex digits, or null */
@@ -396,25 +443,55 @@ function streaming_fetch_fingerprint(string $url, int $timeout = 5): array
 }
 
 /*
- * Pin the device certificate of a source that skips the TLS verification of
- * its rtsps:// URL: read the fingerprint now, keep the stored one if the device
- * cannot be reached. Return the source with "tls_fingerprint" set and the
- * error of the read ("" on success).
+ * Pin the device certificates of a source that skips the TLS verification:
+ * its rtsps:// or https:// URL and its https:// URL gates. The fingerprints
+ * are read now; the stored one is kept if the device cannot be reached.
+ * Return the source with "tls_fingerprint" set (on the source and on its
+ * gates) and the errors of the reads keyed by field ("url", "gates[N].url"),
+ * empty on success.
  */
 function streaming_refresh_fingerprint(array $source, ?callable $fetch = null): array
 {
-    if (!streaming_needs_fingerprint($source)) {
-        $source['tls_fingerprint'] = null;
-        return [$source, ''];
+    $fetch = $fetch ?? 'streaming_fetch_fingerprint';
+    $errors = [];
+    $read = function (string $url, $stored, string $field) use ($fetch, &$errors) {
+        [$fingerprint, $error] = $fetch($url);
+        $fingerprint = streaming_normalize_fingerprint($fingerprint);
+        if ($fingerprint !== null) {
+            return $fingerprint;
+        }
+        $errors[$field] = $error !== '' ? $error : 'cannot read the device certificate';
+        return streaming_normalize_fingerprint($stored);
+    };
+    $source['tls_fingerprint'] = streaming_needs_fingerprint($source)
+        ? $read((string) $source['url'], $source['tls_fingerprint'] ?? null, 'url')
+        : null;
+    foreach ($source['gates'] ?? [] as $index => $gate) {
+        $source['gates'][$index]['tls_fingerprint'] = streaming_gate_needs_fingerprint($source, $gate)
+            ? $read((string) $gate['url'], $gate['tls_fingerprint'] ?? null, "gates[$index].url")
+            : null;
     }
-    [$fingerprint, $error] = ($fetch ?? 'streaming_fetch_fingerprint')((string) $source['url']);
-    $fingerprint = streaming_normalize_fingerprint($fingerprint);
-    if ($fingerprint !== null) {
-        $source['tls_fingerprint'] = $fingerprint;
-        return [$source, ''];
+    return [$source, $errors];
+}
+
+/*
+ * Pin the device certificates of a source before it is saved: a source that
+ * skips the TLS verification is never stored without the certificate of each
+ * of its TLS devices (the stored one is kept when the device is offline).
+ * Return the source and the errors of the reads (see streaming_refresh_fingerprint).
+ */
+function streaming_pin_certificates(array $source, ?callable $fetch = null): array
+{
+    [$source, $errors] = streaming_refresh_fingerprint($source, $fetch);
+    if (streaming_needs_fingerprint($source) && $source['tls_fingerprint'] === null) {
+        throw new StreamingValidationException('tls_skip_verify', 'could not read the TLS certificate of the device: check that it is reachable or do not skip the TLS verification', $errors['url'] ?? '');
     }
-    $source['tls_fingerprint'] = streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null);
-    return [$source, $error !== '' ? $error : 'cannot read the device certificate'];
+    foreach ($source['gates'] as $index => $gate) {
+        if (streaming_gate_needs_fingerprint($source, $gate) && $gate['tls_fingerprint'] === null) {
+            throw new StreamingValidationException("gates[$index].url", 'could not read the TLS certificate of the gate device: check that it is reachable or do not skip the TLS verification', $errors["gates[$index].url"] ?? '');
+        }
+    }
+    return [$source, $errors];
 }
 
 /*
@@ -455,6 +532,7 @@ function streaming_normalize_gates($gates, array $current = [], ?callable $resol
             'method' => 'GET',
             'username' => null,
             'password' => null,
+            'tls_fingerprint' => null,
         ];
         $id = isset($gate['id']) && is_scalar($gate['id']) ? (string) $gate['id'] : '';
         $stored = ($id !== '' && isset($currentById[$id])) ? $currentById[$id] : null;
@@ -495,6 +573,11 @@ function streaming_normalize_gates($gates, array $current = [], ?callable $resol
                 $password = (string) $stored['password'];
             }
             $normalized['url'] = $parsed['url'];
+            // The pinned certificate stays valid only for the same device
+            if ($stored !== null && ($stored['type'] ?? '') === 'url'
+                && streaming_url_endpoint((string) $stored['url']) === streaming_url_endpoint($parsed['url'])) {
+                $normalized['tls_fingerprint'] = streaming_normalize_fingerprint($stored['tls_fingerprint'] ?? null);
+            }
             $normalized['method'] = $method;
             $normalized['username'] = $username !== '' ? $username : null;
             $normalized['password'] = $password !== '' ? $password : null;
@@ -631,6 +714,11 @@ function streaming_normalize_source(array $data, ?array $current = null, ?callab
         && streaming_url_endpoint((string) $current['url']) === streaming_url_endpoint($parsed['url'])) {
         $source['tls_fingerprint'] = streaming_normalize_fingerprint($current['tls_fingerprint'] ?? null);
     }
+    foreach ($source['gates'] as $index => $gate) {
+        $source['gates'][$index]['tls_fingerprint'] = streaming_gate_needs_fingerprint($source, $gate)
+            ? streaming_normalize_fingerprint($gate['tls_fingerprint'] ?? null)
+            : null;
+    }
     return $source;
 }
 
@@ -653,6 +741,7 @@ function streaming_load_sources(\PDO $db): array
         $stmt = $db->query('SELECT * FROM `rest_cti_streaming_gates` ORDER BY `source`, `position`, `id`');
         foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $gate) {
             if (isset($sources[$gate['source']])) {
+                $gate['tls_fingerprint'] = streaming_normalize_fingerprint($gate['tls_fingerprint'] ?? null);
                 $sources[$gate['source']]['gates'][] = $gate;
             }
         }
@@ -675,6 +764,8 @@ function streaming_public_source(array $source): array
             'method' => $gate['type'] === 'url' ? (string) $gate['method'] : null,
             'username' => $gate['type'] === 'url' ? (string) ($gate['username'] ?? '') : null,
             'has_password' => $gate['type'] === 'url' && (string) ($gate['password'] ?? '') !== '',
+            // Informative: SHA-256 of the gate device certificate, pinned when the verification is skipped
+            'tls_fingerprint' => streaming_gate_needs_fingerprint($source, $gate) ? streaming_normalize_fingerprint($gate['tls_fingerprint'] ?? null) : null,
         ];
     }
     return [
@@ -689,7 +780,11 @@ function streaming_public_source(array $source): array
         'gates' => $gates,
         'tls_skip_verify' => !empty($source['tls_skip_verify']),
         // Informative: SHA-256 of the device certificate trusted by the gateway
+        // (rtsps://) or by nethcti-server (https://)
         'tls_fingerprint' => streaming_needs_fingerprint($source) ? streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null) : null,
+        // A device skips the verification without a pinned certificate (saved
+        // by an older version): save the source again to pin it
+        'tls_unpinned' => streaming_tls_unpinned($source),
         'permission' => streaming_permission_name((string) $source['descr']),
         'gateway_path' => $source['type'] === 'rtsp' ? streaming_gateway_path((string) $source['descr']) : null,
     ];
@@ -712,8 +807,8 @@ function streaming_save_gates(\PDO $db, string $descr, array $gates): void
         $stmt = $db->prepare('DELETE FROM `rest_cti_streaming_gates` WHERE `source` = ?');
         $stmt->execute([$descr]);
     }
-    $update = $db->prepare('UPDATE `rest_cti_streaming_gates` SET `position` = ?, `name` = ?, `type` = ?, `code` = ?, `url` = ?, `method` = ?, `username` = ?, `password` = ? WHERE `id` = ? AND `source` = ?');
-    $insert = $db->prepare('INSERT INTO `rest_cti_streaming_gates` (`source`, `position`, `name`, `type`, `code`, `url`, `method`, `username`, `password`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    $update = $db->prepare('UPDATE `rest_cti_streaming_gates` SET `position` = ?, `name` = ?, `type` = ?, `code` = ?, `url` = ?, `method` = ?, `username` = ?, `password` = ?, `tls_fingerprint` = ? WHERE `id` = ? AND `source` = ?');
+    $insert = $db->prepare('INSERT INTO `rest_cti_streaming_gates` (`source`, `position`, `name`, `type`, `code`, `url`, `method`, `username`, `password`, `tls_fingerprint`) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     foreach ($gates as $position => $gate) {
         $values = [
             $position,
@@ -724,6 +819,7 @@ function streaming_save_gates(\PDO $db, string $descr, array $gates): void
             $gate['method'] ?? 'GET',
             $gate['username'],
             $gate['password'],
+            streaming_normalize_fingerprint($gate['tls_fingerprint'] ?? null),
         ];
         if (!empty($gate['id'])) {
             $update->execute(array_merge($values, [(int) $gate['id'], $descr]));
@@ -909,6 +1005,8 @@ function streaming_cti_config(array $sources): array
                 $entry['method'] = (string) $gate['method'];
                 $entry['username'] = (string) ($gate['username'] ?? '');
                 $entry['password'] = (string) ($gate['password'] ?? '');
+                // With tls_skip_verify, the certificate the device must present
+                $entry['tls_fingerprint'] = streaming_gate_needs_fingerprint($source, $gate) ? streaming_normalize_fingerprint($gate['tls_fingerprint'] ?? null) : null;
             }
             $gates[] = $entry;
         }
@@ -925,6 +1023,8 @@ function streaming_cti_config(array $sources): array
             'image_auth' => (!$isRtsp && $source['user'] !== '') ? ['username' => $source['user'], 'password' => $source['secret']] : null,
             // Snapshot (image source) and URL gate requests of this source only
             'tls_skip_verify' => !empty($source['tls_skip_verify']),
+            // With tls_skip_verify, the certificate the https:// image device must present
+            'tls_fingerprint' => (!$isRtsp && streaming_needs_fingerprint($source)) ? streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null) : null,
             'gates' => $gates,
         ];
     }
