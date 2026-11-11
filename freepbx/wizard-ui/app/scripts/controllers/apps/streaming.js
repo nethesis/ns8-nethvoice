@@ -134,7 +134,7 @@ angular.module('nethvoiceWizardUiApp')
         return;
       }
       $scope.newSource.gates.push({
-        name: $filter('translate')('Gate') + ' ' + ($scope.newSource.gates.length + 1),
+        name: $filter('translate')('Door') + ' ' + ($scope.newSource.gates.length + 1),
         type: 'dtmf',
         code: '',
         method: 'GET'

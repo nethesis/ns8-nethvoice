@@ -65,11 +65,11 @@ describe('Controller: AppsStreamingCtrl', function () {
     scope.cancelSource();
     scope.addGate();
     scope.addGate();
-    expect(scope.newSource.gates.map(function (g) { return g.name; })).toEqual(['Gate 1', 'Gate 2']);
+    expect(scope.newSource.gates.map(function (g) { return g.name; })).toEqual(['Door 1', 'Door 2']);
     scope.moveGate(1, -1);
-    expect(scope.newSource.gates[0].name).toBe('Gate 2');
+    expect(scope.newSource.gates[0].name).toBe('Door 2');
     scope.moveGate(0, -1);
-    expect(scope.newSource.gates[0].name).toBe('Gate 2');
+    expect(scope.newSource.gates[0].name).toBe('Door 2');
     scope.removeGate(0);
     expect(scope.newSource.gates.length).toBe(1);
     for (var i = 0; i < 20; i++) {

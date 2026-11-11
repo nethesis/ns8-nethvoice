@@ -1164,7 +1164,7 @@
   "TLS certificate": "Certificato TLS",
   "Not verified": "Non verificato",
   "Unsupported URL or stream": "URL o flusso non supportato",
-  "Gate": "Varco",
+  "Door": "Porta",
   "the device address changed: type the password again": "L'indirizzo del dispositivo è cambiato: inserisci di nuovo la password",
   "the gate address changed: type the password again": "L'indirizzo del varco è cambiato: inserisci di nuovo la password"
 }
