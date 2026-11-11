@@ -216,9 +216,20 @@ var GATEWAY_API_TIMEOUT = 3000;
 var GATE_URL_TIMEOUT = 5000;
 
 /**
+ * The maximum size in bytes of the response of a URL gate.
+ *
+ * @property GATE_MAX_BYTES
+ * @type number
+ * @private
+ * @default 65536
+ */
+var GATE_MAX_BYTES = 64 * 1024;
+
+/**
  * The valid tokens to watch the RTSP sources. The keys are the tokens and
- * the values are objects with "username", "sourceId" and "expires"
- * (timestamp in milliseconds).
+ * the values are objects with "username", "sourceId", "expires" (timestamp
+ * in milliseconds) and "sessionId" (the gateway session the token has been
+ * used for, null while unused).
  *
  * @property streamTokens
  * @type object
@@ -414,6 +425,7 @@ function config(path) {
 
       // memorize it
       streamings[id] = newStreaming;
+      warnUnpinned(newStreaming);
     }
 
     logger.log.info(IDLOG, 'configured streaming sources: ' + Object.keys(streamings));
@@ -502,6 +514,37 @@ function getAllStreamingSources(username, cb) {
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
     cb(err, {});
+  }
+}
+
+/**
+ * Logs the https:// devices of a source whose TLS verification is skipped
+ * without a pinned certificate (source saved by an older version): they are
+ * still contacted, but the administrator should save the source again to pin
+ * the certificate of the device.
+ *
+ * @method warnUnpinned
+ * @param {object} source The Streaming object
+ * @private
+ */
+function warnUnpinned(source) {
+  if (!source.getTlsSkipVerify()) {
+    return;
+  }
+  var unpinned = [];
+  if (source.getType() === 'image' && /^https:/i.test(source.getUrl() || '') && source.getTlsFingerprint() === null) {
+    unpinned.push('snapshot URL');
+  }
+  var gates = source.getGates() || [];
+  var i;
+  for (i = 0; i < gates.length; i++) {
+    if (gates[i].type === 'url' && /^https:/i.test(gates[i].url) && gates[i].tlsFingerprint === null) {
+      unpinned.push('gate "' + gates[i].id + '"');
+    }
+  }
+  if (unpinned.length > 0) {
+    logger.log.warn(IDLOG, 'streaming source "' + source.getId() + '" skips the TLS verification without a pinned certificate (' +
+      unpinned.join(', ') + '): save the source again in the NethVoice administration to pin the device certificate');
   }
 }
 
@@ -748,8 +791,11 @@ function openGate(streamId, gateId, callerid, fromExten, username, cb) {
       method: gate.method,
       timeout: GATE_URL_TIMEOUT,
       followRedirect: false,
-      // only this source: devices with a self-signed certificate
-      strictSSL: !streamings[streamId].getTlsSkipVerify()
+      maxBytes: GATE_MAX_BYTES,
+      // only this source: devices with a self-signed certificate, whose
+      // certificate is pinned when the source is saved
+      tlsSkipVerify: streamings[streamId].getTlsSkipVerify(),
+      tlsFingerprint: gate.tlsFingerprint
     }, gate.username !== '' ? { username: gate.username, password: gate.password } : null,
     gateAuthMemos[memoKey], function(err, res) {
       try {
@@ -757,6 +803,13 @@ function openGate(streamId, gateId, callerid, fromExten, username, cb) {
           logger.log.error(IDLOG, who + ' failed to open ' + gateStr + ': ' + deviceHttp.describeError(err));
           if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
             cb(streamingError(504, 'gate_timeout', 'the gate device did not answer in time'));
+          } else if (err.code === deviceHttp.ERR_FINGERPRINT_MISMATCH) {
+            cb(streamingError(502, 'gate_certificate_changed',
+              'the TLS certificate of the gate device changed: the administrator must save the video source again'));
+          } else if (err.code === deviceHttp.ERR_ADDRESS_NOT_ALLOWED) {
+            cb(streamingError(502, 'gate_address_not_allowed', 'the address of the gate device is not allowed'));
+          } else if (err.code === deviceHttp.ERR_RESPONSE_TOO_LARGE) {
+            cb(streamingError(502, 'gate_failed', 'the response of the gate device is too large'));
           } else if (deviceHttp.isTlsCertError(err)) {
             // same code as any unreachable device: only the message is specific
             cb(streamingError(502, 'gate_unreachable', 'the TLS certificate of the gate device is not valid'));

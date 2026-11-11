@@ -1,4 +1,14 @@
-var deviceRequest = require('./device_http').deviceRequest;
+var deviceHttp = require('./device_http');
+var deviceRequest = deviceHttp.deviceRequest;
+
+/**
+ * The maximum size in bytes of a snapshot of an image source.
+ *
+ * @property MAX_SNAPSHOT_BYTES
+ * @type number
+ * @default 5242880
+ */
+var MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024;
 
 /**
  * The prefix of the video gateway path of the RTSP sources.
@@ -47,7 +57,10 @@ function parseGates(gates) {
         url: typeof g.url === 'string' ? g.url : '',
         method: method === 'POST' ? 'POST' : 'GET',
         username: typeof g.username === 'string' ? g.username : '',
-        password: typeof g.password === 'string' ? g.password : ''
+        password: typeof g.password === 'string' ? g.password : '',
+        // SHA-256 of the device certificate pinned when the source was saved
+        // (only with tls_skip_verify, https:// gates)
+        tlsFingerprint: deviceHttp.normalizeFingerprint(g.tls_fingerprint)
       });
     }
   }
@@ -75,6 +88,8 @@ function parseGates(gates) {
  *   @param {object} data.gates      The gates that can be opened ("dtmf" or "url")
  *   @param {boolean} data.tls_skip_verify Do not verify the TLS certificate of the
  *                                   snapshot URL and of the URL gates (self-signed devices)
+ *   @param {string} data.tls_fingerprint With tls_skip_verify, the SHA-256 fingerprint of the
+ *                                   certificate of the https:// snapshot URL (pinned when saved)
  * @constructor
  * @return {object} The streaming object.
  */
@@ -228,6 +243,17 @@ exports.Streaming = function(data) {
   var tlsSkipVerify = data.tls_skip_verify === true;
 
   /**
+   * The SHA-256 fingerprint of the certificate of the https:// snapshot URL,
+   * pinned when the source was saved. Used only with _tlsSkipVerify_: without
+   * it (sources saved by an older version) the certificate is not checked.
+   *
+   * @property tlsFingerprint
+   * @type {string}
+   * @private
+   */
+  var tlsFingerprint = deviceHttp.normalizeFingerprint(data.tls_fingerprint);
+
+  /**
    * Authentication state of the snapshot URL shared by the samples.
    *
    * @property sampleAuthMemo
@@ -339,6 +365,17 @@ exports.Streaming = function(data) {
   }
 
   /**
+   * Returns the pinned SHA-256 fingerprint of the certificate of the snapshot
+   * URL, null if none.
+   *
+   * @method getTlsFingerprint
+   * @return {string} The fingerprint or null.
+   */
+  function getTlsFingerprint() {
+    return tlsFingerprint;
+  }
+
+  /**
    * Return the readable string of the streaming source.
    *
    * @method toString
@@ -413,7 +450,11 @@ exports.Streaming = function(data) {
           uri: new URL(url).href,
           encoding: null,
           timeout: 2000,
-          strictSSL: !tlsSkipVerify
+          // credentials are never sent to another address
+          followRedirect: false,
+          maxBytes: MAX_SNAPSHOT_BYTES,
+          tlsSkipVerify: tlsSkipVerify,
+          tlsFingerprint: tlsFingerprint
         }, imageAuth, sampleAuthMemo, function(err, res, body) {
           if (!err && res.statusCode === 200) {
             var data = "data:" + res.headers["content-type"] + ";base64," + Buffer.from(body).toString('base64');
@@ -439,6 +480,7 @@ exports.Streaming = function(data) {
     getType: getType,
     getGates: getGates,
     getTlsSkipVerify: getTlsSkipVerify,
+    getTlsFingerprint: getTlsFingerprint,
     getWhepUrl: getWhepUrl,
     getExtension: getExtension,
     getGatewayPath: getGatewayPath,
