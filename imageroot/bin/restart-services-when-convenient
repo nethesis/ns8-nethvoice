@@ -25,5 +25,11 @@ for SECONDS in $(seq 1 $TIMEOUT); do
 done
 
 # Restart services
-echo "Restarting services $@ wich was postponed for $SECONDS seconds"
-systemctl --user "$operation" "$@"
+echo "Applying $operation to services $* after waiting $SECONDS seconds"
+if [[ $operation == stop ]]; then
+    # Bound the whole stop transaction, including dependency ordering. A timed
+    # out systemctl client must never let the caller proceed to migration.
+    timeout --foreground 300 systemctl --user stop "$@"
+else
+    systemctl --user "$operation" "$@"
+fi

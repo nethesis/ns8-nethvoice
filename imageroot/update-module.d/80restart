@@ -5,12 +5,39 @@ set -euo pipefail
 exec 1>&2
 umask 077
 
+# Install the diagnostic before inspection or stopping can fail.
+backup='not created (failure before snapshot)'
+phase='inspecting services; stopping is not yet confirmed'
+trap 'status=$?; if ((status)); then echo "Upgrade failed ($phase). No further consumers will be started; recovery data: $backup" >&2; fi' EXIT
 systemctl --user daemon-reload
 # Keep consumers stopped until the new schema AND FreePBX modules are ready.
-services=(watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus nethcti-server satellite-mqtt satellite-pgsql nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite)
+# Stop activators AND their workers: stopping a timer/path does not stop a job
+# it already dispatched. Resume activators last, after their consumers are ready.
+activators=(
+    watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer
+    nethvoice-calendar-sync.timer nethcti-ui-restart.timer
+    nethvoice-cdr-cleanup.timer nethvoice-queue-stats-reset.timer
+    reports-scheduler.timer satellite-recordings-cleanup.timer
+)
+services=(
+    freepbx janus nethcti-server satellite-mqtt satellite-pgsql
+    nethcti-middleware nethcti-ui phonebook reports-redis reports-api reports-ui
+    tancredi satellite nethvoice-restore-background watcher.service
+    phonebook-update.service nethvoice-hotel-alarms.service
+    nethvoice-calendar-sync.service nethcti-ui-restart.service
+    nethvoice-cdr-cleanup.service nethvoice-queue-stats-reset.service
+    reports-scheduler.service satellite-recordings-cleanup.service
+    "${activators[@]}"
+)
 active=()
 for service in "${services[@]}"; do
-    if systemctl --user is-active --quiet "$service"; then active+=("$service"); fi
+    state=$(systemctl --user show --property=ActiveState --value "$service")
+    case "$state" in
+        # activating includes systemd's auto-restart delay.
+        active|activating|reloading) active+=("$service");;
+        inactive|failed) ;;
+        *) echo "Cannot determine resume intent for $service: ActiveState=$state" >&2; exit 1;;
+    esac
 done
 # Save the running image identities before systemd replaces their containers.
 mkdir -p upgrade-backups
@@ -19,9 +46,24 @@ for container in mariadb freepbx; do
     podman inspect --format '{{.ImageName}} {{.Image}}' "$container" > "$backup/$container-image" 2>/dev/null || true
 done
 printf '%s\n' "${active[@]}" > "$backup/active-services"
-if ((${#active[@]})); then restart-services-when-convenient --stop "${active[@]}"; fi
-# Report initialization failure before starting any downstream consumers.
-trap 'echo "Upgrade failed. Consumers remain stopped; recovery data: $backup" >&2' ERR
+phase='stopping services; stopping is not yet confirmed'
+# Stop every candidate, even if it changed state during the call-drain wait.
+# An explicit stop cancels pending Restart=always jobs as well as startup.
+restart-services-when-convenient --stop "${services[@]}"
+for service in "${services[@]}"; do
+    state=$(systemctl --user show --property=ActiveState --value "$service")
+    case "$state" in
+        inactive|failed) ;;
+        *) echo "Service did not stop: $service (ActiveState=$state)" >&2; exit 1;;
+    esac
+done
+# Also detect a surviving container, including one no longer tracked by systemd.
+running=$(podman ps --filter 'name=^freepbx$' --format '{{.Names}}')
+if [[ -n $running ]]; then
+    echo 'FreePBX container is still running; refusing offline preparation' >&2
+    exit 1
+fi
+phase='preparing upgrade; consumers remain stopped'
 systemctl --user start mariadb
 # Include non-transactional FreePBX tables under a global read lock.
 podman exec mariadb sh -ec 'export MYSQL_PWD="$MARIADB_ROOT_PASSWORD"; exec mariadb-dump -u root --all-databases --lock-all-tables --routines --events' | gzip > "$backup/databases.sql.gz"
@@ -40,13 +82,29 @@ systemctl --user restart mariadb
 if [[ " ${active[*]} " == *' freepbx '* ]]; then
     # ExecStartPost waits for freepbx-ready and fails on freepbx-failed.
     systemctl --user start freepbx
+else
+    # Do not revive a stopped PBX through dependencies, or run PBX workers
+    # without readiness. The explicitly named .service units above are workers.
+    for service in "${active[@]}"; do
+        case "$service" in
+            nethcti-server|tancredi|satellite|nethvoice-restore-background|*.service)
+                echo "Cannot resume $service with FreePBX originally stopped" >&2
+                exit 1;;
+        esac
+    done
 fi
+phase='resuming services after preparation and FreePBX startup'
 for service in "${active[@]}"; do
-    [[ $service == freepbx ]] || systemctl --user start "$service"
+    case "$service" in
+        freepbx|nethvoice-restore-background) continue;;
+        *) timeout --foreground 300 systemctl --user start "$service";;
+    esac
 done
-touch "$backup/succeeded"
-echo "Upgrade recovery snapshot retained in $backup" >&2
-
-if compgen -G "./restore_background/*.sql" >/dev/null; then
+# Historic imports deliberately run asynchronously; their unit has no startup
+# deadline and retains failed dumps. They must not delay consumer recovery.
+if [[ " ${active[*]} " == *' nethvoice-restore-background '* ]] ||
+    { [[ " ${active[*]} " == *' freepbx '* ]] && compgen -G "./restore_background/*.sql" >/dev/null; }; then
     systemctl --user start --no-block nethvoice-restore-background.service
 fi
+touch "$backup/succeeded"
+echo "Upgrade recovery snapshot retained in $backup" >&2
