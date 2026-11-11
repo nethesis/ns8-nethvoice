@@ -138,8 +138,31 @@
                 });
             };
 
+            // the query string comes from the link that opened the page: never
+            // trust it as HTML nor as a script URL
+            function isSafeImageUrl(u) {
+                if (typeof u !== 'string' || u === '') {
+                    return false;
+                }
+                if (u.charAt(0) === '/' && u.charAt(1) !== '/' && u.charAt(1) !== '\\') {
+                    return true;
+                }
+                return /^https?:\/\/[^\s]+$/i.test(u);
+            }
+
+            function isValidSourceId(id) {
+                return typeof id === 'string' && /^[A-Za-z0-9_]{1,128}$/.test(id);
+            }
+
+            function safeProto(p) {
+                return p === 'http' || p === 'https' ? p : window.location.protocol.replace(':', '');
+            }
+
             $('#open-stream-but').click(function () {
                 var params = getUrlParams();
+                if (!isValidSourceId(params.id)) {
+                    return;
+                }
 
                 callServerAPI(
                     window.location.protocol,
@@ -159,10 +182,15 @@
             });
 
             var params = getUrlParams();
-            document.getElementById('stream-description').innerHTML = params.description;
-            document.getElementById('stream-img').src = params.url + '?ie=' + (new Date()).getTime();
+            document.getElementById('stream-description').textContent = params.description || '';
+            if (isSafeImageUrl(params.url)) {
+                document.getElementById('stream-img').src = params.url + '?ie=' + (new Date()).getTime();
+            }
 
             setTimeout(function () {
+                if (!isValidSourceId(params.id)) {
+                    return;
+                }
                 getRequest(
                     window.location.protocol,
                     window.location.hostname,
@@ -170,7 +198,10 @@
                     '/webrest/streaming/image/' + params.id,
                     'null',
                     function (data) {
-                        document.getElementById('stream-img').src = data.image;
+                        // only images: the server answers a data URL
+                        if (data && typeof data.image === 'string' && /^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+\/=\s]*$/i.test(data.image)) {
+                            document.getElementById('stream-img').src = data.image;
+                        }
                     }
                 );
             }, 0);
@@ -181,7 +212,7 @@
                 $('#open-ctistream-but').css('background-position', '35%');
             }
 
-            var argCtiStreamUrl = params.ctiProto + '://' + window.location.hostname +
+            var argCtiStreamUrl = safeProto(params.ctiProto) + '://' + window.location.hostname +
                 (window.location.port ? ':' + window.location.port : '') + '/cti/#/streaming';
 
             // Open browser only if not webrtc
