@@ -168,6 +168,7 @@
   "ldap_mobilephone_number_attr": "Mobile phone number attribute",
   "ldap_otherphone_number_attr": "Other phone number attribute",
   "ldap_name_display": "Display name format",
+  "auto_headset_label": "Answer with the headset when connected",
   "dss_transfer_label": "Line keys transfer mode",
   "dss_transfer_verify_label": "New call",
   "dss_transfer_attended_label": "Attended",
