@@ -16,7 +16,7 @@
  * is shown, and sent as true, only when the source URL or a URL gate uses TLS.
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('AppsStreamingCtrl', function ($scope, ProfileService, ApplicationService, UserService) {
+  .controller('AppsStreamingCtrl', function ($scope, $filter, ProfileService, ApplicationService, UserService) {
     $scope.allSources = [];
     $scope.allProfiles = [];
     $scope.currentSource = {};
@@ -134,7 +134,7 @@ angular.module('nethvoiceWizardUiApp')
         return;
       }
       $scope.newSource.gates.push({
-        name: 'Gate ' + ($scope.newSource.gates.length + 1),
+        name: $filter('translate')('Gate') + ' ' + ($scope.newSource.gates.length + 1),
         type: 'dtmf',
         code: '',
         method: 'GET'
