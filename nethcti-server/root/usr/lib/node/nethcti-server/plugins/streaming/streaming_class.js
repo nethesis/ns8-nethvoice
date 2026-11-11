@@ -11,6 +11,20 @@ var deviceRequest = deviceHttp.deviceRequest;
 var MAX_SNAPSHOT_BYTES = 5 * 1024 * 1024;
 
 /**
+ * The "cmdOpen" sent to the clients for a source with gates, instead of the
+ * real DTMF code. It is not a code: the clients released before the gates
+ * (phone-island 1.1.7 and older, in NethLink and the CTI) only test that
+ * "cmdOpen" is not empty to show the open door button, which calls
+ * [streaming/open] without a gate (the server opens the first one). The
+ * newer clients ignore "cmdOpen" when "gates" is present.
+ *
+ * @property OPEN_PLACEHOLDER
+ * @type string
+ * @default "*"
+ */
+var OPEN_PLACEHOLDER = '*';
+
+/**
  * The prefix of the video gateway path of the RTSP sources.
  *
  * @property GATEWAY_PATH_PREFIX
@@ -390,15 +404,16 @@ exports.Streaming = function(data) {
    * never contains the address of the device nor any credential: "url",
    * "user" and "password" are kept for compatibility and are always empty.
    * "cmdOpen" (the DTMF code that opens the door) is returned only for the
-   * configurations without gates (older FreePBX), the only case in which the
-   * clients use it: otherwise it is empty and the gates are opened by the
-   * server with [streaming/open].
+   * configurations without gates (older FreePBX). Otherwise it is never the
+   * code: OPEN_PLACEHOLDER when the source has gates (the older clients show
+   * the open door button and the server opens the first gate), empty when it
+   * has none.
    *
    *     {
    *         id:          "vs_door",                           // the identifier
    *         url:         "",
    *         user:        "",
-   *         cmdOpen:     "",                                  // the DTMF code, only without gates
+   *         cmdOpen:     "*",                                 // the DTMF code only without gates, else "*" (gates) or ""
    *         password:    "",
    *         frameRate:   "1000",                              // the frame rate of the streaming images
    *         extension:   "301",                               // the streaming extension
@@ -425,7 +440,7 @@ exports.Streaming = function(data) {
       id: id,
       url: '',
       user: '',
-      cmdOpen: gates === null ? cmdOpen : '',
+      cmdOpen: gates === null ? cmdOpen : (gates.length > 0 ? OPEN_PLACEHOLDER : ''),
       password: '',
       frameRate: frameRate,
       extension: extension,
