@@ -389,12 +389,16 @@ exports.Streaming = function(data) {
    * Returns the JSON representation of the object sent to the clients. It
    * never contains the address of the device nor any credential: "url",
    * "user" and "password" are kept for compatibility and are always empty.
+   * "cmdOpen" (the DTMF code that opens the door) is returned only for the
+   * configurations without gates (older FreePBX), the only case in which the
+   * clients use it: otherwise it is empty and the gates are opened by the
+   * server with [streaming/open].
    *
    *     {
    *         id:          "vs_door",                           // the identifier
    *         url:         "",
    *         user:        "",
-   *         cmdOpen:     "0*",                                // the DMTF code to open the streaming device
+   *         cmdOpen:     "",                                  // the DTMF code, only without gates
    *         password:    "",
    *         frameRate:   "1000",                              // the frame rate of the streaming images
    *         extension:   "301",                               // the streaming extension
@@ -421,7 +425,7 @@ exports.Streaming = function(data) {
       id: id,
       url: '',
       user: '',
-      cmdOpen: cmdOpen,
+      cmdOpen: gates === null ? cmdOpen : '',
       password: '',
       frameRate: frameRate,
       extension: extension,
