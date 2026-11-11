@@ -24,6 +24,9 @@ jobs:
       - name: Run LLDP UI tests
         run: node tests/unit/test_lldp_ui.cjs
 
+      - name: Run Auto Headset UI tests
+        run: node tests/unit/test_auto_headset_ui.cjs
+
       - name: Prepare pinned Tancredi sources
         run: |
           version=$(sed -n 's/^ARG TANCREDI_VERSION=//p' tancredi/Containerfile)
