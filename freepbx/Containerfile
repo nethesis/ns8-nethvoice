@@ -232,7 +232,7 @@ RUN apt-get update && \
 		--disable-shared --enable-static --enable-small \
 		--enable-network --enable-openssl \
 		--enable-protocol=file,pipe,tcp,udp,rtp,tls \
-		--enable-demuxer=rtsp,sdp,rtp \
+		--enable-demuxer=rtsp,sdp,rtp,concat \
 		--enable-decoder=h264,hevc,mjpeg,mpeg4,pcm_mulaw,pcm_alaw,aac,opus,adpcm_g722,adpcm_g726,adpcm_g726le \
 		--enable-parser=h264,hevc,mjpeg,mpeg4video,aac,opus \
 		--enable-encoder=mjpeg \
