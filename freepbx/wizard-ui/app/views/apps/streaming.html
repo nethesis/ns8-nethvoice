@@ -73,8 +73,11 @@
                 <span class="fa {{gate.type === 'dtmf' ? 'fa-th' : 'fa-globe'}}"></span> {{gate.name}}
                 <span class="right-only"><strong>{{gate.type === 'dtmf' ? ('DTMF' | translate) + ' ' + gate.code : gate.method + ' URL'}}</strong></span>
               </div>
-              <div ng-if="g.tls_skip_verify" class="progress-description full-size-max">
-                {{'TLS certificate' | translate}} <span class="right-only"><strong>{{'Not verified' | translate}}</strong></span>
+              <div ng-if="g.tls_skip_verify && !g.tls_unpinned" class="progress-description full-size-max">
+                {{'TLS certificate' | translate}} <span class="right-only"><strong>{{'Pinned when saved' | translate}}</strong></span>
+              </div>
+              <div ng-if="g.tls_unpinned" class="progress-description full-size-max text-warning">
+                <span class="pficon pficon-warning-triangle-o"></span> {{'TLS certificate not pinned: modify the source and save it again' | translate}}
               </div>
               <div ng-if="g.check.video" class="progress-description full-size-max">
                 {{'Video' | translate}} <span class="right-only"><strong>{{codecDescription(g.check)}}</strong></span>
@@ -88,6 +91,7 @@
             </div>
             <p>
               <span class="label {{g.type === 'rtsp' ? 'label-primary' : 'label-default'}}">{{(g.type === 'rtsp' ? 'Video stream (RTSP)' : 'Image (HTTP)') | translate}}</span>
+              <span ng-if="g.tls_unpinned" class="label label-warning" title="{{'TLS certificate not pinned: modify the source and save it again' | translate}}">{{'Certificate not pinned' | translate}}</span>
             </p>
             <div class="progress progress-xs progress-label-top-right">
               <div class="progress-bar progress-bar-{{g.isChecking ? 'info' : (g.verified ? 'success' : 'danger')}}" role="progressbar" aria-valuenow="100" aria-valuemin="0"
@@ -214,6 +218,9 @@
                         placeholder="{{gate.has_password ? ('Unchanged' | translate) : ('Password' | translate)}}" class="form-control">
                     </div>
                   </div>
+                  <div ng-if="gate.tls_fingerprint && tlsSkipVerify(newSource)" class="help-block">
+                    {{'Pinned certificate' | translate}} <small>SHA-256 <code class="streaming-fingerprint">{{gate.tls_fingerprint}}</code></small>
+                  </div>
                 </div>
               </div>
               <button type="button" class="btn btn-default" ng-disabled="newSource.gates.length >= maxGates" ng-click="addGate()"><span class="fa fa-plus"></span> {{'Add gate' | translate}}</button>
@@ -227,7 +234,14 @@
                   {{'Skip TLS certificate verification' | translate}}
                 </label>
               </div>
-              <span class="help-block">{{'Only for devices with a self-signed certificate: applies to the source URL and to the URL gates' | translate}}</span>
+              <span class="help-block">{{'For devices with a self-signed certificate: the certificate is not checked against the certification authorities, instead the PBX trusts the one each device (source URL and https URL gates) presents when you save. If a device certificate changes, the device is refused until you save the source again' | translate}}</span>
+              <p ng-if="newSource.tls_fingerprint && tlsSkipVerify(newSource)" class="help-block">
+                {{'Pinned certificate' | translate}} <small>SHA-256 <code class="streaming-fingerprint">{{newSource.tls_fingerprint}}</code></small>
+              </p>
+              <div ng-if="newSource.tls_unpinned && tlsSkipVerify(newSource)" class="alert alert-warning no-margin-bottom">
+                <span class="pficon pficon-warning-triangle-o"></span>
+                {{'TLS certificate not pinned: this source was saved by an older version and its devices are contacted without any certificate check. Save it again to pin their certificates' | translate}}
+              </div>
             </div>
           </div>
           <div class="form-group">
@@ -282,7 +296,7 @@
             <div class="col-sm-offset-3 col-sm-9">
               <div class="alert alert-warning no-margin-bottom">
                 <span class="pficon pficon-warning-triangle-o"></span>
-                {{'The device certificate changed: the video gateway refuses the device until the source is saved again' | translate}}
+                {{'The device certificate changed: the PBX refuses the device until the source is saved again' | translate}}
               </div>
             </div>
           </div>
