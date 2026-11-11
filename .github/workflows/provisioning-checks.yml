@@ -41,3 +41,6 @@ jobs:
         run: |
           php tests/unit/test_tancredi_lldp.php
           tancredi_conf="${TANCREDI_ROOT}/tancredi.conf.sample" php "${TANCREDI_ROOT}/test/lldp-rendering.php"
+
+      - name: Run Auto Headset rendering tests
+        run: tancredi_conf="${TANCREDI_ROOT}/tancredi.conf.sample" php "${TANCREDI_ROOT}/test/auto-headset-rendering.php"
