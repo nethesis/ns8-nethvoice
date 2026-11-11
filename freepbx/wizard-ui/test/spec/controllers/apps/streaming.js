@@ -161,6 +161,7 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(source.verified).toBe(false);
     expect(scope.reasonMessage(source.check.reason)).toBe('Wrong username or password');
     expect(scope.reasonMessage('something else')).toBe('Connection error');
+    expect(scope.reasonMessage('address_not_allowed')).toBe('Address not allowed: the PBX itself and link-local addresses cannot be video sources');
   });
 
   it('offers the TLS option only when the source or a gate uses TLS', function () {
