@@ -2,6 +2,8 @@ name: "Clean up registry"
 
 on:
   delete:
+  schedule:
+    - cron: "0 3 * * 0"
   workflow_dispatch:
 
 permissions:
@@ -12,8 +14,34 @@ jobs:
     name: "Delete ghcr.io images ${{ github.event.ref }}"
     runs-on: ubuntu-latest
     environment: Registry
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      EVENT: ${{ github.event_name }}
+      # Image tags have "/" replaced by "-", as publish-branch does
+      REF: ${{ github.event.ref }}
+      IMAGES: >-
+        nethvoice nethvoice-mariadb nethvoice-freepbx nethvoice-tancredi
+        nethvoice-cti-server nethvoice-cti-middleware nethvoice-cti-ui
+        nethvoice-saml2-proxy nethvoice-oauth2-proxy nethvoice-janus
+        nethvoice-phonebook nethvoice-reports-api nethvoice-reports-ui
+        nethvoice-satellite nethvoice-sftp nethvoice-ejabberd
     steps:
-      - uses: NethServer/ns8-github-actions/.github/actions/delete-image@v1
-        with:
-          images: "nethvoice nethvoice-mariadb nethvoice-freepbx nethvoice-tancredi nethvoice-cti-server nethvoice-cti-middleware nethvoice-cti-ui nethvoice-saml2-proxy nethvoice-oauth2-proxy nethvoice-janus nethvoice-phonebook nethvoice-reports-api nethvoice-reports-ui nethvoice-satellite nethvoice-sftp"
-          delete_image_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          ref="${REF//\//-}"
+          limit=$(date -u -d "7 days ago" +%Y-%m-%dT%H:%M:%SZ)
+          if [[ "${EVENT}" == "delete" ]]; then
+            # Images of the deleted branch, also when they carry source tags
+            filter='[.metadata.container.tags[] | select(startswith("src-") | not)] == [$ref]'
+          else
+            # Source tags no longer shared with any branch or release image
+            filter='(.metadata.container.tags | length > 0) and all(.metadata.container.tags[]; startswith("src-")) and .updated_at < $limit'
+          fi
+          for image in ${IMAGES} ; do
+            versions_path="/orgs/${GITHUB_REPOSITORY_OWNER}/packages/container/${image}/versions"
+            gh api --paginate "${versions_path}" |
+              jq -r --arg ref "${ref}" --arg limit "${limit}" ".[] | select(${filter}) | .id" |
+              while read -r version_id ; do
+                gh api --input /dev/null -X DELETE "${versions_path}/${version_id}"
+                echo "::notice::DELETE ${image} ${versions_path}/${version_id}"
+              done
+          done

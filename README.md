@@ -436,16 +436,16 @@ and two callers:
 Both callers build the same ordered matrix groups with `max-parallel: 3`:
 
 1. `freepbx`
-2. `app-support` (`tancredi,cti-server,phonebook,sftp`)
-3. `reports` (`reports-api,reports-ui`)
-4. `wrappers` (`mariadb,cti-middleware,cti-ui,satellite`)
+2. `cti` (`cti-server,cti-middleware,cti-ui`)
+3. `services` (`mariadb,tancredi,phonebook,satellite,sftp,saml2-proxy,oauth2-proxy,ejabberd`)
+4. `reports` (`reports-api,reports-ui`)
+5. `janus`
+6. `module` (`nethvoice`)
 
 Component tests run in dedicated workflows, only when the component sources
 change: `cti-middleware-tests.yml`, `satellite-tests.yml` and
 `tancredi-tests.yml`. `cti-middleware-apidoc.yml` publishes the NethCTI
 Middleware API documentation on Bump.sh.
-5. `janus`
-6. `module` (`nethvoice`)
 
 The reusable workflow accepts:
 
@@ -463,6 +463,10 @@ source tag of each selected image: when it exists, the sources did not change
 and the workflow copies that image to the new tag instead of building it again.
 Only the images whose sources changed are built. Any change to
 `build-images.sh` rebuilds every image.
+
+`.github/workflows/clean-registry.yml` deletes the images of a branch when the
+branch is deleted, and every week the images left with source tags only for
+more than 7 days.
 
 GitHub Actions also keeps `ui/node_modules` in `actions/cache`, keyed by
 `ui/yarn.lock`. When a UI dependency changes, commit the updated lockfile so the
