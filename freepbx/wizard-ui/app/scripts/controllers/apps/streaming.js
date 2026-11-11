@@ -14,6 +14,9 @@
  * has_secret / has_password, and an empty password keeps the stored one.
  * TLS certificates are verified unless "tls_skip_verify" is set: the option
  * is shown, and sent as true, only when the source URL or a URL gate uses TLS.
+ * With the option the PBX pins the certificate each TLS device presents when
+ * the source is saved ("tls_fingerprint" of the source and of its gates);
+ * "tls_unpinned" flags a source saved by an older version without them.
  */
 angular.module('nethvoiceWizardUiApp')
   .controller('AppsStreamingCtrl', function ($scope, $filter, ProfileService, ApplicationService, UserService) {
@@ -34,6 +37,7 @@ angular.module('nethvoiceWizardUiApp')
       not_found: 'Stream not found: check the path in the URL',
       tls_error: 'TLS certificate not valid',
       unsupported: 'Unsupported URL or stream',
+      address_not_allowed: 'Address not allowed: the PBX itself and link-local addresses cannot be video sources',
       unknown: 'Connection error'
     };
 
