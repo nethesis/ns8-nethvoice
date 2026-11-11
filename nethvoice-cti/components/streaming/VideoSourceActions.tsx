@@ -45,10 +45,9 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
     if (barRef.current) setMenuMaxHeight(barRef.current.offsetTop)
   }
 
+  // "Open <name>" for a single named gate, "Open door" otherwise
   let unlockTooltip = t('Common.Open door')
-  if (gates.length > 1) {
-    unlockTooltip = t('Streaming.Open gate')
-  } else if (gates.length === 1 && gates[0].name) {
+  if (gates.length === 1 && gates[0].name) {
     unlockTooltip = t('Streaming.Open gate name', { name: gates[0].name })
   }
 
