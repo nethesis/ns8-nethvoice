@@ -248,8 +248,11 @@ function setCompConfigManager(comp) {
         *
         * Returns a short-lived token to watch an "rtsp" streaming source through
         * the video gateway: the client sends it as `Authorization: Bearer <token>`
-        * in the WHEP POST request to the returned relative URL. The token can be
-        * used many times until it expires ("expires_in" seconds).
+        * (the only accepted way) in the WHEP POST request to the returned
+        * relative URL, within "expires_in" seconds. A token opens a single
+        * gateway session: get a new token for every connection, reconnections
+        * included. A user can have at most 3 sessions on a source and 30 in
+        * total.
         * The request must contains the following parameters:
         *
         * * `id: the streaming source identifier`
@@ -262,7 +265,9 @@ function setCompConfigManager(comp) {
         *
         *     { "token": "6f1c...", "expires_in": 60, "whep": "/streaming-gw/vs_door/whep" }
         *
-        * Errors: 400 (`missing_id`, `not_rtsp_source`), 403, 404 (`source_not_found`).
+        * Errors: 400 (`missing_id`, `not_rtsp_source`), 403, 404 (`source_not_found`),
+        * 429 (`too_many_sessions`: the session limits of the user are reached,
+        * `too_many_requests`: too many tokens in a minute).
         *
         * ---
         *
@@ -633,8 +638,8 @@ function setCompConfigManager(comp) {
        * Authentication hook of the video gateway (MediaMTX "authMethod: http").
        * It is NOT part of the REST API of the plugin: it is bound by the
        * server to the loopback-only path _/mediamtx/auth_, which is not
-       * forwarded by the HTTP proxy. A 200 response allows the reader, any
-       * other status denies it.
+       * forwarded by the HTTP proxy. A 200 response allows the request (a
+       * reader or a call to the control API), any other status denies it.
        *
        * @method gatewayAuth
        * @param {object}   req  The request of the video gateway
@@ -644,22 +649,9 @@ function setCompConfigManager(comp) {
       gatewayAuth: function(req, res, next) {
         try {
           var body = (req.body && typeof req.body === 'object') ? req.body : null;
-          var decision = compStreaming.authorizeGatewayReader(body);
-          var session = body && typeof body.id === 'string' ? body.id : '';
-          var ip = body && typeof body.ip === 'string' ? body.ip : '';
-          var str = 'video gateway ' + (body && typeof body.action === 'string' ? body.action : '') +
-            ' of "' + (body && typeof body.path === 'string' ? body.path : '') + '"' +
-            ' (' + (body && typeof body.protocol === 'string' ? body.protocol : '') + ', session ' + session + ', from ' + ip + ')' +
-            (decision.username ? ' by user "' + decision.username + '"' : '');
-          if (decision.allow === true) {
-            logger.log.info(IDLOG, 'allowed ' + str);
-            res.writeHead(200, { 'Content-Type': 'text/plain' });
-            res.end('ok');
-          } else {
-            logger.log.warn(IDLOG, 'denied ' + str + ': ' + decision.reason);
-            res.writeHead(401, { 'Content-Type': 'text/plain' });
-            res.end('denied: ' + decision.reason);
-          }
+          compStreaming.authorizeGatewayRequest(body, function(decision) {
+            sendGatewayDecision(res, body, decision);
+          });
         } catch (err) {
           logger.log.error(IDLOG, err.stack);
           try {
@@ -669,6 +661,45 @@ function setCompConfigManager(comp) {
         }
       }
     };
+
+    /**
+     * Answers the video gateway with the decision of the authentication hook
+     * and logs it. The calls to the control API by this server are logged
+     * only when denied.
+     *
+     * @method sendGatewayDecision
+     * @param {object} res The response
+     * @param {object} body The request of the video gateway
+     * @param {object} decision The decision of the streaming component
+     * @private
+     */
+    function sendGatewayDecision(res, body, decision) {
+      try {
+        var session = body && typeof body.id === 'string' ? body.id : '';
+        var ip = body && typeof body.ip === 'string' ? body.ip : '';
+        var str = 'video gateway ' + (body && typeof body.action === 'string' ? body.action : '') +
+          ' of "' + (body && typeof body.path === 'string' ? body.path : '') + '"' +
+          ' (' + (body && typeof body.protocol === 'string' ? body.protocol : '') + ', session ' + session + ', from ' + ip + ')' +
+          (decision.username ? ' by user "' + decision.username + '"' : '');
+        if (decision.allow === true) {
+          if (!body || body.action !== 'api') {
+            logger.log.info(IDLOG, 'allowed ' + str);
+          }
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('ok');
+        } else {
+          logger.log.warn(IDLOG, 'denied ' + str + ': ' + decision.reason);
+          res.writeHead(401, { 'Content-Type': 'text/plain' });
+          res.end('denied: ' + decision.reason);
+        }
+      } catch (err) {
+        logger.log.error(IDLOG, err.stack);
+        try {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('error');
+        } catch (e) {}
+      }
+    }
 
     exports.api = streaming.api;
     exports.open = streaming.open;

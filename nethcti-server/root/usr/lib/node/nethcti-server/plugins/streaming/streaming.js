@@ -13,7 +13,6 @@
  */
 var fs = require('fs');
 var crypto = require('crypto');
-var querystring = require('querystring');
 var request = require('request');
 var Streaming = require('./streaming_class').Streaming;
 var deviceHttp = require('./device_http');
@@ -151,8 +150,9 @@ let hasSubscribers = function() { return true; };
 
 /**
  * The lifetime in seconds of the tokens used to watch the RTSP sources
- * through the video gateway. A token can be used many times during its
- * lifetime (e.g. by a client that reconnects).
+ * through the video gateway. A token opens a single gateway session: it is
+ * bound to the first session the gateway authorizes with it, and a client
+ * gets a new token for every connection.
  *
  * @property STREAM_TOKEN_TTL
  * @type number
@@ -162,15 +162,81 @@ let hasSubscribers = function() { return true; };
 var STREAM_TOKEN_TTL = 60;
 
 /**
- * The maximum number of valid tokens of a single user: the oldest ones are
- * dropped when it is exceeded.
+ * The maximum number of valid tokens not used yet of a single user: the
+ * oldest ones are dropped when it is exceeded.
  *
  * @property MAX_TOKENS_PER_USER
  * @type number
  * @private
- * @default 20
+ * @default 40
  */
-var MAX_TOKENS_PER_USER = 20;
+var MAX_TOKENS_PER_USER = 40;
+
+/**
+ * The maximum number of concurrent video gateway sessions of a single user on
+ * the same source (e.g. the CTI page and NethLink on two devices).
+ *
+ * @property MAX_SESSIONS_PER_SOURCE
+ * @type number
+ * @private
+ * @default 3
+ */
+var MAX_SESSIONS_PER_SOURCE = 3;
+
+/**
+ * The maximum number of concurrent video gateway sessions of a single user on
+ * all the sources.
+ *
+ * @property MAX_SESSIONS_PER_USER
+ * @type number
+ * @private
+ * @default 30
+ */
+var MAX_SESSIONS_PER_USER = 30;
+
+/**
+ * The maximum number of tokens a single user can get in TOKEN_RATE_WINDOW
+ * milliseconds. It is far above the normal use (a page with many sources,
+ * several clients and their reconnections) and only stops a runaway client.
+ *
+ * @property TOKEN_RATE_LIMIT
+ * @type number
+ * @private
+ * @default 300
+ */
+var TOKEN_RATE_LIMIT = 300;
+
+/**
+ * The window in milliseconds of TOKEN_RATE_LIMIT.
+ *
+ * @property TOKEN_RATE_WINDOW
+ * @type number
+ * @private
+ * @default 60000
+ */
+var TOKEN_RATE_WINDOW = 60000;
+
+/**
+ * The age in milliseconds under which a session record is kept even if the
+ * gateway does not list it yet (it is being authorized).
+ *
+ * @property SESSION_RECORD_GRACE
+ * @type number
+ * @private
+ * @default 5000
+ */
+var SESSION_RECORD_GRACE = 5000;
+
+/**
+ * The user of the video gateway API (MediaMTX "api" action), authenticated
+ * by the hook with the password of services.json.
+ *
+ * @property GATEWAY_API_USER
+ * @type string
+ * @private
+ * @default "nethcti-server"
+ */
+var GATEWAY_API_USER = 'nethcti-server';
 
 /**
  * The interval in milliseconds of the periodic check of the gateway
@@ -238,9 +304,19 @@ var GATE_MAX_BYTES = 64 * 1024;
 var streamTokens = {};
 
 /**
+ * The timestamps of the tokens created by each user in the last
+ * TOKEN_RATE_WINDOW milliseconds. The keys are the usernames.
+ *
+ * @property tokenRequests
+ * @type object
+ * @private
+ */
+var tokenRequests = {};
+
+/**
  * The sessions authorized on the video gateway. The keys are the gateway
  * session identifiers and the values are objects with "username",
- * "sourceId" and "created".
+ * "sourceId", "created" and "token" (the token that opened it).
  *
  * @property gatewaySessions
  * @type object
@@ -257,6 +333,17 @@ var gatewaySessions = {};
  * @private
  */
 var gatewayApiUrl = null;
+
+/**
+ * The password of the video gateway API user (GATEWAY_API_USER), from
+ * services.json. Without it the API is not used and the "api" action is
+ * always denied by the hook.
+ *
+ * @property gatewayApiPassword
+ * @type string
+ * @private
+ */
+var gatewayApiPassword = null;
 
 /**
  * The identifier of the interval of the periodic gateway check.
@@ -437,6 +524,37 @@ function config(path) {
 }
 
 /**
+ * Logs the https:// devices of a source whose TLS verification is skipped
+ * without a pinned certificate (source saved by an older version): they are
+ * still contacted, but the administrator should save the source again to pin
+ * the certificate of the device.
+ *
+ * @method warnUnpinned
+ * @param {object} source The Streaming object
+ * @private
+ */
+function warnUnpinned(source) {
+  if (!source.getTlsSkipVerify()) {
+    return;
+  }
+  var unpinned = [];
+  if (source.getType() === 'image' && /^https:/i.test(source.getUrl() || '') && source.getTlsFingerprint() === null) {
+    unpinned.push('snapshot URL');
+  }
+  var gates = source.getGates() || [];
+  var i;
+  for (i = 0; i < gates.length; i++) {
+    if (gates[i].type === 'url' && /^https:/i.test(gates[i].url) && gates[i].tlsFingerprint === null) {
+      unpinned.push('gate "' + gates[i].id + '"');
+    }
+  }
+  if (unpinned.length > 0) {
+    logger.log.warn(IDLOG, 'streaming source "' + source.getId() + '" skips the TLS verification without a pinned certificate (' +
+      unpinned.join(', ') + '): save the source again in the NethVoice administration to pin the device certificate');
+  }
+}
+
+/**
  * Start to sample video streaming sources each framerate.
  *
  * @method start
@@ -514,37 +632,6 @@ function getAllStreamingSources(username, cb) {
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
     cb(err, {});
-  }
-}
-
-/**
- * Logs the https:// devices of a source whose TLS verification is skipped
- * without a pinned certificate (source saved by an older version): they are
- * still contacted, but the administrator should save the source again to pin
- * the certificate of the device.
- *
- * @method warnUnpinned
- * @param {object} source The Streaming object
- * @private
- */
-function warnUnpinned(source) {
-  if (!source.getTlsSkipVerify()) {
-    return;
-  }
-  var unpinned = [];
-  if (source.getType() === 'image' && /^https:/i.test(source.getUrl() || '') && source.getTlsFingerprint() === null) {
-    unpinned.push('snapshot URL');
-  }
-  var gates = source.getGates() || [];
-  var i;
-  for (i = 0; i < gates.length; i++) {
-    if (gates[i].type === 'url' && /^https:/i.test(gates[i].url) && gates[i].tlsFingerprint === null) {
-      unpinned.push('gate "' + gates[i].id + '"');
-    }
-  }
-  if (unpinned.length > 0) {
-    logger.log.warn(IDLOG, 'streaming source "' + source.getId() + '" skips the TLS verification without a pinned certificate (' +
-      unpinned.join(', ') + '): save the source again in the NethVoice administration to pin the device certificate');
   }
 }
 
@@ -1065,9 +1152,11 @@ function getVideoSample(id, cb) {
 }
 
 /**
- * Reads the address of the video gateway API from the configuration file
- * (key "mediamtx.api_port" of services.json). Without it the gateway
- * sessions are not revoked.
+ * Reads the address of the video gateway API and the password of its user
+ * from the configuration file (keys "mediamtx.api_port" and
+ * "mediamtx.api_password" of services.json). Without them the gateway
+ * sessions are not listed nor revoked, and the session limits count only
+ * the sessions authorized since the start.
  *
  * @method configGateway
  * @param {string} path The path of the configuration file
@@ -1078,20 +1167,29 @@ function configGateway(path) {
       throw new TypeError('wrong parameters: ' + JSON.stringify(arguments));
     }
     gatewayApiUrl = null;
+    gatewayApiPassword = null;
     if (!fs.existsSync(path)) {
       logger.log.warn(IDLOG, path + ' doesn\'t exist: video gateway sessions will not be revoked');
       return;
     }
     var json = JSON.parse(fs.readFileSync(path, 'utf8'));
     var port = json && json.mediamtx ? String(json.mediamtx.api_port || '') : '';
-    if (/^\d{1,5}$/.test(port) && parseInt(port, 10) > 0 && parseInt(port, 10) < 65536) {
-      gatewayApiUrl = 'http://127.0.0.1:' + parseInt(port, 10);
-      logger.log.info(IDLOG, 'video gateway API at ' + gatewayApiUrl);
-    } else {
+    var password = json && json.mediamtx && typeof json.mediamtx.api_password === 'string' ? json.mediamtx.api_password : '';
+    if (!/^\d{1,5}$/.test(port) || parseInt(port, 10) < 1 || parseInt(port, 10) > 65535) {
       logger.log.warn(IDLOG, 'video gateway API port not configured: video gateway sessions will not be revoked');
+      return;
     }
+    if (password === '') {
+      // the gateway refuses the API without credentials: fail closed
+      logger.log.warn(IDLOG, 'video gateway API password not configured: video gateway sessions will not be revoked');
+      return;
+    }
+    gatewayApiUrl = 'http://127.0.0.1:' + parseInt(port, 10);
+    gatewayApiPassword = password;
+    logger.log.info(IDLOG, 'video gateway API at ' + gatewayApiUrl);
   } catch (err) {
     gatewayApiUrl = null;
+    gatewayApiPassword = null;
     logger.log.error(IDLOG, err.stack);
   }
 }
@@ -1171,9 +1269,112 @@ function cleanTokens() {
 }
 
 /**
- * Returns a new token that allows the user to watch the RTSP source through
- * the video gateway for STREAM_TOKEN_TTL seconds. The caller must have
- * checked the permission of the user.
+ * Returns the number of video gateway sessions of the user, on the given
+ * source and in total, without the session "excludeId".
+ *
+ * @method countUserSessions
+ * @param {string} username The username
+ * @param {string} sourceId The streaming source identifier
+ * @param {string} excludeId A session identifier not to count (optional)
+ * @return {object} { source: number, total: number }
+ * @private
+ */
+function countUserSessions(username, sourceId, excludeId) {
+  var count = { source: 0, total: 0 };
+  var id;
+  for (id in gatewaySessions) {
+    if (id !== excludeId && gatewaySessions[id].username === username) {
+      count.total += 1;
+      if (gatewaySessions[id].sourceId === sourceId) {
+        count.source += 1;
+      }
+    }
+  }
+  return count;
+}
+
+/**
+ * Returns the reason why the user cannot open one more video gateway
+ * session on the source, or null if the user can.
+ *
+ * @method sessionLimitReason
+ * @param {string} username The username
+ * @param {string} sourceId The streaming source identifier
+ * @param {string} excludeId A session identifier not to count (optional)
+ * @return {string} The reason or null.
+ * @private
+ */
+function sessionLimitReason(username, sourceId, excludeId) {
+  var count = countUserSessions(username, sourceId, excludeId);
+  if (count.source >= MAX_SESSIONS_PER_SOURCE) {
+    return 'too many sessions on this source (' + count.source + ', max ' + MAX_SESSIONS_PER_SOURCE + ')';
+  }
+  if (count.total >= MAX_SESSIONS_PER_USER) {
+    return 'too many sessions of the user (' + count.total + ', max ' + MAX_SESSIONS_PER_USER + ')';
+  }
+  return null;
+}
+
+/**
+ * Updates the session records from the list of the video gateway: the
+ * sessions closed by the gateway are forgotten, except the ones just
+ * authorized (the gateway can list them a bit later). The callback gets the
+ * listed sessions keyed by identifier, or null if the gateway API is not
+ * available.
+ *
+ * @method refreshGatewaySessions
+ * @param {function} cb The callback function (listed)
+ * @private
+ */
+function refreshGatewaySessions(cb) {
+  if (!gatewayApiUrl) {
+    cb(null);
+    return;
+  }
+  gatewayApi('GET', '/v3/webrtcsessions/list?itemsPerPage=1000', function(err, status, body) {
+    try {
+      if (err || status !== 200 || !body || !Array.isArray(body.items)) {
+        if (!gatewayApiFailing) {
+          gatewayApiFailing = true;
+          logger.log.warn(IDLOG, 'listing video gateway sessions: ' + (err ? err.message : 'gateway answered ' + status));
+        }
+        cb(null);
+        return;
+      }
+      if (gatewayApiFailing) {
+        gatewayApiFailing = false;
+        logger.log.info(IDLOG, 'video gateway API is reachable again');
+      }
+      var listed = {};
+      var now = Date.now();
+      var i, id;
+      for (i = 0; i < body.items.length; i++) {
+        if (body.items[i] && typeof body.items[i].id === 'string') {
+          listed[body.items[i].id] = body.items[i];
+        }
+      }
+      for (id in gatewaySessions) {
+        if (!listed[id] && now - gatewaySessions[id].created >= SESSION_RECORD_GRACE) {
+          delete gatewaySessions[id];
+        }
+      }
+      cb(listed);
+    } catch (err1) {
+      logger.log.error(IDLOG, err1.stack);
+      cb(null);
+    }
+  });
+}
+
+/**
+ * Returns a new token that allows the user to open one session on the RTSP
+ * source through the video gateway, within STREAM_TOKEN_TTL seconds. The
+ * caller must have checked the permission of the user.
+ *
+ * The user gets the error 429 "too_many_requests" beyond TOKEN_RATE_LIMIT
+ * tokens per minute and 429 "too_many_sessions" when the user already has
+ * MAX_SESSIONS_PER_SOURCE sessions on the source or MAX_SESSIONS_PER_USER
+ * sessions in total.
  *
  * @method createStreamToken
  * @param {string}   username The username
@@ -1193,30 +1394,67 @@ function createStreamToken(username, sourceId, cb) {
       cb(streamingError(400, 'not_rtsp_source', 'streaming source "' + sourceId + '" is not an RTSP source'));
       return;
     }
-    cleanTokens();
 
-    // limit the number of valid tokens of the user
-    var userTokens = Object.keys(streamTokens).filter(function(t) {
-      return streamTokens[t].username === username;
-    }).sort(function(a, b) {
-      return streamTokens[a].expires - streamTokens[b].expires;
-    });
-    while (userTokens.length >= MAX_TOKENS_PER_USER) {
-      delete streamTokens[userTokens.shift()];
+    // rate limit, counted on the requests of the last window
+    var now = Date.now();
+    var u;
+    for (u in tokenRequests) {
+      tokenRequests[u] = tokenRequests[u].filter(function(ts) { return now - ts < TOKEN_RATE_WINDOW; });
+      if (tokenRequests[u].length === 0) {
+        delete tokenRequests[u];
+      }
     }
+    if ((tokenRequests[username] || []).length >= TOKEN_RATE_LIMIT) {
+      logger.log.warn(IDLOG, 'stream token of source "' + sourceId + '" denied to user "' + username + '": more than ' +
+        TOKEN_RATE_LIMIT + ' tokens in ' + (TOKEN_RATE_WINDOW / 1000) + ' s');
+      cb(streamingError(429, 'too_many_requests', 'too many stream token requests: retry later'));
+      return;
+    }
+    tokenRequests[username] = (tokenRequests[username] || []).concat([now]);
 
-    var token = crypto.randomBytes(32).toString('hex');
-    streamTokens[token] = {
-      username: username,
-      sourceId: sourceId,
-      expires: Date.now() + STREAM_TOKEN_TTL * 1000
+    var issue = function() {
+      try {
+        var reason = sessionLimitReason(username, sourceId);
+        if (reason !== null) {
+          logger.log.warn(IDLOG, 'stream token of source "' + sourceId + '" denied to user "' + username + '": ' + reason);
+          cb(streamingError(429, 'too_many_sessions', reason));
+          return;
+        }
+        cleanTokens();
+        // limit the number of unused tokens of the user
+        var userTokens = Object.keys(streamTokens).filter(function(t) {
+          return streamTokens[t].username === username && streamTokens[t].sessionId === null;
+        }).sort(function(a, b) {
+          return streamTokens[a].expires - streamTokens[b].expires;
+        });
+        while (userTokens.length >= MAX_TOKENS_PER_USER) {
+          delete streamTokens[userTokens.shift()];
+        }
+
+        var token = crypto.randomBytes(32).toString('hex');
+        streamTokens[token] = {
+          username: username,
+          sourceId: sourceId,
+          expires: Date.now() + STREAM_TOKEN_TTL * 1000,
+          sessionId: null
+        };
+        logger.log.info(IDLOG, 'new stream token for user "' + username + '" and source "' + sourceId + '"');
+        cb(null, {
+          token: token,
+          expires_in: STREAM_TOKEN_TTL,
+          whep: streamings[sourceId].getWhepUrl()
+        });
+      } catch (err1) {
+        logger.log.error(IDLOG, err1.stack);
+        cb(err1);
+      }
     };
-    logger.log.info(IDLOG, 'new stream token for user "' + username + '" and source "' + sourceId + '"');
-    cb(null, {
-      token: token,
-      expires_in: STREAM_TOKEN_TTL,
-      whep: streamings[sourceId].getWhepUrl()
-    });
+    if (sessionLimitReason(username, sourceId) !== null) {
+      // the records can include sessions already closed: check the gateway
+      refreshGatewaySessions(function() { issue(); });
+    } else {
+      issue();
+    }
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
     cb(err);
@@ -1224,26 +1462,60 @@ function createStreamToken(username, sourceId, cb) {
 }
 
 /**
- * Decides if the video gateway can accept a reader. It is called by the
+ * Returns true if the two strings are equal, in a time that does not depend
+ * on their content.
+ *
+ * @method secretEquals
+ * @param {string} a The first string
+ * @param {string} b The second string
+ * @return {boolean} True if they are equal.
+ * @private
+ */
+function secretEquals(a, b) {
+  var ha = crypto.createHash('sha256').update(String(a)).digest();
+  var hb = crypto.createHash('sha256').update(String(b)).digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+/**
+ * Decides if the video gateway can accept a request. It is called by the
  * authentication hook of the gateway with the JSON body sent by it:
  *
  *     { ip, user, password, token, action, path, protocol, id, query, userAgent }
  *
- * Only WebRTC readers ("read" action, "webrtc" protocol) of the gateway path
- * of an existing RTSP source are allowed, when they present a valid token
- * ("token" field, filled from "Authorization: Bearer", or "token" parameter
- * of the query string) created for the same source by a user that still has
- * its permission. The session of an allowed reader is recorded to revoke it
- * later. The tokens are never logged.
+ * - "api" action (control API): allowed only to the user GATEWAY_API_USER
+ *   with the password of services.json (used by this component)
+ * - "read" action: only WebRTC readers of the gateway path of an existing
+ *   RTSP source are allowed, when they present a valid token ("token" field,
+ *   filled by the gateway from "Authorization: Bearer"; the query string is
+ *   ignored) created for the same source by a user that still has its
+ *   permission. A token is consumed by the first session it opens: any other
+ *   session presenting it is denied. The user cannot have more than
+ *   MAX_SESSIONS_PER_SOURCE sessions on a source and MAX_SESSIONS_PER_USER
+ *   in total. The session of an allowed reader is recorded to revoke it later.
+ * - anything else is denied
+ *
+ * The tokens and the passwords are never logged.
  *
  * @method authorizeGatewayReader
  * @param {object} req The request of the gateway
- * @return {object} The decision: { allow: boolean, reason: string, username, sourceId }
+ * @return {object} The decision: { allow: boolean, reason: string, code: string, username, sourceId }
  */
 function authorizeGatewayReader(req) {
   try {
     if (!req || typeof req !== 'object' || Array.isArray(req)) {
       return { allow: false, reason: 'bad request' };
+    }
+    if (req.action === 'api') {
+      if (gatewayApiPassword === null) {
+        return { allow: false, reason: 'gateway API credentials not configured' };
+      }
+      if (req.user !== GATEWAY_API_USER || typeof req.password !== 'string' ||
+        !secretEquals(req.password, gatewayApiPassword)) {
+
+        return { allow: false, reason: 'wrong gateway API credentials' };
+      }
+      return { allow: true, reason: 'gateway API user' };
     }
     if (req.action !== 'read') {
       return { allow: false, reason: 'action not allowed' };
@@ -1268,31 +1540,16 @@ function authorizeGatewayReader(req) {
     if (typeof req.id !== 'string' || req.id === '') {
       return { allow: false, reason: 'missing session id', sourceId: sourceId };
     }
-    var candidates = [];
-    if (typeof req.token === 'string' && req.token !== '') {
-      candidates.push(req.token);
-    }
-    if (typeof req.query === 'string' && req.query !== '') {
-      var q = querystring.parse(req.query.charAt(0) === '?' ? req.query.substring(1) : req.query);
-      if (typeof q.token === 'string' && q.token !== '') {
-        candidates.push(q.token);
-      }
-    }
-    if (candidates.length === 0) {
+    if (typeof req.token !== 'string' || req.token === '') {
       return { allow: false, reason: 'missing token', sourceId: sourceId };
     }
     var now = Date.now();
     var entry = null;
-    var i;
-    for (i = 0; i < candidates.length; i++) {
-      if (Object.prototype.hasOwnProperty.call(streamTokens, candidates[i])) {
-        entry = streamTokens[candidates[i]];
-        if (entry.expires <= now) {
-          delete streamTokens[candidates[i]];
-          entry = null;
-          continue;
-        }
-        break;
+    if (Object.prototype.hasOwnProperty.call(streamTokens, req.token)) {
+      entry = streamTokens[req.token];
+      if (entry.expires <= now) {
+        delete streamTokens[req.token];
+        entry = null;
       }
     }
     if (entry === null) {
@@ -1301,14 +1558,29 @@ function authorizeGatewayReader(req) {
     if (entry.sourceId !== sourceId) {
       return { allow: false, reason: 'token not valid for this source', sourceId: sourceId, username: entry.username };
     }
+    if (entry.sessionId !== null && entry.sessionId !== req.id) {
+      return { allow: false, reason: 'token already used', code: 'token_used', sourceId: sourceId, username: entry.username };
+    }
     if (!canWatch(entry.username, sourceId)) {
       return { allow: false, reason: 'permission denied', sourceId: sourceId, username: entry.username };
     }
-    gatewaySessions[req.id] = {
-      username: entry.username,
-      sourceId: sourceId,
-      created: now
-    };
+    if (gatewaySessions[req.id] && gatewaySessions[req.id].token !== req.token) {
+      return { allow: false, reason: 'session authorized with another token', sourceId: sourceId, username: entry.username };
+    }
+    if (!gatewaySessions[req.id]) {
+      var limit = sessionLimitReason(entry.username, sourceId, req.id);
+      if (limit !== null) {
+        return { allow: false, reason: limit, code: 'too_many_sessions', sourceId: sourceId, username: entry.username };
+      }
+      gatewaySessions[req.id] = {
+        username: entry.username,
+        sourceId: sourceId,
+        created: now,
+        token: req.token
+      };
+    }
+    // the same session can be authorized again, no other one
+    entry.sessionId = req.id;
     return { allow: true, reason: 'valid token', sourceId: sourceId, username: entry.username };
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
@@ -1317,7 +1589,28 @@ function authorizeGatewayReader(req) {
 }
 
 /**
- * Executes a request to the video gateway API.
+ * Like _authorizeGatewayReader_, but when a reader is denied because of the
+ * session limits the session records are updated from the gateway (sessions
+ * closed meanwhile) and the request is evaluated again.
+ *
+ * @method authorizeGatewayRequest
+ * @param {object}   req The request of the gateway
+ * @param {function} cb The callback function (decision)
+ */
+function authorizeGatewayRequest(req, cb) {
+  var decision = authorizeGatewayReader(req);
+  if (decision.allow || decision.code !== 'too_many_sessions' || !gatewayApiUrl) {
+    cb(decision);
+    return;
+  }
+  refreshGatewaySessions(function() {
+    cb(authorizeGatewayReader(req));
+  });
+}
+
+/**
+ * Executes a request to the video gateway API, authenticated as
+ * GATEWAY_API_USER.
  *
  * @method gatewayApi
  * @param {string}   method The HTTP method
@@ -1326,12 +1619,17 @@ function authorizeGatewayReader(req) {
  * @private
  */
 function gatewayApi(method, path, cb) {
+  if (!gatewayApiUrl || !gatewayApiPassword) {
+    cb(new Error('video gateway API not configured'));
+    return;
+  }
   request({
     uri: gatewayApiUrl + path,
     method: method,
     json: true,
     timeout: GATEWAY_API_TIMEOUT,
-    followRedirect: false
+    followRedirect: false,
+    auth: { user: GATEWAY_API_USER, pass: gatewayApiPassword, sendImmediately: true }
   }, function(err, res, body) {
     if (err) {
       cb(err);
@@ -1388,39 +1686,25 @@ function checkGatewaySessions(cb) {
   try {
     cleanTokens();
     if (!gatewayApiUrl) {
-      // without the gateway API the sessions cannot be listed nor kicked
-      gatewaySessions = {};
+      // without the gateway API the sessions cannot be listed nor kicked:
+      // forget the old records, so that they do not count in the limits
+      var id0;
+      for (id0 in gatewaySessions) {
+        if (Date.now() - gatewaySessions[id0].created >= GATEWAY_CHECK_INTERVAL) {
+          delete gatewaySessions[id0];
+        }
+      }
       done();
       return;
     }
-    gatewayApi('GET', '/v3/webrtcsessions/list?itemsPerPage=1000', function(err, status, body) {
+    refreshGatewaySessions(function(listed) {
       try {
-        if (err || status !== 200 || !body || !Array.isArray(body.items)) {
-          if (!gatewayApiFailing) {
-            gatewayApiFailing = true;
-            logger.log.warn(IDLOG, 'listing video gateway sessions: ' + (err ? err.message : 'gateway answered ' + status));
-          }
+        if (listed === null) {
           done();
           return;
         }
-        if (gatewayApiFailing) {
-          gatewayApiFailing = false;
-          logger.log.info(IDLOG, 'video gateway API is reachable again');
-        }
-        var listed = {};
         var toKick = [];
-        var i, id, s, created;
-        for (i = 0; i < body.items.length; i++) {
-          if (body.items[i] && typeof body.items[i].id === 'string') {
-            listed[body.items[i].id] = body.items[i];
-          }
-        }
-        // forget the sessions closed by the gateway
-        for (id in gatewaySessions) {
-          if (!listed[id]) {
-            delete gatewaySessions[id];
-          }
-        }
+        var id, s, created;
         for (id in listed) {
           s = gatewaySessions[id];
           if (!s) {
@@ -1473,6 +1757,7 @@ exports.startGatewayCheck = startGatewayCheck;
 exports.createStreamToken = createStreamToken;
 exports.checkGatewaySessions = checkGatewaySessions;
 exports.authorizeGatewayReader = authorizeGatewayReader;
+exports.authorizeGatewayRequest = authorizeGatewayRequest;
 exports.STREAM_TOKEN_TTL = STREAM_TOKEN_TTL;
 exports.config = config;
 exports.setLogger = setLogger;
