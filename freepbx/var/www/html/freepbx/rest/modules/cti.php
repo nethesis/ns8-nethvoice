@@ -1171,8 +1171,13 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
  *   audio: { codec, sample_rate }, h265, warnings, reason, message,
  *   tls_fingerprint }
  * where reason is one of auth_failed, connection_refused, timeout, not_found,
- * tls_error, unsupported, unknown. Legacy clients (http(s) URL, no "details")
- * get the base64 image as a JSON string, or 500 on error.
+ * tls_error, unsupported, address_not_allowed, unknown. Legacy clients
+ * (http(s) URL, no "details") get the base64 image as a JSON string, or 500
+ * on error.
+ *
+ * Loopback, link-local and unspecified device addresses are refused
+ * ("address_not_allowed"); an image source answers only with a JPEG or PNG
+ * image, any other content is "unsupported" and never returned.
  */
 $app->post('/cti/sources/test', function (Request $request, Response $response, $args) {
     try {
@@ -1209,12 +1214,18 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
             return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
         }
 
-        if ($parsed['type'] === 'rtsp') {
+        // resolved once: the image check connects to the checked address
+        $addresses = streaming_resolve_host($parsed['host']);
+        if (streaming_host_blocked($parsed['host'], function () use ($addresses) { return $addresses; })) {
+            $result = streaming_probe_result($parsed['type'], false, 'address_not_allowed', 'loopback and link-local addresses are refused');
+        } elseif ($parsed['type'] === 'rtsp') {
             $result = streaming_probe_rtsp($parsed['url'], $user, $secret, $tlsSkipVerify);
             return jsonResponse($response, streaming_tls_check_warnings($result, $stored, $parsed['url']));
+        } else {
+            $result = streaming_probe_image($parsed['url'], $user, $secret, $tlsSkipVerify, null, $addresses[0] ?? null);
+            $result = streaming_tls_check_warnings($result, $stored, $parsed['url']);
         }
-        $result = streaming_probe_image($parsed['url'], $user, $secret, $tlsSkipVerify);
-        if (!empty($data['details'])) {
+        if ($parsed['type'] === 'rtsp' || !empty($data['details'])) {
             return jsonResponse($response, $result);
         }
         if (!$result['success']) {

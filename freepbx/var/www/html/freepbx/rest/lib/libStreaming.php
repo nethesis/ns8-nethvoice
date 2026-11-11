@@ -30,7 +30,11 @@
 
 const STREAMING_GATEWAY_PREFIX = 'streaming-gw';
 const STREAMING_MAX_GATES = 10;
-const STREAMING_REASONS = ['auth_failed', 'connection_refused', 'timeout', 'not_found', 'tls_error', 'unsupported', 'unknown'];
+const STREAMING_REASONS = ['auth_failed', 'connection_refused', 'timeout', 'not_found', 'tls_error', 'unsupported', 'address_not_allowed', 'unknown'];
+// Biggest image returned by the check of an image source
+const STREAMING_MAX_IMAGE_BYTES = 5242880;
+// Readers of a single source on the gateway, all users together
+const STREAMING_MAX_READERS = 100;
 // Video codecs that MediaMTX can forward to a browser over WebRTC
 const STREAMING_WEBRTC_VIDEO_CODECS = ['h264', 'vp8', 'vp9', 'av1', 'hevc'];
 
@@ -156,6 +160,122 @@ function streaming_url_endpoint(string $url): string
     }
     $defaults = ['http' => '80', 'https' => '443', 'rtsp' => '554', 'rtsps' => '322'];
     return $parsed['scheme'] . '://' . strtolower($parsed['host']) . ':' . ($parsed['port'] !== '' ? $parsed['port'] : $defaults[$parsed['scheme']]);
+}
+
+/*
+ * True for an IP address that can never be a device: loopback (127.0.0.0/8,
+ * ::1), link-local (169.254.0.0/16, fe80::/10) and unspecified (0.0.0.0/8,
+ * ::), also as IPv4-mapped IPv6 addresses. Anything that is not an IP
+ * address is refused too. Private LAN ranges are allowed.
+ */
+function streaming_ip_blocked(string $ip): bool
+{
+    $ip = preg_replace('/%.*$/', '', trim($ip, '[]'));
+    $packed = @inet_pton($ip);
+    if ($packed === false) {
+        return true;
+    }
+    if (strlen($packed) === 16) {
+        if (substr($packed, 0, 12) === str_repeat("\0", 10) . "\xff\xff") {
+            // IPv4-mapped
+            $packed = substr($packed, 12);
+        } elseif (substr($packed, 0, 15) === str_repeat("\0", 15)) {
+            // "::" and "::1"
+            return ord($packed[15]) <= 1;
+        } else {
+            return ord($packed[0]) === 0xfe && (ord($packed[1]) & 0xc0) === 0x80;
+        }
+    }
+    $first = ord($packed[0]);
+    return $first === 127 || $first === 0 || ($first === 169 && ord($packed[1]) === 254);
+}
+
+/*
+ * The IPv4 address of a numeric host in any of the forms accepted by
+ * inet_aton() and getaddrinfo() (and so by curl, ffmpeg and Node.js):
+ * "127.1", "2130706433", "0x7f000001", "0177.0.0.1". Null for anything else.
+ */
+function streaming_numeric_ipv4(string $host): ?string
+{
+    $parts = explode('.', $host);
+    if (count($parts) > 4) {
+        return null;
+    }
+    $numbers = [];
+    foreach ($parts as $part) {
+        if (preg_match('/^0x[0-9a-f]*$/i', $part)) {
+            $numbers[] = hexdec(substr($part, 2) ?: '0');
+        } elseif (preg_match('/^0[0-7]*$/', $part)) {
+            $numbers[] = octdec($part);
+        } elseif (preg_match('/^[1-9][0-9]*$/', $part)) {
+            $numbers[] = (float) $part;
+        } else {
+            return null;
+        }
+    }
+    $last = array_pop($numbers);
+    $value = 0;
+    foreach ($numbers as $index => $number) {
+        if ($number > 255) {
+            return null;
+        }
+        $value += $number * (2 ** (8 * (3 - $index)));
+    }
+    if ($last >= 2 ** (8 * (4 - count($numbers)))) {
+        return null;
+    }
+    return long2ip((int) ($value + $last));
+}
+
+/* IPv4 and IPv6 addresses of a host name (the address itself for an IP) */
+function streaming_resolve_host(string $host): array
+{
+    if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+        return [$host];
+    }
+    $numeric = streaming_numeric_ipv4($host);
+    if ($numeric !== null) {
+        return [$numeric];
+    }
+    $addresses = @gethostbynamel($host) ?: [];
+    $records = @dns_get_record($host, DNS_AAAA) ?: [];
+    foreach ($records as $record) {
+        if (isset($record['ipv6'])) {
+            $addresses[] = $record['ipv6'];
+        }
+    }
+    return $addresses;
+}
+
+/*
+ * True when the host of a device is refused: "localhost" names, or a name
+ * with at least one loopback, link-local or unspecified address (any
+ * numeric form, e.g. "0x7f000001", is resolved by the system like the
+ * clients do). A name that does not resolve is allowed: the device can be
+ * offline, nethcti-server checks the address again before every request and
+ * MediaMTX cannot resolve such names either.
+ */
+function streaming_host_blocked(string $host, ?callable $resolve = null): bool
+{
+    $host = strtolower(rtrim(trim($host, '[]'), '.'));
+    if ($host === '' || $host === 'localhost' || substr($host, -10) === '.localhost') {
+        return true;
+    }
+    foreach (($resolve ?? 'streaming_resolve_host')($host) as $address) {
+        if (streaming_ip_blocked((string) $address)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/* Throw a validation error when the device of a URL has a refused address */
+function streaming_check_destination(string $url, string $field, ?callable $resolve = null): void
+{
+    $parsed = streaming_parse_url($url);
+    if ($parsed !== null && streaming_host_blocked($parsed['host'], $resolve)) {
+        throw new StreamingValidationException($field, 'the device address is not allowed: loopback and link-local addresses are refused');
+    }
 }
 
 function streaming_string_field(array $data, string $field, int $maxLength, string $default = ''): string
@@ -303,7 +423,7 @@ function streaming_refresh_fingerprint(array $source, ?callable $fetch = null): 
  * $current are the stored gates of the source (with secrets), used to keep a
  * gate password when the client sends an empty one: passwords are write-only.
  */
-function streaming_normalize_gates($gates, array $current = []): array
+function streaming_normalize_gates($gates, array $current = [], ?callable $resolve = null): array
 {
     if (!is_array($gates) || ($gates !== [] && array_keys($gates) !== range(0, count($gates) - 1))) {
         throw new StreamingValidationException('gates', 'gates must be a list');
@@ -353,6 +473,7 @@ function streaming_normalize_gates($gates, array $current = []): array
             if ($parsed === null || $parsed['type'] !== 'image') {
                 throw new StreamingValidationException("gates[$index].url", 'gate URL must be http:// or https://');
             }
+            streaming_check_destination($parsed['url'], "gates[$index].url", $resolve);
             $method = strtoupper(streaming_string_field($gate, 'method', 6, 'GET'));
             if (!in_array($method, ['GET', 'POST'], true)) {
                 throw new StreamingValidationException("gates[$index].method", 'method must be GET or POST');
@@ -427,7 +548,7 @@ function streaming_open_code(array $gates): string
  * exten, frame-rate, gates, open). Secrets are write-only: an empty or absent
  * secret keeps the stored one, an empty user clears both.
  */
-function streaming_normalize_source(array $data, ?array $current = null): array
+function streaming_normalize_source(array $data, ?array $current = null, ?callable $resolve = null): array
 {
     $descr = trim(streaming_string_field($data, 'descr', 50));
     if ($descr === '' || streaming_permission_name($descr) === 'vs_') {
@@ -438,6 +559,7 @@ function streaming_normalize_source(array $data, ?array $current = null): array
     if ($parsed === null) {
         throw new StreamingValidationException('url', 'URL must be http(s):// or rtsp(s):// with a host');
     }
+    streaming_check_destination($parsed['url'], 'url', $resolve);
     $user = streaming_string_field($data, 'user', 255, $current !== null && !array_key_exists('user', $data) ? (string) $current['user'] : '');
     $secret = streaming_string_field($data, 'secret', 255);
     if ($parsed['has_credentials']) {
@@ -473,14 +595,14 @@ function streaming_normalize_source(array $data, ?array $current = null): array
 
     $currentGates = $current['gates'] ?? [];
     if (array_key_exists('gates', $data) && $data['gates'] !== null) {
-        $gates = streaming_normalize_gates($data['gates'], $currentGates);
+        $gates = streaming_normalize_gates($data['gates'], $currentGates, $resolve);
     } elseif (array_key_exists('open', $data)) {
         // Legacy client: "open" is the code of the first DTMF gate
         $open = trim(streaming_string_field($data, 'open', 30));
         if ($open !== '' && !preg_match('/^[0-9A-Da-d*#+]{1,30}$/', $open)) {
             throw new StreamingValidationException('open', 'invalid DTMF code');
         }
-        $gates = streaming_normalize_gates(streaming_gates_from_open($open, $currentGates), $currentGates);
+        $gates = streaming_normalize_gates(streaming_gates_from_open($open, $currentGates), $currentGates, $resolve);
     } else {
         $gates = $currentGates;
     }
@@ -1208,12 +1330,26 @@ function streaming_probe_rtsp(string $url, string $user, string $secret, bool $t
     return $result;
 }
 
+/* True when the data starts like a JPEG or a PNG image */
+function streaming_is_image_data(string $data): bool
+{
+    return strncmp($data, "\xff\xd8\xff", 3) === 0 || strncmp($data, "\x89PNG\r\n\x1a\n", 8) === 0;
+}
+
 /*
  * Fetch a JPEG from a HTTP image source, with optional credentials. The
  * https:// certificate is verified (CA store and host name) unless
- * $tlsSkipVerify.
+ * $tlsSkipVerify: then the fingerprint of the device certificate, the one
+ * that is pinned when the source is saved, is returned.
+ *
+ * Only a JPEG or PNG image (Content-Type image/* and the signature of the
+ * format), at most 5 MB, is returned: any other answer is "unsupported",
+ * without its content.
+ *
+ * $address, when given, is the address the host name of the URL is connected
+ * to (the one the caller has checked), so that the DNS cannot change it.
  */
-function streaming_probe_image(string $url, string $user, string $secret, bool $tlsSkipVerify = false): array
+function streaming_probe_image(string $url, string $user, string $secret, bool $tlsSkipVerify = false, ?callable $fetch = null, ?string $address = null): array
 {
     $parsed = streaming_parse_url($url);
     if ($parsed === null || $parsed['type'] !== 'image') {
@@ -1229,16 +1365,35 @@ function streaming_probe_image(string $url, string $user, string $secret, bool $
         CURLOPT_SSL_VERIFYPEER => !$tlsSkipVerify,
         CURLOPT_SSL_VERIFYHOST => $tlsSkipVerify ? 0 : 2,
     ]);
+    if ($address !== null && filter_var($parsed['host'], FILTER_VALIDATE_IP) === false) {
+        $port = $parsed['port'] !== '' ? $parsed['port'] : ($parsed['scheme'] === 'https' ? '443' : '80');
+        $pinned = strpos($address, ':') !== false ? '[' . $address . ']' : $address;
+        curl_setopt($curl, CURLOPT_RESOLVE, [$parsed['host'] . ':' . $port . ':' . $pinned]);
+    }
+    $tooLarge = false;
+    $buffer = '';
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, false);
+    curl_setopt($curl, CURLOPT_WRITEFUNCTION, function ($handle, string $chunk) use (&$buffer, &$tooLarge) {
+        if (strlen($buffer) + strlen($chunk) > STREAMING_MAX_IMAGE_BYTES) {
+            $tooLarge = true;
+            return 0;
+        }
+        $buffer .= $chunk;
+        return strlen($chunk);
+    });
     if ($user !== '') {
         curl_setopt($curl, CURLOPT_HTTPAUTH, CURLAUTH_ANY);
         curl_setopt($curl, CURLOPT_USERPWD, $user . ':' . $secret);
     }
-    $body = curl_exec($curl);
+    $body = curl_exec($curl) === false ? false : $buffer;
     $errno = curl_errno($curl);
     $error = curl_error($curl);
     $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
     $mime = (string) curl_getinfo($curl, CURLINFO_CONTENT_TYPE);
     curl_close($curl);
+    if ($tooLarge) {
+        return streaming_probe_result('image', false, 'unsupported', 'the image is bigger than ' . STREAMING_MAX_IMAGE_BYTES . ' bytes');
+    }
     if ($body === false) {
         if (in_array($errno, [51, 60], true)) {
             // CURLE_PEER_FAILED_VERIFICATION (51 before curl 7.62, then 60)
@@ -1257,11 +1412,15 @@ function streaming_probe_image(string $url, string $user, string $secret, bool $
     if ($status < 200 || $status >= 300) {
         return streaming_probe_result('image', false, 'unknown', "HTTP $status");
     }
-    if (stripos($mime, 'image/') !== 0 && strpos((string) $body, '<!DOCTYPE html PUBLIC') !== false) {
-        return streaming_probe_result('image', false, 'unsupported', 'the URL does not return an image');
+    if (stripos($mime, 'image/') !== 0 || !streaming_is_image_data((string) $body)) {
+        return streaming_probe_result('image', false, 'unsupported', 'the URL does not return a JPEG or PNG image');
     }
     $result = streaming_probe_result('image', true);
     $result['image'] = chunk_split(base64_encode((string) $body));
-    $result['mime'] = stripos($mime, 'image/') === 0 ? strtok($mime, ';') : 'image/jpeg';
+    $result['mime'] = strncmp((string) $body, "\x89PNG", 4) === 0 ? 'image/png' : 'image/jpeg';
+    if ($tlsSkipVerify && $parsed['scheme'] === 'https') {
+        [$fingerprint] = ($fetch ?? 'streaming_fetch_fingerprint')($parsed['url']);
+        $result['tls_fingerprint'] = streaming_normalize_fingerprint($fingerprint);
+    }
     return $result;
 }
