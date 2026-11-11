@@ -30,7 +30,7 @@ for module in ('core', 'framework', 'paging', 'iaxsettings'):
             member.name = '/'.join(member.name.split('/')[1:])
             if member.name:
                 tar.extract(member, target, filter='data')
-    patches = sorted((root / 'freepbx/patches').glob('freepbx-core-821*.patch')) + [root / 'freepbx/patches/freepbx-core-bindaddress.patch'] if module == 'core' else {
+    patches = sorted((root / 'freepbx/patches').glob('freepbx-core-821*.patch')) + [root / 'freepbx/patches/freepbx-core-trunks-hook.patch', root / 'freepbx/patches/freepbx-core-bindaddress.patch'] if module == 'core' else {
         'paging': [root / 'freepbx/patches/freepbx-paging-transfers.patch'],
         'iaxsettings': [root / 'freepbx/patches/freepbx-iaxsettings-preserve.patch'],
     }.get(module, [])

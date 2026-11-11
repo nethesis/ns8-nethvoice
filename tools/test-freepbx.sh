@@ -11,4 +11,9 @@ for test in "$repo_root"/freepbx/tests/*.php; do
         *) php "$test" ;;
     esac
 done
-for test in "$repo_root"/local_testing/tests/*.php; do php "$test"; done
+for test in "$repo_root"/local_testing/tests/*.php; do
+    case $(basename "$test") in
+        nethcti_gui_hooks_test.php) php "$test" "$sources/core/page.trunks.php" "$sources/framework/amp_conf/htdocs/admin/libraries/BMO/GuiHooks.class.php" ;;
+        *) php "$test" ;;
+    esac
+done

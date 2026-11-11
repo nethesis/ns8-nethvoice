@@ -1,0 +1,11 @@
+--- a/page.trunks.php
++++ b/page.trunks.php
+@@ -493,7 +493,7 @@
+ 		$helptext = '';
+ 	}
+ 	// implementation of module hook
+-	$module_hook == moduleHook::create();
++	$module_hook = moduleHook::create();
+         $hookhtml = $module_hook->hookHtml;
+ 	$displayvars = array(
+ 		'extdisplay' => $extdisplay,
