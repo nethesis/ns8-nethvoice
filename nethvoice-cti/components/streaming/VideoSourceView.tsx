@@ -197,6 +197,8 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
         return t('Streaming.You are not allowed to watch this source')
       case 'unreachable':
         return t('Streaming.The video source is not reachable, retrying')
+      case 'busy':
+        return t('Streaming.Too many open videos: close one to watch this')
       default:
         return undefined
     }
