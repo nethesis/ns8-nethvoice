@@ -62,8 +62,16 @@ export const fetchSourceToken = async (sourceId: string): Promise<WhepToken> => 
     return { token: data.token, whep: data.whep, expiresIn: data.expires_in }
   } catch (error) {
     const status = axios.isAxiosError(error) ? error.response?.status : undefined
+    const code = axios.isAxiosError(error) ? (error.response?.data as any)?.code : undefined
     if (status === 403) {
       throw new WhepTokenError('streaming token forbidden', true, 'forbidden')
+    }
+    if (status === 429 && code === 'too_many_sessions') {
+      throw new WhepTokenError('too many streaming sessions', true, 'busy')
+    }
+    if (status === 429) {
+      // too_many_requests: retry later, with the backoff
+      throw new WhepTokenError('streaming token rate limited', false, 'unreachable', true)
     }
     if (status === 400 || status === 404) {
       throw new WhepTokenError(`streaming token error ${status}`, true, 'error')
