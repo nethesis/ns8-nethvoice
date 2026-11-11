@@ -1359,6 +1359,11 @@ function streaming_tls_check_warnings(array $result, ?array $stored, string $url
  * the image) and the host name or IP address of the URL. With
  * $tlsSkipVerify the verification is off and the fingerprint of the device
  * certificate, the one the gateway would pin, is returned.
+ *
+ * The URL with the credentials is never on a command line (readable by any
+ * process of the node in /proc): ffprobe reads it from a file ("-/i", FFmpeg
+ * 7+), ffmpeg from a concat script ("-i" has no file form). Both files are
+ * created with mode 0600 in the temporary directory and removed at the end.
  */
 function streaming_probe_rtsp(string $url, string $user, string $secret, bool $tlsSkipVerify = false, ?callable $run = null, ?callable $fetch = null): array
 {
@@ -1374,13 +1379,39 @@ function streaming_probe_rtsp(string $url, string $user, string $secret, bool $t
         [$fingerprint] = ($fetch ?? 'streaming_fetch_fingerprint')($parsed['url']);
         $fingerprint = streaming_normalize_fingerprint($fingerprint);
     }
+    $urlFile = @tempnam(sys_get_temp_dir(), 'vs-url-');
+    $concatFile = @tempnam(sys_get_temp_dir(), 'vs-in-');
+    try {
+        if ($urlFile === false || $concatFile === false) {
+            return streaming_probe_result('rtsp', false, 'unknown', 'cannot create a temporary file');
+        }
+        // tempnam() creates the files with mode 0600
+        $concat = "ffconcat version 1.0\nfile '" . str_replace("'", "'\\''", $target) . "'\n"
+            . "option rtsp_transport tcp\noption timeout 5000000\n"
+            . "option probesize 32768\noption analyzeduration 0\noption fflags nobuffer\n"
+            . ($tlsOptions ? "option tls_verify {$tlsOptions[1]}\n" : '');
+        if (@file_put_contents($urlFile, $target) !== strlen($target) || @file_put_contents($concatFile, $concat) !== strlen($concat)) {
+            return streaming_probe_result('rtsp', false, 'unknown', 'cannot write a temporary file');
+        }
+        return streaming_probe_rtsp_files($parsed, $target, $tlsOptions, $fingerprint, $urlFile, $concatFile, $run);
+    } finally {
+        foreach ([$urlFile, $concatFile] as $file) {
+            if (is_string($file)) {
+                @unlink($file);
+            }
+        }
+    }
+}
 
+/* The commands of streaming_probe_rtsp(), the URL read from the given files */
+function streaming_probe_rtsp_files(array $parsed, string $target, array $tlsOptions, ?string $fingerprint, string $urlFile, string $concatFile, callable $run): array
+{
     [$exit, $stdout, $stderr, $timedOut] = $run(array_merge([
         'ffprobe', '-hide_banner', '-v', 'error',
         '-rtsp_transport', 'tcp', '-timeout', '5000000',
     ], $tlsOptions, [
         '-show_entries', 'stream=codec_type,codec_name,width,height,sample_rate',
-        '-of', 'json', $target,
+        '-of', 'json', '-/i', $urlFile,
     ]), 12);
     $message = trim(str_replace($target, $parsed['url'], $stderr));
     if ($exit !== 0) {
@@ -1412,16 +1443,16 @@ function streaming_probe_rtsp(string $url, string $user, string $secret, bool $t
     $result['warnings'] = streaming_codec_warnings($result['video']['codec']);
     $result['h265'] = in_array('h265', $result['warnings'], true);
 
-    [$exit, $stdout, $stderr, $timedOut] = $run(array_merge([
+    // The RTSP options are in the concat script, for the device input
+    [$exit, $stdout, $stderr, $timedOut] = $run([
         'ffmpeg', '-hide_banner', '-loglevel', 'error', '-nostdin',
-        '-rtsp_transport', 'tcp', '-timeout', '5000000',
-    ], $tlsOptions, [
-        '-probesize', '32k', '-analyzeduration', '0', '-fflags', 'nobuffer',
+        '-f', 'concat', '-safe', '0',
+        '-protocol_whitelist', 'file,rtsp,rtsps,tcp,tls,udp,rtp',
         // decode only key frames: the first frame is never a broken one
         '-skip_frame', 'nokey',
-        '-i', $target, '-an', '-frames:v', '1', '-q:v', '5',
+        '-i', $concatFile, '-an', '-frames:v', '1', '-q:v', '5',
         '-f', 'mjpeg', 'pipe:1',
-    ]), 12);
+    ], 12);
     if ($exit === 0 && $stdout !== '') {
         $result['image'] = chunk_split(base64_encode($stdout));
         $result['mime'] = 'image/jpeg';
