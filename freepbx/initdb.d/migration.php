@@ -46,6 +46,9 @@ function setMigrationScriptVersion(\PDO $db, int $version): void
 	$stmt->execute([$version]);
 }
 
+# Disable obsolete chan_sip TLS, including on already-migrated installations.
+$db->exec("UPDATE `asterisk`.`sipsettings` SET `data` = 'no' WHERE `keyword` = 'tlsenable' AND `type` = 0");
+
 # FreePBX 17 reads account whenever mailbox exists, even if its value is empty.
 # Run before the version guard to repair installations whose first reload failed.
 $db->exec("DELETE `mailbox` FROM `asterisk`.`sip` AS `mailbox`
