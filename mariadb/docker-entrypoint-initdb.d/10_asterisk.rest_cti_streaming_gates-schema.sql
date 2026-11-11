@@ -14,6 +14,7 @@ CREATE TABLE `rest_cti_streaming_gates` (
   `method` varchar(6) NOT NULL DEFAULT 'GET',
   `username` varchar(255) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
+  `tls_fingerprint` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `source_position` (`source`,`position`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
