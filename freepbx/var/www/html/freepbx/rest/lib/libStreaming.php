@@ -952,7 +952,12 @@ function streaming_store_source(\PDO $db, array $source, array $profiles, ?strin
     }
 }
 
-/* Delete a source, its gates and its CTI permission */
+/*
+ * Delete a source, its gates and its CTI permission. The source must exist
+ * with exactly this name (StreamingNotFoundException otherwise): another
+ * name with the same permission name must not remove the permission of an
+ * existing source.
+ */
 function streaming_delete_source(\PDO $db, string $descr): void
 {
     $ownTransaction = !$db->inTransaction();
@@ -960,11 +965,19 @@ function streaming_delete_source(\PDO $db, string $descr): void
         $db->beginTransaction();
     }
     try {
+        // BINARY: the column collation ignores case and trailing spaces
+        $stmt = $db->prepare('SELECT `descr` FROM `rest_cti_streaming` WHERE BINARY `descr` = BINARY ?');
+        $stmt->execute([$descr]);
+        $stored = $stmt->fetchColumn();
+        if ($stored === false) {
+            throw new StreamingNotFoundException("video source $descr not found");
+        }
+        $descr = (string) $stored;
         $stmt = $db->prepare('DELETE FROM `rest_cti_permissions` WHERE `name` = ?');
         $stmt->execute([streaming_permission_name($descr)]);
         $stmt = $db->prepare('DELETE FROM `rest_cti_streaming_gates` WHERE `source` = ?');
         $stmt->execute([$descr]);
-        $stmt = $db->prepare('DELETE FROM `rest_cti_streaming` WHERE `descr` = ?');
+        $stmt = $db->prepare('DELETE FROM `rest_cti_streaming` WHERE BINARY `descr` = BINARY ?');
         $stmt->execute([$descr]);
         if ($ownTransaction) {
             $db->commit();

@@ -1286,8 +1286,7 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 
         return $response->withStatus(200);
-    } catch (Exception $e) {
-        error_log($e->getMessage());
-        return $response->withStatus(500);
+    } catch (Throwable $e) {
+        return streamingErrorResponse($response, $e);
     }
 });
