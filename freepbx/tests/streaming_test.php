@@ -204,18 +204,59 @@ foreach ([
     'rtspAddress: "127.0.0.1:20044"', 'webrtcAddress: "127.0.0.1:20042"', 'webrtcLocalUDPAddress: ":21000"',
     'webrtcLocalTCPAddress: ":20045"', 'webrtcAdditionalHosts: ["203.0.113.5", "10.0.0.5"]', 'webrtcIPsFromInterfaces: false',
     'rtmp: false', 'srt: false', 'moq: false', 'hls: false', 'metrics: false', 'pprof: false', 'playback: false',
-    'rtspTransports: [tcp]', '  rtspTransport: tcp', '  sourceOnDemand: true',
+    'rtspTransports: [tcp]', '  rtspTransport: tcp', '  sourceOnDemand: true', '  maxReaders: 100', 'authHTTPExclude: []',
     '  "streaming-gw/vs_front_door":', '    source: "rtsp://admin:Door-Spike-42@188.166.124.125:18554/cam-auth"',
 ] as $line) {
     check(strpos($yml, $line . "\n") !== false, "mediamtx.yml contains $line");
 }
 check(strpos($yml, 'vs_garden') === false, 'image sources are not gateway paths');
+check(strpos($yml, 'action: api') === false && strpos($yml, '  - action:') === false, 'the control API goes through the authentication hook');
 $noHosts = streaming_mediamtx_config([], array_merge($settings, ['ice_hosts' => []]));
-check(strpos($noHosts, "paths: {}\n") !== false && strpos($noHosts, 'webrtcIPsFromInterfaces: true') !== false, 'empty configuration');
+check(strpos($noHosts, "paths:\n  \"~^.*$\":\n    source: publisher\n    sourceOnDemand: false\n") !== false && strpos($noHosts, 'webrtcIPsFromInterfaces: true') !== false, 'empty configuration: only the catch-all path');
+check(substr($yml, -strlen("  \"~^.*$\":\n    source: publisher\n    sourceOnDemand: false\n")) === "  \"~^.*$\":\n    source: publisher\n    sourceOnDemand: false\n", 'catch-all path after the sources');
 
 $special = streaming_mediamtx_config(['x' => ['descr' => 'Door "1"', 'type' => 'rtsp', 'url' => 'rtsps://cam:322/a', 'user' => 'u"x', 'secret' => "p'\\#: y", 'gates' => []]], $settings);
 check(strpos($special, '"streaming-gw/vs_door_1":') !== false, 'quoted path name');
 check(strpos($special, 'source: "rtsps://u%22x:p%27%5C%23%3A%20y@cam:322/a"') !== false, 'credentials are encoded, YAML stays valid');
+
+// YAML scalars: only printable ASCII, everything else escaped
+check(streaming_yaml_string('Ingresso è già') === '"Ingresso \\u00e8 gi\\u00e0"', 'accented characters escaped');
+check(streaming_yaml_string("a\u{85}b\u{9f}c\u{2028}d") === '"a\\u0085b\\u009fc\\u2028d"', 'C1 controls and line separators escaped');
+check(streaming_yaml_string("x\u{1F6AA}y") === '"x\\U0001f6aay"', 'characters beyond the BMP as \\U escapes');
+check(streaming_yaml_string("bad\xc3(") === '"bad\\ufffd("', 'invalid UTF-8 replaced');
+check(streaming_yaml_string("t\tq\"b\\/") === '"t\\tq\\"b\\\\/"', 'JSON escapes are YAML escapes');
+$accented = streaming_mediamtx_config(['x' => ['descr' => 'Porta', 'type' => 'rtsp', 'url' => "rtsp://cam/vid\u{e9}o\u{85}/\u{1F6AA}", 'user' => '', 'secret' => '', 'gates' => []]], $settings);
+check(preg_match('/^[\x09\x0a\x20-\x7e]*$/', $accented) === 1, 'mediamtx.yml is printable ASCII');
+check(strpos($accented, 'source: "rtsp://cam/vid\\u00e9o\\u0085/\\U0001f6aa"') !== false, 'escaped source URL');
+
+// --- Device addresses ----------------------------------------------------------
+
+foreach (['127.0.0.1', '127.9.9.9', '0.0.0.0', '0.1.2.3', '169.254.169.254', '::1', '::', '0:0:0:0:0:0:0:1', 'fe80::1', 'febf::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '::ffff:169.254.1.1', '[::1]', 'fe80::1%eth0', 'not an ip'] as $ip) {
+    check(streaming_ip_blocked($ip), "$ip refused");
+}
+foreach (['192.168.1.10', '10.0.0.1', '172.16.5.4', '203.0.113.7', '1.1.1.1', 'fd00::1', 'fec0::1', '2001:db8::1', '::ffff:192.168.1.1'] as $ip) {
+    check(!streaming_ip_blocked($ip), "$ip allowed");
+}
+$fakeDns = function (string $host) {
+    $table = ['door.lan' => ['192.168.1.20'], 'rebind.example' => ['192.168.1.20', '127.0.0.1'], 'meta.example' => ['fe80::1'], '0x7f000001' => ['127.0.0.1'], 'gone.lan' => []];
+    return $table[$host] ?? [$host];
+};
+foreach (['localhost', 'LOCALHOST.', 'cam.localhost', 'rebind.example', 'meta.example', '0x7f000001', '127.0.0.1', '[::1]'] as $host) {
+    check(streaming_host_blocked($host, $fakeDns), "host $host refused");
+}
+foreach (['door.lan', 'gone.lan', '192.168.1.30'] as $host) {
+    check(!streaming_host_blocked($host, $fakeDns), "host $host allowed");
+}
+// the numeric forms read by inet_aton()/getaddrinfo() like the clients
+foreach (['0x7f000001', '0X7F000001', '2130706433', '0177.0.0.1', '127.1', '0x7f.1', '0', '0x0', '017700000001', '0xa9.0xfe.0xa9.0xfe', '2852039166'] as $host) {
+    check(streaming_host_blocked($host), "numeric host $host refused");
+}
+check(streaming_numeric_ipv4('3232235777') === '192.168.1.1' && streaming_numeric_ipv4('192.168.257') === '192.168.1.1' && streaming_numeric_ipv4('10.1') === '10.0.0.1', 'numeric forms decoded');
+check(streaming_numeric_ipv4('1.2.3.256') === null && streaming_numeric_ipv4('4294967296') === null && streaming_numeric_ipv4('08.1.1.1') === null && streaming_numeric_ipv4('cam1') === null && streaming_numeric_ipv4('1.2.3.4.5') === null, 'not numeric hosts');
+expect_validation(function () use ($fakeDns) { streaming_normalize_source(['descr' => 'Loop', 'url' => 'http://127.0.0.1:20043/v3/config/global/get'], null, $fakeDns); }, 'url', 'loopback source refused');
+expect_validation(function () use ($fakeDns) { streaming_normalize_source(['descr' => 'Loop', 'url' => 'rtsp://rebind.example/live'], null, $fakeDns); }, 'url', 'name with a loopback address refused');
+expect_validation(function () use ($fakeDns) { streaming_normalize_source(['descr' => 'Meta', 'url' => 'rtsp://door.lan/live', 'gates' => [['type' => 'url', 'url' => 'http://169.254.169.254/latest/meta-data/']]], null, $fakeDns); }, 'gates[0].url', 'link-local gate refused');
+check(streaming_normalize_source(['descr' => 'Lan', 'url' => 'rtsp://door.lan/live', 'gates' => [['type' => 'url', 'url' => 'http://192.168.1.21/open']]], null, $fakeDns)['url'] === 'rtsp://door.lan/live', 'LAN devices allowed');
 
 // --- Probe parsing -----------------------------------------------------------
 
@@ -227,9 +268,18 @@ check(streaming_failure_reason('Invalid data found when processing input') === '
 check(streaming_failure_reason('rtsp://h/x: No route to host') === 'unknown', 'other errors');
 check(streaming_failure_reason('', true) === 'timeout', 'killed after the timeout');
 
+// the device URL is read from files: keep their content and mode while the command runs
+function probe_input(array $command): array
+{
+    $at = array_search($command[0] === 'ffprobe' ? '-/i' : '-i', $command, true);
+    $file = $at === false ? '' : (string) $command[$at + 1];
+    return ['file' => $file, 'content' => is_file($file) ? file_get_contents($file) : null, 'mode' => is_file($file) ? fileperms($file) & 0777 : null];
+}
 $calls = [];
-$fake = function (array $command, int $timeout) use (&$calls) {
+$inputs = [];
+$fake = function (array $command, int $timeout) use (&$calls, &$inputs) {
     $calls[] = $command;
+    $inputs[] = probe_input($command);
     if ($command[0] === 'ffprobe') {
         return [0, json_encode(['streams' => [
             ['codec_name' => 'hevc', 'codec_type' => 'video', 'width' => 1920, 'height' => 1080],
@@ -242,8 +292,29 @@ $result = streaming_probe_rtsp('rtsp://192.0.2.10/live', 'admin', 'p w', false, 
 check($result['success'] && $result['h265'] && $result['warnings'] === ['h265'], 'H.265 is detected');
 check($result['video'] === ['codec' => 'hevc', 'width' => 1920, 'height' => 1080] && $result['audio']['sample_rate'] === 8000, 'codecs and resolution');
 check(base64_decode($result['image']) === "\xff\xd8\xff\xe0jpeg" && $result['mime'] === 'image/jpeg', 'preview');
-check(end($calls[0]) === 'rtsp://admin:p%20w@192.0.2.10/live' && in_array('tcp', $calls[0], true), 'ffprobe arguments: encoded credentials, TCP');
-check(in_array('-i', $calls[1], true) && $calls[1][array_search('-i', $calls[1], true) + 1] === 'rtsp://admin:p%20w@192.0.2.10/live', 'ffmpeg input argument');
+check($inputs[0]['content'] === 'rtsp://admin:p%20w@192.0.2.10/live' && in_array('tcp', $calls[0], true), 'ffprobe reads the URL from a file ("-/i"): encoded credentials, TCP');
+check($inputs[0]['mode'] === 0600 && $inputs[1]['mode'] === 0600, 'URL files readable only by the owner');
+check(array_slice($calls[1], 0, 9) === ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-nostdin', '-f', 'concat', '-safe', '0'], 'ffmpeg reads a concat script');
+check(strpos($inputs[1]['content'], "ffconcat version 1.0\nfile 'rtsp://admin:p%20w@192.0.2.10/live'\n") === 0
+    && strpos($inputs[1]['content'], "option rtsp_transport tcp\n") !== false && strpos($inputs[1]['content'], 'tls_verify') === false, 'ffmpeg input in the concat script, TCP');
+foreach ($calls as $command) {
+    check(strpos(implode(' ', $command), 'p%20w') === false && strpos(implode(' ', $command), 'admin') === false, $command[0] . ': no credentials on the command line');
+}
+check(!is_file($inputs[0]['file']) && !is_file($inputs[1]['file']), 'URL files removed');
+$calls = [];
+$inputs = [];
+streaming_probe_rtsp("rtsp://192.0.2.10/it's", "o'neil", "a'b", false, $fake);
+check(strpos($inputs[1]['content'], "file 'rtsp://o%27neil:a%27b@192.0.2.10/it'\\''s'\n") !== false, 'quote escaped in the concat script');
+$thrownInput = null;
+try {
+    streaming_probe_rtsp('rtsp://192.0.2.10/live', 'admin', 'bad', false, function (array $command) use (&$thrownInput) {
+        $thrownInput = probe_input($command);
+        throw new RuntimeException('killed');
+    });
+    check(false, 'exception propagated');
+} catch (RuntimeException $e) {
+    check($thrownInput['content'] !== null && !is_file($thrownInput['file']), 'URL files removed after an error');
+}
 
 $denied = streaming_probe_rtsp('rtsp://192.0.2.10/live', 'admin', 'bad', false, function () {
     return [1, '{}', "[rtsp @ 0x1] method DESCRIBE failed: 401 (Unauthorized)\nrtsp://admin:bad@192.0.2.10/live: Server returned 401 Unauthorized (authorization failed)\n", false];
@@ -301,20 +372,61 @@ check($offTls['tls_skip_verify'] === false && $offTls['tls_fingerprint'] === nul
 [$refreshed, $error] = streaming_refresh_fingerprint($kept, function ($url) use ($fpB) {
     return [strtoupper($fpB), ''];
 });
-check($refreshed['tls_fingerprint'] === $fpB && $error === '', 'save pins the current certificate');
+check($refreshed['tls_fingerprint'] === $fpB && $error === [], 'save pins the current certificate');
 [$offline, $error] = streaming_refresh_fingerprint($kept, function ($url) {
     return [null, 'Connection refused'];
 });
-check($offline['tls_fingerprint'] === $fpA && $error === 'Connection refused', 'device offline at save: the stored certificate is kept');
+check($offline['tls_fingerprint'] === $fpA && $error === ['url' => 'Connection refused'], 'device offline at save: the stored certificate is kept');
 [$offlineNew, $error] = streaming_refresh_fingerprint($tlsOn, function ($url) {
     return [null, ''];
 });
-check($offlineNew['tls_fingerprint'] === null && $error !== '', 'device offline at the first save: no certificate pinned');
-[$noPin, $error] = streaming_refresh_fingerprint($httpsGate, function () {
+check($offlineNew['tls_fingerprint'] === null && $error !== [], 'device offline at the first save: no certificate pinned');
+[$noPin, $error] = streaming_refresh_fingerprint($plain, function () {
     check(false, 'no certificate read when not needed');
     return [null, ''];
 });
-check($noPin['tls_fingerprint'] === null && $error === '', 'nothing to pin');
+check($noPin['tls_fingerprint'] === null && $error === [], 'nothing to pin');
+// https URL gates are pinned too, on their own device
+$fetchedGates = [];
+[$gatePinned, $error] = streaming_refresh_fingerprint($httpsGate, function ($url) use (&$fetchedGates, $fpA) {
+    $fetchedGates[] = $url;
+    return [$fpA, ''];
+});
+check($fetchedGates === ['https://192.0.2.30/open'] && $gatePinned['tls_fingerprint'] === null && $gatePinned['gates'][0]['tls_fingerprint'] === $fpA && $error === [], 'https gate pinned, plain RTSP source not');
+check(streaming_cti_config(['Tls' => array_merge($gatePinned, ['frame-rate' => '1000'])])['vs_tls']['gates'][0]['tls_fingerprint'] === $fpA, 'gate fingerprint in streaming.json');
+$publicGate = streaming_public_source($gatePinned);
+check($publicGate['gates'][0]['tls_fingerprint'] === $fpA && $publicGate['tls_unpinned'] === false, 'REST view: gate fingerprint, pinned');
+check(streaming_public_source($httpsGate)['tls_unpinned'] === true, 'REST view: unpinned gate flagged (saved by an older version)');
+check(streaming_tls_unpinned(array_merge($httpsGate, ['tls_skip_verify' => false])) === false, 'nothing to pin without the option');
+// the stored gate certificate is kept for the same device only
+$gateStored = $gatePinned;
+$gateStored['gates'][0]['id'] = 7;
+$sameGate = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsp://192.0.2.30/live', 'gates' => [['id' => 7, 'type' => 'url', 'url' => 'https://192.0.2.30/open?x=1']]], $gateStored);
+check($sameGate['gates'][0]['tls_fingerprint'] === $fpA, 'same gate device: certificate kept');
+$otherGate = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsp://192.0.2.30/live', 'gates' => [['id' => 7, 'type' => 'url', 'url' => 'https://192.0.2.31/open']]], $gateStored);
+check($otherGate['gates'][0]['tls_fingerprint'] === null, 'another gate device: certificate dropped');
+$offGate = streaming_normalize_source(['descr' => 'Tls', 'url' => 'rtsp://192.0.2.30/live', 'tls_skip_verify' => false, 'gates' => [['id' => 7, 'type' => 'url', 'url' => 'https://192.0.2.30/open']]], $gateStored);
+check($offGate['gates'][0]['tls_fingerprint'] === null, 'option off: gate certificate dropped');
+// a source that skips the verification is never saved without the certificates
+[$pinnedSave] = streaming_pin_certificates($httpsGate, function () use ($fpB) { return [$fpB, '']; });
+check($pinnedSave['gates'][0]['tls_fingerprint'] === $fpB, 'save pins the gate');
+expect_validation(function () use ($httpsGate) {
+    streaming_pin_certificates($httpsGate, function () { return [null, 'Connection refused']; });
+}, 'gates[0].url', 'unreachable https gate at the first save');
+expect_validation(function () use ($tlsOn) {
+    streaming_pin_certificates($tlsOn, function () { return [null, 'Connection refused']; });
+}, 'tls_skip_verify', 'unreachable rtsps device at the first save');
+$snapOn = streaming_normalize_source(['descr' => 'Snap', 'url' => 'https://192.0.2.32/s.jpg', 'tls_skip_verify' => true]);
+expect_validation(function () use ($snapOn) {
+    streaming_pin_certificates($snapOn, function () { return [null, 'timeout']; });
+}, 'tls_skip_verify', 'unreachable https image device at the first save');
+[$keptSave, $errors] = streaming_pin_certificates(array_merge($tlsOn, ['tls_fingerprint' => $fpA]), function () { return [null, 'Connection refused']; });
+check($keptSave['tls_fingerprint'] === $fpA && $errors === ['url' => 'Connection refused'], 'device offline: the stored certificate is kept, no error');
+try {
+    streaming_pin_certificates($tlsOn, function () { return [null, 'Connection refused']; });
+} catch (StreamingValidationException $e) {
+    check(strpos($e->getMessage(), 'could not read the TLS certificate of the device') === 0 && $e->getDetail() === 'Connection refused', 'clear error message, cause for the log');
+}
 
 $tlsSources = [
     'Tls' => array_merge($refreshed, ['frame-rate' => '1000', 'exten' => null]),
@@ -323,10 +435,12 @@ $tlsSources = [
 ];
 $public = streaming_public_source($tlsSources['Tls']);
 check($public['tls_skip_verify'] === true && $public['tls_fingerprint'] === $fpB, 'REST view: option and pinned certificate');
-check(streaming_public_source($tlsSources['Snap'])['tls_fingerprint'] === null && streaming_public_source($stored['Garden'])['tls_skip_verify'] === false, 'REST view: no fingerprint without pinning, false by default');
+check(streaming_public_source($tlsSources['Snap'])['tls_fingerprint'] === $fpA && streaming_public_source($tlsSources['Strict'])['tls_fingerprint'] === null
+    && streaming_public_source($stored['Garden'])['tls_skip_verify'] === false, 'REST view: https fingerprint, none without the option, false by default');
 $cti = streaming_cti_config($tlsSources);
 check($cti['vs_tls']['tls_skip_verify'] === true && $cti['vs_snap']['tls_skip_verify'] === true && $cti['vs_strict']['tls_skip_verify'] === false, 'streaming.json has tls_skip_verify');
-check(strpos(json_encode($cti), $fpB) === false, 'the fingerprint is not in streaming.json');
+check(strpos(json_encode($cti), $fpB) === false, 'the fingerprint of a rtsps source is not in streaming.json');
+check($cti['vs_snap']['tls_fingerprint'] === $fpA && $cti['vs_strict']['tls_fingerprint'] === null, 'streaming.json pins the https image device');
 check(streaming_cti_config($stored)['vs_garden']['tls_skip_verify'] === false, 'streaming.json default');
 $yml = streaming_mediamtx_config($tlsSources, $settings);
 check(strpos($yml, "  \"streaming-gw/vs_tls\":\n    source: \"rtsps://u:p@192.0.2.30:322/other\"\n    sourceFingerprint: \"$fpB\"\n") !== false, 'gateway pins the certificate');
@@ -340,8 +454,10 @@ check(streaming_failure_reason("SSL: no alternative certificate subject name mat
 check(streaming_failure_reason('error:0A00010B:SSL routines::wrong version number') === 'unknown', 'a TLS protocol error is not a certificate error');
 
 $tlsCalls = [];
-$tlsFake = function (array $command, int $timeout) use (&$tlsCalls) {
+$tlsInputs = [];
+$tlsFake = function (array $command, int $timeout) use (&$tlsCalls, &$tlsInputs) {
     $tlsCalls[] = $command;
+    $tlsInputs[] = probe_input($command);
     if ($command[0] === 'ffprobe') {
         return [0, json_encode(['streams' => [['codec_name' => 'h264', 'codec_type' => 'video']]]), '', false];
     }
@@ -354,14 +470,14 @@ $fetchFake = function (string $url) use (&$fetched, $fpB) {
 };
 $strict = streaming_probe_rtsp('rtsps://192.0.2.30:322/live', 'u', 'p', false, $tlsFake, $fetchFake);
 check($strict['success'] && $strict['tls_fingerprint'] === null && $fetched === [], 'verified check: no certificate read');
-foreach ($tlsCalls as $command) {
-    $at = array_search('-tls_verify', $command, true);
-    check($at !== false && $command[$at + 1] === '1' && $at < count($command) - 1 && array_search('rtsps://u:p@192.0.2.30:322/live', $command, true) > $at, $command[0] . ' verifies the certificate');
-}
+$at = array_search('-tls_verify', $tlsCalls[0], true);
+check($at !== false && $tlsCalls[0][$at + 1] === '1' && array_search('-/i', $tlsCalls[0], true) > $at && $tlsInputs[0]['content'] === 'rtsps://u:p@192.0.2.30:322/live', 'ffprobe verifies the certificate');
+check(strpos($tlsInputs[1]['content'], "option tls_verify 1\n") !== false && strpos($tlsInputs[1]['content'], "file 'rtsps://u:p@192.0.2.30:322/live'") !== false, 'ffmpeg verifies the certificate');
 $tlsCalls = [];
+$tlsInputs = [];
 $skipped = streaming_probe_rtsp('rtsps://192.0.2.30:322/live', 'u', 'p', true, $tlsFake, $fetchFake);
 check($skipped['success'] && $skipped['tls_fingerprint'] === $fpB && $fetched === ['rtsps://192.0.2.30:322/live'], 'skipped check returns the device certificate, read without credentials');
-check(count($tlsCalls) === 2 && $tlsCalls[0][array_search('-tls_verify', $tlsCalls[0], true) + 1] === '0' && $tlsCalls[1][array_search('-tls_verify', $tlsCalls[1], true) + 1] === '0', 'ffprobe and ffmpeg skip the verification');
+check(count($tlsCalls) === 2 && $tlsCalls[0][array_search('-tls_verify', $tlsCalls[0], true) + 1] === '0' && strpos($tlsInputs[1]['content'], "option tls_verify 0\n") !== false, 'ffprobe and ffmpeg skip the verification');
 $untrusted = streaming_probe_rtsp('rtsps://192.0.2.30:322/live', 'u', 'p', false, function () {
     return [1, '', "[tls @ 0x1] error:0A000086:SSL routines::certificate verify failed\nrtsps://u:p@192.0.2.30:322/live: Input/output error\n", false];
 });
@@ -398,7 +514,18 @@ while (true) {
     while (!feof($conn) && strpos($request, "\r\n\r\n") === false && ($chunk = fread($conn, 4096)) !== false && $chunk !== '') {
         $request .= $chunk;
     }
-    if ($request !== '') {
+    $path = preg_match('#^GET (\S+)#', $request, $m) ? $m[1] : '';
+    if ($path === '/text') {
+        @fwrite($conn, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 18\r\nConnection: close\r\n\r\n{\"secret\": \"meta\"}");
+    } elseif ($path === '/fake.jpg') {
+        @fwrite($conn, "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: 18\r\nConnection: close\r\n\r\n{\"secret\": \"meta\"}");
+    } elseif ($path === '/image.png') {
+        @fwrite($conn, "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: 10\r\nConnection: close\r\n\r\n\x89PNG\r\n\x1a\nok");
+    } elseif ($path === '/big.jpg') {
+        @fwrite($conn, "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nConnection: close\r\n\r\n\xff\xd8\xff\xe0");
+        for ($i = 0; $i < 6 && @fwrite($conn, str_repeat('x', 1048576)) !== false; $i++) {
+        }
+    } elseif ($request !== '') {
         @fwrite($conn, "HTTP/1.1 200 OK\r\nContent-Type: image/jpeg\r\nContent-Length: 6\r\nConnection: close\r\n\r\n\xff\xd8\xff\xe0ok");
     }
     @fclose($conn);
@@ -420,6 +547,17 @@ if (function_exists('curl_init')) {
     check(!$verified['success'] && $verified['reason'] === 'tls_error', 'image check verifies the certificate: ' . $verified['reason'] . ' ' . $verified['message']);
     $skippedImage = streaming_probe_image("https://$address/snap.jpg", '', '', true);
     check($skippedImage['success'] && base64_decode($skippedImage['image']) === "\xff\xd8\xff\xe0ok", 'image check skips the verification: ' . $skippedImage['message']);
+    check($skippedImage['tls_fingerprint'] === $expected, 'image check returns the certificate to pin');
+    $notImage = streaming_probe_image("https://$address/text", '', '', true);
+    check(!$notImage['success'] && $notImage['reason'] === 'unsupported' && $notImage['image'] === null, 'not an image: unsupported, no content');
+    $fakeType = streaming_probe_image("https://$address/fake.jpg", '', '', true);
+    check(!$fakeType['success'] && $fakeType['reason'] === 'unsupported' && $fakeType['image'] === null, 'image content type without image data: no content');
+    $png = streaming_probe_image("https://$address/image.png", '', '', true);
+    check($png['success'] && $png['mime'] === 'image/png', 'PNG image');
+    $big = streaming_probe_image("https://$address/big.jpg", '', '', true);
+    check(!$big['success'] && $big['reason'] === 'unsupported' && $big['image'] === null && strpos($big['message'], 'bigger') !== false, 'image bigger than 5 MB refused: ' . $big['message']);
+    $pinnedAddress = streaming_probe_image('https://device.invalid:' . explode(':', $address)[1] . '/snap.jpg', '', '', true, function () { return [null, '']; }, '127.0.0.1');
+    check($pinnedAddress['success'], 'host name connected to the checked address: ' . $pinnedAddress['message']);
 } else {
     fwrite(STDERR, "SKIP: curl extension not available\n");
 }
@@ -446,6 +584,86 @@ rmdir($dir);
 $split = streamingMigrationSplitCredentials('http://admin:p@ss@192.0.2.1/cgi-bin/snap.jpg');
 check($split === ['url' => 'http://192.0.2.1/cgi-bin/snap.jpg', 'user' => 'admin', 'secret' => 'p@ss'], 'migration splits URL credentials');
 check(streamingMigrationSplitCredentials('http://192.0.2.1/snap.jpg?a=b@c') === null, 'migration ignores @ outside the authority');
+
+// --- Delete -------------------------------------------------------------------
+
+class FakeStatement
+{
+    private $db;
+    private $sql;
+    private $result = [];
+
+    public function __construct($db, string $sql)
+    {
+        $this->db = $db;
+        $this->sql = $sql;
+    }
+
+    public function execute(array $params = []): bool
+    {
+        $this->db->log[] = [$this->sql, $params];
+        if (strpos($this->sql, 'SELECT `descr` FROM `rest_cti_streaming` WHERE BINARY') === 0) {
+            $this->result = in_array($params[0], $this->db->sources, true) ? [$params[0]] : [];
+        }
+        return true;
+    }
+
+    public function fetchColumn()
+    {
+        return $this->result ? $this->result[0] : false;
+    }
+}
+
+class FakePdo extends \PDO
+{
+    public $log = [];
+    public $sources = [];
+
+    public function __construct(array $sources)
+    {
+        $this->sources = $sources;
+    }
+
+    #[\ReturnTypeWillChange]
+    public function prepare($sql, $options = [])
+    {
+        return new FakeStatement($this, $sql);
+    }
+
+    public function inTransaction(): bool
+    {
+        return false;
+    }
+
+    public function beginTransaction(): bool
+    {
+        return true;
+    }
+
+    public function commit(): bool
+    {
+        return true;
+    }
+
+    public function rollBack(): bool
+    {
+        return true;
+    }
+}
+
+$fakeDb = new FakePdo(['Ingresso']);
+try {
+    streaming_delete_source($fakeDb, 'Ingresso!');
+    check(false, 'similar name: no exception');
+} catch (StreamingNotFoundException $e) {
+    check(true, 'similar name: not found');
+}
+check(count($fakeDb->log) === 1, 'similar name: nothing deleted');
+$fakeDb->log = [];
+streaming_delete_source($fakeDb, 'Ingresso');
+$deletes = array_values(array_filter($fakeDb->log, function ($entry) { return strpos($entry[0], 'DELETE') === 0; }));
+check(count($deletes) === 3 && $deletes[0][1] === ['vs_ingresso'] && $deletes[2][1] === ['Ingresso'], 'exact name: permission, gates and source deleted');
+check(strpos($deletes[2][0], 'BINARY') !== false, 'the source row is matched exactly');
 
 if ($failures > 0) {
     fwrite(STDERR, "$failures of $count checks failed\n");
