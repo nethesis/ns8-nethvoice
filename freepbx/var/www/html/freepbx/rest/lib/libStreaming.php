@@ -1093,15 +1093,14 @@ function streaming_mediamtx_config(array $sources, array $settings): string
         'logLevel: info',
         'logDestinations: [stdout]',
         '',
-        '# Every viewer, local readers included, is authorized by nethcti-server',
+        '# Every request, local readers and the control API included, is',
+        '# authorized by nethcti-server',
         'authMethod: http',
         'authHTTPAddress: ' . streaming_yaml_string($settings['auth_url']),
-        'authHTTPExclude:',
-        '  - action: api',
-        '  - action: metrics',
-        '  - action: pprof',
+        'authHTTPExclude: []',
         '',
-        '# The control API returns the source passwords: loopback only, never routed',
+        '# The control API returns the source passwords: loopback only, never',
+        '# routed, and only for the nethcti-server user (checked by the hook)',
         'api: true',
         'apiAddress: ' . streaming_yaml_string('127.0.0.1:' . $settings['api_port']),
         'metrics: false',
@@ -1143,6 +1142,8 @@ function streaming_mediamtx_config(array $sources, array $settings): string
         '  sourceOnDemandStartTimeout: 10s',
         '  sourceOnDemandCloseAfter: 10s',
         '  rtspTransport: tcp',
+        '  # Viewers of a single source, all users together',
+        '  maxReaders: ' . STREAMING_MAX_READERS,
         '',
     ]);
     $paths = [];
@@ -1158,18 +1159,20 @@ function streaming_mediamtx_config(array $sources, array $settings): string
         ];
     }
     ksort($paths);
-    if ($paths) {
-        $lines[] = 'paths:';
-        foreach ($paths as $name => $path) {
-            $lines[] = '  ' . streaming_yaml_string($name) . ':';
-            $lines[] = '    source: ' . streaming_yaml_string($path['url']);
-            if ($path['fingerprint'] !== null) {
-                $lines[] = '    sourceFingerprint: ' . streaming_yaml_string($path['fingerprint']);
-            }
+    $lines[] = 'paths:';
+    foreach ($paths as $name => $path) {
+        $lines[] = '  ' . streaming_yaml_string($name) . ':';
+        $lines[] = '    source: ' . streaming_yaml_string($path['url']);
+        if ($path['fingerprint'] !== null) {
+            $lines[] = '    sourceFingerprint: ' . streaming_yaml_string($path['fingerprint']);
         }
-    } else {
-        $lines[] = 'paths: {}';
     }
+    // Any other path goes through the authentication hook too (which denies
+    // it), so that an unknown path is answered like a configured one (401)
+    // and the source names cannot be enumerated
+    $lines[] = '  ' . streaming_yaml_string('~^.*$') . ':';
+    $lines[] = '    source: publisher';
+    $lines[] = '    sourceOnDemand: false';
     return implode("\n", $lines) . "\n";
 }
 
