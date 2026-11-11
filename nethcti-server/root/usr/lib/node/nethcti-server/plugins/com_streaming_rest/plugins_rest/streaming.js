@@ -173,6 +173,8 @@ function setCompConfigManager(comp) {
         * through WHEP, see [`streaming/token`](#tokenpost)). "whep" is the
         * relative WHEP URL of "rtsp" sources, null otherwise. "gates" are the
         * gates that can be opened with [`streaming/open`](#openpost).
+        * "cmdOpen" (the DTMF code) is empty, except for the configurations
+        * without gates (older FreePBX).
         *
         * Example JSON response:
         *
@@ -181,7 +183,7 @@ function setCompConfigManager(comp) {
               "id": "vs_door",
               "url": "",
               "user": "",
-              "cmdOpen": "0*",
+              "cmdOpen": "",
               "password": "",
               "frameRate": "1000",
               "extension": "609",
