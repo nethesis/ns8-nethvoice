@@ -38,7 +38,7 @@
         <span class="pficon pficon-close"></span>
         </button>
       <span class="pficon pficon-error-circle-o"></span>
-      <strong>{{'Source not saved' | translate}}.</strong> {{onSaveErrorMessage || ('Source saving error' | translate)}}
+      <strong>{{'Source not saved' | translate}}.</strong> {{(onSaveErrorMessage | translate) || ('Source saving error' | translate)}}
     </div>
     <div ng-if="!(allSources | isEmpty)" class="row row-cards-pf adjust-card">
       <div ng-repeat="g in (allSources | orderBy:'descr') track by $index" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
@@ -252,7 +252,7 @@
                 <span class="pficon pficon-error-circle-o"></span>
                 <strong>{{reasonMessage(newSource.check.reason) | translate}}</strong>
                 <span ng-if="newSource.check.reason === 'tls_error' && !tlsSkipVerify(newSource)"><br>{{'If the device has a self-signed certificate, enable Skip TLS certificate verification' | translate}}</span>
-                <span ng-if="newSource.check.message"><br><small>{{newSource.check.message}}</small></span>
+                <span ng-if="newSource.check.message"><br><small>{{newSource.check.message | translate}}</small></span>
               </div>
             </div>
           </div>

@@ -1146,7 +1146,7 @@
   "Move up": "Sposta in alto",
   "Move down": "Sposta in basso",
   "DTMF code": "Codice DTMF",
-  "Sent to the extension of the source during a call": "Inviato all'interno della sorgente durante la chiamata",
+  "Sent to the extension of the source during a call": "Inviato durante una chiamata con l'interno della sorgente",
   "Add gate": "Aggiungi varco",
   "H.265 video plays only in some browsers: configure the device to send H.264": "Il video H.265 è riprodotto solo da alcuni browser: configura il dispositivo per inviare H.264",
   "This video codec cannot be played in the browser: configure the device to send H.264": "Questo codec video non può essere riprodotto nel browser: configura il dispositivo per inviare H.264",
@@ -1163,5 +1163,8 @@
   "Device certificate": "Certificato del dispositivo",
   "TLS certificate": "Certificato TLS",
   "Not verified": "Non verificato",
-  "Unsupported URL or stream": "URL o flusso non supportato"
+  "Unsupported URL or stream": "URL o flusso non supportato",
+  "Gate": "Varco",
+  "the device address changed: type the password again": "L'indirizzo del dispositivo è cambiato: inserisci di nuovo la password",
+  "the gate address changed: type the password again": "L'indirizzo del varco è cambiato: inserisci di nuovo la password"
 }
