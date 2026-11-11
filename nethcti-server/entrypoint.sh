@@ -369,7 +369,8 @@ cat > $FILE <<EOF
     }
   },
   "mediamtx": {
-    "api_port": "${MEDIAMTX_API_PORT}"
+    "api_port": "${MEDIAMTX_API_PORT}",
+    "api_password": "${MEDIAMTX_API_PASSWORD}"
   }
 }
 EOF

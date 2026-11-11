@@ -279,7 +279,9 @@ passwords = {
     "SATELLITE_API_TOKEN": gen_password(),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password(),
     "CHAT_COMPONENT_SECRET": gen_password(),
-    "CHAT_SERVICE_SECRET": gen_password()
+    "CHAT_SERVICE_SECRET": gen_password(),
+    # Video gateway (MediaMTX) control API: the password of the nethcti-server user
+    "MEDIAMTX_API_PASSWORD": gen_password()
 }
 
 agent.write_envfile("passwords.env", passwords)
