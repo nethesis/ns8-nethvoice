@@ -1689,6 +1689,7 @@ paths:
   /cti/streaming/{name}:
     delete:
       summary: Delete a streaming source and related permission record.
+      description: The source must exist with exactly this name.
       tags:
       - CTI
       responses:
@@ -1698,6 +1699,8 @@ paths:
             application/json:
               schema:
                 type: object
+        '404':
+          description: No source with exactly this name
       operationId: delete_cti_streaming_name
       parameters:
       - name: name
@@ -4143,6 +4146,12 @@ components:
         has_password:
           type: boolean
           readOnly: true
+        tls_fingerprint:
+          type: string
+          nullable: true
+          readOnly: true
+          description: SHA-256 of the certificate of an https:// gate device,
+            pinned when the source (with `tls_skip_verify`) is saved
     VideoSourceInput:
       type: object
       required:
@@ -4180,9 +4189,11 @@ components:
           description: 'Skip the TLS certificate verification for the source
             URL and all its URL gates (devices with a self-signed
             certificate). Absent on update: the stored value is kept. Stored
-            as false when neither the URL nor a URL gate uses TLS. For a
-            rtsps:// source the gateway pins the SHA-256 fingerprint of the
-            certificate the device presents when the source is saved.'
+            as false when neither the URL nor a URL gate uses TLS. The SHA-256
+            fingerprint of the certificate each TLS device (rtsps:// or
+            https:// URL, https:// URL gates) presents when the source is
+            saved is pinned: the save fails (400) if a certificate cannot be
+            read and none is stored for that device.'
         profiles:
           type: array
           items:
@@ -4221,7 +4232,14 @@ components:
           nullable: true
           readOnly: true
           description: SHA-256 of the device certificate pinned by the gateway
-            (rtsps:// sources with `tls_skip_verify`), null if none
+            (rtsps://) or by nethcti-server (https://) for sources with
+            `tls_skip_verify`, null if none
+        tls_unpinned:
+          type: boolean
+          readOnly: true
+          description: 'A device of the source skips the TLS verification
+            without a pinned certificate (saved by an older version): it is
+            contacted unpinned until the source is saved again'
         permission:
           type: string
           example: vs_front_door
@@ -4282,15 +4300,19 @@ components:
         reason:
           type: string
           nullable: true
-          enum: [auth_failed, connection_refused, timeout, not_found, tls_error, unsupported, unknown, null]
+          enum: [auth_failed, connection_refused, timeout, not_found, tls_error, unsupported, address_not_allowed, unknown, null]
+          description: '`address_not_allowed`: loopback, link-local or
+            unspecified device address; `unsupported` also for an image
+            source that does not answer with a JPEG or PNG image (its content
+            is never returned)'
         message:
           type: string
           description: Raw error message, without credentials
         tls_fingerprint:
           type: string
           nullable: true
-          description: SHA-256 of the certificate of a rtsps:// device, read
-            when `tls_skip_verify` is set
+          description: SHA-256 of the certificate of a rtsps:// or https://
+            device, read when `tls_skip_verify` is set
     VideoSourceError:
       type: object
       properties:
