@@ -1341,6 +1341,8 @@
     "Contact your administrator to configure video sources": "Contatta l'amministratore per configurare le sorgenti video",
     "Choose the gate to open": "Scegli il varco da aprire",
     "Open gate name": "Apri {{name}}",
+    "Door": "Porta",
+    "Door number": "Porta {{number}}",
     "Shown in the expanded view": "Visibile nella vista espansa",
     "Command sent": "Comando inviato",
     "Open gate success message": "Il comando di apertura è stato inviato a {{name}}",
