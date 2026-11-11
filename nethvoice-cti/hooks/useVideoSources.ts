@@ -70,6 +70,8 @@ const OPEN_ERROR_CODES = [
   'gate_unreachable',
   'dtmf_failed',
   'gate_timeout',
+  'gate_certificate_changed',
+  'gate_address_not_allowed',
   'call_not_answered',
 ]
 
