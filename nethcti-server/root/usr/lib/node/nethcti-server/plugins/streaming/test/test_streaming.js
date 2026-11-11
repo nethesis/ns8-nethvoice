@@ -290,10 +290,12 @@ async function main() {
   assert.strictEqual(src.vs_old.whep, null);
   assert.deepStrictEqual(src.vs_old.gates, []);
   assert.strictEqual(src.vs_old.cmdOpen, '0*', 'DTMF code only for the configurations without gates');
-  assert.strictEqual(src.vs_img.cmdOpen, '', 'no DTMF code for the sources with gates');
-  assert.strictEqual(src.vs_rtsp.cmdOpen, '');
-  assert.strictEqual(src.vs_rtsp2.cmdOpen, '');
-  assert.strictEqual(streaming.getSourceJSONByExten('302').cmdOpen, '');
+  // sources with gates: a placeholder, never the code, for the button of the older clients
+  assert.strictEqual(src.vs_img.cmdOpen, '*', 'no DTMF code for the sources with gates');
+  assert.strictEqual(src.vs_rtsp.cmdOpen, '*');
+  assert.strictEqual(src.vs_rtsp2.cmdOpen, '', 'no gates: no open door button');
+  assert.strictEqual(streaming.getSourceJSONByExten('302').cmdOpen, '*');
+  [src.vs_img, src.vs_rtsp].forEach(function(s) { assert.notStrictEqual(s.cmdOpen, '5'); assert.notStrictEqual(s.cmdOpen, '6'); });
   assert.strictEqual(src.vs_img.type, 'image');
   assert.deepStrictEqual(src.vs_img.gates, [{ id: '1', name: 'Door', type: 'dtmf' }]);
   assert.strictEqual(src.vs_rtsp.type, 'rtsp');
