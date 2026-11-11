@@ -45,6 +45,14 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
     if (barRef.current) setMenuMaxHeight(barRef.current.offsetTop)
   }
 
+  // gates without a name are "Door", numbered by position when there are several of them
+  const unnamedGates = gates.filter((gate) => !gate.name)
+  const gateLabel = (gate: VideoSourceGate) =>
+    gate.name ||
+    (unnamedGates.length > 1
+      ? t('Streaming.Door number', { number: unnamedGates.indexOf(gate) + 1 })
+      : t('Streaming.Door'))
+
   // "Open <name>" for a single named gate, "Open door" otherwise
   let unlockTooltip = t('Common.Open door')
   if (gates.length === 1 && gates[0].name) {
@@ -120,7 +128,7 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
                     icon={faLock}
                     onClick={() => onUnlockSource(source, gate)}
                   >
-                    <span className='truncate'>{gate.name || gate.id}</span>
+                    <span className='truncate'>{gateLabel(gate)}</span>
                   </Dropdown.Item>
                 ))}
               </>

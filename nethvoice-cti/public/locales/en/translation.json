@@ -1346,6 +1346,8 @@
     "Contact your administrator to configure video sources": "Contact your administrator to configure video sources",
     "Choose the gate to open": "Choose the gate to open",
     "Open gate name": "Open {{name}}",
+    "Door": "Door",
+    "Door number": "Door {{number}}",
     "Shown in the expanded view": "Shown in the expanded view",
     "Command sent": "Command sent",
     "Open gate success message": "The opening command was sent to {{name}}",
