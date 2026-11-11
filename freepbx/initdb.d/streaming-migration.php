@@ -46,6 +46,7 @@ function migrateStreamingSchema(\PDO $db): void
         `method` varchar(6) NOT NULL DEFAULT 'GET',
         `username` varchar(255) DEFAULT NULL,
         `password` varchar(255) DEFAULT NULL,
+        `tls_fingerprint` varchar(64) DEFAULT NULL,
         PRIMARY KEY (`id`),
         KEY `source_position` (`source`,`position`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
@@ -86,7 +87,8 @@ function migrateStreamingSchema(\PDO $db): void
 
 /*
  * Video sources: per-source "skip TLS certificate verification" and the
- * pinned certificate of the device (NethServer/dev#7535). Added after
+ * pinned certificates of the source device and of its URL gates
+ * (NethServer/dev#7535). Added after
  * MIGRATION_SCRIPT 3 was released to test instances, so it does not depend on
  * the version: it runs at every start and only adds the missing columns.
  */
@@ -104,6 +106,14 @@ function migrateStreamingTlsSchema(\PDO $db): void
     }
     if (!in_array('tls_fingerprint', $columns, true)) {
         $db->exec("ALTER TABLE `asterisk`.`rest_cti_streaming` ADD COLUMN `tls_fingerprint` varchar(64) DEFAULT NULL");
+    }
+    // The pinned certificate of the https:// URL gates. Existing gates stay
+    // without it: they keep working unpinned until the source is saved again.
+    $gateColumns = $db->query("SELECT COLUMN_NAME
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_cti_streaming_gates'")->fetchAll(\PDO::FETCH_COLUMN);
+    if (!empty($gateColumns) && !in_array('tls_fingerprint', $gateColumns, true)) {
+        $db->exec("ALTER TABLE `asterisk`.`rest_cti_streaming_gates` ADD COLUMN `tls_fingerprint` varchar(64) DEFAULT NULL");
     }
 }
 

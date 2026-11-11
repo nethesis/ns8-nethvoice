@@ -1074,6 +1074,9 @@ $app->get('/cti/paramurls', function (Request $request, Response $response, $arg
 function streamingErrorResponse(Response $response, Throwable $e): Response
 {
     if ($e instanceof StreamingValidationException) {
+        if ($e->getDetail() !== '') {
+            error_log('video source not saved, ' . $e->getField() . ': ' . $e->getMessage() . ': ' . $e->getDetail());
+        }
         return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
     }
     if ($e instanceof StreamingNotFoundException) {
@@ -1087,15 +1090,17 @@ function streamingErrorResponse(Response $response, Throwable $e): Response
 }
 
 /*
- * Pin the certificate of a rtsps:// source that skips the TLS verification:
- * the gateway trusts the certificate the device presents now.
+ * Pin the certificates of the TLS devices of a source that skips the TLS
+ * verification (rtsps:// for the gateway, https:// image URL and URL gates
+ * for nethcti-server): they trust the certificates the devices present now.
+ * A validation error is thrown when a certificate cannot be read and none is
+ * stored for that device.
  */
 function streamingPinCertificate(array $source): array
 {
-    [$source, $error] = streaming_refresh_fingerprint($source);
-    if ($error !== '') {
-        error_log("video source {$source['descr']}: cannot read the device certificate, " .
-            ($source['tls_fingerprint'] !== null ? 'the stored one is kept' : 'the gateway will verify it') . ": $error");
+    [$source, $errors] = streaming_pin_certificates($source);
+    foreach ($errors as $field => $error) {
+        error_log("video source {$source['descr']}: cannot read the device certificate of $field, the stored one is kept: $error");
     }
     return $source;
 }
@@ -1137,7 +1142,11 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
  * credentials pasted into the URL are stored separately.
  * "tls_skip_verify" (default false, stored as false when neither the URL nor
  * a URL gate uses TLS) skips the certificate verification for the source URL
- * and its URL gates; for rtsps:// the gateway pins the certificate read now.
+ * and its URL gates: the certificate each TLS device (rtsps:// or https://
+ * source URL, https:// URL gates) presents now is pinned, and the source is
+ * not saved (400) if one cannot be read and none is stored for that device.
+ * Loopback and link-local device addresses are refused (400, field "url" or
+ * "gates[N].url").
  */
 $app->post('/cti/streaming', function (Request $request, Response $response, $args) {
     try {
