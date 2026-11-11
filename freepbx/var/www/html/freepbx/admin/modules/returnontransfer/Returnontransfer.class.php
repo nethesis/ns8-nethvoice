@@ -10,6 +10,12 @@ namespace FreePBX\modules;
 
 class Returnontransfer extends \FreePBX_Helpers implements \BMO
 {
+	private const DEFAULT_SETTINGS = [
+		'enabled' => '0',
+		'timeout' => '15',
+		'prefix' => 'RT: ${xfer_exten} ${CALLERID(name)}',
+		'alertinfo' => '',
+	];
 
 	// Note that the default Constructor comes from BMO/Self_Helper.
 	// You may override it here if you wish. By default every BMO
@@ -23,13 +29,16 @@ class Returnontransfer extends \FreePBX_Helpers implements \BMO
 	// instance of this object.
 	public function install()
 	{
-		if(!$this->getConfig('timeout')) {
-			$this->setConfig('timeout','15');
-			$this->setConfig('prefix','RT: ${xfer_exten} ${CALLERID(name)}');
-			$this->setConfig('alertinfo','');
-			$this->setConfig('enabled',true);
+		$stored = $this->getAll();
+		$settings = $stored + self::DEFAULT_SETTINGS;
+		// A missing enabled key in an existing configuration means disabled.
+		if (!$stored) {
+			$settings['enabled'] = '1';
 		}
-		if($this->getConfig('enabled')) {
+		foreach (array_diff_key($settings, $stored) as $key => $value) {
+			$this->setConfig($key, $value);
+		}
+		if($settings['enabled']) {
 			$this->FreePBX->Config->update('TRANSFER_CONTEXT','blindxfer_ringback');
 		}
 	}
@@ -57,11 +66,11 @@ class Returnontransfer extends \FreePBX_Helpers implements \BMO
 				$this->setConfig($keyword,$_REQUEST[$keyword]);
 			}
 			$sql = array();
-			if ($_REQUEST['enabled']==1) {
-				$this->setConfig('enabled',true);
+			if (($_REQUEST['enabled'] ?? '') == 1) {
+				$this->setConfig('enabled','1');
 				$this->FreePBX->Config->update('TRANSFER_CONTEXT','blindxfer_ringback');
 			} else {
-				$this->setConfig('enabled',false);
+				$this->setConfig('enabled','0');
 				$this->FreePBX->Config->reset_conf_settings(array('TRANSFER_CONTEXT'),true);
 			}
 			needreload();
@@ -77,7 +86,7 @@ class Returnontransfer extends \FreePBX_Helpers implements \BMO
 
 	public function doDialplanHook(&$ext, $engine, $priority)
 	{
-		$settings = $this->getAll();
+		$settings = $this->getAll() + self::DEFAULT_SETTINGS;
 		$timeout = !empty($settings['timeout']) ? $settings['timeout'] : 15;
 		$prefix = !empty($settings['prefix']) ? $settings['prefix'] : 'RT: ${xfer_exten} ${CALLERID(name)}';
 		$alertinfo = $settings['alertinfo'];
@@ -144,7 +153,7 @@ class Returnontransfer extends \FreePBX_Helpers implements \BMO
 
 	public function showPage()
 	{
-		$settings = $this->getAll();
+		$settings = $this->getAll() + self::DEFAULT_SETTINGS;
 		$subhead = _('Return on Blind Transfer Options');
 		$content = load_view(__DIR__.'/views/form.php', array('settings' => $settings));
 		show_view(__DIR__.'/views/default.php', array('subhead' => $subhead, 'content' => $content));
