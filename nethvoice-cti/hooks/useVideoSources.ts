@@ -65,6 +65,7 @@ const OPEN_ERROR_CODES = [
   'no_code',
   'no_url',
   'gate_not_found',
+  'source_not_found',
   'gate_failed',
   'gate_unreachable',
   'dtmf_failed',
@@ -97,7 +98,7 @@ export const useVideoSources = () => {
         openToast(
           'success',
           t('Streaming.Open gate success message', { name: gateName }),
-          t('Streaming.Gate opened'),
+          t('Streaming.Command sent'),
         )
       } catch (error) {
         // unexpected failures are logged by openVideoSource
