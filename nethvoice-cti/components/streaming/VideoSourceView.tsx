@@ -229,7 +229,7 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
           <button
             type='button'
             className='absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500'
-            aria-label={muted ? 'Unmute' : 'Mute'}
+            aria-label={(muted ? t('Streaming.Unmute') : t('Streaming.Mute')) || undefined}
             data-tooltip-id={`audio-tooltip-${tooltipKey}`}
             data-tooltip-content={muted ? t('Streaming.Unmute') : t('Streaming.Mute')}
             onClick={(e) => {

@@ -55,7 +55,7 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
   const unlockButton = (onClick?: () => void) => (
     <Button
       variant='primaryPhoneIsland'
-      aria-label='Open door'
+      aria-label={unlockTooltip}
       size='full'
       data-tooltip-id={`secure-tooltip-${tooltipKey}`}
       data-tooltip-content={unlockTooltip}
@@ -75,7 +75,7 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
         <>
           <Button
             variant='call'
-            aria-label='Call'
+            aria-label={t('Tooltip.Call') || undefined}
             size='full'
             data-tooltip-id={`call-tooltip-${tooltipKey}`}
             data-tooltip-content={t('Tooltip.Call')}
@@ -89,7 +89,7 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
 
       <Button
         variant='primaryPhoneIsland'
-        aria-label='Take screenshot'
+        aria-label={t('Common.Take a screenshot') || undefined}
         size='full'
         disabled={!canSnapshot}
         data-tooltip-id={`screenshot-tooltip-${tooltipKey}`}
