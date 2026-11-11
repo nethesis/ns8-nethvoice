@@ -98,6 +98,8 @@ class Returnontransfer extends \FreePBX_Helpers implements \BMO
 			$ext->add($context,$e,'',new \ext_execif('$["${DB(AMPUSER/${CALLERID(num)}/cidnum)}" == "" && "${DB(AMPUSER/${DEXTEN}/cidnum)}" != "" && "${DB(AMPUSER/${xfer_exten}/cidnum)}" == "" && "${DB(QPENALTY/${xfer_exten}/dynmemberonly)}" == ""]', 'Set','__REALCALLERIDNUM=${DEXTEN}', 'Set','__REALCALLERIDNUM=${blind_cid}'));
 			$ext->add($context,$e,'',new \ext_noop('${REALCALLERIDNUM}'));
 			$ext->add($context,$e,'',new \ext_agi('returnontransfer_setContext.php,${xfer_exten},${CALLERID(num)},${blind_exten}'));
+			// NethCTI resolves the transferer's profile for the transfer destination.
+			$ext->add($context,$e,'',new \ext_execif('$["${NETHVOICE_RINGBACK_CONTEXT}" != ""]', 'Set', 'xfer_context=${NETHVOICE_RINGBACK_CONTEXT}'));
 			$ext->add($context,$e,'',new \ext_noop('${xfer_context}'));
 			$ext->add($context,$e,'',new \ext_dial('local/${EXTEN}@${xfer_context}','${timeoutd}'));
 			$ext->add($context,$e,'',new \ext_noop('${BLINDTRANSFER}'));
