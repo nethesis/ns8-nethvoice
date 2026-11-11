@@ -809,9 +809,20 @@ function streaming_cti_config(array $sources): array
     return $out;
 }
 
+/*
+ * A YAML double-quoted scalar. Everything but printable ASCII is escaped
+ * (\uXXXX, \UXXXXXXXX beyond the BMP), so control characters, C1 controls and
+ * any non-ASCII text cannot break the file; invalid UTF-8 is replaced.
+ */
 function streaming_yaml_string(string $value): string
 {
-    return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $json = json_encode($value, JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    // JSON escapes characters beyond the BMP as UTF-16 surrogate pairs: YAML
+    // wants the code point
+    return preg_replace_callback('/\\\\u(d[89ab][0-9a-f]{2})\\\\u(d[c-f][0-9a-f]{2})/i', function ($m) {
+        $code = 0x10000 + ((hexdec($m[1]) - 0xd800) << 10) + (hexdec($m[2]) - 0xdc00);
+        return sprintf('\\U%08x', $code);
+    }, $json);
 }
 
 /*
