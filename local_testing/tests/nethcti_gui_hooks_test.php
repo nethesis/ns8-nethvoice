@@ -30,6 +30,40 @@ class moduleHook {
     }
 }
 
+// Core owns database and view rendering; keep these at the boundary while
+// executing its actual trunk page inside the framework's interceptor.
+class TrunkPageFixture {
+    public $Config;
+    public function __construct() { $this->Config = $this; }
+    public function get_conf_setting($key) { return 'pjsip'; }
+    public function getDriver($tech) { return $this; }
+    public function getDisplayVars($id, $vars) { return $vars; }
+    public function listTrunks() { return []; }
+}
+class FreePBX {
+    public static function create() { return new TrunkPageFixture(); }
+    public static function Core() { return new TrunkPageFixture(); }
+}
+define('FREEPBX_IS_AUTH', true);
+$amp_conf = ['ENABLEOLDDIALPATTERNS' => false];
+function freepbx_trim($value) { return trim($value); }
+function core_trunks_getDetails($id, $all = false) {
+    return $all ? [] : array_fill_keys(['outcid', 'maxchans', 'dialoutprefix', 'keepcid', 'failscript', 'disabled', 'continue', 'provider', 'name', 'dialopts', 'channelid', 'usercontext'], '') + ['tech' => 'pjsip'];
+}
+function core_trunks_gettrunkroutes($id) { return []; }
+function core_trunks_getTrunkPeerDetails($id) { return ''; }
+function core_trunks_getTrunkUserConfig($id) { return ''; }
+function core_trunks_getTrunkRegister($id) { return ''; }
+function core_trunks_get_dialrules($id) { return []; }
+function show_view($path, $vars) {
+    if (basename($path) === 'trunk_header.php') {
+        check($vars['amp_conf'] === $GLOBALS['amp_conf'], 'Shared PBX configuration lost in intercepted scope');
+        echo $vars['hookHtml'];
+    } elseif (basename($path) === 'pjsip.php') {
+        echo '<form><div id="pjsip"><div id="outbound-proxy"></div><!--END OUTBOUND PROXY--><div id="next-option"></div></div></form>';
+    }
+}
+
 function check($condition, $message) {
     if (!$condition) {
         throw new RuntimeException($message);
@@ -54,18 +88,15 @@ set_error_handler(function ($severity, $message, $file, $line) {
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
-$page = tempnam(sys_get_temp_dir(), 'nethcti-gui-');
-$hookInit = '$module_hook = moduleHook::create();';
-if (isset($argv[1])) {
-    check(preg_match('/^\s*(\$module_hook\s*={1,2}\s*moduleHook::create\(\);)/m', file_get_contents($argv[1]), $matches) === 1, 'Core trunk hook initializer missing');
-    $hookInit = $matches[1];
-}
+$page = $argv[1] ?? tempnam(sys_get_temp_dir(), 'nethcti-gui-');
 if (isset($argv[2])) {
     require $argv[2];
 }
-file_put_contents($page, '<?php '.$hookInit.' echo $module_hook->hookHtml; ?>'
-    . '<form><div id="pjsip"><div id="outbound-proxy"></div><!--END OUTBOUND PROXY-->'
-    . '<div id="next-option"></div></div></form>');
+if (!isset($argv[1])) {
+    file_put_contents($page, '<?php $module_hook = moduleHook::create(); echo $module_hook->hookHtml; ?>'
+        . '<form><div id="pjsip"><div id="outbound-proxy"></div><!--END OUTBOUND PROXY-->'
+        . '<div id="next-option"></div></div></form>');
+}
 $initialLevel = ob_get_level();
 
 try {
@@ -140,6 +171,6 @@ try {
     while (ob_get_level() > $initialLevel) {
         ob_end_clean();
     }
-    unlink($page);
+    if (!isset($argv[1])) { unlink($page); }
     restore_error_handler();
 }

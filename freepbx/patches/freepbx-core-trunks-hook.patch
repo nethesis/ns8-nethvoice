@@ -1,6 +1,14 @@
 --- a/page.trunks.php
 +++ b/page.trunks.php
-@@ -493,7 +493,7 @@
+@@ -3,6 +3,7 @@
+ //	Copyright 2006-2015 Schmooze Com Inc.
+ //
+ if (!defined('FREEPBX_IS_AUTH')) { die('No direct script access allowed'); }
++global $amp_conf;
+ $request = $_REQUEST;
+ $display='trunks';
+ $extdisplay=isset($_REQUEST['extdisplay'])?$request['extdisplay']:'';
+@@ -493,7 +494,7 @@
  		$helptext = '';
  	}
  	// implementation of module hook
