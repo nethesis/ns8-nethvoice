@@ -1,0 +1,286 @@
+/*
+  Copyright (C) 2026 Nethesis S.r.l.
+  SPDX-License-Identifier: GPL-3.0-or-later
+*/
+
+/* fontawesome styles */
+@import '@fortawesome/fontawesome-svg-core/styles.css' layer(fontawesome);
+
+@import 'tailwindcss';
+
+/* Poppins font: Regular and Medium, the two weights of the design system.
+   The default import loads only Regular, and the browser would fake Medium */
+@import '@fontsource/poppins/400.css';
+@import '@fontsource/poppins/500.css';
+
+/* import theme from @nethesis/vue-components */
+@import '@nethesis/vue-components/theme.css';
+@source '../../node_modules/@nethesis/vue-components';
+
+/* dark theme */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* primary palette */
+  --color-transparent: transparent;
+  --color-primary-50: var(--color-emerald-50);
+  --color-primary-100: var(--color-emerald-100);
+  --color-primary-200: var(--color-emerald-200);
+  --color-primary-300: var(--color-emerald-300);
+  --color-primary-400: var(--color-emerald-400);
+  --color-primary-500: var(--color-emerald-500);
+  --color-primary-600: var(--color-emerald-600);
+  --color-primary-700: var(--color-emerald-700);
+  --color-primary-800: var(--color-emerald-800);
+  --color-primary-900: var(--color-emerald-900);
+  --color-primary-950: var(--color-emerald-950);
+
+  /* breakpoints */
+  --breakpoint-3xl: 112rem;
+  --breakpoint-4xl: 128rem;
+  --breakpoint-5xl: 160rem;
+  --breakpoint-6xl: 192rem;
+  --breakpoint-7xl: 224rem;
+
+  /* motion durations, scaled by how far the animated element travels: state
+     feedback and small components are quick, while large panels get more time
+     to enter than to leave */
+  --duration-small: 200ms;
+  --duration-large-enter: 300ms;
+  --duration-large-leave: 200ms;
+
+  /* animations */
+  --animate-spin-relaxed: spin 1.5s linear infinite;
+  --animate-fade-in: fade-in 0.3s ease-in;
+  --animate-fade-in-relaxed: fade-in 0.6s ease-in;
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+/* inline, so the utility carries the value itself and each element resolves its own delay: a
+   variable in a theme value would resolve once, on :root. The delay is a variable at all because
+   the animation shorthand resets animation-delay */
+@theme inline {
+  --animate-twinkle: twinkle 0.6s ease-in-out var(--twinkle-delay, 0s) 2;
+
+  @keyframes twinkle {
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.3);
+    }
+  }
+}
+
+@layer base {
+  /*
+    Use cursor-pointer for buttons (behavior changed from Tailwind CSS v3)
+    See: https://tailwindcss.com/docs/upgrade-guide#buttons-use-the-default-cursor
+  */
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html {
+    @apply h-full;
+  }
+
+  /*
+    Compact density, toggled by the user from the top bar (e.g. for small screens with OS scaling).
+    Spacing utilities all derive from --spacing, so this tightens the whole UI while font sizes
+    stay the same
+  */
+  html.compact {
+    --spacing: 0.2rem;
+  }
+
+  body {
+    @apply text-primary-neutral bg-elevation-1 h-full text-sm;
+  }
+
+  #app {
+    @apply h-full;
+  }
+
+  /* fade transition */
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: all var(--duration-small) ease;
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+
+  /* slide-down transition */
+  .slide-down-enter-active,
+  .slide-down-leave-active {
+    transition: all var(--duration-small) ease;
+  }
+
+  .slide-down-enter-from,
+  .slide-down-leave-to {
+    transform: translateY(-15px);
+    opacity: 0;
+  }
+
+  code {
+    @apply block rounded-sm bg-gray-500/20 px-1 font-mono dark:bg-gray-500/40;
+  }
+
+  hr {
+    @apply border-gray-200 dark:border-gray-700;
+  }
+}
+
+@layer fontawesome {
+  .svg-inline--fa {
+    @apply inline-block;
+  }
+}
+
+/* Define CSS custom properties that change with color scheme */
+:root {
+  --primary-active: var(--color-emerald-700);
+  --primary-hover: var(--color-emerald-800);
+  --primary-focus: var(--color-emerald-500);
+  --primary-favicon: var(--color-emerald-500);
+
+  --elevation-0: var(--color-white);
+  --elevation-1: var(--color-gray-50);
+  --elevation-2: var(--color-gray-100);
+  --elevation-2-invert: var(--color-white);
+  --elevation-3: var(--color-gray-200);
+  --elevation-4: var(--color-gray-300);
+
+  --primary-neutral: var(--color-gray-900);
+  --primary-inverted-neutral: var(--color-gray-50);
+  --secondary: var(--color-indigo-700);
+  --secondary-neutral: var(--color-gray-700);
+  --tertiary-neutral: var(--color-gray-600);
+  --danger: var(--color-rose-700);
+  --placeholder: var(--color-gray-400);
+
+  --ring-button: var(--color-gray-300);
+  --ring-input: var(--color-gray-300);
+  --accent-rose: var(--color-rose-700);
+  --error-focus: var(--color-rose-500);
+  --border-secondary: var(--color-gray-300);
+
+  --info: var(--color-blue-700);
+  --success: var(--color-green-700);
+  --warning: var(--color-amber-700);
+  --error: var(--color-rose-700);
+
+  --background-input: var(--color-white);
+  --icon-enabled: var(--color-green-700);
+  --icon-neutral: var(--color-gray-600);
+}
+
+/* Apply dark theme when .dark class is present (overrides media query) */
+.dark {
+  --primary-active: var(--color-emerald-500);
+  --primary-hover: var(--color-emerald-300);
+  --primary-focus: var(--color-emerald-200);
+  --primary-favicon: var(--color-emerald-600);
+
+  --elevation-0: var(--color-gray-950);
+  --elevation-1: var(--color-gray-900);
+  --elevation-2: var(--color-gray-800);
+  --elevation-2-invert: var(--color-gray-950);
+  --elevation-3: var(--color-gray-700);
+  --elevation-4: var(--color-gray-600);
+
+  --primary-neutral: var(--color-gray-50);
+  --primary-inverted-neutral: var(--color-gray-900);
+  --secondary: var(--color-indigo-500);
+  --secondary-neutral: var(--color-gray-200);
+  --tertiary-neutral: var(--color-gray-400);
+  --danger: var(--color-rose-500);
+  --placeholder: var(--color-gray-500);
+
+  --ring-button: var(--color-gray-500);
+  --ring-input: var(--color-gray-500);
+  --accent-rose: var(--color-rose-500);
+  --error-focus: var(--color-rose-400);
+  --border-secondary: var(--color-gray-700);
+
+  --info: var(--color-blue-200);
+  --success: var(--color-green-200);
+  --warning: var(--color-amber-100);
+  --error: var(--color-rose-200);
+
+  --background-input: var(--color-gray-950);
+  --icon-enabled: var(--color-green-500);
+  --icon-neutral: var(--color-gray-400);
+}
+
+/* Reference the CSS custom properties in @theme inline */
+@theme inline {
+  --color-primary-active: var(--primary-active);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-focus: var(--primary-focus);
+  --color-primary-favicon: var(--primary-favicon);
+
+  --color-elevation-0: var(--elevation-0);
+  --color-elevation-1: var(--elevation-1);
+  --color-elevation-2: var(--elevation-2);
+  --color-elevation-2-invert: var(--elevation-2-invert);
+  --color-elevation-3: var(--elevation-3);
+  --color-elevation-4: var(--elevation-4);
+
+  --color-primary-neutral: var(--primary-neutral);
+  --color-primary-inverted-neutral: var(--primary-inverted-neutral);
+  --color-secondary: var(--secondary);
+  --color-secondary-neutral: var(--secondary-neutral);
+  --color-tertiary-neutral: var(--tertiary-neutral);
+  --color-danger: var(--danger);
+  --color-placeholder: var(--placeholder);
+  --color-border-secondary: var(--border-secondary);
+  --color-icon-enabled: var(--icon-enabled);
+  --color-icon-neutral: var(--icon-neutral);
+
+  --border-ring-button: var(--ring-button);
+  --border-ring-input: var(--ring-input);
+  --border-accent-rose: var(--accent-rose);
+  --border-error-focus: var(--error-focus);
+  --border-secondary: var(--border-secondary);
+
+  --surface-info: var(--info);
+  --surface-success: var(--success);
+  --surface-warning: var(--warning);
+  --surface-error: var(--error);
+
+  --surface-background-input: var(--background-input);
+}
+
+@utility elevation-* {
+  /* prettier-ignore */
+  background-color: --value(--color-elevation-*);
+}
+
+@utility surface-* {
+  /* prettier-ignore */
+  background-color: --value(--surface-*);
+}
+
+@utility border-ring-* {
+  /* prettier-ignore */
+  --tw-ring-color: --value(--border-ring-*);
+}
+
+@utility border-* {
+  /* prettier-ignore */
+  border-color: --value(--border-*);
+}
