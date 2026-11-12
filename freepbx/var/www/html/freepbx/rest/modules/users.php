@@ -307,19 +307,16 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
             } else {
                 $row[] = '';
             }
-            // ad " string delimiters
-            foreach ($row as $key => $value) {
-                $row[$key] = "\"$value\"";
-            }
-
             $csvarray[] = $row;
         }
 
-        $csvstring = '';
+        $handle = fopen('php://temp', 'r+');
         foreach ($csvarray as $row) {
-            $csvstring .= implode(',',$row);
-            $csvstring .= "\r\n";
+            fputcsv($handle, array_map('strval', $row), ',', '"', '', "\r\n");
         }
+        rewind($handle);
+        $csvstring = stream_get_contents($handle);
+        fclose($handle);
         return jsonResponse($response, base64_encode($csvstring),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
