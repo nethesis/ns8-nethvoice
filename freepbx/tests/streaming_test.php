@@ -126,10 +126,10 @@ check($legacy['type'] === 'rtsp' && count($legacy['gates']) === 2, 'legacy updat
 check($legacy['gates'][0]['code'] === '#9' && $legacy['gates'][0]['id'] === 7 && $legacy['open'] === '#9', 'legacy open replaces the first DTMF gate');
 check($legacy['gates'][1]['password'] === 'Gate-Spike-77', 'legacy update keeps the URL gate password');
 $legacyNew = streaming_normalize_source(['descr' => 'Gate', 'url' => 'http://cam/img.jpg', 'open' => '1234']);
-check(count($legacyNew['gates']) === 1 && $legacyNew['gates'][0]['name'] === 'Porta 1' && $legacyNew['gates'][0]['code'] === '1234', 'legacy create makes Porta 1');
+check(count($legacyNew['gates']) === 1 && $legacyNew['gates'][0]['name'] === 'Door 1' && $legacyNew['gates'][0]['code'] === '1234', 'legacy create makes Door 1');
 $unnamed = streaming_normalize_source(['descr' => 'Unnamed', 'url' => 'http://cam/img.jpg', 'gates' => [['type' => 'dtmf', 'code' => '1'], ['name' => ' ', 'type' => 'dtmf', 'code' => '2']]]);
-check($unnamed['gates'][0]['name'] === 'Porta 1' && $unnamed['gates'][1]['name'] === 'Porta 2', 'unnamed gates default to Porta N');
-check(strpos(file_get_contents(__DIR__ . '/../initdb.d/streaming-migration.php'), "VALUES (?, 0, 'Porta 1', 'dtmf', ?)") !== false, 'migrated open code becomes Porta 1');
+check($unnamed['gates'][0]['name'] === 'Door 1' && $unnamed['gates'][1]['name'] === 'Door 2', 'unnamed gates default to Door N');
+check(strpos(file_get_contents(__DIR__ . '/../initdb.d/streaming-migration.php'), "VALUES (?, 0, 'Door 1', 'dtmf', ?)") !== false, 'migrated open code becomes Door 1');
 $legacyRemove = streaming_normalize_source(['descr' => 'Front door', 'url' => $sameUrl, 'open' => ''], $current);
 check(count($legacyRemove['gates']) === 1 && $legacyRemove['gates'][0]['type'] === 'url' && $legacyRemove['open'] === '', 'legacy empty open removes the first DTMF gate');
 $untouched = streaming_normalize_source(['descr' => 'Front door', 'url' => 'rtsp://188.166.124.125:18554/other-path'], $current);
