@@ -722,6 +722,43 @@ function streaming_normalize_source(array $data, ?array $current = null, ?callab
     return $source;
 }
 
+/*
+ * After the certificates of an updated source have been read: a stored
+ * password (not typed again in $data) is kept only for a device that still
+ * presents the pinned certificate. A changed certificate with a stored
+ * password is a validation error: the administrator must type the password
+ * again, so that it is never given to another device by a save.
+ */
+function streaming_check_pin_changes(array $data, array $source, array $current): void
+{
+    $typed = function ($value) {
+        return is_scalar($value) && (string) $value !== '';
+    };
+    $storedPin = streaming_normalize_fingerprint($current['tls_fingerprint'] ?? null);
+    if (!$typed($data['secret'] ?? null) && (string) $source['secret'] !== '' && $storedPin !== null
+        && streaming_needs_fingerprint($source) && !empty($current['tls_skip_verify'])
+        && streaming_url_endpoint((string) $current['url']) === streaming_url_endpoint((string) $source['url'])
+        && $source['tls_fingerprint'] !== null && $source['tls_fingerprint'] !== $storedPin) {
+        throw new StreamingValidationException('secret', 'the device certificate changed: type the password again', 'new certificate ' . $source['tls_fingerprint']);
+    }
+    $currentGates = [];
+    foreach ($current['gates'] ?? [] as $gate) {
+        $currentGates[(string) $gate['id']] = $gate;
+    }
+    $dataGates = isset($data['gates']) && is_array($data['gates']) ? array_values($data['gates']) : [];
+    foreach ($source['gates'] as $index => $gate) {
+        $stored = !empty($gate['id']) ? ($currentGates[(string) $gate['id']] ?? null) : null;
+        $gatePin = $stored !== null ? streaming_normalize_fingerprint($stored['tls_fingerprint'] ?? null) : null;
+        $dataGate = isset($dataGates[$index]) && is_array($dataGates[$index]) ? $dataGates[$index] : [];
+        if ($gatePin !== null && !$typed($dataGate['password'] ?? null) && (string) ($gate['password'] ?? '') !== ''
+            && !empty($current['tls_skip_verify']) && streaming_gate_needs_fingerprint($source, $gate)
+            && streaming_url_endpoint((string) $stored['url']) === streaming_url_endpoint((string) $gate['url'])
+            && ($gate['tls_fingerprint'] ?? null) !== null && $gate['tls_fingerprint'] !== $gatePin) {
+            throw new StreamingValidationException("gates[$index].password", 'the gate device certificate changed: type the password again', 'new certificate ' . $gate['tls_fingerprint']);
+        }
+    }
+}
+
 /* Read all sources with their gates, secrets included. Keyed by descr. */
 function streaming_load_sources(\PDO $db): array
 {
@@ -1359,6 +1396,47 @@ function streaming_tls_check_warnings(array $result, ?array $stored, string $url
     if (streaming_normalize_fingerprint($stored['tls_fingerprint'] ?? null) !== $result['tls_fingerprint']) {
         $result['warnings'][] = 'tls_certificate_changed';
     }
+    return $result;
+}
+
+/*
+ * Guard of a check that would send the STORED password of a source to a
+ * device whose TLS verification is skipped: the device certificate is read
+ * first and, when it is not the pinned one, the password is not sent (the
+ * check fails with the warning "tls_certificate_changed" and the new
+ * fingerprint; the administrator must type the password again to check the
+ * device with its new certificate). A password typed by the administrator,
+ * a verified certificate or a source without a pinned certificate (saved by
+ * an older version) need no guard.
+ *
+ * Return null when the check can go on, or its result otherwise.
+ */
+function streaming_stored_secret_guard(?array $stored, string $url, bool $usesStoredSecret, bool $tlsSkipVerify, ?callable $fetch = null): ?array
+{
+    $parsed = streaming_parse_url($url);
+    if (!$usesStoredSecret || !$tlsSkipVerify || $stored === null || $parsed === null
+        || !in_array($parsed['scheme'], ['https', 'rtsps'], true)
+        || !streaming_needs_fingerprint($stored)
+        || streaming_url_endpoint((string) $stored['url']) !== streaming_url_endpoint($parsed['url'])) {
+        return null;
+    }
+    $pinned = streaming_normalize_fingerprint($stored['tls_fingerprint'] ?? null);
+    if ($pinned === null) {
+        return null;
+    }
+    [$fingerprint, $error] = ($fetch ?? 'streaming_fetch_fingerprint')($parsed['url']);
+    $fingerprint = streaming_normalize_fingerprint($fingerprint);
+    if ($fingerprint === null) {
+        // The certificate cannot be compared: the password is not sent
+        $error = (string) $error !== '' ? (string) $error : 'cannot read the device certificate';
+        return streaming_probe_result($parsed['type'], false, streaming_failure_reason($error), $error);
+    }
+    if (hash_equals($pinned, $fingerprint)) {
+        return null;
+    }
+    $result = streaming_probe_result($parsed['type'], false, 'tls_error', 'the device certificate is not the pinned one: the stored password was not sent');
+    $result['warnings'] = ['tls_certificate_changed'];
+    $result['tls_fingerprint'] = $fingerprint;
     return $result;
 }
 

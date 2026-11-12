@@ -100,6 +100,9 @@
               <span ng-if="g.isChecking">{{'Checking' | translate}}...</span>
               <span ng-if="!g.isChecking">{{(g.verified ? 'Connected' : 'Connection error') | translate}}<span ng-if="!g.verified && g.check.reason"> - {{reasonMessage(g.check.reason) | translate}}</span></span>
             </div>
+            <p ng-if="!g.isChecking && hasWarning(g.check, 'tls_certificate_changed')" class="text-warning">
+              <span class="pficon pficon-warning-triangle-o"></span> {{'The device certificate changed: modify the source, type the password again and save it' | translate}}
+            </p>
           </div>
           <div class="card-pf-footer">
             <div class="card-pf-time-frame-filter">
@@ -266,6 +269,7 @@
                 <span class="pficon pficon-error-circle-o"></span>
                 <strong>{{reasonMessage(newSource.check.reason) | translate}}</strong>
                 <span ng-if="newSource.check.reason === 'tls_error' && !tlsSkipVerify(newSource)"><br>{{'If the device has a self-signed certificate, enable Skip TLS certificate verification' | translate}}</span>
+                <span ng-if="hasWarning(newSource.check, 'tls_certificate_changed')"><br>{{'The device certificate changed: the stored password was not sent. Type the password again to check the device with its new certificate, then save the source to trust it' | translate}}</span>
                 <span ng-if="newSource.check.message"><br><small>{{newSource.check.message | translate}}</small></span>
               </div>
             </div>

@@ -303,5 +303,9 @@
   "The device certificate changed: the PBX refuses the device until the source is saved again": "The device certificate changed: the PBX refuses the device until the source is saved again",
   "the device address is not allowed: loopback and link-local addresses are refused": "The device address is not allowed: loopback and link-local addresses are refused",
   "could not read the TLS certificate of the device: check that it is reachable or do not skip the TLS verification": "Could not read the TLS certificate of the device: check that it is reachable or do not skip the TLS verification",
-  "could not read the TLS certificate of the gate device: check that it is reachable or do not skip the TLS verification": "Could not read the TLS certificate of the gate device: check that it is reachable or do not skip the TLS verification"
+  "could not read the TLS certificate of the gate device: check that it is reachable or do not skip the TLS verification": "Could not read the TLS certificate of the gate device: check that it is reachable or do not skip the TLS verification",
+  "The device certificate changed: the stored password was not sent. Type the password again to check the device with its new certificate, then save the source to trust it": "The device certificate changed: the stored password was not sent. Type the password again to check the device with its new certificate, then save the source to trust it",
+  "The device certificate changed: modify the source, type the password again and save it": "The device certificate changed: modify the source, type the password again and save it",
+  "the device certificate changed: type the password again": "The device certificate changed: type the password again",
+  "the gate device certificate changed: type the password again": "The gate device certificate changed: type the password again"
 }
