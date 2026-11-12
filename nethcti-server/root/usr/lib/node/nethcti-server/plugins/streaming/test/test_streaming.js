@@ -786,6 +786,34 @@ async function main() {
   assert.strictEqual(new Streaming({ id: 'c', url: 'https://x', tls_skip_verify: true }).getTlsSkipVerify(), true);
   assert(JSON.stringify(streaming.getSourceJSONByExten('302')).indexOf('tls') < 0);
   SECRETS.forEach(function(sec) { assert(logs.join('\n').indexOf(sec) < 0, 'log leaks ' + sec); });
+  // the sampler logs an error once, and again when it changes
+  var closed = await p(function(cb) { listen(function() {}, cb, '0.0.0.0'); });
+  var closedPort = closed[1];
+  closed[0].close();
+  function flipConfig(url) {
+    var file = path.join(tmp, 'streaming-flip.json');
+    fs.writeFileSync(file, JSON.stringify({
+      vs_flip: { descr: 'Flip', url: url, type: 'image', 'frame-rate': '500', exten: null, open: '', gates: [],
+        tls_skip_verify: true, tls_fingerprint: badFp }
+    }));
+    return file;
+  }
+  function flipLogs() {
+    return logs.filter(function(l) { return l.indexOf('streaming "vs_flip" error') >= 0; });
+  }
+  streaming.setSubscribersChecker(function() { return true; });
+  streaming.config(flipConfig('https://' + DEV_HOST + ':' + closedPort + '/snap.jpg'));
+  streaming.reload();
+  await new Promise(function(resolve) { setTimeout(resolve, 2200); });
+  assert.strictEqual(flipLogs().length, 1, 'the same error is logged once: ' + flipLogs().join(' | '));
+  assert(/ECONNREFUSED/.test(flipLogs()[0]));
+  flipConfig(tlsBase + '/basic.jpg');
+  streaming.reload();
+  await new Promise(function(resolve) { setTimeout(resolve, 2200); });
+  assert.strictEqual(flipLogs().length, 2, 'a different error is logged again: ' + flipLogs().join(' | '));
+  assert(/TLS_FINGERPRINT_MISMATCH/.test(flipLogs()[1]));
+  streaming.setSubscribersChecker(function() { return false; });
+  streaming.reload();
   tlsSrv.close();
   ok('TLS certificate verified by default, skipped only for the sources with tls_skip_verify, pinned when saved');
 
