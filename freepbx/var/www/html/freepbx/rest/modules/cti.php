@@ -84,19 +84,42 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
         $sharedLock = '/var/run/nethvoice/contextLock';
         $timeoutSeconds = 5;
 
-        // Check and create lock file
-        if ( !file_exists(dirname($sharedLock))
-            || !is_writable(dirname($sharedLock))
-            || ( file_exists($sharedLock) && filemtime($sharedLock) > time()-$timeoutSeconds )
-            || !touch($sharedLock))
-        {
+        $current = getCTIPermissionProfiles($id);
+        if (!is_array($current) || !isset($current['name'])) {
+            return jsonResponse($response, array('message' => 'CTI profile not found'), 404);
+        }
+        $name = isset($profile['name']) && is_string($profile['name']) ? trim($profile['name']) : $current['name'];
+        if ($name === '') {
+            return jsonResponse($response, array('message' => 'Profile name cannot be empty'), 422);
+        }
+        if ($name !== $current['name']) {
+            if ($current['name'] === 'Hotel' || $name === 'Hotel') {
+                return jsonResponse($response, array('message' => 'Hotel profile name cannot be changed'), 422);
+            }
+            $dbh = FreePBX::Database();
+            $sth = $dbh->prepare('SELECT COUNT(*) FROM `rest_cti_profiles` WHERE `name` = ? AND `id` != ?');
+            $sth->execute(array($name, $id));
+            if ($sth->fetchColumn() > 0) {
+                return jsonResponse($response, array('message' => 'A profile with this name already exists'), 409);
+            }
+        }
+        $profile['name'] = $name;
+
+        if (!file_exists(dirname($sharedLock)) || !is_writable(dirname($sharedLock))) {
+            throw new Exception('Can\'t acquire lock');
+        }
+        if (file_exists($sharedLock) && filemtime($sharedLock) > time()-$timeoutSeconds) {
+            return jsonResponse($response, array('message' => 'Another profile change is in progress, retry in a few seconds'), 423);
+        }
+        if (!touch($sharedLock)) {
             throw new Exception('Can\'t acquire lock');
         }
 
-        $res = postCTIProfile($profile,$id);
-
-        // Release lock
-        unlink($sharedLock);
+        try {
+            $res = postCTIProfile($profile,$id);
+        } finally {
+            unlink($sharedLock);
+        }
 
         if ($res) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
