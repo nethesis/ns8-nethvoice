@@ -1127,6 +1127,8 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
         $source = streaming_normalize_source($data, $sources[$currentDescr]);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
         $source = streamingPinCertificate($source);
+        // A stored password is never kept for a device with a new certificate
+        streaming_check_pin_changes($data, $source, $sources[$currentDescr]);
         streaming_store_source($dbh, $source, $profiles, $currentDescr);
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
@@ -1187,6 +1189,11 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
  * Loopback, link-local and unspecified device addresses are refused
  * ("address_not_allowed"); an image source answers only with a JPEG or PNG
  * image, any other content is "unsupported" and never returned.
+ *
+ * The stored password of a source that skips the TLS verification is sent
+ * only to a device that presents the pinned certificate: otherwise the check
+ * fails (reason tls_error, warning tls_certificate_changed, the new
+ * tls_fingerprint) without contacting the device with it.
  */
 $app->post('/cti/sources/test', function (Request $request, Response $response, $args) {
     try {
@@ -1214,8 +1221,10 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
                 $stored = null;
             }
         }
+        $usesStoredSecret = false;
         if ($user !== '' && $secret === '' && $stored !== null && $stored['user'] === $user) {
             $secret = (string) $stored['secret'];
+            $usesStoredSecret = $secret !== '';
         }
         try {
             $tlsSkipVerify = streaming_bool_field($data, 'tls_skip_verify', $stored !== null && !empty($stored['tls_skip_verify']));
@@ -1225,8 +1234,12 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
 
         // resolved once: the image check connects to the checked address
         $addresses = streaming_resolve_host($parsed['host']);
+        // The stored password goes only to the device with the pinned certificate
+        $guard = null;
         if (streaming_host_blocked($parsed['host'], function () use ($addresses) { return $addresses; })) {
             $result = streaming_probe_result($parsed['type'], false, 'address_not_allowed', 'loopback and link-local addresses are refused');
+        } elseif (($guard = streaming_stored_secret_guard($stored, $parsed['url'], $usesStoredSecret, $tlsSkipVerify)) !== null) {
+            $result = $guard;
         } elseif ($parsed['type'] === 'rtsp') {
             $result = streaming_probe_rtsp($parsed['url'], $user, $secret, $tlsSkipVerify);
             return jsonResponse($response, streaming_tls_check_warnings($result, $stored, $parsed['url']));
