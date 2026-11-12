@@ -450,6 +450,10 @@ function postCTIProfile($profile, $id=false){
             //Get id
             $sql = 'SELECT LAST_INSERT_ID()';
             $id = $dbh->sql($sql,"getOne");
+        } elseif (isset($profile['name'])) {
+            $sql = 'UPDATE `rest_cti_profiles` SET `name` = ? WHERE `id` = ?';
+            $sth = $dbh->prepare($sql);
+            $sth->execute(array($profile['name'], $id));
         }
 
         $profile['id'] = $id;
