@@ -3,7 +3,7 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
-import { isApiError } from '@/lib/api/errors'
+import { getApiErrorMessage, isApiError } from '@/lib/api/errors'
 import type { components } from '@/lib/api/schema'
 import { compareNatural, matchesText } from '@/lib/common'
 import type { Trunk } from './trunks'
@@ -511,14 +511,5 @@ export const getGatewayConfigFile = async (gateway: Gateway): Promise<Blob> => {
   })
 }
 
-export const describeGatewayError = (error: unknown): string => {
-  if (!isApiError(error) || typeof error.body !== 'object' || error.body === null) {
-    return ''
-  }
-  const body = error.body as Record<string, unknown>
-
-  if (Array.isArray(body.errors)) {
-    return body.errors.filter((item): item is string => typeof item === 'string').join('. ')
-  }
-  return typeof body.status === 'string' ? body.status : ''
-}
+export const describeGatewayError = (error: unknown): string =>
+  isApiError(error) ? getApiErrorMessage(error.body) : ''

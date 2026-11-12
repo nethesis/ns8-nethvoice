@@ -600,7 +600,7 @@ describe('describeGatewayError', () => {
           errors: ['Missing gateway field mac', 'Missing gateway field name'],
         }),
       ),
-    ).toBe('Missing gateway field mac. Missing gateway field name')
+    ).toBe('Missing gateway field mac; Missing gateway field name')
   })
 
   it('should read the message returned when a gateway cannot be deleted', () => {
