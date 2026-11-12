@@ -171,6 +171,59 @@ test.describe('profiles', () => {
     ).toEqual([['/freepbx/rest/cti/profiles/users/2', { profile_id: 1 }]])
   })
 
+  test('renames a custom profile and maps the backend errors', async ({ page, mockApi }) => {
+    let status = 409
+    mockProfiles(mockApi).on('POST', '/freepbx/rest/cti/profiles/:id', () =>
+      status === 200 ? { json: { status: true } } : { status, json: { message: 'error' } },
+    )
+    await page.goto('./users/profiles')
+
+    await card(page, 1).getByRole('button', { name: 'Edit Base' }).click()
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveCount(0)
+    await page.keyboard.press('Escape')
+
+    await card(page, 4).getByRole('button', { name: 'Edit Sales team' }).click()
+    const name = page.getByRole('textbox', { name: 'Name' })
+    await expect(name).toHaveValue('Sales team')
+    await name.fill('standard')
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByText('A profile with this name already exists')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/profiles/:id')).toHaveLength(0)
+
+    await name.fill('Hotel')
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByText('This name cannot be used for this profile')).toBeVisible()
+
+    await name.fill('Sales')
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByText('A profile with this name already exists')).toBeVisible()
+    status = 423
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByText('Another profile change is in progress')).toBeVisible()
+    status = 200
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    await expect(drawerHeading(page, 'Edit Sales team')).toBeHidden()
+    const updates = mockApi.callsTo('POST', '/freepbx/rest/cti/profiles/:id')
+    expect(updates.at(-1)?.body).toMatchObject({ id: 4, name: 'Sales' })
+  })
+
+  test('asks before discarding the changes', async ({ page, mockApi }) => {
+    mockProfiles(mockApi)
+    await page.goto('./users/profiles')
+
+    await expect(page.getByRole('button', { name: 'Reset filters' })).toBeDisabled()
+    await card(page, 2).getByRole('button', { name: 'Edit Standard' }).click()
+    await page.keyboard.press('Escape')
+    await expect(drawerHeading(page, 'Edit Standard profile')).toBeHidden()
+
+    await card(page, 2).getByRole('button', { name: 'Edit Standard' }).click()
+    await toggle(page, 'settings.call_forward').click()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await expect(drawerHeading(page, 'Edit Standard profile')).toBeHidden()
+  })
+
   test('warns about privacy when enabling call recording', async ({ page, mockApi }) => {
     mockProfiles(mockApi)
     await page.goto('./users/profiles')

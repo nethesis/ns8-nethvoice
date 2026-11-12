@@ -14,6 +14,7 @@ import {
   focusElement,
   NeButton,
   NeInlineNotification,
+  NeModal,
   NeMultiselectCombobox,
   NeSideDrawer,
   NeTextInput,
@@ -26,14 +27,18 @@ import { buildFeatureTree, CALL_FEATURES_MACRO, type FeatureGroupId } from '@/li
 import {
   BASE_PROFILE_ID,
   buildProfileNameSchema,
+  canRenameProfile,
   createProfile,
   CTI_MACRO,
   getCopyName,
   getNewlyEnabledPrivacyPermissions,
   getOutboundRouteCategory,
+  getProfileNameIssue,
+  getProfileSaveErrorKey,
   getProfileUsers,
   isDefaultProfile,
   PROFILES_KEY,
+  RESERVED_PROFILE_NAME,
   toProfileForm,
   updateProfile,
   type Profile,
@@ -79,6 +84,7 @@ const nameIssue = ref('')
 const usersIssue = ref('')
 const selectedUsers = ref<NeMultiselectComboboxOption[]>([])
 const collapsedGroups = ref<FeatureGroupId[]>([])
+const isShownUnsavedModal = ref(false)
 
 const editedProfile = computed(() => (mode?.kind === 'edit' ? mode.profile : undefined))
 
@@ -93,6 +99,15 @@ const removedUserIds = computed(() =>
 )
 
 const isBaseProfile = computed(() => editedProfile.value?.id === BASE_PROFILE_ID)
+
+const isNameEditable = computed(() => !editedProfile.value || canRenameProfile(editedProfile.value))
+
+const isDirty = computed(
+  () =>
+    JSON.stringify(form) !== JSON.stringify(initialForm.value) ||
+    removedUserIds.value.length > 0 ||
+    selectedUserIds.value.some((userId) => !initialUserIds.value.includes(userId)),
+)
 
 const featureTree = computed(() => buildFeatureTree(form))
 
@@ -142,6 +157,11 @@ const {
     }
     await createProfile(profileForm, userIds)
   },
+  onError(error) {
+    if (getProfileNameIssue(error)) {
+      focusElement(nameRef)
+    }
+  },
   onSuccess(_data, { profileForm }) {
     const edited = !!editedProfile.value
 
@@ -162,6 +182,13 @@ const {
   },
 })
 
+const saveErrorNameIssue = computed(() => getProfileNameIssue(saveProfileError.value))
+
+const saveErrorDescription = computed(() => {
+  const key = getProfileSaveErrorKey(saveProfileError.value)
+  return key ? t(key) : describeError(saveProfileError.value)
+})
+
 watch(
   () => isShown,
   () => {
@@ -172,6 +199,7 @@ watch(
     nameIssue.value = ''
     usersIssue.value = ''
     collapsedGroups.value = []
+    isShownUnsavedModal.value = false
 
     const source = mode.kind === 'edit' ? mode.profile : mode.source
     const name =
@@ -226,9 +254,14 @@ function saveProfile() {
     return
   }
 
-  if (!editedProfile.value) {
+  if (isNameEditable.value) {
     const validation = v.safeParse(
-      buildProfileNameSchema(profiles.map((profile) => profile.name)),
+      buildProfileNameSchema(
+        profiles
+          .filter((profile) => profile.id !== editedProfile.value?.id)
+          .map((profile) => profile.name),
+        editedProfile.value ? [RESERVED_PROFILE_NAME] : [],
+      ),
       form.name,
     )
 
@@ -241,6 +274,23 @@ function saveProfile() {
   }
   saveProfileMutate({ profileForm: form, userIds: selectedUserIds.value })
 }
+
+function requestClose() {
+  if (saving.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownUnsavedModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownUnsavedModal.value = false
+  emit('close')
+}
 </script>
 
 <template>
@@ -248,16 +298,18 @@ function saveProfile() {
     :is-shown="isShown"
     :title="title"
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form @submit.prevent="saveProfile">
       <div class="space-y-6">
         <NeTextInput
-          v-if="!editedProfile"
+          v-if="isNameEditable"
           ref="nameRef"
           v-model="form.name"
           :label="t('profiles.name')"
-          :invalid-message="nameIssue ? t(nameIssue) : ''"
+          :invalid-message="
+            nameIssue ? t(nameIssue) : saveErrorNameIssue ? t(saveErrorNameIssue) : ''
+          "
           :disabled="saving"
           @blur="form.name = form.name.trim()"
         />
@@ -368,12 +420,12 @@ function saveProfile() {
           :description="t('profiles.privacy_warning_description')"
         />
         <NeInlineNotification
-          v-if="saveProfileError"
+          v-if="saveProfileError && !saveErrorNameIssue"
           kind="error"
           :title="
             editedProfile ? t('profiles.cannot_save_profile') : t('profiles.cannot_create_profile')
           "
-          :description="describeError(saveProfileError)"
+          :description="saveErrorDescription"
         />
       </div>
       <hr class="my-8" />
@@ -387,4 +439,17 @@ function saveProfile() {
       </div>
     </form>
   </NeSideDrawer>
+  <NeModal
+    :visible="isShownUnsavedModal"
+    :title="t('common.unsaved_changes')"
+    kind="warning"
+    :primary-label="t('common.discard_changes')"
+    primary-button-kind="danger"
+    :cancel-label="t('common.keep_editing')"
+    :close-aria-label="t('common.close')"
+    @close="isShownUnsavedModal = false"
+    @primary-click="discardChanges"
+  >
+    <p>{{ t('common.unsaved_changes_description') }}</p>
+  </NeModal>
 </template>

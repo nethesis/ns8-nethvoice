@@ -36,7 +36,17 @@
     "open_in_legacy_wizard": "Apri nell'interfaccia precedente",
     "object_created_successfully": "{name} è stato creato",
     "object_saved_successfully": "{name} è stato aggiornato",
-    "object_deleted_successfully": "{name} è stato eliminato"
+    "object_deleted_successfully": "{name} è stato eliminato",
+    "unsaved_changes": "Modifiche non salvate",
+    "unsaved_changes_description": "Ci sono modifiche non salvate. Se chiudi ora andranno perse.",
+    "discard_changes": "Annulla modifiche",
+    "keep_editing": "Continua a modificare",
+    "error_conflict": "Questo nome o valore è già in uso. Modificalo e riprova.",
+    "error_invalid_data": "Alcuni valori non sono validi. Controllali e riprova.",
+    "error_locked": "È in corso un'altra modifica. Attendi qualche secondo e riprova.",
+    "error_server_detail": "Messaggio del server: {detail}",
+    "error_server": "Il server non è riuscito a completare la richiesta (errore {status}). Riprova più tardi.",
+    "error_network": "Impossibile raggiungere il server. Controlla la connessione e riprova."
   },
   "shell": {
     "open_sidebar": "Apri barra laterale",
@@ -271,9 +281,9 @@
     "existing_users_tooltip": "Gli utenti sono confrontati per nome utente. Gli utenti esistenti possono essere aggiornati o saltati.",
     "import_skip_existing": "Salta gli utenti esistenti",
     "import_overwrite_existing": "Sovrascrivi gli utenti esistenti",
-    "import_overwrite_helper": "Nome, cellulare, gruppi e profilo degli utenti esistenti vengono aggiornati. Un interno diverso ricrea tutti i loro dispositivi.",
+    "import_overwrite_helper": "Nome, cellulare, gruppi e profilo degli utenti esistenti vengono aggiornati, insieme a casella vocale e dispositivi indicati nel file. Un interno diverso ricrea tutti i loro dispositivi.",
     "import_summary": "Riepilogo dell'importazione",
-    "import_summary_detected": "Rilevati {users} utenti e {groups} gruppi",
+    "import_summary_detected": "Rilevati {users} e {groups}",
     "import_users_detected": "{count} utente rilevato nel file selezionato: | {count} utenti rilevati nel file selezionato:",
     "import_valid": "{count} validi",
     "import_with_errors": "{count} con errori (verranno saltati)",
@@ -334,8 +344,8 @@
     "bulk_default_destination": "Predefinita",
     "outbound_caller_id": "ID chiamante in uscita",
     "caller_id": "ID chiamante",
-    "bulk_outboundcid_helper": "Un numero oppure \"Nome\" <numero>",
-    "bulk_outboundcid_invalid": "Inserisci un numero oppure \"Nome\" <numero>",
+    "bulk_outboundcid_helper": "Un numero oppure \"Nome\" {'<'}numero{'>'}",
+    "bulk_outboundcid_invalid": "Inserisci un numero oppure \"Nome\" {'<'}numero{'>'}",
     "bulk_outboundcid_required": "Inserisci l'ID chiamante da completare con le cifre dell'interno",
     "bulk_outboundcid_number_only": "Usa solo cifre per aggiungere le cifre dell'interno",
     "extension_digits": "Cifre dell'interno",
@@ -344,7 +354,37 @@
     "bulk_no_changes": "Modifica almeno un'impostazione",
     "settings_updated": "Impostazioni aggiornate",
     "cannot_update_settings": "Impossibile aggiornare le impostazioni",
-    "cannot_load_settings": "Impossibile caricare le impostazioni degli utenti"
+    "cannot_load_settings": "Impossibile caricare le impostazioni degli utenti",
+    "import_summary_users": "{count} utente | {count} utenti",
+    "import_summary_groups": "{count} gruppo | {count} gruppi",
+    "import_new_groups": "Verrà creato {count} nuovo gruppo: {names} | Verranno creati {count} nuovi gruppi: {names}",
+    "import_file_too_large": "File troppo grande",
+    "import_error_missing_username_column": "La prima riga contiene i nomi delle colonne ma non la colonna del nome utente: usa i nomi delle colonne del modello.",
+    "import_issue_invalid_group": "gruppo \"{group}\" non valido. {reason}",
+    "import_issue_too_many_devices": "più di {max} dispositivi",
+    "import_settings_failed": "Utenti importati, ma alcune impostazioni non sono state applicate",
+    "import_error_settings_failed": "{username}: {step} ({error})",
+    "extension_required_to_keep": "Inserisci un interno. Per rimuoverlo usa Rimuovi interno nel menu dell'utente.",
+    "steps_already_applied": "Queste modifiche sono già applicate: {steps}. Salva di nuovo per applicare le altre.",
+    "step_done_extension": "interno",
+    "step_done_mobile": "numero di cellulare",
+    "step_done_voicemail": "casella vocale",
+    "step_done_profile": "profilo",
+    "step_done_groups": "gruppi",
+    "step_done_enable_device": "attivazione di {device}",
+    "step_done_disable_device": "disattivazione di {device}",
+    "bulk_completed_before_error": "{count} utente è stato aggiornato prima dell'errore: {users}. | {count} utenti sono stati aggiornati prima dell'errore: {users}.",
+    "disable_devices": "Disabilita i dispositivi",
+    "disable_devices_confirmation": "Verranno disabilitati i dispositivi di {count} utente: | Verranno disabilitati i dispositivi di {count} utenti:",
+    "disable_devices_credentials": "I dispositivi disabilitati perdono la configurazione: per usarli di nuovo abilitali e configura le app con le nuove credenziali.",
+    "phone_without_mac": "Telefono sull'interno {extension}, senza indirizzo MAC",
+    "phones_without_mac_helper": "I telefoni senza indirizzo MAC contano nel limite dei dispositivi e non si possono modificare qui.",
+    "cannot_load_mobile": "Non è stato possibile caricare il numero di cellulare, quindi ora non si può modificare",
+    "cannot_load_voicemail": "Non è stato possibile caricare lo stato della casella vocale, quindi ora non si può modificare",
+    "cannot_load_profiles": "Non è stato possibile caricare i profili, quindi ora il profilo non si può modificare",
+    "cannot_load_groups": "Non è stato possibile caricare i gruppi, quindi ora non si possono modificare",
+    "directory_partially_loaded": "Alcune informazioni non sono disponibili",
+    "directory_partially_loaded_description": "Impossibile caricare: {parts}. Le colonne relative potrebbero essere vuote e quei campi non si possono modificare. Riprova."
   },
   "trunks": {
     "title": "Fasci",
@@ -1285,7 +1325,6 @@
     "delete_group": "Elimina gruppo",
     "create": "Crea",
     "filter_groups": "Filtra gruppi",
-    "clear_filters": "Cancella filtri",
     "group": "Gruppo",
     "users": "Utenti",
     "name": "Nome",
@@ -1305,7 +1344,8 @@
     "cannot_create_group": "Impossibile creare il gruppo",
     "cannot_save_group": "Impossibile salvare il gruppo",
     "cannot_delete_group": "Impossibile eliminare il gruppo",
-    "delete_group_confirmation": "Il gruppo {name} verrà rimosso definitivamente"
+    "delete_group_confirmation": "Il gruppo {name} verrà rimosso definitivamente",
+    "group_actions": "Azioni di {name}"
   },
   "profiles": {
     "description_line_1": "Configura i profili di permessi e le impostazioni di comunicazione predefinite assegnate agli utenti.",
@@ -1319,7 +1359,6 @@
     "profile_actions": "Azioni di {name}",
     "create": "Crea",
     "filter_profiles": "Filtra profili",
-    "clear_filters": "Cancella filtri",
     "default_profile_name": "Profilo {name}",
     "users_assigned": "Nessun utente assegnato | {n} utente assegnato | {n} utenti assegnati",
     "no_profiles_configured": "Nessun profilo configurato",
@@ -1415,7 +1454,9 @@
       "satellite_stt": "Trascrizione chiamate (speech-to-text)",
       "satellite_stt_tooltip": "Trascrizione e riassunto delle chiamate",
       "streaming": "Pannello sorgenti video"
-    }
+    },
+    "name_not_allowed": "Questo nome non può essere usato per questo profilo",
+    "profile_change_in_progress": "È in corso un'altra modifica dei profili: riprova tra qualche secondo."
   },
   "user_overview": {
     "filter_users": "Filtra utenti",
@@ -1437,7 +1478,8 @@
       "busy": "Occupato",
       "ringing": "Squilla",
       "dnd": "DND",
-      "offline": "Offline"
+      "offline": "Offline",
+      "forward": "Inoltro"
     },
     "devices": {
       "webrtc": "Web phone",

@@ -11,7 +11,7 @@ export const OVERVIEW_LIVE_KEY = 'userOverviewLive'
 
 export const OVERVIEW_REFRESH_INTERVAL = 10000
 
-export const OVERVIEW_STATUSES = ['online', 'busy', 'ringing', 'dnd', 'offline'] as const
+export const OVERVIEW_STATUSES = ['online', 'busy', 'ringing', 'dnd', 'forward', 'offline'] as const
 
 export type OverviewStatus = (typeof OVERVIEW_STATUSES)[number]
 
@@ -101,9 +101,9 @@ export type OverviewFilters = {
 
 const STATUS_BY_RAW_VALUE: Record<string, OverviewStatus> = {
   online: 'online',
-  voicemail: 'online',
-  cellphone: 'online',
-  callforward: 'online',
+  voicemail: 'forward',
+  cellphone: 'forward',
+  callforward: 'forward',
   busy: 'busy',
   onhold: 'busy',
   ringing: 'ringing',

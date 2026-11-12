@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation } from '@pinia/colada'
 import {
@@ -30,17 +30,21 @@ import {
   buildCsvTemplate,
   DEFAULT_EXISTING_USERS_MODE,
   downloadTextFile,
+  exceedsImportSizeLimit,
   IMPORT_ISSUES_SHOWN,
   IMPORT_PREVIEW_ROWS,
+  importUsers,
   isCsvImportError,
+  isImportFileError,
   parseImportFile,
-  runCsvImport,
   toLegacyCsv,
   type ExistingUsersMode,
   type ImportRow,
+  type ImportRowError,
 } from '@/lib/users/csv'
 import type { UsersDirectory } from '@/lib/users/directory'
-import type { User } from '@/lib/users/users'
+import { UserSettingsStepError } from '@/lib/users/userSettings'
+import { MAX_DEVICES_PER_USER, type User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
@@ -60,7 +64,13 @@ const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const invalidateUsers = useInvalidateUsers()
 
-const step = ref<'file' | 'preview'>('file')
+type ImportStep = 'file' | 'preview'
+
+const PANEL_TRANSITION_MS = 400
+
+const step = ref<ImportStep>('file')
+const visiblePanel = ref<ImportStep | null>(null)
+let panelTimer: ReturnType<typeof setTimeout> | undefined
 const file = ref<File | null>(null)
 const fileError = ref('')
 const rows = ref<ImportRow[]>([])
@@ -73,6 +83,16 @@ const analysis = computed(() =>
 )
 
 const previewRows = computed(() => rows.value.slice(0, IMPORT_PREVIEW_ROWS))
+
+const fileTooLarge = computed(() =>
+  exceedsImportSizeLimit(toLegacyCsv(analysis.value.valid, users, directory)),
+)
+
+const showsVoicemailColumn = computed(() => rows.value.some((row) => row.voicemail !== null))
+
+const showsDevicesColumn = computed(() =>
+  rows.value.some((row) => row.webrtc !== null || row.nethlink !== null || row.mobileApp !== null),
+)
 
 const shownErrors = computed(() =>
   showAllErrors.value ? analysis.value.errors : analysis.value.errors.slice(0, IMPORT_ISSUES_SHOWN),
@@ -92,17 +112,35 @@ const hasExistingUsers = computed(() =>
 watch(
   () => isShown,
   (shown) => {
+    clearTimeout(panelTimer)
+
     if (shown) {
       step.value = 'file'
+      visiblePanel.value = 'file'
       file.value = null
       fileError.value = ''
       rows.value = []
       existingUsersMode.value = DEFAULT_EXISTING_USERS_MODE
       showAllErrors.value = false
       resetImport()
+    } else {
+      visiblePanel.value = null
     }
   },
 )
+
+onBeforeUnmount(() => clearTimeout(panelTimer))
+
+function showStep(next: ImportStep) {
+  step.value = next
+  visiblePanel.value = null
+  clearTimeout(panelTimer)
+  panelTimer = setTimeout(() => {
+    if (isShown) {
+      visiblePanel.value = next
+    }
+  }, PANEL_TRANSITION_MS)
+}
 
 watch(file, () => {
   fileError.value = ''
@@ -117,7 +155,7 @@ const {
   mutation: async () => {
     progress.value = 0
     const valid = analysis.value.valid
-    await runCsvImport(toLegacyCsv(valid, users, directory), (value) => {
+    await importUsers(valid, users, directory, (value) => {
       progress.value = value
     })
     return valid.map((row) => row.username)
@@ -140,15 +178,34 @@ const {
   },
 })
 
+const importErrorTitle = computed(() =>
+  isCsvImportError(importError.value) && importError.value.code === 'settings_failed'
+    ? t('users.import_settings_failed')
+    : t('users.import_failed'),
+)
+
 const importErrorDescription = computed(() => {
   const error = importError.value
 
-  if (isCsvImportError(error)) {
-    return error.code === 'import_failed' && error.message
-      ? error.message
-      : t(`users.import_error_${error.code}`)
+  if (!isCsvImportError(error)) {
+    return describeError(error)
   }
-  return describeError(error)
+
+  if (error.code === 'settings_failed') {
+    const cause = error.cause
+
+    return t('users.import_error_settings_failed', {
+      username: error.message,
+      step:
+        cause instanceof UserSettingsStepError
+          ? t(`users.step_failed_${cause.step.kind}`)
+          : t('common.request_failed'),
+      error: describeError(cause instanceof UserSettingsStepError ? cause.cause : cause),
+    })
+  }
+  return error.code === 'import_failed' && error.message
+    ? error.message
+    : t(`users.import_error_${error.code}`)
 })
 
 async function readFile() {
@@ -165,9 +222,11 @@ async function readFile() {
       return
     }
     rows.value = parsed
-    step.value = 'preview'
-  } catch {
-    fileError.value = t('users.import_cannot_read_file')
+    showStep('preview')
+  } catch (error) {
+    fileError.value = isImportFileError(error)
+      ? t(`users.import_error_${error.code}`)
+      : t('users.import_cannot_read_file')
   }
 }
 
@@ -181,12 +240,30 @@ function close() {
   }
 }
 
-const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
+const issueLabel = (error: ImportRowError) =>
+  t(`users.import_issue_${error.issue}`, {
+    group: error.group ?? '',
+    reason: error.reason ? t(error.reason) : '',
+    max: MAX_DEVICES_PER_USER,
+  })
+
+const formatFlag = (flag: boolean | null) =>
+  flag === null ? '-' : flag ? t('common.enabled') : t('common.disabled')
+
+const formatDevices = (row: ImportRow) => {
+  const devices = [
+    row.webrtc === true ? t('users.device_webrtc') : '',
+    row.nethlink === true ? t('users.device_nethlink') : '',
+    row.mobileApp === true ? t('users.device_mobile') : '',
+  ].filter(Boolean)
+
+  return devices.length ? devices.join(', ') : '-'
+}
 </script>
 
 <template>
   <NeSideDrawer
-    :is-shown="isShown && step === 'file'"
+    :is-shown="isShown && visiblePanel === 'file'"
     :title="t('users.import_users')"
     :close-aria-label="t('common.close')"
     @close="close"
@@ -218,13 +295,13 @@ const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
     </form>
   </NeSideDrawer>
   <NeModal
-    :visible="isShown && step === 'preview'"
+    :visible="isShown && visiblePanel === 'preview'"
     :title="t('users.import_users')"
     size="xxl"
     :primary-label="
       t('users.import_n_users', { count: analysis.valid.length }, analysis.valid.length)
     "
-    :primary-button-disabled="importing || analysis.valid.length === 0"
+    :primary-button-disabled="importing || analysis.valid.length === 0 || fileTooLarge"
     :primary-button-loading="importing"
     :secondary-label="t('common.previous')"
     secondary-button-kind="tertiary"
@@ -233,17 +310,21 @@ const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
     :close-aria-label="t('common.close')"
     @close="close"
     @primary-click="startImport()"
-    @secondary-click="step = 'file'"
+    @secondary-click="showStep('file')"
   >
     <div class="flex flex-col gap-6">
       <div class="text-primary-neutral flex flex-col gap-1 text-sm" data-testid="import-summary">
         <template v-if="analysis.errors.length === 0 && analysis.existing.length === 0">
-          {{
+          <span>{{
             t('users.import_summary_detected', {
-              users: analysis.total,
-              groups: analysis.groups.length,
+              users: t('users.import_summary_users', { count: analysis.total }, analysis.total),
+              groups: t(
+                'users.import_summary_groups',
+                { count: analysis.groups.length },
+                analysis.groups.length,
+              ),
             })
-          }}
+          }}</span>
         </template>
         <template v-else>
           <span>{{
@@ -265,7 +346,22 @@ const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
             </li>
           </ul>
         </template>
+        <span v-if="analysis.newGroups.length" data-testid="import-new-groups">
+          {{
+            t(
+              'users.import_new_groups',
+              { count: analysis.newGroups.length, names: analysis.newGroups.join(', ') },
+              analysis.newGroups.length,
+            )
+          }}
+        </span>
       </div>
+      <NeInlineNotification
+        v-if="fileTooLarge"
+        kind="error"
+        :title="t('users.import_file_too_large')"
+        :description="t('users.import_error_file_too_large')"
+      />
       <NeInlineNotification
         v-if="analysis.errors.length"
         kind="error"
@@ -280,7 +376,7 @@ const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
                 t('users.import_row_issue', {
                   row: item.row.line,
                   username: item.row.username || '-',
-                  issue: issueLabel(item.issue),
+                  issue: issueLabel(item),
                 })
               }}
             </li>
@@ -324,7 +420,7 @@ const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
           >
             {{ t('users.file_preview') }}
           </span>
-          <span class="text-secondary-neutral text-xs">
+          <span v-if="rows.length > IMPORT_PREVIEW_ROWS" class="text-secondary-neutral text-xs">
             {{ t('users.only_first_rows_shown', { count: IMPORT_PREVIEW_ROWS }) }}
           </span>
         </div>
@@ -336,6 +432,10 @@ const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
             <NeTableHeadCell>{{ t('users.extension') }}</NeTableHeadCell>
             <NeTableHeadCell>{{ t('users.group') }}</NeTableHeadCell>
             <NeTableHeadCell>{{ t('users.profile') }}</NeTableHeadCell>
+            <NeTableHeadCell v-if="showsVoicemailColumn">{{
+              t('users.voicemail')
+            }}</NeTableHeadCell>
+            <NeTableHeadCell v-if="showsDevicesColumn">{{ t('users.devices') }}</NeTableHeadCell>
           </NeTableHead>
           <NeTableBody>
             <NeTableRow v-for="row in previewRows" :key="row.line">
@@ -349,6 +449,12 @@ const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
                 {{ row.groups?.length ? row.groups.join(', ') : '-' }}
               </NeTableCell>
               <NeTableCell :data-label="t('users.profile')">{{ row.profile || '-' }}</NeTableCell>
+              <NeTableCell v-if="showsVoicemailColumn" :data-label="t('users.voicemail')">
+                {{ formatFlag(row.voicemail) }}
+              </NeTableCell>
+              <NeTableCell v-if="showsDevicesColumn" :data-label="t('users.devices')">
+                {{ formatDevices(row) }}
+              </NeTableCell>
             </NeTableRow>
           </NeTableBody>
         </NeTable>
@@ -387,7 +493,7 @@ const issueLabel = (issue: string) => t(`users.import_issue_${issue}`)
       <NeInlineNotification
         v-if="importError"
         kind="error"
-        :title="t('users.import_failed')"
+        :title="importErrorTitle"
         :description="importErrorDescription"
       />
     </div>

@@ -110,6 +110,24 @@ test.describe('user overview', () => {
     await expect(page.getByText('No users with an extension')).toBeVisible()
   })
 
+  test('shows the forwarded users and resets only changed filters', async ({ page, mockApi }) => {
+    mockOverview(mockApi, {
+      ...ENDPOINTS,
+      'c.rossi': endpointUser('c.rossi', 'Carla Rossi', 'callforward', '302', [
+        { id: '302', type: 'webrtc' },
+      ]),
+    })
+    await page.goto('./users/overview')
+
+    await expect(page.getByRole('button', { name: 'Reset filters' })).toBeDisabled()
+    await expect(userCard(page, 'c.rossi').getByText('Call forward')).toBeAttached()
+    await page.getByRole('button', { name: 'Open filter Status' }).click()
+    await page.getByRole('checkbox', { name: 'Call forward' }).check()
+    await expect(page.locator('[data-user]')).toHaveCount(1)
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button', { name: 'Reset filters' })).toBeEnabled()
+  })
+
   test('shows a load error and retries', async ({ page, mockApi }) => {
     let fail = true
 

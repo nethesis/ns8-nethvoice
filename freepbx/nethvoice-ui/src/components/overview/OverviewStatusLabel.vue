@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faCircle,
+  faCircleArrowRight,
   faCircleCheck,
   faCircleMinus,
   faCircleXmark,
@@ -25,6 +26,7 @@ const STATUS_ICONS: Record<OverviewStatus, { icon: IconDefinition; color: string
   busy: { icon: faCircleMinus, color: 'text-rose-700 dark:text-rose-500' },
   ringing: { icon: faCircle, color: 'text-rose-700 dark:text-rose-500' },
   dnd: { icon: faCircleMinus, color: 'text-rose-700 dark:text-rose-500' },
+  forward: { icon: faCircleArrowRight, color: 'text-amber-700 dark:text-amber-500' },
   offline: { icon: faCircleXmark, color: 'text-gray-500 dark:text-gray-400' },
 }
 

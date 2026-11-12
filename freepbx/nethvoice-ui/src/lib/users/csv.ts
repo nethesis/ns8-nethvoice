@@ -4,9 +4,18 @@
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import { isApiError } from '@/lib/api/errors'
+import { buildGroupFormSchema } from '@/lib/groups/groups'
 import type { UsersDirectory } from '@/lib/users/directory'
 import { isValidExtension } from '@/lib/users/extensions'
-import { findUserByUsername, type User } from '@/lib/users/users'
+import { applyUserSettingsSteps, type UserSettingsStep } from '@/lib/users/userSettings'
+import {
+  findUserByUsername,
+  getUsers,
+  hasDevice,
+  MAX_DEVICES_PER_USER,
+  type SoftwareDeviceType,
+  type User,
+} from '@/lib/users/users'
 
 export const CSV_IMPORT_POLL_INTERVAL = 2000
 
@@ -33,6 +42,7 @@ export type ImportColumn =
   | 'voicemail'
   | 'webrtc'
   | 'nethlink'
+  | 'mobileApp'
 
 export type ImportRow = {
   line: number
@@ -48,6 +58,7 @@ export type ImportRow = {
   voicemail: boolean | null
   webrtc: boolean | null
   nethlink: boolean | null
+  mobileApp: boolean | null
 }
 
 export type ImportIssue =
@@ -59,10 +70,14 @@ export type ImportIssue =
   | 'duplicate_extension'
   | 'extension_in_use'
   | 'unknown_profile'
+  | 'invalid_group'
+  | 'too_many_devices'
 
 export type ImportRowError = {
   row: ImportRow
   issue: ImportIssue
+  group?: string
+  reason?: string
 }
 
 export type ExistingUsersMode = 'skip' | 'overwrite'
@@ -75,22 +90,45 @@ export type ImportAnalysis = {
   existing: ImportRow[]
   errors: ImportRowError[]
   groups: string[]
+  newGroups: string[]
 }
 
-export type CsvImportErrorCode = 'file_too_large' | 'import_failed'
+export type ImportFollowUp = {
+  user: User
+  steps: UserSettingsStep[]
+}
+
+export type CsvImportErrorCode = 'file_too_large' | 'import_failed' | 'settings_failed'
 
 export class CsvImportError extends Error {
   readonly code: CsvImportErrorCode
+  readonly cause: unknown
 
-  constructor(code: CsvImportErrorCode, message = '') {
+  constructor(code: CsvImportErrorCode, message = '', cause: unknown = undefined) {
     super(message)
     this.name = 'CsvImportError'
     this.code = code
+    this.cause = cause
   }
 }
 
 export const isCsvImportError = (error: unknown): error is CsvImportError =>
   error instanceof CsvImportError
+
+export type ImportFileErrorCode = 'missing_username_column'
+
+export class ImportFileError extends Error {
+  readonly code: ImportFileErrorCode
+
+  constructor(code: ImportFileErrorCode) {
+    super(code)
+    this.name = 'ImportFileError'
+    this.code = code
+  }
+}
+
+export const isImportFileError = (error: unknown): error is ImportFileError =>
+  error instanceof ImportFileError
 
 const LEGACY_COLUMNS: ImportColumn[] = [
   'username',
@@ -126,7 +164,27 @@ const COLUMN_ALIASES: Record<string, ImportColumn> = {
   webphone: 'webrtc',
   nethlink: 'nethlink',
   desktopapp: 'nethlink',
+  mobileapp: 'mobileApp',
+  nomeutente: 'username',
+  utente: 'username',
+  nome: 'name',
+  cognome: 'surname',
+  nomecompleto: 'fullname',
+  nomevisualizzato: 'fullname',
+  interno: 'extension',
+  gruppo: 'groups',
+  gruppi: 'groups',
+  profilo: 'profile',
+  cellulare: 'mobile',
+  numerocellulare: 'mobile',
+  casellavocale: 'voicemail',
+  segreteria: 'voicemail',
+  telefonoweb: 'webrtc',
+  appdesktop: 'nethlink',
+  appmobile: 'mobileApp',
 }
+
+const MIN_HEADER_COLUMNS = 2
 
 export const CSV_TEMPLATE_COLUMNS = [
   'username',
@@ -140,18 +198,23 @@ export const CSV_TEMPLATE_COLUMNS = [
   'voicemail',
   'webphone',
   'desktop_app',
+  'mobile_app',
 ]
 
 export const CSV_EXPORT_COLUMNS = [
   'username',
   'fullname',
   'extension',
-  'groups',
+  'group',
   'profile',
   'mobile',
   'voicemail',
   'webphone',
+  'desktop_app',
+  'mobile_app',
 ]
+
+const CSV_BOM = '\ufeff'
 
 const detectDelimiter = (text: string): string => {
   const firstLine = text.split(/\r?\n/, 1)[0] ?? ''
@@ -225,13 +288,17 @@ export const decodeBase64 = (base64: string): string => {
   return new TextDecoder().decode(bytes)
 }
 
-const normalizeHeader = (cell: string): string => cell.toLowerCase().replace(/[^a-z]/g, '')
+const normalizeHeader = (cell: string): string =>
+  cell
+    .normalize('NFD')
+    .toLowerCase()
+    .replace(/[^a-z]/g, '')
 
 const parseFlag = (value: string | undefined): boolean | null => {
   if (value === undefined || value.trim() === '') {
     return null
   }
-  return ['true', '1', 'yes'].includes(value.trim().toLowerCase())
+  return ['true', '1', 'yes', 'si', 'sì', 'vero'].includes(value.trim().toLowerCase())
 }
 
 const parseGroups = (value: string | undefined): string[] | null =>
@@ -250,6 +317,13 @@ export const parseImportFile = (text: string): ImportRow[] => {
   }
   const headerColumns = table[0].map((cell) => COLUMN_ALIASES[normalizeHeader(cell)])
   const hasHeader = headerColumns.includes('username')
+
+  if (
+    !hasHeader &&
+    headerColumns.filter((column) => column !== undefined).length >= MIN_HEADER_COLUMNS
+  ) {
+    throw new ImportFileError('missing_username_column')
+  }
   const columns: (ImportColumn | undefined)[] = hasHeader ? headerColumns : LEGACY_COLUMNS
   const body = hasHeader ? table.slice(1) : table
 
@@ -276,8 +350,40 @@ export const parseImportFile = (text: string): ImportRow[] => {
       voicemail: parseFlag(value('voicemail')),
       webrtc: parseFlag(value('webrtc')),
       nethlink: parseFlag(value('nethlink')),
+      mobileApp: parseFlag(value('mobileApp')),
     }
   })
+}
+
+const keepsCurrentExtension = (row: ImportRow, user: User | undefined): user is User =>
+  user !== undefined && (row.extension === '' || user.mainExtension === row.extension)
+
+const DEVICE_FLAGS: [
+  SoftwareDeviceType,
+  keyof Pick<ImportRow, 'webrtc' | 'nethlink' | 'mobileApp'>,
+][] = [
+  ['webrtc', 'webrtc'],
+  ['nethlink', 'nethlink'],
+  ['mobile', 'mobileApp'],
+]
+
+const planDeviceChanges = (row: ImportRow, user: User) => ({
+  enable: DEVICE_FLAGS.filter(
+    ([device, flag]) => row[flag] === true && !hasDevice(user, device),
+  ).map(([device]) => device),
+  disable: DEVICE_FLAGS.filter(
+    ([device, flag]) => row[flag] === false && hasDevice(user, device),
+  ).map(([device]) => device),
+})
+
+const exceedsDeviceLimit = (row: ImportRow, users: User[]): boolean => {
+  const user = findUserByUsername(users, row.username)
+
+  if (!keepsCurrentExtension(row, user) || user.mainExtension === '') {
+    return false
+  }
+  const { enable, disable } = planDeviceChanges(row, user)
+  return user.devices.length - disable.length + enable.length > MAX_DEVICES_PER_USER
 }
 
 const findRowIssue = (
@@ -323,8 +429,42 @@ const findRowIssue = (
   ) {
     return 'unknown_profile'
   }
+
+  if (exceedsDeviceLimit(row, users)) {
+    return 'too_many_devices'
+  }
   return null
 }
+
+const sameName = (a: string, b: string): boolean =>
+  a.trim().toLowerCase() === b.trim().toLowerCase()
+
+const findGroupIssue = (
+  row: ImportRow,
+  existingGroups: string[],
+  newGroups: string[],
+): Pick<ImportRowError, 'group' | 'reason'> | null => {
+  const accepted = [...newGroups]
+
+  for (const group of row.groups ?? []) {
+    if ([...existingGroups, ...accepted].some((name) => sameName(name, group))) {
+      continue
+    }
+    const validation = v.safeParse(buildGroupFormSchema([...existingGroups, ...accepted]), {
+      name: group,
+      userIds: [],
+    })
+
+    if (!validation.success) {
+      return { group, reason: validation.issues[0].message }
+    }
+    accepted.push(group)
+  }
+  return null
+}
+
+const uniqueNames = (names: string[]): string[] =>
+  names.filter((name, index) => names.findIndex((other) => sameName(other, name)) === index)
 
 export const analyzeImport = (
   rows: ImportRow[],
@@ -338,8 +478,10 @@ export const analyzeImport = (
     existing: [],
     errors: [],
     groups: [],
+    newGroups: [],
   }
   const seen = { usernames: new Set<string>(), extensions: new Set<string>() }
+  const existingGroups = directory.groups.map((group) => group.name)
 
   for (const row of rows) {
     const issue = findRowIssue(row, seen, users, directory)
@@ -348,19 +490,36 @@ export const analyzeImport = (
       analysis.errors.push({ row, issue })
       continue
     }
+    const skipped = !!findUserByUsername(users, row.username) && existingUsersMode === 'skip'
+    const groupIssue = skipped ? null : findGroupIssue(row, existingGroups, analysis.newGroups)
+
+    if (groupIssue) {
+      analysis.errors.push({ row, issue: 'invalid_group', ...groupIssue })
+      continue
+    }
     seen.usernames.add(row.username)
 
     if (row.extension !== '') {
       seen.extensions.add(row.extension)
     }
 
-    if (findUserByUsername(users, row.username) && existingUsersMode === 'skip') {
+    if (skipped) {
       analysis.existing.push(row)
-    } else {
-      analysis.valid.push(row)
+      continue
     }
+    analysis.valid.push(row)
+    analysis.newGroups = uniqueNames([
+      ...analysis.newGroups,
+      ...(row.groups ?? []).filter(
+        (group) => !existingGroups.some((existing) => sameName(existing, group)),
+      ),
+    ])
   }
-  analysis.groups = [...new Set(rows.flatMap((row) => row.groups ?? []))]
+  analysis.groups = uniqueNames(
+    rows
+      .filter((row) => analysis.valid.includes(row) || analysis.existing.includes(row))
+      .flatMap((row) => row.groups ?? []),
+  )
   return analysis
 }
 
@@ -372,7 +531,7 @@ export const toLegacyCsvRow = (
   directory: UsersDirectory,
 ): string[] => {
   const user = findUserByUsername(users, row.username)
-  const keepsExtension = user !== undefined && user.mainExtension === row.extension
+  const keepsExtension = keepsCurrentExtension(row, user)
   const currentGroups = user
     ? directory.groups.filter((group) => group.userIds.includes(user.id)).map((group) => group.name)
     : []
@@ -408,26 +567,88 @@ export const toLegacyCsvRow = (
 export const toLegacyCsv = (rows: ImportRow[], users: User[], directory: UsersDirectory): string =>
   serializeCsv(rows.map((row) => toLegacyCsvRow(row, users, directory)))
 
+export const exceedsImportSizeLimit = (csv: string): boolean =>
+  encodeBase64(csv).length > MAX_CSV_IMPORT_BASE64_LENGTH
+
+export const needsFollowUps = (rows: ImportRow[], users: User[]): boolean =>
+  rows.some(
+    (row) =>
+      row.mobileApp === true ||
+      (keepsCurrentExtension(row, findUserByUsername(users, row.username)) &&
+        (row.voicemail !== null || row.webrtc !== null || row.nethlink !== null)),
+  )
+
+export const planImportFollowUps = (
+  rows: ImportRow[],
+  usersBefore: User[],
+  usersAfter: User[],
+  directory: UsersDirectory,
+): ImportFollowUp[] =>
+  rows.flatMap((row) => {
+    const user = findUserByUsername(usersAfter, row.username)
+
+    if (!user || user.mainExtension === '') {
+      return []
+    }
+    const keepsExtension = keepsCurrentExtension(row, findUserByUsername(usersBefore, row.username))
+    const { enable, disable } = planDeviceChanges(
+      keepsExtension
+        ? row
+        : {
+            ...row,
+            voicemail: null,
+            webrtc: null,
+            nethlink: null,
+            mobileApp: row.mobileApp || null,
+          },
+      user,
+    )
+    const hasVoicemail = directory.voicemailExtensions.includes(user.mainExtension)
+    const steps: UserSettingsStep[] = [
+      ...(keepsExtension && row.voicemail !== null && row.voicemail !== hasVoicemail
+        ? [{ kind: 'voicemail' as const, enabled: row.voicemail }]
+        : []),
+      ...disable.map((device) => ({ kind: 'disable_device' as const, device })),
+      ...enable.map((device) => ({ kind: 'enable_device' as const, device })),
+    ]
+
+    return steps.length > 0 ? [{ user, steps }] : []
+  })
+
 export const buildCsvTemplate = (): string =>
   [
     CSV_TEMPLATE_COLUMNS.join(','),
-    'a.miller,Anna,Miller,201,Sales,Base,,,FALSE,TRUE,FALSE',
-    'c.davis,Christopher,Davis,202,Sales|Support,Standard,,3331234567,TRUE,TRUE,TRUE',
+    'a.miller,Anna,Miller,201,Sales,Base,,,FALSE,TRUE,FALSE,FALSE',
+    'c.davis,Christopher,Davis,202,Sales|Support,Standard,,3331234567,TRUE,TRUE,TRUE,TRUE',
   ].join('\r\n') + '\r\n'
 
-export const convertExportedCsv = (legacyCsv: string): string => {
-  const rows = parseCsv(legacyCsv).map((cells) => [
-    cells[0] ?? '',
-    cells[1] ?? '',
-    (cells[2] ?? '') === 'none' ? '' : (cells[2] ?? ''),
-    cells[7] ?? '',
-    cells[8] ?? '',
-    cells[4] ?? '',
-    cells[5] ?? '',
-    cells[6] ?? '',
-  ])
+const formatDevice = (user: User | undefined, device: SoftwareDeviceType): string =>
+  user ? formatFlag(hasDevice(user, device)) : ''
+
+export const convertExportedCsv = (legacyCsv: string, users: User[] = []): string => {
+  const rows = parseCsv(legacyCsv).map((cells) => {
+    const user = findUserByUsername(users, cells[0] ?? '')
+
+    return [
+      cells[0] ?? '',
+      cells[1] ?? '',
+      (cells[2] ?? '') === 'none' ? '' : (cells[2] ?? ''),
+      cells[7] ?? '',
+      cells[8] ?? '',
+      cells[4] ?? '',
+      cells[5] ?? '',
+      cells[6] ?? '',
+      formatDevice(user, 'nethlink'),
+      formatDevice(user, 'mobile'),
+    ]
+  })
   return serializeCsv([CSV_EXPORT_COLUMNS, ...rows])
 }
+
+const padDatePart = (value: number): string => String(value).padStart(2, '0')
+
+export const buildExportFileName = (date: Date = new Date()): string =>
+  `users-${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}.csv`
 
 const ProgressSchema = v.object({
   result: v.nullable(v.pipe(v.union([v.number(), v.string()]), v.transform(Number))),
@@ -450,12 +671,10 @@ export const isCsvImportNotRunning = (error: unknown): boolean =>
   isApiError(error) && error.status === 422
 
 export const postCsvImport = async (csv: string): Promise<void> => {
-  const file = encodeBase64(csv)
-
-  if (file.length > MAX_CSV_IMPORT_BASE64_LENGTH) {
+  if (exceedsImportSizeLimit(csv)) {
     throw new CsvImportError('file_too_large')
   }
-  await api.POST('/csv/csvimport', { body: { file }, parseAs: 'text' })
+  await api.POST('/csv/csvimport', { body: { file: encodeBase64(csv) }, parseAs: 'text' })
 }
 
 export const getCsvImportProgress = async (): Promise<number> => {
@@ -505,13 +724,57 @@ export const runCsvImport = async (
   }
 }
 
+export const IMPORT_FOLLOW_UPS_SHARE = 20
+
+export const applyImportFollowUps = async (
+  followUps: ImportFollowUp[],
+  onProgress: (progress: number) => void = () => undefined,
+): Promise<void> => {
+  for (const [index, { user, steps }] of followUps.entries()) {
+    try {
+      await applyUserSettingsSteps(user, steps)
+    } catch (error) {
+      throw new CsvImportError('settings_failed', user.username, error)
+    }
+    onProgress(Math.round(((index + 1) / followUps.length) * 100))
+  }
+}
+
+export const importUsers = async (
+  rows: ImportRow[],
+  users: User[],
+  directory: UsersDirectory,
+  onProgress: (progress: number) => void = () => undefined,
+  pollInterval = CSV_IMPORT_POLL_INTERVAL,
+): Promise<void> => {
+  const withFollowUps = needsFollowUps(rows, users)
+  const importShare = withFollowUps ? 100 - IMPORT_FOLLOW_UPS_SHARE : 100
+
+  await runCsvImport(
+    toLegacyCsv(rows, users, directory),
+    (progress) => onProgress(Math.round((progress * importShare) / 100)),
+    pollInterval,
+  )
+
+  if (!withFollowUps) {
+    return
+  }
+  const followUps = planImportFollowUps(rows, users, await getUsers(), directory)
+
+  await applyImportFollowUps(followUps, (progress) =>
+    onProgress(importShare + Math.round((progress * IMPORT_FOLLOW_UPS_SHARE) / 100)),
+  )
+  onProgress(100)
+}
+
 export const getCsvExport = async (): Promise<string> => {
-  const { data } = await api.GET('/csv/csvexport')
-  return convertExportedCsv(decodeBase64(v.parse(v.string(), data)))
+  const [{ data }, users] = await Promise.all([api.GET('/csv/csvexport'), getUsers()])
+  return convertExportedCsv(decodeBase64(v.parse(v.string(), data)), users)
 }
 
 export const downloadTextFile = (fileName: string, content: string, mimeType = 'text/csv') => {
-  const url = URL.createObjectURL(new Blob([content], { type: `${mimeType};charset=utf-8` }))
+  const body = mimeType === 'text/csv' && !content.startsWith(CSV_BOM) ? CSV_BOM + content : content
+  const url = URL.createObjectURL(new Blob([body], { type: `${mimeType};charset=utf-8` }))
   const link = document.createElement('a')
 
   link.href = url

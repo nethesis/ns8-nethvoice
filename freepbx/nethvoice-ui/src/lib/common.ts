@@ -13,17 +13,21 @@ export const normalize = (str: string) => {
   return str.toLowerCase().replace(/\s+/g, '_')
 }
 
+export const foldText = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+
 export const matchesText = (filter: string, ...values: (string | number | null | undefined)[]) => {
-  const needle = filter.trim().toLowerCase()
+  const needle = foldText(filter)
 
   if (!needle) {
     return true
   }
-  return values.some((value) =>
-    String(value ?? '')
-      .toLowerCase()
-      .includes(needle),
-  )
+  return values.some((value) => foldText(String(value ?? '')).includes(needle))
 }
 
 export const paginate = <T>(items: T[], pageNum: number, pageSize: number): T[] => {

@@ -210,7 +210,7 @@ test.describe('trunks: VoIP', () => {
     await page.getByRole('button', { name: 'Add trunk' }).click()
 
     await expect(page.getByText('Cannot create the trunk')).toBeVisible()
-    await expect(page.getByText('POST /trunks: codecs must contain strings')).toBeVisible()
+    await expect(page.getByText('codecs must contain strings')).toBeVisible()
   })
 
   test('edits a trunk sending only what changed', async ({ page, mockApi }) => {
@@ -301,7 +301,7 @@ test.describe('trunks: VoIP', () => {
 
     await expect(page.getByText('Cannot delete the trunk')).toBeVisible()
     await expect(
-      page.getByText('DELETE /trunks/3: Request failed with status code 500'),
+      page.getByText('The server could not complete the request (error 500). Try again later.'),
     ).toBeVisible()
   })
 })

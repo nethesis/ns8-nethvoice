@@ -18,6 +18,9 @@ export const getAssignedPhoneMacs = (physicalPhones: UserDevice[]): string[] => 
   ),
 ]
 
+export const getPhonesWithoutMac = (physicalPhones: UserDevice[]): UserDevice[] =>
+  physicalPhones.filter((device) => !isValidMac(device.mac))
+
 export const getMaxPhones = (otherDevicesCount: number): number =>
   Math.max(0, MAX_DEVICES_PER_USER - otherDevicesCount)
 

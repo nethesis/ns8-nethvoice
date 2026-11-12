@@ -1,15 +1,20 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import {
   buildUserRows,
   findBaseProfile,
+  getUsersDirectory,
+  isDirectoryPartAvailable,
   parseMobiles,
   parseVoicemailExtensions,
   type UsersDirectory,
 } from './directory'
 import { parseUsers } from './users'
+
+vi.mock('@/lib/api/client', () => ({ api: { GET: vi.fn() } }))
 
 const USERS = parseUsers([
   {
@@ -102,5 +107,45 @@ describe('findBaseProfile', () => {
       ]),
     ).toEqual({ id: 4, name: 'Sales' })
     expect(findBaseProfile([])).toBeUndefined()
+  })
+})
+
+describe('getUsersDirectory', () => {
+  const groups = [{ id: 1, name: 'Sales', userIds: [5] }]
+
+  it('keeps the parts that loaded and lists the ones that failed', async () => {
+    vi.mocked(api.GET).mockImplementation(async (path) => {
+      if (path === '/voicemails') {
+        return { data: { 300: {} }, response: new Response() }
+      }
+      throw new Error('boom')
+    })
+
+    const directory = await getUsersDirectory({
+      groups: async () => groups,
+      profiles: () => Promise.reject(new Error('boom')),
+    })
+
+    expect(directory).toEqual({
+      groups,
+      profiles: [],
+      voicemailExtensions: ['300'],
+      mobiles: {},
+      unavailable: ['profiles', 'mobiles'],
+    })
+    expect(isDirectoryPartAvailable(directory, 'groups')).toBe(true)
+    expect(isDirectoryPartAvailable(directory, 'profiles')).toBe(false)
+  })
+
+  it('fails when nothing can be loaded', async () => {
+    const failure = new Error('offline')
+    vi.mocked(api.GET).mockRejectedValue(failure)
+
+    await expect(
+      getUsersDirectory({
+        groups: () => Promise.reject(failure),
+        profiles: () => Promise.reject(failure),
+      }),
+    ).rejects.toBe(failure)
   })
 })

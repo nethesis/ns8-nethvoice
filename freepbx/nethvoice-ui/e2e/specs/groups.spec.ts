@@ -151,13 +151,34 @@ test.describe('groups', () => {
     ])
   })
 
+  test('asks before discarding the changes and resets the filter', async ({ page, mockApi }) => {
+    mockGroups(mockApi)
+    await page.goto('./users/groups')
+
+    await expect(page.getByRole('button', { name: 'Reset filters' })).toBeDisabled()
+    await page.getByRole('textbox', { name: 'Filter groups' }).fill('sales')
+    await page.getByRole('button', { name: 'Reset filters' }).click()
+    await expect(page.getByRole('textbox', { name: 'Filter groups' })).toHaveValue('')
+
+    await page.getByRole('button', { name: 'Create group' }).click()
+    await page.getByRole('textbox', { name: 'Name' }).fill('Marketing')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await page.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(page.getByRole('textbox', { name: 'Name' })).toHaveValue('Marketing')
+
+    await page.getByRole('button', { name: 'Close side drawer' }).click()
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await expect(page.getByRole('heading', { name: 'Create group', exact: true })).toBeHidden()
+  })
+
   test('deletes a group', async ({ page, mockApi }) => {
     mockGroups(mockApi).on('DELETE', '/freepbx/rest/cti/groups/:id', {
       json: { status: true },
     })
     await page.goto('./users/groups')
 
-    await rows(page).nth(1).getByRole('button', { name: 'Open menu' }).click()
+    await rows(page).nth(1).getByRole('button', { name: 'Sales actions' }).click()
     await page.getByRole('menuitem', { name: 'Delete' }).click()
     await expect(page.getByText('The Sales group will be permanently removed')).toBeVisible()
     await page.getByRole('button', { name: 'Delete' }).click()

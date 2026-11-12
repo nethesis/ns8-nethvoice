@@ -1,18 +1,36 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
+import { postUserProfile } from '@/lib/profiles/profiles'
+import { disableSoftwareDevice, enableSoftwareDevice, postVoicemail } from './userSettings'
 import {
+  assignProfileToUsers,
   buildBulkRequest,
+  BulkUserError,
   DEFAULT_DESTINATION,
   EMPTY_ADVANCED_BULK_FORM,
   exceedsDeviceLimit,
+  getDisablingPlans,
   parseBulkSettings,
   parseDestinations,
   planDevicesForUsers,
+  setDevicesForUsers,
+  setVoicemailForUsers,
   validateAdvancedBulk,
 } from './bulk'
 import type { User, UserDevice } from './users'
+
+vi.mock('./userSettings', () => ({
+  postVoicemail: vi.fn(),
+  enableSoftwareDevice: vi.fn(),
+  disableSoftwareDevice: vi.fn(),
+}))
+
+vi.mock('@/lib/profiles/profiles', () => ({ postUserProfile: vi.fn() }))
+
+vi.mock('@/lib/api/client', () => ({ api: { POST: vi.fn(), GET: vi.fn() } }))
 
 const device = (id: number, type: UserDevice['type'], extension: string): UserDevice => ({
   id,
@@ -203,5 +221,67 @@ describe('validateAdvancedBulk', () => {
         outboundcidDigits: '0',
       }),
     ).toEqual({ outboundcidDigits: 'users.bulk_outboundcid_digits_invalid' })
+  })
+})
+
+describe('bulk writes', () => {
+  const miller = user('a.miller', '300', [device(1, 'webrtc', '300')])
+  const davis = user('c.davis', '301', [device(3, 'nethlink', '301')])
+  const jones = user('d.jones', '302')
+  const nobody = user('e.brown', '')
+
+  beforeEach(() => {
+    vi.mocked(postVoicemail).mockReset().mockResolvedValue()
+    vi.mocked(enableSoftwareDevice).mockReset().mockResolvedValue()
+    vi.mocked(disableSoftwareDevice).mockReset().mockResolvedValue()
+    vi.mocked(postUserProfile).mockReset().mockResolvedValue()
+  })
+
+  it('reports the progress of the voicemail and the users updated before a failure', async () => {
+    const progress: number[] = []
+    vi.mocked(postVoicemail).mockImplementation(async (extension) => {
+      if (extension === '302') {
+        throw new Error('boom')
+      }
+    })
+
+    const error = await setVoicemailForUsers([miller, davis, jones], true, (value) =>
+      progress.push(value),
+    ).catch((caught: unknown) => caught)
+
+    expect(progress).toEqual([33, 67])
+    expect(error).toBeInstanceOf(BulkUserError)
+    expect(error).toMatchObject({ username: 'd.jones', completed: ['a.miller', 'c.davis'] })
+  })
+
+  it('assigns the profile in one call for the users with an extension, then one by one', async () => {
+    const progress: number[] = []
+
+    await assignProfileToUsers([miller, nobody], 3, (value) => progress.push(value))
+
+    expect(progress).toEqual([50, 100])
+    expect(api.POST).toHaveBeenCalledWith('/bulk/{mainextensions}', {
+      params: { path: { mainextensions: '300' } },
+      body: { profile: 3 },
+    })
+    expect(postUserProfile).toHaveBeenCalledWith(nobody.id, 3)
+  })
+
+  it('lists the users whose devices were updated before a failure', async () => {
+    vi.mocked(enableSoftwareDevice).mockImplementation(async (_, extension) => {
+      if (extension === '301') {
+        throw new Error('boom')
+      }
+    })
+    const plans = planDevicesForUsers([miller, davis], ['mobile'])
+
+    expect(getDisablingPlans(plans).map((plan) => plan.user.username)).toEqual([
+      'a.miller',
+      'c.davis',
+    ])
+    await expect(setDevicesForUsers(plans)).rejects.toMatchObject({
+      username: 'c.davis',
+      completed: ['a.miller'],
+    })
   })
 })
