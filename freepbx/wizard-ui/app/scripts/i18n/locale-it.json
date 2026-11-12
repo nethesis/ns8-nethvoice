@@ -1175,5 +1175,9 @@
   "The device certificate changed: the PBX refuses the device until the source is saved again": "Il certificato del dispositivo è cambiato: il PBX rifiuta il dispositivo finché la sorgente non viene salvata di nuovo",
   "the device address is not allowed: loopback and link-local addresses are refused": "L'indirizzo del dispositivo non è consentito: gli indirizzi di loopback e link-local sono rifiutati",
   "could not read the TLS certificate of the device: check that it is reachable or do not skip the TLS verification": "Impossibile leggere il certificato TLS del dispositivo: verifica che sia raggiungibile oppure non saltare la verifica TLS",
-  "could not read the TLS certificate of the gate device: check that it is reachable or do not skip the TLS verification": "Impossibile leggere il certificato TLS del dispositivo del varco: verifica che sia raggiungibile oppure non saltare la verifica TLS"
+  "could not read the TLS certificate of the gate device: check that it is reachable or do not skip the TLS verification": "Impossibile leggere il certificato TLS del dispositivo del varco: verifica che sia raggiungibile oppure non saltare la verifica TLS",
+  "The device certificate changed: the stored password was not sent. Type the password again to check the device with its new certificate, then save the source to trust it": "Il certificato del dispositivo è cambiato: la password salvata non è stata inviata. Inserisci di nuovo la password per verificare il dispositivo con il nuovo certificato, poi salva la sorgente per considerarlo attendibile",
+  "The device certificate changed: modify the source, type the password again and save it": "Il certificato del dispositivo è cambiato: modifica la sorgente, inserisci di nuovo la password e salvala",
+  "the device certificate changed: type the password again": "Il certificato del dispositivo è cambiato: inserisci di nuovo la password",
+  "the gate device certificate changed: type the password again": "Il certificato del dispositivo del varco è cambiato: inserisci di nuovo la password"
 }
