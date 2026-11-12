@@ -1116,7 +1116,8 @@ function getSourceJSONByExten(extenId) {
 }
 
 /**
- * Return the streaming image.
+ * Return the streaming image. A device whose TLS certificate is not the
+ * pinned one gives the error 502 "source_certificate_changed".
  *
  * @method getVideoSample
  * @param {string} id The streaming source identifier
@@ -1135,6 +1136,11 @@ function getVideoSample(id, cb) {
         try {
           if (err) {
             logger.log.error(IDLOG, 'getting video sample for source "' + id + '": ' + deviceHttp.describeError(err));
+          }
+          if (err && err.code === deviceHttp.ERR_FINGERPRINT_MISMATCH) {
+            cb(streamingError(502, 'source_certificate_changed',
+              'the TLS certificate of the video source device changed: the administrator must save the video source again'));
+            return;
           }
           cb(err, img);
         } catch (err1) {
