@@ -286,7 +286,7 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
         '',
         '',
         '',
-        '',
+        $params['provider'],
         'off',
         'off'
     ));
