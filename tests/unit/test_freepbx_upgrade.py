@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import tempfile
 import unittest
@@ -10,6 +11,31 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class UpgradeTest(unittest.TestCase):
+    def test_freepbx_stop_cleans_reload_requests_after_container_removal(self):
+        unit = (ROOT / 'imageroot/systemd/user/freepbx.service').read_text()
+        commands = [line.split('=', 1)[1] for line in unit.splitlines() if line.startswith('ExecStopPost=')]
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            notify = directory / 'state/notify'
+            notify.mkdir(parents=True)
+            (notify / 'reload_nethcti-server').touch()
+            wizard = notify / 'restart_nethcti-middleware'
+            wizard.touch()
+            podman = directory / 'podman'
+            # A helper can enqueue another request while the container is stopping.
+            podman.write_text('#!/bin/sh\ntouch "$TEST_NOTIFY/restart_reports-api"\n')
+            podman.chmod(0o755)
+            for command in commands:
+                args = shlex.split(command.replace('%E', temporary).replace('%t', temporary))
+                if args[0] == '/usr/bin/podman':
+                    args[0] = str(podman)
+                subprocess.run(args, env=dict(os.environ, TEST_NOTIFY=str(notify)), check=True)
+            self.assertEqual(list(notify.iterdir()), [wizard])
+            # Cleanup also succeeds before notify exists or after it was consumed.
+            wizard.unlink()
+            notify.rmdir()
+            subprocess.run(shlex.split(commands[-1].replace('%E', temporary)), check=True)
+
     def run_upgrade(self, fail=''):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

@@ -16,7 +16,6 @@ EnvironmentFile=%E/state/passwords.env
 WorkingDirectory=%E/state
 Restart=always
 ExecStartPre=/bin/rm -f %t/nethcti-middleware.pid %t/nethcti-middleware.ctr-id
-ExecStartPre=-runagent install-certificate nethcti-middleware
 
 ExecStart=/usr/bin/podman run \
     --detach \
