@@ -4,6 +4,7 @@
 import { useQuery } from '@pinia/colada'
 import {
   DASHBOARD_COUNTER_KEY,
+  DASHBOARD_COUNTERS_STALE_TIME,
   getDashboardCounter,
   type DashboardCounterId,
 } from '@/lib/dashboard/counters'
@@ -15,7 +16,9 @@ export const useDashboardCounter = (id: DashboardCounterId) => {
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [DASHBOARD_COUNTER_KEY, id],
     enabled: () => loginStore.isAuthenticated,
-    query: () => getDashboardCounter(id),
+    staleTime: DASHBOARD_COUNTERS_STALE_TIME,
+    refetchOnWindowFocus: false,
+    query: ({ signal }) => getDashboardCounter(id, signal),
   })
 
   return { state, asyncStatus, ...rest }

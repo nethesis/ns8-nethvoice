@@ -4,8 +4,8 @@
 -->
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useNow } from '@vueuse/core'
+import { computed, useTemplateRef } from 'vue'
+import { useElementSize, useNow } from '@vueuse/core'
 import { NeCard, NeEmptyState, NeSkeleton } from '@nethesis/vue-components'
 import {
   faArrowDown,
@@ -41,6 +41,13 @@ const CALL_TYPE_ICONS: Record<CallType, { icon: IconDefinition; classes: string 
 
 const now = useNow({ interval: 1000 })
 
+const scrollContainer = useTemplateRef<HTMLElement>('scrollContainer')
+const { height: tableHeight } = useElementSize(useTemplateRef<HTMLElement>('callsTable'))
+
+const scrollable = computed(
+  () => !!scrollContainer.value && tableHeight.value > scrollContainer.value.clientHeight + 1,
+)
+
 const rows = computed(() =>
   calls.map((call) => ({
     ...call,
@@ -63,18 +70,38 @@ const rows = computed(() =>
       :description="$t('dashboard.calls.no_calls_description')"
       :icon="faPhoneSlash"
     />
-    <div v-else class="max-h-[396px] overflow-y-auto">
-      <table class="w-full text-left text-sm">
+    <div
+      v-else
+      ref="scrollContainer"
+      class="max-h-[396px] overflow-y-auto"
+      :role="scrollable ? 'region' : undefined"
+      :tabindex="scrollable ? 0 : undefined"
+      :aria-label="scrollable ? $t('dashboard.calls.title') : undefined"
+      data-testid="calls-scroll"
+    >
+      <table ref="callsTable" class="w-full table-fixed text-left text-sm sm:table-auto">
+        <caption class="sr-only">
+          {{
+            $t('dashboard.calls.title')
+          }}
+        </caption>
         <thead class="sticky top-0 bg-white dark:bg-gray-950">
           <tr class="text-tertiary-neutral border-b border-gray-200 dark:border-gray-700">
-            <th scope="col" class="py-3 pr-4 font-medium">
-              {{ $t('dashboard.calls.call_type') }}
+            <th scope="col" class="w-8 py-3 pr-2 font-medium sm:w-auto sm:pr-4">
+              <span class="sr-only sm:not-sr-only">{{ $t('dashboard.calls.call_type') }}</span>
             </th>
-            <th scope="col" class="py-3 pr-4 font-medium">{{ $t('dashboard.calls.source') }}</th>
-            <th scope="col" class="py-3 pr-4 font-medium">
+            <th scope="col" class="py-3 pr-2 font-medium sm:pr-4">
+              {{ $t('dashboard.calls.source') }}
+            </th>
+            <th scope="col" class="py-3 pr-2 font-medium sm:pr-4">
               {{ $t('dashboard.calls.destination') }}
             </th>
-            <th scope="col" class="py-3 font-medium">{{ $t('dashboard.calls.duration') }}</th>
+            <th
+              scope="col"
+              class="w-20 py-3 text-right font-medium whitespace-nowrap sm:w-auto sm:text-left"
+            >
+              {{ $t('dashboard.calls.duration') }}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -84,7 +111,7 @@ const rows = computed(() =>
             class="text-primary-neutral border-b border-gray-200 last:border-b-0 dark:border-gray-700"
             data-testid="call-row"
           >
-            <td class="py-3 pr-4 whitespace-nowrap">
+            <td class="py-3 pr-2 whitespace-nowrap sm:pr-4">
               <span class="flex items-center gap-2.5">
                 <FontAwesomeIcon
                   :icon="CALL_TYPE_ICONS[row.type].icon"
@@ -94,11 +121,13 @@ const rows = computed(() =>
                   ]"
                   aria-hidden="true"
                 />
-                {{ $t(`dashboard.calls.${row.type}`) }}
+                <span class="sr-only sm:not-sr-only">{{ $t(`dashboard.calls.${row.type}`) }}</span>
               </span>
             </td>
-            <td class="py-3 pr-4">{{ row.source || $t('dashboard.calls.unknown_party') }}</td>
-            <td class="py-3 pr-4">
+            <td class="py-3 pr-2 wrap-break-word sm:pr-4">
+              {{ row.source || $t('dashboard.calls.unknown_party') }}
+            </td>
+            <td class="py-3 pr-2 wrap-break-word sm:pr-4">
               <span class="flex items-center gap-2">
                 <template v-if="row.throughQueue">
                   <FontAwesomeIcon
@@ -111,7 +140,9 @@ const rows = computed(() =>
                 {{ row.destination || $t('dashboard.calls.unknown_party') }}
               </span>
             </td>
-            <td class="py-3 font-mono text-rose-700 tabular-nums dark:text-rose-500">
+            <td
+              class="py-3 text-right font-mono whitespace-nowrap text-rose-700 tabular-nums sm:text-left dark:text-rose-500"
+            >
               {{ row.elapsed }}
             </td>
           </tr>

@@ -11,9 +11,11 @@ import {
   faNetworkWired,
   faPhone,
   faRoute,
+  faTriangleExclamation,
   faUserGroup,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
 import DashboardBreakdownCard from '@/components/dashboard/DashboardBreakdownCard.vue'
@@ -29,13 +31,21 @@ import {
   type DashboardCounterId,
 } from '@/lib/dashboard/counters'
 import {
+  combineLiveCalls,
   DASHBOARD_LIVE_REFRESH_INTERVAL,
+  summarizeDevices,
+  summarizePresence,
+  summarizeTrunks,
   type DeviceType,
   type PresenceStatus,
 } from '@/lib/dashboard/live'
-import { listInboundRouteDestinations, listTrunkRegistrations } from '@/lib/dashboard/routing'
+import { listInboundRouteDestinations, listTrunkStatuses } from '@/lib/dashboard/routing'
 import { useDashboardCounter } from '@/queries/dashboard/counters'
-import { useDashboardLive } from '@/queries/dashboard/live'
+import {
+  useDashboardLiveExtensions,
+  useDashboardLiveTrunks,
+  useDashboardLiveUsers,
+} from '@/queries/dashboard/live'
 import { useDashboardSubscription } from '@/queries/dashboard/subscription'
 import { useInboundRoutes } from '@/queries/routes/inbound'
 import { useTrunks } from '@/queries/trunks/trunks'
@@ -88,14 +98,25 @@ const DEVICE_STYLES: Record<DeviceType, { label: string; fillClass: string; dotC
 
 const { t, locale } = useI18n()
 const loginStore = useLoginStore()
-const { state: subscriptionState, refetch: refetchSubscription } = useDashboardSubscription()
-const { state: liveState, refetch: refetchLive } = useDashboardLive()
-const { state: trunksState, refetch: refetchTrunks } = useTrunks()
-const { state: inboundRoutesState, refetch: refetchInboundRoutes } = useInboundRoutes()
+const {
+  state: subscriptionState,
+  refetch: refetchSubscription,
+  refresh: refreshSubscription,
+} = useDashboardSubscription()
+const { state: trunksState, refetch: refetchTrunks, refresh: refreshTrunks } = useTrunks()
+const {
+  state: inboundRoutesState,
+  refetch: refetchInboundRoutes,
+  refresh: refreshInboundRoutes,
+} = useInboundRoutes()
+const liveExtensionsQuery = useDashboardLiveExtensions()
+const liveTrunksQuery = useDashboardLiveTrunks()
+const liveUsersQuery = useDashboardLiveUsers()
+const liveQueries = [liveExtensionsQuery, liveTrunksQuery, liveUsersQuery]
 
 const toCounterQuery = (card: CounterCard) => {
-  const { state, refetch } = useDashboardCounter(card.id)
-  return { ...card, state, refetch }
+  const { state, refetch, refresh } = useDashboardCounter(card.id)
+  return { ...card, state, refetch, refresh }
 }
 
 const countersBeforeCalls = COUNTER_CARDS_BEFORE_CALLS.map(toCounterQuery)
@@ -106,20 +127,54 @@ const failedCounters = computed(() =>
   counterQueries.filter((query) => query.state.value.status === 'error'),
 )
 
-const live = computed(() => liveState.value.data)
-const liveLoading = computed(() => liveState.value.status === 'pending')
+const liveExtensions = computed(() => liveExtensionsQuery.state.value.data)
+const liveTrunks = computed(() => liveTrunksQuery.state.value.data)
+const liveUsers = computed(() => liveUsersQuery.state.value.data)
 
-const updatedAt = computed(() =>
-  live.value
-    ? new Intl.DateTimeFormat(locale.value, { timeStyle: 'medium' }).format(live.value.fetchedAt)
-    : '',
+const extensionsLoading = computed(() => liveExtensionsQuery.state.value.status === 'pending')
+const liveTrunksLoading = computed(() => liveTrunksQuery.state.value.status === 'pending')
+const usersLoading = computed(() => liveUsersQuery.state.value.status === 'pending')
+
+const presenceLoading = usersLoading
+const devicesLoading = computed(() => usersLoading.value || extensionsLoading.value)
+const callsLoading = computed(() => extensionsLoading.value || liveTrunksLoading.value)
+
+const failedLiveQueries = computed(() =>
+  liveQueries.filter((query) => query.state.value.status === 'error'),
 )
+
+const presence = computed(() => (liveUsers.value ? summarizePresence(liveUsers.value.data) : null))
+
+const devices = computed(() =>
+  liveUsers.value && liveExtensions.value
+    ? summarizeDevices(liveUsers.value.data, liveExtensions.value.data)
+    : null,
+)
+
+const liveCalls = computed(() =>
+  liveExtensions.value && liveTrunks.value
+    ? combineLiveCalls(liveExtensions.value, liveTrunks.value)
+    : null,
+)
+
+const updatedAt = computed(() => {
+  const fetchedAt = Math.max(
+    0,
+    ...[liveExtensions.value, liveTrunks.value, liveUsers.value].map(
+      (snapshot) => snapshot?.fetchedAt ?? 0,
+    ),
+  )
+
+  return fetchedAt
+    ? new Intl.DateTimeFormat(locale.value, { timeStyle: 'medium' }).format(fetchedAt)
+    : ''
+})
 
 const presenceBars = computed<ChartBar[]>(() =>
   (Object.keys(PRESENCE_STYLES) as PresenceStatus[]).map((status) => ({
     id: status,
     label: t(`dashboard.presence.${status}`),
-    value: live.value?.presence[status] ?? 0,
+    value: presence.value?.[status] ?? 0,
     ...PRESENCE_STYLES[status],
   })),
 )
@@ -128,38 +183,48 @@ const deviceBars = computed<ChartBar[]>(() =>
   (Object.keys(DEVICE_STYLES) as DeviceType[]).map((deviceType) => ({
     id: deviceType,
     label: t(DEVICE_STYLES[deviceType].label),
-    value: live.value?.devices[deviceType] ?? 0,
+    value: devices.value?.[deviceType] ?? 0,
     fillClass: DEVICE_STYLES[deviceType].fillClass,
     dotClass: DEVICE_STYLES[deviceType].dotClass,
   })),
 )
 
 const trunkRows = computed(() =>
-  listTrunkRegistrations(trunksState.value.data ?? [], live.value?.trunks),
+  listTrunkStatuses(
+    trunksState.value.data ?? [],
+    liveTrunks.value ? summarizeTrunks(liveTrunks.value.data) : undefined,
+  ),
 )
 
 const inboundRouteRows = computed(() =>
-  listInboundRouteDestinations(inboundRoutesState.value.data ?? [], (kind) =>
-    t(`routes.destination_kind.${kind}`),
-  ),
+  listInboundRouteDestinations(inboundRoutesState.value.data ?? [], {
+    describeKind: (kind) => t(`routes.destination_kind.${kind}`),
+    anyDid: t('dashboard.inbound_routes.any_did'),
+  }),
 )
 
 function retryCounters() {
   failedCounters.value.forEach((query) => query.refetch())
 }
 
+function retryLive() {
+  failedLiveQueries.value.forEach((query) => query.refetch())
+}
+
 usePolling(() => {
   if (loginStore.isAuthenticated) {
-    refetchLive()
+    liveQueries
+      .filter((query) => query.asyncStatus.value === 'idle')
+      .forEach((query) => query.refetch())
   }
 }, DASHBOARD_LIVE_REFRESH_INTERVAL)
 
 usePolling(() => {
   if (loginStore.isAuthenticated) {
-    counterQueries.forEach((query) => query.refetch())
-    refetchSubscription()
-    refetchTrunks()
-    refetchInboundRoutes()
+    counterQueries.forEach((query) => query.refresh())
+    refreshSubscription()
+    refreshTrunks()
+    refreshInboundRoutes()
   }
 }, DASHBOARD_COUNTERS_REFRESH_INTERVAL)
 </script>
@@ -167,7 +232,7 @@ usePolling(() => {
 <template>
   <div>
     <div class="mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-      <NeHeading tag="h3">{{ $t('dashboard.title') }}</NeHeading>
+      <NeHeading tag="h3" aria-level="1">{{ $t('dashboard.title') }}</NeHeading>
       <p v-if="updatedAt" class="text-tertiary-neutral" data-testid="updated-at">
         {{ $t('dashboard.updated_at', { time: updatedAt }) }}
       </p>
@@ -186,10 +251,10 @@ usePolling(() => {
         @retry="retryCounters"
       />
       <LoadError
-        v-if="liveState.error"
-        :error="liveState.error"
+        v-if="failedLiveQueries.length"
+        :error="failedLiveQueries[0].state.value.error"
         :title="$t('dashboard.cannot_load_live_data')"
-        @retry="refetchLive()"
+        @retry="retryLive"
       />
       <LoadError
         v-if="trunksState.error"
@@ -222,8 +287,8 @@ usePolling(() => {
           counter-id="callsInProgress"
           :title="$t('dashboard.counters.calls_in_progress')"
           :icon="faPhone"
-          :counter="live?.calls.length"
-          :loading="liveLoading"
+          :counter="liveCalls?.calls.length"
+          :loading="callsLoading"
         />
         <DashboardCounterCard
           v-for="counter in countersAfterCalls"
@@ -235,32 +300,39 @@ usePolling(() => {
           :loading="counter.state.value.status === 'pending'"
         />
       </div>
-      <div v-if="liveLoading || live" class="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-4">
+      <div
+        v-if="presenceLoading || presence || devicesLoading || devices || callsLoading || liveCalls"
+        class="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-4"
+      >
         <DashboardBreakdownCard
+          v-if="presenceLoading || presence"
           data-testid="presence-card"
           :title="$t('dashboard.presence.title')"
           :bars="presenceBars"
           orientation="vertical"
-          :loading="liveLoading"
+          :loading="presenceLoading"
         />
         <DashboardBreakdownCard
+          v-if="devicesLoading || devices"
           data-testid="devices-card"
           :title="$t('dashboard.devices.title')"
           :tooltip="$t('dashboard.devices.tooltip')"
+          :empty-text="$t('dashboard.devices.no_devices')"
           :bars="deviceBars"
           orientation="horizontal"
-          :loading="liveLoading"
+          :loading="devicesLoading"
         />
         <DashboardCallsCard
+          v-if="callsLoading || liveCalls"
           class="md:col-span-2"
-          :calls="live?.calls ?? []"
-          :fetched-at="live?.fetchedAt ?? 0"
-          :loading="liveLoading"
+          :calls="liveCalls?.calls ?? []"
+          :fetched-at="liveCalls?.fetchedAt ?? 0"
+          :loading="callsLoading"
         />
       </div>
       <div class="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-4">
         <DashboardListCard
-          v-if="!trunksState.error"
+          v-if="!trunksState.error || trunksState.data"
           data-testid="trunks-card"
           :title="$t('dashboard.trunks.title')"
           :items="trunkRows"
@@ -269,11 +341,11 @@ usePolling(() => {
           :loading="trunksState.status === 'pending'"
         >
           <template #value="{ item }">
-            <TrunkStatusIndicator class="whitespace-nowrap" :status="item.registration" />
+            <TrunkStatusIndicator class="whitespace-nowrap" :status="item.status" />
           </template>
         </DashboardListCard>
         <DashboardListCard
-          v-if="!inboundRoutesState.error"
+          v-if="!inboundRoutesState.error || inboundRoutesState.data"
           data-testid="inbound-routes-card"
           :title="$t('dashboard.inbound_routes.title')"
           :items="inboundRouteRows"
@@ -281,7 +353,20 @@ usePolling(() => {
           :empty-icon="faRoute"
           :loading="inboundRoutesState.status === 'pending'"
         >
-          <template #value="{ item }">{{ item.destination || '-' }}</template>
+          <template #value="{ item }">
+            <span
+              v-if="item.invalidDestination"
+              class="inline-flex items-center gap-2 text-amber-700 dark:text-amber-500"
+            >
+              <FontAwesomeIcon
+                :icon="faTriangleExclamation"
+                class="size-4 shrink-0"
+                aria-hidden="true"
+              />
+              {{ $t('dashboard.inbound_routes.invalid_destination') }}
+            </span>
+            <template v-else>{{ item.destination || '-' }}</template>
+          </template>
         </DashboardListCard>
       </div>
     </div>

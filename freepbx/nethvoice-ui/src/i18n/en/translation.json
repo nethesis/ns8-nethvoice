@@ -100,7 +100,8 @@
       "extensions": "Extensions",
       "extensions_usage": "{configured} of {limit} extensions configured",
       "title": "System",
-      "hostname": "Hostname"
+      "hostname": "Hostname",
+      "limit_reached": "Extension limit reached"
     },
     "presence": {
       "title": "Users presence",
@@ -114,7 +115,8 @@
       "tooltip": "Devices currently connected to the PBX",
       "web_phone": "Web phone",
       "desktop_phone": "Desktop phone",
-      "mobile_app": "Mobile app"
+      "mobile_app": "Mobile app",
+      "no_devices": "No devices connected"
     },
     "calls": {
       "title": "Calls in progress",
@@ -139,7 +141,9 @@
     },
     "inbound_routes": {
       "title": "Inbound routes",
-      "no_routes": "No inbound routes configured"
+      "no_routes": "No inbound routes configured",
+      "any_did": "Any DID",
+      "invalid_destination": "Invalid destination"
     }
   },
   "users": {

@@ -144,7 +144,10 @@ test.describe('dashboard', () => {
   test('shows counters, subscription and live data', async ({ page }) => {
     await page.goto('./dashboard')
 
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toHaveAttribute(
+      'aria-level',
+      '1',
+    )
     await expect(counterValue(page, 'users')).toHaveText('5')
     await expect(counterValue(page, 'groups')).toHaveText('2')
     await expect(counterValue(page, 'physicalPhones')).toHaveText('3')
@@ -180,9 +183,12 @@ test.describe('dashboard', () => {
   })
 
   test('shows the system host name, the trunks and the inbound routes', async ({ page }) => {
+    await page.route('**/nethvoice/config.json', (route) =>
+      route.fulfill({ json: { HOSTNAME: 'pbx.example.org' } }),
+    )
     await page.goto('./dashboard')
 
-    await expect(page.getByTestId('system-hostname')).toHaveText(/\S+/)
+    await expect(page.getByTestId('system-hostname')).toHaveText('pbx.example.org')
 
     const trunkRows = page.getByTestId('trunks-card').getByTestId('list-row')
     await expect(trunkRows).toHaveCount(2)
@@ -195,6 +201,80 @@ test.describe('dashboard', () => {
     await expect(routeRows).toHaveCount(1)
     await expect(routeRows.nth(0)).toContainText('0612345678')
     await expect(routeRows.nth(0)).toContainText('Queue: Sales (400)')
+  })
+
+  test('puts an offline provider before the trunk registration', async ({ page, mockApi }) => {
+    mockApi
+      .on('GET', '/freepbx/rest/trunks', {
+        json: [...FREEPBX_TRUNKS, { trunkid: 3, tech: 'pjsip', name: 'Fallback', disabled: 'off' }],
+      })
+      .on('GET', '/api/astproxy/trunks', {
+        json: {
+          Provider: { ...TRUNKS.Provider, status: 'offline' },
+          Backup: {
+            name: 'Backup',
+            status: 'online',
+            registration: 'unregistered',
+            conversations: {},
+          },
+          Fallback: {
+            name: 'Fallback',
+            status: 'online',
+            registration: 'rejected',
+            conversations: {},
+          },
+        },
+      })
+
+    await page.goto('./dashboard')
+
+    const trunkRows = page.getByTestId('trunks-card').getByTestId('list-row')
+    await expect(trunkRows.filter({ hasText: 'Provider' })).toContainText('Offline')
+    await expect(trunkRows.filter({ hasText: 'Backup' })).toContainText('Not connected')
+    await expect(trunkRows.filter({ hasText: 'Fallback' })).toContainText('Rejected')
+  })
+
+  test('names the routes without a DID and flags missing destinations', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('GET', '/freepbx/rest/inboundroutes', {
+      json: {
+        destinations: INBOUND_ROUTES.destinations,
+        routes: [
+          { extension: '', cidnum: '', description: 'Any', destination: 'ext-queues,400,1' },
+          { extension: '0698765432', cidnum: '', description: 'Old', destination: 'ivr-99,s,1' },
+        ],
+      },
+    })
+
+    await page.goto('./dashboard')
+
+    const routeRows = page.getByTestId('inbound-routes-card').getByTestId('list-row')
+    await expect(routeRows.nth(0)).toContainText('Any DID')
+    await expect(routeRows.nth(0)).toContainText('Queue: Sales (400)')
+    await expect(routeRows.nth(1)).toContainText('Invalid destination')
+    await expect(routeRows.nth(1)).not.toContainText('ivr-99')
+  })
+
+  test('keeps the trunks and the inbound routes when a refresh fails', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.clock.install()
+    await page.goto('./dashboard')
+    const trunkRows = page.getByTestId('trunks-card').getByTestId('list-row')
+    await expect(trunkRows).toHaveCount(2)
+
+    mockApi
+      .on('GET', '/freepbx/rest/trunks', { status: 500, json: 'An error occurred' })
+      .on('GET', '/freepbx/rest/inboundroutes', { status: 500, json: 'An error occurred' })
+    await page.clock.runFor(61000)
+
+    await expect(page.getByText('Cannot load the trunks')).toBeVisible()
+    await expect(page.getByText('Cannot load the inbound routes')).toBeVisible()
+    await expect(trunkRows).toHaveCount(2)
+    await expect(page.getByTestId('inbound-routes-card').getByTestId('list-row')).toHaveCount(1)
   })
 
   test('shows empty states without trunks and inbound routes', async ({ page, mockApi }) => {
@@ -235,6 +315,21 @@ test.describe('dashboard', () => {
     await expect(
       page.getByRole('progressbar', { name: '4 of 8 extensions configured' }),
     ).toBeVisible()
+    await expect(page.getByTestId('extensions-limit-reached')).toHaveCount(0)
+  })
+
+  test('warns when the community limit is exceeded', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/mainextensions/userlimits', {
+      json: { configured: 10, limit: 8, configurable: 0 },
+    })
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('extensions-usage')).toHaveText('10/8')
+    await expect(page.getByTestId('extensions-limit-reached')).toHaveText('Extension limit reached')
+    const progress = page.getByRole('progressbar', { name: '10 of 8 extensions configured' })
+    await expect(progress).toHaveAttribute('aria-valuenow', '8')
+    await expect(progress).toHaveAttribute('aria-valuemax', '8')
   })
 
   test('shows an empty state when no call is in progress', async ({ page, mockApi }) => {
@@ -262,7 +357,10 @@ test.describe('dashboard', () => {
 
     await expect(page.getByText('Cannot load live data')).toBeVisible()
     await expect(page.getByText('astproxy not ready')).toBeVisible()
-    await expect(page.getByTestId('presence-card')).toHaveCount(0)
+    await expect(page.getByTestId('calls-card')).toHaveCount(0)
+    await expect(page.getByTestId('counter-callsInProgress')).toContainText('Not available')
+    await expect(page.getByTestId('presence-card').getByTestId('breakdown-busy')).toHaveText('2')
+    await expect(page.getByTestId('devices-card').getByTestId('breakdown-webPhone')).toHaveText('3')
     await expect(counterValue(page, 'users')).toHaveText('5')
 
     fail = false
@@ -290,6 +388,128 @@ test.describe('dashboard', () => {
 
     await expect(counterValue(page, 'trunks')).toHaveText('1')
     await expect(page.getByText('Cannot load some counters')).toHaveCount(0)
+  })
+
+  test('keeps the presence and the trunks when the extensions fail', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/api/astproxy/extensions', { status: 500, json: { message: 'busy' } })
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByText('Cannot load live data')).toBeVisible()
+    await expect(page.getByTestId('presence-card').getByTestId('breakdown-online')).toHaveText('1')
+    await expect(page.getByTestId('devices-card')).toHaveCount(0)
+    await expect(page.getByTestId('calls-card')).toHaveCount(0)
+    await expect(
+      page.getByTestId('trunks-card').getByTestId('list-row').filter({ hasText: 'Provider' }),
+    ).toContainText('Registered')
+  })
+
+  test('counts an unknown presence as offline', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/api/user/endpoints/all', {
+      json: { ...USERS, 'f.neri': ctiUser('away', []) },
+    })
+
+    await page.goto('./dashboard')
+
+    const presence = page.getByTestId('presence-card')
+    await expect(presence.getByTestId('breakdown-offline')).toHaveText('2')
+    await expect(page.getByText('Cannot load live data')).toHaveCount(0)
+  })
+
+  test('lists only connected calls and keeps internal calls to services', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi
+      .on('GET', '/api/astproxy/extensions', {
+        json: {
+          ...EXTENSIONS,
+          '302': extension('302', 'Carla Rossi', 'busy', {
+            c3: {
+              id: 'c3',
+              linkedId: '2.1',
+              duration: 82,
+              direction: 'out',
+              connected: true,
+              counterpartNum: '401',
+              counterpartName: 'Support queue',
+            },
+          }),
+          '303': extension('303', 'Dario Bianchi', 'ringing', {
+            c4: {
+              id: 'c4',
+              linkedId: '3.1',
+              duration: 2,
+              direction: 'out',
+              connected: false,
+              counterpartNum: '300',
+            },
+          }),
+        },
+      })
+      .on('GET', '/api/astproxy/trunks', {
+        json: {
+          Provider: {
+            ...TRUNKS.Provider,
+            conversations: {
+              t2: {
+                id: 't2',
+                duration: 5,
+                direction: 'in',
+                connected: false,
+                externalNum: '0711111111',
+                throughQueue: true,
+              },
+            },
+          },
+        },
+      })
+
+    await page.goto('./dashboard')
+
+    const rows = page.getByTestId('call-row')
+    await expect(rows).toHaveCount(2)
+    await expect(counterValue(page, 'callsInProgress')).toHaveText('2')
+    await expect(rows.nth(0)).toContainText('Support queue')
+    await expect(rows.nth(0)).toContainText(/1:2\d/)
+    await expect(page.getByText('0711111111')).toHaveCount(0)
+  })
+
+  test('replaces the devices chart with a text without connected devices', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('GET', '/api/user/endpoints/all', {
+      json: { 'e.verdi': ctiUser('offline', []) },
+    })
+
+    await page.goto('./dashboard')
+
+    const devices = page.getByTestId('devices-card')
+    await expect(devices.getByTestId('breakdown-empty')).toHaveText('No devices connected')
+    await expect(devices.getByRole('img')).toHaveCount(0)
+    await expect(devices.getByTestId('breakdown-webPhone')).toHaveText('0')
+    await expect(
+      devices.getByRole('button', { name: 'Devices currently connected to the PBX' }),
+    ).toBeVisible()
+  })
+
+  test('waits for a slow live response before polling again', async ({ page, mockApi }) => {
+    let inFlight = 0
+    let maxInFlight = 0
+
+    mockApi.on('GET', '/api/astproxy/extensions', async () => {
+      inFlight += 1
+      maxInFlight = Math.max(maxInFlight, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 7000))
+      inFlight -= 1
+      return { json: EXTENSIONS }
+    })
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('call-row')).toHaveCount(2, { timeout: 10000 })
+    expect(maxInFlight).toBe(1)
   })
 
   test('refreshes live data on an interval', async ({ page, mockApi }) => {

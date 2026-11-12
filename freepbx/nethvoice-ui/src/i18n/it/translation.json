@@ -100,7 +100,8 @@
       "extensions": "Interni",
       "extensions_usage": "{configured} interni configurati su {limit}",
       "title": "Sistema",
-      "hostname": "Nome host"
+      "hostname": "Nome host",
+      "limit_reached": "Limite di interni raggiunto"
     },
     "presence": {
       "title": "Presence degli utenti",
@@ -114,7 +115,8 @@
       "tooltip": "Dispositivi attualmente connessi al centralino",
       "web_phone": "Web phone",
       "desktop_phone": "Telefono desktop",
-      "mobile_app": "App mobile"
+      "mobile_app": "App mobile",
+      "no_devices": "Nessun dispositivo connesso"
     },
     "calls": {
       "title": "Chiamate in corso",
@@ -139,7 +141,9 @@
     },
     "inbound_routes": {
       "title": "Rotte in ingresso",
-      "no_routes": "Nessuna rotta in ingresso configurata"
+      "no_routes": "Nessuna rotta in ingresso configurata",
+      "any_did": "Qualsiasi DID",
+      "invalid_destination": "Destinazione non valida"
     }
   },
   "users": {
