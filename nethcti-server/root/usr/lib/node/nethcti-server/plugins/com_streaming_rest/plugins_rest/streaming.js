@@ -192,8 +192,8 @@ function setCompConfigManager(comp) {
               "type": "rtsp",
               "whep": "/streaming-gw/vs_door/whep",
               "gates": [
-                { "id": "1", "name": "Door", "type": "dtmf" },
-                { "id": "2", "name": "Gate", "type": "url" }
+                { "id": "37", "name": "Door", "type": "dtmf" },
+                { "id": "38", "name": "Gate", "type": "url" }
               ]
          }
      }
@@ -234,14 +234,17 @@ function setCompConfigManager(comp) {
         * its code to the extension of the source, an "url" gate is opened by an
         * HTTP request of the server to the device. Without "gate" the first gate
         * is opened (sources without gates use their "open" code).
+        * The gate identifier is the "id" of one of the gates of the source
+        * returned by [`streaming/sources`](#sourcesget): it is a global
+        * identifier, not the position of the gate within the source.
         * The request must contains the following parameters:
         *
         * * `id: the streaming identifier`
-        * * `[gate]: the gate identifier (string)`
+        * * `[gate]: the gate identifier (string), the "id" of a gate returned by streaming/sources`
         *
         * Example JSON request parameters:
         *
-        *     { "id": "vs_door", "gate": "2" }
+        *     { "id": "vs_door", "gate": "38" }
         *
         * Errors are returned with a JSON body `{ "code": "...", "message": "..." }`:
         * 400 (`missing_id`, `invalid_gate`, `no_gates`, `no_extension`, `no_code`, `no_url`),

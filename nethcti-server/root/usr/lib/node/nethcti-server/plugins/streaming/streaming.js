@@ -669,8 +669,8 @@ function openLegacy(streamId, callerid, fromExten, cb) {
   compAstProxy.sendDTMFSequence(exten, opencmd, callerid, fromExten, function(err) {
 
     if (err) {
-      logger.log.error(IDLOG, 'sending DTMF sequence to extension ' + exten);
-      cb(err);
+      logger.log.error(IDLOG, 'sending DTMF sequence to extension ' + exten + ': ' + err);
+      cb(streamingError(502, 'dtmf_failed', 'sending the DTMF code to extension ' + exten + ' failed'));
 
     } else {
       logger.log.info(IDLOG, 'sending DTMF sequence to extension ' + exten + ' has been successful');
