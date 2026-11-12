@@ -11,6 +11,7 @@ import {
   NeDropdown,
   NeDropdownFilterV2,
   NeEmptyState,
+  NeInlineNotification,
   NePaginator,
   NeTable,
   NeTableBody,
@@ -48,8 +49,13 @@ import RemoveExtensionModal from '@/components/users/RemoveExtensionModal.vue'
 import UserDeviceIcons from '@/components/users/UserDeviceIcons.vue'
 import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginate } from '@/lib/common'
-import { downloadTextFile, getCsvExport } from '@/lib/users/csv'
-import { buildUserRows, EMPTY_USERS_DIRECTORY, type UserRow } from '@/lib/users/directory'
+import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
+import {
+  buildUserRows,
+  EMPTY_USERS_DIRECTORY,
+  type DirectoryPart,
+  type UserRow,
+} from '@/lib/users/directory'
 import {
   areDefaultUserFilters,
   filterUserRows,
@@ -86,6 +92,17 @@ const users = computed(() => usersQuery.state.value.data ?? [])
 const directory = computed(() => directoryQuery.state.value.data ?? EMPTY_USERS_DIRECTORY)
 const rows = computed(() => buildUserRows(users.value, directory.value))
 const configuredCount = computed(() => countConfiguredUsers(users.value))
+
+const DIRECTORY_PART_LABELS: Record<DirectoryPart, string> = {
+  groups: 'users.groups',
+  profiles: 'users.profiles',
+  voicemails: 'users.voicemail',
+  mobiles: 'users.mobile_number',
+}
+
+const unavailableParts = computed(() =>
+  (directory.value.unavailable ?? []).map((part) => t(DIRECTORY_PART_LABELS[part])).join(', '),
+)
 
 const anyOption = (): NeDropdownFilterV2Option => ({ id: 'any', label: t('users.filter_any') })
 
@@ -177,7 +194,12 @@ function reload() {
   directoryQuery.refetch()
 }
 
-const currentUser = ref<UserRow | undefined>()
+const currentUsername = ref('')
+const currentUser = computed<UserRow | undefined>(() =>
+  currentUsername.value === ''
+    ? undefined
+    : rows.value.find((row) => row.username === currentUsername.value),
+)
 const isShownUserDrawer = ref(false)
 const isShownImport = ref(false)
 const isShownRemoveExtension = ref(false)
@@ -191,12 +213,12 @@ const isEmptyStateShown = computed(
 )
 
 function showCreateUser() {
-  currentUser.value = undefined
+  currentUsername.value = ''
   isShownUserDrawer.value = true
 }
 
 function showEditUser(row: UserRow) {
-  currentUser.value = row
+  currentUsername.value = row.username
   isShownUserDrawer.value = true
 }
 
@@ -209,7 +231,7 @@ async function exportUsers() {
   exporting.value = true
 
   try {
-    downloadTextFile('users.csv', await getCsvExport())
+    downloadTextFile(buildExportFileName(), await getCsvExport())
   } catch (error) {
     notificationsStore.createNotificationFromError(error, t('users.cannot_export_users'))
   } finally {
@@ -271,7 +293,7 @@ const rowMenuItems = (row: UserRow): NeDropdownItem[] => [
     danger: true,
     disabled: row.mainExtension === '',
     action: () => {
-      currentUser.value = row
+      currentUsername.value = row.username
       isShownRemoveExtension.value = true
     },
   },
@@ -310,7 +332,19 @@ const filterLabels = computed(() => ({
       @retry="reload"
     />
     <template v-else>
-      <div class="mb-4 flex flex-wrap items-center gap-4">
+      <NeInlineNotification
+        v-if="unavailableParts"
+        kind="warning"
+        class="mb-6"
+        :title="t('users.directory_partially_loaded')"
+        :description="
+          t('users.directory_partially_loaded_description', { parts: unavailableParts })
+        "
+        :primary-button-label="t('common.retry')"
+        data-testid="users-directory-warning"
+        @primary-click="directoryQuery.refetch()"
+      />
+      <div v-if="!isEmptyStateShown" class="mb-4 flex flex-wrap items-center gap-4">
         <NeTextInput
           v-model="textFilter"
           is-search
@@ -361,7 +395,11 @@ const filterLabels = computed(() => ({
           {{ t('common.reset_filters') }}
         </NeButton>
       </div>
-      <p v-if="!loading" class="text-tertiary-neutral mb-6 text-sm" data-testid="users-counter">
+      <p
+        v-if="!loading && !isEmptyStateShown"
+        class="text-tertiary-neutral mb-6 text-sm"
+        data-testid="users-counter"
+      >
         {{ t('users.configured_counter', { configured: configuredCount, total: users.length }) }}
       </p>
       <NeEmptyState
@@ -370,12 +408,20 @@ const filterLabels = computed(() => ({
         :description="t('users.no_users_description')"
         :icon="faUserGroup"
       >
-        <NeButton kind="primary" @click="showCreateUser">
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-          </template>
-          {{ t('users.create_user') }}
-        </NeButton>
+        <div class="flex flex-wrap justify-center gap-4">
+          <NeButton kind="secondary" @click="isShownImport = true">
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCircleArrowUp" class="size-4" aria-hidden="true" />
+            </template>
+            {{ t('users.import_users_from_csv') }}
+          </NeButton>
+          <NeButton kind="primary" @click="showCreateUser">
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+            </template>
+            {{ t('users.create_user') }}
+          </NeButton>
+        </div>
       </NeEmptyState>
       <NeEmptyState
         v-else-if="!loading && filteredRows.length === 0"
@@ -405,7 +451,9 @@ const filterLabels = computed(() => ({
           <NeTableHeadCell>{{ t('users.groups') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('users.profile') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('users.devices') }}</NeTableHeadCell>
-          <NeTableHeadCell>{{ t('users.physical_phones') }}</NeTableHeadCell>
+          <NeTableHeadCell>
+            <span class="whitespace-nowrap">{{ t('users.physical_phones') }}</span>
+          </NeTableHeadCell>
           <NeTableHeadCell>
             <span class="sr-only">{{ t('common.actions') }}</span>
           </NeTableHeadCell>
@@ -417,9 +465,9 @@ const filterLabels = computed(() => ({
             :data-testid="`user-${row.username}`"
           >
             <NeTableCell :data-label="t('users.user')">
-              <div class="flex flex-col">
-                <span class="text-primary-neutral flex items-center gap-2">
-                  {{ row.displayName }}
+              <div class="flex max-w-xs min-w-0 flex-col">
+                <span class="text-primary-neutral flex min-w-0 items-center gap-2">
+                  <span class="truncate" :title="row.displayName">{{ row.displayName }}</span>
                   <NeTooltip v-if="row.voicemail" trigger-event="mouseenter focus" placement="top">
                     <template #trigger>
                       <span tabindex="0" class="flex text-indigo-500 dark:text-indigo-300">
@@ -430,7 +478,9 @@ const filterLabels = computed(() => ({
                     <template #content>{{ t('users.voicemail_enabled') }}</template>
                   </NeTooltip>
                 </span>
-                <span class="text-secondary-neutral">{{ row.username }}</span>
+                <span class="text-secondary-neutral truncate" :title="row.username">
+                  {{ row.username }}
+                </span>
               </div>
             </NeTableCell>
             <NeTableCell :data-label="t('users.extension')">
@@ -496,19 +546,21 @@ const filterLabels = computed(() => ({
           </NeTableRow>
         </NeTableBody>
         <template #paginator>
-          <NePaginator
-            :current-page="pageNum"
-            :total-rows="filteredRows.length"
-            :page-size="pageSize"
-            :page-sizes="PAGE_SIZES"
-            :nav-pagination-label="t('ne_table.pagination')"
-            :next-label="t('ne_table.go_to_next_page')"
-            :previous-label="t('ne_table.go_to_previous_page')"
-            :range-of-total-label="t('ne_table.of')"
-            :page-size-label="t('ne_table.show')"
-            @select-page="(page: number) => (pageNum = page)"
-            @select-page-size="(size: number) => (pageSize = size)"
-          />
+          <div class="relative max-w-full overflow-x-auto" data-testid="users-paginator">
+            <NePaginator
+              :current-page="pageNum"
+              :total-rows="filteredRows.length"
+              :page-size="pageSize"
+              :page-sizes="PAGE_SIZES"
+              :nav-pagination-label="t('ne_table.pagination')"
+              :next-label="t('ne_table.go_to_next_page')"
+              :previous-label="t('ne_table.go_to_previous_page')"
+              :range-of-total-label="t('ne_table.of')"
+              :page-size-label="t('ne_table.show')"
+              @select-page="(page: number) => (pageNum = page)"
+              @select-page-size="(size: number) => (pageSize = size)"
+            />
+          </div>
         </template>
       </NeTable>
     </template>

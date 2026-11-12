@@ -34,7 +34,7 @@ import ImportUsersFlow from '@/components/users/ImportUsersFlow.vue'
 import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
 import { useSetupNavigation } from '@/composables/useSetupNavigation'
 import { matchesText } from '@/lib/common'
-import { downloadTextFile, getCsvExport } from '@/lib/users/csv'
+import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
 import {
   buildUserRows,
   EMPTY_USERS_DIRECTORY,
@@ -170,7 +170,7 @@ async function exportUsers() {
   exporting.value = true
 
   try {
-    downloadTextFile('users.csv', await getCsvExport())
+    downloadTextFile(buildExportFileName(), await getCsvExport())
   } catch (error) {
     notificationsStore.createNotificationFromError(error, t('users.cannot_export_users'))
   } finally {

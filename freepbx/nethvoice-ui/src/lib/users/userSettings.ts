@@ -38,12 +38,14 @@ export type UserSettingsStepKind = UserSettingsStep['kind']
 export class UserSettingsStepError extends Error {
   readonly step: UserSettingsStep
   readonly cause: unknown
+  readonly completed: UserSettingsStep[]
 
-  constructor(step: UserSettingsStep, cause: unknown) {
+  constructor(step: UserSettingsStep, cause: unknown, completed: UserSettingsStep[] = []) {
     super(cause instanceof Error ? cause.message : String(cause))
     this.name = 'UserSettingsStepError'
     this.step = step
     this.cause = cause
+    this.completed = completed
   }
 }
 
@@ -226,13 +228,15 @@ export const applyUserSettingsSteps = async (
   steps: UserSettingsStep[],
 ): Promise<void> => {
   let extension = user.mainExtension
+  const completed: UserSettingsStep[] = []
 
   for (const step of steps) {
     try {
       await applyStep(user, extension, step)
     } catch (error) {
-      throw new UserSettingsStepError(step, error)
+      throw new UserSettingsStepError(step, error, [...completed])
     }
+    completed.push(step)
 
     if (step.kind === 'extension') {
       extension = step.extension

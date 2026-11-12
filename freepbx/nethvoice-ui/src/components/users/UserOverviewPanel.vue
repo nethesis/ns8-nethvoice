@@ -132,6 +132,15 @@ const sortKeyModel = computed({
   },
 })
 
+const defaultFilters = computed(
+  () =>
+    textFilter.value === '' &&
+    statusFilter.value.length === 0 &&
+    groupFilter.value.length === 0 &&
+    sortKey.value === 'name' &&
+    !sortDescending.value,
+)
+
 function resetFilters() {
   textFilter.value = ''
   statusFilter.value = []
@@ -169,7 +178,7 @@ function reload() {
             :placeholder="t('user_overview.filter_users')"
             :aria-label="t('user_overview.filter_users')"
             :clear-search-label="t('ne_text_input.clear_search')"
-            class="w-full max-w-[250px]"
+            class="w-full max-w-xs"
           />
           <NeDropdownFilterV2
             v-model="statusFilter"
@@ -206,7 +215,7 @@ function reload() {
             :ascending-label="t('sort.ascending')"
             :descending-label="t('sort.descending')"
           />
-          <NeButton kind="tertiary" @click="resetFilters">
+          <NeButton kind="tertiary" :disabled="defaultFilters" @click="resetFilters">
             {{ t('common.reset_filters') }}
           </NeButton>
         </div>
