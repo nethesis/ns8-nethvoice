@@ -495,6 +495,12 @@ component one is kept as `README.upstream.md`.
 [chat-island](https://github.com/nethesis/chat-island) stay in their own
 repositories: they are integrated in other products too.
 
+`freepbx/nethvoice-ui` is the new administration interface and first-configuration
+wizard of NethVoice. It was born in this repository: the `nethvoice-freepbx` image
+builds it and serves it at `/nethvoice/` next to the previous wizard, with the same
+REST API and sign-in. See `freepbx/nethvoice-ui/README.md`. `mcp` holds a prototype
+MCP server that exposes the same APIs to AI assistants.
+
 ### Adding or updating an external resource
 
 When a build depends on an external resource such as a wrapper image, Git
