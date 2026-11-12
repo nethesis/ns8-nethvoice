@@ -383,7 +383,7 @@ export interface paths {
     put?: never
     /**
      * Update an existing CTI profile definition.
-     * @description Body: serialized profile as produced by the UI; updates macro permissions and triggers a dialplan reload.
+     * @description Body: serialized profile as produced by the UI; renames the profile, updates macro permissions and triggers a dialplan reload.
      */
     post: operations['post_cti_profiles_id']
     /** Delete a CTI profile and clean up related permissions. */
@@ -2724,7 +2724,7 @@ export interface components {
       failscript?: string
       dialoutprefix?: string
       usercontext?: string
-      /** @description Provider identifier. Empty for the trunks created by `POST /trunks`. */
+      /** @description Provider identifier, as given to `POST /trunks`; empty for trunks created outside the wizard. */
       provider?: string
       /** @enum {string} */
       disabled?: 'on' | 'off'
@@ -3037,7 +3037,7 @@ export interface components {
     }
     CtiProfileRequest: {
       id?: number
-      /** @description Used only when creating: an existing profile cannot be renamed. */
+      /** @description Profile name; on update it renames the profile. */
       name?: string
       macro_permissions: {
         [key: string]: components['schemas']['CtiMacroPermission']
@@ -4045,6 +4045,42 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['CtiStatusFlag']
+        }
+      }
+      /** @description Profile not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Another profile already has this name */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Empty name, or a rename from or to the reserved Hotel profile */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Another profile update is in progress */
+      423: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
         }
       }
       /** @description Internal server error */
@@ -6394,12 +6430,23 @@ export interface operations {
         }
         content?: never
       }
+      /** @description The user has no desktop app extension */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersStatusMessage']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
           [name: string]: unknown
         }
-        content?: never
+        content: {
+          'application/json': components['schemas']['UsersStatusMessage']
+        }
       }
     }
   }
