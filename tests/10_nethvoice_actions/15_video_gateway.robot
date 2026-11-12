@@ -105,10 +105,16 @@ The gateway control API password is generated
     ${rc} =    Execute Command    runagent -m ${module_id} grep -qE '^MEDIAMTX_API_PASSWORD=[A-Za-z0-9]{32}$' passwords.env
     ...    return_stdout=False    return_rc=True
     Should Be Equal As Integers    ${rc}    0    MEDIAMTX_API_PASSWORD is missing from passwords.env
-    # nethcti-server reads it from services.json
-    ${rc} =    Execute Command    runagent -m ${module_id} podman exec nethcti-server grep -qE '"api_password": "[A-Za-z0-9]{32}"' /etc/nethcti/services.json
-    ...    return_stdout=False    return_rc=True
-    Should Be Equal As Integers    ${rc}    0    api_password is missing from services.json
+    # nethcti-server writes it to services.json at every start; it runs only
+    # once the wizard is completed (never in CI)
+    IF    ${CTI_SERVER_ACTIVE}
+        ${rc} =    Execute Command
+        ...    runagent -m ${module_id} sh -c 'podman exec nethcti-server grep -qF "\\"api_password\\": \\"$(sed -n s/^MEDIAMTX_API_PASSWORD=//p passwords.env)\\"" /etc/nethcti/services.json'
+        ...    return_stdout=False    return_rc=True
+        Should Be Equal As Integers    ${rc}    0    services.json does not carry the MEDIAMTX_API_PASSWORD of passwords.env
+    ELSE
+        Log    nethcti-server is not running: services.json not checked    console=True
+    END
 
 The gateway control API requires the nethcti-server credentials
     # The API returns the device passwords: no anonymous access, not even
@@ -121,8 +127,14 @@ The gateway control API requires the nethcti-server credentials
     Should Be Equal As Integers    ${response['status']}    401    ${response['text']}
     ${response} =    Gateway Api Request    ${module_id}    POST    /v3/webrtcsessions/kick/00000000-0000-0000-0000-000000000000    none
     Should Be Equal As Integers    ${response['status']}    401    ${response['text']}
-    ${response} =    Gateway Api Request    ${module_id}    GET    /v3/config/paths/list    secret
-    Should Be Equal As Integers    ${response['status']}    200    ${response['text']}
+    IF    ${CTI_SERVER_ACTIVE}
+        Wait Until Keyword Succeeds    1 min    5 sec
+        ...    Gateway API should answer    200
+    ELSE
+        # Fail closed: nobody can authorize the request, not even the
+        # nethcti-server credentials
+        Gateway API should answer    401
+    END
 
 The gateway network facts are returned
     ${response} =    Freepbx Rest Request    ${module_id}    GET    cti/sources/gateway
@@ -173,8 +185,7 @@ The gateway serves the new source
     ${config} =    Gateway configuration
     # Only the gateway configuration carries the device credentials
     Should Contain    ${config}    source: "rtsp://${DEVICE_USER}:${DEVICE_SECRET}@192.0.2.10:554/stream"
-    Wait Until Keyword Succeeds    1 min    5 sec
-    ...    Gateway API should list path    ${SOURCE_PATH}
+    Gateway should load path    ${SOURCE_PATH}
 
 The CTI configuration does not expose the device
     Wait Until Keyword Succeeds    3 min    10 sec
@@ -362,8 +373,7 @@ A renamed source moves its gateway path
     Wait Until Keyword Succeeds    3 min    10 sec
     ...    Gateway configuration should contain    "${RENAMED_PATH}":
     Gateway configuration should not contain    "${SOURCE_PATH}":
-    Wait Until Keyword Succeeds    1 min    5 sec
-    ...    Gateway API should not list path    ${SOURCE_PATH}
+    Gateway should drop path    ${SOURCE_PATH}
 
 A deleted source leaves no trace
     ${response} =    Freepbx Rest Request    ${module_id}    DELETE    cti/streaming/${RENAMED_NAME}
@@ -380,8 +390,7 @@ A deleted source leaves no trace
     Gateway configuration should not contain    ${DEVICE_SECRET}
     Wait Until Keyword Succeeds    3 min    10 sec
     ...    CTI configuration should not contain    "vs_robot_gate"
-    Wait Until Keyword Succeeds    1 min    5 sec
-    ...    Gateway API should not list path    ${RENAMED_PATH}
+    Gateway should drop path    ${RENAMED_PATH}
 
 *** Keywords ***
 Prepare the video gateway suite
@@ -397,6 +406,12 @@ Prepare the video gateway suite
     ${value} =    Module environment value    MEDIAMTX_ICE_TCP_PORT
     Set Suite Variable    ${ICE_TCP_PORT}    ${value}
     Set Suite Variable    ${PROFILE_ID}    ${EMPTY}
+    # The wizard starts nethcti-server: without it the gateway refuses every
+    # request (fail closed), its control API included
+    ${state} =    Execute Command    runagent -m ${module_id} systemctl --user is-active nethcti-server.service
+    ${active} =    Evaluate    $state == 'active'
+    Set Suite Variable    ${CTI_SERVER_ACTIVE}    ${active}
+    Log    nethcti-server is ${state}    console=True
     # Leftovers of an interrupted run
     Remove the test video sources
 
@@ -404,10 +419,12 @@ Remove the test video sources
     # Delete only what exists: every deletion triggers a FreePBX reload
     ${response} =    Freepbx Rest Request    ${module_id}    GET    cti/streaming
     Should Be Equal As Integers    ${response['status']}    200    ${response['text']}
-    ${names} =    Evaluate    [s['descr'] for s in $response['body'] if s['descr'] in ($SOURCE_NAME, $RENAMED_NAME, 'Robot Bad', 'Robot Missing')]
-    FOR    ${name}    IN    @{names}
-        ${response} =    Freepbx Rest Request    ${module_id}    DELETE    cti/streaming/${name}
-        Should Be Equal As Integers    ${response['status']}    200    ${response['text']}
+    # No $variables inside comprehensions: Robot cannot resolve them there
+    FOR    ${source}    IN    @{response['body']}
+        IF    $source['descr'] in ($SOURCE_NAME, $RENAMED_NAME, 'Robot Bad', 'Robot Missing')
+            ${deleted} =    Freepbx Rest Request    ${module_id}    DELETE    cti/streaming/${source['descr']}
+            Should Be Equal As Integers    ${deleted['status']}    200    ${deleted['text']}
+        END
     END
 
 FreePBX should be ready
@@ -500,6 +517,29 @@ CTI configuration should not contain
     ${config} =    CTI configuration
     Should Not Contain    ${config}    ${text}
 
+Gateway API should answer
+    [Arguments]    ${status}
+    ${response} =    Gateway Api Request    ${module_id}    GET    /v3/config/paths/list    secret
+    Should Be Equal As Integers    ${response['status']}    ${status}    ${response['text']}
+
+Gateway should load path
+    [Arguments]    ${path}
+    # The configuration file is checked by the caller; the control API, which
+    # shows what MediaMTX actually loaded, needs nethcti-server
+    IF    ${CTI_SERVER_ACTIVE}
+        Wait Until Keyword Succeeds    1 min    5 sec    Gateway API should list path    ${path}
+    ELSE
+        Log    nethcti-server is not running: loaded paths not checked through the API    console=True
+    END
+
+Gateway should drop path
+    [Arguments]    ${path}
+    IF    ${CTI_SERVER_ACTIVE}
+        Wait Until Keyword Succeeds    1 min    5 sec    Gateway API should not list path    ${path}
+    ELSE
+        Log    nethcti-server is not running: loaded paths not checked through the API    console=True
+    END
+
 Gateway API paths
     # Loopback only, never routed, and only for the nethcti-server user
     ${response} =    Gateway Api Request    ${module_id}    GET    /v3/config/paths/list?itemsPerPage=1000
@@ -521,7 +561,10 @@ Get video source
     [Arguments]    ${descr}
     ${response} =    Freepbx Rest Request    ${module_id}    GET    cti/streaming
     Should Be Equal As Integers    ${response['status']}    200    ${response['text']}
-    ${matches} =    Evaluate    [s for s in $response['body'] if s['descr'] == $descr]
+    ${matches} =    Create List
+    FOR    ${source}    IN    @{response['body']}
+        IF    $source['descr'] == $descr    Append To List    ${matches}    ${source}
+    END
     Length Should Be    ${matches}    1    video source ${descr} not found
     RETURN    ${matches[0]}
 
