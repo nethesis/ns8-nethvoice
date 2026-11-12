@@ -491,6 +491,50 @@ check(streaming_tls_check_warnings($skipped, array_merge($storedTls, ['tls_finge
 check(streaming_tls_check_warnings($skipped, array_merge($storedTls, ['tls_skip_verify' => false]), 'rtsps://192.0.2.30:322/live')['warnings'] === [], 'option just enabled: the save pins it, no warning');
 check(streaming_tls_check_warnings($skipped, null, 'rtsps://192.0.2.30:322/live')['warnings'] === [], 'new source: no warning');
 
+// The stored password goes only to the device with the pinned certificate
+$pinnedSnap = array_merge(streaming_normalize_source(['descr' => 'Snap', 'url' => 'https://192.0.2.32/s.jpg', 'user' => 'u', 'secret' => 'Stored-Pw-1', 'tls_skip_verify' => true]), ['tls_fingerprint' => $fpA]);
+$pinnedCam = array_merge($tlsOn, ['tls_fingerprint' => $fpA]);
+$guardFetched = [];
+$sameCert = function ($url) use (&$guardFetched, $fpA) { $guardFetched[] = $url; return [strtoupper($fpA), '']; };
+$otherCert = function ($url) use (&$guardFetched, $fpB) { $guardFetched[] = $url; return [$fpB, '']; };
+$noCert = function ($url) use (&$guardFetched) { $guardFetched[] = $url; return [null, 'Connection refused']; };
+check(streaming_stored_secret_guard($pinnedSnap, 'https://192.0.2.32/s.jpg', true, true, $sameCert) === null, 'same certificate: the check goes on');
+$changed = streaming_stored_secret_guard($pinnedSnap, 'https://192.0.2.32/s.jpg', true, true, $otherCert);
+check($changed !== null && !$changed['success'] && $changed['reason'] === 'tls_error' && $changed['warnings'] === ['tls_certificate_changed']
+    && $changed['tls_fingerprint'] === $fpB && $changed['type'] === 'image' && $changed['image'] === null, 'changed https certificate: stored password not sent');
+$changedRtsps = streaming_stored_secret_guard($pinnedCam, 'rtsps://192.0.2.30:322/live', true, true, $otherCert);
+check($changedRtsps !== null && $changedRtsps['type'] === 'rtsp' && $changedRtsps['warnings'] === ['tls_certificate_changed'], 'changed rtsps certificate: stored password not sent');
+$unreadable = streaming_stored_secret_guard($pinnedSnap, 'https://192.0.2.32/s.jpg', true, true, $noCert);
+check($unreadable !== null && $unreadable['reason'] === 'connection_refused' && $unreadable['warnings'] === [], 'certificate not readable: stored password not sent');
+$guardFetched = [];
+check(streaming_stored_secret_guard($pinnedSnap, 'https://192.0.2.32/s.jpg', false, true, $otherCert) === null, 'typed password: the check goes on and reports the new certificate');
+check(streaming_stored_secret_guard($pinnedSnap, 'https://192.0.2.32/s.jpg', true, false, $otherCert) === null, 'verified certificate: no guard');
+check(streaming_stored_secret_guard(array_merge($pinnedSnap, ['tls_fingerprint' => null]), 'https://192.0.2.32/s.jpg', true, true, $otherCert) === null, 'nothing pinned (older version): no guard');
+check(streaming_stored_secret_guard($pinnedSnap, 'http://192.0.2.32/s.jpg', true, true, $otherCert) === null, 'plain http: no guard');
+check(streaming_stored_secret_guard(null, 'https://192.0.2.32/s.jpg', true, true, $otherCert) === null, 'new source: no guard');
+check($guardFetched === [], 'no certificate read when no guard is needed');
+
+// A save keeps a stored password only for the pinned certificate
+$storedSnap = array_merge($pinnedSnap, ['gates' => [['id' => 9, 'position' => 0, 'name' => 'G', 'type' => 'url', 'code' => null, 'url' => 'https://192.0.2.33/open', 'method' => 'GET', 'username' => 'g', 'password' => 'Gate-Pw-1', 'tls_fingerprint' => $fpA]]]);
+$saveData = ['descr' => 'Snap', 'url' => 'https://192.0.2.32/s.jpg', 'user' => 'u', 'secret' => '', 'gates' => [['id' => 9, 'name' => 'G', 'type' => 'url', 'url' => 'https://192.0.2.33/open', 'username' => 'g', 'password' => '']]];
+$resaved = streaming_normalize_source($saveData, $storedSnap);
+check($resaved['secret'] === 'Stored-Pw-1' && $resaved['gates'][0]['password'] === 'Gate-Pw-1', 'stored passwords kept by the update');
+[$samePins] = streaming_pin_certificates($resaved, function () use ($fpA) { return [$fpA, '']; });
+streaming_check_pin_changes($saveData, $samePins, $storedSnap);
+check(true, 'same certificates: saved');
+[$newPins] = streaming_pin_certificates($resaved, function ($url) use ($fpA, $fpB) { return [strpos($url, '/s.jpg') !== false ? $fpB : $fpA, '']; });
+expect_validation(function () use ($saveData, $newPins, $storedSnap) { streaming_check_pin_changes($saveData, $newPins, $storedSnap); }, 'secret', 'changed device certificate with the stored password');
+streaming_check_pin_changes(array_merge($saveData, ['secret' => 'Typed-Pw']), $newPins, $storedSnap);
+check(true, 'changed device certificate with a typed password: saved');
+[$newGatePin] = streaming_pin_certificates($resaved, function ($url) use ($fpA, $fpB) { return [strpos($url, '/open') !== false ? $fpB : $fpA, '']; });
+expect_validation(function () use ($saveData, $newGatePin, $storedSnap) { streaming_check_pin_changes($saveData, $newGatePin, $storedSnap); }, 'gates[0].password', 'changed gate certificate with the stored password');
+$typedGate = $saveData;
+$typedGate['gates'][0]['password'] = 'Typed-Gate';
+streaming_check_pin_changes($typedGate, $newGatePin, $storedSnap);
+check(true, 'changed gate certificate with a typed password: saved');
+streaming_check_pin_changes($saveData, $newPins, array_merge($storedSnap, ['tls_fingerprint' => null]));
+check(true, 'nothing pinned before (older version): saved and pinned now');
+
 // Real TLS: a local HTTPS server with a self-signed certificate
 $tlsDir = sys_get_temp_dir() . '/streaming-tls-test-' . getmypid();
 mkdir($tlsDir);
@@ -539,6 +583,10 @@ $expected = openssl_x509_fingerprint($certPem, 'sha256');
 [$fingerprint, $error] = streaming_fetch_fingerprint("rtsps://$address/live");
 check($fingerprint === $expected && $error === '', 'fingerprint of a self-signed certificate: ' . $error);
 check(streaming_fetch_fingerprint("https://$address/snap.jpg")[0] === $expected, 'fingerprint of an https device');
+$realStored = ['descr' => 'Real', 'type' => 'image', 'url' => "https://$address/snap.jpg", 'user' => 'u', 'secret' => 'Stored-Pw-1', 'tls_skip_verify' => true, 'tls_fingerprint' => $expected, 'gates' => []];
+check(streaming_stored_secret_guard($realStored, "https://$address/snap.jpg", true, true) === null, 'real device with the pinned certificate: the check goes on');
+$realChanged = streaming_stored_secret_guard(array_merge($realStored, ['tls_fingerprint' => $fpA]), "https://$address/snap.jpg", true, true);
+check($realChanged !== null && $realChanged['tls_fingerprint'] === $expected && $realChanged['warnings'] === ['tls_certificate_changed'], 'real device with another certificate: stored password not sent');
 check(streaming_fetch_fingerprint('rtsp://127.0.0.1:1/x')[0] === null, 'no fingerprint for plain RTSP');
 [$fingerprint, $error] = streaming_fetch_fingerprint('rtsps://127.0.0.1:1/x', 2);
 check($fingerprint === null && $error !== '', 'no fingerprint when the device is unreachable');
