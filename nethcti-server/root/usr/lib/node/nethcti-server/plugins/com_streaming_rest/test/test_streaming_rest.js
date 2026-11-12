@@ -18,6 +18,14 @@ var decisions = [];
 rest.setCompStreaming({
   openGate: function(stream, gate, callerid, exten, username, cb) {
     opened.push({ stream: stream, gate: gate });
+    if (stream === 'vs_legacy') {
+      // the DTMF of a source without gates failed
+      var e = new Error('sending the DTMF code to extension 301 failed');
+      e.status = 502;
+      e.code = 'dtmf_failed';
+      cb(e);
+      return;
+    }
     cb(null);
   },
   getVideoSample: function(id, cb) {
@@ -39,7 +47,7 @@ rest.setCompStreaming({
 });
 rest.setCompAuthorization({
   getAllowedStreamingSources: function() {
-    return [{ permissionId: 'vs_door' }, { permissionId: 'vs_changed' }, { permissionId: 'vs_off' }];
+    return [{ permissionId: 'vs_door' }, { permissionId: 'vs_changed' }, { permissionId: 'vs_off' }, { permissionId: 'vs_legacy' }];
   }
 });
 rest.setCompConfigManager({ getDefaultUserExtensionConf: function() { return '201'; } });
@@ -80,6 +88,10 @@ assert.strictEqual(opened.pop().gate, undefined);
 });
 assert.strictEqual(opened.length, 0, 'nothing opened with an invalid gate');
 assert.strictEqual(open({ id: ['vs_door'] }).body.code, 'missing_id');
+res = open({ id: 'vs_legacy' });
+assert.strictEqual(res.status, 502, 'failed DTMF of a source without gates');
+assert.deepStrictEqual(res.body, { code: 'dtmf_failed', message: 'sending the DTMF code to extension 301 failed' });
+opened.pop();
 console.log('ok - open parameters');
 
 function image(source) {

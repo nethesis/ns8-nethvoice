@@ -570,6 +570,14 @@ async function main() {
   r = await open('vs_old');
   assert.strictEqual(r[0], null);
   assert.deepStrictEqual(dtmfCalls, [{ exten: '301', seq: '0*' }], 'legacy open code');
+  // a failed DTMF of the legacy open code is a 502 like the DTMF gates
+  var sendDTMF = fakeAstProxy.sendDTMFSequence;
+  fakeAstProxy.sendDTMFSequence = function(exten, seq, callerid, fromExten, cb) { cb('error'); };
+  r = await open('vs_old');
+  fakeAstProxy.sendDTMFSequence = sendDTMF;
+  assert.strictEqual(r[0].status, 502, 'legacy open code DTMF failure');
+  assert.strictEqual(r[0].code, 'dtmf_failed');
+  assert.strictEqual(r[0].message, 'sending the DTMF code to extension 301 failed');
   r = await open('vs_old', '1');
   assert.strictEqual(r[0].status, 404, 'legacy source has no gate ids');
   r = await open('vs_img');
