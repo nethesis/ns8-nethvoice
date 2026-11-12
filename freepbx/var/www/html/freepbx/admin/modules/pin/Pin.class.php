@@ -73,7 +73,7 @@ class Pin implements \BMO
             $sth = $dbh->prepare($sql);
             $sth->execute(array(
                 $_REQUEST['id'],
-                $_REQUEST['EnablePIN'],
+                (int) $_REQUEST['EnablePIN'],
             ));
             return true;
         }

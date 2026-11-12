@@ -136,6 +136,9 @@ php /apply-instance-bindings.php --save-transports || exit $?
     done
 ) || exit $?
 
+# Convert unsupported trunks before any sync/reload, including on recovery starts.
+php /convert-legacy-sip-trunks.php
+
 # Apply registered runtime rules without scanning the entire web tree.
 ionice -c2 -n7 nice -n 10 fwconsole chown --module=framework
 

@@ -455,6 +455,7 @@ COPY patches /tmp/nethvoice-core-patches
 RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
         patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < "$core_patch" || exit 1; \
     done && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-trunks-hook.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-bindaddress.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
@@ -717,6 +718,8 @@ COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-d
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY freepbx_init.sh /freepbx_init.sh
 COPY apply-instance-bindings.php /apply-instance-bindings.php
+COPY convert-legacy-sip-trunks.php /convert-legacy-sip-trunks.php
+COPY initdb.d/legacy-sip-trunks.php /initdb.d/legacy-sip-trunks.php
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
