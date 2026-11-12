@@ -507,10 +507,34 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CtiStatusFlag'
+        '404':
+          description: Profile not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Another profile already has this name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Empty name, or a rename from or to the reserved Hotel profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '423':
+          description: Another profile update is in progress
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
-      description: 'Body: serialized profile as produced by the UI; updates macro
-        permissions and triggers a dialplan reload.'
+      description: 'Body: serialized profile as produced by the UI; renames the profile,
+        updates macro permissions and triggers a dialplan reload.'
       operationId: post_cti_profiles_id
       parameters:
       - name: id
@@ -2201,8 +2225,18 @@ paths:
       responses:
         '200':
           description: Successful response
+        '404':
+          description: The user has no desktop app extension
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
         '500':
           description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
       operationId: delete_nethlink_mainextension
       parameters:
       - name: mainextension
@@ -3958,8 +3992,8 @@ components:
           type: string
         provider:
           type: string
-          description: Provider identifier. Empty for the trunks created by `POST
-            /trunks`.
+          description: Provider identifier, as given to `POST /trunks`; empty for
+            trunks created outside the wizard.
         disabled:
           type: string
           enum:
@@ -4612,7 +4646,7 @@ components:
           type: integer
         name:
           type: string
-          description: 'Used only when creating: an existing profile cannot be renamed.'
+          description: Profile name; on update it renames the profile.
         macro_permissions:
           type: object
           additionalProperties:
