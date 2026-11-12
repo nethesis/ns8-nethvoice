@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import * as v from 'valibot'
 import { PRODUCT_NAME, RUNTIME_CONFIG_URL } from '@/lib/config'
@@ -16,6 +16,7 @@ export const RuntimeConfigSchema = v.object({
   LOGIN_LOGO_URL: OptionalText,
   LOGIN_BACKGROUND_URL: OptionalText,
   FAVICON_URL: OptionalText,
+  HOSTNAME: OptionalText,
 })
 
 export type RuntimeConfig = {
@@ -26,6 +27,7 @@ export type RuntimeConfig = {
   loginLogoUrl: string
   loginBackgroundUrl: string
   faviconUrl: string
+  hostname: string
 }
 
 export const DEFAULT_DOCS_URL = 'https://docs.nethvoice.com/'
@@ -38,6 +40,7 @@ export const DEFAULT_RUNTIME_CONFIG: RuntimeConfig = {
   loginLogoUrl: '',
   loginBackgroundUrl: '',
   faviconUrl: '',
+  hostname: '',
 }
 
 const safeUrl = (value: string): string => {
@@ -69,6 +72,7 @@ export const parseRuntimeConfig = (raw: unknown): RuntimeConfig => {
     loginLogoUrl: safeUrl(config.LOGIN_LOGO_URL),
     loginBackgroundUrl: safeUrl(config.LOGIN_BACKGROUND_URL),
     faviconUrl: safeUrl(config.FAVICON_URL),
+    hostname: config.HOSTNAME.trim(),
   }
 }
 
@@ -106,5 +110,7 @@ export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
     }
   }
 
-  return { config, loaded, load }
+  const hostname = computed(() => config.value.hostname || window.location.hostname)
+
+  return { config, loaded, hostname, load }
 })

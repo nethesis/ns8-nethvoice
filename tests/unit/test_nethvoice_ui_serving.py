@@ -84,7 +84,8 @@ class RuntimeConfigTest(unittest.TestCase):
         output = Path(directory.name) / 'config.json'
         script = ENTRYPOINT[start:end].replace(f'{UI_ROOT}/config.json', str(output))
         clean = {key: value for key, value in os.environ.items()
-                 if not key.startswith(('WIZARD_', 'BRAND_')) and not key.endswith('_URL')}
+                 if not key.startswith(('WIZARD_', 'BRAND_')) and not key.endswith('_URL')
+                 and key != 'NETHVOICE_HOST'}
         result = subprocess.run(['bash', '-euo', 'pipefail', '-c', script],
                                 env=dict(clean, NETHVOICESECRETKEY='do-not-leak', **environment),
                                 capture_output=True, text=True, timeout=10)
@@ -96,8 +97,14 @@ class RuntimeConfigTest(unittest.TestCase):
         self.assertEqual(config['BRAND_NAME'], 'NethVoice')
         self.assertEqual(config['NAVBAR_LOGO_URL'], '')
         self.assertTrue(config['BRAND_DOCS'].startswith('https://'))
+        self.assertEqual(config['HOSTNAME'], '')
         self.assertEqual(sorted(config), ['BRAND_DOCS', 'BRAND_NAME', 'BRAND_SITE', 'FAVICON_URL',
-                                          'LOGIN_BACKGROUND_URL', 'LOGIN_LOGO_URL', 'NAVBAR_LOGO_URL'])
+                                          'HOSTNAME', 'LOGIN_BACKGROUND_URL', 'LOGIN_LOGO_URL',
+                                          'NAVBAR_LOGO_URL'])
+
+    def test_hostname_comes_from_the_nethvoice_host(self):
+        config = json.loads(self.render(NETHVOICE_HOST='voice.example.org'))
+        self.assertEqual(config['HOSTNAME'], 'voice.example.org')
 
     def test_rebranding_values_are_json_encoded(self):
         name = 'Acme "Voice" </script><b>'

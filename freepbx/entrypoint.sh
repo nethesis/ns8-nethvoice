@@ -233,6 +233,7 @@ NAVBAR_LOGO_URL_VALUE="${wizard_navbar_logo_url}" \
 LOGIN_LOGO_URL_VALUE="${wizard_login_logo_url}" \
 LOGIN_BACKGROUND_URL_VALUE="${wizard_login_background_url}" \
 FAVICON_URL_VALUE="${wizard_favicon_url}" \
+HOSTNAME_VALUE="${NETHVOICE_HOST:-}" \
 php -r 'echo json_encode([
 	"BRAND_NAME" => getenv("BRAND_NAME_VALUE"),
 	"BRAND_SITE" => getenv("BRAND_SITE_VALUE"),
@@ -241,6 +242,7 @@ php -r 'echo json_encode([
 	"LOGIN_LOGO_URL" => getenv("LOGIN_LOGO_URL_VALUE"),
 	"LOGIN_BACKGROUND_URL" => getenv("LOGIN_BACKGROUND_URL_VALUE"),
 	"FAVICON_URL" => getenv("FAVICON_URL_VALUE"),
+	"HOSTNAME" => getenv("HOSTNAME_VALUE"),
 ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), "\n";' > /var/www/html/freepbx/nethvoice-ui/config.json
 
 # Write wizard and restapi configuration
