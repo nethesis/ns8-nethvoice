@@ -770,7 +770,9 @@ async function main() {
   assert.strictEqual(deviceCalls.length, 4);
   deviceCalls = [];
   r = await p(function(cb) { streaming.getVideoSample('vs_tls_changed', cb); });
-  assert.strictEqual(r[0] && r[0].code, 'TLS_FINGERPRINT_MISMATCH', 'changed certificate refused');
+  assert.strictEqual(r[0] && r[0].status, 502, 'changed certificate refused');
+  assert.strictEqual(r[0].code, 'source_certificate_changed');
+  assert(/save the video source again/.test(r[0].message));
   r = await open('vs_tls_changed', '1');
   assert.strictEqual(r[0].status, 502);
   assert.strictEqual(r[0].code, 'gate_certificate_changed');

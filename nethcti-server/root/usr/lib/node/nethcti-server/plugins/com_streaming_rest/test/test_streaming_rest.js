@@ -20,13 +20,27 @@ rest.setCompStreaming({
     opened.push({ stream: stream, gate: gate });
     cb(null);
   },
+  getVideoSample: function(id, cb) {
+    if (id === 'vs_changed') {
+      var e = new Error('the TLS certificate of the video source device changed');
+      e.status = 502;
+      e.code = 'source_certificate_changed';
+      cb(e);
+    } else if (id === 'vs_off') {
+      cb('ECONNREFUSED');
+    } else {
+      cb(null, 'data:image/jpeg;base64,AA==');
+    }
+  },
   authorizeGatewayRequest: function(body, cb) {
     // asynchronous like the refresh of the gateway sessions
     setImmediate(function() { cb(decisions.shift()); });
   }
 });
 rest.setCompAuthorization({
-  getAllowedStreamingSources: function() { return [{ permissionId: 'vs_door' }]; }
+  getAllowedStreamingSources: function() {
+    return [{ permissionId: 'vs_door' }, { permissionId: 'vs_changed' }, { permissionId: 'vs_off' }];
+  }
 });
 rest.setCompConfigManager({ getDefaultUserExtensionConf: function() { return '201'; } });
 rest.setCompUtil({ net: {
@@ -68,6 +82,20 @@ assert.strictEqual(opened.length, 0, 'nothing opened with an invalid gate');
 assert.strictEqual(open({ id: ['vs_door'] }).body.code, 'missing_id');
 console.log('ok - open parameters');
 
+function image(source) {
+  var r = fakeRes();
+  rest.image({ headers: { authorization_user: 'alice' }, params: { source: source } }, r, function() {});
+  return r;
+}
+res = image('vs_door');
+assert.strictEqual(res.status, 200);
+res = image('vs_changed');
+assert.strictEqual(res.status, 502, 'changed certificate: 502');
+assert.deepStrictEqual(Object.keys(res.body), ['code', 'message']);
+assert.strictEqual(res.body.code, 'source_certificate_changed');
+assert.strictEqual(image('vs_off').status, 500, 'other failures unchanged');
+console.log('ok - image errors');
+
 decisions = [{ allow: true, reason: 'valid token', username: 'alice' }, { allow: false, reason: 'token already used' }];
 var hookRes = fakeRes();
 rest.gatewayAuth({ body: { action: 'read', path: 'streaming-gw/vs_door', protocol: 'webrtc', id: 's1' } }, hookRes, function() {});
@@ -78,5 +106,5 @@ setTimeout(function() {
   assert.strictEqual(hookRes2.status, 401);
   assert.strictEqual(hookRes2.body, 'denied: token already used');
   console.log('ok - gateway hook answers');
-  console.log('\n2 groups passed');
+  console.log('\n3 groups passed');
 }, 50);
