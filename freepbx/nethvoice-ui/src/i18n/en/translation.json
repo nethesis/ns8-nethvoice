@@ -36,7 +36,17 @@
     "open_in_legacy_wizard": "Open in the previous interface",
     "object_created_successfully": "{name} has been created successfully",
     "object_saved_successfully": "{name} has been updated successfully",
-    "object_deleted_successfully": "{name} has been deleted successfully"
+    "object_deleted_successfully": "{name} has been deleted successfully",
+    "unsaved_changes": "Unsaved changes",
+    "unsaved_changes_description": "You have unsaved changes. If you close now they will be lost.",
+    "discard_changes": "Discard changes",
+    "keep_editing": "Keep editing",
+    "error_conflict": "This name or value is already in use. Change it and try again.",
+    "error_invalid_data": "Some values are not valid. Check them and try again.",
+    "error_locked": "Another change is in progress. Wait a few seconds and try again.",
+    "error_server_detail": "Server message: {detail}",
+    "error_server": "The server could not complete the request (error {status}). Try again later.",
+    "error_network": "Cannot reach the server. Check the connection and try again."
   },
   "shell": {
     "open_sidebar": "Open sidebar",
@@ -271,9 +281,9 @@
     "existing_users_tooltip": "Users are matched by username. Existing users can be updated or skipped.",
     "import_skip_existing": "Skip existing users",
     "import_overwrite_existing": "Overwrite existing users",
-    "import_overwrite_helper": "Name, mobile number, groups and profile of the existing users are updated. A different extension recreates all their devices.",
+    "import_overwrite_helper": "Name, mobile number, groups and profile of the existing users are updated, together with the voicemail and the devices set in the file. A different extension recreates all their devices.",
     "import_summary": "Import summary",
-    "import_summary_detected": "{users} users and {groups} groups detected",
+    "import_summary_detected": "{users} and {groups} detected",
     "import_users_detected": "{count} user detected in the selected file: | {count} users detected in the selected file:",
     "import_valid": "{count} valid",
     "import_with_errors": "{count} with errors (will be skipped)",
@@ -334,8 +344,8 @@
     "bulk_default_destination": "Default",
     "outbound_caller_id": "Outbound caller ID",
     "caller_id": "Caller ID",
-    "bulk_outboundcid_helper": "A number or \"Name\" <number>",
-    "bulk_outboundcid_invalid": "Enter a number or \"Name\" <number>",
+    "bulk_outboundcid_helper": "A number or \"Name\" {'<'}number{'>'}",
+    "bulk_outboundcid_invalid": "Enter a number or \"Name\" {'<'}number{'>'}",
     "bulk_outboundcid_required": "Enter the caller ID to complete with the extension digits",
     "bulk_outboundcid_number_only": "Use only digits to add the extension digits",
     "extension_digits": "Extension digits",
@@ -344,7 +354,37 @@
     "bulk_no_changes": "Change at least one setting",
     "settings_updated": "Settings updated",
     "cannot_update_settings": "Cannot update the settings",
-    "cannot_load_settings": "Cannot load the settings of the users"
+    "cannot_load_settings": "Cannot load the settings of the users",
+    "import_summary_users": "{count} user | {count} users",
+    "import_summary_groups": "{count} group | {count} groups",
+    "import_new_groups": "{count} new group will be created: {names} | {count} new groups will be created: {names}",
+    "import_file_too_large": "File too large",
+    "import_error_missing_username_column": "The first row has column names but no username column: use the column names of the template.",
+    "import_issue_invalid_group": "invalid group \"{group}\". {reason}",
+    "import_issue_too_many_devices": "more than {max} devices",
+    "import_settings_failed": "Users imported, but some settings were not applied",
+    "import_error_settings_failed": "{username}: {step} ({error})",
+    "extension_required_to_keep": "Enter an extension. To remove it, use Remove extension in the user menu.",
+    "steps_already_applied": "These changes are already applied: {steps}. Save again to apply the others.",
+    "step_done_extension": "extension",
+    "step_done_mobile": "mobile number",
+    "step_done_voicemail": "voicemail",
+    "step_done_profile": "profile",
+    "step_done_groups": "groups",
+    "step_done_enable_device": "{device} enabled",
+    "step_done_disable_device": "{device} disabled",
+    "bulk_completed_before_error": "{count} user was updated before the error: {users}. | {count} users were updated before the error: {users}.",
+    "disable_devices": "Disable devices",
+    "disable_devices_confirmation": "The devices of {count} user will be disabled: | The devices of {count} users will be disabled:",
+    "disable_devices_credentials": "Disabled devices lose their configuration: to use them again, enable them and set up the apps with the new credentials.",
+    "phone_without_mac": "Phone on extension {extension}, without MAC address",
+    "phones_without_mac_helper": "Phones without a MAC address count toward the device limit and can't be changed here.",
+    "cannot_load_mobile": "The mobile number could not be loaded, so it can't be changed now",
+    "cannot_load_voicemail": "The voicemail state could not be loaded, so it can't be changed now",
+    "cannot_load_profiles": "The profiles could not be loaded, so the profile can't be changed now",
+    "cannot_load_groups": "The groups could not be loaded, so they can't be changed now",
+    "directory_partially_loaded": "Some information is not available",
+    "directory_partially_loaded_description": "Cannot load: {parts}. The related columns may be empty and those fields can't be changed. Try again."
   },
   "trunks": {
     "title": "Trunks",
@@ -1285,7 +1325,6 @@
     "delete_group": "Delete group",
     "create": "Create",
     "filter_groups": "Filter groups",
-    "clear_filters": "Clear filters",
     "group": "Group",
     "users": "Users",
     "name": "Name",
@@ -1305,7 +1344,8 @@
     "cannot_create_group": "Cannot create group",
     "cannot_save_group": "Cannot save group",
     "cannot_delete_group": "Cannot delete group",
-    "delete_group_confirmation": "The {name} group will be permanently removed"
+    "delete_group_confirmation": "The {name} group will be permanently removed",
+    "group_actions": "{name} actions"
   },
   "profiles": {
     "description_line_1": "Configure permission profiles and default communication settings assigned to users.",
@@ -1319,7 +1359,6 @@
     "profile_actions": "{name} actions",
     "create": "Create",
     "filter_profiles": "Filter profiles",
-    "clear_filters": "Clear filters",
     "default_profile_name": "{name} profile",
     "users_assigned": "No users assigned | {n} user assigned | {n} users assigned",
     "no_profiles_configured": "No profiles configured",
@@ -1415,7 +1454,9 @@
       "satellite_stt": "Transcribe calls (speech-to-text)",
       "satellite_stt_tooltip": "Transcription and summary of calls",
       "streaming": "Video sources panel"
-    }
+    },
+    "name_not_allowed": "This name cannot be used for this profile",
+    "profile_change_in_progress": "Another profile change is in progress: try again in a few seconds."
   },
   "user_overview": {
     "filter_users": "Filter users",
@@ -1437,7 +1478,8 @@
       "busy": "Busy",
       "ringing": "Ringing",
       "dnd": "DND",
-      "offline": "Offline"
+      "offline": "Offline",
+      "forward": "Call forward"
     },
     "devices": {
       "webrtc": "Web phone",

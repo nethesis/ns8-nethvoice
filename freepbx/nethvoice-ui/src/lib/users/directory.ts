@@ -20,11 +20,21 @@ export type NamedItem = {
   name: string
 }
 
+export const DIRECTORY_PARTS = ['groups', 'profiles', 'voicemails', 'mobiles'] as const
+
+export type DirectoryPart = (typeof DIRECTORY_PARTS)[number]
+
 export type UsersDirectory = {
   groups: Group[]
   profiles: NamedItem[]
   voicemailExtensions: string[]
   mobiles: Record<string, string>
+  unavailable?: DirectoryPart[]
+}
+
+export type UsersDirectoryLoaders = {
+  groups: () => Promise<Group[]>
+  profiles: () => Promise<NamedItem[]>
 }
 
 export type UserRow = User & {
@@ -65,16 +75,38 @@ export const getMobiles = async (): Promise<Record<string, string>> => {
   return parseMobiles(data)
 }
 
-export const getUsersDirectory = async (): Promise<UsersDirectory> => {
-  const [groups, profiles, voicemailExtensions, mobiles] = await Promise.all([
-    getGroups(),
-    getProfiles().then((profiles) => profiles.map(({ id, name }) => ({ id, name }))),
+const DEFAULT_LOADERS: UsersDirectoryLoaders = { groups: getGroups, profiles: getProfiles }
+
+const settledValue = <T>(result: PromiseSettledResult<T>, fallback: T): T =>
+  result.status === 'fulfilled' ? result.value : fallback
+
+export const getUsersDirectory = async (
+  loaders: UsersDirectoryLoaders = DEFAULT_LOADERS,
+): Promise<UsersDirectory> => {
+  const results = await Promise.allSettled([
+    loaders.groups(),
+    loaders.profiles().then((profiles) => profiles.map(({ id, name }) => ({ id, name }))),
     getVoicemailExtensions(),
     getMobiles(),
   ])
+  const [groups, profiles, voicemailExtensions, mobiles] = results
+  const failures = results.flatMap((result) => (result.status === 'rejected' ? [result] : []))
 
-  return { groups, profiles, voicemailExtensions, mobiles }
+  if (failures.length === results.length) {
+    throw failures[0]?.reason
+  }
+
+  return {
+    groups: settledValue(groups, []),
+    profiles: settledValue(profiles, []),
+    voicemailExtensions: settledValue(voicemailExtensions, []),
+    mobiles: settledValue(mobiles, {}),
+    unavailable: DIRECTORY_PARTS.filter((_, index) => results[index]?.status === 'rejected'),
+  }
 }
+
+export const isDirectoryPartAvailable = (directory: UsersDirectory, part: DirectoryPart): boolean =>
+  !(directory.unavailable ?? []).includes(part)
 
 export const EMPTY_USERS_DIRECTORY: UsersDirectory = {
   groups: [],

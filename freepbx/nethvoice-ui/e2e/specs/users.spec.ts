@@ -85,9 +85,20 @@ test.describe('users', () => {
 
     await expect(page.getByText('No users', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Create user' })).toHaveCount(1)
-    await expect(page.getByTestId('users-counter')).toHaveText(
-      '0 out of 0 users configured with an extension',
-    )
+    await expect(page.getByRole('button', { name: 'Import users from CSV' })).toBeVisible()
+    await expect(page.getByTestId('users-counter')).toHaveCount(0)
+    await expect(page.getByPlaceholder('Filter users')).toHaveCount(0)
+  })
+
+  test('shows the users when only some details cannot be loaded', async ({ page, mockApi }) => {
+    mockApi.on('GET', `${REST}/cti/profiles`, { status: 500, json: { error: 'boom' } })
+    await page.goto('./users/users')
+
+    await expect(page.getByTestId('user-a.miller')).toBeVisible()
+    await expect(page.getByTestId('users-directory-warning')).toContainText('Cannot load: Profiles')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    await expect(drawer.getByRole('combobox', { name: 'Profile' })).toBeDisabled()
   })
 
   test('reports a load error and retries', async ({ page, mockApi }) => {
@@ -174,7 +185,134 @@ test.describe('users', () => {
     await expect(
       drawer.getByText('This extension is already assigned to another user'),
     ).toBeVisible()
+    await drawer.getByRole('textbox', { name: 'Extension' }).fill('3')
+    await expect(
+      drawer.getByText('This extension is already assigned to another user'),
+    ).toBeHidden()
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+  })
+
+  test('shows the physical phones without MAC address of a user', async ({ page, mockApi }) => {
+    const [miller, ...others] = RAW_USERS
+    mockUsersApi(mockApi, {
+      users: [
+        {
+          ...miller,
+          devices: [
+            ...miller.devices,
+            { ...miller.devices[0], id: 9, type: 'physical', extension: '93300' },
+          ],
+        },
+        ...others,
+      ],
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+
+    await expect(drawer.getByTestId('user-phone-without-mac')).toHaveText(
+      'Phone on extension 93300, without MAC address',
+    )
+    await expect(drawer.getByTestId('user-phone-row')).toHaveCount(1)
+  })
+
+  test('does not remove the extension when the field is emptied', async ({ page, mockApi }) => {
+    mockWrites(mockApi)
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit c.davis' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
+
+    await drawer.getByRole('textbox', { name: 'Extension' }).fill('')
+    await expect(drawer.getByText('The devices will be recreated')).toBeHidden()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(
+      drawer.getByText('Enter an extension. To remove it, use Remove extension'),
+    ).toBeVisible()
+    await expect(drawer.getByRole('textbox', { name: 'Extension' })).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+    expect(mockApi.callsTo('POST', `${REST}/cti/groups/users/12`)).toHaveLength(0)
+  })
+
+  test('resumes a partially applied edit from the updated user', async ({ page, mockApi }) => {
+    let davisExtension = '301'
+    let voicemailFails = true
+    mockWrites(mockApi)
+      .on('GET', `${REST}/users/:all`, () => ({
+        json: RAW_USERS.map((user) =>
+          user.username === 'c.davis' && davisExtension !== '301'
+            ? { ...user, default_extension: davisExtension, devices: [] }
+            : user,
+        ),
+      }))
+      .on('POST', `${REST}/mainextensions`, (request) => {
+        davisExtension = (request.body as { extension: string }).extension
+        return { status: 201 }
+      })
+      .on('POST', `${REST}/voicemails`, () =>
+        voicemailFails ? { status: 500, json: { error: 'boom' } } : { json: { status: true } },
+      )
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit c.davis' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
+
+    await drawer.getByRole('textbox', { name: 'Extension' }).fill('299')
+    await drawer.getByText('Disabled', { exact: true }).click()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    const failure = drawer.getByTestId('user-save-error')
+    await expect(failure).toContainText('Cannot change the voicemail')
+    await expect(failure).toContainText('These changes are already applied: extension, groups.')
+    await expect(failure).toBeFocused()
+
+    voicemailFails = false
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('User updated')).toBeVisible()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(1)
+    expect(mockApi.callsTo('POST', `${REST}/voicemails`).at(-1)?.body).toEqual({
+      extension: '299',
+      state: 'yes',
+    })
+    expect(mockApi.callsTo('POST', `${REST}/webrtc`).at(-1)?.body).toEqual({ extension: '299' })
+  })
+
+  test('asks before closing a drawer with unsaved changes', async ({ page, mockApi }) => {
+    let release = () => {}
+    const pending = new Promise<void>((resolve) => (release = resolve))
+    mockWrites(mockApi).on('POST', `${REST}/mobiles`, async () => {
+      await pending
+      return { status: 200 }
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+
+    await drawer.getByRole('textbox', { name: 'Mobile number' }).fill('3330000000')
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    const modal = page.getByRole('dialog', { name: 'Unsaved changes' })
+    await modal.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(drawer.getByRole('textbox', { name: 'Mobile number' })).toHaveValue('3330000000')
+
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await page.keyboard.press('Escape')
+    await expect(drawer.getByRole('textbox', { name: 'Mobile number' })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: 'Unsaved changes' })).toHaveCount(0)
+    release()
+    await expect(page.getByText('User updated')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Edit c.davis' }).click()
+    const other = page.getByRole('dialog', { name: 'Edit user c.davis' })
+    await other.getByRole('textbox', { name: 'Mobile number' }).fill('3331111111')
+    await other.getByRole('button', { name: 'Close' }).click()
+    await page
+      .getByRole('dialog', { name: 'Unsaved changes' })
+      .getByRole('button', {
+        name: 'Discard changes',
+      })
+      .click()
+    await expect(other.getByRole('textbox', { name: 'Mobile number' })).toBeHidden()
+    expect(mockApi.callsTo('POST', `${REST}/mobiles`)).toHaveLength(1)
   })
 
   test('shows the backend error when the extension is in use', async ({ page, mockApi }) => {
@@ -373,6 +511,12 @@ test.describe('users', () => {
     await page.keyboard.press('Escape')
     await drawer.getByRole('button', { name: 'Save' }).click()
 
+    const modal = page.getByRole('dialog', { name: 'Disable devices' })
+    await expect(modal.getByTestId('disabling-devices')).toHaveText(
+      'Christopher Davis (c.davis): Desktop app',
+    )
+    await modal.getByRole('button', { name: 'Disable devices' }).click()
+
     await expect(page.getByText('Devices updated')).toBeVisible()
     expect(mockApi.callsTo('POST', `${REST}/mobileapp`).map((call) => call.body)).toEqual([
       { mainextension: '300' },
@@ -380,6 +524,43 @@ test.describe('users', () => {
     ])
     expect(mockApi.callsTo('DELETE', `${REST}/nethlink/301`)).toHaveLength(1)
     expect(mockApi.callsTo('POST', `${REST}/webrtc`)).toHaveLength(0)
+  })
+
+  test('confirms before disabling all the devices of the chosen users', async ({
+    page,
+    mockApi,
+  }) => {
+    mockWrites(mockApi).on('DELETE', `${REST}/webrtc/:ext`, (request) =>
+      request.path.endsWith('/301') ? { status: 500, json: { error: 'boom' } } : { status: 200 },
+    )
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Set devices' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Set devices' })
+
+    await drawer.getByRole('combobox', { name: 'Users' }).click()
+    await drawer.getByRole('option', { name: /a\.miller/ }).click()
+    await drawer.getByRole('option', { name: /c\.davis/ }).click()
+    await page.keyboard.press('Escape')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Disable devices' })
+    await expect(modal).toContainText('The devices of 2 users will be disabled')
+    await expect(modal.getByTestId('disabling-devices').getByRole('listitem')).toHaveText([
+      'Anna Miller (a.miller): Web phone',
+      'Christopher Davis (c.davis): Web phone, Desktop app',
+    ])
+    await modal.getByRole('button', { name: 'Cancel' }).click()
+    await expect(modal).toHaveCount(0)
+    expect(mockApi.calls.filter((call) => call.method === 'DELETE')).toHaveLength(0)
+
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await modal.getByRole('button', { name: 'Disable devices' }).click()
+
+    await expect(drawer.getByText('Cannot set the devices')).toBeVisible()
+    await expect(drawer).toContainText('1 user was updated before the error: a.miller.')
+    await expect(drawer).not.toContainText('DELETE /')
+    expect(mockApi.callsTo('DELETE', `${REST}/webrtc/300`)).toHaveLength(1)
   })
 
   test('applies the advanced settings to several users', async ({ page, mockApi }) => {
@@ -493,6 +674,92 @@ test.describe('users', () => {
     )
   })
 
+  test('imports the Italian header and applies voicemail and devices to existing users', async ({
+    page,
+    mockApi,
+  }) => {
+    const warnings: string[] = []
+    page.on('console', (message) => {
+      if (['warning', 'error'].includes(message.type())) {
+        warnings.push(message.text())
+      }
+    })
+    mockWrites(mockApi)
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'utenti.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        [
+          'Nome utente;Nome;Cognome;Interno;Gruppo;Casella vocale;Telefono web;App desktop',
+          'a.miller;Anna;Miller;300;Sales|Marketing;no;no;sì',
+        ].join('\n'),
+      ),
+    })
+    await drawer.getByRole('button', { name: 'Import' }).click()
+
+    const modal = page
+      .getByRole('dialog', { name: 'Import users' })
+      .filter({ hasText: 'File preview' })
+    await expect(modal.getByTestId('import-summary')).toContainText('1 user and 2 groups detected')
+    await expect(modal.getByTestId('import-new-groups')).toHaveText(
+      '1 new group will be created: Marketing',
+    )
+    await expect(modal).not.toContainText('Only the first')
+    await expect(modal.getByRole('grid', { name: 'File preview' })).toContainText('Desktop app')
+    await modal.getByRole('button', { name: 'Import 1 user' }).click()
+
+    await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
+    const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as { file: string }
+    expect(Buffer.from(file.file, 'base64').toString()).toBe(
+      '"a.miller","Anna Miller","","","3331234567","","","Sales|Marketing","Standard",""\r\n',
+    )
+    expect(mockApi.callsTo('POST', `${REST}/voicemails`)[0].body).toEqual({
+      extension: '300',
+      state: 'no',
+    })
+    expect(mockApi.callsTo('DELETE', `${REST}/webrtc/300`)).toHaveLength(1)
+    expect(mockApi.callsTo('POST', `${REST}/nethlink`)[0].body).toEqual({ extension: '300' })
+    expect(warnings.filter((text) => /FocusTrap|intlify/.test(text))).toEqual([])
+  })
+
+  test('rejects a header without usernames and a file too large', async ({ page }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'utenti.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from('Nome;Cognome;Interno\nMario;Rossi;201'),
+    })
+    await drawer.getByRole('button', { name: 'Import' }).click()
+    await expect(drawer.getByText('no username column')).toBeVisible()
+
+    const rows = Array.from(
+      { length: 5000 },
+      (_, index) => `u${index},Name ${index},${1000 + index}`,
+    )
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'users.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(['username,fullname,extension', ...rows].join('\n')),
+    })
+    await drawer.getByRole('button', { name: 'Import' }).click()
+
+    const modal = page
+      .getByRole('dialog', { name: 'Import users' })
+      .filter({ hasText: 'File preview' })
+    await expect(modal.getByText('File too large')).toBeVisible()
+    await expect(modal.getByRole('button', { name: 'Import 5000 users' })).toBeDisabled()
+  })
+
   test('exports the users without passwords', async ({ page, mockApi }) => {
     mockApi.on('GET', `${REST}/csv/csvexport`, {
       json: Buffer.from(
@@ -505,10 +772,12 @@ test.describe('users', () => {
     await page.getByRole('menuitem', { name: 'Export users to CSV' }).click()
 
     const file = await download
-    expect(file.suggestedFilename()).toBe('users.csv')
+    expect(file.suggestedFilename()).toMatch(/^users-\d{4}-\d{2}-\d{2}\.csv$/)
     const content = await (await file.createReadStream()).toArray()
     const text = Buffer.concat(content).toString()
+    expect(text.startsWith('\ufeff')).toBe(true)
     expect(text).toContain('"username","fullname","extension"')
+    expect(text).toContain('"desktop_app","mobile_app"')
     expect(text).not.toContain('secret')
   })
 })

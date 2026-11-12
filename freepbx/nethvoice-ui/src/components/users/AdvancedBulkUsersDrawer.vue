@@ -19,6 +19,7 @@ import {
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
 import LoadError from '@/components/common/LoadError.vue'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import {
   BULK_DESTINATIONS_KEY,
   BULK_SETTINGS_KEY,
@@ -60,6 +61,7 @@ const edits = ref<Partial<AdvancedBulkForm>>({})
 const issues = ref<AdvancedBulkIssues>({})
 const usersIssue = ref('')
 const noChanges = ref(false)
+const isShownDiscardModal = ref(false)
 const usersRef = useTemplateRef<{ focus(): void }>('usersRef')
 const ringtimeRef = useTemplateRef<{ focus(): void }>('ringtimeRef')
 const outboundcidRef = useTemplateRef<{ focus(): void }>('outboundcidRef')
@@ -132,6 +134,7 @@ watch(
       issues.value = {}
       usersIssue.value = ''
       noChanges.value = false
+      isShownDiscardModal.value = false
       reset()
       setTimeout(() => usersRef.value?.focus(), 300)
     }
@@ -169,11 +172,41 @@ const {
     }, 500)
     emit('close')
   },
+  onError(failure) {
+    if (!isShown) {
+      notificationsStore.createNotification({
+        kind: 'error',
+        title: t('users.cannot_update_settings'),
+        description: describeError(failure),
+      })
+    }
+  },
   onSettled() {
     queryCache.invalidateQueries({ key: [BULK_SETTINGS_KEY] })
     invalidateUsers()
   },
 })
+
+const isDirty = computed(
+  () => selectedUsers.value.length > 0 || Object.keys(edits.value).length > 0,
+)
+
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
+}
 
 function save() {
   reset()
@@ -223,7 +256,7 @@ const comboboxLabels = computed(() => ({
     :is-shown="isShown"
     :title="t('users.advanced_bulk_actions')"
     :close-aria-label="t('common.close')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
       <p class="text-secondary-neutral text-sm">{{ t('users.advanced_bulk_description') }}</p>
@@ -353,7 +386,7 @@ const comboboxLabels = computed(() => ({
         :description="describeError(error)"
       />
       <div class="flex justify-end gap-4 border-t border-gray-200 pt-6 dark:border-gray-700">
-        <NeButton kind="tertiary" :disabled="saving" @click="emit('close')">
+        <NeButton kind="tertiary" :disabled="saving" @click="requestClose">
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton kind="primary" type="submit" :loading="saving" :disabled="saving">
@@ -362,4 +395,9 @@ const comboboxLabels = computed(() => ({
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>

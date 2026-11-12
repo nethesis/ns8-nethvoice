@@ -6,20 +6,26 @@ import { ApiError } from '@/lib/api/errors'
 import {
   analyzeImport,
   buildCsvTemplate,
+  buildExportFileName,
   convertExportedCsv,
   DEFAULT_EXISTING_USERS_MODE,
   decodeBase64,
   encodeBase64,
+  exceedsImportSizeLimit,
   getCsvImportFailure,
+  ImportFileError,
   isCsvImportNotRunning,
+  MAX_CSV_IMPORT_BASE64_LENGTH,
+  needsFollowUps,
   parseCsv,
   parseCsvImportProgress,
   parseImportFile,
+  planImportFollowUps,
   serializeCsv,
   toLegacyCsvRow,
 } from './csv'
 import type { UsersDirectory } from './directory'
-import type { User } from './users'
+import type { User, UserDevice, UserDeviceType } from './users'
 
 const USERS: User[] = [
   {
@@ -32,6 +38,17 @@ const USERS: User[] = [
     devices: [],
   },
 ]
+
+const device = (type: UserDeviceType, extension: string): UserDevice => ({
+  id: Number(extension),
+  type,
+  extension,
+  mac: '',
+  vendor: '',
+  model: '',
+  line: null,
+  registered: false,
+})
 
 const DIRECTORY: UsersDirectory = {
   groups: [{ id: 1, name: 'Sales', userIds: [5] }],
@@ -117,6 +134,29 @@ describe('parseImportFile', () => {
   it('skips comment lines', () => {
     expect(parseImportFile('# a comment\nd.jones,Daniel Jones,302')).toHaveLength(1)
   })
+
+  it('reads the Italian column names', () => {
+    const [row] = parseImportFile(
+      'Nome utente;Nome;Cognome;Interno;Gruppo;Profilo;Cellulare;Casella vocale;App mobile\nm.rossi;Mario;Rossi;201;Vendite;Base;3331234567;sì;1',
+    )
+
+    expect(row).toMatchObject({
+      username: 'm.rossi',
+      fullName: 'Mario Rossi',
+      extension: '201',
+      groups: ['Vendite'],
+      profile: 'Base',
+      mobile: '3331234567',
+      voicemail: true,
+      mobileApp: true,
+    })
+  })
+
+  it('rejects a header without the username column', () => {
+    expect(() => parseImportFile('Login;Nome;Cognome;Interno\nm.rossi;Mario;Rossi;201')).toThrow(
+      ImportFileError,
+    )
+  })
 })
 
 describe('analyzeImport', () => {
@@ -151,6 +191,46 @@ describe('analyzeImport', () => {
       '10:invalid_username',
     ])
     expect(analysis.groups).toEqual(['Sales', 'Support'])
+    expect(analysis.newGroups).toEqual(['Support'])
+  })
+
+  it('lists the new groups and validates them like the groups drawer', () => {
+    const analysis = analyzeImport(
+      parseImportFile(
+        [
+          'username,name,extension,group',
+          'k.lee,Kevin,305,sales|Marketing',
+          'm.cole,Mia,306,marketing|Sa-les',
+          `n.ford,Nina,307,${'x'.repeat(66)}`,
+          'o.hart,Oscar,308,---',
+          'p.king,Paul,309,Market-ing',
+        ].join('\n'),
+      ),
+      USERS,
+      DIRECTORY,
+      'overwrite',
+    )
+
+    expect(analysis.valid.map((row) => row.username)).toEqual(['k.lee'])
+    expect(analysis.newGroups).toEqual(['Marketing'])
+    expect(
+      analysis.errors.map(({ row, issue, group, reason }) => [row.line, issue, group, reason]),
+    ).toEqual([
+      [3, 'invalid_group', 'Sa-les', 'groups.name_too_similar'],
+      [4, 'invalid_group', 'x'.repeat(66), 'groups.name_too_long'],
+      [5, 'invalid_group', '---', 'groups.name_needs_letter_or_digit'],
+      [6, 'invalid_group', 'Market-ing', 'groups.name_too_similar'],
+    ])
+  })
+
+  it('reports an existing user that would exceed the device limit', () => {
+    const devices = Array.from({ length: 9 }, (_, index) => device('physical', `9${index}300`))
+    const users = [{ ...USERS[0], devices }]
+    const rows = parseImportFile('username,name,extension,webphone\na.miller,Anna,300,TRUE')
+
+    expect(analyzeImport(rows, users, DIRECTORY, 'overwrite').errors[0].issue).toBe(
+      'too_many_devices',
+    )
   })
 
   it('imports the existing users in overwrite mode', () => {
@@ -230,6 +310,61 @@ describe('toLegacyCsvRow', () => {
   })
 })
 
+describe('planImportFollowUps', () => {
+  const before: User[] = [
+    { ...USERS[0], devices: [device('webrtc', '92300')] },
+    { ...USERS[0], id: 6, username: 'b.smith', mainExtension: '301', devices: [] },
+  ]
+  const after: User[] = [
+    ...before,
+    { ...USERS[0], id: 7, username: 'k.lee', mainExtension: '305', devices: [] },
+  ]
+  const directory: UsersDirectory = { ...DIRECTORY, voicemailExtensions: ['300'] }
+
+  it('applies voicemail and devices to the existing users that keep the extension', () => {
+    const rows = parseImportFile(
+      [
+        'username,name,extension,voicemail,webphone,desktop_app,mobile_app',
+        'a.miller,Anna,300,FALSE,FALSE,TRUE,',
+        'b.smith,Bob,,TRUE,,,TRUE',
+        'k.lee,Kevin,305,TRUE,TRUE,FALSE,TRUE',
+      ].join('\n'),
+    )
+
+    expect(needsFollowUps(rows, before)).toBe(true)
+    expect(
+      planImportFollowUps(rows, before, after, directory).map(({ user, steps }) => [
+        user.username,
+        steps,
+      ]),
+    ).toEqual([
+      [
+        'a.miller',
+        [
+          { kind: 'voicemail', enabled: false },
+          { kind: 'disable_device', device: 'webrtc' },
+          { kind: 'enable_device', device: 'nethlink' },
+        ],
+      ],
+      [
+        'b.smith',
+        [
+          { kind: 'voicemail', enabled: true },
+          { kind: 'enable_device', device: 'mobile' },
+        ],
+      ],
+      ['k.lee', [{ kind: 'enable_device', device: 'mobile' }]],
+    ])
+  })
+
+  it('needs no follow up when the import handles every column', () => {
+    const rows = parseImportFile('username,name,extension,voicemail\nk.lee,Kevin,305,TRUE')
+
+    expect(needsFollowUps(rows, before)).toBe(false)
+    expect(planImportFollowUps(rows, before, after, directory)).toEqual([])
+  })
+})
+
 describe('templates and export', () => {
   it('builds a template that parses back', () => {
     const rows = parseImportFile(buildCsvTemplate())
@@ -240,13 +375,49 @@ describe('templates and export', () => {
   it('converts the legacy export to a CSV with a header and no passwords', () => {
     const csv = convertExportedCsv(
       '"a.miller","Anna Miller","300","secret","333","TRUE","FALSE","Sales","Base"\r\n',
+      [{ ...USERS[0], devices: [device('nethlink', '91300')] }],
     )
 
     expect(parseCsv(csv)).toEqual([
-      ['username', 'fullname', 'extension', 'groups', 'profile', 'mobile', 'voicemail', 'webphone'],
-      ['a.miller', 'Anna Miller', '300', 'Sales', 'Base', '333', 'TRUE', 'FALSE'],
+      [
+        'username',
+        'fullname',
+        'extension',
+        'group',
+        'profile',
+        'mobile',
+        'voicemail',
+        'webphone',
+        'desktop_app',
+        'mobile_app',
+      ],
+      ['a.miller', 'Anna Miller', '300', 'Sales', 'Base', '333', 'TRUE', 'FALSE', 'TRUE', 'FALSE'],
     ])
     expect(csv).not.toContain('secret')
+  })
+
+  it('exports a file that the import reads back', () => {
+    const [row] = parseImportFile(
+      convertExportedCsv('a.miller,Anna Miller,300,,,TRUE,FALSE,Sales,Base\r\n', USERS),
+    )
+
+    expect(row).toMatchObject({
+      username: 'a.miller',
+      fullName: 'Anna Miller',
+      voicemail: true,
+      webrtc: false,
+      nethlink: false,
+      mobileApp: false,
+    })
+  })
+
+  it('names the export after the date', () => {
+    expect(buildExportFileName(new Date(2026, 0, 5))).toBe('users-2026-01-05.csv')
+  })
+
+  it('detects a file too large to be imported at once', () => {
+    expect(exceedsImportSizeLimit('a'.repeat(MAX_CSV_IMPORT_BASE64_LENGTH))).toBe(true)
+    expect(exceedsImportSizeLimit('a.miller,Anna')).toBe(false)
   })
 })
 

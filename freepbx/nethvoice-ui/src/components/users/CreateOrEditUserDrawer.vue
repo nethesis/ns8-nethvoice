@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
 import { useMutation } from '@pinia/colada'
@@ -21,6 +21,7 @@ import {
   usePasswordRequirements,
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import UserPhonesField from '@/components/users/UserPhonesField.vue'
 import { isApiError } from '@/lib/api/errors'
 import { isCsvImportError } from '@/lib/users/csv'
@@ -32,9 +33,14 @@ import {
   NewUserSchema,
   type NewUserField,
 } from '@/lib/users/createUser'
-import { findBaseProfile, type UserRow, type UsersDirectory } from '@/lib/users/directory'
+import {
+  findBaseProfile,
+  isDirectoryPartAvailable,
+  type UserRow,
+  type UsersDirectory,
+} from '@/lib/users/directory'
 import { getExtensionErrorKind } from '@/lib/users/extensions'
-import { getAssignedPhoneMacs, getMaxPhones } from '@/lib/users/userPhones'
+import { getAssignedPhoneMacs, getMaxPhones, getPhonesWithoutMac } from '@/lib/users/userPhones'
 import {
   applyUserSettingsSteps,
   getUserSettings,
@@ -42,6 +48,7 @@ import {
   UserSettingsSchema,
   UserSettingsStepError,
   type UserSettings,
+  type UserSettingsStep,
 } from '@/lib/users/userSettings'
 import {
   findUserByExtension,
@@ -96,6 +103,10 @@ const devices = ref<NeMultiselectComboboxOption[]>([])
 const phoneMacs = ref<string[]>([])
 const validationIssues = ref<Partial<Record<Field, string>>>({})
 const showPasswordErrors = ref(false)
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
+const focusAfterSave = ref<'error' | 'extension' | null>(null)
+const errorRef = useTemplateRef<HTMLElement>('errorRef')
 
 const usernameRef = useTemplateRef<{ focus(): void }>('usernameRef')
 const nameRef = useTemplateRef<{ focus(): void }>('nameRef')
@@ -141,6 +152,13 @@ const profileOptions = computed(() =>
 
 const savedExtension = computed(() => user?.mainExtension ?? '')
 
+const groupsAvailable = computed(() => isDirectoryPartAvailable(directory, 'groups'))
+const profilesAvailable = computed(() => isDirectoryPartAvailable(directory, 'profiles'))
+const voicemailAvailable = computed(() => isDirectoryPartAvailable(directory, 'voicemails'))
+const mobileAvailable = computed(() => isDirectoryPartAvailable(directory, 'mobiles'))
+
+const phonesWithoutMac = computed(() => (user ? getPhonesWithoutMac(user.physicalPhones) : []))
+
 const effectiveExtension = computed(() =>
   isSetup.value ? savedExtension.value : extension.value.trim(),
 )
@@ -150,6 +168,7 @@ const needsSavedExtension = computed(() => isSetup.value && savedExtension.value
 const otherDevicesCount = computed(
   () =>
     devices.value.length +
+    phonesWithoutMac.value.length +
     (user?.devices.filter(
       (device) =>
         device.type !== 'physical' &&
@@ -174,14 +193,33 @@ const nextSettings = (): UserSettings => ({
   devices: toDeviceTypes(devices.value),
 })
 
+const formSnapshot = () =>
+  JSON.stringify([
+    username.value,
+    name.value,
+    surname.value,
+    password.value,
+    confirmPassword.value,
+    extension.value.trim(),
+    mobile.value,
+    voicemail.value,
+    profileId.value,
+    groups.value.map((group) => group.id),
+    devices.value.map((device) => device.id),
+    phoneMacs.value,
+  ])
+
+const isDirty = computed(() => formSnapshot() !== initialSnapshot.value)
+
 watch(
   () => isShown,
   (shown) => {
     if (!shown) {
+      isShownDiscardModal.value = false
       return
     }
     reset()
-    validationIssues.value = {}
+    focusAfterSave.value = null
     showPasswordErrors.value = false
     password.value = ''
     confirmPassword.value = ''
@@ -212,9 +250,28 @@ watch(
       devices.value = deviceOptions.value.filter((option) => option.id === 'webrtc')
       phoneMacs.value = []
     }
+    validationIssues.value = {}
+    initialSnapshot.value = formSnapshot()
     setTimeout(() => (isEdit.value ? extensionRef.value : usernameRef.value)?.focus(), 300)
   },
 )
+
+const clearIssue = (...fields: Field[]) => {
+  if (fields.some((field) => validationIssues.value[field])) {
+    validationIssues.value = Object.fromEntries(
+      Object.entries(validationIssues.value).filter(([key]) => !fields.some((f) => f === key)),
+    )
+  }
+}
+
+watch(username, () => clearIssue('username'))
+watch(name, () => clearIssue('name'))
+watch(surname, () => clearIssue('surname'))
+watch(password, () => clearIssue('password'))
+watch(confirmPassword, () => clearIssue('confirmPassword'))
+watch(extension, () => clearIssue('extension'))
+watch(mobile, () => clearIssue('mobile'))
+watch(profileId, () => clearIssue('profileId'))
 
 const {
   mutate,
@@ -280,35 +337,79 @@ const {
       getExtensionErrorKind(cause) === 'in_use'
     ) {
       validationIssues.value = { extension: 'users.extension_in_use' }
-      extensionRef.value?.focus()
+      focusAfterSave.value = 'extension'
+    } else {
+      focusAfterSave.value = 'error'
+    }
+
+    if (!isShown) {
+      notificationsStore.createNotification({
+        kind: 'error',
+        title: getErrorTitle(error),
+        description: getErrorDescription(error),
+      })
     }
   },
   onSettled() {
-    invalidateUsers()
+    return invalidateUsers()
   },
 })
 
-const errorTitle = computed(() => {
-  const error = saveError.value
+watch(saving, async (isSaving) => {
+  if (isSaving || focusAfterSave.value === null) {
+    return
+  }
+  const target = focusAfterSave.value
+  focusAfterSave.value = null
+  await nextTick()
 
+  if (target === 'extension') {
+    extensionRef.value?.focus()
+  } else {
+    errorRef.value?.focus()
+  }
+})
+
+const describeStep = (step: UserSettingsStep): string => {
+  switch (step.kind) {
+    case 'enable_device':
+      return t('users.step_done_enable_device', { device: t(`users.device_${step.device}`) })
+    case 'disable_device':
+      return t('users.step_done_disable_device', { device: t(`users.device_${step.device}`) })
+    default:
+      return t(`users.step_done_${step.kind}`)
+  }
+}
+
+const getErrorTitle = (error: unknown): string => {
   if (error instanceof UserSettingsStepError) {
     return t(`users.step_failed_${error.step.kind}`)
   }
   return isEdit.value ? t('users.cannot_save_user') : t('users.cannot_create_user')
-})
+}
 
-const errorDescription = computed(() => {
-  const error = saveError.value
+const errorTitle = computed(() => getErrorTitle(saveError.value))
 
-  if (error instanceof UserSettingsStepError) {
-    if (error.step.kind === 'extension') {
-      const kind = getExtensionErrorKind(error.cause)
+const describeStepError = (error: UserSettingsStepError): string => {
+  if (error.step.kind === 'extension') {
+    const kind = getExtensionErrorKind(error.cause)
 
-      if (kind !== 'unknown') {
-        return t(`users.extension_error_${kind}`)
-      }
+    if (kind !== 'unknown') {
+      return t(`users.extension_error_${kind}`)
     }
-    return describeError(error.cause)
+  }
+  return describeError(error.cause)
+}
+
+const getErrorDescription = (error: unknown): string => {
+  if (error instanceof UserSettingsStepError) {
+    const detail = describeStepError(error)
+
+    return error.completed.length > 0
+      ? `${detail} ${t('users.steps_already_applied', {
+          steps: error.completed.map(describeStep).join(', '),
+        })}`
+      : detail
   }
 
   if (isCsvImportError(error)) {
@@ -321,7 +422,9 @@ const errorDescription = computed(() => {
     return t('users.created_user_not_found')
   }
   return isApiError(error) || error instanceof Error ? describeError(error) : ''
-})
+}
+
+const errorDescription = computed(() => getErrorDescription(saveError.value))
 
 function collectIssues(issues: v.BaseIssue<unknown>[], target: Partial<Record<Field, string>>) {
   for (const issue of issues) {
@@ -370,7 +473,9 @@ function validate(): boolean {
   } else if (!isSetup.value) {
     const owner = findUserByExtension(users, extension.value.trim())
 
-    if (owner && owner.username !== user?.username) {
+    if (savedExtension.value !== '' && extension.value.trim() === '') {
+      issues.extension = 'users.extension_required_to_keep'
+    } else if (owner && owner.username !== user?.username) {
       issues.extension = 'users.extension_already_assigned'
     }
   }
@@ -409,6 +514,23 @@ function save() {
   }
 }
 
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
+}
+
 const issue = (field: Field) =>
   validationIssues.value[field] ? t(validationIssues.value[field]) : ''
 
@@ -417,6 +539,7 @@ const extensionChangeWarning = computed(
     isEdit.value &&
     !isSetup.value &&
     savedExtension.value !== '' &&
+    extension.value.trim() !== '' &&
     extension.value.trim() !== savedExtension.value,
 )
 </script>
@@ -426,7 +549,7 @@ const extensionChangeWarning = computed(
     :is-shown="isShown"
     :title="title"
     :close-aria-label="t('common.close')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
       <template v-if="!isEdit">
@@ -508,9 +631,10 @@ const extensionChangeWarning = computed(
         v-model="mobile"
         :label="t('users.mobile_number')"
         :invalid-message="issue('mobile')"
+        :helper-text="mobileAvailable ? '' : t('users.cannot_load_mobile')"
         optional
         :optional-label="t('common.optional')"
-        :disabled="saving"
+        :disabled="saving || !mobileAvailable"
         inputmode="tel"
       />
       <template v-if="!isSetup || isEdit">
@@ -519,8 +643,13 @@ const extensionChangeWarning = computed(
           <NeToggle
             v-model="voicemail"
             :label="voicemail ? t('common.enabled') : t('common.disabled')"
-            :disabled="saving || needsSavedExtension || effectiveExtension === ''"
+            :disabled="
+              saving || needsSavedExtension || effectiveExtension === '' || !voicemailAvailable
+            "
           />
+          <p v-if="!voicemailAvailable" class="text-secondary-neutral text-sm">
+            {{ t('users.cannot_load_voicemail') }}
+          </p>
         </div>
         <NeCombobox
           ref="profileRef"
@@ -528,9 +657,11 @@ const extensionChangeWarning = computed(
           :label="t('users.profile')"
           :options="profileOptions"
           :placeholder="t('users.choose_profile')"
-          :helper-text="t('users.profile_helper')"
+          :helper-text="
+            profilesAvailable ? t('users.profile_helper') : t('users.cannot_load_profiles')
+          "
           :invalid-message="issue('profileId')"
-          :disabled="saving"
+          :disabled="saving || !profilesAvailable"
           :no-results-label="t('ne_combobox.no_results')"
           :limited-options-label="t('ne_combobox.limited_options_label')"
           :no-options-label="t('ne_combobox.no_options_label')"
@@ -543,9 +674,9 @@ const extensionChangeWarning = computed(
           :label="t('users.groups')"
           :options="groupOptions"
           :placeholder="t('users.choose_groups')"
-          :helper-text="t('users.groups_helper')"
+          :helper-text="groupsAvailable ? t('users.groups_helper') : t('users.cannot_load_groups')"
           optional
-          :disabled="saving"
+          :disabled="saving || !groupsAvailable"
           :no-results-label="t('ne_combobox.no_results')"
           :limited-options-label="t('ne_combobox.limited_options_label')"
           :no-options-label="t('users.no_groups_available')"
@@ -578,18 +709,16 @@ const extensionChangeWarning = computed(
           v-model="phoneMacs"
           :username="user.username"
           :max-phones="getMaxPhones(otherDevicesCount)"
+          :phones-without-mac="phonesWithoutMac"
           :disabled="saving || effectiveExtension === ''"
           :disabled-reason="effectiveExtension === '' ? t('users.phones_need_extension') : ''"
         />
       </template>
-      <NeInlineNotification
-        v-if="saveError"
-        kind="error"
-        :title="errorTitle"
-        :description="errorDescription"
-      />
+      <div v-if="saveError" ref="errorRef" tabindex="-1" data-testid="user-save-error">
+        <NeInlineNotification kind="error" :title="errorTitle" :description="errorDescription" />
+      </div>
       <div class="flex justify-end gap-4 border-t border-gray-200 pt-6 dark:border-gray-700">
-        <NeButton kind="tertiary" :disabled="saving" @click="emit('close')">
+        <NeButton kind="tertiary" :disabled="saving" @click="requestClose">
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton kind="primary" type="submit" :loading="saving" :disabled="saving">
@@ -598,4 +727,9 @@ const extensionChangeWarning = computed(
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>
