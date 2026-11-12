@@ -18,6 +18,7 @@ file_count=$(wc -l < "$php_files" | tr -d ' ')
 echo "PHP syntax check passed for $file_count files with PHP $(php -r 'echo PHP_MAJOR_VERSION, ".", PHP_MINOR_VERSION;')"
 
 php "$repo_root/freepbx/tests/pin_agi_test.php"
+php "$repo_root/freepbx/tests/nethhotel_web_test.php"
 
 if find "$repo_root/freepbx/var/www/html/freepbx/rest" -type f -name '*.php' -not -path '*/vendor/*' \
     -exec grep -nH -E -e '->withJson[[:space:]]*\(' {} +; then

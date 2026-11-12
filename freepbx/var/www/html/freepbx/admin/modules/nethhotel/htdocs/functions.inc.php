@@ -676,7 +676,7 @@ function addExtra($ext,$id,$number,$less)
        foreach($delete as $del)
        {
          $tmp = explode("-", $del);
-         if($tmp[1]) {
+         if(!empty($tmp[1])) {
                       $out = $db->query("DELETE FROM roomsdb.extra_history WHERE extension='".(int)$tmp[0]."' and date=FROM_UNIXTIME(".(int)$tmp[1].")");
                       if (@DB::isError($out)) $error = 1;
                     }
@@ -1031,7 +1031,7 @@ function isInternalCall($numtocall)
 function getOptions()
 {
   global $db;
-  $opts = array();
+  $opts = array('internal_call_nocheckin' => '0', 'reception' => '', 'clean' => '0', 'reception_lang' => 'en');
   $results = sql("SELECT * FROM roomsdb.options","getAll");
 
   foreach($results as $result)
@@ -1460,11 +1460,11 @@ function loadGroups(){
                     if ($rooms_checkin === 'checkin') $rooms_checkin = 'mixed';
                     if ($rooms_clean === 'dirty') $rooms_clean = 'mixed';
                     if ($rooms_clean === '') $rooms_clean = 'clean';
-                } elseif ($res['clean'] === '0'){
+                } elseif ($res['clean'] == 0){
                     //room is in check-in
                     if ($rooms_checkin === '') $rooms_checkin = 'checkin';
                     if ($rooms_checkin === 'checkout') $rooms_checkin = 'mixed';
-                } elseif ($res['clean'] === '1'){
+                } elseif ($res['clean'] == 1){
                     //room is in check-out/dirty
                     if ($rooms_checkin === '') $rooms_checkin = 'checkout';
                     if ($rooms_checkin === 'checkin') $rooms_checkin = 'mixed';
@@ -1729,6 +1729,7 @@ function getGroupsDialog($group_id=false){
         $group=array();
         $group['name']=_("New Group");
         $group['id']=false;
+        $group['note']='';
         $rooms_in_group = array();
         $group['groupcalls'] = $options['groupcalls'];
         $group['roomscalls'] = $options['internal_call'];
@@ -1774,9 +1775,9 @@ function getGroupsDialog($group_id=false){
     }
 
  
-    if ($group['groupcalls']) $groupcalls_check = 'checked';
-    if ($group['roomscalls']) $roomscalls_check = 'checked';
-    if ($group['externalcalls']) $externalcalls_check = 'checked';
+    $groupcalls_check = $group['groupcalls'] ? 'checked' : '';
+    $roomscalls_check = $group['roomscalls'] ? 'checked' : '';
+    $externalcalls_check = $group['externalcalls'] ? 'checked' : '';
     $out='
 <div id="add-group-dialog" data-gid="'.$group['id'].'" title="'.$title.'">
   <form>
@@ -1915,11 +1916,11 @@ function loadRooms($ntab)
 
 
 # Nessuna camera configurata
-  global $brand_conf;
   if (!count($rooms))
   {
-    echo "<div class=\"ui-state-error ui-corner-all\" style=\"padding: 10px; margin: 50px\"><span class=\"ui-icon ui-icon-alert\" style=\"float: left; margin-right: 0.3em;\"></span>".sprintf(_("No rooms configured. Add extensions to %s context from %s interface to use them as rooms"),"<span style='font-weight: bold'>".ROOMS_CONTEXT."</span>",'<a href="/'.$brand_conf['CLEANBRAND'].'/admin/config.php?display=nethhotel" >'.$brand_conf['BRAND'].'</a>') . "</div>";
-    exit();
+    $brand = htmlspecialchars(getenv('BRAND_NAME') ?: 'NethVoice', ENT_QUOTES, 'UTF-8');
+    echo "<div class=\"ui-state-error ui-corner-all\" style=\"padding: 10px; margin: 50px\"><span class=\"ui-icon ui-icon-alert\" style=\"float: left; margin-right: 0.3em;\"></span>".sprintf(_("No rooms configured. Add extensions to %s context from %s interface to use them as rooms"),"<span style='font-weight: bold'>".ROOMS_CONTEXT."</span>",'<a href="/freepbx/admin/config.php?display=nethhotel" >'.$brand.'</a>') . "</div></div>";
+    return;
   }
 # Camere configurate
 
@@ -2000,6 +2001,7 @@ function loadRooms($ntab)
    {
       echo "<div id=\"tabs-".$num."\">".($floor[$num] ?? '')."</div>";
    }
+  echo '</div>';
 }
 
 function isRoom($ext,$rooms)
