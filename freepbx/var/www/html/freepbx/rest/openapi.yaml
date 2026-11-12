@@ -1515,7 +1515,7 @@ paths:
       description: The type follows the URL scheme (`http(s)` image polled by
         the CTI, `rtsp(s)` stream served by the video gateway). Credentials
         pasted into the URL are stored separately. Without `gates`, the legacy
-        `open` code creates a first DTMF gate named "Gate 1".
+        `open` code creates a first DTMF gate named "Porta 1".
       tags:
       - CTI
       responses:
