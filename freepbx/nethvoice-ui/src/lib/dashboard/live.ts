@@ -16,6 +16,7 @@ const ExtensionConversationSchema = v.object({
   linkedId: v.nullish(v.string()),
   duration: v.nullish(v.number()),
   direction: DirectionSchema,
+  connected: v.nullish(v.boolean()),
   throughQueue: v.nullish(v.boolean()),
   throughTrunk: v.nullish(v.boolean()),
   counterpartNum: v.nullish(v.string()),
@@ -32,10 +33,15 @@ const ExtensionsResponseSchema = v.record(
   }),
 )
 
+const ChannelSchema = v.nullish(v.object({ channelStatus: v.nullish(v.string()) }))
+
 const TrunkConversationSchema = v.object({
   id: v.string(),
   duration: v.nullish(v.number()),
   direction: DirectionSchema,
+  connected: v.nullish(v.boolean()),
+  chSource: ChannelSchema,
+  chDest: ChannelSchema,
   internalNum: v.nullish(v.string()),
   internalName: v.nullish(v.string()),
   externalNum: v.nullish(v.string()),
@@ -53,16 +59,19 @@ const TrunksResponseSchema = v.record(
   }),
 )
 
-const MainPresenceSchema = v.picklist([
-  'online',
-  'dnd',
-  'voicemail',
-  'cellphone',
-  'callforward',
-  'busy',
-  'ringing',
+const MainPresenceSchema = v.fallback(
+  v.picklist([
+    'online',
+    'dnd',
+    'voicemail',
+    'cellphone',
+    'callforward',
+    'busy',
+    'ringing',
+    'offline',
+  ]),
   'offline',
-])
+)
 
 const UsersResponseSchema = v.record(
   v.string(),
@@ -98,11 +107,13 @@ export type CallInProgress = {
   throughQueue: boolean
 }
 
-export type DashboardLive = {
-  presence: PresenceSummary
-  devices: DevicesSummary
+export type LiveSnapshot<TData> = {
+  data: TData
+  fetchedAt: number
+}
+
+export type LiveCalls = {
   calls: CallInProgress[]
-  trunks: TrunksLiveState
   fetchedAt: number
 }
 
@@ -124,6 +135,8 @@ const DEVICE_TYPE_BY_ENDPOINT_TYPE: Record<string, DeviceType> = {
 }
 
 const OFFLINE_EXTENSION_STATUS = 'offline'
+
+const CHANNEL_STATUS_UP = 'up'
 
 export const parseCtiExtensions = (raw: unknown): CtiExtensions =>
   v.parse(ExtensionsResponseSchema, raw)
@@ -168,22 +181,40 @@ export const summarizeTrunks = (trunks: CtiTrunks): TrunksLiveState =>
 const firstFilled = (...values: (string | null | undefined)[]): string =>
   values.find((value) => value?.trim())?.trim() ?? ''
 
+type TrunkConversation = CtiTrunks[string]['conversations'][string]
+
+const isTrunkConversationConnected = (conversation: TrunkConversation): boolean => {
+  if (typeof conversation.connected === 'boolean') {
+    return conversation.connected
+  }
+
+  if (conversation.chSource === undefined && conversation.chDest === undefined) {
+    return true
+  }
+  return (
+    conversation.chSource?.channelStatus === CHANNEL_STATUS_UP &&
+    conversation.chDest?.channelStatus === CHANNEL_STATUS_UP
+  )
+}
+
 const listExternalCalls = (trunks: CtiTrunks): CallInProgress[] =>
   Object.entries(trunks).flatMap(([trunkId, trunk]) =>
-    Object.values(trunk.conversations).map((conversation): CallInProgress => {
-      const external = firstFilled(conversation.externalName, conversation.externalNum)
-      const internal = firstFilled(conversation.internalName, conversation.internalNum)
-      const incoming = conversation.direction === 'in'
+    Object.values(trunk.conversations)
+      .filter(isTrunkConversationConnected)
+      .map((conversation): CallInProgress => {
+        const external = firstFilled(conversation.externalName, conversation.externalNum)
+        const internal = firstFilled(conversation.internalName, conversation.internalNum)
+        const incoming = conversation.direction === 'in'
 
-      return {
-        id: `trunk:${trunkId}:${conversation.id}`,
-        type: incoming ? 'incoming' : 'outgoing',
-        source: incoming ? external : internal,
-        destination: incoming ? internal : external,
-        duration: conversation.duration ?? 0,
-        throughQueue: conversation.throughQueue === true,
-      }
-    }),
+        return {
+          id: `trunk:${trunkId}:${conversation.id}`,
+          type: incoming ? 'incoming' : 'outgoing',
+          source: incoming ? external : internal,
+          destination: incoming ? internal : external,
+          duration: conversation.duration ?? 0,
+          throughQueue: conversation.throughQueue === true,
+        }
+      }),
   )
 
 const listInternalCalls = (extensions: CtiExtensions): CallInProgress[] => {
@@ -191,28 +222,25 @@ const listInternalCalls = (extensions: CtiExtensions): CallInProgress[] => {
 
   for (const extension of Object.values(extensions)) {
     for (const conversation of Object.values(extension.conversations)) {
-      const counterpart = conversation.counterpartNum ?? ''
-
-      if (
-        conversation.throughTrunk === true ||
-        conversation.throughQueue === true ||
-        !extensions[counterpart]
-      ) {
+      if (conversation.throughTrunk === true || conversation.connected === false) {
         continue
       }
 
-      const callId = conversation.linkedId || conversation.id
+      const counterpart = conversation.counterpartNum?.trim() ?? ''
+      const callId = conversation.linkedId || [extension.exten, counterpart].sort().join('-')
       const fromCaller = conversation.direction === 'out'
+      const throughQueue = conversation.throughQueue === true
       const known = calls.get(callId)
 
       if (known && (known.fromCaller || !fromCaller)) {
+        known.call.throughQueue ||= throughQueue
         continue
       }
 
       const owner = firstFilled(extension.name, extension.exten)
       const other = firstFilled(
         conversation.counterpartName,
-        extensions[counterpart].name,
+        extensions[counterpart]?.name,
         counterpart,
       )
 
@@ -224,7 +252,7 @@ const listInternalCalls = (extensions: CtiExtensions): CallInProgress[] => {
           source: fromCaller ? owner : other,
           destination: fromCaller ? other : owner,
           duration: conversation.duration ?? 0,
-          throughQueue: false,
+          throughQueue: throughQueue || known?.call.throughQueue === true,
         },
       })
     }
@@ -232,13 +260,34 @@ const listInternalCalls = (extensions: CtiExtensions): CallInProgress[] => {
   return [...calls.values()].map(({ call }) => call)
 }
 
+const sortByDuration = (calls: CallInProgress[]): CallInProgress[] =>
+  calls.sort((a, b) => b.duration - a.duration)
+
+const addSeconds = (calls: CallInProgress[], seconds: number): CallInProgress[] =>
+  calls.map((call) => ({ ...call, duration: call.duration + seconds }))
+
 export const listCallsInProgress = (
   extensions: CtiExtensions,
   trunks: CtiTrunks,
 ): CallInProgress[] =>
-  [...listExternalCalls(trunks), ...listInternalCalls(extensions)].sort(
-    (a, b) => b.duration - a.duration,
-  )
+  sortByDuration([...listExternalCalls(trunks), ...listInternalCalls(extensions)])
+
+export const combineLiveCalls = (
+  extensions: LiveSnapshot<CtiExtensions>,
+  trunks: LiveSnapshot<CtiTrunks>,
+): LiveCalls => {
+  const fetchedAt = Math.max(extensions.fetchedAt, trunks.fetchedAt)
+  const ageOf = (snapshot: LiveSnapshot<unknown>) =>
+    Math.max(0, Math.floor((fetchedAt - snapshot.fetchedAt) / 1000))
+
+  return {
+    fetchedAt,
+    calls: sortByDuration([
+      ...addSeconds(listExternalCalls(trunks.data), ageOf(trunks)),
+      ...addSeconds(listInternalCalls(extensions.data), ageOf(extensions)),
+    ]),
+  }
+}
 
 export const formatCallDuration = (seconds: number): string => {
   const total = Math.max(0, Math.floor(seconds))
@@ -246,9 +295,7 @@ export const formatCallDuration = (seconds: number): string => {
   const minutes = Math.floor((total % 3600) / 60)
   const pad = (value: number) => String(value).padStart(2, '0')
 
-  return hours > 0
-    ? `${hours}:${pad(minutes)}:${pad(total % 60)}`
-    : `${pad(minutes)}:${pad(total % 60)}`
+  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(total % 60)}` : `${minutes}:${pad(total % 60)}`
 }
 
 export const getElapsedCallDuration = (
@@ -257,18 +304,20 @@ export const getElapsedCallDuration = (
   now: number,
 ): number => call.duration + Math.max(0, Math.floor((now - fetchedAt) / 1000))
 
-export const getDashboardLive = async (): Promise<DashboardLive> => {
-  const [extensions, trunks, users] = await Promise.all([
-    ctiGet('/astproxy/extensions', ExtensionsResponseSchema),
-    ctiGet('/astproxy/trunks', TrunksResponseSchema),
-    ctiGet('/user/endpoints/all', UsersResponseSchema),
-  ])
+const getLiveSnapshot = async <TSchema extends v.GenericSchema>(
+  path: string,
+  schema: TSchema,
+  signal?: AbortSignal,
+): Promise<LiveSnapshot<v.InferOutput<TSchema>>> => ({
+  data: await ctiGet(path, schema, signal),
+  fetchedAt: Date.now(),
+})
 
-  return {
-    presence: summarizePresence(users),
-    devices: summarizeDevices(users, extensions),
-    calls: listCallsInProgress(extensions, trunks),
-    trunks: summarizeTrunks(trunks),
-    fetchedAt: Date.now(),
-  }
-}
+export const getLiveExtensions = (signal?: AbortSignal): Promise<LiveSnapshot<CtiExtensions>> =>
+  getLiveSnapshot('/astproxy/extensions', ExtensionsResponseSchema, signal)
+
+export const getLiveTrunks = (signal?: AbortSignal): Promise<LiveSnapshot<CtiTrunks>> =>
+  getLiveSnapshot('/astproxy/trunks', TrunksResponseSchema, signal)
+
+export const getLiveUsers = (signal?: AbortSignal): Promise<LiveSnapshot<CtiUsers>> =>
+  getLiveSnapshot('/user/endpoints/all', UsersResponseSchema, signal)

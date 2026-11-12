@@ -5,38 +5,68 @@ import { describe, expect, it } from 'vitest'
 import { parseInboundRoutes } from '@/lib/routes/inbound'
 import {
   describeInboundDestination,
+  getDashboardTrunkStatus,
   listInboundRouteDestinations,
-  listTrunkRegistrations,
+  listTrunkStatuses,
 } from './routing'
 
 const describeKind = (kind: string) => `kind:${kind}`
 
-describe('listTrunkRegistrations', () => {
-  const trunks = [
-    { id: 1, name: 'Provider' },
-    { id: 2, name: 'Backup' },
-    { id: 3, name: 'Gateway' },
-    { id: 4, name: 'Agent' },
-  ]
+const TEXTS = { describeKind, anyDid: 'Any DID' }
 
-  it('should read the registration of each trunk from the live state', () => {
+describe('getDashboardTrunkStatus', () => {
+  const live = {
+    Offline: { status: 'offline', registration: 'registered' },
+    Rejected: { status: 'online', registration: 'rejected' },
+    Unregistered: { status: 'online', registration: 'unregistered' },
+    Registered: { status: 'unmonitored', registration: 'registered' },
+    Sent: { status: 'online', registration: 'sent' },
+    Online: { status: 'online', registration: 'unmonitored' },
+    Unmonitored: { status: 'unmonitored', registration: 'unmonitored' },
+  }
+
+  it('should put an offline provider before the registration', () => {
+    expect(getDashboardTrunkStatus('Offline', live)).toBe('offline')
+  })
+
+  it('should report failed and missing registrations without calling them rejected', () => {
+    expect(getDashboardTrunkStatus('Rejected', live)).toBe('rejected')
+    expect(getDashboardTrunkStatus('Unregistered', live)).toBe('not_connected')
+  })
+
+  it('should report the registration when it is monitored', () => {
+    expect(getDashboardTrunkStatus('Registered', live)).toBe('registered')
+    expect(getDashboardTrunkStatus('Sent', live)).toBe('pending')
+  })
+
+  it('should fall back to the provider status without a monitored registration', () => {
+    expect(getDashboardTrunkStatus('Online', live)).toBe('online')
+    expect(getDashboardTrunkStatus('Unmonitored', live)).toBe('unmonitored')
+  })
+
+  it('should be pending for a trunk missing from the live state', () => {
+    expect(getDashboardTrunkStatus('New', live)).toBe('pending')
+  })
+
+  it('should be unknown without live state', () => {
+    expect(getDashboardTrunkStatus('Offline', undefined)).toBe('unknown')
+  })
+})
+
+describe('listTrunkStatuses', () => {
+  it('should pair each trunk with its status', () => {
+    const trunks = [
+      { id: 1, name: 'Provider' },
+      { id: 2, name: 'Backup' },
+    ]
     const live = {
       Provider: { status: 'online', registration: 'registered' },
       Backup: { status: 'offline', registration: 'rejected' },
-      Agent: { status: 'online', registration: 'unmonitored' },
     }
 
-    expect(listTrunkRegistrations(trunks, live)).toEqual([
-      { id: '1', label: 'Provider', registration: 'registered' },
-      { id: '2', label: 'Backup', registration: 'rejected' },
-      { id: '3', label: 'Gateway', registration: 'pending' },
-      { id: '4', label: 'Agent', registration: 'unmonitored' },
-    ])
-  })
-
-  it('should report an unknown registration without live state', () => {
-    expect(listTrunkRegistrations(trunks.slice(0, 1), undefined)).toEqual([
-      { id: '1', label: 'Provider', registration: 'unknown' },
+    expect(listTrunkStatuses(trunks, live)).toEqual([
+      { id: '1', label: 'Provider', status: 'registered' },
+      { id: '2', label: 'Backup', status: 'offline' },
     ])
   })
 })
@@ -91,13 +121,34 @@ describe('listInboundRouteDestinations', () => {
       ],
     })
 
-    expect(listInboundRouteDestinations(routes, describeKind)).toEqual([
+    expect(listInboundRouteDestinations(routes, TEXTS)).toEqual([
       {
         id: '0612345678/',
         label: '0612345678',
         destination: 'kind:ring_group: Support (600)',
+        invalidDestination: false,
       },
-      { id: '0698765432/333', label: '0698765432 / 333', destination: '' },
+      {
+        id: '0698765432/333',
+        label: '0698765432 / 333',
+        destination: '',
+        invalidDestination: false,
+      },
+    ])
+  })
+
+  it('should name the routes without a DID and flag missing destinations', () => {
+    const routes = parseInboundRoutes({
+      destinations: [],
+      routes: [
+        { extension: '', cidnum: '', description: 'Any', destination: 'ivr-99,s,1' },
+        { extension: '', cidnum: '333', description: 'Any VIP', destination: '' },
+      ],
+    })
+
+    expect(listInboundRouteDestinations(routes, TEXTS)).toEqual([
+      { id: '/', label: 'Any DID', destination: '', invalidDestination: true },
+      { id: '/333', label: 'Any DID / 333', destination: '', invalidDestination: false },
     ])
   })
 })

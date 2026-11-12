@@ -25,6 +25,7 @@ const readBody = async (response: Response): Promise<unknown> => {
 export const adminApiGet = async <TSchema extends v.GenericSchema>(
   url: string,
   schema: TSchema,
+  signal?: AbortSignal,
 ): Promise<v.InferOutput<TSchema>> => {
   const loginStore = useLoginStore()
   const credentials = loginStore.credentials
@@ -35,7 +36,7 @@ export const adminApiGet = async <TSchema extends v.GenericSchema>(
     headers.set('Secretkey', credentials.hash)
   }
 
-  const response = await fetch(url, { headers })
+  const response = await fetch(url, { headers, signal })
   const body = await readBody(response)
 
   if (!response.ok) {
@@ -54,4 +55,5 @@ export const adminApiGet = async <TSchema extends v.GenericSchema>(
 export const ctiGet = <TSchema extends v.GenericSchema>(
   path: string,
   schema: TSchema,
-): Promise<v.InferOutput<TSchema>> => adminApiGet(`${CTI_API_URL}${path}`, schema)
+  signal?: AbortSignal,
+): Promise<v.InferOutput<TSchema>> => adminApiGet(`${CTI_API_URL}${path}`, schema, signal)

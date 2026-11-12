@@ -8,33 +8,69 @@ import {
   type RouteDestination,
 } from '@/lib/routes/inbound'
 import {
+  getProviderStatus,
   getRegistrationStatus,
+  type ProviderStatus,
   type RegistrationStatus,
   type TrunksLiveState,
 } from '@/lib/trunks/liveState'
 import type { Trunk } from '@/lib/trunks/trunks'
 
+export type DashboardTrunkStatus = ProviderStatus | RegistrationStatus | 'not_connected'
+
 export type DashboardTrunk = {
   id: string
   label: string
-  registration: RegistrationStatus
+  status: DashboardTrunkStatus
 }
 
 export type DashboardInboundRoute = {
   id: string
   label: string
   destination: string
+  invalidDestination: boolean
 }
 
-export const listTrunkRegistrations = (
+export type InboundRouteTexts = {
+  describeKind: (kind: DestinationKind) => string
+  anyDid: string
+}
+
+const UNREGISTERED = 'unregistered'
+
+export const getDashboardTrunkStatus = (
+  trunkName: string,
+  liveTrunks: TrunksLiveState | undefined,
+): DashboardTrunkStatus => {
+  const provider = getProviderStatus(trunkName, liveTrunks)
+
+  if (provider === 'unknown' || provider === 'pending' || provider === 'offline') {
+    return provider
+  }
+
+  if (liveTrunks?.[trunkName]?.registration === UNREGISTERED) {
+    return 'not_connected'
+  }
+  const registration = getRegistrationStatus(trunkName, liveTrunks)
+
+  return registration === 'unmonitored' ? provider : registration
+}
+
+export const listTrunkStatuses = (
   trunks: Pick<Trunk, 'id' | 'name'>[],
   liveTrunks: TrunksLiveState | undefined,
 ): DashboardTrunk[] =>
   trunks.map((trunk) => ({
     id: String(trunk.id),
     label: trunk.name,
-    registration: getRegistrationStatus(trunk.name, liveTrunks),
+    status: getDashboardTrunkStatus(trunk.name, liveTrunks),
   }))
+
+export const isInvalidDestination = (destination: RouteDestination): boolean =>
+  Boolean(destination.target) &&
+  !destination.kind &&
+  !destination.category &&
+  destination.description === destination.target
 
 export const describeInboundDestination = (
   destination: RouteDestination,
@@ -48,12 +84,24 @@ export const describeInboundDestination = (
   return prefix ? `${prefix}: ${destination.description}` : destination.description
 }
 
+export const getDashboardInboundRouteName = (
+  route: Pick<InboundRoute, 'number' | 'cid'>,
+  anyDid: string,
+): string => getInboundRouteName({ number: route.number || anyDid, cid: route.cid })
+
 export const listInboundRouteDestinations = (
   routes: InboundRoute[],
-  describeKind: (kind: DestinationKind) => string,
+  texts: InboundRouteTexts,
 ): DashboardInboundRoute[] =>
-  routes.map((route) => ({
-    id: route.id,
-    label: getInboundRouteName(route),
-    destination: describeInboundDestination(route.destination, describeKind),
-  }))
+  routes.map((route) => {
+    const invalidDestination = isInvalidDestination(route.destination)
+
+    return {
+      id: route.id,
+      label: getDashboardInboundRouteName(route, texts.anyDid),
+      destination: invalidDestination
+        ? ''
+        : describeInboundDestination(route.destination, texts.describeKind),
+      invalidDestination,
+    }
+  })
