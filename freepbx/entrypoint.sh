@@ -189,7 +189,7 @@ fi
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
-AliasMatch ^/(?!freepbx)(.+)$ /var/www/html/freepbx/wizard/\$1
+AliasMatch ^/(?!freepbx|nethvoice(?:/|\$))(.+)$ /var/www/html/freepbx/wizard/\$1
 EOF
 
 # Link rewrite configuration
@@ -225,6 +225,23 @@ wizard_navbar_logo_url="${wizard_login_logo_url}"
 js_string() {
 	php -r 'echo json_encode($argv[1], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);' "$1"
 }
+
+BRAND_NAME_VALUE="${wizard_brand_name}" \
+BRAND_SITE_VALUE="${BRAND_SITE:-https://www.nethesis.it/soluzioni/nethvoice}" \
+BRAND_DOCS_VALUE="${BRAND_DOCS:-https://docs.nethvoice.com/it/}" \
+NAVBAR_LOGO_URL_VALUE="${wizard_navbar_logo_url}" \
+LOGIN_LOGO_URL_VALUE="${wizard_login_logo_url}" \
+LOGIN_BACKGROUND_URL_VALUE="${wizard_login_background_url}" \
+FAVICON_URL_VALUE="${wizard_favicon_url}" \
+php -r 'echo json_encode([
+	"BRAND_NAME" => getenv("BRAND_NAME_VALUE"),
+	"BRAND_SITE" => getenv("BRAND_SITE_VALUE"),
+	"BRAND_DOCS" => getenv("BRAND_DOCS_VALUE"),
+	"NAVBAR_LOGO_URL" => getenv("NAVBAR_LOGO_URL_VALUE"),
+	"LOGIN_LOGO_URL" => getenv("LOGIN_LOGO_URL_VALUE"),
+	"LOGIN_BACKGROUND_URL" => getenv("LOGIN_BACKGROUND_URL_VALUE"),
+	"FAVICON_URL" => getenv("FAVICON_URL_VALUE"),
+], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), "\n";' > /var/www/html/freepbx/nethvoice-ui/config.json
 
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
