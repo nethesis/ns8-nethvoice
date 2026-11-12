@@ -519,7 +519,7 @@ function streaming_normalize_gates($gates, array $current = [], ?callable $resol
         }
         $name = trim(streaming_string_field($gate, 'name', 50));
         if ($name === '') {
-            $name = 'Gate ' . ($index + 1);
+            $name = 'Porta ' . ($index + 1);
         }
         $type = streaming_string_field($gate, 'type', 10, 'dtmf');
         $normalized = [
@@ -605,7 +605,7 @@ function streaming_gates_from_open(string $open, array $current = []): array
         $gates[] = $gate;
     }
     if (!$replaced && $open !== '') {
-        array_unshift($gates, ['id' => null, 'name' => 'Gate 1', 'type' => 'dtmf', 'code' => $open]);
+        array_unshift($gates, ['id' => null, 'name' => 'Porta 1', 'type' => 'dtmf', 'code' => $open]);
     }
     foreach ($gates as $position => $gate) {
         $gates[$position]['position'] = $position;
