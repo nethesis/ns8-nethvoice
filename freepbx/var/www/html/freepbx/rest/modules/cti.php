@@ -139,6 +139,17 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
 $app->post('/cti/profiles', function (Request $request, Response $response, $args) {
     try {
         $profile = $request->getParsedBody();
+        $name = isset($profile['name']) && is_string($profile['name']) ? trim($profile['name']) : '';
+        if ($name === '') {
+            return jsonResponse($response, array('message' => 'Profile name cannot be empty'), 422);
+        }
+        $dbh = FreePBX::Database();
+        $sth = $dbh->prepare('SELECT COUNT(*) FROM `rest_cti_profiles` WHERE `name` = ?');
+        $sth->execute(array($name));
+        if ($sth->fetchColumn() > 0) {
+            return jsonResponse($response, array('message' => 'A profile with this name already exists'), 409);
+        }
+        $profile['name'] = $name;
         $id = postCTIProfile($profile);
         if ($id) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
