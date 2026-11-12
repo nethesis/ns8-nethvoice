@@ -11,7 +11,11 @@ angular.module('nethvoiceWizardUiApp')
   .service('ProvNethesisService', function (GenericPhoneService) {
 
     this.preferences = function (modelMap) {
-      return GenericPhoneService.preferences(modelMap)
+      let preferences = GenericPhoneService.preferences(modelMap)
+      if (preferences) {
+        preferences.items.push(GenericPhoneService.autoHeadsetItem())
+      }
+      return preferences
     }
 
     this.phonebook = function (modelMap) {

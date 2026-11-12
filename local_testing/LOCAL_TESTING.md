@@ -18,7 +18,15 @@ php local_testing/tests/nethcti_gui_hooks_test.php
 ```
 
 It checks the Core page loading scope, proxy controls and saved selections,
-and the outbound-route GUI hook.
+the normal, popover and quiet response buffers, and the outbound-route GUI hook.
+To also execute the pinned Core trunk page inside the framework's real
+page-capture method, pass the prepared sources:
+
+```bash
+php local_testing/tests/nethcti_gui_hooks_test.php \
+  .test-sources/core/page.trunks.php \
+  .test-sources/framework/amp_conf/htdocs/admin/libraries/BMO/GuiHooks.class.php
+```
 
 The Boss/Secretary form regression also runs without containers or a database:
 

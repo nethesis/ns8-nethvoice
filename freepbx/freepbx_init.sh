@@ -132,6 +132,9 @@ for module in "${obsolete_modules[@]}"; do
     fi
 done
 
+# Convert unsupported trunks before any sync/reload, including on recovery starts.
+php /convert-legacy-sip-trunks.php
+
 # Fix permissions
 ionice -c2 -n7 nice -n 10 fwconsole chown
 
