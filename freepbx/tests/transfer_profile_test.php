@@ -45,6 +45,19 @@ check(str_contains($sub[1], 'DIALPLAN_EXISTS(nethvoice-xfer-internal,${ARG1},1)'
 check(str_contains($sub[2], '${TRANSFERERNAME}') && str_contains($sub[2], '${BLINDTRANSFER}'), 'transferer is not resolved');
 check(in_array('Gosub(func-nethvoice-forward-context,s,1(${owner}))', $sub, true), 'transferer profile is not resolved');
 check(str_contains(end($sub), 'Return()'), 'resolver does not return');
+// Blind transfers reach the callback context with the resolved profile and the transferer.
+$labels = array_column($ext->_exts['func-nethvoice-transfer-context'][' s '], 'tag');
+$callback = array_slice($sub, array_search('done', $labels, true));
+check(str_contains($callback[0], '"${BLINDTRANSFER}" = ""') && str_contains($callback[0], '"${ATTENDEDTRANSFER}" != ""')
+    && str_contains($callback[0], '${DIALPLAN_EXISTS(blindxfer_ringback,${ARG1},1)} = 0') && str_ends_with($callback[0], '?return)'),
+    'only enabled blind transfers use the callback');
+check(array_slice($callback, 1) === [
+    'Set(_NETHVOICE_RINGBACK_CONTEXT=${NETHVOICE_TRANSFER_CONTEXT})',
+    'Set(_BLINDTRANSFER=${BLINDTRANSFER})',
+    'Set(NETHVOICE_TRANSFER_CONTEXT=blindxfer_ringback)',
+    'Return()',
+], 'blind transfers do not reach the callback with the transferer profile');
+check($labels[array_key_last($labels)] === 'return', 'callback skip does not reach Return');
 
 $before = $ext->_exts;
 nethcti3_configure_transfer_profile($ext);

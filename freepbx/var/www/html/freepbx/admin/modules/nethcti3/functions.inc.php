@@ -319,7 +319,13 @@ function nethcti3_configure_transfer_profile($ext) {
     $ext->add($sub, 's', '', new ext_gotoif('$["${owner}" = "" | "${DB(DEVICE/${owner}/user)}" = ""]', 'done'));
     $ext->add($sub, 's', '', new ext_gosub(1, 's', 'func-nethvoice-forward-context', '${owner}'));
     $ext->add($sub, 's', '', new ext_execif('$["${NETHVOICE_FORWARD_CONTEXT}" != "" & "${NETHVOICE_FORWARD_CONTEXT}" != "from-internal"]', 'Set', 'NETHVOICE_TRANSFER_CONTEXT=${NETHVOICE_FORWARD_CONTEXT}'));
-    $ext->add($sub, 's', 'done', new ext_return());
+    // Core 17 owns TRANSFER_CONTEXT, so blind transfers reach the Return On Transfer callback from here.
+    // The callback context dials NETHVOICE_RINGBACK_CONTEXT and needs BLINDTRANSFER on its Local channel.
+    $ext->add($sub, 's', 'done', new ext_gotoif('$["${BLINDTRANSFER}" = "" | "${ATTENDEDTRANSFER}" != "" | ${DIALPLAN_EXISTS(blindxfer_ringback,${ARG1},1)} = 0]', 'return'));
+    $ext->add($sub, 's', '', new ext_set('_NETHVOICE_RINGBACK_CONTEXT', '${NETHVOICE_TRANSFER_CONTEXT}'));
+    $ext->add($sub, 's', '', new ext_set('_BLINDTRANSFER', '${BLINDTRANSFER}'));
+    $ext->add($sub, 's', '', new ext_set('NETHVOICE_TRANSFER_CONTEXT', 'blindxfer_ringback'));
+    $ext->add($sub, 's', 'return', new ext_return());
 }
 
 function nethcti3_get_config_late($engine) {
