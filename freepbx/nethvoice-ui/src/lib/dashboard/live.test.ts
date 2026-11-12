@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  combineLiveCalls,
   formatCallDuration,
   getElapsedCallDuration,
   listCallsInProgress,
@@ -42,8 +43,13 @@ describe('summarizePresence', () => {
     expect(summarizePresence(users)).toEqual({ online: 2, busy: 2, dnd: 1, offline: 2 })
   })
 
-  it('should reject an unknown presence', () => {
-    expect(() => parseCtiUsers({ a: user('away') })).toThrow()
+  it('should count an unknown presence as offline', () => {
+    expect(summarizePresence(parseCtiUsers({ a: user('away'), b: user('online') }))).toEqual({
+      online: 1,
+      busy: 0,
+      dnd: 0,
+      offline: 1,
+    })
   })
 })
 
@@ -180,10 +186,219 @@ describe('listCallsInProgress', () => {
     ])
   })
 
+  it('should skip ringing internal calls', () => {
+    const extensions = parseCtiExtensions({
+      '303': extension('303', 'Dario Bianchi', 'ringing', {
+        d: {
+          id: 'd',
+          linkedId: '3.1',
+          duration: 2,
+          direction: 'out',
+          connected: false,
+          counterpartNum: '304',
+        },
+      }),
+      '304': extension('304', 'Elena Neri', 'ringing', {
+        e: {
+          id: 'e',
+          linkedId: '3.1',
+          duration: 2,
+          direction: 'in',
+          connected: false,
+          counterpartNum: '303',
+        },
+      }),
+    })
+
+    expect(listCallsInProgress(extensions, noTrunks)).toEqual([])
+  })
+
+  it('should keep internal calls to queues and feature codes', () => {
+    const extensions = parseCtiExtensions({
+      '302': extension('302', 'Carla Rossi', 'busy', {
+        c: {
+          id: 'c',
+          linkedId: '2.1',
+          duration: 45,
+          direction: 'out',
+          connected: true,
+          counterpartNum: '401',
+          counterpartName: 'Support queue',
+        },
+      }),
+      '305': extension('305', 'Franco Gialli', 'busy', {
+        f: {
+          id: 'f',
+          linkedId: '4.1',
+          duration: 600,
+          direction: 'out',
+          connected: true,
+          counterpartNum: '*43',
+          counterpartName: '',
+        },
+      }),
+    })
+
+    expect(listCallsInProgress(extensions, noTrunks)).toEqual([
+      {
+        id: 'internal:4.1',
+        type: 'internal',
+        source: 'Franco Gialli',
+        destination: '*43',
+        duration: 600,
+        throughQueue: false,
+      },
+      {
+        id: 'internal:2.1',
+        type: 'internal',
+        source: 'Carla Rossi',
+        destination: 'Support queue',
+        duration: 45,
+        throughQueue: false,
+      },
+    ])
+  })
+
+  it('should list an internal call once without a linked id', () => {
+    const extensions = parseCtiExtensions({
+      '300': extension('300', 'Anna Miller', 'busy', {
+        c1: { id: 'c1', duration: 30, direction: 'out', counterpartNum: '301' },
+      }),
+      '301': extension('301', 'Bob Smith', 'busy', {
+        c2: { id: 'c2', duration: 29, direction: 'in', counterpartNum: '300' },
+      }),
+    })
+
+    expect(listCallsInProgress(extensions, noTrunks)).toEqual([
+      {
+        id: 'internal:300-301',
+        type: 'internal',
+        source: 'Anna Miller',
+        destination: 'Bob Smith',
+        duration: 30,
+        throughQueue: false,
+      },
+    ])
+  })
+
+  it('should mark an internal call answered through a queue', () => {
+    const extensions = parseCtiExtensions({
+      '300': extension('300', 'Anna Miller', 'busy', {
+        c1: {
+          id: 'c1',
+          linkedId: '5.1',
+          duration: 30,
+          direction: 'out',
+          counterpartNum: '401',
+          counterpartName: 'Sales',
+        },
+      }),
+      '301': extension('301', 'Bob Smith', 'busy', {
+        c2: {
+          id: 'c2',
+          linkedId: '5.1',
+          duration: 20,
+          direction: 'in',
+          throughQueue: true,
+          counterpartNum: '300',
+        },
+      }),
+    })
+
+    expect(listCallsInProgress(extensions, noTrunks)).toEqual([
+      {
+        id: 'internal:5.1',
+        type: 'internal',
+        source: 'Anna Miller',
+        destination: 'Sales',
+        duration: 30,
+        throughQueue: true,
+      },
+    ])
+  })
+
+  it('should skip external calls that are ringing or waiting in a queue', () => {
+    const up = { channelStatus: 'up' }
+    const trunks = parseCtiTrunks({
+      Provider: {
+        name: 'Provider',
+        conversations: {
+          answered: {
+            id: 'answered',
+            duration: 60,
+            direction: 'in',
+            chSource: up,
+            chDest: up,
+            externalNum: '0612345678',
+            internalNum: '300',
+          },
+          ringing: {
+            id: 'ringing',
+            duration: 3,
+            direction: 'out',
+            chSource: { channelStatus: 'ring' },
+            chDest: { channelStatus: 'ringing' },
+            externalNum: '0698765432',
+            internalNum: '301',
+          },
+          queued: {
+            id: 'queued',
+            duration: 5,
+            direction: 'in',
+            chSource: up,
+            chDest: null,
+            externalNum: '0711111111',
+            throughQueue: true,
+          },
+          flagged: {
+            id: 'flagged',
+            duration: 7,
+            direction: 'in',
+            connected: false,
+            externalNum: '0722222222',
+          },
+        },
+      },
+    })
+
+    expect(listCallsInProgress(parseCtiExtensions({}), trunks).map((call) => call.id)).toEqual([
+      'trunk:Provider:answered',
+    ])
+  })
+
   it('should return no calls when nothing is in progress', () => {
     expect(
       listCallsInProgress(parseCtiExtensions({ '300': extension('300', 'Anna Miller') }), noTrunks),
     ).toEqual([])
+  })
+})
+
+describe('combineLiveCalls', () => {
+  it('should align the durations of sources fetched at different times', () => {
+    const extensions = parseCtiExtensions({
+      '300': extension('300', 'Anna Miller', 'busy', {
+        c1: { id: 'c1', linkedId: '1.1', duration: 10, direction: 'out', counterpartNum: '301' },
+      }),
+    })
+    const trunks = parseCtiTrunks({
+      Provider: {
+        name: 'Provider',
+        conversations: {
+          t1: { id: 't1', duration: 20, direction: 'in', externalNum: '0612345678' },
+        },
+      },
+    })
+
+    const live = combineLiveCalls(
+      { data: extensions, fetchedAt: 1_000 },
+      { data: trunks, fetchedAt: 4_000 },
+    )
+
+    expect(live.fetchedAt).toBe(4_000)
+    expect(live.calls.map(({ id, duration }) => ({ id, duration }))).toEqual([
+      { id: 'trunk:Provider:t1', duration: 20 },
+      { id: 'internal:1.1', duration: 13 },
+    ])
   })
 })
 
@@ -208,16 +423,18 @@ describe('summarizeTrunks', () => {
 
 describe('formatCallDuration', () => {
   it('should format minutes and seconds', () => {
-    expect(formatCallDuration(0)).toBe('00:00')
+    expect(formatCallDuration(0)).toBe('0:00')
+    expect(formatCallDuration(82)).toBe('1:22')
     expect(formatCallDuration(723)).toBe('12:03')
   })
 
   it('should add hours when needed', () => {
     expect(formatCallDuration(3725)).toBe('1:02:05')
+    expect(formatCallDuration(3702)).toBe('1:01:42')
   })
 
   it('should clamp negative values', () => {
-    expect(formatCallDuration(-5)).toBe('00:00')
+    expect(formatCallDuration(-5)).toBe('0:00')
   })
 })
 

@@ -11,6 +11,8 @@ export const DASHBOARD_COUNTER_KEY = 'dashboardCounter'
 
 export const DASHBOARD_COUNTERS_REFRESH_INTERVAL = 60000
 
+export const DASHBOARD_COUNTERS_STALE_TIME = DASHBOARD_COUNTERS_REFRESH_INTERVAL / 2
+
 export const DASHBOARD_COUNTER_IDS = [
   'users',
   'groups',
@@ -28,14 +30,19 @@ const ListSchema = v.array(v.unknown())
 
 export const parseCount = (raw: unknown): number => v.parse(CountSchema, raw)
 
-const COUNTER_LOADERS: Record<DashboardCounterId, () => Promise<number>> = {
-  users: async () => parseCount((await api.GET('/users/count')).data),
-  groups: async () => parseGroups((await api.GET('/cti/groups')).data).length,
-  physicalPhones: async () => (await adminApiGet(`${TANCREDI_API_URL}/phones`, ListSchema)).length,
-  trunks: async () => parseCount((await api.GET('/trunks/count')).data),
-  inboundRoutes: async () => parseCount((await api.GET('/inboundroutes/count')).data),
-  outboundRoutes: async () => parseCount((await api.GET('/outboundroutes/count')).data),
+const COUNTER_LOADERS: Record<DashboardCounterId, (signal?: AbortSignal) => Promise<number>> = {
+  users: async (signal) => parseCount((await api.GET('/users/count', { signal })).data),
+  groups: async (signal) => parseGroups((await api.GET('/cti/groups', { signal })).data).length,
+  physicalPhones: async (signal) =>
+    (await adminApiGet(`${TANCREDI_API_URL}/phones`, ListSchema, signal)).length,
+  trunks: async (signal) => parseCount((await api.GET('/trunks/count', { signal })).data),
+  inboundRoutes: async (signal) =>
+    parseCount((await api.GET('/inboundroutes/count', { signal })).data),
+  outboundRoutes: async (signal) =>
+    parseCount((await api.GET('/outboundroutes/count', { signal })).data),
 }
 
-export const getDashboardCounter = (id: DashboardCounterId): Promise<number> =>
-  COUNTER_LOADERS[id]()
+export const getDashboardCounter = (
+  id: DashboardCounterId,
+  signal?: AbortSignal,
+): Promise<number> => COUNTER_LOADERS[id](signal)
