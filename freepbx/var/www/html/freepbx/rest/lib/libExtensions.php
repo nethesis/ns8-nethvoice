@@ -797,6 +797,13 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($username));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
+    $currentmain = (is_array($res) && !empty($res['default_extension'])) ? $res['default_extension'] : null;
+    if (!empty($mainextension) && $mainextension != 'none' && (string) $mainextension !== (string) $currentmain) {
+        $free = checkFreeExtension($mainextension);
+        if ($free !== true ) {
+            return [array('message'=>$free ), 422];
+        }
+    }
     if (is_array($res) && !empty($res['default_extension'])) {
         $oldmain = $res['default_extension'];
         $ext_to_del = array();
