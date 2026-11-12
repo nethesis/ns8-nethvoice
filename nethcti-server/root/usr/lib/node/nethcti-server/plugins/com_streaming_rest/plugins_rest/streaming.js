@@ -206,6 +206,11 @@ function setCompConfigManager(comp) {
         * parameter is the source identifier that can be obtained with
         * _streaming/sources_ rest api.
         *
+        * Errors with a JSON body `{ "code": "...", "message": "..." }`: 400
+        * (`not_image_source`), 502 (`source_certificate_changed`: the TLS
+        * certificate of the device is not the one pinned when the source was
+        * saved). Other failures of the device answer 500.
+        *
         * Example JSON response:
         *
         *     {
