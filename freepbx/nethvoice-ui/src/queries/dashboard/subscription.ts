@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { defineQuery, useQuery } from '@pinia/colada'
+import { DASHBOARD_COUNTERS_STALE_TIME } from '@/lib/dashboard/counters'
 import { DASHBOARD_SUBSCRIPTION_KEY, getDashboardSubscription } from '@/lib/dashboard/subscription'
 import { useLoginStore } from '@/stores/login'
 
@@ -11,7 +12,9 @@ export const useDashboardSubscription = defineQuery(() => {
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [DASHBOARD_SUBSCRIPTION_KEY],
     enabled: () => loginStore.isAuthenticated,
-    query: () => getDashboardSubscription(),
+    staleTime: DASHBOARD_COUNTERS_STALE_TIME,
+    refetchOnWindowFocus: false,
+    query: ({ signal }) => getDashboardSubscription(signal),
   })
 
   return { state, asyncStatus, ...rest }

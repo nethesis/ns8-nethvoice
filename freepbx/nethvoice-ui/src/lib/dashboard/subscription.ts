@@ -39,7 +39,13 @@ export const getExtensionsUsagePercent = (subscription: DashboardSubscription): 
   )
 }
 
-export const getDashboardSubscription = async (): Promise<DashboardSubscription> => {
-  const { data } = await api.GET('/mainextensions/userlimits')
+export const isExtensionsLimitReached = (subscription: DashboardSubscription): boolean =>
+  subscription.extensionsLimit !== null &&
+  subscription.configuredExtensions >= subscription.extensionsLimit
+
+export const getDashboardSubscription = async (
+  signal?: AbortSignal,
+): Promise<DashboardSubscription> => {
+  const { data } = await api.GET('/mainextensions/userlimits', { signal })
   return parseSubscription(data)
 }

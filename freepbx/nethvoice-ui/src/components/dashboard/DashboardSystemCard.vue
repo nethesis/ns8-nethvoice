@@ -12,9 +12,18 @@ import {
   NeRoundedIcon,
   NeSkeleton,
 } from '@nethesis/vue-components'
-import { faAward, faServer, faUsers } from '@fortawesome/free-solid-svg-icons'
+import {
+  faAward,
+  faServer,
+  faTriangleExclamation,
+  faUsers,
+} from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { getExtensionsUsagePercent, type DashboardSubscription } from '@/lib/dashboard/subscription'
+import {
+  getExtensionsUsagePercent,
+  isExtensionsLimitReached,
+  type DashboardSubscription,
+} from '@/lib/dashboard/subscription'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const { subscription = undefined, loading = false } = defineProps<{
@@ -24,9 +33,13 @@ const { subscription = undefined, loading = false } = defineProps<{
 
 const runtimeConfigStore = useRuntimeConfigStore()
 
-const hostname = window.location.hostname
-
 const usagePercent = computed(() => (subscription ? getExtensionsUsagePercent(subscription) : 0))
+
+const limitReached = computed(() => (subscription ? isExtensionsLimitReached(subscription) : false))
+
+const usageValue = computed(() =>
+  subscription ? Math.min(subscription.configuredExtensions, subscription.extensionsLimit ?? 0) : 0,
+)
 </script>
 
 <template>
@@ -51,7 +64,7 @@ const usagePercent = computed(() => (subscription ? getExtensionsUsagePercent(su
         >
           <dt class="text-primary-neutral font-medium">{{ $t('dashboard.system.hostname') }}</dt>
           <dd class="text-tertiary-neutral min-w-0 wrap-anywhere" data-testid="system-hostname">
-            {{ hostname }}
+            {{ runtimeConfigStore.hostname }}
           </dd>
         </div>
         <template v-if="!loading && subscription">
@@ -89,11 +102,21 @@ const usagePercent = computed(() => (subscription ? getExtensionsUsagePercent(su
               :progress="usagePercent"
               size="sm"
               color="custom"
-              custom-color-classes="bg-linear-to-r from-emerald-500 to-indigo-500"
+              :custom-color-classes="
+                limitReached
+                  ? 'bg-amber-500 dark:bg-amber-400'
+                  : 'bg-linear-to-r from-emerald-500 to-indigo-500'
+              "
               role="progressbar"
-              :aria-valuenow="subscription.configuredExtensions"
+              :aria-valuenow="usageValue"
               aria-valuemin="0"
               :aria-valuemax="subscription.extensionsLimit"
+              :aria-valuetext="
+                $t('dashboard.system.extensions_usage', {
+                  configured: subscription.configuredExtensions,
+                  limit: subscription.extensionsLimit,
+                })
+              "
               :aria-label="
                 $t('dashboard.system.extensions_usage', {
                   configured: subscription.configuredExtensions,
@@ -101,6 +124,14 @@ const usagePercent = computed(() => (subscription ? getExtensionsUsagePercent(su
                 })
               "
             />
+            <p
+              v-if="limitReached"
+              class="flex items-center gap-2 text-sm text-amber-700 dark:text-amber-500"
+              data-testid="extensions-limit-reached"
+            >
+              <FontAwesomeIcon :icon="faTriangleExclamation" class="size-4" aria-hidden="true" />
+              {{ $t('dashboard.system.limit_reached') }}
+            </p>
           </div>
         </template>
       </dl>
