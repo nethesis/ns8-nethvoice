@@ -362,7 +362,7 @@ export interface paths {
     put?: never
     /**
      * Create a new CTI profile.
-     * @description Body mirrors the profile schema used by the UI. Response returns the generated profile id.
+     * @description Body mirrors the profile schema used by the UI. Response returns the generated profile id, or 409 when the name is already used.
      */
     post: operations['post_cti_profiles']
     delete?: never
@@ -3983,6 +3983,24 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['CtiProfileCreated']
+        }
+      }
+      /** @description Another profile already has this name */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Empty name */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
         }
       }
       /** @description Internal server error */
