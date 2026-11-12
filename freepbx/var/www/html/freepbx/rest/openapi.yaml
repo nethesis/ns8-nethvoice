@@ -47,9 +47,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                success: true
+                $ref: '#/components/schemas/SuccessFlag'
       description: 'Returns `{ "success": true }` after seeding the AMP session as
         the `admin` user.'
       operationId: get_login
@@ -65,9 +63,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                success: true
+                $ref: '#/components/schemas/SuccessFlag'
       description: 'Clears the `AMP_user` session entry and returns `{ "success":
         true }`.'
       operationId: get_logout
@@ -83,16 +79,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/TestAuthResponse'
+        '401':
+          description: Invalid credentials
       description: 'Body: `{ "username": "", "password": "" }`. On success returns
         `{ "result": "<secret>" }` with status 200; otherwise 401.'
       operationId: post_testauth
       security: []
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/TestAuthRequest'
   /contexts:
     get:
       summary: List dialplan contexts available for assignment.
@@ -132,7 +131,7 @@ paths:
         schema:
           type: string
     post:
-      summary: Apply bulk profile changes to one or more main extensions.
+      summary: Apply the same settings to a comma separated list of main extensions.
       tags:
       - Bulk
       responses:
@@ -141,7 +140,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/UsersBulkResult'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersBulkResult'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersBulkResult'
       description: 'Body: JSON object with keys such as `displayname`, `callwaiting`,
         `outboundcid_*`, etc. Triggers `retrieveHelper.sh` on success.'
       operationId: post_bulk_mainextensions
@@ -152,10 +163,11 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/UsersBulkRequest'
   /destinations:
     get:
       summary: Enumerate FreePBX destinations for call routing.
@@ -195,12 +207,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - codec: alaw
-                enabled: true
-              - codec: ulaw
-                enabled: true
+                type: array
+                items:
+                  $ref: '#/components/schemas/TrunkCodec'
       description: 'Currently returns alaw, ulaw and g729 with `enabled: true`.'
       operationId: get_codecs_voip
   /configuration/userprovider:
@@ -249,7 +258,10 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+                nullable: true
+                items:
+                  $ref: '#/components/schemas/HostNetwork'
       description: Returns the decoded `NETHVOICE_HOST_LOCAL_NETWORKS` value or an
         empty array.
       operationId: get_configuration_networks
@@ -264,10 +276,12 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - step: '1'
-                status: null
+                type: array
+                maxItems: 1
+                items:
+                  $ref: '#/components/schemas/WizardState'
+        '500':
+          description: Internal server error
       description: Returns the rows in `rest_wizard`, providing the last completed
         step and status.
       operationId: get_configuration_wizard
@@ -278,18 +292,17 @@ paths:
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       description: 'Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts
         Asterisk and signals the CTI service.'
       operationId: post_configuration_wizard
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/WizardStateRequest'
   /configuration/externalip:
     get:
       summary: Return the SIP external IP configured in FreePBX.
@@ -434,430 +447,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - id: '2'
-                name: Standard
-                macro_permissions:
-                  settings:
-                    value: true
-                    displayname: Settings
-                    description: General and notifications settings
-                    permissions:
-                    - id: '2'
-                      name: dnd
-                      displayname: DND
-                      description: Configure do Not Disturb
-                      value: true
-                    - id: '3'
-                      name: call_forward
-                      displayname: Call Forward
-                      description: Configure Call Forward
-                      value: true
-                    - id: '4'
-                      name: recording
-                      displayname: Recording
-                      description: Record own conversations. View/listen/delete own
-                        recording
-                      value: true
-                    - id: '5'
-                      name: conference
-                      displayname: Conference
-                      description: Make a conference call
-                      value: true
-                    - id: '6'
-                      name: parkings
-                      displayname: Parkings
-                      description: View parkings state and pickup parked calls
-                      value: false
-                    - id: '15'
-                      name: spy
-                      displayname: Spy
-                      description: Hear other extensions calls
-                      value: false
-                    - id: '16'
-                      name: intrude
-                      displayname: Intrude
-                      description: Intrude in calls
-                      value: false
-                    - id: '18'
-                      name: pickup
-                      displayname: Pickup
-                      description: Pick-up any call
-                      value: false
-                  phonebook:
-                    value: true
-                    displayname: Phonebook
-                    description: View Phonebook, add contacts, modify and delete own
-                      contacts
-                    permissions:
-                    - id: '12'
-                      name: ad_phonebook
-                      displayname: Advanced Phonebook
-                      description: Modify and delete all contacts
-                      value: false
-                  cdr:
-                    value: true
-                    displayname: CDR
-                    description: View own call history
-                    permissions:
-                    - id: '13'
-                      name: ad_cdr
-                      displayname: PBX CDR
-                      description: View all users call history
-                      value: false
-                    - id: '4000'
-                      name: group_cdr
-                      displayname: Group CDR
-                      description: Allow to see call history of members of user groups
-                      value: false
-                  customer_card:
-                    value: true
-                    displayname: Customer Card
-                    description: Allow to view Customer Cards
-                    permissions: []
-                  presence_panel:
-                    value: true
-                    displayname: Presence Panel
-                    description: Allow to view Presence Panel
-                    permissions:
-                    - id: '17'
-                      name: ad_recording
-                      displayname: Advanced Recording
-                      description: Record anyone call
-                      value: false
-                    - id: '19'
-                      name: transfer
-                      displayname: Transfer
-                      description: Transfer everyone call
-                      value: false
-                    - id: '20'
-                      name: ad_parking
-                      displayname: Advanced Parking
-                      description: Allow to park any call and to pickup them using
-                        any extension
-                      value: false
-                    - id: '21'
-                      name: hangup
-                      displayname: Hangup
-                      description: Hangup everyone call
-                      value: false
-                    - id: '22'
-                      name: trunks
-                      displayname: PBX lines
-                      description: View PBX lines
-                      value: false
-                    - id: '26'
-                      name: ad_phone
-                      displayname: Advanced Phone
-                      description: Use phone features (hangup, call, answer) on conversations
-                        not owned by the user
-                      value: false
-                    - id: '3500'
-                      name: all_groups
-                      displayname: All groups
-                      description: Allow to see all groups and operators
-                      value: false
-                  queue_agent:
-                    value: true
-                    displayname: Use queue agent panel
-                    description: View Queues and queues info of the user, login/logout
-                      from queues, enable or disable pause state
-                    permissions:
-                    - id: '23'
-                      name: ad_queue_agent
-                      displayname: Advanced queue agent panel
-                      description: View more queue information
-                      value: true
-                    - id: '24'
-                      name: lost_queue_call
-                      displayname: Lost Queue Calls
-                      description: Allow to view Queue Recall panel
-                      value: false
-                  streaming:
-                    value: false
-                    displayname: Streaming
-                    description: Allow to view Streaming Panel
-                    permissions: []
-                  off_hour:
-                    value: true
-                    displayname: Off Hour
-                    description: Allow to change of his incoming call paths
-                    permissions:
-                    - id: '25'
-                      name: advanced_off_hour
-                      displayname: Advanced Off Hour
-                      description: Allow to change user's incoming call path and generic
-                        inbound routes
-                      value: false
-                    - id: '27'
-                      name: ad_off_hour
-                      displayname: Admin Off Hour
-                      description: Allow to change all incoming call paths
-                      value: false
-                  remote_sites:
-                    value: false
-                    displayname: Remote Sites
-                    description: Allow to view Remote Sites information
-                    permissions: []
-                  qmanager:
-                    value: false
-                    displayname: Queue Manager
-                    description: Allow to view and manage queues in real time
-                    permissions: []
-                  operator_panel:
-                    value: false
-                    displayname: Operator Panel
-                    description: Enables Operator Panel interface for operators
-                    permissions: []
-                  nethvoice_cti:
-                    value: true
-                    displayname: NethVoice CTI
-                    description: Enables access to NethVoice CTI application
-                    permissions:
-                    - id: '8'
-                      name: chat
-                      displayname: Chat
-                      description: Use chat service
-                      value: true
-                    - id: '9'
-                      name: privacy
-                      displayname: Privacy
-                      description: Obfuscate called and caller numbers for other users
-                      value: true
-                    - id: '1000'
-                      name: screen_sharing
-                      displayname: Screen Sharing
-                      description: Allow to share the desktop
-                      value: false
-                    - id: '2000'
-                      name: phone_buttons
-                      displayname: Phone buttons
-                      description: Allow the user to customize functions of physical
-                        phone buttons. These values correspond to the Line Keys settings
-                        shown in Devices -> Models and Configurations pages
-                      value: false
-                    - id: '3000'
-                      name: video_conference
-                      displayname: Video Conference
-                      description: Allow to start a video conference
-                      value: false
-                    - id: '5000'
-                      name: satellite_stt
-                      displayname: Transcription and Summary
-                      description: Calls transcription and summary
-                      value: false
-              - id: '3'
-                name: Advanced
-                macro_permissions:
-                  settings:
-                    value: true
-                    displayname: Settings
-                    description: General and notifications settings
-                    permissions:
-                    - id: '2'
-                      name: dnd
-                      displayname: DND
-                      description: Configure do Not Disturb
-                      value: true
-                    - id: '3'
-                      name: call_forward
-                      displayname: Call Forward
-                      description: Configure Call Forward
-                      value: true
-                    - id: '4'
-                      name: recording
-                      displayname: Recording
-                      description: Record own conversations. View/listen/delete own
-                        recording
-                      value: true
-                    - id: '5'
-                      name: conference
-                      displayname: Conference
-                      description: Make a conference call
-                      value: true
-                    - id: '6'
-                      name: parkings
-                      displayname: Parkings
-                      description: View parkings state and pickup parked calls
-                      value: true
-                    - id: '15'
-                      name: spy
-                      displayname: Spy
-                      description: Hear other extensions calls
-                      value: false
-                    - id: '16'
-                      name: intrude
-                      displayname: Intrude
-                      description: Intrude in calls
-                      value: false
-                    - id: '18'
-                      name: pickup
-                      displayname: Pickup
-                      description: Pick-up any call
-                      value: false
-                  phonebook:
-                    value: true
-                    displayname: Phonebook
-                    description: View Phonebook, add contacts, modify and delete own
-                      contacts
-                    permissions:
-                    - id: '12'
-                      name: ad_phonebook
-                      displayname: Advanced Phonebook
-                      description: Modify and delete all contacts
-                      value: true
-                  cdr:
-                    value: true
-                    displayname: CDR
-                    description: View own call history
-                    permissions:
-                    - id: '13'
-                      name: ad_cdr
-                      displayname: PBX CDR
-                      description: View all users call history
-                      value: true
-                    - id: '4000'
-                      name: group_cdr
-                      displayname: Group CDR
-                      description: Allow to see call history of members of user groups
-                      value: false
-                  customer_card:
-                    value: true
-                    displayname: Customer Card
-                    description: Allow to view Customer Cards
-                    permissions: []
-                  presence_panel:
-                    value: true
-                    displayname: Presence Panel
-                    description: Allow to view Presence Panel
-                    permissions:
-                    - id: '17'
-                      name: ad_recording
-                      displayname: Advanced Recording
-                      description: Record anyone call
-                      value: false
-                    - id: '19'
-                      name: transfer
-                      displayname: Transfer
-                      description: Transfer everyone call
-                      value: false
-                    - id: '20'
-                      name: ad_parking
-                      displayname: Advanced Parking
-                      description: Allow to park any call and to pickup them using
-                        any extension
-                      value: false
-                    - id: '21'
-                      name: hangup
-                      displayname: Hangup
-                      description: Hangup everyone call
-                      value: false
-                    - id: '22'
-                      name: trunks
-                      displayname: PBX lines
-                      description: View PBX lines
-                      value: true
-                    - id: '26'
-                      name: ad_phone
-                      displayname: Advanced Phone
-                      description: Use phone features (hangup, call, answer) on conversations
-                        not owned by the user
-                      value: false
-                    - id: '3500'
-                      name: all_groups
-                      displayname: All groups
-                      description: Allow to see all groups and operators
-                      value: false
-                  queue_agent:
-                    value: true
-                    displayname: Use queue agent panel
-                    description: View Queues and queues info of the user, login/logout
-                      from queues, enable or disable pause state
-                    permissions:
-                    - id: '23'
-                      name: ad_queue_agent
-                      displayname: Advanced queue agent panel
-                      description: View more queue information
-                      value: true
-                    - id: '24'
-                      name: lost_queue_call
-                      displayname: Lost Queue Calls
-                      description: Allow to view Queue Recall panel
-                      value: true
-                  streaming:
-                    value: true
-                    displayname: Streaming
-                    description: Allow to view Streaming Panel
-                    permissions: []
-                  off_hour:
-                    value: true
-                    displayname: Off Hour
-                    description: Allow to change of his incoming call paths
-                    permissions:
-                    - id: '25'
-                      name: advanced_off_hour
-                      displayname: Advanced Off Hour
-                      description: Allow to change user's incoming call path and generic
-                        inbound routes
-                      value: true
-                    - id: '27'
-                      name: ad_off_hour
-                      displayname: Admin Off Hour
-                      description: Allow to change all incoming call paths
-                      value: false
-                  remote_sites:
-                    value: true
-                    displayname: Remote Sites
-                    description: Allow to view Remote Sites information
-                    permissions: []
-                  qmanager:
-                    value: false
-                    displayname: Queue Manager
-                    description: Allow to view and manage queues in real time
-                    permissions: []
-                  operator_panel:
-                    value: false
-                    displayname: Operator Panel
-                    description: Enables Operator Panel interface for operators
-                    permissions: []
-                  nethvoice_cti:
-                    value: true
-                    displayname: NethVoice CTI
-                    description: Enables access to NethVoice CTI application
-                    permissions:
-                    - id: '8'
-                      name: chat
-                      displayname: Chat
-                      description: Use chat service
-                      value: true
-                    - id: '9'
-                      name: privacy
-                      displayname: Privacy
-                      description: Obfuscate called and caller numbers for other users
-                      value: false
-                    - id: '1000'
-                      name: screen_sharing
-                      displayname: Screen Sharing
-                      description: Allow to share the desktop
-                      value: false
-                    - id: '2000'
-                      name: phone_buttons
-                      displayname: Phone buttons
-                      description: Allow the user to customize functions of physical
-                        phone buttons. These values correspond to the Line Keys settings
-                        shown in Devices -> Models and Configurations pages
-                      value: false
-                    - id: '3000'
-                      name: video_conference
-                      displayname: Video Conference
-                      description: Allow to start a video conference
-                      value: false
-                    - id: '5000'
-                      name: satellite_stt
-                      displayname: Transcription and Summary
-                      description: Calls transcription and summary
-                      value: false
+                type: array
+                items:
+                  $ref: '#/components/schemas/CtiProfile'
+        '500':
+          description: Internal server error
       operationId: get_cti_profiles
     post:
       summary: Create a new CTI profile.
@@ -869,15 +463,18 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/CtiProfileCreated'
+        '500':
+          description: Internal server error
       description: Body mirrors the profile schema used by the UI. Response returns
         the generated profile id.
       operationId: post_cti_profiles
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/CtiProfileRequest'
   /cti/profiles/{id}:
     get:
       summary: Retrieve a single CTI profile by identifier.
@@ -889,7 +486,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/CtiProfile'
+        '500':
+          description: Internal server error
       operationId: get_cti_profiles_id
       parameters:
       - name: id
@@ -907,7 +506,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/CtiStatusFlag'
+        '500':
+          description: Internal server error
       description: 'Body: serialized profile as produced by the UI; updates macro
         permissions and triggers a dialplan reload.'
       operationId: post_cti_profiles_id
@@ -918,10 +519,11 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/CtiProfileRequest'
     delete:
       summary: Delete a CTI profile and clean up related permissions.
       tags:
@@ -932,7 +534,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/CtiStatusFlag'
+        '500':
+          description: Internal server error
       operationId: delete_cti_profiles_id
       parameters:
       - name: id
@@ -1035,7 +639,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/CtiStatusFlag'
+        '500':
+          description: Internal server error
       description: 'Body: `{ "profile_id": <int> }`. Replaces any previous association.'
       operationId: post_cti_profiles_users_user_id
       parameters:
@@ -1045,13 +651,14 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/CtiUserProfileRequest'
   /cti/groups:
     get:
-      summary: List CTI groups available for agent assignment.
+      summary: List the CTI presence groups.
       tags:
       - CTI
       responses:
@@ -1060,11 +667,14 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example: []
+                type: array
+                items:
+                  $ref: '#/components/schemas/CtiGroup'
+        '500':
+          description: Internal server error
       operationId: get_cti_groups
     post:
-      summary: Create a new CTI group.
+      summary: Create a CTI presence group and its presence panel permission.
       tags:
       - CTI
       responses:
@@ -1073,18 +683,24 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                description: Id of the group.
+                oneOf:
+                - type: integer
+                - type: string
+        '500':
+          description: Internal server error
       description: 'Body: `{ "name": "<group name>" }`. Returns the created group
         id.'
       operationId: post_cti_groups
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/CtiGroupCreateRequest'
   /cti/groups/users/{id}:
     get:
-      summary: Return the set of group ids linked to a given user id.
+      summary: Return the ids of the groups of a user.
       tags:
       - CTI
       responses:
@@ -1093,7 +709,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+                items:
+                  type: integer
+        '500':
+          description: Internal server error
       operationId: get_cti_groups_users_id
       parameters:
       - name: id
@@ -1108,10 +728,8 @@ paths:
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       description: 'Body: `{ "groups": [<ids>] }`. Existing links are cleared before
         inserting the new list.'
       operationId: post_cti_groups_users_id
@@ -1122,13 +740,14 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/CtiUserGroupsRequest'
   /cti/users/groups/{id}:
     get:
-      summary: List users bound to a specific CTI group.
+      summary: List the users of a CTI group.
       tags:
       - CTI
       responses:
@@ -1137,7 +756,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+                items:
+                  $ref: '#/components/schemas/CtiGroupMember'
+        '500':
+          description: Internal server error
       operationId: get_cti_users_groups_id
       parameters:
       - name: id
@@ -1156,7 +779,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/CtiStatusFlag'
+        '500':
+          description: Internal server error
       operationId: delete_cti_groups_id
       parameters:
       - name: id
@@ -1166,26 +791,25 @@ paths:
           type: string
   /cti/dbconn:
     post:
-      summary: Create an external database connection profile for CTI.
+      summary: Create a database connection.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       description: Body includes host, port, type, credentials and database name;
         credentials are stored for later use by customer cards.
       operationId: post_cti_dbconn
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsDbConnectionInput'
     get:
-      summary: List saved CTI external database connections.
+      summary: List the database connections used by customer cards.
       tags:
       - CTI
       responses:
@@ -1194,29 +818,28 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - id: '2'
-                host: 127.0.0.1
-                port: '20006'
-                type: mysql
-                user: freepbxuser
-                pass: U1rLnxT1imgRWCZKVaPhlTbMYspQ2WEh
-                name: asteriskcdrdb
-                creation: '2025-11-13 07:50:15'
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationsDbConnection'
+        '500':
+          description: Internal server error
       operationId: get_cti_dbconn
   /cti/paramurl/{id}:
     put:
-      summary: Update the profile assignments for an existing parameterized URL.
+      summary: Update the URL and the profiles of a parameterized URL.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '500':
+          description: Internal server error
       description: 'Body: `{ "url": "...", "profiles": [ids], "only_queues": <bool>
         }`. Synchronizes the profile list for the URL.'
       operationId: put_cti_paramurl_id
@@ -1227,22 +850,27 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsParamUrlInput'
   /cti/dbconn/{id}:
     put:
-      summary: Modify properties of an external database connection profile.
+      summary: Update the given fields of a database connection.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
       operationId: put_cti_dbconn_id
       parameters:
       - name: id
@@ -1251,12 +879,13 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsDbConnectionInput'
     delete:
-      summary: Delete an external database connection definition.
+      summary: Delete a database connection.
       tags:
       - CTI
       responses:
@@ -1265,7 +894,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: boolean
+        '500':
+          description: Internal server error
       operationId: delete_cti_dbconn_id
       parameters:
       - name: id
@@ -1275,43 +906,42 @@ paths:
           type: string
   /cti/paramurl:
     post:
-      summary: Create a new parameterized URL mapping bound to CTI profiles.
+      summary: Bind a parameterized URL to CTI profiles (a profile can have one URL
+        only).
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: post_cti_paramurl
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsParamUrlInput'
   /cti/paramurl/delete:
     post:
-      summary: Remove specific profile associations from a parameterized URL.
+      summary: Unbind a parameterized URL from the given profiles.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: post_cti_paramurl_delete
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsParamUrlDeleteInput'
   /cti/dbconn/type:
     get:
-      summary: Expose the supported database adapter identifiers.
+      summary: List the supported database types.
       tags:
       - CTI
       responses:
@@ -1320,14 +950,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                mysql: MySQL
-                postgres: PostgreSQL
+                $ref: '#/components/schemas/IntegrationsDbConnectionTypes'
+        '500':
+          description: Internal server error
       operationId: get_cti_dbconn_type
   /cti/customer_card/template:
     get:
-      summary: List available customer card templates (built-in and custom).
+      summary: List the customer card templates.
       tags:
       - CTI
       responses:
@@ -1336,47 +965,42 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - name: statistics
-                custom: false
-                html: PCEtLSBjb2xvcjogcmVkIC0tPgo8JSBpZihyZXN1bHRzLmxlbmd0aD09MCl7ICU+CiAgPGRpdiBjbGFzcz0idGV4dC1jZW50ZXIiPgogICAgPHN2ZyBjbGFzcz0ibXgtYXV0byBoLTEyIHctMTIgdGV4dC1ncmF5LTQwMCIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCA0OCA0OCIgYXJpYS1oaWRkZW49InRydWUiPgogICAgICA8cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTggMTR2MjBjMCA0LjQxOCA3LjE2MyA4IDE2IDggMS4zODEgMCAyLjcyMS0uMDg3IDQtLjI1Mk04IDE0YzAgNC40MTggNy4xNjMgOCAxNiA4czE2LTMuNTgyIDE2LThNOCAxNGMwLTQuNDE4IDcuMTYzLTggMTYtOHMxNiAzLjU4MiAxNiA4bTAgMHYxNG0wLTRjMCA0LjQxOC03LjE2MyA4LTE2IDhTOCAyOC40MTggOCAyNG0zMiAxMHY2bTAgMHY2bTAtNmg2bS02IDBoLTYiIC8+CiAgICA8L3N2Zz4KICAgIDxoMyBjbGFzcz0ibXQtMiB0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1ncmF5LTkwMCI+Tm8gcmVzdWx0czwvaDM+CiAgPC9kaXY+CiAgPCUgfSBlbHNlIHsgJT4KICAgIDxkaXYgY2xhc3M9ImZsZXggZmxleC1jb2wgZ2FwLXktMyBwbC02Ij4KICAgICAgPGR0IGNsYXNzPSJ0ZXh0LXNtIGxlYWRpbmctNiB0ZXh0LWdyYXktNjAwIj5DcmVhdG9ycyBvbiB0aGUgcGxhdGZvcm08L2R0PgogICAgICA8ZGQgY2xhc3M9Im9yZGVyLWZpcnN0IHRleHQtM3hsIGZvbnQtc2VtaWJvbGQgdHJhY2tpbmctdGlnaHQgdGV4dC1ncmF5LTkwMCI+PCU9IHJlc3VsdHMubGVuZ3RoICU+PC9kZD4KICAgIDwvZGl2PgogIDwlIH0gJT4K
-                color: red
-              - name: table
-                custom: false
-                html: PCEtLSBjb2xvcjogcmVkIC0tPgo8JSBpZihyZXN1bHRzLmxlbmd0aD09MCl7ICU+CiAgPGRpdiBjbGFzcz0idGV4dC1jZW50ZXIiPgogICAgPHN2ZyBjbGFzcz0ibXgtYXV0byBoLTEyIHctMTIgdGV4dC1ncmF5LTQwMCIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCA0OCA0OCIgYXJpYS1oaWRkZW49InRydWUiPgogICAgICA8cGF0aCBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiIHN0cm9rZS13aWR0aD0iMiIgZD0iTTggMTR2MjBjMCA0LjQxOCA3LjE2MyA4IDE2IDggMS4zODEgMCAyLjcyMS0uMDg3IDQtLjI1Mk04IDE0YzAgNC40MTggNy4xNjMgOCAxNiA4czE2LTMuNTgyIDE2LThNOCAxNGMwLTQuNDE4IDcuMTYzLTggMTYtOHMxNiAzLjU4MiAxNiA4bTAgMHYxNG0wLTRjMCA0LjQxOC03LjE2MyA4LTE2IDhTOCAyOC40MTggOCAyNG0zMiAxMHY2bTAgMHY2bTAtNmg2bS02IDBoLTYiIC8+CiAgICA8L3N2Zz4KICAgIDxoMyBjbGFzcz0ibXQtMiB0ZXh0LXNtIGZvbnQtc2VtaWJvbGQgdGV4dC1ncmF5LTkwMCI+Tm8gcmVzdWx0czwvaDM+CiAgPC9kaXY+CjwlIH0gZWxzZSB7ICU+CiAgPGRpdiBjbGFzcz0iIj4KICAgIDxkaXYgY2xhc3M9Im92ZXJmbG93LWhpZGRlbiBzaGFkb3cgcmluZy0xIHJpbmctYmxhY2sgcmluZy1vcGFjaXR5LTUgcm91bmRlZC1sZyI+CiAgICAgIDx0YWJsZSBjbGFzcz0ibWluLXctZnVsbCBkaXZpZGUteSBkaXZpZGUtZ3JheS0zMDAiPgogICAgICAgIDx0aGVhZCBjbGFzcz0iYmctcmVkLTYwMCI+CiAgICAgICAgICA8dHI+CiAgICAgICAgICAgIDwlIGZvciAocHJvcCBpbiByZXN1bHRzWzBdKSB7ICU+CiAgICAgICAgICAgICAgPHRoIHNjb3BlPSJjb2wiIGNsYXNzPSJweS0zLjUgcHgtMyB0ZXh0LWxlZnQgdGV4dC1zbSBmb250LXNlbWlib2xkIHRleHQtZ3JheS05MDAiPgogICAgICAgICAgICAgICAgPCU9IHByb3AgJT4KICAgICAgICAgICAgICA8L3RoPgogICAgICAgICAgICA8JSAgfSAlPgogICAgICAgICAgPC90cj4KICAgICAgICA8L3RoZWFkPgogICAgICAgIDx0Ym9keSBjbGFzcz0iZGl2aWRlLXkgZGl2aWRlLWdyYXktMjAwIj4KICAgICAgICAgIDwlIGZvcih2YXIgaT0wOyBpPHJlc3VsdHMubGVuZ3RoOyBpKyspeyAlPgogICAgICAgICAgICA8dHI+CiAgICAgICAgICAgICAgPCUgZm9yIChwcm9wIGluIHJlc3VsdHNbaV0pIHsgJT4KICAgICAgICAgICAgICAgIDx0ZCBjbGFzcz0id2hpdGVzcGFjZS1ub3dyYXAgcHktNCBweC0zIHRleHQtc20gdGV4dC1ncmF5LTUwMCI+CiAgICAgICAgICAgICAgICAgIDwlPSByZXN1bHRzW2ldW3Byb3BdICU+CiAgICAgICAgICAgICAgICA8L3RkPgogICAgICAgICAgICAgICAgPCUgIH0gJT4KICAgICAgICAgICAgPC90cj4KICAgICAgICAgIDwlIH0gJT4KICAgICAgICA8L3Rib2R5PgogICAgICA8L3RhYmxlPgogICAgPC9kaXY+CiAgPC9kaXY+CjwlIH0gJT4=
-                color: red
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationsCardTemplate'
+        '500':
+          description: Internal server error
       operationId: get_cti_customer_card_template
     post:
-      summary: Create or overwrite a customer card template file.
+      summary: Create a customer card template.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       description: Body contains `name`, `custom` flag and base64 `html` content.
       operationId: post_cti_customer_card_template
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsCardTemplateInput'
   /cti/customer_card/template/{name}:
     put:
-      summary: Update an existing customer card template by name.
+      summary: Overwrite a customer card template (the file is found by `name` and
+        `custom` in the body).
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
       operationId: put_cti_customer_card_template_name
       parameters:
       - name: name
@@ -1385,22 +1009,20 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsCardTemplateInput'
     delete:
-      summary: Delete a customer card template, preferring the custom override if
-        present.
+      summary: Delete a customer card template.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: delete_cti_customer_card_template_name
       parameters:
       - name: name
@@ -1410,7 +1032,7 @@ paths:
           type: string
   /cti/customer_card:
     get:
-      summary: List customer card configurations including linked profiles and templates.
+      summary: List the customer cards.
       tags:
       - CTI
       responses:
@@ -1419,50 +1041,42 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - id: '2'
-                name: Last calls
-                creation: '2021-03-30 17:39:34'
-                query: c2VsZWN0IERBVEVfRk9STUFUKGNhbGxkYXRlLCclZC8lbS8lWScpIGFzIGRhdGUsIERBVEVfRk9STUFUKGNhbGxkYXRlLCclSDolaTolUycpIGFzIHRpbWUsIGNsaWQsIHNyYywgZHN0LCB1bmlxdWVpZCxkdXJhdGlvbiwgdGltZV9mb3JtYXQoYmlsbHNlYywgJyVIOiVpOiVTJykgYXMgYmlsbHNlYywgZGlzcG9zaXRpb24saWYoc3JjPSckTlVNQkVSJywnaW4nLCdvdXQnKSBhcyBkaXJlY3Rpb24gZnJvbSBjZHIgd2hlcmUgKHNyYyBMSUtFICclJE5VTUJFUicgb3IgZHN0IExJS0UgJyUkTlVNQkVSJykgYW5kIGRpc3Bvc2l0aW9uID0gJ0FOU1dFUkVEJyBvcmRlciBieSBjYWxsZGF0ZSBkZXNjIGxpbWl0IDAsMTA=
-                template:
-                  name: lastcalls
-                  custom: false
-                dbconn_id: '2'
-                permission_id: null
-                profiles: []
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationsCustomerCard'
+        '500':
+          description: Internal server error
       operationId: get_cti_customer_card
     post:
-      summary: Create a customer card definition backed by an external query.
+      summary: Create a customer card.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       description: Body includes name, Base64 encoded query, template name, DB connection
         id and profile ids. Generates a permission entry automatically.
       operationId: post_cti_customer_card
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsCustomerCardInput'
   /cti/customer_card/{id}:
     put:
-      summary: Update an existing customer card configuration.
+      summary: Update a customer card.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
       operationId: put_cti_customer_card_id
       parameters:
       - name: id
@@ -1471,21 +1085,20 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsCustomerCardInput'
     delete:
-      summary: Delete a customer card definition and its permission binding.
+      summary: Delete a customer card.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: delete_cti_customer_card_id
       parameters:
       - name: id
@@ -1495,7 +1108,7 @@ paths:
           type: string
   /cti/streaming:
     get:
-      summary: List configured CTI video streaming sources with profile bindings.
+      summary: List the video sources with the profiles allowed to see them.
       tags:
       - CTI
       responses:
@@ -1504,29 +1117,31 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example: []
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationsVideoSource'
+        '500':
+          description: Internal server error
       operationId: get_cti_streaming
     post:
-      summary: Create a new CTI streaming source and permission entry.
+      summary: Create a video source.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: post_cti_streaming
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsVideoSourceInput'
   /cti/paramurls:
     get:
-      summary: Return the current parameterized URL mappings grouped by URL.
+      summary: List the parameterized URLs, one row per URL.
       tags:
       - CTI
       responses:
@@ -1535,21 +1150,22 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example: []
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationsParamUrl'
+        '500':
+          description: Internal server error
       operationId: get_cti_paramurls
   /cti/streaming/{descr}:
     put:
-      summary: Update a streaming source metadata and profile assignments.
+      summary: Update a video source (found by `currentDescr` in the body).
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: put_cti_streaming_descr
       parameters:
       - name: descr
@@ -1558,13 +1174,14 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsVideoSourceInput'
   /cti/sources/test:
     post:
-      summary: Test reachability of a video source by fetching a still frame.
+      summary: Fetch one frame from a video source URL.
       tags:
       - CTI
       responses:
@@ -1573,27 +1190,35 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: string
+                description: Base64 encoded image
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '500':
+          description: Internal server error
       description: 'Body: `{ "url": "http(s)://..." }`. Returns the content encoded
         in Base64 or HTTP 500 on failure.'
       operationId: post_cti_sources_test
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/IntegrationsVideoSourceTestInput'
   /cti/streaming/{name}:
     delete:
-      summary: Delete a streaming source and related permission record.
+      summary: Delete a video source.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: delete_cti_streaming_name
       parameters:
       - name: name
@@ -1643,7 +1268,7 @@ paths:
           type: string
   /devices/gateways/list/{id}:
     get:
-      summary: List scanned and configured gateways for a specific network hash.
+      summary: List the configured gateways. The `id` path parameter is ignored.
       tags:
       - Devices
       responses:
@@ -1652,7 +1277,11 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                type: array
+                items:
+                  $ref: '#/components/schemas/GatewayConfig'
+        '500':
+          description: Internal server error
       operationId: get_devices_gateways_list_id
       parameters:
       - name: id
@@ -1721,63 +1350,11 @@ paths:
             application/json:
               schema:
                 type: object
-              example:
-                Patton:
-                - id: '11'
-                  model: TRI_FXO_2
-                  manufacturer: Patton
-                  tech: fxo
-                  n_pri_trunks: '0'
-                  n_isdn_trunks: '0'
-                  n_fxo_trunks: '2'
-                  n_fxs_ext: '0'
-                  description: TRINITY Analogico 2 Porte FXO
-                  proxy: sip:10.5.4.1:5060;lr
-                  ipv4_green: voice.gs.nethserver.net
-                - id: '12'
-                  model: TRI_FXO_4
-                  manufacturer: Patton
-                  tech: fxo
-                  n_pri_trunks: '0'
-                  n_isdn_trunks: '0'
-                  n_fxo_trunks: '4'
-                  n_fxs_ext: '0'
-                  description: TRINITY Analogico 4 Porte FXO
-                  proxy: sip:10.5.4.1:5060;lr
-                  ipv4_green: voice.gs.nethserver.net
-                - id: '13'
-                  model: TRI_FXO_8
-                  manufacturer: Patton
-                  tech: fxo
-                  n_pri_trunks: '0'
-                  n_isdn_trunks: '0'
-                  n_fxo_trunks: '8'
-                  n_fxs_ext: '0'
-                  description: TRINITY Analogico 8 Porte FXO
-                  proxy: sip:10.5.4.1:5060;lr
-                  ipv4_green: voice.gs.nethserver.net
-                - id: '16'
-                  model: TRI_ISDN_1
-                  manufacturer: Patton
-                  tech: isdn
-                  n_pri_trunks: '0'
-                  n_isdn_trunks: '1'
-                  n_fxo_trunks: '0'
-                  n_fxs_ext: '0'
-                  description: TRINITY ISDN 1 Porta
-                  proxy: sip:10.5.4.1:5060;lr
-                  ipv4_green: voice.gs.nethserver.net
-                - id: '17'
-                  model: TRI_ISDN_2
-                  manufacturer: Patton
-                  tech: isdn
-                  n_pri_trunks: '0'
-                  n_isdn_trunks: '2'
-                  n_fxo_trunks: '0'
-                  n_fxs_ext: '0'
-                  description: TRINITY ISDN 2 Porte
-                  proxy: sip:10.5.4.1:5060;lr
-                  ipv4_green: voice.gs.nethserver.net
+                description: Gateway models grouped by manufacturer
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/GatewayModel'
       operationId: get_devices_gateways_manufacturers
   /devices/phones/reload/{extension}:
     post:
@@ -1837,13 +1414,26 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/GatewaySaveResult'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySaveResult'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySaveResult'
       operationId: post_devices_gateways
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/GatewaySaveRequest'
   /devices/gateways/push:
     post:
       summary: Generate configuration files for a gateway and push them via TFTP helper.
@@ -1855,16 +1445,27 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                status: true
+                $ref: '#/components/schemas/GatewayActionResult'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayActionResult'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayActionResult'
       description: Body requires at least `name` and `mac`. Launches `/lib/tftpPushConfig.php`.
       operationId: post_devices_gateways_push
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/GatewayPushRequest'
   /devices/gateways/{id}:
     delete:
       summary: Remove a gateway configuration, including trunks and provisioning artifacts.
@@ -1876,9 +1477,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                status: true
+                $ref: '#/components/schemas/GatewayActionResult'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayActionResult'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewayActionResult'
       operationId: delete_devices_gateways_id
       parameters:
       - name: id
@@ -1968,24 +1579,51 @@ paths:
               example: []
       operationId: get_mainextensions
     post:
-      summary: Create or map a main extension to a user.
+      summary: Assign, change or remove the main extension of a user.
       tags:
       - Mainextensions
       responses:
         '200':
-          description: Successful response
+          description: Extension removed, no new extension given
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/UsersMessage'
+        '201':
+          description: Extension assigned
+        '403':
+          description: Community version limited to 8 configured users
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '422':
+          description: Extension already in use
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
       description: 'Body: `{ "username": "", "extension": "", "outboundcid": "" }`.
         Enforces community license user limits and triggers a reload.'
       operationId: post_mainextensions
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/UsersMainExtensionRequest'
   /mainextensions/{extension}:
     get:
       summary: Retrieve a single main extension by number.
@@ -2017,10 +1655,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                configured: 1
-                limit: 8
+                $ref: '#/components/schemas/MainExtensionUserLimits'
       operationId: get_mainextensions_userlimits
   /migration/ismigration:
     get:
@@ -2490,7 +2125,7 @@ paths:
               type: object
   /mobiles:
     get:
-      summary: List all stored mobile numbers with usernames.
+      summary: Mobile numbers of the users.
       tags:
       - Mobiles
       responses:
@@ -2499,28 +2134,28 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - mobile: null
-                username: administrator
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsersMobile'
+        '500':
+          description: Internal server error
       operationId: get_mobiles
     post:
-      summary: Create or update a user mobile number.
+      summary: Set the mobile number of a user.
       tags:
       - Mobiles
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: post_mobiles
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/UsersMobileRequest'
   /mobiles/{username}:
     get:
       summary: Fetch the mobile number tied to the given username.
@@ -2560,16 +2195,14 @@ paths:
         schema:
           type: string
     delete:
-      summary: Remove the NethLink extension (and companion mobile extension if present).
+      summary: Disable the desktop app of a user.
       tags:
       - Nethlink
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: delete_nethlink_mainextension
       parameters:
       - name: mainextension
@@ -2579,7 +2212,7 @@ paths:
           type: string
   /nethlink:
     post:
-      summary: Create a new extension and mark it as the NethLink endpoint.
+      summary: Enable the desktop app (NethLink extension) of a user.
       tags:
       - Nethlink
       responses:
@@ -2588,19 +2221,23 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                extension: false
-                mobile_extension: null
+                $ref: '#/components/schemas/UsersDeviceExtension'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
       operationId: post_nethlink
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/UsersSoftwareDeviceRequest'
   /phonebook/fields:
     get:
-      summary: Return the allowed field names for phonebook sources.
+      summary: List the phonebook fields a source column can be mapped to.
       tags:
       - Phonebook
       responses:
@@ -2609,14 +2246,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - cellphone
-              - company
+                type: array
+                items:
+                  type: string
       operationId: get_phonebook_fields
   /phonebook/config:
     get:
-      summary: List configured phonebook sources from `/etc/phonebook/sources.d`.
+      summary: List the external phonebook sources.
       tags:
       - Phonebook
       responses:
@@ -2625,9 +2261,40 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example: []
+                $ref: '#/components/schemas/IntegrationsPhonebookSources'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
       operationId: get_phonebook_config
+    post:
+      summary: Create an external phonebook source.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+      operationId: post_phonebook_config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationsPhonebookSourceInput'
   /phonebook/config[/{id}]:
     post:
       summary: Create or update a phonebook source definition.
@@ -2655,16 +2322,19 @@ paths:
               type: object
   /phonebook/config/{id}:
     delete:
-      summary: Delete a phonebook source and purge imported contacts.
+      summary: Delete an external phonebook source and the contacts imported from
+        it.
       tags:
       - Phonebook
       responses:
         '200':
           description: Successful response
+        '500':
+          description: Internal server error
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/IntegrationsStatusError'
       operationId: delete_phonebook_config_id
       parameters:
       - name: id
@@ -2672,37 +2342,26 @@ paths:
         required: true
         schema:
           type: string
-  /phonebook/test:
     post:
-      summary: Validate a phonebook source configuration and preview sample data.
+      summary: Replace an external phonebook source.
       tags:
       - Phonebook
       responses:
         '200':
           description: Successful response
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
-                type: object
-      operationId: post_phonebook_test
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-  /phonebook/syncnow/{id}:
-    post:
-      summary: Trigger an immediate synchronization of a specific source.
-      tags:
-      - Phonebook
-      responses:
-        '200':
-          description: Successful response
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '500':
+          description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-      operationId: post_phonebook_syncnow_id
+                $ref: '#/components/schemas/IntegrationsStatusError'
+      operationId: post_phonebook_config_id
       parameters:
       - name: id
         in: path
@@ -2710,13 +2369,14 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
-  /phonebook/uploadfile:
+              $ref: '#/components/schemas/IntegrationsPhonebookSourceInput'
+  /phonebook/test:
     post:
-      summary: Upload a CSV file for use as a local phonebook source.
+      summary: Read the first rows of a phonebook source without saving it.
       tags:
       - Phonebook
       responses:
@@ -2725,15 +2385,90 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/IntegrationsPhonebookTestResult'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+      operationId: post_phonebook_test
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationsPhonebookTestInput'
+  /phonebook/syncnow/{id}:
+    post:
+      summary: Import a phonebook source now (synchronous).
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+      operationId: post_phonebook_syncnow_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+  /phonebook/uploadfile:
+    post:
+      summary: Upload a CSV file to be used as a phonebook source.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsPhonebookUploadResult'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
       description: Returns the `file://` URI to reference in subsequent configuration
         calls.
       operationId: post_phonebook_uploadfile
       requestBody:
+        required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
   /phonebook/ldap:
     get:
       summary: Return system LDAP phonebook connection details for clients.
@@ -2862,24 +2597,33 @@ paths:
                 intercom: enabled
       operationId: get_physicalextensions
     post:
-      summary: Create or associate a physical extension with a main extension.
+      summary: Add a phone to the inventory or assign it to a user creating its physical
+        extension.
       tags:
       - Physicalextensions
       responses:
         '200':
-          description: Successful response
+          description: The created extension. The body is empty when the phone is
+            added without `mainextension`.
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/PhonesPhysicalExtensionResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhonesStatusError'
       description: Body supports keys like `mainextension`, `mac`, `model`, `line`,
         `web_user`, `web_password` and `clear_temporary`.
       operationId: post_physicalextensions
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/PhonesPhysicalExtensionRequest'
   /physicalextensions/{extension}:
     get:
       summary: Return details for a specific physical extension.
@@ -2902,17 +2646,15 @@ paths:
           type: string
   /physicalextensions/{id}:
     delete:
-      summary: Delete a physical extension by extension number or MAC address.
+      summary: Delete a physical extension by extension number, or a phone and its
+        extension by MAC address (`AA-BB-CC-DD-EE-FF`).
       tags:
       - Physicalextensions
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
-              example: {}
+        '500':
+          description: Internal server error
       operationId: delete_physicalextensions_id
       parameters:
       - name: id
@@ -2928,28 +2670,27 @@ paths:
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
       operationId: post_physicalextensions_adminpw
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/PhonesAdminPasswordRequest'
   /physicalextensions/{mac}:
     patch:
-      summary: Update the stored model for a provisioned MAC address.
+      summary: Update the stored model for a provisioned MAC address (`AA-BB-CC-DD-EE-FF`).
       tags:
       - Physicalextensions
       responses:
         '200':
           description: Successful response
+        '500':
+          description: Internal server error
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/PhonesStatusError'
       operationId: patch_physicalextensions_mac
       parameters:
       - name: mac
@@ -2958,13 +2699,14 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/PhonesModelRequest'
   /mobileapp:
     post:
-      summary: Create a mobile app companion extension for a main extension.
+      summary: Enable the mobile app extension of a user.
       tags:
       - Physicalextensions
       responses:
@@ -2974,12 +2716,25 @@ paths:
             application/json:
               schema:
                 type: object
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersDeviceExtension'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
       operationId: post_mobileapp
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/UsersMobileAppRequest'
   /mobileapp/{mainextension}:
     get:
       summary: Retrieve the mobile app extension bound to a main extension.
@@ -3002,18 +2757,21 @@ paths:
           type: string
   /mobileapp/{extension}:
     delete:
-      summary: Delete a mobile app extension.
+      summary: Delete a mobile app extension (the extension of the device, not the
+        main one).
       tags:
       - Physicalextensions
       responses:
         '204':
-          description: No content (deleted)
+          description: No content
         '200':
           description: Successful response
           content:
             application/json:
               schema:
                 type: object
+        '500':
+          description: Internal server error
       operationId: delete_mobileapp_extension
       parameters:
       - name: extension
@@ -3080,15 +2838,14 @@ paths:
             application/json:
               schema:
                 type: array
-              example:
-              - id: '1'
-                provider: activenetwork
-                description: Active Network
-                codecs: ulaw,alaw
-              - id: '2'
-                provider: clouditalia
-                description: Clouditalia
-                codecs: ulaw,alaw,gsm,g726,g722,g729
+                items:
+                  $ref: '#/components/schemas/TrunkProvider'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
       operationId: get_providers
   /phones/reconfigure:
     post:
@@ -3098,16 +2855,22 @@ paths:
       responses:
         '200':
           description: Successful response
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/PhonesErrorMessage'
+        '500':
+          description: The phone could not be notified, for example because it is
+            not registered.
       operationId: post_phones_reconfigure
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/PhonesReconfigureRequest'
   /phones/rps/{mac}:
     post:
       summary: Register a phone MAC against the Falconieri remote provisioning service.
@@ -3116,10 +2879,9 @@ paths:
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '400':
+          description: Missing URL or vendor not supported by the remote provisioning
+            service.
       description: 'Body: `{ "url": "https://.../{mac}.cfg" }`.'
       operationId: post_phones_rps_mac
       parameters:
@@ -3129,10 +2891,11 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/PhonesRpsRequest'
   /phones/account/{mac}:
     get:
       summary: Return the extension and secret associated with a provisioned MAC.
@@ -3218,10 +2981,6 @@ paths:
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
       operationId: post_extensions_extension_srtp_enabled
       parameters:
       - name: extension
@@ -3234,11 +2993,9 @@ paths:
         required: true
         schema:
           type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
+          enum:
+          - 'true'
+          - 'false'
   /provisioning/connectivitycheck:
     post:
       summary: Legacy placeholder that always reports provisioning connectivity as
@@ -3273,7 +3030,12 @@ paths:
             application/json:
               schema:
                 type: integer
-              example: 1
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
       operationId: get_inboundroutes_count
   /inboundroutes:
     get:
@@ -3286,63 +3048,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                destinations:
-                  app-blackhole,hangup,1:
-                    destination: app-blackhole,hangup,1
-                    description: Hangup
-                    category: Terminate Call
-                    id: blackhole
-                    module: core
-                    name: Terminate Call
-                    edit_url: ''
-                  app-blackhole,congestion,1:
-                    destination: app-blackhole,congestion,1
-                    description: Congestion
-                    category: Terminate Call
-                    id: blackhole
-                    module: core
-                    name: Terminate Call
-                    edit_url: ''
-                  app-blackhole,busy,1:
-                    destination: app-blackhole,busy,1
-                    description: Busy
-                    category: Terminate Call
-                    id: blackhole
-                    module: core
-                    name: Terminate Call
-                    edit_url: ''
-                  from-internal,${EXTEN},1:
-                    destination: from-internal,${EXTEN},1
-                    description: Full Internal Access
-                    module: customcontexts
-                    name: Custom Contexts
-                    edit_url: ''
-                  cti-profile-3,${EXTEN},1:
-                    destination: cti-profile-3,${EXTEN},1
-                    description: CTI Profile Advanced
-                    module: customcontexts
-                    name: Custom Contexts
-                    edit_url: ''
-                routes:
-                - cidnum: ''
-                  extension: ''
-                  destination: null
-                  privacyman: '0'
-                  alertinfo: ''
-                  ringing: ''
-                  fanswer: ''
-                  mohclass: default
-                  description: ''
-                  grppre: ''
-                  delay_answer: '0'
-                  pricid: ''
-                  pmmaxretries: '3'
-                  pmminlength: '10'
-                  reversal: ''
-                  rvolume: '0'
-                  indication_zone: default
+                $ref: '#/components/schemas/RoutesInboundRoutesResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
       operationId: get_inboundroutes
     post:
       summary: Create a new inbound route.
@@ -3368,17 +3080,22 @@ paths:
       - Routes
       responses:
         '200':
-          description: Successful response
+          description: Route deleted, empty body
+        '404':
+          description: No route with this number and caller ID
+        '500':
+          description: Internal server error
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/LegacyError'
       operationId: post_inboundroutes_delete
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/RoutesInboundRouteDeleteRequest'
   /outboundroutes/count:
     get:
       summary: Return the number of outbound routes.
@@ -3391,7 +3108,12 @@ paths:
             application/json:
               schema:
                 type: integer
-              example: 0
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
       operationId: get_outboundroutes_count
   /outboundroutes:
     get:
@@ -3404,8 +3126,15 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example: []
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoutesOutboundRoute'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
       operationId: get_outboundroutes
     post:
       summary: Create or reorder outbound routes and trunk bindings.
@@ -3413,17 +3142,20 @@ paths:
       - Routes
       responses:
         '200':
-          description: Successful response
+          description: Routes saved, empty body
+        '500':
+          description: Internal server error
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/LegacyError'
       operationId: post_outboundroutes
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/RoutesOutboundSaveRequest'
   /outboundroutes/defaults:
     get:
       summary: Provide locale-specific template routes and trunk suggestions.
@@ -3435,26 +3167,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                de:
-                - name: national_de
-                  trunks: []
-                - name: cellphone_de
-                  trunks: []
-                - name: international_de
-                  trunks: []
-                - name: toll_de
-                  trunks: []
-                en:
-                - name: national_en
-                  trunks: []
-                - name: cellphone_en
-                  trunks: []
-                - name: international_en
-                  trunks: []
-                - name: toll_en
-                  trunks: []
+                $ref: '#/components/schemas/RoutesOutboundDefaults'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
       operationId: get_outboundroutes_defaults
   /outboundroutes/{route_id}/trunks/{id}:
     delete:
@@ -3482,7 +3201,7 @@ paths:
           type: string
   /outboundroutes/supportedLocales:
     get:
-      summary: List locales for which default outbound routes are defined.
+      summary: List the dial plan locales that have default outbound routes.
       tags:
       - Routes
       responses:
@@ -3491,10 +3210,15 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-              - de
-              - en
+                type: array
+                items:
+                  type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
       operationId: get_outboundroutes_supportedLocales
   /settings/language:
     post:
@@ -3522,16 +3246,15 @@ paths:
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: post_settings_defaultlanguage
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/DefaultLanguageRequest'
   /settings/languages:
     get:
       summary: Report installed languages and which one is default.
@@ -3539,16 +3262,13 @@ paths:
       - Settings
       responses:
         '200':
-          description: Successful rqesponse
+          description: Successful response
           content:
             application/json:
               schema:
-                type: object
-              example:
-                it:
-                  default: false
-                en:
-                  default: true
+                $ref: '#/components/schemas/PbxLanguages'
+        '500':
+          description: Internal server error
       operationId: get_settings_languages
   /settings/conferenceurl:
     get:
@@ -3598,6 +3318,12 @@ paths:
               schema:
                 type: integer
               example: 0
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
       operationId: get_trunks_count
   /trunks:
     get:
@@ -3611,7 +3337,14 @@ paths:
             application/json:
               schema:
                 type: array
-              example: []
+                items:
+                  $ref: '#/components/schemas/Trunk'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
       operationId: get_trunks
     post:
       summary: Create a new PJSIP trunk from a provider template.
@@ -3619,17 +3352,23 @@ paths:
       - Trunks
       responses:
         '200':
-          description: Successful response
+          description: Trunk created. The body is empty.
+        '400':
+          description: Missing or invalid parameter. The body is empty when a parameter
+            is missing.
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/LegacyError'
+        '500':
+          description: Internal server error
       operationId: post_trunks
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/TrunkCreateRequest'
   /trunks/{tech}:
     get:
       summary: Filter trunks by technology (e.g., pjsip, dahdi).
@@ -3656,11 +3395,9 @@ paths:
       - Trunks
       responses:
         '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+          description: Trunk deleted. The body is empty.
+        '500':
+          description: Internal server error
       operationId: delete_trunks_trunkid
       parameters:
       - name: trunkid
@@ -3675,11 +3412,21 @@ paths:
       - Trunks
       responses:
         '200':
-          description: Successful response
+          description: Not used, the handler answers 204.
+        '204':
+          description: Trunk updated
+        '400':
+          description: Bad request
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/LegacyError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
       operationId: patch_trunks_trunkid
       parameters:
       - name: trunkid
@@ -3688,10 +3435,11 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/TrunkUpdateRequest'
   /final:
     get:
       summary: Return the final wizard report with generated user credentials.
@@ -3722,7 +3470,7 @@ paths:
       operationId: get_users_count
   /users/sync:
     get:
-      summary: Report whether a user synchronization job is currently running.
+      summary: Tell whether a sync of the users with the account provider is running.
       tags:
       - Users
       responses:
@@ -3732,28 +3480,20 @@ paths:
             application/json:
               schema:
                 type: boolean
-              example: false
       operationId: get_users_sync
     post:
-      summary: Trigger a background user synchronization from the provider.
+      summary: Start a sync of the users with the account provider in background.
       tags:
       - Users
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
       operationId: post_users_sync
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
   /users/{all}:
     get:
-      summary: List all users and optionally force a sync when `{all}` equals `true`.
+      summary: 'List the users. `true`: all users, forcing a sync with the account
+        provider in background. `false`: only users with a main extension. Any other
+        value (`all`): all users without forcing a sync.'
       tags:
       - Users
       responses:
@@ -3763,7 +3503,8 @@ paths:
             application/json:
               schema:
                 type: array
-              example: []
+                items:
+                  $ref: '#/components/schemas/UsersUser'
       operationId: get_users_all
       parameters:
       - name: all
@@ -3771,6 +3512,10 @@ paths:
         required: true
         schema:
           type: string
+          enum:
+          - 'true'
+          - 'false'
+          - all
   /users:
     post:
       summary: Create or update an LDAP user (legacy mode).
@@ -3793,7 +3538,8 @@ paths:
               type: object
   /users/{username}/password:
     post:
-      summary: Set the password for a user (or FreePBX admin).
+      summary: Set the password of the FreePBX administrator (`admin`) or, in legacy
+        mode only, of a user.
       tags:
       - Users
       responses:
@@ -3803,6 +3549,15 @@ paths:
             application/json:
               schema:
                 type: object
+        '201':
+          description: Password changed
+        '422':
+          description: Unknown user, or the legacy password command failed (always
+            the case for non-admin users on NS8)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SettingsPasswordError'
       operationId: post_users_username_password
       parameters:
       - name: username
@@ -3811,10 +3566,11 @@ paths:
         schema:
           type: string
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/SettingsAdminPasswordRequest'
     get:
       summary: Return the stored clear-text password for a user when available.
       tags:
@@ -3835,24 +3591,23 @@ paths:
           type: string
   /csv/csvimport:
     post:
-      summary: Start the asynchronous CSV import job for users.
+      summary: Start the import of users from a CSV in background.
       tags:
       - Users
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: post_csv_csvimport
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/UsersCsvImportRequest'
     get:
-      summary: Poll the status of the ongoing CSV import.
+      summary: Progress of the running CSV import.
       tags:
       - Users
       responses:
@@ -3861,11 +3616,24 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/UsersCsvImportProgress'
+        '422':
+          description: No import is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
+        '500':
+          description: Import ended with errors, listed in status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
       operationId: get_csv_csvimport
   /csv/csvexport:
     get:
-      summary: Export current users to CSV (Base64 encoded string).
+      summary: Export the users as base64 of a CSV without header (same columns of
+        the import, without nethlink).
       tags:
       - Users
       responses:
@@ -3875,11 +3643,13 @@ paths:
             application/json:
               schema:
                 type: string
-              example: ImdpYWNvbW8iLCJHaWFjb21vIFJvc3NpIiwibm9uZSIsIiIsIiIsIkZBTFNFIiwiRkFMU0UiLCIiLCIiDQoic2FtcGxlIiwiU2FtcGxlIFVzZXIiLCIyMDEiLCIiLCIiLCJGQUxTRSIsIlRSVUUiLCIiLCIiDQo=
+        '500':
+          description: Internal server error
       operationId: get_csv_csvexport
   /voicemails:
     get:
-      summary: List all voicemail boxes defined in the default context.
+      summary: Voicemail boxes of the default context keyed by extension (an empty
+        array when there is none).
       tags:
       - Voicemails
       responses:
@@ -3888,11 +3658,19 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-              example: []
+                oneOf:
+                - type: object
+                  additionalProperties:
+                    type: object
+                    additionalProperties: true
+                - type: array
+                  maxItems: 0
+                  items: {}
+        '500':
+          description: Internal server error
       operationId: get_voicemails
     post:
-      summary: Enable or disable voicemail for an extension.
+      summary: Enable or disable the voicemail box of an extension.
       tags:
       - Voicemails
       responses:
@@ -3901,13 +3679,22 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/CtiStatusFlag'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
+        '500':
+          description: Internal server error
       operationId: post_voicemails
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/UsersVoicemailRequest'
   /voicemails/{extension}:
     get:
       summary: Return the voicemail configuration for a specific extension.
@@ -3948,17 +3735,14 @@ paths:
         schema:
           type: string
     delete:
-      summary: Remove the WebRTC extension bound to the main extension (and companion
-        mobile extension if present).
+      summary: Disable the Web phone of a user.
       tags:
       - Webrtc
       responses:
         '200':
           description: Successful response
-          content:
-            application/json:
-              schema:
-                type: object
+        '500':
+          description: Internal server error
       operationId: delete_webrtc_mainextension
       parameters:
       - name: mainextension
@@ -3968,7 +3752,7 @@ paths:
           type: string
   /webrtc:
     post:
-      summary: Create a WebRTC extension and associate it with the provided main extension.
+      summary: Enable the Web phone (WebRTC extension) of a user.
       tags:
       - Webrtc
       responses:
@@ -3977,16 +3761,47 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example:
-                extension: false
-                mobile_extension: null
+                $ref: '#/components/schemas/UsersDeviceExtension'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
       operationId: post_webrtc
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/UsersSoftwareDeviceRequest'
+  /devices/gateways/download/{name}/{mac}:
+    get:
+      summary: Generate the configuration file of a gateway and return it Base64 encoded.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Base64 encoded configuration file
+        '500':
+          description: Internal server error
+      operationId: get_devices_gateways_download_name_mac
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
 components:
   securitySchemes:
     FreePBXAuth:
@@ -4005,6 +3820,1581 @@ components:
         error:
           type: string
         message:
+          type: string
+    LegacyError:
+      type: object
+      description: Error body returned by the legacy handlers.
+      properties:
+        error:
+          type: string
+    TestAuthRequest:
+      type: object
+      required:
+      - username
+      - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+    TestAuthResponse:
+      type: object
+      required:
+      - result
+      properties:
+        result:
+          type: string
+          description: Shared secret used to compute the Secretkey header.
+    SuccessFlag:
+      type: object
+      required:
+      - success
+      properties:
+        success:
+          type: boolean
+    WizardState:
+      type: object
+      required:
+      - step
+      - status
+      properties:
+        step:
+          oneOf:
+          - type: integer
+          - type: string
+          description: Wizard step reached. 13 is the final step.
+        status:
+          type: string
+          nullable: true
+          description: '"true" while the wizard is in progress, "false" once completed.'
+    WizardStateRequest:
+      type: object
+      required:
+      - step
+      - status
+      properties:
+        step:
+          type: integer
+          minimum: 0
+          maximum: 13
+          description: Saving step 13 restarts Asterisk, nethcti-server and nethcti-middleware.
+        status:
+          type: string
+          enum:
+          - 'true'
+          - 'false'
+    PbxLanguages:
+      type: object
+      description: Installed PBX languages, keyed by language code.
+      additionalProperties:
+        type: object
+        required:
+        - default
+        properties:
+          default:
+            type: boolean
+    DefaultLanguageRequest:
+      type: object
+      required:
+      - lang
+      properties:
+        lang:
+          type: string
+          description: Language code, as returned by GET /settings/languages.
+    TrunkDetails:
+      type: object
+      description: Technology parameters of the trunk (`pjsip` table for PJSIP trunks).
+        Every value is a string. The legacy handler also returns `secret`, which clients
+        must never display or store.
+      properties:
+        codecs:
+          type: string
+          description: Comma separated list of allowed codecs
+          example: alaw,ulaw
+        sip_server:
+          type: string
+        sip_server_port:
+          type: string
+        username:
+          type: string
+        registration:
+          type: string
+          example: send
+        authentication:
+          type: string
+          example: outbound
+      additionalProperties:
+        type: string
+        nullable: true
+    Trunk:
+      type: object
+      required:
+      - trunkid
+      - tech
+      - name
+      properties:
+        trunkid:
+          type: integer
+        tech:
+          type: string
+          example: pjsip
+        channelid:
+          type: string
+        name:
+          type: string
+        outcid:
+          type: string
+          description: Phone number of the trunk (outbound caller ID)
+        keepcid:
+          type: string
+        maxchans:
+          type: string
+        failscript:
+          type: string
+        dialoutprefix:
+          type: string
+        usercontext:
+          type: string
+        provider:
+          type: string
+          description: Provider identifier. Empty for the trunks created by `POST
+            /trunks`.
+        disabled:
+          type: string
+          enum:
+          - 'on'
+          - 'off'
+        continue:
+          type: string
+        routedisplay:
+          type: string
+        dialopts:
+          oneOf:
+          - type: boolean
+          - type: string
+        username:
+          type: string
+          nullable: true
+        details:
+          $ref: '#/components/schemas/TrunkDetails'
+    TrunkCreateRequest:
+      type: object
+      required:
+      - provider
+      - username
+      - password
+      - phone
+      - codecs
+      - forceCodec
+      properties:
+        provider:
+          type: string
+          description: Provider identifier from `GET /providers`
+          example: twt
+        name:
+          type: string
+          description: Trunk name. It becomes the PJSIP endpoint name. Defaults to
+            the provider identifier.
+          example: main_trunk
+        username:
+          type: string
+        password:
+          type: string
+        phone:
+          type: string
+          example: '0721405516'
+        codecs:
+          type: array
+          items:
+            type: string
+          description: Preferred codecs. An empty list keeps the provider defaults.
+        forceCodec:
+          type: boolean
+          description: When true only `codecs` are allowed. When false they are merged
+            with the provider defaults.
+    TrunkUpdateRequest:
+      type: object
+      description: Only the fields that are present are changed.
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          description: New SIP secret. An empty string clears the secret.
+        phone:
+          type: string
+        codecs:
+          type: array
+          items:
+            type: string
+        forceCodec:
+          type: boolean
+    TrunkProvider:
+      type: object
+      required:
+      - id
+      - provider
+      - description
+      properties:
+        id:
+          type: integer
+        provider:
+          type: string
+          example: twt
+        description:
+          type: string
+          example: TWT
+        codecs:
+          type: string
+          nullable: true
+          description: Comma separated default codecs of the provider
+          example: ulaw,alaw,g729
+    TrunkCodec:
+      type: object
+      required:
+      - codec
+      - enabled
+      properties:
+        codec:
+          type: string
+          example: alaw
+        enabled:
+          type: boolean
+    GatewayModel:
+      type: object
+      required:
+      - id
+      - model
+      - manufacturer
+      - description
+      properties:
+        id:
+          type: integer
+        model:
+          type: string
+          example: TRI_ISDN_2
+        manufacturer:
+          type: string
+          example: Patton
+        tech:
+          type: string
+          example: isdn
+        n_pri_trunks:
+          type: integer
+        n_isdn_trunks:
+          type: integer
+        n_fxo_trunks:
+          type: integer
+        n_fxs_ext:
+          type: integer
+        description:
+          type: string
+          example: TRINITY ISDN 2 Porte
+        proxy:
+          type: string
+          example: sip:10.5.4.1:5060;lr
+        ipv4_green:
+          type: string
+          description: Default PBX address (`NETHVOICE_HOST`)
+          example: voice.example.org
+    GatewayIsdnPort:
+      type: object
+      properties:
+        name:
+          type: integer
+          description: 'On read: identifier of the trunk created for the port. On
+            write: port number.'
+        type:
+          type: string
+          enum:
+          - pp
+          - pmp
+          description: Point-to-point or point-to-multipoint
+    GatewayPriPort:
+      type: object
+      properties:
+        name:
+          type: integer
+          description: Port number (write only)
+        linked_trunk:
+          type: integer
+          description: Identifier of the trunk created for the port (read only)
+    GatewayFxoPort:
+      type: object
+      properties:
+        name:
+          type: integer
+          description: Port number (write only)
+        number:
+          type: string
+          nullable: true
+          description: Phone number of the analog line
+        linked_trunk:
+          type: integer
+          description: Identifier of the trunk created for the port (read only)
+    GatewayFxsPort:
+      type: object
+      properties:
+        name:
+          type: integer
+          description: Port number (write only)
+        linked_extension:
+          type: string
+          nullable: true
+          description: Main extension of the user connected to the port
+    GatewayConfig:
+      type: object
+      required:
+      - id
+      - model
+      - mac
+      properties:
+        id:
+          type: integer
+        model_id:
+          type: integer
+        model:
+          type: integer
+          description: Same as `model_id`
+        manufacturer:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        ipv4:
+          type: string
+          nullable: true
+        ipv4_new:
+          type: string
+          nullable: true
+          description: IP address of the device
+        gateway:
+          type: string
+          nullable: true
+        ipv4_green:
+          type: string
+          nullable: true
+          description: PBX address
+        netmask_green:
+          type: string
+          nullable: true
+        mac:
+          type: string
+          nullable: true
+          example: 00:A0:BA:0B:1C:DD
+        proxy:
+          type: string
+          nullable: true
+        isConfigured:
+          type: boolean
+        isConnected:
+          type: boolean
+          description: Always false today (no device scan)
+        trunks_isdn:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayIsdnPort'
+        trunks_pri:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayPriPort'
+        trunks_fxo:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayFxoPort'
+        trunks_fxs:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayFxsPort'
+    GatewaySaveRequest:
+      type: object
+      required:
+      - name
+      - model
+      - mac
+      - ipv4_new
+      - netmask_green
+      - gateway
+      - ipv4_green
+      properties:
+        name:
+          type: string
+          description: Configuration name. A name containing ` TLS ` enables SRTP
+            on the FXS extensions.
+          example: Patton-TRINITY ISDN 2 Porte
+        model:
+          type: integer
+          description: Model identifier from `GET /devices/gateways/manufacturers`
+        manufacturer:
+          type: string
+        mac:
+          type: string
+          example: 00:A0:BA:0B:1C:DD
+        ipv4:
+          type: string
+        ipv4_new:
+          type: string
+          description: IP address of the device
+          example: 192.168.1.20
+        netmask_green:
+          type: string
+          example: 255.255.255.0
+        gateway:
+          type: string
+          example: 192.168.1.1
+        ipv4_green:
+          type: string
+          description: PBX address
+        proxy:
+          type: string
+        trunks_isdn:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayIsdnPort'
+        trunks_pri:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayPriPort'
+        trunks_fxo:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayFxoPort'
+        trunks_fxs:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayFxsPort'
+    GatewaySaveResult:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        infos:
+          type: array
+          items:
+            type: string
+        id:
+          type: integer
+          description: Identifier of the saved configuration (only on success)
+    GatewayPushRequest:
+      type: object
+      required:
+      - name
+      - mac
+      properties:
+        name:
+          type: string
+        mac:
+          type: string
+    GatewayActionResult:
+      type: object
+      properties:
+        status:
+          oneOf:
+          - type: boolean
+          - type: string
+          description: '`true` on success, `false` or an error message on failure'
+        error:
+          type: string
+    HostNetwork:
+      type: object
+      properties:
+        network:
+          type: string
+          example: 192.168.5.0
+        ip:
+          type: string
+          example: 192.168.5.14
+        netmask:
+          type: string
+          example: 255.255.255.0
+        gateway:
+          type: string
+          example: 192.168.5.1
+    RoutesInboundDestination:
+      type: object
+      description: A FreePBX destination, as returned by Modules::getDestinations().
+      required:
+      - destination
+      - description
+      properties:
+        destination:
+          type: string
+          description: Dialplan target, e.g. `ext-queues,401,1`.
+        description:
+          type: string
+        category:
+          type: string
+        id:
+          type: string
+        module:
+          type: string
+        name:
+          type: string
+        edit_url:
+          type: string
+    RoutesInboundRoute:
+      type: object
+      description: A row of the FreePBX `incoming` table. Only the fields used by
+        the UI are listed.
+      required:
+      - extension
+      - cidnum
+      additionalProperties: true
+      properties:
+        extension:
+          type: string
+          description: DID number of the route.
+        cidnum:
+          type: string
+          description: Caller ID the route is restricted to, empty for any caller.
+        description:
+          type: string
+          nullable: true
+        destination:
+          type: string
+          nullable: true
+          description: Key of the `destinations` map.
+    RoutesInboundRoutesResponse:
+      type: object
+      required:
+      - destinations
+      - routes
+      properties:
+        destinations:
+          description: Map keyed by dialplan target. An empty map is serialized as
+            an empty array.
+          oneOf:
+          - type: object
+            additionalProperties:
+              $ref: '#/components/schemas/RoutesInboundDestination'
+          - type: array
+            maxItems: 0
+            items: {}
+        routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutesInboundRoute'
+    RoutesInboundRouteDeleteRequest:
+      type: object
+      required:
+      - extension
+      properties:
+        extension:
+          type: string
+        cid:
+          type: string
+          description: Caller ID of the route, empty for any caller.
+    RoutesOutboundTrunk:
+      type: object
+      required:
+      - trunkid
+      properties:
+        trunkid:
+          type: integer
+        name:
+          type: string
+          nullable: true
+    RoutesOutboundRoute:
+      type: object
+      description: A FreePBX outbound route with its trunks in priority order. Only
+        the fields used by the UI are listed.
+      required:
+      - route_id
+      - name
+      - trunks
+      additionalProperties: true
+      properties:
+        route_id:
+          type: integer
+        name:
+          type: string
+          description: Default routes are named `<kind>_<locale>`, e.g. `national_it`.
+        seq:
+          type: integer
+          description: Position of the route in the dialplan.
+        trunks:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutesOutboundTrunk'
+    RoutesOutboundDefaultRoute:
+      type: object
+      required:
+      - name
+      - trunks
+      properties:
+        name:
+          type: string
+        trunks:
+          type: array
+          description: Every trunk of the PBX, except the DAHDI trunk created by FreePBX.
+          items:
+            $ref: '#/components/schemas/RoutesOutboundTrunk'
+    RoutesOutboundDefaults:
+      description: Default routes keyed by dial plan locale. An empty map is serialized
+        as an empty array.
+      oneOf:
+      - type: object
+        additionalProperties:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutesOutboundDefaultRoute'
+      - type: array
+        maxItems: 0
+        items: {}
+    RoutesOutboundSaveRoute:
+      type: object
+      required:
+      - name
+      - trunks
+      properties:
+        route_id:
+          type: integer
+          description: Present on every route to update them, absent on every route
+            to create the defaults.
+        name:
+          type: string
+        trunks:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoutesOutboundTrunk'
+    RoutesOutboundSaveRequest:
+      type: object
+      description: A single key, the dial plan locale, holding the list of routes.
+        When the first route has no `route_id` the default routes of that locale are
+        created with the given trunks. Otherwise every listed route gets its array
+        index as position and its trunks replaced, so the list must contain all the
+        routes in their current order.
+      minProperties: 1
+      maxProperties: 1
+      additionalProperties:
+        type: array
+        minItems: 1
+        items:
+          $ref: '#/components/schemas/RoutesOutboundSaveRoute'
+    CtiStatusFlag:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: boolean
+    CtiGroup:
+      type: object
+      required:
+      - id
+      - name
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    CtiGroupCreateRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          description: Group name. An existing name returns the id of the existing
+            group.
+    CtiGroupMember:
+      type: object
+      required:
+      - user_id
+      - name
+      properties:
+        user_id:
+          type: integer
+          description: Userman user id.
+        name:
+          type: string
+          description: Name of the group.
+    CtiUserGroupsRequest:
+      type: object
+      required:
+      - groups
+      properties:
+        groups:
+          type: array
+          description: 'Ids of all the groups of the user: previous memberships are
+            replaced.'
+          items:
+            type: integer
+    CtiPermission:
+      type: object
+      required:
+      - name
+      - value
+      properties:
+        id:
+          type: integer
+          nullable: true
+          description: Null for a permission that is not stored yet, such as the queue
+            of a Queue Manager.
+        name:
+          type: string
+        displayname:
+          type: string
+        description:
+          type: string
+        value:
+          type: boolean
+    CtiMacroPermission:
+      type: object
+      required:
+      - value
+      properties:
+        value:
+          type: boolean
+        displayname:
+          type: string
+        description:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CtiPermission'
+    CtiOutboundRoutePermission:
+      type: object
+      required:
+      - route_id
+      - name
+      - permission
+      properties:
+        route_id:
+          type: integer
+        name:
+          type: string
+        permission:
+          type: boolean
+    CtiProfile:
+      type: object
+      required:
+      - id
+      - name
+      - macro_permissions
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        macro_permissions:
+          type: object
+          description: Macro permissions keyed by name (settings, phonebook, cdr,
+            customer_card, presence_panel, queue_agent, streaming, off_hour, remote_sites,
+            qmanager, operator_panel, nethvoice_cti).
+          additionalProperties:
+            $ref: '#/components/schemas/CtiMacroPermission'
+        outbound_routes_permissions:
+          type: array
+          description: One entry per outbound route. Missing when no outbound route
+            exists.
+          items:
+            $ref: '#/components/schemas/CtiOutboundRoutePermission'
+    CtiProfileRequest:
+      type: object
+      required:
+      - macro_permissions
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+          description: 'Used only when creating: an existing profile cannot be renamed.'
+        macro_permissions:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CtiMacroPermission'
+        outbound_routes_permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/CtiOutboundRoutePermission'
+    CtiProfileCreated:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          description: Id of the new profile.
+          oneOf:
+          - type: integer
+          - type: string
+    CtiUserProfileRequest:
+      type: object
+      required:
+      - profile_id
+      properties:
+        profile_id:
+          type: integer
+    MainExtensionUserLimits:
+      type: object
+      required:
+      - configured
+      - limit
+      - configurable
+      properties:
+        configured:
+          type: integer
+          description: Users with a main extension.
+        limit:
+          description: Maximum number of configurable users, false when a subscription
+            is active.
+          oneOf:
+          - type: integer
+          - type: boolean
+        configurable:
+          description: Users that can still be configured, false when a subscription
+            is active.
+          oneOf:
+          - type: integer
+          - type: boolean
+    IntegrationsStatusError:
+      type: object
+      description: 'Legacy error body: `status` carries the message, or `false` when
+        an import or a test failed.'
+      properties:
+        status:
+          oneOf:
+          - type: string
+          - type: boolean
+    IntegrationsPhonebookSource:
+      type: object
+      description: One external phonebook source stored under /etc/phonebook/sources.d.
+        The fields that are present depend on `dbtype`.
+      required:
+      - dbtype
+      properties:
+        dbtype:
+          type: string
+          description: mysql, mssql, csv or infinity
+        host:
+          type: string
+        port:
+          oneOf:
+          - type: string
+          - type: integer
+        user:
+          type: string
+        password:
+          type: string
+          description: Returned in clear text
+        dbname:
+          type: string
+        query:
+          type: string
+        url:
+          type: string
+        username:
+          type: string
+        mapping:
+          type: object
+          description: Source column name to phonebook field name
+          additionalProperties:
+            type: string
+        interval:
+          oneOf:
+          - type: string
+          - type: integer
+          description: Synchronization interval in minutes
+        type:
+          type: string
+          description: Free-text name of the source
+        access:
+          type: string
+          description: '`public` or `group:<comma separated CTI group names>`'
+        enabled:
+          type: boolean
+    IntegrationsPhonebookSources:
+      description: Sources keyed by id (`custom_<n>`). An empty JSON array is returned
+        when no source exists.
+      oneOf:
+      - type: object
+        additionalProperties:
+          $ref: '#/components/schemas/IntegrationsPhonebookSource'
+      - type: array
+        maxItems: 0
+        items: {}
+    IntegrationsPhonebookSourceInput:
+      type: object
+      required:
+      - dbtype
+      - type
+      properties:
+        dbtype:
+          type: string
+          enum:
+          - mysql
+          - mssql
+          - csv
+          - infinity
+        host:
+          type: string
+        port:
+          type: string
+        user:
+          type: string
+        password:
+          type: string
+        dbname:
+          type: string
+        query:
+          type: string
+        url:
+          type: string
+        username:
+          type: string
+        mapping:
+          type: object
+          additionalProperties:
+            type: string
+        interval:
+          type: integer
+          description: Minutes, 1440 when omitted
+        type:
+          type: string
+          description: Free-text name of the source
+        access:
+          type: string
+          description: '`public` or `group:<comma separated CTI group names>`'
+        enabled:
+          type: boolean
+    IntegrationsPhonebookTestInput:
+      type: object
+      required:
+      - dbtype
+      properties:
+        dbtype:
+          type: string
+          enum:
+          - mysql
+          - mssql
+          - csv
+          - infinity
+        host:
+          type: string
+        port:
+          type: string
+        user:
+          type: string
+        password:
+          type: string
+        dbname:
+          type: string
+        query:
+          type: string
+        url:
+          type: string
+        username:
+          type: string
+        cti_import:
+          type: boolean
+    IntegrationsPhonebookTestResult:
+      description: 'The first three rows read from the source, or a `status: false`
+        object when the source cannot be read.'
+      oneOf:
+      - type: array
+        items:
+          type: object
+          additionalProperties: true
+      - $ref: '#/components/schemas/IntegrationsStatusError'
+    IntegrationsPhonebookUploadResult:
+      type: object
+      required:
+      - status
+      - uri
+      properties:
+        status:
+          type: boolean
+        uri:
+          type: string
+          description: '`file://` URL of the stored CSV file, to be used as the source
+            `url`'
+    IntegrationsVideoSource:
+      type: object
+      required:
+      - descr
+      - url
+      - profiles
+      properties:
+        descr:
+          type: string
+          description: Name and primary key of the source
+        url:
+          type: string
+        user:
+          type: string
+          nullable: true
+        secret:
+          type: string
+          nullable: true
+        frame-rate:
+          type: integer
+          nullable: true
+        exten:
+          type: integer
+          nullable: true
+        open:
+          type: string
+          nullable: true
+          description: Code dialed to open the door
+        profiles:
+          type: array
+          description: Ids of the CTI profiles allowed to see the source
+          items:
+            type: string
+    IntegrationsVideoSourceInput:
+      type: object
+      required:
+      - descr
+      - url
+      - exten
+      - open
+      - profiles
+      properties:
+        currentDescr:
+          type: string
+          description: Name before the change, required by PUT
+        descr:
+          type: string
+        url:
+          type: string
+        exten:
+          type: string
+          nullable: true
+        open:
+          type: string
+        profiles:
+          type: array
+          items:
+            type: integer
+    IntegrationsVideoSourceTestInput:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+    IntegrationsParamUrl:
+      type: object
+      required:
+      - id
+      - url
+      - profiles
+      - only_queues
+      properties:
+        id:
+          type: integer
+        url:
+          type: string
+        profiles:
+          type: string
+          description: Comma separated ids of the CTI profiles bound to the URL
+        only_queues:
+          type: boolean
+    IntegrationsParamUrlInput:
+      type: object
+      required:
+      - url
+      - profiles
+      - only_queues
+      properties:
+        id:
+          type: string
+        url:
+          type: string
+          maxLength: 255
+        profiles:
+          type: array
+          items:
+            type: integer
+        only_queues:
+          type: boolean
+    IntegrationsParamUrlDeleteInput:
+      type: object
+      required:
+      - url
+      - profiles
+      properties:
+        url:
+          type: string
+        profiles:
+          type: array
+          items:
+            type: integer
+    IntegrationsDbConnection:
+      type: object
+      required:
+      - id
+      - host
+      - port
+      - type
+      - user
+      - name
+      properties:
+        id:
+          type: integer
+        host:
+          type: string
+        port:
+          type: string
+        type:
+          type: string
+        user:
+          type: string
+        pass:
+          type: string
+          description: Returned in clear text
+        name:
+          type: string
+          description: Database name
+        creation:
+          type: string
+    IntegrationsDbConnectionInput:
+      type: object
+      properties:
+        host:
+          type: string
+        port:
+          type: string
+        type:
+          type: string
+        user:
+          type: string
+        pass:
+          type: string
+        name:
+          type: string
+    IntegrationsDbConnectionTypes:
+      type: object
+      description: Database type id to label
+      additionalProperties:
+        type: string
+    IntegrationsCardTemplate:
+      type: object
+      required:
+      - name
+      - custom
+      - html
+      properties:
+        name:
+          type: string
+        custom:
+          type: boolean
+        html:
+          type: string
+          description: Base64 encoded EJS source
+        color:
+          type: string
+          nullable: true
+    IntegrationsCardTemplateInput:
+      type: object
+      required:
+      - name
+      - custom
+      - html
+      properties:
+        name:
+          type: string
+          description: Reduced to lowercase letters and digits by the server
+        custom:
+          type: boolean
+        html:
+          type: string
+          description: Base64 encoded EJS source
+    IntegrationsCustomerCard:
+      type: object
+      required:
+      - id
+      - name
+      - query
+      - template
+      - dbconn_id
+      - profiles
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        creation:
+          type: string
+        query:
+          type: string
+          description: Base64 encoded SQL query
+        template:
+          type: object
+          required:
+          - name
+          - custom
+          properties:
+            name:
+              type: string
+            custom:
+              type: boolean
+        dbconn_id:
+          type: integer
+        permission_id:
+          type: integer
+          nullable: true
+        profiles:
+          type: array
+          items:
+            oneOf:
+            - type: integer
+            - type: string
+    IntegrationsCustomerCardInput:
+      type: object
+      required:
+      - name
+      - query
+      - template
+      - dbconn_id
+      - profiles
+      properties:
+        name:
+          type: string
+        query:
+          type: string
+          description: Base64 encoded SQL query
+        template:
+          type: string
+          description: Template file name, that is the template name followed by `_custom`
+            for custom templates
+        dbconn_id:
+          type: integer
+        profiles:
+          type: array
+          items:
+            type: integer
+    UsersDevice:
+      type: object
+      description: Device (extension) of a user, a row of rest_devices_phones.
+      required:
+      - id
+      - type
+      - extension
+      - registered
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+          nullable: true
+        mac:
+          type: string
+          nullable: true
+        vendor:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        line:
+          type: integer
+          nullable: true
+        extension:
+          type: string
+          nullable: true
+        secret:
+          type: string
+          nullable: true
+          description: SIP secret of the extension.
+        web_user:
+          type: string
+          nullable: true
+        web_password:
+          type: string
+          nullable: true
+        type:
+          type: string
+          description: webrtc, mobile, nethlink, physical, temporaryphysical...
+        srtp:
+          type: integer
+          nullable: true
+        registered:
+          type: boolean
+    UsersUser:
+      type: object
+      description: Userman user with its devices and CTI profile.
+      required:
+      - id
+      - username
+      - default_extension
+      properties:
+        id:
+          description: Userman user id.
+          oneOf:
+          - type: integer
+          - type: string
+        username:
+          type: string
+        displayname:
+          type: string
+          nullable: true
+        default_extension:
+          type: string
+          description: Main extension, `none` when the user has no extension.
+        email:
+          type: string
+          nullable: true
+        password:
+          type: string
+          nullable: true
+          description: Clear text password stored by the wizard.
+        profile:
+          type: integer
+          nullable: true
+          description: Id of the CTI profile.
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsersDevice'
+      additionalProperties: true
+    UsersMainExtensionRequest:
+      type: object
+      required:
+      - username
+      - extension
+      properties:
+        username:
+          type: string
+        extension:
+          type: string
+          description: New main extension. Empty removes the current one. The previous
+            main extension is always deleted with its devices and group memberships.
+        outboundcid:
+          type: string
+    UsersMessage:
+      type: object
+      properties:
+        message:
+          type: string
+    UsersStatusMessage:
+      type: object
+      properties:
+        status:
+          type: string
+    UsersCsvImportRequest:
+      type: object
+      required:
+      - file
+      properties:
+        file:
+          type: string
+          description: 'Base64 of a CSV without header: username, full name, extension,
+            password, mobile, voicemail, webrtc, groups separated by |, profile name,
+            nethlink. A data URL prefix is accepted.'
+    UsersCsvImportProgress:
+      type: object
+      required:
+      - result
+      properties:
+        result:
+          type: integer
+          description: Progress percentage, 100 when the import is over.
+    UsersVoicemailRequest:
+      type: object
+      required:
+      - extension
+      - state
+      properties:
+        extension:
+          type: string
+        state:
+          type: string
+          enum:
+          - 'yes'
+          - 'no'
+    UsersMobile:
+      type: object
+      required:
+      - username
+      properties:
+        username:
+          type: string
+        mobile:
+          type: string
+          nullable: true
+    UsersMobileRequest:
+      type: object
+      required:
+      - username
+      - mobile
+      properties:
+        username:
+          type: string
+        mobile:
+          type: string
+          description: Empty removes the number.
+    UsersSoftwareDeviceRequest:
+      type: object
+      required:
+      - extension
+      properties:
+        extension:
+          type: string
+          description: Main extension of the user.
+    UsersMobileAppRequest:
+      type: object
+      required:
+      - mainextension
+      properties:
+        mainextension:
+          type: string
+    UsersDeviceExtension:
+      type: object
+      required:
+      - extension
+      properties:
+        extension:
+          type: string
+        mobile_extension:
+          type: string
+          nullable: true
+    UsersBulkRequest:
+      type: object
+      description: Settings applied to all the main extensions of the path. Only the
+        given keys are changed.
+      properties:
+        profile:
+          type: integer
+          description: Id of the CTI profile.
+        displayname:
+          type: string
+        callwaiting:
+          type: boolean
+        ringtime:
+          type: string
+        callgroup: {}
+        pickupgroup: {}
+        noanswerdest:
+          type: string
+          nullable: true
+        busydest:
+          type: string
+          nullable: true
+        notreachabledest:
+          type: string
+          nullable: true
+        outboundcid_fixed:
+          type: string
+          nullable: true
+        outboundcid_variable: {}
+    UsersBulkResult:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: boolean
+        error:
+          type: string
+    PhonesPhysicalExtensionRequest:
+      type: object
+      description: Registers a phone in the inventory (no `mainextension`) or links
+        it to a user creating its physical extension.
+      required:
+      - mac
+      properties:
+        mac:
+          type: string
+          description: MAC address, `-` or `:` separated.
+        model:
+          type: string
+          nullable: true
+          description: Tancredi model name.
+        mainextension:
+          type: string
+          description: Main extension of the user the phone is assigned to. Leave
+            it out to add the phone without a user.
+        line:
+          type: integer
+          nullable: true
+        web_user:
+          type: string
+        web_password:
+          type: string
+          description: Password of the phone web interface.
+        clear_temporary:
+          type: boolean
+          description: Deletes the temporary physical extensions of the user first.
+    PhonesPhysicalExtensionResponse:
+      type: object
+      required:
+      - extension
+      properties:
+        extension:
+          type: string
+          description: Physical extension created for the phone.
+    PhonesStatusError:
+      type: object
+      properties:
+        status:
+          type: string
+    PhonesModelRequest:
+      type: object
+      required:
+      - model
+      properties:
+        model:
+          type: string
+          nullable: true
+          description: Tancredi model name. Empty clears it.
+    PhonesAdminPasswordRequest:
+      type: object
+      required:
+      - password
+      properties:
+        password:
+          type: string
+    PhonesReconfigureRequest:
+      type: object
+      required:
+      - extension
+      properties:
+        extension:
+          type: string
+          description: Physical extension of the phone to reload.
+    PhonesErrorMessage:
+      type: object
+      properties:
+        error:
+          type: string
+    PhonesRpsRequest:
+      type: object
+      required:
+      - url
+      properties:
+        url:
+          type: string
+          description: Provisioning URL the phone must download its configuration
+            from.
+    SettingsAdminPasswordRequest:
+      type: object
+      required:
+      - password
+      properties:
+        password:
+          type: string
+          description: New clear-text password. For `admin` it is stored as `ampusers.password_sha1`,
+            which also changes the `Secretkey` the client must send from then on.
+    SettingsPasswordError:
+      type: object
+      required:
+      - result
+      properties:
+        result:
           type: string
   responses:
     UnauthorizedError:
