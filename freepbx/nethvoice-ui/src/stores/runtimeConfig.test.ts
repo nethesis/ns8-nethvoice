@@ -26,6 +26,11 @@ describe('parseRuntimeConfig', () => {
     expect(config.loginLogoUrl).toBe('https://cdn.acme.example/logo.svg')
   })
 
+  it('should read the configured host name', () => {
+    expect(parseRuntimeConfig({ HOSTNAME: ' pbx.example.org ' }).hostname).toBe('pbx.example.org')
+    expect(parseRuntimeConfig({}).hostname).toBe('')
+  })
+
   it('should drop URLs with a scheme other than http and https', () => {
     const config = parseRuntimeConfig({
       NAVBAR_LOGO_URL: 'javascript:alert(1)',
