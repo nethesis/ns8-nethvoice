@@ -266,6 +266,7 @@ angular.module('nethvoiceWizardUiApp')
             $scope.currentModel.variables[variable] = res.data.variables[variable]
           }
           $scope.currentModel.ui.map.network.lldp_enable.visible = GenericPhoneService.isLldpSupported($scope.currentModel.variables)
+          $scope.currentModel.ui.map.preferences.auto_headset.visible = GenericPhoneService.isAutoHeadsetSupported($scope.currentModel.variables)
           $("#singleModelModal").modal("show")
         }, function () {
           console.log(err)

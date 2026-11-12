@@ -14,4 +14,6 @@ INSERT INTO `rest_pjsip_trunks_specialopts` (`provider_id`,`keyword`,`data`) VAL
 (32,"auth_username","$USERNAME"),
 (34,"from_user","$PHONE"),
 (37,"from_user",""),
-(38,"from_user","");
+(38,"from_user",""),
+(39,"secret",""),
+(39,"username","");
