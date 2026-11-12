@@ -1,0 +1,54 @@
+<!--
+  Copyright (C) 2026 Nethesis S.r.l.
+  SPDX-License-Identifier: GPL-3.0-or-later
+-->
+
+<!doctype html>
+<html lang="">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/nethvoice/favicon.ico" sizes="32x32" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NethVoice</title>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      .loader-wrapper {
+        height: 100vh;
+        text-align: center;
+        background-color: oklch(20.8% 0.042 265.755);
+      }
+
+      .loader-wrapper .loader {
+        width: 88px;
+        height: 88px;
+        margin-top: 6rem;
+        border: 8px solid oklch(69.6% 0.17 162.48);
+        border-bottom-color: transparent;
+        border-radius: 50%;
+        display: inline-block;
+        box-sizing: border-box;
+        animation: rotation 500ms linear infinite;
+      }
+
+      @keyframes rotation {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="loader-wrapper">
+        <span class="loader"></span>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

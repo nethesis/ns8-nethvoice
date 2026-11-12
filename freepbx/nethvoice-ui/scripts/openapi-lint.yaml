@@ -1,0 +1,9 @@
+extends:
+  - recommended
+rules:
+  operation-4xx-response: off
+  no-invalid-media-type-examples: off
+  no-ambiguous-paths: off
+  security-defined: error
+  no-unused-components: warn
+  no-identical-paths: warn
