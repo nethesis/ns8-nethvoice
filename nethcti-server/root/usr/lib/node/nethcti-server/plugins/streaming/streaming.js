@@ -127,8 +127,9 @@ var intervalGetSourceSample;
 var streamings = {};
 
 /**
- * It is used when the streaming source has some problems. So it
- * serves to log the error only once.
+ * The last error of the samples of each streaming source (its code, or its
+ * text): an error is logged once, and again only when it changes (e.g. a
+ * device that was off and now presents another certificate).
  *
  * @property streamings
  * @type object
@@ -576,8 +577,9 @@ function start() {
             streamings[i].getSample(function(err1, id, img) {
               try {
                 if (err1) {
-                  if (streamingErrors[id] === undefined) {
-                    streamingErrors[id] = 'logged';
+                  var kind = (err1 && typeof err1 === 'object') ? String(err1.code || err1.message) : String(err1);
+                  if (streamingErrors[id] !== kind) {
+                    streamingErrors[id] = kind;
                     logger.log.warn(IDLOG, 'streaming "' + id + '" error: ' + deviceHttp.describeError(err1));
                   }
                   return;
