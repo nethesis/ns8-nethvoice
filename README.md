@@ -483,10 +483,10 @@ no longer updated.
 | `nethcti-server` | [nethesis/nethcti-server](https://github.com/nethesis/nethcti-server) | [62be5d9](https://github.com/nethesis/nethcti-server/commit/62be5d93d6bdb5a6ede6081f453e4bfb6d664ec7) |
 | `nethcti-server/root/usr/lib/node/nethcti-server/packages/astproxy` | [nethesis/astproxy](https://github.com/nethesis/astproxy) | [94f495d](https://github.com/nethesis/astproxy/commit/94f495d53c1e7b13a224ad7e7c79161b6e27e7bf) (v0.2.3) |
 | `nethcti-middleware` | [nethesis/nethcti-middleware](https://github.com/nethesis/nethcti-middleware) | [1b89f9c](https://github.com/nethesis/nethcti-middleware/commit/1b89f9c0265e1093ac7d4d0465c1aaee2de88f30) (v0.7.0) |
-| `nethvoice-cti` | [nethesis/nethvoice-cti](https://github.com/nethesis/nethvoice-cti) | [9d53fef](https://github.com/nethesis/nethvoice-cti/commit/9d53fef62bae0d5b8c13edf619127df2feff2c2c) (v1.2.17) |
+| `nethvoice-cti` | [nethesis/nethvoice-cti](https://github.com/nethesis/nethvoice-cti) | [7ea0b35](https://github.com/nethesis/nethvoice-cti/commit/7ea0b35e3ca51c4da0dab892fc55e678ecdba41d) (v1.2.21) |
 | `reports` | [nethesis/nethvoice-report](https://github.com/nethesis/nethvoice-report) | [c8d1ecc](https://github.com/nethesis/nethvoice-report/commit/c8d1eccf343585829decc9261cc79d7d49d0f78c) |
 | `satellite` | [nethesis/satellite](https://github.com/nethesis/satellite) | [1599a81](https://github.com/nethesis/satellite/commit/1599a81f9ea96f4aea47d2121252267c10976f5f) (0.3.0) |
-| `tancredi/app` | [nethesis/tancredi](https://github.com/nethesis/tancredi) | [6ebd55f](https://github.com/nethesis/tancredi/commit/6ebd55f68e410d148cfb0b789be0e72e6b01a93a) (1.11.2) |
+| `tancredi/app` | [nethesis/tancredi](https://github.com/nethesis/tancredi) | [f3786f6](https://github.com/nethesis/tancredi/commit/f3786f6d57943f4a062645b8f6c6c70799e39716) (1.11.3) |
 
 When a component directory already had a `README.md` for the module image, the
 component one is kept as `README.upstream.md`.

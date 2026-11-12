@@ -110,3 +110,4 @@ ro	cap_backlight_time_blacklist		Comma separated list of [backlight_time](#backl
 ro	cap_screensaver_time_blacklist		Comma separated list of [screensaver_time](#screensaver_time) values not supported by the phone.	string	one of: 0, 3, 5, 7, 10, 15, 30, 60, 120, 300, 600, 1200 ,1800, 2400, 3000, 3600
 ro	cap_brightness		Capability to set a custom brightness.	boolean	
 rw	lldp_enable		Enable LLDP on supported phones. Shipped defaults enable it; a scope can override its parent, and removing the override restores inheritance. Missing or invalid values use each template's behavior from before this variable was introduced.	string	`1` = enabled, `0` = disabled
+rw	auto_headset		On Fanvil and NethPhone phones, answer an incoming call through the headset when it is connected (Fanvil `Auto Headset`). Shipped defaults disable it; missing or invalid values fall back to disabled.	string	`1` = enabled, `0` = disabled

@@ -127,7 +127,7 @@ const Chat: NextPage = () => {
               <Avatar src={c.avatar} size='base' />
             ) : c.kind === 'group' ? (
               <span
-                className={`flex h-10 w-10 items-center justify-center rounded-full text-base font-normal ${
+                className={`flex h-10 w-10 items-center justify-center rounded-full text-base font-normal dark:font-medium ${
                   groupLook(c.peer, c.name).className
                 }`}
               >

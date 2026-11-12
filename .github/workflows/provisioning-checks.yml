@@ -24,6 +24,9 @@ jobs:
       - name: Run LLDP UI tests
         run: node tests/unit/test_lldp_ui.cjs
 
+      - name: Run Auto Headset UI tests
+        run: node tests/unit/test_auto_headset_ui.cjs
+
       - name: Prepare Tancredi sources
         run: |
           echo "TANCREDI_ROOT=${GITHUB_WORKSPACE}/tancredi/app" >> "$GITHUB_ENV"
@@ -33,3 +36,6 @@ jobs:
         run: |
           php tests/unit/test_tancredi_lldp.php
           tancredi_conf="${TANCREDI_ROOT}/tancredi.conf.sample" php "${TANCREDI_ROOT}/test/lldp-rendering.php"
+
+      - name: Run Auto Headset rendering tests
+        run: tancredi_conf="${TANCREDI_ROOT}/tancredi.conf.sample" php "${TANCREDI_ROOT}/test/auto-headset-rendering.php"

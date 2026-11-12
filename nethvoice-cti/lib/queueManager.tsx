@@ -159,7 +159,7 @@ export const retrieveAndFilterQueueCalls = async (
     const queues = selectedQueues.join(',')
 
     const { data } = await axios.get(
-      `/astproxy/qmanager_queue_recall/${numHours}/${queues}/${outcomeFilter}?limit=200&offset=0`,
+      `/astproxy/qmanager_queue_recall/${numHours}/${queues}/${outcomeFilter}`,
     )
 
     const allFilteredCalls = data.rows.filter((call: any) => {

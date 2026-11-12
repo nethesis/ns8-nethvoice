@@ -321,7 +321,8 @@ P1 Default Ext Line   :1
 P1 Enable Def Line    :1
 P1 Enable SelLine     :1
 P1 Ring in Headset    :0
-P1 Auto Headset       :1
+{% set effective_auto_headset = auto_headset is defined and (auto_headset is same as('0') or auto_headset is same as('1')) ? auto_headset : '0' %}
+P1 Auto Headset       :{{ effective_auto_headset }}
 P1 DND Return Code    :480
 P1 Busy Return Code   :486
 P1 Reject Return Code :603

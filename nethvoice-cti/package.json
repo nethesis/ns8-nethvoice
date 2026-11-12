@@ -1,6 +1,6 @@
 {
   "name": "nethvoice-cti",
-  "version": "1.2.17",
+  "version": "1.2.21",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
@@ -21,11 +21,11 @@
     "@fortawesome/free-solid-svg-icons": "^7.0.0",
     "@fortawesome/react-fontawesome": "^3.0.0",
     "@headlessui/react": "^2.1.9",
-    "@nethesis/chat-island": "0.1.71",
+    "@nethesis/chat-island": "0.1.72",
     "@nethesis/nethesis-brands-svg-icons": "github:nethesis/Font-Awesome#ns-brands",
     "@nethesis/nethesis-light-svg-icons": "github:nethesis/Font-Awesome#ns-light",
     "@nethesis/nethesis-solid-svg-icons": "github:nethesis/Font-Awesome#ns-solid",
-    "@nethesis/phone-island": "^1.1.6",
+    "@nethesis/phone-island": "^1.1.8",
     "@rematch/core": "^2.2.0",
     "@rematch/immer": "^2.1.3",
     "@rematch/select": "^3.1.2",
