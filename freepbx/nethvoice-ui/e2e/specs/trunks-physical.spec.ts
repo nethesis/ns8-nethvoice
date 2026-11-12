@@ -184,7 +184,12 @@ test.describe('trunks: physical', () => {
     mockTrunksApi(mockApi, { gateways: [] })
     mockApi.on('POST', '/freepbx/rest/devices/gateways', {
       status: 400,
-      json: { status: false, errors: ['Gateway model not found'] },
+      json: {
+        status: false,
+        errors: ['Missing gateway field mac', 'Gateway model not found'],
+        warnings: ['Ignored warning'],
+        infos: [],
+      },
     })
     await page.goto('./trunks/physical')
 
@@ -199,7 +204,10 @@ test.describe('trunks: physical', () => {
     await page.getByRole('button', { name: 'Add trunk' }).click()
 
     await expect(page.getByText('Cannot create the trunk')).toBeVisible()
-    await expect(page.getByText('Gateway model not found')).toBeVisible()
+    await expect(
+      page.getByText('Missing gateway field mac; Gateway model not found', { exact: true }),
+    ).toBeVisible()
+    await expect(page.getByText('Ignored warning')).toHaveCount(0)
     expect(mockApi.callsTo('POST', '/freepbx/rest/devices/gateways')[0].body).toMatchObject({
       trunks_pri: [{ name: 0 }],
     })

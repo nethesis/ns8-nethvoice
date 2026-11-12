@@ -26,25 +26,74 @@ export class ApiError extends Error {
 
 export const isApiError = (error: unknown): error is ApiError => error instanceof ApiError
 
+const MAX_MESSAGE_LENGTH = 300
+const MAX_DEPTH = 3
+const MESSAGE_KEYS = ['message', 'error', 'errors', 'title', 'detail', 'status', 'result']
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-export const getApiErrorMessage = (body: unknown): string => {
-  if (typeof body === 'string') {
-    return body.trim()
+const toPlainText = (text: string): string =>
+  text
+    .replace(/<(script|style|head)\b[\s\S]*?<\/\1\s*>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const truncate = (text: string): string =>
+  text.length > MAX_MESSAGE_LENGTH ? `${text.slice(0, MAX_MESSAGE_LENGTH - 1).trimEnd()}…` : text
+
+const readText = (value: unknown): string[] => {
+  if (typeof value !== 'string') {
+    return []
+  }
+  const text = toPlainText(value)
+
+  return text && !/^(true|false)$/i.test(text) ? [text] : []
+}
+
+const readMessages = (value: unknown, depth: number): string[] => {
+  if (depth > MAX_DEPTH) {
+    return []
   }
 
-  if (isRecord(body)) {
-    for (const key of ['message', 'error', 'title', 'detail']) {
-      const value = body[key]
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => readMessages(item, depth + 1))
+  }
 
-      if (typeof value === 'string' && value.trim()) {
-        return value.trim()
+  if (isRecord(value)) {
+    for (const key of MESSAGE_KEYS) {
+      const messages =
+        key === 'errors' ? readFieldErrors(value[key], depth + 1) : readText(value[key])
+
+      if (messages.length) {
+        return messages
       }
     }
+    return []
   }
-  return ''
+  return readText(value)
 }
+
+const readFieldErrors = (value: unknown, depth: number): string[] => {
+  if (!isRecord(value)) {
+    return readMessages(value, depth)
+  }
+  const messages = readMessages(value, depth)
+
+  if (messages.length) {
+    return messages
+  }
+  return Object.entries(value).flatMap(([field, fieldValue]) => {
+    const fieldMessages = readMessages(fieldValue, depth + 1)
+
+    return fieldMessages.length ? [`${field}: ${fieldMessages.join(', ')}`] : []
+  })
+}
+
+export const getApiErrorMessage = (body: unknown): string =>
+  truncate([...new Set(readMessages(body, 0))].join('; '))
 
 export const isAuthenticationFailure = (status: number, body: unknown): boolean => {
   if (status === 401) {

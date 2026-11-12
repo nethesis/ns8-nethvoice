@@ -19,8 +19,104 @@ describe('getApiErrorMessage', () => {
 
   it('should return an empty string when the body explains nothing', () => {
     expect(getApiErrorMessage(null)).toBe('')
+    expect(getApiErrorMessage('')).toBe('')
     expect(getApiErrorMessage({ status: false })).toBe('')
+    expect(getApiErrorMessage({ status: 'false', errors: [] })).toBe('')
     expect(getApiErrorMessage([])).toBe('')
+  })
+
+  it('should join the errors array of the legacy envelope', () => {
+    expect(
+      getApiErrorMessage({
+        status: false,
+        errors: ['Missing gateway field mac', 'Missing gateway field ipv4'],
+        warnings: ['Ignored warning'],
+        infos: [],
+      }),
+    ).toBe('Missing gateway field mac; Missing gateway field ipv4')
+  })
+
+  it('should not repeat the same error twice', () => {
+    expect(
+      getApiErrorMessage({ errors: ['Unable to save gateway', 'Unable to save gateway'] }),
+    ).toBe('Unable to save gateway')
+  })
+
+  it('should read errors sent as a single string', () => {
+    expect(
+      getApiErrorMessage({ status: false, progress: 40, errors: 'CDR migration failed' }),
+    ).toBe('CDR migration failed')
+  })
+
+  it('should read errors keyed by field', () => {
+    expect(
+      getApiErrorMessage({ errors: { mac: 'Invalid MAC address', ports: ['Too many', 'Busy'] } }),
+    ).toBe('mac: Invalid MAC address; ports: Too many, Busy')
+  })
+
+  it('should read errors sent as objects', () => {
+    expect(getApiErrorMessage({ errors: [{ message: 'Invalid MAC address' }, { foo: 1 }] })).toBe(
+      'Invalid MAC address',
+    )
+  })
+
+  it('should read the error of the legacy envelope', () => {
+    expect(getApiErrorMessage({ status: false, error: 'Invalid request body' })).toBe(
+      'Invalid request body',
+    )
+  })
+
+  it('should ignore warnings when there are no errors', () => {
+    expect(getApiErrorMessage({ status: 'false', warnings: ['No cdr migration active'] })).toBe('')
+  })
+
+  it('should read a status used as message', () => {
+    expect(getApiErrorMessage({ status: 'ERROR: community version is limited to 8 users' })).toBe(
+      'ERROR: community version is limited to 8 users',
+    )
+  })
+
+  it('should read a result used as message', () => {
+    expect(getApiErrorMessage({ result: 'User name or full name invalid' })).toBe(
+      'User name or full name invalid',
+    )
+  })
+
+  it('should prefer the problem title to its numeric status', () => {
+    expect(getApiErrorMessage({ type: 'about:blank', title: 'Not Found', status: 404 })).toBe(
+      'Not Found',
+    )
+  })
+
+  it('should read a plain string body', () => {
+    expect(getApiErrorMessage('An error occurred')).toBe('An error occurred')
+  })
+
+  it('should collapse whitespace and newlines', () => {
+    expect(getApiErrorMessage({ status: 'Error creating user e.johnson:\n  users-admin\n' })).toBe(
+      'Error creating user e.johnson: users-admin',
+    )
+  })
+
+  it('should strip markup from an HTML body', () => {
+    expect(
+      getApiErrorMessage(
+        '<!DOCTYPE html><html><head><title>502</title><style>p{}</style></head>' +
+          '<body><h1>Proxy Error</h1><p>Invalid response &nbsp;from upstream</p>' +
+          '<script>alert(1)</script></body></html>',
+      ),
+    ).toBe('Proxy Error Invalid response from upstream')
+  })
+
+  it('should keep comparison signs that are not markup', () => {
+    expect(getApiErrorMessage({ error: 'value must be < 10' })).toBe('value must be < 10')
+  })
+
+  it('should truncate long messages', () => {
+    const message = getApiErrorMessage('x'.repeat(1000))
+
+    expect(message).toHaveLength(300)
+    expect(message.endsWith('…')).toBe(true)
   })
 })
 
@@ -59,5 +155,27 @@ describe('ApiError', () => {
     const error = new ApiError({ status: 500, method: 'GET', url: '/x', body: null })
 
     expect(error.message).toBe('Request failed with status code 500')
+  })
+
+  it('should fall back to the status code when the envelope has no text', () => {
+    const error = new ApiError({
+      status: 400,
+      method: 'POST',
+      url: '/freepbx/rest/devices/gateways',
+      body: { status: false, errors: [], warnings: ['ignored'] },
+    })
+
+    expect(error.message).toBe('Request failed with status code 400')
+  })
+
+  it('should expose the errors array of the legacy envelope', () => {
+    const error = new ApiError({
+      status: 400,
+      method: 'POST',
+      url: '/freepbx/rest/devices/gateways',
+      body: { status: false, errors: ['Gateway model not found'] },
+    })
+
+    expect(error.message).toBe('Gateway model not found')
   })
 })

@@ -189,6 +189,30 @@ test.describe('trunks: VoIP', () => {
     await expect(page.getByRole('heading', { name: 'Add VoIP trunk' })).toBeVisible()
   })
 
+  test('shows the reason sent by the API when the creation is refused', async ({
+    page,
+    mockApi,
+  }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('POST', '/freepbx/rest/trunks', {
+      status: 400,
+      json: { error: 'codecs must contain strings' },
+    })
+    await page.goto('./trunks/voip')
+
+    await page.getByRole('button', { name: 'Add VoIP trunk' }).click()
+    await page.getByRole('combobox', { name: 'Provider' }).click()
+    await page.getByRole('option', { name: 'TWT' }).click()
+    await page.getByRole('textbox', { name: 'Trunk name' }).fill('office_trunk')
+    await page.getByRole('textbox', { name: 'Phone number' }).fill('0212345679')
+    await page.getByRole('textbox', { name: 'Username' }).fill('office_user')
+    await page.getByLabel('Password').fill('Secret,1234')
+    await page.getByRole('button', { name: 'Add trunk' }).click()
+
+    await expect(page.getByText('Cannot create the trunk')).toBeVisible()
+    await expect(page.getByText('POST /trunks: codecs must contain strings')).toBeVisible()
+  })
+
   test('edits a trunk sending only what changed', async ({ page, mockApi }) => {
     mockTrunksApi(mockApi)
     mockApi.on('PATCH', '/freepbx/rest/trunks/:trunkid', { status: 204 })
@@ -268,7 +292,7 @@ test.describe('trunks: VoIP', () => {
 
   test('shows the error of a failed deletion inside the modal', async ({ page, mockApi }) => {
     mockTrunksApi(mockApi)
-    mockApi.on('DELETE', '/freepbx/rest/trunks/:trunkid', { status: 500 })
+    mockApi.on('DELETE', '/freepbx/rest/trunks/:trunkid', { status: 500, json: { status: false } })
     await page.goto('./trunks/voip')
 
     await page.getByRole('button', { name: 'Open the menu of backup_trunk' }).click()
@@ -276,5 +300,8 @@ test.describe('trunks: VoIP', () => {
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
 
     await expect(page.getByText('Cannot delete the trunk')).toBeVisible()
+    await expect(
+      page.getByText('DELETE /trunks/3: Request failed with status code 500'),
+    ).toBeVisible()
   })
 })
