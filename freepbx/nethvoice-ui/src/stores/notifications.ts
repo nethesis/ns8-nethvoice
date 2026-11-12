@@ -5,7 +5,8 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { type NeNotificationV2 } from '@nethesis/vue-components'
 import { useI18n } from 'vue-i18n'
-import { isApiError } from '@/lib/api/errors'
+import i18n from '@/i18n'
+import { getApiErrorMessage, isApiError } from '@/lib/api/errors'
 
 const NOTIFICATIONS_LIMIT = 30
 const DEFAULT_NOTIFICATION_TIMEOUT = 5000
@@ -18,10 +19,34 @@ const nextNotificationId = () => {
   return `notification-${Date.now()}-${lastNotificationId}`
 }
 
+const STATUS_MESSAGES: Record<number, string> = {
+  409: 'common.error_conflict',
+  422: 'common.error_invalid_data',
+  423: 'common.error_locked',
+}
+
+const NETWORK_ERROR_REGEX = /failed to fetch|networkerror|load failed|network request failed/i
+
+export const isNetworkError = (error: unknown): boolean =>
+  error instanceof TypeError && NETWORK_ERROR_REGEX.test(error.message)
+
 export const describeError = (error: unknown): string => {
+  const { t } = i18n.global
+
   if (isApiError(error)) {
-    const request = `${error.method} ${error.url.replace(/^\/freepbx\/rest/, '')}`
-    return error.message ? `${request}: ${error.message}` : request
+    const detail = getApiErrorMessage(error.body)
+    const statusMessage = STATUS_MESSAGES[error.status]
+
+    if (statusMessage) {
+      return detail
+        ? `${t(statusMessage)} ${t('common.error_server_detail', { detail })}`
+        : t(statusMessage)
+    }
+    return detail || t('common.error_server', { status: error.status })
+  }
+
+  if (isNetworkError(error)) {
+    return t('common.error_network')
   }
   return error instanceof Error ? error.message : ''
 }

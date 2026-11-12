@@ -87,7 +87,9 @@ const overviewUsers = buildOverviewUsers(liveState, users, [
 describe('toOverviewStatus', () => {
   it('should map astproxy and presence values', () => {
     expect(toOverviewStatus('online')).toBe('online')
-    expect(toOverviewStatus('callforward')).toBe('online')
+    expect(toOverviewStatus('callforward')).toBe('forward')
+    expect(toOverviewStatus('voicemail')).toBe('forward')
+    expect(toOverviewStatus('cellphone')).toBe('forward')
     expect(toOverviewStatus('onhold')).toBe('busy')
     expect(toOverviewStatus('busy_ringing')).toBe('ringing')
     expect(toOverviewStatus('DND')).toBe('dnd')

@@ -26,6 +26,7 @@ const PRESENCE_DOT: Record<OverviewStatus, string> = {
   busy: 'bg-rose-500',
   ringing: 'bg-rose-500',
   dnd: 'bg-rose-500',
+  forward: 'bg-amber-500',
   offline: 'bg-gray-400',
 }
 

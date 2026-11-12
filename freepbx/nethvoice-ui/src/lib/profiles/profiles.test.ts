@@ -6,12 +6,15 @@ import * as v from 'valibot'
 import { rawProfile } from './fixtures'
 import {
   buildProfileNameSchema,
+  canRenameProfile,
   diffProfileUsers,
   filterProfiles,
   getCopyName,
   getFeatureValue,
   getNewlyEnabledPrivacyPermissions,
   getOutboundRouteCategory,
+  getProfileNameIssue,
+  getProfileSaveErrorKey,
   getProfileUsers,
   isDefaultProfile,
   parseProfile,
@@ -22,6 +25,7 @@ import {
   toProfileForm,
   toProfileRequest,
 } from './profiles'
+import { ApiError } from '@/lib/api/errors'
 import type { User } from '@/lib/users/users'
 
 const advanced = parseProfile(rawProfile(3, 'Advanced'))
@@ -126,6 +130,32 @@ describe('getOutboundRouteCategory', () => {
 
   it('should not categorize other routes', () => {
     expect(getOutboundRouteCategory('Custom route')).toBeNull()
+  })
+})
+
+describe('profile rename', () => {
+  const apiError = (status: number) =>
+    new ApiError({ status, method: 'POST', url: '/freepbx/rest/cti/profiles/4', body: null })
+
+  it('should allow renaming only the custom profiles', () => {
+    expect(canRenameProfile({ id: 1, name: 'Base' })).toBe(false)
+    expect(canRenameProfile({ id: 7, name: 'Hotel' })).toBe(false)
+    expect(canRenameProfile({ id: 4, name: 'Sales' })).toBe(true)
+  })
+
+  it('should reject a reserved name', () => {
+    const result = v.safeParse(buildProfileNameSchema([], ['Hotel']), 'Hotel')
+
+    expect(result.issues?.[0].message).toBe('profiles.name_not_allowed')
+  })
+
+  it('should map the backend errors to translated messages', () => {
+    expect(getProfileNameIssue(apiError(409))).toBe('profiles.name_already_exists')
+    expect(getProfileNameIssue(apiError(422))).toBe('profiles.name_not_allowed')
+    expect(getProfileNameIssue(apiError(423))).toBeNull()
+    expect(getProfileNameIssue(new Error('x'))).toBeNull()
+    expect(getProfileSaveErrorKey(apiError(423))).toBe('profiles.profile_change_in_progress')
+    expect(getProfileSaveErrorKey(apiError(500))).toBeNull()
   })
 })
 

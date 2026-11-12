@@ -61,15 +61,19 @@ export type BulkDevicesPlan = {
   disable: SoftwareDeviceType[]
 }
 
+export type BulkProgress = (progress: number) => void
+
 export class BulkUserError extends Error {
   readonly username: string
   readonly cause: unknown
+  readonly completed: string[]
 
-  constructor(username: string, cause: unknown) {
+  constructor(username: string, cause: unknown, completed: string[] = []) {
     super(cause instanceof Error ? cause.message : String(cause))
     this.name = 'BulkUserError'
     this.username = username
     this.cause = cause
+    this.completed = completed
   }
 }
 
@@ -106,25 +110,69 @@ export const postBulkSettings = async (
 export const postBulkProfile = (mainExtensions: string[], profileId: number): Promise<void> =>
   postBulkSettings(mainExtensions, { profile: profileId })
 
-export const assignProfileToUsers = async (users: User[], profileId: number): Promise<void> => {
-  const { configured, unconfigured } = splitByMainExtension(users)
+const runForBatches = async (
+  batches: User[][],
+  run: (batch: User[]) => Promise<void>,
+  onProgress?: BulkProgress,
+): Promise<void> => {
+  const completed: string[] = []
+  let done = 0
 
-  if (configured.length > 0) {
-    await postBulkProfile(
-      configured.map((user) => user.mainExtension),
-      profileId,
-    )
-  }
-
-  for (const user of unconfigured) {
-    await postUserProfile(user.id, profileId)
+  for (const batch of batches) {
+    try {
+      await run(batch)
+    } catch (error) {
+      throw new BulkUserError(batch.map((user) => user.username).join(', '), error, [...completed])
+    }
+    completed.push(...batch.map((user) => user.username))
+    done += 1
+    onProgress?.(Math.round((done / batches.length) * 100))
   }
 }
 
-export const setVoicemailForUsers = async (users: User[], enabled: boolean): Promise<void> => {
-  for (const user of splitByMainExtension(users).configured) {
-    await postVoicemail(user.mainExtension, enabled)
-  }
+export const assignProfileToUsers = async (
+  users: User[],
+  profileId: number,
+  onProgress?: BulkProgress,
+): Promise<void> => {
+  const { configured, unconfigured } = splitByMainExtension(users)
+  const batches = [
+    ...(configured.length > 0 ? [configured] : []),
+    ...unconfigured.map((user) => [user]),
+  ]
+
+  await runForBatches(
+    batches,
+    async (batch) => {
+      const [first] = batch
+
+      if (first && hasMainExtension(first)) {
+        await postBulkProfile(
+          batch.map((user) => user.mainExtension),
+          profileId,
+        )
+      } else if (first) {
+        await postUserProfile(first.id, profileId)
+      }
+    },
+    onProgress,
+  )
+}
+
+export const setVoicemailForUsers = async (
+  users: User[],
+  enabled: boolean,
+  onProgress?: BulkProgress,
+): Promise<void> => {
+  await runForBatches(
+    splitByMainExtension(users).configured.map((user) => [user]),
+    async ([user]) => {
+      if (user) {
+        await postVoicemail(user.mainExtension, enabled)
+      }
+    },
+    onProgress,
+  )
 }
 
 export const planDevicesForUsers = (
@@ -150,11 +198,14 @@ export const planDevicesForUsers = (
 export const exceedsDeviceLimit = (plan: BulkDevicesPlan): boolean =>
   plan.user.devices.length - plan.disable.length + plan.enable.length > MAX_DEVICES_PER_USER
 
+export const getDisablingPlans = (plans: BulkDevicesPlan[]): BulkDevicesPlan[] =>
+  plans.filter((plan) => plan.disable.length > 0)
+
 export const setDevicesForUsers = async (
   plans: BulkDevicesPlan[],
-  onProgress?: (progress: number) => void,
+  onProgress?: BulkProgress,
 ): Promise<void> => {
-  let done = 0
+  const completed: string[] = []
 
   for (const { user, enable, disable } of plans) {
     try {
@@ -170,10 +221,10 @@ export const setDevicesForUsers = async (
         await enableSoftwareDevice(device, user.mainExtension)
       }
     } catch (error) {
-      throw new BulkUserError(user.username, error)
+      throw new BulkUserError(user.username, error, [...completed])
     }
-    done += 1
-    onProgress?.(Math.round((done / plans.length) * 100))
+    completed.push(user.username)
+    onProgress?.(Math.round((completed.length / plans.length) * 100))
   }
 }
 

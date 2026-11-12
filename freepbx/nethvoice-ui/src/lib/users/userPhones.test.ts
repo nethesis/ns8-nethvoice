@@ -3,7 +3,12 @@
 
 import { describe, expect, it } from 'vitest'
 import type { Phone } from '@/lib/phones/phones'
-import { getAssignedPhoneMacs, getMaxPhones, planPhoneChanges } from './userPhones'
+import {
+  getAssignedPhoneMacs,
+  getMaxPhones,
+  getPhonesWithoutMac,
+  planPhoneChanges,
+} from './userPhones'
 
 const phone = (mac: string, username: string | null): Phone => ({
   mac,
@@ -96,5 +101,18 @@ describe('planPhoneChanges', () => {
 
     expect(plan.unassign).toEqual([])
     expect(plan.assign).toEqual([{ ...PHONES[0], user: null, extension: '' }])
+  })
+})
+
+describe('getPhonesWithoutMac', () => {
+  it('keeps the physical devices that have no valid MAC', () => {
+    const base = { vendor: '', model: '', line: 1, registered: false, type: 'physical' as const }
+
+    expect(
+      getPhonesWithoutMac([
+        { ...base, id: 1, extension: '91300', mac: '00:11:22:33:44:01' },
+        { ...base, id: 2, extension: '93205', mac: '' },
+      ]).map((device) => device.extension),
+    ).toEqual(['93205'])
   })
 })

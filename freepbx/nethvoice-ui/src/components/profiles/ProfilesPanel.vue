@@ -32,6 +32,7 @@ import LoadError from '@/components/common/LoadError.vue'
 import CreateOrEditProfileDrawer from '@/components/profiles/CreateOrEditProfileDrawer.vue'
 import DeleteProfileModal from '@/components/profiles/DeleteProfileModal.vue'
 import {
+  DEFAULT_PROFILE_IDS,
   filterProfiles,
   getProfileUsers,
   isDefaultProfile,
@@ -51,6 +52,8 @@ const drawerMode = ref<ProfileDrawerMode | undefined>()
 const isShownDrawer = ref(false)
 const profileToDelete = ref<Profile | undefined>()
 const isShownDeleteModal = ref(false)
+
+const CARDS_GRID_CLASSES = 'grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3'
 
 const DEFAULT_PROFILE_ICONS: Record<number, IconDefinition> = {
   1: faCircleMinus,
@@ -163,17 +166,21 @@ function reload() {
           :placeholder="t('profiles.filter_profiles')"
           :aria-label="t('profiles.filter_profiles')"
           :clear-search-label="t('ne_text_input.clear_search')"
-          class="w-full max-w-[300px]"
+          class="w-full max-w-xs"
         />
-        <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('profiles.clear_filters') }}
+        <NeButton kind="tertiary" :disabled="textFilter === ''" @click="textFilter = ''">
+          {{ t('common.reset_filters') }}
         </NeButton>
       </div>
-      <div v-if="loading" class="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
-        <div v-for="index in 3" :key="index" class="bg-elevation-0 rounded-lg p-5">
+      <ul v-if="loading" :class="CARDS_GRID_CLASSES">
+        <li
+          v-for="index in DEFAULT_PROFILE_IDS.length"
+          :key="index"
+          class="bg-elevation-0 flex min-w-0 flex-col gap-3 rounded-lg border-l-4 border-gray-300 p-5 shadow-xs dark:border-gray-600"
+        >
           <NeSkeleton :lines="2" />
-        </div>
-      </div>
+        </li>
+      </ul>
       <NeEmptyState
         v-else-if="profiles.length === 0"
         :title="t('profiles.no_profiles_configured')"
@@ -188,10 +195,10 @@ function reload() {
         class="bg-elevation-2"
       >
         <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('profiles.clear_filters') }}
+          {{ t('common.reset_filters') }}
         </NeButton>
       </NeEmptyState>
-      <ul v-else class="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
+      <ul v-else :class="CARDS_GRID_CLASSES">
         <li
           v-for="profile in filteredProfiles"
           :key="profile.id"

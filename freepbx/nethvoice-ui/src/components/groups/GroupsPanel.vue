@@ -169,10 +169,10 @@ function reload() {
           :placeholder="t('groups.filter_groups')"
           :aria-label="t('groups.filter_groups')"
           :clear-search-label="t('ne_text_input.clear_search')"
-          class="w-full max-w-[300px]"
+          class="w-full max-w-xs"
         />
-        <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('groups.clear_filters') }}
+        <NeButton kind="tertiary" :disabled="textFilter === ''" @click="textFilter = ''">
+          {{ t('common.reset_filters') }}
         </NeButton>
       </div>
       <NeEmptyState
@@ -183,7 +183,7 @@ function reload() {
         class="bg-elevation-2"
       >
         <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('groups.clear_filters') }}
+          {{ t('common.reset_filters') }}
         </NeButton>
       </NeEmptyState>
       <NeTable
@@ -240,7 +240,7 @@ function reload() {
                 <NeDropdown
                   :items="getKebabMenuItems(group)"
                   :align-to-right="true"
-                  :open-menu-aria-label="t('ne_dropdown.open_menu')"
+                  :open-menu-aria-label="t('groups.group_actions', { name: group.name })"
                 />
               </div>
             </NeTableCell>
@@ -248,6 +248,7 @@ function reload() {
         </NeTableBody>
         <template #paginator>
           <NePaginator
+            v-if="!loading"
             :current-page="pageNum"
             :total-rows="filteredGroups.length"
             :page-size="pageSize"

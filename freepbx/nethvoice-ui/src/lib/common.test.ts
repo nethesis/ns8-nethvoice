@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { describe, expect, it } from 'vitest'
-import { compareNatural, matchesText, normalize, paginate } from './common'
+import { compareNatural, foldText, matchesText, normalize, paginate } from './common'
 
 describe('normalize', () => {
   it('should lowercase and replace spaces', () => {
@@ -22,6 +22,19 @@ describe('matchesText', () => {
 
   it('should not match missing values', () => {
     expect(matchesText('x', null, undefined, 'abc')).toBe(false)
+  })
+
+  it('should ignore accents and repeated spaces', () => {
+    expect(matchesText('muller', 'Ärger Müller')).toBe(true)
+    expect(matchesText('Müller', 'Arger Muller')).toBe(true)
+    expect(matchesText('anna  rossi', 'Anna Rossi')).toBe(true)
+    expect(matchesText('anna rossi', 'Anna   Rossi')).toBe(true)
+  })
+})
+
+describe('foldText', () => {
+  it('should strip diacritics, collapse spaces and lowercase', () => {
+    expect(foldText('  Ärger   Müller ')).toBe('arger muller')
   })
 })
 

@@ -12,6 +12,7 @@ import {
   focusElement,
   NeButton,
   NeInlineNotification,
+  NeModal,
   NeMultiselectCombobox,
   NeSideDrawer,
   NeTextInput,
@@ -52,6 +53,7 @@ const nameRef = useTemplateRef<InstanceType<typeof NeTextInput>>('nameRef')
 const selectedUsers = ref<NeMultiselectComboboxOption[]>([])
 const usersRef = useTemplateRef<{ focus: () => void }>('usersRef')
 const nameIssue = ref('')
+const isShownUnsavedModal = ref(false)
 
 const userOptions = computed<NeMultiselectComboboxOption[]>(() =>
   users
@@ -111,6 +113,18 @@ const {
 
 const saving = computed(() => createGroupLoading.value || editGroupLoading.value)
 
+const selectedUserIds = computed(() => selectedUsers.value.map((option) => Number(option.id)))
+
+const isDirty = computed(() => {
+  const initialUserIds = currentGroup?.userIds ?? []
+
+  return (
+    name.value.trim() !== (currentGroup?.name ?? '') ||
+    selectedUserIds.value.length !== initialUserIds.length ||
+    selectedUserIds.value.some((userId) => !initialUserIds.includes(userId))
+  )
+})
+
 watch(
   () => isShown,
   () => {
@@ -120,6 +134,7 @@ watch(
     createGroupReset()
     editGroupReset()
     nameIssue.value = ''
+    isShownUnsavedModal.value = false
     name.value = currentGroup?.name ?? ''
     selectedUsers.value = userOptions.value.filter((option) =>
       currentGroup?.userIds.includes(Number(option.id)),
@@ -132,7 +147,7 @@ function saveGroup() {
   createGroupReset()
   editGroupReset()
   nameIssue.value = ''
-  const userIds = selectedUsers.value.map((option) => Number(option.id))
+  const userIds = selectedUserIds.value
 
   if (currentGroup) {
     editGroupMutate({ group: currentGroup, userIds })
@@ -150,6 +165,23 @@ function saveGroup() {
   }
   createGroupMutate(validation.output)
 }
+
+function requestClose() {
+  if (saving.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownUnsavedModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownUnsavedModal.value = false
+  emit('close')
+}
 </script>
 
 <template>
@@ -157,7 +189,7 @@ function saveGroup() {
     :is-shown="isShown"
     :title="currentGroup ? t('groups.edit_group') : t('groups.create_group')"
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form @submit.prevent="saveGroup">
       <div class="space-y-6">
@@ -210,4 +242,17 @@ function saveGroup() {
       </div>
     </form>
   </NeSideDrawer>
+  <NeModal
+    :visible="isShownUnsavedModal"
+    :title="t('common.unsaved_changes')"
+    kind="warning"
+    :primary-label="t('common.discard_changes')"
+    primary-button-kind="danger"
+    :cancel-label="t('common.keep_editing')"
+    :close-aria-label="t('common.close')"
+    @close="isShownUnsavedModal = false"
+    @primary-click="discardChanges"
+  >
+    <p>{{ t('common.unsaved_changes_description') }}</p>
+  </NeModal>
 </template>

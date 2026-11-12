@@ -3,6 +3,7 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
+import { isApiError } from '@/lib/api/errors'
 import type { components } from '@/lib/api/schema'
 import { compareNatural, matchesText } from '@/lib/common'
 import { NumericIdSchema } from '@/lib/groups/groups'
@@ -17,6 +18,8 @@ export const BASE_PROFILE_ID = 1
 export const DEFAULT_PROFILE_IDS = [1, 2, 3]
 
 export const PROFILE_NAME_MAX_LENGTH = 255
+
+export const RESERVED_PROFILE_NAME = 'Hotel'
 
 export const CTI_MACRO = 'nethvoice_cti'
 
@@ -160,6 +163,27 @@ export const parseSubscriptionActive = (raw: unknown): boolean =>
 export const isDefaultProfile = (profile: Pick<Profile, 'id'>): boolean =>
   DEFAULT_PROFILE_IDS.includes(profile.id)
 
+export const canRenameProfile = (profile: Pick<Profile, 'id' | 'name'>): boolean =>
+  !isDefaultProfile(profile) && profile.name !== RESERVED_PROFILE_NAME
+
+export const getProfileNameIssue = (error: unknown): string | null => {
+  if (!isApiError(error)) {
+    return null
+  }
+
+  switch (error.status) {
+    case 409:
+      return 'profiles.name_already_exists'
+    case 422:
+      return 'profiles.name_not_allowed'
+    default:
+      return null
+  }
+}
+
+export const getProfileSaveErrorKey = (error: unknown): string | null =>
+  isApiError(error) && error.status === 423 ? 'profiles.profile_change_in_progress' : null
+
 export const getProfileUsers = (profileId: number, users: User[]): User[] =>
   users.filter((user) => user.profileId === profileId)
 
@@ -206,7 +230,7 @@ export const getOutboundRouteCategory = (routeName: string): OutboundRouteCatego
   }
 }
 
-export const buildProfileNameSchema = (otherProfileNames: string[]) =>
+export const buildProfileNameSchema = (otherProfileNames: string[], reservedNames: string[] = []) =>
   v.pipe(
     v.string(),
     v.trim(),
@@ -217,6 +241,7 @@ export const buildProfileNameSchema = (otherProfileNames: string[]) =>
         !otherProfileNames.some((other) => other.trim().toLowerCase() === name.toLowerCase()),
       'profiles.name_already_exists',
     ),
+    v.check((name) => !reservedNames.includes(name), 'profiles.name_not_allowed'),
   )
 
 const findPermission = (

@@ -1,16 +1,21 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import * as v from 'valibot'
+import { api } from '@/lib/api/client'
 import {
+  applyUserSettingsSteps,
   countFreeDeviceSlots,
   normalizeMobile,
   planUserSettingsUpdate,
   UserSettingsSchema,
+  UserSettingsStepError,
   type UserSettings,
 } from './userSettings'
 import type { User } from './users'
+
+vi.mock('@/lib/api/client', () => ({ api: { POST: vi.fn(), DELETE: vi.fn() } }))
 
 const CURRENT: UserSettings = {
   extension: '300',
@@ -142,5 +147,45 @@ describe('countFreeDeviceSlots', () => {
     expect(countFreeDeviceSlots(withDevices(3))).toBe(6)
     expect(countFreeDeviceSlots(withDevices(9))).toBe(0)
     expect(countFreeDeviceSlots(withDevices(10))).toBe(0)
+  })
+})
+
+describe('applyUserSettingsSteps', () => {
+  const user: User = {
+    id: 7,
+    username: 'a.miller',
+    displayName: 'Anna Miller',
+    mainExtension: '300',
+    profileId: 1,
+    email: '',
+    devices: [],
+  }
+
+  it('reports the steps applied before the one that failed', async () => {
+    vi.mocked(api.POST).mockImplementation(async (path) => {
+      if (path === '/voicemails') {
+        throw new Error('boom')
+      }
+      return { data: undefined, response: new Response() }
+    })
+
+    const error = await applyUserSettingsSteps(user, [
+      { kind: 'extension', extension: '299' },
+      { kind: 'groups', groupIds: [2] },
+      { kind: 'voicemail', enabled: true },
+      { kind: 'enable_device', device: 'webrtc' },
+    ]).catch((caught: unknown) => caught)
+
+    expect(error).toBeInstanceOf(UserSettingsStepError)
+    expect(error).toMatchObject({
+      step: { kind: 'voicemail', enabled: true },
+      completed: [
+        { kind: 'extension', extension: '299' },
+        { kind: 'groups', groupIds: [2] },
+      ],
+    })
+    expect(api.POST).toHaveBeenCalledWith('/voicemails', {
+      body: { extension: '299', state: 'yes' },
+    })
   })
 })

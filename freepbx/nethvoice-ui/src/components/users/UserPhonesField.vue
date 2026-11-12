@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NeButton,
@@ -17,10 +17,11 @@ import {
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCirclePlus, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import { getPhoneWebPassword } from '@/lib/phones/defaults'
 import { formatMac } from '@/lib/phones/mac'
 import { applyPhoneChanges, planPhoneChanges } from '@/lib/users/userPhones'
-import { MAX_DEVICES_PER_USER } from '@/lib/users/users'
+import { MAX_DEVICES_PER_USER, type UserDevice } from '@/lib/users/users'
 import { usePhoneDefaults } from '@/queries/phones/defaults'
 import { usePhones } from '@/queries/phones/phones'
 import { describeError } from '@/stores/notifications'
@@ -30,11 +31,13 @@ const {
   maxPhones,
   disabled = false,
   disabledReason = '',
+  phonesWithoutMac = [],
 } = defineProps<{
   username: string
   maxPhones: number
   disabled?: boolean
   disabledReason?: string
+  phonesWithoutMac?: UserDevice[]
 }>()
 
 const selectedMacs = defineModel<string[]>({ required: true })
@@ -44,6 +47,20 @@ const { phones: phonesList, loading, error } = usePhones()
 const { state: phoneDefaultsState } = usePhoneDefaults()
 
 const phones = computed(() => phonesList.value)
+
+let lastRowId = 0
+const nextRowId = () => (lastRowId += 1)
+const rowIds = ref<number[]>([])
+
+watch(
+  () => selectedMacs.value.length,
+  (length) => {
+    if (rowIds.value.length !== length) {
+      rowIds.value = Array.from({ length }, nextRowId)
+    }
+  },
+  { immediate: true },
+)
 
 const save = async (currentMacs: string[], mainExtension: string, extensionChanged: boolean) => {
   const plan = planPhoneChanges(phones.value, currentMacs, selectedMacs.value, extensionChanged)
@@ -91,10 +108,12 @@ function setPhone(index: number, mac: string | NeComboboxOption[]) {
 }
 
 function addPhone() {
+  rowIds.value = [...rowIds.value, nextRowId()]
   selectedMacs.value = [...selectedMacs.value, '']
 }
 
 function removePhone(index: number) {
+  rowIds.value = rowIds.value.filter((_, position) => position !== index)
   selectedMacs.value = selectedMacs.value.filter((_, position) => position !== index)
 }
 </script>
@@ -116,9 +135,21 @@ function removePhone(index: number) {
       <p v-if="disabled && disabledReason" class="text-secondary-neutral text-sm">
         {{ disabledReason }}
       </p>
+      <template v-if="phonesWithoutMac.length > 0">
+        <p
+          v-for="device in phonesWithoutMac"
+          :key="device.id"
+          class="text-primary-neutral flex items-center gap-2"
+          data-testid="user-phone-without-mac"
+        >
+          <FontAwesomeIcon :icon="faOfficePhone" class="size-4 shrink-0" aria-hidden="true" />
+          {{ t('users.phone_without_mac', { extension: device.extension }) }}
+        </p>
+        <p class="text-secondary-neutral text-sm">{{ t('users.phones_without_mac_helper') }}</p>
+      </template>
       <div
         v-for="(mac, index) in selectedMacs"
-        :key="index"
+        :key="rowIds[index] ?? `row-${index}`"
         class="flex items-start gap-2"
         data-testid="user-phone-row"
       >

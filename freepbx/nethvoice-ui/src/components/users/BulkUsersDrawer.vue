@@ -12,19 +12,23 @@ import {
   NeCombobox,
   NeFormItemLabel,
   NeInlineNotification,
+  NeModal,
   NeMultiselectCombobox,
   NeProgressBar,
   NeSideDrawer,
   NeToggle,
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import {
   assignProfileToUsers,
   BulkUserError,
   exceedsDeviceLimit,
+  getDisablingPlans,
   planDevicesForUsers,
   setDevicesForUsers,
   setVoicemailForUsers,
+  type BulkDevicesPlan,
 } from '@/lib/users/bulk'
 import type { UsersDirectory } from '@/lib/users/directory'
 import {
@@ -63,6 +67,9 @@ const devices = ref<NeMultiselectComboboxOption[]>([])
 const progress = ref(0)
 const usersIssue = ref('')
 const profileIssue = ref('')
+const disablingPlans = ref<BulkDevicesPlan[]>([])
+const isShownDisableModal = ref(false)
+const isShownDiscardModal = ref(false)
 const usersRef = useTemplateRef<{ focus(): void }>('usersRef')
 const profileRef = useTemplateRef<{ focus(): void }>('profileRef')
 
@@ -128,6 +135,9 @@ watch(
       progress.value = 0
       usersIssue.value = ''
       profileIssue.value = ''
+      disablingPlans.value = []
+      isShownDisableModal.value = false
+      isShownDiscardModal.value = false
       reset()
       setTimeout(() => usersRef.value?.focus(), 300)
     }
@@ -142,16 +152,17 @@ const {
 } = useMutation({
   mutation: async () => {
     const targets = targetUsers()
+    const onProgress = (value: number) => {
+      progress.value = value
+    }
+    progress.value = 0
 
     if (action === 'profile') {
-      await assignProfileToUsers(targets, Number(profileId.value))
+      await assignProfileToUsers(targets, Number(profileId.value), onProgress)
     } else if (action === 'voicemail') {
-      await setVoicemailForUsers(targets, voicemail.value)
+      await setVoicemailForUsers(targets, voicemail.value, onProgress)
     } else {
-      progress.value = 0
-      await setDevicesForUsers(devicePlans(), (value) => {
-        progress.value = value
-      })
+      await setDevicesForUsers(devicePlans(), onProgress)
     }
     return targets.length
   },
@@ -165,19 +176,50 @@ const {
     }, 500)
     emit('close')
   },
+  onError(failure) {
+    if (!isShown) {
+      notificationsStore.createNotification({
+        kind: 'error',
+        title: t(texts.value.failure),
+        description: describeBulkError(failure),
+      })
+    }
+  },
   onSettled() {
     invalidateUsers()
   },
 })
 
-const errorDescription = computed(() =>
-  error.value instanceof BulkUserError
-    ? t('users.bulk_failed_for', {
-        username: error.value.username,
-        detail: describeError(error.value.cause),
-      })
-    : describeError(error.value),
+const describeBulkError = (failure: unknown): string => {
+  if (!(failure instanceof BulkUserError)) {
+    return describeError(failure)
+  }
+  const detail = t('users.bulk_failed_for', {
+    username: failure.username,
+    detail: describeError(failure.cause),
+  })
+
+  return failure.completed.length > 0
+    ? `${detail} ${t(
+        'users.bulk_completed_before_error',
+        { count: failure.completed.length, users: failure.completed.join(', ') },
+        failure.completed.length,
+      )}`
+    : detail
+}
+
+const errorDescription = computed(() => describeBulkError(error.value))
+
+const isDirty = computed(
+  () =>
+    selectedUsers.value.length > 0 ||
+    profileId.value !== '' ||
+    !voicemail.value ||
+    devices.value.length > 0,
 )
+
+const describeDevices = (plan: BulkDevicesPlan) =>
+  plan.disable.map((device) => t(`users.device_${device}`)).join(', ')
 
 function findUsersIssue(): string {
   if (selectedUsers.value.length === 0) {
@@ -207,9 +249,34 @@ function save() {
     usersRef.value?.focus()
   } else if (profileIssue.value) {
     profileRef.value?.focus()
+  } else if (action === 'devices' && getDisablingPlans(devicePlans()).length > 0) {
+    disablingPlans.value = getDisablingPlans(devicePlans())
+    isShownDisableModal.value = true
   } else {
     mutate()
   }
+}
+
+function confirmDisable() {
+  isShownDisableModal.value = false
+  mutate()
+}
+
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value || isShownDisableModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
 }
 </script>
 
@@ -218,7 +285,7 @@ function save() {
     :is-shown="isShown"
     :title="t(texts.title)"
     :close-aria-label="t('common.close')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
       <NeMultiselectCombobox
@@ -277,7 +344,7 @@ function save() {
         :remove-label="t('common.remove')"
       />
       <NeProgressBar
-        v-if="saving && action === 'devices'"
+        v-if="saving"
         :progress="progress"
         :label="t('users.updating_users')"
         show-progress
@@ -289,7 +356,7 @@ function save() {
         :description="errorDescription"
       />
       <div class="flex justify-end gap-4 border-t border-gray-200 pt-6 dark:border-gray-700">
-        <NeButton kind="tertiary" :disabled="saving" @click="emit('close')">
+        <NeButton kind="tertiary" :disabled="saving" @click="requestClose">
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton kind="primary" type="submit" :loading="saving" :disabled="saving">
@@ -298,4 +365,37 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <NeModal
+    :visible="isShownDisableModal"
+    :title="t('users.disable_devices')"
+    kind="warning"
+    :primary-label="t('users.disable_devices')"
+    primary-button-kind="danger"
+    :cancel-label="t('common.cancel')"
+    :close-aria-label="t('common.close')"
+    @close="isShownDisableModal = false"
+    @primary-click="confirmDisable"
+  >
+    <p>
+      {{
+        t(
+          'users.disable_devices_confirmation',
+          { count: disablingPlans.length },
+          disablingPlans.length,
+        )
+      }}
+    </p>
+    <ul class="mt-3 flex max-h-60 flex-col gap-1 overflow-y-auto" data-testid="disabling-devices">
+      <li v-for="plan in disablingPlans" :key="plan.user.username">
+        <span class="text-primary-neutral font-medium">{{ plan.user.displayName }}</span>
+        ({{ plan.user.username }}): {{ describeDevices(plan) }}
+      </li>
+    </ul>
+    <p class="mt-3">{{ t('users.disable_devices_credentials') }}</p>
+  </NeModal>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>
