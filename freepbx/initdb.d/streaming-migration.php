@@ -60,7 +60,7 @@ function migrateStreamingSchema(\PDO $db): void
         FROM `asterisk`.`rest_cti_streaming`")->fetchAll(\PDO::FETCH_ASSOC);
     $hasGates = $db->prepare("SELECT COUNT(*) FROM `asterisk`.`rest_cti_streaming_gates` WHERE `source` = ?");
     $addGate = $db->prepare("INSERT INTO `asterisk`.`rest_cti_streaming_gates`
-        (`source`, `position`, `name`, `type`, `code`) VALUES (?, 0, 'Porta 1', 'dtmf', ?)");
+        (`source`, `position`, `name`, `type`, `code`) VALUES (?, 0, 'Door 1', 'dtmf', ?)");
     $setCredentials = $db->prepare("UPDATE `asterisk`.`rest_cti_streaming`
         SET `url` = ?, `user` = ?, `secret` = ? WHERE `descr` = ?");
 
