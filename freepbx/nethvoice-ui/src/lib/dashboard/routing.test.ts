@@ -51,8 +51,8 @@ describe('getDashboardTrunkStatus', () => {
 describe('listTrunkStatuses', () => {
   it('should pair each trunk with its status', () => {
     const trunks = [
-      { id: 1, name: 'Provider' },
-      { id: 2, name: 'Backup' },
+      { id: 1, name: 'Provider', disabled: false },
+      { id: 2, name: 'Backup', disabled: false },
     ]
     const live = {
       Provider: { status: 'online', registration: 'registered' },
@@ -62,6 +62,26 @@ describe('listTrunkStatuses', () => {
     expect(listTrunkStatuses(trunks, live)).toEqual([
       { id: '1', label: 'Provider', status: 'registered' },
       { id: '2', label: 'Backup', status: 'offline' },
+    ])
+  })
+
+  it('should mark the disabled trunks and list them after the active ones', () => {
+    const trunks = [
+      { id: 1, name: 'Old', disabled: true },
+      { id: 2, name: 'Provider', disabled: false },
+      { id: 3, name: 'Spare', disabled: true },
+      { id: 4, name: 'Backup', disabled: false },
+    ]
+    const live = {
+      Old: { status: 'online', registration: 'unmonitored' },
+      Provider: { status: 'online', registration: 'registered' },
+    }
+
+    expect(listTrunkStatuses(trunks, live)).toEqual([
+      { id: '2', label: 'Provider', status: 'registered' },
+      { id: '4', label: 'Backup', status: 'pending' },
+      { id: '1', label: 'Old', status: 'disabled' },
+      { id: '3', label: 'Spare', status: 'disabled' },
     ])
   })
 })

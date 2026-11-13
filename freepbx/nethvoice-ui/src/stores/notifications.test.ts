@@ -25,8 +25,8 @@ describe('describeError', () => {
   it('can show a fixed text instead of the message of a server error', () => {
     const options = { serverDetail: false }
 
-    expect(describeError(apiError(503, { message: 'users-admin is unavailable' }), options)).toBe(
-      'The server could not complete the request (error 503). Try again later.',
+    expect(describeError(apiError(500, { message: 'users-admin is unavailable' }), options)).toBe(
+      'The server could not complete the request (error 500). Try again later.',
     )
     expect(describeError(apiError(400, { message: 'Bad extension' }), options)).toBe(
       'Bad extension',
@@ -40,6 +40,18 @@ describe('describeError', () => {
     expect(describeError(error)).toBe(
       'The server sent an unexpected response. Reload the page and try again.',
     )
+  })
+
+  it('explains an unreachable service without the body of the proxy', () => {
+    expect(describeError(apiError(502, 'Bad Gateway'))).toBe(
+      'The service is not reachable at the moment. Try again shortly.',
+    )
+    expect(describeError(apiError(503, '<html><body><h1>503</h1></body></html>'))).toBe(
+      'The service is not reachable at the moment. Try again shortly.',
+    )
+    expect(
+      describeError(apiError(504, { message: 'Gateway Timeout' }), { serverDetail: false }),
+    ).toBe('The service is not reachable at the moment. Try again shortly.')
   })
 
   it('explains an error without message', () => {
