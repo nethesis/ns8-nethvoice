@@ -7,7 +7,7 @@ import { type NeNotificationV2 } from '@nethesis/vue-components'
 import { useI18n } from 'vue-i18n'
 import { isValiError } from 'valibot'
 import i18n from '@/i18n'
-import { getApiErrorDetail, isApiError } from '@/lib/api/errors'
+import { getApiErrorDetail, isApiError, isServiceUnavailable } from '@/lib/api/errors'
 import { MissingWebPasswordError } from '@/lib/phones/phones'
 
 const NOTIFICATIONS_LIMIT = 30
@@ -41,6 +41,9 @@ export const describeError = (
   const { t } = i18n.global
 
   if (isApiError(error)) {
+    if (isServiceUnavailable(error.status)) {
+      return t('common.error_service_unavailable')
+    }
     if (!serverDetail && error.status >= 500) {
       return t('common.error_server', { status: error.status })
     }
