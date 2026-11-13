@@ -12,7 +12,6 @@ import {
   NeDropdownFilterV2,
   NeEmptyState,
   NeInlineNotification,
-  NePaginator,
   NeTable,
   NeTableBody,
   NeTableCell,
@@ -41,6 +40,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
+import TablePaginator from '@/components/common/TablePaginator.vue'
 import AdvancedBulkUsersDrawer from '@/components/users/AdvancedBulkUsersDrawer.vue'
 import BulkUsersDrawer, { type BulkUsersAction } from '@/components/users/BulkUsersDrawer.vue'
 import CreateOrEditUserDrawer from '@/components/users/CreateOrEditUserDrawer.vue'
@@ -48,7 +48,7 @@ import ImportUsersFlow from '@/components/users/ImportUsersFlow.vue'
 import RemoveExtensionModal from '@/components/users/RemoveExtensionModal.vue'
 import UserDeviceIcons from '@/components/users/UserDeviceIcons.vue'
 import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
-import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginate } from '@/lib/common'
+import { DEFAULT_PAGE_SIZE, paginate } from '@/lib/common'
 import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
 import {
   buildUserRows,
@@ -546,21 +546,12 @@ const filterLabels = computed(() => ({
           </NeTableRow>
         </NeTableBody>
         <template #paginator>
-          <div class="relative max-w-full overflow-x-auto" data-testid="users-paginator">
-            <NePaginator
-              :current-page="pageNum"
-              :total-rows="filteredRows.length"
-              :page-size="pageSize"
-              :page-sizes="PAGE_SIZES"
-              :nav-pagination-label="t('ne_table.pagination')"
-              :next-label="t('ne_table.go_to_next_page')"
-              :previous-label="t('ne_table.go_to_previous_page')"
-              :range-of-total-label="t('ne_table.of')"
-              :page-size-label="t('ne_table.show')"
-              @select-page="(page: number) => (pageNum = page)"
-              @select-page-size="(size: number) => (pageSize = size)"
-            />
-          </div>
+          <TablePaginator
+            v-model:page-num="pageNum"
+            v-model:page-size="pageSize"
+            :total-rows="filteredRows.length"
+            data-testid="users-paginator"
+          />
         </template>
       </NeTable>
     </template>
