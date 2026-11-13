@@ -538,17 +538,19 @@ function postCTIProfile($profile, $id=false){
 
 function enableHotelServicesForCTIProfiles() {
     if (($_ENV['NETHVOICE_HOTEL'] ?? '') !== 'True') {
+        FreePBX::Database()->exec("DELETE FROM customcontexts_includes
+            WHERE `include` = 'hotel-services' AND context LIKE 'cti-profile-%'");
         return;
     }
 
     // Run before Custom Contexts generates the dialplan, including after hotel enablement.
     FreePBX::Database()->exec("INSERT INTO customcontexts_includes
         (context, `include`, timegroupid, sort, userules)
-        SELECT c.context, 'hotel-services', NULL, 0, NULL
+        SELECT c.context, 'hotel-services', NULL, 99, NULL
         FROM customcontexts_contexts c
         JOIN rest_cti_profiles p ON c.context = CONCAT('cti-profile-', p.id)
         WHERE p.name <> 'Hotel'
-        ON DUPLICATE KEY UPDATE timegroupid = NULL, sort = 0, userules = NULL");
+        ON DUPLICATE KEY UPDATE timegroupid = NULL, sort = 99, userules = NULL");
 }
 
 function setCustomContextPermissions($profile){
@@ -588,10 +590,10 @@ function setCustomContextPermissions($profile){
         }
     }
 
-    // Reception services must precede outbound routes and the bad-number fallback.
+    // Keep internal destinations first, then reception services before outbound routes (100+).
     $context_permissions['hotel-services'] = array(
         'allow' => ($_ENV['NETHVOICE_HOTEL'] ?? '') === 'True' && $profile['name'] !== 'Hotel' ? 'yes' : 'no',
-        'sort' => 0,
+        'sort' => 99,
     );
 
     /* Set context permissions according to CTI permissions */

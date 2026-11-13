@@ -61,8 +61,9 @@ php local_testing/hotel_contexts_test.php 'mysql:host=127.0.0.1;port=3306' \
 
 The test refuses an existing `asterisk` database and removes its synthetic fixture.
 It runs the actual Custom Contexts dialplan generator to verify existing and new
-CTI profiles, repeated backfills, saves before context discovery, include order,
-preserved outbound restrictions, disabled hotel support, and room/trunk exclusion.
+CTI profiles, repeated backfills, saves before context discovery, internal-context
+precedence, preserved outbound restrictions, disable/re-enable cleanup and reloads,
+and room/trunk exclusion.
 
 Build the FreePBX image and run the focused regressions against its installed
 Slim 4 dependencies, patched Paging module, Core and framework:

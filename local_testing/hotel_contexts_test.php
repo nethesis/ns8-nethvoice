@@ -60,13 +60,17 @@ try {
         INSERT INTO rest_cti_profiles VALUES (1,'Base'), (2,'Standard'), (3,'Advanced'), (4,'Custom'), (5,'Hotel');
         INSERT INTO customcontexts_contexts (context, description) VALUES
             ('cti-profile-1','Base'), ('cti-profile-2','Standard'), ('cti-profile-3','Advanced'),
-            ('hotel','Hotel'), ('from-trunk','Trunk');
+            ('hotel','Hotel'), ('from-trunk','Trunk'), ('manual-services','Manual');
         INSERT INTO customcontexts_includes VALUES
             ('cti-profile-1','hotel-services',NULL,29,NULL),
             ('cti-profile-2','hotel-services',8,200,'allowmatch'),
+            ('cti-profile-1','ext-local',NULL,20,NULL),
+            ('cti-profile-2','ext-local',NULL,20,NULL),
             ('cti-profile-3','ext-local',NULL,20,NULL),
             ('cti-profile-3','outrt-9',NULL,100,NULL),
-            ('cti-profile-3','app-dnd-on',NULL,5,NULL);
+            ('cti-profile-3','app-dnd-on',NULL,5,NULL),
+            ('cti-profile-99','hotel-services',NULL,0,NULL),
+            ('manual-services','hotel-services',NULL,29,NULL);
         INSERT INTO customcontexts_contexts_list VALUES ('from-internal-additional','Internal');
         INSERT INTO customcontexts_includes_list VALUES
             ('from-internal-additional','ext-local','Local',20),
@@ -80,12 +84,19 @@ try {
         INSERT INTO outbound_route_sequence VALUES (7,0), (9,1)");
 
     $before = permissions('cti-profile-3');
+    $disabledExpected = $db->query("SELECT * FROM customcontexts_includes
+        WHERE NOT (`include` = 'hotel-services' AND context LIKE 'cti-profile-%')
+        ORDER BY context, `include`")->fetchAll(PDO::FETCH_ASSOC);
     foreach ([null, 'False'] as $disabled) {
+        $db->exec("REPLACE INTO customcontexts_includes VALUES ('cti-profile-1','hotel-services',NULL,0,NULL)");
         unset($_ENV['NETHVOICE_HOTEL']);
         if ($disabled !== null) { $_ENV['NETHVOICE_HOTEL'] = $disabled; }
         enableHotelServicesForCTIProfiles();
-        check(permissions('cti-profile-3') === $before, 'Disabled hotel support changed context permissions');
+        check($db->query('SELECT * FROM customcontexts_includes ORDER BY context, `include`')->fetchAll(PDO::FETCH_ASSOC) === $disabledExpected,
+            'Disabled hotel support left stale CTI includes or changed unrelated permissions');
     }
+    // An enabled installation may also have an old, time-restricted permission.
+    $db->exec("INSERT INTO customcontexts_includes VALUES ('cti-profile-2','hotel-services',8,200,'allowmatch')");
     $_ENV['NETHVOICE_HOTEL'] = 'True';
     enableHotelServicesForCTIProfiles();
     $after = $db->query('SELECT * FROM customcontexts_includes ORDER BY context, `include`')->fetchAll(PDO::FETCH_ASSOC);
@@ -110,8 +121,17 @@ try {
     foreach ([1, 2, 3, 4] as $id) {
         $context = 'cti-profile-'.$id;
         $includes = array_column($ext->_includes[$context], 'include');
-        check($includes[0] === 'hotel-services' && count(array_keys($includes, 'hotel-services', true)) === 1,
-            'Hotel services missing, duplicated, time-restricted or behind fallback routes in '.$context);
+        $hotelIndex = array_search('hotel-services', $includes, true);
+        $localIndex = array_search('ext-local', $includes, true);
+        check($hotelIndex !== false && count(array_keys($includes, 'hotel-services', true)) === 1,
+            'Hotel services missing, duplicated or time-restricted in '.$context);
+        check($localIndex !== false && $localIndex < $hotelIndex,
+            'Hotel services override internal destinations in '.$context);
+        foreach (['outrt-9', $context.'_bad-number', 'bad-number'] as $fallback) {
+            $fallbackIndex = array_search($fallback, $includes, true);
+            check($fallbackIndex === false || $hotelIndex < $fallbackIndex,
+                'Hotel services follow an outbound or invalid-number fallback in '.$context);
+        }
     }
     foreach (['cti-profile-3', 'cti-profile-4'] as $context) {
         $includes = array_column($ext->_includes[$context], 'include');
@@ -124,7 +144,28 @@ try {
     $_ENV['NETHVOICE_HOTEL'] = 'False';
     setCustomContextPermissions($profile);
     check(!in_array('hotel-services', array_column(permissions('cti-profile-3'), 'include'), true), 'Saving a disabled hotel profile enabled hotel services');
-    echo "PASS: existing and custom profiles, profile saves, repeat reloads, include priority, room exclusion and route restrictions\n";
+    $unrelated = permissions('manual-services');
+    enableHotelServicesForCTIProfiles();
+    enableHotelServicesForCTIProfiles();
+    $ext = new extensions();
+    customcontexts_get_config('asterisk');
+    foreach ([1, 2, 3, 4] as $id) {
+        check(!in_array('hotel-services', array_column($ext->_includes['cti-profile-'.$id], 'include'), true),
+            'Disabling hotel support left a dangling dialplan include');
+    }
+    check(permissions('manual-services') === $unrelated, 'Cleanup changed an unrelated custom context');
+    $_ENV['NETHVOICE_HOTEL'] = 'True';
+    enableHotelServicesForCTIProfiles();
+    $ext = new extensions();
+    customcontexts_get_config('asterisk');
+    foreach ([1, 2, 3, 4] as $id) {
+        $includes = array_column($ext->_includes['cti-profile-'.$id], 'include');
+        $localIndex = array_search('ext-local', $includes, true);
+        $hotelIndex = array_search('hotel-services', $includes, true);
+        check($localIndex !== false && $hotelIndex !== false && $localIndex < $hotelIndex,
+            'Re-enabling hotel support lost access or internal-context precedence');
+    }
+    echo "PASS: existing and custom profiles, saves, disable/re-enable reloads, internal precedence, room exclusion and route restrictions\n";
 } finally {
     $db->exec('DROP DATABASE asterisk');
 }
