@@ -18,14 +18,20 @@ import {
   NeTooltip,
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import {
+  getAddedProviderCodecs,
   getEmptyVoipTrunkForm,
   getVoipTrunkForm,
   isEmptyUpdateTrunkRequest,
+  normalizePhoneNumber,
   patchTrunk,
   postTrunk,
   toCreateTrunkRequest,
   toUpdateTrunkRequest,
+  TRUNK_NAME_MAX_LENGTH,
   TRUNKS_KEY,
   usesNameAsUsername,
   validateVoipTrunkForm,
@@ -35,9 +41,10 @@ import {
   type VoipTrunkValidationIssues,
 } from '@/lib/trunks/trunks'
 import { getCodecLabel, getProviderName, getSelectableCodecs } from '@/lib/trunks/providers'
-import { TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
+import { markTrunkChanged, TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
 import type { Focusable } from '@/lib/common'
 import { useTrunkCodecs, useTrunkProviders } from '@/queries/trunks/trunks'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const {
@@ -51,6 +58,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+const FOCUS_DELAY = 300
 
 const FIELD_ORDER: VoipTrunkField[] = [
   'provider',
@@ -69,6 +78,10 @@ const { state: codecsState } = useTrunkCodecs()
 
 const form = ref<VoipTrunkForm>(getEmptyVoipTrunkForm())
 const validationIssues = ref<VoipTrunkValidationIssues>({})
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
+
+useFocusReturn(() => isShown)
 
 const fieldRefs: Record<VoipTrunkField, Readonly<ShallowRef<Focusable | null>>> = {
   provider: useTemplateRef<Focusable>('providerRef'),
@@ -90,6 +103,18 @@ const providerOptions = computed(() =>
 const selectedProvider = computed(() =>
   providers.value.find((provider) => provider.id === form.value.provider),
 )
+
+const providerDefaultCodecs = computed(() => selectedProvider.value?.defaultCodecs ?? [])
+
+const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
+
+const codecsHelperText = computed(() => {
+  const addedCodecs = getAddedProviderCodecs(form.value, providerDefaultCodecs.value)
+
+  return addedCodecs.length > 0
+    ? t('trunks.voip.provider_codecs_added', { codecs: addedCodecs.map(getCodecLabel).join(', ') })
+    : t('trunks.voip.allowed_codecs_helper')
+})
 
 const currentProviderLabel = computed(() =>
   trunk ? getProviderName(trunk, providers.value) || trunk.sipServer : '',
@@ -129,6 +154,7 @@ const {
 } = useMutation({
   mutation: (values: VoipTrunkForm) => postTrunk(toCreateTrunkRequest(values)),
   onSuccess(_data, values) {
+    markTrunkChanged(values.name.trim())
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
@@ -137,6 +163,9 @@ const {
       })
     }, 500)
     emit('close')
+  },
+  onError(error) {
+    notifyErrorIfClosed(t('trunks.cannot_create_trunk'), error)
   },
   onSettled() {
     queryCache.invalidateQueries({ key: [TRUNKS_KEY] })
@@ -150,9 +179,17 @@ const {
   reset: resetUpdate,
   error: updateError,
 } = useMutation({
-  mutation: ({ item, values }: { item: Trunk; values: VoipTrunkForm }) =>
-    patchTrunk(item.id, toUpdateTrunkRequest(values, item)),
+  mutation: ({
+    item,
+    values,
+    defaultCodecs,
+  }: {
+    item: Trunk
+    values: VoipTrunkForm
+    defaultCodecs: string[]
+  }) => patchTrunk(item.id, toUpdateTrunkRequest(values, item, defaultCodecs)),
   onSuccess(_data, { item }) {
+    markTrunkChanged(item.name)
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
@@ -161,6 +198,9 @@ const {
       })
     }, 500)
     emit('close')
+  },
+  onError(error) {
+    notifyErrorIfClosed(t('trunks.cannot_save_trunk'), error)
   },
   onSettled() {
     queryCache.invalidateQueries({ key: [TRUNKS_KEY] })
@@ -172,19 +212,43 @@ const saving = computed(() => creating.value || updating.value)
 
 const saveError = computed(() => createError.value ?? updateError.value)
 
+function notifyErrorIfClosed(title: string, error: unknown) {
+  if (!isShown) {
+    notificationsStore.createNotificationFromError(error, title)
+  }
+}
+
+function getTrunkDefaultCodecs(item: Trunk): string[] {
+  return providers.value.find((provider) => provider.id === item.provider)?.defaultCodecs ?? []
+}
+
+function initForm() {
+  form.value = trunk
+    ? getVoipTrunkForm(trunk, getTrunkDefaultCodecs(trunk))
+    : getEmptyVoipTrunkForm()
+  initialSnapshot.value = JSON.stringify(form.value)
+}
+
 watch(
   () => isShown,
   (shown) => {
     if (!shown) {
+      isShownDiscardModal.value = false
       return
     }
     resetCreate()
     resetUpdate()
     validationIssues.value = {}
-    form.value = trunk ? getVoipTrunkForm(trunk) : getEmptyVoipTrunkForm()
-    fieldRefs[trunk ? 'phoneNumber' : 'provider'].value?.focus()
+    initForm()
+    setTimeout(() => fieldRefs[trunk ? 'phoneNumber' : 'provider'].value?.focus(), FOCUS_DELAY)
   },
 )
+
+watch(providers, () => {
+  if (isShown && trunk && !isDirty.value) {
+    initForm()
+  }
+})
 
 watch(
   () => form.value.provider,
@@ -222,11 +286,40 @@ function save() {
     return
   }
 
-  if (isEmptyUpdateTrunkRequest(toUpdateTrunkRequest(form.value, trunk))) {
+  const defaultCodecs = getTrunkDefaultCodecs(trunk)
+
+  if (isEmptyUpdateTrunkRequest(toUpdateTrunkRequest(form.value, trunk, defaultCodecs))) {
     emit('close')
     return
   }
-  updateTrunk({ item: trunk, values: { ...form.value } })
+  updateTrunk({ item: trunk, values: { ...form.value }, defaultCodecs })
+}
+
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
+}
+
+function normalizePhoneNumberField() {
+  const phoneNumber = form.value.phoneNumber.trim()
+
+  if (!trunk || phoneNumber !== trunk.phoneNumber) {
+    form.value.phoneNumber = normalizePhoneNumber(phoneNumber)
+  } else {
+    form.value.phoneNumber = phoneNumber
+  }
 }
 
 function issue(field: VoipTrunkField): string {
@@ -240,7 +333,7 @@ function issue(field: VoipTrunkField): string {
     :is-shown="isShown"
     :title="isEditing ? t('trunks.voip.edit_trunk') : t('trunks.voip.add_voip_trunk')"
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
@@ -282,6 +375,7 @@ function issue(field: VoipTrunkField): string {
           :helper-text="nameHelperText"
           :invalid-message="issue('name')"
           :disabled="saving || isEditing"
+          :maxlength="TRUNK_NAME_MAX_LENGTH"
           @blur="form.name = form.name.trim()"
         />
         <NeTextInput
@@ -291,7 +385,7 @@ function issue(field: VoipTrunkField): string {
           :helper-text="t('trunks.voip.phone_number_helper')"
           :invalid-message="issue('phoneNumber')"
           :disabled="saving"
-          @blur="form.phoneNumber = form.phoneNumber.trim()"
+          @blur="normalizePhoneNumberField"
         />
         <NeTextInput
           v-if="isUsernameShown"
@@ -324,7 +418,7 @@ function issue(field: VoipTrunkField): string {
           ref="codecsRef"
           v-model="selectedCodecs"
           :label="t('trunks.voip.allowed_codecs')"
-          :helper-text="t('trunks.voip.allowed_codecs_helper')"
+          :helper-text="codecsHelperText"
           :options="codecOptions"
           :placeholder="t('ne_combobox.choose_multiple')"
           :invalid-message="issue('codecs')"
@@ -339,12 +433,23 @@ function issue(field: VoipTrunkField): string {
         />
         <NeToggle
           v-model="form.forceCodec"
+          role="group"
+          :aria-label="t('trunks.voip.force_codec')"
           :top-label="t('trunks.voip.force_codec')"
           :label="form.forceCodec ? t('common.enabled') : t('common.disabled')"
           :disabled="saving"
         >
           <template #topTooltip>
             <NeTooltip>
+              <template #trigger>
+                <button
+                  type="button"
+                  class="inline-flex text-indigo-500 dark:text-indigo-300"
+                  :aria-label="t('trunks.voip.force_codec_info')"
+                >
+                  <FontAwesomeIcon :icon="faCircleInfo" class="size-4" aria-hidden="true" />
+                </button>
+              </template>
               <template #content>{{ t('trunks.voip.force_codec_tooltip') }}</template>
             </NeTooltip>
           </template>
@@ -358,7 +463,7 @@ function issue(field: VoipTrunkField): string {
       </div>
       <hr class="my-8" />
       <div class="flex justify-end gap-3">
-        <NeButton kind="tertiary" size="lg" :disabled="saving" @click.prevent="emit('close')">
+        <NeButton kind="tertiary" size="lg" :disabled="saving" @click.prevent="requestClose">
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
@@ -367,4 +472,9 @@ function issue(field: VoipTrunkField): string {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>
