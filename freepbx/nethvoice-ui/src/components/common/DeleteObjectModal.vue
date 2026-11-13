@@ -25,6 +25,12 @@ const {
 }>()
 
 const emit = defineEmits<{ close: []; primaryClick: [] }>()
+
+function requestClose() {
+  if (!deleting) {
+    emit('close')
+  }
+}
 </script>
 
 <template>
@@ -38,7 +44,7 @@ const emit = defineEmits<{ close: []; primaryClick: [] }>()
     :primary-button-disabled="deleting"
     :primary-button-loading="deleting"
     :close-aria-label="$t('common.close')"
-    @close="emit('close')"
+    @close="requestClose"
     @primary-click="emit('primaryClick')"
   >
     <p v-if="confirmationMessage">{{ confirmationMessage }}</p>

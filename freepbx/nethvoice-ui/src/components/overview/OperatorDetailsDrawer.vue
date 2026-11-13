@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faPhone, faUsers } from '@fortawesome/free-solid-svg-icons'
 import { NeBadgeV2, NeButton, NeSideDrawer, NeTabs, NeTooltip } from '@nethesis/vue-components'
+import { vKeyboardTabs } from '@/lib/keyboardTabs'
 import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
@@ -123,6 +124,7 @@ function getTabLabel(device: OverviewDevice) {
       <div v-if="selectedDevice">
         <div class="overflow-x-auto">
           <NeTabs
+            v-keyboard-tabs
             :tabs="tabs"
             :selected="selectedDevice.extension"
             :sr-tabs-label="t('ne_tabs.tabs')"
