@@ -1746,6 +1746,68 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MainExtensionReassignRequest'
+  /mainextensions/orphans:
+    get:
+      summary: List the main extensions of users removed from the account provider.
+      tags:
+      - Mainextensions
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MainExtensionOrphan'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+      operationId: get_mainextensions_orphans
+      description: When the account provider removes a user, the main extension, the
+        devices, the physical phones and the voicemail box are kept and the SIP credentials
+        of every extension of the user are replaced, so the devices cannot register
+        or call. A user created later with the same username gets everything back,
+        with the original credentials, group memberships and CTI profile.
+  /mainextensions/orphans/release:
+    post:
+      summary: Delete the extensions of removed users.
+      tags:
+      - Mainextensions
+      responses:
+        '204':
+          description: Extensions deleted
+        '400':
+          description: Missing or invalid extensions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '404':
+          description: An extension does not belong to a removed user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+      operationId: post_mainextensions_orphans_release
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MainExtensionOrphansReleaseRequest'
+      description: Deletes the extensions, the software devices and the voicemail
+        box of the chosen removed users and frees their physical phones. Nothing is
+        changed when an extension does not belong to a removed user. A reload is triggered.
   /mainextensions/userlimits:
     get:
       summary: Report configured users count and limit information.
@@ -5326,6 +5388,58 @@ components:
         username:
           type: string
           description: User that receives the main extension.
+    MainExtensionOrphanDevice:
+      type: object
+      required:
+      - extension
+      - type
+      - mac
+      properties:
+        extension:
+          type: string
+        type:
+          type: string
+          description: Device type, such as physical, webrtc, nethlink or mobile.
+        mac:
+          type: string
+          nullable: true
+          description: MAC address of a physical phone, null for the other devices.
+    MainExtensionOrphan:
+      type: object
+      required:
+      - username
+      - displayname
+      - extension
+      - devices
+      - removed_at
+      properties:
+        username:
+          type: string
+          description: Username of the removed user.
+        displayname:
+          type: string
+        extension:
+          type: string
+          description: Main extension of the removed user.
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/MainExtensionOrphanDevice'
+        removed_at:
+          type: string
+          format: date-time
+    MainExtensionOrphansReleaseRequest:
+      type: object
+      required:
+      - extensions
+      properties:
+        extensions:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            pattern: ^[0-9]+$
+          description: Main extensions of removed users to delete.
     UsersMessage:
       type: object
       properties:
