@@ -321,7 +321,7 @@ test.describe('integrations: phonebook sources', () => {
     await page.goto('./integrations/phonebook')
     await page.getByRole('button', { name: 'Open the menu of Suppliers' }).click()
     await expect(page.getByRole('menuitem', { name: 'Sync now' })).toBeDisabled()
-    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Open the menu of Suppliers' }).click()
     await expect(page.getByRole('menuitem', { name: 'Sync now' })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Open the menu of CRM contacts' }).click()

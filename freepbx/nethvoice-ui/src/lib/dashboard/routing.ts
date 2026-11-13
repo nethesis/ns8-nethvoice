@@ -17,7 +17,8 @@ import {
 } from '@/lib/trunks/liveState'
 import type { Trunk } from '@/lib/trunks/trunks'
 
-export type DashboardTrunkStatus = ProviderStatus | RegistrationStatus | 'not_connected'
+export type DashboardTrunkStatus =
+  ProviderStatus | RegistrationStatus | 'not_connected' | 'disabled'
 
 export type DashboardTrunk = {
   id: string
@@ -60,14 +61,16 @@ export const getDashboardTrunkStatus = (
 }
 
 export const listTrunkStatuses = (
-  trunks: Pick<Trunk, 'id' | 'name'>[],
+  trunks: Pick<Trunk, 'id' | 'name' | 'disabled'>[],
   liveTrunks: TrunksLiveState | undefined,
 ): DashboardTrunk[] =>
-  trunks.map((trunk) => ({
-    id: String(trunk.id),
-    label: trunk.name,
-    status: getDashboardTrunkStatus(trunk.name, liveTrunks),
-  }))
+  [...trunks.filter((trunk) => !trunk.disabled), ...trunks.filter((trunk) => trunk.disabled)].map(
+    (trunk) => ({
+      id: String(trunk.id),
+      label: trunk.name,
+      status: trunk.disabled ? 'disabled' : getDashboardTrunkStatus(trunk.name, liveTrunks),
+    }),
+  )
 
 export const listInboundRouteDestinations = (
   routes: InboundRoute[],

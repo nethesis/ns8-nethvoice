@@ -33,8 +33,6 @@ defineSlots<{ value(props: { item: TItem }): unknown }>()
 
 const { pageNum, pageSize, page } = useClientPagination(computed(() => items))
 pageSize.value = DASHBOARD_LIST_PAGE_SIZE
-
-const paginated = computed(() => items.length > DASHBOARD_LIST_PAGE_SIZE)
 </script>
 
 <template>
@@ -74,7 +72,6 @@ const paginated = computed(() => items.length > DASHBOARD_LIST_PAGE_SIZE)
         </tbody>
       </table>
       <TablePaginator
-        v-if="paginated"
         v-model:page-num="pageNum"
         v-model:page-size="pageSize"
         :total-rows="items.length"

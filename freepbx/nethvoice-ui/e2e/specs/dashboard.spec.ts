@@ -192,7 +192,8 @@ test.describe('dashboard', () => {
 
     const trunksCard = page.getByTestId('trunks-card')
     await expect(trunksCard.getByRole('columnheader')).toHaveText(['Name', 'Status'])
-    await expect(trunksCard.getByRole('navigation', { name: 'Table pagination' })).toHaveCount(0)
+    await expect(trunksCard.getByRole('navigation', { name: 'Table pagination' })).toBeVisible()
+    await expect(trunksCard).toContainText('1 - 2 of 2')
     const trunkRows = trunksCard.getByTestId('list-row')
     await expect(trunkRows).toHaveCount(2)
     await expect(trunkRows.nth(0)).toContainText('Backup')
@@ -202,6 +203,8 @@ test.describe('dashboard', () => {
 
     const routesCard = page.getByTestId('inbound-routes-card')
     await expect(routesCard.getByRole('columnheader')).toHaveText(['Route', 'Destination'])
+    await expect(routesCard.getByRole('navigation', { name: 'Table pagination' })).toBeVisible()
+    await expect(routesCard).toContainText('1 - 1 of 1')
     const routeRows = routesCard.getByTestId('list-row')
     await expect(routeRows).toHaveCount(1)
     await expect(routeRows.nth(0)).toContainText('0612345678')
@@ -281,6 +284,20 @@ test.describe('dashboard', () => {
     await expect(trunkRows.filter({ hasText: 'Fallback' })).toContainText('Rejected')
   })
 
+  test('shows the disabled trunks after the active ones', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/trunks', {
+      json: [{ trunkid: 3, tech: 'pjsip', name: 'Archive', disabled: 'on' }, ...FREEPBX_TRUNKS],
+    })
+
+    await page.goto('./dashboard')
+
+    const trunkRows = page.getByTestId('trunks-card').getByTestId('list-row')
+    await expect(trunkRows).toHaveCount(3)
+    await expect(trunkRows.nth(2)).toContainText('Archive')
+    await expect(trunkRows.nth(2)).toContainText('Disabled')
+    await expect(trunkRows.nth(2)).not.toContainText('Pending')
+  })
+
   test('names the routes without a DID and flags missing destinations', async ({
     page,
     mockApi,
@@ -318,8 +335,11 @@ test.describe('dashboard', () => {
       .on('GET', '/freepbx/rest/inboundroutes', { status: 500, json: 'An error occurred' })
     await page.clock.runFor(61000)
 
-    await expect(page.getByText('Cannot load the trunks')).toBeVisible()
-    await expect(page.getByText('Cannot load the inbound routes')).toBeVisible()
+    const loadError = page.getByTestId('dashboard-load-error')
+    await expect(loadError).toHaveCount(1)
+    await expect(loadError).toContainText('Cannot load some dashboard data')
+    await expect(loadError).toContainText('Not available: trunks and inbound routes.')
+    await expect(loadError).toContainText('An error occurred')
     await expect(trunkRows).toHaveCount(2)
     await expect(page.getByTestId('inbound-routes-card').getByTestId('list-row')).toHaveCount(1)
   })
@@ -435,6 +455,42 @@ test.describe('dashboard', () => {
 
     await expect(counterValue(page, 'trunks')).toHaveText('1')
     await expect(page.getByText('Cannot load some counters')).toHaveCount(0)
+  })
+
+  test('summarizes the unreachable services in one notification', async ({ page, mockApi }) => {
+    let fail = true
+    const responses: Record<string, unknown> = {
+      '/api/astproxy/extensions': EXTENSIONS,
+      '/api/astproxy/trunks': TRUNKS,
+      '/api/user/endpoints/all': USERS,
+      '/tancredi/api/v1/phones': [],
+    }
+
+    for (const [path, json] of Object.entries(responses)) {
+      mockApi.on('GET', path, () =>
+        fail
+          ? { status: 502, contentType: 'text/html', body: '<html><h1>502 Bad Gateway</h1></html>' }
+          : { json },
+      )
+    }
+
+    await page.goto('./dashboard')
+
+    const loadError = page.getByTestId('dashboard-load-error')
+    await expect(loadError).toHaveCount(1)
+    await expect(loadError).toContainText('Cannot load some dashboard data')
+    await expect(loadError).toContainText(
+      'Not available: counters and live data. The service is not reachable at the moment. Try again shortly.',
+    )
+    await expect(page.getByText('Bad Gateway')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(1)
+
+    const usersCalls = mockApi.callsTo('GET', '/freepbx/rest/users/count').length
+    fail = false
+    await page.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(loadError).toHaveCount(0)
+    expect(mockApi.callsTo('GET', '/freepbx/rest/users/count')).toHaveLength(usersCalls)
   })
 
   test('keeps the presence and the trunks when the extensions fail', async ({ page, mockApi }) => {

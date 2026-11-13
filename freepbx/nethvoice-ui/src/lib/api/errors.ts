@@ -103,8 +103,15 @@ const isServerDump = (status: number, body: unknown): boolean =>
   typeof body === 'string' &&
   (HTML_PATTERN.test(body) || SERVER_DUMP_PATTERN.test(body))
 
+const SERVICE_UNAVAILABLE_STATUSES = [502, 503, 504]
+
+export const isServiceUnavailable = (status: number): boolean =>
+  SERVICE_UNAVAILABLE_STATUSES.includes(status)
+
 export const getApiErrorDetail = (error: ApiError): string =>
-  isServerDump(error.status, error.body) ? '' : getApiErrorMessage(error.body)
+  isServiceUnavailable(error.status) || isServerDump(error.status, error.body)
+    ? ''
+    : getApiErrorMessage(error.body)
 
 export const isAuthenticationFailure = (status: number, body: unknown): boolean => {
   if (status === 401) {

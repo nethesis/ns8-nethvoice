@@ -50,7 +50,8 @@
     "error_invalid_response": "Il server ha inviato una risposta inattesa. Ricarica la pagina e riprova.",
     "click_to_copy": "Clicca per copiare",
     "name": "Nome",
-    "show_details": "Mostra dettagli"
+    "show_details": "Mostra dettagli",
+    "error_service_unavailable": "Il servizio non è raggiungibile in questo momento. Riprova tra poco."
   },
   "shell": {
     "open_sidebar": "Apri barra laterale",
@@ -160,6 +161,15 @@
       "no_routes": "Nessuna rotta in ingresso configurata",
       "any_did": "Qualsiasi DID",
       "invalid_destination": "Destinazione non valida"
+    },
+    "load_error": {
+      "title": "Impossibile caricare alcuni dati della dashboard",
+      "unavailable": "Non disponibili: {parts}.",
+      "system": "informazioni di sistema",
+      "counters": "contatori",
+      "live_data": "dati in tempo reale",
+      "trunks": "fasci",
+      "inbound_routes": "rotte in ingresso"
     }
   },
   "users": {

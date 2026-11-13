@@ -50,7 +50,8 @@
     "error_invalid_response": "The server sent an unexpected response. Reload the page and try again.",
     "click_to_copy": "Click to copy",
     "name": "Name",
-    "show_details": "Show details"
+    "show_details": "Show details",
+    "error_service_unavailable": "The service is not reachable at the moment. Try again shortly."
   },
   "shell": {
     "open_sidebar": "Open sidebar",
@@ -160,6 +161,15 @@
       "no_routes": "No inbound routes configured",
       "any_did": "Any DID",
       "invalid_destination": "Invalid destination"
+    },
+    "load_error": {
+      "title": "Cannot load some dashboard data",
+      "unavailable": "Not available: {parts}.",
+      "system": "system information",
+      "counters": "counters",
+      "live_data": "live data",
+      "trunks": "trunks",
+      "inbound_routes": "inbound routes"
     }
   },
   "users": {
