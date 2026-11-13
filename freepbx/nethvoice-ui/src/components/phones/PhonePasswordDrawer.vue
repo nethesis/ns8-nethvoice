@@ -27,6 +27,7 @@ import {
   PhonePasswordSchema,
   type PhonePasswordKind,
 } from '@/lib/phones/defaults'
+import { usePhoneDefaults } from '@/queries/phones/defaults'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 type PasswordField = 'password' | 'confirmPassword'
@@ -41,6 +42,7 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
+const { state: defaultsState } = usePhoneDefaults()
 
 const password = ref('')
 const confirmPassword = ref('')
@@ -73,7 +75,8 @@ const {
   reset: changePasswordReset,
   error: changePasswordError,
 } = useMutation({
-  mutation: (newPassword: string) => changePhonePassword(kind, newPassword),
+  mutation: (newPassword: string) =>
+    changePhonePassword(kind, newPassword, defaultsState.value.data?.adminPassword),
   onSuccess() {
     setTimeout(() => {
       notificationsStore.createNotification({

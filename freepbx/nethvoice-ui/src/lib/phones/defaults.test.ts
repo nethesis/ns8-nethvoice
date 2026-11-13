@@ -7,6 +7,7 @@ import {
   getPhoneWebPassword,
   getToneZoneLabel,
   getUnmetPasswordRequirements,
+  isDefaultAdminPassword,
   parsePhoneDefaults,
   PhonePasswordSchema,
   withCurrentOption,
@@ -47,7 +48,7 @@ describe('parsePhoneDefaults', () => {
 describe('getPhoneWebPassword', () => {
   it('should use the admin password of the defaults', () => {
     expect(getPhoneWebPassword(parsePhoneDefaults({ adminpw: 'Abc' }))).toBe('Abc')
-    expect(getPhoneWebPassword(undefined)).toBe('admin')
+    expect(getPhoneWebPassword(undefined)).toBe('')
   })
 })
 
@@ -90,5 +91,12 @@ describe('options helpers', () => {
   it('should name tone zones as countries', () => {
     expect(getToneZoneLabel('it', 'en')).toBe('Italy')
     expect(getToneZoneLabel('uk', 'en')).toBe('United Kingdom')
+  })
+})
+
+describe('isDefaultAdminPassword', () => {
+  it('should flag the generated password that misses the requirements', () => {
+    expect(isDefaultAdminPassword('k3j9x0q2ab')).toBe(true)
+    expect(isDefaultAdminPassword('Secret-123')).toBe(false)
   })
 })

@@ -6,14 +6,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   NeBadgeV2,
   NeButton,
   NeDropdown,
   NeDropdownFilterV2,
   NeEmptyState,
-  NePaginator,
   NeSortDropdown,
   NeTable,
   NeTableBody,
@@ -37,12 +36,13 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
+import TablePaginator from '@/components/common/TablePaginator.vue'
 import CreateModelDrawer from './CreateModelDrawer.vue'
 import DeleteModelModal from './DeleteModelModal.vue'
 import ResetModelModal from './ResetModelModal.vue'
 import PhoneModelDetail from './PhoneModelDetail.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
-import { compareNatural, matchesText, PAGE_SIZES } from '@/lib/common'
+import { compareNatural, matchesText } from '@/lib/common'
 import { buildModelRows, type PhoneModel, type PhoneModelRow } from '@/lib/phones/models'
 import { usePhoneModels } from '@/queries/phones/models'
 import { useTancrediPhones } from '@/queries/phones/phones'
@@ -54,6 +54,7 @@ type SortKey = (typeof SORT_KEYS)[number]
 const DEFAULT_SORT_KEY: SortKey = 'displayName'
 
 const { t } = useI18n()
+const route = useRoute()
 const router = useRouter()
 const { state: modelsState, refetch: refetchModels } = usePhoneModels()
 const { state: phonesState, refetch: refetchPhones } = useTancrediPhones()
@@ -69,7 +70,10 @@ const isDuplicating = ref(false)
 const isShownResetModal = ref(false)
 const isShownDeleteModal = ref(false)
 
-const selectedModelName = ref('')
+const selectedModelName = computed(() => {
+  const model = route.query.model
+  return typeof model === 'string' ? model : ''
+})
 
 const loading = computed(
   () => modelsState.value.status === 'pending' || phonesState.value.status === 'pending',
@@ -199,11 +203,13 @@ function retry() {
 }
 
 function openModel(name: string) {
-  selectedModelName.value = name
+  router.push({ query: { ...route.query, model: name } })
 }
 
 function closeModel() {
-  selectedModelName.value = ''
+  const query = { ...route.query }
+  delete query.model
+  router.push({ query })
 }
 
 function showCreateDrawer(duplicateOf?: PhoneModelRow) {
@@ -373,18 +379,10 @@ function onModelCreated(model: PhoneModel) {
           </NeTableRow>
         </NeTableBody>
         <template #paginator>
-          <NePaginator
-            :current-page="pageNum"
+          <TablePaginator
+            v-model:page-num="pageNum"
+            v-model:page-size="pageSize"
             :total-rows="filteredRows.length"
-            :page-size="pageSize"
-            :page-sizes="PAGE_SIZES"
-            :nav-pagination-label="$t('ne_table.pagination')"
-            :next-label="$t('ne_table.go_to_next_page')"
-            :previous-label="$t('ne_table.go_to_previous_page')"
-            :range-of-total-label="$t('ne_table.of')"
-            :page-size-label="$t('ne_table.show')"
-            @select-page="(selected: number) => (pageNum = selected)"
-            @select-page-size="(size: number) => (pageSize = size)"
           />
         </template>
       </NeTable>
