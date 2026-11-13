@@ -47,7 +47,10 @@
     "error_server_detail": "Messaggio del server: {detail}",
     "error_server": "Il server non è riuscito a completare la richiesta (errore {status}). Riprova più tardi.",
     "error_network": "Impossibile raggiungere il server. Controlla la connessione e riprova.",
-    "error_invalid_response": "Il server ha inviato una risposta inattesa. Ricarica la pagina e riprova."
+    "error_invalid_response": "Il server ha inviato una risposta inattesa. Ricarica la pagina e riprova.",
+    "click_to_copy": "Clicca per copiare",
+    "name": "Nome",
+    "show_details": "Mostra dettagli"
   },
   "shell": {
     "open_sidebar": "Apri barra laterale",
@@ -62,7 +65,9 @@
     "close_side_drawer": "Chiudi pannello laterale",
     "brand_logo": "Logo {brand}",
     "open_legacy_wizard": "Vai all'interfaccia precedente",
-    "administrator": "Amministratore"
+    "administrator": "Amministratore",
+    "switch_to_compact_view": "Passa alla vista compatta",
+    "switch_to_standard_view": "Passa alla vista standard"
   },
   "login": {
     "welcome": "Benvenuto",
@@ -401,7 +406,22 @@
     "synchronizing_users": "Sincronizzazione utenti…",
     "cannot_sync_users": "Impossibile sincronizzare gli utenti",
     "users_synchronized": "Utenti sincronizzati",
-    "users_synchronized_description": "Nomi, nuovi utenti e utenti eliminati del provider di account sono stati applicati"
+    "users_synchronized_description": "Nomi, nuovi utenti e utenti eliminati del provider di account sono stati applicati",
+    "orphan_extensions_found": "{count} interno appartiene a un utente rimosso | {count} interni appartengono a utenti rimossi",
+    "orphan_extensions_found_description": "I loro dispositivi non possono telefonare: il provider di account può aggiungere di nuovo gli utenti per ripristinare tutto, oppure puoi eliminare gli interni.",
+    "show_orphan_extensions": "Mostra interni",
+    "orphan_extensions": "Interni di utenti rimossi",
+    "orphan_extensions_description": "Il provider di account ha rimosso questi utenti. Interni, dispositivi e casella vocale vengono mantenuti, ma i dispositivi non possono registrarsi. Quando il provider di account aggiunge di nuovo un utente con lo stesso nome utente, tutto torna a quell'utente.",
+    "select_all_extensions": "Seleziona tutti",
+    "orphan_extension": "Interno {extension}",
+    "orphan_physical_phones": "{count} telefono fisico | {count} telefoni fisici",
+    "orphan_removed_on": "Rimosso il {date}",
+    "delete_orphan_extensions": "Elimina interni",
+    "delete_orphan_extensions_confirmation": "L'interno {extensions} verrà eliminato definitivamente insieme a web phone, app e casella vocale del suo utente rimosso. | Gli interni {extensions} verranno eliminati definitivamente insieme a web phone, app e caselle vocali dei loro utenti rimossi.",
+    "delete_orphan_extensions_consequences": "I telefoni fisici vengono liberati e possono essere assegnati ad altri utenti. Se il provider di account aggiunge di nuovo gli utenti, non riavranno i loro interni. L'operazione non può essere annullata.",
+    "cannot_delete_orphan_extensions": "Impossibile eliminare gli interni",
+    "orphan_extensions_deleted": "Interni eliminati",
+    "orphan_extensions_deleted_description": "L'interno {extensions} è stato eliminato | Gli interni {extensions} sono stati eliminati"
   },
   "trunks": {
     "title": "Fasci",
@@ -653,7 +673,9 @@
     "no_default_routes": "Non ci sono rotte predefinite per il paese scelto.",
     "no_trunks_warning": "Nessun fascio: le chiamate non possono essere effettuate",
     "trunk_deleted": "Eliminato",
-    "trunk_voice_agents": "Agenti AI"
+    "trunk_voice_agents": "Agenti AI",
+    "move_up": "Sposta su",
+    "move_down": "Sposta giù"
   },
   "phones": {
     "title": "Telefoni fisici",
@@ -699,9 +721,6 @@
       "encryption": "Cifratura",
       "encrypted": "Cifrato",
       "not_encrypted": "Non cifrato",
-      "copy": "Copia",
-      "copy_mac": "Copia l'indirizzo MAC {mac}",
-      "cannot_copy": "Impossibile copiare",
       "clipboard_unavailable": "Gli appunti non sono disponibili in questo browser",
       "open_phone_menu": "Apri il menu del telefono {mac}",
       "run_provisioning": "Esegui provisioning",
