@@ -42,7 +42,7 @@ import DeleteModelModal from './DeleteModelModal.vue'
 import ResetModelModal from './ResetModelModal.vue'
 import PhoneModelDetail from './PhoneModelDetail.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
-import { compareNatural, matchesText } from '@/lib/common'
+import { compareNatural, matchesText, PAGE_SIZES } from '@/lib/common'
 import { buildModelRows, type PhoneModel, type PhoneModelRow } from '@/lib/phones/models'
 import { usePhoneModels } from '@/queries/phones/models'
 import { useTancrediPhones } from '@/queries/phones/phones'
@@ -378,7 +378,7 @@ function onModelCreated(model: PhoneModel) {
             </NeTableCell>
           </NeTableRow>
         </NeTableBody>
-        <template #paginator>
+        <template v-if="filteredRows.length > PAGE_SIZES[0]" #paginator>
           <TablePaginator
             v-model:page-num="pageNum"
             v-model:page-size="pageSize"

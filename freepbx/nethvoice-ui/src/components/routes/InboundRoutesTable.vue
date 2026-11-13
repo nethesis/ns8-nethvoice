@@ -165,7 +165,7 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
         :descending-label="t('sort.descending')"
       />
       <NeButton kind="tertiary" :disabled="areDefaultFiltersApplied" @click="clearFilters">
-        {{ t('routes.clear_filters') }}
+        {{ t('common.reset_filters') }}
       </NeButton>
     </div>
     <LoadError
@@ -188,7 +188,7 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
       :icon="faMagnifyingGlass"
       class="elevation-0"
     >
-      <NeButton kind="tertiary" @click="clearFilters">{{ t('routes.clear_filters') }}</NeButton>
+      <NeButton kind="tertiary" @click="clearFilters">{{ t('common.reset_filters') }}</NeButton>
     </NeEmptyState>
     <NeTable
       v-if="isTableShown"

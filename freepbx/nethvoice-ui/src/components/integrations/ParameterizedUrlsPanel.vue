@@ -218,7 +218,11 @@ function deleteCurrentUrl() {
               </span>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.param_urls.calls')">
-              <NeBadgeV2 :kind="item.onlyQueues ? 'indigo' : 'gray'" size="xs">
+              <NeBadgeV2
+                :kind="item.onlyQueues ? 'indigo' : 'gray'"
+                size="xs"
+                class="whitespace-nowrap"
+              >
                 {{
                   item.onlyQueues
                     ? t('integrations.param_urls.queue_calls_only')

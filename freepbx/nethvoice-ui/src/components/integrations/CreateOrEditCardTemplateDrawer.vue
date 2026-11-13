@@ -140,7 +140,9 @@ watch(
       form.value = emptyCardTemplateForm()
     }
     initialSnapshot.value = JSON.stringify(form.value)
-    focusElement(mode === 'edit' || mode === 'view' ? codeRef : nameRef)
+    if (mode !== 'view') {
+      focusElement(mode === 'edit' ? codeRef : nameRef)
+    }
   },
 )
 

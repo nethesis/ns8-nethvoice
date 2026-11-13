@@ -56,8 +56,11 @@ test.describe('trunks: physical', () => {
 
     await expect(page.getByText('No physical trunks configured')).toBeVisible()
     await expect(
+      page.getByText('Add physical trunks to connect your PBX to traditional telephony lines.'),
+    ).toBeVisible()
+    await expect(
       page.getByText(
-        'Add physical trunks to connect your PBX to traditional telephony lines. Use a supported gateway to enable communication with analog or ISDN networks.',
+        'Use a supported gateway to enable communication with analog or ISDN networks.',
       ),
     ).toBeVisible()
   })
@@ -266,6 +269,7 @@ test.describe('trunks: physical', () => {
     await expect(
       page.getByText('The physical trunk Patton TRINITY ISDN 2 Porte will be deleted.'),
     ).toBeVisible()
+    await expect(page.getByText('Its trunks are deleted too.')).toBeVisible()
     await expect(
       page.getByText(
         'These outbound routes use only this trunk and will no longer be able to make calls: Emergency.',

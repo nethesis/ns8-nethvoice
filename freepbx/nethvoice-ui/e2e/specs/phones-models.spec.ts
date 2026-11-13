@@ -203,6 +203,20 @@ test.describe('physical phones: models', () => {
     await expect(page).toHaveURL(/\/phones\/models$/)
   })
 
+  test('tells when the model in the address does not exist', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi).on('GET', `${TANCREDI}/models/:id`, {
+      status: 404,
+      contentType: 'application/problem+json',
+      json: { title: 'Resource not found' },
+    })
+    await page.goto('./phones/models?model=missing')
+
+    await expect(page.getByText('Model not found')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Models', exact: true }).first().click()
+    await expect(page).toHaveURL(/\/phones\/models$/)
+  })
+
   test('asks before leaving a model with unsaved changes', async ({ page, mockApi }) => {
     mockPhonesApi(mockApi).on('GET', `${TANCREDI}/models/:id`, {
       json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },

@@ -131,7 +131,7 @@
       "title": "Devices",
       "tooltip": "Devices currently connected to the PBX",
       "web_phone": "Web phone",
-      "desktop_phone": "Desktop phone",
+      "desktop_phone": "Desktop app",
       "mobile_app": "Mobile app",
       "no_devices": "No devices connected"
     },
@@ -404,7 +404,7 @@
     "reassign_extension": "Reassign extension",
     "reassign": "Reassign",
     "reassign_extension_description": "The extension {extension} of {name} moves to the chosen user together with all its devices, physical phones, voicemail and group memberships. {name} keeps the account without an extension.",
-    "new_user": "New user",
+    "new_user": "Assign to",
     "new_user_helper": "Only users without an extension are listed",
     "new_user_required": "Choose the user",
     "choose_user": "Choose user",
@@ -431,7 +431,8 @@
     "delete_orphan_extensions_consequences": "The physical phones are freed and can be assigned to other users. If the account provider adds the users again, they won't get their extensions back. This cannot be undone.",
     "cannot_delete_orphan_extensions": "Cannot delete the extensions",
     "orphan_extensions_deleted": "Extensions deleted",
-    "orphan_extensions_deleted_description": "Extension {extensions} has been deleted | Extensions {extensions} have been deleted"
+    "orphan_extensions_deleted_description": "Extension {extensions} has been deleted | Extensions {extensions} have been deleted",
+    "import_issue_invalid_flag": "unrecognized value \"{value}\" in {column}"
   },
   "trunks": {
     "title": "Trunks",
@@ -574,7 +575,8 @@
       "netmask_without_hosts": "This subnet mask leaves no address for the devices",
       "ip_address_not_host": "Enter a device address, not the network or broadcast address",
       "network_gateway_same_as_ip": "The network gateway must differ from the device IP address",
-      "network_gateway_outside_subnet": "The network gateway must be in the same network as the device"
+      "network_gateway_outside_subnet": "The network gateway must be in the same network as the device",
+      "delete_confirmation_details_no_fxs": "Its trunks are deleted too."
     },
     "cannot_check_outbound_routes": "Cannot check which outbound routes use this trunk",
     "routes_left_without_trunks": "Some outbound routes will have no trunk",
@@ -595,7 +597,6 @@
     "destination": "Destination",
     "trunk_priority": "Trunk priority",
     "filter_routes": "Filter routes",
-    "clear_filters": "Clear filters",
     "sort_position": "Position",
     "sort_name": "Name",
     "create_route": "Create route",
@@ -685,7 +686,9 @@
     "trunk_deleted": "Deleted",
     "trunk_voice_agents": "AI agents",
     "move_up": "Move up",
-    "move_down": "Move down"
+    "move_down": "Move down",
+    "no_enabled_trunks": "All trunks are disabled: enable a trunk to add it to this route",
+    "no_enabled_trunks_warning": "No enabled trunks: calls cannot be placed"
   },
   "phones": {
     "title": "Physical phones",
@@ -890,7 +893,7 @@
       "ntp_server": "NTP server address",
       "dss_transfer": "Transfer mode for line keys",
       "dss_transfer_modes": {
-        "verify": "New call",
+        "verify": "Start call",
         "attended": "Attended transfer",
         "blind": "Blind transfer"
       },
@@ -921,7 +924,9 @@
       },
       "lldp": "LLDP",
       "vlan_id_phone": "Phone VLAN ID",
-      "vlan_id_pc_port": "PC port VLAN ID"
+      "vlan_id_pc_port": "PC port VLAN ID",
+      "model_not_found": "Model not found",
+      "model_not_found_description": "This model no longer exists or the address is wrong."
     },
     "settings": {
       "default_configuration": "Default phone configuration",
@@ -1244,7 +1249,9 @@
       "test_number": "Test number",
       "test_number_helper": "Replaces $NUMBER in the preview only",
       "test_number_invalid": "Use digits only, optionally preceded by +",
-      "preview_failed_description": "The query cannot be run. Check the query and the database connection."
+      "preview_failed_description": "The query cannot be run. Check the query and the database connection.",
+      "connection_short": "Connection",
+      "preview_light_background": "Shown on a light background, the one templates are designed for."
     },
     "external": {
       "description": "Services provided by external providers, such as transcription and summary of calls and voicemail.",
@@ -1379,7 +1386,9 @@
         "no_trunks": "No trunks can be used: calls to and from external numbers are not possible.",
         "no_inbound_routes": "No inbound routes are configured: incoming calls are not answered.",
         "no_outbound_routes": "No outbound routes are configured: external numbers cannot be called.",
-        "outbound_routes_without_trunks": "Some outbound routes have no trunks: the numbers they match cannot be called."
+        "outbound_routes_without_trunks": "Some outbound routes have no trunks: the numbers they match cannot be called.",
+        "all_outbound_routes_without_trunks": "No outbound route has trunks: external numbers cannot be called.",
+        "outbound_routes_with_unusable_trunks": "Some outbound routes have only trunks that cannot be used: the numbers they match cannot be called."
       },
       "completing": "Adjusting {brand} settings, almost there…",
       "cannot_complete_setup": "Cannot complete the setup",
@@ -1469,7 +1478,7 @@
   },
   "profiles": {
     "description_line_1": "Configure permission profiles and default communication settings assigned to users.",
-    "description_line_2": "Profiles define available features and behavior across the PBX and CTI.",
+    "description_line_2": "Profiles define available features and behavior across the PBX and {brand} CTI.",
     "create_profile": "Create profile",
     "create_profile_from": "Create profile from",
     "edit_profile_name": "Edit {name}",
@@ -1495,12 +1504,12 @@
     "name_too_long": "The name can be at most 255 characters long",
     "name_already_exists": "A profile with this name already exists",
     "call_features": "Call features",
-    "call_features_description": "Manage how users handle calls on desktop and CTI",
+    "call_features_description": "Manage how users handle calls on desktop and in {brand} CTI",
     "outbound_calling": "Outbound calling",
     "outbound_calling_description": "Control which types of outbound calls users are allowed to make",
     "no_outbound_routes": "No outbound routes configured",
-    "cti_features": "CTI features",
-    "cti_features_description": "CTI features for desktop and apps",
+    "cti_features": "{brand} CTI features",
+    "cti_features_description": "{brand} CTI features for desktop and apps",
     "subscription_required": "Available with an active subscription",
     "privacy_warning_title": "Check privacy regulations",
     "privacy_warning_description": "Recording, monitoring or intruding into phone calls outside the cases allowed by law is an offense. Before enabling these features, make sure that all the protections required by labor and privacy regulations have been adopted.",
@@ -1531,7 +1540,7 @@
       "recording": "Record calls",
       "conference": "Conference calls",
       "parkings": "Park calls",
-      "parkings_tooltip": "View the parking lots and pick up the calls parked there",
+      "parkings_tooltip": "Show the parking lots and pick up the calls parked there",
       "pickup": "Pick up calls",
       "spy": "Monitor calls",
       "spy_tooltip": "Listen to the calls of other extensions",
@@ -1545,22 +1554,22 @@
       "transfer": "Transfer calls",
       "hangup": "End other users' calls",
       "ad_phone": "Access advanced call controls",
-      "all_groups": "View all groups",
-      "view_group": "View {name}",
+      "all_groups": "Show all groups",
+      "view_group": "Show {name}",
       "phonebook": "Access phonebook",
       "phonebook_level_1": "Manage private contacts",
       "phonebook_level_2": "Manage shared contacts",
       "phonebook_level_2_tooltip": "Create, edit and delete public and shared contacts of the company phonebook",
       "cdr": "Personal call history",
-      "ad_cdr": "View all users' call history",
-      "group_cdr": "View groups' call history",
+      "ad_cdr": "Show all users' call history",
+      "group_cdr": "Show groups' call history",
       "queue_agent": "Queue agent panel",
       "ad_queue_agent": "Advanced queue panel",
-      "lost_queue_call": "View unhandled calls",
+      "lost_queue_call": "Show unhandled calls",
       "qmanager": "Queue manager",
-      "qmanager_tooltip": "View and manage the queues in real time",
+      "qmanager_tooltip": "Show and manage the queues in real time",
       "manage_queue": "Manage {name}",
-      "customer_card": "View customer card",
+      "customer_card": "Show customer card",
       "customer_card_tooltip": "Show the customer cards of callers",
       "privacy": "Mask caller ID",
       "screen_sharing": "Share screen during calls",
@@ -1586,7 +1595,7 @@
     "views": {
       "grid": "Grid view",
       "list": "List view",
-      "compact": "Compact view"
+      "compact": "Condensed view"
     },
     "sort": {
       "name": "Name",
