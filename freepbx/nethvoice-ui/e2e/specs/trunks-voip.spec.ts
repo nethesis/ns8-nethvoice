@@ -77,9 +77,10 @@ test.describe('trunks: VoIP', () => {
 
     await expect(page.getByText('No VoIP trunks configured')).toBeVisible()
     await expect(
-      page.getByText(
-        'Add VoIP trunks to handle inbound and outbound calls over IP networks. Set up provider connections and parameters required for call routing.',
-      ),
+      page.getByText('Add VoIP trunks to handle inbound and outbound calls over IP networks.'),
+    ).toBeVisible()
+    await expect(
+      page.getByText('Set up provider connections and parameters required for call routing.'),
     ).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add VoIP trunk' })).toHaveCount(1)
   })
@@ -386,7 +387,7 @@ test.describe('trunks: VoIP, special cases', () => {
     const iax = page.getByRole('row', { name: /legacy_iax/ })
     await expect(iax).toContainText('IAX2')
     await expect(iax).toContainText('Disabled')
-    await expect(iax).toContainText('Unmonitored')
+    await expect(iax).not.toContainText('Unmonitored')
     await expect(iax).toContainText('Read only')
   })
 

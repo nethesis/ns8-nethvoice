@@ -200,6 +200,25 @@ export const getAvailableTrunks = (
     (trunk) => !assigned.some((item) => item.id === trunk.id),
   )
 
+export type NoTrunksToAddReason = 'no_trunks' | 'no_enabled_trunks' | 'all_assigned'
+
+export const getNoTrunksToAddReason = (
+  allTrunks: RouteTrunk[],
+  trunks: Trunk[],
+): NoTrunksToAddReason => {
+  if (getOutboundTrunks(allTrunks, trunks).length > 0) {
+    return 'all_assigned'
+  }
+  return trunks.some(
+    (trunk) => trunk.disabled && allTrunks.some((candidate) => candidate.id === trunk.id),
+  )
+    ? 'no_enabled_trunks'
+    : 'no_trunks'
+}
+
+export const hasActiveTrunk = (routeTrunks: RouteTrunk[], trunks: Trunk[] | undefined): boolean =>
+  routeTrunks.some((trunk) => getRouteTrunkState(trunk.id, trunks) === 'active')
+
 export const moveItem = <T>(items: T[], from: number, to: number): T[] => {
   if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
     return items

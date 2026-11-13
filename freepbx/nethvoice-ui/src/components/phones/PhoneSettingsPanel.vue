@@ -212,7 +212,7 @@ const issueMessage = (field: ConfigurationField) => {
                   <button type="button" class="inline-flex">
                     <FontAwesomeIcon
                       :icon="faCircleInfo"
-                      class="text-primary-700 dark:text-primary-500 size-4"
+                      class="size-4 text-indigo-500 dark:text-indigo-300"
                       aria-hidden="true"
                     />
                     <span class="sr-only">{{

@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
 import { getVisualPlanRouteUrl } from '@/lib/routes/inbound'
 
-const { kind = 'primary', size = 'lg' } = defineProps<{
+const { kind = 'primary', size = 'md' } = defineProps<{
   kind?: 'primary' | 'secondary'
   size?: 'md' | 'lg'
 }>()

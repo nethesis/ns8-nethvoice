@@ -164,9 +164,9 @@ function testSource() {
 function describeTestError(error: unknown): string {
   return (
     getLegacyStatusMessage(error) ||
-    (isApiError(error) && error.status >= 500
-      ? t('integrations.video.test_failed_description')
-      : describeError(error))
+    (isApiError(error) && error.status < 500
+      ? describeError(error)
+      : t('integrations.video.test_failed_description'))
   )
 }
 

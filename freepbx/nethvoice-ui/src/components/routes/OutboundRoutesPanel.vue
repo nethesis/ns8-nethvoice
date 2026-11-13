@@ -16,13 +16,13 @@ function openAdvancedSettings() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
+  <div class="flex flex-col gap-6">
     <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
       <p class="text-secondary-neutral max-w-2xl">
         {{ $t('routes.outbound_description_line_1') }}<br />
         {{ $t('routes.outbound_description_line_2') }}
       </p>
-      <NeButton kind="tertiary" size="lg" class="shrink-0" @click="openAdvancedSettings">
+      <NeButton kind="tertiary" class="shrink-0" @click="openAdvancedSettings">
         <template #prefix>
           <FontAwesomeIcon :icon="faArrowUpRightFromSquare" class="h-4 w-4" aria-hidden="true" />
         </template>

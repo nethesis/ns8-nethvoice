@@ -9,10 +9,12 @@ import {
   DefaultRoutesSchema,
   filterOutboundRoutes,
   getAvailableTrunks,
+  getNoTrunksToAddReason,
   getOutboundRouteAdvancedUrl,
   getOutboundTrunks,
   getRouteTrunkState,
   getRoutesLocale,
+  hasActiveTrunk,
   haveSameTrunks,
   moveItem,
   parseOutboundRouteDefaults,
@@ -268,6 +270,27 @@ describe('getRouteTrunkState', () => {
 
   it('should not flag anything before the trunks are loaded', () => {
     expect(getRouteTrunkState(42, undefined)).toBe('active')
+  })
+})
+
+describe('getNoTrunksToAddReason', () => {
+  it('should tell why no trunk can be added', () => {
+    expect(getNoTrunksToAddReason([TWT, TIM], TRUNKS)).toBe('all_assigned')
+    expect(getNoTrunksToAddReason([AGENT, BACKUP], TRUNKS)).toBe('no_enabled_trunks')
+    expect(getNoTrunksToAddReason([AGENT], TRUNKS)).toBe('no_trunks')
+    expect(getNoTrunksToAddReason([], TRUNKS)).toBe('no_trunks')
+  })
+})
+
+describe('hasActiveTrunk', () => {
+  it('should find an enabled trunk in the route', () => {
+    expect(hasActiveTrunk([BACKUP, TWT], TRUNKS)).toBe(true)
+    expect(hasActiveTrunk([BACKUP, AGENT, { id: 42, name: '42' }], TRUNKS)).toBe(false)
+    expect(hasActiveTrunk([], TRUNKS)).toBe(false)
+  })
+
+  it('should not flag anything before the trunks are loaded', () => {
+    expect(hasActiveTrunk([BACKUP], undefined)).toBe(true)
   })
 })
 

@@ -126,7 +126,7 @@ test.describe('integrations: phonebook sources', () => {
     await drawer.getByRole('button', { name: 'Test source' }).click()
 
     await expect(drawer.getByText(/first 2 rows shown below/)).toBeVisible()
-    await expect(drawer.getByRole('table')).toContainText('Anna Miller')
+    await expect(drawer.getByRole('grid')).toContainText('Anna Miller')
     expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/test')[0].body).toEqual({
       dbtype: 'mysql',
       host: 'db.example.com',
@@ -264,6 +264,40 @@ test.describe('integrations: phonebook sources', () => {
     await drawer.getByRole('button', { name: 'Test source' }).click()
 
     await expect(drawer.getByText('Cannot read the source')).toBeVisible()
+  })
+
+  test('explains a failed test without the server message', async ({ page, mockApi }) => {
+    mockApi.on('POST', '/freepbx/rest/phonebook/test', {
+      status: 500,
+      json: { error: 'SQLSTATE[HY000] [2002] Connection refused' },
+    })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Edit CRM contacts' }).click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('button', { name: 'Test source' }).click()
+
+    await expect(
+      drawer.getByText('Check the connection data and the query, then try again.'),
+    ).toBeVisible()
+    await expect(drawer.getByText(/SQLSTATE/)).toHaveCount(0)
+  })
+
+  test('maps the columns named like a phonebook field', async ({ page, mockApi }) => {
+    mockApi.on('POST', '/freepbx/rest/phonebook/test', {
+      json: [{ full_name: 'Anna Miller', phone: '300', Company: 'Example', notes: '' }],
+    })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Edit CRM contacts' }).click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('button', { name: 'Test source' }).click()
+
+    await expect(drawer.getByRole('combobox', { name: 'Company' })).toHaveValue('company')
+    await expect(drawer.getByRole('combobox', { name: 'full_name' })).toHaveValue('name')
+    await expect(drawer.getByRole('combobox', { name: 'notes' })).toHaveValue('Not imported')
   })
 
   test('edits a source keeping the stored password', async ({ page, mockApi }) => {

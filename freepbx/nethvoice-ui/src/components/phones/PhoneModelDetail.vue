@@ -13,9 +13,11 @@ import {
   type RouteLocationRaw,
 } from 'vue-router'
 import { useMutation, useQueryCache } from '@pinia/colada'
+import { useMediaQuery } from '@vueuse/core'
 import {
   NeButton,
   NeCombobox,
+  NeEmptyState,
   NeHeading,
   NeInlineNotification,
   NeModal,
@@ -26,12 +28,14 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faArrowLeft,
+  faMagnifyingGlass,
   faChevronDown,
   faChevronUp,
   faFloppyDisk,
   faRotateLeft,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
+import { isApiError } from '@/lib/api/errors'
 import ModelFileField from './ModelFileField.vue'
 import ResetModelModal from './ResetModelModal.vue'
 import { getLanguageLabel } from '@/lib/settings/system'
@@ -78,11 +82,19 @@ let leaveConfirmed = false
 
 const model = computed(() => modelState.value.data)
 
+const isMediumScreen = useMediaQuery('(min-width: 768px)')
+
+const isKeyLabelShown = (index: number) => index === 1 || !isMediumScreen.value
+
 const loading = computed(
   () => modelState.value.status === 'pending' || defaultsState.value.status === 'pending',
 )
 
 const loadError = computed(() => modelState.value.error ?? defaultsState.value.error)
+
+const isModelNotFound = computed(
+  () => isApiError(modelState.value.error) && modelState.value.error.status === 404,
+)
 
 const sections = computed(() =>
   model.value
@@ -262,8 +274,15 @@ function onReset() {
       </template>
       {{ $t('phones.tab_models') }}
     </NeButton>
+    <NeEmptyState
+      v-if="isModelNotFound"
+      :title="$t('phones.models.model_not_found')"
+      :description="$t('phones.models.model_not_found_description')"
+      :icon="faMagnifyingGlass"
+      class="elevation-0"
+    />
     <LoadError
-      v-if="loadError"
+      v-else-if="loadError"
       :error="loadError"
       :title="$t('phones.models.cannot_load_model')"
       @retry="retry"
@@ -333,7 +352,7 @@ function onReset() {
                 </span>
                 <NeCombobox
                   v-model="form[getKeyVariables(section.keys.prefix, index).type]"
-                  :label="index === 1 ? $t('phones.models.key_type') : ''"
+                  :label="isKeyLabelShown(index) ? $t('phones.models.key_type') : ''"
                   :aria-label="$t('phones.models.key_type')"
                   :options="optionsByVariable.get(section.keys.prefix) ?? []"
                   :placeholder="$t('ne_combobox.choose')"
@@ -342,7 +361,7 @@ function onReset() {
                 />
                 <NeTextInput
                   v-model="form[getKeyVariables(section.keys.prefix, index).value]"
-                  :label="index === 1 ? $t('phones.models.key_value') : ''"
+                  :label="isKeyLabelShown(index) ? $t('phones.models.key_value') : ''"
                   :aria-label="
                     $t('phones.models.key_value_of', {
                       key: $t(`phones.models.${section.keys.prefix}_n`, { n: index }),
@@ -352,7 +371,7 @@ function onReset() {
                 />
                 <NeTextInput
                   v-model="form[getKeyVariables(section.keys.prefix, index).label]"
-                  :label="index === 1 ? $t('phones.models.key_label') : ''"
+                  :label="isKeyLabelShown(index) ? $t('phones.models.key_label') : ''"
                   :aria-label="
                     $t('phones.models.key_label_of', {
                       key: $t(`phones.models.${section.keys.prefix}_n`, { n: index }),

@@ -169,7 +169,7 @@ function deleteCurrentCard() {
           <NeTableCell :data-label="t('integrations.name')">
             <span class="wrap-anywhere">{{ card.name }}</span>
           </NeTableCell>
-          <NeTableCell :data-label="t('integrations.cards.connection')">
+          <NeTableCell :data-label="t('integrations.cards.connection_short')">
             {{ describeConnection(card.dbConnectionId) }}
           </NeTableCell>
           <NeTableCell :data-label="t('integrations.cards.template')">

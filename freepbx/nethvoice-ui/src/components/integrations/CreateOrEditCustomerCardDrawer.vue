@@ -47,6 +47,7 @@ import {
   useDbConnections,
 } from '@/queries/integrations/customerCards'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useThemeStore } from '@/stores/theme'
 
 const PREVIEW_STYLESHEET =
   'https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css'
@@ -59,6 +60,7 @@ const { isShown = false, currentCard = undefined } = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const themeStore = useThemeStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: profilesState } = useProfileOptions()
@@ -128,7 +130,7 @@ const templateOptions = computed(() => {
 const previewDocument = computed(() =>
   previewHtml.value === undefined
     ? ''
-    : `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${PREVIEW_STYLESHEET}"><style>body{padding:8px;background:#fff;}</style></head><body>${previewHtml.value}</body></html>`,
+    : `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${PREVIEW_STYLESHEET}"><style>body{padding:8px;}</style></head><body>${previewHtml.value}</body></html>`,
 )
 
 const {
@@ -369,6 +371,9 @@ function save() {
           />
           <div v-else-if="previewHtml !== undefined">
             <NeFormItemLabel>{{ t('integrations.cards.preview') }}</NeFormItemLabel>
+            <p v-if="!themeStore.isLight" class="text-tertiary-neutral mb-2 text-sm">
+              {{ t('integrations.cards.preview_light_background') }}
+            </p>
             <iframe
               :srcdoc="previewDocument"
               sandbox=""

@@ -17,6 +17,7 @@ import {
   NeToggle,
   type NeComboboxOption,
 } from '@nethesis/vue-components'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import { USERS_KEY, type User } from '@/lib/users/users'
 import { formatMac } from '@/lib/phones/mac'
 import { filterModelsByVendor, PHONE_MODELS_KEY, type PhoneModel } from '@/lib/phones/models'
@@ -59,6 +60,8 @@ const notificationsStore = useNotificationsStore()
 const model = ref('')
 const mainExtension = ref('')
 const encrypted = ref(false)
+const initialEncrypted = ref(false)
+const isShownDiscardModal = ref(false)
 const modelIssue = ref('')
 const modelRef = useTemplateRef<InstanceType<typeof NeCombobox>>('modelRef')
 
@@ -99,6 +102,10 @@ const userChanged = computed(
 )
 
 const modelChanged = computed(() => !!phone && model.value !== phone.model)
+
+const isDirty = computed(
+  () => modelChanged.value || userChanged.value || encrypted.value !== initialEncrypted.value,
+)
 
 const modelLabel = (name: string) =>
   name ? (models.find((item) => item.name === name)?.displayName ?? name) : '-'
@@ -173,6 +180,8 @@ watch(
     model.value = phone.model
     mainExtension.value = phone.user?.mainExtension ?? ''
     encrypted.value = phone.user ? phone.encrypted : defaultEncrypted
+    initialEncrypted.value = encrypted.value
+    isShownDiscardModal.value = false
     modelIssue.value = ''
     focusElement(modelRef)
   },
@@ -198,9 +207,19 @@ const saveErrorDescription = computed(() => {
 })
 
 function requestClose() {
-  if (saving.value) {
+  if (saving.value || isShownDiscardModal.value) {
     return
   }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
   emit('close')
 }
 
@@ -231,7 +250,7 @@ function save() {
     @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
-      <div class="flex flex-col gap-8">
+      <div class="flex flex-col gap-6">
         <NeTextInput
           :model-value="phone ? formatMac(phone.mac) : ''"
           :label="$t('phones.mac_address')"
@@ -266,7 +285,7 @@ function save() {
           :label="encrypted ? $t('common.enabled') : $t('common.disabled')"
           :disabled="saving || !mainExtension"
         />
-        <p v-if="!mainExtension" class="text-tertiary-neutral -mt-6 text-sm">
+        <p v-if="!mainExtension" class="text-tertiary-neutral -mt-4 text-sm">
           {{ $t('phones.inventory.encryption_requires_user') }}
         </p>
         <NeInlineNotification
@@ -283,8 +302,8 @@ function save() {
         />
       </div>
       <hr class="my-8 border-gray-200 dark:border-gray-700" />
-      <div class="flex justify-end gap-6">
-        <NeButton kind="tertiary" size="lg" :disabled="saving" @click.prevent="emit('close')">
+      <div class="flex justify-end gap-3">
+        <NeButton kind="tertiary" size="lg" :disabled="saving" @click.prevent="requestClose">
           {{ $t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
@@ -293,4 +312,9 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>

@@ -15,6 +15,7 @@ import {
   parsePhonebookSources,
   parsePhonebookTestResult,
   parseSharingGroups,
+  suggestMapping,
   type PhonebookSource,
   type PhonebookSourceForm,
   toPhonebookSourceForm,
@@ -402,5 +403,26 @@ describe('getSyncIntervals', () => {
 describe('emptyPhonebookSourceForm', () => {
   it('should leave the query empty', () => {
     expect(emptyPhonebookSourceForm().query).toBe('')
+  })
+})
+
+describe('suggestMapping', () => {
+  const fields = ['name', 'company', 'workphone', 'owner_id']
+
+  it('should map the columns named like a phonebook field', () => {
+    expect(suggestMapping(['Name', 'company', 'phone', 'type'], fields, {}, 'mysql')).toEqual({
+      Name: 'name',
+      company: 'company',
+    })
+  })
+
+  it('should keep the mapping chosen by the user', () => {
+    expect(
+      suggestMapping(['name', 'company'], fields, { name: '', other: 'company' }, 'mysql'),
+    ).toEqual({ name: '', other: 'company' })
+  })
+
+  it('should leave out the fields a CSV cannot fill', () => {
+    expect(suggestMapping(['owner_id'], fields, {}, 'csv')).toEqual({})
   })
 })

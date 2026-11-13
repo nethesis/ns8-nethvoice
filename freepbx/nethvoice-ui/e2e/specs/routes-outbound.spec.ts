@@ -118,6 +118,29 @@ test.describe('routes: outbound', () => {
     ])
   })
 
+  test('warns about the routes whose trunks are all disabled', async ({ page, mockApi }) => {
+    mockApi
+      .on('GET', '/freepbx/rest/outboundroutes', {
+        json: [{ route_id: 1, name: 'national_it', seq: 0, trunks: [BACKUP] }],
+      })
+      .on('GET', '/freepbx/rest/trunks', {
+        json: [
+          { ...AGENT, tech: 'pjsip', provider: 'satellite-agent' },
+          { ...BACKUP, tech: 'pjsip', disabled: 'on' },
+        ],
+      })
+    await page.goto('./routes/outbound')
+
+    await expect(routeRow(page, 'National')).toContainText(
+      'No enabled trunks: calls cannot be placed',
+    )
+
+    await routeRow(page, 'National').getByRole('button', { name: /Edit/ }).click()
+    await expect(page.getByRole('dialog')).toContainText(
+      'All trunks are disabled: enable a trunk to add it to this route',
+    )
+  })
+
   test('tells apart the routes of two countries', async ({ page, mockApi }) => {
     mockApi.on('GET', '/freepbx/rest/outboundroutes', {
       json: [

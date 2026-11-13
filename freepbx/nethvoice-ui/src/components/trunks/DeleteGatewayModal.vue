@@ -104,7 +104,13 @@ function confirmDelete() {
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-2">
         <p>{{ t('trunks.physical.delete_confirmation', { name: label }) }}</p>
-        <p>{{ t('trunks.physical.delete_confirmation_details') }}</p>
+        <p>
+          {{
+            gateway?.fxsExtensions.length
+              ? t('trunks.physical.delete_confirmation_details')
+              : t('trunks.physical.delete_confirmation_details_no_fxs')
+          }}
+        </p>
       </div>
       <TrunkRoutesWarning :is-shown="visible" :trunk-ids="trunkIds" />
     </div>

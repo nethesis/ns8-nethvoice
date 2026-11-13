@@ -131,7 +131,7 @@
       "title": "Dispositivi",
       "tooltip": "Dispositivi attualmente connessi al centralino",
       "web_phone": "Web phone",
-      "desktop_phone": "Telefono desktop",
+      "desktop_phone": "App desktop",
       "mobile_app": "App mobile",
       "no_devices": "Nessun dispositivo connesso"
     },
@@ -404,7 +404,7 @@
     "reassign_extension": "Riassegna interno",
     "reassign": "Riassegna",
     "reassign_extension_description": "L'interno {extension} di {name} passa all'utente scelto insieme a tutti i suoi dispositivi, telefoni fisici, casella vocale e appartenenze ai gruppi. {name} mantiene l'account senza interno.",
-    "new_user": "Nuovo utente",
+    "new_user": "Assegna a",
     "new_user_helper": "Sono elencati solo gli utenti senza interno",
     "new_user_required": "Scegli l'utente",
     "choose_user": "Scegli utente",
@@ -431,7 +431,8 @@
     "delete_orphan_extensions_consequences": "I telefoni fisici vengono liberati e possono essere assegnati ad altri utenti. Se il provider di account aggiunge di nuovo gli utenti, non riavranno i loro interni. L'operazione non può essere annullata.",
     "cannot_delete_orphan_extensions": "Impossibile eliminare gli interni",
     "orphan_extensions_deleted": "Interni eliminati",
-    "orphan_extensions_deleted_description": "L'interno {extensions} è stato eliminato | Gli interni {extensions} sono stati eliminati"
+    "orphan_extensions_deleted_description": "L'interno {extensions} è stato eliminato | Gli interni {extensions} sono stati eliminati",
+    "import_issue_invalid_flag": "valore \"{value}\" non riconosciuto in {column}"
   },
   "trunks": {
     "title": "Fasci",
@@ -574,7 +575,8 @@
       "netmask_without_hosts": "Questa subnet mask non lascia indirizzi per i dispositivi",
       "ip_address_not_host": "Inserisci l'indirizzo di un dispositivo, non quello della rete o di broadcast",
       "network_gateway_same_as_ip": "Il gateway di rete deve essere diverso dall'indirizzo IP del dispositivo",
-      "network_gateway_outside_subnet": "Il gateway di rete deve essere nella stessa rete del dispositivo"
+      "network_gateway_outside_subnet": "Il gateway di rete deve essere nella stessa rete del dispositivo",
+      "delete_confirmation_details_no_fxs": "Saranno eliminati anche i suoi fasci."
     },
     "cannot_check_outbound_routes": "Impossibile verificare quali rotte in uscita usano questo fascio",
     "routes_left_without_trunks": "Alcune rotte in uscita resteranno senza fasci",
@@ -595,7 +597,6 @@
     "destination": "Destinazione",
     "trunk_priority": "Priorità dei fasci",
     "filter_routes": "Filtra rotte",
-    "clear_filters": "Cancella filtri",
     "sort_position": "Posizione",
     "sort_name": "Nome",
     "create_route": "Crea rotta",
@@ -685,7 +686,9 @@
     "trunk_deleted": "Eliminato",
     "trunk_voice_agents": "Agenti AI",
     "move_up": "Sposta su",
-    "move_down": "Sposta giù"
+    "move_down": "Sposta giù",
+    "no_enabled_trunks": "Tutti i fasci sono disabilitati: abilita un fascio per aggiungerlo a questa rotta",
+    "no_enabled_trunks_warning": "Nessun fascio abilitato: le chiamate non possono essere effettuate"
   },
   "phones": {
     "title": "Telefoni fisici",
@@ -890,7 +893,7 @@
       "ntp_server": "Indirizzo server NTP",
       "dss_transfer": "Modalità di trasferimento dei tasti linea",
       "dss_transfer_modes": {
-        "verify": "Nuova chiamata",
+        "verify": "Avvia chiamata",
         "attended": "Trasferimento con consultazione",
         "blind": "Trasferimento cieco"
       },
@@ -921,7 +924,9 @@
       },
       "lldp": "LLDP",
       "vlan_id_phone": "ID VLAN telefono",
-      "vlan_id_pc_port": "ID VLAN porta PC"
+      "vlan_id_pc_port": "ID VLAN porta PC",
+      "model_not_found": "Modello non trovato",
+      "model_not_found_description": "Questo modello non esiste più o l'indirizzo è errato."
     },
     "settings": {
       "default_configuration": "Configurazione predefinita dei telefoni",
@@ -1244,7 +1249,9 @@
       "test_number": "Numero di prova",
       "test_number_helper": "Sostituisce $NUMBER solo nell'anteprima",
       "test_number_invalid": "Usa solo cifre, eventualmente precedute da +",
-      "preview_failed_description": "Impossibile eseguire la query. Verifica la query e la connessione al database."
+      "preview_failed_description": "Impossibile eseguire la query. Verifica la query e la connessione al database.",
+      "connection_short": "Connessione",
+      "preview_light_background": "Mostrata su sfondo chiaro, quello per cui sono pensati i template."
     },
     "external": {
       "description": "Servizi forniti da provider esterni, come trascrizione e riassunto di chiamate e segreteria.",
@@ -1379,7 +1386,9 @@
         "no_trunks": "Nessun fascio utilizzabile: le chiamate da e verso numeri esterni non sono possibili.",
         "no_inbound_routes": "Nessuna rotta in ingresso configurata: le chiamate in arrivo non ricevono risposta.",
         "no_outbound_routes": "Nessuna rotta in uscita configurata: non è possibile chiamare numeri esterni.",
-        "outbound_routes_without_trunks": "Alcune rotte in uscita non hanno fasci: i numeri che gestiscono non possono essere chiamati."
+        "outbound_routes_without_trunks": "Alcune rotte in uscita non hanno fasci: i numeri che gestiscono non possono essere chiamati.",
+        "all_outbound_routes_without_trunks": "Nessuna rotta in uscita ha fasci: non è possibile chiamare numeri esterni.",
+        "outbound_routes_with_unusable_trunks": "Alcune rotte in uscita hanno solo fasci non utilizzabili: i numeri che gestiscono non possono essere chiamati."
       },
       "completing": "Adeguamento delle impostazioni di {brand}, manca poco…",
       "cannot_complete_setup": "Impossibile completare la configurazione",
@@ -1469,7 +1478,7 @@
   },
   "profiles": {
     "description_line_1": "Configura i profili di permessi e le impostazioni di comunicazione predefinite assegnate agli utenti.",
-    "description_line_2": "I profili definiscono le funzionalità disponibili e il comportamento del centralino e del CTI.",
+    "description_line_2": "I profili definiscono le funzionalità disponibili e il comportamento del centralino e di {brand} CTI.",
     "create_profile": "Crea profilo",
     "create_profile_from": "Crea profilo da",
     "edit_profile_name": "Modifica {name}",
@@ -1495,12 +1504,12 @@
     "name_too_long": "Il nome può contenere al massimo 255 caratteri",
     "name_already_exists": "Esiste già un profilo con questo nome",
     "call_features": "Funzionalità di chiamata",
-    "call_features_description": "Gestisci come gli utenti gestiscono le chiamate su desktop e CTI",
+    "call_features_description": "Gestisci come gli utenti gestiscono le chiamate su desktop e in {brand} CTI",
     "outbound_calling": "Chiamate in uscita",
     "outbound_calling_description": "Controlla quali tipi di chiamate in uscita gli utenti possono effettuare",
     "no_outbound_routes": "Nessuna rotta in uscita configurata",
-    "cti_features": "Funzionalità CTI",
-    "cti_features_description": "Funzionalità CTI per desktop e app",
+    "cti_features": "Funzionalità di {brand} CTI",
+    "cti_features_description": "Funzionalità di {brand} CTI per desktop e app",
     "subscription_required": "Disponibile con una sottoscrizione attiva",
     "privacy_warning_title": "Verifica le norme sulla privacy",
     "privacy_warning_description": "Registrare, ascoltare o intromettersi nelle conversazioni telefoniche fuori dai casi consentiti dalla legge è un illecito. Prima di attivare queste funzionalità verifica di aver adottato tutte le tutele previste dalle norme sul lavoro e sulla privacy.",
@@ -1531,7 +1540,7 @@
       "recording": "Registrazione chiamate",
       "conference": "Conferenze",
       "parkings": "Parcheggio chiamate",
-      "parkings_tooltip": "Visualizza i parcheggi e riprendi le chiamate parcheggiate",
+      "parkings_tooltip": "Mostra i parcheggi e riprendi le chiamate parcheggiate",
       "pickup": "Risposta per assente",
       "spy": "Ascolto chiamate",
       "spy_tooltip": "Ascolta le chiamate degli altri interni",
@@ -1545,22 +1554,22 @@
       "transfer": "Trasferimento chiamate",
       "hangup": "Chiusura delle chiamate di altri utenti",
       "ad_phone": "Controlli di chiamata avanzati",
-      "all_groups": "Visualizza tutti i gruppi",
-      "view_group": "Visualizza {name}",
+      "all_groups": "Mostra tutti i gruppi",
+      "view_group": "Mostra {name}",
       "phonebook": "Accesso alla rubrica",
       "phonebook_level_1": "Gestione contatti privati",
       "phonebook_level_2": "Gestione contatti condivisi",
       "phonebook_level_2_tooltip": "Crea, modifica ed elimina i contatti pubblici e condivisi della rubrica aziendale",
       "cdr": "Cronologia chiamate personale",
-      "ad_cdr": "Cronologia chiamate di tutti gli utenti",
-      "group_cdr": "Cronologia chiamate dei gruppi",
+      "ad_cdr": "Mostra la cronologia chiamate di tutti gli utenti",
+      "group_cdr": "Mostra la cronologia chiamate dei gruppi",
       "queue_agent": "Pannello agente delle code",
       "ad_queue_agent": "Pannello code avanzato",
-      "lost_queue_call": "Visualizza chiamate non gestite",
+      "lost_queue_call": "Mostra le chiamate non gestite",
       "qmanager": "Queue manager",
-      "qmanager_tooltip": "Visualizza e gestisci le code in tempo reale",
+      "qmanager_tooltip": "Mostra e gestisci le code in tempo reale",
       "manage_queue": "Gestisci {name}",
-      "customer_card": "Visualizza customer card",
+      "customer_card": "Mostra la customer card",
       "customer_card_tooltip": "Mostra le customer card dei chiamanti",
       "privacy": "Maschera numero chiamante",
       "screen_sharing": "Condivisione schermo durante le chiamate",
@@ -1586,7 +1595,7 @@
     "views": {
       "grid": "Vista a griglia",
       "list": "Vista a elenco",
-      "compact": "Vista compatta"
+      "compact": "Vista ridotta"
     },
     "sort": {
       "name": "Nome",
