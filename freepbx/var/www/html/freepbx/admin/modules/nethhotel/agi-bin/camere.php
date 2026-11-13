@@ -88,7 +88,7 @@ foreach($codes as $code)
   if($numtocall==$code['code'])
   {
     $quickcall = true;
-    @$agi->exec('Set',"toCall=".$code[falsegoto]);
+    @$agi->exec('Set',"toCall=".$code['falsegoto']);
     $details = getTimeDetailsFromIdGroupsArray($code['id_timegroups_groups']);
     foreach($details as $detail)
     {
