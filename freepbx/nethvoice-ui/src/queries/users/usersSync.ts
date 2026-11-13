@@ -44,8 +44,8 @@ export function useUsersProviderSync() {
       syncing.value = false
 
       if (!disposed && syncError.value === null) {
-        queryCache.invalidateQueries({ key: [USERS_KEY] })
-        queryCache.invalidateQueries({ key: [USER_LIMITS_KEY] })
+        queryCache.invalidateQueries({ key: [USERS_KEY] }).catch(() => undefined)
+        queryCache.invalidateQueries({ key: [USER_LIMITS_KEY] }).catch(() => undefined)
       }
     }
   }

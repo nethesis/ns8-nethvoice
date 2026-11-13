@@ -385,7 +385,23 @@
     "cannot_load_profiles": "The profiles could not be loaded, so the profile can't be changed now",
     "cannot_load_groups": "The groups could not be loaded, so they can't be changed now",
     "directory_partially_loaded": "Some information is not available",
-    "directory_partially_loaded_description": "Cannot load: {parts}. The related columns may be empty and those fields can't be changed. Try again."
+    "directory_partially_loaded_description": "Cannot load: {parts}. The related columns may be empty and those fields can't be changed. Try again.",
+    "reassign_extension": "Reassign extension",
+    "reassign": "Reassign",
+    "reassign_extension_description": "The extension {extension} of {name} moves to the chosen user together with all its devices, physical phones, voicemail and group memberships. {name} keeps the account without an extension.",
+    "new_user": "New user",
+    "new_user_helper": "Only users without an extension are listed",
+    "new_user_required": "Choose the user",
+    "choose_user": "Choose user",
+    "no_users_without_extension": "No users without an extension",
+    "cannot_reassign_extension": "Cannot reassign the extension",
+    "extension_reassigned": "Extension reassigned",
+    "extension_reassigned_description": "The extension {extension} has been assigned to {name}",
+    "sync_users": "Synchronize users",
+    "synchronizing_users": "Synchronizing users…",
+    "cannot_sync_users": "Cannot synchronize the users",
+    "users_synchronized": "Users synchronized",
+    "users_synchronized_description": "Names, new users and deleted users of the account provider have been applied"
   },
   "trunks": {
     "title": "Trunks",
@@ -414,7 +430,8 @@
       "rejected": "Rejected",
       "connected": "Connected",
       "not_connected": "Not connected",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "disabled": "Disabled"
     },
     "voip": {
       "description_line_1": "Configure VoIP trunks to handle inbound and outbound calls over IP networks.",
@@ -1267,7 +1284,7 @@
     },
     "system": {
       "title": "System settings",
-      "description": "Configure the core system settings of your PBX, these settings will be used across the system.",
+      "description": "Configure the core system settings of your PBX. These settings are used across the system.",
       "pbx_country": "PBX country",
       "pbx_country_helper": "Used to generate default outbound routes",
       "pbx_language": "PBX language",
@@ -1278,7 +1295,7 @@
     },
     "users": {
       "title": "Users and extensions",
-      "description_line_1": "Assign extensions to users to enable calling features, at least one user must have an extension to continue.",
+      "description_line_1": "Assign extensions to users to enable calling features. At least one user must have an extension to continue.",
       "description_line_2": "All users start with the Base profile and Web phone enabled.",
       "assign_extensions": "Assign extensions",
       "extension_of": "Extension of {name}",
@@ -1289,7 +1306,11 @@
       "provisioning_failed": "Cannot configure the users",
       "provisioning_failed_for": "Configuration stopped at {username}: {detail} The users before it have been configured, check the extensions and try again.",
       "users_limit_title": "Too many users with an extension",
-      "users_limit_description": "The community version allows up to {limit} users with an extension."
+      "users_limit_description": "The community version allows up to {limit} users with an extension.",
+      "cannot_sync_users_description": "The list may not include the latest changes of the account provider.",
+      "change_extensions": "Change extensions",
+      "changed_extension": "{name}: {from} → {to}",
+      "configuring_progress": "{done} of {total} changes applied"
     },
     "physical_trunks": {
       "title": "Physical trunks",
@@ -1302,13 +1323,11 @@
     },
     "inbound_routes": {
       "title": "Inbound routes",
-      "description": "Define how incoming calls are handled when they reach the PBX.",
       "description_line_1": "Define how incoming calls are routed to internal destinations.",
       "description_line_2": "Inbound routes are created and managed using the Visual Plan."
     },
     "outbound_routes": {
       "title": "Outbound routes",
-      "description": "Choose which trunks are used for outgoing calls and in which order.",
       "description_line_1": "Review and adjust outbound routes based on your country and available VoIP trunks.",
       "description_line_2": "Calls use trunks in top-to-bottom order for each route."
     },
@@ -1328,15 +1347,15 @@
       "warnings_title": "Some settings may need attention",
       "warning": {
         "no_extensions": "No user has an extension: nobody can make or receive calls.",
-        "no_trunks": "No trunks are configured: calls to and from external numbers are not possible.",
+        "no_trunks": "No trunks can be used: calls to and from external numbers are not possible.",
         "no_inbound_routes": "No inbound routes are configured: incoming calls are not answered.",
         "no_outbound_routes": "No outbound routes are configured: external numbers cannot be called.",
         "outbound_routes_without_trunks": "Some outbound routes have no trunks: the numbers they match cannot be called."
       },
-      "completing": "Adjusting {brand} settings, almost there...",
+      "completing": "Adjusting {brand} settings, almost there…",
       "cannot_complete_setup": "Cannot complete the setup",
       "finish": "Finish",
-      "finish_setup_description": "The configuration will be applied. Asterisk will restart as soon as there are no calls in progress, and NethVoice CTI will restart too: its users will be disconnected for a few moments."
+      "finish_setup_description": "The configuration will be applied. Asterisk will restart as soon as there are no calls in progress, and {brand} CTI will restart too: its users will be disconnected for a few moments."
     },
     "cannot_save_progress": "Cannot save the setup progress",
     "cannot_check_setup": "Cannot check the setup status"

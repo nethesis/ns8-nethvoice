@@ -1,11 +1,12 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   buildCustomModelName,
   buildModelRows,
   buildResetVariables,
+  createPhoneModelFrom,
   filterModelsByVendor,
   getDuplicateDisplayName,
   getModelBrand,
@@ -14,6 +15,9 @@ import {
   parsePhoneModelDetail,
   parsePhoneModels,
 } from './models'
+import { tancredi } from './tancrediClient'
+
+vi.mock('./tancrediClient', () => ({ tancredi: { get: vi.fn(), post: vi.fn() } }))
 
 const models = parsePhoneModels([
   { name: 'yealink-T46', display_name: 'Yealink T46', model_url: '/x' },
@@ -150,5 +154,34 @@ describe('guessModelName', () => {
     expect(guessModelName('00:04:13:00:00:01', 'snom', nethesis)).toBe('snom-D785')
     expect(guessModelName('E0:E6:56:09:00:01', 'nethesis', nethesis)).toBe('')
     expect(guessModelName('AA:BB:CC:00:00:01', '', nethesis)).toBe('')
+  })
+})
+
+describe('createPhoneModelFrom', () => {
+  it('copies the customized variables of the duplicated model', async () => {
+    const variables = { tmpl_phone: 'fanvil-X5.tmpl', cap_linekey_count: 21, ldap_server: '' }
+    vi.mocked(tancredi.get).mockResolvedValue({
+      name: 'fanvil-X4U-reception',
+      display_name: 'Reception',
+      variables,
+    })
+    vi.mocked(tancredi.post).mockResolvedValue({
+      name: 'fanvil-X4U-reception-Reception_copy',
+      display_name: 'Reception copy',
+      variables,
+    })
+
+    const created = await createPhoneModelFrom({
+      name: 'Reception copy',
+      baseModel: 'fanvil-X4U-reception',
+    })
+
+    expect(tancredi.get).toHaveBeenCalledWith('/models/fanvil-X4U-reception')
+    expect(tancredi.post).toHaveBeenCalledWith('/models', {
+      name: 'fanvil-X4U-reception-Reception_copy',
+      display_name: 'Reception copy',
+      variables: { tmpl_phone: 'fanvil-X5.tmpl', cap_linekey_count: '21', ldap_server: '' },
+    })
+    expect(created.displayName).toBe('Reception copy')
   })
 })
