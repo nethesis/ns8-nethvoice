@@ -48,6 +48,7 @@ import {
 } from '@/lib/profiles/profiles'
 import { hasMainExtension, USERS_KEY, type User } from '@/lib/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const {
   isShown = false,
@@ -66,6 +67,7 @@ const {
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 
@@ -340,7 +342,9 @@ function discardChanges() {
           section-id="call_features"
           :model-value="macroValue(CALL_FEATURES_MACRO)"
           :title="t('profiles.call_features')"
-          :description="t('profiles.call_features_description')"
+          :description="
+            t('profiles.call_features_description', { brand: runtimeConfigStore.config.brandName })
+          "
           :disabled="saving"
           initially-expanded
           @update:model-value="setMacroValue(CALL_FEATURES_MACRO, $event)"
@@ -381,8 +385,10 @@ function discardChanges() {
           v-if="form.macroPermissions[CTI_MACRO]"
           section-id="cti_features"
           :model-value="macroValue(CTI_MACRO)"
-          :title="t('profiles.cti_features')"
-          :description="t('profiles.cti_features_description')"
+          :title="t('profiles.cti_features', { brand: runtimeConfigStore.config.brandName })"
+          :description="
+            t('profiles.cti_features_description', { brand: runtimeConfigStore.config.brandName })
+          "
           :disabled="saving"
           @update:model-value="setMacroValue(CTI_MACRO, $event)"
         >
@@ -438,18 +444,18 @@ function discardChanges() {
         </NeButton>
       </div>
     </form>
+    <NeModal
+      :visible="isShownUnsavedModal"
+      :title="t('common.unsaved_changes')"
+      kind="warning"
+      :primary-label="t('common.discard_changes')"
+      primary-button-kind="danger"
+      :cancel-label="t('common.keep_editing')"
+      :close-aria-label="t('common.close')"
+      @close="isShownUnsavedModal = false"
+      @primary-click="discardChanges"
+    >
+      <p>{{ t('common.unsaved_changes_description') }}</p>
+    </NeModal>
   </NeSideDrawer>
-  <NeModal
-    :visible="isShownUnsavedModal"
-    :title="t('common.unsaved_changes')"
-    kind="warning"
-    :primary-label="t('common.discard_changes')"
-    primary-button-kind="danger"
-    :cancel-label="t('common.keep_editing')"
-    :close-aria-label="t('common.close')"
-    @close="isShownUnsavedModal = false"
-    @primary-click="discardChanges"
-  >
-    <p>{{ t('common.unsaved_changes_description') }}</p>
-  </NeModal>
 </template>

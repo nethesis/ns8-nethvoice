@@ -239,6 +239,18 @@ function findUsersIssue(): string {
   return ''
 }
 
+watch([selectedUsers, devices], () => {
+  if (usersIssue.value) {
+    usersIssue.value = findUsersIssue()
+  }
+})
+
+watch(profileId, (id) => {
+  if (id !== '') {
+    profileIssue.value = ''
+  }
+})
+
 function save() {
   reset()
   usersIssue.value = findUsersIssue()
@@ -364,38 +376,38 @@ function discardChanges() {
         </NeButton>
       </div>
     </form>
+    <DiscardChangesModal
+      :visible="isShownDiscardModal"
+      @close="isShownDiscardModal = false"
+      @discard="discardChanges"
+    />
+    <NeModal
+      :visible="isShownDisableModal"
+      :title="t('users.disable_devices')"
+      kind="warning"
+      :primary-label="t('users.disable_devices')"
+      primary-button-kind="danger"
+      :cancel-label="t('common.cancel')"
+      :close-aria-label="t('common.close')"
+      @close="isShownDisableModal = false"
+      @primary-click="confirmDisable"
+    >
+      <p>
+        {{
+          t(
+            'users.disable_devices_confirmation',
+            { count: disablingPlans.length },
+            disablingPlans.length,
+          )
+        }}
+      </p>
+      <ul class="mt-3 flex max-h-60 flex-col gap-1 overflow-y-auto" data-testid="disabling-devices">
+        <li v-for="plan in disablingPlans" :key="plan.user.username">
+          <span class="text-primary-neutral font-medium">{{ plan.user.displayName }}</span>
+          ({{ plan.user.username }}): {{ describeDevices(plan) }}
+        </li>
+      </ul>
+      <p class="mt-3">{{ t('users.disable_devices_credentials') }}</p>
+    </NeModal>
   </NeSideDrawer>
-  <NeModal
-    :visible="isShownDisableModal"
-    :title="t('users.disable_devices')"
-    kind="warning"
-    :primary-label="t('users.disable_devices')"
-    primary-button-kind="danger"
-    :cancel-label="t('common.cancel')"
-    :close-aria-label="t('common.close')"
-    @close="isShownDisableModal = false"
-    @primary-click="confirmDisable"
-  >
-    <p>
-      {{
-        t(
-          'users.disable_devices_confirmation',
-          { count: disablingPlans.length },
-          disablingPlans.length,
-        )
-      }}
-    </p>
-    <ul class="mt-3 flex max-h-60 flex-col gap-1 overflow-y-auto" data-testid="disabling-devices">
-      <li v-for="plan in disablingPlans" :key="plan.user.username">
-        <span class="text-primary-neutral font-medium">{{ plan.user.displayName }}</span>
-        ({{ plan.user.username }}): {{ describeDevices(plan) }}
-      </li>
-    </ul>
-    <p class="mt-3">{{ t('users.disable_devices_credentials') }}</p>
-  </NeModal>
-  <DiscardChangesModal
-    :visible="isShownDiscardModal"
-    @close="isShownDiscardModal = false"
-    @discard="discardChanges"
-  />
 </template>

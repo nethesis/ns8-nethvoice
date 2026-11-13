@@ -241,18 +241,18 @@ function discardChanges() {
         </NeButton>
       </div>
     </form>
+    <NeModal
+      :visible="isShownUnsavedModal"
+      :title="t('common.unsaved_changes')"
+      kind="warning"
+      :primary-label="t('common.discard_changes')"
+      primary-button-kind="danger"
+      :cancel-label="t('common.keep_editing')"
+      :close-aria-label="t('common.close')"
+      @close="isShownUnsavedModal = false"
+      @primary-click="discardChanges"
+    >
+      <p>{{ t('common.unsaved_changes_description') }}</p>
+    </NeModal>
   </NeSideDrawer>
-  <NeModal
-    :visible="isShownUnsavedModal"
-    :title="t('common.unsaved_changes')"
-    kind="warning"
-    :primary-label="t('common.discard_changes')"
-    primary-button-kind="danger"
-    :cancel-label="t('common.keep_editing')"
-    :close-aria-label="t('common.close')"
-    @close="isShownUnsavedModal = false"
-    @primary-click="discardChanges"
-  >
-    <p>{{ t('common.unsaved_changes_description') }}</p>
-  </NeModal>
 </template>

@@ -66,7 +66,7 @@ function goToPreviousStep() {
       class="elevation-0 hidden w-20 shrink-0 flex-col items-center justify-between border-r border-gray-200 py-10 sm:flex dark:border-gray-700"
     >
       <div
-        class="bg-primary-700 dark:bg-primary-500 flex size-[50px] items-center justify-center rounded-md p-[5px]"
+        class="bg-primary-700 dark:bg-primary-500 flex size-12.5 items-center justify-center rounded-md p-1.25"
       >
         <img
           :src="SymbolNethvoice"
