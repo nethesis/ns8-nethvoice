@@ -1,0 +1,482 @@
+#
+# Calculate the minutes to wait before the next upgrade round
+#
+{% macro upgrade_wait_minutes(timezone) %}
+  {{- ((('tomorrow 01:00' | date('U', timezone)) - ('now' | date('U', timezone)))/60 + random(1,180)) | round -}}
+{% endmacro upgrade_wait_minutes %}
+
+#
+# Map language codes to localized languages used by Sangoma
+#
+{% macro language(language)%}
+{% set language_map = {
+    "fr":"1",
+    "de":"2",
+    "es":"3",
+    "pt":"4",
+    "ru":"5",
+    "it":"6",
+    "pl":"7",
+    "tr":"8",
+    "zh":"9",
+    "nl":"10",
+    "en":"0"
+} %}
+    {{- language_map[language] ?: language_map['en'] -}}
+{% endmacro %}
+
+#
+# Map timezones to Sangoma format
+#
+{% macro timezone(timezone) %}
+{% set timezone_map = {
+    'America/Mexico_City': '13',
+    'Europe/Berlin': '50',
+    'Europe/London': '39',
+    'Europe/Rome': '52',
+    'UTC': '33'
+} %}
+    {{- timezone_map[timezone] ?: timezone_map['UTC'] -}}
+{% endmacro %}
+
+#
+# Map tonezone to Sangoma format
+#
+{% macro tonezone(tonezone) %}
+{% set tonezone_map = {
+    'au':'1',
+    'at':'2',
+    'br':'3',
+    'be':'4',
+    'cn':'5',
+    'cl':'6',
+    'cz':'7',
+    'dk':'8',
+    'fi':'9',
+    'fr':'10',
+    'de':'11',
+    'gb':'12',
+    'gr':'13',
+    'hu':'14',
+    'lt':'15',
+    'in':'16',
+    'it':'17',
+    'jp':'18',
+    'mx':'19',
+    'nz':'20',
+    'nl':'21',
+    'no':'22',
+    'pt':'23',
+    'es':'24',
+    'ch':'25',
+    'se':'26',
+    'ru':'27',
+    'us':'28'
+} %}
+    {{- tonezone_map[tonezone] ?: tonezone_map['us'] -}}
+{% endmacro %}
+
+#
+# Map dtmf type
+#
+{% macro dtmf(dtmf) %}
+{% set dtmf_map = {
+    "inband" : "1",
+    "rfc4733" : "0",
+    "sip_info" : "2",
+} %}
+    {{- dtmf_map[dtmf] ?: '0' -}}
+{% endmacro %}
+
+#
+# map seconds from seconds to sangoma values
+#
+{% macro screensaver_wait_time(seconds) %}
+{% set map = {
+    '60': '1',
+    '120': '2',
+    '300': '3',
+    '600': '4',
+    '1800': '5',
+} %}
+    {{- map[seconds] ?: '0' -}}
+{% endmacro %}
+
+#
+# Sangoma P-Codes tag generator
+#
+{% macro pcode(para, value, default_value) %}
+{% set pcode_map = {
+    'LineKey1.Type':'P41200',
+    'LineKey1.Mode':'P20600',
+    'LineKey1.Value':'P41300',
+    'LineKey1.Label':'P41400',
+    'LineKey1.Account':'P41500',
+    'LineKey1.PickupCode':'P41600',
+    'LineKey2.Type':'P41201',
+    'LineKey2.Mode':'P20601',
+    'LineKey2.Value':'P41301',
+    'LineKey2.Label':'P41401',
+    'LineKey2.Account':'P41501',
+    'LineKey2.PickupCode':'P41601',
+    'LineKey3.Type':'P41202',
+    'LineKey3.Mode':'P20602',
+    'LineKey3.Value':'P41302',
+    'LineKey3.Label':'P41402',
+    'LineKey3.Account':'P41502',
+    'LineKey3.PickupCode':'P41602',
+    'LineKey4.Type':'P41203',
+    'LineKey4.Mode':'P20603',
+    'LineKey4.Value':'P41303',
+    'LineKey4.Label':'P41403',
+    'LineKey4.Account':'P41503',
+    'LineKey4.PickupCode':'P41603',
+    'LineKey5.Type':'P20200',
+    'LineKey5.Mode':'P20604',
+    'LineKey5.Value':'P20201',
+    'LineKey5.Label':'P20202',
+    'LineKey5.Account':'P20203',
+    'LineKey5.PickupCode':'P20204',
+    'LineKey6.Type':'P20205',
+    'LineKey6.Mode':'P20605',
+    'LineKey6.Value':'P20206',
+    'LineKey6.Label':'P20207',
+    'LineKey6.Account':'P20208',
+    'LineKey6.PickupCode':'P20209',
+    'LineKey7.Type':'P20210',
+    'LineKey7.Mode':'P20606',
+    'LineKey7.Value':'P20211',
+    'LineKey7.Label':'P20212',
+    'LineKey7.Account':'P20213',
+    'LineKey7.PickupCode':'P20214',
+    'LineKey8.Type':'P20215',
+    'LineKey8.Mode':'P20607',
+    'LineKey8.Value':'P20216',
+    'LineKey8.Label':'P20217',
+    'LineKey8.Account':'P20218',
+    'LineKey8.PickupCode':'P20219',
+    'LineKey9.Type':'P20220',
+    'LineKey9.Mode':'P20608',
+    'LineKey9.Value':'P20221',
+    'LineKey9.Label':'P20222',
+    'LineKey9.Account':'P20223',
+    'LineKey9.PickupCode':'P20224',
+    'LineKey10.Type':'P20225',
+    'LineKey10.Mode':'P20609',
+    'LineKey10.Value':'P20226',
+    'LineKey10.Label':'P20227',
+    'LineKey10.Account':'P20228',
+    'LineKey10.PickupCode':'P20229',
+    'LineKey11.Type':'P20230',
+    'LineKey11.Mode':'P20610',
+    'LineKey11.Value':'P20231',
+    'LineKey11.Label':'P20232',
+    'LineKey11.Account':'P20233',
+    'LineKey11.PickupCode':'P20234',
+    'LineKey12.Type':'P20235',
+    'LineKey12.Mode':'P20611',
+    'LineKey12.Value':'P20236',
+    'LineKey12.Label':'P20237',
+    'LineKey12.Account':'P20238',
+    'LineKey12.PickupCode':'P20239',
+    'LineKey13.Type':'P20240',
+    'LineKey13.Mode':'P20612',
+    'LineKey13.Value':'P20241',
+    'LineKey13.Label':'P20242',
+    'LineKey13.Account':'P20243',
+    'LineKey13.PickupCode':'P20244',
+    'LineKey14.Type':'P20245',
+    'LineKey14.Mode':'P20613',
+    'LineKey14.Value':'P20246',
+    'LineKey14.Label':'P20247',
+    'LineKey14.Account':'P20248',
+    'LineKey14.PickupCode':'P20249',
+    'LineKey15.Type':'P20250',
+    'LineKey15.Mode':'P20614',
+    'LineKey15.Value':'P20251',
+    'LineKey15.Label':'P20252',
+    'LineKey15.Account':'P20253',
+    'LineKey15.PickupCode':'P20254',
+    'LineKey16.Type':'P20255',
+    'LineKey16.Mode':'P20615',
+    'LineKey16.Value':'P20256',
+    'LineKey16.Label':'P20257',
+    'LineKey16.Account':'P20258',
+    'LineKey16.PickupCode':'P20259',
+    'LineKey17.Type':'P20260',
+    'LineKey17.Mode':'P20616',
+    'LineKey17.Value':'P20261',
+    'LineKey17.Label':'P20262',
+    'LineKey17.Account':'P20263',
+    'LineKey17.PickupCode':'P20264',
+    'LineKey18.Type':'P20265',
+    'LineKey18.Mode':'P20617',
+    'LineKey18.Value':'P20266',
+    'LineKey18.Label':'P20267',
+    'LineKey18.Account':'P20268',
+    'LineKey18.PickupCode':'P20269',
+    'LineKey19.Type':'P20270',
+    'LineKey19.Mode':'P20618',
+    'LineKey19.Value':'P20271',
+    'LineKey19.Label':'P20272',
+    'LineKey19.Account':'P20273',
+    'LineKey19.PickupCode':'P20274',
+    'LineKey20.Type':'P20275',
+    'LineKey20.Mode':'P20619',
+    'LineKey20.Value':'P20276',
+    'LineKey20.Label':'P20277',
+    'LineKey20.Account':'P20278',
+    'LineKey20.PickupCode':'P20279',
+    'LineKey21.Type':'P20280',
+    'LineKey21.Mode':'P20620',
+    'LineKey21.Value':'P20281',
+    'LineKey21.Label':'P20282',
+    'LineKey21.Account':'P20283',
+    'LineKey21.PickupCode':'P20284',
+    'LineKey22.Type':'P20285',
+    'LineKey22.Mode':'P20621',
+    'LineKey22.Value':'P20286',
+    'LineKey22.Label':'P20287',
+    'LineKey22.Account':'P20288',
+    'LineKey22.PickupCode':'P20289',
+    'LineKey23.Type':'P20290',
+    'LineKey23.Mode':'P20622',
+    'LineKey23.Value':'P20291',
+    'LineKey23.Label':'P20292',
+    'LineKey23.Account':'P20293',
+    'LineKey23.PickupCode':'P20294',
+    'LineKey24.Type':'P20295',
+    'LineKey24.Mode':'P20623',
+    'LineKey24.Value':'P20296',
+    'LineKey24.Label':'P20297',
+    'LineKey24.Account':'P20298',
+    'LineKey24.PickupCode':'P20299',
+    'LineKey25.Type':'P20300',
+    'LineKey25.Mode':'P20624',
+    'LineKey25.Value':'P20301',
+    'LineKey25.Label':'P20302',
+    'LineKey25.Account':'P20303',
+    'LineKey25.PickupCode':'P20304',
+    'LineKey26.Type':'P20305',
+    'LineKey26.Mode':'P20625',
+    'LineKey26.Value':'P20306',
+    'LineKey26.Label':'P20307',
+    'LineKey26.Account':'P20308',
+    'LineKey26.PickupCode':'P20309',
+    'LineKey27.Type':'P20310',
+    'LineKey27.Mode':'P20626',
+    'LineKey27.Value':'P20311',
+    'LineKey27.Label':'P20312',
+    'LineKey27.Account':'P20313',
+    'LineKey27.PickupCode':'P20314',
+    'LineKey28.Type':'P20315',
+    'LineKey28.Mode':'P20627',
+    'LineKey28.Value':'P20316',
+    'LineKey28.Label':'P20317',
+    'LineKey28.Account':'P20318',
+    'LineKey28.PickupCode':'P20319',
+    'LineKey29.Type':'P20320',
+    'LineKey29.Mode':'P20628',
+    'LineKey29.Value':'P20321',
+    'LineKey29.Label':'P20322',
+    'LineKey29.Account':'P20323',
+    'LineKey29.PickupCode':'P20324',
+    'LineKey30.Type':'P20325',
+    'LineKey30.Mode':'P20629',
+    'LineKey30.Value':'P20326',
+    'LineKey30.Label':'P20327',
+    'LineKey30.Account':'P20328',
+    'LineKey30.PickupCode':'P20329',
+    'LineKey31.Type':'P20330',
+    'LineKey31.Mode':'P20630',
+    'LineKey31.Value':'P20331',
+    'LineKey31.Label':'P20332',
+    'LineKey31.Account':'P20333',
+    'LineKey31.PickupCode':'P20334',
+    'LineKey32.Type':'P20335',
+    'LineKey32.Mode':'P20631',
+    'LineKey32.Value':'P20336',
+    'LineKey32.Label':'P20337',
+    'LineKey32.Account':'P20338',
+    'LineKey32.PickupCode':'P20339',
+    'LineKey33.Type':'P20340',
+    'LineKey33.Mode':'P20632',
+    'LineKey33.Value':'P20341',
+    'LineKey33.Label':'P20342',
+    'LineKey33.Account':'P20343',
+    'LineKey33.PickupCode':'P20344',
+    'LineKey34.Type':'P20345',
+    'LineKey34.Mode':'P20633',
+    'LineKey34.Value':'P20346',
+    'LineKey34.Label':'P20347',
+    'LineKey34.Account':'P20348',
+    'LineKey34.PickupCode':'P20349',
+    'LineKey35.Type':'P20350',
+    'LineKey35.Mode':'P20634',
+    'LineKey35.Value':'P20351',
+    'LineKey35.Label':'P20352',
+    'LineKey35.Account':'P20353',
+    'LineKey35.PickupCode':'P20354',
+    'LineKey36.Type':'P20355',
+    'LineKey36.Mode':'P20635',
+    'LineKey36.Value':'P20356',
+    'LineKey36.Label':'P20357',
+    'LineKey36.Account':'P20358',
+    'LineKey36.PickupCode':'P20359',
+    'LineKey37.Type':'P23000',
+    'LineKey37.Mode':'P23001',
+    'LineKey37.Value':'P23002',
+    'LineKey37.Label':'P23003',
+    'LineKey37.Account':'P23004',
+    'LineKey37.PickupCode':'P23005',
+    'LineKey38.Type':'P23006',
+    'LineKey38.Mode':'P23007',
+    'LineKey38.Value':'P23008',
+    'LineKey38.Label':'P23009',
+    'LineKey38.Account':'P23010',
+    'LineKey38.PickupCode':'P23011',
+    'LineKey39.Type':'P23012',
+    'LineKey39.Mode':'P23013',
+    'LineKey39.Value':'P23014',
+    'LineKey39.Label':'P23015',
+    'LineKey39.Account':'P23016',
+    'LineKey39.PickupCode':'P23017',
+    'LineKey40.Type':'P23018',
+    'LineKey40.Mode':'P23019',
+    'LineKey40.Value':'P23020',
+    'LineKey40.Label':'P23021',
+    'LineKey40.Account':'P23022',
+    'LineKey40.PickupCode':'P23023',
+    'LineKey41.Type':'P23024',
+    'LineKey41.Mode':'P23025',
+    'LineKey41.Value':'P23026',
+    'LineKey41.Label':'P23027',
+    'LineKey41.Account':'P23028',
+    'LineKey41.PickupCode':'P23029',
+    'LineKey42.Type':'P23030',
+    'LineKey42.Mode':'P23031',
+    'LineKey42.Value':'P23032',
+    'LineKey42.Label':'P23033',
+    'LineKey42.Account':'P23034',
+    'LineKey42.PickupCode':'P23035',
+    'LineKey43.Type':'P23036',
+    'LineKey43.Mode':'P23037',
+    'LineKey43.Value':'P23038',
+    'LineKey43.Label':'P23039',
+    'LineKey43.Account':'P23040',
+    'LineKey43.PickupCode':'P23041',
+    'LineKey44.Type':'P23042',
+    'LineKey44.Mode':'P23043',
+    'LineKey44.Value':'P23044',
+    'LineKey44.Label':'P23045',
+    'LineKey44.Account':'P23046',
+    'LineKey44.PickupCode':'P23047',
+    'LineKey45.Type':'P23048',
+    'LineKey45.Mode':'P23049',
+    'LineKey45.Value':'P23050',
+    'LineKey45.Label':'P23051',
+    'LineKey45.Account':'P23052',
+    'LineKey45.PickupCode':'P23053',
+} %}
+    {{- ('<' ~ pcode_map[para] ~ ' para="') | raw }}
+    {{- para -}}
+    {{- '">' | raw -}}
+    {{- value | default(default_value) -}}
+    {{- '</' ~ pcode_map[para] ~ '>' | raw -}}
+{% endmacro pcode %}
+
+#
+# Map linekey types to Sangoma code
+#
+{% macro linekey_type_map(type) %}
+{% set type_map = {
+    "":"0",
+    "line":"1",
+    "speed_dial":"2",
+    "queuetoggle":"2",
+    "blf":"3",
+    "voice_mail":"5",
+    "direct_pickup":"6",
+    "group_pickup":"7",
+    "dtmf":"10",
+    "prefix":"11",
+    "ldap":"15",
+    "conference":"17",
+    "forward":"18",
+    "transfer":"19",
+    "hold":"20",
+    "dnd":"21",
+    "recall":"22",
+    "record":"25",
+    "url":"35",
+    "multicast_paging":"47",
+    "hold":"29",
+} %}
+    {{- type_map[type] ?: '0' -}}
+{% endmacro linekey_type_map %}
+
+#
+# Generate pcode tag for ExpKeys
+#
+{% macro pcode_expkey(m, k, type, value, label) %}
+{% set pcode = 60000 + (m * 1000) + (k * 5) %}
+{% import _self as local %}
+<P{{ pcode }}>{{ local.linekey_type_map(type) | default('0') }}</P{{ pcode }}><P{{ pcode + 1 }}>{{ value | default('') }}</P{{ pcode + 1 }}><P{{ pcode + 2 }}>{{ label | default('') }}</P{{ pcode + 2 }}>
+{% endmacro pcode_expkey %}
+
+#
+# Map softkey types to Sangoma code
+#
+{% macro softkey_type_map(type) %}
+{% set type_map = {
+    "":"0",
+    "forward":"18",
+    "dnd":"21",
+    "recall":"22",
+    "pick_up":"6",
+    "speed_dial":"2",
+    "group_pickup":"7",
+    "history":"36",
+    "menu":"38",
+    "status":"40",
+    "ldap":"15",
+    "prefix":"11",
+} %}
+    {{- type_map[type] ?: '0' -}}
+{% endmacro softkey_type_map %}
+
+#
+# Set date format
+#
+{% macro date_format(date_format) %}
+    {%- set map = {
+        "DD MM YY" : "2",
+        "DD MM YYYY" : "2",
+        "DD MMM WW" : "2",
+        "DD MMM YY" : "2",
+        "DD MMM YYYY" : "2",
+        "WWW DD MMM" : "2",
+        "WWW MMM DD" : "1",
+        "MM DD YY" : "1",
+        "MM DD YYYY" : "1",
+        "MMM DD WW" : "1",
+        "YY MM DD" : "0",
+        "YYYY MM DD" : "0"
+        }
+    -%}
+{{- map[date_format] ?? '2' -}}
+{% endmacro date_format %}
+
+#
+# Translate dss_transfer to Sangoma code
+#
+{% macro dss_transfer(dss_transfer) %}
+    {%- set map = {
+        "verify": "2",
+        "attended": "0",
+        "blind": "1"
+        }
+    -%}
+{{- map[dss_transfer] ?? '2' -}}
+{% endmacro dss_transfer %}
+

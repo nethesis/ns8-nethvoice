@@ -4,6 +4,7 @@
     "local>NethServer/.github:ns8-automerge"
   ],
   "dependencyDashboard": true,
+  "postUpdateOptions": ["gomodTidy"],
   "ignorePaths": [
     "**/node_modules/**",
     "**/bower_components/**",
@@ -35,6 +36,27 @@
       "matchDepNames": ["mariadb"],
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "The NethCTI Middleware CI MariaDB service stays on the 10.11 series shipped by the module",
+      "matchFileNames": [".github/workflows/cti-middleware-tests.yml"],
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["mariadb"],
+      "allowedVersions": "<10.12"
+    },
+    {
+      "description": "Satellite: deepgram-sdk v4+ is a rewrite with breaking API changes, stay on 3.x until migrated",
+      "matchFileNames": ["satellite/**"],
+      "matchPackageNames": ["deepgram-sdk"],
+      "allowedVersions": "<4"
+    },
+    {
+      "description": "Reports UI is Vue 2 on vue-cli 4: no major updates of the Vue toolchain without a migration",
+      "matchFileNames": ["reports/ui/**"],
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["vue", "vue-*", "@vue/**", "chart.js", "portal-vue", "node-sass", "sass-loader", "eslint", "eslint-plugin-vue", "@babel/eslint-parser", "chai"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }

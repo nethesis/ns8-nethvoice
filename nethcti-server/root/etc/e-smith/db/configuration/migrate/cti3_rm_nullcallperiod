@@ -1,0 +1,7 @@
+{
+    # Delete "NullCallPeriod" key from nethcti server configuration db
+    # It is now managed by nethvoice-report
+    # https://github.com/nethesis/dev/issues/5950
+    $DB->get_prop_and_delete("nethcti-server", "NullCallPeriod") || return(0);
+    return(0);
+}

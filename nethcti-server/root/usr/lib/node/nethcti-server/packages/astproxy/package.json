@@ -1,0 +1,40 @@
+{
+  "name": "@nethesis/astproxy",
+  "version": "0.2.3",
+  "description": "Node.js proxy for Asterisk PBX",
+  "main": "index.js",
+  "private": true,
+  "files": [
+    "index.js",
+    "lib"
+  ],
+  "scripts": {
+    "test": "node test/initialization.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nethesis/astproxy.git"
+  },
+  "keywords": [
+    "asterisk",
+    "pbx",
+    "voip"
+  ],
+  "author": "Nethesis",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/nethesis/dev/issues"
+  },
+  "homepage": "https://github.com/nethesis/astproxy",
+  "dependencies": {
+    "async": "3.2.6",
+    "moment": "2.31.0"
+  },
+  "peerDependencies": {
+    "asterisk-ami": "0.2.0-beta1",
+    "jsplugs": "0.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

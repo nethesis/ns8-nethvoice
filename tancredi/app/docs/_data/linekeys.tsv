@@ -1,0 +1,22 @@
+type	description	value	label
+blf	Monitor the state of an extension and depending on that do a pickup or speed dial when pushed	Target extension	Free text label
+conference	Active calls are joined together in a conference call, where all partecipants can talk and hear the others simultaneously	N/A	N/A
+direct_pickup	Answer a ringing call directed to the given extension	The extension number	Free text label
+dnd	Enable/disable the *do not disturb* state (DND). If enabled all incoming calls are rejected	N/A	N/A
+dtmf	Play a DTMF (dial tones) sequence	The symbols corresponding to the tones	Free text label
+forward	Enable/disable the *forward* state. If enabled all incoming calls are forwarded to the given number	The phone or extension number	Free text label
+group_pickup	Answer a ringing call directed to an extension of your pickup group	N/A	N/A
+hold	Put the current call on hold	N/A	Free text label, empty for default
+ldap	Display the LDAP address book	N/A	Free text label, empty for default
+line	Select another line	N/A	Free text label, empty for default
+multicast_paging	Directly speak to an extension configured for multicast paging	The extension number	Free text label, empty for default
+[empty string]	The line key is not available or not assigned		
+phone_lock	Lock the phone interface. The unlock code is set elsewhere.	N/A	Free text label, empty for default
+prefix	Add the configured digits to the dialling number	The prefix digits	Free text label, empty for default
+recall	Call the last dialled number	N/A	Free text label, empty for default
+record	Start recording the active call audio	N/A	Free text label, empty for default
+speed_dial	Call a number pressing the button	The number to call	Free text label
+transfer	Transfer the active call to the configured number or to a newly dialled number	Set a number for fixed transfer or leave empty	Free text label
+url	Send an HTTP GET request	The URL to be requested	Free text label
+voice_mail	Call the voice mailbox extension	N/A	N/A
+queuetoggle	Speed dial to enter/exit a queue with the function code held by the `queuetoggle` variable	N/A	Free text label

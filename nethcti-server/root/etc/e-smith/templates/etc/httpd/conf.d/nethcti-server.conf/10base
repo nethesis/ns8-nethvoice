@@ -1,0 +1,14 @@
+{
+    my $restPort = ${'nethcti-server'}{RestPort} || "8179";
+    my $wsPort = ${'nethcti-server'}{WsPort} || "8181";
+
+    $OUT.="ProxyPass /webrest http://127.0.0.1:$restPort retry=0\n";
+    $OUT.="ProxyPassReverse /webrest http://127.0.0.1:$restPort\n";
+
+    $OUT.= "ProxyPass        /socket.io ws://127.0.0.1:$wsPort/socket.io retry=0\n";
+    $OUT.= "ProxyPassReverse /socket.io ws://127.0.0.1:$wsPort/socket.io\n";
+
+    $OUT.= "SetEnv force-proxy-request-1.0 1\n";
+    $OUT.= "SetEnv proxy-nokeepalive 1\n";
+    $OUT.= "RequestHeader unset Expect early\n";
+}

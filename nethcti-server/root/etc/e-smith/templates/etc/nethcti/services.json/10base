@@ -1,0 +1,20 @@
+{
+  my $ports_str = ${'nethcti-server'}{TCPPorts};
+  our @ports = split(',', $ports_str);
+  return "";
+}
+\{
+  "tcp": \{
+    "port": "{$ports[0] || 8182}",
+    "base_templates": "http://{$SystemName}.{$DomainName}/webrest/static/templates/notification_popup"
+  \},
+  "tls": \{
+    "port": "{$ports[1] || 8183}",
+    "key": "/etc/asterisk/keys/NethServer.key",
+    "cert": "/etc/asterisk/keys/NethServer.crt"
+  \},
+  "websocket": \{
+    "http_port": "{${'nethcti-server'}{WsPort} || 8181}"
+  \},
+  "http_proxy": \{
+    "http_port":  "{${'nethcti-server'}{RestPort} || 8179}",

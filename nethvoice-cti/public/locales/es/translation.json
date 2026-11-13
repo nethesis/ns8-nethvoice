@@ -1,0 +1,27 @@
+{
+  "Common": {
+    "Chat": "Chat"
+  },
+  "Chat": {
+    "Conversations": "Conversaciones",
+    "Offline": "Chat sin conexión",
+    "Search": "Buscar chats o mensajes",
+    "No conversations": "Aún no hay conversaciones",
+    "No conversations description": "Abre la página Operadores y pulsa Chat en un compañero para empezar.",
+    "You": "Tú",
+    "Attachment": "Adjunto",
+    "New chat": "Nuevo chat",
+    "members": "miembros",
+    "No messages yet": "Sin mensajes",
+    "Conversation": "Conversación",
+    "Last message": "Último mensaje",
+    "Time": "Hora",
+    "Delete": "Eliminar",
+    "Delete confirm": "¿Eliminar la conversación con \"{{name}}\"? Se elimina tu copia de los mensajes.",
+    "Open menu": "Abrir menú",
+    "Leave": "Salir",
+    "Delete group confirm": "¿Eliminar el grupo \"{{name}}\" para todos? Sus mensajes se eliminan para todos los miembros.",
+    "Leave confirm": "¿Salir del grupo \"{{name}}\"? Dejarás de recibir sus mensajes y se elimina tu copia.",
+    "{{count}} matches": "{{count}} resultados"
+  }
+}

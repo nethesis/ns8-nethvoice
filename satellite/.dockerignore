@@ -1,0 +1,50 @@
+# Ignore version control
+.git
+.github
+
+# Ignore Python cache and virtual environments
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+env/
+.env
+
+# Ignore build artifacts
+*.tar
+*.tar.gz
+*.zip
+
+# Ignore temporary files
+test.wav
+fuckaround.py
+satellite.tar
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ignore log files
+*.log
+
+# Ignore documentation (README.md is explicitly copied)
+*.md
+!README.md
+
+# Ignore configuration files that shouldn't be in container
+extensions_additional.conf.satellite 

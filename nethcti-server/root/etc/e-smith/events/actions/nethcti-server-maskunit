@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Ensure the systemd unit does not start early during the post-restore-config event
+exec systemctl mask --now nethcti-server

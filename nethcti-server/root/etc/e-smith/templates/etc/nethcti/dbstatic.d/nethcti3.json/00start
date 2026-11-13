@@ -1,0 +1,6 @@
+{
+    use NethServer::Password;
+    our $ctidb_pwd = NethServer::Password::store('CTIDBPasswd') || die('Could not generate nethcti database password!');
+    return "";
+}
+\{

@@ -1,0 +1,48 @@
+name: NethCTI Middleware tests
+
+on:
+  push:
+    paths:
+      - nethcti-middleware/**
+      - .github/workflows/cti-middleware-tests.yml
+  pull_request:
+    paths:
+      - nethcti-middleware/**
+      - .github/workflows/cti-middleware-tests.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: nethcti-middleware
+    services:
+      mariadb:
+        image: mariadb:10.11.19
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: nethcti3
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.27'
+          cache-dependency-path: nethcti-middleware/go.sum
+      - name: Install oathtool
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y oathtool
+      - name: Run tests
+        run: go test -v -cover ./...

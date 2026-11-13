@@ -1,0 +1,101 @@
+#!/usr/bin/perl -w
+
+use esmith::Build::CreateLinks qw(:all);
+
+#
+# nethcti-server3-update
+#
+event_templates('nethcti-server3-update', qw(
+                /etc/nethcti/asterisk.json
+                /etc/nethcti/authentication.json
+                /etc/nethcti/dbstatic.d/phonebook.json
+                /etc/nethcti/dbstatic.d/nethcti3.json
+                /etc/nethcti/exec_script.json
+                /etc/nethcti/services.json
+                /etc/nethcti/win_popup.json
+                /etc/nethcti/mailer.json
+                /etc/nethcti/video_conf.json
+                /etc/nethcti/nethcti.json
+                /etc/nethcti/chat.json
+                /etc/nethcti/phone_urls.json
+                /etc/httpd/conf.d/nethcti-server.conf
+));
+
+event_actions('nethcti-server3-update', qw(
+	            nethcti-server-conf 00
+              initialize-default-databases 02
+		          nethcti-server-astdbconfig 10
+));
+
+event_services('nethcti-server3-update', qw(
+               httpd reload
+               nethcti-server restart
+));
+
+#
+# hostname-modify
+#
+event_templates('hostname-modify', qw(
+                /etc/nethcti/nethcti.json
+                /etc/nethcti/chat.json
+                /etc/nethcti/services.json
+));
+
+event_services('hostname-modify', qw(
+               nethcti-server restart
+));
+
+#
+# trusted-networks-modify
+#
+event_templates('trusted-networks-modify', qw(
+                /etc/nethcti/authentication.json
+));
+
+event_services('trusted-networks-modify', qw(
+               nethcti-server reload
+));
+
+#
+# publichost-modify
+#
+event_templates('publichost-modify', qw(
+                /etc/nethcti/nethcti.json
+));
+
+event_services('publichost-modify', qw(
+               nethcti-server reload
+));
+
+#
+# post-restore-config: avoid early service startup
+#
+event_actions('post-restore-config', qw(
+    nethcti-server-maskunit 10
+));
+
+#
+# nethserver-conference-save
+#
+event_templates('nethserver-conference-save', qw(
+                /etc/nethcti/video_conf.json
+));
+
+event_services('nethserver-conference-save', qw(
+               nethcti-server reload
+));
+
+#
+# certificate-update
+#
+event_services('certificate-update', qw(
+    nethcti-server restart
+));
+
+#
+# post-restore-data event
+#
+$event = "post-restore-data";
+event_actions($event,
+   'nethcti-server-fix-rsync-perms' => '10',
+);

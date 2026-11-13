@@ -4,9 +4,6 @@ FROM docker.io/library/php:8.3.36-apache-bookworm@sha256:a14446c32a3c8aeb9b4dac7
 COPY etc /etc
 COPY usr /usr
 COPY entrypoint.sh /
-COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
-
-ARG TANCREDI_VERSION=1.11.3
 
 RUN apt update && \
 	apt install -y libapache2-mod-xsendfile zip && \
@@ -15,14 +12,14 @@ RUN apt update && \
 	sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{TANCREDIPORT\}>/' /etc/apache2/sites-enabled/000-default.conf && \
 	sed -i 's/Listen 80/Listen $\{TANCREDIPORT\}/' /etc/apache2/ports.conf && \
 	sed -i 's/Listen 443/Listen $\{TANCREDI_SSL_PORT\}/' /etc/apache2/ports.conf && \
-	echo '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' >> /etc/apache2/envvars && \
-	# Install Tancredi files
-	cd /tmp && \
-	curl -fL https://github.com/nethesis/tancredi/archive/refs/tags/${TANCREDI_VERSION}.tar.gz -o tancredi-${TANCREDI_VERSION}.tar.gz && \
-	artifact_checksum=$(grep "  tancredi-${TANCREDI_VERSION}.tar.gz$" remote-artifacts.sha256) && \
-	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
-	tar xzp --strip-component=1 -f tancredi-${TANCREDI_VERSION}.tar.gz -C /usr/share/tancredi/ tancredi-${TANCREDI_VERSION}/data/ tancredi-${TANCREDI_VERSION}/public/ tancredi-${TANCREDI_VERSION}/scripts/ tancredi-${TANCREDI_VERSION}/src/ tancredi-${TANCREDI_VERSION}/composer.json tancredi-${TANCREDI_VERSION}/composer.lock && \
-	rm tancredi-${TANCREDI_VERSION}.tar.gz remote-artifacts.sha256
+	echo '\n: ${TANCREDIPORT:=80}\nexport TANCREDIPORT\n: ${TANCREDI_SSL_PORT:=443}\nexport TANCREDI_SSL_PORT\n' >> /etc/apache2/envvars
+
+# Install Tancredi files
+COPY app/data /usr/share/tancredi/data
+COPY app/public /usr/share/tancredi/public
+COPY app/scripts /usr/share/tancredi/scripts
+COPY app/src /usr/share/tancredi/src
+COPY app/composer.json app/composer.lock /usr/share/tancredi/
 
 # Add Nethesis firmware template
 COPY usr/share/tancredi/data/templates/nethesis-firmware.tmpl /usr/share/tancredi/data/templates/nethesis-firmware.tmpl

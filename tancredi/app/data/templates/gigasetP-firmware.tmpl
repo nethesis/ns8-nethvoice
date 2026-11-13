@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+{% autoescape %}
+ 
+<firmware-settings>
+    <firmware perm="">{{ firmware_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/#{firmware_file}" : "" }}</firmware>
+</firmware-settings>
+{% endautoescape %}
