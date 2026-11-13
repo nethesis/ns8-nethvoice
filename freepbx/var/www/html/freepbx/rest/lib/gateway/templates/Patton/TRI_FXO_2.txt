@@ -141,7 +141,7 @@ context cs SWITCH
   interface sip IF_VOIP_ASTERISK_00
     bind context sip-gateway ASTERISK_00
     route call dest-table to_fxo
-    remote PROXY 5061
+    remote PROXY PXSIPSPORT
     early-disconnect
     privacy
     uri-scheme sip
@@ -153,7 +153,7 @@ context cs SWITCH
   interface sip IF_VOIP_ASTERISK_01
     bind context sip-gateway ASTERISK_01
     route call dest-table to_fxo
-    remote PROXY 5061
+    remote PROXY PXSIPSPORT
     early-disconnect
     privacy
     uri-scheme sip
@@ -207,8 +207,8 @@ location-service SER_LOC_00
 
     registration outbound
       registrar ASTERISKIP 5061
-      force-destination manual PROXY 5061
-      proxy 1 PROXY 5061
+      force-destination manual PROXY PXSIPSPORT
+      proxy 1 PROXY PXSIPSPORT
       lifetime 60
       register auto
       keep-alive options 60
@@ -234,8 +234,8 @@ location-service SER_LOC_01
 
     registration outbound
       registrar ASTERISKIP 5061
-      force-destination manual PROXY 5061
-      proxy 1 PROXY 5061
+      force-destination manual PROXY PXSIPSPORT
+      proxy 1 PROXY PXSIPSPORT
       lifetime 60
       register auto
       keep-alive options 60

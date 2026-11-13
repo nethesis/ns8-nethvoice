@@ -193,7 +193,7 @@ location-service LOC_SERV_TRAIN5
 
     registration outbound
       registrar ASTERISKIP 5060
-      proxy 1 PROXY tls-port 5061
+      proxy 1 PROXY tls-port PXSIPSPORT
       register auto
 
   identity FXSEXTENSION1
@@ -203,7 +203,7 @@ location-service LOC_SERV_TRAIN5
 
     registration outbound
       registrar ASTERISKIP 5060
-      proxy 1 PROXY tls-port 5061
+      proxy 1 PROXY tls-port PXSIPSPORT
       register auto
 
 
@@ -214,7 +214,7 @@ location-service LOC_SERV_TRAIN5
 
     registration outbound
       registrar ASTERISKIP 5060
-      proxy 1 PROXY tls-port 5061
+      proxy 1 PROXY tls-port PXSIPSPORT
       register auto
 
   identity FXSEXTENSION3
@@ -224,7 +224,7 @@ location-service LOC_SERV_TRAIN5
 
     registration outbound
       registrar ASTERISKIP 5060
-      proxy 1 PROXY tls-port 5061
+      proxy 1 PROXY tls-port PXSIPSPORT
       register auto
 
   identity FXSEXTENSION4
@@ -234,7 +234,7 @@ location-service LOC_SERV_TRAIN5
 
     registration outbound
       registrar ASTERISKIP 5060
-      proxy 1 PROXY tls-port 5061
+      proxy 1 PROXY tls-port PXSIPSPORT
       register auto
 
   identity FXSEXTENSION5
@@ -244,7 +244,7 @@ location-service LOC_SERV_TRAIN5
 
     registration outbound
       registrar ASTERISKIP 5060
-      proxy 1 PROXY tls-port 5061
+      proxy 1 PROXY tls-port PXSIPSPORT
       register auto
 
   identity FXSEXTENSION6
@@ -254,7 +254,7 @@ location-service LOC_SERV_TRAIN5
 
     registration outbound
       registrar ASTERISKIP 5060
-      proxy 1 PROXY tls-port 5061
+      proxy 1 PROXY tls-port PXSIPSPORT
       register auto
 
   identity FXSEXTENSION7
@@ -264,7 +264,7 @@ location-service LOC_SERV_TRAIN5
 
     registration outbound
       registrar ASTERISKIP 5060
-      proxy 1 PROXY tls-port 5061
+      proxy 1 PROXY tls-port PXSIPSPORT
       register auto
 
 context sip-gateway ASTERISK5
