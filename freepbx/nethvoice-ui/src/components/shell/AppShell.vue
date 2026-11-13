@@ -13,6 +13,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import TopBar from './TopBar.vue'
 import NotificationDrawer from './NotificationDrawer.vue'
+import PhoneIslandHost from '@/components/phone/PhoneIslandHost.vue'
 
 const sidebarOpen = ref(false)
 </script>
@@ -114,5 +115,6 @@ const sidebarOpen = ref(false)
       </main>
     </div>
     <NotificationDrawer :close-on-click-outside="true" />
+    <PhoneIslandHost />
   </div>
 </template>

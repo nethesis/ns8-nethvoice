@@ -1612,7 +1612,6 @@
     "show_details": "Show details of {name}",
     "operator_details": "Operator details",
     "call": "Call",
-    "call_not_available": "Calling from the administration interface is not available yet",
     "codecs": "Codecs",
     "do_not_disturb": "Do not disturb",
     "call_forward": "Call forward",
@@ -1622,6 +1621,28 @@
     "no_users_description": "Assign an extension to a user to see the live status of their devices here.",
     "no_users_found": "No users found",
     "cannot_load": "Cannot load the status of users",
-    "table_label": "User overview"
+    "table_label": "User overview",
+    "call_enable_phone": "Enable the phone and call {extension}",
+    "call_ready": "Call {extension} from the administrator phone",
+    "call_connecting": "Connecting the phone, then calling {extension}",
+    "call_in_progress": "A call is already in progress",
+    "call_no_extension": "This user has no main extension"
+  },
+  "admin_phone": {
+    "enable_phone": "Enable phone",
+    "disable_phone": "Disable phone",
+    "status_inactive": "Phone disabled. Enable it to place test calls as the administrator.",
+    "status_starting": "Preparing the phone",
+    "status_registering": "Connecting the phone",
+    "status_ready": "Phone ready, extension {extension}",
+    "status_in_call": "Call in progress, extension {extension}",
+    "status_connection_lost": "The phone cannot connect to the PBX and keeps trying",
+    "status_error": "Cannot enable the phone: {error}",
+    "regenerate_credentials": "Regenerate phone credentials",
+    "credentials_regenerated": "Phone credentials regenerated",
+    "credentials_regenerated_description": "The previous credentials no longer work.",
+    "cannot_regenerate_credentials": "Cannot regenerate the phone credentials",
+    "cost_notice_title": "Calls to external numbers",
+    "cost_notice_description": "Calls to external numbers go through the outbound routes and can be charged by the provider."
   }
 }
