@@ -10,7 +10,6 @@ import {
   NeButton,
   NeDropdown,
   NeEmptyState,
-  NePaginator,
   NeSortDropdown,
   NeTable,
   NeTableBody,
@@ -32,11 +31,14 @@ import {
   faPhone,
   faRoute,
   faStar,
+  faTriangleExclamation,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
+import TablePaginator from '@/components/common/TablePaginator.vue'
 import CreateDefaultOutboundRoutesModal from './CreateDefaultOutboundRoutesModal.vue'
 import EditOutboundRouteDrawer from './EditOutboundRouteDrawer.vue'
+import RouteTrunkBadge from './RouteTrunkBadge.vue'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { useTrunkProviders, useTrunks } from '@/queries/trunks/trunks'
@@ -44,6 +46,7 @@ import { getTrunkLabelById } from '@/lib/trunks/providers'
 import {
   filterOutboundRoutes,
   getOutboundRouteAdvancedUrl,
+  getRouteTrunkState,
   OUTBOUND_ROUTE_SORT_KEYS,
   refreshFreepbxSession,
   sortOutboundRoutes,
@@ -70,7 +73,7 @@ const { showFilters = true, busy = false } = defineProps<{
 
 const { t } = useI18n()
 const { state, refetch } = useOutboundRoutes()
-const { getRouteTitle, getRouteDescription } = useOutboundRouteLabels()
+const { getRouteTitleAmong, getRouteDescription } = useOutboundRouteLabels()
 const { state: trunksState } = useTrunks()
 const { state: providersState } = useTrunkProviders()
 
@@ -89,6 +92,17 @@ const sortOptions = computed(() => [
 ])
 
 const routes = computed(() => state.value.data ?? [])
+
+function getRouteTitle(route: OutboundRoute): string {
+  return getRouteTitleAmong(route, routes.value)
+}
+
+function getTrunkState(trunk: RouteTrunk) {
+  return getRouteTrunkState(
+    trunk.id,
+    trunksState.value.status === 'success' ? trunksState.value.data : undefined,
+  )
+}
 
 function getTrunkLabel(trunk: RouteTrunk): string {
   return getTrunkLabelById(
@@ -180,12 +194,13 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
 
 <template>
   <div class="flex flex-col gap-6">
-    <div v-if="showFilters" class="flex flex-wrap items-center gap-4">
+    <div v-if="showFilters && !isNoDataEmptyStateShown" class="flex flex-wrap items-center gap-4">
       <NeTextInput
         v-model="textFilter"
         is-search
         :placeholder="t('routes.filter_routes')"
         :aria-label="t('routes.filter_routes')"
+        :clear-search-label="t('ne_text_input.clear_search')"
         class="w-full max-w-xs"
         @blur="textFilter = textFilter.trim()"
       />
@@ -268,11 +283,16 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
             <ol v-if="item.trunks.length" class="list-inside list-decimal">
               <li v-for="trunk in item.trunks" :key="trunk.id" class="wrap-anywhere">
                 {{ getTrunkLabel(trunk) }}
+                <RouteTrunkBadge :state="getTrunkState(trunk)" class="ml-1" />
               </li>
             </ol>
-            <span v-else>
-              <span aria-hidden="true">-</span>
-              <span class="sr-only">{{ t('routes.no_trunks') }}</span>
+            <span v-else class="inline-flex items-center gap-2 text-amber-700 dark:text-amber-500">
+              <FontAwesomeIcon
+                :icon="faTriangleExclamation"
+                class="size-4 shrink-0"
+                aria-hidden="true"
+              />
+              {{ t('routes.no_trunks_warning') }}
             </span>
           </NeTableCell>
           <NeTableCell :data-label="t('common.actions')">
@@ -294,26 +314,10 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
         </NeTableRow>
       </NeTableBody>
       <template v-if="filteredRoutes.length > PAGE_SIZES[0]" #paginator>
-        <NePaginator
-          :current-page="pageNum"
+        <TablePaginator
+          v-model:page-num="pageNum"
+          v-model:page-size="pageSize"
           :total-rows="filteredRoutes.length"
-          :page-size="pageSize"
-          :page-sizes="PAGE_SIZES"
-          :nav-pagination-label="t('ne_table.pagination')"
-          :next-label="t('ne_table.go_to_next_page')"
-          :previous-label="t('ne_table.go_to_previous_page')"
-          :range-of-total-label="t('ne_table.of')"
-          :page-size-label="t('ne_table.show')"
-          @select-page="
-            (page: number) => {
-              pageNum = page
-            }
-          "
-          @select-page-size="
-            (size: number) => {
-              pageSize = size
-            }
-          "
         />
       </template>
     </NeTable>
