@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockWizardState, test } from '../fixtures/mockApi'
 
 test.describe('login', () => {
   test('redirects an anonymous visitor to the login page', async ({ page, mockApi }) => {
@@ -71,6 +71,7 @@ test.describe('login', () => {
     await page.getByRole('button', { name: 'Sign in' }).click()
 
     await expect(page.getByText('Username or password is not correct')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Password' })).toBeFocused()
     await expect(page).toHaveURL(/\/nethvoice\/login$/)
     expect(await page.evaluate(() => localStorage.getItem('secretkey'))).toBeNull()
   })
@@ -114,6 +115,7 @@ test.describe('login', () => {
     signedIn,
   }) => {
     void signedIn
+    mockWizardState(mockApi, 0)
     mockApi
       .on('GET', '/freepbx/rest/settings/languages', {
         status: 403,
@@ -125,5 +127,50 @@ test.describe('login', () => {
 
     await expect(page).toHaveURL(/\/nethvoice\/login/)
     await expect(page.getByText('Session expired')).toBeVisible()
+  })
+
+  test('follows the redirect when the session is still valid', async ({
+    page,
+    mockApi,
+    signedIn,
+  }) => {
+    void signedIn
+    mockApi.on('GET', '/freepbx/rest/settings/languages', {
+      json: { it: { default: false }, en: { default: true } },
+    })
+
+    await page.goto('./login?redirect=/settings')
+
+    await expect(page).toHaveURL(/\/nethvoice\/settings$/)
+  })
+
+  test('ignores a redirect outside the application', async ({ page, mockApi }) => {
+    mockApi.allowUnmockedCalls()
+    mockApi.on('POST', '/freepbx/rest/testauth', { json: { result: 'shared-secret' } })
+
+    await page.goto('./login?redirect=//example.com/')
+    await page.getByRole('textbox', { name: 'Username' }).fill('admin')
+    await page.getByRole('textbox', { name: 'Password' }).fill('correct-password')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+  })
+
+  test('warns when the setup status cannot be read and opens the dashboard', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.allowUnmockedCalls()
+    mockApi
+      .on('POST', '/freepbx/rest/testauth', { json: { result: 'shared-secret' } })
+      .on('GET', '/freepbx/rest/configuration/wizard', { status: 500 })
+
+    await page.goto('./login')
+    await page.getByRole('textbox', { name: 'Username' }).fill('admin')
+    await page.getByRole('textbox', { name: 'Password' }).fill('correct-password')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(page.getByText('Cannot check the setup status').first()).toBeVisible()
   })
 })

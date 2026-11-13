@@ -10,15 +10,16 @@ import { useMutation, useQueryCache } from '@pinia/colada'
 import { NeInlineNotification } from '@nethesis/vue-components'
 import SetupStepLayout from './SetupStepLayout.vue'
 import OutboundRoutesTable from '@/components/routes/OutboundRoutesTable.vue'
+import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useSetupNavigation } from '@/composables/useSetupNavigation'
 import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { OUTBOUND_ROUTES_KEY, postDefaultOutboundRoutes } from '@/lib/routes/outbound'
 import { useSetupStore } from '@/stores/setup'
-import { describeError } from '@/stores/notifications'
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const setupStore = useSetupStore()
+const { describeRouteError } = useOutboundRouteLabels()
 const { state: routesState } = useOutboundRoutes()
 const { advancing, goToNextStep } = useSetupNavigation('outbound-routes')
 
@@ -68,7 +69,7 @@ watch(
       v-if="createDefaultRoutesError"
       kind="error"
       :title="t('routes.cannot_create_default_routes')"
-      :description="describeError(createDefaultRoutesError)"
+      :description="describeRouteError(createDefaultRoutesError)"
     />
     <OutboundRoutesTable :show-filters="false" :busy="createDefaultRoutesLoading" />
   </SetupStepLayout>

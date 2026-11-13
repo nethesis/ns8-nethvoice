@@ -2,16 +2,23 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import type { Page } from '@playwright/test'
-import { expect, test, type MockApi } from '../fixtures/mockApi'
+import { expect, mockWizardState, test, type MockApi } from '../fixtures/mockApi'
 
 const TWT = { trunkid: 2, name: 'TWT-0212345678' }
 const VODAFONE = { trunkid: 5, name: 'Vodafone-0698765432' }
+const AGENT = { trunkid: 1, name: 'VoiceAgentTrunk_2' }
+
+const TRUNKS = [
+  { ...AGENT, tech: 'pjsip', provider: 'satellite-agent' },
+  { ...TWT, tech: 'pjsip' },
+  { ...VODAFONE, tech: 'pjsip' },
+]
 
 const KINDS = ['national', 'cellphone', 'international', 'toll']
 
 const DEFAULTS = {
-  en: KINDS.map((kind) => ({ name: `${kind}_en`, trunks: [TWT, VODAFONE] })),
-  it: KINDS.map((kind) => ({ name: `${kind}_it`, trunks: [TWT, VODAFONE] })),
+  en: KINDS.map((kind) => ({ name: `${kind}_en`, trunks: [AGENT, TWT, VODAFONE] })),
+  it: KINDS.map((kind) => ({ name: `${kind}_it`, trunks: [AGENT, TWT, VODAFONE] })),
 }
 
 const ROUTES = KINDS.map((kind, index) => ({
@@ -53,6 +60,7 @@ const setCountry = (page: Page, country: string) =>
 test.describe('setup wizard: inbound routes', () => {
   test.beforeEach(({ signedIn, mockApi }) => {
     void signedIn
+    mockWizardState(mockApi, 4)
     mockApi
       .on('GET', '/freepbx/rest/inboundroutes', { json: INBOUND_ROUTES })
       .on('GET', '/freepbx/rest/outboundroutes', { json: ROUTES })
@@ -96,11 +104,12 @@ test.describe('setup wizard: inbound routes', () => {
 test.describe('setup wizard: outbound routes', () => {
   test.beforeEach(({ signedIn, mockApi }) => {
     void signedIn
+    mockWizardState(mockApi, 5)
     mockApi
       .on('GET', '/freepbx/rest/outboundroutes', { json: ROUTES })
       .on('GET', '/freepbx/rest/outboundroutes/defaults', { json: DEFAULTS })
       .on('POST', '/freepbx/rest/outboundroutes', { status: 200 })
-      .on('GET', '/freepbx/rest/trunks', { json: [] })
+      .on('GET', '/freepbx/rest/trunks', { json: TRUNKS })
       .on('GET', '/freepbx/rest/providers', { json: [] })
   })
 
@@ -121,7 +130,7 @@ test.describe('setup wizard: outbound routes', () => {
     await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(1)
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')[0].body).toEqual({
-      it: DEFAULTS.it,
+      it: KINDS.map((kind) => ({ name: `${kind}_it`, trunks: [TWT, VODAFONE] })),
     })
   })
 

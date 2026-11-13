@@ -63,6 +63,47 @@ export const GATEWAY_TRUNK = {
   details: { ...VOIP_TRUNK.details, sip_server: '192.168.10.20', codecs: 'g729,alaw,ulaw' },
 }
 
+export const AI_AGENT_TRUNK = {
+  ...VOIP_TRUNK,
+  trunkid: 1,
+  channelid: 'VoiceAgentTrunk_2',
+  name: 'VoiceAgentTrunk_2',
+  outcid: '',
+  provider: 'satellite-agent',
+  username: null,
+  details: {
+    sip_server: 'sip.agents.example.org',
+    codecs: 'ulaw,alaw,g722',
+    context: 'voice-agent-trunk-hangup',
+  },
+}
+
+export const IAX_TRUNK = {
+  ...VOIP_TRUNK,
+  trunkid: 7,
+  tech: 'iax2',
+  channelid: 'legacy_iax',
+  name: 'legacy_iax',
+  outcid: '0212345672',
+  provider: '',
+  disabled: 'on',
+  username: '',
+  details: false,
+}
+
+export const OUTBOUND_ROUTES = [
+  {
+    route_id: 1,
+    name: 'national_it',
+    trunks: [
+      { trunkid: 2, name: 'main_trunk' },
+      { trunkid: 3, name: 'backup_trunk' },
+    ],
+  },
+  { route_id: 2, name: 'cellphone_it', trunks: [{ trunkid: 3, name: 'backup_trunk' }] },
+  { route_id: 3, name: 'Emergency', trunks: [{ trunkid: 5, name: 'Patton_0b1cdd_isdn_0' }] },
+]
+
 export const LIVE_STATE = {
   main_trunk: { name: 'main_trunk', status: 'online', registration: 'registered' },
   backup_trunk: { name: 'backup_trunk', status: 'offline', registration: 'rejected' },
@@ -144,6 +185,7 @@ export type TrunksMockData = {
   trunks?: unknown[]
   gateways?: unknown[]
   liveState?: unknown
+  routes?: unknown[]
 }
 
 export const mockTrunksApi = (mockApi: MockApi, data: TrunksMockData = {}) =>
@@ -160,3 +202,4 @@ export const mockTrunksApi = (mockApi: MockApi, data: TrunksMockData = {}) =>
     .on('GET', '/freepbx/rest/configuration/networks', { json: null })
     .on('GET', '/freepbx/rest/users/:all', { json: USERS })
     .on('GET', '/api/astproxy/trunks', { json: data.liveState ?? LIVE_STATE })
+    .on('GET', '/freepbx/rest/outboundroutes', { json: data.routes ?? OUTBOUND_ROUTES })

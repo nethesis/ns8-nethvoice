@@ -99,6 +99,19 @@ export const MODEL_VARIABLES = {
 
 export const MAC_VENDORS = { '001565': 'yealink', '0C383E': 'fanvil', E0E656: 'nethesis' }
 
+export const EXTENSIONS = {
+  '91300': {
+    exten: '91300',
+    name: 'Anna Miller',
+    status: 'online',
+    ip: '192.0.2.10',
+    port: '5060',
+    sipuseragent: 'Yealink SIP-T46U 108.86.0.45',
+    conversations: {},
+  },
+  '300': { exten: '300', name: 'Anna Miller', status: 'offline', conversations: {} },
+}
+
 type PhonesApiOptions = {
   phones?: unknown
   phonesStatus?: number
@@ -118,3 +131,4 @@ export const mockPhonesApi = (mockApi: MockApi, options: PhonesApiOptions = {}) 
     .on('GET', `${TANCREDI}/backgrounds`, {
       json: [{ name: 'company-logo.png', size: 2048, mtime: 1767225600 }],
     })
+    .on('GET', '/api/astproxy/extensions', { json: EXTENSIONS })
