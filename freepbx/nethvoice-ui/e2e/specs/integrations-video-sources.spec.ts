@@ -144,6 +144,30 @@ test.describe('integrations: video sources', () => {
     await expect(drawer.getByText('Cannot read an image from the source')).toBeVisible()
   })
 
+  test('fails the test when the source does not return an image', async ({ page, mockApi }) => {
+    mockApi.on('POST', '/freepbx/rest/cti/sources/test', {
+      json: Buffer.from('<html><body>login</body></html>').toString('base64'),
+    })
+
+    await page.goto('./integrations/video-sources')
+    await page.getByRole('button', { name: 'Edit Warehouse' }).click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('button', { name: 'Test source' }).click()
+
+    await expect(drawer.getByText(/does not return a JPEG, PNG or GIF image/)).toBeVisible()
+    await expect(drawer.getByRole('img')).toHaveCount(0)
+  })
+
+  test('finds a source by the name of its profiles', async ({ page }) => {
+    await page.goto('./integrations/video-sources')
+    await page.getByRole('textbox', { name: 'Filter video sources' }).fill('Standard')
+
+    const rows = page.getByRole('grid', { name: 'Video sources' }).getByRole('row')
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(1)).toContainText('Front door')
+  })
+
   test('edits a video source by its current name', async ({ page, mockApi }) => {
     mockApi.on('PUT', '/freepbx/rest/cti/streaming/:descr', { status: 200 })
 

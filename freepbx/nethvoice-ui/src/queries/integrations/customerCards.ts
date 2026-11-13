@@ -10,6 +10,7 @@ import {
   getDbConnections,
   getDbConnectionTypes,
 } from '@/lib/integrations/dbConnections'
+import { LOOKUP_STALE_TIME } from '@/lib/integrations/lookups'
 import { useLoginStore } from '@/stores/login'
 
 export const useCustomerCards = defineQuery(() => {
@@ -42,6 +43,7 @@ export const useDbConnectionTypes = defineQuery(() => {
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [DB_CONNECTION_TYPES_KEY],
     enabled: () => loginStore.isAuthenticated,
+    staleTime: LOOKUP_STALE_TIME,
     query: () => getDbConnectionTypes(),
   })
 

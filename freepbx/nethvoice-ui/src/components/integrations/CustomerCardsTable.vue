@@ -11,16 +11,24 @@ import {
   NeDropdown,
   NeEmptyState,
   NeHeading,
+  NeInlineNotification,
   NeTable,
   NeTableBody,
   NeTableCell,
   NeTableHead,
   NeTableHeadCell,
   NeTableRow,
+  NeTooltip,
   type NeDropdownItem,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faCirclePlus, faIdCard, faPenToSquare, faTrash } from '@fortawesome/free-solid-svg-icons'
+import {
+  faCirclePlus,
+  faIdCard,
+  faPenToSquare,
+  faTrash,
+  faTriangleExclamation,
+} from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
 import CreateOrEditCustomerCardDrawer from './CreateOrEditCustomerCardDrawer.vue'
 import DeleteIntegrationObjectModal from './DeleteIntegrationObjectModal.vue'
@@ -35,12 +43,20 @@ import {
 import { getProfileNames } from '@/lib/integrations/lookups'
 import { PROFILES_KEY } from '@/lib/profiles/profiles'
 import { useProfileOptions } from '@/queries/integrations/lookups'
-import { useCustomerCards, useDbConnections } from '@/queries/integrations/customerCards'
+import {
+  useCardTemplates,
+  useCustomerCards,
+  useDbConnections,
+} from '@/queries/integrations/customerCards'
+import { describeError } from '@/stores/notifications'
+
+const { hideEmptyState = false } = defineProps<{ hideEmptyState?: boolean }>()
 
 const { t } = useI18n()
 const { state, refetch } = useCustomerCards()
 const { state: connectionsState } = useDbConnections()
 const { state: profilesState } = useProfileOptions()
+const { state: templatesState } = useCardTemplates()
 
 const currentCard = ref<CustomerCard | undefined>()
 const isShownDrawer = ref(false)
@@ -52,6 +68,13 @@ const profiles = computed(() => profilesState.value.data ?? [])
 const { pageNum, pageSize, page: cardsPage } = useClientPagination(cards)
 
 const isTableShown = computed(() => state.value.status === 'pending' || cards.value.length > 0)
+
+function isTemplateMissing(card: CustomerCard): boolean {
+  return (
+    templatesState.value.status === 'success' &&
+    !templatesState.value.data.some((template) => template.id === card.templateId)
+  )
+}
 
 function describeConnection(id: string): string {
   return connectionsState.value.data?.find((connection) => connection.id === id)?.name ?? `#${id}`
@@ -112,11 +135,17 @@ function deleteCurrentCard() {
       @retry="refetch()"
     />
     <NeEmptyState
-      v-else-if="state.status === 'success' && cards.length === 0"
+      v-else-if="state.status === 'success' && cards.length === 0 && !hideEmptyState"
       :title="t('integrations.cards.no_cards')"
       :description="t('integrations.cards.no_cards_description')"
       :icon="faIdCard"
       class="elevation-0"
+    />
+    <NeInlineNotification
+      v-if="state.status === 'success' && cards.length > 0 && profilesState.status === 'error'"
+      kind="warning"
+      :title="t('integrations.cannot_load_profiles')"
+      :description="describeError(profilesState.error)"
     />
     <NeTable
       v-if="isTableShown"
@@ -144,7 +173,22 @@ function deleteCurrentCard() {
             {{ describeConnection(card.dbConnectionId) }}
           </NeTableCell>
           <NeTableCell :data-label="t('integrations.cards.template')">
-            {{ card.templateName }}
+            <div class="flex items-center gap-2">
+              <span class="wrap-anywhere">{{ card.templateName }}</span>
+              <NeTooltip v-if="isTemplateMissing(card)">
+                <template #trigger>
+                  <span tabindex="0" class="flex rounded-sm">
+                    <FontAwesomeIcon
+                      :icon="faTriangleExclamation"
+                      class="size-4 text-amber-700 dark:text-amber-500"
+                      aria-hidden="true"
+                    />
+                    <span class="sr-only">{{ t('integrations.cards.template_not_listed') }}</span>
+                  </span>
+                </template>
+                <template #content>{{ t('integrations.cards.template_not_listed') }}</template>
+              </NeTooltip>
+            </div>
           </NeTableCell>
           <NeTableCell :data-label="t('integrations.profiles')">
             <span v-if="card.profileIds.length" class="wrap-anywhere">

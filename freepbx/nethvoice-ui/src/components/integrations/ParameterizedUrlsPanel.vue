@@ -11,6 +11,7 @@ import {
   NeButton,
   NeDropdown,
   NeEmptyState,
+  NeInlineNotification,
   NeTable,
   NeTableBody,
   NeTableCell,
@@ -32,6 +33,7 @@ import LoadError from '@/components/common/LoadError.vue'
 import CreateOrEditParameterizedUrlDrawer from './CreateOrEditParameterizedUrlDrawer.vue'
 import DeleteIntegrationObjectModal from './DeleteIntegrationObjectModal.vue'
 import IntegrationsPaginator from './IntegrationsPaginator.vue'
+import { describeError } from '@/stores/notifications'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { matchesText, PAGE_SIZES } from '@/lib/common'
 import { getProfileNames } from '@/lib/integrations/lookups'
@@ -134,7 +136,10 @@ function deleteCurrentUrl() {
       </NeButton>
     </div>
     <div class="flex flex-col gap-6">
-      <div v-if="!isNoDataEmptyStateShown" class="flex flex-wrap items-center gap-4">
+      <div
+        v-if="!isNoDataEmptyStateShown && state.status !== 'error'"
+        class="flex flex-wrap items-center gap-4"
+      >
         <NeTextInput
           v-model="textFilter"
           is-search
@@ -179,6 +184,12 @@ function deleteCurrentUrl() {
           {{ t('common.reset_filters') }}
         </NeButton>
       </NeEmptyState>
+      <NeInlineNotification
+        v-if="isTableShown && profilesState.status === 'error'"
+        kind="warning"
+        :title="t('integrations.cannot_load_profiles')"
+        :description="describeError(profilesState.error)"
+      />
       <NeTable
         v-if="isTableShown"
         :aria-label="t('integrations.tab_parameterized_urls')"

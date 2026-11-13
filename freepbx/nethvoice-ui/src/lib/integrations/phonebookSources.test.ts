@@ -9,6 +9,8 @@ import {
   emptyPhonebookSourceForm,
   getAvailableFields,
   getMappingColumns,
+  getSyncIntervals,
+  isCsvUploadRejected,
   isUploadedCsv,
   parsePhonebookSources,
   parsePhonebookTestResult,
@@ -16,8 +18,10 @@ import {
   type PhonebookSource,
   type PhonebookSourceForm,
   toPhonebookSourceForm,
+  validateCsvFile,
   validatePhonebookSourceForm,
 } from './phonebookSources'
+import { ApiError } from '@/lib/api/errors'
 
 const rawSources = {
   custom_2: {
@@ -355,5 +359,48 @@ describe('payloads', () => {
         databaseForm({ kind: 'csv', url: 'https://files.example.com/c.csv' }),
       ),
     ).toEqual({ dbtype: 'csv', url: 'https://files.example.com/c.csv' })
+  })
+})
+
+describe('CSV files', () => {
+  it('should accept CSV and text files up to 8 MB', () => {
+    expect(validateCsvFile({ name: 'Contacts.CSV', size: 1024 })).toBe('')
+    expect(validateCsvFile({ name: 'contacts.txt', size: 8 * 1024 * 1024 })).toBe('')
+  })
+
+  it('should reject other extensions, empty files and files over 8 MB', () => {
+    expect(validateCsvFile({ name: 'evil.exe', size: 10 })).toBe(
+      'integrations.phonebook.csv_file_invalid',
+    )
+    expect(validateCsvFile({ name: 'contacts.csv', size: 0 })).toBe(
+      'integrations.phonebook.csv_file_empty',
+    )
+    expect(validateCsvFile({ name: 'contacts.csv', size: 8 * 1024 * 1024 + 1 })).toBe(
+      'integrations.phonebook.csv_file_too_large',
+    )
+  })
+
+  it('should recognize the upload rejected by the server', () => {
+    const rejected = new ApiError({
+      status: 400,
+      method: 'POST',
+      url: '/phonebook/uploadfile',
+      body: { status: 'File upload is required' },
+    })
+    expect(isCsvUploadRejected(rejected)).toBe(true)
+    expect(isCsvUploadRejected(new Error('network'))).toBe(false)
+  })
+})
+
+describe('getSyncIntervals', () => {
+  it('should add an interval missing from the list, in order', () => {
+    expect(getSyncIntervals(60)).toEqual([15, 30, 60, 360, 1440])
+    expect(getSyncIntervals(120)).toEqual([15, 30, 60, 120, 360, 1440])
+  })
+})
+
+describe('emptyPhonebookSourceForm', () => {
+  it('should leave the query empty', () => {
+    expect(emptyPhonebookSourceForm().query).toBe('')
   })
 })

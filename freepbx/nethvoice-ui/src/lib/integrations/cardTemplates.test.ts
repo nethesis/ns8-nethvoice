@@ -74,11 +74,13 @@ describe('validateCardTemplateForm', () => {
     })
   })
 
-  it('should reject the name of another custom template, ignoring case', () => {
+  it('should reject the name of another template, built-in or custom, ignoring case', () => {
     expect(validateCardTemplateForm({ name: 'Invoices', code: '<p></p>' }, templates())).toEqual({
       name: 'integrations.cards.template_name_already_used',
     })
-    expect(validateCardTemplateForm({ name: 'table', code: '<p></p>' }, templates())).toEqual({})
+    expect(validateCardTemplateForm({ name: 'Table', code: '<p></p>' }, templates())).toEqual({
+      name: 'integrations.cards.template_name_already_used',
+    })
   })
 })
 

@@ -41,6 +41,8 @@ import {
   useDbConnectionTypes,
 } from '@/queries/integrations/customerCards'
 
+const { hideEmptyState = false } = defineProps<{ hideEmptyState?: boolean }>()
+
 const { t } = useI18n()
 const { state, refetch } = useDbConnections()
 const { state: typesState } = useDbConnectionTypes()
@@ -92,6 +94,8 @@ function deleteCurrentConnection() {
     ? deleteDbConnection(currentConnection.value.id)
     : Promise.resolve()
 }
+
+defineExpose({ showDrawer })
 </script>
 
 <template>
@@ -119,7 +123,7 @@ function deleteCurrentConnection() {
       @retry="refetch()"
     />
     <NeEmptyState
-      v-else-if="state.status === 'success' && connections.length === 0"
+      v-else-if="state.status === 'success' && connections.length === 0 && !hideEmptyState"
       :title="t('integrations.cards.no_connections')"
       :icon="faDatabase"
       class="elevation-0"

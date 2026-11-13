@@ -130,19 +130,17 @@ export const buildVideoSourcePayload = (
   profiles: toProfileIdNumbers(form.profileIds),
 })
 
+const IMAGE_SIGNATURES = [
+  { prefix: 'iVBOR', mimeType: 'image/png' },
+  { prefix: 'R0lGOD', mimeType: 'image/gif' },
+  { prefix: '/9j/', mimeType: 'image/jpeg' },
+]
+
 export const buildSnapshotDataUrl = (base64: string): string => {
   const data = base64.replace(/\s+/g, '')
+  const signature = IMAGE_SIGNATURES.find(({ prefix }) => data.startsWith(prefix))
 
-  if (data === '') {
-    return ''
-  }
-  const mimeType = data.startsWith('iVBOR')
-    ? 'image/png'
-    : data.startsWith('R0lGOD')
-      ? 'image/gif'
-      : 'image/jpeg'
-
-  return `data:${mimeType};base64,${data}`
+  return signature ? `data:${signature.mimeType};base64,${data}` : ''
 }
 
 export const getVideoSources = async (): Promise<VideoSource[]> => {

@@ -17,6 +17,8 @@ import {
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCircleCheck, faPlugCircleBolt } from '@fortawesome/free-solid-svg-icons'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
 import {
   buildDbConnectionPayload,
@@ -50,6 +52,10 @@ const { state: typesState } = useDbConnectionTypes()
 
 const form = ref<DbConnectionForm>(emptyDbConnectionForm())
 const validationIssues = ref<FieldIssues>({})
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
+
+useFocusReturn(() => isShown)
 
 const typeRef = useTemplateRef<Focusable>('typeRef')
 const nameRef = useTemplateRef<Focusable>('nameRef')
@@ -66,6 +72,8 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
   user: userRef,
   password: passwordRef,
 }
+
+const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
 
 const typeOptions = computed(() =>
   (typesState.value.data ?? []).map((type) => ({ id: type.id, label: type.label })),
@@ -127,15 +135,16 @@ const busy = computed(() => saving.value || testing.value)
 watch(
   () => isShown,
   () => {
-    if (isShown) {
-      saveReset()
-      testReset()
-      validationIssues.value = {}
-      form.value = currentConnection
-        ? toDbConnectionForm(currentConnection)
-        : emptyDbConnectionForm()
-      focusElement(nameRef)
+    if (!isShown) {
+      isShownDiscardModal.value = false
+      return
     }
+    saveReset()
+    testReset()
+    validationIssues.value = {}
+    form.value = currentConnection ? toDbConnectionForm(currentConnection) : emptyDbConnectionForm()
+    initialSnapshot.value = JSON.stringify(form.value)
+    focusElement(nameRef)
   },
 )
 
@@ -168,6 +177,23 @@ function testConnection() {
   }
 }
 
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
+}
+
 function save() {
   saveReset()
 
@@ -186,7 +212,7 @@ function save() {
         : t('integrations.cards.create_connection')
     "
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
@@ -314,7 +340,7 @@ function save() {
           size="lg"
           :disabled="saving"
           class="mr-3"
-          @click="emit('close')"
+          @click="requestClose"
         >
           {{ t('common.cancel') }}
         </NeButton>
@@ -324,4 +350,9 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>

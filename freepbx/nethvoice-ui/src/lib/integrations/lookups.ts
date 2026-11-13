@@ -10,6 +10,8 @@ import type { Profile } from '@/lib/profiles/profiles'
 export const INTEGRATIONS_GROUPS_KEY = 'integrationsGroups'
 export const INTEGRATIONS_EXTENSIONS_KEY = 'integrationsExtensions'
 
+export const LOOKUP_STALE_TIME = 60_000
+
 const IdSchema = v.pipe(v.union([v.number(), v.string()]), v.transform(String))
 
 const ExtensionsResponseSchema = v.array(

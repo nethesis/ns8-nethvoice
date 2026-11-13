@@ -45,6 +45,8 @@ import { useCardTemplates, useCustomerCards } from '@/queries/integrations/custo
 
 type DrawerMode = 'create' | 'edit' | 'duplicate' | 'view'
 
+const { hideEmptyState = false } = defineProps<{ hideEmptyState?: boolean }>()
+
 const { t } = useI18n()
 const { state, refetch } = useCardTemplates()
 const { state: cardsState } = useCustomerCards()
@@ -134,7 +136,7 @@ function deleteCurrentTemplate() {
       @retry="refetch()"
     />
     <NeEmptyState
-      v-else-if="state.status === 'success' && templates.length === 0"
+      v-else-if="state.status === 'success' && templates.length === 0 && !hideEmptyState"
       :title="t('integrations.cards.no_templates')"
       :icon="faCode"
       class="elevation-0"

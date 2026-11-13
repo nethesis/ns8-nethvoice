@@ -173,4 +173,8 @@ describe('buildSnapshotDataUrl', () => {
   it('should return nothing for an empty frame', () => {
     expect(buildSnapshotDataUrl('\r\n')).toBe('')
   })
+
+  it('should return nothing when the source does not return an image', () => {
+    expect(buildSnapshotDataUrl(btoa('<html><body>login</body></html>'))).toBe('')
+  })
 })

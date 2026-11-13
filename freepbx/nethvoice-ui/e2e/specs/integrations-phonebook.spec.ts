@@ -99,6 +99,8 @@ test.describe('integrations: phonebook sources', () => {
         ],
       })
       .on('POST', '/freepbx/rest/phonebook/config', { status: 200 })
+    const pageErrors: string[] = []
+    page.on('pageerror', (error) => pageErrors.push(error.message))
 
     await page.goto('./integrations/phonebook')
     await page.getByRole('button', { name: 'Create source' }).first().click()
@@ -109,6 +111,7 @@ test.describe('integrations: phonebook sources', () => {
     await expect(drawer.getByText('Enter the phonebook name')).toBeVisible()
     await expect(drawer.getByText('Enter the host')).toBeVisible()
     await expect(drawer.getByText('Enter the password')).toBeVisible()
+    await expect(drawer.getByText('Enter the query')).toBeVisible()
     await expect(drawer.getByText('Test the source to read its columns.')).toBeVisible()
     expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/config')).toHaveLength(0)
 
@@ -118,6 +121,8 @@ test.describe('integrations: phonebook sources', () => {
     await drawer.getByRole('textbox', { name: 'User' }).fill('reader')
     await drawer.getByLabel('Password', { exact: true }).fill('new-secret')
     await drawer.getByRole('textbox', { name: 'Query' }).fill('SELECT * FROM people')
+    await drawer.getByRole('button', { name: 'Create source' }).click()
+    await expect(drawer.getByRole('button', { name: 'Test source' })).toBeFocused()
     await drawer.getByRole('button', { name: 'Test source' }).click()
 
     await expect(drawer.getByText(/first 2 rows shown below/)).toBeVisible()
@@ -137,6 +142,7 @@ test.describe('integrations: phonebook sources', () => {
     await drawer.getByRole('combobox', { name: 'phone' }).click()
     await expect(page.getByRole('option', { name: 'name', exact: true })).toHaveCount(0)
     await page.getByRole('option', { name: 'workphone' }).click()
+    expect(pageErrors).toEqual([])
 
     await drawer.getByText('Groups', { exact: true }).first().click()
     await drawer.getByRole('combobox', { name: 'Groups' }).click()
@@ -195,6 +201,57 @@ test.describe('integrations: phonebook sources', () => {
       dbtype: 'csv',
       url: 'file:///var/lib/nethvoice/phonebook/uploads/abc123.csv',
     })
+  })
+
+  test('rejects a file that is not a CSV before uploading it', async ({ page, mockApi }) => {
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Create source' }).first().click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('combobox', { name: 'Source type' }).click()
+    await page.getByRole('option', { name: 'CSV file' }).click()
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'evil.exe',
+      mimeType: 'application/octet-stream',
+      buffer: Buffer.from('MZ'),
+    })
+
+    await expect(drawer.getByText('Choose a .csv or .txt file')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/uploadfile')).toHaveLength(0)
+  })
+
+  test('explains an upload rejected by the PBX', async ({ page, mockApi }) => {
+    mockApi.on('POST', '/freepbx/rest/phonebook/uploadfile', {
+      status: 400,
+      json: { status: 'File upload is required' },
+    })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Create source' }).first().click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('combobox', { name: 'Source type' }).click()
+    await page.getByRole('option', { name: 'CSV file' }).click()
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'contacts.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from('Name,Phone\n'),
+    })
+
+    await expect(drawer.getByText(/rejected the file: it may be empty or larger/)).toBeVisible()
+  })
+
+  test('keeps a synchronization interval missing from the list', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/phonebook/config', {
+      json: { custom_1: { ...SOURCES.custom_1, interval: 120 } },
+    })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Edit CRM contacts' }).click()
+
+    await expect(
+      page.getByRole('dialog').getByRole('combobox', { name: 'Synchronization' }),
+    ).toHaveValue('Every 2 hours')
   })
 
   test('reports a source that cannot be read', async ({ page, mockApi }) => {

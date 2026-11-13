@@ -111,7 +111,7 @@ describe('validateCustomerCardForm', () => {
     expect(validateCustomerCardForm(form({ name: 'Identity card' }), cards())).toEqual({})
   })
 
-  it('should require every field', () => {
+  it('should require every field except the profiles', () => {
     expect(
       validateCustomerCardForm(
         {
@@ -127,7 +127,6 @@ describe('validateCustomerCardForm', () => {
       name: 'integrations.cards.card_name_required',
       dbConnectionId: 'integrations.cards.card_connection_required',
       templateId: 'integrations.cards.card_template_required',
-      profileIds: 'integrations.profiles_required',
       query: 'integrations.query_required',
     })
   })
@@ -150,6 +149,18 @@ describe('payloads', () => {
       template: 'invoices_custom',
       query: encodeBase64Utf8('select * from invoices'),
     })
+  })
+
+  it('should replace the caller number placeholder with the test number', () => {
+    expect(
+      buildCustomerCardPreviewPayload(
+        form({ query: "select * from c where a like '%$NUMBER' or b = '$NUMBER'" }),
+        ' 0721405516 ',
+      ).query,
+    ).toBe(encodeBase64Utf8("select * from c where a like '%0721405516' or b = '0721405516'"))
+    expect(buildCustomerCardPreviewPayload(form({ query: "a = '$NUMBER'" }), ' ').query).toBe(
+      encodeBase64Utf8("a = '$NUMBER'"),
+    )
   })
 
   it('should fill the form from a card', () => {

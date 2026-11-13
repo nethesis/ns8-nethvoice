@@ -25,22 +25,26 @@ import {
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faArrowRight, faCircleCheck, faPlugCircleBolt } from '@fortawesome/free-solid-svg-icons'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
 import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import {
   buildPhonebookSourcePayload,
   buildPhonebookTestPayload,
+  CSV_MAX_SIZE,
+  DEFAULT_SOURCE_QUERY,
   emptyPhonebookSourceForm,
   getAvailableFields,
   getDefaultPort,
   getMappingColumns,
+  getSyncIntervals,
   INFINITY_FIELD_MAPPING,
+  isCsvUploadRejected,
   isDatabaseKind,
   isPhonebookSourceKind,
-  isUploadedCsv,
   PHONEBOOK_SOURCE_KINDS,
   PHONEBOOK_SOURCES_KEY,
-  PHONEBOOK_SYNC_INTERVALS,
   type PhonebookSource,
   type PhonebookSourceForm,
   type PhonebookTestResult,
@@ -48,12 +52,17 @@ import {
   testPhonebookSource,
   toPhonebookSourceForm,
   uploadPhonebookCsv,
+  validateCsvFile,
   validatePhonebookSourceForm,
 } from '@/lib/integrations/phonebookSources'
 import type { FieldIssues } from '@/lib/integrations/validation'
 import { useGroupNames } from '@/queries/integrations/lookups'
 import { usePhonebookFields } from '@/queries/integrations/phonebookSources'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+
+type MappingOption = { id: string; label: string }
+
+const CSV_MAX_SIZE_MB = CSV_MAX_SIZE / 1024 / 1024
 
 const { isShown = false, currentSource = undefined } = defineProps<{
   isShown: boolean
@@ -65,13 +74,19 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
-const { state: fieldsState } = usePhonebookFields()
-const { state: groupsState } = useGroupNames()
+const { state: fieldsState } = usePhonebookFields(() => isShown)
+const { state: groupsState } = useGroupNames(() => isShown)
 
 const form = ref<PhonebookSourceForm>(emptyPhonebookSourceForm())
 const validationIssues = ref<FieldIssues>({})
 const testResult = ref<PhonebookTestResult | undefined>()
 const csvFile = ref<File | null>(null)
+const csvFileIssue = ref('')
+const isCsvUploadedNow = ref(false)
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
+
+useFocusReturn(() => isShown)
 
 const nameRef = useTemplateRef<Focusable>('nameRef')
 const hostRef = useTemplateRef<Focusable>('hostRef')
@@ -83,7 +98,7 @@ const queryRef = useTemplateRef<Focusable>('queryRef')
 const urlRef = useTemplateRef<Focusable>('urlRef')
 const usernameRef = useTemplateRef<Focusable>('usernameRef')
 const groupsRef = useTemplateRef<Focusable>('groupsRef')
-const testButtonRef = useTemplateRef<HTMLElement>('testButtonRef')
+const testButtonContainerRef = useTemplateRef<HTMLElement>('testButtonContainerRef')
 
 const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
   name: nameRef,
@@ -106,7 +121,7 @@ const kindOptions = computed(() =>
 )
 
 const intervalOptions = computed(() =>
-  PHONEBOOK_SYNC_INTERVALS.map((minutes) => ({
+  getSyncIntervals(form.value.interval).map((minutes) => ({
     id: String(minutes),
     label:
       minutes % 60 === 0
@@ -147,6 +162,7 @@ const kind = computed({
       form.value.port = getDefaultPort(value)
       form.value.mapping = {}
       testResult.value = undefined
+      validationIssues.value = {}
     }
   },
 })
@@ -173,7 +189,36 @@ const mappingColumns = computed(() => getMappingColumns(testedColumns.value, for
 
 const fields = computed(() => fieldsState.value.data ?? [])
 
+const fieldOptionsByColumn = computed<Record<string, MappingOption[]>>((previous) => {
+  const notImported = t('integrations.phonebook.not_imported')
+
+  return Object.fromEntries(
+    mappingColumns.value.map((column) => {
+      const options = [
+        { id: '', label: notImported },
+        ...getAvailableFields(fields.value, form.value.mapping, column, form.value.kind).map(
+          (field) => ({ id: field, label: field }),
+        ),
+      ]
+      const previousOptions = previous?.[column]
+
+      return [
+        column,
+        previousOptions && haveSameOptions(previousOptions, options) ? previousOptions : options,
+      ]
+    }),
+  )
+})
+
 const hasStoredPassword = computed(() => !!currentSource?.password)
+
+const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
+
+const csvHelperText = computed(() =>
+  isCsvUploadedNow.value
+    ? t('integrations.phonebook.csv_uploaded')
+    : t('integrations.phonebook.upload_csv_helper'),
+)
 
 const {
   mutate: saveMutate,
@@ -227,6 +272,7 @@ const {
   mutation: (file: File) => uploadPhonebookCsv(file),
   onSuccess(uri) {
     form.value.url = uri
+    isCsvUploadedNow.value = true
     testResult.value = undefined
   },
 })
@@ -236,35 +282,44 @@ const busy = computed(() => saving.value || testing.value || uploading.value)
 watch(
   () => isShown,
   () => {
-    if (isShown) {
-      saveReset()
-      testReset()
-      uploadReset()
-      testResult.value = undefined
-      csvFile.value = null
-      validationIssues.value = {}
-      form.value = currentSource ? toPhonebookSourceForm(currentSource) : emptyPhonebookSourceForm()
-      focusElement(nameRef)
+    if (!isShown) {
+      isShownDiscardModal.value = false
+      return
     }
+    saveReset()
+    testReset()
+    uploadReset()
+    testResult.value = undefined
+    csvFile.value = null
+    csvFileIssue.value = ''
+    isCsvUploadedNow.value = false
+    validationIssues.value = {}
+    form.value = currentSource ? toPhonebookSourceForm(currentSource) : emptyPhonebookSourceForm()
+    initialSnapshot.value = JSON.stringify(form.value)
+    focusElement(nameRef)
   },
 )
 
 watch(csvFile, (file) => {
-  if (file) {
+  uploadReset()
+  csvFileIssue.value = file ? validateCsvFile(file) : ''
+
+  if (file && !csvFileIssue.value) {
     uploadMutate(file)
   }
 })
 
-function getFieldOptions(column: string) {
-  return [
-    { id: '', label: t('integrations.phonebook.not_imported') },
-    ...getAvailableFields(fields.value, form.value.mapping, column, form.value.kind).map(
-      (field) => ({ id: field, label: field }),
-    ),
-  ]
+function haveSameOptions(a: MappingOption[], b: MappingOption[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((option, index) => option.id === b[index]?.id && option.label === b[index]?.label)
+  )
 }
 
 function setMapping(column: string, field: string) {
+  if ((form.value.mapping[column] ?? '') === field) {
+    return
+  }
   form.value.mapping = { ...form.value.mapping, [column]: field }
 }
 
@@ -286,13 +341,36 @@ function testSource() {
   testMutate({ ...form.value })
 }
 
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
+}
+
+function describeUploadError(error: unknown): string {
+  return isCsvUploadRejected(error)
+    ? t('integrations.phonebook.csv_upload_rejected')
+    : getLegacyStatusMessage(error) || describeError(error)
+}
+
 function save() {
   saveReset()
   validationIssues.value = validatePhonebookSourceForm(form.value, currentSource)
   const [firstInvalidField] = Object.keys(validationIssues.value)
 
   if (firstInvalidField === 'mapping') {
-    testButtonRef.value?.focus()
+    testButtonContainerRef.value?.querySelector('button')?.focus()
     return
   }
 
@@ -313,7 +391,7 @@ function save() {
         : t('integrations.phonebook.create_source')
     "
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
@@ -406,13 +484,10 @@ function save() {
               <NeFileInput
                 v-model="csvFile"
                 :label="t('integrations.phonebook.upload_csv')"
-                :helper-text="
-                  isUploadedCsv(form.url)
-                    ? t('integrations.phonebook.csv_uploaded')
-                    : t('integrations.phonebook.upload_csv_helper')
-                "
+                :helper-text="csvHelperText"
+                :invalid-message="csvFileIssue ? t(csvFileIssue, { size: CSV_MAX_SIZE_MB }) : ''"
                 :dropzone-label="t('ne_file_input.drag_and_drop_or_click_to_upload')"
-                accept=".csv,text/csv"
+                accept=".csv,.txt,text/csv,text/plain"
                 :show-progress="uploading"
                 :progress="uploading ? 50 : 0"
               />
@@ -420,7 +495,7 @@ function save() {
                 v-if="uploadError"
                 kind="error"
                 :title="t('integrations.phonebook.cannot_upload_csv')"
-                :description="getLegacyStatusMessage(uploadError) || describeError(uploadError)"
+                :description="describeUploadError(uploadError)"
               />
             </template>
           </div>
@@ -455,14 +530,16 @@ function save() {
           :label="t('integrations.query')"
           :rows="4"
           class="[&_textarea]:font-mono"
+          :placeholder="DEFAULT_SOURCE_QUERY"
           :helper-text="t('integrations.phonebook.query_helper')"
           :invalid-message="validationIssues.query ? t(validationIssues.query) : ''"
           :disabled="busy"
         />
         <div class="flex flex-col gap-3">
-          <div ref="testButtonRef" tabindex="-1" class="outline-none">
+          <div ref="testButtonContainerRef">
             <NeButton
               type="button"
+              :aria-describedby="validationIssues.mapping ? 'phonebook-mapping-status' : undefined"
               kind="secondary"
               :disabled="busy"
               :loading="testing"
@@ -561,11 +638,12 @@ function save() {
           <p class="text-secondary-neutral text-sm">
             {{ t('integrations.phonebook.mapping_description') }}
           </p>
-          <NeInlineNotification
-            v-if="mappingColumns.length === 0"
-            :kind="validationIssues.mapping ? 'error' : 'info'"
-            :description="t('integrations.phonebook.mapping_needs_test')"
-          />
+          <div v-if="mappingColumns.length === 0" id="phonebook-mapping-status">
+            <NeInlineNotification
+              :kind="validationIssues.mapping ? 'error' : 'info'"
+              :description="t('integrations.phonebook.mapping_needs_test')"
+            />
+          </div>
           <template v-else>
             <NeInlineNotification
               v-if="fieldsState.status === 'error'"
@@ -579,7 +657,7 @@ function save() {
                 :key="column"
                 :model-value="form.mapping[column] ?? ''"
                 :label="column"
-                :options="getFieldOptions(column)"
+                :options="fieldOptionsByColumn[column] ?? []"
                 :disabled="busy || fieldsState.status !== 'success'"
                 :no-results-label="t('ne_combobox.no_results')"
                 :limited-options-label="t('ne_combobox.limited_options_label')"
@@ -590,7 +668,11 @@ function save() {
                 @update:model-value="(value: unknown) => setMapping(column, String(value ?? ''))"
               />
             </div>
-            <p v-if="validationIssues.mapping" class="text-sm text-rose-700 dark:text-rose-400">
+            <p
+              v-if="validationIssues.mapping"
+              id="phonebook-mapping-status"
+              class="text-sm text-rose-700 dark:text-rose-400"
+            >
               {{ t(validationIssues.mapping) }}
             </p>
           </template>
@@ -665,7 +747,7 @@ function save() {
           size="lg"
           :disabled="saving"
           class="mr-3"
-          @click="emit('close')"
+          @click="requestClose"
         >
           {{ t('common.cancel') }}
         </NeButton>
@@ -675,4 +757,9 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>
