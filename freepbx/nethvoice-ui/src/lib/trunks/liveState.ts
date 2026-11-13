@@ -118,3 +118,40 @@ export const getRegistrationStatus = (
   }
   return REJECTED_REGISTRATIONS.includes(trunk.registration) ? 'rejected' : 'unmonitored'
 }
+
+const PENDING_CHANGE_WINDOW = 2 * 60 * 1000
+
+const changedTrunks = new Map<string, number>()
+
+export const markTrunkChanged = (trunkName: string, now = Date.now()) => {
+  changedTrunks.set(trunkName, now)
+}
+
+export const isTrunkChangePending = (trunkName: string, now = Date.now()): boolean => {
+  const changedAt = changedTrunks.get(trunkName)
+
+  return changedAt !== undefined && now - changedAt < PENDING_CHANGE_WINDOW
+}
+
+const isUntracked = (
+  trunkName: string,
+  liveState: TrunksLiveState | undefined,
+  now: number,
+): boolean =>
+  liveState !== undefined && !liveState[trunkName] && !isTrunkChangePending(trunkName, now)
+
+export const getTrunkProviderStatus = (
+  trunkName: string,
+  liveState: TrunksLiveState | undefined,
+  now = Date.now(),
+): ProviderStatus =>
+  isUntracked(trunkName, liveState, now) ? 'unmonitored' : getProviderStatus(trunkName, liveState)
+
+export const getTrunkRegistrationStatus = (
+  trunkName: string,
+  liveState: TrunksLiveState | undefined,
+  now = Date.now(),
+): RegistrationStatus =>
+  isUntracked(trunkName, liveState, now)
+    ? 'unmonitored'
+    : getRegistrationStatus(trunkName, liveState)

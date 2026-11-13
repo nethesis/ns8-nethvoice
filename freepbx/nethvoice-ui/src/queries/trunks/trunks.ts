@@ -54,6 +54,7 @@ export const useTrunksLiveState = defineQuery(() => {
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [TRUNKS_LIVE_STATE_KEY],
     enabled: () => loginStore.isAuthenticated,
+    refetchOnWindowFocus: false,
     query: () => {
       if (!loginStore.credentials) {
         throw new Error('missing credentials')

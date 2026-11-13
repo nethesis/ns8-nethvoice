@@ -33,7 +33,7 @@ test.describe('trunks: physical', () => {
 
     const grandstream = page.getByRole('row', { name: /HT802 SIP 2 Porte FXS/ })
     await expect(grandstream).toContainText('Grandstream')
-    await expect(grandstream).toContainText('Unknown')
+    await expect(grandstream).toContainText('Unmonitored')
     expect(mockApi.callsTo('GET', '/freepbx/rest/devices/gateways/list/:id')).not.toHaveLength(0)
   })
 
@@ -262,6 +262,11 @@ test.describe('trunks: physical', () => {
     await expect(
       page.getByText('The physical trunk Patton TRINITY ISDN 2 Porte will be deleted.'),
     ).toBeVisible()
+    await expect(
+      page.getByText(
+        'These outbound routes use only this trunk and will no longer be able to make calls: Emergency.',
+      ),
+    ).toBeVisible()
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
 
     await expect(
@@ -286,5 +291,71 @@ test.describe('trunks: physical', () => {
 
     await expect(page.getByText('Cannot delete the trunk')).toBeVisible()
     await expect(page.getByText('Gateway configuration not found')).toBeVisible()
+  })
+
+  test('lists the gateways when the models cannot be loaded', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('GET', '/freepbx/rest/devices/gateways/manufacturers', { status: 500 })
+    await page.goto('./trunks/physical')
+
+    await expect(page.getByText('Cannot load the gateway models')).toBeVisible()
+    await expect(page.getByRole('row', { name: /Patton-TRINITY ISDN 2 Porte/ })).toBeVisible()
+  })
+
+  test('shows the errors of a gateway the API did not save', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi, { gateways: [] })
+    mockApi.on('POST', '/freepbx/rest/devices/gateways', {
+      json: { status: false, errors: ['Error creating extension'], warnings: [], infos: [] },
+    })
+    await page.goto('./trunks/physical')
+
+    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByText('Patton', { exact: true }).last().click()
+    await page.getByRole('combobox', { name: 'Device model' }).click()
+    await page.getByRole('option', { name: /TRI_PRI_1/ }).click()
+    await page.getByRole('textbox', { name: 'MAC address' }).fill('00:a0:ba:0b:1c:ee')
+    await page.getByRole('textbox', { name: 'Device IP address' }).fill('192.168.10.21')
+    await page.getByRole('textbox', { name: 'Subnet mask' }).fill('255.255.255.0')
+    await page.getByRole('textbox', { name: 'Network gateway' }).fill('192.168.10.1')
+    await page.getByRole('button', { name: 'Add trunk' }).click()
+
+    await expect(page.getByText('Cannot create the trunk')).toBeVisible()
+    await expect(page.getByText('Error creating extension', { exact: true })).toBeVisible()
+    await expect(page.getByText(/Invalid type/)).toHaveCount(0)
+  })
+
+  test('rejects network settings that make the gateway unreachable', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi, { gateways: [] })
+    await page.goto('./trunks/physical')
+
+    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByText('Patton', { exact: true }).last().click()
+    await page.getByRole('combobox', { name: 'Device model' }).click()
+    await page.getByRole('option', { name: /TRI_PRI_1/ }).click()
+    await page.getByRole('textbox', { name: 'MAC address' }).fill('ff:ff:ff:ff:ff:ff')
+    await page.getByRole('textbox', { name: 'Device IP address' }).fill('192.168.10.21')
+    await page.getByRole('textbox', { name: 'Subnet mask' }).fill('255.255.255.0')
+    await page.getByRole('textbox', { name: 'Network gateway' }).fill('10.0.0.1')
+    await page.getByRole('textbox', { name: 'PBX address' }).fill('999.1.1.1')
+    await page.getByRole('button', { name: 'Add trunk' }).click()
+
+    await expect(page.getByText('Enter the MAC address of a single device')).toBeVisible()
+    await expect(
+      page.getByText('The network gateway must be in the same network as the device'),
+    ).toBeVisible()
+    await expect(page.getByText('Enter a valid hostname or IP address')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/devices/gateways')).toHaveLength(0)
+  })
+
+  test('asks before discarding a new gateway', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi, { gateways: [] })
+    await page.goto('./trunks/physical')
+
+    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByRole('textbox', { name: 'MAC address' }).fill('00:a0:ba:0b:1c:ee')
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+
+    await expect(page.getByRole('heading', { name: 'Add physical trunk' })).toBeHidden()
   })
 })

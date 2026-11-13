@@ -2,7 +2,14 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { expect, test } from '../fixtures/mockApi'
-import { mockTrunksApi, VOIP_TRUNK } from './trunks-data'
+import {
+  AI_AGENT_TRUNK,
+  BACKUP_TRUNK,
+  GATEWAY_TRUNK,
+  IAX_TRUNK,
+  mockTrunksApi,
+  VOIP_TRUNK,
+} from './trunks-data'
 
 test.describe('trunks: VoIP', () => {
   const pageErrors: string[] = []
@@ -39,7 +46,7 @@ test.describe('trunks: VoIP', () => {
 
     const backup = page.getByRole('row', { name: /backup_trunk/ })
     await expect(backup).toContainText('sip.backup.example.org')
-    await expect(backup).toContainText('alaw, ulaw')
+    await expect(backup).toContainText('G.711 A-law, G.711 μ-law')
     await expect(backup).toContainText('Offline')
     await expect(backup).toContainText('Rejected')
 
@@ -235,7 +242,7 @@ test.describe('trunks: VoIP', () => {
     expect(call.body).toEqual({ username: 'account_98765', phone: '0212345699' })
   })
 
-  test('changes the password and forces the codecs', async ({ page, mockApi }) => {
+  test('changes the password and stops forcing the codecs', async ({ page, mockApi }) => {
     mockTrunksApi(mockApi)
     mockApi.on('PATCH', '/freepbx/rest/trunks/:trunkid', { status: 204 })
     await page.goto('./trunks/voip')
@@ -244,17 +251,55 @@ test.describe('trunks: VoIP', () => {
       .getByRole('row', { name: /main_trunk/ })
       .getByRole('button', { name: /Edit/ })
       .click()
+    const forceCodec = page.getByRole('group', { name: 'Force codec' }).getByRole('checkbox')
+    await expect(forceCodec).toBeChecked()
     await page.getByLabel('Password').fill('New,5678')
-    await page.getByRole('checkbox', { name: 'Disabled' }).check({ force: true })
-    await expect(page.getByRole('checkbox', { name: 'Enabled' })).toBeChecked()
+    await forceCodec.dispatchEvent('click')
+    await expect(forceCodec).not.toBeChecked()
+    await expect(
+      page.getByText(
+        'The provider codecs are added too: G.711 μ-law, G.711 A-law. Enable Force codec to use only the chosen ones',
+      ),
+    ).toBeVisible()
     await page.getByRole('button', { name: 'Save' }).click()
 
     await expect(page.getByText('main_trunk has been updated successfully')).toBeVisible()
     expect(mockApi.callsTo('PATCH', '/freepbx/rest/trunks/:trunkid')[0].body).toEqual({
       password: 'New,5678',
       codecs: ['g729'],
+      forceCodec: false,
+    })
+  })
+
+  test('keeps the codecs forced when they change', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('PATCH', '/freepbx/rest/trunks/:trunkid', { status: 204 })
+    await page.goto('./trunks/voip')
+
+    await page
+      .getByRole('row', { name: /main_trunk/ })
+      .getByRole('button', { name: /Edit/ })
+      .click()
+    await page.getByRole('combobox', { name: 'Allowed codecs' }).click()
+    await page.getByRole('option', { name: 'G.711 A-law' }).click()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('main_trunk has been updated successfully')).toBeVisible()
+    expect(mockApi.callsTo('PATCH', '/freepbx/rest/trunks/:trunkid')[0].body).toEqual({
+      codecs: ['g729', 'alaw'],
       forceCodec: true,
     })
+  })
+
+  test('names the force codec toggle and its information button', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    await page.goto('./trunks/voip')
+
+    await page.getByRole('button', { name: 'Add VoIP trunk' }).click()
+    await expect(page.getByRole('group', { name: 'Force codec' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'About Force codec' })).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Provider' })).toBeFocused()
   })
 
   test('closes the edit drawer without calling the API when nothing changed', async ({
@@ -282,6 +327,18 @@ test.describe('trunks: VoIP', () => {
     await page.getByRole('button', { name: 'Open the menu of backup_trunk' }).click()
     await page.getByRole('menuitem', { name: 'Delete trunk' }).click()
     await expect(page.getByText('The VoIP trunk backup_trunk will be deleted.')).toBeVisible()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog.getByText('Some outbound routes will have no trunk')).toBeVisible()
+    await expect(
+      dialog.getByText(
+        'These outbound routes use only this trunk and will no longer be able to make calls: Cellphone.',
+      ),
+    ).toBeVisible()
+    await expect(
+      dialog.getByText(
+        'The trunk will be removed from these outbound routes, which will keep using their other trunks: National.',
+      ),
+    ).toBeVisible()
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
 
     await expect(page.getByText('backup_trunk has been deleted successfully')).toBeVisible()
@@ -303,5 +360,122 @@ test.describe('trunks: VoIP', () => {
     await expect(
       page.getByText('The server could not complete the request (error 500). Try again later.'),
     ).toBeVisible()
+  })
+})
+
+test.describe('trunks: VoIP, special cases', () => {
+  test.beforeEach(async ({ signedIn }) => {
+    void signedIn
+  })
+
+  test('shows the AI agents and the other technologies as read only', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi, {
+      trunks: [VOIP_TRUNK, AI_AGENT_TRUNK, IAX_TRUNK],
+      gateways: [],
+    })
+    await page.goto('./trunks/voip')
+
+    const agents = page.getByRole('row', { name: /VoiceAgentTrunk_2/ })
+    await expect(agents).toContainText('AI agents')
+    await expect(agents).toContainText('Read only')
+    await expect(agents.getByRole('button', { name: /Edit/ })).toHaveCount(0)
+    await expect(
+      page.getByRole('button', { name: 'Open the menu of VoiceAgentTrunk_2' }),
+    ).toHaveCount(0)
+
+    const iax = page.getByRole('row', { name: /legacy_iax/ })
+    await expect(iax).toContainText('IAX2')
+    await expect(iax).toContainText('Disabled')
+    await expect(iax).toContainText('Unmonitored')
+    await expect(iax).toContainText('Read only')
+  })
+
+  test('lists the trunks when the gateways cannot be loaded', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('GET', '/freepbx/rest/devices/gateways/list/:id', { status: 500 })
+    await page.goto('./trunks/voip')
+
+    await expect(
+      page.getByText('Cannot load the gateways, so their trunks may be listed here too'),
+    ).toBeVisible()
+    await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
+    await expect(page.getByText(GATEWAY_TRUNK.name)).toHaveCount(0)
+  })
+
+  test('finds the codecs by the label shown in the list', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    await page.goto('./trunks/voip')
+
+    await page.getByRole('textbox', { name: 'Filter trunks' }).fill('g.729')
+    await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
+    await expect(page.getByRole('row', { name: new RegExp(BACKUP_TRUNK.name) })).toHaveCount(0)
+  })
+
+  test('cleans the phone number and checks name and password', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('POST', '/freepbx/rest/trunks', { status: 200 })
+    await page.goto('./trunks/voip')
+
+    await page.getByRole('button', { name: 'Add VoIP trunk' }).click()
+    await page.getByRole('combobox', { name: 'Provider' }).click()
+    await page.getByRole('option', { name: 'TWT' }).click()
+    const name = page.getByRole('textbox', { name: 'Trunk name' })
+    await name.fill('a'.repeat(60))
+    await expect(name).toHaveValue('a'.repeat(50))
+    await name.fill('office_trunk')
+    await page.getByRole('textbox', { name: 'Phone number' }).fill('+39 02-123.4567')
+    await page.getByRole('textbox', { name: 'Username' }).fill('office_user')
+    await page.getByLabel('Password').fill('   ')
+    await page.getByRole('button', { name: 'Add trunk' }).click()
+
+    await expect(page.getByText('The password cannot contain only spaces')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Phone number' })).toHaveValue('+39021234567')
+    await page.getByLabel('Password').fill('Secret,1234')
+    await page.getByRole('button', { name: 'Add trunk' }).click()
+
+    await expect(page.getByText('office_trunk has been created successfully')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/trunks')[0].body).toMatchObject({
+      phone: '+39021234567',
+    })
+  })
+
+  test('does not close while saving and asks before losing changes', async ({ page, mockApi }) => {
+    let release: () => void = () => {}
+    const pending = new Promise<void>((resolve) => (release = resolve))
+    mockTrunksApi(mockApi)
+    mockApi.on('PATCH', '/freepbx/rest/trunks/:trunkid', async () => {
+      await pending
+      return { status: 204 }
+    })
+    await page.goto('./trunks/voip')
+
+    await page
+      .getByRole('row', { name: /main_trunk/ })
+      .getByRole('button', { name: /Edit/ })
+      .click()
+    const heading = page.getByRole('heading', { name: 'Edit trunk' })
+    await page.getByRole('textbox', { name: 'Phone number' }).fill('0212345699')
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page.getByText('Unsaved changes', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(heading).toBeVisible()
+
+    await page.getByRole('button', { name: 'Save' }).click()
+    await page.keyboard.press('Escape')
+    await expect(heading).toBeVisible()
+    release()
+    await expect(page.getByText('main_trunk has been updated successfully')).toBeVisible()
+    await expect(heading).toBeHidden()
+  })
+
+  test('reaches the tabs with the keyboard', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    await page.goto('./trunks/voip')
+
+    const physicalTab = page.getByRole('link', { name: 'Physical trunks' })
+    await physicalTab.focus()
+    await expect(physicalTab).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/\/trunks\/physical$/)
   })
 })

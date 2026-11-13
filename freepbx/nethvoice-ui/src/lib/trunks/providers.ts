@@ -10,6 +10,8 @@ export const TRUNK_PROVIDERS_KEY = 'trunkProviders'
 export const TRUNK_CODECS_KEY = 'trunkCodecs'
 
 const CODEC_LABELS: Record<string, string> = {
+  alaw: 'G.711 A-law',
+  ulaw: 'G.711 μ-law',
   g729: 'G.729',
   g722: 'G.722',
   g726: 'G.726',

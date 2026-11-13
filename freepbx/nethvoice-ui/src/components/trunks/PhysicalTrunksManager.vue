@@ -10,6 +10,7 @@ import {
   NeButton,
   NeDropdown,
   NeEmptyState,
+  NeInlineNotification,
   NePaginator,
   NeTable,
   NeTableBody,
@@ -36,6 +37,7 @@ import TrunkStatusIndicator from './TrunkStatusIndicator.vue'
 import TrunksUpdatingIndicator from './TrunksUpdatingIndicator.vue'
 import {
   filterGateways,
+  formatMacAddress,
   getGatewayConfigFile,
   getGatewayConfigFileName,
   getGatewayLabel,
@@ -49,7 +51,7 @@ import { useGatewayModels, useGateways } from '@/queries/trunks/gateways'
 import { useTrunks, useTrunksLiveState } from '@/queries/trunks/trunks'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { usePolling } from '@/composables/usePolling'
-import { useNotificationsStore } from '@/stores/notifications'
+import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { variant = 'admin' } = defineProps<{ variant?: 'admin' | 'setup' }>()
 
@@ -68,15 +70,13 @@ const {
   refetch: refetchLiveState,
 } = useTrunksLiveState()
 
-usePolling(() => refetchLiveState(), TRUNKS_LIVE_STATE_REFRESH_INTERVAL)
-
 const textFilter = ref('')
 const currentGateway = ref<Gateway | undefined>()
 const isShownDrawer = ref(false)
 const isShownDeleteModal = ref(false)
 const downloadingId = ref<number | undefined>()
 
-const loadError = computed(() => gatewaysState.value.error ?? modelsState.value.error)
+const loadError = computed(() => gatewaysState.value.error)
 
 const isLoading = computed(
   () => gatewaysState.value.status === 'pending' || modelsState.value.status === 'pending',
@@ -85,6 +85,12 @@ const isLoading = computed(
 const isLoaded = computed(() => !isLoading.value && !loadError.value)
 
 const gateways = computed(() => gatewaysState.value.data ?? [])
+
+usePolling(
+  () => refetchLiveState(),
+  TRUNKS_LIVE_STATE_REFRESH_INTERVAL,
+  () => gateways.value.length > 0,
+)
 
 const models = computed(() => modelsState.value.data ?? [])
 
@@ -247,6 +253,14 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
       :title="t('trunks.physical.cannot_load_trunks')"
       @retry="retry"
     />
+    <NeInlineNotification
+      v-if="isLoaded && modelsState.status === 'error'"
+      kind="warning"
+      :title="t('trunks.physical.cannot_load_models')"
+      :description="describeError(modelsState.error)"
+      :primary-button-label="t('common.retry')"
+      @primary-click="refetchModels()"
+    />
     <NeEmptyState
       v-if="isNoDataEmptyStateShown"
       :title="t('trunks.physical.no_trunks')"
@@ -303,7 +317,7 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
             {{ item.ipAddress || '-' }}
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.physical.mac_column')">
-            {{ item.macAddress || '-' }}
+            {{ formatMacAddress(item.macAddress) || '-' }}
           </NeTableCell>
           <NeTableCell :data-label="t('common.status')">
             <TrunkStatusIndicator :status="getGatewayStatus(item, trunksState.data, liveData)" />

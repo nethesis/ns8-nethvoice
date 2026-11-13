@@ -29,6 +29,7 @@ const trunk: Trunk = {
   sipServer: '',
   codecs: [],
   disabled: false,
+  context: '',
 }
 
 describe('parseTrunkProviders', () => {
@@ -105,8 +106,13 @@ describe('getCodecLabel', () => {
     expect(getCodecLabel('G722')).toBe('G.722')
   })
 
+  it('should name the G.711 variants', () => {
+    expect(getCodecLabel('alaw')).toBe('G.711 A-law')
+    expect(getCodecLabel('ulaw')).toBe('G.711 μ-law')
+  })
+
   it('should leave the other codecs untouched', () => {
-    expect(getCodecLabel('alaw')).toBe('alaw')
+    expect(getCodecLabel('opus')).toBe('opus')
   })
 })
 

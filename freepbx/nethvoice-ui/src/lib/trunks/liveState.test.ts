@@ -5,6 +5,9 @@ import { describe, expect, it } from 'vitest'
 import {
   getProviderStatus,
   getRegistrationStatus,
+  getTrunkProviderStatus,
+  getTrunkRegistrationStatus,
+  markTrunkChanged,
   parseTrunksLiveState,
   type TrunksLiveState,
 } from './liveState'
@@ -83,5 +86,26 @@ describe('getRegistrationStatus', () => {
   it('should map registered and unmonitored', () => {
     expect(getRegistrationStatus('online', liveState)).toBe('registered')
     expect(getRegistrationStatus('unmonitored', liveState)).toBe('unmonitored')
+  })
+})
+
+describe('getTrunkProviderStatus', () => {
+  it('should be unmonitored for a trunk the live state does not know', () => {
+    expect(getTrunkProviderStatus('legacy_trunk', liveState)).toBe('unmonitored')
+    expect(getTrunkRegistrationStatus('legacy_trunk', liveState)).toBe('unmonitored')
+  })
+
+  it('should stay pending for a while after the trunk is changed', () => {
+    markTrunkChanged('new_trunk', 1000)
+
+    expect(getTrunkProviderStatus('new_trunk', liveState, 2000)).toBe('pending')
+    expect(getTrunkRegistrationStatus('new_trunk', liveState, 2000)).toBe('pending')
+    expect(getTrunkProviderStatus('new_trunk', liveState, 1000 + 3 * 60 * 1000)).toBe('unmonitored')
+  })
+
+  it('should keep the live status of a known trunk', () => {
+    expect(getTrunkProviderStatus('online', liveState)).toBe('online')
+    expect(getTrunkRegistrationStatus('sent', liveState)).toBe('pending')
+    expect(getTrunkProviderStatus('online', undefined)).toBe('unknown')
   })
 })

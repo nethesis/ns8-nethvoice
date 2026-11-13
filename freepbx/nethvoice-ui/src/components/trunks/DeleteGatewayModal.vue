@@ -4,10 +4,11 @@
 -->
 
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import DeleteObjectModal from '@/components/common/DeleteObjectModal.vue'
+import TrunkRoutesWarning from './TrunkRoutesWarning.vue'
 import {
   deleteGateway,
   describeGatewayError,
@@ -17,6 +18,8 @@ import {
 import { TRUNKS_KEY } from '@/lib/trunks/trunks'
 import { TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
 import { FXS_USERS_KEY } from '@/lib/trunks/fxsUsers'
+import { OUTBOUND_ROUTES_KEY } from '@/lib/routes/outbound'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const {
@@ -34,6 +37,10 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
+
+useFocusReturn(() => visible)
+
+const trunkIds = computed(() => gateway?.trunkIds ?? [])
 
 const {
   mutate: deleteGatewayMutate,
@@ -57,6 +64,7 @@ const {
     queryCache.invalidateQueries({ key: [TRUNKS_KEY] })
     queryCache.invalidateQueries({ key: [TRUNKS_LIVE_STATE_KEY] })
     queryCache.invalidateQueries({ key: [FXS_USERS_KEY] })
+    queryCache.invalidateQueries({ key: [OUTBOUND_ROUTES_KEY] })
   },
 })
 
@@ -68,6 +76,12 @@ watch(
     }
   },
 )
+
+function requestClose() {
+  if (!deleting.value) {
+    emit('close')
+  }
+}
 
 function confirmDelete() {
   if (gateway) {
@@ -84,10 +98,15 @@ function confirmDelete() {
     :deleting="deleting"
     :error-title="error ? t('trunks.cannot_delete_trunk') : ''"
     :error-description="describeGatewayError(error) || describeError(error)"
-    @close="emit('close')"
+    @close="requestClose"
     @primary-click="confirmDelete"
   >
-    <p>{{ t('trunks.physical.delete_confirmation', { name: label }) }}</p>
-    <p class="mt-2">{{ t('trunks.physical.delete_confirmation_details') }}</p>
+    <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-2">
+        <p>{{ t('trunks.physical.delete_confirmation', { name: label }) }}</p>
+        <p>{{ t('trunks.physical.delete_confirmation_details') }}</p>
+      </div>
+      <TrunkRoutesWarning :is-shown="visible" :trunk-ids="trunkIds" />
+    </div>
   </DeleteObjectModal>
 </template>
