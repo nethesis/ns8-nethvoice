@@ -132,15 +132,26 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
 
     public function usermanDelUser($id, $display, $data) {
         try {
-            $mainextension = is_array($data) && isset($data['default_extension']) ? (string) $data['default_extension'] : '';
             include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
-            releaseUserExtensions($id, $mainextension);
-            $stmt = $this->db->prepare('DELETE FROM `rest_users` WHERE `user_id` = ?');
-            $stmt->execute(array($id));
+            orphanUserExtensions($id, is_array($data) ? $data : array());
             $this->scheduleReload();
             return true;
         } catch (\Throwable $e) {
-            error_log('Unable to release the extensions of deleted Userman user '.$id.': '.$e->getMessage());
+            error_log('Unable to keep the extensions of deleted Userman user '.$id.': '.$e->getMessage());
+            return false;
+        }
+    }
+
+    public function usermanAddUser($id, $display, $data) {
+        try {
+            include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
+            if (reattachOrphanExtension($this->FreePBX->Userman->getUserByID($id)) === false) {
+                return false;
+            }
+            $this->scheduleReload();
+            return true;
+        } catch (\Throwable $e) {
+            error_log('Unable to restore the extensions of Userman user '.$id.': '.$e->getMessage());
             return false;
         }
     }
