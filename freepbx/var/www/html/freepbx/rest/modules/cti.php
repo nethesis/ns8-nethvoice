@@ -505,6 +505,7 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
             throw new Exception($sth->errorInfo()[2]);
         }
 
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -947,6 +948,18 @@ $app->put('/cti/customer_card/{id}', function (Request $request, Response $respo
                 }
             } else {
                 throw new Exception('no permission stored for customer card');
+            }
+        }
+
+        if (isset($data['name']) && $data['name'] !== $name) {
+            $dbi = FreePBX::Database();
+            $permname = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$data['name'])));
+            $sql = 'UPDATE rest_cti_permissions SET name = ?, displayname = ? WHERE id = ?';
+            $sth = $dbi->prepare($sql);
+            $res = $sth->execute(array($permname, $data['name'], $permission_id));
+
+            if ($res === FALSE) {
+                throw new Exception($sth->errorInfo()[2]);
             }
         }
 
