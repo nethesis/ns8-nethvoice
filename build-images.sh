@@ -193,7 +193,7 @@ fi
 reponame="nethvoice-cti-middleware"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:feat_password_change)
+    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.8.0)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -250,7 +250,7 @@ fi
 reponame="nethvoice-oauth2-proxy"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from quay.io/oauth2-proxy/oauth2-proxy:v7.7.1)
+    container=$(buildah from quay.io/oauth2-proxy/oauth2-proxy:v7.15.6)
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
     finish_timing
