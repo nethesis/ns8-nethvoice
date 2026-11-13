@@ -26,12 +26,17 @@ import {
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
+import RouteTrunkBadge from './RouteTrunkBadge.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
-import { useOutboundRouteDefaults } from '@/queries/routes/outbound'
+import { useOutboundRouteDefaults, useOutboundRoutes } from '@/queries/routes/outbound'
 import { useTrunkProviders, useTrunks } from '@/queries/trunks/trunks'
 import { getTrunkLabelById } from '@/lib/trunks/providers'
 import {
   getAvailableTrunks,
+  getOutboundTrunks,
+  getRouteTrunkState,
   haveSameTrunks,
   moveItem,
   OUTBOUND_ROUTES_KEY,
@@ -39,7 +44,7 @@ import {
   type OutboundRoute,
   type RouteTrunk,
 } from '@/lib/routes/outbound'
-import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const { isShown = false, route = undefined } = defineProps<{
   isShown: boolean
@@ -51,14 +56,19 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
-const { getRouteTitle } = useOutboundRouteLabels()
+const { getRouteTitleAmong, describeRouteError } = useOutboundRouteLabels()
+const { state: routesState } = useOutboundRoutes()
 const { state: defaultsState, refetch: refetchDefaults } = useOutboundRouteDefaults()
-const { state: trunksState } = useTrunks()
+const { state: trunksState, refetch: refetchTrunks } = useTrunks()
 const { state: providersState } = useTrunkProviders()
+
+useFocusReturn(() => isShown)
 
 const trunks = ref<RouteTrunk[]>([])
 const draggedIndex = ref<number | null>(null)
+const orderBeforeDrag = ref<RouteTrunk[] | null>(null)
 const announcement = ref('')
+const isShownDiscardModal = ref(false)
 const trunkListRef = useTemplateRef<HTMLOListElement>('trunkListRef')
 
 function getTrunkLabel(trunk: RouteTrunk): string {
@@ -76,14 +86,14 @@ const {
   reset: saveTrunksReset,
   error: saveTrunksError,
 } = useMutation({
-  mutation: (vars: { route: OutboundRoute; trunks: RouteTrunk[] }) =>
+  mutation: (vars: { route: OutboundRoute; title: string; trunks: RouteTrunk[] }) =>
     postOutboundRouteTrunks(vars.route.id, vars.trunks),
   onSuccess(_data, vars) {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('routes.route_saved'),
-        description: t('common.object_saved_successfully', { name: getRouteTitle(vars.route) }),
+        description: t('routes.route_saved_description', { name: vars.title }),
       })
     }, 500)
     emit('close')
@@ -93,11 +103,32 @@ const {
   },
 })
 
-const routeTitle = computed(() => (route ? getRouteTitle(route) : ''))
+const routeTitle = computed(() =>
+  route ? getRouteTitleAmong(route, routesState.value.data ?? []) : '',
+)
+
+const loadedTrunks = computed(() =>
+  trunksState.value.status === 'success' ? trunksState.value.data : undefined,
+)
+
+const trunkChoicesStatus = computed(() => {
+  if (defaultsState.value.status === 'error' || trunksState.value.status === 'error') {
+    return 'error'
+  }
+  return defaultsState.value.status === 'success' && loadedTrunks.value ? 'success' : 'pending'
+})
+
+const trunkChoicesError = computed(() => defaultsState.value.error ?? trunksState.value.error)
 
 const availableTrunks = computed(() =>
-  getAvailableTrunks(defaultsState.value.data?.trunks ?? [], trunks.value),
+  getAvailableTrunks(
+    defaultsState.value.data?.trunks ?? [],
+    trunks.value,
+    loadedTrunks.value ?? [],
+  ),
 )
+
+const isDirty = computed(() => Boolean(route) && !haveSameTrunks(route?.trunks ?? [], trunks.value))
 
 const addTrunkItems = computed<NeDropdownItem[]>(() =>
   availableTrunks.value.map((trunk) => ({
@@ -108,10 +139,11 @@ const addTrunkItems = computed<NeDropdownItem[]>(() =>
 )
 
 const noTrunksToAddMessage = computed(() => {
-  if (defaultsState.value.status !== 'success' || availableTrunks.value.length > 0) {
+  if (trunkChoicesStatus.value !== 'success' || availableTrunks.value.length > 0) {
     return ''
   }
-  return defaultsState.value.data.trunks.length === 0
+  return getOutboundTrunks(defaultsState.value.data?.trunks ?? [], loadedTrunks.value ?? [])
+    .length === 0
     ? t('routes.no_trunks_configured')
     : t('routes.all_trunks_assigned')
 })
@@ -123,7 +155,9 @@ watch(
       saveTrunksReset()
       trunks.value = [...(route?.trunks ?? [])]
       draggedIndex.value = null
+      orderBeforeDrag.value = null
       announcement.value = ''
+      isShownDiscardModal.value = false
     }
   },
   { immediate: true },
@@ -165,8 +199,22 @@ async function moveTrunk(index: number, offset: -1 | 1) {
   }
 }
 
+function getTrunkState(trunk: RouteTrunk) {
+  return getRouteTrunkState(trunk.id, loadedTrunks.value)
+}
+
+function retryTrunkChoices() {
+  if (defaultsState.value.status === 'error') {
+    refetchDefaults()
+  }
+  if (trunksState.value.status === 'error') {
+    refetchTrunks()
+  }
+}
+
 function onDragStart(event: DragEvent, index: number) {
   draggedIndex.value = index
+  orderBeforeDrag.value = [...trunks.value]
 
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
@@ -182,8 +230,10 @@ function onDragEnter(index: number) {
   draggedIndex.value = index
 }
 
-function onDragEnd() {
-  if (draggedIndex.value !== null) {
+function onDragEnd(event: DragEvent) {
+  if (event.dataTransfer?.dropEffect === 'none' && orderBeforeDrag.value) {
+    trunks.value = orderBeforeDrag.value
+  } else if (draggedIndex.value !== null) {
     const trunk = trunks.value[draggedIndex.value]
 
     announcement.value = t('routes.trunk_moved', {
@@ -192,6 +242,7 @@ function onDragEnd() {
     })
   }
   draggedIndex.value = null
+  orderBeforeDrag.value = null
 }
 
 function saveRoute() {
@@ -199,11 +250,28 @@ function saveRoute() {
     return
   }
 
-  if (haveSameTrunks(route.trunks, trunks.value)) {
+  if (!isDirty.value) {
     emit('close')
     return
   }
-  saveTrunksMutate({ route, trunks: trunks.value })
+  saveTrunksMutate({ route, title: routeTitle.value, trunks: trunks.value })
+}
+
+function requestClose() {
+  if (saveTrunksLoading.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
 }
 </script>
 
@@ -212,7 +280,7 @@ function saveRoute() {
     :is-shown="isShown"
     :title="t('routes.edit_route', { name: routeTitle })"
     :close-aria-label="t('common.close')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form @submit.prevent="saveRoute">
       <div class="flex flex-col gap-2">
@@ -233,6 +301,8 @@ function saveRoute() {
           aria-labelledby="trunk-priority-label"
           aria-describedby="trunk-priority-helper"
           class="flex flex-col gap-2"
+          @dragover.prevent
+          @drop.prevent
         >
           <li
             v-for="(trunk, index) in trunks"
@@ -240,7 +310,7 @@ function saveRoute() {
             :data-trunk-id="trunk.id"
             :draggable="!saveTrunksLoading"
             :class="[
-              'flex items-center gap-3 rounded-md bg-gray-100 py-1 pr-2 pl-4 dark:bg-gray-800',
+              'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-gray-100 py-1 pr-2 pl-4 dark:bg-gray-800',
               { 'opacity-50': draggedIndex === index },
             ]"
             @dragstart="onDragStart($event, index)"
@@ -255,10 +325,13 @@ function saveRoute() {
               aria-hidden="true"
             />
             <NeBadgeV2 kind="indigo" size="xs" pill>{{ index + 1 }}</NeBadgeV2>
-            <span class="text-primary-neutral min-w-0 flex-1 wrap-anywhere">{{
-              getTrunkLabel(trunk)
-            }}</span>
-            <div class="flex shrink-0 items-center">
+            <span class="flex min-w-0 flex-1 basis-40 flex-wrap items-center gap-x-2 gap-y-1">
+              <span class="text-primary-neutral min-w-0 break-words">{{
+                getTrunkLabel(trunk)
+              }}</span>
+              <RouteTrunkBadge :state="getTrunkState(trunk)" />
+            </span>
+            <div class="ml-auto flex shrink-0 items-center">
               <NeButton
                 type="button"
                 kind="tertiary"
@@ -302,21 +375,22 @@ function saveRoute() {
         </ol>
         <p class="sr-only" aria-live="polite">{{ announcement }}</p>
         <LoadError
-          v-if="defaultsState.status === 'error'"
-          :error="defaultsState.error"
+          v-if="trunkChoicesStatus === 'error'"
+          :error="trunkChoicesError"
           :title="t('routes.cannot_load_trunks')"
-          @retry="refetchDefaults()"
+          @retry="retryTrunkChoices"
         />
-        <NeSkeleton v-else-if="defaultsState.status === 'pending'" :lines="1" class="w-32" />
+        <NeSkeleton v-else-if="trunkChoicesStatus === 'pending'" :lines="1" class="w-32" />
         <div v-else class="flex flex-col items-start gap-1">
           <NeDropdown
             v-if="addTrunkItems.length && !saveTrunksLoading"
             :items="addTrunkItems"
-            open-menu-aria-label=""
+            :open-menu-aria-label="t('routes.add_trunk')"
           >
             <template #button>
               <span
-                class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-400 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-200/70 dark:hover:bg-gray-600/30"
+                aria-hidden="true"
+                class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-400 in-focus-visible:ring-primary-500 dark:in-focus-visible:ring-primary-300 dark:in-focus-visible:ring-offset-primary-950 flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-gray-200/70 in-focus-visible:ring-2 in-focus-visible:ring-offset-2 in-focus-visible:ring-offset-white dark:hover:bg-gray-600/30"
               >
                 <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
                 {{ t('routes.add_trunk') }}
@@ -352,7 +426,7 @@ function saveRoute() {
           v-if="saveTrunksError"
           kind="error"
           :title="t('routes.cannot_save_route')"
-          :description="describeError(saveTrunksError)"
+          :description="describeRouteError(saveTrunksError)"
           class="mt-4"
         />
       </div>
@@ -364,7 +438,7 @@ function saveRoute() {
           size="lg"
           :disabled="saveTrunksLoading"
           class="mr-3"
-          @click="emit('close')"
+          @click="requestClose"
         >
           {{ t('common.cancel') }}
         </NeButton>
@@ -380,4 +454,9 @@ function saveRoute() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>

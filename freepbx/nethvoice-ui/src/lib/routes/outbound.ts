@@ -5,6 +5,7 @@ import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import { compareNatural, matchesText } from '@/lib/common'
 import { OUTBOUND_ROUTE_ADVANCED_URL } from '@/lib/config'
+import { getTrunkManagement, getTrunks, type Trunk } from '@/lib/trunks/trunks'
 
 export const OUTBOUND_ROUTES_KEY = 'outboundRoutes'
 export const OUTBOUND_ROUTE_DEFAULTS_KEY = 'outboundRouteDefaults'
@@ -16,6 +17,23 @@ export type OutboundRouteKind = (typeof OUTBOUND_ROUTE_KINDS)[number]
 export const OUTBOUND_ROUTE_SORT_KEYS = ['position', 'name'] as const
 
 export type OutboundRouteSortKey = (typeof OUTBOUND_ROUTE_SORT_KEYS)[number]
+
+export type RouteTrunkState = 'active' | 'disabled' | 'deleted' | 'voice_agents'
+
+export type OutboundRouteErrorCode = 'route_not_found' | 'no_default_routes'
+
+export class OutboundRouteError extends Error {
+  readonly code: OutboundRouteErrorCode
+
+  constructor(code: OutboundRouteErrorCode) {
+    super(code)
+    this.name = 'OutboundRouteError'
+    this.code = code
+  }
+}
+
+export const isOutboundRouteError = (error: unknown): error is OutboundRouteError =>
+  error instanceof OutboundRouteError
 
 const FALLBACK_LOCALE = 'en'
 
@@ -116,13 +134,40 @@ export const getRoutesLocale = (routes: Pick<OutboundRoute, 'locale'>[]): string
 const toRequestTrunks = (trunks: RouteTrunk[]) =>
   trunks.map((trunk) => ({ trunkid: trunk.id, name: trunk.name }))
 
+export const isOutboundTrunk = (trunk: Trunk): boolean =>
+  !trunk.disabled && getTrunkManagement(trunk) !== 'voice_agents'
+
+export const getRouteTrunkState = (
+  trunkId: number,
+  trunks: Trunk[] | undefined,
+): RouteTrunkState => {
+  if (!trunks) {
+    return 'active'
+  }
+  const trunk = trunks.find((item) => item.id === trunkId)
+
+  if (!trunk) {
+    return 'deleted'
+  }
+  if (getTrunkManagement(trunk) === 'voice_agents') {
+    return 'voice_agents'
+  }
+  return trunk.disabled ? 'disabled' : 'active'
+}
+
+export const getOutboundTrunks = (candidates: RouteTrunk[], trunks: Trunk[]): RouteTrunk[] =>
+  candidates.filter((candidate) =>
+    trunks.some((trunk) => trunk.id === candidate.id && isOutboundTrunk(trunk)),
+  )
+
 export const buildCreateDefaultsRequest = (
   locale: string,
   defaults: OutboundRouteDefaults,
+  trunks: Trunk[],
 ): SaveRequest => ({
   [locale]: (defaults.routeNamesByLocale[locale] ?? []).map((name) => ({
     name,
-    trunks: toRequestTrunks(defaults.trunks),
+    trunks: toRequestTrunks(getOutboundTrunks(defaults.trunks, trunks)),
   })),
 })
 
@@ -130,16 +175,30 @@ export const buildUpdateTrunksRequest = (
   routes: OutboundRoute[],
   routeId: number,
   trunks: RouteTrunk[],
-): SaveRequest => ({
-  [getRoutesLocale(routes) || FALLBACK_LOCALE]: routes.map((route) => ({
-    route_id: route.id,
-    name: route.name,
-    trunks: toRequestTrunks(route.id === routeId ? trunks : route.trunks),
-  })),
-})
+  existingTrunks?: Trunk[],
+): SaveRequest => {
+  const keepExisting = (items: RouteTrunk[]) =>
+    existingTrunks
+      ? items.filter((item) => existingTrunks.some((trunk) => trunk.id === item.id))
+      : items
 
-export const getAvailableTrunks = (allTrunks: RouteTrunk[], assigned: RouteTrunk[]): RouteTrunk[] =>
-  allTrunks.filter((trunk) => !assigned.some((item) => item.id === trunk.id))
+  return {
+    [getRoutesLocale(routes) || FALLBACK_LOCALE]: routes.map((route) => ({
+      route_id: route.id,
+      name: route.name,
+      trunks: toRequestTrunks(keepExisting(route.id === routeId ? trunks : route.trunks)),
+    })),
+  }
+}
+
+export const getAvailableTrunks = (
+  allTrunks: RouteTrunk[],
+  assigned: RouteTrunk[],
+  trunks?: Trunk[],
+): RouteTrunk[] =>
+  (trunks ? getOutboundTrunks(allTrunks, trunks) : allTrunks).filter(
+    (trunk) => !assigned.some((item) => item.id === trunk.id),
+  )
 
 export const moveItem = <T>(items: T[], from: number, to: number): T[] => {
   if (from === to || from < 0 || to < 0 || from >= items.length || to >= items.length) {
@@ -202,10 +261,11 @@ export const postDefaultOutboundRoutes = async (locale: string): Promise<void> =
   if ((await getOutboundRoutes()).length > 0) {
     return
   }
-  const body = buildCreateDefaultsRequest(locale, await getOutboundRouteDefaults())
+  const [defaults, trunks] = await Promise.all([getOutboundRouteDefaults(), getTrunks()])
+  const body = buildCreateDefaultsRequest(locale, defaults, trunks)
 
   if (body[locale].length === 0) {
-    throw new Error(`No default outbound routes for "${locale}"`)
+    throw new OutboundRouteError('no_default_routes')
   }
   await api.POST('/outboundroutes', { body })
 }
@@ -214,13 +274,13 @@ export const postOutboundRouteTrunks = async (
   routeId: number,
   trunks: RouteTrunk[],
 ): Promise<void> => {
-  const routes = await getOutboundRoutes()
+  const [routes, existingTrunks] = await Promise.all([getOutboundRoutes(), getTrunks()])
 
   if (!routes.some((route) => route.id === routeId)) {
-    throw new Error(`Outbound route ${routeId} does not exist anymore`)
+    throw new OutboundRouteError('route_not_found')
   }
   await api.POST('/outboundroutes', {
-    body: buildUpdateTrunksRequest(routes, routeId, trunks),
+    body: buildUpdateTrunksRequest(routes, routeId, trunks, existingTrunks),
   })
 }
 
