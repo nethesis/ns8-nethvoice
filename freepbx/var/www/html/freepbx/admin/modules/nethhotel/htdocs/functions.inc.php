@@ -189,8 +189,8 @@ function getTimeGroupsDetailsFromId($id)
    $details = sql("SELECT time from asterisk.timegroups_details where timegroupid='$id_group[id_timegroups_groups]';","getAll",DB_FETCHMODE_ASSOC);
    foreach($details as $detail)
    {
-    if($group== '') $group = $detail[time];
-    else $group.="<br>".$detail[time];
+    if($group== '') $group = $detail['time'];
+    else $group.="<br>".$detail['time'];
    }
    echo $group;
   }
@@ -207,8 +207,8 @@ function getTimeGroupsDetailsFromIdGroups($id)
    $details = sql("SELECT time from asterisk.timegroups_details where timegroupid='$id';","getAll",DB_FETCHMODE_ASSOC);
    foreach($details as $detail)
    {
-    if($group== '') $group = $detail[time];
-    else $group.="<br>".$detail[time];
+    if($group== '') $group = $detail['time'];
+    else $group.="<br>".$detail['time'];
    }
    echo $group;
   }
@@ -221,7 +221,7 @@ function getTimeDetailsFromIdGroupsArray($id)
   $id = (int)$id;
   $details = array();
   if($id!= '0') $details = sql("SELECT time from asterisk.timegroups_details where timegroupid='$id';","getAll",DB_FETCHMODE_ASSOC);
-  else $details[0]= '*';
+  else $details[0]= array('time' => '*|*|*|*');
   return $details;
 }
 

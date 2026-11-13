@@ -1,5 +1,8 @@
 <?php
 // Run with: php freepbx/tests/nethhotel_web_test.php
+if (!function_exists('_')) {
+    function _($message) { return $message; }
+}
 set_error_handler(function ($severity, $message, $file, $line) {
     throw new ErrorException($message, 0, $severity, $file, $line);
 });
@@ -11,8 +14,11 @@ define('DB_FETCHMODE_ASSOC', 2);
 define('ROOMS_CONTEXT', 'hotel');
 $options = [['prefix', '0'], ['ext_pattern', 'XXX'], ['internal_call', '1'],
     ['enableclean', '1'], ['groupcalls', '1'], ['externalcalls', '1']];
+$timeDetails = [['time' => '09:00-18:00|mon-fri|*|*'], ['time' => '10:00-12:00|sat|*|*']];
 function sql($query, $mode, $fetch = null) {
-    global $options;
+    global $options, $timeDetails;
+    if (str_contains($query, 'SELECT id_timegroups_groups')) return ['id_timegroups_groups' => 1];
+    if (str_contains($query, 'SELECT time from asterisk.timegroups_details')) return $timeDetails;
     if ($query === 'SELECT * FROM roomsdb.room_groups') return [[1, 'Test group']];
     return str_contains($query, 'SELECT * FROM roomsdb.options') ? $options : [];
 }
@@ -33,6 +39,41 @@ class HotelDatabase {
 $db = new HotelDatabase();
 function check($condition, $message) {
     if (!$condition) throw new RuntimeException($message);
+}
+foreach (['getTimeGroupsDetailsFromId', 'getTimeGroupsDetailsFromIdGroups'] as $function) {
+    ob_start();
+    $function(1);
+    check(ob_get_clean() === implode('<br>', array_column($timeDetails, 'time')), 'Time group details failed to render');
+}
+
+// Execute the short-number AGI branch with only its I/O replaced.
+function neth_debug($message) {}
+$agi = new class {
+    public array $commands = [];
+    public function exec($application, $arguments) { $this->commands[] = [$application, $arguments]; }
+};
+$agiSource = file_get_contents($directory.'/../agi-bin/camere.php');
+$start = strpos($agiSource, '$quickcall = false;');
+$shortNumber = substr($agiSource, $start, strpos($agiSource, 'if($quickcall)', $start) - $start);
+foreach ([0, 1] as $timeGroup) {
+    $agi->commands = [];
+    $numtocall = '88';
+    $codes = [['code' => '88', 'falsegoto' => '88991', 'number' => '88992', 'id_timegroups_groups' => $timeGroup]];
+    eval($shortNumber);
+    $details = $timeGroup === 0 ? [['time' => '*|*|*|*']] : $timeDetails;
+    $expected = [['Set', 'toCall=88991']];
+    foreach ($details as $detail) $expected[] = ['ExecIfTime', str_replace('|', ',', $detail['time']).'?Set(toCall=88992)'];
+    check($quickcall && $agi->commands === $expected, 'Short-number fallback or time-based destination is incorrect');
+}
+
+$supported_audio_langs = ['en', 'it'];
+$handler = file_get_contents($directory.'/check-in.php');
+$start = strpos($handler, '$ext =');
+$checkInInputs = substr($handler, $start, strpos($handler, 'if (checkIn(', $start) - $start);
+foreach ([['ext' => '88991'], ['ext' => '88991', 'ntab' => 2, 'lang' => 'it']] as $request) {
+    $_REQUEST = $request;
+    eval($checkInInputs);
+    check($ext === '88991' && $ntabs === ($request['ntab'] ?? 0) && $lang === ($request['lang'] ?? 'en'), 'Check-in must accept the context menu request and preserve explicit choices');
 }
 check(addExtra('88991', '', 0, '88991-1794500000/'), 'Removing a room extra failed');
 check(count($db->queries) === 1 && str_contains($db->queries[0], '1794500000'), 'Trailing extra separator must not create a second deletion');
