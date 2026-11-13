@@ -25,7 +25,7 @@ const { advancing, goToNextStep } = useSetupNavigation('inbound-routes')
           {{ $t('setup.inbound_routes.description_line_1') }}<br />
           {{ $t('setup.inbound_routes.description_line_2') }}
         </p>
-        <CreateInboundRouteButton kind="secondary" />
+        <CreateInboundRouteButton kind="secondary" size="md" />
       </div>
     </template>
     <InboundRoutesTable />

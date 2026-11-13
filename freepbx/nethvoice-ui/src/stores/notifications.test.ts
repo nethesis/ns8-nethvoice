@@ -22,6 +22,17 @@ describe('describeError', () => {
     )
   })
 
+  it('can show a fixed text instead of the message of a server error', () => {
+    const options = { serverDetail: false }
+
+    expect(describeError(apiError(503, { message: 'users-admin is unavailable' }), options)).toBe(
+      'The server could not complete the request (error 503). Try again later.',
+    )
+    expect(describeError(apiError(400, { message: 'Bad extension' }), options)).toBe(
+      'Bad extension',
+    )
+  })
+
   it('hides the technical message of an unexpected response', () => {
     const result = v.safeParse(v.object({ destinations: v.string() }), {})
     const error = result.success ? null : new v.ValiError(result.issues)

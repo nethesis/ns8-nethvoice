@@ -9,8 +9,9 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
 import { getVisualPlanRouteUrl } from '@/lib/routes/inbound'
 
-const { kind = 'primary' } = defineProps<{
+const { kind = 'primary', size = 'lg' } = defineProps<{
   kind?: 'primary' | 'secondary'
+  size?: 'md' | 'lg'
 }>()
 
 function createRoute() {
@@ -19,7 +20,7 @@ function createRoute() {
 </script>
 
 <template>
-  <NeButton :kind="kind" size="lg" class="shrink-0" @click="createRoute">
+  <NeButton :kind="kind" :size="size" class="shrink-0" @click="createRoute">
     <template #prefix>
       <FontAwesomeIcon :icon="faArrowUpRightFromSquare" class="h-4 w-4" aria-hidden="true" />
     </template>

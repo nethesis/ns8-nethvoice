@@ -1,17 +1,25 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/errors'
 import {
   countConfiguredDrafts,
+  getChangedExtensions,
   getExtensionErrorKind,
+  getReassignTargets,
+  isChangingExtension,
+  isRemovingExtension,
   isValidExtension,
   parseUserLimits,
   planExtensionSteps,
+  reassignMainExtension,
   validateExtensionDrafts,
 } from './extensions'
 import type { User } from './users'
+
+vi.mock('@/lib/api/client', () => ({ api: { POST: vi.fn(), GET: vi.fn() } }))
 
 const user = (username: string, mainExtension: string): User => ({
   id: username.length,
@@ -67,6 +75,34 @@ describe('extension drafts', () => {
     ).toEqual({ 'c.davis': 'duplicate', 'd.jones': 'invalid' })
   })
 
+  it('requires an extension for the users that already have one', () => {
+    expect(
+      validateExtensionDrafts(
+        { 'a.miller': ' ', 'c.davis': '', 'd.jones': '302' },
+        { 'a.miller': '300', 'c.davis': '', 'd.jones': '301' },
+      ),
+    ).toEqual({ 'a.miller': 'required' })
+  })
+
+  it('tells a removed extension from a changed one', () => {
+    expect(isRemovingExtension('300', ' ')).toBe(true)
+    expect(isRemovingExtension('', '')).toBe(false)
+    expect(isChangingExtension('300', '301')).toBe(true)
+    expect(isChangingExtension('300', ' 300 ')).toBe(false)
+    expect(isChangingExtension('', '301')).toBe(false)
+    expect(isChangingExtension('300', '')).toBe(false)
+  })
+
+  it('lists the users whose extension changes', () => {
+    const users = [user('a', '300'), user('b', ''), user('c', '302'), user('d', '303')]
+
+    expect(
+      getChangedExtensions(users, { a: '310 ', b: '311', c: '', d: '303' }).map(
+        (step) => `${step.user.username}:${step.extension}`,
+      ),
+    ).toEqual(['a:310'])
+  })
+
   it('counts only the users with a valid extension', () => {
     expect(countConfiguredDrafts({ a: '300', b: '300', c: 'x', d: '', e: '301' })).toBe(2)
   })
@@ -118,5 +154,31 @@ describe('getExtensionErrorKind', () => {
     expect(getExtensionErrorKind(apiError(404))).toBe('user_not_found')
     expect(getExtensionErrorKind(apiError(500))).toBe('unknown')
     expect(getExtensionErrorKind(new Error('offline'))).toBe('unknown')
+  })
+})
+
+describe('getReassignTargets', () => {
+  it('lists the other users without a main extension sorted by name', () => {
+    const owner = user('alice', '201')
+    const users = [owner, user('zoe', ''), user('dave', '202'), user('bob', '')]
+
+    expect(getReassignTargets(users, owner).map((target) => target.username)).toEqual([
+      'bob',
+      'zoe',
+    ])
+  })
+})
+
+describe('reassignMainExtension', () => {
+  it('posts the new owner of the main extension', async () => {
+    vi.mocked(api.POST).mockResolvedValue({ data: '', response: new Response() })
+
+    await reassignMainExtension('201', 'bob')
+
+    expect(api.POST).toHaveBeenCalledWith('/mainextensions/{extension}/reassign', {
+      params: { path: { extension: '201' } },
+      body: { username: 'bob' },
+      parseAs: 'text',
+    })
   })
 })

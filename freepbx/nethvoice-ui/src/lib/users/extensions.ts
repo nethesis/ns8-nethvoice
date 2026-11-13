@@ -4,7 +4,8 @@
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import { isApiError } from '@/lib/api/errors'
-import type { User } from '@/lib/users/users'
+import { compareNatural } from '@/lib/common'
+import { hasMainExtension, type User } from '@/lib/users/users'
 
 export const USER_LIMITS_KEY = 'userLimits'
 
@@ -14,7 +15,13 @@ export type UserLimits = {
   configurable: number | null
 }
 
-export type ExtensionIssue = 'invalid' | 'duplicate'
+export type ExtensionIssue = 'invalid' | 'duplicate' | 'required'
+
+export const EXTENSION_ISSUE_MESSAGES: Record<ExtensionIssue, string> = {
+  invalid: 'users.extension_invalid',
+  duplicate: 'users.extension_already_assigned',
+  required: 'users.extension_required_to_keep',
+}
 
 export type ExtensionStep = {
   user: User
@@ -45,10 +52,38 @@ export const postMainExtension = async (username: string, extension: string): Pr
   await api.POST('/mainextensions', { body: { username, extension }, parseAs: 'text' })
 }
 
+export const reassignMainExtension = async (extension: string, username: string): Promise<void> => {
+  await api.POST('/mainextensions/{extension}/reassign', {
+    params: { path: { extension } },
+    body: { username },
+    parseAs: 'text',
+  })
+}
+
+export const getReassignTargets = (users: User[], owner: User): User[] =>
+  users
+    .filter((user) => user.username !== owner.username && !hasMainExtension(user))
+    .sort((a, b) => compareNatural(a.displayName, b.displayName))
+
 export const isValidExtension = (extension: string): boolean => /^[0-9]+$/.test(extension)
+
+export const isRemovingExtension = (saved: string, draft: string): boolean =>
+  saved !== '' && draft.trim() === ''
+
+export const isChangingExtension = (saved: string, draft: string): boolean =>
+  saved !== '' && draft.trim() !== '' && draft.trim() !== saved
+
+export const getChangedExtensions = (
+  users: User[],
+  drafts: Record<string, string>,
+): ExtensionStep[] =>
+  users
+    .filter((user) => isChangingExtension(user.mainExtension, drafts[user.username] ?? ''))
+    .map((user) => ({ user, extension: drafts[user.username].trim() }))
 
 export const validateExtensionDrafts = (
   drafts: Record<string, string>,
+  savedExtensions: Record<string, string> = {},
 ): Record<string, ExtensionIssue> => {
   const issues: Record<string, ExtensionIssue> = {}
   const owners = new Map<string, string[]>()
@@ -57,6 +92,9 @@ export const validateExtensionDrafts = (
     const extension = draft.trim()
 
     if (extension === '') {
+      if (isRemovingExtension(savedExtensions[username] ?? '', extension)) {
+        issues[username] = 'required'
+      }
       continue
     }
 

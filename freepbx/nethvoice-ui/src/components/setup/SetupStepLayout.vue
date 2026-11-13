@@ -4,18 +4,13 @@
 -->
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
-import { NeButton, NeTooltip } from '@nethesis/vue-components'
+import { NeButton } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import {
-  faArrowLeft,
-  faArrowRight,
-  faCircleQuestion,
-  type IconDefinition,
-} from '@fortawesome/free-solid-svg-icons'
+import { faArrowLeft, faArrowRight, type IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import SymbolNethvoice from '@/assets/symbol_nethvoice.svg'
-import SetupSignOutButton from './SetupSignOutButton.vue'
+import SetupHelpLinks from './SetupHelpLinks.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import {
   getPreviousStep,
@@ -52,8 +47,12 @@ const emit = defineEmits<{ next: [] }>()
 const router = useRouter()
 const runtimeConfigStore = useRuntimeConfigStore()
 
+const titleRef = useTemplateRef<HTMLElement>('titleRef')
+
 const stepNumber = computed(() => getStepIndex(stepId) + 1)
 const progress = computed(() => getStepProgress(stepId))
+
+onMounted(() => titleRef.value?.focus({ preventScroll: true }))
 
 function goToPreviousStep() {
   const previousStep = getPreviousStep(stepId)
@@ -76,24 +75,13 @@ function goToPreviousStep() {
         />
       </div>
       <div class="flex flex-col items-center gap-2">
-        <NeTooltip trigger-event="mouseenter focus" placement="right">
-          <template #trigger>
-            <a
-              :href="runtimeConfigStore.config.docsUrl"
-              target="_blank"
-              rel="noreferrer"
-              class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-300 flex rounded-full p-2"
-            >
-              <span class="sr-only">{{ $t('common.need_help') }}</span>
-              <FontAwesomeIcon :icon="faCircleQuestion" class="h-4 w-4" aria-hidden="true" />
-            </a>
-          </template>
-          <template #content>{{ $t('common.need_help') }}</template>
-        </NeTooltip>
-        <SetupSignOutButton icon-only />
+        <SetupHelpLinks />
       </div>
     </aside>
     <main class="flex min-w-0 flex-1 flex-col gap-6 p-6 sm:p-10">
+      <div class="-mt-2 -mr-2 flex justify-end gap-2 sm:hidden">
+        <SetupHelpLinks placement="bottom" />
+      </div>
       <div class="flex flex-col items-center gap-2">
         <div
           class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
@@ -101,6 +89,7 @@ function goToPreviousStep() {
           :aria-valuenow="stepNumber"
           aria-valuemin="1"
           :aria-valuemax="SETUP_STEPS.length"
+          :aria-valuetext="`${$t('setup.step_of', { step: stepNumber, total: SETUP_STEPS.length })}: ${title}`"
           :aria-label="$t('setup.progress')"
         >
           <div
@@ -116,7 +105,13 @@ function goToPreviousStep() {
         class="flex min-h-0 flex-1 flex-col gap-6 border-b border-gray-200 pb-8 dark:border-gray-700"
       >
         <div v-if="!hideHeader" class="flex flex-col gap-2">
-          <h1 class="text-primary-neutral text-2xl font-medium">{{ title }}</h1>
+          <h1
+            ref="titleRef"
+            tabindex="-1"
+            class="text-primary-neutral text-2xl font-medium focus:outline-none"
+          >
+            {{ title }}
+          </h1>
           <p v-if="description" class="text-secondary-neutral max-w-3xl">{{ description }}</p>
           <slot name="description" />
         </div>

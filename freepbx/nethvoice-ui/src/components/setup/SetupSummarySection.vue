@@ -24,7 +24,13 @@ const emit = defineEmits<{ retry: [] }>()
   <section class="flex flex-col gap-1">
     <h2 class="text-primary-neutral text-lg font-medium">{{ title }}</h2>
     <NeSkeleton v-if="loading" :lines="2" class="max-w-md" />
-    <LoadError v-else-if="error" :error="error" class="max-w-3xl" @retry="emit('retry')" />
+    <LoadError
+      v-else-if="error"
+      :error="error"
+      :server-detail="false"
+      class="max-w-3xl"
+      @retry="emit('retry')"
+    />
     <div v-else class="text-tertiary-neutral flex flex-col gap-1">
       <slot />
     </div>

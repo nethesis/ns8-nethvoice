@@ -7,9 +7,14 @@
 import { NeInlineNotification } from '@nethesis/vue-components'
 import { describeError } from '@/stores/notifications'
 
-const { error, title = '' } = defineProps<{
+const {
+  error,
+  title = '',
+  serverDetail = true,
+} = defineProps<{
   error: unknown
   title?: string
+  serverDetail?: boolean
 }>()
 
 const emit = defineEmits<{ retry: [] }>()
@@ -19,7 +24,7 @@ const emit = defineEmits<{ retry: [] }>()
   <NeInlineNotification
     kind="error"
     :title="title || $t('common.cannot_load_data')"
-    :description="describeError(error)"
+    :description="describeError(error, { serverDetail })"
     :primary-button-label="$t('common.retry')"
     @primary-click="emit('retry')"
   />

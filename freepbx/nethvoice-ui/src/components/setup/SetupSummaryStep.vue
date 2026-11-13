@@ -23,10 +23,10 @@ import { useInboundRoutes } from '@/queries/routes/inbound'
 import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { getCountryLabel } from '@/lib/settings/system'
 import { countConfiguredUsers } from '@/lib/users/users'
-import { getVoipTrunks } from '@/lib/trunks/trunks'
+import { getTrunkManagement, getVoipTrunks } from '@/lib/trunks/trunks'
 import { getGatewayTrunkIds } from '@/lib/trunks/gateways'
-import { getInboundRouteName } from '@/lib/routes/inbound'
-import { getRoutesLocale } from '@/lib/routes/outbound'
+import { getInboundRouteName, sortInboundRoutes } from '@/lib/routes/inbound'
+import { getRoutesLocale, isOutboundTrunk } from '@/lib/routes/outbound'
 import { getLanguageName, getSummaryWarnings } from '@/lib/setup/summary'
 import { LEGACY_FINAL_STEP } from '@/lib/setup/steps'
 import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
@@ -65,15 +65,21 @@ const gateways = computed(() => gatewaysState.value.data ?? [])
 
 const voipTrunks = computed(() =>
   trunksState.value.data && gatewaysState.value.data
-    ? getVoipTrunks(trunksState.value.data, getGatewayTrunkIds(gatewaysState.value.data))
+    ? getVoipTrunks(trunksState.value.data, getGatewayTrunkIds(gatewaysState.value.data)).filter(
+        (trunk) => getTrunkManagement(trunk) !== 'voice_agents',
+      )
     : undefined,
+)
+
+const inboundRoutes = computed(() =>
+  sortInboundRoutes(inboundState.value.data ?? [], 'number', false, () => ''),
 )
 
 const warnings = computed(() =>
   getSummaryWarnings({
     usersWithExtension: configuredUsers.value,
     physicalTrunks: gatewaysState.value.data?.length,
-    voipTrunks: voipTrunks.value?.length,
+    voipTrunks: voipTrunks.value?.filter(isOutboundTrunk).length,
     inboundRoutes: inboundState.value.data?.length,
     outboundRoutes: outboundState.value.data?.length,
     outboundRoutesWithoutTrunks: outboundState.value.data?.filter(
@@ -205,6 +211,9 @@ async function completeSetup() {
           <li v-for="trunk in voipTrunks" :key="trunk.id" class="flex flex-wrap gap-x-2">
             <span class="wrap-anywhere">{{ trunk.name }}</span>
             <span v-if="trunk.phoneNumber" class="wrap-anywhere">{{ trunk.phoneNumber }}</span>
+            <span v-if="trunk.disabled" class="text-tertiary-neutral">
+              ({{ t('common.disabled') }})
+            </span>
           </li>
         </ul>
         <p v-else>{{ t('setup.summary.no_voip_trunks') }}</p>
@@ -215,8 +224,8 @@ async function completeSetup() {
         :error="inboundState.error"
         @retry="refetchInbound()"
       >
-        <ul v-if="inboundState.data?.length">
-          <li v-for="route in inboundState.data" :key="route.id" class="wrap-anywhere">
+        <ul v-if="inboundRoutes.length">
+          <li v-for="route in inboundRoutes" :key="route.id" class="wrap-anywhere">
             <span class="font-medium">{{ getInboundRouteName(route) }}:</span>
             {{ route.description || '-' }}
           </li>
@@ -245,7 +254,7 @@ async function completeSetup() {
         v-if="completionError"
         kind="error"
         :title="t('setup.summary.cannot_complete_setup')"
-        :description="describeError(completionError)"
+        :description="describeError(completionError, { serverDetail: false })"
         class="max-w-3xl"
       />
     </div>
@@ -260,7 +269,13 @@ async function completeSetup() {
     @close="isFinishModalShown = false"
     @primary-click="completeSetup"
   >
-    <p>{{ t('setup.summary.finish_setup_description') }}</p>
+    <p>
+      {{
+        t('setup.summary.finish_setup_description', {
+          brand: runtimeConfigStore.config.brandName,
+        })
+      }}
+    </p>
   </NeModal>
   <Teleport to="body">
     <div
