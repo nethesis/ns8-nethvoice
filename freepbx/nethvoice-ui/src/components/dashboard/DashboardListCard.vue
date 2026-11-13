@@ -4,24 +4,37 @@
 -->
 
 <script setup lang="ts" generic="TItem extends { id: string; label: string }">
+import { computed } from 'vue'
 import { NeCard, NeEmptyState, NeSkeleton } from '@nethesis/vue-components'
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
+import TablePaginator from '@/components/common/TablePaginator.vue'
+import { useClientPagination } from '@/composables/useClientPagination'
+import { DASHBOARD_LIST_PAGE_SIZE } from '@/lib/dashboard/routing'
 
 const {
   title,
   items,
+  labelHeader,
+  valueHeader,
   emptyTitle,
   emptyIcon,
   loading = false,
 } = defineProps<{
   title: string
   items: TItem[]
+  labelHeader: string
+  valueHeader: string
   emptyTitle: string
   emptyIcon: IconDefinition
   loading?: boolean
 }>()
 
 defineSlots<{ value(props: { item: TItem }): unknown }>()
+
+const { pageNum, pageSize, page } = useClientPagination(computed(() => items))
+pageSize.value = DASHBOARD_LIST_PAGE_SIZE
+
+const paginated = computed(() => items.length > DASHBOARD_LIST_PAGE_SIZE)
 </script>
 
 <template>
@@ -31,20 +44,41 @@ defineSlots<{ value(props: { item: TItem }): unknown }>()
     </template>
     <NeSkeleton v-if="loading" :lines="6" class="w-full" />
     <NeEmptyState v-else-if="items.length === 0" :title="emptyTitle" :icon="emptyIcon" />
-    <dl v-else class="max-h-96 overflow-y-auto">
-      <div
-        v-for="item in items"
-        :key="item.id"
-        class="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
-        data-testid="list-row"
-      >
-        <dt class="text-primary-neutral font-medium wrap-anywhere">
-          {{ item.label || '-' }}
-        </dt>
-        <dd class="text-tertiary-neutral ml-auto text-right wrap-anywhere">
-          <slot name="value" :item="item" />
-        </dd>
-      </div>
-    </dl>
+    <div v-else class="flex flex-col gap-4">
+      <table class="w-full text-left text-sm">
+        <caption class="sr-only">
+          {{
+            title
+          }}
+        </caption>
+        <thead>
+          <tr class="text-tertiary-neutral border-b border-gray-200 dark:border-gray-700">
+            <th scope="col" class="py-3 pr-4 font-medium">{{ labelHeader }}</th>
+            <th scope="col" class="py-3 font-medium">{{ valueHeader }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="item in page"
+            :key="item.id"
+            class="border-b border-gray-200 last:border-b-0 dark:border-gray-700"
+            data-testid="list-row"
+          >
+            <th scope="row" class="text-primary-neutral py-3 pr-4 font-medium wrap-anywhere">
+              {{ item.label || '-' }}
+            </th>
+            <td class="text-secondary-neutral py-3 wrap-anywhere">
+              <slot name="value" :item="item" />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <TablePaginator
+        v-if="paginated"
+        v-model:page-num="pageNum"
+        v-model:page-size="pageSize"
+        :total-rows="items.length"
+      />
+    </div>
   </NeCard>
 </template>

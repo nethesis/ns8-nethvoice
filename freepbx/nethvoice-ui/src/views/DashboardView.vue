@@ -330,12 +330,14 @@ usePolling(() => {
           :loading="callsLoading"
         />
       </div>
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-4">
+      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <DashboardListCard
           v-if="!trunksState.error || trunksState.data"
           data-testid="trunks-card"
           :title="$t('dashboard.trunks.title')"
           :items="trunkRows"
+          :label-header="$t('common.name')"
+          :value-header="$t('common.status')"
           :empty-title="$t('dashboard.trunks.no_trunks')"
           :empty-icon="faNetworkWired"
           :loading="trunksState.status === 'pending'"
@@ -349,6 +351,8 @@ usePolling(() => {
           data-testid="inbound-routes-card"
           :title="$t('dashboard.inbound_routes.title')"
           :items="inboundRouteRows"
+          :label-header="$t('routes.route')"
+          :value-header="$t('routes.destination')"
           :empty-title="$t('dashboard.inbound_routes.no_routes')"
           :empty-icon="faRoute"
           :loading="inboundRoutesState.status === 'pending'"

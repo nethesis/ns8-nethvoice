@@ -26,6 +26,48 @@ test.describe('shell', () => {
     await expect(page.getByRole('menuitem', { name: 'Sign out' })).toBeVisible()
   })
 
+  test('switches the theme from the account menu', async ({ page }) => {
+    await page.goto('./dashboard')
+    const html = page.locator('html')
+    const accountMenu = page.getByRole('button', { name: 'Open account menu' })
+
+    await expect(page.getByRole('button', { name: /Switch to (light|dark) theme/ })).toHaveCount(0)
+    await expect(html).toHaveClass(/\bdark\b/)
+
+    await accountMenu.click()
+    await page.getByRole('menuitem', { name: 'Switch to light theme' }).click()
+    await expect(html).not.toHaveClass(/\bdark\b/)
+
+    await page.reload()
+    await expect(html).not.toHaveClass(/\bdark\b/)
+    await accountMenu.click()
+    await page.getByRole('menuitem', { name: 'Switch to dark theme' }).click()
+    await expect(html).toHaveClass(/\bdark\b/)
+  })
+
+  test('switches to the compact view and keeps it after a reload', async ({ page }) => {
+    await page.goto('./dashboard')
+    const html = page.locator('html')
+    const accountMenu = page.getByRole('button', { name: 'Open account menu' })
+    const spacing = () =>
+      html.evaluate((element) => getComputedStyle(element).getPropertyValue('--spacing').trim())
+
+    await expect(html).not.toHaveClass(/\bcompact\b/)
+    expect(await spacing()).toBe('0.25rem')
+
+    await accountMenu.click()
+    await page.getByRole('menuitem', { name: 'Switch to compact view' }).click()
+    await expect(html).toHaveClass(/\bcompact\b/)
+    expect(await spacing()).toBe('0.2rem')
+
+    await page.reload()
+    await expect(html).toHaveClass(/\bcompact\b/)
+    await accountMenu.click()
+    await page.getByRole('menuitem', { name: 'Switch to standard view' }).click()
+    await expect(html).not.toHaveClass(/\bcompact\b/)
+    expect(await spacing()).toBe('0.25rem')
+  })
+
   test('falls back to the default logo when the custom one cannot be loaded', async ({ page }) => {
     await page.route('**/nethvoice/config.json*', (route) =>
       route.fulfill({

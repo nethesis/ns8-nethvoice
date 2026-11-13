@@ -190,17 +190,64 @@ test.describe('dashboard', () => {
 
     await expect(page.getByTestId('system-hostname')).toHaveText('pbx.example.org')
 
-    const trunkRows = page.getByTestId('trunks-card').getByTestId('list-row')
+    const trunksCard = page.getByTestId('trunks-card')
+    await expect(trunksCard.getByRole('columnheader')).toHaveText(['Name', 'Status'])
+    await expect(trunksCard.getByRole('navigation', { name: 'Table pagination' })).toHaveCount(0)
+    const trunkRows = trunksCard.getByTestId('list-row')
     await expect(trunkRows).toHaveCount(2)
     await expect(trunkRows.nth(0)).toContainText('Backup')
     await expect(trunkRows.nth(0)).toContainText('Pending')
     await expect(trunkRows.nth(1)).toContainText('Provider')
     await expect(trunkRows.nth(1)).toContainText('Registered')
 
-    const routeRows = page.getByTestId('inbound-routes-card').getByTestId('list-row')
+    const routesCard = page.getByTestId('inbound-routes-card')
+    await expect(routesCard.getByRole('columnheader')).toHaveText(['Route', 'Destination'])
+    const routeRows = routesCard.getByTestId('list-row')
     await expect(routeRows).toHaveCount(1)
     await expect(routeRows.nth(0)).toContainText('0612345678')
     await expect(routeRows.nth(0)).toContainText('Queue: Sales (400)')
+  })
+
+  test('paginates the trunks and the inbound routes', async ({ page, mockApi }) => {
+    const names = ['A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7']
+
+    mockApi
+      .on('GET', '/freepbx/rest/trunks', {
+        json: names.map((name, index) => ({
+          trunkid: index + 1,
+          tech: 'pjsip',
+          name,
+          disabled: 'off',
+        })),
+      })
+      .on('GET', '/freepbx/rest/inboundroutes', {
+        json: {
+          destinations: INBOUND_ROUTES.destinations,
+          routes: Array.from({ length: 6 }, (_, index) => ({
+            extension: `061234560${index}`,
+            cidnum: '',
+            description: `Route ${index}`,
+            destination: 'ext-queues,400,1',
+          })),
+        },
+      })
+
+    await page.goto('./dashboard')
+
+    const trunksCard = page.getByTestId('trunks-card')
+    const trunkRows = trunksCard.getByTestId('list-row')
+    await expect(trunkRows).toHaveCount(5)
+    await expect(trunksCard).toContainText('1 - 5 of 7')
+    await expect(trunksCard.locator('.overflow-y-auto')).toHaveCount(0)
+
+    await trunksCard.getByRole('button', { name: 'Go to next page' }).click()
+    await expect(trunkRows).toHaveCount(2)
+    await expect(trunkRows.nth(0)).toContainText('A6')
+    await expect(trunkRows.nth(1)).toContainText('A7')
+
+    const routesCard = page.getByTestId('inbound-routes-card')
+    await expect(routesCard.getByTestId('list-row')).toHaveCount(5)
+    await expect(routesCard).toContainText('1 - 5 of 6')
   })
 
   test('puts an offline provider before the trunk registration', async ({ page, mockApi }) => {

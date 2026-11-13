@@ -28,6 +28,7 @@ import {
   faTrash,
   faVideo,
 } from '@fortawesome/free-solid-svg-icons'
+import ClickToCopy from '@/components/common/ClickToCopy.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import CreateOrEditVideoSourceDrawer from './CreateOrEditVideoSourceDrawer.vue'
 import DeleteIntegrationObjectModal from './DeleteIntegrationObjectModal.vue'
@@ -232,7 +233,7 @@ function deleteCurrentSource() {
               </div>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.url')">
-              <span class="wrap-anywhere">{{ source.url }}</span>
+              <ClickToCopy class="wrap-anywhere" :text="source.url" />
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.video.extension')">
               {{ describeExtension(source.extension) }}

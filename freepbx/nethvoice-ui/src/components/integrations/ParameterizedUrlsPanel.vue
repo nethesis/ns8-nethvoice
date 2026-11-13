@@ -29,6 +29,7 @@ import {
   faPenToSquare,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
+import ClickToCopy from '@/components/common/ClickToCopy.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import CreateOrEditParameterizedUrlDrawer from './CreateOrEditParameterizedUrlDrawer.vue'
 import DeleteIntegrationObjectModal from './DeleteIntegrationObjectModal.vue'
@@ -209,7 +210,7 @@ function deleteCurrentUrl() {
         <NeTableBody>
           <NeTableRow v-for="item in urlsPage" :key="item.id">
             <NeTableCell :data-label="t('integrations.url')">
-              <span class="wrap-anywhere">{{ item.url }}</span>
+              <ClickToCopy class="wrap-anywhere" :text="item.url" />
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.profiles')">
               <span class="wrap-anywhere">

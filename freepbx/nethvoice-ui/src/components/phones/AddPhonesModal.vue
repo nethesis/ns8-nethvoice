@@ -15,6 +15,7 @@ import {
   NeModal,
   NeTextArea,
   NeTextInput,
+  NeTooltip,
   type NeComboboxOption,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -527,17 +528,22 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
               :show-selected-label="false"
               v-bind="comboboxLabels"
             />
-            <NeButton
-              kind="tertiary"
-              :class="isLabelShown(index) ? 'md:mt-8' : ''"
-              :disabled="adding"
-              @click.prevent="removeRow(row.key)"
-            >
-              <FontAwesomeIcon :icon="faTrash" class="size-4" aria-hidden="true" />
-              <span class="sr-only">{{
-                $t('phones.inventory.remove_phone', { mac: row.mac })
-              }}</span>
-            </NeButton>
+            <NeTooltip trigger-event="mouseenter focus" placement="top">
+              <template #trigger>
+                <NeButton
+                  kind="tertiary"
+                  :class="isLabelShown(index) ? 'md:mt-8' : ''"
+                  :disabled="adding"
+                  @click.prevent="removeRow(row.key)"
+                >
+                  <FontAwesomeIcon :icon="faTrash" class="size-4" aria-hidden="true" />
+                  <span class="sr-only">{{
+                    $t('phones.inventory.remove_phone', { mac: row.mac })
+                  }}</span>
+                </NeButton>
+              </template>
+              <template #content>{{ $t('common.remove') }}</template>
+            </NeTooltip>
             <p
               v-if="row.error"
               class="text-sm md:col-span-4"

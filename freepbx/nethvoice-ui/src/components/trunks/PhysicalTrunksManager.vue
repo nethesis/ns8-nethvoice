@@ -30,6 +30,7 @@ import {
   faMagnifyingGlass,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
+import ClickToCopy from '@/components/common/ClickToCopy.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import GatewayDrawer from './GatewayDrawer.vue'
 import DeleteGatewayModal from './DeleteGatewayModal.vue'
@@ -314,10 +315,15 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
             </div>
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.physical.ip_address_column')">
-            {{ item.ipAddress || '-' }}
+            <ClickToCopy v-if="item.ipAddress" :text="item.ipAddress" />
+            <template v-else>-</template>
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.physical.mac_column')">
-            {{ formatMacAddress(item.macAddress) || '-' }}
+            <ClickToCopy
+              v-if="formatMacAddress(item.macAddress)"
+              :text="formatMacAddress(item.macAddress)"
+            />
+            <template v-else>-</template>
           </NeTableCell>
           <NeTableCell :data-label="t('common.status')">
             <TrunkStatusIndicator :status="getGatewayStatus(item, trunksState.data, liveData)" />

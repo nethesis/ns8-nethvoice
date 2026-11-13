@@ -14,6 +14,7 @@ import {
   NeInlineNotification,
   NeSideDrawer,
   NeSkeleton,
+  NeTooltip,
   type NeDropdownItem,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -332,44 +333,59 @@ function discardChanges() {
               <RouteTrunkBadge :state="getTrunkState(trunk)" />
             </span>
             <div class="ml-auto flex shrink-0 items-center">
-              <NeButton
-                type="button"
-                kind="tertiary"
-                size="sm"
-                data-move="up"
-                :disabled="index === 0 || saveTrunksLoading"
-                @click="moveTrunk(index, -1)"
-              >
-                <span class="sr-only">{{
-                  t('routes.move_trunk_up', { name: getTrunkLabel(trunk) })
-                }}</span>
-                <FontAwesomeIcon :icon="faArrowUp" class="h-4 w-4" aria-hidden="true" />
-              </NeButton>
-              <NeButton
-                type="button"
-                kind="tertiary"
-                size="sm"
-                data-move="down"
-                :disabled="index === trunks.length - 1 || saveTrunksLoading"
-                @click="moveTrunk(index, 1)"
-              >
-                <span class="sr-only">{{
-                  t('routes.move_trunk_down', { name: getTrunkLabel(trunk) })
-                }}</span>
-                <FontAwesomeIcon :icon="faArrowDown" class="h-4 w-4" aria-hidden="true" />
-              </NeButton>
-              <NeButton
-                type="button"
-                kind="tertiary"
-                size="sm"
-                :disabled="saveTrunksLoading"
-                @click="removeTrunk(trunk)"
-              >
-                <span class="sr-only">{{
-                  t('routes.remove_trunk', { name: getTrunkLabel(trunk) })
-                }}</span>
-                <FontAwesomeIcon :icon="faTrash" class="h-4 w-4" aria-hidden="true" />
-              </NeButton>
+              <NeTooltip trigger-event="mouseenter focus" placement="top">
+                <template #trigger>
+                  <NeButton
+                    type="button"
+                    kind="tertiary"
+                    size="sm"
+                    data-move="up"
+                    :disabled="index === 0 || saveTrunksLoading"
+                    @click="moveTrunk(index, -1)"
+                  >
+                    <span class="sr-only">{{
+                      t('routes.move_trunk_up', { name: getTrunkLabel(trunk) })
+                    }}</span>
+                    <FontAwesomeIcon :icon="faArrowUp" class="h-4 w-4" aria-hidden="true" />
+                  </NeButton>
+                </template>
+                <template #content>{{ t('routes.move_up') }}</template>
+              </NeTooltip>
+              <NeTooltip trigger-event="mouseenter focus" placement="top">
+                <template #trigger>
+                  <NeButton
+                    type="button"
+                    kind="tertiary"
+                    size="sm"
+                    data-move="down"
+                    :disabled="index === trunks.length - 1 || saveTrunksLoading"
+                    @click="moveTrunk(index, 1)"
+                  >
+                    <span class="sr-only">{{
+                      t('routes.move_trunk_down', { name: getTrunkLabel(trunk) })
+                    }}</span>
+                    <FontAwesomeIcon :icon="faArrowDown" class="h-4 w-4" aria-hidden="true" />
+                  </NeButton>
+                </template>
+                <template #content>{{ t('routes.move_down') }}</template>
+              </NeTooltip>
+              <NeTooltip trigger-event="mouseenter focus" placement="top">
+                <template #trigger>
+                  <NeButton
+                    type="button"
+                    kind="tertiary"
+                    size="sm"
+                    :disabled="saveTrunksLoading"
+                    @click="removeTrunk(trunk)"
+                  >
+                    <span class="sr-only">{{
+                      t('routes.remove_trunk', { name: getTrunkLabel(trunk) })
+                    }}</span>
+                    <FontAwesomeIcon :icon="faTrash" class="h-4 w-4" aria-hidden="true" />
+                  </NeButton>
+                </template>
+                <template #content>{{ t('common.remove') }}</template>
+              </NeTooltip>
             </div>
           </li>
         </ol>
