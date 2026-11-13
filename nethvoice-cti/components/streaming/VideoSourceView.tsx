@@ -7,7 +7,7 @@ import classNames from 'classnames'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 import {
-  faVideo,
+  faVideoSlash,
   faVolumeHigh,
   faVolumeXmark,
   faCircleNotch,
@@ -87,6 +87,7 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
   const { t } = useTranslation()
   const isRtsp = source.type === 'rtsp'
   const isExpanded = variant === 'expanded'
+  const sourceName = source.description || t('Streaming.Video source')
   const tooltipKey = isExpanded ? 'expanded' : source.id
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -155,7 +156,10 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
         isExpanded ? '' : 'text-sm',
       )}
     >
-      <FontAwesomeIcon icon={faVideo} className={isExpanded ? 'w-16 h-16 mb-4' : 'w-8 h-8 mb-3'} />
+      <FontAwesomeIcon
+        icon={faVideoSlash}
+        className={isExpanded ? 'w-16 h-16 mb-4' : 'w-8 h-8 mb-3'}
+      />
       <p className={isExpanded ? 'text-lg' : ''}>{t('Streaming.video feed not available')}</p>
       {message && <p className='mt-1 text-xs font-normal'>{message}</p>}
     </div>
@@ -173,7 +177,7 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
     return (
       <Image
         src={source.url}
-        alt={source.description || 'Video source preview'}
+        alt={sourceName}
         fill
         unoptimized
         className={isExpanded ? 'object-contain' : 'object-cover'}
@@ -198,7 +202,7 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
       case 'codec':
         return t('Streaming.Your browser cannot play the video format of this source')
       case 'forbidden':
-        return t('Streaming.You are not allowed to watch this source')
+        return t("Streaming.You don't have permission to watch this video source")
       case 'unreachable':
         return t('Streaming.The video source is not reachable, retrying')
       case 'busy':
@@ -212,6 +216,7 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
     <>
       <video
         ref={videoRef}
+        aria-label={sourceName}
         muted
         autoPlay
         playsInline
@@ -226,27 +231,31 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
       {player.status === 'unavailable' && unavailable(unavailableMessage())}
       {player.status === 'waiting' && !player.hasPicture && loading}
       {(player.status === 'reconnecting' || player.status === 'waiting') && (
-        <div
-          className={classNames(
-            'absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium',
-            player.hasPicture
-              ? 'bg-black/40 text-white'
-              : 'text-secondaryNeutral dark:text-secondaryNeutralDark',
-          )}
-        >
-          <FontAwesomeIcon icon={faCircleNotch} className='w-4 h-4 mr-2 animate-spin shrink-0' />
-          <span>
-            {player.status === 'waiting'
-              ? t('Streaming.Waiting for the picture')
-              : t('Streaming.Reconnecting')}
-          </span>
+        // over the picture the text is in a dark pill: readable on any picture
+        <div className='absolute inset-0 flex items-center justify-center px-4 text-center'>
+          <div
+            role='status'
+            className={classNames(
+              'flex items-center gap-2 text-sm font-medium',
+              player.hasPicture
+                ? 'rounded-full bg-black/60 px-3 py-1 text-white'
+                : 'text-secondaryNeutral dark:text-secondaryNeutralDark',
+            )}
+          >
+            <FontAwesomeIcon icon={faCircleNotch} className='w-4 h-4 animate-spin shrink-0' />
+            <span>
+              {player.status === 'waiting'
+                ? t('Streaming.Waiting for the picture')
+                : t('Streaming.Reconnecting')}
+            </span>
+          </div>
         </div>
       )}
       {(player.status === 'playing' || player.status === 'waiting') && player.hasAudio && (
         <>
           <button
             type='button'
-            className='absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-black/40 hover:bg-black/60 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500'
+            className='absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primaryRing dark:focus-visible:ring-primaryRingDark'
             aria-label={(muted ? t('Streaming.Unmute') : t('Streaming.Mute')) || undefined}
             data-tooltip-id={`audio-tooltip-${tooltipKey}`}
             data-tooltip-content={muted ? t('Streaming.Unmute') : t('Streaming.Mute')}
