@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import type { Page } from '@playwright/test'
-import { expect, test, type MockApi } from '../fixtures/mockApi'
+import { expect, mockWizardState, test, type MockApi } from '../fixtures/mockApi'
 import { mockTrunksApi } from './trunks-data'
 import { csvImportMock, mockUsersApi, mockWrites, RAW_USERS, REST } from './users-data'
 
@@ -18,7 +18,7 @@ const mockStep = (mockApi: MockApi, users: unknown = RAW_USERS) => {
 test.describe('setup: users and extensions', () => {
   test.beforeEach(({ signedIn, mockApi }) => {
     void signedIn
-    mockApi.on('GET', `${REST}/configuration/wizard`, { json: [{ step: 1, status: 'true' }] })
+    mockWizardState(mockApi, 1)
   })
 
   test('syncs the users and lists them with their extensions', async ({ page, mockApi }) => {
@@ -139,7 +139,7 @@ test.describe('setup: users and extensions', () => {
 
     await page.getByRole('button', { name: 'Next' }).click()
 
-    await expect(page.getByText('Request failed')).toBeVisible()
+    await expect(page.getByText('Cannot save the setup progress')).toBeVisible()
     await expect(page.getByText('Cannot configure the users')).toHaveCount(0)
     await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
   })

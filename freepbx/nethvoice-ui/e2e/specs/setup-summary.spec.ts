@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import type { Page } from '@playwright/test'
-import { expect, test, type MockApi } from '../fixtures/mockApi'
+import { expect, mockWizardState, test, type MockApi } from '../fixtures/mockApi'
 
 const USERS = [
   { id: '1', username: 'a.miller', displayname: 'Anna Miller', default_extension: '300' },
@@ -74,6 +74,7 @@ const section = (page: Page, title: string) =>
 test.describe('setup wizard: summary', () => {
   test.beforeEach(async ({ page, signedIn, mockApi }) => {
     void signedIn
+    mockWizardState(mockApi, 12)
     mockSummary(mockApi)
     await page.addInitScript(() => localStorage.setItem('nethvoiceSetupCountry', 'it'))
   })
@@ -150,8 +151,14 @@ test.describe('setup wizard: summary', () => {
     const finish = page.getByRole('button', { name: 'Finish setup' })
 
     await finish.click()
+    const modal = page.getByRole('dialog', { name: 'Finish setup' })
+    await expect(modal).toContainText('Asterisk will restart')
+    await modal.getByRole('button', { name: 'Finish', exact: true }).click()
     await expect(page.getByText('Adjusting NethVoice settings, almost there...')).toBeVisible()
     await finish.click({ force: true })
+    mockApi.on('GET', '/freepbx/rest/configuration/wizard', {
+      json: [{ step: 13, status: 'false' }],
+    })
     release()
 
     await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
@@ -174,9 +181,26 @@ test.describe('setup wizard: summary', () => {
 
     await page.goto('./setup/summary')
     await page.getByRole('button', { name: 'Finish setup' }).click()
+    await page
+      .getByRole('dialog', { name: 'Finish setup' })
+      .getByRole('button', { name: 'Finish', exact: true })
+      .click()
 
     await expect(page.getByText('Cannot complete the setup')).toBeVisible()
     await expect(page).toHaveURL(/\/nethvoice\/setup\/summary$/)
     await expect(page.getByRole('button', { name: 'Finish setup' })).toBeEnabled()
+  })
+
+  test('asks for confirmation before finishing and can be cancelled', async ({ page, mockApi }) => {
+    await page.goto('./setup/summary')
+    await page.getByRole('button', { name: 'Finish setup' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Finish setup' })
+    await expect(modal).toContainText('NethVoice CTI will restart too')
+    await modal.getByRole('button', { name: 'Cancel' }).click()
+
+    await expect(modal).toBeHidden()
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/summary$/)
+    expect(mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard')).toHaveLength(0)
   })
 })

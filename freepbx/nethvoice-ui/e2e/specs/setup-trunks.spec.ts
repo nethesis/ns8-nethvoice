@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockWizardState, test } from '../fixtures/mockApi'
 import { mockTrunksApi } from './trunks-data'
 
 test.describe('setup: trunks', () => {
@@ -18,7 +18,7 @@ test.describe('setup: trunks', () => {
 
   test.beforeEach(async ({ signedIn, mockApi }) => {
     void signedIn
-    mockApi.on('GET', '/freepbx/rest/configuration/wizard', { json: [{ step: 2, status: 'true' }] })
+    mockWizardState(mockApi, 3)
   })
 
   test('manages the physical trunks in step 3 and can be skipped', async ({ page, mockApi }) => {

@@ -91,10 +91,19 @@ const {
   onError(error) {
     if (isWrongCurrentPasswordError(error)) {
       validationIssues.value = { currentPassword: error.message }
-      focusElement(fieldRefs.currentPassword)
     }
   },
 })
+
+watch(
+  changing,
+  (isChanging) => {
+    if (!isChanging && changePasswordError.value) {
+      focusElement(fieldRefs.currentPassword)
+    }
+  },
+  { flush: 'post' },
+)
 
 const mutationErrorDescription = computed(() =>
   changePasswordError.value && !isWrongCurrentPasswordError(changePasswordError.value)

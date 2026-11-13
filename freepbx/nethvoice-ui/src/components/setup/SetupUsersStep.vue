@@ -204,7 +204,10 @@ const provisioningErrorDescription = computed(() => {
   const detail =
     kind === 'unknown' ? describeError(error.cause) : t(`users.extension_error_${kind}`)
 
-  return t('setup.users.provisioning_failed_for', { username: error.username, detail })
+  return t('setup.users.provisioning_failed_for', {
+    username: error.username,
+    detail: !detail || /[.!?]$/.test(detail) ? detail : `${detail}.`,
+  })
 })
 
 async function focusFirstIssue() {
