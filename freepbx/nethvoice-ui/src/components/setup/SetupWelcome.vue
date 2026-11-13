@@ -6,6 +6,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { useQueryCache } from '@pinia/colada'
 import { NeButton } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
@@ -17,14 +19,19 @@ import {
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons'
 import BrandLogo from '@/components/shell/BrandLogo.vue'
+import SetupSignOutButton from './SetupSignOutButton.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useNotificationsStore } from '@/stores/notifications'
 import { SETUP_STEPS } from '@/lib/setup/steps'
-import { postWizardState } from '@/lib/setup/wizard'
+import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
+import { useWizardState } from '@/queries/setup/wizardState'
 
 type Topic = { id: string; icon: IconDefinition }
 
+const { t } = useI18n()
 const router = useRouter()
+const queryCache = useQueryCache()
+const { state: wizardState } = useWizardState()
 const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
 const starting = ref(false)
@@ -45,10 +52,15 @@ async function startSetup() {
   starting.value = true
 
   try {
-    await postWizardState(firstStep.legacyStep, true)
+    const savedState = wizardState.value.data
+
+    if (!savedState?.inProgress || savedState.legacyStep <= firstStep.legacyStep) {
+      await postWizardState(firstStep.legacyStep, true)
+      await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] })
+    }
     await router.push({ name: `setup-${firstStep.id}` })
   } catch (error) {
-    notificationsStore.createNotificationFromError(error)
+    notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'))
   } finally {
     starting.value = false
   }
@@ -69,12 +81,15 @@ async function startSetup() {
           $t('setup.welcome.sidebar_description', { brand: runtimeConfigStore.config.brandName })
         }}
       </p>
-      <NeButton kind="tertiary" size="lg" @click="openDocs">
-        <template #prefix>
-          <FontAwesomeIcon :icon="faCircleQuestion" class="h-4 w-4" aria-hidden="true" />
-        </template>
-        {{ $t('common.need_help') }}
-      </NeButton>
+      <div class="flex flex-wrap justify-center gap-2">
+        <NeButton kind="tertiary" size="lg" @click="openDocs">
+          <template #prefix>
+            <FontAwesomeIcon :icon="faCircleQuestion" class="h-4 w-4" aria-hidden="true" />
+          </template>
+          {{ $t('common.need_help') }}
+        </NeButton>
+        <SetupSignOutButton />
+      </div>
     </aside>
     <main class="flex min-w-0 flex-1 flex-col gap-6 overflow-y-auto p-6 sm:p-10">
       <div class="flex flex-col gap-12 border-b border-gray-200 pt-8 pb-10 dark:border-gray-700">

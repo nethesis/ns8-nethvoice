@@ -36,9 +36,29 @@ test.describe('settings', () => {
       mockApi.on('POST', '/freepbx/rest/settings/defaultlanguage', { status: 500 })
 
       await page.goto('./settings')
+      await page.getByRole('combobox', { name: 'Language' }).click()
+      await page.getByRole('option', { name: 'Italiano' }).click()
       await page.getByRole('button', { name: 'Save' }).click()
 
       await expect(page.getByText('Cannot save PBX language')).toBeVisible()
+    })
+
+    test('enables Save only when the language changes', async ({ page, mockApi }) => {
+      await page.goto('./settings')
+
+      const language = page.getByRole('combobox', { name: 'Language' })
+      const save = page.getByRole('button', { name: 'Save' })
+      await expect(language).toHaveValue('English')
+      await expect(save).toBeDisabled()
+
+      await language.click()
+      await page.getByRole('option', { name: 'Italiano' }).click()
+      await expect(save).toBeEnabled()
+
+      await language.click()
+      await page.getByRole('option', { name: 'English' }).click()
+      await expect(save).toBeDisabled()
+      expect(mockApi.callsTo('POST', '/freepbx/rest/settings/defaultlanguage')).toHaveLength(0)
     })
 
     test('reports a load error and retries', async ({ page, mockApi }) => {
@@ -74,6 +94,16 @@ test.describe('settings', () => {
   })
 
   test.describe('change admin password', () => {
+    test('is not offered to administrators other than admin', async ({ page }) => {
+      await page.addInitScript(() => {
+        localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e' }))
+      })
+      await page.goto('./settings')
+
+      await expect(page.getByRole('combobox', { name: 'Language' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Change admin password' })).toHaveCount(0)
+    })
+
     test('validates the form before calling the API', async ({ page, mockApi }) => {
       await page.goto('./settings')
       await page.getByRole('button', { name: 'Change admin password' }).click()
@@ -115,6 +145,7 @@ test.describe('settings', () => {
       await drawer.getByRole('button', { name: 'Change password' }).click()
 
       await expect(drawer.getByText('The current password is not correct')).toBeVisible()
+      await expect(drawer.getByLabel('Current password', { exact: true })).toBeFocused()
       expect(mockApi.callsTo('POST', '/freepbx/rest/testauth')[0].body).toEqual({
         username: 'admin',
         password: 'Wrong,pass1',
