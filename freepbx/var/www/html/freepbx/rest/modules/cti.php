@@ -503,6 +503,7 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
             throw new Exception($sth->errorInfo()[2]);
         }
 
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -948,6 +949,18 @@ $app->put('/cti/customer_card/{id}', function (Request $request, Response $respo
             }
         }
 
+        if (isset($data['name']) && $data['name'] !== $name) {
+            $dbi = FreePBX::Database();
+            $permname = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$data['name'])));
+            $sql = 'UPDATE rest_cti_permissions SET name = ?, displayname = ? WHERE id = ?';
+            $sth = $dbi->prepare($sql);
+            $res = $sth->execute(array($permname, $data['name'], $permission_id));
+
+            if ($res === FALSE) {
+                throw new Exception($sth->errorInfo()[2]);
+            }
+        }
+
         foreach ($data as $p=>$v) {
             // Exclude profiles from simple params updating
             if ($p === 'profiles') {
@@ -1284,6 +1297,8 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 10);
         $ret_val = curl_exec($curl);
         if ($ret_val === false) {
             error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($curl));
