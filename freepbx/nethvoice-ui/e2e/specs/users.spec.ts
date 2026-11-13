@@ -433,6 +433,58 @@ test.describe('users', () => {
     })
   })
 
+  test('reassigns the extension of a user to a user without extension', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('POST', `${REST}/mainextensions/:ext/reassign`, { status: 204 })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions for c.davis' }).click()
+    await page.getByRole('menuitem', { name: 'Reassign extension' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Reassign extension' })
+    await expect(modal).toContainText('The extension 301 of Christopher Davis moves')
+    await modal.getByRole('button', { name: 'Reassign' }).click()
+    await expect(modal.getByText('Choose the user')).toBeVisible()
+
+    await modal.getByRole('combobox', { name: 'New user' }).click()
+    await expect(modal.getByRole('option')).toHaveText([/Daniel Jones \(d\.jones\)/])
+    await modal.getByRole('option', { name: /d\.jones/ }).click()
+    await modal.getByRole('button', { name: 'Reassign' }).click()
+
+    await expect(page.getByText('Extension reassigned')).toBeVisible()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions/301/reassign`)[0].body).toEqual({
+      username: 'd.jones',
+    })
+  })
+
+  test('shows the error of a failed reassignment in the modal', async ({ page, mockApi }) => {
+    mockApi.on('POST', `${REST}/mainextensions/:ext/reassign`, {
+      status: 422,
+      json: { message: 'The user already has a main extension' },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions for a.miller' }).click()
+    await page.getByRole('menuitem', { name: 'Reassign extension' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Reassign extension' })
+    await modal.getByRole('combobox', { name: 'New user' }).click()
+    await modal.getByRole('option', { name: /d\.jones/ }).click()
+    await modal.getByRole('button', { name: 'Reassign' }).click()
+
+    await expect(modal.getByText('Cannot reassign the extension')).toBeVisible()
+    await expect(page.getByText('Extension reassigned')).toHaveCount(0)
+  })
+
+  test('synchronizes the users with the account provider', async ({ page, mockApi }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Synchronize users' }).click()
+
+    await expect(page.getByText('Users synchronized')).toBeVisible()
+    expect(mockApi.callsTo('POST', `${REST}/users/sync`)).toHaveLength(1)
+  })
+
   test('assigns a profile to several users', async ({ page, mockApi }) => {
     mockWrites(mockApi)
     await page.goto('./users/users')
@@ -485,6 +537,7 @@ test.describe('users', () => {
     await expect(page.getByRole('menuitem')).toHaveText([
       'Import users from CSV',
       'Export users to CSV',
+      'Synchronize users',
       'Set voicemail',
       'Assign profile',
       'Set devices',
