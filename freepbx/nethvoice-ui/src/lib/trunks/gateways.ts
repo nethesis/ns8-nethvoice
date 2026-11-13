@@ -165,7 +165,7 @@ export type GatewayValidationIssues = Partial<Record<GatewayField, string>> & {
   fxsExtensions?: Record<number, string>
 }
 
-export type GatewayStatus = 'connected' | 'not_connected' | 'unmonitored' | 'unknown'
+export type GatewayStatus = 'connected' | 'not_connected' | 'unmonitored' | 'unknown' | 'disabled'
 
 export type HostNetwork = {
   ip: string
@@ -299,11 +299,17 @@ export const getGatewayStatus = (
     return 'unmonitored'
   }
 
+  const gatewayTrunks = trunks?.filter((trunk) => gateway.trunkIds.includes(trunk.id)) ?? []
+
+  if (gatewayTrunks.length > 0 && gatewayTrunks.every((trunk) => trunk.disabled)) {
+    return 'disabled'
+  }
+
   if (!trunks || !liveState) {
     return 'unknown'
   }
-  const states = trunks
-    .filter((trunk) => gateway.trunkIds.includes(trunk.id))
+  const states = gatewayTrunks
+    .filter((trunk) => !trunk.disabled)
     .map((trunk) => liveState[trunk.name]?.status)
     .filter((status) => status !== undefined && status !== 'unmonitored')
 
