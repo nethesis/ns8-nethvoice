@@ -2,17 +2,19 @@
 # the container filesystem and are rendered in place at start by entrypoint.sh.
 FROM docker.io/library/debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
-ARG APACHE_VERSION=2.4.71-1~deb12u1
+# Track a minimum so newer Debian security packages remain installable.
+ARG APACHE_MIN_VERSION=2.4.71-1~deb12u1
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        apache2=${APACHE_VERSION} \
-        apache2-bin=${APACHE_VERSION} \
-        apache2-data=${APACHE_VERSION} \
-        apache2-utils=${APACHE_VERSION} \
+        apache2 \
+        apache2-bin \
+        apache2-data \
+        apache2-utils \
         libapache2-mod-shib \
         curl \
         ca-certificates \
         gettext-base \
+    && dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apache2)" ge "${APACHE_MIN_VERSION}" \
     && a2enmod shib headers setenvif \
     && sed -i 's/^Listen 80$//' /etc/apache2/ports.conf \
     && rm -rf /var/lib/apt/lists/* /var/cache/apt /usr/share/doc /usr/share/man /usr/share/locale

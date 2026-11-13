@@ -651,14 +651,15 @@ RUN a2dismod status
 # Update CA certificates
 RUN update-ca-certificates --fresh
 
-# Apply Apache security updates independently of PHP image rebuilds
-ARG APACHE_VERSION=2.4.71-1~deb13u1
+# Track a minimum so newer Debian security packages remain installable.
+ARG APACHE_MIN_VERSION=2.4.71-1~deb13u1
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-        apache2=${APACHE_VERSION} \
-        apache2-bin=${APACHE_VERSION} \
-        apache2-data=${APACHE_VERSION} \
-        apache2-utils=${APACHE_VERSION} && \
+        apache2 \
+        apache2-bin \
+        apache2-data \
+        apache2-utils && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apache2)" ge "${APACHE_MIN_VERSION}" && \
     rm -rf /var/lib/apt/lists/*
 
 # Clean apt files

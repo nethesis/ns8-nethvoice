@@ -19,7 +19,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/^(tancredi|saml2-proxy)\\/Containerfile$/"],
-      "matchStrings": ["(?:^|\\n)ARG APACHE_VERSION=(?<currentValue>\\S+)"],
+      "matchStrings": ["(?:^|\\n)ARG APACHE_MIN_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "apache2",
       "datasourceTemplate": "custom.debian-bookworm",
       "versioningTemplate": "deb"
@@ -27,7 +27,7 @@
     {
       "customType": "regex",
       "managerFilePatterns": ["/^freepbx\\/Containerfile$/"],
-      "matchStrings": ["(?:^|\\n)ARG APACHE_VERSION=(?<currentValue>\\S+)"],
+      "matchStrings": ["(?:^|\\n)ARG APACHE_MIN_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "apache2",
       "datasourceTemplate": "custom.debian-trixie",
       "versioningTemplate": "deb"
