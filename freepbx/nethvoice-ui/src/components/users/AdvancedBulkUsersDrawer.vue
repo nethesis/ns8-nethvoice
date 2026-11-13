@@ -208,6 +208,12 @@ function discardChanges() {
   emit('close')
 }
 
+watch(mainExtensions, (extensions) => {
+  if (extensions.length > 0) {
+    usersIssue.value = ''
+  }
+})
+
 function save() {
   reset()
   usersIssue.value = mainExtensions.value.length === 0 ? t('users.choose_at_least_one_user') : ''
@@ -394,10 +400,10 @@ const comboboxLabels = computed(() => ({
         </NeButton>
       </div>
     </form>
+    <DiscardChangesModal
+      :visible="isShownDiscardModal"
+      @close="isShownDiscardModal = false"
+      @discard="discardChanges"
+    />
   </NeSideDrawer>
-  <DiscardChangesModal
-    :visible="isShownDiscardModal"
-    @close="isShownDiscardModal = false"
-    @discard="discardChanges"
-  />
 </template>

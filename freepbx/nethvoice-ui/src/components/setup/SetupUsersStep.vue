@@ -473,10 +473,10 @@ function provisionAndContinue() {
         <li
           v-for="user in visibleUsers"
           :key="user.username"
-          class="elevation-0 flex flex-wrap items-start gap-4 rounded-lg px-4 py-3"
+          class="elevation-0 flex flex-wrap items-center gap-4 rounded-lg px-4 py-3"
           :data-testid="`setup-user-${user.username}`"
         >
-          <div class="flex min-w-48 flex-1 items-center gap-3 pt-1">
+          <div class="flex min-w-48 flex-1 items-center gap-3">
             <FontAwesomeIcon
               :icon="faCircleUser"
               class="size-8 shrink-0 text-gray-700 dark:text-gray-100"
@@ -501,7 +501,7 @@ function provisionAndContinue() {
               @update:model-value="setDraft(user.username, $event)"
             />
           </div>
-          <div class="mt-0.5 flex items-center gap-2">
+          <div class="flex items-center gap-2">
             <NeButton kind="tertiary" @click="showEditUser(user.username)">
               <template #prefix>
                 <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />

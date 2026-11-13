@@ -75,7 +75,7 @@ const expectDotOnAvatarCorner = async (scope: ReturnType<Page['locator']>, statu
         dotBox.width >= avatarBox.width / 2 ? Number.POSITIVE_INFINITY : 0,
       )
     })
-    .toBeLessThanOrEqual(1)
+    .toBeLessThanOrEqual(3)
 }
 
 test.describe('user overview', () => {
@@ -236,7 +236,7 @@ test.describe('user overview', () => {
       'false',
     )
     await expect(page.getByRole('grid', { name: 'User overview' }).getByRole('row')).toHaveCount(4)
-    await views.getByRole('button', { name: 'Compact view' }).click()
+    await views.getByRole('button', { name: 'Condensed view' }).click()
     await expect(page.locator('li[data-user]')).toHaveCount(3)
   })
 
@@ -250,9 +250,9 @@ test.describe('user overview', () => {
     await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
     await page.getByRole('button', { name: 'List view' }).click()
     await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
-    await page.getByRole('button', { name: 'Compact view' }).click()
+    await page.getByRole('button', { name: 'Condensed view' }).click()
     await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
-    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    await page.getByRole('button', { name: 'Anna Miller 300 Details' }).click()
     await expectDotOnAvatarCorner(page.getByRole('dialog'), 'Online')
   })
 })

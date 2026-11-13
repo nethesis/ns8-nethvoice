@@ -2,7 +2,12 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DOCS_URL, DEFAULT_RUNTIME_CONFIG, parseRuntimeConfig } from './runtimeConfig'
+import {
+  DEFAULT_DOCS_URL,
+  DEFAULT_RUNTIME_CONFIG,
+  localizeDocsUrl,
+  parseRuntimeConfig,
+} from './runtimeConfig'
 
 describe('parseRuntimeConfig', () => {
   it('should fall back to defaults on a malformed payload', () => {
@@ -43,5 +48,28 @@ describe('parseRuntimeConfig', () => {
 
   it('should ignore fields of the wrong type', () => {
     expect(parseRuntimeConfig({ BRAND_NAME: 42, FAVICON_URL: {} })).toEqual(DEFAULT_RUNTIME_CONFIG)
+  })
+})
+
+describe('localizeDocsUrl', () => {
+  it('should open the default documentation in the language of the interface', () => {
+    expect(localizeDocsUrl('https://docs.nethvoice.com/it/', 'en')).toBe(
+      'https://docs.nethvoice.com/',
+    )
+    expect(localizeDocsUrl('https://docs.nethvoice.com/it/', 'it')).toBe(
+      'https://docs.nethvoice.com/it/',
+    )
+    expect(localizeDocsUrl('https://docs.nethvoice.com/', 'it-IT')).toBe(
+      'https://docs.nethvoice.com/it/',
+    )
+    expect(localizeDocsUrl('https://docs.nethvoice.com/it/docs/admin', 'en')).toBe(
+      'https://docs.nethvoice.com/docs/admin/',
+    )
+  })
+
+  it('should keep a rebranded documentation as it is', () => {
+    expect(localizeDocsUrl('https://docs.acme.example/it/', 'en')).toBe(
+      'https://docs.acme.example/it/',
+    )
   })
 })

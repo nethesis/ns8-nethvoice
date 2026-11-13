@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useQueryCache } from '@pinia/colada'
@@ -36,6 +36,9 @@ const { state: wizardState } = useWizardState()
 const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
 const starting = ref(false)
+const titleRef = useTemplateRef<HTMLElement>('titleRef')
+
+onMounted(() => titleRef.value?.focus({ preventScroll: true }))
 
 const topics: Topic[] = [
   { id: 'pbx_settings', icon: faGear },
@@ -45,7 +48,7 @@ const topics: Topic[] = [
 ]
 
 function openDocs() {
-  window.open(runtimeConfigStore.config.docsUrl, '_blank', 'noopener')
+  window.open(runtimeConfigStore.docsUrl, '_blank', 'noopener')
 }
 
 async function startSetup() {
@@ -75,9 +78,9 @@ async function startSetup() {
 <template>
   <div class="flex w-full flex-col lg:flex-row">
     <aside
-      class="elevation-0 flex shrink-0 flex-col items-center justify-center gap-6 border-b border-gray-200 p-12 lg:w-[400px] lg:border-r lg:border-b-0 dark:border-gray-700"
+      class="elevation-0 flex shrink-0 flex-col items-center justify-center gap-6 border-b border-gray-200 p-12 lg:w-100 lg:border-r lg:border-b-0 dark:border-gray-700"
     >
-      <BrandLogo class="h-[33px] w-auto" />
+      <BrandLogo class="h-8.25 w-auto" />
       <p class="text-primary-neutral text-center text-xl font-medium">
         {{ $t('setup.welcome.sidebar_title') }}
       </p>
@@ -99,7 +102,11 @@ async function startSetup() {
     <main class="flex min-w-0 flex-1 flex-col gap-6 overflow-y-auto p-6 sm:p-10">
       <div class="flex flex-col gap-12 border-b border-gray-200 pt-8 pb-10 dark:border-gray-700">
         <div class="flex flex-col gap-6">
-          <h1 class="text-primary-neutral text-3xl font-medium text-balance">
+          <h1
+            ref="titleRef"
+            tabindex="-1"
+            class="text-primary-neutral text-3xl font-medium text-balance focus:outline-none"
+          >
             {{ $t('setup.welcome.title', { brand: runtimeConfigStore.config.brandName }) }}
           </h1>
           <p class="text-secondary-neutral">

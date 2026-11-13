@@ -293,6 +293,12 @@ test.describe('users', () => {
   })
 
   test('asks before closing a drawer with unsaved changes', async ({ page, mockApi }) => {
+    const warnings: string[] = []
+    page.on('console', (message) => {
+      if (message.type() === 'warning') {
+        warnings.push(message.text())
+      }
+    })
     let release = () => {}
     const pending = new Promise<void>((resolve) => (release = resolve))
     mockWrites(mockApi).on('POST', `${REST}/mobiles`, async () => {
@@ -328,6 +334,7 @@ test.describe('users', () => {
       .click()
     await expect(other.getByRole('textbox', { name: 'Mobile number' })).toBeHidden()
     expect(mockApi.callsTo('POST', `${REST}/mobiles`)).toHaveLength(1)
+    expect(warnings.filter((text) => text.includes('FocusTrap'))).toEqual([])
   })
 
   test('shows the backend error when the extension is in use', async ({ page, mockApi }) => {
@@ -462,7 +469,7 @@ test.describe('users', () => {
     await modal.getByRole('button', { name: 'Reassign' }).click()
     await expect(modal.getByText('Choose the user')).toBeVisible()
 
-    await modal.getByRole('combobox', { name: 'New user' }).click()
+    await modal.getByRole('combobox', { name: 'Assign to' }).click()
     await expect(modal.getByRole('option')).toHaveText([/Daniel Jones \(d\.jones\)/])
     await modal.getByRole('option', { name: /d\.jones/ }).click()
     await modal.getByRole('button', { name: 'Reassign' }).click()
@@ -483,7 +490,7 @@ test.describe('users', () => {
     await page.getByRole('menuitem', { name: 'Reassign extension' }).click()
 
     const modal = page.getByRole('dialog', { name: 'Reassign extension' })
-    await modal.getByRole('combobox', { name: 'New user' }).click()
+    await modal.getByRole('combobox', { name: 'Assign to' }).click()
     await modal.getByRole('option', { name: /d\.jones/ }).click()
     await modal.getByRole('button', { name: 'Reassign' }).click()
 
@@ -793,10 +800,11 @@ test.describe('users', () => {
       mimeType: 'text/csv',
       buffer: Buffer.from(
         [
-          'username,name,surname,extension,group,profile',
+          'username,name,surname,extension,group,profile,voicemail',
           'a.miller,Anna,Miller,300,Sales,Standard',
           'k.lee,Kevin,Lee,310,Sales|Marketing,Base',
           'b.boone,Bob,Boone,xxx,,',
+          'c.wolf,Carl,Wolf,311,,,maybe',
         ].join('\n'),
       ),
     })
@@ -806,9 +814,10 @@ test.describe('users', () => {
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
     await expect(modal.getByTestId('import-summary')).toContainText(
-      '3 users detected in the selected file:',
+      '4 users detected in the selected file:',
     )
     await expect(modal).toContainText('Row 4 (b.boone): invalid extension')
+    await expect(modal).toContainText('Row 5 (c.wolf): unrecognized value "maybe" in Voicemail')
     await expect(modal.getByRole('radio', { name: 'Overwrite existing users' })).toBeChecked()
     await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeVisible()
     const summaryBox = await modal.getByTestId('import-summary').boundingBox()
@@ -858,6 +867,7 @@ test.describe('users', () => {
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
+    await modal.getByRole('radio', { name: 'Overwrite existing users' }).check()
     await expect(modal.getByTestId('import-summary')).toContainText('1 user and 2 groups detected')
     await expect(modal.getByTestId('import-new-groups')).toHaveText(
       '1 new group will be created: Marketing',

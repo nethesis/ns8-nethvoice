@@ -37,6 +37,12 @@ const usagePercent = computed(() => (subscription ? getExtensionsUsagePercent(su
 
 const limitReached = computed(() => (subscription ? isExtensionsLimitReached(subscription) : false))
 
+const hostnameParts = computed(() =>
+  runtimeConfigStore.hostname
+    .split('.')
+    .map((part, index, parts) => (index < parts.length - 1 ? `${part}.` : part)),
+)
+
 const usageValue = computed(() =>
   subscription ? Math.min(subscription.configuredExtensions, subscription.extensionsLimit ?? 0) : 0,
 )
@@ -60,16 +66,23 @@ const usageValue = computed(() =>
       </div>
       <dl>
         <div
-          class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 dark:border-gray-700"
+          class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
         >
-          <dt class="text-primary-neutral font-medium">{{ $t('dashboard.system.hostname') }}</dt>
-          <dd class="text-tertiary-neutral min-w-0 wrap-anywhere" data-testid="system-hostname">
-            {{ runtimeConfigStore.hostname }}
+          <dt class="text-primary-neutral shrink-0 font-medium">
+            {{ $t('dashboard.system.hostname') }}
+          </dt>
+          <dd
+            class="text-tertiary-neutral min-w-0 text-right break-words"
+            data-testid="system-hostname"
+          >
+            <template v-for="(part, index) in hostnameParts" :key="index"
+              ><wbr v-if="index > 0" />{{ part }}</template
+            >
           </dd>
         </div>
         <template v-if="!loading && subscription">
           <div
-            class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 dark:border-gray-700"
+            class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
           >
             <dt class="text-primary-neutral font-medium">
               {{ $t('dashboard.system.subscription') }}

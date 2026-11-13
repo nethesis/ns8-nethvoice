@@ -356,7 +356,7 @@ const filterLabels = computed(() => ({
 <template>
   <div>
     <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
-      <p class="text-secondary-neutral max-w-[608px]">
+      <p class="text-secondary-neutral max-w-152">
         {{ t('users.description_line_1') }}<br />{{ t('users.description_line_2') }}
       </p>
       <div class="flex items-center gap-4">
