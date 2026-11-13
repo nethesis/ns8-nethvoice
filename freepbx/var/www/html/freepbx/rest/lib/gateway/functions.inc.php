@@ -254,8 +254,52 @@ function getPjSipDefaults() {
     );
 }
 
+function gateway_rollback_created($createdTrunks, $createdExtensions, $originalAors) {
+    $warnings = array();
+    $dbh = FreePBX::Database();
+    foreach ($originalAors as $pjsipId => $aors) {
+        if (in_array((string) $pjsipId, array_map('strval', $createdTrunks), true)) {
+            continue;
+        }
+        try {
+            if ($aors === false) {
+                $sth = $dbh->prepare('DELETE FROM `pjsip` WHERE `id` = ? AND `keyword` = "aors"');
+                $sth->execute(array($pjsipId));
+            } else {
+                $sth = $dbh->prepare("REPLACE INTO `pjsip` (`id`,`keyword`,`data`,`flags`) VALUES (?,?,?,?)");
+                $sth->execute(array($pjsipId,'aors',$aors,'0'));
+            }
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            $warnings[] = 'Unable to restore AOR of trunk '.$pjsipId;
+        }
+    }
+    foreach (array_reverse($createdExtensions) as $extension) {
+        try {
+            if (deletePhysicalExtension($extension) === false || deleteExtension($extension) === false) {
+                $warnings[] = 'Unable to remove extension '.$extension;
+            }
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            $warnings[] = 'Unable to remove extension '.$extension;
+        }
+    }
+    foreach (array_reverse($createdTrunks) as $trunkId) {
+        try {
+            FreePBX::Core()->deleteTrunk($trunkId);
+            FreePBX::Core()->deleteTrunkDialRulesByID($trunkId);
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            $warnings[] = 'Unable to remove trunk '.$trunkId;
+        }
+    }
+    return $warnings;
+}
+
 function addEditGateway($params){
     $errors = array(); $warnings = array(); $infos = array();
+    $createdTrunks = array(); $createdExtensions = array(); $originalAors = array();
+    $dbh = null;
     try {
         $required = array('name', 'model', 'ipv4_new', 'gateway', 'ipv4_green', 'netmask_green', 'mac');
         foreach ($required as $field) {
@@ -292,30 +336,17 @@ function addEditGateway($params){
         $sth = FreePBX::Database()->prepare($sql);
         $sth->execute($prep);
         $res = $sth->fetch(\PDO::FETCH_ASSOC);
-        if ($res !== false) {
-            /*Configuration exists, delete it*/
-            $id = $res['id'];
-            $sqls = array();
-            $sqls[] = "DELETE IGNORE FROM `gateway_config` WHERE `id` = ?";
-            foreach ($sqls as $sql) {
-                $sth = FreePBX::Database()->prepare($sql);
-                $sth->execute(array($id));
+        $existingId = ($res === false) ? null : $res['id'];
+
+        $sql = "SELECT `id` FROM `gateway_config` WHERE `mac` = ?";
+        $sth = $dbh->prepare($sql);
+        $sth->execute(array(strtoupper($params['mac'])));
+        while (($row = $sth->fetch(\PDO::FETCH_ASSOC)) !== false) {
+            if ($existingId === null || (string) $row['id'] !== (string) $existingId) {
+                $errors[] = 'Another gateway already uses this MAC address';
+                return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos, 'http_status' => 409);
             }
         }
-        /*Create configuration*/
-        $sql = "INSERT INTO `gateway_config` (`model_id`,`name`,`ipv4`,`ipv4_new`,`gateway`,`ipv4_green`,`netmask_green`,`mac`,`proxy`) VALUES (?,?,?,?,?,?,?,?,?)";
-        $sth = FreePBX::Database()->prepare($sql);
-        $sth->execute(array($params['model'],$params['name'],$gatewayIpv4,$params['ipv4_new'],$params['gateway'],$params['ipv4_green'],$params['netmask_green'],strtoupper($params['mac']),$proxyFqdn));
-        /*get id*/
-        $sql = "SELECT `id` FROM `gateway_config` WHERE `name` = ? ORDER BY `id` DESC LIMIT 1";
-        $sth = FreePBX::Database()->prepare($sql);
-        $sth->execute(array($params['name']));
-        $res = $sth->fetch(\PDO::FETCH_ASSOC);
-        if ($res === false) {
-            $errors[] = "Failed to create configuration";
-            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
-        }
-        $configId = $res['id'];
 
         // Create unique smart name
         $vendor = $model['manufacturer'];
@@ -328,6 +359,7 @@ function addEditGateway($params){
           'fxs' => $params['trunks_fxs'] ?? array()
         );
 
+        $configRows = array();
         foreach ($trunksByTypes as $type=>$trunks) {
 
             $port = (strtolower($model['manufacturer']) === 'patton' ? 0 : 1);
@@ -376,6 +408,10 @@ function addEditGateway($params){
                             'off', // continue
                             false   // dialopts
                         );
+                        if (empty($trunkId)) {
+                            throw new RuntimeException('Error creating trunk '.$trunkName);
+                        }
+                        $createdTrunks[] = $trunkId;
 
                         $dialpatternInsert = array();
                         core_trunks_update_dialrules($trunkId, $dialpatternInsert);
@@ -384,30 +420,32 @@ function addEditGateway($params){
 
                     if ($type === 'isdn' && isset($params['trunks_isdn'])) {
                         /*Save isdn trunks parameters*/
-                        $sql = "REPLACE INTO `gateway_config_isdn` (`config_id`,`trunk`,`trunknumber`,`protocol`,`secret`) VALUES (?,?,?,?,?)";
-                        $sth = FreePBX::Database()->prepare($sql);
-                        $sth->execute(array($configId,$trunkId,$trunk['trunknumber'],$trunk['type'],$secret));
+                        $configRows[] = array(
+                            "REPLACE INTO `gateway_config_isdn` (`config_id`,`trunk`,`trunknumber`,`protocol`,`secret`) VALUES (?,?,?,?,?)",
+                            array($trunkId,$trunk['trunknumber'],$trunk['type'],$secret)
+                        );
                     } elseif ($type === 'pri' && isset($params['trunks_pri'])) {
                         /*Save pri trunks parameters*/
-                        $sql = "REPLACE INTO `gateway_config_pri` (`config_id`,`trunk`,`trunknumber`,`secret`) VALUES (?,?,?,?)";
-                        $sth = FreePBX::Database()->prepare($sql);
-                        $sth->execute(array($configId,$trunkId,$trunk['trunknumber'],$secret));
+                        $configRows[] = array(
+                            "REPLACE INTO `gateway_config_pri` (`config_id`,`trunk`,`trunknumber`,`secret`) VALUES (?,?,?,?)",
+                            array($trunkId,$trunk['trunknumber'],$secret)
+                        );
                     } elseif ($type === 'fxo' && isset($params['trunks_fxo'])) {
                         /*Save fxo trunks parameters*/
-                        $sql = "REPLACE INTO `gateway_config_fxo` (`config_id`,`trunk`,`trunknumber`,`number`,`secret`) VALUES (?,?,?,?,?)";
-                        $sth = FreePBX::Database()->prepare($sql);
-                        $sth->execute(array($configId,$trunkId,$trunk['trunknumber'],$trunk['number'],$secret));
+                        $configRows[] = array(
+                            "REPLACE INTO `gateway_config_fxo` (`config_id`,`trunk`,`trunknumber`,`number`,`secret`) VALUES (?,?,?,?,?)",
+                            array($trunkId,$trunk['trunknumber'],$trunk['number'],$secret)
+                        );
                     } elseif ($type === 'fxs' && isset($params['trunks_fxs'])) {
                         /* create physical extension */
                         $mainextensionnumber = $trunk['linked_extension'];
                         $extension = createExtension($mainextensionnumber,true);
                         if ($extension === false) {
-                            $errors[] = 'Error creating extension';
-                            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+                            throw new RuntimeException('Error creating extension');
                         }
+                        $createdExtensions[] = $extension;
                         if (useExtensionAsCustomPhysical($extension,false,'physical') === false) {
-                            $errors[] = 'Error creating custom extension';
-                            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+                            throw new RuntimeException('Error creating custom extension');
                         }
                         // enable/disable SRTP for the extension if gateway description contains " TLS "
                         if (strpos($params['name'], ' TLS ') !== false) {
@@ -430,6 +468,9 @@ function addEditGateway($params){
                             $sth = $dbh->prepare($sql);
                             $sth->execute(array($trunk_pjsip_id));
                             $trunk_pjsip_aor = $sth->fetchColumn();
+                            if (!array_key_exists($trunk_pjsip_id, $originalAors)) {
+                                $originalAors[$trunk_pjsip_id] = $trunk_pjsip_aor;
+                            }
                             if ($trunk_pjsip_aor === false) {
                                 $trunk_pjsip_aor = '';
                             }
@@ -444,21 +485,55 @@ function addEditGateway($params){
                         $sth->execute(array($extension));
                         $extension_secret = $sth->fetchColumn();
                         if ($extension_secret === false) {
-                            $errors[] = 'Error retrieving extension secret';
-                            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
+                            throw new RuntimeException('Error retrieving extension secret');
                         }
-                        $sql = "REPLACE INTO `gateway_config_fxs` (`config_id`,`extension`,`physical_extension`,`secret`) VALUES (?,?,?,?)";
-                        $sth = FreePBX::Database()->prepare($sql);
-                        $sth->execute(array($configId,$trunk['linked_extension'],$extension,$extension_secret));
+                        $configRows[] = array(
+                            "REPLACE INTO `gateway_config_fxs` (`config_id`,`extension`,`physical_extension`,`secret`) VALUES (?,?,?,?)",
+                            array($trunk['linked_extension'],$extension,$extension_secret)
+                        );
                     }
                 }
             }
         }
+
+        $dbh->beginTransaction();
+        if ($existingId !== null) {
+            /*Configuration exists, delete it*/
+            $sth = $dbh->prepare("DELETE IGNORE FROM `gateway_config` WHERE `id` = ?");
+            $sth->execute(array($existingId));
+        }
+        /*Create configuration*/
+        $sql = "INSERT INTO `gateway_config` (`model_id`,`name`,`ipv4`,`ipv4_new`,`gateway`,`ipv4_green`,`netmask_green`,`mac`,`proxy`) VALUES (?,?,?,?,?,?,?,?,?)";
+        $sth = $dbh->prepare($sql);
+        $sth->execute(array($params['model'],$params['name'],$gatewayIpv4,$params['ipv4_new'],$params['gateway'],$params['ipv4_green'],$params['netmask_green'],strtoupper($params['mac']),$proxyFqdn));
+        /*get id*/
+        $sql = "SELECT `id` FROM `gateway_config` WHERE `name` = ? ORDER BY `id` DESC LIMIT 1";
+        $sth = $dbh->prepare($sql);
+        $sth->execute(array($params['name']));
+        $res = $sth->fetch(\PDO::FETCH_ASSOC);
+        if ($res === false) {
+            throw new RuntimeException('Failed to create configuration');
+        }
+        $configId = $res['id'];
+        foreach ($configRows as $configRow) {
+            $sth = $dbh->prepare($configRow[0]);
+            $sth->execute(array_merge(array($configId), $configRow[1]));
+        }
+        $dbh->commit();
+
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return array('status' => true, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos, 'id'=>$configId);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         $errors[] = $e->getMessage();
+        try {
+            if ($dbh !== null && $dbh->inTransaction()) {
+                $dbh->rollBack();
+            }
+        } catch (Throwable $rollbackError) {
+            error_log($rollbackError->getMessage());
+        }
+        $warnings = array_merge($warnings, gateway_rollback_created($createdTrunks, $createdExtensions, $originalAors));
         return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos);
     }
 }
