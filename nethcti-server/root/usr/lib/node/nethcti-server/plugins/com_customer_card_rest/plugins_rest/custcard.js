@@ -322,7 +322,7 @@ function setCompUtil(comp) {
 
           // authorization_user header field was added in the authentication step
           var username = req.headers.authorization_user;
-          var query = Buffer.from(req.params.query, 'base64').toString('ascii').trim();
+          var query = Buffer.from(req.params.query, 'base64').toString('utf8').trim();
           var dbconnId = req.params.dbconn_id;
           var templateName = req.params.template;
 
