@@ -13,7 +13,7 @@ import {
   NeDropdown,
   NeDropdownFilterV2,
   NeEmptyState,
-  NePaginator,
+  NeInlineNotification,
   NeTable,
   NeTableBody,
   NeTableCell,
@@ -30,6 +30,7 @@ import {
   faAngleDown,
   faCheck,
   faCircleCheck,
+  faCircleMinus,
   faCirclePlus,
   faClone,
   faKey,
@@ -42,23 +43,28 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
+import TablePaginator from '@/components/common/TablePaginator.vue'
 import AddPhonesModal from './AddPhonesModal.vue'
 import EditPhoneDrawer from './EditPhoneDrawer.vue'
 import DeletePhoneModal from './DeletePhoneModal.vue'
 import PhonePasswordDrawer from './PhonePasswordDrawer.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
-import { PAGE_SIZES } from '@/lib/common'
+import { usePolling } from '@/composables/usePolling'
 import { formatMac } from '@/lib/phones/mac'
-import { getPhoneWebPassword } from '@/lib/phones/defaults'
+import { getPhoneWebPassword, isDefaultAdminPassword } from '@/lib/phones/defaults'
 import {
   filterPhones,
+  getPhoneStatus,
   getProvisioningUrl,
+  PHONE_STATUSES,
   runProvisioning,
   UNASSIGNED_FILTER_ID,
   type Phone,
 } from '@/lib/phones/phones'
+import { PHONE_REGISTRATIONS_REFRESH_INTERVAL } from '@/lib/phones/registration'
 import { useMacVendors, usePhones } from '@/queries/phones/phones'
 import { usePhoneDefaults } from '@/queries/phones/defaults'
+import { usePhoneRegistrations } from '@/queries/phones/registration'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const COPIED_FEEDBACK_MS = 2000
@@ -66,12 +72,16 @@ const COPIED_FEEDBACK_MS = 2000
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const { phones, models, users, loading, updating, error, refetch } = usePhones()
-const { state: defaultsState } = usePhoneDefaults()
+const { state: defaultsState, refetch: refetchDefaults } = usePhoneDefaults()
 const { state: macVendorsState } = useMacVendors()
+const { state: registrationsState, refetch: refetchRegistrations } = usePhoneRegistrations()
+
+usePolling(() => refetchRegistrations(), PHONE_REGISTRATIONS_REFRESH_INTERVAL)
 
 const textFilter = ref('')
 const modelFilter = ref<NeDropdownFilterV2Option[]>([])
 const userFilter = ref<NeDropdownFilterV2Option[]>([])
+const statusFilter = ref<NeDropdownFilterV2Option[]>([])
 const currentPhone = ref<Phone | undefined>()
 const isShownAddPhonesModal = ref(false)
 const isShownEditPhoneDrawer = ref(false)
@@ -79,17 +89,26 @@ const isShownDeletePhoneModal = ref(false)
 const isShownAdminPasswordDrawer = ref(false)
 const copiedMac = ref('')
 
+const registrations = computed(() => registrationsState.value.data)
+
 const filteredPhones = computed(() =>
-  filterPhones(phones.value, {
-    text: textFilter.value,
-    models: modelFilter.value.map((option) => option.id),
-    users: userFilter.value.map((option) => option.id),
-  }),
+  filterPhones(
+    phones.value,
+    {
+      text: textFilter.value,
+      models: modelFilter.value.map((option) => option.id),
+      users: userFilter.value.map((option) => option.id),
+      statuses: statusFilter.value.flatMap((option) =>
+        PHONE_STATUSES.filter((status) => status === option.id),
+      ),
+    },
+    registrations.value,
+  ),
 )
 
 const { pageNum, pageSize, page } = useClientPagination(filteredPhones)
 
-watch([textFilter, modelFilter, userFilter], () => {
+watch([textFilter, modelFilter, userFilter, statusFilter], () => {
   pageNum.value = 1
 })
 
@@ -120,14 +139,31 @@ const userFilterOptions = computed<NeDropdownFilterV2Option[]>(() => {
   ]
 })
 
+const statusFilterOptions = computed<NeDropdownFilterV2Option[]>(() => [
+  { id: 'registered', label: t('phones.inventory.registered') },
+  { id: 'unregistered', label: t('phones.inventory.not_registered') },
+])
+
 const assignedPhones = computed(() => phones.value.filter((phone) => phone.extension !== ''))
 
 const webPassword = computed(() => getPhoneWebPassword(defaultsState.value.data))
 const defaultEncrypted = computed(() => defaultsState.value.data?.encryptionByDefault ?? true)
+const defaultsReady = computed(() => webPassword.value !== '')
+
+const isAdminPasswordMissing = computed(
+  () => defaultsState.value.status === 'success' && webPassword.value === '',
+)
+
+const isDefaultAdminPasswordInUse = computed(
+  () => defaultsState.value.status === 'success' && isDefaultAdminPassword(webPassword.value),
+)
 
 const areFiltersApplied = computed(
   () =>
-    textFilter.value.trim() !== '' || modelFilter.value.length > 0 || userFilter.value.length > 0,
+    textFilter.value.trim() !== '' ||
+    modelFilter.value.length > 0 ||
+    userFilter.value.length > 0 ||
+    statusFilter.value.length > 0,
 )
 
 const isEmptyStateShown = computed(
@@ -259,6 +295,18 @@ function resetFilters() {
   textFilter.value = ''
   modelFilter.value = []
   userFilter.value = []
+  statusFilter.value = []
+}
+
+const phoneStatus = (phone: Phone) => getPhoneStatus(phone, registrations.value)
+
+const registrationDetails = (phone: Phone) => {
+  const registration = registrations.value?.[phone.extension]
+
+  if (!registration) {
+    return ''
+  }
+  return [registration.ip, registration.userAgent].filter((value) => value !== '').join(' · ')
 }
 
 function showEditPhoneDrawer(phone: Phone) {
@@ -281,20 +329,42 @@ function showDeletePhoneModal(phone: Phone) {
       class="mb-6"
       @retry="refetch"
     />
+    <LoadError
+      v-if="defaultsState.status === 'error'"
+      :error="defaultsState.error"
+      :title="$t('phones.inventory.cannot_load_defaults')"
+      class="mb-6"
+      @retry="refetchDefaults"
+    />
+    <NeInlineNotification
+      v-else-if="isAdminPasswordMissing"
+      kind="warning"
+      :title="$t('phones.inventory.admin_password_missing')"
+      :description="$t('phones.inventory.admin_password_missing_description')"
+      class="mb-6"
+    />
     <NeEmptyState
       v-if="isEmptyStateShown"
       :title="$t('phones.inventory.no_phones')"
-      :description="$t('phones.inventory.no_phones_description')"
+      :description="
+        isDefaultAdminPasswordInUse
+          ? `${$t('phones.inventory.no_phones_description')} ${$t('phones.inventory.default_admin_password_in_use')}`
+          : $t('phones.inventory.no_phones_description')
+      "
       :icon="faOfficePhone"
     >
       <div class="flex flex-col items-center gap-4">
-        <NeButton kind="primary" @click="isShownAddPhonesModal = true">
+        <NeButton kind="primary" :disabled="!defaultsReady" @click="isShownAddPhonesModal = true">
           <template #prefix>
             <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
           </template>
           {{ $t('phones.inventory.add_phones') }}
         </NeButton>
-        <NeButton kind="secondary" @click="isShownAdminPasswordDrawer = true">
+        <NeButton
+          v-if="isDefaultAdminPasswordInUse"
+          kind="secondary"
+          @click="isShownAdminPasswordDrawer = true"
+        >
           <template #prefix>
             <FontAwesomeIcon :icon="faKey" class="size-4" aria-hidden="true" />
           </template>
@@ -325,7 +395,11 @@ function showDeletePhoneModal(phone: Phone) {
                 </span>
               </template>
             </NeDropdown>
-            <NeButton kind="primary" :disabled="loading" @click="isShownAddPhonesModal = true">
+            <NeButton
+              kind="primary"
+              :disabled="loading || !defaultsReady"
+              @click="isShownAddPhonesModal = true"
+            >
               <template #prefix>
                 <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
               </template>
@@ -357,6 +431,13 @@ function showDeletePhoneModal(phone: Phone) {
             show-options-filter
             v-bind="filterLabels"
           />
+          <NeDropdownFilterV2
+            v-model="statusFilter"
+            kind="checkbox"
+            :label="$t('phones.inventory.status')"
+            :options="statusFilterOptions"
+            v-bind="filterLabels"
+          />
           <NeButton kind="tertiary" :disabled="!areFiltersApplied" @click="resetFilters">
             {{ $t('common.reset_filters') }}
           </NeButton>
@@ -380,13 +461,14 @@ function showDeletePhoneModal(phone: Phone) {
         :aria-label="$t('phones.inventory.phones_table')"
         card-breakpoint="xl"
         :loading="loading"
-        :skeleton-columns="5"
+        :skeleton-columns="6"
         :skeleton-rows="6"
       >
         <NeTableHead>
           <NeTableHeadCell>{{ $t('phones.mac_address') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ $t('phones.model') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ $t('phones.user') }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ $t('phones.inventory.status') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ $t('phones.inventory.encryption') }}</NeTableHeadCell>
           <NeTableHeadCell>
             <span class="sr-only">{{ $t('common.actions') }}</span>
@@ -440,6 +522,34 @@ function showDeletePhoneModal(phone: Phone) {
                 {{ $t('phones.inventory.unassigned') }}
               </NeBadgeV2>
             </NeTableCell>
+            <NeTableCell :data-label="$t('phones.inventory.status')">
+              <span
+                v-if="!phone.extension || phoneStatus(phone) === 'unknown'"
+                class="text-tertiary-neutral"
+                >-</span
+              >
+              <div v-else-if="phoneStatus(phone) === 'registered'" class="flex flex-col">
+                <span class="flex items-center gap-2">
+                  <FontAwesomeIcon
+                    :icon="faCircleCheck"
+                    class="size-4 text-green-700 dark:text-green-500"
+                    aria-hidden="true"
+                  />
+                  {{ $t('phones.inventory.registered') }}
+                </span>
+                <span v-if="registrationDetails(phone)" class="text-tertiary-neutral break-all">
+                  {{ registrationDetails(phone) }}
+                </span>
+              </div>
+              <span v-else class="flex items-center gap-2">
+                <FontAwesomeIcon
+                  :icon="faCircleMinus"
+                  class="text-tertiary-neutral size-4"
+                  aria-hidden="true"
+                />
+                {{ $t('phones.inventory.not_registered') }}
+              </span>
+            </NeTableCell>
             <NeTableCell :data-label="$t('phones.inventory.encryption')">
               <span v-if="!phone.user" class="text-tertiary-neutral">-</span>
               <div v-else-if="phone.encrypted" class="flex items-center gap-2">
@@ -457,7 +567,11 @@ function showDeletePhoneModal(phone: Phone) {
             </NeTableCell>
             <NeTableCell :data-label="$t('common.actions')">
               <div class="-ml-2.5 flex items-center gap-2 xl:ml-0 xl:justify-end">
-                <NeButton kind="tertiary" @click="showEditPhoneDrawer(phone)">
+                <NeButton
+                  kind="tertiary"
+                  :disabled="!defaultsReady"
+                  @click="showEditPhoneDrawer(phone)"
+                >
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
                   </template>
@@ -476,18 +590,10 @@ function showDeletePhoneModal(phone: Phone) {
           </NeTableRow>
         </NeTableBody>
         <template #paginator>
-          <NePaginator
-            :current-page="pageNum"
+          <TablePaginator
+            v-model:page-num="pageNum"
+            v-model:page-size="pageSize"
             :total-rows="filteredPhones.length"
-            :page-size="pageSize"
-            :page-sizes="PAGE_SIZES"
-            :nav-pagination-label="$t('ne_table.pagination')"
-            :next-label="$t('ne_table.go_to_next_page')"
-            :previous-label="$t('ne_table.go_to_previous_page')"
-            :range-of-total-label="$t('ne_table.of')"
-            :page-size-label="$t('ne_table.show')"
-            @select-page="(selected: number) => (pageNum = selected)"
-            @select-page-size="(size: number) => (pageSize = size)"
           />
         </template>
       </NeTable>

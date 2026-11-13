@@ -11,10 +11,11 @@ import { useMutation, useQueryCache } from '@pinia/colada'
 import {
   focusElement,
   NeButton,
+  NeCombobox,
   NeInlineNotification,
-  NeRadioSelection,
   NeSideDrawer,
   NeTextInput,
+  type NeComboboxOption,
 } from '@nethesis/vue-components'
 import { isApiError } from '@/lib/api/errors'
 import {
@@ -53,9 +54,18 @@ const baseModel = ref('')
 const validationIssues = ref<Partial<Record<Field, string>>>({})
 const nameRef = useTemplateRef<InstanceType<typeof NeTextInput>>('nameRef')
 
-const baseModelOptions = computed(() =>
-  baseModels.map((model) => ({ id: model.name, label: model.displayName })),
+const baseModelOptions = computed<NeComboboxOption[]>(() =>
+  allModels.map((model) => ({ id: model.name, label: model.displayName, description: model.name })),
 )
+
+const comboboxLabels = computed(() => ({
+  noResultsLabel: t('ne_combobox.no_results'),
+  limitedOptionsLabel: t('ne_combobox.limited_options_label'),
+  noOptionsLabel: t('ne_combobox.no_options_label'),
+  selectedLabel: t('ne_combobox.selected'),
+  userInputLabel: t('ne_combobox.user_input_label'),
+  optionalLabel: t('common.optional'),
+}))
 
 const isConflict = (error: unknown) => isApiError(error) && error.status === 409
 
@@ -162,12 +172,14 @@ const issueMessage = (field: Field) => {
           :disabled="saving"
           @blur="name = name.trim()"
         />
-        <NeRadioSelection
+        <NeCombobox
           v-model="baseModel"
           :label="$t('phones.models.base_model')"
           :options="baseModelOptions"
+          :placeholder="$t('phones.inventory.choose_model')"
           :invalid-message="issueMessage('baseModel')"
           :disabled="saving"
+          v-bind="comboboxLabels"
         />
         <NeInlineNotification
           v-if="createError && !isConflict(createError)"

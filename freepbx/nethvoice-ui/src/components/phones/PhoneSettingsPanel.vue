@@ -74,6 +74,17 @@ const toneZoneOptions = computed(() =>
   })),
 )
 
+const isDirty = computed(() => {
+  const defaults = state.value.data
+
+  return (
+    !!defaults &&
+    (language.value !== defaults.language ||
+      toneZone.value !== defaults.toneZone ||
+      provisioningFrequency.value !== defaults.provisioningFrequency)
+  )
+})
+
 const frequencyOptions = computed(() => [
   { id: 'everyday', label: t('phones.settings.every_day') },
   { id: 'never', label: t('phones.settings.only_at_startup') },
@@ -196,13 +207,18 @@ const issueMessage = (field: ConfigurationField) => {
             :disabled="saving"
           >
             <template #tooltip>
-              <NeTooltip>
+              <NeTooltip trigger-event="mouseenter focus">
                 <template #trigger>
-                  <FontAwesomeIcon
-                    :icon="faCircleInfo"
-                    class="text-primary-700 dark:text-primary-500 size-4"
-                    :aria-label="$t('phones.settings.provisioning_schedule_info')"
-                  />
+                  <button type="button" class="inline-flex">
+                    <FontAwesomeIcon
+                      :icon="faCircleInfo"
+                      class="text-primary-700 dark:text-primary-500 size-4"
+                      aria-hidden="true"
+                    />
+                    <span class="sr-only">{{
+                      $t('phones.settings.provisioning_schedule_info')
+                    }}</span>
+                  </button>
                 </template>
                 <template #content>
                   {{ $t('phones.settings.provisioning_schedule_info') }}
@@ -217,7 +233,7 @@ const issueMessage = (field: ConfigurationField) => {
             :description="describeError(saveError)"
           />
           <div>
-            <NeButton type="submit" kind="primary" :loading="saving" :disabled="saving">
+            <NeButton type="submit" kind="primary" :loading="saving" :disabled="saving || !isDirty">
               <template #prefix>
                 <FontAwesomeIcon :icon="faFloppyDisk" class="size-4" aria-hidden="true" />
               </template>

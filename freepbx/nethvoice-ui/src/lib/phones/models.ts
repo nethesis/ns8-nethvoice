@@ -91,7 +91,7 @@ export const buildCustomModelName = (baseModel: string, label: string): string =
 
 const toPhoneModel = (model: v.InferOutput<typeof ModelSummarySchema>): PhoneModel => ({
   name: model.name,
-  displayName: model.display_name.trim() || model.name,
+  displayName: model.display_name.trim().replace(/;+$/, '').trim() || model.name,
   brand: getModelBrand(model.name),
   custom: isCustomModelName(model.name),
 })
@@ -131,7 +131,7 @@ export const guessModelName = (mac: string, vendor: string, models: PhoneModel[]
   const candidates = filterModelsByVendor(models, vendor)
 
   if (vendor.toLowerCase() === 'nethesis') {
-    const byte = mac.replace(/[:-]/g, '').toUpperCase().slice(6, 8)
+    const byte = mac.replace(/[:.-]/g, '').toUpperCase().slice(6, 8)
     const name = NETHESIS_MODELS_BY_MAC_BYTE[byte]
 
     if (name && candidates.some((model) => model.name === name)) {

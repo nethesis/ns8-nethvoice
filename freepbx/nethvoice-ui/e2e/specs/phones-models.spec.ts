@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { expect, test } from '../fixtures/mockApi'
-import { MODEL_VARIABLES, mockPhonesApi, TANCREDI } from './phones-data'
+import { MODEL_VARIABLES, mockPhonesApi, TANCREDI, TANCREDI_MODELS } from './phones-data'
 
 test.describe('physical phones: models', () => {
   test.beforeEach(({ signedIn }) => {
@@ -73,7 +73,8 @@ test.describe('physical phones: models', () => {
     await expect(drawer.getByText('A model with this name already exists')).toBeVisible()
 
     await drawer.getByRole('textbox', { name: 'Name' }).fill('Front office')
-    await drawer.getByText('Yealink T46').click()
+    await drawer.getByRole('combobox', { name: 'Base model' }).fill('T46')
+    await page.getByRole('option', { name: /Yealink T46/ }).click()
     await drawer.getByRole('button', { name: 'Add', exact: true }).click()
 
     await expect(page.getByText('Model added')).toBeVisible()
@@ -83,6 +84,16 @@ test.describe('physical phones: models', () => {
       variables: MODEL_VARIABLES,
     })
     await expect(page.getByRole('heading', { name: 'Front office' })).toBeVisible()
+    await expect(page).toHaveURL(/\/phones\/models\?model=yealink-T46-Front_office$/)
+  })
+
+  test('offers every Tancredi model as base model', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+    await page.goto('./phones/models')
+
+    await page.getByRole('button', { name: 'Add model' }).click()
+    await page.getByRole('dialog').getByRole('combobox', { name: 'Base model' }).click()
+    await expect(page.getByRole('option')).toHaveCount(TANCREDI_MODELS.length)
   })
 
   test('duplicates a model with a prefilled name', async ({ page, mockApi }) => {
@@ -158,6 +169,7 @@ test.describe('physical phones: models', () => {
       .getByRole('button', { name: /Edit/ })
       .click()
     await expect(page.getByRole('heading', { name: 'Yealink T46' })).toBeVisible()
+    await expect(page).toHaveURL(/\/phones\/models\?model=yealink-T46$/)
     await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
 
     await page.getByRole('button', { name: 'Display and ringtone' }).click()
@@ -177,6 +189,18 @@ test.describe('physical phones: models', () => {
         variables: { ringtone: '4', ntp_server: 'ntp.example.com', softkey_label_1: 'Calls' },
       },
     })
+  })
+
+  test('opens a model from its address and goes back to the list', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi).on('GET', `${TANCREDI}/models/:id`, {
+      json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
+    })
+    await page.goto('./phones/models?model=yealink-T46')
+
+    await expect(page.getByRole('heading', { name: 'Yealink T46' })).toBeVisible()
+    await page.getByRole('button', { name: 'Models', exact: true }).first().click()
+    await expect(page.getByRole('row', { name: /Yealink T46/ })).toBeVisible()
+    await expect(page).toHaveURL(/\/phones\/models$/)
   })
 
   test('asks before leaving a model with unsaved changes', async ({ page, mockApi }) => {

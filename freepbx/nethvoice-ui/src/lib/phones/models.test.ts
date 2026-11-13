@@ -42,6 +42,13 @@ describe('parsePhoneModels', () => {
   it('should reject an unexpected shape', () => {
     expect(() => parsePhoneModels([{ display_name: 'x' }])).toThrow()
   })
+
+  it('should drop the trailing semicolon of a display name', () => {
+    expect(
+      parsePhoneModels([{ name: 'fanvil-X301P', display_name: 'Fanvil X301P/G/W;' }])[0]
+        .displayName,
+    ).toBe('Fanvil X301P/G/W')
+  })
 })
 
 describe('parsePhoneModelDetail', () => {

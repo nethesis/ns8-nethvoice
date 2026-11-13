@@ -20,8 +20,6 @@ export const PASSWORD_MIN_LENGTH = 8
 
 export const PASSWORD_SPECIAL_CHARACTERS = '!@#^&_?-'
 
-const FALLBACK_WEB_PASSWORD = 'admin'
-
 const TONE_ZONE_REGIONS: Record<string, string> = { uk: 'GB' }
 
 export type PhoneDefaults = {
@@ -99,7 +97,10 @@ export const parsePhoneDefaults = (raw: unknown): PhoneDefaults => {
 }
 
 export const getPhoneWebPassword = (defaults: PhoneDefaults | undefined): string =>
-  defaults?.adminPassword || FALLBACK_WEB_PASSWORD
+  defaults?.adminPassword ?? ''
+
+export const isDefaultAdminPassword = (password: string): boolean =>
+  getUnmetPasswordRequirements(password).length > 0
 
 export const withCurrentOption = (options: string[], current: string): string[] =>
   current && !options.includes(current) ? [...options, current] : options
@@ -134,11 +135,20 @@ export const saveDefaultPhoneConfiguration = async (
 export const changePhonePassword = async (
   kind: PhonePasswordKind,
   password: string,
+  previousPassword = '',
 ): Promise<void> => {
   if (kind === 'user') {
     await patchPhoneDefaults({ userpw: password })
     return
   }
   await patchPhoneDefaults({ adminpw: password })
-  await api.POST('/physicalextensions/adminpw', { body: { password } })
+
+  try {
+    await api.POST('/physicalextensions/adminpw', { body: { password } })
+  } catch (error) {
+    if (previousPassword) {
+      await patchPhoneDefaults({ adminpw: previousPassword }).catch(() => undefined)
+    }
+    throw error
+  }
 }

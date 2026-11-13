@@ -5,15 +5,27 @@ import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import { isApiError } from '@/lib/api/errors'
 import { compareNatural, matchesText } from '@/lib/common'
-import { getPhysicalPhones, hasMainExtension, type User } from '@/lib/users/users'
+import {
+  getPhysicalPhones,
+  hasMainExtension,
+  MAX_DEVICES_PER_USER,
+  type User,
+} from '@/lib/users/users'
 import { postExtensionEncryption, type PhoneEncryption } from './encryption'
-import { findDuplicatedMacs, formatMac, isValidMac, toTancrediMac } from './mac'
+import { findDuplicatedMacs, formatMac, isUnicastMac, isValidMac, toTancrediMac } from './mac'
 import { getModelBrand, type PhoneModel } from './models'
+import type { PhoneRegistrations } from './registration'
 import { getTancrediProblemType, tancredi } from './tancrediClient'
 
 export const PHONES_KEY = 'phones'
 
 export const UNASSIGNED_FILTER_ID = '__unassigned__'
+
+export const MAX_NEW_PHONES = 50
+
+export const PHONE_STATUSES = ['registered', 'unregistered'] as const
+
+export type PhoneStatus = (typeof PHONE_STATUSES)[number] | 'unknown'
 
 const WEB_USER = 'admin'
 
@@ -43,6 +55,7 @@ export type PhoneFilters = {
   text: string
   models: string[]
   users: string[]
+  statuses?: PhoneStatus[]
 }
 
 export type NewPhoneRow = {
@@ -53,6 +66,7 @@ export type NewPhoneRow = {
 
 export type NewPhoneRowIssue =
   | 'phones.inventory.mac_invalid'
+  | 'phones.inventory.mac_not_unicast'
   | 'phones.inventory.mac_already_exists'
   | 'phones.inventory.mac_duplicated'
   | 'phones.inventory.model_required'
@@ -98,6 +112,23 @@ export class PhoneAssignmentError extends Error {
   }
 }
 
+export class PhoneReassignmentError extends Error {
+  readonly reason: unknown
+
+  constructor(reason: unknown) {
+    super(reason instanceof Error ? reason.message : 'Phone reassignment incomplete')
+    this.name = 'PhoneReassignmentError'
+    this.reason = reason
+  }
+}
+
+export class MissingWebPasswordError extends Error {
+  constructor() {
+    super('The default settings of the phones are not available')
+    this.name = 'MissingWebPasswordError'
+  }
+}
+
 const TancrediPhoneSchema = v.object({
   mac: v.string(),
   model: v.nullish(v.string(), ''),
@@ -133,6 +164,23 @@ export const getAssignableUsers = (users: User[]): User[] =>
 
 export const getUserLabel = (user: Pick<User, 'displayName' | 'username'>): string =>
   `${user.displayName} (${user.username})`
+
+export const isUserAtDeviceLimit = (user: Pick<User, 'devices'>): boolean =>
+  user.devices.length >= MAX_DEVICES_PER_USER
+
+export const getPhoneStatus = (
+  phone: Pick<Phone, 'extension'>,
+  registrations: PhoneRegistrations | undefined,
+): PhoneStatus => {
+  if (!phone.extension) {
+    return 'unregistered'
+  }
+
+  if (!registrations) {
+    return 'unknown'
+  }
+  return registrations[phone.extension]?.registered ? 'registered' : 'unregistered'
+}
 
 export const buildPhones = (
   tancrediPhones: TancrediPhone[],
@@ -180,9 +228,21 @@ export const buildPhones = (
     .sort((a, b) => compareNatural(a.mac, b.mac))
 }
 
-export const filterPhones = (phones: Phone[], filters: PhoneFilters): Phone[] =>
+export const filterPhones = (
+  phones: Phone[],
+  filters: PhoneFilters,
+  registrations?: PhoneRegistrations,
+): Phone[] =>
   phones.filter((phone) => {
     if (filters.models.length > 0 && !filters.models.includes(phone.model)) {
+      return false
+    }
+
+    if (
+      filters.statuses &&
+      filters.statuses.length > 0 &&
+      !filters.statuses.includes(getPhoneStatus(phone, registrations))
+    ) {
       return false
     }
 
@@ -215,6 +275,8 @@ export const validateNewPhoneRows = (
 
     if (!isValidMac(row.mac)) {
       issues.mac = 'phones.inventory.mac_invalid'
+    } else if (!isUnicastMac(row.mac)) {
+      issues.mac = 'phones.inventory.mac_not_unicast'
     } else if (existingMacs.includes(toTancrediMac(row.mac))) {
       issues.mac = 'phones.inventory.mac_already_exists'
     } else if (duplicated.includes(toTancrediMac(row.mac))) {
@@ -260,6 +322,12 @@ const postPhysicalExtension = async (body: {
     return ''
   }
   return v.parse(PhysicalExtensionResponseSchema, data).extension
+}
+
+const assertWebPassword = (webPassword: string) => {
+  if (!webPassword) {
+    throw new MissingWebPasswordError()
+  }
 }
 
 const deletePhysicalExtension = async (id: string): Promise<void> => {
@@ -309,6 +377,7 @@ export const addPhone = async (
 ): Promise<AddPhoneResult> => {
   const mac = toTancrediMac(row.mac)
 
+  assertWebPassword(options.webPassword)
   await tancredi.post('/phones', { mac, model: row.model, display_name: vendor })
 
   try {
@@ -329,30 +398,66 @@ export const addPhone = async (
   return { mac, rpsFailed: !registered }
 }
 
+const reassignPhone = async (
+  phone: Phone,
+  changes: PhoneChanges,
+  webPassword: string,
+): Promise<void> => {
+  const extension = changes.mainExtension
+    ? await postPhysicalExtension({
+        mainextension: changes.mainExtension,
+        mac: phone.mac,
+        model: changes.model,
+        clear_temporary: true,
+        webPassword,
+      })
+    : ''
+  const failures: unknown[] = []
+
+  if (extension) {
+    await postExtensionEncryption(extension, changes.encrypted).catch((error: unknown) => {
+      failures.push(error)
+    })
+  }
+
+  if (phone.extension) {
+    await deletePhysicalExtension(phone.extension).catch((error: unknown) => {
+      failures.push(error)
+    })
+  }
+
+  if (failures.length > 0) {
+    throw changes.mainExtension ? new PhoneReassignmentError(failures[0]) : failures[0]
+  }
+}
+
 export const updatePhone = async (
   phone: Phone,
   changes: PhoneChanges,
   webPassword: string,
 ): Promise<void> => {
-  if (changes.model !== phone.model) {
-    await tancredi.patch(phonePath(phone.mac), { model: changes.model })
-    await api.PATCH('/physicalextensions/{mac}', {
-      params: { path: { mac: phone.mac } },
-      body: { model: changes.model },
-    })
+  const userChanged = changes.mainExtension !== (phone.user?.mainExtension ?? '')
+
+  if (userChanged && changes.mainExtension) {
+    assertWebPassword(webPassword)
   }
 
-  if (changes.mainExtension !== (phone.user?.mainExtension ?? '')) {
-    if (phone.extension) {
-      await deletePhysicalExtension(phone.extension)
-    }
+  if (changes.model !== phone.model) {
+    await tancredi.patch(phonePath(phone.mac), { model: changes.model })
 
-    if (changes.mainExtension) {
-      await assignPhone(phone.mac, changes.model, changes.mainExtension, {
-        webPassword,
-        encrypted: changes.encrypted,
+    try {
+      await api.PATCH('/physicalextensions/{mac}', {
+        params: { path: { mac: phone.mac } },
+        body: { model: changes.model },
       })
+    } catch (error) {
+      await tancredi.patch(phonePath(phone.mac), { model: phone.model }).catch(() => undefined)
+      throw error
     }
+  }
+
+  if (userChanged) {
+    await reassignPhone(phone, changes, webPassword)
     return
   }
 
@@ -362,6 +467,8 @@ export const updatePhone = async (
 }
 
 export const deletePhone = async (phone: Phone): Promise<void> => {
+  await deletePhysicalExtension(phone.mac)
+
   try {
     await tancredi.delete(phonePath(phone.mac))
   } catch (error) {
@@ -369,7 +476,6 @@ export const deletePhone = async (phone: Phone): Promise<void> => {
       throw error
     }
   }
-  await deletePhysicalExtension(phone.mac)
 }
 
 export const runProvisioning = async (phones: Phone[]): Promise<ProvisioningResult> => {

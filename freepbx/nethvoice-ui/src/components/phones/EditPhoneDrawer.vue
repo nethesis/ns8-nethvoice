@@ -24,6 +24,9 @@ import { PHONE_ENCRYPTION_KEY } from '@/lib/phones/encryption'
 import {
   getAssignableUsers,
   getUserLabel,
+  isUserAtDeviceLimit,
+  MissingWebPasswordError,
+  PhoneReassignmentError,
   PHONES_KEY,
   updatePhone,
   type Phone,
@@ -76,16 +79,60 @@ const modelOptions = computed<NeComboboxOption[]>(() =>
 )
 
 const userOptions = computed<NeComboboxOption[]>(() =>
-  getAssignableUsers(users).map((user) => ({
-    id: user.mainExtension,
-    label: getUserLabel(user),
-    description: user.mainExtension,
-  })),
+  getAssignableUsers(users).map((user) => {
+    const atLimit =
+      isUserAtDeviceLimit(user) && user.mainExtension !== (phone?.user?.mainExtension ?? '')
+
+    return {
+      id: user.mainExtension,
+      label: getUserLabel(user),
+      description: atLimit
+        ? t('phones.inventory.user_device_limit_reached', { extension: user.mainExtension })
+        : user.mainExtension,
+      disabled: atLimit,
+    }
+  }),
 )
 
 const userChanged = computed(
   () => !!phone && mainExtension.value !== (phone.user?.mainExtension ?? ''),
 )
+
+const modelChanged = computed(() => !!phone && model.value !== phone.model)
+
+const modelLabel = (name: string) =>
+  name ? (models.find((item) => item.name === name)?.displayName ?? name) : '-'
+
+const userLabel = (extension: string) => {
+  const user = users.find((item) => item.mainExtension === extension)
+  return user ? getUserLabel(user) : t('phones.inventory.unassigned')
+}
+
+const pendingChanges = computed(() => {
+  if (!phone) {
+    return []
+  }
+  const changes: string[] = []
+
+  if (modelChanged.value) {
+    changes.push(
+      t('phones.inventory.model_change', {
+        from: modelLabel(phone.model),
+        to: modelLabel(model.value),
+      }),
+    )
+  }
+
+  if (userChanged.value) {
+    changes.push(
+      t('phones.inventory.user_change', {
+        from: userLabel(phone.user?.mainExtension ?? ''),
+        to: userLabel(mainExtension.value),
+      }),
+    )
+  }
+  return changes
+})
 
 const {
   mutate: savePhoneMutate,
@@ -137,6 +184,26 @@ watch(mainExtension, (current, previous) => {
   }
 })
 
+const saveErrorDescription = computed(() => {
+  const error = savePhoneError.value
+
+  if (error instanceof PhoneReassignmentError) {
+    return t('phones.inventory.reassigned_with_errors', { error: describeError(error.reason) })
+  }
+
+  if (error instanceof MissingWebPasswordError) {
+    return t('phones.inventory.admin_password_missing_description')
+  }
+  return describeError(error)
+})
+
+function requestClose() {
+  if (saving.value) {
+    return
+  }
+  emit('close')
+}
+
 function save() {
   if (!phone) {
     return
@@ -161,7 +228,7 @@ function save() {
     :is-shown="isShown"
     :title="$t('phones.inventory.edit_phone')"
     :close-aria-label="$t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-8">
@@ -203,10 +270,16 @@ function save() {
           {{ $t('phones.inventory.encryption_requires_user') }}
         </p>
         <NeInlineNotification
+          v-if="pendingChanges.length > 0"
+          kind="info"
+          :title="$t('phones.inventory.pending_changes')"
+          :description="pendingChanges.join(' ')"
+        />
+        <NeInlineNotification
           v-if="savePhoneError"
           kind="error"
           :title="$t('phones.inventory.cannot_save_phone')"
-          :description="describeError(savePhoneError)"
+          :description="saveErrorDescription"
         />
       </div>
       <hr class="my-8 border-gray-200 dark:border-gray-700" />

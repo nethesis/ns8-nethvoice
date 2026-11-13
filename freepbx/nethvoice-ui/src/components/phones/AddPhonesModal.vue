@@ -7,6 +7,7 @@
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
+import { useMediaQuery } from '@vueuse/core'
 import {
   NeButton,
   NeCombobox,
@@ -20,7 +21,13 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faTrash } from '@fortawesome/free-solid-svg-icons'
 import type { User } from '@/lib/users/users'
 import { USERS_KEY } from '@/lib/users/users'
-import { formatMac, getMacVendor, parseMacList, type MacVendors } from '@/lib/phones/mac'
+import {
+  formatMac,
+  getMacVendor,
+  isUnicastMac,
+  parseMacList,
+  type MacVendors,
+} from '@/lib/phones/mac'
 import {
   filterModelsByVendor,
   getModelBrand,
@@ -32,6 +39,9 @@ import {
   getAssignableUsers,
   getUserLabel,
   isPhoneAlreadyRegistered,
+  isUserAtDeviceLimit,
+  MAX_NEW_PHONES,
+  MissingWebPasswordError,
   PhoneAssignmentError,
   PHONES_KEY,
   validateNewPhoneRows,
@@ -48,9 +58,10 @@ type Row = {
   mainExtension: string
   issues: NewPhoneRowIssues
   error: string
+  added: boolean
 }
 
-type AddResult = { added: number; rpsFailed: number; failed: number }
+type AddResult = { added: number; rpsFailed: number; notAssigned: number; failed: number }
 
 const {
   isShown = false,
@@ -81,8 +92,11 @@ const macsText = ref('')
 const macsIssue = ref('')
 const rows = ref<Row[]>([])
 const modelForAll = ref('')
+const appliedToAll = ref<{ applied: number; total: number } | null>(null)
+const progress = ref({ current: 0, total: 0 })
 const macsTextRef = useTemplateRef<InstanceType<typeof NeTextArea>>('macsTextRef')
 const macRefs: (InstanceType<typeof NeTextInput> | null)[] = []
+const isMediumScreen = useMediaQuery('(min-width: 768px)')
 let nextKey = 0
 
 const comboboxLabels = computed(() => ({
@@ -100,12 +114,21 @@ const toModelOptions = (list: PhoneModel[]): NeComboboxOption[] =>
 const allModelOptions = computed(() => toModelOptions(models))
 
 const userOptions = computed<NeComboboxOption[]>(() =>
-  getAssignableUsers(users).map((user) => ({
-    id: user.mainExtension,
-    label: getUserLabel(user),
-    description: user.mainExtension,
-  })),
+  getAssignableUsers(users).map((user) => {
+    const atLimit = isUserAtDeviceLimit(user)
+
+    return {
+      id: user.mainExtension,
+      label: getUserLabel(user),
+      description: atLimit
+        ? t('phones.inventory.user_device_limit_reached', { extension: user.mainExtension })
+        : user.mainExtension,
+      disabled: atLimit,
+    }
+  }),
 )
+
+const pendingRows = computed(() => rows.value.filter((row) => !row.added))
 
 const vendorOf = (mac: string) => getMacVendor(mac, macVendors)
 
@@ -128,16 +151,28 @@ const {
   error: addPhonesError,
 } = useMutation({
   mutation: async (pending: Row[]): Promise<AddResult> => {
-    const result: AddResult = { added: 0, rpsFailed: 0, failed: 0 }
+    const result: AddResult = { added: 0, rpsFailed: 0, notAssigned: 0, failed: 0 }
+
+    if (!webPassword) {
+      throw new MissingWebPasswordError()
+    }
+    progress.value = { current: 0, total: pending.length }
 
     for (const row of pending) {
+      progress.value = { current: progress.value.current + 1, total: pending.length }
+
       try {
         const added = await addPhone(row, getModelBrand(row.model), { webPassword, encrypted })
         result.added += 1
         result.rpsFailed += added.rpsFailed ? 1 : 0
         rows.value = rows.value.filter((item) => item.key !== row.key)
       } catch (error) {
-        result.failed += 1
+        if (error instanceof PhoneAssignmentError) {
+          result.added += 1
+          result.notAssigned += 1
+        } else {
+          result.failed += 1
+        }
         markRowError(row.key, error)
       }
     }
@@ -159,6 +194,14 @@ const {
             description: t('phones.inventory.rps_failed_description'),
           })
         }
+
+        if (result.notAssigned > 0) {
+          notificationsStore.createNotification({
+            kind: 'warning',
+            title: t('phones.inventory.phones_not_assigned', result.notAssigned),
+            description: t('phones.inventory.phones_not_assigned_description', result.notAssigned),
+          })
+        }
       }, 500)
     }
 
@@ -177,7 +220,7 @@ const {
 watch(
   () => isShown,
   (shown) => {
-    if (!shown) {
+    if (!shown || adding.value) {
       return
     }
     addPhonesReset()
@@ -186,6 +229,7 @@ watch(
     macsIssue.value = ''
     rows.value = []
     modelForAll.value = ''
+    appliedToAll.value = null
     nextTick(() => macsTextRef.value?.focus())
   },
 )
@@ -203,7 +247,9 @@ function markRowError(key: number, error: unknown) {
     row.error = t('phones.inventory.added_but_not_assigned', {
       error: describeError(error.reason),
     })
-    row.mainExtension = ''
+    row.added = true
+  } else if (error instanceof MissingWebPasswordError) {
+    row.error = t('phones.inventory.admin_password_missing_description')
   } else {
     row.error = describeError(error)
   }
@@ -222,19 +268,35 @@ function buildRow(mac: string): Row {
     mainExtension: '',
     issues: {},
     error: '',
+    added: false,
   }
 }
 
 function goToStep2() {
   const macs = parseMacList(macsText.value)
 
+  const invalidMacs = macs.filter((mac) => !isUnicastMac(mac))
+
   if (macs.length === 0) {
-    macsIssue.value = 'phones.inventory.enter_at_least_one_mac'
+    macsIssue.value = t('phones.inventory.enter_at_least_one_mac')
+  } else if (macs.length > MAX_NEW_PHONES) {
+    macsIssue.value = t('phones.inventory.too_many_macs', { max: MAX_NEW_PHONES, n: macs.length })
+  } else if (invalidMacs.length > 0) {
+    macsIssue.value = t(
+      'phones.inventory.invalid_macs',
+      { macs: invalidMacs.join(', ') },
+      invalidMacs.length,
+    )
+  } else {
+    macsIssue.value = ''
+  }
+
+  if (macsIssue.value) {
     macsTextRef.value?.focus()
     return
   }
-  macsIssue.value = ''
   rows.value = macs.map(buildRow)
+  appliedToAll.value = null
   step.value = 2
   validateRows(false)
 }
@@ -250,6 +312,10 @@ function validateRows(includeModels: boolean): boolean {
   let firstInvalid = -1
 
   rows.value.forEach((row, index) => {
+    if (row.added) {
+      row.issues = {}
+      return
+    }
     row.issues = includeModels ? issues[index] : { mac: issues[index].mac }
 
     if (firstInvalid < 0 && (row.issues.mac || row.issues.model)) {
@@ -287,13 +353,16 @@ function applyModelToAll() {
   if (!modelForAll.value) {
     return
   }
+  let applied = 0
 
-  for (const row of rows.value) {
+  for (const row of pendingRows.value) {
     if (modelOptionsFor(row).some((option) => option.id === modelForAll.value)) {
       row.model = modelForAll.value
       clearModelIssue(row)
+      applied += 1
     }
   }
+  appliedToAll.value = { applied, total: pendingRows.value.length }
 }
 
 function removeRow(key: number) {
@@ -311,15 +380,29 @@ function submit() {
   }
   addPhonesReset()
 
-  for (const row of rows.value) {
+  for (const row of pendingRows.value) {
     row.error = ''
   }
 
   if (!validateRows(true)) {
     return
   }
-  addPhonesMutate(rows.value.map((row) => ({ ...row })))
+
+  if (pendingRows.value.length === 0) {
+    emit('close')
+    return
+  }
+  addPhonesMutate(pendingRows.value.map((row) => ({ ...row })))
 }
+
+function requestClose() {
+  if (adding.value) {
+    return
+  }
+  emit('close')
+}
+
+const isLabelShown = (index: number) => index === 0 || !isMediumScreen.value
 
 const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
 </script>
@@ -339,7 +422,7 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
     :primary-button-disabled="adding"
     :secondary-button-disabled="adding"
     :close-aria-label="$t('common.close')"
-    @close="emit('close')"
+    @close="requestClose"
     @primary-click="submit"
     @secondary-click="goToStep1"
   >
@@ -351,7 +434,7 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
           v-model="macsText"
           :label="$t('phones.inventory.mac_addresses')"
           :helper-text="$t('phones.inventory.mac_addresses_helper')"
-          :invalid-message="macsIssue ? $t(macsIssue) : ''"
+          :invalid-message="macsIssue"
           :rows="5"
         />
       </template>
@@ -375,9 +458,29 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
             {{ $t('phones.inventory.apply_to_all') }}
           </NeButton>
         </div>
+        <NeInlineNotification
+          v-if="appliedToAll && appliedToAll.applied < appliedToAll.total"
+          kind="info"
+          :title="
+            $t('phones.inventory.model_applied_to_some', {
+              applied: appliedToAll.applied,
+              total: appliedToAll.total,
+            })
+          "
+          :description="$t('phones.inventory.model_applied_to_some_description')"
+          class="-mt-4 mb-8"
+        />
         <h4 class="text-primary-neutral mb-4 text-base font-medium">
           {{ $t('phones.inventory.n_phones_to_configure', rows.length) }}
         </h4>
+        <p v-if="adding" class="text-secondary-neutral mb-4 text-sm" role="status">
+          {{
+            $t('phones.inventory.adding_progress', {
+              current: progress.current,
+              total: progress.total,
+            })
+          }}
+        </p>
         <NeInlineNotification
           v-if="addPhonesError"
           kind="error"
@@ -389,43 +492,44 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
           <li
             v-for="(row, index) in rows"
             :key="row.key"
-            class="grid grid-cols-1 items-start gap-4 md:grid-cols-[1fr_1fr_1fr_auto]"
+            class="grid grid-cols-1 items-start gap-4 border-gray-200 md:grid-cols-[1fr_1fr_1fr_auto] dark:border-gray-700"
+            :class="index > 0 ? 'border-t pt-4 md:border-t-0 md:pt-0' : ''"
             :data-testid="`phone-row-${index}`"
           >
             <NeTextInput
               :ref="(element) => setMacRef(index, element)"
               v-model="row.mac"
-              :label="index === 0 ? $t('phones.mac_address') : ''"
+              :label="isLabelShown(index) ? $t('phones.mac_address') : ''"
               :aria-label="$t('phones.mac_address')"
               :invalid-message="rowIssue(row.issues.mac)"
-              :disabled="adding"
+              :disabled="adding || row.added"
               @update:model-value="onMacChanged(row)"
             />
             <NeCombobox
               v-model="row.model"
-              :label="index === 0 ? $t('phones.model') : ''"
+              :label="isLabelShown(index) ? $t('phones.model') : ''"
               :aria-label="$t('phones.model')"
               :options="modelOptionsFor(row)"
               :placeholder="$t('phones.inventory.choose_model')"
               :invalid-message="rowIssue(row.issues.model)"
-              :disabled="adding"
+              :disabled="adding || row.added"
               v-bind="comboboxLabels"
               @update:model-value="clearModelIssue(row)"
             />
             <NeCombobox
               v-model="row.mainExtension"
-              :label="index === 0 ? $t('phones.user') : ''"
+              :label="isLabelShown(index) ? $t('phones.user') : ''"
               :aria-label="$t('phones.user')"
               :options="userOptions"
               :placeholder="$t('phones.inventory.choose_user')"
-              :disabled="adding"
+              :disabled="adding || row.added"
               optional
               :show-selected-label="false"
               v-bind="comboboxLabels"
             />
             <NeButton
               kind="tertiary"
-              :class="index === 0 ? 'md:mt-8' : ''"
+              :class="isLabelShown(index) ? 'md:mt-8' : ''"
               :disabled="adding"
               @click.prevent="removeRow(row.key)"
             >
@@ -434,7 +538,15 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
                 $t('phones.inventory.remove_phone', { mac: row.mac })
               }}</span>
             </NeButton>
-            <p v-if="row.error" class="text-sm text-rose-700 md:col-span-4 dark:text-rose-400">
+            <p
+              v-if="row.error"
+              class="text-sm md:col-span-4"
+              :class="
+                row.added
+                  ? 'text-amber-700 dark:text-amber-500'
+                  : 'text-rose-700 dark:text-rose-400'
+              "
+            >
               {{ row.error }}
             </p>
           </li>

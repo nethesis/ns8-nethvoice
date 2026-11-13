@@ -6,6 +6,7 @@ import {
   findDuplicatedMacs,
   formatMac,
   getMacVendor,
+  isUnicastMac,
   isValidMac,
   parseMacList,
   parseMacVendors,
@@ -84,5 +85,24 @@ describe('getMacVendor', () => {
 
   it('should reject an unexpected shape', () => {
     expect(() => parseMacVendors({ '001565': 1 })).toThrow()
+  })
+})
+
+describe('MAC formats and kinds', () => {
+  it('should accept the dotted format and octets separated by spaces', () => {
+    expect(toTancrediMac('0011.2233.4455')).toBe('00-11-22-33-44-55')
+    expect(parseMacList('00 11 22 33 44 58\n0011.2233.4456; 00:11:22:33:44:57')).toEqual([
+      '00:11:22:33:44:58',
+      '0011.2233.4456',
+      '00:11:22:33:44:57',
+    ])
+  })
+
+  it('should reject multicast, broadcast and all-zero addresses', () => {
+    expect(isUnicastMac('00:15:65:ab:cd:ef')).toBe(true)
+    expect(isUnicastMac('01:00:5E:00:00:01')).toBe(false)
+    expect(isUnicastMac('FF:FF:FF:FF:FF:FF')).toBe(false)
+    expect(isUnicastMac('00:00:00:00:00:00')).toBe(false)
+    expect(isUnicastMac('xx')).toBe(false)
   })
 })
