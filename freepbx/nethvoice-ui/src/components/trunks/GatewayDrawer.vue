@@ -15,9 +15,11 @@ import {
   NeSideDrawer,
   NeTextInput,
 } from '@nethesis/vue-components'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import {
   describeGatewayError,
   findGatewayModel,
+  formatMacAddress,
   GATEWAYS_KEY,
   getEmptyGatewayForm,
   getGatewayForm,
@@ -41,6 +43,7 @@ import { TRUNKS_KEY } from '@/lib/trunks/trunks'
 import { TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
 import type { Focusable } from '@/lib/common'
 import { useFxsUsers, useGatewayModels, useHostNetworks } from '@/queries/trunks/gateways'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const {
@@ -56,6 +59,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: []; download: [gateway: Gateway] }>()
+
+const FOCUS_DELAY = 300
 
 const FIELD_ORDER: GatewayField[] = [
   'manufacturer',
@@ -76,6 +81,10 @@ const { state: fxsUsersState } = useFxsUsers()
 
 const form = ref<GatewayForm>(getEmptyGatewayForm())
 const validationIssues = ref<GatewayValidationIssues>({})
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
+
+useFocusReturn(() => isShown)
 
 const fieldRefs: Record<GatewayField, Readonly<ShallowRef<Focusable | null>>> = {
   manufacturer: useTemplateRef<Focusable>('manufacturerRef'),
@@ -90,6 +99,10 @@ const fxoRefs = useTemplateRef<Focusable[]>('fxoRefs')
 const fxsRefs = useTemplateRef<Focusable[]>('fxsRefs')
 
 const isReadOnly = computed(() => gateway !== undefined)
+
+const isDirty = computed(
+  () => !isReadOnly.value && JSON.stringify(form.value) !== initialSnapshot.value,
+)
 
 const models = computed<GatewayModel[]>(() => modelsState.value.data ?? [])
 
@@ -140,6 +153,15 @@ const {
     }, 500)
     emit('close')
   },
+  onError(error) {
+    if (!isShown) {
+      notificationsStore.createNotification({
+        kind: 'error',
+        title: t('trunks.cannot_create_trunk'),
+        description: describeGatewayError(error) || describeError(error),
+      })
+    }
+  },
   onSettled() {
     queryCache.invalidateQueries({ key: [GATEWAYS_KEY] })
     queryCache.invalidateQueries({ key: [TRUNKS_KEY] })
@@ -155,23 +177,35 @@ function getDefaultForm(): GatewayForm {
   return getEmptyGatewayForm(firstModel?.defaultPbxAddress ?? '', network)
 }
 
+function initForm() {
+  form.value = gateway
+    ? { ...getGatewayForm(gateway), macAddress: formatMacAddress(gateway.macAddress) }
+    : getDefaultForm()
+  initialSnapshot.value = JSON.stringify(form.value)
+}
+
 watch(
   () => isShown,
   (shown) => {
     if (!shown) {
+      isShownDiscardModal.value = false
       return
     }
     resetCreate()
     validationIssues.value = {}
-    form.value = gateway ? getGatewayForm(gateway) : getDefaultForm()
+    initForm()
+
+    if (!gateway) {
+      setTimeout(() => fieldRefs.manufacturer.value?.focus(), FOCUS_DELAY)
+    }
   },
 )
 
 watch(
   () => [models.value, networksState.value.data] as const,
   () => {
-    if (isShown && !gateway && !form.value.pbxAddress && !form.value.manufacturer) {
-      form.value = getDefaultForm()
+    if (isShown && !gateway && !isDirty.value) {
+      initForm()
     }
   },
 )
@@ -256,6 +290,23 @@ function save() {
   }
   createGateway({ values: { ...form.value }, model })
 }
+
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
+}
 </script>
 
 <template>
@@ -263,7 +314,7 @@ function save() {
     :is-shown="isShown"
     :title="isReadOnly ? label : t('trunks.physical.add_physical_trunk')"
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
@@ -416,12 +467,12 @@ function save() {
           <NeButton kind="tertiary" size="lg" @click.prevent="emit('download', gateway)">
             {{ t('trunks.physical.download_configuration') }}
           </NeButton>
-          <NeButton kind="primary" size="lg" @click.prevent="emit('close')">
+          <NeButton kind="primary" size="lg" @click.prevent="requestClose">
             {{ t('common.close') }}
           </NeButton>
         </template>
         <template v-else>
-          <NeButton kind="tertiary" size="lg" :disabled="saving" @click.prevent="emit('close')">
+          <NeButton kind="tertiary" size="lg" :disabled="saving" @click.prevent="requestClose">
             {{ t('common.cancel') }}
           </NeButton>
           <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
@@ -431,4 +482,9 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>

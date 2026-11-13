@@ -7,6 +7,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
+  NeBadgeV2,
   NeButton,
   NeDropdown,
   NeEmptyState,
@@ -19,11 +20,13 @@ import {
   NeTableHeadCell,
   NeTableRow,
   NeTextInput,
+  NeTooltip,
   type NeDropdownItem,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faCirclePlus,
+  faLock,
   faMagnifyingGlass,
   faNetworkWired,
   faPenToSquare,
@@ -34,12 +37,17 @@ import CreateOrEditVoipTrunkDrawer from './CreateOrEditVoipTrunkDrawer.vue'
 import DeleteVoipTrunkModal from './DeleteVoipTrunkModal.vue'
 import TrunkStatusIndicator from './TrunkStatusIndicator.vue'
 import TrunksUpdatingIndicator from './TrunksUpdatingIndicator.vue'
-import { filterVoipTrunks, getVoipTrunks, type Trunk } from '@/lib/trunks/trunks'
+import {
+  filterVoipTrunks,
+  getTrunkManagement,
+  getVoipTrunks,
+  type Trunk,
+} from '@/lib/trunks/trunks'
 import { getCodecLabel, getProviderName } from '@/lib/trunks/providers'
 import { getGatewayTrunkIds } from '@/lib/trunks/gateways'
 import {
-  getProviderStatus,
-  getRegistrationStatus,
+  getTrunkProviderStatus,
+  getTrunkRegistrationStatus,
   TRUNKS_LIVE_STATE_REFRESH_INTERVAL,
 } from '@/lib/trunks/liveState'
 import { PAGE_SIZES } from '@/lib/common'
@@ -68,20 +76,23 @@ const currentTrunk = ref<Trunk | undefined>()
 const isShownDrawer = ref(false)
 const isShownDeleteModal = ref(false)
 
-const loadError = computed(() => trunksState.value.error ?? gatewaysState.value.error)
+const loadError = computed(() => trunksState.value.error)
 
 const isLoading = computed(
   () => trunksState.value.status === 'pending' || gatewaysState.value.status === 'pending',
 )
 
 const voipTrunks = computed(() =>
-  getVoipTrunks(trunksState.value.data ?? [], getGatewayTrunkIds(gatewaysState.value.data ?? [])),
+  getVoipTrunks(
+    trunksState.value.data ?? [],
+    gatewaysState.value.data ? getGatewayTrunkIds(gatewaysState.value.data) : undefined,
+  ),
 )
 
 const existingNames = computed(() => (trunksState.value.data ?? []).map((trunk) => trunk.name))
 
 const filteredTrunks = computed(() =>
-  filterVoipTrunks(voipTrunks.value, textFilter.value, getProviderLabel),
+  filterVoipTrunks(voipTrunks.value, textFilter.value, getProviderLabel, getCodecLabel),
 )
 
 const { pageNum, pageSize, page } = useClientPagination(filteredTrunks)
@@ -119,7 +130,22 @@ watch(textFilter, () => {
 })
 
 function getProviderLabel(trunk: Trunk): string {
-  return getProviderName(trunk, providersState.value.data ?? []) || trunk.sipServer
+  switch (getTrunkManagement(trunk)) {
+    case 'voice_agents':
+      return t('trunks.voip.ai_agents')
+    case 'other_technology':
+      return trunk.technology.toUpperCase()
+    default:
+      return getProviderName(trunk, providersState.value.data ?? []) || trunk.sipServer
+  }
+}
+
+function getReadOnlyReason(trunk: Trunk): string {
+  return getTrunkManagement(trunk) === 'voice_agents'
+    ? t('trunks.voip.ai_agents_read_only')
+    : t('trunks.voip.other_technology_read_only', {
+        technology: trunk.technology.toUpperCase(),
+      })
 }
 
 function getCodecsLabel(trunk: Trunk): string {
@@ -221,6 +247,14 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
       :title="t('trunks.cannot_load_live_status')"
       :description="describeError(liveState.error)"
     />
+    <NeInlineNotification
+      v-if="isLoaded && gatewaysState.status === 'error'"
+      kind="warning"
+      :title="t('trunks.voip.cannot_load_gateways')"
+      :description="describeError(gatewaysState.error)"
+      :primary-button-label="t('common.retry')"
+      @primary-click="refetchGateways()"
+    />
     <NeEmptyState
       v-if="isNoDataEmptyStateShown"
       :title="t('trunks.voip.no_trunks')"
@@ -257,7 +291,9 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
       <NeTableHead>
         <NeTableHeadCell>{{ t('trunks.trunk') }}</NeTableHeadCell>
         <NeTableHeadCell>{{ t('trunks.voip.provider') }}</NeTableHeadCell>
-        <NeTableHeadCell>{{ t('trunks.voip.phone_number') }}</NeTableHeadCell>
+        <NeTableHeadCell>
+          <span class="whitespace-nowrap">{{ t('trunks.voip.phone_number') }}</span>
+        </NeTableHeadCell>
         <NeTableHeadCell>{{ t('trunks.voip.codecs') }}</NeTableHeadCell>
         <NeTableHeadCell>{{ t('trunks.voip.provider_status') }}</NeTableHeadCell>
         <NeTableHeadCell>{{ t('trunks.voip.sip_registration') }}</NeTableHeadCell>
@@ -268,25 +304,45 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
       <NeTableBody>
         <NeTableRow v-for="item in page" :key="item.id">
           <NeTableCell :data-label="t('trunks.trunk')">
-            <span class="wrap-anywhere">{{ item.name }}</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="wrap-anywhere">{{ item.name }}</span>
+              <NeBadgeV2 v-if="item.disabled" kind="gray" size="xs">
+                {{ t('common.disabled') }}
+              </NeBadgeV2>
+            </div>
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.voip.provider')">
-            <span class="wrap-anywhere">{{ getProviderLabel(item) || '-' }}</span>
+            <span class="break-words">{{ getProviderLabel(item) || '-' }}</span>
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.voip.phone_number')">
-            <span class="wrap-anywhere">{{ item.phoneNumber || '-' }}</span>
+            <span class="break-words">{{ item.phoneNumber || '-' }}</span>
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.voip.codecs')">
             {{ getCodecsLabel(item) || '-' }}
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.voip.provider_status')">
-            <TrunkStatusIndicator :status="getProviderStatus(item.name, liveData)" />
+            <TrunkStatusIndicator :status="getTrunkProviderStatus(item.name, liveData)" />
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.voip.sip_registration')">
-            <TrunkStatusIndicator :status="getRegistrationStatus(item.name, liveData)" />
+            <TrunkStatusIndicator :status="getTrunkRegistrationStatus(item.name, liveData)" />
           </NeTableCell>
           <NeTableCell :data-label="t('common.actions')">
-            <div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
+            <div v-if="getTrunkManagement(item) !== 'editable'" class="flex xl:justify-end">
+              <NeTooltip>
+                <template #trigger>
+                  <span
+                    tabindex="0"
+                    class="text-secondary-neutral flex items-center gap-2 rounded-sm"
+                  >
+                    <FontAwesomeIcon :icon="faLock" class="size-4" aria-hidden="true" />
+                    {{ t('trunks.voip.read_only') }}
+                    <span class="sr-only">{{ getReadOnlyReason(item) }}</span>
+                  </span>
+                </template>
+                <template #content>{{ getReadOnlyReason(item) }}</template>
+              </NeTooltip>
+            </div>
+            <div v-else class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
               <NeButton kind="tertiary" @click="showEditDrawer(item)">
                 <template #prefix>
                   <FontAwesomeIcon :icon="faPenToSquare" class="h-4 w-4" aria-hidden="true" />

@@ -3,7 +3,7 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
-import { getApiErrorMessage, isApiError } from '@/lib/api/errors'
+import { ApiError, getApiErrorDetail, isApiError } from '@/lib/api/errors'
 import type { components } from '@/lib/api/schema'
 import { compareNatural, matchesText } from '@/lib/common'
 import type { Trunk } from './trunks'
@@ -24,6 +24,12 @@ const IPV4_PATTERN = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d
 const HOST_PATTERN = /^[A-Za-z0-9]([A-Za-z0-9.-]*[A-Za-z0-9])?$/
 
 const LINE_NUMBER_PATTERN = /^\+?[0-9]+$/
+
+const NUMERIC_HOST_PATTERN = /^[\d.]+$/
+
+const GATEWAYS_SAVE_PATH = '/devices/gateways'
+
+const NETWORK_FIELDS = ['ipAddress', 'netmask', 'networkGateway'] as const
 
 const NumericSchema = v.pipe(
   v.union([v.number(), v.pipe(v.string(), v.regex(/^\d+$/))]),
@@ -85,7 +91,8 @@ const GatewaysResponseSchema = v.array(
 )
 
 const GatewaySaveResultSchema = v.object({
-  status: v.literal(true),
+  status: v.boolean(),
+  errors: v.nullish(v.array(v.string()), []),
   id: v.nullish(NumericSchema),
 })
 
@@ -158,7 +165,7 @@ export type GatewayValidationIssues = Partial<Record<GatewayField, string>> & {
   fxsExtensions?: Record<number, string>
 }
 
-export type GatewayStatus = 'connected' | 'not_connected' | 'unknown'
+export type GatewayStatus = 'connected' | 'not_connected' | 'unmonitored' | 'unknown'
 
 export type HostNetwork = {
   ip: string
@@ -250,9 +257,13 @@ export const getModelLabel = (model: GatewayModel): string =>
 export const getGatewayModelDescription = (gateway: Gateway, models: GatewayModel[]): string =>
   findGatewayModel(models, gateway.modelId)?.description ?? ''
 
-export const getGatewayLabel = (gateway: Gateway, models: GatewayModel[]): string =>
-  [gateway.manufacturer, getGatewayModelDescription(gateway, models)].filter(Boolean).join(' ') ||
-  gateway.name
+export const getGatewayLabel = (gateway: Gateway, models: GatewayModel[]): string => {
+  const description = getGatewayModelDescription(gateway, models)
+
+  return description
+    ? [gateway.manufacturer, description].filter(Boolean).join(' ')
+    : gateway.name || gateway.manufacturer
+}
 
 export const getGatewayName = (model: GatewayModel): string =>
   `${model.manufacturer}-${model.description}`
@@ -274,6 +285,7 @@ export const filterGateways = (
       gateway.manufacturer,
       getGatewayModelDescription(gateway, models),
       gateway.ipAddress,
+      formatMacAddress(gateway.macAddress),
       gateway.macAddress,
     ),
   )
@@ -283,7 +295,11 @@ export const getGatewayStatus = (
   trunks: Trunk[] | undefined,
   liveState: TrunksLiveState | undefined,
 ): GatewayStatus => {
-  if (!trunks || !liveState || gateway.trunkIds.length === 0) {
+  if (gateway.trunkIds.length === 0) {
+    return 'unmonitored'
+  }
+
+  if (!trunks || !liveState) {
     return 'unknown'
   }
   const states = trunks
@@ -308,7 +324,16 @@ export const normalizeMacAddress = (macAddress: string): string => {
   return digits.replace(/(.{2})(?=.)/g, '$1:')
 }
 
+export const formatMacAddress = (macAddress: string): string =>
+  normalizeMacAddress(macAddress) || macAddress
+
+const isUnicastMacAddress = (macAddress: string): boolean =>
+  (parseInt(macAddress.slice(0, 2), 16) & 1) === 0 && !/^(00:){5}00$/.test(macAddress)
+
 export const isIpv4Address = (value: string): boolean => IPV4_PATTERN.test(value)
+
+const toIpv4Number = (value: string): number =>
+  value.split('.').reduce((result, octet) => result * 256 + Number(octet), 0)
 
 export const isNetmask = (value: string): boolean => {
   if (!isIpv4Address(value)) {
@@ -320,6 +345,42 @@ export const isNetmask = (value: string): boolean => {
     .join('')
 
   return /^1+0*$/.test(bits)
+}
+
+const getNetworkIssues = (
+  ipAddress: string,
+  netmask: string,
+  networkGateway: string,
+): Pick<GatewayValidationIssues, 'ipAddress' | 'netmask' | 'networkGateway'> => {
+  if (!isIpv4Address(ipAddress) || !isNetmask(netmask)) {
+    return {}
+  }
+  const mask = toIpv4Number(netmask)
+  const hostBits = 2 ** 32 - 1 - mask
+
+  if (hostBits < 3) {
+    return { netmask: 'trunks.physical.netmask_without_hosts' }
+  }
+  const ip = toIpv4Number(ipAddress)
+  const hostPart = ip % (hostBits + 1)
+
+  if (hostPart === 0 || hostPart === hostBits) {
+    return { ipAddress: 'trunks.physical.ip_address_not_host' }
+  }
+
+  if (!isIpv4Address(networkGateway)) {
+    return {}
+  }
+  const gateway = toIpv4Number(networkGateway)
+
+  if (gateway === ip) {
+    return { networkGateway: 'trunks.physical.network_gateway_same_as_ip' }
+  }
+
+  if (ip - hostPart !== gateway - (gateway % (hostBits + 1))) {
+    return { networkGateway: 'trunks.physical.network_gateway_outside_subnet' }
+  }
+  return {}
 }
 
 const resizePorts = <T>(ports: T[], length: number, fallback: T): T[] =>
@@ -383,7 +444,11 @@ export const validateGatewayForm = (
     issues.macAddress = 'trunks.physical.mac_address_required'
   } else if (!macAddress) {
     issues.macAddress = 'trunks.physical.mac_address_invalid'
-  } else if (options.existingMacAddresses.includes(macAddress)) {
+  } else if (!isUnicastMacAddress(macAddress)) {
+    issues.macAddress = 'trunks.physical.mac_address_not_unicast'
+  } else if (
+    options.existingMacAddresses.some((existing) => formatMacAddress(existing) === macAddress)
+  ) {
     issues.macAddress = 'trunks.physical.mac_address_already_used'
   }
 
@@ -407,8 +472,25 @@ export const validateGatewayForm = (
 
   if (!form.pbxAddress.trim()) {
     issues.pbxAddress = 'trunks.physical.pbx_address_required'
-  } else if (!HOST_PATTERN.test(form.pbxAddress.trim())) {
+  } else if (
+    !HOST_PATTERN.test(form.pbxAddress.trim()) ||
+    (NUMERIC_HOST_PATTERN.test(form.pbxAddress.trim()) && !isIpv4Address(form.pbxAddress.trim()))
+  ) {
     issues.pbxAddress = 'trunks.physical.pbx_address_invalid'
+  }
+
+  const networkIssues = getNetworkIssues(
+    form.ipAddress.trim(),
+    form.netmask.trim(),
+    form.networkGateway.trim(),
+  )
+
+  for (const field of NETWORK_FIELDS) {
+    const networkIssue = networkIssues[field]
+
+    if (networkIssue && !issues[field]) {
+      issues[field] = networkIssue
+    }
   }
 
   const fxoIssues: Record<number, string> = {}
@@ -481,8 +563,17 @@ export const toGatewaySaveRequest = (
 }
 
 export const postGateway = async (request: GatewaySaveRequest): Promise<void> => {
-  const { data } = await api.POST('/devices/gateways', { body: request })
-  v.parse(GatewaySaveResultSchema, data)
+  const { data, response } = await api.POST(GATEWAYS_SAVE_PATH, { body: request })
+  const result = v.parse(GatewaySaveResultSchema, data)
+
+  if (!result.status) {
+    throw new ApiError({
+      status: response.status,
+      method: 'POST',
+      url: GATEWAYS_SAVE_PATH,
+      body: { errors: result.errors },
+    })
+  }
 }
 
 export const deleteGateway = async (gatewayId: number): Promise<void> => {
@@ -512,4 +603,4 @@ export const getGatewayConfigFile = async (gateway: Gateway): Promise<Blob> => {
 }
 
 export const describeGatewayError = (error: unknown): string =>
-  isApiError(error) ? getApiErrorMessage(error.body) : ''
+  isApiError(error) ? getApiErrorDetail(error) : ''

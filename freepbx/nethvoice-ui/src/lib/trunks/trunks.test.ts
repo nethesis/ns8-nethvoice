@@ -4,7 +4,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   filterVoipTrunks,
+  getAddedProviderCodecs,
   getEmptyVoipTrunkForm,
+  getTrunkManagement,
+  getTrunkRouteUsage,
   getVoipTrunkForm,
   getVoipTrunks,
   isEmptyUpdateTrunkRequest,
@@ -45,6 +48,7 @@ const trunk: Trunk = {
   sipServer: 'sip.example.org',
   codecs: ['g729', 'alaw'],
   disabled: false,
+  context: '',
 }
 
 const filledForm: VoipTrunkForm = {
@@ -117,7 +121,54 @@ describe('getVoipTrunks', () => {
       { ...trunk, id: 5, name: 'dahdi_line', technology: 'dahdi' },
     ]
 
-    expect(getVoipTrunks(trunks, [3]).map((item) => item.id)).toEqual([2, 4])
+    expect(getVoipTrunks(trunks, [3]).map((item) => item.id)).toEqual([2, 4, 5])
+  })
+
+  it('should recognize the gateway trunks by name when the gateways are not available', () => {
+    const trunks: Trunk[] = [
+      trunk,
+      { ...trunk, id: 3, name: 'Patton_0b1cdd_isdn_0' },
+      { ...trunk, id: 6, name: 'Grandstream_a1b2c3_fxo_2' },
+    ]
+
+    expect(getVoipTrunks(trunks).map((item) => item.id)).toEqual([2])
+  })
+})
+
+describe('getTrunkManagement', () => {
+  it('should mark the trunks of the voice agents', () => {
+    expect(getTrunkManagement({ ...trunk, provider: 'satellite-agent' })).toBe('voice_agents')
+    expect(getTrunkManagement({ ...trunk, context: 'voice-agent-trunk-hangup' })).toBe(
+      'voice_agents',
+    )
+  })
+
+  it('should mark the trunks of other technologies', () => {
+    expect(getTrunkManagement({ ...trunk, technology: 'iax2' })).toBe('other_technology')
+    expect(getTrunkManagement(trunk)).toBe('editable')
+  })
+})
+
+describe('getTrunkRouteUsage', () => {
+  const routes = [
+    { id: 1, trunks: [{ id: 2 }, { id: 3 }] },
+    { id: 2, trunks: [{ id: 2 }] },
+    { id: 3, trunks: [{ id: 3 }] },
+    { id: 4, trunks: [] },
+  ]
+
+  it('should split the routes that keep other trunks from those left without trunks', () => {
+    const usage = getTrunkRouteUsage(routes, [2])
+
+    expect(usage.remaining.map((route) => route.id)).toEqual([1])
+    expect(usage.orphaned.map((route) => route.id)).toEqual([2])
+  })
+
+  it('should consider all the trunks of a gateway together', () => {
+    const usage = getTrunkRouteUsage(routes, [2, 3])
+
+    expect(usage.remaining).toEqual([])
+    expect(usage.orphaned.map((route) => route.id)).toEqual([1, 2, 3])
   })
 })
 
@@ -133,6 +184,12 @@ describe('filterVoipTrunks', () => {
     expect(filterVoipTrunks(trunks, 'MAIN', getProviderLabel).map((item) => item.id)).toEqual([2])
     expect(filterVoipTrunks(trunks, '0612', getProviderLabel).map((item) => item.id)).toEqual([3])
     expect(filterVoipTrunks(trunks, 'twt', getProviderLabel).map((item) => item.id)).toEqual([3])
+  })
+  it('should match the codecs by the label shown in the list', () => {
+    const getLabel = (codec: string) => (codec === 'g729' ? 'G.729' : codec)
+
+    expect(filterVoipTrunks(trunks, 'g.729', getProviderLabel, getLabel)).toHaveLength(2)
+    expect(filterVoipTrunks(trunks, 'g729', getProviderLabel)).toHaveLength(2)
   })
 })
 
@@ -189,15 +246,38 @@ describe('validateVoipTrunkForm', () => {
     )
   })
 
-  it('should reject a phone number with spaces or letters', () => {
+  it('should accept spaces, dots and dashes in the phone number and reject letters', () => {
     expect(
-      validateVoipTrunkForm({ ...filledForm, phoneNumber: '+39 02 1234567' }, { existingNames: [] })
+      validateVoipTrunkForm(
+        { ...filledForm, phoneNumber: '+39 02-123.4567' },
+        { existingNames: [] },
+      ).phoneNumber,
+    ).toBeUndefined()
+    expect(
+      validateVoipTrunkForm({ ...filledForm, phoneNumber: '+39 02 abc' }, { existingNames: [] })
         .phoneNumber,
     ).toBe('trunks.voip.phone_number_invalid')
+  })
+
+  it('should reject a name longer than 50 characters', () => {
     expect(
-      validateVoipTrunkForm({ ...filledForm, phoneNumber: '+39021234567' }, { existingNames: [] })
-        .phoneNumber,
+      validateVoipTrunkForm({ ...filledForm, name: 'a'.repeat(51) }, { existingNames: [] }).name,
+    ).toBe('trunks.voip.name_too_long')
+    expect(
+      validateVoipTrunkForm({ ...filledForm, name: 'a'.repeat(50) }, { existingNames: [] }).name,
     ).toBeUndefined()
+  })
+
+  it('should reject a password made only of spaces', () => {
+    expect(
+      validateVoipTrunkForm({ ...filledForm, password: '   ' }, { existingNames: [] }).password,
+    ).toBe('trunks.voip.password_only_spaces')
+    expect(
+      validateVoipTrunkForm(
+        { ...getVoipTrunkForm(trunk), password: '  ' },
+        { trunk, existingNames: [] },
+      ).password,
+    ).toBe('trunks.voip.password_only_spaces')
   })
 
   it('should not ask a username to providers that use the trunk name', () => {
@@ -254,6 +334,12 @@ describe('toCreateTrunkRequest', () => {
         codecs: ['g729'],
         forceCodec: true,
       },
+    )
+  })
+
+  it('should send the phone number without separators', () => {
+    expect(toCreateTrunkRequest({ ...filledForm, phoneNumber: '+39 02-123.4567' }).phone).toBe(
+      '+39021234567',
     )
   })
 
@@ -322,5 +408,46 @@ describe('toUpdateTrunkRequest', () => {
       codecs: ['g729', 'alaw'],
       forceCodec: true,
     })
+  })
+
+  it('should keep the forced codecs of a trunk without the provider defaults', () => {
+    const forced = { ...trunk, codecs: ['alaw'] }
+    const defaults = ['ulaw', 'alaw']
+    const forcedForm = getVoipTrunkForm(forced, defaults)
+
+    expect(forcedForm.forceCodec).toBe(true)
+    expect(toUpdateTrunkRequest(forcedForm, forced, defaults)).toEqual({})
+    expect(toUpdateTrunkRequest({ ...forcedForm, codecs: ['g729'] }, forced, defaults)).toEqual({
+      codecs: ['g729'],
+      forceCodec: true,
+    })
+    expect(toUpdateTrunkRequest({ ...forcedForm, forceCodec: false }, forced, defaults)).toEqual({
+      codecs: ['alaw'],
+      forceCodec: false,
+    })
+  })
+
+  it('should not force the codecs of a trunk that has all the provider defaults', () => {
+    const merged = { ...trunk, codecs: ['g729', 'ulaw', 'alaw'] }
+
+    expect(getVoipTrunkForm(merged, ['ulaw', 'alaw']).forceCodec).toBe(false)
+    expect(getVoipTrunkForm(merged).forceCodec).toBe(false)
+  })
+
+  it('should send a new phone number without separators', () => {
+    expect(toUpdateTrunkRequest({ ...form, phoneNumber: '06 1234-5678' }, trunk)).toEqual({
+      username: 'account_98765',
+      phone: '0612345678',
+    })
+  })
+})
+
+describe('getAddedProviderCodecs', () => {
+  it('should list the provider codecs the backend adds when the codecs are not forced', () => {
+    const form = { ...filledForm, codecs: ['g729'] }
+
+    expect(getAddedProviderCodecs(form, ['ulaw', 'alaw', 'g729'])).toEqual(['ulaw', 'alaw'])
+    expect(getAddedProviderCodecs({ ...form, forceCodec: true }, ['ulaw'])).toEqual([])
+    expect(getAddedProviderCodecs({ ...form, codecs: [] }, ['ulaw'])).toEqual([])
   })
 })

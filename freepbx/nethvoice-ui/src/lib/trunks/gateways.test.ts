@@ -8,6 +8,7 @@ import {
   describeGatewayError,
   filterGateways,
   findGatewayModel,
+  formatMacAddress,
   getEmptyGatewayForm,
   getGatewayConfigFileName,
   getGatewayForm,
@@ -174,6 +175,7 @@ const trunks: Trunk[] = [5, 6].map((id) => ({
   sipServer: '192.168.10.20',
   codecs: [],
   disabled: false,
+  context: '',
 }))
 
 describe('parseGatewayModels', () => {
@@ -316,13 +318,25 @@ describe('filterGateways', () => {
     expect(filterGateways(gateways, '0b:1c', models).map((item) => item.id)).toEqual([3])
     expect(filterGateways(gateways, 'nothing', models)).toEqual([])
   })
+
+  it('should match a legacy MAC address saved without separators', () => {
+    const legacy = [{ ...isdnGateway, macAddress: '00A0BA0B1CFF' }]
+
+    expect(filterGateways(legacy, '00:A0:BA:0B:1C:FF', models)).toHaveLength(1)
+    expect(formatMacAddress('00A0BA0B1CFF')).toBe('00:A0:BA:0B:1C:FF')
+    expect(formatMacAddress('not a mac')).toBe('not a mac')
+  })
 })
 
 describe('getGatewayStatus', () => {
-  it('should be unknown without live state or without trunks', () => {
+  it('should be unknown without live state', () => {
     expect(getGatewayStatus(isdnGateway, trunks, undefined)).toBe('unknown')
     expect(getGatewayStatus(isdnGateway, undefined, {})).toBe('unknown')
-    expect(getGatewayStatus(fxsGateway, trunks, {})).toBe('unknown')
+  })
+
+  it('should be unmonitored for a gateway without trunks', () => {
+    expect(getGatewayStatus(fxsGateway, trunks, {})).toBe('unmonitored')
+    expect(getGatewayStatus(fxsGateway, undefined, undefined)).toBe('unmonitored')
   })
 
   it('should be unknown when the PBX does not monitor the trunks yet', () => {
@@ -480,6 +494,60 @@ describe('validateGatewayForm', () => {
         existingMacAddresses: ['00:A0:BA:0B:1C:DD'],
       }).macAddress,
     ).toBe('trunks.physical.mac_address_already_used')
+    expect(
+      validateGatewayForm(filledForm, {
+        model: isdnModel,
+        existingMacAddresses: ['00A0BA0B1CDD'],
+      }).macAddress,
+    ).toBe('trunks.physical.mac_address_already_used')
+  })
+
+  it('should reject a multicast or empty MAC address', () => {
+    const validate = (macAddress: string) =>
+      validateGatewayForm(
+        { ...filledForm, macAddress },
+        { model: isdnModel, existingMacAddresses: [] },
+      ).macAddress
+
+    expect(validate('FF:FF:FF:FF:FF:FF')).toBe('trunks.physical.mac_address_not_unicast')
+    expect(validate('01:00:5E:00:00:01')).toBe('trunks.physical.mac_address_not_unicast')
+    expect(validate('00:00:00:00:00:00')).toBe('trunks.physical.mac_address_not_unicast')
+  })
+
+  it('should reject network settings that make the gateway unreachable', () => {
+    const validate = (values: Partial<GatewayForm>) =>
+      validateGatewayForm(
+        { ...filledForm, ...values },
+        { model: isdnModel, existingMacAddresses: [] },
+      )
+
+    expect(validate({ networkGateway: '10.0.0.1' })).toEqual({
+      networkGateway: 'trunks.physical.network_gateway_outside_subnet',
+    })
+    expect(validate({ networkGateway: '192.168.10.20' })).toEqual({
+      networkGateway: 'trunks.physical.network_gateway_same_as_ip',
+    })
+    expect(validate({ ipAddress: '192.168.10.0' })).toEqual({
+      ipAddress: 'trunks.physical.ip_address_not_host',
+    })
+    expect(validate({ ipAddress: '192.168.10.255' })).toEqual({
+      ipAddress: 'trunks.physical.ip_address_not_host',
+    })
+    expect(validate({ netmask: '255.255.255.255' })).toEqual({
+      netmask: 'trunks.physical.netmask_without_hosts',
+    })
+    expect(
+      validate({ ipAddress: '10.1.2.3', netmask: '255.0.0.0', networkGateway: '10.200.0.1' }),
+    ).toEqual({})
+  })
+
+  it('should reject a numeric PBX address that is not an IPv4 address', () => {
+    expect(
+      validateGatewayForm(
+        { ...filledForm, pbxAddress: '999.1.1.1' },
+        { model: isdnModel, existingMacAddresses: [] },
+      ).pbxAddress,
+    ).toBe('trunks.physical.pbx_address_invalid')
   })
 
   it('should check the numbers of the analog lines', () => {
@@ -607,6 +675,19 @@ describe('describeGatewayError', () => {
     expect(describeGatewayError(apiError({ status: 'Gateway configuration not found' }))).toBe(
       'Gateway configuration not found',
     )
+  })
+
+  it('should hide the HTML page of a server error', () => {
+    expect(
+      describeGatewayError(
+        new ApiError({
+          status: 500,
+          method: 'POST',
+          url: '/freepbx/rest/devices/gateways',
+          body: '<b>Fatal error</b>: Uncaught PDOException',
+        }),
+      ),
+    ).toBe('')
   })
 
   it('should be empty for other errors', () => {
