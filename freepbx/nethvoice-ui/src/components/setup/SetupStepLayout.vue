@@ -15,6 +15,7 @@ import {
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons'
 import SymbolNethvoice from '@/assets/symbol_nethvoice.svg'
+import SetupSignOutButton from './SetupSignOutButton.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import {
   getPreviousStep,
@@ -74,20 +75,23 @@ function goToPreviousStep() {
           class="size-8 invert dark:invert-0"
         />
       </div>
-      <NeTooltip trigger-event="mouseenter focus" placement="right">
-        <template #trigger>
-          <a
-            :href="runtimeConfigStore.config.docsUrl"
-            target="_blank"
-            rel="noreferrer"
-            class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-300 flex rounded-full p-2"
-          >
-            <span class="sr-only">{{ $t('common.need_help') }}</span>
-            <FontAwesomeIcon :icon="faCircleQuestion" class="h-4 w-4" aria-hidden="true" />
-          </a>
-        </template>
-        <template #content>{{ $t('common.need_help') }}</template>
-      </NeTooltip>
+      <div class="flex flex-col items-center gap-2">
+        <NeTooltip trigger-event="mouseenter focus" placement="right">
+          <template #trigger>
+            <a
+              :href="runtimeConfigStore.config.docsUrl"
+              target="_blank"
+              rel="noreferrer"
+              class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-300 flex rounded-full p-2"
+            >
+              <span class="sr-only">{{ $t('common.need_help') }}</span>
+              <FontAwesomeIcon :icon="faCircleQuestion" class="h-4 w-4" aria-hidden="true" />
+            </a>
+          </template>
+          <template #content>{{ $t('common.need_help') }}</template>
+        </NeTooltip>
+        <SetupSignOutButton icon-only />
+      </div>
     </aside>
     <main class="flex min-w-0 flex-1 flex-col gap-6 p-6 sm:p-10">
       <div class="flex flex-col items-center gap-2">

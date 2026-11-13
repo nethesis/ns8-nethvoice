@@ -1,11 +1,12 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockWizardState, test } from '../fixtures/mockApi'
 
 test.describe('setup wizard: welcome and system settings', () => {
   test.beforeEach(({ signedIn, mockApi }) => {
     void signedIn
+    mockWizardState(mockApi, null)
     mockApi
       .on('GET', '/freepbx/rest/settings/languages', {
         json: { it: { default: false }, en: { default: true } },
@@ -49,7 +50,7 @@ test.describe('setup wizard: welcome and system settings', () => {
     await page.goto('./setup')
     await page.getByRole('button', { name: 'Start setup' }).click()
 
-    await expect(page.getByText('Request failed').first()).toBeVisible()
+    await expect(page.getByText('Cannot save the setup progress').first()).toBeVisible()
     await expect(page).toHaveURL(/\/nethvoice\/setup$/)
   })
 
@@ -110,7 +111,7 @@ test.describe('setup wizard: welcome and system settings', () => {
     await page.getByRole('option', { name: 'Italiano' }).click()
     await page.getByRole('button', { name: 'Next' }).click()
 
-    await expect(page.getByText('Request failed').first()).toBeVisible()
+    await expect(page.getByText('Cannot save PBX language').first()).toBeVisible()
     await expect(page).toHaveURL(/\/nethvoice\/setup\/system$/)
     expect(mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard')).toHaveLength(0)
   })
@@ -132,5 +133,24 @@ test.describe('setup wizard: welcome and system settings', () => {
     await page.getByRole('button', { name: 'Previous' }).click()
 
     await expect(page).toHaveURL(/\/nethvoice\/setup$/)
+  })
+
+  test('moves the focus to the first field that is not valid', async ({ page, mockApi }) => {
+    await page.goto('./setup/system')
+
+    const country = page.getByRole('combobox', { name: 'PBX country' })
+    await expect(country).toHaveValue('United States')
+    await country.fill('')
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await expect(page.getByText('Choose a country')).toBeVisible()
+    await expect(country).toBeFocused()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard')).toHaveLength(0)
+  })
+
+  test('shows the product name in the page title', async ({ page }) => {
+    await page.goto('./setup')
+
+    await expect(page).toHaveTitle('Welcome to NethVoice setup wizard - NethVoice')
   })
 })

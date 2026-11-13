@@ -4,11 +4,16 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
 import { useQueryCache } from '@pinia/colada'
-import { NeCombobox, NeInlineNotification, NeSkeleton } from '@nethesis/vue-components'
+import {
+  focusElement,
+  NeCombobox,
+  NeInlineNotification,
+  NeSkeleton,
+} from '@nethesis/vue-components'
 import SetupStepLayout from './SetupStepLayout.vue'
 import { useSetupNavigation } from '@/composables/useSetupNavigation'
 import { usePbxCountries, usePbxLanguages } from '@/queries/settings/system'
@@ -20,11 +25,12 @@ import {
   SystemSettingsSchema,
 } from '@/lib/settings/system'
 import { useSetupStore } from '@/stores/setup'
-import { describeError } from '@/stores/notifications'
+import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { t, locale } = useI18n()
 const queryCache = useQueryCache()
 const setupStore = useSetupStore()
+const notificationsStore = useNotificationsStore()
 const { state: languagesState } = usePbxLanguages()
 const { state: countriesState } = usePbxCountries()
 const { advancing, goToNextStep } = useSetupNavigation('system')
@@ -32,6 +38,8 @@ const { advancing, goToNextStep } = useSetupNavigation('system')
 const country = ref(setupStore.country)
 const language = ref('')
 const validationIssues = ref<Partial<Record<'country' | 'language', string>>>({})
+const countryRef = useTemplateRef<InstanceType<typeof NeCombobox>>('countryRef')
+const languageRef = useTemplateRef<InstanceType<typeof NeCombobox>>('languageRef')
 
 const loading = computed(
   () => languagesState.value.status === 'pending' || countriesState.value.status === 'pending',
@@ -93,6 +101,7 @@ function validate(): boolean {
       validationIssues.value[field] = issue.message
     }
   }
+  focusElement(validationIssues.value.country ? countryRef : languageRef)
   return false
 }
 
@@ -103,7 +112,12 @@ function saveAndContinue() {
 
   goToNextStep(async () => {
     if (language.value !== languagesState.value.data?.defaultLanguage) {
-      await postPbxDefaultLanguage(language.value)
+      try {
+        await postPbxDefaultLanguage(language.value)
+      } catch (error) {
+        notificationsStore.createNotificationFromError(error, t('settings.cannot_save_language'))
+        return false
+      }
       await queryCache.invalidateQueries({ key: [PBX_LANGUAGES_KEY] })
     }
     setupStore.country = country.value
@@ -132,6 +146,7 @@ function saveAndContinue() {
     </div>
     <form v-else class="flex w-full max-w-[420px] flex-col gap-8" @submit.prevent="saveAndContinue">
       <NeCombobox
+        ref="countryRef"
         v-model="country"
         :label="t('setup.system.pbx_country')"
         :options="countryOptions"
@@ -147,6 +162,7 @@ function saveAndContinue() {
         :optional-label="t('common.optional')"
       />
       <NeCombobox
+        ref="languageRef"
         v-model="language"
         :label="t('setup.system.pbx_language')"
         :options="languageOptions"

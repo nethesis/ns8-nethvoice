@@ -8,7 +8,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useQueryCache } from '@pinia/colada'
-import { NeInlineNotification, NeSpinner } from '@nethesis/vue-components'
+import { NeInlineNotification, NeModal, NeSpinner } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCircleInfo, faCheck } from '@fortawesome/free-solid-svg-icons'
 import SetupStepLayout from './SetupStepLayout.vue'
@@ -49,6 +49,7 @@ const { state: inboundState, refetch: refetchInbound } = useInboundRoutes()
 const { state: outboundState, refetch: refetchOutbound } = useOutboundRoutes()
 
 const completing = ref(false)
+const isFinishModalShown = ref(false)
 const completionError = ref<unknown>(null)
 let completionStarted = false
 
@@ -81,10 +82,17 @@ const warnings = computed(() =>
   }),
 )
 
+function askToCompleteSetup() {
+  if (!completionStarted) {
+    isFinishModalShown.value = true
+  }
+}
+
 async function completeSetup() {
   if (completionStarted) {
     return
   }
+  isFinishModalShown.value = false
   completionStarted = true
   completing.value = true
   completionError.value = null
@@ -112,7 +120,8 @@ async function completeSetup() {
     :next-loading="completing"
     hide-next-icon
     :next-prefix-icon="faCheck"
-    @next="completeSetup"
+    :inert="completing || undefined"
+    @next="askToCompleteSetup"
   >
     <div class="flex flex-col gap-8">
       <NeInlineNotification
@@ -241,6 +250,18 @@ async function completeSetup() {
       />
     </div>
   </SetupStepLayout>
+  <NeModal
+    :visible="isFinishModalShown"
+    kind="warning"
+    :title="t('setup.summary.finish_setup')"
+    :primary-label="t('setup.summary.finish')"
+    :cancel-label="t('common.cancel')"
+    :close-aria-label="t('common.close')"
+    @close="isFinishModalShown = false"
+    @primary-click="completeSetup"
+  >
+    <p>{{ t('setup.summary.finish_setup_description') }}</p>
+  </NeModal>
   <Teleport to="body">
     <div
       v-if="completing"

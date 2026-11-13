@@ -70,7 +70,14 @@ const {
   },
 })
 
+const isDirty = computed(
+  () => !!languagesState.value.data && language.value !== languagesState.value.data.defaultLanguage,
+)
+
 function save() {
+  if (!isDirty.value || saving.value) {
+    return
+  }
   saveLanguageReset()
   languageIssue.value = ''
 
@@ -116,7 +123,13 @@ function save() {
       :description="describeError(saveLanguageError)"
     />
     <div>
-      <NeButton type="submit" kind="primary" size="lg" :loading="saving" :disabled="saving">
+      <NeButton
+        type="submit"
+        kind="primary"
+        size="lg"
+        :loading="saving"
+        :disabled="saving || !isDirty"
+      >
         <template #prefix>
           <FontAwesomeIcon :icon="faFloppyDisk" class="size-4" aria-hidden="true" />
         </template>
