@@ -42,3 +42,26 @@ if(DB::IsError($check)) {
     die_freepbx("Can not create inboundlookup table\n");
 }
 
+
+$sql='
+    CREATE TABLE IF NOT EXISTS `rest_orphan_extensions` (
+      `id` int(11) NOT NULL auto_increment,
+      `user_id` int(11) NOT NULL,
+      `username` varchar(255) NOT NULL,
+      `displayname` varchar(255) NOT NULL DEFAULT "",
+      `extension` varchar(16) NOT NULL,
+      `devices` text NOT NULL,
+      `secrets` text NOT NULL,
+      `profile_id` int(11) DEFAULT NULL,
+      `cti_groups` text NOT NULL,
+      `removed_at` int(10) unsigned NOT NULL,
+      PRIMARY KEY (`id`),
+      UNIQUE KEY `extension` (`extension`),
+      KEY `username` (`username`)
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+';
+
+$check = $db->query($sql);
+if(DB::IsError($check)) {
+    die_freepbx("Can not create rest_orphan_extensions table\n");
+}
