@@ -290,6 +290,29 @@ export const getAvailableFields = (
   )
 }
 
+export const suggestMapping = (
+  columns: string[],
+  fields: string[],
+  mapping: Record<string, string>,
+  kind: PhonebookSourceKind,
+): Record<string, string> => {
+  const suggested = { ...mapping }
+
+  for (const column of getMappingColumns(columns, {})) {
+    if (column in suggested) {
+      continue
+    }
+    const field = getAvailableFields(fields, suggested, column, kind).find(
+      (candidate) => candidate.toLowerCase() === column.trim().toLowerCase(),
+    )
+
+    if (field) {
+      suggested[column] = field
+    }
+  }
+  return suggested
+}
+
 const MappingSchema = v.pipe(
   v.record(v.string(), v.string()),
   v.check(

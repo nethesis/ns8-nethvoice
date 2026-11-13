@@ -36,7 +36,7 @@ import { useTrunkProviders, useTrunks } from '@/queries/trunks/trunks'
 import { getTrunkLabelById } from '@/lib/trunks/providers'
 import {
   getAvailableTrunks,
-  getOutboundTrunks,
+  getNoTrunksToAddReason,
   getRouteTrunkState,
   haveSameTrunks,
   moveItem,
@@ -143,10 +143,16 @@ const noTrunksToAddMessage = computed(() => {
   if (trunkChoicesStatus.value !== 'success' || availableTrunks.value.length > 0) {
     return ''
   }
-  return getOutboundTrunks(defaultsState.value.data?.trunks ?? [], loadedTrunks.value ?? [])
-    .length === 0
-    ? t('routes.no_trunks_configured')
-    : t('routes.all_trunks_assigned')
+  switch (
+    getNoTrunksToAddReason(defaultsState.value.data?.trunks ?? [], loadedTrunks.value ?? [])
+  ) {
+    case 'all_assigned':
+      return t('routes.all_trunks_assigned')
+    case 'no_enabled_trunks':
+      return t('routes.no_enabled_trunks')
+    default:
+      return t('routes.no_trunks_configured')
+  }
 })
 
 watch(
@@ -325,7 +331,9 @@ function discardChanges() {
               class="text-secondary-neutral h-4 w-4 shrink-0 cursor-grab"
               aria-hidden="true"
             />
-            <NeBadgeV2 kind="indigo" size="xs" pill>{{ index + 1 }}</NeBadgeV2>
+            <span class="flex min-w-6 shrink-0 justify-center">
+              <NeBadgeV2 kind="indigo" size="xs" pill>{{ index + 1 }}</NeBadgeV2>
+            </span>
             <span class="flex min-w-0 flex-1 basis-40 flex-wrap items-center gap-x-2 gap-y-1">
               <span class="text-primary-neutral min-w-0 break-words">{{
                 getTrunkLabel(trunk)

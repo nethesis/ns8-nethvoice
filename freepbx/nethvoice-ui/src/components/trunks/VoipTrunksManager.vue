@@ -12,7 +12,6 @@ import {
   NeDropdown,
   NeEmptyState,
   NeInlineNotification,
-  NePaginator,
   NeTable,
   NeTableBody,
   NeTableCell,
@@ -33,6 +32,7 @@ import {
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
+import TablePaginator from '@/components/common/TablePaginator.vue'
 import CreateOrEditVoipTrunkDrawer from './CreateOrEditVoipTrunkDrawer.vue'
 import DeleteVoipTrunkModal from './DeleteVoipTrunkModal.vue'
 import TrunkStatusIndicator from './TrunkStatusIndicator.vue'
@@ -106,9 +106,7 @@ const isLoaded = computed(() => !isLoading.value && !loadError.value)
 const isNoDataEmptyStateShown = computed(() => isLoaded.value && voipTrunks.value.length === 0)
 
 const emptyStateDescription = computed(() =>
-  variant === 'admin'
-    ? `${t('trunks.voip.empty_description_line_1')} ${t('trunks.voip.empty_description_line_2')}`
-    : t('trunks.voip.no_trunks_setup_description'),
+  variant === 'admin' ? '' : t('trunks.voip.no_trunks_setup_description'),
 )
 
 const isNoMatchEmptyStateShown = computed(
@@ -262,6 +260,10 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
       :icon="faNetworkWired"
       class="elevation-0"
     >
+      <div v-if="variant === 'admin'" class="text-tertiary-neutral -mt-4 mb-5 text-center">
+        <p>{{ t('trunks.voip.empty_description_line_1') }}</p>
+        <p>{{ t('trunks.voip.empty_description_line_2') }}</p>
+      </div>
       <div class="flex justify-center">
         <NeButton :kind="variant === 'admin' ? 'primary' : 'secondary'" @click="showCreateDrawer">
           <template #prefix>
@@ -283,7 +285,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
     <NeTable
       v-if="isTableShown"
       :aria-label="t('trunks.tab_voip')"
-      card-breakpoint="xl"
+      card-breakpoint="2xl"
       :loading="isLoading"
       :skeleton-columns="6"
       :skeleton-rows="3"
@@ -305,7 +307,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
         <NeTableRow v-for="item in page" :key="item.id">
           <NeTableCell :data-label="t('trunks.trunk')">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="wrap-anywhere">{{ item.name }}</span>
+              <span class="break-words">{{ item.name }}</span>
               <NeBadgeV2 v-if="item.disabled" kind="gray" size="xs">
                 {{ t('common.disabled') }}
               </NeBadgeV2>
@@ -321,13 +323,17 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
             {{ getCodecsLabel(item) || '-' }}
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.voip.provider_status')">
-            <TrunkStatusIndicator :status="getTrunkProviderStatus(item.name, liveData)" />
+            <TrunkStatusIndicator
+              :status="item.disabled ? 'disabled' : getTrunkProviderStatus(item.name, liveData)"
+            />
           </NeTableCell>
           <NeTableCell :data-label="t('trunks.voip.sip_registration')">
-            <TrunkStatusIndicator :status="getTrunkRegistrationStatus(item.name, liveData)" />
+            <TrunkStatusIndicator
+              :status="item.disabled ? 'disabled' : getTrunkRegistrationStatus(item.name, liveData)"
+            />
           </NeTableCell>
           <NeTableCell :data-label="t('common.actions')">
-            <div v-if="getTrunkManagement(item) !== 'editable'" class="flex xl:justify-end">
+            <div v-if="getTrunkManagement(item) !== 'editable'" class="flex 2xl:justify-end">
               <NeTooltip>
                 <template #trigger>
                   <span
@@ -342,7 +348,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
                 <template #content>{{ getReadOnlyReason(item) }}</template>
               </NeTooltip>
             </div>
-            <div v-else class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
+            <div v-else class="-ml-2.5 flex gap-2 2xl:ml-0 2xl:justify-end">
               <NeButton kind="tertiary" @click="showEditDrawer(item)">
                 <template #prefix>
                   <FontAwesomeIcon :icon="faPenToSquare" class="h-4 w-4" aria-hidden="true" />
@@ -360,18 +366,10 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
         </NeTableRow>
       </NeTableBody>
       <template v-if="filteredTrunks.length > PAGE_SIZES[0]" #paginator>
-        <NePaginator
-          :current-page="pageNum"
+        <TablePaginator
+          v-model:page-num="pageNum"
+          v-model:page-size="pageSize"
           :total-rows="filteredTrunks.length"
-          :page-size="pageSize"
-          :page-sizes="PAGE_SIZES"
-          :nav-pagination-label="t('ne_table.pagination')"
-          :next-label="t('ne_table.go_to_next_page')"
-          :previous-label="t('ne_table.go_to_previous_page')"
-          :range-of-total-label="t('ne_table.of')"
-          :page-size-label="t('ne_table.show')"
-          @select-page="(value: number) => (pageNum = value)"
-          @select-page-size="(value: number) => (pageSize = value)"
         />
       </template>
     </NeTable>
