@@ -29,6 +29,7 @@ import {
   NeTableHeadCell,
   NeTableRow,
   NeTextInput,
+  NeTooltip,
   type NeDropdownFilterV2Option,
 } from '@nethesis/vue-components'
 import LoadError from '@/components/common/LoadError.vue'
@@ -220,22 +221,30 @@ function reload() {
           </NeButton>
         </div>
         <div class="flex items-center gap-1" role="group" :aria-label="t('user_overview.view')">
-          <button
+          <NeTooltip
             v-for="option in VIEW_OPTIONS"
             :key="option.id"
-            type="button"
-            :aria-pressed="view === option.id"
-            :class="[
-              'rounded-md p-2',
-              view === option.id
-                ? 'text-primary-700 dark:text-primary-500'
-                : 'text-tertiary-neutral hover:text-primary-neutral',
-            ]"
-            @click="view = option.id"
+            trigger-event="mouseenter focus"
+            placement="top"
           >
-            <FontAwesomeIcon :icon="option.icon" class="size-4" aria-hidden="true" />
-            <span class="sr-only">{{ t(`user_overview.views.${option.id}`) }}</span>
-          </button>
+            <template #trigger>
+              <button
+                type="button"
+                :aria-pressed="view === option.id"
+                :class="[
+                  'rounded-md p-2',
+                  view === option.id
+                    ? 'text-primary-700 dark:text-primary-500'
+                    : 'text-tertiary-neutral hover:text-primary-neutral',
+                ]"
+                @click="view = option.id"
+              >
+                <FontAwesomeIcon :icon="option.icon" class="size-4" aria-hidden="true" />
+                <span class="sr-only">{{ t(`user_overview.views.${option.id}`) }}</span>
+              </button>
+            </template>
+            <template #content>{{ t(`user_overview.views.${option.id}`) }}</template>
+          </NeTooltip>
         </div>
       </div>
       <div
@@ -283,12 +292,17 @@ function reload() {
                 <span class="truncate">{{ user.groups.join(', ') }}</span>
               </p>
             </div>
-            <NeButton kind="tertiary" size="sm" @click="showDetails(user)">
-              <FontAwesomeIcon :icon="faEye" class="size-4" aria-hidden="true" />
-              <span class="sr-only">{{
-                t('user_overview.show_details', { name: user.name })
-              }}</span>
-            </NeButton>
+            <NeTooltip trigger-event="mouseenter focus" placement="top">
+              <template #trigger>
+                <NeButton kind="tertiary" size="sm" @click="showDetails(user)">
+                  <FontAwesomeIcon :icon="faEye" class="size-4" aria-hidden="true" />
+                  <span class="sr-only">{{
+                    t('user_overview.show_details', { name: user.name })
+                  }}</span>
+                </NeButton>
+              </template>
+              <template #content>{{ t('common.show_details') }}</template>
+            </NeTooltip>
           </div>
           <ul class="divide-y divide-gray-200 px-4 dark:divide-gray-700">
             <li

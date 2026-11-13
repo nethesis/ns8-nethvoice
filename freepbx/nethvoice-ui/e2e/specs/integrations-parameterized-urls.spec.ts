@@ -40,6 +40,12 @@ test.describe('integrations: parameterized URLs', () => {
 
     await expect(rows).toHaveCount(3)
     await expect(rows.nth(1)).toContainText('https://crm.example.com/open?number=$CALLER_NUMBER')
+    await expect(
+      rows.nth(1).getByRole('button', {
+        name: 'https://crm.example.com/open?number=$CALLER_NUMBER',
+        exact: true,
+      }),
+    ).toBeVisible()
     await expect(rows.nth(1)).toContainText('Base, Standard')
     await expect(rows.nth(1)).toContainText('All calls')
     await expect(rows.nth(2)).toContainText('Advanced')
