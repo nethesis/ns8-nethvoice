@@ -62,6 +62,7 @@ const initials = computed(() => getInitials(name))
         PRESENCE_DOT[presence],
       ]"
       :title="t(`user_overview.status.${presence}`)"
+      data-testid="presence-dot"
     >
       <span class="sr-only">{{ t(`user_overview.status.${presence}`) }}</span>
     </span>
