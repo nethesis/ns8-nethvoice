@@ -1127,6 +1127,46 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/mainextensions/orphans': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List the main extensions of users removed from the account provider.
+     * @description When the account provider removes a user, the main extension, the devices, the physical phones and the voicemail box are kept and the SIP credentials of every extension of the user are replaced, so the devices cannot register or call. A user created later with the same username gets everything back, with the original credentials, group memberships and CTI profile.
+     */
+    get: operations['get_mainextensions_orphans']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/mainextensions/orphans/release': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Delete the extensions of removed users.
+     * @description Deletes the extensions, the software devices and the voicemail box of the chosen removed users and frees their physical phones. Nothing is changed when an extension does not belong to a removed user. A reload is triggered.
+     */
+    post: operations['post_mainextensions_orphans_release']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/mainextensions/userlimits': {
     parameters: {
       query?: never
@@ -3322,6 +3362,27 @@ export interface components {
     MainExtensionReassignRequest: {
       /** @description User that receives the main extension. */
       username: string
+    }
+    MainExtensionOrphanDevice: {
+      extension: string
+      /** @description Device type, such as physical, webrtc, nethlink or mobile. */
+      type: string
+      /** @description MAC address of a physical phone, null for the other devices. */
+      mac: string | null
+    }
+    MainExtensionOrphan: {
+      /** @description Username of the removed user. */
+      username: string
+      displayname: string
+      /** @description Main extension of the removed user. */
+      extension: string
+      devices: components['schemas']['MainExtensionOrphanDevice'][]
+      /** Format: date-time */
+      removed_at: string
+    }
+    MainExtensionOrphansReleaseRequest: {
+      /** @description Main extensions of removed users to delete. */
+      extensions: string[]
     }
     UsersMessage: {
       message?: string
@@ -5756,6 +5817,84 @@ export interface operations {
       }
       /** @description The user already has a main extension */
       422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+    }
+  }
+  get_mainextensions_orphans: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['MainExtensionOrphan'][]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+    }
+  }
+  post_mainextensions_orphans_release: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MainExtensionOrphansReleaseRequest']
+      }
+    }
+    responses: {
+      /** @description Extensions deleted */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Missing or invalid extensions */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+      /** @description An extension does not belong to a removed user */
+      404: {
         headers: {
           [name: string]: unknown
         }
