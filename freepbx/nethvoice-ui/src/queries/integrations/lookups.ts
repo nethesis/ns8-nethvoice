@@ -8,13 +8,21 @@ import {
   getGroupNames,
   INTEGRATIONS_EXTENSIONS_KEY,
   INTEGRATIONS_GROUPS_KEY,
+  LOOKUP_STALE_TIME,
   toProfileOptions,
 } from '@/lib/integrations/lookups'
-import { useProfiles } from '@/queries/profiles/profiles'
+import { getProfiles, PROFILES_KEY } from '@/lib/profiles/profiles'
 import { useLoginStore } from '@/stores/login'
 
 export const useProfileOptions = () => {
-  const { state: profilesState, ...rest } = useProfiles()
+  const loginStore = useLoginStore()
+
+  const { state: profilesState, ...rest } = useQuery({
+    key: () => [PROFILES_KEY],
+    enabled: () => loginStore.isAuthenticated,
+    staleTime: LOOKUP_STALE_TIME,
+    query: () => getProfiles(),
+  })
 
   const state = computed(() => ({
     ...profilesState.value,
@@ -24,17 +32,16 @@ export const useProfileOptions = () => {
   return { state, ...rest }
 }
 
-export const useGroupNames = defineQuery(() => {
+export const useGroupNames = (isEnabled: () => boolean = () => true) => {
   const loginStore = useLoginStore()
 
-  const { state, asyncStatus, ...rest } = useQuery({
+  return useQuery({
     key: () => [INTEGRATIONS_GROUPS_KEY],
-    enabled: () => loginStore.isAuthenticated,
+    enabled: () => loginStore.isAuthenticated && isEnabled(),
+    staleTime: LOOKUP_STALE_TIME,
     query: () => getGroupNames(),
   })
-
-  return { state, asyncStatus, ...rest }
-})
+}
 
 export const useExtensionOptions = defineQuery(() => {
   const loginStore = useLoginStore()
@@ -42,6 +49,7 @@ export const useExtensionOptions = defineQuery(() => {
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [INTEGRATIONS_EXTENSIONS_KEY],
     enabled: () => loginStore.isAuthenticated,
+    staleTime: LOOKUP_STALE_TIME,
     query: () => getExtensionOptions(),
   })
 

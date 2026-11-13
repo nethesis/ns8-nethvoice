@@ -20,10 +20,14 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faEye } from '@fortawesome/free-solid-svg-icons'
 import ProfilesMultiselect from './ProfilesMultiselect.vue'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
+import { isApiError } from '@/lib/api/errors'
 import type { Focusable } from '@/lib/common'
 import {
   buildCustomerCardPayload,
   buildCustomerCardPreviewPayload,
+  CALLER_NUMBER_PLACEHOLDER,
   CUSTOMER_CARDS_KEY,
   type CustomerCard,
   type CustomerCardForm,
@@ -62,14 +66,22 @@ const { state: connectionsState } = useDbConnections()
 const { state: templatesState } = useCardTemplates()
 const { state: cardsState } = useCustomerCards()
 
+const TEST_NUMBER_PATTERN = /^\+?[0-9]*$/
+
 const form = ref<CustomerCardForm>(emptyCustomerCardForm())
 const validationIssues = ref<FieldIssues>({})
+const testNumber = ref('')
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
+
+useFocusReturn(() => isShown)
 
 const nameRef = useTemplateRef<Focusable>('nameRef')
 const connectionRef = useTemplateRef<Focusable>('connectionRef')
 const templateRef = useTemplateRef<Focusable>('templateRef')
 const profilesRef = useTemplateRef<Focusable>('profilesRef')
 const queryRef = useTemplateRef<Focusable>('queryRef')
+const testNumberRef = useTemplateRef<Focusable>('testNumberRef')
 
 const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
   name: nameRef,
@@ -77,9 +89,14 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
   templateId: templateRef,
   profileIds: profilesRef,
   query: queryRef,
+  testNumber: testNumberRef,
 }
 
 const profiles = computed(() => profilesState.value.data ?? [])
+
+const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
+
+const usesCallerNumber = computed(() => form.value.query.includes(CALLER_NUMBER_PLACEHOLDER))
 
 const connectionOptions = computed(() =>
   (connectionsState.value.data ?? []).map((connection) => ({
@@ -150,8 +167,8 @@ const {
   error: previewError,
   data: previewHtml,
 } = useMutation({
-  mutation: (cardForm: CustomerCardForm) =>
-    previewCustomerCard(buildCustomerCardPreviewPayload(cardForm)),
+  mutation: ({ cardForm, number }: { cardForm: CustomerCardForm; number: string }) =>
+    previewCustomerCard(buildCustomerCardPreviewPayload(cardForm, number)),
 })
 
 const busy = computed(() => saving.value || previewing.value)
@@ -159,13 +176,17 @@ const busy = computed(() => saving.value || previewing.value)
 watch(
   () => isShown,
   () => {
-    if (isShown) {
-      saveReset()
-      previewReset()
-      validationIssues.value = {}
-      form.value = currentCard ? toCustomerCardForm(currentCard) : emptyCustomerCardForm()
-      focusElement(nameRef)
+    if (!isShown) {
+      isShownDiscardModal.value = false
+      return
     }
+    saveReset()
+    previewReset()
+    validationIssues.value = {}
+    testNumber.value = ''
+    form.value = currentCard ? toCustomerCardForm(currentCard) : emptyCustomerCardForm()
+    initialSnapshot.value = JSON.stringify(form.value)
+    focusElement(nameRef)
   },
 )
 
@@ -183,16 +204,45 @@ function focusFirstInvalidField(fields: string[]): boolean {
 
 function preview() {
   previewReset()
-  const previewFields = ['dbConnectionId', 'templateId', 'query']
+  const previewFields = ['dbConnectionId', 'templateId', 'query', 'testNumber']
   const issues = validateCustomerCardForm(form.value, [])
 
+  if (!TEST_NUMBER_PATTERN.test(testNumber.value.trim())) {
+    issues.testNumber = 'integrations.cards.test_number_invalid'
+  }
   validationIssues.value = Object.fromEntries(
     Object.entries(issues).filter(([field]) => previewFields.includes(field)),
   )
 
   if (!focusFirstInvalidField(previewFields)) {
-    previewMutate({ ...form.value })
+    previewMutate({ cardForm: { ...form.value }, number: testNumber.value })
   }
+}
+
+function describePreviewError(error: unknown): string {
+  return (
+    getLegacyStatusMessage(error) ||
+    (isApiError(error) && error.status >= 500
+      ? t('integrations.cards.preview_failed_description')
+      : describeError(error))
+  )
+}
+
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
 }
 
 function save() {
@@ -213,7 +263,7 @@ function save() {
     :is-shown="isShown"
     :title="currentCard ? t('integrations.cards.edit_card') : t('integrations.cards.create_card')"
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
@@ -283,6 +333,19 @@ function save() {
           :invalid-message="validationIssues.query ? t(validationIssues.query) : ''"
           :disabled="busy"
         />
+        <NeTextInput
+          v-if="usesCallerNumber"
+          ref="testNumberRef"
+          v-model="testNumber"
+          :label="t('integrations.cards.test_number')"
+          :helper-text="t('integrations.cards.test_number_helper')"
+          inputmode="tel"
+          :invalid-message="validationIssues.testNumber ? t(validationIssues.testNumber) : ''"
+          :disabled="busy"
+          optional
+          :optional-label="t('common.optional')"
+          @blur="testNumber = testNumber.trim()"
+        />
         <div class="flex flex-col gap-3">
           <div>
             <NeButton
@@ -302,7 +365,7 @@ function save() {
             v-if="previewError"
             kind="error"
             :title="t('integrations.cards.preview_failed')"
-            :description="getLegacyStatusMessage(previewError) || describeError(previewError)"
+            :description="describePreviewError(previewError)"
           />
           <div v-else-if="previewHtml !== undefined">
             <NeFormItemLabel>{{ t('integrations.cards.preview') }}</NeFormItemLabel>
@@ -334,7 +397,7 @@ function save() {
           size="lg"
           :disabled="saving"
           class="mr-3"
-          @click="emit('close')"
+          @click="requestClose"
         >
           {{ t('common.cancel') }}
         </NeButton>
@@ -344,4 +407,9 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>

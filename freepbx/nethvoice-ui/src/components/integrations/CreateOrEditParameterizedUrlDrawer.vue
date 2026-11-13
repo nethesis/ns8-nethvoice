@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import {
@@ -16,6 +16,8 @@ import {
   NeToggle,
 } from '@nethesis/vue-components'
 import ProfilesMultiselect from './ProfilesMultiselect.vue'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
 import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import {
@@ -52,7 +54,13 @@ const { state: profilesState } = useProfileOptions()
 
 const form = ref<ParameterizedUrlForm>(emptyParameterizedUrlForm())
 const validationIssues = ref<FieldIssues>({})
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
 const urlRef = useTemplateRef<Focusable>('urlRef')
+const urlContainerRef = useTemplateRef<HTMLElement>('urlContainerRef')
+
+useFocusReturn(() => isShown)
+
 const profilesRef = useTemplateRef<Focusable>('profilesRef')
 
 const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
@@ -62,6 +70,8 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
 
 const profiles = computed(() => profilesState.value.data ?? [])
 const busyProfileIds = computed(() => getBusyProfileIds(urls, currentUrl))
+
+const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
 
 const noProfileAvailable = computed(
   () =>
@@ -102,18 +112,45 @@ const {
 watch(
   () => isShown,
   () => {
-    if (isShown) {
-      saveReset()
-      validationIssues.value = {}
-      form.value = currentUrl ? toParameterizedUrlForm(currentUrl) : emptyParameterizedUrlForm()
-      focusElement(urlRef)
+    if (!isShown) {
+      isShownDiscardModal.value = false
+      return
     }
+    saveReset()
+    validationIssues.value = {}
+    form.value = currentUrl ? toParameterizedUrlForm(currentUrl) : emptyParameterizedUrlForm()
+    initialSnapshot.value = JSON.stringify(form.value)
+    focusElement(urlRef)
   },
 )
 
-function insertPlaceholder(placeholder: string) {
-  form.value.url += placeholder
-  urlRef.value?.focus()
+async function insertPlaceholder(placeholder: string) {
+  const textarea = urlContainerRef.value?.querySelector('textarea')
+  const url = form.value.url
+  const start = textarea?.selectionStart ?? url.length
+  const end = textarea?.selectionEnd ?? url.length
+
+  form.value.url = url.slice(0, start) + placeholder + url.slice(end)
+  await nextTick()
+  textarea?.focus()
+  textarea?.setSelectionRange(start + placeholder.length, start + placeholder.length)
+}
+
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
 }
 
 function save() {
@@ -139,20 +176,22 @@ function save() {
       currentUrl ? t('integrations.param_urls.edit_url') : t('integrations.param_urls.create_url')
     "
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
-        <NeTextArea
-          ref="urlRef"
-          v-model="form.url"
-          :label="t('integrations.url')"
-          :rows="4"
-          placeholder="https://crm.example.com/open?number=$CALLER_NUMBER"
-          :helper-text="t('integrations.param_urls.url_helper')"
-          :invalid-message="validationIssues.url ? t(validationIssues.url) : ''"
-          :disabled="saving"
-        />
+        <div ref="urlContainerRef">
+          <NeTextArea
+            ref="urlRef"
+            v-model="form.url"
+            :label="t('integrations.url')"
+            :rows="4"
+            placeholder="https://crm.example.com/open?number=$CALLER_NUMBER"
+            :helper-text="t('integrations.param_urls.url_helper')"
+            :invalid-message="validationIssues.url ? t(validationIssues.url) : ''"
+            :disabled="saving"
+          />
+        </div>
         <div class="flex flex-col gap-2">
           <p class="text-secondary-neutral text-sm">
             {{ t('integrations.param_urls.placeholders') }}
@@ -220,7 +259,7 @@ function save() {
           size="lg"
           :disabled="saving"
           class="mr-3"
-          @click="emit('close')"
+          @click="requestClose"
         >
           {{ t('common.cancel') }}
         </NeButton>
@@ -230,4 +269,9 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>

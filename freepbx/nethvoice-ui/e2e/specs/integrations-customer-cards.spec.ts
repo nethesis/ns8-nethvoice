@@ -232,7 +232,9 @@ test.describe('integrations: customer cards', () => {
     const modal = page.getByRole('dialog')
     await expect(modal).toContainText('these cards use it')
     await expect(modal).toContainText('Open invoices')
-    await expect(modal.getByRole('button', { name: 'Delete' })).toBeDisabled()
+    await expect(modal.getByRole('button', { name: 'Delete' })).toHaveCount(0)
+    await modal.getByRole('button', { name: 'Close', exact: true }).last().click()
+    await expect(modal).toBeHidden()
     expect(mockApi.callsTo('DELETE', '/freepbx/rest/cti/dbconn/:id')).toHaveLength(0)
   })
 
@@ -261,7 +263,15 @@ test.describe('integrations: customer cards', () => {
     const drawer = page.getByRole('dialog')
     await drawer.getByRole('textbox', { name: 'Name' }).fill('Invoices')
     await drawer.getByRole('button', { name: 'Create template' }).click()
-    await expect(drawer.getByText('Another custom template has the same name')).toBeVisible()
+    await expect(
+      drawer.getByText('Another template, built-in or custom, has the same name'),
+    ).toBeVisible()
+
+    await drawer.getByRole('textbox', { name: 'Name' }).fill('Identity')
+    await drawer.getByRole('button', { name: 'Create template' }).click()
+    await expect(
+      drawer.getByText('Another template, built-in or custom, has the same name'),
+    ).toBeVisible()
 
     await drawer.getByRole('textbox', { name: 'Name' }).fill('Orders2')
     await drawer.getByRole('textbox', { name: 'Code (EJS)' }).fill('<p>città</p>')
@@ -321,8 +331,8 @@ test.describe('integrations: customer cards', () => {
 
     const modal = page.getByRole('dialog')
     await expect(modal).toContainText('Open invoices')
-    await expect(modal.getByRole('button', { name: 'Delete' })).toBeDisabled()
-    await modal.getByRole('button', { name: 'Cancel' }).click()
+    await expect(modal.getByRole('button', { name: 'Delete' })).toHaveCount(0)
+    await modal.getByRole('button', { name: 'Close', exact: true }).last().click()
     await expect(modal).toBeHidden()
 
     await page.getByRole('button', { name: 'Open the menu of notes' }).click()
@@ -348,7 +358,7 @@ test.describe('integrations: customer cards', () => {
 
     await expect(drawer.getByText('Select a database connection')).toBeVisible()
     await expect(drawer.getByText('Select a template')).toBeVisible()
-    await expect(drawer.getByText('Select at least one profile')).toBeVisible()
+    await expect(drawer.getByText('Select at least one profile')).toHaveCount(0)
     await expect(drawer.getByText('Enter the query')).toBeVisible()
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/customer_card')).toHaveLength(0)
 
@@ -369,6 +379,18 @@ test.describe('integrations: customer cards', () => {
       dbconn_id: '5',
       template: 'identity',
       query: b64("SELECT * FROM orders WHERE phone = '$NUMBER'"),
+    })
+
+    await drawer.getByRole('textbox', { name: 'Test number' }).fill('abc')
+    await drawer.getByRole('button', { name: 'Show preview' }).click()
+    await expect(drawer.getByText('Use digits only, optionally preceded by +')).toBeVisible()
+    await drawer.getByRole('textbox', { name: 'Test number' }).fill('0721405516')
+    await drawer.getByRole('button', { name: 'Show preview' }).click()
+    await expect.poll(() => mockApi.callsTo('POST', '/api/custcard/preview').length).toBe(2)
+    expect(mockApi.callsTo('POST', '/api/custcard/preview')[1].body).toEqual({
+      dbconn_id: '5',
+      template: 'identity',
+      query: b64("SELECT * FROM orders WHERE phone = '0721405516'"),
     })
 
     await drawer.getByRole('combobox', { name: 'Profiles' }).click()
@@ -421,6 +443,52 @@ test.describe('integrations: customer cards', () => {
     await drawer.getByRole('button', { name: 'Save' }).click()
 
     await expect(drawer.getByText('Cannot save the card')).toBeVisible()
+  })
+
+  test('signs out when the preview is rejected for an expired session', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('POST', '/api/custcard/preview', { status: 401 })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit Open invoices' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Show preview' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/login/)
+  })
+
+  test('explains a preview that the server cannot run', async ({ page, mockApi }) => {
+    mockApi.on('POST', '/api/custcard/preview', { status: 500 })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit Open invoices' }).click()
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('button', { name: 'Show preview' }).click()
+
+    await expect(
+      drawer.getByText('The query cannot be run. Check the query and the database connection.'),
+    ).toBeVisible()
+  })
+
+  test('asks before discarding the changes to a card', async ({ page }) => {
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit Open invoices' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Edit card' })
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    await expect(drawer).toBeHidden()
+
+    await page.getByRole('button', { name: 'Edit Open invoices' }).click()
+    await drawer.getByRole('textbox', { name: 'Name' }).fill('Open invoices 2')
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await page.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(drawer.getByRole('textbox', { name: 'Name' })).toHaveValue('Open invoices 2')
+
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await expect(drawer).toBeHidden()
   })
 
   test('deletes a card', async ({ page, mockApi }) => {

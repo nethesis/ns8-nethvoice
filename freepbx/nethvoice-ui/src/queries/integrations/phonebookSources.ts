@@ -8,6 +8,7 @@ import {
   PHONEBOOK_FIELDS_KEY,
   PHONEBOOK_SOURCES_KEY,
 } from '@/lib/integrations/phonebookSources'
+import { LOOKUP_STALE_TIME } from '@/lib/integrations/lookups'
 import { useLoginStore } from '@/stores/login'
 
 export const usePhonebookSources = defineQuery(() => {
@@ -22,14 +23,13 @@ export const usePhonebookSources = defineQuery(() => {
   return { state, asyncStatus, ...rest }
 })
 
-export const usePhonebookFields = defineQuery(() => {
+export const usePhonebookFields = (isEnabled: () => boolean = () => true) => {
   const loginStore = useLoginStore()
 
-  const { state, asyncStatus, ...rest } = useQuery({
+  return useQuery({
     key: () => [PHONEBOOK_FIELDS_KEY],
-    enabled: () => loginStore.isAuthenticated,
+    enabled: () => loginStore.isAuthenticated && isEnabled(),
+    staleTime: LOOKUP_STALE_TIME,
     query: () => getPhonebookFields(),
   })
-
-  return { state, asyncStatus, ...rest }
-})
+}

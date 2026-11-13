@@ -96,6 +96,18 @@ test.describe('integrations: parameterized URLs', () => {
     await expect(drawer.getByRole('textbox', { name: 'URL' })).toHaveValue(
       'https://erp.example.com/call?from=$CALLER_NUMBER',
     )
+    await drawer.getByRole('textbox', { name: 'URL' }).evaluate((element) => {
+      if (element instanceof HTMLTextAreaElement) {
+        element.setSelectionRange(0, 0)
+      }
+    })
+    await drawer.getByRole('button', { name: 'Insert placeholder $CALLER_NAME' }).click()
+    await expect(drawer.getByRole('textbox', { name: 'URL' })).toHaveValue(
+      '$CALLER_NAMEhttps://erp.example.com/call?from=$CALLER_NUMBER',
+    )
+    await drawer
+      .getByRole('textbox', { name: 'URL' })
+      .fill('https://erp.example.com/call?from=$CALLER_NUMBER')
 
     await drawer.getByRole('combobox', { name: 'Profiles' }).click()
     await expect(page.getByRole('option', { name: /Base/ })).toBeDisabled()
