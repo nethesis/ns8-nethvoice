@@ -894,6 +894,7 @@ paths:
   /cti/dbconn/{id}:
     put:
       summary: Update the given fields of a database connection.
+      description: Reloads nethcti-server so the customer cards use the new parameters.
       tags:
       - CTI
       responses:
@@ -1104,6 +1105,8 @@ paths:
   /cti/customer_card/{id}:
     put:
       summary: Update a customer card.
+      description: When the name changes, the related CTI permission is renamed
+        too (name cc_<sanitized name>, displayname <name>).
       tags:
       - CTI
       responses:
@@ -1442,6 +1445,11 @@ paths:
   /devices/gateways:
     post:
       summary: Create or update a gateway configuration and related trunks.
+      description: Trunks and FXS extensions are created first and the gateway
+        configuration is written in one transaction at the end. When any step fails,
+        the trunks and extensions created by the request are removed and an existing
+        configuration with the same name and MAC address is kept. Cleanup failures
+        are listed in `warnings`.
       tags:
       - Devices
       responses:
@@ -1453,6 +1461,12 @@ paths:
                 $ref: '#/components/schemas/GatewaySaveResult'
         '400':
           description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySaveResult'
+        '409':
+          description: Another gateway already uses this MAC address. Nothing is created.
           content:
             application/json:
               schema:
@@ -2370,6 +2384,8 @@ paths:
     delete:
       summary: Delete an external phonebook source and the contacts imported from
         it.
+      description: The uploaded CSV file of the source is removed when no other
+        source uses it.
       tags:
       - Phonebook
       responses:
@@ -2390,6 +2406,8 @@ paths:
           type: string
     post:
       summary: Replace an external phonebook source.
+      description: When the URL changes, the previously uploaded CSV file is removed
+        if no other source uses it.
       tags:
       - Phonebook
       responses:
@@ -2463,6 +2481,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
+        '400':
+          description: Invalid source id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
         '500':
           description: Internal server error
           content:
@@ -2476,6 +2500,7 @@ paths:
         required: true
         schema:
           type: string
+          pattern: ^[A-Za-z0-9_-]+$
   /phonebook/uploadfile:
     post:
       summary: Upload a CSV file to be used as a phonebook source.
@@ -3113,6 +3138,18 @@ paths:
             application/json:
               schema:
                 type: object
+        '422':
+          description: Missing extension or empty destination
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LegacyError'
       operationId: post_inboundroutes
       requestBody:
         content:
@@ -3406,6 +3443,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/LegacyError'
+        '422':
+          description: Trunk name longer than 50 characters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
       operationId: post_trunks
@@ -3951,8 +3994,8 @@ components:
     TrunkDetails:
       type: object
       description: Technology parameters of the trunk (`pjsip` table for PJSIP trunks).
-        Every value is a string. The legacy handler also returns `secret`, which clients
-        must never display or store.
+        Every value is a string. Credentials (`secret`, `md5_cred` and every `auth_*`
+        keyword) are never returned.
       properties:
         codecs:
           type: string
@@ -4040,6 +4083,7 @@ components:
           example: twt
         name:
           type: string
+          maxLength: 50
           description: Trunk name. It becomes the PJSIP endpoint name. Defaults to
             the provider identifier.
           example: main_trunk
@@ -4067,7 +4111,8 @@ components:
           type: string
         password:
           type: string
-          description: New SIP secret. An empty string clears the secret.
+          description: New SIP secret. An empty or blank string keeps the current
+            secret.
         phone:
           type: string
         codecs:
