@@ -10,6 +10,7 @@ import * as v from 'valibot'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import { NeCombobox, NeInlineNotification, NeModal, NeSkeleton } from '@nethesis/vue-components'
 import LoadError from '@/components/common/LoadError.vue'
+import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useOutboundRouteDefaults } from '@/queries/routes/outbound'
 import {
   DefaultRoutesSchema,
@@ -19,7 +20,7 @@ import {
 import { getCountryLabel } from '@/lib/settings/system'
 import type { Focusable } from '@/lib/common'
 import { useSetupStore } from '@/stores/setup'
-import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const { visible = false } = defineProps<{
   visible: boolean
@@ -31,6 +32,7 @@ const { t, locale } = useI18n()
 const queryCache = useQueryCache()
 const setupStore = useSetupStore()
 const notificationsStore = useNotificationsStore()
+const { describeRouteError } = useOutboundRouteLabels()
 const { state: defaultsState, refetch: refetchDefaults } = useOutboundRouteDefaults()
 
 const country = ref('')
@@ -130,7 +132,7 @@ function createRoutes() {
         v-if="createRoutesError"
         kind="error"
         :title="t('routes.cannot_create_default_routes')"
-        :description="describeError(createRoutesError)"
+        :description="describeRouteError(createRoutesError)"
       />
     </div>
   </NeModal>
