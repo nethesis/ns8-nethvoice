@@ -651,8 +651,15 @@ RUN a2dismod status
 # Update CA certificates
 RUN update-ca-certificates --fresh
 
-# Upgrade Apache to latest version to get security fixes
-RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
+# Apply Apache security updates independently of PHP image rebuilds
+ARG APACHE_VERSION=2.4.71-1~deb13u1
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        apache2=${APACHE_VERSION} \
+        apache2-bin=${APACHE_VERSION} \
+        apache2-data=${APACHE_VERSION} \
+        apache2-utils=${APACHE_VERSION} && \
+    rm -rf /var/lib/apt/lists/*
 
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status

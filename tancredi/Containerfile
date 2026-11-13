@@ -7,9 +7,15 @@ COPY entrypoint.sh /
 COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
 
 ARG TANCREDI_VERSION=1.11.3
+ARG APACHE_VERSION=2.4.71-1~deb12u1
 
 RUN apt update && \
-	apt install -y libapache2-mod-xsendfile zip && \
+	apt install -y \
+		apache2=${APACHE_VERSION} \
+		apache2-bin=${APACHE_VERSION} \
+		apache2-data=${APACHE_VERSION} \
+		apache2-utils=${APACHE_VERSION} \
+		libapache2-mod-xsendfile zip && \
 	a2enmod headers rewrite && \
 	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf && \
 	sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{TANCREDIPORT\}>/' /etc/apache2/sites-enabled/000-default.conf && \
