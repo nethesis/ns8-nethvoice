@@ -3978,6 +3978,106 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UsersSoftwareDeviceRequest'
+  /adminphone:
+    get:
+      summary: Return the state of the administrator phone.
+      description: 'The administrator phone is a service PJSIP extension configured
+        for WebRTC and not linked to any user. It lets the administrator place test
+        calls from the administration UI. The response never contains the SIP secret.'
+      tags:
+      - AdminPhone
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPhoneStatus'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+      operationId: get_adminphone
+    delete:
+      summary: Remove the administrator phone.
+      description: Deletes the service extension and forgets its number. Idempotent.
+        FreePBX is reloaded only when an extension was removed.
+      tags:
+      - AdminPhone
+      responses:
+        '204':
+          description: No content
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+      operationId: delete_adminphone
+  /adminphone/session:
+    post:
+      summary: Prepare the administrator phone and return its SIP credentials.
+      description: 'Creates the service extension when missing (first free number
+        from 770000 to 770099, then kept in the module kvstore), repairs its WebRTC
+        settings and returns the credentials for the Phone Island in SIP only mode.
+        No Userman user, CTI user or device row is created, so the extension is not
+        listed among users or operators and does not count in the user limit. Calls
+        use the accountcode `nv-admin`. FreePBX is reloaded in the background only
+        when something changed: `reloading` is then true and registration may fail
+        until the reload completes. The secret must be kept in memory only.'
+      tags:
+      - AdminPhone
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminPhoneSessionRequest'
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPhoneSession'
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+      operationId: post_adminphone_session
+  /adminphone/rotate:
+    post:
+      summary: Generate a new SIP secret for the administrator phone.
+      description: The previous secret stops working after the FreePBX reload started
+        by this call.
+      tags:
+      - AdminPhone
+      responses:
+        '204':
+          description: No content
+        '404':
+          description: Administrator phone not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+      operationId: post_adminphone_rotate
   /devices/gateways/download/{name}/{mac}:
     get:
       summary: Generate the configuration file of a gateway and return it Base64 encoded.
@@ -5440,6 +5540,63 @@ components:
             type: string
             pattern: ^[0-9]+$
           description: Main extensions of removed users to delete.
+    AdminPhoneStatus:
+      type: object
+      required:
+      - enabled
+      - extension
+      properties:
+        enabled:
+          type: boolean
+          description: True when the service extension exists.
+        extension:
+          type: string
+          nullable: true
+          pattern: ^[0-9]+$
+          description: Number of the service extension, null when disabled.
+    AdminPhoneSessionRequest:
+      type: object
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Caller ID name of the service extension. Defaults to the last
+            saved value, initially `Admin (test)`.
+    AdminPhoneSession:
+      type: object
+      required:
+      - extension
+      - secret
+      - display_name
+      - sip_host
+      - sip_port
+      - cti_host
+      - reloading
+      properties:
+        extension:
+          type: string
+          pattern: ^[0-9]+$
+        secret:
+          type: string
+          description: SIP secret of the service extension. Never persist it in the
+            browser.
+        display_name:
+          type: string
+        sip_host:
+          type: string
+          description: Asterisk address used by Janus to register (loopback).
+          example: 127.0.0.1
+        sip_port:
+          type: integer
+          description: Asterisk SIP UDP port (ASTERISK_SIP_UDP_PORT).
+        cti_host:
+          type: string
+          description: Host serving Janus at `https://{cti_host}/janus` (NETHCTI_UI_HOST).
+        reloading:
+          type: boolean
+          description: True when the extension was created or changed and FreePBX
+            is reloading.
     UsersMessage:
       type: object
       properties:
@@ -5681,6 +5838,8 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
 tags:
+- name: AdminPhone
+  description: Service WebRTC extension used by the administrator to place test calls.
 - name: Authentication
   description: Endpoints that bootstrap or tear down the FreePBX session used by the
     REST layer.

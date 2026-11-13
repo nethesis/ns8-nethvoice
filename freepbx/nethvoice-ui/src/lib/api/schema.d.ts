@@ -2706,6 +2706,70 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/adminphone': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Return the state of the administrator phone.
+     * @description The administrator phone is a service PJSIP extension configured for WebRTC and not linked to any user. It lets the administrator place test calls from the administration UI. The response never contains the SIP secret.
+     */
+    get: operations['get_adminphone']
+    put?: never
+    post?: never
+    /**
+     * Remove the administrator phone.
+     * @description Deletes the service extension and forgets its number. Idempotent. FreePBX is reloaded only when an extension was removed.
+     */
+    delete: operations['delete_adminphone']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/adminphone/session': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Prepare the administrator phone and return its SIP credentials.
+     * @description Creates the service extension when missing (first free number from 770000 to 770099, then kept in the module kvstore), repairs its WebRTC settings and returns the credentials for the Phone Island in SIP only mode. No Userman user, CTI user or device row is created, so the extension is not listed among users or operators and does not count in the user limit. Calls use the accountcode `nv-admin`. FreePBX is reloaded in the background only when something changed: `reloading` is then true and registration may fail until the reload completes. The secret must be kept in memory only.
+     */
+    post: operations['post_adminphone_session']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/adminphone/rotate': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Generate a new SIP secret for the administrator phone.
+     * @description The previous secret stops working after the FreePBX reload started by this call.
+     */
+    post: operations['post_adminphone_rotate']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/devices/gateways/download/{name}/{mac}': {
     parameters: {
       query?: never
@@ -3383,6 +3447,33 @@ export interface components {
     MainExtensionOrphansReleaseRequest: {
       /** @description Main extensions of removed users to delete. */
       extensions: string[]
+    }
+    AdminPhoneStatus: {
+      /** @description True when the service extension exists. */
+      enabled: boolean
+      /** @description Number of the service extension, null when disabled. */
+      extension: string | null
+    }
+    AdminPhoneSessionRequest: {
+      /** @description Caller ID name of the service extension. Defaults to the last saved value, initially `Admin (test)`. */
+      display_name?: string
+    }
+    AdminPhoneSession: {
+      extension: string
+      /** @description SIP secret of the service extension. Never persist it in the browser. */
+      secret: string
+      display_name: string
+      /**
+       * @description Asterisk address used by Janus to register (loopback).
+       * @example 127.0.0.1
+       */
+      sip_host: string
+      /** @description Asterisk SIP UDP port (ASTERISK_SIP_UDP_PORT). */
+      sip_port: number
+      /** @description Host serving Janus at `https://{cti_host}/janus` (NETHCTI_UI_HOST). */
+      cti_host: string
+      /** @description True when the extension was created or changed and FreePBX is reloading. */
+      reloading: boolean
     }
     UsersMessage: {
       message?: string
@@ -8855,6 +8946,140 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['UsersStatusMessage']
+        }
+      }
+    }
+  }
+  get_adminphone: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminPhoneStatus']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+    }
+  }
+  delete_adminphone: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description No content */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+    }
+  }
+  post_adminphone_session: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['AdminPhoneSessionRequest']
+      }
+    }
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminPhoneSession']
+        }
+      }
+      /** @description Validation failed */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+    }
+  }
+  post_adminphone_rotate: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description No content */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Administrator phone not configured */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
         }
       }
     }
