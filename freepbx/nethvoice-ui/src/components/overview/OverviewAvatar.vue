@@ -13,10 +13,12 @@ const {
   name,
   presence,
   size = 'md',
+  surface = 'card',
 } = defineProps<{
   name: string
   presence: OverviewStatus
   size?: AvatarSize
+  surface?: 'card' | 'drawer'
 }>()
 
 const { t } = useI18n()
@@ -30,6 +32,22 @@ const PRESENCE_DOT: Record<OverviewStatus, string> = {
   offline: 'bg-gray-400',
 }
 
+const DOT_SIZE: Record<AvatarSize, string> = {
+  xs: 'size-1.5',
+  sm: 'size-2.5',
+  md: 'size-3',
+  lg: 'size-3',
+  xl: 'size-3.5',
+  '2xl': 'size-4',
+  '3xl': 'size-5',
+  '4xl': 'size-6',
+}
+
+const SURFACE_RING = {
+  card: 'ring-elevation-0',
+  drawer: 'ring-elevation-1',
+}
+
 const initials = computed(() => getInitials(name))
 </script>
 
@@ -38,7 +56,9 @@ const initials = computed(() => getInitials(name))
     <NeAvatar :size="size" :initials="initials" :alt="name" />
     <span
       :class="[
-        'ring-elevation-0 absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2',
+        'absolute right-0 bottom-0 block rounded-full ring-2',
+        DOT_SIZE[size],
+        SURFACE_RING[surface],
         PRESENCE_DOT[presence],
       ]"
       :title="t(`user_overview.status.${presence}`)"
