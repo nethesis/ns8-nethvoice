@@ -92,7 +92,12 @@ interface UseWhepPlayerOptions {
   resolveUrl?: (path: string) => string
 }
 
-const initialState: WhepPlayerState = { status: 'connecting', failure: null, hasAudio: false }
+const initialState: WhepPlayerState = {
+  status: 'connecting',
+  failure: null,
+  hasAudio: false,
+  hasPicture: false,
+}
 
 /**
  * Plays the WebRTC stream of an "rtsp" video source into a <video> element while enabled.

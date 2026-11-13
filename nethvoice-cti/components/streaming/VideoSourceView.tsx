@@ -125,7 +125,11 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
     }
   }, [isExpanded, updateAspectRatio])
 
-  const hasVideoFrame = player.status === 'playing' || player.status === 'reconnecting'
+  // the last picture stays visible while waiting for the next one or reconnecting
+  const hasVideoFrame =
+    player.status === 'playing' ||
+    player.status === 'reconnecting' ||
+    (player.status === 'waiting' && player.hasPicture)
   const canSnapshot = isRtsp ? hasVideoFrame : !!source.url && !hasFailedImage
 
   const handleSnapshot = useCallback(() => {
@@ -220,13 +224,25 @@ export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
       {!active && paused}
       {active && player.status === 'connecting' && loading}
       {player.status === 'unavailable' && unavailable(unavailableMessage())}
-      {player.status === 'reconnecting' && (
-        <div className='absolute inset-0 flex items-center justify-center bg-black/40 text-white text-sm font-medium'>
-          <FontAwesomeIcon icon={faCircleNotch} className='w-4 h-4 mr-2 animate-spin' />
-          <span>{t('Streaming.Reconnecting')}</span>
+      {player.status === 'waiting' && !player.hasPicture && loading}
+      {(player.status === 'reconnecting' || player.status === 'waiting') && (
+        <div
+          className={classNames(
+            'absolute inset-0 flex items-center justify-center px-4 text-center text-sm font-medium',
+            player.hasPicture
+              ? 'bg-black/40 text-white'
+              : 'text-secondaryNeutral dark:text-secondaryNeutralDark',
+          )}
+        >
+          <FontAwesomeIcon icon={faCircleNotch} className='w-4 h-4 mr-2 animate-spin shrink-0' />
+          <span>
+            {player.status === 'waiting'
+              ? t('Streaming.Waiting for the picture')
+              : t('Streaming.Reconnecting')}
+          </span>
         </div>
       )}
-      {player.status === 'playing' && player.hasAudio && (
+      {(player.status === 'playing' || player.status === 'waiting') && player.hasAudio && (
         <>
           <button
             type='button'
