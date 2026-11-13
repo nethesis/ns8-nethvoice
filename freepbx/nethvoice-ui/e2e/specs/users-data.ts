@@ -100,6 +100,7 @@ export const TANCREDI_PHONES = [
 type UsersApiOptions = {
   users?: unknown
   usersStatus?: number
+  orphans?: unknown
 }
 
 export const mockUsersApi = (mockApi: MockApi, options: UsersApiOptions = {}) =>
@@ -128,6 +129,7 @@ export const mockUsersApi = (mockApi: MockApi, options: UsersApiOptions = {}) =>
     .on('GET', `${REST}/mainextensions/userlimits`, {
       json: { configured: 2, limit: false, configurable: false },
     })
+    .on('GET', `${REST}/mainextensions/orphans`, { json: options.orphans ?? [] })
 
 export const mockUserPhonesApi = (mockApi: MockApi) =>
   mockApi
