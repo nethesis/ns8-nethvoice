@@ -199,6 +199,9 @@ $('.edit-group-alarm').live('click', function(){
                   "Cancel": function() { $( this ).dialog( "close" );}
               },
               close: function (){
+                  $('#ui-datepicker-div').stop(true, true);
+                  $('#start').datepicker('hide', '').datepicker('destroy');
+                  $('#hour').timeEntry('destroy');
                   $( this ).dialog( "destroy" );
                   $( this ).remove();
                   updatePage();
