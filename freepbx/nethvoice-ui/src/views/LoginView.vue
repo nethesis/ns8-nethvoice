@@ -111,10 +111,10 @@ async function signIn() {
 <template>
   <div class="flex min-h-full">
     <div
-      class="elevation-0 flex w-full flex-col items-center justify-center px-6 py-12 lg:w-[36%] lg:min-w-[32rem]"
+      class="elevation-0 flex w-full flex-col items-center justify-center px-6 py-12 lg:w-9/25 lg:min-w-128"
     >
       <form
-        class="elevation-1 flex w-full max-w-md flex-col gap-6 rounded-[10px] p-10 shadow-lg"
+        class="elevation-1 flex w-full max-w-md flex-col gap-6 rounded-lg p-10 shadow-lg"
         novalidate
         @submit.prevent="signIn"
       >
@@ -161,14 +161,19 @@ async function signIn() {
               :disabled="loading"
               autocomplete="current-password"
             />
-            <div class="flex items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
               <NeCheckbox
                 id="remember-username"
                 v-model="rememberUsername"
                 :label="$t('login.remember_username')"
                 :disabled="loading"
               />
-              <NeLink :href="runtimeConfigStore.config.docsUrl" target="_blank" rel="noreferrer">
+              <NeLink
+                :href="runtimeConfigStore.docsUrl"
+                target="_blank"
+                rel="noreferrer"
+                class="whitespace-nowrap"
+              >
                 {{ $t('common.need_help') }}
               </NeLink>
             </div>
@@ -188,7 +193,7 @@ async function signIn() {
         v-if="!runtimeConfigStore.config.loginBackgroundUrl || customLogoUrl"
         :src="rightPanelLogo"
         alt=""
-        :class="['h-9 w-auto max-w-[60%]', { 'brightness-0 invert': !customLogoUrl }]"
+        :class="['h-9 w-auto max-w-3/5', { 'brightness-0 invert': !customLogoUrl }]"
         @error="customLogoFailed = true"
       />
     </div>

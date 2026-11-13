@@ -336,14 +336,10 @@ function reload() {
           class="bg-elevation-0 flex min-w-0 items-center gap-3 rounded-lg px-3 py-2 shadow-xs"
         >
           <OverviewAvatar :name="user.name" :presence="user.presence" size="sm" />
-          <button
-            type="button"
-            class="min-w-0 grow text-left"
-            :aria-label="t('user_overview.show_details', { name: user.name })"
-            @click="showDetails(user)"
-          >
+          <button type="button" class="min-w-0 grow text-left" @click="showDetails(user)">
             <span class="text-primary-neutral block truncate">{{ user.name }}</span>
             <span class="text-tertiary-neutral block">{{ user.mainExtension }}</span>
+            <span class="sr-only">{{ t('common.details') }}</span>
           </button>
         </li>
       </ul>

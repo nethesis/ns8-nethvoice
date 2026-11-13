@@ -158,7 +158,7 @@ function openNotificationsDrawer() {
           <NeTooltip trigger-event="mouseenter focus" placement="bottom" class="flex">
             <template #trigger>
               <a
-                :href="runtimeConfigStore.config.docsUrl"
+                :href="runtimeConfigStore.docsUrl"
                 target="_blank"
                 rel="noreferrer"
                 :class="[topBarButtonClasses, 'items-center gap-3']"
@@ -199,7 +199,7 @@ function openNotificationsDrawer() {
                 :align-to-right="true"
                 :open-menu-aria-label="$t('shell.open_account_menu')"
                 menu-classes="z-150!"
-                class="relative"
+                class="relative *:focus-visible:outline-hidden"
               >
                 <template #button>
                   <span

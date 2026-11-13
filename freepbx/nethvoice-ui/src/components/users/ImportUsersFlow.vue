@@ -40,7 +40,9 @@ import {
   toLegacyCsv,
   type ExistingUsersMode,
   type ImportRow,
+  type ImportFlagColumn,
   type ImportRowError,
+  type ImportRowIssue,
 } from '@/lib/users/csv'
 import type { UsersDirectory } from '@/lib/users/directory'
 import { UserSettingsStepError } from '@/lib/users/userSettings'
@@ -256,12 +258,23 @@ function close() {
   }
 }
 
-const issueLabel = (error: ImportRowError) =>
-  t(`users.import_issue_${error.issue}`, {
-    group: error.group ?? '',
-    reason: error.reason ? t(error.reason) : '',
+const FLAG_COLUMN_LABELS: Record<ImportFlagColumn, string> = {
+  voicemail: 'users.voicemail',
+  webrtc: 'users.device_webrtc',
+  nethlink: 'users.device_nethlink',
+  mobileApp: 'users.device_mobile',
+}
+
+const issueLabel = (issue: ImportRowIssue) =>
+  t(`users.import_issue_${issue.issue}`, {
+    group: issue.group ?? '',
+    reason: issue.reason ? t(issue.reason) : '',
     max: MAX_DEVICES_PER_USER,
+    column: issue.column ? t(FLAG_COLUMN_LABELS[issue.column]) : '',
+    value: issue.value ?? '',
   })
+
+const issuesLabel = (error: ImportRowError) => error.issues.map(issueLabel).join('; ')
 
 const formatFlag = (flag: boolean | null) =>
   flag === null ? '-' : flag ? t('common.enabled') : t('common.disabled')
@@ -392,7 +405,7 @@ const formatDevices = (row: ImportRow) => {
                 t('users.import_row_issue', {
                   row: item.row.line,
                   username: item.row.username || '-',
-                  issue: issueLabel(item),
+                  issue: issuesLabel(item),
                 })
               }}
             </li>

@@ -35,14 +35,14 @@ function openAdvancedSettings() {
         {{ $t('settings.advanced_settings') }}
       </NeButton>
     </div>
-    <div class="flex max-w-[744px] flex-col gap-8">
+    <div class="flex max-w-186 flex-col gap-8">
       <section
         aria-labelledby="pbx-language-heading"
         class="flex flex-col gap-6 border-b border-gray-200 pb-8 lg:flex-row dark:border-gray-700"
       >
         <h4
           id="pbx-language-heading"
-          class="text-primary-neutral w-[300px] shrink-0 text-base font-medium"
+          class="text-primary-neutral w-75 shrink-0 text-base font-medium"
         >
           {{ $t('settings.pbx_language') }}
         </h4>
@@ -55,7 +55,7 @@ function openAdvancedSettings() {
       >
         <h4
           id="admin-password-heading"
-          class="text-primary-neutral w-[300px] shrink-0 text-base font-medium"
+          class="text-primary-neutral w-75 shrink-0 text-base font-medium"
         >
           {{ $t('settings.admin_password') }}
         </h4>

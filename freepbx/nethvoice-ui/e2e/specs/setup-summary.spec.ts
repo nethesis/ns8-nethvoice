@@ -113,8 +113,56 @@ test.describe('setup wizard: summary', () => {
     await expect(page.getByText('No user has an extension')).toBeVisible()
     await expect(page.getByText('No trunks can be used')).toBeVisible()
     await expect(page.getByText('No inbound routes are configured')).toBeVisible()
-    await expect(page.getByText('Some outbound routes have no trunks')).toBeVisible()
+    await expect(page.getByText('No outbound route has trunks')).toBeVisible()
+    await expect(page.getByText('Some outbound routes have no trunks')).toHaveCount(0)
     await expect(section(page, '6. Outbound routes')).toContainText('National: No trunks')
+  })
+
+  test('marks the disabled trunks and gateways and warns when none can be used', async ({
+    page,
+    mockApi,
+  }) => {
+    const PATTON = { trunkid: 5, name: 'Patton_106ca3_isdn_1' }
+
+    mockApi
+      .on('GET', '/freepbx/rest/trunks', {
+        json: [
+          { ...TRUNKS[0], disabled: 'on' },
+          { trunkid: 5, tech: 'dahdi', name: PATTON.name, disabled: 'on' },
+        ],
+      })
+      .on('GET', '/freepbx/rest/devices/gateways/list/all', {
+        json: [
+          {
+            id: 1,
+            model: 3,
+            manufacturer: 'Patton',
+            name: 'Patton SN4141',
+            ipv4_new: '192.168.1.50',
+            trunks_isdn: [{ name: 5, type: 'pp' }],
+          },
+        ],
+      })
+      .on('GET', '/freepbx/rest/outboundroutes', {
+        json: [
+          { route_id: 1, name: 'national_it', trunks: [PATTON] },
+          { route_id: 2, name: 'cellphone_it', trunks: [TWT, PATTON] },
+          { route_id: 3, name: 'international_it', trunks: [] },
+        ],
+      })
+
+    await page.goto('./setup/summary')
+
+    await expect(page.getByText('No trunks can be used')).toBeVisible()
+    await expect(page.getByText('Some outbound routes have no trunks')).toBeVisible()
+    await expect(section(page, '3. Physical trunks (optional)')).toContainText(
+      'Patton SN4141 192.168.1.50 (Disabled)',
+    )
+    await expect(section(page, '6. Outbound routes').getByRole('listitem')).toHaveText([
+      'National: Patton_106ca3_isdn_1 (Disabled)',
+      'Cellphone: TWT-0212345678 (Disabled), Patton_106ca3_isdn_1 (Disabled)',
+      'International: No trunks',
+    ])
   })
 
   test('leaves out the AI agents trunk and warns when no trunk can be used', async ({

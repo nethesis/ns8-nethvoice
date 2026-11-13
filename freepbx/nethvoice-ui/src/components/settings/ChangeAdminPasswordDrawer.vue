@@ -127,13 +127,36 @@ watch(
   },
 )
 
+const getForm = (): ChangeAdminPasswordForm => ({
+  currentPassword: currentPassword.value,
+  newPassword: newPassword.value,
+  confirmPassword: confirmPassword.value,
+})
+
+watch([newPassword, confirmPassword], () => {
+  if (!showRequirementErrors.value) {
+    return
+  }
+  const issues = getChangeAdminPasswordIssues(getForm())
+  validationIssues.value = {
+    ...validationIssues.value,
+    newPassword: issues.newPassword,
+    confirmPassword: issues.confirmPassword,
+  }
+})
+
+watch(currentPassword, () => {
+  if (showRequirementErrors.value) {
+    validationIssues.value = {
+      ...validationIssues.value,
+      currentPassword: getChangeAdminPasswordIssues(getForm()).currentPassword,
+    }
+  }
+})
+
 function submit() {
   changePasswordReset()
-  const form: ChangeAdminPasswordForm = {
-    currentPassword: currentPassword.value,
-    newPassword: newPassword.value,
-    confirmPassword: confirmPassword.value,
-  }
+  const form = getForm()
   validationIssues.value = getChangeAdminPasswordIssues(form)
   showRequirementErrors.value = true
 

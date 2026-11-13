@@ -4,6 +4,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import * as v from 'valibot'
+import i18n from '@/i18n'
 import { PRODUCT_NAME, RUNTIME_CONFIG_URL } from '@/lib/config'
 
 const OptionalText = v.optional(v.fallback(v.string(), ''), '')
@@ -31,6 +32,31 @@ export type RuntimeConfig = {
 }
 
 export const DEFAULT_DOCS_URL = 'https://docs.nethvoice.com/'
+
+const DOCS_LOCALES = ['it']
+
+export const localizeDocsUrl = (docsUrl: string, locale: string): string => {
+  const defaultDocs = new URL(DEFAULT_DOCS_URL)
+  let url: URL
+
+  try {
+    url = new URL(docsUrl)
+  } catch {
+    return docsUrl
+  }
+
+  if (url.host !== defaultDocs.host) {
+    return docsUrl
+  }
+  const [first = '', ...rest] = url.pathname.split('/').filter(Boolean)
+  const path = DOCS_LOCALES.includes(first) ? rest : [first, ...rest].filter(Boolean)
+  const language = locale.split('-')[0].toLowerCase()
+  const prefix = DOCS_LOCALES.includes(language) ? [language] : []
+  const segments = [...prefix, ...path]
+
+  url.pathname = segments.length ? `/${segments.join('/')}/` : '/'
+  return url.href
+}
 
 export const DEFAULT_RUNTIME_CONFIG: RuntimeConfig = {
   brandName: PRODUCT_NAME,
@@ -117,5 +143,7 @@ export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
 
   const hostname = computed(() => config.value.hostname || window.location.hostname)
 
-  return { config, loaded, hostname, load }
+  const docsUrl = computed(() => localizeDocsUrl(config.value.docsUrl, i18n.global.locale.value))
+
+  return { config, loaded, hostname, docsUrl, load }
 })

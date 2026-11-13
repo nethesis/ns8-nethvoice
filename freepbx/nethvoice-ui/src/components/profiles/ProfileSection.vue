@@ -29,7 +29,10 @@ const expanded = ref(initiallyExpanded)
 </script>
 
 <template>
-  <section class="border-b border-gray-200 pb-4 dark:border-gray-700" :data-section="sectionId">
+  <section
+    class="border-b border-gray-200 pb-4 last-of-type:border-b-0 dark:border-gray-700"
+    :data-section="sectionId"
+  >
     <div class="flex items-center justify-between gap-4">
       <button
         type="button"

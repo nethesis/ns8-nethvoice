@@ -4,9 +4,19 @@
 -->
 
 <script setup lang="ts">
-import { computed, useTemplateRef } from 'vue'
-import { useElementSize, useNow } from '@vueuse/core'
-import { NeCard, NeEmptyState, NeSkeleton } from '@nethesis/vue-components'
+import { computed, useId, useTemplateRef } from 'vue'
+import { unrefElement, useElementSize, useNow } from '@vueuse/core'
+import {
+  NeCard,
+  NeEmptyState,
+  NeSkeleton,
+  NeTable,
+  NeTableBody,
+  NeTableCell,
+  NeTableHead,
+  NeTableHeadCell,
+  NeTableRow,
+} from '@nethesis/vue-components'
 import {
   faArrowDown,
   faArrowRightArrowLeft,
@@ -16,6 +26,7 @@ import {
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { useI18n } from 'vue-i18n'
 import {
   formatCallDuration,
   getElapsedCallDuration,
@@ -33,20 +44,23 @@ const {
   loading?: boolean
 }>()
 
+const { t } = useI18n()
+
 const CALL_TYPE_ICONS: Record<CallType, { icon: IconDefinition; classes: string }> = {
   incoming: { icon: faArrowDown, classes: 'rotate-45' },
   outgoing: { icon: faArrowUp, classes: 'rotate-45' },
   internal: { icon: faArrowRightArrowLeft, classes: '' },
 }
 
+const titleId = useId()
+
 const now = useNow({ interval: 1000 })
 
-const scrollContainer = useTemplateRef<HTMLElement>('scrollContainer')
-const { height: tableHeight } = useElementSize(useTemplateRef<HTMLElement>('callsTable'))
-
-const scrollable = computed(
-  () => !!scrollContainer.value && tableHeight.value > scrollContainer.value.clientHeight + 1,
+const callsTable = useTemplateRef<InstanceType<typeof NeTable>>('callsTable')
+const tableElement = computed<HTMLElement | SVGElement | null | undefined>(() =>
+  unrefElement(callsTable),
 )
+const { height: tableHeight } = useElementSize(tableElement)
 
 const rows = computed(() =>
   calls.map((call) => ({
@@ -54,100 +68,89 @@ const rows = computed(() =>
     elapsed: formatCallDuration(getElapsedCallDuration(call, fetchedAt, now.value.getTime())),
   })),
 )
+
+const scrollable = computed<boolean>(() => {
+  const element = tableElement.value
+  return (
+    rows.value.length > 0 &&
+    tableHeight.value > 0 &&
+    !!element &&
+    element.scrollHeight > element.clientHeight + 1
+  )
+})
 </script>
 
 <template>
   <NeCard data-testid="calls-card">
     <template #title>
-      <span class="text-secondary-neutral text-sm font-normal">
-        {{ $t('dashboard.calls.title') }}
+      <span :id="titleId" class="text-secondary-neutral text-sm font-normal">
+        {{ t('dashboard.calls.title') }}
       </span>
     </template>
     <NeSkeleton v-if="loading" :lines="8" class="w-full" />
     <NeEmptyState
       v-else-if="rows.length === 0"
-      :title="$t('dashboard.calls.no_calls')"
-      :description="$t('dashboard.calls.no_calls_description')"
+      :title="t('dashboard.calls.no_calls')"
+      :description="t('dashboard.calls.no_calls_description')"
       :icon="faPhoneSlash"
     />
-    <div
+    <NeTable
       v-else
-      ref="scrollContainer"
-      class="max-h-[396px] overflow-y-auto"
+      ref="callsTable"
+      :aria-label="t('dashboard.calls.title')"
+      card-breakpoint="md"
+      class="md:max-h-99 md:overflow-y-auto"
       :role="scrollable ? 'region' : undefined"
       :tabindex="scrollable ? 0 : undefined"
-      :aria-label="scrollable ? $t('dashboard.calls.title') : undefined"
+      :aria-labelledby="scrollable ? titleId : undefined"
       data-testid="calls-scroll"
     >
-      <table ref="callsTable" class="w-full table-fixed text-left text-sm sm:table-auto">
-        <caption class="sr-only">
-          {{
-            $t('dashboard.calls.title')
-          }}
-        </caption>
-        <thead class="sticky top-0 bg-white dark:bg-gray-950">
-          <tr class="text-tertiary-neutral border-b border-gray-200 dark:border-gray-700">
-            <th scope="col" class="w-8 py-3 pr-2 font-medium sm:w-auto sm:pr-4">
-              <span class="sr-only sm:not-sr-only">{{ $t('dashboard.calls.call_type') }}</span>
-            </th>
-            <th scope="col" class="py-3 pr-2 font-medium sm:pr-4">
-              {{ $t('dashboard.calls.source') }}
-            </th>
-            <th scope="col" class="py-3 pr-2 font-medium sm:pr-4">
-              {{ $t('dashboard.calls.destination') }}
-            </th>
-            <th
-              scope="col"
-              class="w-20 py-3 text-right font-medium whitespace-nowrap sm:w-auto sm:text-left"
-            >
-              {{ $t('dashboard.calls.duration') }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="row in rows"
-            :key="row.id"
-            class="text-primary-neutral border-b border-gray-200 last:border-b-0 dark:border-gray-700"
-            data-testid="call-row"
-          >
-            <td class="py-3 pr-2 whitespace-nowrap sm:pr-4">
-              <span class="flex items-center gap-2.5">
+      <NeTableHead class="sticky top-0 z-10">
+        <NeTableHeadCell>{{ t('dashboard.calls.call_type') }}</NeTableHeadCell>
+        <NeTableHeadCell>{{ t('dashboard.calls.source') }}</NeTableHeadCell>
+        <NeTableHeadCell>{{ t('dashboard.calls.destination') }}</NeTableHeadCell>
+        <NeTableHeadCell>{{ t('dashboard.calls.duration') }}</NeTableHeadCell>
+      </NeTableHead>
+      <NeTableBody>
+        <NeTableRow v-for="row in rows" :key="row.id" data-testid="call-row">
+          <NeTableCell :data-label="t('dashboard.calls.call_type')">
+            <span class="text-primary-neutral flex items-center gap-2.5 whitespace-nowrap">
+              <FontAwesomeIcon
+                :icon="CALL_TYPE_ICONS[row.type].icon"
+                :class="[
+                  'size-4 shrink-0 text-green-700 dark:text-green-500',
+                  CALL_TYPE_ICONS[row.type].classes,
+                ]"
+                aria-hidden="true"
+              />
+              {{ t(`dashboard.calls.${row.type}`) }}
+            </span>
+          </NeTableCell>
+          <NeTableCell :data-label="t('dashboard.calls.source')">
+            <span class="text-primary-neutral wrap-break-word">
+              {{ row.source || t('dashboard.calls.unknown_party') }}
+            </span>
+          </NeTableCell>
+          <NeTableCell :data-label="t('dashboard.calls.destination')">
+            <span class="text-primary-neutral flex items-center gap-2 wrap-break-word">
+              <template v-if="row.throughQueue">
                 <FontAwesomeIcon
-                  :icon="CALL_TYPE_ICONS[row.type].icon"
-                  :class="[
-                    'size-4 shrink-0 text-green-700 dark:text-green-500',
-                    CALL_TYPE_ICONS[row.type].classes,
-                  ]"
+                  :icon="faUsers"
+                  class="text-secondary-neutral size-4 shrink-0"
                   aria-hidden="true"
                 />
-                <span class="sr-only sm:not-sr-only">{{ $t(`dashboard.calls.${row.type}`) }}</span>
-              </span>
-            </td>
-            <td class="py-3 pr-2 wrap-break-word sm:pr-4">
-              {{ row.source || $t('dashboard.calls.unknown_party') }}
-            </td>
-            <td class="py-3 pr-2 wrap-break-word sm:pr-4">
-              <span class="flex items-center gap-2">
-                <template v-if="row.throughQueue">
-                  <FontAwesomeIcon
-                    :icon="faUsers"
-                    class="text-secondary-neutral size-4 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span class="sr-only">{{ $t('dashboard.calls.through_queue') }}</span>
-                </template>
-                {{ row.destination || $t('dashboard.calls.unknown_party') }}
-              </span>
-            </td>
-            <td
-              class="py-3 text-right font-mono whitespace-nowrap text-rose-700 tabular-nums sm:text-left dark:text-rose-500"
-            >
+                <span class="sr-only">{{ t('dashboard.calls.through_queue') }}</span>
+              </template>
+              {{ row.destination || t('dashboard.calls.unknown_party') }}
+            </span>
+          </NeTableCell>
+          <NeTableCell :data-label="t('dashboard.calls.duration')">
+            <span class="font-mono whitespace-nowrap text-rose-700 tabular-nums dark:text-rose-500">
               {{ row.elapsed }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+            </span>
+          </NeTableCell>
+        </NeTableRow>
+      </NeTableBody>
+    </NeTable>
   </NeCard>
 </template>

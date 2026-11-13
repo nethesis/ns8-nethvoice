@@ -162,11 +162,11 @@ function saveAndContinue() {
       :title="t('setup.system.cannot_load_settings')"
       @retry="retryLoading"
     />
-    <div v-else-if="loading" class="flex w-full max-w-[420px] flex-col gap-8">
+    <div v-else-if="loading" class="flex w-full max-w-105 flex-col gap-8">
       <NeSkeleton :lines="3" />
       <NeSkeleton :lines="3" />
     </div>
-    <form v-else class="flex w-full max-w-[420px] flex-col gap-8" @submit.prevent="saveAndContinue">
+    <form v-else class="flex w-full max-w-105 flex-col gap-8" @submit.prevent="saveAndContinue">
       <NeCombobox
         ref="countryRef"
         @keydown.capture="keepEmptyCountryOnTab"

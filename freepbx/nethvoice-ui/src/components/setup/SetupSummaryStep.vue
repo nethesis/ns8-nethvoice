@@ -24,9 +24,9 @@ import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { getCountryLabel } from '@/lib/settings/system'
 import { countConfiguredUsers } from '@/lib/users/users'
 import { getTrunkManagement, getVoipTrunks } from '@/lib/trunks/trunks'
-import { getGatewayTrunkIds } from '@/lib/trunks/gateways'
+import { getGatewayStatus, getGatewayTrunkIds, type Gateway } from '@/lib/trunks/gateways'
 import { getInboundRouteName, sortInboundRoutes } from '@/lib/routes/inbound'
-import { getRoutesLocale, isOutboundTrunk } from '@/lib/routes/outbound'
+import { getRouteTrunkState, getRoutesLocale, isOutboundTrunk } from '@/lib/routes/outbound'
 import { getLanguageName, getSummaryWarnings } from '@/lib/setup/summary'
 import { LEGACY_FINAL_STEP } from '@/lib/setup/steps'
 import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
@@ -75,16 +75,34 @@ const inboundRoutes = computed(() =>
   sortInboundRoutes(inboundState.value.data ?? [], 'number', false, () => ''),
 )
 
+const isGatewayDisabled = (gateway: Gateway) =>
+  getGatewayStatus(gateway, trunksState.value.data, undefined) === 'disabled'
+
+const isRouteTrunkDisabled = (trunkId: number) =>
+  getRouteTrunkState(trunkId, trunksState.value.data) === 'disabled'
+
+const outboundRoutesWithUnusableTrunks = computed(() => {
+  const trunks = trunksState.value.data
+
+  return trunks && outboundState.value.data
+    ? outboundState.value.data.filter(
+        (route) =>
+          route.trunks.length > 0 &&
+          route.trunks.every((trunk) => getRouteTrunkState(trunk.id, trunks) !== 'active'),
+      ).length
+    : undefined
+})
+
 const warnings = computed(() =>
   getSummaryWarnings({
     usersWithExtension: configuredUsers.value,
-    physicalTrunks: gatewaysState.value.data?.length,
-    voipTrunks: voipTrunks.value?.filter(isOutboundTrunk).length,
+    usableTrunks: trunksState.value.data?.filter(isOutboundTrunk).length,
     inboundRoutes: inboundState.value.data?.length,
     outboundRoutes: outboundState.value.data?.length,
     outboundRoutesWithoutTrunks: outboundState.value.data?.filter(
       (route) => route.trunks.length === 0,
     ).length,
+    outboundRoutesWithUnusableTrunks: outboundRoutesWithUnusableTrunks.value,
   }),
 )
 
@@ -193,10 +211,13 @@ async function completeSetup() {
         @retry="refetchGateways()"
       >
         <ul v-if="gateways.length">
-          <li v-for="gateway in gateways" :key="gateway.id" class="wrap-anywhere">
-            {{
+          <li v-for="gateway in gateways" :key="gateway.id" class="flex flex-wrap gap-x-2">
+            <span class="wrap-anywhere">{{
               [gateway.name || gateway.manufacturer, gateway.ipAddress].filter(Boolean).join(' ')
-            }}
+            }}</span>
+            <span v-if="isGatewayDisabled(gateway)" class="text-tertiary-neutral">
+              ({{ t('common.disabled') }})
+            </span>
           </li>
         </ul>
         <p v-else>{{ t('setup.summary.no_physical_trunks') }}</p>
@@ -241,11 +262,13 @@ async function completeSetup() {
         <ul v-if="outboundState.data?.length">
           <li v-for="route in outboundState.data" :key="route.id" class="wrap-anywhere">
             <span class="font-medium">{{ getRouteTitle(route) }}:</span>
-            {{
-              route.trunks.length
-                ? route.trunks.map((trunk) => trunk.name).join(', ')
-                : t('routes.no_trunks')
-            }}
+            {{ route.trunks.length ? '' : t('routes.no_trunks')
+            }}<span v-for="(trunk, index) in route.trunks" :key="trunk.id"
+              >{{ index > 0 ? ', ' : '' }}{{ trunk.name
+              }}<span v-if="isRouteTrunkDisabled(trunk.id)" class="text-tertiary-neutral">{{
+                ` (${t('common.disabled')})`
+              }}</span></span
+            >
           </li>
         </ul>
         <p v-else>{{ t('setup.summary.no_outbound_routes') }}</p>

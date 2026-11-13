@@ -93,13 +93,13 @@ function save() {
 <template>
   <LoadError
     v-if="languagesState.error"
-    class="max-w-[420px]"
+    class="max-w-105"
     :error="languagesState.error"
     :title="$t('settings.cannot_load_settings')"
     @retry="refetchLanguages()"
   />
-  <NeSkeleton v-else-if="languagesState.status === 'pending'" :lines="3" class="w-[420px]" />
-  <form v-else class="flex w-full max-w-[420px] flex-col gap-6" @submit.prevent="save">
+  <NeSkeleton v-else-if="languagesState.status === 'pending'" :lines="3" class="w-105" />
+  <form v-else class="flex w-full max-w-105 flex-col gap-6" @submit.prevent="save">
     <NeCombobox
       ref="languageRef"
       v-model="language"

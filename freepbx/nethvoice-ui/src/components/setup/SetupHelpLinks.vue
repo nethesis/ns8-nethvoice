@@ -19,7 +19,7 @@ const runtimeConfigStore = useRuntimeConfigStore()
   <NeTooltip trigger-event="mouseenter focus" :placement="placement">
     <template #trigger>
       <a
-        :href="runtimeConfigStore.config.docsUrl"
+        :href="runtimeConfigStore.docsUrl"
         target="_blank"
         rel="noreferrer"
         class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-300 flex rounded-full p-2"

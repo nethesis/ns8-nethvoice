@@ -8,6 +8,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
+  faChevronDown,
   faCircleCheck,
   faCircleMinus,
   faCirclePlus,
@@ -41,8 +42,10 @@ import {
 } from '@/lib/profiles/profiles'
 import { useProfiles, useSubscriptionActive } from '@/queries/profiles/profiles'
 import { useUsers } from '@/queries/users/users'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const { state: profilesState, refetch: refetchProfiles } = useProfiles()
 const { state: usersState, refetch: refetchUsers } = useUsers()
 const { state: subscriptionState } = useSubscriptionActive()
@@ -134,8 +137,10 @@ function reload() {
     <LoadError v-if="loadError" :error="loadError" @retry="reload" />
     <template v-else>
       <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
-        <p class="text-secondary-neutral max-w-[608px]">
-          {{ t('profiles.description_line_1') }}<br />{{ t('profiles.description_line_2') }}
+        <p class="text-secondary-neutral max-w-152">
+          {{ t('profiles.description_line_1') }}<br />{{
+            t('profiles.description_line_2', { brand: runtimeConfigStore.config.brandName })
+          }}
         </p>
         <NeDropdown
           :items="createFromItems"
@@ -144,13 +149,15 @@ function reload() {
           menu-classes="min-w-48"
         >
           <template #button>
-            <span
-              aria-hidden="true"
-              class="bg-primary-700 dark:bg-primary-500 hover:bg-primary-800 dark:hover:bg-primary-300 inline-flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-white shadow-xs dark:text-gray-950"
-            >
-              <FontAwesomeIcon :icon="faCirclePlus" class="size-4" />
+            <NeButton kind="primary" tabindex="-1" aria-hidden="true">
+              <template #prefix>
+                <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+              </template>
               {{ t('profiles.create_profile') }}
-            </span>
+              <template #suffix>
+                <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
+              </template>
+            </NeButton>
           </template>
           <template #menuHeader>
             <p class="text-tertiary-neutral px-4 pt-1 pb-2 text-xs font-medium uppercase">
@@ -231,7 +238,11 @@ function reload() {
                 {{ t('common.edit') }}
                 <span class="sr-only">{{ profile.name }}</span>
               </NeButton>
-              <NeTooltip v-if="isDefaultProfile(profile)">
+              <NeTooltip
+                v-if="isDefaultProfile(profile)"
+                trigger-event="mouseenter focus"
+                placement="top"
+              >
                 <template #trigger>
                   <NeButton kind="tertiary" size="sm" @click="showCreateDrawer(profile)">
                     <FontAwesomeIcon :icon="faClone" class="size-4" aria-hidden="true" />
@@ -240,7 +251,9 @@ function reload() {
                     </span>
                   </NeButton>
                 </template>
-                <template #content>{{ t('profiles.duplicate') }}</template>
+                <template #content>{{
+                  t('profiles.duplicate_profile', { name: profile.name })
+                }}</template>
               </NeTooltip>
               <NeDropdown
                 v-else

@@ -181,7 +181,9 @@ describe('analyzeImport', () => {
     expect(analysis.total).toBe(9)
     expect(analysis.valid.map((row) => row.username)).toEqual(['k.lee'])
     expect(analysis.existing.map((row) => row.username)).toEqual(['a.miller'])
-    expect(analysis.errors.map(({ row, issue }) => `${row.line}:${issue}`)).toEqual([
+    expect(
+      analysis.errors.map(({ row, issues }) => `${row.line}:${issues.map(({ issue }) => issue)}`),
+    ).toEqual([
       '3:invalid_extension',
       '4:missing_name',
       '5:duplicate_extension',
@@ -214,7 +216,9 @@ describe('analyzeImport', () => {
     expect(analysis.valid.map((row) => row.username)).toEqual(['k.lee'])
     expect(analysis.newGroups).toEqual(['Marketing'])
     expect(
-      analysis.errors.map(({ row, issue, group, reason }) => [row.line, issue, group, reason]),
+      analysis.errors.flatMap(({ row, issues }) =>
+        issues.map(({ issue, group, reason }) => [row.line, issue, group, reason]),
+      ),
     ).toEqual([
       [3, 'invalid_group', 'Sa-les', 'groups.name_too_similar'],
       [4, 'invalid_group', 'x'.repeat(66), 'groups.name_too_long'],
@@ -228,9 +232,43 @@ describe('analyzeImport', () => {
     const users = [{ ...USERS[0], devices }]
     const rows = parseImportFile('username,name,extension,webphone\na.miller,Anna,300,TRUE')
 
-    expect(analyzeImport(rows, users, DIRECTORY, 'overwrite').errors[0].issue).toBe(
-      'too_many_devices',
+    expect(analyzeImport(rows, users, DIRECTORY, 'overwrite').errors[0].issues).toEqual([
+      { issue: 'too_many_devices' },
+    ])
+  })
+
+  it('reports every issue of a row together', () => {
+    const rows = parseImportFile('username,name,extension,voicemail\nqa_bad,,abc,maybe')
+
+    expect(analyzeImport(rows, USERS, DIRECTORY, 'overwrite').errors[0].issues).toEqual([
+      { issue: 'missing_name' },
+      { issue: 'invalid_extension' },
+      { issue: 'invalid_flag', column: 'voicemail', value: 'maybe' },
+    ])
+  })
+
+  it('reports the unrecognized values of the flags instead of reading them as no', () => {
+    const rows = parseImportFile(
+      [
+        'username,name,extension,voicemail,webphone,desktop_app,mobile_app',
+        'k.lee,Kevin,305,Y,off,abilitato,',
+        'm.cole,Mia,306,x,N,on,0',
+      ].join('\n'),
     )
+    const analysis = analyzeImport(rows, USERS, DIRECTORY, 'overwrite')
+
+    expect(rows[0]).toMatchObject({ voicemail: true, webrtc: false, nethlink: null })
+    expect(rows[1]).toMatchObject({
+      voicemail: true,
+      webrtc: false,
+      nethlink: true,
+      mobileApp: false,
+      invalidFlags: [],
+    })
+    expect(analysis.valid.map((row) => row.username)).toEqual(['m.cole'])
+    expect(analysis.errors.map(({ row, issues }) => [row.line, issues])).toEqual([
+      [2, [{ issue: 'invalid_flag', column: 'nethlink', value: 'abilitato' }]],
+    ])
   })
 
   it('imports the existing users in overwrite mode', () => {
@@ -287,7 +325,9 @@ describe('toLegacyCsvRow', () => {
   it('reports a new user that takes the extension of another user', () => {
     const rows = parseImportFile('username,name,extension\nk.lee,Kevin,300')
 
-    expect(analyzeImport(rows, USERS, DIRECTORY, 'skip').errors[0].issue).toBe('extension_in_use')
+    expect(analyzeImport(rows, USERS, DIRECTORY, 'skip').errors[0].issues).toEqual([
+      { issue: 'extension_in_use' },
+    ])
   })
 
   it('writes the flags that the file sets', () => {
