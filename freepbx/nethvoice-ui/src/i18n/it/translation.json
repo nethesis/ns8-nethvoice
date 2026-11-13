@@ -1612,7 +1612,6 @@
     "show_details": "Mostra i dettagli di {name}",
     "operator_details": "Dettagli operatore",
     "call": "Chiama",
-    "call_not_available": "Non è ancora possibile chiamare dall'interfaccia di amministrazione",
     "codecs": "Codec",
     "do_not_disturb": "Non disturbare",
     "call_forward": "Inoltro chiamate",
@@ -1622,6 +1621,28 @@
     "no_users_description": "Assegna un interno a un utente per vedere qui lo stato in tempo reale dei suoi dispositivi.",
     "no_users_found": "Nessun utente trovato",
     "cannot_load": "Impossibile caricare lo stato degli utenti",
-    "table_label": "Panoramica utenti"
+    "table_label": "Panoramica utenti",
+    "call_enable_phone": "Abilita il telefono e chiama {extension}",
+    "call_ready": "Chiama {extension} dal telefono dell'amministratore",
+    "call_connecting": "Connessione del telefono in corso, poi chiamata a {extension}",
+    "call_in_progress": "C'è già una chiamata in corso",
+    "call_no_extension": "Questo utente non ha un interno principale"
+  },
+  "admin_phone": {
+    "enable_phone": "Abilita il telefono",
+    "disable_phone": "Disabilita il telefono",
+    "status_inactive": "Telefono disabilitato. Abilitalo per fare chiamate di prova come amministratore.",
+    "status_starting": "Preparazione del telefono in corso",
+    "status_registering": "Connessione del telefono in corso",
+    "status_ready": "Telefono pronto, interno {extension}",
+    "status_in_call": "Chiamata in corso, interno {extension}",
+    "status_connection_lost": "Il telefono non riesce a connettersi al centralino e continua a riprovare",
+    "status_error": "Impossibile abilitare il telefono: {error}",
+    "regenerate_credentials": "Rigenera le credenziali del telefono",
+    "credentials_regenerated": "Credenziali del telefono rigenerate",
+    "credentials_regenerated_description": "Le credenziali precedenti non funzionano più.",
+    "cannot_regenerate_credentials": "Impossibile rigenerare le credenziali del telefono",
+    "cost_notice_title": "Chiamate verso numeri esterni",
+    "cost_notice_description": "Le chiamate verso numeri esterni passano dalle rotte in uscita e possono essere addebitate dall'operatore telefonico."
   }
 }

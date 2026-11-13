@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
+import { getServiceExtension, isServiceDestination } from '@/lib/adminPhone/adminPhone'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
 import { postUserProfile } from '@/lib/profiles/profiles'
@@ -309,8 +310,13 @@ export const parseDestinations = (raw: unknown): BulkDestination[] =>
   )
 
 export const getDestinations = async (): Promise<BulkDestination[]> => {
-  const { data } = await api.GET('/destinations')
-  return parseDestinations(data)
+  const [{ data }, serviceExtension] = await Promise.all([
+    api.GET('/destinations'),
+    getServiceExtension(),
+  ])
+  return parseDestinations(data).filter(
+    (destination) => !isServiceDestination(destination.id, serviceExtension),
+  )
 }
 
 const OUTBOUND_CID_REGEX = /^("[^"]*"\s*<[0-9]+>|<[0-9]+>|[0-9]+)$/

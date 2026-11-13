@@ -5,7 +5,17 @@ import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 
 const BASE = '/nethvoice/'
-const PROXIED_PATHS = ['/freepbx/rest', '/freepbx/admin', '/freepbx/visualplan', '/api', '/tancredi']
+const PROXIED_PATHS = [
+  '/freepbx/rest',
+  '/freepbx/admin',
+  '/freepbx/visualplan',
+  '/api',
+  '/tancredi',
+]
+const PHONE_ISLAND_RUNTIME = /^@\/lib\/adminPhone\/phoneIslandRuntime$/
+const PHONE_ISLAND_E2E_STUB = fileURLToPath(
+  new URL('./e2e/fixtures/phoneIslandStub.ts', import.meta.url),
+)
 
 const devRuntimeConfig = (): Plugin => ({
   name: 'nethvoice-ui-dev-runtime-config',
@@ -46,9 +56,13 @@ export default defineConfig(({ mode }) => {
     base: BASE,
     plugins: [vue(), tailwindcss(), devRuntimeConfig()],
     resolve: {
-      alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url)),
-      },
+      alias: [
+        ...(isE2e ? [{ find: PHONE_ISLAND_RUNTIME, replacement: PHONE_ISLAND_E2E_STUB }] : []),
+        { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      ],
+    },
+    optimizeDeps: {
+      include: ['@nethesis/phone-island', 'react', 'react-dom/client'],
     },
     server: {
       host: '127.0.0.1',
@@ -56,7 +70,10 @@ export default defineConfig(({ mode }) => {
       hmr: isE2e ? false : undefined,
       proxy: pbxUrl
         ? Object.fromEntries(
-            PROXIED_PATHS.map((path) => [path, { target: pbxUrl, changeOrigin: true, secure: true }]),
+            PROXIED_PATHS.map((path) => [
+              path,
+              { target: pbxUrl, changeOrigin: true, secure: true },
+            ]),
           )
         : undefined,
     },

@@ -13,6 +13,7 @@ import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
 import type { OverviewDevice, OverviewUser } from '@/lib/overview/overview'
+import { useAdminPhoneStore } from '@/stores/adminPhone'
 
 const { isShown = false, user = undefined } = defineProps<{
   isShown: boolean
@@ -23,6 +24,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const idPrefix = useId()
+const adminPhoneStore = useAdminPhoneStore()
 
 const expandedExtensions = ref<string[]>([])
 
@@ -49,6 +51,43 @@ function toggleDevice(device: OverviewDevice) {
 
 function getPanelId(device: OverviewDevice) {
   return `${idPrefix}-device-${device.extension}`
+}
+
+const mainExtension = computed(() => user?.mainExtension ?? '')
+
+const isCallDisabled = computed(
+  () =>
+    !mainExtension.value ||
+    adminPhoneStore.inCall ||
+    (adminPhoneStore.state === 'error' && adminPhoneStore.isEnabled),
+)
+
+const callTooltip = computed(() => {
+  const extension = mainExtension.value
+
+  if (!extension) {
+    return t('user_overview.call_no_extension')
+  }
+  if (adminPhoneStore.inCall) {
+    return t('user_overview.call_in_progress')
+  }
+  switch (adminPhoneStore.state) {
+    case 'ready':
+      return t('user_overview.call_ready', { extension })
+    case 'starting':
+    case 'registering':
+      return t('user_overview.call_connecting', { extension })
+    case 'error':
+      return adminPhoneStore.isEnabled
+        ? t('admin_phone.status_connection_lost')
+        : t('user_overview.call_enable_phone', { extension })
+    default:
+      return t('user_overview.call_enable_phone', { extension })
+  }
+})
+
+function callOperator() {
+  void adminPhoneStore.call(mainExtension.value)
 }
 
 function getDeviceLabel(device: OverviewDevice) {
@@ -80,16 +119,22 @@ function getDeviceLabel(device: OverviewDevice) {
         </div>
       </div>
       <div>
-        <NeTooltip class="inline-block">
+        <NeTooltip trigger-event="mouseenter focus" class="inline-block">
           <template #trigger>
-            <NeButton kind="primary" disabled>
+            <NeButton
+              kind="primary"
+              :disabled="isCallDisabled"
+              :loading="adminPhoneStore.isConnecting"
+              data-testid="call-operator"
+              @click="callOperator"
+            >
               <template #prefix>
                 <FontAwesomeIcon :icon="faPhone" class="size-4" aria-hidden="true" />
               </template>
               {{ t('user_overview.call') }}
             </NeButton>
           </template>
-          <template #content>{{ t('user_overview.call_not_available') }}</template>
+          <template #content>{{ callTooltip }}</template>
         </NeTooltip>
       </div>
       <div>

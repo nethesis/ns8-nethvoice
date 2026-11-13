@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
+import { getServiceExtension, withoutServiceExtension } from '@/lib/adminPhone/adminPhone'
 import { api } from '@/lib/api/client'
 import { compareNatural } from '@/lib/common'
 import { parseGroups } from '@/lib/groups/groups'
@@ -41,8 +42,15 @@ export const getGroupNames = async (): Promise<string[]> => {
 }
 
 export const getExtensionOptions = async (): Promise<ExtensionOption[]> => {
-  const { data } = await api.GET('/physicalextensions')
-  return parseExtensionOptions(data)
+  const [{ data }, serviceExtension] = await Promise.all([
+    api.GET('/physicalextensions'),
+    getServiceExtension(),
+  ])
+  return withoutServiceExtension(
+    parseExtensionOptions(data),
+    (option) => option.extension,
+    serviceExtension,
+  )
 }
 
 export const getProfileNames = (profileIds: string[], profiles: ProfileOption[]): string[] =>
