@@ -152,10 +152,48 @@ test.describe('user overview', () => {
     await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
     await expect(page.getByText('Fanvil X4U').first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Call' })).toBeDisabled()
-    await expect(page.getByText('opus, alaw')).toBeVisible()
 
-    await page.getByRole('navigation', { name: 'Tabs' }).last().getByText('Mobile app').click()
-    await expect(page.getByText('0612345678')).toBeVisible()
+    const drawer = page.getByRole('dialog')
+    const webPhone = drawer.getByRole('button', { name: /Web phone/ })
+    const mobileApp = drawer.getByRole('button', { name: /Mobile app/ })
+    const panelOf = async (toggle: typeof webPhone) =>
+      drawer.locator(`[id="${await toggle.getAttribute('aria-controls')}"]`)
+    const webPhonePanel = await panelOf(webPhone)
+    const mobileAppPanel = await panelOf(mobileApp)
+
+    await expect(drawer.getByRole('navigation', { name: 'Tabs' })).toHaveCount(0)
+    await expect(webPhone).toHaveAttribute('aria-expanded', 'true')
+    await expect(webPhonePanel).toBeVisible()
+    await expect(webPhonePanel).toContainText('opus, alaw')
+    await expect(mobileApp).toHaveAttribute('aria-expanded', 'false')
+    await expect(mobileAppPanel).toBeHidden()
+
+    await mobileApp.click()
+    await expect(mobileApp).toHaveAttribute('aria-expanded', 'true')
+    await expect(mobileAppPanel).toBeVisible()
+    await expect(mobileAppPanel).toContainText('0612345678')
+
+    await webPhone.click()
+    await expect(webPhone).toHaveAttribute('aria-expanded', 'false')
+    await expect(webPhonePanel).toBeHidden()
+    await expect(mobileAppPanel).toBeVisible()
+    expect(
+      await drawer.evaluate((element) => {
+        const scroller = element.querySelector('.overflow-y-auto') ?? element
+        return scroller.scrollWidth <= scroller.clientWidth
+      }),
+    ).toBe(true)
+  })
+
+  test('names the icon buttons with a tooltip', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).hover()
+    await expect(page.getByRole('tooltip', { name: 'Show details' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'List view' }).hover()
+    await expect(page.getByRole('tooltip', { name: 'List view' })).toBeVisible()
   })
 
   test('switches to the list view', async ({ page, mockApi }) => {

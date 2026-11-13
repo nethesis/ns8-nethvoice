@@ -37,6 +37,8 @@ export type InboundRouteTexts = {
   anyDid: string
 }
 
+export const DASHBOARD_LIST_PAGE_SIZE = 5
+
 const UNREGISTERED = 'unregistered'
 
 export const getDashboardTrunkStatus = (

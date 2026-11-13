@@ -168,16 +168,21 @@ function removePhone(index: number) {
           :optional-label="t('common.optional')"
           @update:model-value="setPhone(index, $event)"
         />
-        <NeButton
-          kind="tertiary"
-          size="sm"
-          class="mt-1"
-          :disabled="disabled"
-          @click="removePhone(index)"
-        >
-          <FontAwesomeIcon :icon="faTrash" class="size-4" aria-hidden="true" />
-          <span class="sr-only">{{ t('users.remove_phone_n', { n: index + 1 }) }}</span>
-        </NeButton>
+        <NeTooltip trigger-event="mouseenter focus" placement="top">
+          <template #trigger>
+            <NeButton
+              kind="tertiary"
+              size="sm"
+              class="mt-1"
+              :disabled="disabled"
+              @click="removePhone(index)"
+            >
+              <FontAwesomeIcon :icon="faTrash" class="size-4" aria-hidden="true" />
+              <span class="sr-only">{{ t('users.remove_phone_n', { n: index + 1 }) }}</span>
+            </NeButton>
+          </template>
+          <template #content>{{ t('common.remove') }}</template>
+        </NeTooltip>
       </div>
       <div>
         <NeTooltip v-if="limitReached && !disabled" trigger-event="mouseenter focus">

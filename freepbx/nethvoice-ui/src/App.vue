@@ -12,6 +12,7 @@ import { PiniaColadaDevtools } from '@pinia/colada-devtools'
 import AppShell from '@/components/shell/AppShell.vue'
 import ToastNotificationsArea from '@/components/shell/ToastNotificationsArea.vue'
 import { useThemeStore } from '@/stores/theme'
+import { useDensityStore } from '@/stores/density'
 import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
@@ -19,6 +20,7 @@ import { useWizardState } from '@/queries/setup/wizardState'
 import { IS_E2E } from '@/lib/config'
 
 const themeStore = useThemeStore()
+const densityStore = useDensityStore()
 const runtimeConfigStore = useRuntimeConfigStore()
 const route = useRoute()
 const router = useRouter()
@@ -68,6 +70,7 @@ watch(
 
 onMounted(() => {
   themeStore.loadTheme()
+  densityStore.loadDensity()
   runtimeConfigStore.load()
 })
 </script>
