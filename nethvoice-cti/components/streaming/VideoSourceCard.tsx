@@ -57,7 +57,7 @@ export const VideoSourceCard: React.FC<VideoSourceCardProps> = ({
           active={!isExpanded}
           sizeAction={{
             icon: faUpRightAndDownLeftFromCenter,
-            label: 'Fullscreen',
+            label: t('Tooltip.Expand'),
             tooltip: t('Tooltip.Expand'),
             onClick: () => onExpand(source.id),
           }}
