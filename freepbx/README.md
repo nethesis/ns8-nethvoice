@@ -82,6 +82,14 @@ followed by the PHP/startup regressions and QEMU installation/update jobs.
     - `NETHCTI_DB_USER` NethCTI MariaDB database user (default: nethcti3)
     - `NETHCTI_DB_PASSWORD` NethCTI MariaDB database password
     - `NETHCTI_AMI_PASSWORD` NethCTI AMI password 
+- `MEDIAMTX_*` video gateway settings used to write `/etc/mediamtx/mediamtx.yml` (mounted from the
+  `mediamtx` volume, see the "Video sources and video gateway" section of the main README):
+    - `MEDIAMTX_WHEP_PORT`, `MEDIAMTX_API_PORT`, `MEDIAMTX_RTSP_PORT` loopback TCP ports
+    - `MEDIAMTX_ICE_UDP_PORT`, `MEDIAMTX_ICE_TCP_PORT` public ICE ports
+    - `MEDIAMTX_ICE_HOSTS` comma-separated addresses announced as ICE candidates
+    - `MEDIAMTX_PUBLIC_IP` public address of the PBX shown in the wizard for the device port-forward
+  The image ships a minimal `ffmpeg`/`ffprobe` (RTSP input, camera codecs, JPEG output) used by
+  `POST /cti/sources/test` to probe a RTSP device and grab a preview frame.
 - `NETHVOICE_MARIADB_PORT` port of MariaDB phonebook database
 - `PHONEBOOK_DB_NAME` name of phonebook database
 - `PHONEBOOK_DB_USER` user of phonebook database

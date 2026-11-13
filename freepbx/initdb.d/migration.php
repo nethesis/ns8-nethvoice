@@ -65,14 +65,27 @@ if ($migration_version !== false) {
 	$migration_version = (int) $migration_version;
 }
 
-if ($migration_version !== false && $migration_version >= 2) {
+# Video sources: type, credentials and gates (NethServer/dev#7535)
+require_once __DIR__ . '/streaming-migration.php';
+
+# Video sources TLS options: schema-checked, runs on every version
+migrateStreamingTlsSchema($db);
+
+if ($migration_version !== false && $migration_version >= 3) {
 	echo "Migration already done\n";
+	exit(0);
+}
+
+if ($migration_version === 2) {
+	migrateStreamingSchema($db);
+	setMigrationScriptVersion($db, 3);
 	exit(0);
 }
 
 if ($migration_version === 1) {
 	migrateFrom14To17($db);
-	setMigrationScriptVersion($db, 2);
+	migrateStreamingSchema($db);
+	setMigrationScriptVersion($db, 3);
 	exit(0);
 }
 
@@ -435,4 +448,5 @@ if (count($res) == 0) {
 }
 
 migrateFrom14To17($db);
-setMigrationScriptVersion($db, 2);
+migrateStreamingSchema($db);
+setMigrationScriptVersion($db, 3);

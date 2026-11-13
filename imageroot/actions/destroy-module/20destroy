@@ -25,6 +25,7 @@ services = [
     "server-api",
     "server-websocket",
     "janus",
+    "mediamtx",
     "reports-api",
     "reports-ui",
     "users-admin",

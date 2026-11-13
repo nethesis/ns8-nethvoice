@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Set the ICE addresses of the video gateway (MediaMTX) on instances
+# configured before it. configure-module/61ice_enforce and the
+# nethvoice-proxy-settings-changed event keep them updated afterwards.
+import sys
+
+import agent
+import video_gateway
+
+env = agent.read_envfile('environment')
+if 'MEDIAMTX_ICE_HOSTS' in env or not env.get('NETHVOICE_HOST'):
+    # Already set, or not configured yet: configure-module will set them
+    sys.exit(0)
+
+try:
+    proxy_id = agent.resolve_agent_id('nethvoice-proxy@node')
+    ksrv = agent.list_service_providers(agent.redis_connect(use_replica=True), "sip", "tcp", {"module_id": proxy_id.removeprefix("module/")})
+    for key, value in video_gateway.ice_env(ksrv[0]).items():
+        agent.set_env(key, value)
+except Exception as ex:
+    print(agent.SD_WARNING + f"Cannot read the nethvoice-proxy addresses for the video gateway: {ex}", file=sys.stderr)

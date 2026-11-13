@@ -202,6 +202,47 @@ RUN apt-get update && apt-get install -y --no-install-recommends libbcg729-dev l
 	make -j"$(nproc)" && \
 	install -D -m 0755 .libs/codec_g729.so ${BUILDROOT}${LIBDIR}/asterisk/modules/codec_g729.so
 
+# Stage 2: minimal FFmpeg for the video sources check (NethServer/dev#7535):
+# ffprobe reads the codecs of a RTSP(S) device and ffmpeg grabs one JPEG
+# frame. Only the RTSP demuxer, the usual camera codecs and the JPEG encoder
+# are built (about 10 MB instead of ~470 MB for the Debian ffmpeg package);
+# the binaries link only libc and the libssl3 of the final image.
+FROM docker.io/debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6 as ffmpeg_builder
+ARG FFMPEG_VERSION=8.1.3
+ARG DEBIAN_FRONTEND=noninteractive
+COPY remote-artifacts.sha256 /usr/src/ffmpeg/remote-artifacts.sha256
+RUN apt-get update && \
+	apt-get install -y --no-install-recommends \
+		build-essential \
+		ca-certificates \
+		libssl-dev \
+		nasm \
+		pkg-config \
+		wget \
+		xz-utils && \
+	cd /usr/src/ffmpeg && \
+	wget -O ffmpeg-${FFMPEG_VERSION}.tar.xz https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz && \
+	artifact_checksum=$(grep "  ffmpeg-${FFMPEG_VERSION}.tar.xz$" remote-artifacts.sha256) && \
+	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	tar xJf ffmpeg-${FFMPEG_VERSION}.tar.xz && \
+	cd ffmpeg-${FFMPEG_VERSION} && \
+	./configure --prefix=/usr/local \
+		--disable-everything --disable-autodetect --disable-doc --disable-debug \
+		--disable-ffplay --enable-ffmpeg --enable-ffprobe \
+		--disable-shared --enable-static --enable-small \
+		--enable-network --enable-openssl \
+		--enable-protocol=file,pipe,tcp,udp,rtp,tls \
+		--enable-demuxer=rtsp,sdp,rtp,concat \
+		--enable-decoder=h264,hevc,mjpeg,mpeg4,pcm_mulaw,pcm_alaw,aac,opus,adpcm_g722,adpcm_g726,adpcm_g726le \
+		--enable-parser=h264,hevc,mjpeg,mpeg4video,aac,opus \
+		--enable-encoder=mjpeg \
+		--enable-muxer=image2,mjpeg \
+		--enable-filter=scale,format,null,anull,aformat,aresample \
+		--enable-swscale --enable-swresample && \
+	make -j"$(nproc)" && \
+	make install && \
+	strip /usr/local/bin/ffmpeg /usr/local/bin/ffprobe
+
 FROM docker.io/library/php:8.3.36-apache-trixie@sha256:a800bbd2c0aa322702259ed475556b2cbc311076a8d3c4bba9bfe96838745472
 WORKDIR /var/lib/asterisk
 ARG DEBIAN_FRONTEND=noninteractive
@@ -304,6 +345,7 @@ RUN sed -i 's/^# *bg_BG.UTF-8 UTF-8/bg_BG.UTF-8 UTF-8/' /etc/locale.gen && \
 
 # Copy Asterisk files
 COPY --from=builder /usr/src/asterisk/build/./ /
+COPY --from=ffmpeg_builder /usr/local/bin/ffmpeg /usr/local/bin/ffprobe /usr/local/bin/
 COPY check-asterisk-libraries.py /tmp/check-asterisk-libraries.py
 RUN ldconfig && python3 /tmp/check-asterisk-libraries.py && rm /tmp/check-asterisk-libraries.py
 COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
@@ -682,6 +724,7 @@ COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/
 COPY initdb.d/gateway-migration.php /initdb.d/
+COPY initdb.d/streaming-migration.php /initdb.d/
 COPY etc/logrotate.d/asterisk /etc/logrotate.d/asterisk
 COPY initdb.d/update.php /initdb.d/
 COPY initdb.d/slow_database_updates.php /initdb.d/

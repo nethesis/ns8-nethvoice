@@ -1495,7 +1495,9 @@ paths:
           type: string
   /cti/streaming:
     get:
-      summary: List configured CTI video streaming sources with profile bindings.
+      summary: List the video sources with their gates and profile bindings.
+      description: Passwords are write-only and never returned; `has_secret`
+        and `has_password` tell whether one is stored.
       tags:
       - CTI
       responses:
@@ -1504,26 +1506,40 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-              example: []
+                type: array
+                items:
+                  $ref: '#/components/schemas/VideoSource'
       operationId: get_cti_streaming
     post:
-      summary: Create a new CTI streaming source and permission entry.
+      summary: Create a video source, its CTI permission and its gates.
+      description: The type follows the URL scheme (`http(s)` image polled by
+        the CTI, `rtsp(s)` stream served by the video gateway). Credentials
+        pasted into the URL are stored separately. Without `gates`, the legacy
+        `open` code creates a first DTMF gate named "Door 1".
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
+        '400':
+          description: Invalid field
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/VideoSourceError'
+        '409':
+          description: A source with the same name, or a name that maps to the
+            same permission, already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoSourceError'
       operationId: post_cti_streaming
       requestBody:
         content:
           application/json:
             schema:
-              type: object
+              $ref: '#/components/schemas/VideoSourceInput'
   /cti/paramurls:
     get:
       summary: Return the current parameterized URL mappings grouped by URL.
@@ -1540,16 +1556,31 @@ paths:
       operationId: get_cti_paramurls
   /cti/streaming/{descr}:
     put:
-      summary: Update a streaming source metadata and profile assignments.
+      summary: Update a video source, its gates and its profile assignments.
+      description: '`currentDescr` (or the path parameter) is the current name.
+        An empty or missing `secret` keeps the stored password, an empty `user`
+        removes the credentials; the same applies to `password` and `username`
+        of a URL gate identified by its `id`. Without `gates`, the legacy `open`
+        code replaces the code of the first DTMF gate.'
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
+        '400':
+          description: Invalid field
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/VideoSourceError'
+        '404':
+          description: Source not found
+        '409':
+          description: The new name is already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoSourceError'
       operationId: put_cti_streaming_descr
       parameters:
       - name: descr
@@ -1561,30 +1592,73 @@ paths:
         content:
           application/json:
             schema:
-              type: object
+              allOf:
+              - $ref: '#/components/schemas/VideoSourceInput'
+              - type: object
+                properties:
+                  currentDescr:
+                    type: string
   /cti/sources/test:
     post:
-      summary: Test reachability of a video source by fetching a still frame.
+      summary: Check a video source and grab a preview frame.
+      description: 'RTSP(S) sources are probed with ffprobe (codecs, resolution)
+        and one JPEG frame is grabbed with ffmpeg, always over TCP, directly
+        from the device. HTTP(S) sources are fetched with the given
+        credentials. With `descr` of a stored source and an empty `secret`,
+        the stored password is used, only for the same scheme, host and port.
+        TLS certificates of https:// and rtsps:// devices are verified (system
+        CA store and host name) unless `tls_skip_verify`; an untrusted
+        certificate fails with reason `tls_error`. Without `tls_skip_verify`,
+        the value stored for `descr` is used (same scheme, host and port).
+        RTSP sources, or `details: true`, answer with a `VideoSourceCheck`
+        object (HTTP 200 also on failure); legacy clients (HTTP URL without
+        `details`) get the Base64 image as a JSON string, or HTTP 500.'
       tags:
       - CTI
       responses:
         '200':
-          description: Successful response
+          description: Check result
           content:
             application/json:
               schema:
-                type: object
-      description: 'Body: `{ "url": "http(s)://..." }`. Returns the content encoded
-        in Base64 or HTTP 500 on failure.'
+                oneOf:
+                - $ref: '#/components/schemas/VideoSourceCheck'
+                - type: string
+                  description: Legacy Base64 image
+        '400':
+          description: Invalid URL
       operationId: post_cti_sources_test
       requestBody:
         content:
           application/json:
             schema:
               type: object
-  /cti/streaming/{name}:
-    delete:
-      summary: Delete a streaming source and related permission record.
+              required:
+              - url
+              properties:
+                url:
+                  type: string
+                  example: rtsp://192.0.2.10:554/stream1
+                user:
+                  type: string
+                secret:
+                  type: string
+                descr:
+                  type: string
+                  description: Name of a stored source whose password is used
+                    when `secret` is empty
+                tls_skip_verify:
+                  type: boolean
+                  description: Do not verify the TLS certificate of the device
+                    (self-signed certificates)
+                details:
+                  type: boolean
+                  description: Return a VideoSourceCheck also for HTTP sources
+  /cti/sources/gateway:
+    get:
+      summary: Network facts of the video gateway for the administrator.
+      description: '`public_ip` is the address the devices see the PBX coming
+        from: the port-forward of a RTSP device should allow only it.'
       tags:
       - CTI
       responses:
@@ -1594,6 +1668,39 @@ paths:
             application/json:
               schema:
                 type: object
+                properties:
+                  public_ip:
+                    type: string
+                    nullable: true
+                  ice_hosts:
+                    type: array
+                    items:
+                      type: string
+                  ice_udp_port:
+                    type: integer
+                    nullable: true
+                  ice_tcp_port:
+                    type: integer
+                    nullable: true
+                  path_prefix:
+                    type: string
+                    example: /streaming-gw/
+      operationId: get_cti_sources_gateway
+  /cti/streaming/{name}:
+    delete:
+      summary: Delete a streaming source and related permission record.
+      description: The source must exist with exactly this name.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: No source with exactly this name
       operationId: delete_cti_streaming_name
       parameters:
       - name: name
@@ -4005,6 +4112,213 @@ components:
         error:
           type: string
         message:
+          type: string
+    VideoSourceGate:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Identifier of a stored gate (omit for a new one)
+        position:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 50
+        type:
+          type: string
+          enum: [dtmf, url]
+        code:
+          type: string
+          description: DTMF code sent to the source extension (dtmf gates)
+          pattern: '^[0-9A-Da-d*#+]{1,30}$'
+        url:
+          type: string
+          description: http(s) URL requested to open the gate (url gates)
+        method:
+          type: string
+          enum: [GET, POST]
+        username:
+          type: string
+        password:
+          type: string
+          writeOnly: true
+        has_password:
+          type: boolean
+          readOnly: true
+        tls_fingerprint:
+          type: string
+          nullable: true
+          readOnly: true
+          description: SHA-256 of the certificate of an https:// gate device,
+            pinned when the source (with `tls_skip_verify`) is saved
+    VideoSourceInput:
+      type: object
+      required:
+      - descr
+      - url
+      properties:
+        descr:
+          type: string
+          maxLength: 50
+        url:
+          type: string
+          example: rtsp://192.0.2.10:554/stream1
+        user:
+          type: string
+        secret:
+          type: string
+          writeOnly: true
+        exten:
+          type: string
+        frame-rate:
+          type: integer
+          minimum: 500
+          description: Polling interval of image sources, in milliseconds
+        open:
+          type: string
+          description: Legacy opening code, used only when `gates` is absent
+        gates:
+          type: array
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/VideoSourceGate'
+        tls_skip_verify:
+          type: boolean
+          default: false
+          description: 'Skip the TLS certificate verification for the source
+            URL and all its URL gates (devices with a self-signed
+            certificate). Absent on update: the stored value is kept. Stored
+            as false when neither the URL nor a URL gate uses TLS. The SHA-256
+            fingerprint of the certificate each TLS device (rtsps:// or
+            https:// URL, https:// URL gates) presents when the source is
+            saved is pinned: the save fails (400) if a certificate cannot be
+            read and none is stored for that device.'
+        profiles:
+          type: array
+          items:
+            type: string
+    VideoSource:
+      type: object
+      properties:
+        descr:
+          type: string
+        type:
+          type: string
+          enum: [image, rtsp]
+        url:
+          type: string
+          description: URL without credentials
+        user:
+          type: string
+        has_secret:
+          type: boolean
+        frame-rate:
+          type: string
+        exten:
+          type: string
+          nullable: true
+        open:
+          type: string
+          description: Code of the first DTMF gate (legacy)
+        gates:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoSourceGate'
+        tls_skip_verify:
+          type: boolean
+        tls_fingerprint:
+          type: string
+          nullable: true
+          readOnly: true
+          description: SHA-256 of the device certificate pinned by the gateway
+            (rtsps://) or by nethcti-server (https://) for sources with
+            `tls_skip_verify`, null if none
+        tls_unpinned:
+          type: boolean
+          readOnly: true
+          description: 'A device of the source skips the TLS verification
+            without a pinned certificate (saved by an older version): it is
+            contacted unpinned until the source is saved again'
+        permission:
+          type: string
+          example: vs_front_door
+        gateway_path:
+          type: string
+          nullable: true
+          example: streaming-gw/vs_front_door
+        profiles:
+          type: array
+          items:
+            type: string
+    VideoSourceCheck:
+      type: object
+      properties:
+        success:
+          type: boolean
+        type:
+          type: string
+          enum: [image, rtsp]
+        image:
+          type: string
+          nullable: true
+          description: Base64 preview
+        mime:
+          type: string
+          nullable: true
+        video:
+          type: object
+          nullable: true
+          properties:
+            codec:
+              type: string
+              example: h264
+            width:
+              type: integer
+            height:
+              type: integer
+        audio:
+          type: object
+          nullable: true
+          properties:
+            codec:
+              type: string
+              example: pcm_mulaw
+            sample_rate:
+              type: integer
+        h265:
+          type: boolean
+          description: The video is H.265, which most browsers cannot play
+        warnings:
+          type: array
+          items:
+            type: string
+            enum: [h265, codec_not_supported_by_webrtc, preview_failed, tls_certificate_changed]
+          description: '`tls_certificate_changed`: the device certificate is
+            not the one pinned by the gateway, which refuses the device until
+            the source is saved again'
+        reason:
+          type: string
+          nullable: true
+          enum: [auth_failed, connection_refused, timeout, not_found, tls_error, unsupported, address_not_allowed, unknown, null]
+          description: '`address_not_allowed`: loopback, link-local or
+            unspecified device address; `unsupported` also for an image
+            source that does not answer with a JPEG or PNG image (its content
+            is never returned)'
+        message:
+          type: string
+          description: Raw error message, without credentials
+        tls_fingerprint:
+          type: string
+          nullable: true
+          description: SHA-256 of the certificate of a rtsps:// or https://
+            device, read when `tls_skip_verify` is set
+    VideoSourceError:
+      type: object
+      properties:
+        status:
+          type: string
+        field:
           type: string
   responses:
     UnauthorizedError:

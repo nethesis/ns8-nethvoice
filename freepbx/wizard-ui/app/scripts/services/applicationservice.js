@@ -115,6 +115,16 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    this.videoSourcesGateway = function () {
+      return $q(function (resolve, reject) {
+        RestService.get('/cti/sources/gateway').then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
     this.checkConnectionVideoSource = function (obj) {
       return $q(function (resolve, reject) {
         RestService.post('/cti/sources/test', obj).then(function (res) {
@@ -187,7 +197,7 @@ angular.module('nethvoiceWizardUiApp')
 
     this.updateVideoSource = function (descr, obj) {
       return $q(function (resolve, reject) {
-        RestService.put('/cti/streaming/' + descr, obj).then(function (res) {
+        RestService.put('/cti/streaming/' + encodeURIComponent(descr), obj).then(function (res) {
           resolve(res);
         }, function (err) {
           reject(err);
@@ -217,7 +227,7 @@ angular.module('nethvoiceWizardUiApp')
 
     this.deleteVideoSource = function (name) {
       return $q(function (resolve, reject) {
-        RestService.delete('/cti/streaming/' + name).then(function (res) {
+        RestService.delete('/cti/streaming/' + encodeURIComponent(name)).then(function (res) {
           resolve(res);
         }, function (err) {
           reject(err);

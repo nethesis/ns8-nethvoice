@@ -34,6 +34,9 @@ systemctl --user try-restart $RESTART_SERVICES
 
 systemctl --user enable --now freepbx.service
 systemctl --user enable --now janus.service
+# Video gateway: FreePBX (started above) has written its configuration; later
+# changes are reloaded by MediaMTX without a restart
+systemctl --user enable --now mediamtx.service
 systemctl --user enable nethcti-server.service # cti server will be started later
 systemctl --user enable nethcti-middleware.service # middleware will be started with cti server later
 systemctl --user enable --now nethcti-ui.service

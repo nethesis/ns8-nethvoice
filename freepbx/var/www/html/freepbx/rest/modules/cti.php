@@ -24,6 +24,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libCTI.php');
 include_once('lib/libMiddleware.php');
+include_once('lib/libStreaming.php');
 
 /* GET /cti/profiles
 Return: [{id:1, name: admin, macro_permissions [ oppanel: {value: true, permissions [ {name: "foo", description: "descrizione...", value: false},{..} ]}
@@ -1011,38 +1012,23 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
 });
 
 /*
- * GET /cti/streaming { name: string, url: string, user: string, secret: string, framerate: integer, exten: integer, open: string, profiles: array }
+ * GET /cti/streaming
+ * Return the video sources: [{ descr, type, url, user, has_secret, frame-rate, exten, open, gates, tls_skip_verify, tls_fingerprint, permission, gateway_path, profiles }]
+ * Secrets (source and gate passwords) are never returned.
  */
 $app->get('/cti/streaming', function (Request $request, Response $response, $args) {
     try {
         $dbh = FreePBX::Database();
-        $sql = 'SELECT * FROM rest_cti_streaming';
-        $sth = $dbh->prepare($sql);
-        $sth->execute();
-        $res = $sth->fetchAll(PDO::FETCH_ASSOC);
-
-        foreach ($res as $i => $s) {
-            $res[$i]['profiles']=[];
-            $descr=$s['descr'];
-
-            $sql = 'SELECT id FROM rest_cti_permissions WHERE name=?';
-            $sth = $dbh->prepare($sql);
-            $sth->execute(array('vs_'.strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$descr)))));
-            $restemp = $sth->fetchAll(PDO::FETCH_ASSOC);
-            $permission_id = null;
-
-            if ($restemp) {
-                $permission_id = $restemp[0]['id'];
-                $sql = 'SELECT profile_id FROM rest_cti_profiles_permissions WHERE permission_id=?';
-                $sth = $dbh->prepare($sql);
-                $sth->execute(array($permission_id));
-                $restemp = $sth->fetchAll(PDO::FETCH_ASSOC);
-                if ($restemp) {
-                    foreach($restemp as $pid) {
-                        array_push($res[$i]['profiles'], (string) $pid['profile_id']);
-                    }
-                }
+        $res = [];
+        $sth = $dbh->prepare('SELECT `profile_id` FROM `rest_cti_profiles_permissions` JOIN `rest_cti_permissions` ON `rest_cti_permissions`.`id` = `rest_cti_profiles_permissions`.`permission_id` WHERE `rest_cti_permissions`.`name` = ?');
+        foreach (streaming_load_sources($dbh) as $source) {
+            $item = streaming_public_source($source);
+            $item['profiles'] = [];
+            $sth->execute([$item['permission']]);
+            foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $pid) {
+                $item['profiles'][] = (string) $pid['profile_id'];
             }
+            $res[] = $item;
         }
         return jsonResponse($response, $res);
     } catch (Exception $e) {
@@ -1083,187 +1069,219 @@ $app->get('/cti/paramurls', function (Request $request, Response $response, $arg
 });
 
 /*
- * PUT /cti/streaming/:descr { descr: string, exten: string, frame-rate: string, open: string, secret: string, url: string, user: string }
+ * Answer a video source validation/conflict error, or log and answer 500.
+ */
+function streamingErrorResponse(Response $response, Throwable $e): Response
+{
+    if ($e instanceof StreamingValidationException) {
+        if ($e->getDetail() !== '') {
+            error_log('video source not saved, ' . $e->getField() . ': ' . $e->getMessage() . ': ' . $e->getDetail());
+        }
+        return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
+    }
+    if ($e instanceof StreamingNotFoundException) {
+        return jsonResponse($response, ['status' => $e->getMessage()], 404);
+    }
+    if ($e instanceof StreamingConflictException) {
+        return jsonResponse($response, ['status' => $e->getMessage()], 409);
+    }
+    error_log($e->getMessage());
+    return $response->withStatus(500);
+}
+
+/*
+ * Pin the certificates of the TLS devices of a source that skips the TLS
+ * verification (rtsps:// for the gateway, https:// image URL and URL gates
+ * for nethcti-server): they trust the certificates the devices present now.
+ * A validation error is thrown when a certificate cannot be read and none is
+ * stored for that device.
+ */
+function streamingPinCertificate(array $source): array
+{
+    [$source, $errors] = streaming_pin_certificates($source);
+    foreach ($errors as $field => $error) {
+        error_log("video source {$source['descr']}: cannot read the device certificate of $field, the stored one is kept: $error");
+    }
+    return $source;
+}
+
+/*
+ * PUT /cti/streaming/:descr
+ * { currentDescr, descr, url, user, secret, exten, frame-rate, open, gates: [{ id, name, type, code | url, method, username, password }], tls_skip_verify, profiles }
+ * "currentDescr" (or the route argument) is the current name of the source.
+ * An empty or missing "secret" (or gate "password") keeps the stored one; an empty "user" (or gate "username") removes the credentials.
+ * Without "gates", the legacy "open" code replaces the first DTMF gate.
  */
 $app->put('/cti/streaming/{descr}', function (Request $request, Response $response, $args) {
     try {
-        $route = $request->getAttribute('route');
         $data = $request->getParsedBody();
-        $currentDescr = $data['currentDescr'];
-        $name = $data['descr'];
-        $url = $data['url'];
-        $exten = $data['exten'];
-        $open = $data['open'];
-        $profiles = $data['profiles'];
-        $dbi = FreePBX::Database();
-
-        // update into cti permissions
-        $permname = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)));
-        $sql = 'UPDATE rest_cti_permissions SET name=?, displayname=?, description=? WHERE displayname=?';
-        $sth = $dbi->prepare($sql);
-        $res = $sth->execute(array($permname, $name, 'Enable the video source for this profile', $currentDescr));
-
-        if ($res === FALSE) {
-            throw new Exception($sth->errorInfo()[2]);
+        if (!is_array($data)) {
+            return jsonResponse($response, ['status' => 'Invalid request'], 400);
         }
-
-        $sql = 'SELECT id FROM rest_cti_permissions WHERE name=?';
-        $sth = $dbi->prepare($sql);
-        $sth->execute(array($permname));
-        $res = $sth->fetchObject();
-        $permission_id = null;
-
-        if ($res) {
-            $permission_id = $res->id;
-        } else {
-            throw new Exception('no permission stored for customer card');
-        }
-
-        // skip the update permission to streaming macro permission: remain inaltered
-
-        // update permission for profiles
-        $sql = 'DELETE FROM rest_cti_profiles_permissions WHERE permission_id=?';
-        $sth = $dbi->prepare($sql);
-        $res = $sth->execute(array($permission_id));
-        if ($res === FALSE) {
-            throw new Exception($sth->errorInfo()[2]);
-        }
-        $sql = 'INSERT INTO rest_cti_profiles_permissions VALUES(?, ?)';
-        $sth = $dbi->prepare($sql);
-        foreach ($profiles as $p) {
-            $res = $sth->execute(array($p, $permission_id));
-
-            if ($res === FALSE) {
-                throw new Exception($sth->errorInfo()[2]);
-            }
-        }
-
+        $currentDescr = isset($data['currentDescr']) && is_string($data['currentDescr']) && $data['currentDescr'] !== '' ? $data['currentDescr'] : (string) $args['descr'];
         $dbh = FreePBX::Database();
-        $sql = 'UPDATE rest_cti_streaming SET descr=?, url=?, exten=?, open=? WHERE descr=?';
-        $sth = $dbh->prepare($sql);
-        $res = $sth->execute(array($name, $url, $exten, $open, $currentDescr));
-
-        if ($res === FALSE) {
-            $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
-            $sth = $dbi->prepare($sql);
-            $res = $sth->execute(array($permission_id));
-
-            throw new Exception($sth->errorInfo()[2]);
+        $sources = streaming_load_sources($dbh);
+        if (!isset($sources[$currentDescr])) {
+            return jsonResponse($response, ['status' => "video source $currentDescr not found"], 404);
         }
+        $source = streaming_normalize_source($data, $sources[$currentDescr]);
+        $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
+        $source = streamingPinCertificate($source);
+        // A stored password is never kept for a device with a new certificate
+        streaming_check_pin_changes($data, $source, $sources[$currentDescr]);
+        streaming_store_source($dbh, $source, $profiles, $currentDescr);
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
+    } catch (Throwable $e) {
+        return streamingErrorResponse($response, $e);
+    }
+});
 
-    } catch (Exception $e) {
+/*
+ * POST /cti/streaming
+ * { descr, url, user, secret, exten, frame-rate, open, gates: [{ name, type, code | url, method, username, password }], tls_skip_verify, profiles }
+ * The type ("image" for http(s), "rtsp" for rtsp(s)) follows the URL scheme;
+ * credentials pasted into the URL are stored separately.
+ * "tls_skip_verify" (default false, stored as false when neither the URL nor
+ * a URL gate uses TLS) skips the certificate verification for the source URL
+ * and its URL gates: the certificate each TLS device (rtsps:// or https://
+ * source URL, https:// URL gates) presents now is pinned, and the source is
+ * not saved (400) if one cannot be read and none is stored for that device.
+ * Loopback and link-local device addresses are refused (400, field "url" or
+ * "gates[N].url").
+ */
+$app->post('/cti/streaming', function (Request $request, Response $response, $args) {
+    try {
+        $data = $request->getParsedBody();
+        if (!is_array($data)) {
+            return jsonResponse($response, ['status' => 'Invalid request'], 400);
+        }
+        $source = streaming_normalize_source($data);
+        $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
+        $source = streamingPinCertificate($source);
+        streaming_store_source(FreePBX::Database(), $source, $profiles);
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return $response->withStatus(200);
+    } catch (Throwable $e) {
+        return streamingErrorResponse($response, $e);
+    }
+});
+
+/*
+ * POST /cti/sources/test { url, user, secret, descr, tls_skip_verify, details }
+ *
+ * Check a video source and return a preview. "descr" is the name of a stored
+ * source: when "secret" is empty its stored password is used, and when
+ * "tls_skip_verify" is absent its stored value is used, but only for the same
+ * scheme, host and port.
+ *
+ * TLS certificates (https://, rtsps://) are verified unless "tls_skip_verify".
+ *
+ * RTSP sources, or any source with "details": true, answer 200 with
+ * { success, type, image (base64), mime, video: { codec, width, height },
+ *   audio: { codec, sample_rate }, h265, warnings, reason, message,
+ *   tls_fingerprint }
+ * where reason is one of auth_failed, connection_refused, timeout, not_found,
+ * tls_error, unsupported, address_not_allowed, unknown. Legacy clients
+ * (http(s) URL, no "details") get the base64 image as a JSON string, or 500
+ * on error.
+ *
+ * Loopback, link-local and unspecified device addresses are refused
+ * ("address_not_allowed"); an image source answers only with a JPEG or PNG
+ * image, any other content is "unsupported" and never returned.
+ *
+ * The stored password of a source that skips the TLS verification is sent
+ * only to a device that presents the pinned certificate: otherwise the check
+ * fails (reason tls_error, warning tls_certificate_changed, the new
+ * tls_fingerprint) without contacting the device with it.
+ */
+$app->post('/cti/sources/test', function (Request $request, Response $response, $args) {
+    try {
+        $data = $request->getParsedBody();
+
+        if (!is_array($data) || !isset($data['url']) || !is_string($data['url']) || $data['url'] === '') {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
+        $parsed = streaming_parse_url(trim($data['url']));
+        if ($parsed === null) {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
+        $user = isset($data['user']) && is_string($data['user']) ? $data['user'] : '';
+        $secret = isset($data['secret']) && is_string($data['secret']) ? $data['secret'] : '';
+        if ($parsed['has_credentials']) {
+            $user = $user !== '' ? $user : $parsed['user'];
+            $secret = $secret !== '' ? $secret : $parsed['secret'];
+        }
+        $stored = null;
+        if (isset($data['descr']) && is_string($data['descr']) && $data['descr'] !== '') {
+            $sources = streaming_load_sources(FreePBX::Database());
+            $stored = $sources[$data['descr']] ?? null;
+            // Never send a stored password to another device
+            if ($stored !== null && streaming_url_endpoint((string) $stored['url']) !== streaming_url_endpoint($parsed['url'])) {
+                $stored = null;
+            }
+        }
+        $usesStoredSecret = false;
+        if ($user !== '' && $secret === '' && $stored !== null && $stored['user'] === $user) {
+            $secret = (string) $stored['secret'];
+            $usesStoredSecret = $secret !== '';
+        }
+        try {
+            $tlsSkipVerify = streaming_bool_field($data, 'tls_skip_verify', $stored !== null && !empty($stored['tls_skip_verify']));
+        } catch (StreamingValidationException $e) {
+            return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
+        }
+
+        // resolved once: the image check connects to the checked address
+        $addresses = streaming_resolve_host($parsed['host']);
+        // The stored password goes only to the device with the pinned certificate
+        $guard = null;
+        if (streaming_host_blocked($parsed['host'], function () use ($addresses) { return $addresses; })) {
+            $result = streaming_probe_result($parsed['type'], false, 'address_not_allowed', 'loopback and link-local addresses are refused');
+        } elseif (($guard = streaming_stored_secret_guard($stored, $parsed['url'], $usesStoredSecret, $tlsSkipVerify)) !== null) {
+            $result = $guard;
+        } elseif ($parsed['type'] === 'rtsp') {
+            $result = streaming_probe_rtsp($parsed['url'], $user, $secret, $tlsSkipVerify);
+            return jsonResponse($response, streaming_tls_check_warnings($result, $stored, $parsed['url']));
+        } else {
+            $result = streaming_probe_image($parsed['url'], $user, $secret, $tlsSkipVerify, null, $addresses[0] ?? null);
+            $result = streaming_tls_check_warnings($result, $stored, $parsed['url']);
+        }
+        if ($parsed['type'] === 'rtsp' || !empty($data['details'])) {
+            return jsonResponse($response, $result);
+        }
+        if (!$result['success']) {
+            error_log(__FILE__ . ':' . __LINE__ . ' video source check failed: ' . $result['reason'] . ' ' . $result['message']);
+            return $response->withStatus(500);
+        }
+        return jsonResponse($response, $result['image']);
+    } catch (Throwable $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
     }
 });
 
 /*
- * POST /cti/streaming {"name": string,"url": string, "user": string,"secret": string,"framerate": int,"exten": int,"open": string}
-*/
-$app->post('/cti/streaming', function (Request $request, Response $response, $args) {
+ * GET /cti/sources/gateway
+ * Network facts the administrator needs to expose a RTSP device to the PBX:
+ * { public_ip, ice_hosts, ice_udp_port, ice_tcp_port, path_prefix }
+ */
+$app->get('/cti/sources/gateway', function (Request $request, Response $response, $args) {
     try {
-        $route = $request->getAttribute('route');
-        $data = $request->getParsedBody();
-
-        $name = $data['descr'];
-        $url = $data['url'];
-        $exten = $data['exten'];
-        $open = $data['open'];
-        $profiles = $data['profiles'];
-
-        $dbi = FreePBX::Database();
-        // Insert into cti permissions
-        $permname = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)));
-        $sql = 'INSERT INTO rest_cti_permissions(name, displayname, description) VALUES (?, ?, ?)';
-        $sth = $dbi->prepare($sql);
-        $res = $sth->execute(array($permname, $name, 'Enable the video source for this profile'));
-
-        if ($res === FALSE) {
-            throw new Exception($sth->errorInfo()[2]);
+        require('/var/www/html/freepbx/rest/config.inc.php');
+        $env = $config['streaming_gateway'] ?? [];
+        $settings = streaming_gateway_settings($env);
+        $publicIp = (string) ($env['MEDIAMTX_PUBLIC_IP'] ?? '');
+        if ($publicIp === '' && $settings !== null && $settings['ice_hosts']) {
+            $publicIp = $settings['ice_hosts'][0];
         }
-
-        $sql = 'SELECT id FROM rest_cti_permissions WHERE name = ?';
-        $sth = $dbi->prepare($sql);
-        $sth->execute(array($permname));
-        $res = $sth->fetchObject();
-        $permission_id = null;
-
-        if ($res) {
-            $permission_id = $res->id;
-        } else {
-            throw new Exception('no permission stored for customer card');
-        }
-
-        // Add permission to streaming macro permission
-        $sql = 'INSERT INTO rest_cti_macro_permissions_permissions'.
-            ' SELECT id, ? FROM rest_cti_macro_permissions WHERE name = ?';
-        $sth = $dbi->prepare($sql);
-        $res = $sth->execute(array($permission_id, 'streaming'));
-
-        if ($res === FALSE) {
-            throw new Exception($sth->errorInfo()[2]);
-        }
-
-        // Enable permission for profiles
-        $sql = 'INSERT INTO rest_cti_profiles_permissions VALUES(?, ?)';
-        $sth = $dbi->prepare($sql);
-        foreach ($profiles as $p) {
-            $res = $sth->execute(array($p, $permission_id));
-
-            if ($res === FALSE) {
-                throw new Exception($sth->errorInfo()[2]);
-            }
-        }
-
-        $dbh = FreePBX::Database();
-        $sql = 'INSERT INTO rest_cti_streaming(descr, url, exten, open) VALUES (?, ?, ?, ?)';
-        $sth = $dbh->prepare($sql);
-        $res = $sth->execute(array($name, $url, $exten, $open));
-
-        if ($res === FALSE) {
-            $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
-            $sth = $dbi->prepare($sql);
-            $res = $sth->execute(array($permission_id));
-
-            throw new Exception($sth->errorInfo()[2]);
-        }
-        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-
-        return $response->withStatus(200);
-    } catch (Exception $e) {
-        error_log($e->getMessage());
-        return $response->withStatus(500);
-    }
-});
-
-$app->post('/cti/sources/test', function (Request $request, Response $response, $args) {
-    try {
-        $route = $request->getAttribute('route');
-        $data = $request->getParsedBody();
-
-        if (!is_array($data) || !isset($data['url']) || !is_string($data['url']) || $data['url'] === '') {
-            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
-        }
-        $url = $data['url'];
-
-        $curl = curl_init($url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
-        $ret_val = curl_exec($curl);
-        if ($ret_val === false) {
-            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($curl));
-            curl_close($curl);
-            return $response->withStatus(500);
-        }
-        curl_close($curl);
-
-        if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false) {
-            return $response->withStatus(500);
-        } else {
-            $b64_image_data =  chunk_split(base64_encode($ret_val));
-            return jsonResponse($response, $b64_image_data);
-        }
+        return jsonResponse($response, [
+            'public_ip' => $publicIp !== '' ? $publicIp : null,
+            'ice_hosts' => $settings !== null ? $settings['ice_hosts'] : [],
+            'ice_udp_port' => $settings !== null ? $settings['ice_udp_port'] : null,
+            'ice_tcp_port' => $settings !== null ? $settings['ice_tcp_port'] : null,
+            'path_prefix' => '/' . STREAMING_GATEWAY_PREFIX . '/',
+        ]);
     } catch (Throwable $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1277,28 +1295,11 @@ $app->delete('/cti/streaming/{name}', function (Request $request, Response $resp
     try {
         $route = $request->getAttribute('route');
         $name = $route->getArgument('name');
-
-        $dbi = FreePBX::Database();
-        $sql = 'DELETE FROM rest_cti_permissions WHERE name = ?';
-        $sth = $dbi->prepare($sql);
-        $res = $sth->execute(array('vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)))));
-
-        if ($res === FALSE) {
-            throw new Exception($sth->errorInfo()[2]);
-        }
-
-        $sql = 'DELETE FROM rest_cti_streaming WHERE descr = ?';
-        $sth = $dbi->prepare($sql);
-        $res = $sth->execute(array($name));
-
-        if ($res === FALSE) {
-            throw new Exception($sth->errorInfo()[2]);
-        }
+        streaming_delete_source(FreePBX::Database(), $name);
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 
         return $response->withStatus(200);
-    } catch (Exception $e) {
-        error_log($e->getMessage());
-        return $response->withStatus(500);
+    } catch (Throwable $e) {
+        return streamingErrorResponse($response, $e);
     }
 });

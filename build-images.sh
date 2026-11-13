@@ -212,7 +212,7 @@ fi
 reponame="nethvoice-cti-ui"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v1.2.21)
+    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:feat-rtsp-video-sources@sha256:d42ca51e8111b5b06b1a22ba8ad5337102899a87de835af14abdf7167116ec3b)
 
     # Commit the image
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -251,6 +251,31 @@ reponame="nethvoice-oauth2-proxy"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
     container=$(buildah from quay.io/oauth2-proxy/oauth2-proxy:v7.15.6)
+    buildah commit "${container}" "${repobase}/${reponame}"
+    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    finish_timing
+    # Append the image URL to the images array
+    images+=("${repobase}/${reponame}")
+else
+    skip_build "${reponame}"
+fi
+
+
+##############################
+##  Video gateway (MediaMTX) ##
+##############################
+# Mirror of the upstream MediaMTX (RTSP to WebRTC/WHEP gateway of the video
+# sources). The plain image is enough: no ffmpeg, configured by the yml file
+# that FreePBX writes into the mediamtx volume.
+reponame="nethvoice-mediamtx"
+if should_build "${reponame}"; then
+    start_timing "${reponame}"
+    # Pinned by digest (tag kept for Renovate)
+    container=$(buildah from docker.io/bluenviron/mediamtx:1.21.3@sha256:59e43552f3be43695b70c19424dc2a42fcec18075f88d91561a24ac5d70a586c)
+    # The upstream image has no CA certificates: add them, to verify the
+    # rtsps:// devices that do not skip the TLS verification
+    buildah copy --from docker.io/library/alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f "${container}" \
+        /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
     finish_timing

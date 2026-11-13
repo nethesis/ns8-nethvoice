@@ -367,6 +367,10 @@ cat > $FILE <<EOF
       "proto": "http",
       "address": "127.0.0.1"
     }
+  },
+  "mediamtx": {
+    "api_port": "${MEDIAMTX_API_PORT}",
+    "api_password": "${MEDIAMTX_API_PASSWORD}"
   }
 }
 EOF

@@ -88,6 +88,22 @@ def collect_cti(facts):
     facts['nethvoice_announcements_count'] = int(rows[5])
     facts['nethvoice_offhour_count'] = int(rows[6])
 
+def collect_streaming(facts):
+    # Video sources by type (image: HTTP JPEG polling, rtsp: video gateway)
+    # and gates by opening method
+    by_type = {'image': 0, 'rtsp': 0}
+    for row in sql_rows(AMPDBNAME, "SELECT type, COUNT(*) FROM rest_cti_streaming GROUP BY type;"):
+        parts = row.split('\t')
+        if len(parts) == 2:
+            by_type[parts[0]] = int(parts[1])
+    facts['nethvoice_streaming_by_type'] = by_type
+    gates = {'dtmf': 0, 'url': 0}
+    for row in sql_rows(AMPDBNAME, "SELECT type, COUNT(*) FROM rest_cti_streaming_gates GROUP BY type;"):
+        parts = row.split('\t')
+        if len(parts) == 2:
+            gates[parts[0]] = int(parts[1])
+    facts['nethvoice_streaming_gates_by_type'] = gates
+
 def collect_cti_2fa(facts):
     # The middleware stays stopped until the configuration wizard completes.
     facts['nethvoice_cti_2fa_enabled_count'] = 0
@@ -209,6 +225,7 @@ safe("telephony-counts", collect_telephony, facts)
 safe("trunks-by-tech", collect_trunks_by_tech, facts)
 safe("cdr", collect_cdr, facts)
 safe("cti", collect_cti, facts)
+safe("streaming", collect_streaming, facts)
 safe("cti-2fa", collect_cti_2fa, facts)
 safe("nethcti3", collect_nethcti3, facts)
 safe("nethlink", collect_nethlink, facts)

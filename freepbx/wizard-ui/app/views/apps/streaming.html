@@ -20,7 +20,7 @@
         {{'No video sources found' | translate}}
       </h1>
       <div class="blank-slate-pf-main-action">
-        <button data-toggle="modal" data-target="#newSourceModal" class="btn btn-primary btn-lg">{{'Create new source' | translate}}</button>
+        <button data-toggle="modal" data-target="#newSourceModal" ng-click="cancelSource()" class="btn btn-primary btn-lg">{{'Create new source' | translate}}</button>
       </div>
     </div>
     <!-- END WIZARD -->
@@ -38,14 +38,14 @@
         <span class="pficon pficon-close"></span>
         </button>
       <span class="pficon pficon-error-circle-o"></span>
-      <strong>{{'Source not saved' | translate}}.</strong> {{'Source saving error' | translate}}
+      <strong>{{'Source not saved' | translate}}.</strong> {{(onSaveErrorMessage | translate) || ('Source saving error' | translate)}}
     </div>
     <div ng-if="!(allSources | isEmpty)" class="row row-cards-pf adjust-card">
       <div ng-repeat="g in (allSources | orderBy:'descr') track by $index" class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
         <div id="accordion-markup-{{$index}}" class="card-pf">
           <div data-toggle="collapse" data-parent="#accordion-markup-{{$index}}" href="#collapse-{{$index}}">
             <h2 class="card-pf-title pointer">
-              <span class="fa fa-video-camera"></span> {{g.descr}}
+              <span class="fa {{g.type === 'rtsp' ? 'fa-video-camera' : 'fa-picture-o'}}"></span> {{g.descr}}
               <span class="right-only small-font">Info
                   <span class="fa fa-sort-desc"></span>
               </span>
@@ -53,25 +53,56 @@
           </div>
           <div class="card-pf-body card-body-small-bottom">
             <div id="collapse-{{$index}}" class="panel-collapse collapse">
+              <div class="progress-description full-size-max">
+                {{'Type' | translate}} <span class="right-only"><strong>{{(g.type === 'rtsp' ? 'Video stream (RTSP)' : 'Image (HTTP)') | translate}}</strong></span>
+              </div>
               <div ng-if="g.exten && g.exten.length > 0" class="progress-description full-size-max">
                 {{'Extension' | translate}} <span class="right-only"><strong>{{g.exten}}</strong></span>
               </div>
               <div class="progress-description full-size-max">
                 {{'URL' | translate}} <span class="right-only"><strong>{{g.url}}</strong></span>
               </div>
-              <div class="progress-description full-size-max">
-                {{'Opening code' | translate}} <span class="right-only"><strong>{{g.open}}</strong></span>
+              <div ng-if="g.user" class="progress-description full-size-max">
+                {{'Username' | translate}} <span class="right-only"><strong>{{g.user}}</strong></span>
               </div>
               <div class="progress-description full-size-max">
-                {{'Preview' | translate}} <span class="right-only border-gray"><img class="img-max-width-pre" ng-src="{{g.preview}}"></span>
+                {{'Gates' | translate}}
+                <span ng-if="!g.gates.length" class="right-only"><strong>-</strong></span>
+              </div>
+              <div ng-repeat="gate in g.gates" class="progress-description full-size-max">
+                <span class="fa {{gate.type === 'dtmf' ? 'fa-th' : 'fa-globe'}}"></span> {{gate.name}}
+                <span class="right-only"><strong>{{gate.type === 'dtmf' ? ('DTMF' | translate) + ' ' + gate.code : gate.method + ' URL'}}</strong></span>
+              </div>
+              <div ng-if="g.tls_skip_verify && !g.tls_unpinned" class="progress-description full-size-max">
+                {{'TLS certificate' | translate}} <span class="right-only"><strong>{{'Pinned when saved' | translate}}</strong></span>
+              </div>
+              <div ng-if="g.tls_unpinned" class="progress-description full-size-max text-warning">
+                <span class="pficon pficon-warning-triangle-o"></span> {{'TLS certificate not pinned: modify the source and save it again' | translate}}
+              </div>
+              <div ng-if="g.check.video" class="progress-description full-size-max">
+                {{'Video' | translate}} <span class="right-only"><strong>{{codecDescription(g.check)}}</strong></span>
+              </div>
+              <div ng-if="g.check.h265" class="progress-description full-size-max text-warning">
+                <span class="pficon pficon-warning-triangle-o"></span> {{'H.265 video plays only in some browsers: configure the device to send H.264' | translate}}
+              </div>
+              <div class="progress-description full-size-max">
+                {{'Preview' | translate}} <span class="right-only border-gray"><img ng-if="g.preview" class="img-max-width-pre" ng-src="{{g.preview}}"></span>
               </div>
             </div>
+            <p>
+              <span class="label {{g.type === 'rtsp' ? 'label-primary' : 'label-default'}}">{{(g.type === 'rtsp' ? 'Video stream (RTSP)' : 'Image (HTTP)') | translate}}</span>
+              <span ng-if="g.tls_unpinned" class="label label-warning" title="{{'TLS certificate not pinned: modify the source and save it again' | translate}}">{{'Certificate not pinned' | translate}}</span>
+            </p>
             <div class="progress progress-xs progress-label-top-right">
-              <div class="progress-bar progress-bar-{{g.verified ? 'success' : 'danger'}}" role="progressbar" aria-valuenow="100" aria-valuemin="0"
-                aria-valuemax="100" style="width: 100%;" data-toggle="tooltip" title="100% Used">
+              <div class="progress-bar progress-bar-{{g.isChecking ? 'info' : (g.verified ? 'success' : 'danger')}}" role="progressbar" aria-valuenow="100" aria-valuemin="0"
+                aria-valuemax="100" style="width: 100%;">
               </div>
-              <span>{{g.verified ? 'Connected' : 'Connection error' | translate}}</span>
+              <span ng-if="g.isChecking">{{'Checking' | translate}}...</span>
+              <span ng-if="!g.isChecking">{{(g.verified ? 'Connected' : 'Connection error') | translate}}<span ng-if="!g.verified && g.check.reason"> - {{reasonMessage(g.check.reason) | translate}}</span></span>
             </div>
+            <p ng-if="!g.isChecking && hasWarning(g.check, 'tls_certificate_changed')" class="text-warning">
+              <span class="pficon pficon-warning-triangle-o"></span> {{'The device certificate changed: modify the source, type the password again and save it' | translate}}
+            </p>
           </div>
           <div class="card-pf-footer">
             <div class="card-pf-time-frame-filter">
@@ -85,27 +116,26 @@
         </div>
       </div>
     </div>
-    <button ng-if="!(allSources | isEmpty)" data-toggle="modal" data-target="#newSourceModal" class="btn btn-primary btn-lg right-only">{{'Create new source' | translate}}</button>
+    <button ng-if="!(allSources | isEmpty)" data-toggle="modal" data-target="#newSourceModal" ng-click="cancelSource()" class="btn btn-primary btn-lg right-only">{{'Create new source' | translate}}</button>
     <!-- END SOURCES -->
   </div>
 </div>
 
 <div class="modal fade" id="newSourceModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
           <span class="pficon pficon-close"></span>
         </button>
-        <h4 class="modal-title" id="myModalLabel">{{'New source' | translate}}</h4>
+        <h4 class="modal-title" id="myModalLabel">{{(newSource.onMod ? 'Modify source' : 'New source') | translate}}</h4>
       </div>
-      <form class="form-horizontal" ng-submit="newSource.verified ? saveSource(newSource) : undefined">
+      <form class="form-horizontal" name="sourceForm" ng-submit="newSource.verified && sourceForm.$valid ? saveSource(newSource) : undefined">
         <div class="modal-body">
           <div class="form-group">
-            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Name' | translate}}</label>
+            <label class="col-sm-3 control-label" for="streaming-name">{{'Name' | translate}}</label>
             <div class="col-sm-9">
-              <input type="hidden" value="{{newSource.currentDescr}}">
-              <input required ng-model="newSource.descr" type="text" class="form-control profile-new-name">
+              <input id="streaming-name" required maxlength="50" ng-model="newSource.descr" type="text" class="form-control profile-new-name">
             </div>
           </div>
           <div class="form-group">
@@ -115,14 +145,107 @@
             </select></div>
           </div>
           <div class="form-group">
-            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'URL' | translate}}</label>
+            <label class="col-sm-3 control-label" for="streaming-url">{{'URL' | translate}}</label>
             <div class="col-sm-9">
-              <input required ng-model="newSource.url" type="url" class="form-control profile-new-name"></div>
+              <input id="streaming-url" required ng-model="newSource.url" ng-change="sourceChanged(newSource)" type="text" ng-pattern="urlPattern" placeholder="rtsp://192.0.2.10:554/stream1" class="form-control">
+              <span class="help-block">{{'Use rtsp:// or rtsps:// for a video stream, http:// or https:// for a JPEG snapshot' | translate}}</span>
+            </div>
           </div>
           <div class="form-group">
-            <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Opening code' | translate}}</label>
+            <label class="col-sm-3 control-label" for="streaming-user">{{'Username' | translate}}</label>
             <div class="col-sm-9">
-              <input ng-model="newSource.open" pattern="^[*+#]*[0-9]+([*#]+)?" class="form-control profile-new-name"></div>
+              <input id="streaming-user" maxlength="255" ng-model="newSource.user" ng-change="sourceChanged(newSource)" type="text" autocomplete="off" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label" for="streaming-secret">{{'Password' | translate}}</label>
+            <div class="col-sm-9">
+              <input id="streaming-secret" maxlength="255" ng-model="newSource.secret" ng-change="sourceChanged(newSource)" ng-disabled="!newSource.user" type="password" autocomplete="new-password"
+                placeholder="{{newSource.has_secret ? ('Unchanged' | translate) : ''}}" class="form-control">
+            </div>
+          </div>
+          <div ng-if="isRtsp(newSource)" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="alert alert-info no-margin-bottom">
+                <span class="pficon pficon-info"></span>
+                {{'The PBX reads the stream from the device over TCP: on the router of the device, forward the RTSP port and allow it only from the public IP address of the PBX' | translate}}
+                <strong ng-if="gateway.public_ip">{{gateway.public_ip}}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="col-sm-3 control-label">{{'Gates' | translate}}</label>
+            <div class="col-sm-9">
+              <div ng-if="!newSource.gates.length" class="help-block">{{'No gates: add one to open the door from the CTI' | translate}}</div>
+              <div ng-repeat="gate in newSource.gates" class="streaming-gate">
+                <div class="row">
+                  <div class="col-sm-5">
+                    <input required maxlength="50" ng-model="gate.name" type="text" placeholder="{{'Gate name' | translate}}" class="form-control">
+                  </div>
+                  <div class="col-sm-3">
+                    <select ng-model="gate.type" class="form-control">
+                      <option value="dtmf">{{'DTMF' | translate}}</option>
+                      <option value="url">{{'URL' | translate}}</option>
+                    </select>
+                  </div>
+                  <div class="col-sm-4 text-right">
+                    <button type="button" class="btn btn-default" ng-disabled="$first" ng-click="moveGate($index, -1)" title="{{'Move up' | translate}}"><span class="fa fa-arrow-up"></span></button>
+                    <button type="button" class="btn btn-default" ng-disabled="$last" ng-click="moveGate($index, 1)" title="{{'Move down' | translate}}"><span class="fa fa-arrow-down"></span></button>
+                    <button type="button" class="btn btn-danger" ng-click="removeGate($index)" title="{{'Remove' | translate}}"><span class="fa fa-trash"></span></button>
+                  </div>
+                </div>
+                <div ng-if="gate.type === 'dtmf'" class="row streaming-gate-detail">
+                  <div class="col-sm-5">
+                    <input required maxlength="30" ng-model="gate.code" ng-pattern="dtmfPattern" type="text" placeholder="{{'DTMF code' | translate}}" class="form-control">
+                  </div>
+                  <div class="col-sm-7 help-block">{{'Sent to the extension of the source during a call' | translate}}</div>
+                </div>
+                <div ng-if="gate.type === 'url'" class="streaming-gate-detail">
+                  <div class="row">
+                    <div class="col-sm-3">
+                      <select ng-model="gate.method" class="form-control">
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                      </select>
+                    </div>
+                    <div class="col-sm-9">
+                      <input required maxlength="2048" ng-model="gate.url" ng-pattern="httpPattern" type="text" placeholder="http://192.0.2.10/cgi-bin/open?door=1" class="form-control">
+                    </div>
+                  </div>
+                  <div class="row streaming-gate-detail">
+                    <div class="col-sm-6">
+                      <input maxlength="255" ng-model="gate.username" type="text" autocomplete="off" placeholder="{{'Username' | translate}}" class="form-control">
+                    </div>
+                    <div class="col-sm-6">
+                      <input maxlength="255" ng-model="gate.password" ng-disabled="!gate.username" type="password" autocomplete="new-password"
+                        placeholder="{{gate.has_password ? ('Unchanged' | translate) : ('Password' | translate)}}" class="form-control">
+                    </div>
+                  </div>
+                  <div ng-if="gate.tls_fingerprint && tlsSkipVerify(newSource)" class="help-block">
+                    {{'Pinned certificate' | translate}} <small>SHA-256 <code class="streaming-fingerprint">{{gate.tls_fingerprint}}</code></small>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn btn-default" ng-disabled="newSource.gates.length >= maxGates" ng-click="addGate()"><span class="fa fa-plus"></span> {{'Add gate' | translate}}</button>
+            </div>
+          </div>
+          <div ng-if="tlsRelevant(newSource)" class="form-group streaming-tls">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="checkbox">
+                <label>
+                  <input id="streaming-tls-skip-verify" type="checkbox" ng-model="newSource.tls_skip_verify" ng-change="sourceChanged(newSource)">
+                  {{'Skip TLS certificate verification' | translate}}
+                </label>
+              </div>
+              <span class="help-block">{{'For devices with a self-signed certificate: the certificate is not checked against the certification authorities, instead the PBX trusts the one each device (source URL and https URL gates) presents when you save. If a device certificate changes, the device is refused until you save the source again' | translate}}</span>
+              <p ng-if="newSource.tls_fingerprint && tlsSkipVerify(newSource)" class="help-block">
+                {{'Pinned certificate' | translate}} <small>SHA-256 <code class="streaming-fingerprint">{{newSource.tls_fingerprint}}</code></small>
+              </p>
+              <div ng-if="newSource.tls_unpinned && tlsSkipVerify(newSource)" class="alert alert-warning no-margin-bottom">
+                <span class="pficon pficon-warning-triangle-o"></span>
+                {{'TLS certificate not pinned: this source was saved by an older version and its devices are contacted without any certificate check. Save it again to pin their certificates' | translate}}
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Profile' | translate}}</label>
@@ -134,25 +257,73 @@
           <div class="form-group">
             <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Connection' | translate}}</label>
             <div class="col-sm-9">
-              <button ng-click="checkConnection(newSource)" ng-disabled="!newSource.url && !newSource.open" class="btn btn-primary" type="button">{{'Check' | translate}}</button>
+              <button ng-click="checkConnection(newSource)" ng-disabled="!newSource.url || newSource.isChecking" class="btn btn-primary" type="button">{{'Check' | translate}}</button>
               <div ng-show="newSource.isChecking" class="spinner spinner-sm inline-display language-name check-connection"></div>
               <span ng-show="!newSource.isChecking && newSource.checked && newSource.verified" class="pficon pficon-ok check-status"></span>
               <span ng-show="!newSource.isChecking && newSource.checked && !newSource.verified" class="pficon pficon-error-circle-o check-status"></span>
             </div>
           </div>
+          <div ng-if="!newSource.isChecking && newSource.checked && !newSource.verified" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="alert alert-danger no-margin-bottom">
+                <span class="pficon pficon-error-circle-o"></span>
+                <strong>{{reasonMessage(newSource.check.reason) | translate}}</strong>
+                <span ng-if="newSource.check.reason === 'tls_error' && !tlsSkipVerify(newSource)"><br>{{'If the device has a self-signed certificate, enable Skip TLS certificate verification' | translate}}</span>
+                <span ng-if="hasWarning(newSource.check, 'tls_certificate_changed')"><br>{{'The device certificate changed: the stored password was not sent. Type the password again to check the device with its new certificate, then save the source to trust it' | translate}}</span>
+                <span ng-if="newSource.check.message"><br><small>{{newSource.check.message | translate}}</small></span>
+              </div>
+            </div>
+          </div>
+          <div ng-if="newSource.verified && newSource.check.video" class="form-group">
+            <label class="col-sm-3 control-label">{{'Video' | translate}}</label>
+            <div class="col-sm-9">
+              <p class="form-control-static">{{codecDescription(newSource.check)}}</p>
+            </div>
+          </div>
+          <div ng-if="newSource.verified && newSource.check.h265" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="alert alert-warning no-margin-bottom">
+                <span class="pficon pficon-warning-triangle-o"></span>
+                {{'H.265 video plays only in some browsers: configure the device to send H.264' | translate}}
+              </div>
+            </div>
+          </div>
+          <div ng-if="newSource.verified && hasWarning(newSource.check, 'codec_not_supported_by_webrtc')" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="alert alert-warning no-margin-bottom">
+                <span class="pficon pficon-warning-triangle-o"></span>
+                {{'This video codec cannot be played in the browser: configure the device to send H.264' | translate}}
+              </div>
+            </div>
+          </div>
+          <div ng-if="newSource.verified && hasWarning(newSource.check, 'tls_certificate_changed')" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="alert alert-warning no-margin-bottom">
+                <span class="pficon pficon-warning-triangle-o"></span>
+                {{'The device certificate changed: the PBX refuses the device until the source is saved again' | translate}}
+              </div>
+            </div>
+          </div>
+          <div ng-if="newSource.verified && newSource.check.tls_fingerprint" class="form-group">
+            <label class="col-sm-3 control-label">{{'Device certificate' | translate}}</label>
+            <div class="col-sm-9">
+              <p class="form-control-static"><small>SHA-256 <code class="streaming-fingerprint">{{newSource.check.tls_fingerprint}}</code></small></p>
+            </div>
+          </div>
           <div ng-if="newSource.verified" class="form-group">
             <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Preview' | translate}}</label>
             <div class="col-sm-9">
-              <img class="img-max-width" ng-src="{{newSource.preview}}">
+              <img ng-if="newSource.preview" class="img-max-width" ng-src="{{newSource.preview}}">
+              <p ng-if="!newSource.preview" class="form-control-static">{{'Preview not available' | translate}}</p>
             </div>
           </div>
           <div ng-show="newSource.onSave" class="spinner spinner-sm adjust-margin loader-modal-profile"></div>
           <div class="modal-footer submit">
-            <button ng-click="cancelSource(newSource)" type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
-            <button type="submit" class="btn btn-primary {{newSource.verified ? '' : 'disabled'}}">{{'Save' | translate}}</button>
+            <button ng-click="cancelSource()" type="button" class="btn btn-default" data-dismiss="modal">{{'Cancel' | translate}}</button>
+            <button type="submit" class="btn btn-primary {{newSource.verified && sourceForm.$valid ? '' : 'disabled'}}">{{'Save' | translate}}</button>
           </div>
+        </div>
       </form>
-      </div>
     </div>
   </div>
 </div>

@@ -59,3 +59,17 @@ if (env.get('NETHVOICE_MIDDLEWARE_PORT') and
     print("Middleware routes configured successfully", file=sys.stderr)
 else:
     print("Middleware environment variables not set, skipping route configuration", file=sys.stderr)
+
+# Video gateway (MediaMTX) WHEP route for instances configured before it:
+# same definition as configure-module/30traefik
+if env.get('MEDIAMTX_WHEP_PORT') and env.get('NETHCTI_UI_HOST'):
+    agent.set_route({
+        'instance': env['MODULE_ID'] + '-mediamtx',
+        'url':  'http://127.0.0.1:' + env["MEDIAMTX_WHEP_PORT"],
+        'http2https':  env.get("TRAEFIK_HTTP2HTTPS", "true") == "true",
+        'host': env["NETHCTI_UI_HOST"],
+        'path': '/streaming-gw',
+    },
+    error_passthrough=False
+    )
+    print("Video gateway route configured", file=sys.stderr)

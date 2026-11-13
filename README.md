@@ -188,6 +188,103 @@ image (see `ejabberd/README.md`): `chat-server` (ejabberd: XMPP over WebSocket, 
   api-cli run module/nethvoice1/set-integrations --data '{"chat_enabled": true, "chat_retention_days": 180}'
   ```
 
+## Video sources and video gateway
+
+Video sources (door intercoms, cameras, NethServer/dev#7535) are configured in the wizard
+(Applications > Video sources). The URL scheme sets the type:
+
+- `http(s)://`: legacy image source, a JPEG polled by nethcti-server;
+- `rtsp(s)://`: video stream, pulled on demand by the `mediamtx` unit and served to the CTI clients
+  over WebRTC (WHEP). The device is always read over RTSP/TCP: when it sits in a customer LAN, a single
+  TCP port-forward of its RTSP port (allowed only from the PBX public IP, shown in the wizard) or a VPN is enough.
+
+Credentials are stored apart from the URL (pasted credentials are split out) and are write-only in the
+REST API. Every source has up to 10 ordered gates (door openers): `dtmf` (code sent to the source
+extension) or `url` (HTTP GET/POST with optional credentials). The legacy `open` field is kept in
+sync with the first DTMF gate. The wizard "Check" probes the device directly with ffprobe/ffmpeg
+(a minimal build in the FreePBX image) and shows a preview frame, the codecs and the specific reason
+of a failure; H.265 is reported because most browsers cannot play it.
+
+TLS certificates of `https://` and `rtsps://` devices are verified (system CA store, host name or IP
+address) by the wizard Check (`ffprobe -tls_verify 1`, curl), by nethcti-server (snapshots of image
+sources, URL gates) and by the gateway; an untrusted certificate makes the Check fail with reason
+`tls_error`. For devices with a self-signed certificate a source has the option "Skip TLS certificate
+verification" (`tls_skip_verify`, off by default, shown only when the source URL or a URL gate uses
+TLS). It applies to everything the PBX contacts for that source: the Check, the nethcti-server
+requests of that source only (`tls_skip_verify` in `streaming.json`) and the gateway. MediaMTX cannot
+skip the verification, it can only pin the certificate (`sourceFingerprint`): when an `rtsps://`
+source with the option is saved, FreePBX reads the SHA-256 fingerprint of the certificate the device
+presents (column `tls_fingerprint`, kept when the device is unreachable at save time and it is the
+same device) and writes it in the path. If the device certificate changes later (renewal, reset), the
+gateway refuses the device until the source is saved again; the Check of the stored source reports it
+with the warning `tls_certificate_changed`. Without a fingerprint MediaMTX verifies the certificate
+with the Go defaults (system roots, host name); the CA certificates are added to
+the `nethvoice-mediamtx` image by `build-images.sh` (the upstream image has none).
+The `https://` devices of a source with the option (image URL and URL gates, contacted by
+nethcti-server) are pinned the same way (`tls_fingerprint` of the source and of each gate in
+`streaming.json`): nethcti-server checks the certificate before sending the request and its
+credentials, and refuses a different one (gate error `gate_certificate_changed`). A source with the
+option is never saved without the certificate of each of its TLS devices: if one cannot be read and
+none is stored for that device, the save fails with a validation error. Sources saved by an older
+version keep working unpinned and are flagged in the wizard ("certificate not pinned") until they are
+saved again.
+
+Device addresses: loopback, link-local and unspecified addresses (the PBX itself, the cloud metadata
+service), in any numeric form and after resolving the host name, are refused when a source or a gate
+is saved, by the Check (reason `address_not_allowed`) and by nethcti-server before every request.
+The Check returns the content of an image source only when it is a JPEG or PNG image (at most 5 MB);
+nethcti-server never follows redirects and limits the responses (5 MB for snapshots, 64 KB for
+gates). The Check never puts the device URL with its credentials on a command line: ffprobe reads it
+from a file (`-/i`), ffmpeg from a concat script, both mode 0600 and removed after the check.
+
+- Unit: `mediamtx.service`, image `nethvoice-mediamtx` (mirror of `docker.io/bluenviron/mediamtx`),
+  host network, read-only, uid/gid 990:991, no capabilities. Unused listeners (RTMP, SRT, HLS, MoQ,
+  playback, metrics) are disabled.
+- Configuration: `/etc/mediamtx/mediamtx.yml` in the `mediamtx` volume, written atomically by FreePBX
+  (nethcti3 `retrieve_conf`) at every reload and start, together with `/etc/nethcti/streaming.json`, and
+  hot-reloaded by MediaMTX. It is the only source of truth (changes through the MediaMTX API are lost)
+  and it is never backed up: restore and clone regenerate it from the database. It holds the device
+  passwords: mode 0640, owner asterisk.
+- One gateway path per RTSP source, `streaming-gw/<permission>` (e.g. `streaming-gw/vs_front_door`,
+  the CTI permission of the source). Traefik routes `https://<NETHCTI_UI_HOST>/streaming-gw/` to the
+  WHEP listener without stripping the prefix, so the WHEP `Location` header stays valid. CORS is
+  answered by MediaMTX.
+- Authorization: `authMethod: http` with `authHTTPExclude: []`, every request (readers, local RTSP
+  readers and the control API included) is checked with
+  `POST http://127.0.0.1:${NETHCTI_INTERNAL_REST_PORT9}/mediamtx/auth` on nethcti-server. That path
+  is served only on the loopback REST port of the streaming plugin (the nethcti-server HTTP proxy
+  forwards only `/streaming`). nethcti-server allows only WebRTC readers that present a short-lived,
+  single-use token (`POST /streaming/token`, sent as `Authorization: Bearer <token>` on the WHEP
+  request, never in the query string) of a user with the permission of the source; local RTSP readers
+  are denied. A user has at most 3 sessions per source and 30 in total (429 `too_many_sessions` from
+  `/streaming/token`), at most 300 tokens per minute (429 `too_many_requests`), and a source at most
+  100 readers (`maxReaders`). A catch-all path makes unknown paths answer 401 like the configured
+  ones. nethcti-server records the allowed sessions and kicks them through the control API
+  (`mediamtx.api_port` in `/etc/nethcti/services.json`, from `MEDIAMTX_API_PORT`) when the user loses
+  the permission or the source is removed. The control API is allowed only to the user
+  `nethcti-server` with the password `MEDIAMTX_API_PASSWORD` (`passwords.env`, generated by
+  `create-module` and, on existing instances, by `update-module.d/23video_gateway_api_password`;
+  `mediamtx.api_password` in `services.json`): without it the API is refused.
+- Ports (environment):
+
+  | Variable | Protocol | Exposure | Use |
+  | --- | --- | --- | --- |
+  | `MEDIAMTX_WHEP_PORT` | TCP | 127.0.0.1, behind traefik | WHEP HTTP |
+  | `MEDIAMTX_API_PORT` | TCP | 127.0.0.1 only, never routed | control API (returns the device passwords), only for the `nethcti-server` user, to list and kick sessions |
+  | `MEDIAMTX_RTSP_PORT` | TCP | 127.0.0.1 only | RTSP server for local readers |
+  | `MEDIAMTX_ICE_UDP_PORT` | UDP | public, firewall | WebRTC ICE |
+  | `MEDIAMTX_ICE_TCP_PORT` | TCP | public, firewall | WebRTC ICE over TCP (fallback) |
+
+  New installs take the TCP ports from the module range (indexes 42-45). The ICE UDP port is always a
+  separate single-port allocation, outside `UDP_PORTS_RANGE`, so it never changes the size of the RTP
+  block (a different size makes `update-module.d/20allocate_ports` move all the RTP/SIP ports).
+  Existing instances get all of them from `update-module.d/20allocate_video_gateway_ports`; if
+  `20allocate_ports` ever moves the UDP block it also drops the ICE UDP allocation, which is then
+  allocated again. The ICE ports are listed by `get-ports-list` and opened by `create-module/90firewall`.
+- ICE addresses: `MEDIAMTX_ICE_HOSTS` (public and, behind NAT, private address of the node) and
+  `MEDIAMTX_PUBLIC_IP` come from the nethvoice-proxy service record, like `ICEENFORCE` for Janus.
+  When the PBX is behind NAT, the ICE ports must be forwarded too.
+
 ## Timer logs
 
 These units are silenced to keep the journal small:
@@ -266,7 +363,7 @@ still exported.
 
 Notes:
 
-- Services are read from systemd: freepbx (Asterisk), mariadb, janus,
+- Services are read from systemd: freepbx (Asterisk), mariadb, janus, mediamtx,
   nethcti-ui, nethcti-server, nethcti-middleware, phonebook, tancredi,
   satellite, satellite-mqtt, satellite-pgsql, reports-api, reports-redis,
   reports-ui, sftp, saml2-proxy, oauth2-proxy. Disabled services and services
@@ -437,7 +534,7 @@ Both callers build the same ordered matrix groups with `max-parallel: 3`:
 1. `freepbx`
 2. `app-support` (`tancredi,cti-server,phonebook,sftp`)
 3. `reports` (`reports-api,reports-ui`)
-4. `wrappers` (`mariadb,cti-middleware,cti-ui,satellite`)
+4. `wrappers` (`mariadb,cti-middleware,cti-ui,satellite,mediamtx`)
 5. `janus`
 6. `module` (`nethvoice`)
 

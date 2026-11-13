@@ -25,7 +25,7 @@ COPY imageroot /imageroot
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
 LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm,trunkadm cluster:accountconsumer openldap@any:domadm samba@any:domadm"
-LABEL org.nethserver.tcp-ports-demand="43"
+LABEL org.nethserver.tcp-ports-demand="47"
 LABEL org.nethserver.udp-ports-demand="3000"
 LABEL org.nethserver.max-per-node="22"
 LABEL org.nethserver.rootfull="0"
@@ -39,6 +39,7 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-cti-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-tancredi:${IMAGETAG} \
     ${REPOBASE}/nethvoice-janus:${IMAGETAG} \
+    ${REPOBASE}/nethvoice-mediamtx:${IMAGETAG} \
     ${REPOBASE}/nethvoice-phonebook:${IMAGETAG} \
     docker.io/library/redis:7.0.10-alpine \
     ${REPOBASE}/nethvoice-reports-ui:${IMAGETAG} \

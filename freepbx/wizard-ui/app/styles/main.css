@@ -2522,6 +2522,16 @@ iframe body {
   margin-top: 38px;
 }
 
+.streaming-gate {
+  border-bottom: 1px solid #d1d1d1;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.streaming-gate-detail {
+  margin-top: 5px;
+}
+
 .urls-margin-top {
   margin-top: 38px;
 }

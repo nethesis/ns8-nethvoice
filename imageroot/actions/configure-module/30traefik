@@ -133,3 +133,19 @@ agent.set_route({
         }
     }
 })
+
+# Video gateway (MediaMTX) WHEP endpoint for the CTI clients. The prefix is
+# NOT stripped: every gateway path is named streaming-gw/<permission> and the
+# WHEP Location header is the absolute path /streaming-gw/<permission>/whep/<id>
+# that the client uses for the follow-up PATCH and DELETE. CORS (preflight
+# included) is answered by MediaMTX itself (webrtcAllowOrigins: "*"): adding
+# the response headers here too would duplicate Access-Control-Allow-Origin.
+# The MediaMTX control API returns the device passwords: it is never routed.
+if os.environ.get("MEDIAMTX_WHEP_PORT"):
+    agent.set_route({
+        'instance': os.environ['MODULE_ID'] + '-mediamtx',
+        'url':  'http://127.0.0.1:' + os.environ["MEDIAMTX_WHEP_PORT"],
+        'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+        'host': os.environ["NETHCTI_UI_HOST"],
+        'path': '/streaming-gw',
+    })
