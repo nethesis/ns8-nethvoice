@@ -95,6 +95,17 @@ const readFieldErrors = (value: unknown, depth: number): string[] => {
 export const getApiErrorMessage = (body: unknown): string =>
   truncate([...new Set(readMessages(body, 0))].join('; '))
 
+const HTML_PATTERN = /<\/?[a-z][^>]*>/i
+const SERVER_DUMP_PATTERN = /\b(fatal error|parse error|stack trace|uncaught \w+)\b/i
+
+const isServerDump = (status: number, body: unknown): boolean =>
+  status >= 500 &&
+  typeof body === 'string' &&
+  (HTML_PATTERN.test(body) || SERVER_DUMP_PATTERN.test(body))
+
+export const getApiErrorDetail = (error: ApiError): string =>
+  isServerDump(error.status, error.body) ? '' : getApiErrorMessage(error.body)
+
 export const isAuthenticationFailure = (status: number, body: unknown): boolean => {
   if (status === 401) {
     return true

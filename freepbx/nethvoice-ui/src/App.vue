@@ -14,6 +14,8 @@ import ToastNotificationsArea from '@/components/shell/ToastNotificationsArea.vu
 import { useThemeStore } from '@/stores/theme'
 import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
+import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useWizardState } from '@/queries/setup/wizardState'
 import { IS_E2E } from '@/lib/config'
 
 const themeStore = useThemeStore()
@@ -21,6 +23,8 @@ const runtimeConfigStore = useRuntimeConfigStore()
 const route = useRoute()
 const router = useRouter()
 const loginStore = useLoginStore()
+const notificationsStore = useNotificationsStore()
+const { state: wizardState } = useWizardState()
 const { t, te } = useI18n()
 
 const layout = computed(() => route.meta.layout ?? 'app')
@@ -32,7 +36,7 @@ const pageTitle = computed(() => {
   if (!titleKey || !te(titleKey)) {
     return brandName
   }
-  return `${t(titleKey)} - ${brandName}`
+  return `${t(titleKey, { brand: brandName })} - ${brandName}`
 })
 
 useTitle(pageTitle)
@@ -41,7 +45,23 @@ watch(
   () => loginStore.isAuthenticated,
   (isAuthenticated) => {
     if (!isAuthenticated && !route.meta.public) {
-      router.push({ name: 'login' })
+      router.push({
+        name: 'login',
+        query: route.fullPath === '/' ? {} : { redirect: route.fullPath },
+      })
+    }
+  },
+)
+
+watch(
+  () => wizardState.value.status === 'error',
+  (failed) => {
+    if (failed && loginStore.isAuthenticated) {
+      notificationsStore.createNotification({
+        kind: 'warning',
+        title: t('setup.cannot_check_setup'),
+        description: describeError(wizardState.value.error),
+      })
     }
   },
 )

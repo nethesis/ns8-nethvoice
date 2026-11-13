@@ -46,7 +46,8 @@
     "error_locked": "È in corso un'altra modifica. Attendi qualche secondo e riprova.",
     "error_server_detail": "Messaggio del server: {detail}",
     "error_server": "Il server non è riuscito a completare la richiesta (errore {status}). Riprova più tardi.",
-    "error_network": "Impossibile raggiungere il server. Controlla la connessione e riprova."
+    "error_network": "Impossibile raggiungere il server. Controlla la connessione e riprova.",
+    "error_invalid_response": "Il server ha inviato una risposta inattesa. Ricarica la pagina e riprova."
   },
   "shell": {
     "open_sidebar": "Apri barra laterale",
@@ -393,7 +394,7 @@
     "trunk": "Fascio",
     "filter_trunks": "Filtra fasci",
     "no_trunks_found": "Nessun fascio trovato",
-    "updating": "Aggiornamento",
+    "updating": "Aggiornamento in corso",
     "add_trunk": "Aggiungi fascio",
     "delete_trunk": "Elimina fascio",
     "open_trunk_menu": "Apri il menu di {name}",
@@ -450,13 +451,22 @@
       "name_invalid": "Usa solo lettere, cifre, punto, trattino e trattino basso",
       "name_already_used": "Un altro fascio usa già questo nome",
       "phone_number_required": "Inserisci il numero di telefono",
-      "phone_number_invalid": "Usa solo cifre, eventualmente precedute da +",
+      "phone_number_invalid": "Usa solo cifre, eventualmente precedute da +. Spazi, punti e trattini vengono rimossi",
       "username_required": "Inserisci il nome utente",
       "password_required": "Inserisci la password",
       "codecs_required_when_forced": "Scegli almeno un codec da forzare",
       "empty_description_line_1": "Aggiungi i fasci VoIP per gestire le chiamate in ingresso e in uscita su reti IP.",
       "empty_description_line_2": "Imposta le connessioni ai provider e i parametri necessari all'instradamento delle chiamate.",
-      "trunk_name_username_helper": "Un nome per identificare il fascio, usato anche come nome utente: lettere, cifre, punto, trattino e trattino basso"
+      "trunk_name_username_helper": "Un nome per identificare il fascio, usato anche come nome utente: lettere, cifre, punto, trattino e trattino basso",
+      "provider_codecs_added": "Si aggiungono anche i codec del provider: {codecs}. Attiva Forza codec per usare solo quelli scelti",
+      "force_codec_info": "Informazioni su Forza codec",
+      "name_too_long": "Usa al massimo 50 caratteri",
+      "password_only_spaces": "La password non può contenere solo spazi",
+      "ai_agents": "Agenti AI",
+      "ai_agents_read_only": "Questo fascio è gestito dagli agenti AI. Modificarlo o eliminarlo da qui li farebbe smettere di funzionare.",
+      "other_technology_read_only": "Questo fascio usa la tecnologia {technology} e si può modificare solo dalle impostazioni avanzate.",
+      "read_only": "Sola lettura",
+      "cannot_load_gateways": "Impossibile caricare i gateway, quindi i loro fasci potrebbero comparire anche qui"
     },
     "physical": {
       "description_line_1": "Configura i fasci fisici per collegare il centralino alle linee telefoniche tradizionali.",
@@ -512,8 +522,18 @@
       "fxs_previous_port_required": "Assegna prima le porte precedenti",
       "fxs_user_already_assigned": "Questo utente è già assegnato a un'altra porta",
       "empty_description_line_1": "Aggiungi i fasci fisici per collegare il centralino alle linee telefoniche tradizionali.",
-      "empty_description_line_2": "Usa un gateway supportato per comunicare con le reti analogiche o ISDN."
-    }
+      "empty_description_line_2": "Usa un gateway supportato per comunicare con le reti analogiche o ISDN.",
+      "mac_address_not_unicast": "Inserisci l'indirizzo MAC di un singolo dispositivo",
+      "netmask_without_hosts": "Questa subnet mask non lascia indirizzi per i dispositivi",
+      "ip_address_not_host": "Inserisci l'indirizzo di un dispositivo, non quello della rete o di broadcast",
+      "network_gateway_same_as_ip": "Il gateway di rete deve essere diverso dall'indirizzo IP del dispositivo",
+      "network_gateway_outside_subnet": "Il gateway di rete deve essere nella stessa rete del dispositivo"
+    },
+    "cannot_check_outbound_routes": "Impossibile verificare quali rotte in uscita usano questo fascio",
+    "routes_left_without_trunks": "Alcune rotte in uscita resteranno senza fasci",
+    "used_by_outbound_routes": "Usato da rotte in uscita",
+    "routes_without_trunks_description": "Queste rotte in uscita usano solo questo fascio e non potranno più effettuare chiamate: {routes}.",
+    "routes_keep_trunks_description": "Il fascio sarà rimosso da queste rotte in uscita, che continueranno a usare gli altri fasci: {routes}."
   },
   "routes": {
     "title": "Rotte",
@@ -547,7 +567,7 @@
     "no_outbound_routes": "Nessuna rotta in uscita",
     "no_outbound_routes_description": "Crea le rotte predefinite del tuo paese, poi scegli i fasci usati da ciascuna.",
     "create_default_routes": "Crea rotte predefinite",
-    "create_default_routes_description": "Le rotte per chiamate nazionali, verso cellulari, internazionali e a numeri speciali vengono create con le regole di composizione del paese scelto. A ogni rotta vengono assegnati tutti i fasci disponibili.",
+    "create_default_routes_description": "Le rotte per chiamate nazionali, verso cellulari, internazionali e a numeri speciali vengono create con le regole di composizione del paese scelto. A ogni rotta vengono assegnati tutti i fasci attivi, esclusi quelli degli agenti AI.",
     "create_routes": "Crea rotte",
     "country_required": "Scegli un paese",
     "default_routes_created": "Rotte in uscita create",
@@ -558,7 +578,7 @@
     "custom_route": "Rotta personalizzata",
     "no_trunks": "Nessun fascio",
     "edit_route": "Modifica {name}",
-    "trunk_priority_helper": "Trascina per riordinare, il primo fascio ha la priorità più alta.",
+    "trunk_priority_helper": "Trascina o usa le frecce per riordinare. Il primo fascio ha la priorità più alta.",
     "route_without_trunks": "Nessun fascio in questa rotta: le chiamate che la usano non possono essere effettuate.",
     "add_trunk": "Aggiungi fascio",
     "remove_trunk": "Rimuovi {name}",
@@ -598,8 +618,25 @@
       "time_condition": "Condizione temporale",
       "trunk": "Fascio",
       "voice_agent": "Agente AI",
-      "voicemail": "Casella vocale"
-    }
+      "voicemail": "Casella vocale",
+      "custom_context": "Contesto personalizzato",
+      "language": "Lingua",
+      "voicemail_busy": "Casella vocale (occupato)",
+      "voicemail_instructions": "Casella vocale (solo istruzioni)",
+      "voicemail_no_message": "Casella vocale (senza messaggio)",
+      "voicemail_unavailable": "Casella vocale (non disponibile)"
+    },
+    "any_did": "Qualsiasi DID",
+    "invalid_destination": "Destinazione non valida",
+    "route_deleted_description": "La rotta {name} è stata eliminata",
+    "route_already_deleted": "Rotta già eliminata",
+    "route_already_deleted_description": "La rotta {name} non esiste più. L'elenco è stato aggiornato.",
+    "route_saved_description": "La rotta {name} è stata salvata",
+    "route_not_found": "Questa rotta non esiste più. Chiudi il pannello per vedere l'elenco aggiornato.",
+    "no_default_routes": "Non ci sono rotte predefinite per il paese scelto.",
+    "no_trunks_warning": "Nessun fascio: le chiamate non possono essere effettuate",
+    "trunk_deleted": "Eliminato",
+    "trunk_voice_agents": "Agenti AI"
   },
   "phones": {
     "title": "Telefoni fisici",
@@ -615,7 +652,7 @@
       "add_phones": "Aggiungi telefoni",
       "add_phones_description": "Aggiungi uno o più telefoni fisici tramite i loro indirizzi MAC.",
       "mac_addresses": "Indirizzi MAC",
-      "mac_addresses_helper": "Un indirizzo MAC per riga. Separatori supportati: \":\", \"-\" o nessuno.",
+      "mac_addresses_helper": "Un indirizzo MAC per riga. Separatori supportati: \":\", \"-\", \".\", spazi o nessuno.",
       "enter_at_least_one_mac": "Inserisci almeno un indirizzo MAC",
       "configure_phones": "Aggiungi telefoni",
       "configure_phones_description": "Seleziona un modello per ogni telefono e, se vuoi, assegnalo a un utente. I telefoni vengono configurati con protocolli sicuri per impostazione predefinita. Puoi applicare lo stesso modello a tutti i telefoni e modificare i singoli dispositivi se necessario.",
@@ -672,7 +709,27 @@
       "delete_phone_confirmation": "Il telefono {mac} verrà rimosso dall'inventario e non riceverà più la sua configurazione.",
       "delete_assigned_phone_confirmation": "Il telefono {mac} verrà rimosso dall'inventario e il suo interno verrà rimosso da {user}.",
       "cannot_delete_phone": "Impossibile eliminare il telefono",
-      "phone_deleted": "Telefono eliminato"
+      "phone_deleted": "Telefono eliminato",
+      "status": "Stato",
+      "registered": "Registrato",
+      "not_registered": "Non registrato",
+      "cannot_load_defaults": "Impossibile caricare le impostazioni predefinite dei telefoni",
+      "admin_password_missing": "Password admin dei telefoni non disponibile",
+      "admin_password_missing_description": "Puoi aggiungere e assegnare telefoni solo quando la password admin dei telefoni è disponibile. Controlla la scheda Impostazioni.",
+      "default_admin_password_in_use": "È in uso una password admin predefinita. Cambiala per migliorare la sicurezza.",
+      "user_device_limit_reached": "{extension} · Limite dispositivi raggiunto",
+      "phones_not_assigned": "Telefono non assegnato | Telefoni non assegnati",
+      "phones_not_assigned_description": "{n} telefono è stato aggiunto ma non è stato possibile assegnarlo all'utente. Assegnalo con Modifica. | {n} telefoni sono stati aggiunti ma non è stato possibile assegnarli agli utenti. Assegnali con Modifica.",
+      "too_many_macs": "Inserisci al massimo {max} indirizzi MAC alla volta (inseriti: {n})",
+      "invalid_macs": "Indirizzo MAC non valido: {macs} | Indirizzi MAC non validi: {macs}",
+      "mac_not_unicast": "Inserisci l'indirizzo MAC di un dispositivo: indirizzi multicast, broadcast e tutti a zero non sono ammessi",
+      "model_applied_to_some": "Modello applicato a {applied} telefoni su {total}",
+      "model_applied_to_some_description": "Il modello non è disponibile per la marca degli altri telefoni: scegli il modello su ogni riga.",
+      "adding_progress": "Aggiunta del telefono {current} di {total}…",
+      "pending_changes": "Modifiche da salvare",
+      "model_change": "Modello: {from} → {to}.",
+      "user_change": "Utente: {from} → {to}.",
+      "reassigned_with_errors": "Il telefono è stato assegnato al nuovo utente, ma la modifica non è stata completata: {error}"
     },
     "models": {
       "description": "Gestisci i modelli di telefono supportati e le relative impostazioni di provisioning.",
@@ -973,16 +1030,21 @@
       "infinity_address": "Indirizzo",
       "infinity_office": "Ufficio",
       "infinity_office_status_id": "Ufficio, stato e id",
-      "settings": "Impostazioni"
+      "settings": "Impostazioni",
+      "uploaded_file": "File caricato",
+      "csv_file_invalid": "Scegli un file .csv o .txt",
+      "csv_file_empty": "Il file è vuoto",
+      "csv_file_too_large": "Il file supera {size} MB",
+      "csv_upload_rejected": "Il centralino ha rifiutato il file: potrebbe essere vuoto o più grande della dimensione massima consentita (8 MB)."
     },
     "video": {
-      "description": "Mostra nel CTI le immagini di telecamere IP e citofoni e apri la porta da lì.",
+      "description": "Mostra in NethVoice CTI le immagini di telecamere IP e citofoni e apri la porta da lì.",
       "create_source": "Crea sorgente video",
       "edit_source": "Modifica sorgente video",
       "filter_sources": "Filtra sorgenti video",
       "cannot_load_sources": "Impossibile caricare le sorgenti video",
       "no_sources": "Nessuna sorgente video",
-      "no_sources_description": "Aggiungi una telecamera o un citofono per mostrarne le immagini nel CTI.",
+      "no_sources_description": "Aggiungi una telecamera o un citofono per mostrarne le immagini in NethVoice CTI.",
       "no_sources_found": "Nessuna sorgente video trovata",
       "extension": "Interno",
       "extension_helper": "Interno del citofono: le sue chiamate mostrano le immagini di questa sorgente",
@@ -992,7 +1054,7 @@
       "open_code": "Codice di apertura",
       "open_code_helper": "Toni DTMF inviati per aprire la porta, ad esempio *9 o #1",
       "open_code_invalid": "Usa cifre, eventualmente precedute da * + # e seguite da * #, fino a 10 caratteri",
-      "profiles_helper": "Gli utenti di questi profili vedono la sorgente nel CTI",
+      "profiles_helper": "Gli utenti di questi profili vedono la sorgente in NethVoice CTI",
       "name_required": "Inserisci il nome",
       "name_too_long": "Usa al massimo 50 caratteri",
       "name_invalid": "Usa almeno una lettera o una cifra, e nessuna barra",
@@ -1008,9 +1070,11 @@
       "cannot_create_source": "Impossibile creare la sorgente video",
       "cannot_save_source": "Impossibile salvare la sorgente video",
       "delete_source": "Elimina sorgente video",
-      "delete_source_confirmation": "Eliminare {name}? Gli utenti non la vedranno più nel CTI.",
+      "delete_source_confirmation": "Eliminare {name}? Gli utenti non la vedranno più in NethVoice CTI.",
       "source_deleted": "Sorgente video eliminata",
-      "cannot_delete_source": "Impossibile eliminare la sorgente video"
+      "cannot_delete_source": "Impossibile eliminare la sorgente video",
+      "not_an_image": "L'indirizzo non restituisce un'immagine JPEG, PNG o GIF. Verifica che punti a un'immagine statica e che non richieda un accesso.",
+      "test_failed_description": "Impossibile scaricare l'immagine da questo indirizzo. Verifica l'URL e che la telecamera sia raggiungibile dal centralino."
     },
     "param_urls": {
       "description": "Apri una pagina web, ad esempio una scheda del CRM, quando una chiamata raggiunge gli utenti di un profilo. L'URL può contenere i dati del chiamante.",
@@ -1044,7 +1108,7 @@
       "cannot_delete_url": "Impossibile eliminare l'URL"
     },
     "cards": {
-      "description": "Le schede cliente mostrano nel CTI, durante le chiamate, i dati del chiamante letti da un database.",
+      "description": "Le schede cliente mostrano in NethVoice CTI, durante le chiamate, i dati del chiamante letti da un database.",
       "nothing_configured": "Nessuna scheda cliente configurata",
       "nothing_configured_description": "Aggiungi una connessione a un database, poi una scheda che la interroga con un template.",
       "cards": "Schede",
@@ -1053,11 +1117,11 @@
       "edit_card": "Modifica scheda",
       "cannot_load_cards": "Impossibile caricare le schede cliente",
       "no_cards": "Nessuna scheda",
-      "no_cards_description": "Crea una scheda per mostrare nel CTI i dati del chiamante.",
+      "no_cards_description": "Crea una scheda per mostrare in NethVoice CTI i dati del chiamante.",
       "connection": "Connessione al database",
       "template": "Template",
       "no_profiles": "Nessun profilo",
-      "profiles_helper": "Gli utenti di questi profili vedono la scheda nel CTI",
+      "profiles_helper": "Gli utenti di questi profili vedono la scheda in NethVoice CTI. Senza profili non la vede nessuno.",
       "query_helper": "$NUMBER viene sostituito con il numero del chiamante",
       "show_preview": "Mostra anteprima",
       "preview": "Anteprima",
@@ -1071,7 +1135,7 @@
       "cannot_create_card": "Impossibile creare la scheda",
       "cannot_save_card": "Impossibile salvare la scheda",
       "delete_card": "Elimina scheda",
-      "delete_card_confirmation": "Eliminare {name}? Gli utenti non la vedranno più nel CTI.",
+      "delete_card_confirmation": "Eliminare {name}? Gli utenti non la vedranno più in NethVoice CTI.",
       "card_deleted": "Scheda eliminata",
       "cannot_delete_card": "Impossibile eliminare la scheda",
       "templates": "Template",
@@ -1081,7 +1145,7 @@
       "duplicate_template": "Duplica {name}",
       "view_template": "Template {name}",
       "duplicate": "Duplica",
-      "view": "Visualizza",
+      "view": "Mostra",
       "cannot_load_templates": "Impossibile caricare i template",
       "no_templates": "Nessun template",
       "template_kind": "Tipo",
@@ -1094,7 +1158,7 @@
       "template_name_locked": "Il nome di un template non può essere cambiato",
       "template_name_required": "Inserisci il nome",
       "template_name_invalid": "Usa solo lettere e cifre",
-      "template_name_already_used": "Un altro template personalizzato ha lo stesso nome",
+      "template_name_already_used": "Un altro template, predefinito o personalizzato, ha lo stesso nome",
       "template_code_required": "Inserisci il codice del template",
       "built_in_template_info": "I template predefiniti non possono essere modificati: duplicalo per personalizzarlo.",
       "template_created": "Template creato",
@@ -1130,7 +1194,11 @@
       "connection_deleted": "Connessione eliminata",
       "cannot_delete_connection": "Impossibile eliminare la connessione",
       "connection_in_use": "Questa connessione non può essere eliminata perché la usano queste schede:",
-      "template_not_listed": "Template non presente nell'elenco dei template"
+      "template_not_listed": "Template non presente nell'elenco dei template",
+      "test_number": "Numero di prova",
+      "test_number_helper": "Sostituisce $NUMBER solo nell'anteprima",
+      "test_number_invalid": "Usa solo cifre, eventualmente precedute da +",
+      "preview_failed_description": "Impossibile eseguire la query. Verifica la query e la connessione al database."
     },
     "external": {
       "description": "Servizi forniti da provider esterni, come trascrizione e riassunto di chiamate e segreteria.",
@@ -1266,8 +1334,12 @@
         "outbound_routes_without_trunks": "Alcune rotte in uscita non hanno fasci: i numeri che gestiscono non possono essere chiamati."
       },
       "completing": "Adeguamento delle impostazioni di {brand}, manca poco...",
-      "cannot_complete_setup": "Impossibile completare la configurazione"
-    }
+      "cannot_complete_setup": "Impossibile completare la configurazione",
+      "finish": "Completa",
+      "finish_setup_description": "La configurazione verrà applicata. Asterisk verrà riavviato appena non ci saranno chiamate in corso e verrà riavviato anche NethVoice CTI: i suoi utenti verranno disconnessi per qualche istante."
+    },
+    "cannot_save_progress": "Impossibile salvare l'avanzamento della configurazione",
+    "cannot_check_setup": "Impossibile verificare lo stato della configurazione"
   },
   "ne_table": {
     "no_items": "Nessun elemento",

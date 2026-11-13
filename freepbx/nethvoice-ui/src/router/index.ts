@@ -5,6 +5,8 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { APP_BASE_PATH } from '@/lib/config'
 import { useLoginStore } from '@/stores/login'
 import { SETUP_STEPS } from '@/lib/setup/steps'
+import { getInternalRedirect, getWizardRedirect } from '@/lib/setup/guard'
+import { loadWizardState } from '@/queries/setup/wizardState'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -98,7 +100,7 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const loginStore = useLoginStore()
 
   if (!to.meta.public && !loginStore.isAuthenticated) {
@@ -106,9 +108,18 @@ router.beforeEach((to) => {
   }
 
   if (to.name === 'login' && loginStore.isAuthenticated) {
-    return { name: 'dashboard' }
+    return getInternalRedirect(to.query.redirect) ?? { name: 'dashboard' }
   }
-  return true
+
+  if (to.meta.public) {
+    return true
+  }
+  const wizardState = await loadWizardState()
+
+  if (!wizardState) {
+    return true
+  }
+  return getWizardRedirect(to.name, wizardState) ?? true
 })
 
 export default router

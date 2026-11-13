@@ -3,12 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 import { parseInboundRoutes } from '@/lib/routes/inbound'
-import {
-  describeInboundDestination,
-  getDashboardTrunkStatus,
-  listInboundRouteDestinations,
-  listTrunkStatuses,
-} from './routing'
+import { getDashboardTrunkStatus, listInboundRouteDestinations, listTrunkStatuses } from './routing'
 
 const describeKind = (kind: string) => `kind:${kind}`
 
@@ -68,35 +63,6 @@ describe('listTrunkStatuses', () => {
       { id: '1', label: 'Provider', status: 'registered' },
       { id: '2', label: 'Backup', status: 'offline' },
     ])
-  })
-})
-
-describe('describeInboundDestination', () => {
-  it('should prefix the description with the destination kind', () => {
-    expect(
-      describeInboundDestination(
-        { target: 'ext-queues,400,1', kind: 'queue', category: 'Queues', description: 'Sales' },
-        describeKind,
-      ),
-    ).toBe('kind:queue: Sales')
-  })
-
-  it('should fall back to the category when the kind is unknown', () => {
-    expect(
-      describeInboundDestination(
-        { target: 'custom,1', kind: null, category: 'Custom', description: 'Night' },
-        describeKind,
-      ),
-    ).toBe('Custom: Night')
-  })
-
-  it('should return an empty text without a description', () => {
-    expect(
-      describeInboundDestination(
-        { target: '', kind: null, category: '', description: '' },
-        describeKind,
-      ),
-    ).toBe('')
   })
 })
 
