@@ -35,7 +35,9 @@ export function useSetupNavigation(stepId: SetupStepId) {
       await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] })
       await router.push({ name: `setup-${nextStep.id}` })
     } catch (error) {
-      notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'))
+      notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'), {
+        serverDetail: false,
+      })
     } finally {
       advancing.value = false
     }
