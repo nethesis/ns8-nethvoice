@@ -4,6 +4,7 @@
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
+import { isApiError } from '@/lib/api/errors'
 import { compareNatural } from '@/lib/common'
 import {
   type FieldIssues,
@@ -25,6 +26,10 @@ export const PHONEBOOK_SYNC_INTERVALS = [15, 30, 60, 360, 1440]
 export const DEFAULT_SYNC_INTERVAL = 1440
 
 export const DEFAULT_SOURCE_QUERY = 'SELECT * FROM [table]'
+
+export const CSV_MAX_SIZE = 8 * 1024 * 1024
+
+const CSV_EXTENSIONS = ['.csv', '.txt']
 
 export const UPLOADED_CSV_PREFIX = 'file:///var/lib/nethvoice/phonebook/uploads/'
 
@@ -136,6 +141,31 @@ export const isDatabaseKind = (kind: string): kind is 'mysql' | 'mssql' =>
 
 export const isUploadedCsv = (url: string) => url.startsWith(UPLOADED_CSV_PREFIX)
 
+export const validateCsvFile = (file: Pick<File, 'name' | 'size'>): string => {
+  const name = file.name.toLowerCase()
+
+  if (!CSV_EXTENSIONS.some((extension) => name.endsWith(extension))) {
+    return 'integrations.phonebook.csv_file_invalid'
+  }
+
+  if (file.size === 0) {
+    return 'integrations.phonebook.csv_file_empty'
+  }
+
+  if (file.size > CSV_MAX_SIZE) {
+    return 'integrations.phonebook.csv_file_too_large'
+  }
+  return ''
+}
+
+export const isCsvUploadRejected = (error: unknown): boolean =>
+  isApiError(error) && error.status === 400
+
+export const getSyncIntervals = (current: number): number[] =>
+  [...new Set([...PHONEBOOK_SYNC_INTERVALS, current])]
+    .filter((minutes) => Number.isInteger(minutes) && minutes > 0)
+    .sort((a, b) => a - b)
+
 export const getDefaultPort = (kind: PhonebookSourceKind) => DEFAULT_PORTS[kind]
 
 export const parseSharingGroups = (access: string): string[] =>
@@ -208,7 +238,7 @@ export const emptyPhonebookSourceForm = (): PhonebookSourceForm => ({
   user: '',
   password: '',
   database: '',
-  query: DEFAULT_SOURCE_QUERY,
+  query: '',
   url: '',
   username: '',
   mapping: {},

@@ -19,6 +19,9 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCircleCheck, faPlugCircleBolt } from '@fortawesome/free-solid-svg-icons'
 import ProfilesMultiselect from './ProfilesMultiselect.vue'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
+import { isApiError } from '@/lib/api/errors'
 import type { Focusable } from '@/lib/common'
 import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import type { FieldIssues } from '@/lib/integrations/validation'
@@ -56,6 +59,11 @@ const { state: extensionsState } = useExtensionOptions()
 
 const form = ref<VideoSourceForm>(emptyVideoSourceForm())
 const validationIssues = ref<FieldIssues>({})
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
+
+useFocusReturn(() => isShown)
+
 const nameRef = useTemplateRef<Focusable>('nameRef')
 const urlRef = useTemplateRef<Focusable>('urlRef')
 const openCodeRef = useTemplateRef<Focusable>('openCodeRef')
@@ -69,6 +77,8 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
 }
 
 const profiles = computed(() => profilesState.value.data ?? [])
+
+const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
 
 const extensionOptions = computed(() => [
   { id: '', label: t('common.none') },
@@ -121,13 +131,16 @@ const {
 watch(
   () => isShown,
   () => {
-    if (isShown) {
-      saveReset()
-      testReset()
-      validationIssues.value = {}
-      form.value = currentSource ? toVideoSourceForm(currentSource) : emptyVideoSourceForm()
-      focusElement(nameRef)
+    if (!isShown) {
+      isShownDiscardModal.value = false
+      return
     }
+    saveReset()
+    testReset()
+    validationIssues.value = {}
+    form.value = currentSource ? toVideoSourceForm(currentSource) : emptyVideoSourceForm()
+    initialSnapshot.value = JSON.stringify(form.value)
+    focusElement(nameRef)
   },
 )
 
@@ -146,6 +159,32 @@ function testSource() {
     return
   }
   testMutate(form.value.url)
+}
+
+function describeTestError(error: unknown): string {
+  return (
+    getLegacyStatusMessage(error) ||
+    (isApiError(error) && error.status >= 500
+      ? t('integrations.video.test_failed_description')
+      : describeError(error))
+  )
+}
+
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
 }
 
 function save() {
@@ -171,7 +210,7 @@ function save() {
       currentSource ? t('integrations.video.edit_source') : t('integrations.video.create_source')
     "
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
@@ -217,14 +256,20 @@ function save() {
             v-if="testError"
             kind="error"
             :title="t('integrations.video.test_failed')"
-            :description="getLegacyStatusMessage(testError) || describeError(testError)"
+            :description="describeTestError(testError)"
+          />
+          <NeInlineNotification
+            v-else-if="snapshot === ''"
+            kind="error"
+            :title="t('integrations.video.test_failed')"
+            :description="t('integrations.video.not_an_image')"
           />
           <div v-else-if="snapshot !== undefined" class="flex flex-col gap-2">
             <p class="flex items-center gap-2 text-sm text-green-700 dark:text-green-500">
               <FontAwesomeIcon :icon="faCircleCheck" class="h-4 w-4" aria-hidden="true" />
               {{ t('integrations.video.test_succeeded') }}
             </p>
-            <div v-if="snapshot">
+            <div>
               <NeFormItemLabel>{{ t('integrations.video.preview') }}</NeFormItemLabel>
               <img
                 :src="snapshot"
@@ -294,7 +339,7 @@ function save() {
           size="lg"
           :disabled="saving"
           class="mr-3"
-          @click="emit('close')"
+          @click="requestClose"
         >
           {{ t('common.cancel') }}
         </NeButton>
@@ -304,4 +349,9 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>
