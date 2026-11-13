@@ -357,6 +357,24 @@ describe('getGatewayStatus', () => {
     ).toBe('connected')
   })
 
+  it('should be disabled when every trunk of the gateway is disabled', () => {
+    const disabledTrunks = trunks.map((trunk) => ({ ...trunk, disabled: true }))
+
+    expect(getGatewayStatus(isdnGateway, disabledTrunks, {})).toBe('disabled')
+    expect(getGatewayStatus(isdnGateway, disabledTrunks, undefined)).toBe('disabled')
+  })
+
+  it('should ignore the disabled trunks when some are still enabled', () => {
+    const mixedTrunks = trunks.map((trunk, index) => ({ ...trunk, disabled: index === 0 }))
+
+    expect(
+      getGatewayStatus(isdnGateway, mixedTrunks, {
+        Patton_0b1cdd_isdn_0: { status: 'online', registration: 'unmonitored' },
+        Patton_0b1cdd_isdn_1: { status: 'offline', registration: 'unmonitored' },
+      }),
+    ).toBe('not_connected')
+  })
+
   it('should be not connected when every trunk is unreachable', () => {
     expect(
       getGatewayStatus(isdnGateway, trunks, {
