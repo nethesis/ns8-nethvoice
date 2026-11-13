@@ -83,12 +83,10 @@ test.describe('setup: users and extensions', () => {
     await page.goto('./setup/users')
 
     await extensionInput(page, 'Daniel Jones').fill('302')
-    await extensionInput(page, 'Christopher Davis').fill('')
     await page.getByRole('button', { name: 'Next' }).click()
 
     await expect(page).toHaveURL(/\/nethvoice\/setup\/physical-trunks$/)
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`).map((call) => call.body)).toEqual([
-      { username: 'c.davis', extension: '' },
       { username: 'd.jones', extension: '302' },
     ])
     expect(mockApi.callsTo('POST', `${REST}/cti/profiles/users/13`)[0].body).toEqual({
@@ -101,6 +99,85 @@ test.describe('setup: users and extensions', () => {
       step: 2,
       status: 'true',
     })
+  })
+
+  test('keeps the extension of a configured user and removes it only from the menu', async ({
+    page,
+    mockApi,
+  }) => {
+    mockStep(mockApi)
+    mockWrites(mockApi)
+    await page.goto('./setup/users')
+
+    await extensionInput(page, 'Christopher Davis').fill('')
+    await expect(
+      page.getByText('Enter an extension. To remove it, use Remove extension in the user menu.'),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await expect(extensionInput(page, 'Christopher Davis')).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+    expect(mockApi.callsTo('POST', `${REST}/configuration/wizard`)).toHaveLength(0)
+
+    await page.getByRole('button', { name: 'Actions for d.jones' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Remove extension' })).toBeDisabled()
+    await page.getByRole('button', { name: 'Actions for d.jones' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Remove extension' })).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Actions for c.davis' }).click()
+    await page.getByRole('menuitem', { name: 'Remove extension' }).click()
+    const modal = page.getByRole('dialog', { name: 'Remove extension' })
+    await expect(modal).toContainText('The extension 301 of Christopher Davis will be removed')
+    await modal.getByRole('button', { name: 'Remove extension' }).click()
+
+    await expect(modal).toBeHidden()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`).map((call) => call.body)).toEqual([
+      { username: 'c.davis', extension: '' },
+    ])
+  })
+
+  test('warns that changing an extension recreates the devices', async ({ page, mockApi }) => {
+    mockStep(mockApi)
+    mockWrites(mockApi)
+    await page.goto('./setup/users')
+
+    await extensionInput(page, 'Anna Miller').fill('310')
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'The devices will be recreated' })
+    await expect(modal).toContainText('apps and physical phones get new credentials')
+    await expect(modal.getByTestId('changed-extensions')).toHaveText('Anna Miller: 300 → 310')
+    await modal.getByRole('button', { name: 'Cancel' }).click()
+
+    await expect(modal).toBeHidden()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+
+    await page.getByRole('button', { name: 'Next' }).click()
+    await modal.getByRole('button', { name: 'Change extensions' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/physical-trunks$/)
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`).map((call) => call.body)).toEqual([
+      { username: 'a.miller', extension: '310' },
+    ])
+  })
+
+  test('reports a failed synchronization with the account provider', async ({ page, mockApi }) => {
+    let failing = true
+    mockStep(mockApi)
+    mockApi.on('POST', `${REST}/users/sync`, () =>
+      failing ? { status: 500, json: { message: 'boom' } } : { status: 200 },
+    )
+    await page.goto('./setup/users')
+
+    const warning = page.getByText('Cannot synchronize the users')
+    await expect(warning).toBeVisible()
+    await expect(extensionInput(page, 'Anna Miller')).toHaveValue('300')
+
+    failing = false
+    await page.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(warning).toHaveCount(0)
+    expect(mockApi.callsTo('POST', `${REST}/users/sync`)).toHaveLength(2)
   })
 
   test('stays on the step and marks the extension that failed', async ({ page, mockApi }) => {

@@ -8,13 +8,9 @@ import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
 import { useQueryCache } from '@pinia/colada'
-import {
-  focusElement,
-  NeCombobox,
-  NeInlineNotification,
-  NeSkeleton,
-} from '@nethesis/vue-components'
+import { focusElement, NeCombobox, NeSkeleton } from '@nethesis/vue-components'
 import SetupStepLayout from './SetupStepLayout.vue'
+import LoadError from '@/components/common/LoadError.vue'
 import { useSetupNavigation } from '@/composables/useSetupNavigation'
 import { usePbxCountries, usePbxLanguages } from '@/queries/settings/system'
 import {
@@ -25,14 +21,14 @@ import {
   SystemSettingsSchema,
 } from '@/lib/settings/system'
 import { useSetupStore } from '@/stores/setup'
-import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const { t, locale } = useI18n()
 const queryCache = useQueryCache()
 const setupStore = useSetupStore()
 const notificationsStore = useNotificationsStore()
-const { state: languagesState } = usePbxLanguages()
-const { state: countriesState } = usePbxCountries()
+const { state: languagesState, refetch: refetchLanguages } = usePbxLanguages()
+const { state: countriesState, refetch: refetchCountries } = usePbxCountries()
 const { advancing, goToNextStep } = useSetupNavigation('system')
 
 const country = ref(setupStore.country)
@@ -83,6 +79,29 @@ watch(
   { immediate: true },
 )
 
+function retryLoading() {
+  if (languagesState.value.error) {
+    refetchLanguages()
+  }
+
+  if (countriesState.value.error) {
+    refetchCountries()
+  }
+}
+
+function keepEmptyCountryOnTab(event: KeyboardEvent) {
+  const input = event.target
+
+  if (
+    event.key === 'Tab' &&
+    input instanceof HTMLInputElement &&
+    input.value === '' &&
+    input.getAttribute('aria-expanded') === 'true'
+  ) {
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+  }
+}
+
 function validate(): boolean {
   validationIssues.value = {}
   const result = v.safeParse(SystemSettingsSchema, {
@@ -115,7 +134,9 @@ function saveAndContinue() {
       try {
         await postPbxDefaultLanguage(language.value)
       } catch (error) {
-        notificationsStore.createNotificationFromError(error, t('settings.cannot_save_language'))
+        notificationsStore.createNotificationFromError(error, t('settings.cannot_save_language'), {
+          serverDetail: false,
+        })
         return false
       }
       await queryCache.invalidateQueries({ key: [PBX_LANGUAGES_KEY] })
@@ -134,11 +155,12 @@ function saveAndContinue() {
     :next-disabled="loading || !!loadError"
     @next="saveAndContinue"
   >
-    <NeInlineNotification
+    <LoadError
+      :server-detail="false"
       v-if="loadError"
-      kind="error"
+      :error="loadError"
       :title="t('setup.system.cannot_load_settings')"
-      :description="describeError(loadError)"
+      @retry="retryLoading"
     />
     <div v-else-if="loading" class="flex w-full max-w-[420px] flex-col gap-8">
       <NeSkeleton :lines="3" />
@@ -147,6 +169,7 @@ function saveAndContinue() {
     <form v-else class="flex w-full max-w-[420px] flex-col gap-8" @submit.prevent="saveAndContinue">
       <NeCombobox
         ref="countryRef"
+        @keydown.capture="keepEmptyCountryOnTab"
         v-model="country"
         :label="t('setup.system.pbx_country')"
         :options="countryOptions"

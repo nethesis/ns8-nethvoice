@@ -61,7 +61,7 @@ test.describe('setup wizard: navigation guard', () => {
     await expect(page.getByText('Step 2 of 7')).toBeVisible()
   })
 
-  test('does not reset the progress when the welcome page is opened again', async ({
+  test('resumes from the saved step when the welcome page is opened again', async ({
     page,
     mockApi,
   }) => {
@@ -70,7 +70,8 @@ test.describe('setup wizard: navigation guard', () => {
     await page.goto('./setup')
     await page.getByRole('button', { name: 'Start setup' }).click()
 
-    await expect(page).toHaveURL(/\/nethvoice\/setup\/system$/)
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/voip-trunks$/)
+    await expect(page.getByRole('heading', { name: 'VoIP trunks', level: 1 })).toBeFocused()
     expect(mockApi.callsTo('POST', WIZARD)).toHaveLength(0)
   })
 
@@ -83,5 +84,16 @@ test.describe('setup wizard: navigation guard', () => {
     await expect(page).toHaveURL(/\/nethvoice\/login$/)
     expect(mockApi.callsTo('GET', '/freepbx/rest/logout')).toHaveLength(1)
     expect(await page.evaluate(() => localStorage.getItem('secretkey'))).toBeNull()
+    expect(await page.evaluate(() => localStorage.getItem('nethvoiceSetupCountry'))).toBe('')
+  })
+
+  test('keeps help and sign out reachable on a narrow screen', async ({ page, mockApi }) => {
+    mockWizardState(mockApi, 3)
+    await page.setViewportSize({ width: 390, height: 844 })
+
+    await page.goto('./setup/voip-trunks')
+
+    await expect(page.getByRole('link', { name: 'Need help?' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible()
   })
 })

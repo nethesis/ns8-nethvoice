@@ -32,10 +32,18 @@ const NETWORK_ERROR_REGEX = /failed to fetch|networkerror|load failed|network re
 export const isNetworkError = (error: unknown): boolean =>
   error instanceof TypeError && NETWORK_ERROR_REGEX.test(error.message)
 
-export const describeError = (error: unknown): string => {
+export type DescribeErrorOptions = { serverDetail?: boolean }
+
+export const describeError = (
+  error: unknown,
+  { serverDetail = true }: DescribeErrorOptions = {},
+): string => {
   const { t } = i18n.global
 
   if (isApiError(error)) {
+    if (!serverDetail && error.status >= 500) {
+      return t('common.error_server', { status: error.status })
+    }
     const detail = getApiErrorDetail(error)
     const statusMessage = STATUS_MESSAGES[error.status]
 
@@ -104,11 +112,15 @@ export const useNotificationsStore = defineStore('notifications', () => {
     setNotificationShown(notification.id, true)
   }
 
-  const createNotificationFromError = (error: unknown, title?: string) => {
+  const createNotificationFromError = (
+    error: unknown,
+    title?: string,
+    options?: DescribeErrorOptions,
+  ) => {
     createNotification({
       kind: 'error',
       title: title || t('common.request_failed'),
-      description: describeError(error),
+      description: describeError(error, options),
     })
   }
 

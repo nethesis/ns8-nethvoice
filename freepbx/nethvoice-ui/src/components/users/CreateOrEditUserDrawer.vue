@@ -39,7 +39,12 @@ import {
   type UserRow,
   type UsersDirectory,
 } from '@/lib/users/directory'
-import { getExtensionErrorKind } from '@/lib/users/extensions'
+import {
+  EXTENSION_ISSUE_MESSAGES,
+  getExtensionErrorKind,
+  isChangingExtension,
+  isRemovingExtension,
+} from '@/lib/users/extensions'
 import { getAssignedPhoneMacs, getMaxPhones, getPhonesWithoutMac } from '@/lib/users/userPhones'
 import {
   applyUserSettingsSteps,
@@ -473,8 +478,8 @@ function validate(): boolean {
   } else if (!isSetup.value) {
     const owner = findUserByExtension(users, extension.value.trim())
 
-    if (savedExtension.value !== '' && extension.value.trim() === '') {
-      issues.extension = 'users.extension_required_to_keep'
+    if (isRemovingExtension(savedExtension.value, extension.value)) {
+      issues.extension = EXTENSION_ISSUE_MESSAGES.required
     } else if (owner && owner.username !== user?.username) {
       issues.extension = 'users.extension_already_assigned'
     }
@@ -536,11 +541,7 @@ const issue = (field: Field) =>
 
 const extensionChangeWarning = computed(
   () =>
-    isEdit.value &&
-    !isSetup.value &&
-    savedExtension.value !== '' &&
-    extension.value.trim() !== '' &&
-    extension.value.trim() !== savedExtension.value,
+    isEdit.value && !isSetup.value && isChangingExtension(savedExtension.value, extension.value),
 )
 </script>
 
