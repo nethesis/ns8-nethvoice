@@ -8,6 +8,7 @@ import { NeDropdown, NeTooltip } from '@nethesis/vue-components'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
+import { useDensityStore } from '@/stores/density'
 import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import {
@@ -19,6 +20,8 @@ import {
   faGear,
   faMoon,
   faSun,
+  faTableCells,
+  faTableCellsLarge,
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useI18n } from 'vue-i18n'
@@ -30,6 +33,7 @@ const emit = defineEmits<{ openSidebar: [] }>()
 const { t } = useI18n()
 const router = useRouter()
 const themeStore = useThemeStore()
+const densityStore = useDensityStore()
 const loginStore = useLoginStore()
 const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
@@ -59,6 +63,20 @@ const accountMenuOptions = computed(() => [
     label: t('shell.open_legacy_wizard'),
     icon: faClockRotateLeft,
     action: () => window.location.assign(LEGACY_WIZARD_URL),
+  },
+  {
+    id: 'switchDensity',
+    label: densityStore.isCompact
+      ? t('shell.switch_to_standard_view')
+      : t('shell.switch_to_compact_view'),
+    icon: densityStore.isCompact ? faTableCellsLarge : faTableCells,
+    action: () => densityStore.toggleDensity(),
+  },
+  {
+    id: 'switchTheme',
+    label: themeStore.isLight ? t('shell.switch_to_dark_theme') : t('shell.switch_to_light_theme'),
+    icon: themeStore.isLight ? faMoon : faSun,
+    action: () => themeStore.toggleTheme(),
   },
   { id: 'divider' },
   {
@@ -136,35 +154,6 @@ function openNotificationsDrawer() {
             </template>
             <template #content>
               {{ $t('shell.help') }}
-            </template>
-          </NeTooltip>
-
-          <NeTooltip trigger-event="mouseenter focus" placement="bottom" class="flex">
-            <template #trigger>
-              <button
-                type="button"
-                :class="topBarButtonClasses"
-                data-testid="theme-toggle"
-                @click="themeStore.toggleTheme()"
-              >
-                <span class="sr-only">{{
-                  themeStore.isLight
-                    ? $t('shell.switch_to_dark_theme')
-                    : $t('shell.switch_to_light_theme')
-                }}</span>
-                <FontAwesomeIcon
-                  :icon="themeStore.isLight ? faMoon : faSun"
-                  class="h-6 w-6 shrink-0"
-                  aria-hidden="true"
-                />
-              </button>
-            </template>
-            <template #content>
-              {{
-                themeStore.isLight
-                  ? $t('shell.switch_to_dark_theme')
-                  : $t('shell.switch_to_light_theme')
-              }}
             </template>
           </NeTooltip>
 

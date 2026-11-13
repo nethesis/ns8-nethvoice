@@ -26,6 +26,21 @@ test.describe('physical phones: inventory', () => {
     void signedIn
   })
 
+  test('copies the MAC address with a click', async ({ page, context, mockApi }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    mockPhonesApi(mockApi)
+    await page.goto('./phones/phones')
+
+    const mac = page.getByRole('button', { name: '00:15:65:AB:CD:01', exact: true })
+    await mac.hover()
+    await expect(page.getByRole('tooltip', { name: 'Click to copy' })).toBeVisible()
+
+    await mac.click()
+    await expect(page.getByRole('tooltip', { name: 'Copied!' })).toBeVisible()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('00:15:65:AB:CD:01')
+    await expect(page.getByRole('button', { name: /^Copy/ })).toHaveCount(0)
+  })
+
   test('lists phones with model, user and encryption', async ({ page, mockApi }) => {
     mockPhonesApi(mockApi)
     await page.goto('./phones/phones')

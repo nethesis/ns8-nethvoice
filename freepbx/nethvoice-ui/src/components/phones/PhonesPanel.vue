@@ -21,14 +21,12 @@ import {
   NeTableHeadCell,
   NeTableRow,
   NeTextInput,
-  NeTooltip,
   type NeDropdownFilterV2Option,
   type NeDropdownItem,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faAngleDown,
-  faCheck,
   faCircleCheck,
   faCircleMinus,
   faCirclePlus,
@@ -42,6 +40,7 @@ import {
   faUser,
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
+import ClickToCopy from '@/components/common/ClickToCopy.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import TablePaginator from '@/components/common/TablePaginator.vue'
 import AddPhonesModal from './AddPhonesModal.vue'
@@ -67,8 +66,6 @@ import { usePhoneDefaults } from '@/queries/phones/defaults'
 import { usePhoneRegistrations } from '@/queries/phones/registration'
 import { useNotificationsStore } from '@/stores/notifications'
 
-const COPIED_FEEDBACK_MS = 2000
-
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const { phones, models, users, loading, updating, error, refetch } = usePhones()
@@ -87,7 +84,6 @@ const isShownAddPhonesModal = ref(false)
 const isShownEditPhoneDrawer = ref(false)
 const isShownDeletePhoneModal = ref(false)
 const isShownAdminPasswordDrawer = ref(false)
-const copiedMac = ref('')
 
 const registrations = computed(() => registrationsState.value.data)
 
@@ -252,20 +248,6 @@ async function writeClipboard(text: string) {
     throw new Error(t('phones.inventory.clipboard_unavailable'))
   }
   await navigator.clipboard.writeText(text)
-}
-
-async function copyMac(phone: Phone) {
-  try {
-    await writeClipboard(formatMac(phone.mac))
-    copiedMac.value = phone.mac
-    setTimeout(() => {
-      if (copiedMac.value === phone.mac) {
-        copiedMac.value = ''
-      }
-    }, COPIED_FEEDBACK_MS)
-  } catch (copyError) {
-    notificationsStore.createNotificationFromError(copyError, t('phones.inventory.cannot_copy'))
-  }
 }
 
 async function copyProvisioningUrl(phone: Phone) {
@@ -477,28 +459,7 @@ function showDeletePhoneModal(phone: Phone) {
         <NeTableBody>
           <NeTableRow v-for="phone in page" :key="phone.mac">
             <NeTableCell :data-label="$t('phones.mac_address')">
-              <div class="flex items-center gap-4">
-                <span>{{ formatMac(phone.mac) }}</span>
-                <NeTooltip trigger-event="mouseenter focus" placement="top">
-                  <template #trigger>
-                    <NeButton kind="tertiary" size="sm" @click="copyMac(phone)">
-                      <FontAwesomeIcon
-                        :icon="copiedMac === phone.mac ? faCheck : faClone"
-                        class="size-4"
-                        aria-hidden="true"
-                      />
-                      <span class="sr-only">
-                        {{ $t('phones.inventory.copy_mac', { mac: formatMac(phone.mac) }) }}
-                      </span>
-                    </NeButton>
-                  </template>
-                  <template #content>
-                    {{
-                      copiedMac === phone.mac ? $t('common.copied') : $t('phones.inventory.copy')
-                    }}
-                  </template>
-                </NeTooltip>
-              </div>
+              <ClickToCopy :text="formatMac(phone.mac)" />
             </NeTableCell>
             <NeTableCell :data-label="$t('phones.model')">
               {{ phone.modelLabel || '-' }}

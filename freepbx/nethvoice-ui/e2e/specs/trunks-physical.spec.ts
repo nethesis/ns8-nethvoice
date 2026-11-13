@@ -30,6 +30,10 @@ test.describe('trunks: physical', () => {
     await expect(patton).toContainText('192.168.10.20')
     await expect(patton).toContainText('00:A0:BA:0B:1C:DD')
     await expect(patton).toContainText('Connected')
+    await expect(patton.getByRole('button', { name: '192.168.10.20', exact: true })).toBeVisible()
+    await expect(
+      patton.getByRole('button', { name: '00:A0:BA:0B:1C:DD', exact: true }),
+    ).toBeVisible()
 
     const grandstream = page.getByRole('row', { name: /HT802 SIP 2 Porte FXS/ })
     await expect(grandstream).toContainText('Grandstream')
