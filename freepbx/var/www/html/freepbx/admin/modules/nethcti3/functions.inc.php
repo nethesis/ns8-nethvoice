@@ -1001,10 +1001,65 @@ function nethcti3_get_config_early($engine) {
         $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'] ?? '';
         $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$deviceMac), $username, $secretkey, array("variables" => $user_variables));
     }
+    nethcti3_release_unassigned_phones($dbh, $tancrediUrl, $username, $secretkey);
+
     /***********************************
     * call Tancredi /defaults REST API *
     ************************************/
     $res = nethcti_tancredi_patch($tancrediUrl . 'defaults', $username, $secretkey, $variables);
+}
+
+function nethcti3_release_unassigned_phones($dbh, $tancrediUrl, $username, $secretkey) {
+    $sql = 'SELECT DISTINCT p.mac FROM rest_devices_phones p'.
+        ' WHERE p.mac IS NOT NULL AND p.mac != ""'.
+        ' AND NOT EXISTS (SELECT 1 FROM rest_devices_phones q JOIN userman_users u ON q.user_id = u.id'.
+        ' WHERE q.mac = p.mac AND q.extension IS NOT NULL AND q.extension != "")';
+    $stmt = $dbh->prepare($sql);
+    $stmt->execute(array());
+    $accountVariables = array(
+        'account_extension_1',
+        'account_username_1',
+        'account_password_1',
+        'account_display_name_1',
+        'account_dnd_allow_1',
+        'account_fwd_allow_1',
+        'account_encryption_1',
+        'account_dtmf_type_1',
+        'account_voicemail_1',
+    );
+    foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $mac) {
+        $url = $tancrediUrl.'phones/'.str_replace(':', '-', strtoupper($mac));
+        $phone = nethcti_tancredi_request('GET', $url, $username, $secretkey);
+        if ($phone['code'] !== 200) {
+            continue;
+        }
+        $variables = json_decode($phone['response'], true)['variables'] ?? array();
+        if (!is_array($variables) || (empty($variables['account_username_1']) && empty($variables['account_extension_1']))) {
+            continue;
+        }
+        $res = nethcti_tancredi_patch($url, $username, $secretkey, array('variables' => array_fill_keys($accountVariables, null)));
+        if ($res['code'] < 200 || $res['code'] >= 300) {
+            error_log('Failed to release the account of the unassigned phone '.$mac.' in Tancredi: HTTP '.$res['code']);
+        }
+    }
+}
+
+function nethcti_tancredi_request($method, $url, $username, $secretkey) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_setopt($ch, CURLOPT_HEADER, FALSE);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        "Accept: application/json;charset=utf-8",
+        "User: $username",
+        "SecretKey: $secretkey",
+    ));
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return array('code'=>$httpCode, 'response' => $response);
 }
 
 function nethcti_tancredi_patch($url, $username, $secretkey, $data) {
