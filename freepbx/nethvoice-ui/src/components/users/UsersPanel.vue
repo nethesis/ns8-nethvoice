@@ -47,6 +47,7 @@ import AdvancedBulkUsersDrawer from '@/components/users/AdvancedBulkUsersDrawer.
 import BulkUsersDrawer, { type BulkUsersAction } from '@/components/users/BulkUsersDrawer.vue'
 import CreateOrEditUserDrawer from '@/components/users/CreateOrEditUserDrawer.vue'
 import ImportUsersFlow from '@/components/users/ImportUsersFlow.vue'
+import OrphanExtensionsDrawer from '@/components/users/OrphanExtensionsDrawer.vue'
 import ReassignExtensionModal from '@/components/users/ReassignExtensionModal.vue'
 import RemoveExtensionModal from '@/components/users/RemoveExtensionModal.vue'
 import UserDeviceIcons from '@/components/users/UserDeviceIcons.vue'
@@ -73,6 +74,7 @@ import {
   SOFTWARE_DEVICE_TYPES,
   type SoftwareDeviceType,
 } from '@/lib/users/users'
+import { useOrphanExtensions } from '@/queries/users/orphanExtensions'
 import { useUsers } from '@/queries/users/users'
 import { useUsersDirectory } from '@/queries/users/usersDirectory'
 import { useUsersProviderSync } from '@/queries/users/usersSync'
@@ -96,6 +98,9 @@ const users = computed(() => usersQuery.state.value.data ?? [])
 const directory = computed(() => directoryQuery.state.value.data ?? EMPTY_USERS_DIRECTORY)
 const rows = computed(() => buildUserRows(users.value, directory.value))
 const configuredCount = computed(() => countConfiguredUsers(users.value))
+const orphansQuery = useOrphanExtensions()
+const orphans = computed(() => orphansQuery.state.value.data ?? [])
+const isShownOrphans = ref(false)
 
 const DIRECTORY_PART_LABELS: Record<DirectoryPart, string> = {
   groups: 'users.groups',
@@ -364,6 +369,16 @@ const filterLabels = computed(() => ({
         </NeButton>
       </div>
     </div>
+    <NeInlineNotification
+      v-if="orphans.length > 0"
+      kind="warning"
+      class="mb-6"
+      :title="t('users.orphan_extensions_found', { count: orphans.length }, orphans.length)"
+      :description="t('users.orphan_extensions_found_description')"
+      :primary-button-label="t('users.show_orphan_extensions')"
+      data-testid="orphan-extensions-warning"
+      @primary-click="isShownOrphans = true"
+    />
     <LoadError
       v-if="loadError"
       :error="loadError"
@@ -629,6 +644,11 @@ const filterLabels = computed(() => ({
       :visible="isShownRemoveExtension"
       :user="currentUser"
       @close="isShownRemoveExtension = false"
+    />
+    <OrphanExtensionsDrawer
+      :is-shown="isShownOrphans"
+      :orphans="orphans"
+      @close="isShownOrphans = false"
     />
   </div>
 </template>

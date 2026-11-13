@@ -47,7 +47,10 @@
     "error_server_detail": "Server message: {detail}",
     "error_server": "The server could not complete the request (error {status}). Try again later.",
     "error_network": "Cannot reach the server. Check the connection and try again.",
-    "error_invalid_response": "The server sent an unexpected response. Reload the page and try again."
+    "error_invalid_response": "The server sent an unexpected response. Reload the page and try again.",
+    "click_to_copy": "Click to copy",
+    "name": "Name",
+    "show_details": "Show details"
   },
   "shell": {
     "open_sidebar": "Open sidebar",
@@ -62,7 +65,9 @@
     "close_side_drawer": "Close side drawer",
     "brand_logo": "{brand} logo",
     "open_legacy_wizard": "Go to the previous interface",
-    "administrator": "Administrator"
+    "administrator": "Administrator",
+    "switch_to_compact_view": "Switch to compact view",
+    "switch_to_standard_view": "Switch to standard view"
   },
   "login": {
     "welcome": "Welcome",
@@ -401,7 +406,22 @@
     "synchronizing_users": "Synchronizing users…",
     "cannot_sync_users": "Cannot synchronize the users",
     "users_synchronized": "Users synchronized",
-    "users_synchronized_description": "Names, new users and deleted users of the account provider have been applied"
+    "users_synchronized_description": "Names, new users and deleted users of the account provider have been applied",
+    "orphan_extensions_found": "{count} extension belongs to a removed user | {count} extensions belong to removed users",
+    "orphan_extensions_found_description": "Their devices can't make calls: the account provider can add the users again to restore everything, or you can delete the extensions.",
+    "show_orphan_extensions": "Show extensions",
+    "orphan_extensions": "Extensions of removed users",
+    "orphan_extensions_description": "The account provider has removed these users. Their extensions, devices and voicemail are kept, but the devices can't register. When the account provider adds a user with the same username again, everything returns to that user.",
+    "select_all_extensions": "Select all",
+    "orphan_extension": "Extension {extension}",
+    "orphan_physical_phones": "{count} physical phone | {count} physical phones",
+    "orphan_removed_on": "Removed on {date}",
+    "delete_orphan_extensions": "Delete extensions",
+    "delete_orphan_extensions_confirmation": "Extension {extensions} will be permanently deleted with the web phone, the apps and the voicemail of its removed user. | Extensions {extensions} will be permanently deleted with the web phones, the apps and the voicemail of their removed users.",
+    "delete_orphan_extensions_consequences": "The physical phones are freed and can be assigned to other users. If the account provider adds the users again, they won't get their extensions back. This cannot be undone.",
+    "cannot_delete_orphan_extensions": "Cannot delete the extensions",
+    "orphan_extensions_deleted": "Extensions deleted",
+    "orphan_extensions_deleted_description": "Extension {extensions} has been deleted | Extensions {extensions} have been deleted"
   },
   "trunks": {
     "title": "Trunks",
@@ -653,7 +673,9 @@
     "no_default_routes": "No default routes are available for the chosen country.",
     "no_trunks_warning": "No trunks: calls cannot be placed",
     "trunk_deleted": "Deleted",
-    "trunk_voice_agents": "AI agents"
+    "trunk_voice_agents": "AI agents",
+    "move_up": "Move up",
+    "move_down": "Move down"
   },
   "phones": {
     "title": "Physical phones",
@@ -699,9 +721,6 @@
       "encryption": "Encryption",
       "encrypted": "Encrypted",
       "not_encrypted": "Not encrypted",
-      "copy": "Copy",
-      "copy_mac": "Copy MAC address {mac}",
-      "cannot_copy": "Cannot copy",
       "clipboard_unavailable": "The clipboard is not available in this browser",
       "open_phone_menu": "Open the menu of phone {mac}",
       "run_provisioning": "Run provisioning",
