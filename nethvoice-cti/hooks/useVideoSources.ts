@@ -58,6 +58,20 @@ const normalizeSource = (key: string, raw: any): VideoSource => {
 
 const isImageSource = (source: VideoSource) => source.type === 'image'
 
+// Name of a gate in the user texts: gates without a name are "Door", numbered by position
+// when there are several of them
+export const getGateLabel = (
+  gates: VideoSourceGate[],
+  gate: VideoSourceGate,
+  t: (key: string, options?: Record<string, unknown>) => string,
+) => {
+  if (gate.name) return gate.name
+  const unnamedGates = gates.filter((item) => !item.name)
+  return unnamedGates.length > 1
+    ? t('Streaming.Door number', { number: unnamedGates.indexOf(gate) + 1 })
+    : t('Streaming.Door')
+}
+
 // Error codes of POST /streaming/open
 const OPEN_ERROR_CODES = [
   'no_gates',
@@ -94,7 +108,8 @@ export const useVideoSources = () => {
   // Handle unlock source action (the server opens the first gate when none is given)
   const handleUnlockSource = useCallback(
     async (source: VideoSource, gate?: VideoSourceGate) => {
-      const gateName = gate?.name || source.description || source.id
+      // the same name as in the menu of the gates
+      const gateName = gate ? getGateLabel(source.gates, gate, t) : t('Streaming.Door')
       try {
         await openVideoSource(gate?.id ? { id: source.id, gate: gate.id } : { id: source.id })
         openToast(

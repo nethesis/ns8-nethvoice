@@ -79,7 +79,7 @@ export const ExpandedVideoView: React.FC<ExpandedVideoViewProps> = ({
           onCallSource={onCallSource}
           sizeAction={{
             icon: faDownLeftAndUpRightToCenter,
-            label: 'Collapse',
+            label: t('Tooltip.Collapse'),
             tooltip: t('Tooltip.Collapse'),
             onClick: onClose,
           }}

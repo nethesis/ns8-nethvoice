@@ -4,11 +4,11 @@
 import React, { useRef, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { IconDefinition } from '@fortawesome/fontawesome-svg-core'
-import { faPhone, faCamera, faLock } from '@fortawesome/free-solid-svg-icons'
+import { faPhone, faCamera, faLockOpen } from '@fortawesome/free-solid-svg-icons'
 import { Button, Dropdown } from '../common'
 import { CustomThemedTooltip } from '../common/CustomThemedTooltip'
 import { useTranslation } from 'react-i18next'
-import { VideoSource, VideoSourceGate } from '../../hooks/useVideoSources'
+import { VideoSource, VideoSourceGate, getGateLabel } from '../../hooks/useVideoSources'
 
 interface VideoSourceActionsProps {
   source: VideoSource
@@ -45,13 +45,8 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
     if (barRef.current) setMenuMaxHeight(barRef.current.offsetTop)
   }
 
-  // gates without a name are "Door", numbered by position when there are several of them
-  const unnamedGates = gates.filter((gate) => !gate.name)
-  const gateLabel = (gate: VideoSourceGate) =>
-    gate.name ||
-    (unnamedGates.length > 1
-      ? t('Streaming.Door number', { number: unnamedGates.indexOf(gate) + 1 })
-      : t('Streaming.Door'))
+  // the same name is used in the result toasts
+  const gateLabel = (gate: VideoSourceGate) => getGateLabel(gates, gate, t)
 
   // "Open <name>" for a single named gate, "Open door" otherwise
   let unlockTooltip = t('Common.Open door')
@@ -68,15 +63,16 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
       data-tooltip-content={unlockTooltip}
       onClick={onClick}
     >
-      <FontAwesomeIcon icon={faLock} className='w-6 h-6' />
+      <FontAwesomeIcon icon={faLockOpen} className='w-6 h-6' />
     </Button>
   )
 
   return (
-    // kept visible while the gates menu is open
+    // shown on hover, kept visible while the gates menu is open or a button has the keyboard
+    // focus, always visible on touch screens (no hover)
     <div
       ref={barRef}
-      className='absolute bottom-0 left-0 right-0 bg-black/30 p-4 translate-y-full group-hover:translate-y-0 has-[[data-open]]:translate-y-0 transition-transform duration-200 ease-in-out flex justify-center gap-3'
+      className='absolute bottom-0 left-0 right-0 bg-black/30 p-4 translate-y-full group-hover:translate-y-0 group-focus-within:translate-y-0 has-[[data-open]]:translate-y-0 [@media(hover:none)]:translate-y-0 transition-transform duration-200 ease-in-out flex justify-center gap-3'
     >
       {source.extension && (
         <>
@@ -125,7 +121,7 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
                 {gates.map((gate) => (
                   <Dropdown.Item
                     key={gate.id}
-                    icon={faLock}
+                    icon={faLockOpen}
                     onClick={() => onUnlockSource(source, gate)}
                   >
                     <span className='truncate'>{gateLabel(gate)}</span>
