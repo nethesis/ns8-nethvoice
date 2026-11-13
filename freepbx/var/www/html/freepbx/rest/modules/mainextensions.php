@@ -21,6 +21,8 @@
 
 include_once('lib/libExtensions.php');
 include_once('lib/libUsers.php');
+include_once('lib/libMiddleware.php');
+include_once('lib/libCTI.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -63,6 +65,27 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
         return $response->withStatus(201);
     }
     return jsonResponse($response, $ret[0],$ret[1]);
+});
+
+$app->post('/mainextensions/{extension:[0-9]+}/reassign', function (Request $request, Response $response, $args) {
+    try {
+        $params = $request->getParsedBody();
+        $username = is_array($params) && isset($params['username']) && is_string($params['username']) ? trim($params['username']) : '';
+        if ($username === '') {
+            return jsonResponse($response, array('message' => 'Missing username'), 400);
+        }
+        $extension = $request->getAttribute('route')->getArgument('extension');
+        $ret = reassignMainExtension($extension, $username);
+        if ($ret !== true) {
+            return jsonResponse($response, $ret[0], $ret[1]);
+        }
+        triggerMiddlewareProfilesReloadAfterUserSync();
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return $response->withStatus(204);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, array('message' => 'Cannot reassign the main extension'), 500);
+    }
 });
 
 /**
