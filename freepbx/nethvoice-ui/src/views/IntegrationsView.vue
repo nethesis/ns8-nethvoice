@@ -7,6 +7,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NeHeading, NeTabs } from '@nethesis/vue-components'
+import { vKeyboardTabs } from '@/lib/keyboardTabs'
 import { useRouteTab } from '@/composables/useRouteTab'
 import PhonebookSourcesPanel from '@/components/integrations/PhonebookSourcesPanel.vue'
 import VideoSourcesPanel from '@/components/integrations/VideoSourcesPanel.vue'
@@ -46,6 +47,7 @@ function selectTab(tabName: string) {
   <div>
     <NeHeading tag="h3" class="mb-7">{{ $t('integrations.title') }}</NeHeading>
     <NeTabs
+      v-keyboard-tabs
       :tabs="tabs"
       :selected="selectedTab"
       :sr-tabs-label="t('ne_tabs.tabs')"

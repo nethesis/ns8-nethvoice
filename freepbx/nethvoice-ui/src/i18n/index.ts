@@ -81,5 +81,6 @@ export async function setLocale(locale: string, username: string | undefined = u
 
 // Load initial locale messages
 loadLocaleMessages(i18n.global.locale.value)
+document.documentElement.setAttribute('lang', i18n.global.locale.value)
 
 export default i18n

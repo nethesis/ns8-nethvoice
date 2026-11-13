@@ -5,8 +5,10 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import { type NeNotificationV2 } from '@nethesis/vue-components'
 import { useI18n } from 'vue-i18n'
+import { isValiError } from 'valibot'
 import i18n from '@/i18n'
-import { getApiErrorMessage, isApiError } from '@/lib/api/errors'
+import { getApiErrorDetail, isApiError } from '@/lib/api/errors'
+import { MissingWebPasswordError } from '@/lib/phones/phones'
 
 const NOTIFICATIONS_LIMIT = 30
 const DEFAULT_NOTIFICATION_TIMEOUT = 5000
@@ -34,7 +36,7 @@ export const describeError = (error: unknown): string => {
   const { t } = i18n.global
 
   if (isApiError(error)) {
-    const detail = getApiErrorMessage(error.body)
+    const detail = getApiErrorDetail(error)
     const statusMessage = STATUS_MESSAGES[error.status]
 
     if (statusMessage) {
@@ -47,6 +49,14 @@ export const describeError = (error: unknown): string => {
 
   if (isNetworkError(error)) {
     return t('common.error_network')
+  }
+
+  if (isValiError(error)) {
+    return t('common.error_invalid_response')
+  }
+
+  if (error instanceof MissingWebPasswordError) {
+    return t('phones.inventory.admin_password_missing_description')
   }
   return error instanceof Error ? error.message : ''
 }

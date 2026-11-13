@@ -118,6 +118,19 @@ export class MockApi {
   }
 }
 
+const WIZARD_PATH = '/freepbx/rest/configuration/wizard'
+
+export const mockWizardState = (mockApi: MockApi, step: number | null, inProgress = true) => {
+  let rows: unknown[] = step === null ? [] : [{ step, status: inProgress ? 'true' : 'false' }]
+
+  return mockApi
+    .on('GET', WIZARD_PATH, () => ({ json: rows }))
+    .on('POST', WIZARD_PATH, (request) => {
+      rows = [request.body]
+      return { status: 200 }
+    })
+}
+
 type Fixtures = {
   mockApi: MockApi
   signedIn: void
@@ -130,8 +143,7 @@ export const test = base.extend<Fixtures>({
     mockApi
       .on('GET', '/freepbx/rest/login', { json: { success: true } })
       .on('GET', '/freepbx/rest/logout', { json: { success: true } })
-      .on('GET', '/freepbx/rest/configuration/wizard', { json: [{ step: 13, status: 'false' }] })
-      .on('POST', '/freepbx/rest/configuration/wizard', { status: 200 })
+    mockWizardState(mockApi, 13, false)
 
     await mockApi.install(page)
     await use(mockApi)

@@ -86,9 +86,14 @@ export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
     }
     const favicon = document.querySelector<HTMLLinkElement>("link[rel='icon']")
 
-    if (favicon) {
-      favicon.href = faviconUrl
+    if (!favicon) {
+      return
     }
+    const image = new Image()
+    image.addEventListener('load', () => {
+      favicon.href = faviconUrl
+    })
+    image.src = faviconUrl
   }
 
   const load = async () => {

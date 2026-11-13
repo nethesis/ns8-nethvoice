@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import LogoLight from '@/assets/logo_light.svg'
@@ -17,16 +17,23 @@ const { variant = 'navbar' } = defineProps<{
 const themeStore = useThemeStore()
 const runtimeConfigStore = useRuntimeConfigStore()
 
-const logoUrl = computed(() => {
-  const customLogo =
-    variant === 'login'
-      ? runtimeConfigStore.config.loginLogoUrl
-      : runtimeConfigStore.config.navbarLogoUrl
+const customLogoFailed = ref(false)
 
-  if (customLogo) {
-    return customLogo
+const customLogo = computed(() =>
+  variant === 'login'
+    ? runtimeConfigStore.config.loginLogoUrl
+    : runtimeConfigStore.config.navbarLogoUrl,
+)
+
+const logoUrl = computed(() => {
+  if (customLogo.value && !customLogoFailed.value) {
+    return customLogo.value
   }
   return themeStore.isLight ? LogoLight : LogoDark
+})
+
+watch(customLogo, () => {
+  customLogoFailed.value = false
 })
 </script>
 
@@ -34,5 +41,6 @@ const logoUrl = computed(() => {
   <img
     :src="logoUrl"
     :alt="$t('shell.brand_logo', { brand: runtimeConfigStore.config.brandName })"
+    @error="customLogoFailed = true"
   />
 </template>

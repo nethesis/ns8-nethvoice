@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { beforeAll, describe, expect, it } from 'vitest'
+import * as v from 'valibot'
 import i18n, { loadLocaleMessages } from '@/i18n'
 import { ApiError } from '@/lib/api/errors'
 import { describeError, isNetworkError } from './notifications'
@@ -21,10 +22,25 @@ describe('describeError', () => {
     )
   })
 
+  it('hides the technical message of an unexpected response', () => {
+    const result = v.safeParse(v.object({ destinations: v.string() }), {})
+    const error = result.success ? null : new v.ValiError(result.issues)
+
+    expect(describeError(error)).toBe(
+      'The server sent an unexpected response. Reload the page and try again.',
+    )
+  })
+
   it('explains an error without message', () => {
     expect(describeError(apiError(500))).toBe(
       'The server could not complete the request (error 500). Try again later.',
     )
+  })
+
+  it('hides the HTML page of a server error', () => {
+    expect(
+      describeError(apiError(500, '<br /><b>Fatal error</b>: Uncaught PDOException: SQLSTATE')),
+    ).toBe('The server could not complete the request (error 500). Try again later.')
   })
 
   it('translates the conflict, validation and lock errors and keeps the server message', () => {
