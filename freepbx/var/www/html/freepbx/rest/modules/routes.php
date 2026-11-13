@@ -60,6 +60,15 @@ $app->get('/inboundroutes', function (Request $request, Response $response, $arg
 $app->post('/inboundroutes', function (Request $request, Response $response, $args) {
     $params = $request->getParsedBody();
 
+    if (!is_array($params)
+        || !isset($params['extension'])
+        || !is_scalar($params['extension'])
+        || !isset($params['destination'])
+        || !is_string($params['destination'])
+        || trim($params['destination']) === '') {
+      return jsonResponse($response, array('message' => 'Inbound route extension and destination are required'), 422);
+    }
+
     try {
       $res = FreePBX::Core()->addDID($params);
     } catch (Exception $e) {
@@ -77,15 +86,15 @@ $app->post('/inboundroutes', function (Request $request, Response $response, $ar
 $app->post('/inboundroutes/delete', function (Request $request, Response $response, $args) {
   $params = $request->getParsedBody();
   $extension = $params['extension'];
-  $cidnum = $params['cid'];
+  $cidnum = $params['cid'] ?? '';
 
   try {
-    $res = FreePBX::Core()->getDID($extension, $cidnum ? $cidnum : '');
+    $res = FreePBX::Core()->getDID($extension, $cidnum);
 
     if ($res === false)
       return $response->withStatus(404);
 
-    FreePBX::Core()->delDID($extension, $cidnum ? $cidnum : '');
+    FreePBX::Core()->delDID($extension, $cidnum);
   } catch (Exception $e) {
     error_log($e->getMessage());
     return jsonResponse($response, 'An error occurred', 500);
