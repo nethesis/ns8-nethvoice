@@ -10,7 +10,6 @@ import {
   NeButton,
   NeDropdown,
   NeEmptyState,
-  NePaginator,
   NeSortDropdown,
   NeTable,
   NeTableBody,
@@ -27,19 +26,20 @@ import {
   faPenToSquare,
   faRoute,
   faTrash,
+  faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
+import TablePaginator from '@/components/common/TablePaginator.vue'
 import DeleteInboundRouteModal from './DeleteInboundRouteModal.vue'
+import { useInboundRouteLabels } from '@/composables/useInboundRouteLabels'
 import { useInboundRoutes } from '@/queries/routes/inbound'
 import {
   filterInboundRoutes,
-  getInboundRouteName,
   getVisualPlanRouteUrl,
   INBOUND_ROUTE_SORT_KEYS,
   sortInboundRoutes,
   type InboundRoute,
   type InboundRouteSortKey,
-  type RouteDestination,
 } from '@/lib/routes/inbound'
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginate } from '@/lib/common'
 
@@ -47,6 +47,7 @@ const DEFAULT_SORT_KEY: InboundRouteSortKey = 'number'
 
 const { t } = useI18n()
 const { state, refetch } = useInboundRoutes()
+const { getRouteName, describeDestination, isInvalidDestination } = useInboundRouteLabels()
 
 const textFilter = ref('')
 const sortKey = ref<string | undefined>(DEFAULT_SORT_KEY)
@@ -112,17 +113,6 @@ watch(
   },
 )
 
-function describeDestination(destination: RouteDestination): string {
-  if (!destination.description) {
-    return ''
-  }
-  const prefix = destination.kind
-    ? t(`routes.destination_kind.${destination.kind}`)
-    : destination.category
-
-  return prefix ? `${prefix}: ${destination.description}` : destination.description
-}
-
 function clearFilters() {
   textFilter.value = ''
   sortKey.value = DEFAULT_SORT_KEY
@@ -153,12 +143,13 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
 
 <template>
   <div class="flex flex-col gap-6">
-    <div class="flex flex-wrap items-center gap-4">
+    <div v-if="!isNoDataEmptyStateShown" class="flex flex-wrap items-center gap-4">
       <NeTextInput
         v-model="textFilter"
         is-search
         :placeholder="t('routes.filter_routes')"
         :aria-label="t('routes.filter_routes')"
+        :clear-search-label="t('ne_text_input.clear_search')"
         class="w-full max-w-xs"
         @blur="textFilter = textFilter.trim()"
       />
@@ -218,13 +209,26 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
       <NeTableBody>
         <NeTableRow v-for="item in routesPage" :key="item.id">
           <NeTableCell :data-label="t('routes.route')">
-            <span class="wrap-anywhere">{{ getInboundRouteName(item) || '-' }}</span>
+            <span class="wrap-anywhere">{{ getRouteName(item) }}</span>
           </NeTableCell>
           <NeTableCell :data-label="t('routes.description')">
             <span class="wrap-anywhere">{{ item.description || '-' }}</span>
           </NeTableCell>
           <NeTableCell :data-label="t('routes.destination')">
-            <span class="wrap-anywhere">{{ describeDestination(item.destination) || '-' }}</span>
+            <span
+              v-if="isInvalidDestination(item.destination)"
+              class="inline-flex items-center gap-2 text-amber-700 dark:text-amber-500"
+            >
+              <FontAwesomeIcon
+                :icon="faTriangleExclamation"
+                class="size-4 shrink-0"
+                aria-hidden="true"
+              />
+              {{ t('routes.invalid_destination') }}
+            </span>
+            <span v-else class="wrap-anywhere">{{
+              describeDestination(item.destination) || '-'
+            }}</span>
           </NeTableCell>
           <NeTableCell :data-label="t('common.actions')">
             <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
@@ -234,41 +238,23 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
                 </template>
                 {{ t('common.edit') }}
                 <span class="sr-only">
-                  {{ t('routes.edit_route_in_visual_plan', { name: getInboundRouteName(item) }) }}
+                  {{ t('routes.edit_route_in_visual_plan', { name: getRouteName(item) }) }}
                 </span>
               </NeButton>
               <NeDropdown
                 :items="getKebabMenuItems(item)"
                 :align-to-right="true"
-                :open-menu-aria-label="
-                  t('routes.open_route_menu', { name: getInboundRouteName(item) })
-                "
+                :open-menu-aria-label="t('routes.open_route_menu', { name: getRouteName(item) })"
               />
             </div>
           </NeTableCell>
         </NeTableRow>
       </NeTableBody>
       <template v-if="filteredRoutes.length > PAGE_SIZES[0]" #paginator>
-        <NePaginator
-          :current-page="pageNum"
+        <TablePaginator
+          v-model:page-num="pageNum"
+          v-model:page-size="pageSize"
           :total-rows="filteredRoutes.length"
-          :page-size="pageSize"
-          :page-sizes="PAGE_SIZES"
-          :nav-pagination-label="t('ne_table.pagination')"
-          :next-label="t('ne_table.go_to_next_page')"
-          :previous-label="t('ne_table.go_to_previous_page')"
-          :range-of-total-label="t('ne_table.of')"
-          :page-size-label="t('ne_table.show')"
-          @select-page="
-            (page: number) => {
-              pageNum = page
-            }
-          "
-          @select-page-size="
-            (size: number) => {
-              pageSize = size
-            }
-          "
         />
       </template>
     </NeTable>

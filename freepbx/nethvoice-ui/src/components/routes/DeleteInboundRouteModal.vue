@@ -8,12 +8,8 @@ import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import DeleteObjectModal from '@/components/common/DeleteObjectModal.vue'
-import {
-  deleteInboundRoute,
-  getInboundRouteName,
-  INBOUND_ROUTES_KEY,
-  type InboundRoute,
-} from '@/lib/routes/inbound'
+import { useInboundRouteLabels } from '@/composables/useInboundRouteLabels'
+import { deleteInboundRoute, INBOUND_ROUTES_KEY, type InboundRoute } from '@/lib/routes/inbound'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { visible = false, route = undefined } = defineProps<{
@@ -26,6 +22,7 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
+const { getRouteName } = useInboundRouteLabels()
 
 const {
   mutate: deleteRouteMutate,
@@ -34,15 +31,23 @@ const {
   error: deleteRouteError,
 } = useMutation({
   mutation: (routeToDelete: InboundRoute) => deleteInboundRoute(routeToDelete),
-  onSuccess(_data, routeToDelete) {
+  onSuccess(result, routeToDelete) {
+    const name = getRouteName(routeToDelete)
+
     setTimeout(() => {
-      notificationsStore.createNotification({
-        kind: 'success',
-        title: t('routes.route_deleted'),
-        description: t('common.object_deleted_successfully', {
-          name: getInboundRouteName(routeToDelete),
-        }),
-      })
+      notificationsStore.createNotification(
+        result === 'not_found'
+          ? {
+              kind: 'warning',
+              title: t('routes.route_already_deleted'),
+              description: t('routes.route_already_deleted_description', { name }),
+            }
+          : {
+              kind: 'success',
+              title: t('routes.route_deleted'),
+              description: t('routes.route_deleted_description', { name }),
+            },
+      )
     }, 500)
     emit('close')
   },
@@ -74,7 +79,7 @@ function deleteRoute() {
     :primary-label="t('common.delete')"
     :deleting="deleteRouteLoading"
     :confirmation-message="
-      t('routes.delete_route_confirmation', { name: route ? getInboundRouteName(route) : '' })
+      t('routes.delete_route_confirmation', { name: route ? getRouteName(route) : '' })
     "
     :error-title="deleteRouteError ? t('routes.cannot_delete_route') : ''"
     :error-description="describeError(deleteRouteError)"

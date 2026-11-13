@@ -7,24 +7,31 @@ import { expect, test } from '../fixtures/mockApi'
 const TWT = { trunkid: 2, name: 'TWT-0212345678' }
 const VODAFONE = { trunkid: 5, name: 'Vodafone-0698765432' }
 const TIM = { trunkid: 7, name: 'TIM-0114455667' }
+const AGENT = { trunkid: 1, name: 'VoiceAgentTrunk_2' }
+const BACKUP = { trunkid: 9, name: 'Backup-0611223344' }
+const DELETED = { trunkid: 42, name: null }
+
+const TRUNKS = [
+  { ...AGENT, tech: 'pjsip', provider: 'satellite-agent' },
+  { ...TWT, tech: 'pjsip' },
+  { ...VODAFONE, tech: 'pjsip' },
+  { ...TIM, tech: 'pjsip' },
+  { ...BACKUP, tech: 'pjsip', disabled: 'on' },
+]
+
+const KINDS = ['national', 'cellphone', 'international', 'toll']
 
 const ROUTES = [
   { route_id: 1, name: 'national_it', seq: 0, outcid: '', trunks: [TWT, VODAFONE, TIM] },
   { route_id: 2, name: 'cellphone_it', seq: 1, trunks: [TWT, VODAFONE] },
   { route_id: 3, name: 'international_it', seq: 2, trunks: [TWT, VODAFONE, TIM] },
   { route_id: 4, name: 'toll_it', seq: 3, trunks: [] },
-  { route_id: 8, name: 'Emergency', seq: 4, trunks: [VODAFONE] },
+  { route_id: 8, name: 'Emergency', seq: 4, trunks: [VODAFONE, BACKUP, DELETED] },
 ]
 
 const DEFAULTS = {
-  en: ['national', 'cellphone', 'international', 'toll'].map((kind) => ({
-    name: `${kind}_en`,
-    trunks: [TWT, VODAFONE, TIM],
-  })),
-  it: ['national', 'cellphone', 'international', 'toll'].map((kind) => ({
-    name: `${kind}_it`,
-    trunks: [TWT, VODAFONE, TIM],
-  })),
+  en: KINDS.map((kind) => ({ name: `${kind}_en`, trunks: [AGENT, TWT, VODAFONE, TIM, BACKUP] })),
+  it: KINDS.map((kind) => ({ name: `${kind}_it`, trunks: [AGENT, TWT, VODAFONE, TIM, BACKUP] })),
 }
 
 type OpenedWindows = { __openedUrls?: string[] }
@@ -56,7 +63,7 @@ test.describe('routes: outbound', () => {
       .on('GET', '/freepbx/rest/outboundroutes', { json: ROUTES })
       .on('GET', '/freepbx/rest/outboundroutes/defaults', { json: DEFAULTS })
       .on('POST', '/freepbx/rest/outboundroutes', { status: 200 })
-      .on('GET', '/freepbx/rest/trunks', { json: [] })
+      .on('GET', '/freepbx/rest/trunks', { json: TRUNKS })
       .on('GET', '/freepbx/rest/providers', { json: [] })
     await recordWindowOpen(page)
   })
@@ -102,8 +109,26 @@ test.describe('routes: outbound', () => {
       'Vodafone-0698765432',
       'TIM-0114455667',
     ])
-    await expect(routeRow(page, 'Toll')).toContainText('No trunks')
+    await expect(routeRow(page, 'Toll')).toContainText('No trunks: calls cannot be placed')
     await expect(routeRow(page, 'Emergency')).toContainText('Custom route')
+    await expect(routeRow(page, 'Emergency').getByRole('listitem')).toHaveText([
+      'Vodafone-0698765432',
+      /Backup-0611223344\s*Disabled/,
+      /42\s*Deleted/,
+    ])
+  })
+
+  test('tells apart the routes of two countries', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/outboundroutes', {
+      json: [
+        { route_id: 1, name: 'national_it', trunks: [TWT] },
+        { route_id: 2, name: 'national_en', trunks: [TWT] },
+      ],
+    })
+    await page.goto('./routes/outbound')
+
+    await expect(routeRow(page, 'National (Italy)')).toBeVisible()
+    await expect(routeRow(page, 'National (United States)')).toBeVisible()
   })
 
   test('opens the FreePBX pages of all routes and of one route', async ({ page }) => {
@@ -162,9 +187,10 @@ test.describe('routes: outbound', () => {
     await page.getByRole('option', { name: 'Italy' }).click()
     await modal.getByRole('button', { name: 'Create routes' }).click()
 
+    await expect.poll(() => mockApi.callsTo('POST', '/freepbx/rest/outboundroutes').length).toBe(1)
     await expect(modal).toBeHidden()
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')[0].body).toEqual({
-      it: DEFAULTS.it,
+      it: KINDS.map((kind) => ({ name: `${kind}_it`, trunks: [TWT, VODAFONE, TIM] })),
     })
     await expect(routeRow(page, 'National')).toBeVisible()
   })
@@ -203,10 +229,67 @@ test.describe('routes: outbound', () => {
         { route_id: 2, name: 'cellphone_it', trunks: [VODAFONE, TIM] },
         { route_id: 3, name: 'international_it', trunks: [TWT, VODAFONE, TIM] },
         { route_id: 4, name: 'toll_it', trunks: [] },
-        { route_id: 8, name: 'Emergency', trunks: [VODAFONE] },
+        { route_id: 8, name: 'Emergency', trunks: [VODAFONE, BACKUP] },
       ],
     })
     await expect(page.getByText('Route saved')).toBeVisible()
+    await expect(page.getByText('The route Cellphone has been saved')).toBeVisible()
+  })
+
+  test('asks before discarding the changes and keeps the drawer open while saving', async ({
+    page,
+    mockApi,
+  }) => {
+    let release = () => {}
+    const pending = new Promise<void>((resolve) => {
+      release = resolve
+    })
+
+    mockApi.on('POST', '/freepbx/rest/outboundroutes', async () => {
+      await pending
+      return { status: 200 }
+    })
+    await page.goto('./routes/outbound')
+    await routeRow(page, 'Cellphone').getByRole('button', { name: /Edit/ }).click()
+
+    const drawer = page.getByRole('dialog').filter({ hasText: 'Edit Cellphone' })
+    const drawerTitle = drawer.getByRole('heading', { name: 'Edit Cellphone' })
+
+    await drawer.getByRole('button', { name: 'Remove TWT-0212345678' }).click()
+    await page.keyboard.press('Escape')
+
+    const discard = page.getByRole('dialog', { name: 'Unsaved changes' })
+
+    await expect(discard.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await discard.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(discard).toBeHidden()
+    await expect(drawerTitle).toBeVisible()
+
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await page.keyboard.press('Escape')
+    await expect(drawerTitle).toBeVisible()
+
+    release()
+    await expect(drawerTitle).toBeHidden()
+  })
+
+  test('explains that the route was deleted in the meantime', async ({ page, mockApi }) => {
+    let deleted = false
+
+    mockApi.on('GET', '/freepbx/rest/outboundroutes', () => ({
+      json: deleted ? ROUTES.filter((route) => route.route_id !== 2) : ROUTES,
+    }))
+    await page.goto('./routes/outbound')
+    await routeRow(page, 'Cellphone').getByRole('button', { name: /Edit/ }).click()
+
+    const drawer = page.getByRole('dialog')
+
+    await drawer.getByRole('button', { name: 'Remove TWT-0212345678' }).click()
+    deleted = true
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(drawer.getByText('This route no longer exists.')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(0)
   })
 
   test('reorders trunks by drag and drop', async ({ page, mockApi }) => {
@@ -216,10 +299,12 @@ test.describe('routes: outbound', () => {
     const drawer = page.getByRole('dialog')
     const trunks = drawer.getByRole('list', { name: 'Trunk priority' }).getByRole('listitem')
 
+    await expect(trunks).toHaveCount(3)
     await trunks.nth(2).dragTo(trunks.nth(0))
     await expect(trunks).toHaveText([/TIM-0114455667/, /TWT-0212345678/, /Vodafone-0698765432/])
 
     await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect.poll(() => mockApi.callsTo('POST', '/freepbx/rest/outboundroutes').length).toBe(1)
     await expect(drawer).toBeHidden()
 
     const [call] = mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')

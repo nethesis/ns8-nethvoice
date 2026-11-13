@@ -3,6 +3,7 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
+import { isApiError } from '@/lib/api/errors'
 import { compareNatural, matchesText } from '@/lib/common'
 import { VISUAL_PLAN_URL } from '@/lib/config'
 
@@ -17,10 +18,12 @@ export const DESTINATION_KINDS = [
   'call_flow',
   'conference',
   'cqr',
+  'custom_context',
   'extension',
   'feature_code',
   'inbound_route',
   'ivr',
+  'language',
   'misc_destination',
   'queue',
   'ring_group',
@@ -29,6 +32,10 @@ export const DESTINATION_KINDS = [
   'trunk',
   'voice_agent',
   'voicemail',
+  'voicemail_busy',
+  'voicemail_instructions',
+  'voicemail_no_message',
+  'voicemail_unavailable',
 ] as const
 
 export type DestinationKind = (typeof DESTINATION_KINDS)[number]
@@ -50,7 +57,21 @@ const DESTINATION_KIND_BY_CONTEXT: [RegExp, DestinationKind][] = [
   [/^ext-miscdests$/, 'misc_destination'],
   [/^ext-featurecodes$/, 'feature_code'],
   [/^voice-agent-/, 'voice_agent'],
+  [/^app-languages$/, 'language'],
 ]
+
+const VOICEMAIL_KIND_BY_PREFIX: Record<string, DestinationKind> = {
+  vmb: 'voicemail_busy',
+  vmu: 'voicemail_unavailable',
+  vms: 'voicemail_no_message',
+  vmi: 'voicemail_instructions',
+}
+
+const DESTINATION_KIND_BY_CATEGORY: Record<string, DestinationKind> = {
+  'Custom Contexts': 'custom_context',
+}
+
+const VOICEMAIL_DESCRIPTION = /^<([^>]+)>\s*(.*?)\s*\([^)]*\)$/
 
 const nullableText = v.pipe(
   v.nullish(v.union([v.string(), v.number()]), ''),
@@ -98,12 +119,30 @@ export type InboundRoute = {
   destination: RouteDestination
 }
 
-export const getInboundRouteName = (route: Pick<InboundRoute, 'number' | 'cid'>): string =>
-  route.cid ? `${route.number} / ${route.cid}` : route.number
+export type InboundRouteDeleteResult = 'deleted' | 'not_found'
+
+export const getInboundRouteName = (
+  route: Pick<InboundRoute, 'number' | 'cid'>,
+  anyDid = '',
+): string => {
+  const number = route.number || anyDid
+
+  if (!route.cid) {
+    return number
+  }
+  return number ? `${number} / ${route.cid}` : route.cid
+}
 
 export const getDestinationKind = (target: string): DestinationKind | null => {
-  const [context] = target.split(',')
+  const [context, targetId = ''] = target.split(',')
 
+  if (context === 'ext-local') {
+    const voicemailKind = VOICEMAIL_KIND_BY_PREFIX[targetId.slice(0, 3)]
+
+    if (voicemailKind && /^\d+$/.test(targetId.slice(3))) {
+      return voicemailKind
+    }
+  }
   return DESTINATION_KIND_BY_CONTEXT.find(([pattern]) => pattern.test(context))?.[1] ?? null
 }
 
@@ -114,7 +153,30 @@ const describeTarget = (target: string, description: string): string => {
   if (numbered && numbered[1] === targetId) {
     return `${numbered[2]} (${numbered[1]})`
   }
+  const voicemail = VOICEMAIL_DESCRIPTION.exec(description)
+
+  if (voicemail && targetId.endsWith(voicemail[1])) {
+    return voicemail[2] ? `${voicemail[2]} (${voicemail[1]})` : voicemail[1]
+  }
   return description.replace(/^Agent:\s*/, '')
+}
+
+export const isInvalidDestination = (destination: RouteDestination): boolean =>
+  Boolean(destination.target) &&
+  !destination.kind &&
+  !destination.category &&
+  destination.description === destination.target
+
+export const describeInboundDestination = (
+  destination: RouteDestination,
+  describeKind: (kind: DestinationKind) => string,
+): string => {
+  if (!destination.description) {
+    return ''
+  }
+  const prefix = destination.kind ? describeKind(destination.kind) : destination.category
+
+  return prefix ? `${prefix}: ${destination.description}` : destination.description
 }
 
 export const parseInboundRoutes = (raw: unknown): InboundRoute[] => {
@@ -122,7 +184,11 @@ export const parseInboundRoutes = (raw: unknown): InboundRoute[] => {
 
   return routes.map((route) => {
     const known = route.destination ? destinations[route.destination] : undefined
-    const kind = getDestinationKind(route.destination)
+    const kind = known
+      ? (getDestinationKind(route.destination) ??
+        DESTINATION_KIND_BY_CATEGORY[known.category || known.name] ??
+        null)
+      : null
 
     return {
       id: `${route.extension}/${route.cidnum}`,
@@ -131,7 +197,7 @@ export const parseInboundRoutes = (raw: unknown): InboundRoute[] => {
       description: route.description,
       destination: {
         target: route.destination,
-        kind: known ? kind : null,
+        kind,
         category: known ? known.category || known.name : '',
         description: known
           ? describeTarget(route.destination, known.description)
@@ -146,10 +212,20 @@ export const getInboundRoutes = async (): Promise<InboundRoute[]> => {
   return parseInboundRoutes(data)
 }
 
-export const deleteInboundRoute = async (route: InboundRoute): Promise<void> => {
-  await api.POST('/inboundroutes/delete', {
-    body: { extension: route.number, cid: route.cid },
-  })
+export const deleteInboundRoute = async (
+  route: InboundRoute,
+): Promise<InboundRouteDeleteResult> => {
+  try {
+    await api.POST('/inboundroutes/delete', {
+      body: { extension: route.number, cid: route.cid },
+    })
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) {
+      return 'not_found'
+    }
+    throw error
+  }
+  return 'deleted'
 }
 
 export const filterInboundRoutes = (

@@ -1,12 +1,17 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
+import { ApiError } from '@/lib/api/errors'
 import {
+  deleteInboundRoute,
+  describeInboundDestination,
   filterInboundRoutes,
   getDestinationKind,
   getInboundRouteName,
   getVisualPlanRouteUrl,
+  isInvalidDestination,
   parseInboundRoutes,
   sortInboundRoutes,
   type InboundRoute,
@@ -138,6 +143,52 @@ describe('parseInboundRoutes', () => {
     })
   })
 
+  it('should format a voicemail like an extension and keep its mode in the kind', () => {
+    const [route] = parseInboundRoutes({
+      destinations: {
+        'ext-local,vmb200,1': {
+          destination: 'ext-local,vmb200,1',
+          description: '<200> Andrea (busy)',
+          category: 'Voicemail',
+          name: 'Voicemail',
+        },
+      },
+      routes: [{ extension: '1', cidnum: '', destination: 'ext-local,vmb200,1' }],
+    })
+
+    expect(route.destination).toMatchObject({
+      kind: 'voicemail_busy',
+      description: 'Andrea (200)',
+    })
+  })
+
+  it('should recognise languages and custom contexts', () => {
+    const [language, context] = parseInboundRoutes({
+      destinations: {
+        'app-languages,1,1': {
+          destination: 'app-languages,1,1',
+          description: 'English',
+          name: 'Languages',
+        },
+        'from-internal,${EXTEN},1': {
+          destination: 'from-internal,${EXTEN},1',
+          description: 'Full Internal Access',
+          name: 'Custom Contexts',
+        },
+      },
+      routes: [
+        { extension: '1', cidnum: '', destination: 'app-languages,1,1' },
+        { extension: '2', cidnum: '', destination: 'from-internal,${EXTEN},1' },
+      ],
+    })
+
+    expect(language.destination).toMatchObject({ kind: 'language', description: 'English' })
+    expect(context.destination).toMatchObject({
+      kind: 'custom_context',
+      description: 'Full Internal Access',
+    })
+  })
+
   it('should accept the empty array PHP sends for an empty destinations map', () => {
     expect(parseInboundRoutes({ destinations: [], routes: [] })).toEqual([])
   })
@@ -154,7 +205,12 @@ describe('getDestinationKind', () => {
     expect(getDestinationKind('app-announcement-3,s,1')).toBe('announcement')
     expect(getDestinationKind('timeconditions,1,1')).toBe('time_condition')
     expect(getDestinationKind('app-blackhole,hangup,1')).toBe('terminate_call')
-    expect(getDestinationKind('ext-local,vmb300,1')).toBe('voicemail')
+    expect(getDestinationKind('ext-local,vmb300,1')).toBe('voicemail_busy')
+    expect(getDestinationKind('ext-local,vmu300,1')).toBe('voicemail_unavailable')
+    expect(getDestinationKind('ext-local,vms300,1')).toBe('voicemail_no_message')
+    expect(getDestinationKind('ext-local,vmi300,1')).toBe('voicemail_instructions')
+    expect(getDestinationKind('ext-local,300,1')).toBe('voicemail')
+    expect(getDestinationKind('app-languages,2,1')).toBe('language')
   })
 
   it('should return null for anything else', () => {
@@ -167,6 +223,84 @@ describe('getInboundRouteName', () => {
   it('should join number and caller ID', () => {
     expect(getInboundRouteName({ number: '123', cid: '345' })).toBe('123 / 345')
     expect(getInboundRouteName({ number: '123', cid: '' })).toBe('123')
+  })
+
+  it('should name the routes without a DID', () => {
+    expect(getInboundRouteName({ number: '', cid: '' }, 'Any DID')).toBe('Any DID')
+    expect(getInboundRouteName({ number: '', cid: '345' }, 'Any DID')).toBe('Any DID / 345')
+    expect(getInboundRouteName({ number: '', cid: '345' })).toBe('345')
+  })
+})
+
+describe('isInvalidDestination', () => {
+  it('should flag only a target that does not exist anymore', () => {
+    const [valid, missing, empty] = parseInboundRoutes({
+      ...RESPONSE,
+      routes: [
+        { extension: '1', cidnum: '', destination: 'ext-queues,400,1' },
+        { extension: '2', cidnum: '', destination: 'ext-queues,999,1' },
+        { extension: '3', cidnum: '', destination: '' },
+      ],
+    })
+
+    expect(isInvalidDestination(valid.destination)).toBe(false)
+    expect(isInvalidDestination(missing.destination)).toBe(true)
+    expect(isInvalidDestination(empty.destination)).toBe(false)
+  })
+})
+
+describe('describeInboundDestination', () => {
+  const describeKind = (kind: string) => `kind:${kind}`
+
+  it('should prefix the description with the destination kind', () => {
+    expect(
+      describeInboundDestination(
+        { target: 'ext-queues,400,1', kind: 'queue', category: 'Queues', description: 'Sales' },
+        describeKind,
+      ),
+    ).toBe('kind:queue: Sales')
+  })
+
+  it('should fall back to the category when the kind is unknown', () => {
+    expect(
+      describeInboundDestination(
+        { target: 'custom,1', kind: null, category: 'Custom', description: 'Night' },
+        describeKind,
+      ),
+    ).toBe('Custom: Night')
+  })
+
+  it('should return an empty text without a description', () => {
+    expect(
+      describeInboundDestination(
+        { target: '', kind: null, category: '', description: '' },
+        describeKind,
+      ),
+    ).toBe('')
+  })
+})
+
+describe('deleteInboundRoute', () => {
+  const route = parseInboundRoutes(RESPONSE)[0]
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should report a route deleted in the meantime', async () => {
+    vi.spyOn(api, 'POST').mockRejectedValue(
+      new ApiError({ status: 404, method: 'POST', url: '/inboundroutes/delete', body: null }),
+    )
+
+    await expect(deleteInboundRoute(route)).resolves.toBe('not_found')
+  })
+
+  it('should rethrow any other error', async () => {
+    vi.spyOn(api, 'POST').mockRejectedValue(
+      new ApiError({ status: 500, method: 'POST', url: '/inboundroutes/delete', body: null }),
+    )
+
+    await expect(deleteInboundRoute(route)).rejects.toThrow()
   })
 })
 

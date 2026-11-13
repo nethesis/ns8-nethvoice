@@ -10,6 +10,8 @@ import {
   filterOutboundRoutes,
   getAvailableTrunks,
   getOutboundRouteAdvancedUrl,
+  getOutboundTrunks,
+  getRouteTrunkState,
   getRoutesLocale,
   haveSameTrunks,
   moveItem,
@@ -19,10 +21,37 @@ import {
   sortOutboundRoutes,
   type OutboundRoute,
 } from './outbound'
+import type { Trunk } from '@/lib/trunks/trunks'
 
 const TWT = { id: 2, name: 'TWT-0212345678' }
 const TIM = { id: 3, name: 'TIM-0114455667' }
 const VODAFONE = { id: 5, name: 'Vodafone-0698765432' }
+
+const AGENT = { id: 1, name: 'VoiceAgentTrunk_2' }
+
+const BACKUP = { id: 7, name: 'Backup' }
+
+const toTrunk = (trunk: { id: number; name: string }, values: Partial<Trunk> = {}): Trunk => ({
+  id: trunk.id,
+  name: trunk.name,
+  technology: 'pjsip',
+  phoneNumber: '',
+  username: '',
+  provider: '',
+  sipServer: '',
+  codecs: [],
+  disabled: false,
+  context: '',
+  ...values,
+})
+
+const TRUNKS: Trunk[] = [
+  toTrunk(AGENT, { provider: 'satellite-agent' }),
+  toTrunk(TWT),
+  toTrunk(TIM),
+  toTrunk(VODAFONE),
+  toTrunk(BACKUP, { disabled: true }),
+]
 
 const ROUTES_RESPONSE = [
   {
@@ -126,7 +155,7 @@ describe('buildCreateDefaultsRequest', () => {
   it('should create the routes of the locale with every available trunk', () => {
     const defaults = parseOutboundRouteDefaults(DEFAULTS_RESPONSE)
 
-    expect(buildCreateDefaultsRequest('it', defaults)).toEqual({
+    expect(buildCreateDefaultsRequest('it', defaults, TRUNKS)).toEqual({
       it: [
         { name: 'national_it', trunks: [{ trunkid: 2, name: 'TWT-0212345678' }] },
         { name: 'cellphone_it', trunks: [{ trunkid: 2, name: 'TWT-0212345678' }] },
@@ -134,10 +163,37 @@ describe('buildCreateDefaultsRequest', () => {
     })
   })
 
+  it('should leave out the trunks of the AI agents and the disabled trunks', () => {
+    const toDefaultTrunk = (trunk: { id: number; name: string }) => ({
+      trunkid: trunk.id,
+      name: trunk.name,
+    })
+    const defaults = parseOutboundRouteDefaults({
+      it: [
+        {
+          name: 'national_it',
+          trunks: [AGENT, TWT, BACKUP, TIM].map(toDefaultTrunk),
+        },
+      ],
+    })
+
+    expect(buildCreateDefaultsRequest('it', defaults, TRUNKS)).toEqual({
+      it: [
+        {
+          name: 'national_it',
+          trunks: [
+            { trunkid: 2, name: 'TWT-0212345678' },
+            { trunkid: 3, name: 'TIM-0114455667' },
+          ],
+        },
+      ],
+    })
+  })
+
   it('should build an empty list for an unknown locale', () => {
     const defaults = parseOutboundRouteDefaults(DEFAULTS_RESPONSE)
 
-    expect(buildCreateDefaultsRequest('pt', defaults)).toEqual({ pt: [] })
+    expect(buildCreateDefaultsRequest('pt', defaults, TRUNKS)).toEqual({ pt: [] })
   })
 })
 
@@ -168,6 +224,16 @@ describe('buildUpdateTrunksRequest', () => {
     })
   })
 
+  it('should drop the trunks that do not exist anymore', () => {
+    const request = buildUpdateTrunksRequest(routes, 4, [VODAFONE, TWT], [toTrunk(TWT)])
+
+    expect(request.it.map((route) => route.trunks)).toEqual([
+      [{ trunkid: 2, name: 'TWT-0212345678' }],
+      [{ trunkid: 2, name: 'TWT-0212345678' }],
+      [],
+    ])
+  })
+
   it('should fall back to a locale key when every route is custom', () => {
     const custom = routes.filter((route) => route.kind === null)
 
@@ -179,6 +245,29 @@ describe('getAvailableTrunks', () => {
   it('should leave out the trunks already in the route', () => {
     expect(getAvailableTrunks([TWT, TIM, VODAFONE], [TIM])).toEqual([TWT, VODAFONE])
     expect(getAvailableTrunks([TWT], [TWT])).toEqual([])
+  })
+
+  it('should leave out the trunks of the AI agents and the disabled trunks', () => {
+    expect(getAvailableTrunks([AGENT, TWT, BACKUP, TIM], [TIM], TRUNKS)).toEqual([TWT])
+  })
+})
+
+describe('getOutboundTrunks', () => {
+  it('should keep only the enabled trunks that can place calls', () => {
+    expect(getOutboundTrunks([AGENT, TWT, BACKUP, { id: 42, name: '42' }], TRUNKS)).toEqual([TWT])
+  })
+})
+
+describe('getRouteTrunkState', () => {
+  it('should describe the trunks of a route', () => {
+    expect(getRouteTrunkState(2, TRUNKS)).toBe('active')
+    expect(getRouteTrunkState(7, TRUNKS)).toBe('disabled')
+    expect(getRouteTrunkState(1, TRUNKS)).toBe('voice_agents')
+    expect(getRouteTrunkState(42, TRUNKS)).toBe('deleted')
+  })
+
+  it('should not flag anything before the trunks are loaded', () => {
+    expect(getRouteTrunkState(42, undefined)).toBe('active')
   })
 })
 
