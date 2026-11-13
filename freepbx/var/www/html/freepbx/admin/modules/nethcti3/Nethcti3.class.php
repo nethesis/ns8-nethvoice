@@ -28,7 +28,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
     protected $FreePBX;
     protected $db;
     protected $astman;
-    private static $displayNameReloadScheduled = false;
+    private static $reloadScheduled = false;
 
     public function __construct($freepbx = null) {
         if ($freepbx == null)
@@ -121,7 +121,7 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
             $displayname = isset($user['displayname']) ? $user['displayname'] : '';
             $changed = $this->setExtensionsDisplayName($extensions, $displayname, $user['default_extension']);
             if ($changed) {
-                $this->scheduleDisplayNameReload();
+                $this->scheduleReload();
             }
             return $changed;
         } catch (\Throwable $e) {
@@ -130,12 +130,38 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
         }
     }
 
-    private function scheduleDisplayNameReload() {
-        if (self::$displayNameReloadScheduled) {
+    public function usermanDelUser($id, $display, $data) {
+        try {
+            include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
+            orphanUserExtensions($id, is_array($data) ? $data : array());
+            $this->scheduleReload();
+            return true;
+        } catch (\Throwable $e) {
+            error_log('Unable to keep the extensions of deleted Userman user '.$id.': '.$e->getMessage());
+            return false;
+        }
+    }
+
+    public function usermanAddUser($id, $display, $data) {
+        try {
+            include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
+            if (reattachOrphanExtension($this->FreePBX->Userman->getUserByID($id)) === false) {
+                return false;
+            }
+            $this->scheduleReload();
+            return true;
+        } catch (\Throwable $e) {
+            error_log('Unable to restore the extensions of Userman user '.$id.': '.$e->getMessage());
+            return false;
+        }
+    }
+
+    private function scheduleReload() {
+        if (self::$reloadScheduled) {
             return;
         }
 
-        self::$displayNameReloadScheduled = true;
+        self::$reloadScheduled = true;
         register_shutdown_function(function () {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null 2>&1 &');
         });

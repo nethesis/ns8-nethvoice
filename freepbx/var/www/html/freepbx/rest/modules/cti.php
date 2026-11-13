@@ -84,19 +84,42 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
         $sharedLock = '/var/run/nethvoice/contextLock';
         $timeoutSeconds = 5;
 
-        // Check and create lock file
-        if ( !file_exists(dirname($sharedLock))
-            || !is_writable(dirname($sharedLock))
-            || ( file_exists($sharedLock) && filemtime($sharedLock) > time()-$timeoutSeconds )
-            || !touch($sharedLock))
-        {
+        $current = getCTIPermissionProfiles($id);
+        if (!is_array($current) || !isset($current['name'])) {
+            return jsonResponse($response, array('message' => 'CTI profile not found'), 404);
+        }
+        $name = isset($profile['name']) && is_string($profile['name']) ? trim($profile['name']) : $current['name'];
+        if ($name === '') {
+            return jsonResponse($response, array('message' => 'Profile name cannot be empty'), 422);
+        }
+        if ($name !== $current['name']) {
+            if ($current['name'] === 'Hotel' || $name === 'Hotel') {
+                return jsonResponse($response, array('message' => 'Hotel profile name cannot be changed'), 422);
+            }
+            $dbh = FreePBX::Database();
+            $sth = $dbh->prepare('SELECT COUNT(*) FROM `rest_cti_profiles` WHERE `name` = ? AND `id` != ?');
+            $sth->execute(array($name, $id));
+            if ($sth->fetchColumn() > 0) {
+                return jsonResponse($response, array('message' => 'A profile with this name already exists'), 409);
+            }
+        }
+        $profile['name'] = $name;
+
+        if (!file_exists(dirname($sharedLock)) || !is_writable(dirname($sharedLock))) {
+            throw new Exception('Can\'t acquire lock');
+        }
+        if (file_exists($sharedLock) && filemtime($sharedLock) > time()-$timeoutSeconds) {
+            return jsonResponse($response, array('message' => 'Another profile change is in progress, retry in a few seconds'), 423);
+        }
+        if (!touch($sharedLock)) {
             throw new Exception('Can\'t acquire lock');
         }
 
-        $res = postCTIProfile($profile,$id);
-
-        // Release lock
-        unlink($sharedLock);
+        try {
+            $res = postCTIProfile($profile,$id);
+        } finally {
+            unlink($sharedLock);
+        }
 
         if ($res) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -116,6 +139,17 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
 $app->post('/cti/profiles', function (Request $request, Response $response, $args) {
     try {
         $profile = $request->getParsedBody();
+        $name = isset($profile['name']) && is_string($profile['name']) ? trim($profile['name']) : '';
+        if ($name === '') {
+            return jsonResponse($response, array('message' => 'Profile name cannot be empty'), 422);
+        }
+        $dbh = FreePBX::Database();
+        $sth = $dbh->prepare('SELECT COUNT(*) FROM `rest_cti_profiles` WHERE `name` = ?');
+        $sth->execute(array($name));
+        if ($sth->fetchColumn() > 0) {
+            return jsonResponse($response, array('message' => 'A profile with this name already exists'), 409);
+        }
+        $profile['name'] = $name;
         $id = postCTIProfile($profile);
         if ($id) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -469,6 +503,7 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
             throw new Exception($sth->errorInfo()[2]);
         }
 
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -914,6 +949,18 @@ $app->put('/cti/customer_card/{id}', function (Request $request, Response $respo
             }
         }
 
+        if (isset($data['name']) && $data['name'] !== $name) {
+            $dbi = FreePBX::Database();
+            $permname = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$data['name'])));
+            $sql = 'UPDATE rest_cti_permissions SET name = ?, displayname = ? WHERE id = ?';
+            $sth = $dbi->prepare($sql);
+            $res = $sth->execute(array($permname, $data['name'], $permission_id));
+
+            if ($res === FALSE) {
+                throw new Exception($sth->errorInfo()[2]);
+            }
+        }
+
         foreach ($data as $p=>$v) {
             // Exclude profiles from simple params updating
             if ($p === 'profiles') {
@@ -1250,6 +1297,8 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
 
         $curl = curl_init($url);
         curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
+        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
+        curl_setopt($curl, CURLOPT_TIMEOUT, 10);
         $ret_val = curl_exec($curl);
         if ($ret_val === false) {
             error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($curl));

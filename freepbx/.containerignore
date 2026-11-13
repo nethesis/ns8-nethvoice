@@ -1,0 +1,6 @@
+nethvoice-ui/node_modules
+nethvoice-ui/dist
+nethvoice-ui/test-results
+nethvoice-ui/playwright-report
+nethvoice-ui/screenshots
+nethvoice-ui/.env*

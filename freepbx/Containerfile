@@ -1,3 +1,18 @@
+FROM docker.io/library/node:24.22.2-trixie-slim@sha256:0820eaa85e07d0490446dd01d14707e17e6108a36988cf374899cd057eb3812d AS nethvoice-ui-builder
+RUN apt-get update && \
+	apt-get install -y --no-install-recommends ca-certificates git && \
+	rm -rf /var/lib/apt/lists/* && \
+	git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+WORKDIR /build/nethvoice-ui
+COPY nethvoice-ui/package.json nethvoice-ui/package-lock.json ./
+RUN --mount=type=cache,id=nethvoice-ui-npm,target=/root/.npm \
+	npm ci --no-audit --no-fund
+COPY nethvoice-ui/index.html nethvoice-ui/env.d.ts nethvoice-ui/vite.config.ts ./
+COPY nethvoice-ui/tsconfig.json nethvoice-ui/tsconfig.app.json nethvoice-ui/tsconfig.node.json nethvoice-ui/tsconfig.e2e.json ./
+COPY nethvoice-ui/public ./public
+COPY nethvoice-ui/src ./src
+RUN npm run build-only
+
 # Stage 1: Build Asterisk
 FROM docker.io/debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6 as builder
 
@@ -620,6 +635,8 @@ RUN docker-php-source extract && \
     docker-php-ext-configure pdo_pgsql && docker-php-ext-install pdo_pgsql && \
 	docker-php-ext-configure intl && docker-php-ext-install intl && \
 	docker-php-source delete
+
+COPY --from=nethvoice-ui-builder --chown=asterisk:asterisk /build/nethvoice-ui/dist /var/www/html/freepbx/nethvoice-ui
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
 COPY var/www/html/freepbx/rest /var/www/html/freepbx/rest

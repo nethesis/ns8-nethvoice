@@ -780,6 +780,302 @@ function _getTypeExtension($mainextension,$type) {
     return ($extension === false) ? null : $extension;
 }
 
+function getUserExtensionNumbers($mainextension) {
+    $extensions = array($mainextension);
+    foreach (FreePBX::create()->Core->getAllUsers() as $ext) {
+        if (substr($ext['extension'], 2) === $mainextension) {
+            $extensions[] = $ext['extension'];
+        }
+    }
+    return $extensions;
+}
+
+function releaseUserExtensions($uid, $mainextension) {
+    $dbh = FreePBX::Database();
+    $mainextension = trim((string) $mainextension);
+
+    if ($mainextension !== '' && $mainextension !== 'none') {
+        foreach (getUserExtensionNumbers($mainextension) as $extension) {
+            deletePhysicalExtension($extension);
+            deleteExtension($extension,true);
+        }
+    }
+
+    $sql = 'UPDATE rest_devices_phones'.
+      ' SET user_id = NULL'.
+      ', extension = NULL'.
+      ', secret = NULL'.
+      ' WHERE user_id = ? AND mac IS NOT NULL';
+    $stmt = $dbh->prepare($sql);
+    $stmt->execute(array($uid));
+
+    $sql = 'DELETE FROM rest_devices_phones'.
+      ' WHERE user_id = ? AND mac IS NULL';
+    $stmt = $dbh->prepare($sql);
+    $stmt->execute(array($uid));
+
+    $sql = 'DELETE FROM rest_cti_users_groups'.
+      ' WHERE user_id = ?';
+    $stmt = $dbh->prepare($sql);
+    $stmt->execute(array($uid));
+}
+
+function hasMainExtension($user) {
+    return is_array($user) && !empty($user['default_extension']) && $user['default_extension'] !== 'none';
+}
+
+function reassignMainExtension($mainextension, $username) {
+    $fpbx = FreePBX::create();
+    $dbh = FreePBX::Database();
+    $mainextension = trim((string) $mainextension);
+
+    $source = $fpbx->Userman->getUserByDefaultExtension($mainextension);
+    if (!is_array($source) || !isset($source['id'])) {
+        return [array('message' => 'Main extension not found'), 404];
+    }
+    $target = $fpbx->Userman->getUserByUsername(trim((string) $username));
+    if (!is_array($target) || !isset($target['id'])) {
+        return [array('message' => 'User not found'), 404];
+    }
+    if ((int) $target['id'] === (int) $source['id']) {
+        return [array('message' => 'The user already has this main extension'), 422];
+    }
+    if (hasMainExtension($target)) {
+        return [array('message' => 'The user already has a main extension'), 422];
+    }
+
+    $status = updateUsermanUser($source['username']);
+    if (!is_array($status) || empty($status['status'])) {
+        return [array('message' => 'Cannot release the main extension'), 500];
+    }
+
+    $moveDevices = $dbh->prepare('UPDATE rest_devices_phones SET user_id = ? WHERE user_id = ?');
+    $moveDevices->execute(array($target['id'], $source['id']));
+
+    $status = updateUsermanUser($target['username'], $mainextension);
+    if (!is_array($status) || empty($status['status'])) {
+        $moveDevices->execute(array($source['id'], $target['id']));
+        updateUsermanUser($source['username'], $mainextension);
+        return [array('message' => 'Cannot assign the main extension'), 500];
+    }
+
+    $sql = 'INSERT IGNORE INTO rest_cti_users_groups (user_id, group_id)'.
+      ' SELECT ?, group_id FROM rest_cti_users_groups WHERE user_id = ?';
+    $stmt = $dbh->prepare($sql);
+    $stmt->execute(array($target['id'], $source['id']));
+    $stmt = $dbh->prepare('DELETE FROM rest_cti_users_groups WHERE user_id = ?');
+    $stmt->execute(array($source['id']));
+
+    $stmt = $dbh->prepare('SELECT profile_id FROM rest_users WHERE user_id = ?');
+    $stmt->execute(array($target['id']));
+    $profile = $stmt->fetchColumn();
+    if (empty($profile)) {
+        $stmt->execute(array($source['id']));
+        $profile = $stmt->fetchColumn();
+    }
+    if (!empty($profile)) {
+        setCTIUserProfile($target['id'], $profile);
+    }
+
+    applyMainExtensionOwner($target, $mainextension);
+
+    return true;
+}
+
+function applyMainExtensionOwner($target, $mainextension) {
+    $fpbx = FreePBX::create();
+    $dbh = FreePBX::Database();
+    $extensions = array($mainextension);
+    $stmt = $dbh->prepare('SELECT extension FROM rest_devices_phones WHERE user_id = ? AND extension IS NOT NULL AND extension != ""');
+    $stmt->execute(array($target['id']));
+    $extensions = array_merge($extensions, $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    $displayname = !empty($target['displayname']) ? $target['displayname'] : $target['username'];
+    FreePBX::Nethcti3()->setExtensionsDisplayName($extensions, $displayname, $mainextension);
+
+    $voicemail = $fpbx->Voicemail;
+    $mailbox = $voicemail->getMailbox($mainextension, false);
+    if (is_array($mailbox)) {
+        $mailbox['name'] = $displayname;
+        $mailbox['email'] = isset($target['email']) ? (string) $target['email'] : '';
+        $voicemail->updateMailbox($mainextension, $mailbox, false);
+    }
+}
+
+function orphanUserExtensions($uid, $user) {
+    $dbh = FreePBX::Database();
+    $uid = (int) $uid;
+    $username = is_array($user) && isset($user['username']) ? trim((string) $user['username']) : '';
+    $mainextension = is_array($user) && isset($user['default_extension']) ? trim((string) $user['default_extension']) : '';
+
+    if ($username === '' || $mainextension === '' || $mainextension === 'none') {
+        releaseUserExtensions($uid, 'none');
+        $stmt = $dbh->prepare('DELETE FROM rest_users WHERE user_id = ?');
+        $stmt->execute(array($uid));
+        return false;
+    }
+
+    $stmt = $dbh->prepare('SELECT id FROM rest_orphan_extensions WHERE extension = ?');
+    $stmt->execute(array($mainextension));
+    if ($stmt->fetchColumn() === false) {
+        $stmt = $dbh->prepare('SELECT extension, type, mac FROM rest_devices_phones WHERE user_id = ? AND extension IS NOT NULL AND extension != ""');
+        $stmt->execute(array($uid));
+        $devices = array();
+        foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $device) {
+            $devices[] = array(
+                'extension' => (string) $device['extension'],
+                'type' => (string) $device['type'],
+                'mac' => empty($device['mac']) ? null : (string) $device['mac'],
+            );
+        }
+
+        $secrets = array();
+        $stmt = $dbh->prepare('SELECT data FROM sip WHERE id = ? AND keyword = "secret"');
+        foreach (getUserExtensionNumbers($mainextension) as $extension) {
+            $stmt->execute(array($extension));
+            $secret = $stmt->fetchColumn();
+            if ($secret !== false) {
+                $secrets[$extension] = (string) $secret;
+            }
+        }
+
+        $stmt = $dbh->prepare('SELECT profile_id FROM rest_users WHERE user_id = ?');
+        $stmt->execute(array($uid));
+        $profile = $stmt->fetchColumn();
+        $stmt = $dbh->prepare('SELECT group_id FROM rest_cti_users_groups WHERE user_id = ?');
+        $stmt->execute(array($uid));
+        $groups = array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+
+        $stmt = $dbh->prepare('INSERT INTO rest_orphan_extensions (user_id, username, displayname, extension, devices, secrets, profile_id, cti_groups, removed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $recorded = $stmt->execute(array(
+            $uid,
+            $username,
+            isset($user['displayname']) ? (string) $user['displayname'] : '',
+            $mainextension,
+            json_encode($devices),
+            json_encode($secrets),
+            empty($profile) ? null : (int) $profile,
+            json_encode($groups),
+            time(),
+        ));
+        if ($recorded === false) {
+            throw new \RuntimeException('Cannot record the extensions of removed user '.$username);
+        }
+
+        foreach (array_keys($secrets) as $extension) {
+            setSipData($extension, 'secret', bin2hex(random_bytes(16)));
+        }
+
+        $stmt = $dbh->prepare('DELETE FROM rest_cti_users_groups WHERE user_id = ?');
+        $stmt->execute(array($uid));
+        $stmt = $dbh->prepare('DELETE FROM rest_users WHERE user_id = ?');
+        $stmt->execute(array($uid));
+    }
+
+    $twin = FreePBX::create()->Userman->getUserByUsername($username);
+    if (is_array($twin) && isset($twin['id']) && (int) $twin['id'] !== $uid) {
+        reattachOrphanExtension($twin);
+    }
+    return true;
+}
+
+function reattachOrphanExtension($target) {
+    if (!is_array($target) || !isset($target['id']) || empty($target['username']) || hasMainExtension($target)) {
+        return false;
+    }
+    if (!checkTableExists('rest_orphan_extensions')) {
+        return false;
+    }
+    $dbh = FreePBX::Database();
+    $uid = (int) $target['id'];
+
+    $stmt = $dbh->prepare('SELECT * FROM rest_orphan_extensions WHERE username = ? ORDER BY removed_at DESC, id DESC');
+    $stmt->execute(array($target['username']));
+    $orphan = $stmt->fetch(\PDO::FETCH_ASSOC);
+    if (!is_array($orphan)) {
+        return false;
+    }
+    $mainextension = (string) $orphan['extension'];
+    $previous = (int) $orphan['user_id'];
+
+    $moveDevices = $dbh->prepare('UPDATE rest_devices_phones SET user_id = ? WHERE user_id = ?');
+    $moveDevices->execute(array($uid, $previous));
+
+    $status = updateUsermanUser($target['username'], $mainextension);
+    if (!is_array($status) || empty($status['status'])) {
+        $moveDevices->execute(array($previous, $uid));
+        return false;
+    }
+
+    $secrets = json_decode((string) $orphan['secrets'], true);
+    foreach (is_array($secrets) ? $secrets : array() as $extension => $secret) {
+        setSipData((string) $extension, 'secret', (string) $secret);
+    }
+
+    $groups = json_decode((string) $orphan['cti_groups'], true);
+    $stmt = $dbh->prepare('INSERT IGNORE INTO rest_cti_users_groups (user_id, group_id) VALUES (?, ?)');
+    foreach (is_array($groups) ? $groups : array() as $group) {
+        $stmt->execute(array($uid, (int) $group));
+    }
+
+    $stmt = $dbh->prepare('SELECT profile_id FROM rest_users WHERE user_id = ?');
+    $stmt->execute(array($uid));
+    if (empty($stmt->fetchColumn()) && !empty($orphan['profile_id'])) {
+        $stmt = $dbh->prepare('INSERT INTO rest_users (user_id, profile_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE profile_id = VALUES(profile_id)');
+        $stmt->execute(array($uid, (int) $orphan['profile_id']));
+    }
+
+    applyMainExtensionOwner($target, $mainextension);
+
+    $stmt = $dbh->prepare('DELETE FROM rest_orphan_extensions WHERE id = ?');
+    $stmt->execute(array($orphan['id']));
+    return $mainextension;
+}
+
+function listOrphanExtensions() {
+    if (!checkTableExists('rest_orphan_extensions')) {
+        return array();
+    }
+    $dbh = FreePBX::Database();
+    $stmt = $dbh->prepare('SELECT username, displayname, extension, devices, removed_at FROM rest_orphan_extensions ORDER BY removed_at DESC, extension');
+    $stmt->execute(array());
+    $orphans = array();
+    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        $devices = json_decode((string) $row['devices'], true);
+        $orphans[] = array(
+            'username' => (string) $row['username'],
+            'displayname' => (string) $row['displayname'],
+            'extension' => (string) $row['extension'],
+            'devices' => is_array($devices) ? $devices : array(),
+            'removed_at' => gmdate('Y-m-d\TH:i:s\Z', (int) $row['removed_at']),
+        );
+    }
+    return $orphans;
+}
+
+function releaseOrphanExtensions($extensions) {
+    if (!checkTableExists('rest_orphan_extensions')) {
+        return [array('message' => 'Extension not found'), 404];
+    }
+    $dbh = FreePBX::Database();
+    $select = $dbh->prepare('SELECT user_id, extension FROM rest_orphan_extensions WHERE extension = ?');
+    $orphans = array();
+    foreach (array_unique($extensions) as $extension) {
+        $select->execute(array($extension));
+        $orphan = $select->fetch(\PDO::FETCH_ASSOC);
+        if (!is_array($orphan)) {
+            return [array('message' => 'Extension '.$extension.' does not belong to a removed user'), 404];
+        }
+        $orphans[] = $orphan;
+    }
+
+    $delete = $dbh->prepare('DELETE FROM rest_orphan_extensions WHERE extension = ?');
+    foreach ($orphans as $orphan) {
+        releaseUserExtensions((int) $orphan['user_id'], (string) $orphan['extension']);
+        $delete->execute(array($orphan['extension']));
+    }
+    return true;
+}
+
 function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
     $fpbx = FreePBX::create();
     $dbh = FreePBX::Database();
@@ -797,43 +1093,15 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array($username));
     $res = $stmt->fetch(\PDO::FETCH_ASSOC);
+    $currentmain = (is_array($res) && !empty($res['default_extension'])) ? $res['default_extension'] : null;
+    if (!empty($mainextension) && $mainextension != 'none' && (string) $mainextension !== (string) $currentmain) {
+        $free = checkFreeExtension($mainextension);
+        if ($free !== true ) {
+            return [array('message'=>$free ), 422];
+        }
+    }
     if (is_array($res) && !empty($res['default_extension'])) {
-        $oldmain = $res['default_extension'];
-        $ext_to_del = array();
-        $ext_to_del[] = $oldmain;
-        //Get all associated extensions
-        $all_extensions = $fpbx->Core->getAllUsers();
-        foreach ($fpbx->Core->getAllUsers() as $ext) {
-            if (substr($ext['extension'], 2) === $oldmain) {
-                $ext_to_del[] = $ext['extension'];
-            }
-        }
-        // clean extension and associated extensions
-        foreach ($ext_to_del as $extension) {
-            deletePhysicalExtension($extension);
-            deleteExtension($extension,true);
-        }
-        // set values to NULL for physical devices
-        $sql = 'UPDATE rest_devices_phones'.
-          ' SET user_id = NULL'.
-          ', extension = NULL'.
-          ', secret = NULL'.
-          ' WHERE user_id = ? AND mac IS NOT NULL';
-        $stmt = $dbh->prepare($sql);
-        $stmt->execute(array($uid));
-
-        // remove user's webrtc phone and custom devices
-        $sql = 'DELETE FROM rest_devices_phones'.
-          ' WHERE user_id = ? AND mac IS NULL';
-        $stmt = $dbh->prepare($sql);
-        $stmt->execute(array($uid));
-
-        // remove user from CTI groups
-        $sql = 'DELETE FROM rest_cti_users_groups'.
-          ' WHERE user_id = ?';
-        $stmt = $dbh->prepare($sql);
-        $stmt->execute(array($uid));
-
+        releaseUserExtensions($uid, $res['default_extension']);
         $status = updateUsermanUser($username);
     }
 

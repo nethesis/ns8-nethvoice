@@ -1,0 +1,23 @@
+{
+  "name": "nethvoice-mcp",
+  "version": "0.1.0",
+  "description": "Model Context Protocol server for NethVoice (prototype)",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "bin": {
+    "nethvoice-mcp": "src/main.mjs"
+  },
+  "scripts": {
+    "start": "node src/main.mjs",
+    "start:http": "node src/main.mjs --http",
+    "test": "node --test \"test/*.test.mjs\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "zod": "^4.0.0"
+  }
+}
