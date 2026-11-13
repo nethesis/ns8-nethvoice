@@ -1107,6 +1107,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/mainextensions/{extension}/reassign': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Move a main extension and all of its devices to another user.
+     * @description The extension numbers, the software devices, the physical phones with their credentials, the voicemail box and the group memberships move to the new user, who must not have a main extension. The previous owner keeps the account without an extension. The new user keeps its CTI profile, or gets the one of the previous owner when it has none. Display names and the voicemail owner are updated and a reload is triggered.
+     */
+    post: operations['post_mainextensions_extension_reassign']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/mainextensions/userlimits': {
     parameters: {
       query?: never
@@ -3298,6 +3318,10 @@ export interface components {
       /** @description New main extension. Empty removes the current one. The previous main extension is always deleted with its devices and group memberships. */
       extension: string
       outboundcid?: string
+    }
+    MainExtensionReassignRequest: {
+      /** @description User that receives the main extension. */
+      username: string
     }
     UsersMessage: {
       message?: string
@@ -5686,6 +5710,66 @@ export interface operations {
         }
         content: {
           'application/json': Record<string, never>
+        }
+      }
+    }
+  }
+  post_mainextensions_extension_reassign: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        extension: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MainExtensionReassignRequest']
+      }
+    }
+    responses: {
+      /** @description Extension reassigned */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Missing username */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+      /** @description Main extension or user not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+      /** @description The user already has a main extension */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
         }
       }
     }
