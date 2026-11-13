@@ -34,6 +34,8 @@ import {
   faLinkSlash,
   faMagnifyingGlass,
   faPenToSquare,
+  faRightLeft,
+  faRotate,
   faUserGroup,
   faUserGear,
   faVoicemail,
@@ -45,6 +47,7 @@ import AdvancedBulkUsersDrawer from '@/components/users/AdvancedBulkUsersDrawer.
 import BulkUsersDrawer, { type BulkUsersAction } from '@/components/users/BulkUsersDrawer.vue'
 import CreateOrEditUserDrawer from '@/components/users/CreateOrEditUserDrawer.vue'
 import ImportUsersFlow from '@/components/users/ImportUsersFlow.vue'
+import ReassignExtensionModal from '@/components/users/ReassignExtensionModal.vue'
 import RemoveExtensionModal from '@/components/users/RemoveExtensionModal.vue'
 import UserDeviceIcons from '@/components/users/UserDeviceIcons.vue'
 import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
@@ -72,6 +75,7 @@ import {
 } from '@/lib/users/users'
 import { useUsers } from '@/queries/users/users'
 import { useUsersDirectory } from '@/queries/users/usersDirectory'
+import { useUsersProviderSync } from '@/queries/users/usersSync'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const MAX_GROUPS_SHOWN = 2
@@ -203,6 +207,7 @@ const currentUser = computed<UserRow | undefined>(() =>
 const isShownUserDrawer = ref(false)
 const isShownImport = ref(false)
 const isShownRemoveExtension = ref(false)
+const isShownReassignExtension = ref(false)
 const bulkAction = ref<BulkUsersAction>('profile')
 const isShownBulkDrawer = ref(false)
 const isShownAdvancedBulk = ref(false)
@@ -225,6 +230,23 @@ function showEditUser(row: UserRow) {
 function showBulk(action: BulkUsersAction) {
   bulkAction.value = action
   isShownBulkDrawer.value = true
+}
+
+const { syncing, syncError, sync } = useUsersProviderSync()
+
+async function syncUsers() {
+  await sync()
+
+  if (syncError.value) {
+    notificationsStore.createNotificationFromError(syncError.value, t('users.cannot_sync_users'))
+    return
+  }
+  directoryQuery.refetch()
+  notificationsStore.createNotification({
+    kind: 'success',
+    title: t('users.users_synchronized'),
+    description: t('users.users_synchronized_description'),
+  })
 }
 
 async function exportUsers() {
@@ -252,6 +274,13 @@ const actionItems = computed<NeDropdownItem[]>(() => [
     icon: faCircleArrowDown,
     disabled: exporting.value || users.value.length === 0,
     action: exportUsers,
+  },
+  {
+    id: 'sync',
+    label: syncing.value ? t('users.synchronizing_users') : t('users.sync_users'),
+    icon: faRotate,
+    disabled: syncing.value,
+    action: syncUsers,
   },
   { id: 'divider-bulk' },
   {
@@ -286,6 +315,16 @@ const actionItems = computed<NeDropdownItem[]>(() => [
 ])
 
 const rowMenuItems = (row: UserRow): NeDropdownItem[] => [
+  {
+    id: 'reassign-extension',
+    label: t('users.reassign_extension'),
+    icon: faRightLeft,
+    disabled: row.mainExtension === '',
+    action: () => {
+      currentUsername.value = row.username
+      isShownReassignExtension.value = true
+    },
+  },
   {
     id: 'remove-extension',
     label: t('users.remove_extension'),
@@ -579,6 +618,12 @@ const filterLabels = computed(() => ({
       :is-shown="isShownAdvancedBulk"
       :users="users"
       @close="isShownAdvancedBulk = false"
+    />
+    <ReassignExtensionModal
+      :visible="isShownReassignExtension"
+      :user="currentUser"
+      :users="users"
+      @close="isShownReassignExtension = false"
     />
     <RemoveExtensionModal
       :visible="isShownRemoveExtension"

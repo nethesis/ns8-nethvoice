@@ -385,7 +385,23 @@
     "cannot_load_profiles": "Non è stato possibile caricare i profili, quindi ora il profilo non si può modificare",
     "cannot_load_groups": "Non è stato possibile caricare i gruppi, quindi ora non si possono modificare",
     "directory_partially_loaded": "Alcune informazioni non sono disponibili",
-    "directory_partially_loaded_description": "Impossibile caricare: {parts}. Le colonne relative potrebbero essere vuote e quei campi non si possono modificare. Riprova."
+    "directory_partially_loaded_description": "Impossibile caricare: {parts}. Le colonne relative potrebbero essere vuote e quei campi non si possono modificare. Riprova.",
+    "reassign_extension": "Riassegna interno",
+    "reassign": "Riassegna",
+    "reassign_extension_description": "L'interno {extension} di {name} passa all'utente scelto insieme a tutti i suoi dispositivi, telefoni fisici, casella vocale e appartenenze ai gruppi. {name} mantiene l'account senza interno.",
+    "new_user": "Nuovo utente",
+    "new_user_helper": "Sono elencati solo gli utenti senza interno",
+    "new_user_required": "Scegli l'utente",
+    "choose_user": "Scegli utente",
+    "no_users_without_extension": "Nessun utente senza interno",
+    "cannot_reassign_extension": "Impossibile riassegnare l'interno",
+    "extension_reassigned": "Interno riassegnato",
+    "extension_reassigned_description": "L'interno {extension} è stato assegnato a {name}",
+    "sync_users": "Sincronizza utenti",
+    "synchronizing_users": "Sincronizzazione utenti…",
+    "cannot_sync_users": "Impossibile sincronizzare gli utenti",
+    "users_synchronized": "Utenti sincronizzati",
+    "users_synchronized_description": "Nomi, nuovi utenti e utenti eliminati del provider di account sono stati applicati"
   },
   "trunks": {
     "title": "Fasci",
@@ -414,7 +430,8 @@
       "rejected": "Rifiutato",
       "connected": "Connesso",
       "not_connected": "Non connesso",
-      "unknown": "Sconosciuto"
+      "unknown": "Sconosciuto",
+      "disabled": "Disabilitato"
     },
     "voip": {
       "description_line_1": "Configura i fasci VoIP per gestire le chiamate in ingresso e in uscita su reti IP.",
@@ -1278,18 +1295,22 @@
     },
     "users": {
       "title": "Utenti e interni",
-      "description_line_1": "Assegna gli interni agli utenti per abilitare le funzionalità di chiamata: per continuare almeno un utente deve avere un interno.",
+      "description_line_1": "Assegna gli interni agli utenti per abilitare le funzionalità di chiamata. Per continuare almeno un utente deve avere un interno.",
       "description_line_2": "Tutti gli utenti partono con il profilo Base e il Web phone abilitato.",
       "assign_extensions": "Assegna gli interni",
       "extension_of": "Interno di {name}",
       "syncing_users": "Sincronizzazione degli utenti con il provider degli account…",
       "configuring_users": "Configurazione degli utenti",
-      "configuring_users_description_line_1": "Il sistema sta applicando gli interni assegnati e aggiornando la configurazione del PBX.",
+      "configuring_users_description_line_1": "Il sistema sta applicando gli interni assegnati e aggiornando la configurazione del centralino.",
       "configuring_users_description_line_2": "Potrebbe richiedere qualche istante.",
       "provisioning_failed": "Impossibile configurare gli utenti",
       "provisioning_failed_for": "Configurazione interrotta su {username}: {detail} Gli utenti precedenti sono stati configurati: controlla gli interni e riprova.",
       "users_limit_title": "Troppi utenti con un interno",
-      "users_limit_description": "La versione community consente al massimo {limit} utenti con un interno."
+      "users_limit_description": "La versione community consente al massimo {limit} utenti con un interno.",
+      "cannot_sync_users_description": "L'elenco potrebbe non includere le ultime modifiche del provider degli account.",
+      "change_extensions": "Cambia interni",
+      "changed_extension": "{name}: {from} → {to}",
+      "configuring_progress": "{done} modifiche applicate su {total}"
     },
     "physical_trunks": {
       "title": "Fasci fisici",
@@ -1302,19 +1323,17 @@
     },
     "inbound_routes": {
       "title": "Rotte in ingresso",
-      "description": "Definisci come vengono gestite le chiamate in arrivo al centralino.",
       "description_line_1": "Definisci come le chiamate in arrivo vengono instradate verso le destinazioni interne.",
       "description_line_2": "Le rotte in ingresso si creano e si gestiscono con il Visual Plan."
     },
     "outbound_routes": {
       "title": "Rotte in uscita",
-      "description": "Scegli quali fasci usare per le chiamate in uscita e in quale ordine.",
       "description_line_1": "Controlla e modifica le rotte in uscita in base al tuo paese e ai fasci VoIP disponibili.",
       "description_line_2": "Per ogni rotta le chiamate usano i fasci nell'ordine dall'alto verso il basso."
     },
     "summary": {
       "title": "Riepilogo",
-      "description": "Controlla le impostazioni configurate durante la procedura. Torna a un passaggio precedente per modificarle.",
+      "description": "Controlla le impostazioni configurate durante la procedura. Torna a un passo precedente per modificarle.",
       "finish_setup": "Completa la configurazione",
       "extensions": "Interni",
       "physical_trunks": "Fasci fisici (opzionali)",
@@ -1328,15 +1347,15 @@
       "warnings_title": "Alcune impostazioni potrebbero richiedere attenzione",
       "warning": {
         "no_extensions": "Nessun utente ha un interno: nessuno può effettuare o ricevere chiamate.",
-        "no_trunks": "Nessun fascio configurato: le chiamate da e verso numeri esterni non sono possibili.",
+        "no_trunks": "Nessun fascio utilizzabile: le chiamate da e verso numeri esterni non sono possibili.",
         "no_inbound_routes": "Nessuna rotta in ingresso configurata: le chiamate in arrivo non ricevono risposta.",
         "no_outbound_routes": "Nessuna rotta in uscita configurata: non è possibile chiamare numeri esterni.",
         "outbound_routes_without_trunks": "Alcune rotte in uscita non hanno fasci: i numeri che gestiscono non possono essere chiamati."
       },
-      "completing": "Adeguamento delle impostazioni di {brand}, manca poco...",
+      "completing": "Adeguamento delle impostazioni di {brand}, manca poco…",
       "cannot_complete_setup": "Impossibile completare la configurazione",
       "finish": "Completa",
-      "finish_setup_description": "La configurazione verrà applicata. Asterisk verrà riavviato appena non ci saranno chiamate in corso e verrà riavviato anche NethVoice CTI: i suoi utenti verranno disconnessi per qualche istante."
+      "finish_setup_description": "La configurazione verrà applicata. Asterisk verrà riavviato appena non ci saranno chiamate in corso e verrà riavviato anche {brand} CTI: i suoi utenti verranno disconnessi per qualche istante."
     },
     "cannot_save_progress": "Impossibile salvare l'avanzamento della configurazione",
     "cannot_check_setup": "Impossibile verificare lo stato della configurazione"
