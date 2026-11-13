@@ -189,8 +189,8 @@ function getTimeGroupsDetailsFromId($id)
    $details = sql("SELECT time from asterisk.timegroups_details where timegroupid='$id_group[id_timegroups_groups]';","getAll",DB_FETCHMODE_ASSOC);
    foreach($details as $detail)
    {
-    if($group== '') $group = $detail[time];
-    else $group.="<br>".$detail[time];
+    if($group== '') $group = $detail['time'];
+    else $group.="<br>".$detail['time'];
    }
    echo $group;
   }
@@ -207,8 +207,8 @@ function getTimeGroupsDetailsFromIdGroups($id)
    $details = sql("SELECT time from asterisk.timegroups_details where timegroupid='$id';","getAll",DB_FETCHMODE_ASSOC);
    foreach($details as $detail)
    {
-    if($group== '') $group = $detail[time];
-    else $group.="<br>".$detail[time];
+    if($group== '') $group = $detail['time'];
+    else $group.="<br>".$detail['time'];
    }
    echo $group;
   }
@@ -1730,9 +1730,10 @@ function getGroupsDialog($group_id=false){
         $group['name']=_("New Group");
         $group['id']=false;
         $rooms_in_group = array();
-        $group['groupcalls'] = $options['groupcalls'];
-        $group['roomscalls'] = $options['internal_call'];
-        $group['externalcalls'] = $options['externalcalls'];
+        $group['groupcalls'] = $options['groupcalls'] ?? '';
+        $group['roomscalls'] = $options['internal_call'] ?? '';
+        $group['externalcalls'] = $options['externalcalls'] ?? '';
+        $group['note'] = '';
     } else {
         $new = false;
         $sql = "SELECT * from roomsdb.room_groups WHERE  id = ".(int)$group_id;
@@ -1774,6 +1775,7 @@ function getGroupsDialog($group_id=false){
     }
 
  
+    $groupcalls_check = $roomscalls_check = $externalcalls_check = '';
     if ($group['groupcalls']) $groupcalls_check = 'checked';
     if ($group['roomscalls']) $roomscalls_check = 'checked';
     if ($group['externalcalls']) $externalcalls_check = 'checked';

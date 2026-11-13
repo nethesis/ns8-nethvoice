@@ -4,8 +4,8 @@ require_once("session.inc.php");
 require("translations.php");
 
 $ext = $_REQUEST['ext'];
-$group = $_REQUEST['group'];
-$ntabs = $_REQUEST['ntab'];
+$group = $_REQUEST['group'] ?? '';
+$ntabs = $_REQUEST['ntab'] ?? 0;
 
 switch($_REQUEST['action'] ?? '') 
 {

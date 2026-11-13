@@ -1,7 +1,7 @@
 USE `roomsdb`;
 
 LOCK TABLES `options` WRITE;
-INSERT IGNORE INTO `options` VALUES ('ext_pattern','XXX'),('internal_call','1'),('prefix','0'),('enableclean','1'),('groupcalls','1'),('externalcalls','1');
+INSERT IGNORE INTO `options` VALUES ('ext_pattern','XXX'),('internal_call','1'),('prefix','0'),('enableclean','1'),('groupcalls','1'),('externalcalls','1'),('reception_lang','en'),('internal_call_nocheckin','0'),('reception',''),('clean','0');
 UNLOCK TABLES;
 
 LOCK TABLES `rates` WRITE;

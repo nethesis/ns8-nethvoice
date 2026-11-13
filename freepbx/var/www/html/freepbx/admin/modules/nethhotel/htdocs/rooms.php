@@ -73,7 +73,7 @@ $groups = getGroupList();
                 $options = getOptions();
                 foreach ($supported_audio_langs as $lang) {
                     $selected='';
-                    if ($options['reception_lang'] == $lang) {
+                    if (($options['reception_lang'] ?? 'en') == $lang) {
                         $selected = 'selected';
                     }
                     echo "<option value=\"$lang\" $selected>$lang</option>";
@@ -91,7 +91,7 @@ $groups = getGroupList();
             <?php
                 foreach ($supported_audio_langs as $lang) {
                     $selected='';
-                    if ($options['reception_lang'] == $lang) {
+                    if (($options['reception_lang'] ?? 'en') == $lang) {
                         $selected = 'selected';
                     }
                     echo "<option value=\"$lang\" $selected>$lang</option>";

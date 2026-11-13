@@ -3,7 +3,7 @@
  require_once("session.inc.php");
  require("translations.php");
 
-$ntabs = $_REQUEST['ntab'];
+$ntabs = $_REQUEST['ntab'] ?? 0;
 $action = $_REQUEST['action'] ?? '';
 
 switch($action)
@@ -96,7 +96,7 @@ switch($action)
   break;
 
   case "saveOptions":
-    saveOptions($_REQUEST['prefix'],$_REQUEST['ext_pattern'],$_REQUEST['internal_call'],$_REQUEST['groupcalls'],$_REQUEST['externalcalls'],$_REQUEST['internal_call_nocheckin'],$_REQUEST['reception'],$_REQUEST['enableclean'],$_REQUEST['clean'],$_REQUEST['reception_lang']);
+    saveOptions($_REQUEST['prefix'],$_REQUEST['ext_pattern'],$_REQUEST['internal_call'],$_REQUEST['groupcalls'],$_REQUEST['externalcalls'],$_REQUEST['internal_call_nocheckin'],$_REQUEST['reception'],$_REQUEST['enableclean'],$_REQUEST['clean'],$_REQUEST['reception_lang'] ?? 'en');
   break;
 
   case "createOptionTimeGroups":
@@ -116,11 +116,11 @@ switch($action)
   break;
 
   case "getGroupsDialog":
-   echo getGroupsDialog($_REQUEST['group_id']);
+   echo getGroupsDialog($_REQUEST['group_id'] ?? false);
   break;
 
   case "saveGroupsDialog":
-   echo saveGroupsDialog($_REQUEST['group_name'],$_REQUEST['groupcalls'],$_REQUEST['roomscalls'],$_REQUEST['externalcalls'],$_REQUEST['group_note'],$_REQUEST['rooms_in_group'],$_REQUEST['group_id']);
+   echo saveGroupsDialog($_REQUEST['group_name'],$_REQUEST['groupcalls'],$_REQUEST['roomscalls'],$_REQUEST['externalcalls'],$_REQUEST['group_note'],$_REQUEST['rooms_in_group'],$_REQUEST['group_id'] ?? false);
   break;
 
   case "deleteGroup":
@@ -176,8 +176,9 @@ switch($action)
 if ($action === 'gettext'){
     header ('Content-Type: application/json');
 
-    $untranslated = json_decode(stripslashes($_REQUEST['untranslated']));
-    foreach ($untranslated as $msgid){
+    $untranslated = json_decode(stripslashes($_REQUEST['untranslated'] ?? '[]'));
+    $translated = array();
+    foreach ((array) $untranslated as $msgid){
         $translated[$msgid] = _($msgid);
     }
     echo json_encode($translated);

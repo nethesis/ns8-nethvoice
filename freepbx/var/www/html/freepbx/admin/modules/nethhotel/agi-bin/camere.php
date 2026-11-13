@@ -88,7 +88,7 @@ foreach($codes as $code)
   if($numtocall==$code['code'])
   {
     $quickcall = true;
-    @$agi->exec('Set',"toCall=".$code[falsegoto]);
+    @$agi->exec('Set',"toCall=".$code['falsegoto']);
     $details = getTimeDetailsFromIdGroupsArray($code['id_timegroups_groups']);
     foreach($details as $detail)
     {
@@ -191,7 +191,7 @@ if($numtocall[0] == $options['prefix']) //check if call is internal or external
         }
     } else {
         //checkout room
-        if (checkPattern($numtocall,$options['ext_pattern']) && $options['internal_call_nocheckin']) {
+        if (checkPattern($numtocall,$options['ext_pattern']) && !empty($options['internal_call_nocheckin'])) {
             //internal calls from checkout rooms allowed
             neth_debug("internal calls from checkout rooms allowed");
 	    @$agi->exec("Goto","ext-local,".$numtocall.",1");
