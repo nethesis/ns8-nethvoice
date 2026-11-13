@@ -59,17 +59,23 @@ const mockOverview = (mockApi: MockApi, endpoints: object = ENDPOINTS) =>
 const userCard = (page: Page, username: string) => page.locator(`[data-user="${username}"]`)
 
 const expectDotOnAvatarCorner = async (scope: ReturnType<Page['locator']>, status: string) => {
-  const presence = scope.locator(`[title="${status}"]`).first()
-  const avatar = await presence.locator('xpath=preceding-sibling::*[1]').boundingBox()
-  const dot = await presence.boundingBox()
+  const presence = scope.getByTestId('presence-dot').first()
+  await expect(presence).toHaveAttribute('title', status)
+  const avatar = presence.locator('xpath=..')
 
-  expect(avatar).not.toBeNull()
-  expect(dot).not.toBeNull()
-  if (avatar && dot) {
-    expect(Math.abs(dot.x + dot.width - (avatar.x + avatar.width))).toBeLessThanOrEqual(1)
-    expect(Math.abs(dot.y + dot.height - (avatar.y + avatar.height))).toBeLessThanOrEqual(1)
-    expect(dot.width).toBeLessThan(avatar.width / 2)
-  }
+  await expect
+    .poll(async () => {
+      const [avatarBox, dotBox] = await Promise.all([avatar.boundingBox(), presence.boundingBox()])
+      if (!avatarBox || !dotBox) {
+        return Number.POSITIVE_INFINITY
+      }
+      return Math.max(
+        Math.abs(dotBox.x + dotBox.width - (avatarBox.x + avatarBox.width)),
+        Math.abs(dotBox.y + dotBox.height - (avatarBox.y + avatarBox.height)),
+        dotBox.width >= avatarBox.width / 2 ? Number.POSITIVE_INFINITY : 0,
+      )
+    })
+    .toBeLessThanOrEqual(1)
 }
 
 test.describe('user overview', () => {
