@@ -1694,6 +1694,58 @@ paths:
         schema:
           type: string
           pattern: ^[0-9]+$
+  /mainextensions/{extension}/reassign:
+    post:
+      summary: Move a main extension and all of its devices to another user.
+      tags:
+      - Mainextensions
+      responses:
+        '204':
+          description: Extension reassigned
+        '400':
+          description: Missing username
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '404':
+          description: Main extension or user not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '422':
+          description: The user already has a main extension
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
+      description: The extension numbers, the software devices, the physical phones
+        with their credentials, the voicemail box and the group memberships move to
+        the new user, who must not have a main extension. The previous owner keeps
+        the account without an extension. The new user keeps its CTI profile, or gets
+        the one of the previous owner when it has none. Display names and the voicemail
+        owner are updated and a reload is triggered.
+      operationId: post_mainextensions_extension_reassign
+      parameters:
+      - name: extension
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: ^[0-9]+$
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MainExtensionReassignRequest'
   /mainextensions/userlimits:
     get:
       summary: Report configured users count and limit information.
@@ -5266,6 +5318,14 @@ components:
             main extension is always deleted with its devices and group memberships.
         outboundcid:
           type: string
+    MainExtensionReassignRequest:
+      type: object
+      required:
+      - username
+      properties:
+        username:
+          type: string
+          description: User that receives the main extension.
     UsersMessage:
       type: object
       properties:
