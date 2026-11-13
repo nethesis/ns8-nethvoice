@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NeHeading } from '@nethesis/vue-components'
+import { NeHeading, NeInlineNotification } from '@nethesis/vue-components'
 import {
   faNetworkWired,
   faPhone,
@@ -17,7 +17,6 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
-import LoadError from '@/components/common/LoadError.vue'
 import DashboardBreakdownCard from '@/components/dashboard/DashboardBreakdownCard.vue'
 import DashboardCallsCard from '@/components/dashboard/DashboardCallsCard.vue'
 import DashboardCounterCard from '@/components/dashboard/DashboardCounterCard.vue'
@@ -50,8 +49,11 @@ import { useDashboardSubscription } from '@/queries/dashboard/subscription'
 import { useInboundRoutes } from '@/queries/routes/inbound'
 import { useTrunks } from '@/queries/trunks/trunks'
 import { useLoginStore } from '@/stores/login'
+import { describeError } from '@/stores/notifications'
 
 type CounterCard = { id: DashboardCounterId; label: string; icon: IconDefinition }
+
+type LoadFailure = { part: string; title: string; error: unknown; retry: () => void }
 
 const COUNTER_CARDS_BEFORE_CALLS: CounterCard[] = [
   { id: 'users', label: 'dashboard.counters.users', icon: faUserGroup },
@@ -203,12 +205,74 @@ const inboundRouteRows = computed(() =>
   }),
 )
 
-function retryCounters() {
-  failedCounters.value.forEach((query) => query.refetch())
-}
+const loadFailures = computed(() => {
+  const failures: LoadFailure[] = []
 
-function retryLive() {
-  failedLiveQueries.value.forEach((query) => query.refetch())
+  if (subscriptionState.value.error) {
+    failures.push({
+      part: 'dashboard.load_error.system',
+      title: 'dashboard.cannot_load_system',
+      error: subscriptionState.value.error,
+      retry: () => refetchSubscription(),
+    })
+  }
+  if (failedCounters.value.length) {
+    failures.push({
+      part: 'dashboard.load_error.counters',
+      title: 'dashboard.cannot_load_counters',
+      error: failedCounters.value[0].state.value.error,
+      retry: () => failedCounters.value.forEach((query) => query.refetch()),
+    })
+  }
+  if (failedLiveQueries.value.length) {
+    failures.push({
+      part: 'dashboard.load_error.live_data',
+      title: 'dashboard.cannot_load_live_data',
+      error: failedLiveQueries.value[0].state.value.error,
+      retry: () => failedLiveQueries.value.forEach((query) => query.refetch()),
+    })
+  }
+  if (trunksState.value.error) {
+    failures.push({
+      part: 'dashboard.load_error.trunks',
+      title: 'dashboard.cannot_load_trunks',
+      error: trunksState.value.error,
+      retry: () => refetchTrunks(),
+    })
+  }
+  if (inboundRoutesState.value.error) {
+    failures.push({
+      part: 'dashboard.load_error.inbound_routes',
+      title: 'dashboard.cannot_load_inbound_routes',
+      error: inboundRoutesState.value.error,
+      retry: () => refetchInboundRoutes(),
+    })
+  }
+  return failures
+})
+
+const loadErrorTitle = computed(() =>
+  loadFailures.value.length === 1
+    ? t(loadFailures.value[0].title)
+    : t('dashboard.load_error.title'),
+)
+
+const loadErrorDescription = computed(() => {
+  const reasons = [...new Set(loadFailures.value.map((failure) => describeError(failure.error)))]
+
+  if (loadFailures.value.length === 1) {
+    return reasons[0]
+  }
+  const parts = new Intl.ListFormat(locale.value, { type: 'conjunction' }).format(
+    loadFailures.value.map((failure) => t(failure.part)),
+  )
+  const unavailable = t('dashboard.load_error.unavailable', { parts })
+
+  return reasons.length === 1 && reasons[0] ? `${unavailable} ${reasons[0]}` : unavailable
+})
+
+function retryFailedSources() {
+  loadFailures.value.forEach((failure) => failure.retry())
 }
 
 usePolling(() => {
@@ -238,35 +302,14 @@ usePolling(() => {
       </p>
     </div>
     <div class="flex flex-col gap-6">
-      <LoadError
-        v-if="subscriptionState.error"
-        :error="subscriptionState.error"
-        :title="$t('dashboard.cannot_load_system')"
-        @retry="refetchSubscription()"
-      />
-      <LoadError
-        v-if="failedCounters.length"
-        :error="failedCounters[0].state.value.error"
-        :title="$t('dashboard.cannot_load_counters')"
-        @retry="retryCounters"
-      />
-      <LoadError
-        v-if="failedLiveQueries.length"
-        :error="failedLiveQueries[0].state.value.error"
-        :title="$t('dashboard.cannot_load_live_data')"
-        @retry="retryLive"
-      />
-      <LoadError
-        v-if="trunksState.error"
-        :error="trunksState.error"
-        :title="$t('dashboard.cannot_load_trunks')"
-        @retry="refetchTrunks()"
-      />
-      <LoadError
-        v-if="inboundRoutesState.error"
-        :error="inboundRoutesState.error"
-        :title="$t('dashboard.cannot_load_inbound_routes')"
-        @retry="refetchInboundRoutes()"
+      <NeInlineNotification
+        v-if="loadFailures.length"
+        kind="error"
+        data-testid="dashboard-load-error"
+        :title="loadErrorTitle"
+        :description="loadErrorDescription"
+        :primary-button-label="$t('common.retry')"
+        @primary-click="retryFailedSources"
       />
       <div class="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-4">
         <DashboardSystemCard

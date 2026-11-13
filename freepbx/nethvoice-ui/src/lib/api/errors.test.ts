@@ -8,6 +8,7 @@ import {
   getApiErrorMessage,
   isApiError,
   isAuthenticationFailure,
+  isServiceUnavailable,
 } from './errors'
 
 describe('getApiErrorMessage', () => {
@@ -137,6 +138,12 @@ describe('getApiErrorDetail', () => {
     expect(getApiErrorDetail(apiError(502, 'PHP Fatal error: Uncaught Error in /x.php'))).toBe('')
   })
 
+  it('should hide the body of a proxy or gateway error', () => {
+    expect(getApiErrorDetail(apiError(502, 'Bad Gateway'))).toBe('')
+    expect(getApiErrorDetail(apiError(503, { message: 'Service Unavailable' }))).toBe('')
+    expect(getApiErrorDetail(apiError(504, '<html><body>Gateway Timeout</body></html>'))).toBe('')
+  })
+
   it('should keep the plain and structured messages', () => {
     expect(getApiErrorDetail(apiError(500, 'An error occurred'))).toBe('An error occurred')
     expect(getApiErrorDetail(apiError(500, { error: 'Missing codecs' }))).toBe('Missing codecs')
@@ -201,5 +208,18 @@ describe('ApiError', () => {
     })
 
     expect(error.message).toBe('Gateway model not found')
+  })
+})
+
+describe('isServiceUnavailable', () => {
+  it('should match the proxy and gateway errors only', () => {
+    expect([500, 501, 502, 503, 504, 505].map(isServiceUnavailable)).toEqual([
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+    ])
   })
 })
