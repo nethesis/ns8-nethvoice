@@ -22,6 +22,7 @@ import BrandLogo from '@/components/shell/BrandLogo.vue'
 import SetupSignOutButton from './SetupSignOutButton.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useNotificationsStore } from '@/stores/notifications'
+import { getCurrentSetupRoute } from '@/lib/setup/guard'
 import { SETUP_STEPS } from '@/lib/setup/steps'
 import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
 import { useWizardState } from '@/queries/setup/wizardState'
@@ -54,13 +55,17 @@ async function startSetup() {
   try {
     const savedState = wizardState.value.data
 
-    if (!savedState?.inProgress || savedState.legacyStep <= firstStep.legacyStep) {
-      await postWizardState(firstStep.legacyStep, true)
-      await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] })
+    if (savedState?.inProgress && savedState.legacyStep > firstStep.legacyStep) {
+      await router.push(getCurrentSetupRoute(savedState))
+      return
     }
+    await postWizardState(firstStep.legacyStep, true)
+    await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] })
     await router.push({ name: `setup-${firstStep.id}` })
   } catch (error) {
-    notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'))
+    notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'), {
+      serverDetail: false,
+    })
   } finally {
     starting.value = false
   }

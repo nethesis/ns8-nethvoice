@@ -111,10 +111,57 @@ test.describe('setup wizard: summary', () => {
 
     await expect(page.getByText('Some settings may need attention')).toBeVisible()
     await expect(page.getByText('No user has an extension')).toBeVisible()
-    await expect(page.getByText('No trunks are configured')).toBeVisible()
+    await expect(page.getByText('No trunks can be used')).toBeVisible()
     await expect(page.getByText('No inbound routes are configured')).toBeVisible()
     await expect(page.getByText('Some outbound routes have no trunks')).toBeVisible()
     await expect(section(page, '6. Outbound routes')).toContainText('National: No trunks')
+  })
+
+  test('leaves out the AI agents trunk and warns when no trunk can be used', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('GET', '/freepbx/rest/trunks', {
+      json: [
+        { ...TRUNKS[0], disabled: 'on' },
+        {
+          trunkid: 3,
+          tech: 'pjsip',
+          name: 'VoiceAgentTrunk_2',
+          outcid: '',
+          provider: 'satellite-agent',
+          disabled: 'off',
+          username: '',
+          details: { codecs: 'alaw', sip_server: 'agents.example.com' },
+        },
+      ],
+    })
+
+    await page.goto('./setup/summary')
+
+    await expect(section(page, '4. VoIP trunks')).toContainText('TWT-0212345678')
+    await expect(section(page, '4. VoIP trunks')).toContainText('(Disabled)')
+    await expect(section(page, '4. VoIP trunks')).not.toContainText('VoiceAgentTrunk_2')
+    await expect(page.getByText('No trunks can be used')).toBeVisible()
+  })
+
+  test('lists the inbound routes in the order of the routes table', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/inboundroutes', {
+      json: {
+        destinations: [],
+        routes: [
+          { extension: '0211223344', cidnum: '', description: 'Second' },
+          { extension: '7777', cidnum: '', description: 'First' },
+        ],
+      },
+    })
+
+    await page.goto('./setup/summary')
+
+    await expect(section(page, '5. Inbound routes').getByRole('listitem')).toHaveText([
+      '7777: First',
+      '0211223344: Second',
+    ])
   })
 
   test('reports a section that cannot be loaded and retries it', async ({ page, mockApi }) => {
@@ -154,7 +201,7 @@ test.describe('setup wizard: summary', () => {
     const modal = page.getByRole('dialog', { name: 'Finish setup' })
     await expect(modal).toContainText('Asterisk will restart')
     await modal.getByRole('button', { name: 'Finish', exact: true }).click()
-    await expect(page.getByText('Adjusting NethVoice settings, almost there...')).toBeVisible()
+    await expect(page.getByText('Adjusting NethVoice settings, almost there…')).toBeVisible()
     await finish.click({ force: true })
     mockApi.on('GET', '/freepbx/rest/configuration/wizard', {
       json: [{ step: 13, status: 'false' }],

@@ -4,12 +4,14 @@
 -->
 
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NeButton,
+  NeDropdown,
   NeEmptyState,
   NeInlineNotification,
+  NeModal,
   NeSkeleton,
   NeSortDropdown,
   NeSpinner,
@@ -23,6 +25,7 @@ import {
   faCirclePlus,
   faCircleUser,
   faGear,
+  faLinkSlash,
   faMagnifyingGlass,
   faPenToSquare,
   faUserGroup,
@@ -31,7 +34,9 @@ import SetupStepLayout from './SetupStepLayout.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import CreateOrEditUserDrawer from '@/components/users/CreateOrEditUserDrawer.vue'
 import ImportUsersFlow from '@/components/users/ImportUsersFlow.vue'
+import RemoveExtensionModal from '@/components/users/RemoveExtensionModal.vue'
 import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import { useSetupNavigation } from '@/composables/useSetupNavigation'
 import { matchesText } from '@/lib/common'
 import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
@@ -43,6 +48,8 @@ import {
 } from '@/lib/users/directory'
 import {
   countConfiguredDrafts,
+  EXTENSION_ISSUE_MESSAGES,
+  getChangedExtensions,
   getExtensionErrorKind,
   validateExtensionDrafts,
 } from '@/lib/users/extensions'
@@ -53,6 +60,7 @@ import {
   runProvisioning,
 } from '@/lib/users/provisioning'
 import { sortUsers, type UserSortKey } from '@/lib/users/userFilters'
+import type { User } from '@/lib/users/users'
 import { useUserLimits } from '@/queries/users/userLimits'
 import { useInvalidateUsers, useUsers } from '@/queries/users/users'
 import { useUsersDirectory } from '@/queries/users/usersDirectory'
@@ -65,7 +73,7 @@ const invalidateUsers = useInvalidateUsers()
 const usersQuery = useUsers()
 const directoryQuery = useUsersDirectory()
 const { state: limitsState } = useUserLimits()
-const { syncing, sync } = useUsersProviderSync()
+const { syncing, syncError, sync } = useUsersProviderSync()
 const { advancing, goToNextStep } = useSetupNavigation('users')
 
 const edits = ref<Record<string, string>>({})
@@ -78,7 +86,15 @@ const sortDescending = ref(false)
 const currentUser = ref<UserRow | undefined>()
 const isShownUserDrawer = ref(false)
 const isShownImport = ref(false)
+const isShownRemoveExtension = ref(false)
+const isShownChangeWarning = ref(false)
+const removingUser = ref<User | undefined>()
 const exporting = ref(false)
+const progress = ref({ done: 0, total: 0 })
+const errorRef = useTemplateRef<HTMLElement>('errorRef')
+
+useFocusReturn(() => isShownUserDrawer.value)
+useFocusReturn(() => isShownImport.value)
 
 onMounted(sync)
 
@@ -92,7 +108,11 @@ const loadError = computed(
 const users = computed(() => usersQuery.state.value.data ?? [])
 const directory = computed(() => directoryQuery.state.value.data ?? EMPTY_USERS_DIRECTORY)
 const drafts = computed(() => getDrafts(users.value, edits.value))
-const draftIssues = computed(() => validateExtensionDrafts(drafts.value))
+const savedExtensions = computed<Record<string, string>>(() =>
+  Object.fromEntries(users.value.map((user) => [user.username, user.mainExtension])),
+)
+const draftIssues = computed(() => validateExtensionDrafts(drafts.value, savedExtensions.value))
+const changedExtensions = computed(() => getChangedExtensions(users.value, drafts.value))
 const configuredCount = computed(() => countConfiguredDrafts(drafts.value))
 const usersLimit = computed(() => limitsState.value.data?.limit ?? null)
 const overLimit = computed(
@@ -117,7 +137,7 @@ const issueFor = (username: string): string => {
   const issue = draftIssues.value[username]
 
   if (issue) {
-    return t(issue === 'duplicate' ? 'users.extension_already_assigned' : 'users.extension_invalid')
+    return t(EXTENSION_ISSUE_MESSAGES[issue])
   }
   return serverIssues.value[username] ? t(serverIssues.value[username]) : ''
 }
@@ -149,6 +169,22 @@ function showEditUser(username: string) {
   isShownUserDrawer.value = true
 }
 
+function showRemoveExtension(username: string) {
+  removingUser.value = users.value.find((user) => user.username === username)
+  isShownRemoveExtension.value = true
+}
+
+const rowMenuItems = (username: string): NeDropdownItem[] => [
+  {
+    id: 'remove-extension',
+    label: t('users.remove_extension'),
+    icon: faLinkSlash,
+    danger: true,
+    disabled: !savedExtensions.value[username],
+    action: () => showRemoveExtension(username),
+  },
+]
+
 function showCreateUser() {
   currentUser.value = undefined
   isShownUserDrawer.value = true
@@ -172,7 +208,9 @@ async function exportUsers() {
   try {
     downloadTextFile(buildExportFileName(), await getCsvExport())
   } catch (error) {
-    notificationsStore.createNotificationFromError(error, t('users.cannot_export_users'))
+    notificationsStore.createNotificationFromError(error, t('users.cannot_export_users'), {
+      serverDetail: false,
+    })
   } finally {
     exporting.value = false
   }
@@ -198,11 +236,13 @@ const provisioningErrorDescription = computed(() => {
   const error = provisioningError.value
 
   if (!(error instanceof ProvisioningError)) {
-    return describeError(error)
+    return describeError(error, { serverDetail: false })
   }
   const kind = error.phase === 'extension' ? getExtensionErrorKind(error.cause) : 'unknown'
   const detail =
-    kind === 'unknown' ? describeError(error.cause) : t(`users.extension_error_${kind}`)
+    kind === 'unknown'
+      ? describeError(error.cause, { serverDetail: false })
+      : t(`users.extension_error_${kind}`)
 
   return t('setup.users.provisioning_failed_for', {
     username: error.username,
@@ -216,7 +256,9 @@ async function focusFirstIssue() {
 
   if (username) {
     document.getElementById(`extension-${username}`)?.focus()
+    return
   }
+  errorRef.value?.focus()
 }
 
 function saveAndContinue() {
@@ -224,15 +266,31 @@ function saveAndContinue() {
     focusFirstIssue()
     return
   }
+
+  if (changedExtensions.value.length > 0) {
+    isShownChangeWarning.value = true
+    return
+  }
+  provisionAndContinue()
+}
+
+function confirmExtensionChanges() {
+  isShownChangeWarning.value = false
+  provisionAndContinue()
+}
+
+function provisionAndContinue() {
   provisioningError.value = null
 
   goToNextStep(async () => {
     provisioning.value = true
+    progress.value = { done: 0, total: 0 }
 
     try {
       await runProvisioning(
         planProvisioning(users.value, edits.value),
         findBaseProfile(directory.value.profiles)?.id ?? null,
+        (done, total) => (progress.value = { done, total }),
       )
       edits.value = {}
       return true
@@ -273,6 +331,14 @@ function saveAndContinue() {
         {{ t('setup.users.description_line_1') }}<br />{{ t('setup.users.description_line_2') }}
       </p>
     </template>
+    <NeInlineNotification
+      v-if="syncError && !provisioning"
+      kind="warning"
+      :title="t('users.cannot_sync_users')"
+      :description="t('setup.users.cannot_sync_users_description')"
+      :primary-button-label="t('common.retry')"
+      @primary-click="sync"
+    />
     <div
       v-if="provisioning"
       class="elevation-2 flex flex-col items-center gap-2 rounded-lg px-6 py-8 text-center"
@@ -289,8 +355,16 @@ function saveAndContinue() {
         {{ t('setup.users.configuring_users_description_line_1') }}<br />
         {{ t('setup.users.configuring_users_description_line_2') }}
       </p>
+      <p
+        v-if="progress.total > 0"
+        class="text-tertiary-neutral text-sm"
+        data-testid="configuring-progress"
+      >
+        {{ t('setup.users.configuring_progress', progress) }}
+      </p>
     </div>
     <LoadError
+      :server-detail="false"
       v-else-if="loadError"
       :error="loadError"
       :title="t('users.cannot_load_users')"
@@ -326,12 +400,13 @@ function saveAndContinue() {
       </div>
     </NeEmptyState>
     <template v-else>
-      <NeInlineNotification
-        v-if="provisioningError"
-        kind="error"
-        :title="t('setup.users.provisioning_failed')"
-        :description="provisioningErrorDescription"
-      />
+      <div v-if="provisioningError" ref="errorRef" tabindex="-1" class="focus:outline-none">
+        <NeInlineNotification
+          kind="error"
+          :title="t('setup.users.provisioning_failed')"
+          :description="provisioningErrorDescription"
+        />
+      </div>
       <NeInlineNotification
         v-if="overLimit"
         kind="warning"
@@ -426,13 +501,20 @@ function saveAndContinue() {
               @update:model-value="setDraft(user.username, $event)"
             />
           </div>
-          <NeButton kind="tertiary" class="mt-0.5" @click="showEditUser(user.username)">
-            <template #prefix>
-              <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
-            </template>
-            {{ t('common.edit') }}
-            <span class="sr-only">{{ user.username }}</span>
-          </NeButton>
+          <div class="mt-0.5 flex items-center gap-2">
+            <NeButton kind="tertiary" @click="showEditUser(user.username)">
+              <template #prefix>
+                <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
+              </template>
+              {{ t('common.edit') }}
+              <span class="sr-only">{{ user.username }}</span>
+            </NeButton>
+            <NeDropdown
+              :items="rowMenuItems(user.username)"
+              :align-to-right="true"
+              :open-menu-aria-label="t('users.user_actions', { name: user.username })"
+            />
+          </div>
         </li>
       </ul>
     </template>
@@ -453,5 +535,33 @@ function saveAndContinue() {
       @close="isShownImport = false"
       @imported="onUsersImported"
     />
+    <RemoveExtensionModal
+      :visible="isShownRemoveExtension"
+      :user="removingUser"
+      @close="isShownRemoveExtension = false"
+    />
+    <NeModal
+      :visible="isShownChangeWarning"
+      kind="warning"
+      :title="t('users.extension_change_warning_title')"
+      :primary-label="t('setup.users.change_extensions')"
+      :cancel-label="t('common.cancel')"
+      :close-aria-label="t('common.close')"
+      @close="isShownChangeWarning = false"
+      @primary-click="confirmExtensionChanges"
+    >
+      <p>{{ t('users.extension_change_warning_description') }}</p>
+      <ul class="mt-2 list-inside list-disc" data-testid="changed-extensions">
+        <li v-for="change in changedExtensions" :key="change.user.username">
+          {{
+            t('setup.users.changed_extension', {
+              name: change.user.displayName,
+              from: change.user.mainExtension,
+              to: change.extension,
+            })
+          }}
+        </li>
+      </ul>
+    </NeModal>
   </SetupStepLayout>
 </template>

@@ -10,11 +10,16 @@ import { NeButton, NeTooltip } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faArrowRightFromBracket } from '@fortawesome/free-solid-svg-icons'
 import { useLoginStore } from '@/stores/login'
+import { useSetupStore } from '@/stores/setup'
 
-const { iconOnly = false } = defineProps<{ iconOnly?: boolean }>()
+const { iconOnly = false, tooltipPlacement = 'right' } = defineProps<{
+  iconOnly?: boolean
+  tooltipPlacement?: 'right' | 'bottom'
+}>()
 
 const router = useRouter()
 const loginStore = useLoginStore()
+const setupStore = useSetupStore()
 const signingOut = ref(false)
 
 async function signOut() {
@@ -22,6 +27,7 @@ async function signOut() {
 
   try {
     await loginStore.logout()
+    setupStore.reset()
     await router.push({ name: 'login' })
   } finally {
     signingOut.value = false
@@ -30,7 +36,7 @@ async function signOut() {
 </script>
 
 <template>
-  <NeTooltip v-if="iconOnly" trigger-event="mouseenter focus" placement="right">
+  <NeTooltip v-if="iconOnly" trigger-event="mouseenter focus" :placement="tooltipPlacement">
     <template #trigger>
       <button
         type="button"

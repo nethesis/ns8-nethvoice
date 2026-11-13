@@ -120,12 +120,24 @@ test.describe('setup wizard: welcome and system settings', () => {
     page,
     mockApi,
   }) => {
-    mockApi.on('GET', '/freepbx/rest/settings/languages', { status: 500 })
+    let failing = true
+    mockApi.on('GET', '/freepbx/rest/settings/languages', () =>
+      failing
+        ? { status: 500, json: { message: 'db down' } }
+        : { json: { it: { default: false }, en: { default: true } } },
+    )
 
     await page.goto('./setup/system')
 
     await expect(page.getByText('Cannot load system settings')).toBeVisible()
+    await expect(page.getByText('db down')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+
+    failing = false
+    await page.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(page.getByRole('combobox', { name: 'PBX language' })).toHaveValue('English')
+    await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
   })
 
   test('Previous goes back to the welcome page', async ({ page }) => {
@@ -146,6 +158,30 @@ test.describe('setup wizard: welcome and system settings', () => {
     await expect(page.getByText('Choose a country')).toBeVisible()
     await expect(country).toBeFocused()
     expect(mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard')).toHaveLength(0)
+  })
+
+  test('does not pick a country when Tab leaves the emptied field', async ({ page, mockApi }) => {
+    await page.goto('./setup/system')
+
+    const country = page.getByRole('combobox', { name: 'PBX country' })
+    await expect(country).toHaveValue('United States')
+    await country.fill('')
+    await country.press('Tab')
+
+    await expect(country).toHaveValue('')
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(page.getByText('Choose a country')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard')).toHaveLength(0)
+  })
+
+  test('moves the focus to the title of the step', async ({ page }) => {
+    await page.goto('./setup/system')
+
+    await expect(page.getByRole('heading', { name: 'System settings', level: 1 })).toBeFocused()
+    await expect(page.getByRole('progressbar', { name: 'Setup progress' })).toHaveAttribute(
+      'aria-valuetext',
+      'Step 1 of 7: System settings',
+    )
   })
 
   test('shows the product name in the page title', async ({ page }) => {
