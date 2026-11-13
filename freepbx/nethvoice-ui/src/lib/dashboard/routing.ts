@@ -2,10 +2,11 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import {
+  describeInboundDestination,
   getInboundRouteName,
+  isInvalidDestination,
   type DestinationKind,
   type InboundRoute,
-  type RouteDestination,
 } from '@/lib/routes/inbound'
 import {
   getProviderStatus,
@@ -66,29 +67,6 @@ export const listTrunkStatuses = (
     status: getDashboardTrunkStatus(trunk.name, liveTrunks),
   }))
 
-export const isInvalidDestination = (destination: RouteDestination): boolean =>
-  Boolean(destination.target) &&
-  !destination.kind &&
-  !destination.category &&
-  destination.description === destination.target
-
-export const describeInboundDestination = (
-  destination: RouteDestination,
-  describeKind: (kind: DestinationKind) => string,
-): string => {
-  if (!destination.description) {
-    return ''
-  }
-  const prefix = destination.kind ? describeKind(destination.kind) : destination.category
-
-  return prefix ? `${prefix}: ${destination.description}` : destination.description
-}
-
-export const getDashboardInboundRouteName = (
-  route: Pick<InboundRoute, 'number' | 'cid'>,
-  anyDid: string,
-): string => getInboundRouteName({ number: route.number || anyDid, cid: route.cid })
-
 export const listInboundRouteDestinations = (
   routes: InboundRoute[],
   texts: InboundRouteTexts,
@@ -98,7 +76,7 @@ export const listInboundRouteDestinations = (
 
     return {
       id: route.id,
-      label: getDashboardInboundRouteName(route, texts.anyDid),
+      label: getInboundRouteName(route, texts.anyDid),
       destination: invalidDestination
         ? ''
         : describeInboundDestination(route.destination, texts.describeKind),

@@ -2,7 +2,13 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { describe, expect, it } from 'vitest'
-import { ApiError, getApiErrorMessage, isApiError, isAuthenticationFailure } from './errors'
+import {
+  ApiError,
+  getApiErrorDetail,
+  getApiErrorMessage,
+  isApiError,
+  isAuthenticationFailure,
+} from './errors'
 
 describe('getApiErrorMessage', () => {
   it('should read the legacy error field', () => {
@@ -117,6 +123,24 @@ describe('getApiErrorMessage', () => {
 
     expect(message).toHaveLength(300)
     expect(message.endsWith('…')).toBe(true)
+  })
+})
+
+describe('getApiErrorDetail', () => {
+  const apiError = (status: number, body: unknown) =>
+    new ApiError({ status, method: 'POST', url: '/freepbx/rest/trunks', body })
+
+  it('should hide the HTML or PHP dumps of a server error', () => {
+    expect(
+      getApiErrorDetail(apiError(500, '<br /><b>Fatal error</b>: Uncaught PDOException: SQLSTATE')),
+    ).toBe('')
+    expect(getApiErrorDetail(apiError(502, 'PHP Fatal error: Uncaught Error in /x.php'))).toBe('')
+  })
+
+  it('should keep the plain and structured messages', () => {
+    expect(getApiErrorDetail(apiError(500, 'An error occurred'))).toBe('An error occurred')
+    expect(getApiErrorDetail(apiError(500, { error: 'Missing codecs' }))).toBe('Missing codecs')
+    expect(getApiErrorDetail(apiError(400, '<b>Wrong value</b>'))).toBe('Wrong value')
   })
 })
 

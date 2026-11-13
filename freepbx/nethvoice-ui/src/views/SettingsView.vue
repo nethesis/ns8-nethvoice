@@ -4,15 +4,20 @@
 -->
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { NeButton, NeHeading } from '@nethesis/vue-components'
 import { faArrowUpRightFromSquare, faKey } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import ChangeAdminPasswordDrawer from '@/components/settings/ChangeAdminPasswordDrawer.vue'
 import PbxLanguageSection from '@/components/settings/PbxLanguageSection.vue'
 import { FREEPBX_ADMIN_URL } from '@/lib/config'
+import { ADMIN_USERNAME } from '@/lib/settings/adminPassword'
+import { useLoginStore } from '@/stores/login'
 
+const loginStore = useLoginStore()
 const isPasswordDrawerShown = ref(false)
+
+const isAdmin = computed(() => loginStore.username.toLowerCase() === ADMIN_USERNAME)
 
 function openAdvancedSettings() {
   window.open(FREEPBX_ADMIN_URL, '_blank', 'noopener')
@@ -44,6 +49,7 @@ function openAdvancedSettings() {
         <PbxLanguageSection />
       </section>
       <section
+        v-if="isAdmin"
         aria-labelledby="admin-password-heading"
         class="flex flex-col gap-6 pb-8 lg:flex-row"
       >
@@ -64,6 +70,7 @@ function openAdvancedSettings() {
       </section>
     </div>
     <ChangeAdminPasswordDrawer
+      v-if="isAdmin"
       :is-shown="isPasswordDrawerShown"
       @close="isPasswordDrawerShown = false"
     />

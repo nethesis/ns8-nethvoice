@@ -194,15 +194,17 @@ function openNotificationsDrawer() {
                 class="relative"
               >
                 <template #button>
-                  <button type="button" class="flex rounded-full p-1" data-testid="account-menu">
-                    <span class="sr-only">{{ $t('shell.open_account_menu') }}</span>
+                  <span
+                    class="in-focus-visible:ring-primary-500 dark:in-focus-visible:ring-primary-300 flex rounded-full p-1 in-focus-visible:ring-2"
+                    data-testid="account-menu"
+                    aria-hidden="true"
+                  >
                     <span
                       class="flex size-8 items-center justify-center rounded-full bg-gray-700 text-sm text-gray-50 uppercase dark:bg-gray-200 dark:text-gray-900"
-                      aria-hidden="true"
                     >
                       {{ initials }}
                     </span>
-                  </button>
+                  </span>
                 </template>
                 <template #menuHeader>
                   <div class="px-4 py-3">

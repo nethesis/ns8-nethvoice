@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import * as v from 'valibot'
 import {
@@ -19,8 +19,7 @@ import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { LoginSchema } from '@/lib/auth'
 import { isApiError } from '@/lib/api/errors'
 import type { Focusable } from '@/lib/common'
-import { getWizardState } from '@/lib/setup/wizard'
-import { getStepForLegacyStep } from '@/lib/setup/steps'
+import { getInternalRedirect } from '@/lib/setup/guard'
 import LogoDark from '@/assets/logo_dark.svg'
 
 type LoginError = '' | 'invalid_credentials' | 'generic'
@@ -44,7 +43,20 @@ const backgroundStyle = computed(() => {
   return backgroundUrl ? { backgroundImage: `url("${backgroundUrl}")` } : {}
 })
 
-const rightPanelLogo = computed(() => runtimeConfigStore.config.loginLogoUrl || LogoDark)
+const customLogoFailed = ref(false)
+
+const customLogoUrl = computed(() =>
+  customLogoFailed.value ? '' : runtimeConfigStore.config.loginLogoUrl,
+)
+
+const rightPanelLogo = computed(() => customLogoUrl.value || LogoDark)
+
+watch(
+  () => runtimeConfigStore.config.loginLogoUrl,
+  () => {
+    customLogoFailed.value = false
+  },
+)
 
 function validate(): boolean {
   validationIssues.value = {}
@@ -70,27 +82,6 @@ function validate(): boolean {
   return false
 }
 
-async function getLandingRoute() {
-  const redirect = route.query.redirect
-
-  if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
-    return redirect
-  }
-
-  try {
-    const wizardState = await getWizardState()
-
-    if (wizardState.inProgress) {
-      return wizardState.legacyStep > 0
-        ? { name: `setup-${getStepForLegacyStep(wizardState.legacyStep).id}` }
-        : { name: 'setup' }
-    }
-  } catch {
-    return { name: 'dashboard' }
-  }
-  return { name: 'dashboard' }
-}
-
 async function signIn() {
   loginError.value = ''
 
@@ -101,10 +92,16 @@ async function signIn() {
 
   try {
     await loginStore.login(username.value.trim(), password.value, rememberUsername.value)
-    await router.push(await getLandingRoute())
   } catch (error) {
     loginError.value = isApiError(error) && error.status === 401 ? 'invalid_credentials' : 'generic'
+    loading.value = false
+    await nextTick()
     passwordRef.value?.focus()
+    return
+  }
+
+  try {
+    await router.push(getInternalRedirect(route.query.redirect) ?? { name: 'dashboard' })
   } finally {
     loading.value = false
   }
@@ -188,15 +185,11 @@ async function signIn() {
       aria-hidden="true"
     >
       <img
-        v-if="
-          !runtimeConfigStore.config.loginBackgroundUrl || runtimeConfigStore.config.loginLogoUrl
-        "
+        v-if="!runtimeConfigStore.config.loginBackgroundUrl || customLogoUrl"
         :src="rightPanelLogo"
         alt=""
-        :class="[
-          'h-9 w-auto max-w-[60%]',
-          { 'brightness-0 invert': !runtimeConfigStore.config.loginLogoUrl },
-        ]"
+        :class="['h-9 w-auto max-w-[60%]', { 'brightness-0 invert': !customLogoUrl }]"
+        @error="customLogoFailed = true"
       />
     </div>
   </div>
