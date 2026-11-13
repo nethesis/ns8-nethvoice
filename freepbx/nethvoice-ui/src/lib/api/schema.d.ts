@@ -556,7 +556,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Update the given fields of a database connection. */
+    /**
+     * Update the given fields of a database connection.
+     * @description Reloads nethcti-server so the customer cards use the new parameters.
+     */
     put: operations['put_cti_dbconn_id']
     post?: never
     /** Delete a database connection. */
@@ -685,7 +688,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Update a customer card. */
+    /**
+     * Update a customer card.
+     * @description When the name changes, the related CTI permission is renamed too (name cc_<sanitized name>, displayname <name>).
+     */
     put: operations['put_cti_customer_card_id']
     post?: never
     /** Delete a customer card. */
@@ -955,7 +961,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Create or update a gateway configuration and related trunks. */
+    /**
+     * Create or update a gateway configuration and related trunks.
+     * @description Trunks and FXS extensions are created first and the gateway configuration is written in one transaction at the end. When any step fails, the trunks and extensions created by the request are removed and an existing configuration with the same name and MAC address is kept. Cleanup failures are listed in `warnings`.
+     */
     post: operations['post_devices_gateways']
     delete?: never
     options?: never
@@ -1679,9 +1688,15 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Replace an external phonebook source. */
+    /**
+     * Replace an external phonebook source.
+     * @description When the URL changes, the previously uploaded CSV file is removed if no other source uses it.
+     */
     post: operations['post_phonebook_config_id']
-    /** Delete an external phonebook source and the contacts imported from it. */
+    /**
+     * Delete an external phonebook source and the contacts imported from it.
+     * @description The uploaded CSV file of the source is removed when no other source uses it.
+     */
     delete: operations['delete_phonebook_config_id']
     options?: never
     head?: never
@@ -2694,7 +2709,7 @@ export interface components {
       /** @description Language code, as returned by GET /settings/languages. */
       lang: string
     }
-    /** @description Technology parameters of the trunk (`pjsip` table for PJSIP trunks). Every value is a string. The legacy handler also returns `secret`, which clients must never display or store. */
+    /** @description Technology parameters of the trunk (`pjsip` table for PJSIP trunks). Every value is a string. Credentials (`secret`, `md5_cred` and every `auth_*` keyword) are never returned. */
     TrunkDetails: {
       /**
        * @description Comma separated list of allowed codecs
@@ -2757,7 +2772,7 @@ export interface components {
     /** @description Only the fields that are present are changed. */
     TrunkUpdateRequest: {
       username?: string
-      /** @description New SIP secret. An empty string clears the secret. */
+      /** @description New SIP secret. An empty or blank string keeps the current secret. */
       password?: string
       phone?: string
       codecs?: string[]
@@ -5392,6 +5407,15 @@ export interface operations {
           'application/json': components['schemas']['GatewaySaveResult']
         }
       }
+      /** @description Another gateway already uses this MAC address. Nothing is created. */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['GatewaySaveResult']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -6749,6 +6773,15 @@ export interface operations {
           'application/json': components['schemas']['IntegrationsStatusError']
         }
       }
+      /** @description Invalid source id */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -7581,6 +7614,24 @@ export interface operations {
           'application/json': Record<string, never>
         }
       }
+      /** @description Missing extension or empty destination */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['LegacyError']
+        }
+      }
     }
   }
   post_inboundroutes_delete: {
@@ -8005,6 +8056,15 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['LegacyError']
+        }
+      }
+      /** @description Trunk name longer than 50 characters */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
         }
       }
       /** @description Internal server error */
