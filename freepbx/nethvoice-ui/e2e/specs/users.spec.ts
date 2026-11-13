@@ -12,6 +12,21 @@ import {
   REST,
 } from './users-data'
 
+const ORPHANS = [
+  {
+    username: 'e.brown',
+    displayname: 'Emma Brown',
+    extension: '310',
+    devices: [
+      { extension: '92310', type: 'webrtc', mac: null },
+      { extension: '91310', type: 'physical', mac: '00:15:65:AB:CD:09' },
+      { extension: '93310', type: 'mobile', mac: null },
+    ],
+    removed_at: '2026-11-12T08:30:00Z',
+  },
+  { username: 'f.green', displayname: '', extension: '305', devices: [], removed_at: null },
+]
+
 const IMPORT_TIMEOUT = { timeout: 15_000 }
 
 test.describe('users', () => {
@@ -483,6 +498,90 @@ test.describe('users', () => {
 
     await expect(page.getByText('Users synchronized')).toBeVisible()
     expect(mockApi.callsTo('POST', `${REST}/users/sync`)).toHaveLength(1)
+  })
+
+  test('does not warn when no extension belongs to removed users', async ({ page }) => {
+    await page.goto('./users/users')
+    await expect(page.getByTestId('users-counter')).toBeVisible()
+    await expect(page.getByTestId('orphan-extensions-warning')).toHaveCount(0)
+  })
+
+  test('deletes the chosen extensions of removed users', async ({ page, mockApi }) => {
+    let orphans = ORPHANS
+    mockApi
+      .on('GET', `${REST}/mainextensions/orphans`, () => ({ json: orphans }))
+      .on('POST', `${REST}/mainextensions/orphans/release`, (request) => {
+        const { extensions } = request.body as { extensions: string[] }
+        orphans = orphans.filter((orphan) => !extensions.includes(orphan.extension))
+        return { status: 204 }
+      })
+    await page.goto('./users/users')
+
+    const warning = page.getByTestId('orphan-extensions-warning')
+    await expect(warning).toContainText('2 extensions belong to removed users')
+    await warning.getByRole('button', { name: 'Show extensions' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Extensions of removed users' })
+    await expect(drawer.getByTestId('orphan-310')).toContainText('Emma Brown (e.brown)')
+    await expect(drawer.getByTestId('orphan-310')).toContainText(
+      /Extension 310 · Web phone, Mobile app · 1 physical phone · Removed on .+/,
+    )
+    await expect(drawer.getByTestId('orphan-305')).toContainText('f.green')
+    const deleteButton = drawer.getByRole('button', { name: 'Delete extensions' })
+    await expect(deleteButton).toBeDisabled()
+
+    await drawer.getByRole('checkbox', { name: 'Emma Brown (e.brown)' }).check()
+    await deleteButton.click()
+    const modal = page.getByRole('dialog', { name: 'Delete extensions' })
+    await expect(modal).toContainText('Extension 310 will be permanently deleted')
+    await expect(modal).toContainText('This cannot be undone.')
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(page.getByText('Extensions deleted')).toBeVisible()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions/orphans/release`)[0].body).toEqual({
+      extensions: ['310'],
+    })
+    await expect(warning).toContainText('1 extension belongs to a removed user')
+  })
+
+  test('selects every extension of removed users at once', async ({ page, mockApi }) => {
+    mockApi
+      .on('GET', `${REST}/mainextensions/orphans`, { json: ORPHANS })
+      .on('POST', `${REST}/mainextensions/orphans/release`, { status: 204 })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Show extensions' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Extensions of removed users' })
+    await drawer.getByRole('checkbox', { name: 'Select all' }).check()
+    await drawer.getByRole('button', { name: 'Delete extensions' }).click()
+    const modal = page.getByRole('dialog', { name: 'Delete extensions' })
+    await expect(modal).toContainText('Extensions 305, 310 will be permanently deleted')
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(page.getByText('Extensions deleted')).toBeVisible()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions/orphans/release`)[0].body).toEqual({
+      extensions: ['305', '310'],
+    })
+  })
+
+  test('shows the error of a failed deletion of extensions', async ({ page, mockApi }) => {
+    mockApi
+      .on('GET', `${REST}/mainextensions/orphans`, { json: ORPHANS })
+      .on('POST', `${REST}/mainextensions/orphans/release`, {
+        status: 404,
+        json: { message: 'Extension 305 does not belong to a removed user' },
+      })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Show extensions' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Extensions of removed users' })
+    await drawer.getByRole('checkbox', { name: 'f.green' }).check()
+    await drawer.getByRole('button', { name: 'Delete extensions' }).click()
+    const modal = page.getByRole('dialog', { name: 'Delete extensions' })
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(modal.getByText('Cannot delete the extensions')).toBeVisible()
+    await expect(page.getByText('Extensions deleted')).toHaveCount(0)
   })
 
   test('assigns a profile to several users', async ({ page, mockApi }) => {

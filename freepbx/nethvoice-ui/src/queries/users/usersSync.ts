@@ -4,6 +4,7 @@
 import { onScopeDispose, ref } from 'vue'
 import { useQueryCache } from '@pinia/colada'
 import { USER_LIMITS_KEY } from '@/lib/users/extensions'
+import { ORPHAN_EXTENSIONS_KEY } from '@/lib/users/orphans'
 import { getUsersSyncRunning, postUsersSync, USERS_KEY } from '@/lib/users/users'
 
 export const USERS_SYNC_POLL_INTERVAL = 2000
@@ -46,6 +47,7 @@ export function useUsersProviderSync() {
       if (!disposed && syncError.value === null) {
         queryCache.invalidateQueries({ key: [USERS_KEY] }).catch(() => undefined)
         queryCache.invalidateQueries({ key: [USER_LIMITS_KEY] }).catch(() => undefined)
+        queryCache.invalidateQueries({ key: [ORPHAN_EXTENSIONS_KEY] }).catch(() => undefined)
       }
     }
   }
