@@ -66,11 +66,11 @@ const invalidateUsers = useInvalidateUsers()
 
 type ImportStep = 'file' | 'preview'
 
-const PANEL_TRANSITION_MS = 400
+const PANEL_SWITCH_TIMEOUT_MS = 1500
 
 const step = ref<ImportStep>('file')
 const visiblePanel = ref<ImportStep | null>(null)
-let panelTimer: ReturnType<typeof setTimeout> | undefined
+let panelFrame: number | undefined
 const file = ref<File | null>(null)
 const fileError = ref('')
 const rows = ref<ImportRow[]>([])
@@ -112,7 +112,7 @@ const hasExistingUsers = computed(() =>
 watch(
   () => isShown,
   (shown) => {
-    clearTimeout(panelTimer)
+    cancelPanelSwitch()
 
     if (shown) {
       step.value = 'file'
@@ -129,17 +129,33 @@ watch(
   },
 )
 
-onBeforeUnmount(() => clearTimeout(panelTimer))
+onBeforeUnmount(cancelPanelSwitch)
+
+function cancelPanelSwitch() {
+  if (panelFrame !== undefined) {
+    cancelAnimationFrame(panelFrame)
+    panelFrame = undefined
+  }
+}
 
 function showStep(next: ImportStep) {
   step.value = next
   visiblePanel.value = null
-  clearTimeout(panelTimer)
-  panelTimer = setTimeout(() => {
-    if (isShown) {
-      visiblePanel.value = next
+  cancelPanelSwitch()
+  const startedAt = performance.now()
+  const showWhenPreviousPanelIsGone = () => {
+    panelFrame = undefined
+    if (!isShown) {
+      return
     }
-  }, PANEL_TRANSITION_MS)
+    const previousPanelOpen = document.querySelector('[role="dialog"]') !== null
+    if (!previousPanelOpen || performance.now() - startedAt > PANEL_SWITCH_TIMEOUT_MS) {
+      visiblePanel.value = next
+      return
+    }
+    panelFrame = requestAnimationFrame(showWhenPreviousPanelIsGone)
+  }
+  panelFrame = requestAnimationFrame(showWhenPreviousPanelIsGone)
 }
 
 watch(file, () => {
