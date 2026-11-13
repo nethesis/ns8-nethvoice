@@ -204,32 +204,23 @@ function enable($ext,$hour,$start)
 
 function isValidHour($hour)
 {
-  $h = $hour[0].$hour[1];
-  $m = $hour[2].$hour[3];
-  
-  //neth_debug("h=$h,m=$m");
-  if($h>=0 && $h<=24 && $m>=0 && $m<=60)
-    return $h.":".$m;
-  else
+  if (!preg_match('/^(?:[01][0-9]|2[0-3])[0-5][0-9]$/D', $hour))
     return false;
+  return substr($hour, 0, 2).':'.substr($hour, 2, 2);
 }
 
 
 function edit($ext)
 {
   global $agi;
-  $hour = requestHour(MAX_TRIES);
   for($i=0; $i<MAX_TRIES; $i++)
   {
-    if($hour = isValidHour($hour))
+    $hour = isValidHour(requestHour(MAX_TRIES));
+    if($hour !== false)
       break;
-    else 
-    {
-      @$agi->stream_file("beeperr");
-      $hour = requestHour(MAX_TRIES);
-    }
+    @$agi->stream_file("beeperr");
   }
-  if(!$hour)
+  if($hour === false)
     exitError();
   
   $start = requestStart(MAX_TRIES);
@@ -244,6 +235,7 @@ function edit($ext)
 
 function exitError()
 {
+  global $agi;
   @$agi->stream_file("alarm/arrivederci-errore");
   exit(1);
 }

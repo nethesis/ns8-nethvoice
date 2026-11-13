@@ -58,7 +58,7 @@ $agi = new AGI();
 
 $extension = $argv[1];
 $alarm = $argv[2];
-$reception = $argv[3];
+$reception = trim((string)($argv[3] ?? ''));
 
 $sql = "SELECT max(retry) FROM roomsdb.alarms_history WHERE extension=? and alarm=?";
 $stmt = $db->prepare($sql);
@@ -88,11 +88,13 @@ $stmt = $db->prepare($sql);
 $stmt->execute([$calldate, $extension, $alarm, $retry]);
 
 if ($allarme) {
-    $time = time()+30;
-    $sql = "INSERT INTO roomsdb.alarmcalls SET timestamp = ?, extension = ?, enabled = 1, alarmtype = 1";
-    $stmt = $db->prepare($sql);
-    $stmt->execute([$time, $extension]);
-    neth_debug($sql);
+    if ($reception !== '') {
+        $time = time()+30;
+        $sql = "INSERT INTO roomsdb.alarmcalls SET timestamp = ?, extension = ?, enabled = 1, alarmtype = 1";
+        $stmt = $db->prepare($sql);
+        $stmt->execute([$time, $extension]);
+        neth_debug($sql);
+    }
     fias('WA2PMS', array(
         'RN' => $extension,
         'AS'  => 'NR', # No response
