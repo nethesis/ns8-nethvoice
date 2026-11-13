@@ -6,11 +6,11 @@ import { getLanguageName, getSummaryWarnings } from './summary'
 
 const COMPLETE = {
   usersWithExtension: 3,
-  physicalTrunks: 0,
-  voipTrunks: 1,
+  usableTrunks: 1,
   inboundRoutes: 2,
   outboundRoutes: 4,
   outboundRoutesWithoutTrunks: 0,
+  outboundRoutesWithUnusableTrunks: 0,
 }
 
 describe('getSummaryWarnings', () => {
@@ -18,19 +18,15 @@ describe('getSummaryWarnings', () => {
     expect(getSummaryWarnings(COMPLETE)).toEqual([])
   })
 
-  it('should accept a physical trunk instead of a VoIP one', () => {
-    expect(getSummaryWarnings({ ...COMPLETE, physicalTrunks: 1, voipTrunks: 0 })).toEqual([])
-  })
-
   it('should list every missing piece', () => {
     expect(
       getSummaryWarnings({
         usersWithExtension: 0,
-        physicalTrunks: 0,
-        voipTrunks: 0,
+        usableTrunks: 0,
         inboundRoutes: 0,
         outboundRoutes: 0,
         outboundRoutesWithoutTrunks: 0,
+        outboundRoutesWithUnusableTrunks: 0,
       }),
     ).toEqual(['no_extensions', 'no_trunks', 'no_inbound_routes', 'no_outbound_routes'])
   })
@@ -41,9 +37,24 @@ describe('getSummaryWarnings', () => {
     ])
   })
 
+  it('should tell when no outbound route has trunks', () => {
+    expect(getSummaryWarnings({ ...COMPLETE, outboundRoutesWithoutTrunks: 4 })).toEqual([
+      'all_outbound_routes_without_trunks',
+    ])
+  })
+
+  it('should warn about outbound routes with only trunks that cannot be used', () => {
+    expect(getSummaryWarnings({ ...COMPLETE, outboundRoutesWithUnusableTrunks: 1 })).toEqual([
+      'outbound_routes_with_unusable_trunks',
+    ])
+    expect(
+      getSummaryWarnings({ ...COMPLETE, usableTrunks: 0, outboundRoutesWithUnusableTrunks: 4 }),
+    ).toEqual(['no_trunks'])
+  })
+
   it('should not warn about counts that are not known yet', () => {
     expect(getSummaryWarnings({})).toEqual([])
-    expect(getSummaryWarnings({ voipTrunks: 0 })).toEqual([])
+    expect(getSummaryWarnings({ outboundRoutes: 2 })).toEqual([])
   })
 })
 

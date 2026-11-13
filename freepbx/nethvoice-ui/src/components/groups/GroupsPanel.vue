@@ -147,7 +147,7 @@ function reload() {
     </NeEmptyState>
     <template v-else>
       <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
-        <p class="text-secondary-neutral max-w-[608px]">
+        <p class="text-secondary-neutral max-w-152">
           {{ t('groups.description_line_1') }}<br />{{ t('groups.description_line_2') }}
         </p>
         <NeButton
@@ -212,16 +212,21 @@ function reload() {
                 {{ getUsernames(group).slice(0, MAX_GROUP_USERS_SHOWN).join(', ') }}
                 <NeTooltip
                   v-if="getUsernames(group).length > MAX_GROUP_USERS_SHOWN"
+                  trigger-event="mouseenter focus"
+                  placement="bottom"
                   class="ml-1 inline-block"
                 >
                   <template #trigger>
-                    <span class="text-tertiary-neutral cursor-default whitespace-nowrap">
+                    <button
+                      type="button"
+                      class="text-primary-700 dark:text-primary-500 text-left font-medium whitespace-nowrap"
+                    >
                       {{
                         t('common.plus_n_more', {
                           count: getUsernames(group).length - MAX_GROUP_USERS_SHOWN,
                         })
                       }}
-                    </span>
+                    </button>
                   </template>
                   <template #content>
                     {{ getUsernames(group).slice(MAX_GROUP_USERS_SHOWN).join(', ') }}

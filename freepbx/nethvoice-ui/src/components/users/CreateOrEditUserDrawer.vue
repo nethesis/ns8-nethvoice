@@ -727,10 +727,10 @@ const extensionChangeWarning = computed(
         </NeButton>
       </div>
     </form>
+    <DiscardChangesModal
+      :visible="isShownDiscardModal"
+      @close="isShownDiscardModal = false"
+      @discard="discardChanges"
+    />
   </NeSideDrawer>
-  <DiscardChangesModal
-    :visible="isShownDiscardModal"
-    @close="isShownDiscardModal = false"
-    @discard="discardChanges"
-  />
 </template>

@@ -4,8 +4,8 @@
 -->
 
 <script setup lang="ts">
-import { RouterView } from 'vue-router'
-import { ref } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
+import { ref, watch } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
 import SideMenu from './SideMenu.vue'
 import BrandLogo from './BrandLogo.vue'
@@ -15,7 +15,15 @@ import TopBar from './TopBar.vue'
 import NotificationDrawer from './NotificationDrawer.vue'
 import PhoneIslandHost from '@/components/phone/PhoneIslandHost.vue'
 
+const route = useRoute()
 const sidebarOpen = ref(false)
+
+watch(
+  () => route.fullPath,
+  () => {
+    sidebarOpen.value = false
+  },
+)
 </script>
 
 <template>

@@ -44,6 +44,13 @@ export type ImportColumn =
   | 'nethlink'
   | 'mobileApp'
 
+export type ImportFlagColumn = 'voicemail' | 'webrtc' | 'nethlink' | 'mobileApp'
+
+export type InvalidImportFlag = {
+  column: ImportFlagColumn
+  value: string
+}
+
 export type ImportRow = {
   line: number
   username: string
@@ -59,6 +66,7 @@ export type ImportRow = {
   webrtc: boolean | null
   nethlink: boolean | null
   mobileApp: boolean | null
+  invalidFlags: InvalidImportFlag[]
 }
 
 export type ImportIssue =
@@ -72,12 +80,19 @@ export type ImportIssue =
   | 'unknown_profile'
   | 'invalid_group'
   | 'too_many_devices'
+  | 'invalid_flag'
 
-export type ImportRowError = {
-  row: ImportRow
+export type ImportRowIssue = {
   issue: ImportIssue
   group?: string
   reason?: string
+  column?: ImportFlagColumn
+  value?: string
+}
+
+export type ImportRowError = {
+  row: ImportRow
+  issues: ImportRowIssue[]
 }
 
 export type ExistingUsersMode = 'skip' | 'overwrite'
@@ -294,12 +309,29 @@ const normalizeHeader = (cell: string): string =>
     .toLowerCase()
     .replace(/[^a-z]/g, '')
 
+const TRUE_FLAGS = ['true', '1', 'yes', 'y', 'si', 'sì', 'vero', 'on', 'x']
+
+const FALSE_FLAGS = ['false', '0', 'no', 'n', 'falso', 'off']
+
+const FLAG_COLUMNS: ImportFlagColumn[] = ['voicemail', 'webrtc', 'nethlink', 'mobileApp']
+
+const isBlank = (value: string | undefined): value is undefined =>
+  value === undefined || value.trim() === ''
+
 const parseFlag = (value: string | undefined): boolean | null => {
-  if (value === undefined || value.trim() === '') {
+  if (isBlank(value)) {
     return null
   }
-  return ['true', '1', 'yes', 'si', 'sì', 'vero'].includes(value.trim().toLowerCase())
+  const normalized = value.trim().toLowerCase()
+
+  if (TRUE_FLAGS.includes(normalized)) {
+    return true
+  }
+  return FALSE_FLAGS.includes(normalized) ? false : null
 }
+
+const isValidFlag = (value: string | undefined): boolean =>
+  isBlank(value) || parseFlag(value) !== null
 
 const parseGroups = (value: string | undefined): string[] | null =>
   value === undefined
@@ -351,6 +383,10 @@ export const parseImportFile = (text: string): ImportRow[] => {
       webrtc: parseFlag(value('webrtc')),
       nethlink: parseFlag(value('nethlink')),
       mobileApp: parseFlag(value('mobileApp')),
+      invalidFlags: FLAG_COLUMNS.flatMap((column) => {
+        const flag = value(column)
+        return flag !== undefined && !isValidFlag(flag) ? [{ column, value: flag }] : []
+      }),
     }
   })
 }
@@ -386,54 +422,56 @@ const exceedsDeviceLimit = (row: ImportRow, users: User[]): boolean => {
   return user.devices.length - disable.length + enable.length > MAX_DEVICES_PER_USER
 }
 
-const findRowIssue = (
+const findRowIssues = (
   row: ImportRow,
   seen: { usernames: Set<string>; extensions: Set<string> },
   users: User[],
   directory: UsersDirectory,
-): ImportIssue | null => {
-  if (row.username === '') {
-    return 'missing_username'
-  }
+): ImportRowIssue[] => {
+  const issues: ImportIssue[] = []
+  const validExtension = row.extension !== '' && isValidExtension(row.extension)
 
-  if (!USERNAME_REGEX.test(row.username)) {
-    return 'invalid_username'
+  if (row.username === '') {
+    issues.push('missing_username')
+  } else if (!USERNAME_REGEX.test(row.username)) {
+    issues.push('invalid_username')
+  } else if (seen.usernames.has(row.username)) {
+    issues.push('duplicate_username')
   }
 
   if (row.fullName.trim() === '') {
-    return 'missing_name'
+    issues.push('missing_name')
   }
 
-  if (row.extension !== '' && !isValidExtension(row.extension)) {
-    return 'invalid_extension'
-  }
-
-  if (seen.usernames.has(row.username)) {
-    return 'duplicate_username'
-  }
-
-  if (row.extension !== '' && seen.extensions.has(row.extension)) {
-    return 'duplicate_extension'
-  }
-
-  if (
-    row.extension !== '' &&
+  if (row.extension !== '' && !validExtension) {
+    issues.push('invalid_extension')
+  } else if (validExtension && seen.extensions.has(row.extension)) {
+    issues.push('duplicate_extension')
+  } else if (
+    validExtension &&
     users.some((user) => user.mainExtension === row.extension && user.username !== row.username)
   ) {
-    return 'extension_in_use'
+    issues.push('extension_in_use')
   }
 
   if (
     row.profile &&
     !directory.profiles.some((profile) => profile.name.toLowerCase() === row.profile?.toLowerCase())
   ) {
-    return 'unknown_profile'
+    issues.push('unknown_profile')
   }
 
-  if (exceedsDeviceLimit(row, users)) {
-    return 'too_many_devices'
+  if (row.invalidFlags.length === 0 && exceedsDeviceLimit(row, users)) {
+    issues.push('too_many_devices')
   }
-  return null
+  return [
+    ...issues.map((issue) => ({ issue })),
+    ...row.invalidFlags.map(({ column, value }) => ({
+      issue: 'invalid_flag' as const,
+      column,
+      value,
+    })),
+  ]
 }
 
 const sameName = (a: string, b: string): boolean =>
@@ -443,7 +481,7 @@ const findGroupIssue = (
   row: ImportRow,
   existingGroups: string[],
   newGroups: string[],
-): Pick<ImportRowError, 'group' | 'reason'> | null => {
+): Pick<ImportRowIssue, 'group' | 'reason'> | null => {
   const accepted = [...newGroups]
 
   for (const group of row.groups ?? []) {
@@ -484,17 +522,15 @@ export const analyzeImport = (
   const existingGroups = directory.groups.map((group) => group.name)
 
   for (const row of rows) {
-    const issue = findRowIssue(row, seen, users, directory)
-
-    if (issue) {
-      analysis.errors.push({ row, issue })
-      continue
-    }
     const skipped = !!findUserByUsername(users, row.username) && existingUsersMode === 'skip'
     const groupIssue = skipped ? null : findGroupIssue(row, existingGroups, analysis.newGroups)
+    const issues = [
+      ...findRowIssues(row, seen, users, directory),
+      ...(groupIssue ? [{ issue: 'invalid_group' as const, ...groupIssue }] : []),
+    ]
 
-    if (groupIssue) {
-      analysis.errors.push({ row, issue: 'invalid_group', ...groupIssue })
+    if (issues.length) {
+      analysis.errors.push({ row, issues })
       continue
     }
     seen.usernames.add(row.username)

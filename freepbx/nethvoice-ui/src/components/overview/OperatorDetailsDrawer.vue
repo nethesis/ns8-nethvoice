@@ -124,6 +124,7 @@ function getDeviceLabel(device: OverviewDevice) {
             <NeButton
               kind="primary"
               :disabled="isCallDisabled"
+              :aria-describedby="isCallDisabled ? `${idPrefix}-call-reason` : undefined"
               :loading="adminPhoneStore.isConnecting"
               data-testid="call-operator"
               @click="callOperator"
@@ -136,6 +137,14 @@ function getDeviceLabel(device: OverviewDevice) {
           </template>
           <template #content>{{ callTooltip }}</template>
         </NeTooltip>
+        <p
+          v-if="isCallDisabled"
+          :id="`${idPrefix}-call-reason`"
+          class="text-secondary-neutral mt-2 text-sm"
+          data-testid="call-disabled-reason"
+        >
+          {{ callTooltip }}
+        </p>
       </div>
       <div>
         <h4 class="text-primary-neutral mb-2 font-medium">

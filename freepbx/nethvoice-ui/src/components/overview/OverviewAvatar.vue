@@ -8,6 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NeAvatar, type AvatarSize } from '@nethesis/vue-components'
 import { getInitials, type OverviewStatus } from '@/lib/overview/overview'
+import { useDensityStore } from '@/stores/density'
 
 const {
   name,
@@ -22,6 +23,7 @@ const {
 }>()
 
 const { t } = useI18n()
+const densityStore = useDensityStore()
 
 const PRESENCE_DOT: Record<OverviewStatus, string> = {
   online: 'bg-green-500',
@@ -34,7 +36,7 @@ const PRESENCE_DOT: Record<OverviewStatus, string> = {
 
 const DOT_SIZE: Record<AvatarSize, string> = {
   xs: 'size-1.5',
-  sm: 'size-2.5',
+  sm: 'size-2 translate-x-1/4 translate-y-1/4',
   md: 'size-3',
   lg: 'size-3',
   xl: 'size-3.5',
@@ -49,15 +51,19 @@ const SURFACE_RING = {
 }
 
 const initials = computed(() => getInitials(name))
+
+const avatarSize = computed<AvatarSize>(() =>
+  densityStore.isCompact && size === 'sm' ? 'md' : size,
+)
 </script>
 
 <template>
   <span class="relative inline-flex shrink-0">
-    <NeAvatar :size="size" :initials="initials" :alt="name" />
+    <NeAvatar :size="avatarSize" :initials="initials" :alt="name" />
     <span
       :class="[
         'absolute right-0 bottom-0 block rounded-full ring-2',
-        DOT_SIZE[size],
+        DOT_SIZE[avatarSize],
         SURFACE_RING[surface],
         PRESENCE_DOT[presence],
       ]"
