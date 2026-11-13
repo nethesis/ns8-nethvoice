@@ -171,7 +171,7 @@ test.describe('user overview', () => {
     await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
     await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
     await expect(page.getByText('Fanvil X4U').first()).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Call' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Call' })).toBeEnabled()
 
     const drawer = page.getByRole('dialog')
     const webPhone = drawer.getByRole('button', { name: /Web phone/ })
