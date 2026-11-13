@@ -18,6 +18,12 @@ import {
   NeMultiselectCombobox,
   NeRadioSelection,
   NeSideDrawer,
+  NeTable,
+  NeTableBody,
+  NeTableCell,
+  NeTableHead,
+  NeTableHeadCell,
+  NeTableRow,
   NeTextArea,
   NeTextInput,
   NeToggle,
@@ -28,6 +34,7 @@ import { faArrowRight, faCircleCheck, faPlugCircleBolt } from '@fortawesome/free
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
+import { isApiError } from '@/lib/api/errors'
 import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import {
   buildPhonebookSourcePayload,
@@ -49,6 +56,7 @@ import {
   type PhonebookSourceForm,
   type PhonebookTestResult,
   savePhonebookSource,
+  suggestMapping,
   testPhonebookSource,
   toPhonebookSourceForm,
   uploadPhonebookCsv,
@@ -210,6 +218,17 @@ const fieldOptionsByColumn = computed<Record<string, MappingOption[]>>((previous
   )
 })
 
+watch([testedColumns, fields], ([columns, available]) => {
+  if (columns.length === 0 || available.length === 0 || form.value.kind === 'infinity') {
+    return
+  }
+  const suggested = suggestMapping(columns, available, form.value.mapping, form.value.kind)
+
+  if (Object.keys(suggested).length !== Object.keys(form.value.mapping).length) {
+    form.value.mapping = suggested
+  }
+})
+
 const hasStoredPassword = computed(() => !!currentSource?.password)
 
 const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
@@ -356,6 +375,15 @@ function requestClose() {
 function discardChanges() {
   isShownDiscardModal.value = false
   emit('close')
+}
+
+function describeTestError(error: unknown): string {
+  return (
+    getLegacyStatusMessage(error) ||
+    (isApiError(error) && error.status < 500
+      ? describeError(error)
+      : t('integrations.phonebook.test_failed_description'))
+  )
 }
 
 function describeUploadError(error: unknown): string {
@@ -555,7 +583,7 @@ function save() {
             v-if="testError"
             kind="error"
             :title="t('integrations.phonebook.test_failed')"
-            :description="getLegacyStatusMessage(testError) || describeError(testError)"
+            :description="describeTestError(testError)"
           />
           <NeInlineNotification
             v-else-if="testResult && !testResult.ok"
@@ -572,45 +600,28 @@ function save() {
                   : t('integrations.phonebook.test_succeeded_empty')
               }}
             </p>
-            <div
+            <NeTable
               v-if="testResult.rows.length"
-              class="overflow-x-auto rounded-md border border-gray-300 dark:border-gray-600"
+              :aria-label="t('integrations.phonebook.preview')"
+              card-breakpoint="sm"
             >
-              <table class="min-w-full text-left text-sm">
-                <caption class="sr-only">
-                  {{
-                    t('integrations.phonebook.preview')
-                  }}
-                </caption>
-                <thead class="elevation-1">
-                  <tr>
-                    <th
-                      v-for="column in testResult.columns"
-                      :key="column"
-                      scope="col"
-                      class="px-3 py-2 font-medium whitespace-nowrap"
-                    >
-                      {{ column }}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    v-for="(row, index) in testResult.rows"
-                    :key="index"
-                    class="border-t border-gray-200 dark:border-gray-700"
+              <NeTableHead>
+                <NeTableHeadCell v-for="column in testResult.columns" :key="column">
+                  <span class="whitespace-nowrap">{{ column }}</span>
+                </NeTableHeadCell>
+              </NeTableHead>
+              <NeTableBody>
+                <NeTableRow v-for="(row, index) in testResult.rows" :key="index">
+                  <NeTableCell
+                    v-for="column in testResult.columns"
+                    :key="column"
+                    :data-label="column"
                   >
-                    <td
-                      v-for="column in testResult.columns"
-                      :key="column"
-                      class="text-secondary-neutral max-w-48 truncate px-3 py-2"
-                    >
-                      {{ row[column] || '-' }}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                    <span class="block max-w-48 truncate">{{ row[column] || '-' }}</span>
+                  </NeTableCell>
+                </NeTableRow>
+              </NeTableBody>
+            </NeTable>
           </template>
         </div>
         <NeHeading tag="h6" class="mt-2">{{ t('integrations.phonebook.field_mapping') }}</NeHeading>

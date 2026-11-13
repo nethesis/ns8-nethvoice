@@ -443,6 +443,28 @@ test.describe('physical phones: inventory', () => {
     )
   })
 
+  test('asks before discarding the changes to a phone', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+    await page.goto('./phones/phones')
+
+    await page
+      .getByRole('row', { name: /00:15:65:AB:CD:01/ })
+      .getByRole('button', { name: /Edit/ })
+      .click()
+    const heading = page.getByRole('heading', { name: 'Edit phone' })
+    await page.getByRole('combobox', { name: 'Model' }).click()
+    await page.getByRole('option', { name: 'Yealink T54' }).click()
+    await page.getByRole('button', { name: 'Cancel' }).click()
+
+    await expect(page.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await page.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(page.getByRole('combobox', { name: 'Model' })).toHaveValue('Yealink T54')
+
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await expect(heading).toBeHidden()
+  })
+
   test('removes the user of a phone by deleting its extension', async ({ page, mockApi }) => {
     mockPhonesApi(mockApi).on('DELETE', `${REST}/physicalextensions/:id`, { status: 200 })
     await page.goto('./phones/phones')

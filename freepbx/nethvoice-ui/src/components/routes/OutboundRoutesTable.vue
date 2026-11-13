@@ -23,6 +23,7 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faArrowUpRightFromSquare,
+  faCirclePlus,
   faEarthEurope,
   faFlag,
   faMagnifyingGlass,
@@ -47,6 +48,7 @@ import {
   filterOutboundRoutes,
   getOutboundRouteAdvancedUrl,
   getRouteTrunkState,
+  hasActiveTrunk,
   OUTBOUND_ROUTE_SORT_KEYS,
   refreshFreepbxSession,
   sortOutboundRoutes,
@@ -100,6 +102,13 @@ function getRouteTitle(route: OutboundRoute): string {
 function getTrunkState(trunk: RouteTrunk) {
   return getRouteTrunkState(
     trunk.id,
+    trunksState.value.status === 'success' ? trunksState.value.data : undefined,
+  )
+}
+
+function isWithoutActiveTrunks(route: OutboundRoute): boolean {
+  return !hasActiveTrunk(
+    route.trunks,
     trunksState.value.status === 'success' ? trunksState.value.data : undefined,
   )
 }
@@ -216,7 +225,7 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
         :descending-label="t('sort.descending')"
       />
       <NeButton kind="tertiary" :disabled="areDefaultFiltersApplied" @click="clearFilters">
-        {{ t('routes.clear_filters') }}
+        {{ t('common.reset_filters') }}
       </NeButton>
     </div>
     <LoadError
@@ -232,7 +241,10 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
       :icon="faRoute"
       class="elevation-0"
     >
-      <NeButton kind="primary" size="lg" @click="isShownCreateDefaultRoutesModal = true">
+      <NeButton kind="primary" @click="isShownCreateDefaultRoutesModal = true">
+        <template #prefix>
+          <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+        </template>
         {{ t('routes.create_default_routes') }}
       </NeButton>
     </NeEmptyState>
@@ -243,7 +255,7 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
       :icon="faMagnifyingGlass"
       class="elevation-0"
     >
-      <NeButton kind="tertiary" @click="clearFilters">{{ t('routes.clear_filters') }}</NeButton>
+      <NeButton kind="tertiary" @click="clearFilters">{{ t('common.reset_filters') }}</NeButton>
     </NeEmptyState>
     <NeTable
       v-if="isTableShown"
@@ -274,26 +286,35 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
                 />
               </span>
               <div class="flex min-w-0 flex-col">
-                <span class="text-primary-neutral wrap-anywhere">{{ getRouteTitle(item) }}</span>
-                <span class="wrap-anywhere">{{ getRouteDescription(item) }}</span>
+                <span class="text-primary-neutral break-words">{{ getRouteTitle(item) }}</span>
+                <span class="break-words">{{ getRouteDescription(item) }}</span>
               </div>
             </div>
           </NeTableCell>
           <NeTableCell :data-label="t('routes.trunk_priority')">
-            <ol v-if="item.trunks.length" class="list-inside list-decimal">
-              <li v-for="trunk in item.trunks" :key="trunk.id" class="wrap-anywhere">
-                {{ getTrunkLabel(trunk) }}
-                <RouteTrunkBadge :state="getTrunkState(trunk)" class="ml-1" />
-              </li>
-            </ol>
-            <span v-else class="inline-flex items-center gap-2 text-amber-700 dark:text-amber-500">
-              <FontAwesomeIcon
-                :icon="faTriangleExclamation"
-                class="size-4 shrink-0"
-                aria-hidden="true"
-              />
-              {{ t('routes.no_trunks_warning') }}
-            </span>
+            <div class="flex flex-col gap-1">
+              <ol v-if="item.trunks.length" class="list-outside list-decimal pl-5">
+                <li v-for="trunk in item.trunks" :key="trunk.id" class="break-words">
+                  {{ getTrunkLabel(trunk) }}
+                  <RouteTrunkBadge :state="getTrunkState(trunk)" class="ml-1" />
+                </li>
+              </ol>
+              <span
+                v-if="isWithoutActiveTrunks(item)"
+                class="inline-flex items-center gap-2 text-amber-700 dark:text-amber-500"
+              >
+                <FontAwesomeIcon
+                  :icon="faTriangleExclamation"
+                  class="size-4 shrink-0"
+                  aria-hidden="true"
+                />
+                {{
+                  item.trunks.length
+                    ? t('routes.no_enabled_trunks_warning')
+                    : t('routes.no_trunks_warning')
+                }}
+              </span>
+            </div>
           </NeTableCell>
           <NeTableCell :data-label="t('common.actions')">
             <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">

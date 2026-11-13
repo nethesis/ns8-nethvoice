@@ -102,7 +102,7 @@ test.describe('routes: inbound', () => {
 
     await page.getByRole('textbox', { name: 'Filter routes' }).fill('queues')
     await expect(page.getByText('No routes found')).toBeVisible()
-    await page.getByRole('button', { name: 'Clear filters' }).first().click()
+    await page.getByRole('button', { name: 'Reset filters' }).first().click()
 
     await page.getByRole('button', { name: 'Open the menu of route Any DID / 0612345678' }).click()
     await page.getByRole('menuitem', { name: 'Delete route' }).click()
@@ -125,7 +125,7 @@ test.describe('routes: inbound', () => {
     await page.getByRole('textbox', { name: 'Filter routes' }).fill('nothing matches')
     await expect(page.getByText('No routes found')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Clear filters' }).first().click()
+    await page.getByRole('button', { name: 'Reset filters' }).first().click()
     await expect(rows).toHaveCount(3)
     await expect(rows.nth(1)).toContainText('123 / 345')
   })

@@ -318,13 +318,13 @@ function deleteCurrentSource() {
         <NeTableBody>
           <NeTableRow v-for="source in sourcesPage" :key="source.id">
             <NeTableCell :data-label="t('integrations.name')">
-              <div class="flex min-w-48 flex-col">
+              <div class="flex min-w-0 flex-col xl:min-w-48">
                 <span class="wrap-anywhere">{{ source.name }}</span>
                 <NeTooltip v-if="describeLocation(source)">
                   <template #trigger>
                     <span
                       tabindex="0"
-                      class="text-tertiary-neutral block max-w-xs truncate text-sm"
+                      class="text-tertiary-neutral block max-w-full truncate text-sm xl:max-w-xs"
                     >
                       {{ describeLocation(source) }}
                     </span>

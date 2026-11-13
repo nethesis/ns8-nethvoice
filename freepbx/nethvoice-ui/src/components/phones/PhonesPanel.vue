@@ -26,7 +26,7 @@ import {
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
-  faAngleDown,
+  faChevronDown,
   faCircleCheck,
   faCircleMinus,
   faCirclePlus,
@@ -49,6 +49,7 @@ import DeletePhoneModal from './DeletePhoneModal.vue'
 import PhonePasswordDrawer from './PhonePasswordDrawer.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { usePolling } from '@/composables/usePolling'
+import { PAGE_SIZES } from '@/lib/common'
 import { formatMac } from '@/lib/phones/mac'
 import { getPhoneWebPassword, isDefaultAdminPassword } from '@/lib/phones/defaults'
 import {
@@ -114,7 +115,9 @@ const modelFilterOptions = computed<NeDropdownFilterV2Option[]>(() => {
   for (const phone of phones.value) {
     options.set(phone.model, phone.modelLabel)
   }
-  return [...options].map(([id, label]) => ({ id, label }))
+  return [...options]
+    .map(([id, label]) => ({ id, label }))
+    .sort((a, b) => a.label.localeCompare(b.label))
 })
 
 const userFilterOptions = computed<NeDropdownFilterV2Option[]>(() => {
@@ -368,13 +371,12 @@ function showDeletePhoneModal(phone: Phone) {
               menu-classes="min-w-56"
             >
               <template #button>
-                <span
-                  aria-hidden="true"
-                  class="text-primary-700 dark:text-primary-500 inline-flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium shadow-sm ring-1 ring-gray-300 hover:bg-gray-200/70 dark:ring-gray-500 dark:hover:bg-gray-600/30"
-                >
+                <NeButton kind="secondary" tabindex="-1" aria-hidden="true">
+                  <template #suffix>
+                    <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
+                  </template>
                   {{ $t('common.actions') }}
-                  <FontAwesomeIcon :icon="faAngleDown" class="size-4" />
-                </span>
+                </NeButton>
               </template>
             </NeDropdown>
             <NeButton
@@ -550,7 +552,7 @@ function showDeletePhoneModal(phone: Phone) {
             </NeTableCell>
           </NeTableRow>
         </NeTableBody>
-        <template #paginator>
+        <template v-if="filteredPhones.length > PAGE_SIZES[0]" #paginator>
           <TablePaginator
             v-model:page-num="pageNum"
             v-model:page-size="pageSize"
