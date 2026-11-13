@@ -177,9 +177,19 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
         $file = $config_dir.'/'.$id.'.json';
+        $oldsource = null;
+        if (empty($new) && file_exists($file)) {
+            $oldconfig = json_decode(file_get_contents($file), true);
+            $oldsource = isset($oldconfig[$id]) ? $oldconfig[$id] : null;
+        }
         $res = file_put_contents($file, json_encode(array($id => $newsource)));
         if ($res === false) {
            throw new Exception("Error writing $file"); 
+        }
+        if (is_array($oldsource) && isset($oldsource['url'])
+            && (!isset($newsource['url']) || $oldsource['url'] !== $newsource['url'])
+        ) {
+            unlink_local_csv($oldsource);
         }
 
         return $response->withStatus(200);
@@ -206,7 +216,9 @@ $app->delete('/phonebook/config/{id}', function (Request $request, Response $res
 
         // Erase related local CSV file, if necessary:
         $config = json_decode(file_get_contents($file), true);
-        unlink_local_csv($config[$id]);
+        if (isset($config[$id])) {
+            unlink_local_csv($config[$id], $id);
+        }
 
         $res = unlink($file);
         if (!$res) {
@@ -285,9 +297,12 @@ $app->post('/phonebook/syncnow/{id}', function (Request $request, Response $resp
     try {
         $route = $request->getAttribute('route');
         $id = $route->getArgument('id');
+        if (!is_string($id) || !preg_match('/^[A-Za-z0-9_-]+$/', $id)) {
+            return jsonResponse($response, array("status"=>"Invalid source id"), 400);
+        }
 
         # launch import of the source now
-        exec("/usr/share/phonebooks/phonebook-import /etc/phonebook/sources.d/$id.json",$output,$return);
+        exec("/usr/share/phonebooks/phonebook-import ".escapeshellarg("/etc/phonebook/sources.d/$id.json"),$output,$return);
 
         if ($return!=0) {
             return jsonResponse($response, array("status"=>false),500);
@@ -519,12 +534,33 @@ function csvHeaderIsCommaSeparated($path)
     return $commas >= substr_count($line, ';') && $commas >= substr_count($line, "\t");
 }
 
-function unlink_local_csv($config)
+function unlink_local_csv($config, $excludeId = null)
 {
-    if(isset($config['dbtype'], $config['url'])
-        && $config['dbtype'] == 'csv'
-        && substr($config['url'], 0, 55) == 'file:///var/lib/nethvoice/phonebook/uploads/'
-    ) {
-        unlink(substr($config['url'], 7));
+    if (!isset($config['dbtype'], $config['url']) || $config['dbtype'] != 'csv') {
+        return;
     }
+    $path = uploadedCsvPath($config['url']);
+    if ($path === false || localCsvInUse($path, $excludeId)) {
+        return;
+    }
+    unlink($path);
+}
+
+function localCsvInUse($path, $excludeId = null)
+{
+    foreach (glob('/etc/phonebook/sources.d/*.json') ?: array() as $file) {
+        $sources = json_decode(file_get_contents($file), true);
+        if (!is_array($sources)) {
+            continue;
+        }
+        foreach ($sources as $sid => $source) {
+            if (($excludeId !== null && (string) $sid === (string) $excludeId) || !is_array($source) || !isset($source['dbtype'], $source['url']) || $source['dbtype'] != 'csv') {
+                continue;
+            }
+            if (uploadedCsvPath($source['url']) === $path) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
