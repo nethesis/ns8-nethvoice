@@ -228,20 +228,19 @@ function reload() {
             placement="top"
           >
             <template #trigger>
-              <button
-                type="button"
+              <NeButton
+                kind="tertiary"
+                size="lg"
                 :aria-pressed="view === option.id"
-                :class="[
-                  'rounded-md p-2',
-                  view === option.id
-                    ? 'text-primary-700 dark:text-primary-500'
-                    : 'text-tertiary-neutral hover:text-primary-neutral',
-                ]"
                 @click="view = option.id"
               >
-                <FontAwesomeIcon :icon="option.icon" class="size-4" aria-hidden="true" />
+                <FontAwesomeIcon
+                  :icon="option.icon"
+                  :class="['size-4', { 'text-tertiary-neutral': view !== option.id }]"
+                  aria-hidden="true"
+                />
                 <span class="sr-only">{{ t(`user_overview.views.${option.id}`) }}</span>
-              </button>
+              </NeButton>
             </template>
             <template #content>{{ t(`user_overview.views.${option.id}`) }}</template>
           </NeTooltip>
@@ -336,7 +335,7 @@ function reload() {
           :data-user="user.username"
           class="bg-elevation-0 flex min-w-0 items-center gap-3 rounded-lg px-3 py-2 shadow-xs"
         >
-          <OverviewAvatar :name="user.name" :presence="user.presence" size="xs" />
+          <OverviewAvatar :name="user.name" :presence="user.presence" size="sm" />
           <button
             type="button"
             class="min-w-0 grow text-left"

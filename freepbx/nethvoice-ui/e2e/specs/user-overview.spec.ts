@@ -58,6 +58,20 @@ const mockOverview = (mockApi: MockApi, endpoints: object = ENDPOINTS) =>
 
 const userCard = (page: Page, username: string) => page.locator(`[data-user="${username}"]`)
 
+const expectDotOnAvatarCorner = async (scope: ReturnType<Page['locator']>, status: string) => {
+  const presence = scope.locator(`[title="${status}"]`).first()
+  const avatar = await presence.locator('xpath=preceding-sibling::*[1]').boundingBox()
+  const dot = await presence.boundingBox()
+
+  expect(avatar).not.toBeNull()
+  expect(dot).not.toBeNull()
+  if (avatar && dot) {
+    expect(Math.abs(dot.x + dot.width - (avatar.x + avatar.width))).toBeLessThanOrEqual(1)
+    expect(Math.abs(dot.y + dot.height - (avatar.y + avatar.height))).toBeLessThanOrEqual(1)
+    expect(dot.width).toBeLessThan(avatar.width / 2)
+  }
+}
+
 test.describe('user overview', () => {
   test.beforeEach(async ({ signedIn }) => {
     void signedIn
@@ -200,9 +214,39 @@ test.describe('user overview', () => {
     mockOverview(mockApi)
     await page.goto('./users/overview')
 
-    await page.getByRole('button', { name: 'List view' }).click()
+    const views = page.getByRole('group', { name: 'View' })
+    await expect(views.getByRole('button', { name: 'Grid view' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+
+    await views.getByRole('button', { name: 'List view' }).click()
+    await expect(views.getByRole('button', { name: 'List view' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(views.getByRole('button', { name: 'Grid view' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
     await expect(page.getByRole('grid', { name: 'User overview' }).getByRole('row')).toHaveCount(4)
-    await page.getByRole('button', { name: 'Compact view' }).click()
+    await views.getByRole('button', { name: 'Compact view' }).click()
     await expect(page.locator('li[data-user]')).toHaveCount(3)
+  })
+
+  test('anchors the presence to the corner of the avatar in every view', async ({
+    page,
+    mockApi,
+  }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
+    await page.getByRole('button', { name: 'List view' }).click()
+    await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
+    await page.getByRole('button', { name: 'Compact view' }).click()
+    await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    await expectDotOnAvatarCorner(page.getByRole('dialog'), 'Online')
   })
 })
