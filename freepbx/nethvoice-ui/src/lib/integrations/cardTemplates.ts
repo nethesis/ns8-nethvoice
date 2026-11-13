@@ -90,7 +90,7 @@ export const validateCardTemplateForm = (
 
   if (
     !issues.name &&
-    otherTemplates.some((template) => template.custom && template.name === name)
+    otherTemplates.some((template) => normalizeTemplateName(template.name) === name)
   ) {
     issues.name = 'integrations.cards.template_name_already_used'
   }

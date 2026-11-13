@@ -97,7 +97,7 @@ const CustomerCardFormSchema = v.object({
   name: requiredText('integrations.cards.card_name_required'),
   dbConnectionId: requiredText('integrations.cards.card_connection_required'),
   templateId: requiredText('integrations.cards.card_template_required'),
-  profileIds: v.pipe(v.array(v.string()), v.minLength(1, 'integrations.profiles_required')),
+  profileIds: v.array(v.string()),
   query: requiredText('integrations.query_required'),
 })
 
@@ -131,13 +131,21 @@ export const buildCustomerCardPayload = (form: CustomerCardForm): CustomerCardIn
   profiles: toProfileIdNumbers(form.profileIds),
 })
 
+export const CALLER_NUMBER_PLACEHOLDER = '$NUMBER'
+
 export const buildCustomerCardPreviewPayload = (
   form: Pick<CustomerCardForm, 'dbConnectionId' | 'templateId' | 'query'>,
-): CustomerCardPreviewInput => ({
-  dbconn_id: form.dbConnectionId,
-  template: form.templateId,
-  query: encodeBase64Utf8(form.query.trim()),
-})
+  testNumber = '',
+): CustomerCardPreviewInput => {
+  const query = form.query.trim()
+  const number = testNumber.trim()
+
+  return {
+    dbconn_id: form.dbConnectionId,
+    template: form.templateId,
+    query: encodeBase64Utf8(number ? query.replaceAll(CALLER_NUMBER_PLACEHOLDER, number) : query),
+  }
+}
 
 export const parseCustomerCardPreview = (raw: unknown): string =>
   decodeBase64Utf8(v.parse(PreviewResponseSchema, raw).html)

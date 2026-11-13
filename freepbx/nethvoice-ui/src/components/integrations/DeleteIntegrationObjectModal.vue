@@ -85,12 +85,11 @@ watch(
     :visible="visible"
     :title="title"
     kind="warning"
-    :primary-label="t('common.delete')"
-    :cancel-label="t('common.cancel')"
-    primary-button-kind="danger"
-    primary-button-disabled
+    :primary-label="t('common.close')"
+    primary-button-kind="primary"
     :close-aria-label="t('common.close')"
     @close="emit('close')"
+    @primary-click="emit('close')"
   >
     <p>{{ blockedMessage }}</p>
     <ul class="mt-2 list-inside list-disc">

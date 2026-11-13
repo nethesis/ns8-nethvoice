@@ -20,6 +20,7 @@ import {
   NeTableHeadCell,
   NeTableRow,
   NeTextInput,
+  NeTooltip,
   type NeDropdownItem,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -44,6 +45,7 @@ import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import {
   buildPhonebookSourcePayload,
   deletePhonebookSource,
+  isUploadedCsv,
   PHONEBOOK_SOURCES_KEY,
   type PhonebookSource,
   savePhonebookSource,
@@ -75,7 +77,7 @@ const filteredSources = computed(() =>
       describeKind(source),
       source.host,
       source.database,
-      source.url,
+      describeLocation(source),
       ...source.groups,
     ),
   ),
@@ -166,6 +168,14 @@ function describeKind(source: PhonebookSource): string {
   return t(`integrations.phonebook.kind_${source.kind}`)
 }
 
+function describeLocation(source: PhonebookSource): string {
+  if (isUploadedCsv(source.url)) {
+    return t('integrations.phonebook.uploaded_file')
+  }
+  const location = source.database || source.url || source.host
+  return location === source.name ? '' : location
+}
+
 function describeInterval(minutes: number): string {
   return minutes % 60 === 0
     ? t('integrations.phonebook.every_hours', { count: minutes / 60 }, minutes / 60)
@@ -239,7 +249,10 @@ function deleteCurrentSource() {
       </NeButton>
     </div>
     <div class="flex flex-col gap-6">
-      <div v-if="!isNoDataEmptyStateShown" class="flex flex-wrap items-center gap-4">
+      <div
+        v-if="!isNoDataEmptyStateShown && state.status !== 'error'"
+        class="flex flex-wrap items-center gap-4"
+      >
         <NeTextInput
           v-model="textFilter"
           is-search
@@ -305,11 +318,21 @@ function deleteCurrentSource() {
         <NeTableBody>
           <NeTableRow v-for="source in sourcesPage" :key="source.id">
             <NeTableCell :data-label="t('integrations.name')">
-              <div class="flex flex-col">
+              <div class="flex min-w-48 flex-col">
                 <span class="wrap-anywhere">{{ source.name }}</span>
-                <span class="text-tertiary-neutral text-sm wrap-anywhere">
-                  {{ source.database || source.url || source.host }}
-                </span>
+                <NeTooltip v-if="describeLocation(source)">
+                  <template #trigger>
+                    <span
+                      tabindex="0"
+                      class="text-tertiary-neutral block max-w-xs truncate text-sm"
+                    >
+                      {{ describeLocation(source) }}
+                    </span>
+                  </template>
+                  <template #content>
+                    <span class="wrap-anywhere">{{ describeLocation(source) }}</span>
+                  </template>
+                </NeTooltip>
               </div>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.phonebook.source_type')">

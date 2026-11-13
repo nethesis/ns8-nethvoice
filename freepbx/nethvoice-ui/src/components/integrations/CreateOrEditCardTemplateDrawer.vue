@@ -16,6 +16,8 @@ import {
   NeTextArea,
   NeTextInput,
 } from '@nethesis/vue-components'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
 import {
   buildCardTemplatePayload,
@@ -54,6 +56,11 @@ const notificationsStore = useNotificationsStore()
 
 const form = ref<CardTemplateForm>(emptyCardTemplateForm())
 const validationIssues = ref<FieldIssues>({})
+const initialSnapshot = ref('')
+const isShownDiscardModal = ref(false)
+
+useFocusReturn(() => isShown)
+
 const nameRef = useTemplateRef<Focusable>('nameRef')
 const codeRef = useTemplateRef<Focusable>('codeRef')
 
@@ -64,6 +71,10 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
 
 const editing = computed(() => mode === 'edit' && !!currentTemplate)
 const readOnly = computed(() => mode === 'view')
+
+const isDirty = computed(
+  () => !readOnly.value && JSON.stringify(form.value) !== initialSnapshot.value,
+)
 
 const title = computed(() => {
   switch (mode) {
@@ -115,6 +126,7 @@ watch(
   () => isShown,
   () => {
     if (!isShown) {
+      isShownDiscardModal.value = false
       return
     }
     saveReset()
@@ -127,9 +139,27 @@ watch(
     } else {
       form.value = emptyCardTemplateForm()
     }
+    initialSnapshot.value = JSON.stringify(form.value)
     focusElement(mode === 'edit' || mode === 'view' ? codeRef : nameRef)
   },
 )
+
+function requestClose() {
+  if (saving.value || isShownDiscardModal.value) {
+    return
+  }
+
+  if (isDirty.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
+  emit('close')
+}
 
 function save() {
   saveReset()
@@ -152,7 +182,7 @@ function save() {
     :is-shown="isShown"
     :title="title"
     :close-aria-label="t('shell.close_side_drawer')"
-    @close="emit('close')"
+    @close="requestClose"
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
@@ -210,7 +240,7 @@ function save() {
           size="lg"
           :disabled="saving"
           :class="{ 'mr-3': !readOnly }"
-          @click="emit('close')"
+          @click="requestClose"
         >
           {{ readOnly ? t('common.close') : t('common.cancel') }}
         </NeButton>
@@ -227,4 +257,9 @@ function save() {
       </div>
     </form>
   </NeSideDrawer>
+  <DiscardChangesModal
+    :visible="isShownDiscardModal"
+    @close="isShownDiscardModal = false"
+    @discard="discardChanges"
+  />
 </template>
