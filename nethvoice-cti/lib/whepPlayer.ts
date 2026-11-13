@@ -8,9 +8,15 @@
  * to a <video> element. The gateway gives no signal when the device drops or the session is
  * revoked (frames just stop), so the player watches the decoded frames itself and reconnects
  * with a fresh token and an exponential backoff.
+ *
+ * The browser can only start (or recover) decoding on a complete keyframe, and some devices send
+ * one rarely. RTSP has no way to ask for one and the device stream is shared by the gateway, so a
+ * new session would not get it sooner: while the video packets keep arriving the session is kept
+ * open ("waiting" for the picture) instead of being torn down.
  */
 
-export type WhepPlayerStatus = 'connecting' | 'playing' | 'reconnecting' | 'unavailable'
+// waiting: the video packets arrive but no picture can be decoded yet (no complete keyframe)
+export type WhepPlayerStatus = 'connecting' | 'playing' | 'waiting' | 'reconnecting' | 'unavailable'
 
 // unreachable: the gateway could not pull the device (it keeps retrying)
 // codec: the browser cannot decode the stream (no retry)
@@ -23,6 +29,9 @@ export interface WhepPlayerState {
   status: WhepPlayerStatus
   failure: WhepPlayerFailure | null
   hasAudio: boolean
+  // a picture was decoded since the start: the views keep showing the last one while waiting
+  // or reconnecting
+  hasPicture: boolean
 }
 
 export interface WhepToken {
@@ -72,6 +81,11 @@ const FIRST_FRAME_TIMEOUT_MS = 8000
 const FIRST_FRAME_POLL_MS = 200
 // No new decoded frame for this long means the stream is stalled
 const STALL_TIMEOUT_MS = 3000
+// Past the timeouts above, the session is kept while its video packets keep arriving (the next
+// complete keyframe may be far away), up to this long without a picture
+const PICTURE_WAIT_MAX_MS = 90000
+// No video packet for this long means no media is arriving
+const MEDIA_IDLE_MS = 2000
 const WATCHDOG_INTERVAL_MS = 1000
 // Reconnect backoff: 1 s, 2 s, 4 s, 8 s, 16 s, 30 s, 30 s... with +/-20% jitter
 const BACKOFF_BASE_MS = 1000
@@ -85,6 +99,74 @@ const DELETE_CLOSE_TIMEOUT_MS = 1000
 // Renew the token a bit before it expires
 const TOKEN_EXPIRY_MARGIN_MS = 5000
 
+// Progress of a session, as seen by the watchdog
+export interface WatchdogProgress {
+  // frames decoded and when they last increased (the session start until the first one)
+  frames: number
+  frameAt: number
+  // video packets and bytes received and when they last increased (the session start until the
+  // first ones)
+  packets: number
+  bytes: number
+  mediaAt: number
+}
+
+export interface WatchdogSample {
+  now: number
+  framesDecoded: number
+  packetsReceived: number
+  bytesReceived: number
+  connectionState: string
+}
+
+// playing: frames are being decoded
+// connecting: no frame yet, within the usual time of the first one
+// waiting: no (new) frame for longer than usual, but the video packets keep arriving
+// failed: no frame and no media arriving (or waited too long): reconnect
+export type WatchdogVerdict = 'playing' | 'connecting' | 'waiting' | 'failed'
+
+export const initialWatchdogProgress = (now: number): WatchdogProgress => ({
+  frames: 0,
+  frameAt: now,
+  packets: 0,
+  bytes: 0,
+  mediaAt: now,
+})
+
+/**
+ * Decides whether a session is kept or torn down, from a new sample of its video statistics
+ */
+export const checkWatchdog = (
+  progress: WatchdogProgress,
+  sample: WatchdogSample,
+): { progress: WatchdogProgress; verdict: WatchdogVerdict } => {
+  const { now } = sample
+  const next = { ...progress }
+  if (sample.framesDecoded > next.frames) {
+    next.frames = sample.framesDecoded
+    next.frameAt = now
+  }
+  if (sample.packetsReceived > next.packets || sample.bytesReceived > next.bytes) {
+    next.packets = Math.max(next.packets, sample.packetsReceived)
+    next.bytes = Math.max(next.bytes, sample.bytesReceived)
+    next.mediaAt = now
+  }
+  const sinceFrame = now - next.frameAt
+  if (next.frames === 0 && sinceFrame <= FIRST_FRAME_TIMEOUT_MS) {
+    return { progress: next, verdict: 'connecting' }
+  }
+  if (next.frames > 0 && sinceFrame <= STALL_TIMEOUT_MS) {
+    return { progress: next, verdict: 'playing' }
+  }
+  // past the usual timeouts: kept only while the video packets keep arriving
+  const connected = !['failed', 'disconnected', 'closed'].includes(sample.connectionState)
+  const mediaArriving = connected && now - next.mediaAt <= MEDIA_IDLE_MS
+  if (mediaArriving && sinceFrame <= PICTURE_WAIT_MAX_MS) {
+    return { progress: next, verdict: 'waiting' }
+  }
+  return { progress: next, verdict: 'failed' }
+}
+
 interface WhepSession {
   pc: RTCPeerConnection
   location: string | null
@@ -94,7 +176,12 @@ interface WhepSession {
 
 export class WhepPlayer {
   private readonly opts: WhepPlayerOptions
-  private state: WhepPlayerState = { status: 'connecting', failure: null, hasAudio: false }
+  private state: WhepPlayerState = {
+    status: 'connecting',
+    failure: null,
+    hasAudio: false,
+    hasPicture: false,
+  }
   private running = false
   // incremented on every new attempt or teardown, async steps of older attempts are dropped
   private generation = 0
@@ -119,7 +206,7 @@ export class WhepPlayer {
     this.failures = 0
     this.consecutiveUnauthorized = 0
     this.hasPlayed = false
-    this.setState({ status: 'connecting', failure: null })
+    this.setState({ status: 'connecting', failure: null, hasPicture: false })
     this.connect()
   }
 
@@ -145,7 +232,8 @@ export class WhepPlayer {
     if (
       next.status === this.state.status &&
       next.failure === this.state.failure &&
-      next.hasAudio === this.state.hasAudio
+      next.hasAudio === this.state.hasAudio &&
+      next.hasPicture === this.state.hasPicture
     ) {
       return
     }
@@ -331,19 +419,18 @@ export class WhepPlayer {
     })
   }
 
-  // Polls the decoded frames: fast until the first frame (to show it at once), then every second
+  // Polls the decoded frames and the received video packets: fast until the first frame (to show
+  // it at once), then every second
   private startWatchdog(gen: number, pc: RTCPeerConnection) {
-    const startedAt = Date.now()
-    let lastFrames = 0
-    let lastProgressAt = startedAt
+    let progress = initialWatchdogProgress(Date.now())
 
     const tick = async () => {
-      let frames = lastFrames
+      let video: any = null
       try {
         const stats = await pc.getStats()
         stats.forEach((report: any) => {
           if (report.type === 'inbound-rtp' && report.kind === 'video') {
-            frames = report.framesDecoded || 0
+            video = report
           }
         })
       } catch {
@@ -351,27 +438,31 @@ export class WhepPlayer {
       }
       if (!this.running || gen !== this.generation) return
 
-      const now = Date.now()
-      if (frames > lastFrames) {
-        lastFrames = frames
-        lastProgressAt = now
-        if (this.state.status !== 'playing') this.onPlaying()
-      } else if (lastFrames === 0) {
-        if (now - startedAt > FIRST_FRAME_TIMEOUT_MS) {
-          this.log('no first frame')
+      const result = checkWatchdog(progress, {
+        now: Date.now(),
+        framesDecoded: video?.framesDecoded || 0,
+        packetsReceived: video?.packetsReceived || 0,
+        bytesReceived: video?.bytesReceived || 0,
+        connectionState: pc.connectionState,
+      })
+      progress = result.progress
+      switch (result.verdict) {
+        case 'playing':
+          if (this.state.status !== 'playing') this.onPlaying()
+          break
+        case 'waiting':
+          if (this.state.status !== 'waiting') this.onWaiting(video)
+          break
+        case 'failed':
+          this.log(progress.frames ? 'stream stalled' : 'no first frame', video)
+          // the session may have been revoked: do not reuse the token
+          this.token = null
           this.fail('unreachable', true)
           return
-        }
-      } else if (now - lastProgressAt > STALL_TIMEOUT_MS) {
-        this.log('stream stalled')
-        // the session may have been revoked: do not reuse the token
-        this.token = null
-        this.fail('unreachable', true)
-        return
       }
       this.watchdogTimer = setTimeout(
         tick,
-        lastFrames === 0 ? FIRST_FRAME_POLL_MS : WATCHDOG_INTERVAL_MS,
+        progress.frames === 0 ? FIRST_FRAME_POLL_MS : WATCHDOG_INTERVAL_MS,
       )
     }
     this.watchdogTimer = setTimeout(tick, FIRST_FRAME_POLL_MS)
@@ -379,12 +470,28 @@ export class WhepPlayer {
 
   private onPlaying() {
     this.hasPlayed = true
-    this.setState({ status: 'playing', failure: null })
+    this.setState({ status: 'playing', failure: null, hasPicture: true })
     if (this.stableTimer) clearTimeout(this.stableTimer)
     this.stableTimer = setTimeout(() => {
       this.stableTimer = null
       this.failures = 0
     }, STABLE_PLAYING_MS)
+  }
+
+  // Media arriving without a picture to decode: the session is kept, not counted as a failure
+  private onWaiting(video: any) {
+    this.log('waiting for a keyframe', {
+      packetsReceived: video?.packetsReceived,
+      framesDecoded: video?.framesDecoded,
+      keyFramesDecoded: video?.keyFramesDecoded,
+      pliCount: video?.pliCount,
+    })
+    // not stable playback: the backoff is not reset meanwhile
+    if (this.stableTimer) {
+      clearTimeout(this.stableTimer)
+      this.stableTimer = null
+    }
+    this.setState({ status: 'waiting', failure: null })
   }
 
   // quiet: a transient failure (rate limit), shown as connecting/reconnecting, never unavailable
