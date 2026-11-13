@@ -59,6 +59,8 @@ test.describe('physical phones: settings', () => {
     })
     await page.goto('./phones/settings')
 
+    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
+    await page.getByText('Only at startup').click()
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByText('Cannot save phone settings')).toBeVisible()
     await expect(page.getByText(/Cannot write defaults/)).toBeVisible()

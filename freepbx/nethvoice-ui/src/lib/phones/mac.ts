@@ -10,11 +10,19 @@ export type MacVendors = Record<string, string>
 
 const MacVendorsResponseSchema = v.record(v.string(), v.string())
 
-const stripSeparators = (mac: string) => mac.trim().replace(/[:-]/g, '')
+const stripSeparators = (mac: string) => mac.trim().replace(/[:.-]/g, '')
 
 const toPairs = (hex: string) => hex.match(/.{2}/g) ?? []
 
 export const isValidMac = (mac: string): boolean => /^[0-9a-fA-F]{12}$/.test(stripSeparators(mac))
+
+export const isUnicastMac = (mac: string): boolean => {
+  if (!isValidMac(mac)) {
+    return false
+  }
+  const hex = stripSeparators(mac)
+  return (parseInt(hex.slice(0, 2), 16) & 1) === 0 && !/^0+$/.test(hex)
+}
 
 export const toTancrediMac = (mac: string): string =>
   toPairs(stripSeparators(mac).toUpperCase()).join('-')
@@ -22,10 +30,15 @@ export const toTancrediMac = (mac: string): string =>
 export const formatMac = (mac: string): string =>
   isValidMac(mac) ? toPairs(stripSeparators(mac).toUpperCase()).join(':') : mac.trim()
 
+const SPACED_OCTETS_REGEX = /^[0-9a-fA-F]{2}(\s+[0-9a-fA-F]{2}){5}$/
+
 export const parseMacList = (text: string): string[] =>
   text
-    .split(/[\s,;]+/)
-    .map((mac) => mac.trim())
+    .split(/[\r\n,;]+/)
+    .map((segment) => segment.trim())
+    .flatMap((segment) =>
+      SPACED_OCTETS_REGEX.test(segment) ? [segment.replace(/\s+/g, ':')] : segment.split(/\s+/),
+    )
     .filter((mac) => mac !== '')
 
 export const findDuplicatedMacs = (macs: string[]): string[] => {
