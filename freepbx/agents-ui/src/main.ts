@@ -1,0 +1,125 @@
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import { VueQueryPlugin } from "@tanstack/vue-query";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import { library, config } from "@fortawesome/fontawesome-svg-core";
+import {
+  faComments,
+  faWrench,
+  faDatabase,
+  faClock,
+  faGear,
+  faMoon,
+  faSun,
+  faDiagramProject,
+  faArrowUpRightFromSquare,
+  faBars,
+  faNetworkWired,
+  faChartLine,
+  faCirclePlus,
+  faPenToSquare,
+  faTrash,
+  faArrowLeft,
+  faGlobe,
+  faUser,
+  faXmark,
+  faCircleCheck,
+  faCircleXmark,
+  faCircleExclamation,
+  faCirclePlay,
+  faCircleQuestion,
+  faCircleMinus,
+  faRotateRight,
+  faEye,
+  faTriangleExclamation,
+  faStopwatch,
+  faPhone,
+  faRightLeft,
+  faSignal,
+  faCloud,
+  faKey,
+  faChevronDown,
+  faAngleDown,
+  faCopy,
+  faListCheck,
+  faFloppyDisk,
+  faCheck,
+  faArrowsRotate,
+  faCircleArrowRight,
+  faArrowRightArrowLeft,
+  faChartGantt,
+  faPlug,
+  faVolumeHigh,
+  faCircleInfo,
+  faChevronLeft,
+  faChevronRight,
+  faChevronUp,
+} from "@fortawesome/free-solid-svg-icons";
+import App from "./App.vue";
+import { faAiSpark } from "./aiSpark";
+import { router } from "./router";
+import { i18n } from "./i18n";
+import { queryClient } from "./api";
+import "./assets/main.css";
+
+config.autoAddCss = false;
+library.add(
+  faAiSpark,
+  faComments,
+  faWrench,
+  faDatabase,
+  faClock,
+  faGear,
+  faMoon,
+  faSun,
+  faDiagramProject,
+  faArrowUpRightFromSquare,
+  faBars,
+  faNetworkWired,
+  faChartLine,
+  faCirclePlus,
+  faPenToSquare,
+  faTrash,
+  faArrowLeft,
+  faGlobe,
+  faUser,
+  faXmark,
+  faCircleCheck,
+  faCircleXmark,
+  faCircleExclamation,
+  faCirclePlay,
+  faCircleQuestion,
+  faCircleMinus,
+  faRotateRight,
+  faEye,
+  faTriangleExclamation,
+  faStopwatch,
+  faPhone,
+  faRightLeft,
+  faSignal,
+  faCloud,
+  faKey,
+  faChevronDown,
+  faAngleDown,
+  faCopy,
+  faListCheck,
+  faFloppyDisk,
+  faCheck,
+  faArrowsRotate,
+  faCircleArrowRight,
+  faArrowRightArrowLeft,
+  faChartGantt,
+  faPlug,
+  faVolumeHigh,
+  faCircleInfo,
+  faChevronLeft,
+  faChevronRight,
+  faChevronUp,
+);
+createApp(App)
+  .use(createPinia())
+  .use(router)
+  .use(i18n)
+  .use(VueQueryPlugin, { queryClient })
+  .component("FontAwesomeIcon", FontAwesomeIcon)
+  .mount("#app");
