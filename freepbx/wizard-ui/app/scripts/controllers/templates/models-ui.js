@@ -353,9 +353,16 @@ angular.module('nethvoiceWizardUiApp')
           $scope.currentModel.singleVariables[variable] = null
         }
       }
+      var isDoorPhone = !!($scope.currentModel.ui && $scope.currentModel.ui.map && $scope.currentModel.ui.map.general && $scope.currentModel.ui.map.general.door_phone)
       PhoneService.patchPhone($scope.currentModel.mac, {
         "variables": $scope.currentModel.singleVariables
       }).then(function (res) {
+        if (isDoorPhone) {
+          // The video sources created from this door phone use its admin password
+          PhoneService.syncDoorPhoneSources($scope.currentModel.mac).then(function () {}, function (err) {
+            console.log(err)
+          })
+        }
         resetLoadingActionSingle("ok")
         setTimeout(function () {
           $scope.hideModal("singleModelModal")

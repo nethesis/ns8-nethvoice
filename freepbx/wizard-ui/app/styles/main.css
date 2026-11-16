@@ -3933,3 +3933,7 @@ a.black:active {
   margin-top: 8px !important;
   margin-bottom: -4px !important;
 }
+
+.streaming-nowrap {
+  white-space: nowrap;
+}

@@ -1020,10 +1020,6 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
 $app->get('/cti/streaming', function (Request $request, Response $response, $args) {
     try {
         $dbh = FreePBX::Database();
-        // A door phone password changed in the phone settings: apply it
-        if (door_phone_sync_sources($dbh) > 0) {
-            system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        }
         $res = [];
         $sth = $dbh->prepare('SELECT `profile_id` FROM `rest_cti_profiles_permissions` JOIN `rest_cti_permissions` ON `rest_cti_permissions`.`id` = `rest_cti_profiles_permissions`.`permission_id` WHERE `rest_cti_permissions`.`name` = ?');
         foreach (streaming_load_sources($dbh) as $source) {
@@ -1091,6 +1087,29 @@ $app->post('/cti/streaming/doorphones/{mac}', function (Request $request, Respon
         $prefill = streaming_door_phone_prefill($items[$mac]);
         $prefill['credentials_generated'] = $generated;
         return jsonResponse($response, $prefill);
+    } catch (Throwable $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
+
+/*
+ * POST /cti/streaming/doorphones/:mac/sync
+ * Called after the settings of a door phone are saved: the sources linked to
+ * it take its current password and the configuration is applied when one
+ * changed. Answer { updated }.
+ */
+$app->post('/cti/streaming/doorphones/{mac}/sync', function (Request $request, Response $response, $args) {
+    try {
+        $mac = streaming_door_phone_mac((string) $args['mac']);
+        if ($mac === null) {
+            return jsonResponse($response, ['status' => 'invalid door phone'], 400);
+        }
+        $updated = door_phone_sync_sources(FreePBX::Database(), $mac);
+        if ($updated > 0) {
+            system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        }
+        return jsonResponse($response, ['updated' => $updated]);
     } catch (Throwable $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
