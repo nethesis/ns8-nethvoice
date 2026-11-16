@@ -50,6 +50,8 @@ import { useDashboardSubscription } from '@/queries/dashboard/subscription'
 import { useInboundRoutes } from '@/queries/routes/inbound'
 import { useTrunks } from '@/queries/trunks/trunks'
 import { useLoginStore } from '@/stores/login'
+import type { Section } from '@/lib/permissions/permissions'
+import { usePermissions } from '@/queries/permissions/me'
 import { describeError } from '@/stores/notifications'
 
 type CounterCard = {
@@ -57,6 +59,7 @@ type CounterCard = {
   label: string
   icon: IconDefinition
   to: RouteLocationRaw
+  section: Section
 }
 
 type LoadFailure = { part: string; title: string; error: unknown; retry: () => void }
@@ -67,18 +70,21 @@ const COUNTER_CARDS_BEFORE_CALLS: CounterCard[] = [
     label: 'dashboard.counters.users',
     icon: faUserGroup,
     to: { name: 'users', params: { tab: 'users' } },
+    section: 'users',
   },
   {
     id: 'groups',
     label: 'dashboard.counters.groups',
     icon: faUserGroup,
     to: { name: 'users', params: { tab: 'groups' } },
+    section: 'users',
   },
   {
     id: 'physicalPhones',
     label: 'dashboard.counters.physical_phones',
     icon: faOfficePhone,
     to: { name: 'phones', params: { tab: 'phones' } },
+    section: 'phones',
   },
 ]
 
@@ -88,18 +94,21 @@ const COUNTER_CARDS_AFTER_CALLS: CounterCard[] = [
     label: 'dashboard.counters.trunks',
     icon: faNetworkWired,
     to: { name: 'trunks' },
+    section: 'trunks',
   },
   {
     id: 'inboundRoutes',
     label: 'dashboard.counters.inbound_routes',
     icon: faRoute,
     to: { name: 'routes', params: { tab: 'inbound' } },
+    section: 'routes',
   },
   {
     id: 'outboundRoutes',
     label: 'dashboard.counters.outbound_routes',
     icon: faRoute,
     to: { name: 'routes', params: { tab: 'outbound' } },
+    section: 'routes',
   },
 ]
 
@@ -136,6 +145,7 @@ const DEVICE_STYLES: Record<DeviceType, { label: string; fillClass: string; dotC
 
 const { t, locale } = useI18n()
 const loginStore = useLoginStore()
+const { can } = usePermissions()
 const {
   state: subscriptionState,
   refetch: refetchSubscription,
@@ -361,7 +371,7 @@ usePolling(() => {
           :icon="counter.icon"
           :counter="counter.state.value.data"
           :loading="counter.state.value.status === 'pending'"
-          :to="counter.to"
+          :to="can(counter.section) ? counter.to : undefined"
         />
         <DashboardCounterCard
           counter-id="callsInProgress"
@@ -378,7 +388,7 @@ usePolling(() => {
           :icon="counter.icon"
           :counter="counter.state.value.data"
           :loading="counter.state.value.status === 'pending'"
-          :to="counter.to"
+          :to="can(counter.section) ? counter.to : undefined"
         />
       </div>
       <div

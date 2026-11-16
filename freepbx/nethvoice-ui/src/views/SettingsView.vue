@@ -13,8 +13,10 @@ import PbxLanguageSection from '@/components/settings/PbxLanguageSection.vue'
 import { FREEPBX_ADMIN_URL } from '@/lib/config'
 import { ADMIN_USERNAME } from '@/lib/settings/adminPassword'
 import { useLoginStore } from '@/stores/login'
+import { usePermissions } from '@/queries/permissions/me'
 
 const loginStore = useLoginStore()
+const { isSuperadmin } = usePermissions()
 const isPasswordDrawerShown = ref(false)
 
 const isAdmin = computed(() => loginStore.username.toLowerCase() === ADMIN_USERNAME)
@@ -28,7 +30,7 @@ function openAdvancedSettings() {
   <div>
     <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
       <NeHeading tag="h3">{{ $t('settings.title') }}</NeHeading>
-      <NeButton kind="secondary" size="lg" @click="openAdvancedSettings">
+      <NeButton v-if="isSuperadmin" kind="secondary" size="lg" @click="openAdvancedSettings">
         <template #prefix>
           <FontAwesomeIcon :icon="faArrowUpRightFromSquare" class="size-4" aria-hidden="true" />
         </template>

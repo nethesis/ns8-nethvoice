@@ -1653,5 +1653,12 @@
     "status_error": "Cannot connect the phone: {error}. Call again to retry.",
     "status_elsewhere": "The administrator phone is active in another tab",
     "use_here": "Use the phone in this tab"
+  },
+  "permissions": {
+    "no_access_title": "No sections available",
+    "no_access_description": "Your account cannot manage any section. Ask the administrator to grant you access.",
+    "cannot_load_permissions": "Cannot load your permissions",
+    "setup_pending_title": "Setup not completed",
+    "setup_pending_description": "The administrator must complete the first configuration before you can use the PBX administration."
   }
 }

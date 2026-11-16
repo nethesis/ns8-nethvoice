@@ -33,6 +33,7 @@ import TablePaginator from '@/components/common/TablePaginator.vue'
 import DeleteInboundRouteModal from './DeleteInboundRouteModal.vue'
 import { useInboundRouteLabels } from '@/composables/useInboundRouteLabels'
 import { useInboundRoutes } from '@/queries/routes/inbound'
+import { usePermissions } from '@/queries/permissions/me'
 import {
   filterInboundRoutes,
   getVisualPlanRouteUrl,
@@ -47,6 +48,7 @@ const DEFAULT_SORT_KEY: InboundRouteSortKey = 'number'
 
 const { t } = useI18n()
 const { state, refetch } = useInboundRoutes()
+const { isSuperadmin } = usePermissions()
 const { getRouteName, describeDestination, isInvalidDestination } = useInboundRouteLabels()
 
 const textFilter = ref('')
@@ -232,7 +234,7 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
           </NeTableCell>
           <NeTableCell :data-label="t('common.actions')">
             <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
-              <NeButton kind="tertiary" @click="editRoute(item)">
+              <NeButton v-if="isSuperadmin" kind="tertiary" @click="editRoute(item)">
                 <template #prefix>
                   <FontAwesomeIcon :icon="faPenToSquare" class="h-4 w-4" aria-hidden="true" />
                 </template>

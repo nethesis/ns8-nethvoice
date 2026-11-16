@@ -9,6 +9,9 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faArrowUpRightFromSquare } from '@fortawesome/free-solid-svg-icons'
 import OutboundRoutesTable from './OutboundRoutesTable.vue'
 import { OUTBOUND_ROUTES_ADVANCED_URL } from '@/lib/config'
+import { usePermissions } from '@/queries/permissions/me'
+
+const { isSuperadmin } = usePermissions()
 
 function openAdvancedSettings() {
   window.open(OUTBOUND_ROUTES_ADVANCED_URL, '_blank', 'noopener')
@@ -22,7 +25,7 @@ function openAdvancedSettings() {
         {{ $t('routes.outbound_description_line_1') }}<br />
         {{ $t('routes.outbound_description_line_2') }}
       </p>
-      <NeButton kind="tertiary" class="shrink-0" @click="openAdvancedSettings">
+      <NeButton v-if="isSuperadmin" kind="tertiary" class="shrink-0" @click="openAdvancedSettings">
         <template #prefix>
           <FontAwesomeIcon :icon="faArrowUpRightFromSquare" class="h-4 w-4" aria-hidden="true" />
         </template>

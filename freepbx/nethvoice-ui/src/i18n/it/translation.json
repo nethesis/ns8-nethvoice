@@ -1653,5 +1653,12 @@
     "status_error": "Impossibile collegare il telefono: {error}. Chiama di nuovo per riprovare.",
     "status_elsewhere": "Il telefono dell'amministratore è attivo in un'altra scheda",
     "use_here": "Usa il telefono in questa scheda"
+  },
+  "permissions": {
+    "no_access_title": "Nessuna sezione disponibile",
+    "no_access_description": "Il tuo account non può gestire alcuna sezione. Chiedi all'amministratore di concederti l'accesso.",
+    "cannot_load_permissions": "Impossibile caricare i tuoi permessi",
+    "setup_pending_title": "Configurazione non completata",
+    "setup_pending_description": "L'amministratore deve completare la prima configurazione prima che tu possa usare l'amministrazione del centralino."
   }
 }
