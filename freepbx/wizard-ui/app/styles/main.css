@@ -751,6 +751,15 @@ a {
 .configDevices-item-heading {
   flex: 1 0 calc(40% - 80px) !important;
   max-width: 188px;
+  /* long extensions (e.g. 91203) wrap to a second line instead of being cut */
+  flex-wrap: wrap;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.configDevices-item-heading .configDevices-extension {
+  white-space: nowrap;
 }
 
 .selected {
