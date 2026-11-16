@@ -2444,6 +2444,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/dashboard/calls': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Summarize the calls of today for the dashboard.
+     * @description Reads the CDR from midnight of the PBX time zone. The legs of a call are counted once, feature codes are not counted. A call is answered when a leg is ANSWERED, missed when a leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). Requires the dashboard section.
+     */
+    get: operations['get_dashboard_calls']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/trunks/count': {
     parameters: {
       query?: never
@@ -8323,6 +8343,74 @@ export interface operations {
            *     }
            */
           'application/json': Record<string, never>
+        }
+      }
+    }
+  }
+  get_dashboard_calls: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          /**
+           * @example {
+           *       "total": 12,
+           *       "answered": 9,
+           *       "missed": 2,
+           *       "invalid": 1,
+           *       "incoming_by_hour": [
+           *         0,
+           *         0,
+           *         0,
+           *         0,
+           *         0,
+           *         0,
+           *         0,
+           *         0,
+           *         1,
+           *         3,
+           *         2
+           *       ]
+           *     }
+           */
+          'application/json': {
+            total: number
+            answered: number
+            missed: number
+            invalid: number
+            /** @description Incoming calls started in each hour of today, from hour 0 to the current hour. */
+            incoming_by_hour: number[]
+          }
+        }
+      }
+      /** @description Missing dashboard permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': string
         }
       }
     }
