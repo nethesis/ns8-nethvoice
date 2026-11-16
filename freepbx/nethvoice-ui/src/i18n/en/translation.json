@@ -1649,10 +1649,6 @@
     "status_in_call": "Call in progress, extension {extension}",
     "status_connection_lost": "The phone cannot connect to the PBX and keeps trying",
     "status_error": "Cannot enable the phone: {error}",
-    "regenerate_credentials": "Regenerate phone credentials",
-    "credentials_regenerated": "Phone credentials regenerated",
-    "credentials_regenerated_description": "The previous credentials no longer work.",
-    "cannot_regenerate_credentials": "Cannot regenerate the phone credentials",
     "cost_notice_title": "Calls to external numbers",
     "cost_notice_description": "Calls to external numbers go through the outbound routes and can be charged by the provider."
   }

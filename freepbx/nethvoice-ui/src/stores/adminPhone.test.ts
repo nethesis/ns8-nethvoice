@@ -253,29 +253,6 @@ describe('useAdminPhoneStore', () => {
     expect(store.dataConfig).toBe('')
   })
 
-  it('regenerates the credentials and prepares the phone again', async () => {
-    vi.mocked(api.POST).mockImplementation(async (path: string) => ({
-      data: path === '/adminphone/session' ? { ...SESSION, secret: 'beef' } : null,
-      response: new Response(),
-    }))
-    const store = createStore()
-
-    await store.enable()
-    const rotating = store.rotate()
-    await vi.advanceTimersByTimeAsync(ADMIN_PHONE_RELOAD_DELAY)
-    await rotating
-
-    expect(api.POST).toHaveBeenCalledTimes(3)
-    expect(api.POST).toHaveBeenNthCalledWith(1, '/adminphone/session', { body: {} })
-    expect(api.POST).toHaveBeenNthCalledWith(2, '/adminphone/rotate')
-    expect(api.POST).toHaveBeenNthCalledWith(3, '/adminphone/session', { body: {} })
-    expect(store.state).toBe('registering')
-    expect(store.isRotating).toBe(false)
-    expect(notifications.createNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: 'success', title: 'Phone credentials regenerated' }),
-    )
-  })
-
   it('ignores the events of the island when the phone is disabled', () => {
     const store = createStore()
 

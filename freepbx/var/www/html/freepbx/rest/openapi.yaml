@@ -4414,29 +4414,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/UsersMessage'
       operationId: post_adminphone_session
-  /adminphone/rotate:
-    post:
-      summary: Generate a new SIP secret for the administrator phone.
-      description: The previous secret stops working after the FreePBX reload started
-        by this call.
-      tags:
-      - AdminPhone
-      responses:
-        '204':
-          description: No content
-        '404':
-          description: Administrator phone not configured
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UsersMessage'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UsersMessage'
-      operationId: post_adminphone_rotate
   /devices/gateways/download/{name}/{mac}:
     get:
       summary: Generate the configuration file of a gateway and return it Base64 encoded.

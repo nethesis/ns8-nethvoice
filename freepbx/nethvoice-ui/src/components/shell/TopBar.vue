@@ -19,7 +19,6 @@ import {
   faCircleQuestion,
   faClockRotateLeft,
   faGear,
-  faKey,
   faMoon,
   faSun,
   faTableCells,
@@ -30,8 +29,6 @@ import { useI18n } from 'vue-i18n'
 import { useNotificationsStore } from '@/stores/notifications'
 import { LEGACY_WIZARD_URL } from '@/lib/config'
 import AdminPhoneButton from '@/components/phone/AdminPhoneButton.vue'
-import { useAdminPhoneStatus } from '@/queries/adminPhone/adminPhone'
-import { useAdminPhoneStore } from '@/stores/adminPhone'
 import { useDashboardSubscription } from '@/queries/dashboard/subscription'
 
 const emit = defineEmits<{ openSidebar: [] }>()
@@ -45,8 +42,6 @@ const { state: subscriptionState } = useDashboardSubscription()
 const isEnterprise = computed(() => subscriptionState.value.data?.plan === 'enterprise')
 const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
-const adminPhoneStore = useAdminPhoneStore()
-const { state: adminPhoneStatus } = useAdminPhoneStatus()
 
 const topBarButtonClasses =
   'flex rounded-full p-2.5 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-50 transition-colors duration-(--duration-small)'
@@ -74,17 +69,6 @@ const accountMenuOptions = computed(() => [
     icon: faClockRotateLeft,
     action: () => window.location.assign(LEGACY_WIZARD_URL),
   },
-  ...(adminPhoneStatus.value.data?.enabled
-    ? [
-        {
-          id: 'regenerateAdminPhoneCredentials',
-          label: t('admin_phone.regenerate_credentials'),
-          icon: faKey,
-          disabled: adminPhoneStore.isRotating,
-          action: () => adminPhoneStore.rotate(),
-        },
-      ]
-    : []),
   {
     id: 'switchDensity',
     label: densityStore.isCompact

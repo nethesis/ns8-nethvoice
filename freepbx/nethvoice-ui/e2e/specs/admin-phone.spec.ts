@@ -182,30 +182,4 @@ test.describe('administrator phone', () => {
 
     await expect(island(page)).toHaveAttribute('data-calls', '91300')
   })
-
-  test('regenerates the credentials from the account menu', async ({ page, mockApi }) => {
-    mockApi
-      .allowUnmockedCalls()
-      .on('GET', '/freepbx/rest/adminphone', { json: { enabled: true, extension: '770000' } })
-      .on('POST', '/freepbx/rest/adminphone/rotate', { status: 204 })
-    await page.goto('./dashboard')
-
-    await page.getByRole('button', { name: 'Open account menu' }).click()
-    await page.getByRole('menuitem', { name: 'Regenerate phone credentials' }).click()
-
-    await expect(page.getByText('Phone credentials regenerated').first()).toBeVisible()
-    expect(mockApi.callsTo('POST', '/freepbx/rest/adminphone/rotate')).toHaveLength(1)
-    expect(mockApi.callsTo('POST', SESSION_PATH)).toHaveLength(0)
-  })
-
-  test('hides the credentials action without an administrator phone', async ({ page, mockApi }) => {
-    mockApi.allowUnmockedCalls()
-    await page.goto('./dashboard')
-
-    await page.getByRole('button', { name: 'Open account menu' }).click()
-    await expect(page.getByRole('menuitem', { name: 'Sign out' })).toBeVisible()
-    await expect(page.getByRole('menuitem', { name: 'Regenerate phone credentials' })).toHaveCount(
-      0,
-    )
-  })
 })
