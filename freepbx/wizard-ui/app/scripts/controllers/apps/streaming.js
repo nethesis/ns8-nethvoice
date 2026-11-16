@@ -324,6 +324,13 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    // The {{port}} placeholder cannot be written inside a template expression
+    $scope.forwardPortText = function (s) {
+      return $filter('translate')('Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL', {
+        port: s && s.reachability ? s.reachability.port : ''
+      });
+    };
+
     // Check again a while after the administrator stops typing the URL
     $scope.urlChanged = function (s) {
       $scope.sourceChanged(s);
