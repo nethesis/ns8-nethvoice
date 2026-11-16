@@ -9,9 +9,33 @@ import { useEventListener } from '@vueuse/core'
 import { PHONE_ISLAND_EVENT_NAMES } from '@/lib/adminPhone/adminPhone'
 import type { PhoneIslandInstance } from '@/lib/adminPhone/phoneIslandRuntime'
 import { useAdminPhoneStore } from '@/stores/adminPhone'
+import { useThemeStore } from '@/stores/theme'
 
 const adminPhoneStore = useAdminPhoneStore()
 const container = useTemplateRef<HTMLDivElement>('container')
+const themeStore = useThemeStore()
+
+const PHONE_ISLAND_THEME_KEY = 'phone-island-theme-selected'
+
+const islandTheme = () => (themeStore.isLight ? 'light' : 'dark')
+
+const storeIslandTheme = () => {
+  try {
+    localStorage.setItem(PHONE_ISLAND_THEME_KEY, JSON.stringify({ themeSelected: islandTheme() }))
+  } catch {
+    return
+  }
+}
+
+watch(
+  () => themeStore.isLight,
+  () => {
+    storeIslandTheme()
+    window.dispatchEvent(
+      new CustomEvent('phone-island-theme-change', { detail: { selectedTheme: islandTheme() } }),
+    )
+  },
+)
 
 let instance: PhoneIslandInstance | null = null
 let mountRequest = 0
@@ -31,6 +55,7 @@ const mountIsland = async (dataConfig: string, displayName: string) => {
     if (request !== mountRequest || !container.value) {
       return
     }
+    storeIslandTheme()
     instance = mountPhoneIsland(container.value, { dataConfig, displayName })
   } catch (error) {
     if (request === mountRequest) {
@@ -64,9 +89,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div
-    ref="container"
-    class="pointer-events-none fixed inset-0 z-110"
-    data-testid="phone-island-host"
-  />
+  <Teleport to="body">
+    <div
+      ref="container"
+      class="pointer-events-none fixed inset-0 z-110"
+      data-testid="phone-island-host"
+    />
+  </Teleport>
 </template>
