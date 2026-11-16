@@ -11,7 +11,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	jwt "github.com/appleboy/gin-jwt/v3"
@@ -25,6 +27,64 @@ import (
 	"github.com/nethesis/nethcti-middleware/store"
 	"github.com/nethesis/nethcti-middleware/utils"
 )
+
+// OTP verification attempts per user: after otpMaxFailures wrong codes the
+// verification is locked for otpLockout, whatever the client address.
+const (
+	otpMaxFailures = 5
+	otpLockout     = 15 * time.Minute
+)
+
+type otpAttempts struct {
+	failures    int
+	lastFailure time.Time
+	lockedUntil time.Time
+}
+
+var otpAttemptsMu sync.Mutex
+var otpAttemptsByUser = map[string]*otpAttempts{}
+
+// otpLockedFor returns how long the OTP verification of the user is still
+// locked (0 when it is not).
+func otpLockedFor(username string) time.Duration {
+	otpAttemptsMu.Lock()
+	defer otpAttemptsMu.Unlock()
+	if a := otpAttemptsByUser[username]; a != nil {
+		if left := time.Until(a.lockedUntil); left > 0 {
+			return left
+		}
+	}
+	return 0
+}
+
+func otpFailed(username string) {
+	otpAttemptsMu.Lock()
+	defer otpAttemptsMu.Unlock()
+	now := time.Now()
+	// drop the entries that are no longer relevant
+	for user, a := range otpAttemptsByUser {
+		if now.After(a.lockedUntil) && now.Sub(a.lastFailure) > otpLockout {
+			delete(otpAttemptsByUser, user)
+		}
+	}
+	a := otpAttemptsByUser[username]
+	if a == nil {
+		a = &otpAttempts{}
+		otpAttemptsByUser[username] = a
+	}
+	a.failures++
+	a.lastFailure = now
+	if a.failures >= otpMaxFailures {
+		a.failures = 0
+		a.lockedUntil = now.Add(otpLockout)
+	}
+}
+
+func otpSucceeded(username string) {
+	otpAttemptsMu.Lock()
+	defer otpAttemptsMu.Unlock()
+	delete(otpAttemptsByUser, username)
+}
 
 // -------------------------------- exported methods --------------------------------
 
@@ -62,8 +122,29 @@ func VerifyOTP(c *gin.Context) {
 		return
 	}
 
+	// the OTP is verified for the user of the token, never for another one
+	username, _ := jwt.ExtractClaims(c)["id"].(string)
+	if username == "" || (jsonOTP.Username != "" && !strings.EqualFold(strings.TrimSpace(jsonOTP.Username), username)) {
+		c.JSON(http.StatusBadRequest, structs.Map(models.StatusBadRequest{
+			Code:    400,
+			Message: "username does not match the token",
+			Data:    "",
+		}))
+		return
+	}
+
+	if retryAfter := otpLockedFor(username); retryAfter > 0 {
+		logs.Log("[ERROR][2FA] OTP verification locked for user " + username)
+		c.Header("Retry-After", strconv.Itoa(int(retryAfter.Seconds())+1))
+		c.JSON(http.StatusTooManyRequests, structs.Map(models.StatusBadRequest{
+			Code:    http.StatusTooManyRequests,
+			Message: "too_many_attempts",
+			Data:    nil,
+		}))
+		return
+	}
+
 	// get secret for the user
-	username := jsonOTP.Username
 	secret := getUserSecret(username)
 
 	// check secret
@@ -91,6 +172,7 @@ func VerifyOTP(c *gin.Context) {
 		recoveryCodes := getRecoveryCodes(username)
 
 		if !utils.Contains(jsonOTP.OTP, recoveryCodes) {
+			otpFailed(username)
 			c.JSON(http.StatusBadRequest, structs.Map(models.StatusBadRequest{
 				Code:    400,
 				Message: "invalid_otp",
@@ -113,6 +195,8 @@ func VerifyOTP(c *gin.Context) {
 		}
 	}
 
+	otpSucceeded(username)
+
 	// Check if this is initial 2FA setup (not login OTP verification)
 	// If the current token has 2fa:false, it means user is setting up 2FA for the first time
 	claims := jwt.ExtractClaims(c)
@@ -134,30 +218,52 @@ func VerifyOTP(c *gin.Context) {
 	// Extract the JWT token being used for this request
 	currentJWTToken := strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")
 
-	// If this is initial 2FA setup (2fa was false before), invalidate all other tokens
-	// to force all other clients to re-login with the new 2FA requirement
-	if !currentHas2FA {
-		userSession := store.UserSessions[username]
-		if userSession != nil {
+	var newToken string
+	var expire time.Time
+	var errToken error
+	found := false
+	store.ModifySessions(func(userSessions map[string]*models.UserSession) {
+		userSession := userSessions[username]
+		if userSession == nil {
+			return
+		}
+		found = true
+
+		// If this is initial 2FA setup (2fa was false before), invalidate all other tokens
+		// to force all other clients to re-login with the new 2FA requirement
+		if !currentHas2FA {
 			// Keep only the current token, remove all others
 			userSession.JWTTokens = []string{currentJWTToken}
 			logs.Log("[INFO][2FA] All other JWT tokens invalidated for user " + username + " after enabling 2FA")
 		}
+
+		// update user session to mark OTP as verified
+		userSession.OTP_Verified = true
+
+		// Regenerate JWT token with updated 2FA status, replacing the current token
+		_, newToken, expire, errToken = regenerateUserToken(userSession, currentJWTToken)
+	})
+
+	if !found {
+		c.JSON(http.StatusUnauthorized, structs.Map(models.StatusUnauthorized{
+			Code:    401,
+			Message: "user session not found",
+			Data:    "",
+		}))
+		return
 	}
 
-	// update user session to mark OTP as verified
-	store.UserSessions[username].OTP_Verified = true
-
-	// Regenerate JWT token with updated 2FA status, replacing the current token
-	_, newToken, expire, err := regenerateUserToken(store.UserSessions[username], currentJWTToken)
-
-	if err != nil {
+	if errToken != nil {
 		c.JSON(http.StatusInternalServerError, structs.Map(models.StatusBadRequest{
 			Code:    500,
 			Message: "failed to generate new token",
-			Data:    err.Error(),
+			Data:    errToken.Error(),
 		}))
 		return
+	}
+
+	if err := store.SaveSessions(); err != nil {
+		logs.Log("[ERROR][2FA] Failed to save sessions after OTP verification for user " + username + ": " + err.Error())
 	}
 
 	// response with new token (the regenerated one that replaces currentJWTToken)
@@ -306,16 +412,9 @@ func Disable2FA(c *gin.Context) {
 
 	// Invalidate ALL tokens for this user when 2FA is disabled
 	// This ensures that all clients (web, desktop, mobile) must re-authenticate
-	userSession := store.UserSessions[username]
-
-	if userSession != nil {
-		// Clear all existing tokens - force all clients to re-login
-		err := store.RemoveAllJWTTokens(username)
-		if err != nil {
-			logs.Log("[ERROR][2FA] Failed to remove all JWT tokens for user " + username + ": " + err.Error())
-		}
-		userSession.OTP_Verified = false
-
+	// Clear all existing tokens - force all clients to re-login.
+	// It fails only when the user has no session.
+	if err := store.RemoveAllJWTTokens(username); err == nil {
 		logs.Log("[INFO][2FA] All JWT tokens invalidated for user " + username + " after disabling 2FA")
 
 		// Don't generate a new token - return success without token
@@ -511,4 +610,21 @@ func generateRandomRecoveryCodes() []string {
 	}
 
 	return codes
+}
+
+// disable2FA removes the user 2FA secret and recovery codes and marks 2FA as
+// disabled. Missing files are not an error: there is nothing to disable.
+func disable2FA(username string) error {
+	userDir := configuration.Config.SecretsDir + "/" + username
+	if _, err := os.Stat(userDir); os.IsNotExist(err) {
+		return nil
+	}
+
+	for _, name := range []string{"secret", "codes"} {
+		if err := os.Remove(userDir + "/" + name); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	return os.WriteFile(userDir+"/status", []byte("0"), 0600)
 }

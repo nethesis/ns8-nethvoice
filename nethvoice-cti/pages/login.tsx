@@ -6,7 +6,13 @@ import { useState, useRef, useEffect } from 'react'
 import { TextInput, InlineNotification, Button, OTPInput } from '../components/common'
 import { useRouter } from 'next/router'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircleNotch, faEye, faEyeSlash, faArrowLeft } from '@fortawesome/free-solid-svg-icons'
+import {
+  faCircleCheck,
+  faCircleNotch,
+  faEye,
+  faEyeSlash,
+  faArrowLeft,
+} from '@fortawesome/free-solid-svg-icons'
 import { checkDarkTheme } from '../lib/darkTheme'
 import { useTranslation } from 'react-i18next'
 import { store } from '../store'
@@ -33,6 +39,10 @@ import { loginBeforeDashboard } from '../services/user'
 import { otpVerify } from '../services/twoFactor'
 import { OTPInputRef } from '../components/common/OTPInput'
 import { decodeJWT } from '../lib/jwt'
+import { isSsoAuthentication } from '../lib/password'
+import { PasswordChangeForm } from '../components/settings/password/PasswordChangeForm'
+import { changeExpiredPassword } from '../services/password'
+import { PasswordPolicy } from '../services/types/password'
 
 export default function Login() {
   const [pwdVisible, setPwdVisible] = useState(false)
@@ -41,6 +51,9 @@ export default function Login() {
   const [onOTPError, setOnOTPError] = useState(false)
   const [loading, setLoading] = useState(false)
   const [showOTPVerification, setShowOTPVerification] = useState(false)
+  const [showPasswordChange, setShowPasswordChange] = useState(false)
+  const [isPasswordUpdated, setIsPasswordUpdated] = useState(false)
+  const [expiredPasswordPolicy, setExpiredPasswordPolicy] = useState<PasswordPolicy | null>(null)
   const [otpCode, setOtpCode] = useState('')
   const [tempLoginData, setTempLoginData] = useState<{
     username: string
@@ -299,7 +312,7 @@ export default function Login() {
       const handleOpenSettings = () => {
         setJSONItem(openSetupDrawerStorageKey, { open: true })
         closeToast()
-        router.push('settings?section=Two-Factor+Authentication')
+        router.push('settings?section=Account')
       }
 
       const handleDontAskAgain = () => {
@@ -385,7 +398,13 @@ export default function Login() {
           handleLogin(token, username)
         }
       } else {
-        if (callStatus === 401) {
+        const data = await res.json().catch(() => null)
+        if (callStatus === 401 && data?.message === 'password_expired') {
+          // right credentials, but the password must be changed first
+          setTempLoginData({ username: username, password: password })
+          setExpiredPasswordPolicy(data?.data?.policy || null)
+          setShowPasswordChange(true)
+        } else if (callStatus === 401) {
           setOnError(true)
           setMessaggeError(`${t('Login.Wrong username or password')}`)
         } else if (callStatus === 404) {
@@ -530,11 +549,104 @@ export default function Login() {
     )
   }
 
+  const productHeader = () => (
+    <div className='flex flex-col items-center justify-center'>
+      {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        className='mx-auto w-auto max-h-[70px] items-center object-contain object-bottom fill-current text-primary dark:text-primaryDark'
+        src={!isDarkTheme ? '/login_logo.svg' : '/login_logo_dark.svg'}
+        alt='logo'
+      />
+      <div className='text-primary dark:text-primaryDark pt-5 text-lg font-regular'>
+        {productSubname}
+      </div>
+    </div>
+  )
+
+  // back to the login form, to sign in with the new password
+  const continueToSignIn = () => {
+    const username = tempLoginData?.username || ''
+    setShowPasswordChange(false)
+    setIsPasswordUpdated(false)
+    setTempLoginData(null)
+    setExpiredPasswordPolicy(null)
+    setTimeout(() => {
+      if (usernameRef.current && passwordRef.current) {
+        usernameRef.current.value = username
+        passwordRef.current.focus()
+      }
+    })
+  }
+
+  const passwordChangeTemplate = () => {
+    if (isPasswordUpdated) {
+      return (
+        <div className='max-w-sm sm:w-[26.25rem] flex flex-col gap-8'>
+          {productHeader()}
+          <div className='flex flex-col items-center gap-3 text-center'>
+            <div className='flex h-12 w-12 items-center justify-center rounded-full bg-surfaceToastSuccess dark:bg-surfaceToastSuccessDark'>
+              <FontAwesomeIcon
+                icon={faCircleCheck}
+                className='h-6 w-6 text-iconSuccess dark:text-iconSuccessDark'
+              />
+            </div>
+            <div className='flex flex-col gap-1'>
+              <h3 className='text-2xl font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
+                {t('Password.Password updated')}
+              </h3>
+              <p className='text-sm text-tertiaryNeutral dark:text-tertiaryNeutralDark'>
+                {t('Password.Sign in with your new password to continue.')}
+              </p>
+            </div>
+          </div>
+          <Button
+            size='large'
+            fullHeight={true}
+            fullWidth={true}
+            variant='primary'
+            onClick={continueToSignIn}
+          >
+            <span className='font-medium leading-5 text-sm'>
+              {t('Password.Continue to sign in')}
+            </span>
+          </Button>
+        </div>
+      )
+    }
+
+    return (
+      <div className='max-w-sm sm:w-[26.25rem] flex flex-col gap-8'>
+        {productHeader()}
+        <div className='flex flex-col gap-1'>
+          <h3 className='text-xl font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
+            {t('Password.Update your password')}
+          </h3>
+          <p className='text-sm text-tertiaryNeutral dark:text-tertiaryNeutralDark'>
+            {t('Password.Your password has expired, create a new one to continue')}
+          </p>
+        </div>
+        <PasswordChangeForm
+          username={tempLoginData?.username || ''}
+          askCurrentPassword={false}
+          currentPassword={tempLoginData?.password || ''}
+          policy={expiredPasswordPolicy}
+          submitLabel={t('Password.Update password')}
+          layout='card'
+          onSubmit={(currentPassword, newPassword) =>
+            changeExpiredPassword(tempLoginData?.username || '', currentPassword, newPassword)
+          }
+          onSuccess={() => setIsPasswordUpdated(true)}
+        />
+      </div>
+    )
+  }
+
   const loginTemplate = () => {
     // SSO mode: with an external authentication method the login page offers
     // an SSO button instead of the password form.
     const ssoConfig: any = (typeof window !== 'undefined' && (window as any).CONFIG) || {}
-    const isSsoMethod = ['saml2', 'oidc'].includes(ssoConfig.AUTHENTICATION_METHOD)
+    const isSsoMethod = isSsoAuthentication(ssoConfig)
     const ssoLoginUrl = isSsoMethod ? ssoConfig.SSO_LOGIN_URL || '/sso' : ''
     const ssoButtonLabel =
       ssoConfig.SSO_BUTTON_LABEL || t('Login.Sign in with SSO')
@@ -543,18 +655,7 @@ export default function Login() {
 
     return (
       <div className='max-w-sm sm:w-96'>
-        <div className='flex flex-col items-center justify-center'>
-          {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            className='mx-auto w-auto max-h-[70px] items-center object-contain object-bottom fill-current text-primary dark:text-primaryDark'
-            src={!isDarkTheme ? '/login_logo.svg' : '/login_logo_dark.svg'}
-            alt='logo'
-          />
-          <div className='text-primary dark:text-primaryDark pt-5 text-lg font-regular'>
-            {productSubname}
-          </div>
-        </div>
+        {productHeader()}
         {errorAlert}
         {ssoLoginUrl ? (
           <div className='pt-6'>
@@ -680,7 +781,11 @@ export default function Login() {
         <div className='w-1/2'>
           <div className='absolute top-1/2 left-1/2 lg:left-40 transform -translate-y-1/2 -translate-x-1/2 lg:-translate-x-0'>
             <div className='border-b border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 p-10'>
-              {showOTPVerification ? otpVerificationTemplate() : loginTemplate()}
+              {showOTPVerification
+                ? otpVerificationTemplate()
+                : showPasswordChange
+                ? passwordChangeTemplate()
+                : loginTemplate()}
             </div>
           </div>
         </div>

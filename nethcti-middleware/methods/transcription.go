@@ -203,8 +203,8 @@ func getUserPhoneNumbersFromContext(c *gin.Context) ([]string, error) {
 		return nil, err
 	}
 
-	userSession := store.UserSessions[username]
-	if userSession == nil || strings.TrimSpace(userSession.NethCTIToken) == "" {
+	userSession, hasSession := store.GetSession(username)
+	if !hasSession || strings.TrimSpace(userSession.NethCTIToken) == "" {
 		logs.Log("[WARNING][TRANSCRIPTS] Missing user session or token for user " + username)
 		return nil, errUnauthorized
 	}
@@ -564,8 +564,8 @@ func logForbiddenParticipation(c *gin.Context, uniqueID string) {
 		return
 	}
 
-	userSession := store.UserSessions[username]
-	if userSession == nil || strings.TrimSpace(userSession.NethCTIToken) == "" {
+	userSession, hasSession := store.GetSession(username)
+	if !hasSession || strings.TrimSpace(userSession.NethCTIToken) == "" {
 		logs.Log("[WARNING][TRANSCRIPTS] Forbidden participation: missing session for user " + username + " (uniqueid: " + uniqueID + ")")
 		return
 	}

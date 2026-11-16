@@ -53,6 +53,7 @@ import { getCustomerCardsList, setUserSettings } from '../../lib/customerCard'
 import { retrieveParksList } from '../../lib/park'
 import { getJSONItem, loadPreference, savePreference, setJSONItem } from '../../lib/storage'
 import { eventDispatch } from '../../lib/hooks/eventDispatch'
+import { usePasswordExpirationWarning } from '../../hooks/usePasswordExpirationWarning'
 import { setMainDevice, getFeatureCodes } from '../../lib/devices'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { setIncomingCallsPreference } from '../../lib/incomingCall'
@@ -74,6 +75,8 @@ export const Layout: FC<LayoutProps> = ({ children }) => {
 
   const [isUserInfoLoaded, setUserInfoLoaded] = useState(false)
   const authStore = useSelector((state: RootState) => state.authentication)
+
+  usePasswordExpirationWarning(isUserInfoLoaded ? authStore.username : '')
 
   const queuesStore = useSelector((state: RootState) => state.queues)
 

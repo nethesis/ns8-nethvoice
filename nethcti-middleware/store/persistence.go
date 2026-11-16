@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	jwtv5 "github.com/golang-jwt/jwt/v5"
+
 	"github.com/nethesis/nethcti-middleware/configuration"
 	"github.com/nethesis/nethcti-middleware/logs"
 	"github.com/nethesis/nethcti-middleware/models"
@@ -48,8 +50,9 @@ func SaveSessions() error {
 	defer persistenceMutex.Unlock()
 
 	// Convert UserSessions to PersistedSession format
-	sessions := make([]PersistedSession, 0, len(UserSessions))
-	for username, session := range UserSessions {
+	snapshot := SessionsSnapshot()
+	sessions := make([]PersistedSession, 0, len(snapshot))
+	for username, session := range snapshot {
 		sessions = append(sessions, PersistedSession{
 			Username:     username,
 			JWTTokens:    session.JWTTokens,
@@ -118,39 +121,53 @@ func LoadSessions() error {
 
 	// Restore sessions to UserSessions map
 	loadedCount := 0
-	for _, ps := range sessions {
-		// Recreate UserSession
-		UserSessions[ps.Username] = &models.UserSession{
-			Username:     ps.Username,
-			JWTTokens:    ps.JWTTokens,
-			NethCTIToken: ps.NethCTIToken,
-			OTP_Verified: false, // Will be validated from JWT claims
+	ModifySessions(func(userSessions map[string]*models.UserSession) {
+		for _, ps := range sessions {
+			// Recreate UserSession
+			userSessions[ps.Username] = &models.UserSession{
+				Username:     ps.Username,
+				JWTTokens:    ps.JWTTokens,
+				NethCTIToken: ps.NethCTIToken,
+				OTP_Verified: false, // Will be validated from JWT claims
+			}
+			loadedCount++
 		}
-		loadedCount++
-	}
+	})
 
 	logs.Log(fmt.Sprintf("[INFO][PERSISTENCE] Loaded %d session(s) from disk", loadedCount))
 	return nil
 }
 
 func RemoveJWTToken(username, tokenToRemove string) error {
-	userSession, exists := UserSessions[username]
-	if !exists || userSession == nil {
+	found := false
+	removedSession := ""
+	ModifySessions(func(userSessions map[string]*models.UserSession) {
+		userSession := userSessions[username]
+		if userSession == nil {
+			return
+		}
+		found = true
+
+		updatedTokens := make([]string, 0, len(userSession.JWTTokens))
+		for _, token := range userSession.JWTTokens {
+			if token != tokenToRemove {
+				updatedTokens = append(updatedTokens, token)
+			}
+		}
+		userSession.JWTTokens = updatedTokens
+
+		// Remove user session if no tokens remain
+		if len(updatedTokens) == 0 {
+			delete(userSessions, username)
+			removedSession = userSession.NethCTIToken
+		}
+	})
+	if !found {
 		return fmt.Errorf("no session found for user %s", username)
 	}
 
-	updatedTokens := make([]string, 0, len(userSession.JWTTokens))
-	for _, token := range userSession.JWTTokens {
-		if token != tokenToRemove {
-			updatedTokens = append(updatedTokens, token)
-		}
-	}
-
-	userSession.JWTTokens = updatedTokens
-
-	// Remove user session if no tokens remain
-	if len(updatedTokens) == 0 {
-		RevokeLegacySession(username, userSession)
+	if removedSession != "" {
+		revokeLegacyToken(username, removedSession)
 	}
 
 	// Persist changes
@@ -162,15 +179,20 @@ func RemoveJWTToken(username, tokenToRemove string) error {
 }
 
 func RemoveAllJWTTokens(username string) error {
-	userSession, exists := UserSessions[username]
-	if !exists || userSession == nil {
+	var removed *models.UserSession
+	ModifySessions(func(userSessions map[string]*models.UserSession) {
+		removed = userSessions[username]
+		if removed != nil {
+			removed.JWTTokens = []string{}
+			delete(userSessions, username)
+		}
+	})
+	if removed == nil {
 		return fmt.Errorf("no session found for user %s", username)
 	}
 
-	userSession.JWTTokens = []string{}
-
 	// Revoke legacy session as well
-	RevokeLegacySession(username, userSession)
+	revokeLegacyToken(username, removed.NethCTIToken)
 
 	// Persist changes
 	if err := SaveSessions(); err != nil {
@@ -180,12 +202,60 @@ func RemoveAllJWTTokens(username string) error {
 	return nil
 }
 
-// RevokeLegacySession deletes the session entry and revokes legacy persistent token (subtype "user")
-// Requires that userSession.JWTTokens is empty.
-func RevokeLegacySession(username string, userSession *models.UserSession) {
-	delete(UserSessions, username)
+// RemoveSessionJWTTokens removes the login tokens of the user except keep.
+// Integration tokens (issued with an audience) stay valid. Returns how many
+// tokens were removed.
+func RemoveSessionJWTTokens(username, keep string) (int, error) {
+	parser := jwtv5.NewParser(jwtv5.WithoutClaimsValidation())
+	removed := 0
+	removedSession := ""
+	ModifySessions(func(userSessions map[string]*models.UserSession) {
+		userSession := userSessions[username]
+		if userSession == nil {
+			return
+		}
 
-	if userSession == nil || userSession.NethCTIToken == "" {
+		updatedTokens := make([]string, 0, len(userSession.JWTTokens))
+		for _, token := range userSession.JWTTokens {
+			claims := jwtv5.MapClaims{}
+			_, _, err := parser.ParseUnverified(token, claims)
+			if token == keep || (err == nil && claims["aud"] != nil) {
+				updatedTokens = append(updatedTokens, token)
+			}
+		}
+
+		removed = len(userSession.JWTTokens) - len(updatedTokens)
+		if removed == 0 {
+			return
+		}
+		userSession.JWTTokens = updatedTokens
+
+		// Remove user session if no tokens remain
+		if len(updatedTokens) == 0 {
+			delete(userSessions, username)
+			removedSession = userSession.NethCTIToken
+		}
+	})
+	if removed == 0 {
+		return 0, nil
+	}
+
+	if removedSession != "" {
+		revokeLegacyToken(username, removedSession)
+	}
+
+	if err := SaveSessions(); err != nil {
+		return removed, fmt.Errorf("failed to save sessions after token removal: %w", err)
+	}
+
+	return removed, nil
+}
+
+// revokeLegacyToken revokes the legacy persistent token (subtype "user") of a
+// session already removed from UserSessions. It does not hold the sessions
+// lock, as it calls the V1 server.
+func revokeLegacyToken(username, NethCTIToken string) {
+	if NethCTIToken == "" {
 		return
 	}
 
@@ -201,7 +271,7 @@ func RevokeLegacySession(username string, userSession *models.UserSession) {
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", userSession.NethCTIToken)
+	req.Header.Set("Authorization", NethCTIToken)
 	client := &http.Client{Timeout: 10 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {

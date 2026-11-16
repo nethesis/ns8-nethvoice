@@ -5,19 +5,11 @@ import axios from 'axios'
 import { handleNetworkError } from './utils'
 import { store } from '../store'
 
-export const openShowGravatarDrawer = (emptyString: any) => {
+export const openChangeProfilePictureDrawer = () => {
   store.dispatch.sideDrawer.update({
     isShown: true,
-    contentType: 'showGravatar',
-    config: emptyString,
-  })
-}
-
-export const openShowUploadProfilePictureDrawer = (emptyString: any) => {
-  store.dispatch.sideDrawer.update({
-    isShown: true,
-    contentType: 'showUploadProfilePicture',
-    config: emptyString,
+    contentType: 'changeProfilePicture',
+    config: null,
   })
 }
 
@@ -37,6 +29,7 @@ export async function uploadProfilePicture(userInformationObject: any) {
     const { data } = await axios.post('/user/settings', userInformationObject)
     return data
   } catch (error) {
-    console.error(error)
+    handleNetworkError(error)
+    throw error
   }
 }

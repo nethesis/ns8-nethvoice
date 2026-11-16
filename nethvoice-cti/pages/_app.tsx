@@ -16,6 +16,7 @@ import { checkDarkTheme } from '../lib/darkTheme'
 import { getBrandedTabTitle, getConfiguredFaviconUrl, getProductSubname } from '../lib/utils'
 import Head from 'next/head'
 import { loadI18n } from '../lib/i18n'
+import { isSsoAuthentication } from '../lib/password'
 import { Island } from '../components/island'
 import { ChatIslandMount } from '../components/chat'
 
@@ -68,7 +69,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       }
       const autoSso =
         params.get('login') === 'sso' || params.has('autologin') || params.has('sso')
-      if (autoSso && ['saml2', 'oidc'].includes(cfg.AUTHENTICATION_METHOD)) {
+      if (autoSso && isSsoAuthentication(cfg)) {
         window.location.href = cfg.SSO_LOGIN_URL || '/sso'
         return
       }

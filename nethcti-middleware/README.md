@@ -28,6 +28,7 @@ All configuration comes from environment variables.
 | `NETHVOICE_MIDDLEWARE_GLOBAL_RATE_LIMIT_AVERAGE` | Sustained requests/sec per client IP; `0` disables it | `25` |
 | `NETHVOICE_MIDDLEWARE_GLOBAL_RATE_LIMIT_BURST` | Burst above the average before HTTP 429 | `100` |
 | `GIN_MODE` | `release` hides Gin's per-request access log, `debug` prints it | `debug` (Gin's default) |
+| `NETHVOICE_USER_PORTAL_URL` | Base URL of the account provider users-admin API, for password expiration and change; empty disables them | empty |
 
 ### Legacy backend
 

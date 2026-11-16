@@ -6,9 +6,11 @@
 package methods
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	neturl "net/url"
 	"strings"
 	"time"
 
@@ -57,6 +59,11 @@ func ProxyV1Request(c *gin.Context, path string, allowAnonymous bool) {
 
 	// Copy headers from the original request
 	for name, values := range c.Request.Header {
+		// Never forward the password-less login headers of a client: only
+		// the middleware itself sends them to V1 (see LoginV1)
+		if isTrustedLoginHeader(name) {
+			continue
+		}
 		for _, value := range values {
 			req.Header.Add(name, value)
 
@@ -100,8 +107,8 @@ func ProxyV1Request(c *gin.Context, path string, allowAnonymous bool) {
 		requester = username
 		authType = "jwt-session"
 
-		userSession := store.UserSessions[username]
-		if userSession == nil || userSession.NethCTIToken == "" {
+		userSession, hasSession := store.GetSession(username)
+		if !hasSession || userSession.NethCTIToken == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"code":    401,
 				"message": "User session not found",
@@ -116,10 +123,12 @@ func ProxyV1Request(c *gin.Context, path string, allowAnonymous bool) {
 		req.Header.Set("Authorization", nethCTIToken)
 	}
 
-	// Copy query parameters
+	// Copy query parameters, except the middleware token (?jwt=)
 	req.URL.RawQuery = c.Request.URL.RawQuery
-
-	forwardURL := req.URL.String()
+	if query := c.Request.URL.Query(); query.Has("jwt") {
+		query.Del("jwt")
+		req.URL.RawQuery = query.Encode()
+	}
 
 	// Create HTTP client with timeout
 	client := &http.Client{
@@ -129,7 +138,12 @@ func ProxyV1Request(c *gin.Context, path string, allowAnonymous bool) {
 	// Forward the request
 	resp, err := client.Do(req)
 	if err != nil {
-		logs.Log(fmt.Sprintf("[ERROR][PROXY][V1] request failed method=%s url=%s requester=%s auth=%s err=%v", c.Request.Method, forwardURL, requester, authType, err))
+		// path only, and the error without the URL: the query may carry tokens
+		var urlErr *neturl.Error
+		if errors.As(err, &urlErr) {
+			err = urlErr.Err
+		}
+		logs.Log(fmt.Sprintf("[ERROR][PROXY][V1] request failed method=%s path=%s requester=%s auth=%s err=%v", c.Request.Method, req.URL.Path, requester, authType, err))
 		c.JSON(http.StatusBadGateway, gin.H{
 			"code":    502,
 			"message": "Failed to reach V1 API",
@@ -179,4 +193,11 @@ func ProxyV1Request(c *gin.Context, path string, allowAnonymous bool) {
 
 	// Write response body
 	c.Writer.Write(body)
+}
+
+// isTrustedLoginHeader reports whether the header belongs to the trusted SSO
+// or internal login of the V1 server.
+func isTrustedLoginHeader(name string) bool {
+	canonical := http.CanonicalHeaderKey(name)
+	return strings.HasPrefix(canonical, "X-Internal-") || strings.HasPrefix(canonical, "X-Sso-")
 }

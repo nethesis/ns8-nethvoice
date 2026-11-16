@@ -478,15 +478,15 @@ The NethVoice components are part of this repository and follow the module
 version. Change them here, not in the former component repositories, which are
 no longer updated.
 
-| Directory | Former repository | Imported commit |
-| --- | --- | --- |
-| `nethcti-server` | [nethesis/nethcti-server](https://github.com/nethesis/nethcti-server) | [08c8bc3](https://github.com/nethesis/nethcti-server/commit/08c8bc374ab609e94db8f349ffbce62084b2f00d) |
-| `nethcti-server/root/usr/lib/node/nethcti-server/packages/astproxy` | [nethesis/astproxy](https://github.com/nethesis/astproxy) | [94f495d](https://github.com/nethesis/astproxy/commit/94f495d53c1e7b13a224ad7e7c79161b6e27e7bf) (v0.2.3) |
-| `nethcti-middleware` | [nethesis/nethcti-middleware](https://github.com/nethesis/nethcti-middleware) | [1b89f9c](https://github.com/nethesis/nethcti-middleware/commit/1b89f9c0265e1093ac7d4d0465c1aaee2de88f30) (v0.7.0) |
-| `nethvoice-cti` | [nethesis/nethvoice-cti](https://github.com/nethesis/nethvoice-cti) | [7ea0b35](https://github.com/nethesis/nethvoice-cti/commit/7ea0b35e3ca51c4da0dab892fc55e678ecdba41d) (v1.2.21) |
-| `reports` | [nethesis/nethvoice-report](https://github.com/nethesis/nethvoice-report) | [c8d1ecc](https://github.com/nethesis/nethvoice-report/commit/c8d1eccf343585829decc9261cc79d7d49d0f78c) |
-| `satellite` | [nethesis/satellite](https://github.com/nethesis/satellite) | [1599a81](https://github.com/nethesis/satellite/commit/1599a81f9ea96f4aea47d2121252267c10976f5f) (0.3.0) |
-| `tancredi/app` | [nethesis/tancredi](https://github.com/nethesis/tancredi) | [f3786f6](https://github.com/nethesis/tancredi/commit/f3786f6d57943f4a062645b8f6c6c70799e39716) (1.11.3) |
+| Directory | Former repository | Branch | Imported commit |
+| --- | --- | --- | --- |
+| `nethcti-server` | [nethesis/nethcti-server](https://github.com/nethesis/nethcti-server) | `ns8` | [08c8bc3](https://github.com/nethesis/nethcti-server/commit/08c8bc374ab609e94db8f349ffbce62084b2f00d) |
+| `nethcti-server/root/usr/lib/node/nethcti-server/packages/astproxy` | [nethesis/astproxy](https://github.com/nethesis/astproxy) | `master` | [dc4590e](https://github.com/nethesis/astproxy/commit/dc4590e43d57351cf3dac3b3909e4d426866aedf) |
+| `nethcti-middleware` | [nethesis/nethcti-middleware](https://github.com/nethesis/nethcti-middleware) | `main` | [de4bff0](https://github.com/nethesis/nethcti-middleware/commit/de4bff0e2ae79f4b41a57603dcdd38c503048ee6) |
+| `nethvoice-cti` | [nethesis/nethvoice-cti](https://github.com/nethesis/nethvoice-cti) | `main` | [9dd9486](https://github.com/nethesis/nethvoice-cti/commit/9dd948698f3b6c5bc9cc54513b66d50d0d37bf86) |
+| `reports` | [nethesis/nethvoice-report](https://github.com/nethesis/nethvoice-report) | `ns8` | [8d62ed2](https://github.com/nethesis/nethvoice-report/commit/8d62ed29faba31b8edc4e3780c0577c94035392a) |
+| `satellite` | [nethesis/satellite](https://github.com/nethesis/satellite) | `main` | [4969fd5](https://github.com/nethesis/satellite/commit/4969fd5558a0426660c601cd2c76aa3887a63c7d) |
+| `tancredi/app` | [nethesis/tancredi](https://github.com/nethesis/tancredi) | `master` | [a27892d](https://github.com/nethesis/tancredi/commit/a27892de5e004fd310400c47939ed6f083ba84da) |
 
 When a component directory already had a `README.md` for the module image, the
 component one is kept as `README.upstream.md`.

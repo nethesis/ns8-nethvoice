@@ -25,7 +25,8 @@ WHERE TRUE
         AND qname in ({{ ExtractStrings .Queues }})
     {{ end }}
     {{ if gt (len .Agents) 0 }}
-        AND agent in ({{ ExtractStrings .Agents }})
+        -- unanswered calls have no agent: keep them, or selecting the agents of a queue hides them
+        AND (agent in ({{ ExtractStrings .Agents }}) OR agent IN ("NONE", ""))
     {{ end }}
     {{ if gt (len .Phones) 0 }}
         AND cid in ({{ ExtractPhones .Phones true }})

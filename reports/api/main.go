@@ -79,10 +79,10 @@ func main() {
 	api.POST("/logout", middleware.BodyLimit(1<<10), middleware.InstanceJWT().LogoutHandler)
 
 	// define refresh endpoint
-	api.GET("/refresh_token", middleware.InstanceJWT().RefreshHandler)
+	api.GET("/refresh_token", middleware.RefreshHandler(middleware.InstanceJWT()))
 
 	// define JWT middleware
-	api.Use(middleware.InstanceJWT().MiddlewareFunc())
+	api.Use(middleware.InstanceJWT().MiddlewareFunc(), middleware.SupportSession())
 	{
 
 		filters := api.Group("/filters")

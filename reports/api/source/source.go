@@ -35,6 +35,7 @@ import (
 
 var dbQ *sql.DB
 var dbMig *sql.DB
+var dbViews *sql.DB
 var dbP *sql.DB
 var dbF *sql.DB
 
@@ -52,6 +53,16 @@ func CDRMigrationInstance() *sql.DB {
 		dbMig = CDRMigrationInit()
 	}
 	return dbMig
+}
+
+// CDRViewsInstance returns a DB pool without read/write timeouts, sized for the
+// "views" task: each view file is a multi-statement script whose CREATE TABLE ... AS SELECT
+// can run for several minutes on large installations.
+func CDRViewsInstance() *sql.DB {
+	if dbViews == nil {
+		dbViews = CDRViewsInit()
+	}
+	return dbViews
 }
 
 func PhonebookInstance() *sql.DB {
@@ -115,6 +126,31 @@ func CDRMigrationInit() *sql.DB {
 	db.SetMaxOpenConns(2)
 	db.SetMaxIdleConns(1)
 	db.SetConnMaxLifetime(30 * time.Minute)
+
+	// return db object
+	return db
+}
+
+func CDRViewsInit() *sql.DB {
+	// define uri connection string
+	uri := configuration.Config.CDRDatabase.User + ":" + configuration.Config.CDRDatabase.Password + "@tcp(" + configuration.Config.CDRDatabase.Host + ":" + configuration.Config.CDRDatabase.Port + ")/" + configuration.Config.CDRDatabase.Name
+
+	// No read/write timeout: a single view statement can exceed the 300s used for API queries
+	db, err := sql.Open("mysql", uri+"?charset=utf8&parseTime=True&multiStatements=true&timeout=300s")
+
+	// handle error
+	if err != nil {
+		utils.LogError(errors.Wrap(err, "error connecting to views database"))
+	}
+
+	// test the connection
+	if err := db.Ping(); err != nil {
+		utils.LogError(errors.Wrap(err, "error pinging views database"))
+	}
+
+	// one connection per concurrent view (see tasks/cmd/views.go)
+	db.SetMaxOpenConns(4)
+	db.SetMaxIdleConns(4)
 
 	// return db object
 	return db

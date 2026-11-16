@@ -21,12 +21,12 @@ import { EditAnnouncementDrawerContent } from '../lines'
 import { ShowRuleDetailsContent } from '../lines'
 import { SaveRecordedAnnouncementDrawerContent } from '../lines'
 import { ShowMultiplePhoneLinesDrawerContent } from '../lines'
-import { GravatarIconDrawerContent } from '../common/ProfilePicture/GravatarIconDrawerContent'
-import { SelectProfilePictureDrawerContent } from '../common/ProfilePicture/SelectProfilePictureDrawerContent'
+import { ChangeProfilePictureDrawerContent } from '../common/ProfilePicture/ChangeProfilePictureDrawerContent'
 import { SwitchInputOutputDrawerContent } from '../devices/SwitchInputOutputDrawerContent'
 import { DownloadDesktopLinkContent } from '../devices/DownloadDesktopLinkContent'
 import { UploadVoicemail } from '../lines/UploadVoicemail'
 import { Setup2FADrawerContent } from '../settings/2fa/Setup2FADrawerContent'
+import { ChangePasswordDrawerContent } from '../settings/password/ChangePasswordDrawerContent'
 import { customScrollbarClass } from '../../lib/utils'
 import { CallSummaryDrawerContent } from '../summary/CallSummaryDrawerContent'
 import { AddPhoneKeyDrawerContent } from '../devices/AddPhoneKeyDrawerContent'
@@ -47,14 +47,14 @@ export type ContentType =
   | 'showTelephoneAnnouncement'
   | 'showSaveRecordedAnnouncement'
   | 'showRuleDetails'
-  | 'showGravatar'
-  | 'showUploadProfilePicture'
+  | 'changeProfilePicture'
   | 'showSwitchDeviceInputOutput'
   | 'showDownloadLinkContent'
   | 'showAddPhoneKey'
   | 'showEditExpansionKey'
   | 'showUploadVoicemail'
   | 'setup2FA'
+  | 'changePassword'
   | 'callSummary'
   | 'showChatGroup'
 
@@ -82,14 +82,14 @@ export const SideDrawer: FC<SideDrawerProps> = ({ isShown, contentType, config, 
       showTelephoneAnnouncement: EditAnnouncementDrawerContent,
       showSaveRecordedAnnouncement: SaveRecordedAnnouncementDrawerContent,
       showRuleDetails: ShowRuleDetailsContent,
-      showGravatar: GravatarIconDrawerContent,
-      showUploadProfilePicture: SelectProfilePictureDrawerContent,
+      changeProfilePicture: ChangeProfilePictureDrawerContent,
       showSwitchDeviceInputOutput: SwitchInputOutputDrawerContent,
       showDownloadLinkContent: DownloadDesktopLinkContent,
       showAddPhoneKey: AddPhoneKeyDrawerContent,
       showEditExpansionKey: EditExpansionKeyDrawerContent,
       showUploadVoicemail: UploadVoicemail,
       setup2FA: Setup2FADrawerContent,
+      changePassword: ChangePasswordDrawerContent,
       callSummary: CallSummaryDrawerContent,
     }),
     [],

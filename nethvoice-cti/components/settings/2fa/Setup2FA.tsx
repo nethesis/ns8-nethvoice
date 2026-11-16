@@ -17,6 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { Button, Modal, InlineNotification, Badge, TextInput } from '../../common'
+import { AccountSection } from '../AccountSection'
 import { RootState, store } from '../../../store'
 import {
   getTwoFactorStatus,
@@ -235,65 +236,51 @@ export const Setup2FA = () => {
 
   return (
     <>
-      <section aria-labelledby='authentication-heading'>
-        <div className='pb-6'>
+      <AccountSection
+        title={t('Settings.Two-factor authentication')}
+        description={t('Settings.Two-Factor Authentication Description')}
+      >
+        <div className='flex flex-col gap-10'>
+          <div className='flex items-center gap-2'>
+            <span className='text-sm text-tertiaryNeutral dark:text-tertiaryNeutralDark'>
+              {t('Settings.Status')}
+            </span>
+            {isLoading ? (
+              <div className='animate-pulse'>
+                <div className='h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full'></div>
+              </div>
+            ) : (
+              <Badge variant={isEnabled ? 'enabled' : 'disabled'} size='small' rounded='full'>
+                {isEnabled ? t('Settings.Enabled') : t('Settings.Disabled')}
+              </Badge>
+            )}
+          </div>
+
           <div>
-            <h2 className='text-base font-medium leading-6 text-secondaryNeutral dark:text-secondaryNeutralDark mb-8'>
-              {t('Settings.Two-Factor Authentication')}
-            </h2>
-          </div>
-
-          <div className='mb-6'>
-            <h4 className='text-sm font-medium leading-6 text-gray-900 dark:text-gray-100 mb-2'>
-              {t('Settings.Configuration')}
-            </h4>
-            <p className='text-sm font-normal text-gray-500 dark:text-gray-400'>
-              {t('Settings.Two-Factor Authentication Description')}
-            </p>
-          </div>
-
-          <div className='flex flex-col gap-8'>
-            <div className='flex items-center gap-2'>
-              <h4 className='text-sm font-medium text-gray-900 dark:text-gray-100'>
-                {t('Settings.Status')}
-              </h4>
-              {isLoading ? (
-                <div className='animate-pulse'>
-                  <div className='h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full'></div>
-                </div>
-              ) : (
-                <Badge variant={isEnabled ? 'enabled' : 'disabled'} size='small' rounded='full'>
-                  {isEnabled ? t('Settings.Enabled') : t('Settings.Disabled')}
-                </Badge>
-              )}
-            </div>
-
-            <div>
-              {isLoading ? (
-                <div className='animate-pulse'>
-                  <div className='h-10 w-40 bg-gray-200 dark:bg-gray-700 rounded-md'></div>
-                </div>
-              ) : isEnabled ? (
-                <div className='flex gap-4'>
-                  <Button variant='white' onClick={handleViewBackupCodes}>
-                    {t('Settings.Show recovery OTP codes') || ''}
-                  </Button>
-                  <Button variant='ghost' onClick={handleDisable2FAStart}>
-                    {t('Settings.Revoke 2FA') || ''}
-                  </Button>
-                </div>
-              ) : (
-                <Button variant='primary' onClick={handleSetupStart}>
-                  <FontAwesomeIcon icon={faWrench} className='mr-2 h-4 w-4' />
-                  {t('Settings.Configure 2FA') || 'Configure 2FA'}
+            {isLoading ? (
+              <div className='animate-pulse'>
+                <div className='h-10 w-40 bg-gray-200 dark:bg-gray-700 rounded-md'></div>
+              </div>
+            ) : isEnabled ? (
+              <div className='flex gap-6'>
+                <Button variant='white' onClick={handleViewBackupCodes}>
+                  {t('Settings.Show recovery OTP codes') || ''}
                 </Button>
-              )}
-            </div>
+                <Button variant='ghost' onClick={handleDisable2FAStart}>
+                  {t('Settings.Revoke 2FA') || ''}
+                </Button>
+              </div>
+            ) : (
+              <Button variant='primary' onClick={handleSetupStart}>
+                <FontAwesomeIcon icon={faWrench} className='mr-2 h-4 w-4' />
+                {t('Settings.Configure 2FA') || 'Configure 2FA'}
+              </Button>
+            )}
           </div>
-
-          {error && <InlineNotification type='error' title={error} className='mt-4' />}
         </div>
-      </section>
+
+        {error && <InlineNotification type='error' title={error} className='mt-4' />}
+      </AccountSection>
 
       {/* Recovery Codes Modal - shown after setup completion */}
       <Modal

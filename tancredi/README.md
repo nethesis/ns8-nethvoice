@@ -90,5 +90,5 @@ After building the Tancredi container, check its actual entrypoint with:
 bash tests/unit/test_tancredi_startup.sh localhost/nethvoice-tancredi:lldp-8167
 ```
 
-The image is built from the Tancredi sources in `app/` (1.11.3), which include
+The image is built from the Tancredi sources in `app/`, which include
 the LLDP templates and version 16 defaults.

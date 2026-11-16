@@ -6,6 +6,7 @@
 package methods
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -17,6 +18,10 @@ import (
 	"github.com/nethesis/nethcti-middleware/models"
 	"github.com/nethesis/nethcti-middleware/store"
 )
+
+// errSessionNotFound is returned when the user session disappeared (e.g. it
+// has been revoked) while issuing a token.
+var errSessionNotFound = errors.New("user session not found")
 
 var allowedIntegrationAudiences = map[string]struct{}{
 	"phone-island": {},
@@ -115,15 +120,30 @@ func issueIntegrationToken(c *gin.Context, audience string) {
 		return
 	}
 
-	userSession := store.UserSessions[username]
-	if userSession == nil || userSession.NethCTIToken == "" {
+	userSession, hasSession := store.GetSession(username)
+	if !hasSession || userSession.NethCTIToken == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "user session not found"})
 		return
 	}
 
+	otpVerified, _ := claims["otp_verified"].(bool)
+	tokenString, err := issueSessionIntegrationToken(username, audience, otpVerified)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"token": tokenString,
+	})
+}
+
+// issueSessionIntegrationToken issues a long-lived integration JWT for the
+// audience and stores it in the user session, replacing the previous token of
+// the same audience.
+func issueSessionIntegrationToken(username string, audience string, otpVerified bool) (string, error) {
 	now := time.Now()
 	expire := now.Add(100 * 365 * 24 * time.Hour) // Legacy-compatible behavior: very long-lived integration token (100 years).
-	otpVerified, _ := claims["otp_verified"].(bool)
 
 	_, tokenString, err := IssueUserJWT(UserJWTOptions{
 		Username:    username,
@@ -133,29 +153,35 @@ func issueIntegrationToken(c *gin.Context, audience string) {
 		Audience:    audience,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to generate token"})
-		return
+		return "", errors.New("failed to generate token")
 	}
 
 	// Keep exactly one integration token per audience: remove previous ones before adding a new one.
-	filtered := make([]string, 0, len(userSession.JWTTokens)+1)
-	for _, existing := range userSession.JWTTokens {
-		if isIntegrationTokenForAudience(existing, username, audience) {
-			continue
+	found := false
+	store.ModifySessions(func(userSessions map[string]*models.UserSession) {
+		userSession := userSessions[username]
+		if userSession == nil {
+			return
 		}
-		filtered = append(filtered, existing)
+		found = true
+		filtered := make([]string, 0, len(userSession.JWTTokens)+1)
+		for _, existing := range userSession.JWTTokens {
+			if isIntegrationTokenForAudience(existing, username, audience) {
+				continue
+			}
+			filtered = append(filtered, existing)
+		}
+		userSession.JWTTokens = append(filtered, tokenString)
+	})
+	if !found {
+		return "", errSessionNotFound
 	}
-	filtered = append(filtered, tokenString)
-	userSession.JWTTokens = filtered
 
 	if err := store.SaveSessions(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to persist token"})
-		return
+		return "", errors.New("failed to persist token")
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"token": tokenString,
-	})
+	return tokenString, nil
 }
 
 func checkIntegrationToken(c *gin.Context, audience string) {
@@ -164,34 +190,30 @@ func checkIntegrationToken(c *gin.Context, audience string) {
 		return
 	}
 
-	exists := false
+	c.JSON(http.StatusOK, gin.H{"exists": hasSessionIntegrationToken(username, &userSession, audience)})
+}
+
+// hasSessionIntegrationToken reports whether the session holds an integration
+// token for the audience.
+func hasSessionIntegrationToken(username string, userSession *models.UserSession, audience string) bool {
+	if userSession == nil {
+		return false
+	}
 	for _, token := range userSession.JWTTokens {
 		if isIntegrationTokenForAudience(token, username, audience) {
-			exists = true
-			break
+			return true
 		}
 	}
-
-	c.JSON(http.StatusOK, gin.H{"exists": exists})
+	return false
 }
 
 func revokeIntegrationTokens(c *gin.Context, audience string) {
-	username, userSession, ok := getCurrentSession(c)
+	username, _, ok := getCurrentSession(c)
 	if !ok {
 		return
 	}
 
-	filtered := make([]string, 0, len(userSession.JWTTokens))
-
-	for _, token := range userSession.JWTTokens {
-		if isIntegrationTokenForAudience(token, username, audience) {
-			continue
-		}
-		filtered = append(filtered, token)
-	}
-
-	userSession.JWTTokens = filtered
-	if err := store.SaveSessions(); err != nil {
+	if err := revokeSessionIntegrationTokens(username, audience); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to persist token removal"})
 		return
 	}
@@ -199,18 +221,38 @@ func revokeIntegrationTokens(c *gin.Context, audience string) {
 	c.Status(http.StatusNoContent)
 }
 
-func getCurrentSession(c *gin.Context) (string, *models.UserSession, bool) {
+// revokeSessionIntegrationTokens removes every integration token of the
+// audience from the user session, if any.
+func revokeSessionIntegrationTokens(username string, audience string) error {
+	store.ModifySessions(func(userSessions map[string]*models.UserSession) {
+		userSession := userSessions[username]
+		if userSession == nil {
+			return
+		}
+		filtered := make([]string, 0, len(userSession.JWTTokens))
+		for _, token := range userSession.JWTTokens {
+			if isIntegrationTokenForAudience(token, username, audience) {
+				continue
+			}
+			filtered = append(filtered, token)
+		}
+		userSession.JWTTokens = filtered
+	})
+	return store.SaveSessions()
+}
+
+func getCurrentSession(c *gin.Context) (string, models.UserSession, bool) {
 	claims := jwt.ExtractClaims(c)
 	username, ok := claims["id"].(string)
 	if !ok || username == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid user"})
-		return "", nil, false
+		return "", models.UserSession{}, false
 	}
 
-	userSession := store.UserSessions[username]
-	if userSession == nil {
+	userSession, hasSession := store.GetSession(username)
+	if !hasSession {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "user session not found"})
-		return "", nil, false
+		return "", models.UserSession{}, false
 	}
 
 	return username, userSession, true

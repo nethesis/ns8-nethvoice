@@ -26,8 +26,8 @@ func GetUserInfo(nethCTIToken string) (*UserInfo, error) {
 		return nil, fmt.Errorf("missing nethcti token")
 	}
 
-	for username, session := range store.UserSessions {
-		if session == nil || strings.TrimSpace(session.NethCTIToken) != token {
+	for username, session := range store.SessionsSnapshot() {
+		if strings.TrimSpace(session.NethCTIToken) != token {
 			continue
 		}
 

@@ -22,6 +22,7 @@ type UserConnection struct {
 	DisplayName           string
 	PhoneNumbers          []string
 	AccessKeyId           string
+	JWTToken              string
 	TranscriptionEnabled  bool
 	TranscriptionUniqueID string
 	writeMutex            sync.Mutex

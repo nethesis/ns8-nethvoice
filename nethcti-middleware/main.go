@@ -108,13 +108,18 @@ func createRouter() *gin.Engine {
 			if _, proxied := params.Keys["proxied"]; proxied {
 				proxyFlag = " [proxied]"
 			}
+			// path only: the query string may carry the token (?jwt=)
+			path := params.Path
+			if params.Request != nil {
+				path = params.Request.URL.Path
+			}
 			return fmt.Sprintf("[GIN] %v | %3d | %13v | %15s | %-7s %#v%s\n",
 				params.TimeStamp.Format("2006/01/02 - 15:04:05"),
 				params.StatusCode,
 				params.Latency,
 				params.ClientIP,
 				params.Method,
-				params.Path,
+				path,
 				proxyFlag,
 			)
 		}),
@@ -149,6 +154,11 @@ func createRouter() *gin.Engine {
 	// Super admin endpoints (no JWT required) - must be registered on router, not api group
 	router.POST("/admin/phonebook/import", middleware.RequireSuperAdmin(), methods.AdminImportPhonebookCSV)
 	router.POST("/admin/reload/profiles", middleware.RequireSuperAdmin(), methods.AdminReloadProfiles)
+	router.GET("/admin/tokens/persistent/:username/:audience", middleware.RequireSuperAdmin(), methods.AdminCheckPersistentToken)
+	router.POST("/admin/tokens/persistent/:username/:audience", middleware.RequireSuperAdmin(), methods.AdminCreatePersistentToken)
+	router.DELETE("/admin/tokens/persistent/:username/:audience", middleware.RequireSuperAdmin(), methods.AdminRemovePersistentToken)
+	router.GET("/admin/2fa/:username", middleware.RequireSuperAdmin(), methods.AdminGet2FAStatus)
+	router.DELETE("/admin/2fa/:username", middleware.RequireSuperAdmin(), methods.AdminDisable2FA)
 
 	// Define api group
 	api := router.Group("")
@@ -161,6 +171,8 @@ func createRouter() *gin.Engine {
 	// set-route can guard it with forwardAuth (injects the verified Remote-User)
 	api.POST("/api/sso-login", middleware.BodyLimit(32<<10), middleware.InstanceJWT().LoginHandler)
 	api.GET("/ws/", socket.WsProxyHandler)
+	// Change an expired password: the current password authenticates the request
+	api.POST("/password/change", middleware.BodyLimit(32<<10), methods.ChangePassword)
 
 	// Authentication required endpoints
 	api.Use(middleware.InstanceJWT().MiddlewareFunc())
@@ -180,6 +192,10 @@ func createRouter() *gin.Engine {
 		api.GET("/2fa/status", methods.Get2FAStatus)
 		api.POST("/2fa/recovery-codes", methods.Get2FARecoveryCodes)
 		api.GET("/2fa/qr-code", methods.QRCode)
+
+		// Password
+		api.GET("/password/info", methods.GetPasswordInfo)
+		api.POST("/user/password", middleware.BodyLimit(32<<10), methods.ChangeUserPassword)
 
 		// Token
 		// @migration-replaces: POST /authentication/phone_island_token_login
@@ -242,6 +258,7 @@ func createRouter() *gin.Engine {
 		userHeader := c.GetHeader("User")
 		secretKeyHeader := c.GetHeader("Secretkey")
 		isFreePBXAdmin := userHeader == "admin" && secretKeyHeader != ""
+		isSupportUser := methods.IsSupportUser(c)
 
 		// Check if the API is in the FreePBX API list (prefix match with validation)
 		isFreePBXAPI := false
@@ -262,7 +279,19 @@ func createRouter() *gin.Engine {
 			}
 		}
 
-		if isFreePBXAdmin && isFreePBXAPI {
+		if isFreePBXAPI && isSupportUser {
+			// Support user on FreePBX API: validate and rewrite to admin credentials
+			if methods.SupportAuthThrottled(c.ClientIP(), c.GetHeader("User")) {
+				c.JSON(429, gin.H{"code": 429, "message": "too many failed support authentications"})
+				return
+			}
+			if !methods.RewriteSupportToAdmin(c) {
+				c.JSON(401, gin.H{"code": 401, "message": "support user authentication failed"})
+				return
+			}
+			c.Request.Header.Set("Authorization-User", "admin")
+			methods.ProxyV1Request(c, path, false)
+		} else if isFreePBXAdmin && isFreePBXAPI {
 			// Handle FreePBX API call - add authorization_user header and forward directly
 			c.Request.Header.Set("Authorization-User", "admin")
 			methods.ProxyV1Request(c, path, false)

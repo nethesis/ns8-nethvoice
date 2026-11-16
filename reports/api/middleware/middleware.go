@@ -23,11 +23,10 @@
 package middleware
 
 import (
-	"crypto/sha1"
+	"strings"
 
 	"github.com/pkg/errors"
 
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -101,17 +100,8 @@ func InitJWT() *jwt.GinJWTMiddleware {
 				}, nil
 				// if username is admin check on freepbx users
 			} else if username == "admin" {
-				// convert password to sha1 encryption
-				h := sha1.New()
-				h.Write([]byte(password))
-				bs := h.Sum(nil)
-				hash := fmt.Sprintf("%x", bs)
-
-				// get hash from db
-				hashCompare := methods.GetAdminHashPass()
-
-				// compare hashes
-				if hash != hashCompare {
+				// compare password sha1 with the hash from db
+				if !sha1Matches(password, methods.GetAdminHashPass()) {
 					utils.LogError(errors.New("Authentication failed for user " + username))
 					return nil, jwt.ErrFailedAuthentication
 				}
@@ -119,6 +109,25 @@ func InitJWT() *jwt.GinJWTMiddleware {
 				return &models.UserAuthorizations{
 					Username: username,
 				}, nil
+				// support user: validate SHA1 password against ampusers, grant admin access
+			} else if strings.HasPrefix(username, "support-") {
+				if !supportUsernameRe.MatchString(username) {
+					utils.LogError(errors.New("Authentication failed for malformed support username"))
+					return nil, jwt.ErrFailedAuthentication
+				}
+
+				storedHash := supportUserHash(username)
+				if !sha1Matches(password, storedHash) {
+					utils.LogError(errors.New("Authentication failed for support user " + username))
+					return nil, jwt.ErrFailedAuthentication
+				}
+
+				binding := supportBinding(storedHash)
+				markSupportUserSeen(username, binding)
+				expire := time.Now().Add(supportTokenTimeout)
+				c.Set(supportExpireCtxKey, expire)
+
+				return &supportLogin{User: username, Expire: expire, Binding: binding}, nil
 				// it's a normal system PAM user
 			} else {
 				// check authorizations
@@ -127,7 +136,7 @@ func InitJWT() *jwt.GinJWTMiddleware {
 					utils.LogError(errors.New("Authentication failed for user " + username))
 					return nil, jwt.ErrFailedAuthentication
 				}
-				if !authMap.Queues && !authMap.CdrGlobal && !authMap.CdrPbx  && !authMap.CdrPersonal {
+				if !authMap.Queues && !authMap.CdrGlobal && !authMap.CdrPbx && !authMap.CdrPersonal {
 					return nil, jwt.ErrFailedAuthentication
 				}
 
@@ -144,6 +153,16 @@ func InitJWT() *jwt.GinJWTMiddleware {
 			}
 		},
 		PayloadFunc: func(data interface{}) jwt.MapClaims {
+			// support sessions act as admin, keeping the real user and a short expiration
+			if support, ok := data.(*supportLogin); ok {
+				return jwt.MapClaims{
+					identityKey:    "admin",
+					supportUserKey: support.User,
+					supportExpKey:  support.Expire.Unix(),
+					supportBindKey: support.Binding,
+				}
+			}
+
 			// read authorization file for current user
 			if user, ok := data.(*models.UserAuthorizations); ok {
 				// create claims map
@@ -189,6 +208,16 @@ func InitJWT() *jwt.GinJWTMiddleware {
 				"message": message,
 			})
 			return
+		},
+		LoginResponse: func(c *gin.Context, code int, token string, expire time.Time) {
+			if supportExpire, ok := c.Get(supportExpireCtxKey); ok {
+				expire = supportExpire.(time.Time)
+			}
+			c.JSON(http.StatusOK, gin.H{
+				"code":   http.StatusOK,
+				"token":  token,
+				"expire": expire.Format(time.RFC3339),
+			})
 		},
 		TokenLookup:   "header: Authorization, query: token, cookie: jwt",
 		TokenHeadName: "Bearer",

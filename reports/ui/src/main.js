@@ -30,6 +30,11 @@ Vue.config.productionTip = false;
 Vue.use(SuiVue);
 
 Vue.use(VueResource);
+// Enable cookie sending for cross-origin requests when behind the support proxy
+const supportProxyDomains = [".support.my.nethesis.it", ".support.qa.my.nethesis.it"];
+if (supportProxyDomains.some((domain) => window.location.hostname.endsWith(domain))) {
+  Vue.http.options.credentials = true;
+}
 Vue.http.interceptors.push(function () {
   return function (response) {
     if (response.status == 401 && response.body && response.body.message == "Token is expired") {

@@ -1,72 +1,70 @@
 // Copyright (C) 2024 Nethesis S.r.l.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { NextPage } from 'next'
-import { useState } from 'react'
+import { FC } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Avatar, Button, Switch } from '../common'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useSelector } from 'react-redux'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faEllipsisVertical, faPenToSquare, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { Avatar, Button, Dropdown } from '../common'
 import { RootState } from '../../store'
-import {
-  openShowGravatarDrawer,
-  openShowUploadProfilePictureDrawer,
-} from '../../lib/profilePicture'
-import { faUpload } from '@fortawesome/free-solid-svg-icons'
-import { faGravatar } from '@nethesis/nethesis-brands-svg-icons'
-import React from 'react'
-import { PresetProfilePictureContent } from '../common/ProfilePicture/PresetProfilePictureContent'
-import { IconProp } from '@fortawesome/fontawesome-svg-core'
-import { CustomThemedTooltip } from '../common/CustomThemedTooltip'
+import { openChangeProfilePictureDrawer, removeAvatar } from '../../lib/profilePicture'
+import { retrieveAvatars } from '../../lib/operators'
+import { AccountSection } from './AccountSection'
+import { openToast } from '../../lib/utils'
 
-const Profile: NextPage = () => {
+export const ProfilePicture: FC = () => {
   const { t } = useTranslation()
   const operators = useSelector((state: RootState) => state.operators.operators)
   const profile = useSelector((state: RootState) => state.user)
-  // Upload avatar section
+  const authStore = useSelector((state: RootState) => state.authentication)
+  const avatar = operators[profile?.username]?.avatarBase64
 
-  const [presetVisible, setPresetVisible] = useState(false)
+  const deletePicture = async () => {
+    try {
+      await removeAvatar('')
+    } catch (error) {
+      openToast('error', t('Settings.Cannot remove the profile picture'), t('Common.Error'))
+      return
+    }
+    localStorage.removeItem('caches-' + authStore.username)
+    retrieveAvatars(authStore)
+  }
 
   return (
-    <>
-      <section aria-labelledby='clear-cache-heading'>
-        <div className='sm:overflow-hidden w-full'>
-          <div className='pb-6 w-full'>
-            <div>
-              <h2 className='text-base font-medium leading-6 text-secondaryNeutral dark:text-secondaryNeutralDark mb-8'>
-                {t('Settings.Profile picture')}
-              </h2>
-            </div>
-            <div className='flex items-center space-x-4'>
-              {/* User main avatar */}
-              <Avatar
-                size='extra_large'
-                placeholderType='person'
-                src={operators[profile?.username]?.avatarBase64}
-                deleteAvatar={true}
-              />
-              <CustomThemedTooltip id={'tooltip-remove-profile-picture'} place='left' />
-              <Button variant='white' onClick={() => openShowUploadProfilePictureDrawer('')}>
-                <FontAwesomeIcon icon={faUpload} className='mr-2' />
-                {t('Settings.Upload')}
+    <AccountSection title={t('Settings.Profile picture')}>
+      <div className='flex items-center justify-between gap-4 rounded-lg bg-elevationL2Invert dark:bg-elevationL2InvertDark px-5 py-4 shadow max-w-[28.125rem]'>
+        <Avatar
+          size='extra_large'
+          placeholderType='person'
+          src={avatar}
+          className='!h-20 !w-20 shrink-0'
+        />
+        <div className='flex items-center gap-2'>
+          <Button
+            variant='white'
+            onClick={openChangeProfilePictureDrawer}
+            className='whitespace-nowrap'
+          >
+            <FontAwesomeIcon icon={faPenToSquare} className='mr-2 h-4 w-4' />
+            {t('Settings.Change picture')}
+          </Button>
+          {avatar && (
+            <Dropdown
+              position='left'
+              items={
+                <Dropdown.Item icon={faTrash} isRed onClick={deletePicture}>
+                  {t('Settings.Remove picture')}
+                </Dropdown.Item>
+              }
+            >
+              <Button variant='ghost' aria-label={t('Common.Options') || ''}>
+                <FontAwesomeIcon icon={faEllipsisVertical} className='h-4 w-4' />
               </Button>
-              <Button variant='white' onClick={() => openShowGravatarDrawer('')}>
-                <FontAwesomeIcon icon={faGravatar as IconProp} className='mr-2' />
-                {t('Settings.Gravatar')}
-              </Button>
-              <div className='flex'>
-                <Switch
-                  on={presetVisible}
-                  changed={() => setPresetVisible(!presetVisible)}
-                ></Switch>
-                <span className='ml-2'>{t('Settings.Preset')}</span>
-              </div>
-            </div>
-            {presetVisible && <PresetProfilePictureContent />}
-          </div>
+            </Dropdown>
+          )}
         </div>
-      </section>
-    </>
+      </div>
+    </AccountSection>
   )
 }
-export default Profile

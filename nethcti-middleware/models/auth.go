@@ -17,6 +17,12 @@ type OTPJson struct {
 	OTP      string `json:"otp" structs:"otp"`
 }
 
+type PasswordChangeJson struct {
+	Username        string `json:"username" structs:"username"`
+	CurrentPassword string `json:"current_password" structs:"current_password"`
+	NewPassword     string `json:"new_password" structs:"new_password"`
+}
+
 type LoginJson struct {
 	Username string `json:"username" structs:"username"`
 	Password string `json:"password" structs:"password"`

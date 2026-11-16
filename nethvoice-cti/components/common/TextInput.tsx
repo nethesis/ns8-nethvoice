@@ -147,7 +147,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
               ref={ref}
             />
             {trailingComponent && (
-              <div className='absolute right-3 flex items-center h-full'>{trailingComponent}</div>
+              <div className='absolute right-3 z-[9] flex items-center h-full'>{trailingComponent}</div>
             )}
           </div>
         </div>

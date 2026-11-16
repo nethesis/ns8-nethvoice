@@ -175,8 +175,8 @@ func parseHistoryFilterRequest(c *gin.Context) (*historyFilterRequest, error) {
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	userSession := store.UserSessions[usernameFromClaims]
-	if userSession == nil || strings.TrimSpace(userSession.NethCTIToken) == "" {
+	userSession, hasSession := store.GetSession(usernameFromClaims)
+	if !hasSession || strings.TrimSpace(userSession.NethCTIToken) == "" {
 		return nil, fmt.Errorf("user session not found")
 	}
 

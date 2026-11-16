@@ -6,7 +6,7 @@ langchain
 langchain_openai
 langchain-text-splitters
 numpy
-paho-mqtt==2.1.0
+paho-mqtt==2.2.0
 pgvector
 prometheus_client
 psycopg[binary]

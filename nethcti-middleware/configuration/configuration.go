@@ -52,8 +52,14 @@ type Configuration struct {
 	SatellitePgSQLPort     string `json:"satellite_pgsql_port"`
 
 	// Super Admin Configuration
-	SuperAdminToken      string   `json:"super_admin_token"`
-	SuperAdminAllowedIPs []string `json:"super_admin_allowed_ips"`
+	SuperAdminToken string `json:"super_admin_token"`
+	// SuperAdminTokenGenerated is set when the token is not shared through the
+	// environment: the V1 server does not know it, so no internal login.
+	SuperAdminTokenGenerated bool     `json:"-"`
+	SuperAdminAllowedIPs     []string `json:"super_admin_allowed_ips"`
+
+	// NethVoice secret key for FreePBX SecretKey computation
+	NethVoiceSecretKey string `json:"nethvoice_secret_key"`
 
 	// Profiles and Users configuration paths
 	ProfilesConfigPath string `json:"profiles_config_path"`
@@ -80,6 +86,10 @@ type Configuration struct {
 	// safety net; 0 disables it
 	GlobalRateLimitAverage int `json:"global_rate_limit_average"`
 	GlobalRateLimitBurst   int `json:"global_rate_limit_burst"`
+
+	// Base URL of the account provider users-admin API (user portal), used
+	// for password expiration and change; empty disables the feature
+	UserPortalURL string `json:"user_portal_url"`
 }
 
 var Config = Configuration{}
@@ -310,6 +320,7 @@ func Init() {
 		Config.SuperAdminToken = os.Getenv("NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN")
 	} else {
 		Config.SuperAdminToken = uuid.New().String()
+		Config.SuperAdminTokenGenerated = true
 		logs.Log("[WARN][ENV] NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN variable is not set; generated random token")
 	}
 
@@ -325,6 +336,9 @@ func Init() {
 		Config.SuperAdminAllowedIPs = []string{"127.0.0.0/8"}
 		logs.Log("[INFO][ENV] NETHVOICE_MIDDLEWARE_SUPER_ADMIN_ALLOW_IPS variable is not set; using default IP range 127.0.0.0/8")
 	}
+
+	// Set NethVoice secret key (used for FreePBX SecretKey computation)
+	Config.NethVoiceSecretKey = os.Getenv("NETHVOICESECRETKEY")
 
 	// Set authorization config paths
 	if os.Getenv("AUTH_PROFILES_PATH") != "" {
@@ -383,5 +397,11 @@ func Init() {
 		Config.GlobalRateLimitBurst = v
 	} else {
 		Config.GlobalRateLimitBurst = 100
+	}
+
+	// User portal (users-admin API) of the account provider
+	Config.UserPortalURL = strings.TrimRight(os.Getenv("NETHVOICE_USER_PORTAL_URL"), "/")
+	if Config.UserPortalURL != "" {
+		logs.Log("[INFO][ENV] user portal password management is enabled")
 	}
 }

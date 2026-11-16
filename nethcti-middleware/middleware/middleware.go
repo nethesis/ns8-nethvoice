@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto/subtle"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -31,7 +32,6 @@ import (
 	"github.com/nethesis/nethcti-middleware/methods"
 	"github.com/nethesis/nethcti-middleware/models"
 	"github.com/nethesis/nethcti-middleware/store"
-	"github.com/nethesis/nethcti-middleware/utils"
 )
 
 type login struct {
@@ -41,6 +41,13 @@ type login struct {
 
 var jwtMiddleware *jwt.GinJWTMiddleware
 var identityKey = "id"
+
+// ErrPasswordExpired is returned by the login when the credentials are
+// right but the password must be changed before logging in
+var ErrPasswordExpired = errors.New("password_expired")
+
+// Context key of the password policy returned with ErrPasswordExpired
+const passwordPolicyKey = "password_policy"
 
 // ResetJWTMiddleware clears the cached JWT middleware instance.
 // Used primarily in tests to force reinitialization with a different configuration.
@@ -83,17 +90,13 @@ func InitJWT() *jwt.GinJWTMiddleware {
 
 			// Trusted SSO login: the forwardAuth-guarded front-end injected the
 			// pre-authenticated username header, no user password is required.
-			var username, password, tokenPassword string
+			var username, password string
 			useSso := false
 			if configuration.Config.SsoTrustedSecret != "" && proxyTrusted(c) {
 				ssoUser := strings.TrimSpace(c.GetHeader(configuration.Config.SsoUserHeader))
 				if ssoUser != "" {
 					useSso = true
 					username = strings.ToLower(ssoUser)
-					// the mint secret authorizes the request on the V1 server; the
-					// token is derived from the separate HMAC key
-					password = configuration.Config.SsoTrustedSecret
-					tokenPassword = configuration.Config.SsoTokenKey
 					logs.Log("[INFO][AUTH] trusted SSO login for user " + username)
 				}
 			}
@@ -106,111 +109,36 @@ func InitJWT() *jwt.GinJWTMiddleware {
 				}
 				username = loginVals.Username
 				password = loginVals.Password
-				tokenPassword = loginVals.Password
 			}
 
 			// Perform login on the old NetCTI server
-			netCtiLoginURL := configuration.Config.V1Protocol + "://" + configuration.Config.V1ApiEndpoint + configuration.Config.V1ApiPath + "/authentication/login"
-			payload := map[string]string{"username": username, "password": password}
-			payloadBytes, _ := json.Marshal(payload)
-
-			req, err := http.NewRequest("POST", netCtiLoginURL, bytes.NewBuffer(payloadBytes))
-			if err != nil {
-				logs.Log("[AUTH] Failed to create HTTP request")
-				return nil, err
-			}
-			req.Header.Set("Content-Type", "application/json")
+			loginMode := methods.LoginPassword
 			if useSso {
-				req.Header.Set("X-SSO-User", username)
-				req.Header.Set("X-SSO-Secret", configuration.Config.SsoTrustedSecret)
+				loginMode = methods.LoginSSO
 			}
-
-			// Timeout avoids the client hanging indefinitely if the backend
-			// leaves the response unfinished (e.g. an unhandled exception
-			// that never calls resp.end() on the restify side).
-			client := &http.Client{Timeout: 30 * time.Second}
-			resp, err := client.Do(req)
+			// the session is keyed by the account username, whatever name
+			// (extension, case) the user logged in with
+			accountUsername, NethCTIToken, err := methods.LoginV1(username, password, loginMode)
 			if err != nil {
-				logs.Log("[AUTH] Failed to send request to NetCTI")
-				return nil, jwt.ErrFailedAuthentication
-			}
-			defer resp.Body.Close()
-
-			var NethCTIToken string
-
-			if resp.StatusCode == http.StatusUnauthorized {
-				wwwAuth := resp.Header.Get("Www-Authenticate")
-				if wwwAuth != "" {
-					// Generate NethCTIToken using the www-authenticate header
-					NethCTIToken = utils.GenerateLegacyToken(resp, username, tokenPassword)
-					if NethCTIToken == "" {
-						logs.Log("[AUTH] Failed to generate NethCTIToken")
-						return nil, jwt.ErrFailedAuthentication
+				// the V1 server rejects an expired password like a wrong one
+				if !useSso && errors.Is(err, methods.ErrV1LoginRefused) {
+					if expired, policy := methods.IsPasswordExpired(c.Request.Context(), username, password); expired {
+						logs.Log("[INFO][AUTH] password expired for user " + username)
+						c.Set(passwordPolicyKey, policy)
+						return nil, ErrPasswordExpired
 					}
-
-					// Retry the request with the new Authorization header
-					netCtiMeURL := configuration.Config.V1Protocol + "://" + configuration.Config.V1ApiEndpoint + configuration.Config.V1ApiPath + "/user/me"
-					req, _ := http.NewRequest("GET", netCtiMeURL, nil) // Use GET for /user/me
-					req.Header.Set("Authorization", NethCTIToken)
-					// print request headers
-					resp, err = client.Do(req)
-					if err != nil {
-						logs.Log("[AUTH] Failed to retry request to NetCTI")
-						return nil, jwt.ErrFailedAuthentication
-					}
-					defer resp.Body.Close()
 				}
-			}
-
-			if resp.StatusCode != http.StatusOK {
-				logs.Log("[ERROR][AUTH] Authentication failed for user " + username + " with status: " + resp.Status)
 				return nil, jwt.ErrFailedAuthentication
 			}
 
 			// Login is successful. Middleware returns a JWT.
 
-			phoneIslandPayload := map[string]string{"subtype": "user"}
-			phoneIslandPayloadBytes, _ := json.Marshal(phoneIslandPayload)
-			req, err = http.NewRequest("POST", configuration.Config.V1Protocol+"://"+configuration.Config.V1ApiEndpoint+configuration.Config.V1ApiPath+"/authentication/phone_island_token_login", bytes.NewBuffer(phoneIslandPayloadBytes))
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to create request"})
-				return nil, jwt.ErrFailedAuthentication
-			}
-			req.Header.Set("Authorization", NethCTIToken)
-			req.Header.Set("Content-Type", "application/json")
-
-			resp, err = client.Do(req)
-
-			var v1Resp struct {
-				Token string `json:"token"`
-			}
-			if err := json.NewDecoder(resp.Body).Decode(&v1Resp); err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "failed to parse server v1 response"})
-				return nil, jwt.ErrFailedAuthentication
+			// Cache the password expiration info, the user portal needs the password
+			if !useSso {
+				methods.RefreshPasswordInfo(accountUsername, password)
 			}
 
-			NethCTIToken = username + ":" + v1Resp.Token
-
-			// Check if user session already exists (multi-session support)
-			existingSession, sessionExists := store.UserSessions[username]
-
-			if sessionExists {
-				// Reuse existing session (keep existing tokens, update NethCTIToken)
-				// Note: New login does NOT inherit OTP_Verified status - each JWT token will be verified independently
-				existingSession.NethCTIToken = NethCTIToken
-				logs.Log("[INFO][AUTH] authentication success for user " + username + " (reusing existing session with " + fmt.Sprint(len(existingSession.JWTTokens)) + " existing tokens)")
-				return existingSession, nil
-			} else {
-				// Create a new user session object
-				store.UserSessions[username] = &models.UserSession{
-					Username:     username,
-					JWTTokens:    nil,
-					NethCTIToken: NethCTIToken,
-					OTP_Verified: false,
-				}
-				logs.Log("[INFO][AUTH] authentication success for user " + username + " (new session created)")
-				return store.UserSessions[username], nil
-			}
+			return methods.UpsertUserSession(accountUsername, NethCTIToken), nil
 		},
 		PayloadFunc: func(data any) gojwt.MapClaims {
 			// read current user
@@ -243,26 +171,24 @@ func InitJWT() *jwt.GinJWTMiddleware {
 			username := claims[identityKey].(string)
 
 			reqMethod := c.Request.Method
-			reqURI := c.Request.RequestURI
+			// path only: the query string may carry the token (?jwt=)
+			reqURI := c.Request.URL.Path
 			JWTToken := strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")
-			userSession := store.UserSessions[username]
 
 			// Check if session exists and token is valid
-			if userSession == nil || !utils.Contains(JWTToken, userSession.JWTTokens) {
+			if !store.SessionHasToken(username, JWTToken) {
 				logs.Log("[ERROR][AUTH] authorization failed for user " + username + " (session not found or invalid token). " + reqMethod + " " + reqURI)
 				return false
 			}
 
-			isOTPVerifyEndpoint := strings.Contains(c.Request.RequestURI, "/verify-otp")
+			// match the exact route of the OTP verification endpoint
+			isOTPVerifyEndpoint := c.FullPath() == "/2fa/verify-otp"
 
 			// Check 2FA requirement (only for JWT token authentication, not API key)
 			// Use the otp_verified claim from the JWT token (not from session)
 			if !isOTPVerifyEndpoint {
-				has2FA, has2FAExists := claims["2fa"].(bool)
-				otpVerified, otpVerifiedExists := claims["otp_verified"].(bool)
-
 				// If 2FA is enabled but OTP claim doesn't exist or is false, deny access
-				if has2FAExists && has2FA && (!otpVerifiedExists || !otpVerified) {
+				if methods.OTPPending(claims) {
 					logs.Log("[ERROR][AUTH] authorization failed for user " + username + " (2FA required but OTP not verified in token). " + reqMethod + " " + reqURI)
 					return false
 				}
@@ -310,7 +236,20 @@ func InitJWT() *jwt.GinJWTMiddleware {
 			claims := jwt.ExtractClaimsFromToken(tokenObj)
 
 			// Store the JWT token in the UserSession
-			store.UserSessions[claims[identityKey].(string)].JWTTokens = append(store.UserSessions[claims[identityKey].(string)].JWTTokens, token.AccessToken)
+			username, _ := claims[identityKey].(string)
+			stored := false
+			store.ModifySessions(func(userSessions map[string]*models.UserSession) {
+				if userSession := userSessions[username]; userSession != nil {
+					userSession.JWTTokens = append(userSession.JWTTokens, token.AccessToken)
+					stored = true
+				}
+			})
+			if !stored {
+				// the session has been revoked while logging in
+				logs.Log("[ERROR][AUTH] session not found after login for user " + username)
+				c.JSON(http.StatusUnauthorized, gin.H{"code": http.StatusUnauthorized, "message": "session not found"})
+				return
+			}
 
 			// Save sessions to disk immediately
 			if err := store.SaveSessions(); err != nil {
@@ -331,10 +270,15 @@ func InitJWT() *jwt.GinJWTMiddleware {
 			c.JSON(200, gin.H{"code": 200})
 		},
 		Unauthorized: func(c *gin.Context, code int, message string) {
+			var data interface{}
+			if policy, ok := c.Get(passwordPolicyKey); ok {
+				// policy of the new password, for the expired password form
+				data = gin.H{"policy": policy}
+			}
 			c.JSON(code, structs.Map(models.StatusUnauthorized{
 				Code:    code,
 				Message: message,
-				Data:    nil,
+				Data:    data,
 			}))
 		},
 		TokenLookup:   "header: Authorization, query: jwt",

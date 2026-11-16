@@ -66,6 +66,64 @@ components:
         error:
           type: string
 
+    PasswordChangeRequest:
+      type: object
+      required: [username, current_password, new_password]
+      properties:
+        username:
+          type: string
+        current_password:
+          type: string
+        new_password:
+          type: string
+
+    PasswordInfo:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Password management is available (user portal configured)
+        expiration:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null when the password never expires or the info is not known yet
+        expired:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the info was read from the user portal; null if not read yet
+        refreshing:
+          type: boolean
+          description: The info is being read again after a login and may be stale
+        policy:
+          type: object
+          nullable: true
+          description: Password policy of the account provider
+          properties:
+            expiration:
+              type: object
+              properties:
+                enforced:
+                  type: boolean
+                max_age:
+                  type: integer
+                min_age:
+                  type: integer
+            strength:
+              type: object
+              properties:
+                enforced:
+                  type: boolean
+                history_length:
+                  type: integer
+                password_min_length:
+                  type: integer
+                complexity_check:
+                  type: boolean
+
     TwoFAStatus:
       type: object
       properties:
@@ -555,7 +613,142 @@ paths:
               schema:
                 $ref: '#/components/schemas/LoginResponse'
         '401':
-          description: Invalid credentials
+          description: >
+            Invalid credentials. The message is `password_expired` when the
+            credentials are right but the password must be changed first:
+            then `data.policy` holds the password policy (or null), see
+            `PasswordInfo.policy`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /password/change:
+    post:
+      summary: Change an expired password
+      description: >
+        Public endpoint used when the login fails with `password_expired`.
+        The current password authenticates the request on the account
+        provider user portal. Passwords that are not expired are rejected,
+        as this endpoint skips the 2FA verification of the login.
+        On success all the login sessions of the user are logged out and
+        their websockets closed; integration tokens (persistent tokens) stay
+        valid.
+      operationId: changeExpiredPassword
+      tags:
+        - Password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChangeRequest'
+      responses:
+        '200':
+          description: Password changed (message `password_changed`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: >
+            Rejected: `error_invalid_credentials`, `error_password_complexity`,
+            `error_password_length`, `error_password_history`,
+            `error_password_minimum_age`, `error_unknown` or malformed request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: The password is not expired (`password_not_expired`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: User portal not configured or unreachable (`password_change_unavailable`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /user/password:
+    post:
+      summary: Change the password of the logged in user
+      description: >
+        On success the other login sessions of the user are logged out and
+        their websockets closed; the session of the request and integration
+        tokens (persistent tokens) stay valid.
+      operationId: changeUserPassword
+      tags:
+        - Password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_password, new_password]
+              properties:
+                current_password:
+                  type: string
+                new_password:
+                  type: string
+      responses:
+        '200':
+          description: Password changed (message `password_changed`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Rejected, same messages as `/password/change`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: User portal not configured or unreachable (`password_change_unavailable`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /password/info:
+    get:
+      summary: Get the password expiration of the logged in user
+      description: >
+        The info is read from the user portal at login and after a password
+        change, so it needs a login with password (not SSO).
+      operationId: getPasswordInfo
+      tags:
+        - Password
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Password expiration info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/PasswordInfo'
+        '401':
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -1030,6 +1223,17 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: User secret not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many wrong codes for the user, verification temporarily locked (see Retry-After)
+          headers:
+            Retry-After:
+              description: Seconds until the verification is unlocked
+              schema:
+                type: integer
           content:
             application/json:
               schema:
@@ -1707,6 +1911,137 @@ paths:
                     message: "failed to reload profiles"
                     data: "parse profiles: invalid character 'i'"
 
+  /admin/tokens/persistent/{username}/{audience}:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9._@-]*$'
+        description: Target user (case insensitive)
+      - name: audience
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [phone-island, mobile-app, nethlink, chat-island, all]
+        description: Integration token audience. `all` is accepted only by DELETE.
+    get:
+      summary: Check a user integration token (Super Admin only)
+      operationId: adminCheckPersistentToken
+      tags:
+        - Administration
+      security:
+        - superAdminAuth: []
+      responses:
+        '200':
+          description: Whether the user holds a token for the audience
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  exists:
+                    type: boolean
+        '400':
+          description: Invalid username or audience
+    post:
+      summary: Issue a user integration token (Super Admin only)
+      operationId: adminCreatePersistentToken
+      tags:
+        - Administration
+      description: |
+        Issue an integration token (e.g. the mobile app QR code token) for the user,
+        without the user password. It replaces the previous token of the same audience.
+
+        When the user has no session yet (e.g. never logged in), it is created with
+        an internal login on the NethCTI server, authorized by the super admin token
+        that the NethCTI server reads from the module environment. It is independent
+        from SSO. The token is issued without OTP verification, so it is refused for
+        users with 2FA enabled.
+      security:
+        - superAdminAuth: []
+      responses:
+        '200':
+          description: Token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: Invalid username or audience
+        '404':
+          description: The NethCTI server refused the internal login (unknown or denied user)
+        '409':
+          description: The user has 2FA enabled
+        '503':
+          description: The super admin token is not configured and the user has no session
+    delete:
+      summary: Revoke user integration tokens (Super Admin only)
+      operationId: adminRemovePersistentToken
+      tags:
+        - Administration
+      description: |
+        Revoke the user tokens of the audience. With `all`, every user token is
+        revoked (web, desktop and integrations) together with the session, so every
+        client has to log in again. It succeeds also when there is nothing to revoke.
+      security:
+        - superAdminAuth: []
+      responses:
+        '204':
+          description: Tokens revoked
+        '400':
+          description: Invalid username or audience
+
+  /admin/2fa/{username}:
+    parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: '^[a-z0-9][a-z0-9._@-]*$'
+        description: Target user (case insensitive)
+    get:
+      summary: Get user 2FA status (Super Admin only)
+      operationId: adminGet2FAStatus
+      tags:
+        - Administration
+      security:
+        - superAdminAuth: []
+      responses:
+        '200':
+          description: Whether 2FA is enabled for the user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: boolean
+        '400':
+          description: Invalid username
+    delete:
+      summary: Disable user 2FA (Super Admin only)
+      operationId: adminDisable2FA
+      tags:
+        - Administration
+      description: |
+        Disable 2FA for the user (e.g. lost device): the OTP secret and the recovery
+        codes are removed and every user token is revoked, so every client has to
+        log in again. It succeeds also when 2FA is not enabled.
+      security:
+        - superAdminAuth: []
+      responses:
+        '204':
+          description: 2FA disabled
+        '400':
+          description: Invalid username
+
   /extensions/{mainextension}/{type}:
     get:
       summary: Resolve endpoint extension by main extension and endpoint type
@@ -1861,6 +2196,8 @@ tags:
     description: Summary retrieval, updates, and watch/status endpoints
   - name: Two-Factor Authentication
     description: TOTP-based 2FA management
+  - name: Password
+    description: Password expiration and change through the account provider user portal
   - name: Integration Tokens
     description: Long-lived integration tokens and legacy compatibility endpoints
   - name: Phonebook

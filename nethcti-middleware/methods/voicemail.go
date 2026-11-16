@@ -61,8 +61,8 @@ func ListVoicemailByID(c *gin.Context) {
 		return
 	}
 
-	userSession := store.UserSessions[username]
-	if userSession == nil || strings.TrimSpace(userSession.NethCTIToken) == "" {
+	userSession, hasSession := store.GetSession(username)
+	if !hasSession || strings.TrimSpace(userSession.NethCTIToken) == "" {
 		c.JSON(http.StatusUnauthorized, structs.Map(models.StatusUnauthorized{
 			Code:    http.StatusUnauthorized,
 			Message: "user session not found",

@@ -37,6 +37,7 @@ import (
 // Global variables for test server URLs and mock server
 var testServerURL string
 var mockNetCTI *httptest.Server
+var mockUserPortal *httptest.Server
 var restoreBatchInsert func()
 
 // TestMain sets up the test environment once for all tests
@@ -61,6 +62,8 @@ func setupTestEnvironment() {
 	// Start mock NetCTI server first
 	mockNetCTI = mockNetCTIServer()
 	mockURL := strings.TrimPrefix(mockNetCTI.URL, "http://")
+	mockUserPortal = mockUserPortalServer()
+	os.Setenv("NETHVOICE_USER_PORTAL_URL", mockUserPortal.URL+"/")
 
 	// Set environment variables for the middleware
 	os.Setenv("NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS", "127.0.0.1:8899")
@@ -162,6 +165,10 @@ func cleanupTestEnvironment() {
 	if mockNetCTI != nil {
 		mockNetCTI.Close()
 	}
+	if mockUserPortal != nil {
+		mockUserPortal.Close()
+	}
+	os.Unsetenv("NETHVOICE_USER_PORTAL_URL")
 	if restoreBatchInsert != nil {
 		restoreBatchInsert()
 	}
@@ -901,9 +908,14 @@ func TestImportPhonebookCSV_Capability(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Ensure middleware uses test secret
+	previousSecret := configuration.Config.Secret_jwt
 	configuration.Config.Secret_jwt = "test-phonebook-secret"
 	// Reset cached middleware to use new secret
 	middleware.ResetJWTMiddleware()
+	t.Cleanup(func() {
+		configuration.Config.Secret_jwt = previousSecret
+		middleware.ResetJWTMiddleware()
+	})
 
 	// Initialize store
 	store.UserSessionInit()
@@ -1173,3 +1185,81 @@ func TestNethlinkHeartbeat(t *testing.T) {
 }
 
 // ** End of NethLink Heartbeat Endpoint Tests **
+
+// ** Admin users Endpoint Tests **
+
+// TestAdminUserEndpointsRequireSuperAdmin checks that the admin token and 2FA
+// endpoints are behind the super admin authentication.
+func TestAdminUserEndpointsRequireSuperAdmin(t *testing.T) {
+	resetTestState()
+
+	configuration.Config.SuperAdminToken = "test-super-admin-token"
+	configuration.Config.SuperAdminAllowedIPs = []string{"127.0.0.1"}
+
+	endpoints := []struct {
+		method, path string
+		authorized   int
+	}{
+		{"GET", "/admin/tokens/persistent/testuser/mobile-app", http.StatusOK},
+		{"DELETE", "/admin/tokens/persistent/testuser/all", http.StatusNoContent},
+		{"GET", "/admin/2fa/testuser", http.StatusOK},
+		{"DELETE", "/admin/2fa/testuser", http.StatusNoContent},
+	}
+
+	for _, ep := range endpoints {
+		for _, token := range []string{"", "wrong-token", "test-super-admin-token"} {
+			req, _ := http.NewRequest(ep.method, testServerURL+ep.path, nil)
+			if token != "" {
+				req.Header.Set("Authorization", "Bearer "+token)
+			}
+			resp, err := http.DefaultClient.Do(req)
+			assert.NoError(t, err)
+			resp.Body.Close()
+
+			expected := http.StatusUnauthorized
+			if token == "test-super-admin-token" {
+				expected = ep.authorized
+			}
+			assert.Equal(t, expected, resp.StatusCode, ep.method+" "+ep.path+" token="+token)
+		}
+	}
+}
+
+// ** End of Admin users Endpoint Tests **
+
+// ** 2FA enforcement Tests **
+
+// TestOTPRequiredForVerifiedRoutes checks that a token without OTP
+// verification is refused outside the OTP verification route, and that the
+// OTP is verified only for the user of the token.
+func TestOTPRequiredForVerifiedRoutes(t *testing.T) {
+	resetTestState()
+
+	token := utils.PerformLogin(testServerURL)
+	otpSecret := utils.Setup2FA(testServerURL, token, t)
+	utils.Verify2FA(testServerURL, utils.GenerateOTP(otpSecret), token, t)
+
+	// New login: the token has 2fa=true and otp_verified=false
+	unverified := utils.PerformLogin(testServerURL)
+
+	for _, path := range []string{"/2fa/status", "/2fa/status?x=/verify-otp", "/2fa/status?/verify-otp"} {
+		req, _ := http.NewRequest("GET", testServerURL+path, nil)
+		req.Header.Set("Authorization", "Bearer "+unverified)
+		resp, err := http.DefaultClient.Do(req)
+		assert.NoError(t, err)
+		resp.Body.Close()
+		assert.NotEqual(t, http.StatusOK, resp.StatusCode, path)
+	}
+
+	// The OTP is verified only for the user of the token
+	jsonData, _ := json.Marshal(map[string]string{"username": "otheruser", "otp": utils.GenerateOTP(otpSecret)})
+	req, _ := http.NewRequest("POST", testServerURL+"/2fa/verify-otp", bytes.NewBuffer(jsonData))
+	req.Header.Set("Authorization", "Bearer "+unverified)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+// ** End of 2FA enforcement Tests **

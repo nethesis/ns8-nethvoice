@@ -56,8 +56,7 @@ if (!empty($sqls)) {
     foreach ($sqls as $sql) {
         try {
            $stmt = $cdrdb->prepare($sql);
-           $stmt->execute([$now]);
-           $cdrdb->query($sql);
+           $stmt->execute(strpos($sql, '?') !== false ? [$now] : []);
         } catch (Exception $e) {
             error_log($e->getMessage());
         }
@@ -184,21 +183,23 @@ function do_time_queries($start_ts,$end_ts) {
        from queue_log_history a inner join asterisk.queues_config qc on queuename=qc.extension
        where event in ('COMPLETEAGENT','COMPLETECALLER') AND UNIX_TIMESTAMP(time) > $start_ts AND UNIX_TIMESTAMP(time) < $end_ts";
 
+    // queue_log data fields can be empty (e.g. data2/data3 of RINGNOANSWER): in strict mode
+    // a plain CAST of '' aborts the whole insert, so empty values are mapped to 0
     $sqls[] = "INSERT INTO report_queue_agents ( id,timestamp_out,timestamp_in,qname,action,position,duration,hold,agent,qdescr)
        SELECT id,UNIX_TIMESTAMP(time) AS timestamp_out, callid AS timestamp_in, queuename AS qname,
          event AS action,
-         CAST(data3 AS UNSIGNED) AS position,
-         CAST(data2 AS UNSIGNED) AS duration,
-         ROUND(cast(data1 as UNSIGNED) / 1000) AS hold,
+         COALESCE(CAST(NULLIF(data3,'') AS UNSIGNED),0) AS position,
+         COALESCE(CAST(NULLIF(data2,'') AS UNSIGNED),0) AS duration,
+         ROUND(COALESCE(CAST(NULLIF(data1,'') AS UNSIGNED),0) / 1000) AS hold,
          agent,qc.descr AS qdescr
        FROM queue_log_history a INNER JOIN asterisk.queues_config qc ON queuename=qc.extension
        WHERE event IN ('RINGNOANSWER') AND UNIX_TIMESTAMP(time) > $start_ts AND UNIX_TIMESTAMP(time) < $end_ts
        UNION ALL
        SELECT id,UNIX_TIMESTAMP(time) AS timestamp_out, callid AS timestamp_in, queuename AS qname,
          IF( IF(agent_extensions.name != '',agent_extensions.name,dst_cnam) = agent, 'ANSWER', 'TRANSFER') AS action,
-         CAST(data3 AS UNSIGNED) AS position,
+         COALESCE(CAST(NULLIF(data3,'') AS UNSIGNED),0) AS position,
          CAST(c.billsec AS UNSIGNED) AS duration,
-         CAST(data1 as UNSIGNED) AS hold,
+         COALESCE(CAST(NULLIF(data1,'') AS UNSIGNED),0) AS hold,
          IF(agent_extensions.name != '',agent_extensions.name,dst_cnam) AS agent,
          qc.descr AS qdescr
        FROM
@@ -247,9 +248,11 @@ function do_time_queries($start_ts,$end_ts) {
     $sqls[] = "UPDATE report_queue SET cid = (SELECT cid FROM tmp_cdr JOIN report_queue_callers ON report_queue_callers.timestamp_in = tmp_cdr.linkedid WHERE tmp_cdr.uniqueid = report_queue.timestamp_in LIMIT 1) WHERE cid IS NULL AND timestamp_in > $start_ts";
 
     // Not managed calls
+    // cid/name/company are NULL when the call has no matching row in tmp_cdr or no ENTERQUEUE
+    // event: fall back to '' or, in strict mode, a single NULL discards the whole time window
     $sqls[] = "
         INSERT INTO `queue_failed` (`cid`,`name`,`company`,`action`,`time`,`direction`,`qname`,`event`)
-          SELECT cid, name, company, action, time, direction, queuename, event FROM (
+          SELECT COALESCE(cid,''), COALESCE(name,''), COALESCE(company,''), action, time, direction, queuename, event FROM (
             SELECT
                 cid, name, company, action, UNIX_TIMESTAMP(time) as time, direction, queuename,
                 IF (event = '', action, event) AS event
@@ -260,9 +263,9 @@ function do_time_queries($start_ts,$end_ts) {
                     queuename,
                     'IN' AS direction,
                     'TIMEOUT' AS action,
-                    CAST(data1 AS UNSIGNED) AS position,
-                    CAST(data2 AS UNSIGNED) AS duration,
-                    CAST(data3 AS UNSIGNED) AS hold,
+                    COALESCE(CAST(NULLIF(data1,'') AS UNSIGNED),0) AS position,
+                    COALESCE(CAST(NULLIF(data2,'') AS UNSIGNED),0) AS duration,
+                    COALESCE(CAST(NULLIF(data3,'') AS UNSIGNED),0) AS hold,
                     (
                         SELECT DISTINCT(data2)
                         FROM asteriskcdrdb.queue_log_history z
@@ -290,9 +293,9 @@ function do_time_queries($start_ts,$end_ts) {
                     queuename,
                     'IN' AS direction,
                     'DONE' AS action,
-                    CAST(data3 AS UNSIGNED) AS position,
-                    CAST(data2 AS UNSIGNED) AS duration,
-                    CAST(data1 AS UNSIGNED) AS hold,
+                    COALESCE(CAST(NULLIF(data3,'') AS UNSIGNED),0) AS position,
+                    COALESCE(CAST(NULLIF(data2,'') AS UNSIGNED),0) AS duration,
+                    COALESCE(CAST(NULLIF(data1,'') AS UNSIGNED),0) AS hold,
                     (
                         SELECT DISTINCT(data2)
                         FROM asteriskcdrdb.queue_log_history z

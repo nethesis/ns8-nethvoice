@@ -79,6 +79,7 @@ WHERE	calldate >= "{{ .Time.Interval.Start }}"
 	  AND dstchannel REGEXP ({{ ExtractRegexpTrunks .Trunks}})
 	{{ end }}
 	{{ if gt (len .Patterns) 0 }}
+	  AND call_type REGEXP ({{ ExtractRegexpStrings .Patterns }})
 	{{ end }}
 GROUP BY type
 <CDR_GROUP: type>

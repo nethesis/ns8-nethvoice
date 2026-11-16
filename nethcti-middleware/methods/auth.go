@@ -22,8 +22,8 @@ import (
 func DeleteExpiredTokens() {
 	// Iterate through all user sessions building a filtered slice of valid tokens.
 	// Avoid mutating the slice while ranging over it to prevent skipping elements.
-	for username, userSession := range store.UserSessions {
-		if userSession == nil || len(userSession.JWTTokens) == 0 {
+	for username, userSession := range store.SessionsSnapshot() {
+		if len(userSession.JWTTokens) == 0 {
 			continue
 		}
 

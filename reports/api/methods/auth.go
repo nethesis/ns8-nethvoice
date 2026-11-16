@@ -94,17 +94,27 @@ func GetClaims(c *gin.Context) jwt.MapClaims {
 }
 
 func GetAdminHashPass() string {
+	return getUserHashPass("SELECT password_sha1 FROM ampusers WHERE username = ?", "admin")
+}
+
+// GetSupportUserHashPass only matches rows shaped like the support
+// tunnel-client's ephemeral user (full-access sections).
+func GetSupportUserHashPass(username string) string {
+	return getUserHashPass("SELECT password_sha1 FROM ampusers WHERE username = ? AND sections = '*'", username)
+}
+
+func getUserHashPass(query string, username string) string {
 	// init hash var
 	var hash string
 
 	// read hash from db
 	db := source.FreePBXInstance()
-	row := db.QueryRow("SELECT password_sha1 FROM ampusers WHERE username = 'admin'")
+	row := db.QueryRow(query, username)
 	errQuery := row.Scan(&hash)
 
 	// check error
 	if errQuery != nil {
-		utils.LogError(errors.Wrap(errQuery, "error in admin pass query execution"))
+		utils.LogError(errors.Wrap(errQuery, "error in user pass query execution for "+username))
 	}
 
 	return hash

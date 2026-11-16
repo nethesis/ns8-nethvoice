@@ -492,8 +492,8 @@ func DeleteLegacyCTIPhonebookContact(c *gin.Context) {
 }
 
 func fetchPhonebookOperatorGroupsFromV1(username string) (map[string]legacyPhonebookOperatorGroup, error) {
-	userSession := store.UserSessions[username]
-	if userSession == nil || strings.TrimSpace(userSession.NethCTIToken) == "" {
+	userSession, hasSession := store.GetSession(username)
+	if !hasSession || strings.TrimSpace(userSession.NethCTIToken) == "" {
 		return nil, errLegacySessionUnavailable
 	}
 	if configuration.Config.V1ApiEndpoint == "" {

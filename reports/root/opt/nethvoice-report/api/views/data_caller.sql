@@ -1,35 +1,3 @@
-DROP TABLE IF EXISTS phonebook_map;
-CREATE TABLE phonebook_map AS
-SELECT DISTINCT
-   COALESCE(name, '') AS name,
-   COALESCE(company, '') AS company,
-   COALESCE(homephone, '') AS homephone,
-   COALESCE(workphone, '') AS workphone,
-   COALESCE(cellphone, '') AS cellphone
-FROM
-   phonebook.phonebook
-WHERE
-   (
-      name IS NOT NULL
-      OR name != ""
-      OR company IS NOT NULL
-      OR company != ""
-   )
-   AND
-   (
-      (homephone IS NOT NULL
-      AND homephone != ""
-      AND homephone REGEXP ('^[0-9]+$'))
-      OR (workphone IS NOT NULL
-      AND workphone != ""
-      AND workphone REGEXP ('^[0-9]+$'))
-      OR (cellphone IS NOT NULL
-      AND cellphone != ""
-      AND cellphone REGEXP ('^[0-9]+$'))
-   )
-ORDER BY
-   name;
-
 DROP TABLE IF EXISTS data_caller_year;
 
 DROP TABLE IF EXISTS data_caller_month;

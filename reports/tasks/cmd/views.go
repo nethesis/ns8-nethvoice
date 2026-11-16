@@ -105,7 +105,8 @@ func executeReportViews() {
 			}
 
 			// execute query
-			db := source.CDRInstance()
+			// dedicated pool without read/write timeout: heavy views can run for minutes
+			db := source.CDRViewsInstance()
 			start := time.Now()
 			rows, errQuery := db.Query(queryString.String())
 			if errQuery != nil {
