@@ -4305,7 +4305,7 @@ components:
             type: string
         door_phone:
           type: string
-          description: Creation only. MAC of a door phone prepared by
+          description: MAC of a door phone prepared by
             `POST /cti/streaming/doorphones/{mac}`, whose generated RTSP
             password is used when `secret` is empty and `user` is the door
             phone user name.
