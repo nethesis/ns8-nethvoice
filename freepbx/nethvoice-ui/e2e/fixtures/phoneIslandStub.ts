@@ -24,12 +24,15 @@ export const mountPhoneIsland = (element: HTMLElement, options: PhoneIslandOptio
   hangUp.type = 'button'
   hangUp.textContent = 'Hang up'
   hangUp.className = 'pointer-events-auto fixed bottom-4 left-4'
-  hangUp.addEventListener('click', () => dispatch('phone-island-call-ended'))
-  island.append(hangUp)
+  hangUp.addEventListener('click', () => {
+    hangUp.remove()
+    dispatch('phone-island-call-ended')
+  })
   element.append(island)
 
   const onCallStart = (event: Event) => {
     island.dataset.calls = [island.dataset.calls, readNumber(event)].filter(Boolean).join(',')
+    island.append(hangUp)
     dispatch('phone-island-call-started')
   }
   const onCallEnd = () => dispatch('phone-island-call-ended')

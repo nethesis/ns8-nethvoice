@@ -63,6 +63,76 @@ const callStarts = () => {
   return { numbers, stop: () => window.removeEventListener('phone-island-call-start', listener) }
 }
 
+type FakeRequest = {
+  callback: (lock: Lock | null) => unknown
+  resolve: (value: unknown) => void
+  reject: (reason: unknown) => void
+}
+
+class FakeLockManager {
+  held = false
+  stolen = false
+  private release: (() => void) | null = null
+  private abortHolder: ((reason: unknown) => void) | null = null
+  private queue: FakeRequest[] = []
+
+  holdElsewhere() {
+    this.held = true
+    this.release = () => this.next()
+    this.abortHolder = () => undefined
+    return () => this.release?.()
+  }
+
+  request(_name: string, options: LockOptions, callback: (lock: Lock | null) => unknown) {
+    return new Promise((resolve, reject) => {
+      const entry = { callback, resolve, reject }
+
+      if (options.steal) {
+        this.abortHolder?.(new DOMException('stolen', 'AbortError'))
+        this.stolen = true
+        this.grant(entry)
+        return
+      }
+      if (!this.held) {
+        this.grant(entry)
+        return
+      }
+      if (options.ifAvailable) {
+        Promise.resolve(callback(null)).then(resolve, reject)
+        return
+      }
+      this.queue.push(entry)
+      options.signal?.addEventListener('abort', () => {
+        this.queue = this.queue.filter((queued) => queued !== entry)
+        reject(new DOMException('aborted', 'AbortError'))
+      })
+    })
+  }
+
+  private grant(entry: FakeRequest) {
+    this.held = true
+    this.abortHolder = entry.reject
+    const lock = { name: 'lock', mode: 'exclusive' } as Lock
+    this.release = () => this.next()
+    Promise.resolve(entry.callback(lock)).then((value) => {
+      entry.resolve(value)
+      if (this.abortHolder === entry.reject) {
+        this.next()
+      }
+    }, entry.reject)
+  }
+
+  private next() {
+    this.held = false
+    this.abortHolder = null
+    this.release = null
+    const entry = this.queue.shift()
+    if (entry) {
+      this.grant(entry)
+    }
+  }
+}
+
 describe('useAdminPhoneStore', () => {
   beforeAll(async () => {
     await loadLocaleMessages('en')
@@ -206,20 +276,90 @@ describe('useAdminPhoneStore', () => {
     calls.stop()
   })
 
-  it('shows the notice about the cost of calls once per session', async () => {
+  it('shows the notice about the cost of calls once per session, at the first call', async () => {
     mockSession()
     const store = createStore()
 
     await store.enable()
     store.handleIslandEvent('phone-island-webrtc-registered', {})
-    store.handleIslandEvent('phone-island-webrtc-unregistered', {})
-    store.handleIslandEvent('phone-island-webrtc-registered', {})
+    expect(notifications.createNotification).not.toHaveBeenCalled()
+
+    await store.call('0612345678')
+    store.handleIslandEvent('phone-island-call-ended', {})
+    await store.call('0612345678')
 
     expect(notifications.createNotification).toHaveBeenCalledTimes(1)
     expect(notifications.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'info', title: 'Calls to external numbers' }),
     )
     expect(sessionStorage.getItem(COST_NOTICE_STORAGE_KEY)).toBe('true')
+  })
+
+  it('enables the phone on start when the browser has no lock manager', async () => {
+    mockSession()
+    const store = createStore()
+
+    store.start()
+    await vi.waitFor(() => expect(store.state).toBe('registering'))
+
+    store.stop()
+    expect(store.state).toBe('inactive')
+  })
+
+  describe('with another tab', () => {
+    let fakeLocks: FakeLockManager
+
+    beforeEach(() => {
+      fakeLocks = new FakeLockManager()
+      Object.defineProperty(navigator, 'locks', { value: fakeLocks, configurable: true })
+    })
+
+    afterEach(() => {
+      Reflect.deleteProperty(navigator, 'locks')
+    })
+
+    it('waits while another tab holds the phone and takes it over when asked', async () => {
+      mockSession()
+      const releaseOther = fakeLocks.holdElsewhere()
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+      expect(api.POST).not.toHaveBeenCalled()
+
+      store.useHere()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      expect(fakeLocks.stolen).toBe(true)
+      releaseOther()
+      store.stop()
+    })
+
+    it('takes the phone when the other tab closes', async () => {
+      mockSession()
+      const releaseOther = fakeLocks.holdElsewhere()
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+
+      releaseOther()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      store.stop()
+      await vi.waitFor(() => expect(fakeLocks.held).toBe(false))
+    })
+
+    it('ignores calls while the phone is in another tab', async () => {
+      mockSession()
+      fakeLocks.holdElsewhere()
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+      await store.call('300')
+
+      expect(api.POST).not.toHaveBeenCalled()
+      store.stop()
+    })
   })
 
   it('disables the phone and ignores a late session', async () => {

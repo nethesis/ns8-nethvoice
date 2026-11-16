@@ -31,8 +31,10 @@ const routeKey = (method: string, path: string) => `${method.toUpperCase()} ${pa
 const toPattern = (path: string) =>
   new RegExp(`^${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/:[A-Za-z_]+/g, '[^/]+')}$`)
 
+const AMBIENT_CALLS = new Set([routeKey('POST', '/freepbx/rest/adminphone/session')])
+
 export class MockApi {
-  readonly calls: RecordedCall[] = []
+  readonly allCalls: RecordedCall[] = []
   private unmockedAllowed = false
   private readonly handlers = new Map<string, { pattern: RegExp; handler: MockHandler }>()
 
@@ -49,9 +51,13 @@ export class MockApi {
     return this
   }
 
+  get calls(): RecordedCall[] {
+    return this.allCalls.filter((call) => !AMBIENT_CALLS.has(routeKey(call.method, call.path)))
+  }
+
   callsTo(method: string, path: string): RecordedCall[] {
     const pattern = toPattern(path)
-    return this.calls.filter(
+    return this.allCalls.filter(
       (call) => call.method === method.toUpperCase() && pattern.test(call.path),
     )
   }
@@ -75,7 +81,7 @@ export class MockApi {
       body = request.postData()
     }
 
-    this.calls.push({ method, path: url.pathname, body })
+    this.allCalls.push({ method, path: url.pathname, body })
 
     const match = [...this.handlers.entries()].find(
       ([key, entry]) => key.startsWith(`${method} `) && entry.pattern.test(url.pathname),
@@ -144,6 +150,17 @@ export const test = base.extend<Fixtures>({
       .on('GET', '/freepbx/rest/login', { json: { success: true } })
       .on('GET', '/freepbx/rest/logout', { json: { success: true } })
       .on('GET', '/freepbx/rest/adminphone', { json: { enabled: false, extension: null } })
+      .on('POST', '/freepbx/rest/adminphone/session', {
+        json: {
+          extension: '770000',
+          secret: 'e2e-sip-secret',
+          display_name: 'Admin (test)',
+          sip_host: '127.0.0.1',
+          sip_port: 5060,
+          cti_host: 'cti.example.org',
+          reloading: false,
+        },
+      })
       .on('GET', '/freepbx/rest/mainextensions/userlimits', {
         json: { configured: 0, limit: false, configurable: false },
       })
