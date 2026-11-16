@@ -121,3 +121,4 @@ ro	door_video_main_bitrate		Door phones: bitrate of the main camera stream, in b
 ro	door_video_sub_bitrate		Door phones: bitrate of the sub camera stream, in bit/s.	integer	
 ro	door_video_sub_resolution		Door phones: resolution code of the sub camera stream (Fanvil i6x: `4` = VGA).	integer	
 ro	door_video_iframe_interval		Door phones: keyframe interval of the camera streams, in frames.	integer	
+ro	cap_door_rtsp_adminpw		Door phones: the RTSP password of the device is its web admin password ([adminpw](#adminpw)), used when [door_rtsp_password](#door_rtsp_password) is empty.	boolean	
