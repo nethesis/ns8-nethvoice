@@ -9,10 +9,11 @@
 
   Key names checked against the configuration exported by a Fanvil i62 with
   firmware 2.12.51. RTSP credentials come from the per-phone variables
-  door_rtsp_user and door_rtsp_password: an empty password leaves the device
-  RTSP credentials untouched. Firmware 2.12.51 of the i62 keeps the RTSP
-  password equal to the password of the web admin user and ignores
-  "RTSP Server Passwd" from provisioning. The camera streams (video1 main, video2 sub)
+  door_rtsp_user and door_rtsp_password; with cap_door_rtsp_adminpw the RTSP
+  password is the web admin password (adminpw): firmware 2.12.51 of the i62
+  keeps the RTSP password equal to the password of the web admin user and
+  ignores a different "RTSP Server Passwd". An empty password leaves the
+  device RTSP credentials untouched. The camera streams (video1 main, video2 sub)
   get a lower main bitrate, a VGA sub stream and frequent keyframes, so that
   the keyframes stay small: see the door_video_* model variables.
 #}
@@ -82,9 +83,13 @@ video2 I Frame Interval :{{ door_video_iframe_interval }}
 {% endif %}
 <RTSP SERVER CONFIG MODULE>
 Enable RTSP        :1
-{% if door_rtsp_password is defined and door_rtsp_password != '' %}
+{% set rtsp_password = door_rtsp_password | default('') %}
+{% if rtsp_password == '' and cap_door_rtsp_adminpw | default('') %}
+{% set rtsp_password = adminpw | default('') %}
+{% endif %}
+{% if rtsp_password != '' %}
 Enable RTSP Auth   :1
 RTSP Server User   :{{ door_rtsp_user | default('admin') }}
-RTSP Server Passwd :{{ door_rtsp_password }}
+RTSP Server Passwd :{{ rtsp_password }}
 {% endif %}
 <<END OF FILE>>
