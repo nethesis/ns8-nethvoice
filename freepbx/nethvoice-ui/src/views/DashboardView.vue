@@ -4,7 +4,8 @@
 -->
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
+import { useEventListener } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import type { RouteLocationRaw } from 'vue-router'
 import { NeHeading, NeInlineNotification } from '@nethesis/vue-components'
@@ -21,11 +22,15 @@ import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import DashboardBreakdownCard from '@/components/dashboard/DashboardBreakdownCard.vue'
 import DashboardCallsCard from '@/components/dashboard/DashboardCallsCard.vue'
 import DashboardCounterCard from '@/components/dashboard/DashboardCounterCard.vue'
+import DashboardDragHandle from '@/components/dashboard/DashboardDragHandle.vue'
+import DashboardHourlyCard from '@/components/dashboard/DashboardHourlyCard.vue'
 import DashboardListCard from '@/components/dashboard/DashboardListCard.vue'
 import DashboardSystemCard from '@/components/dashboard/DashboardSystemCard.vue'
 import TrunkStatusIndicator from '@/components/trunks/TrunkStatusIndicator.vue'
 import { usePolling } from '@/composables/usePolling'
+import { CALL_OUTCOMES, type CallOutcome } from '@/lib/dashboard/calls'
 import type { ChartBar } from '@/lib/dashboard/chart'
+import { moveCardBy, moveCardTo, type DashboardCardId } from '@/lib/dashboard/layout'
 import {
   DASHBOARD_COUNTERS_REFRESH_INTERVAL,
   type DashboardCounterId,
@@ -40,6 +45,7 @@ import {
   type PresenceStatus,
 } from '@/lib/dashboard/live'
 import { listInboundRouteDestinations, listTrunkStatuses } from '@/lib/dashboard/routing'
+import { useDashboardCalls } from '@/queries/dashboard/calls'
 import { useDashboardCounter } from '@/queries/dashboard/counters'
 import {
   useDashboardLiveExtensions,
@@ -49,6 +55,7 @@ import {
 import { useDashboardSubscription } from '@/queries/dashboard/subscription'
 import { useInboundRoutes } from '@/queries/routes/inbound'
 import { useTrunks } from '@/queries/trunks/trunks'
+import { useDashboardLayoutStore } from '@/stores/dashboardLayout'
 import { useLoginStore } from '@/stores/login'
 import type { Section } from '@/lib/permissions/permissions'
 import { usePermissions } from '@/queries/permissions/me'
@@ -112,35 +119,39 @@ const COUNTER_CARDS_AFTER_CALLS: CounterCard[] = [
   },
 ]
 
-const PRESENCE_STYLES: Record<PresenceStatus, { fillClass: string; dotClass: string }> = {
+const PRESENCE_STYLES: Record<PresenceStatus, { color: string; dotClass: string }> = {
   online: {
-    fillClass: 'fill-green-500 dark:fill-green-400',
-    dotClass: 'bg-green-500 dark:bg-green-400',
+    color: 'var(--accent-green)',
+    dotClass: 'size-3 border-2 border-white bg-accent-green',
   },
-  busy: { fillClass: 'fill-rose-700 dark:fill-rose-500', dotClass: 'bg-rose-700 dark:bg-rose-500' },
-  dnd: { fillClass: 'fill-blue-700 dark:fill-blue-500', dotClass: 'bg-blue-700 dark:bg-blue-500' },
-  offline: {
-    fillClass: 'fill-gray-700 dark:fill-gray-500',
-    dotClass: 'bg-gray-700 dark:bg-gray-500',
-  },
+  busy: { color: 'var(--accent-rose)', dotClass: 'size-3 border-2 border-white bg-accent-rose' },
+  dnd: { color: 'var(--accent-blue)', dotClass: 'size-3 border-2 border-white bg-accent-blue' },
+  offline: { color: 'var(--accent-gray)', dotClass: 'size-3 border-2 border-white bg-accent-gray' },
 }
 
-const DEVICE_STYLES: Record<DeviceType, { label: string; fillClass: string; dotClass: string }> = {
+const DEVICE_STYLES: Record<DeviceType, { label: string; color: string; dotClass: string }> = {
   webPhone: {
     label: 'dashboard.devices.web_phone',
-    fillClass: 'fill-indigo-500 dark:fill-indigo-400',
-    dotClass: 'bg-indigo-500 dark:bg-indigo-400',
+    color: 'var(--accent-indigo)',
+    dotClass: 'size-4 bg-accent-indigo',
   },
   desktopPhone: {
     label: 'dashboard.devices.desktop_phone',
-    fillClass: 'fill-rose-700 dark:fill-rose-500',
-    dotClass: 'bg-rose-700 dark:bg-rose-500',
+    color: 'var(--accent-rose)',
+    dotClass: 'size-4 bg-accent-rose',
   },
   mobileApp: {
     label: 'dashboard.devices.mobile_app',
-    fillClass: 'fill-amber-500 dark:fill-amber-400',
-    dotClass: 'bg-amber-500 dark:bg-amber-400',
+    color: 'var(--accent-amber)',
+    dotClass: 'size-4 bg-accent-amber',
   },
+}
+
+const CALL_OUTCOME_STYLES: Record<CallOutcome, { color: string; dotClass: string }> = {
+  total: { color: 'var(--accent-indigo)', dotClass: 'size-4 bg-accent-indigo' },
+  answered: { color: 'var(--accent-green)', dotClass: 'size-4 bg-accent-green' },
+  missed: { color: 'var(--accent-rose)', dotClass: 'size-4 bg-accent-rose' },
+  invalid: { color: 'var(--accent-amber)', dotClass: 'size-4 bg-accent-amber' },
 }
 
 const { t, locale } = useI18n()
@@ -157,10 +168,19 @@ const {
   refetch: refetchInboundRoutes,
   refresh: refreshInboundRoutes,
 } = useInboundRoutes()
+const isEnterprise = computed(() => subscriptionState.value.data?.plan === 'enterprise')
+const {
+  state: callsState,
+  refetch: refetchCalls,
+  refresh: refreshCalls,
+} = useDashboardCalls(() => isEnterprise.value)
 const liveExtensionsQuery = useDashboardLiveExtensions()
 const liveTrunksQuery = useDashboardLiveTrunks()
 const liveUsersQuery = useDashboardLiveUsers()
 const liveQueries = [liveExtensionsQuery, liveTrunksQuery, liveUsersQuery]
+const activeLiveQueries = computed(() =>
+  isEnterprise.value ? liveQueries : [liveExtensionsQuery, liveTrunksQuery],
+)
 
 const toCounterQuery = (card: CounterCard) => {
   const { state, refetch, refresh } = useDashboardCounter(card.id)
@@ -188,7 +208,7 @@ const devicesLoading = computed(() => usersLoading.value || extensionsLoading.va
 const callsLoading = computed(() => extensionsLoading.value || liveTrunksLoading.value)
 
 const failedLiveQueries = computed(() =>
-  liveQueries.filter((query) => query.state.value.status === 'error'),
+  activeLiveQueries.value.filter((query) => query.state.value.status === 'error'),
 )
 
 const presence = computed(() => (liveUsers.value ? summarizePresence(liveUsers.value.data) : null))
@@ -232,10 +252,142 @@ const deviceBars = computed<ChartBar[]>(() =>
     id: deviceType,
     label: t(DEVICE_STYLES[deviceType].label),
     value: devices.value?.[deviceType] ?? 0,
-    fillClass: DEVICE_STYLES[deviceType].fillClass,
+    color: DEVICE_STYLES[deviceType].color,
     dotClass: DEVICE_STYLES[deviceType].dotClass,
   })),
 )
+
+const callOutcomeBars = computed<ChartBar[]>(() =>
+  CALL_OUTCOMES.map((outcome) => ({
+    id: outcome,
+    label: t(`dashboard.calls_summary.${outcome}`),
+    value: callsState.value.data?.[outcome] ?? 0,
+    ...CALL_OUTCOME_STYLES[outcome],
+  })),
+)
+
+const CARD_TITLES: Record<DashboardCardId, string> = {
+  presence: 'dashboard.presence.title',
+  devices: 'dashboard.devices.title',
+  callsSummary: 'dashboard.calls_summary.title',
+  calls: 'dashboard.calls.title',
+  hourlyCalls: 'dashboard.hourly_calls.title',
+  trunks: 'dashboard.trunks.title',
+  inboundRoutes: 'dashboard.inbound_routes.title',
+}
+
+const CARD_SPANS: Record<DashboardCardId, string> = {
+  presence: '',
+  devices: '',
+  callsSummary: '',
+  calls: 'md:col-span-2',
+  hourlyCalls: 'md:col-span-2',
+  trunks: '2xl:col-span-2',
+  inboundRoutes: '2xl:col-span-2',
+}
+
+const dashboardLayoutStore = useDashboardLayoutStore()
+const cardGrid = useTemplateRef<HTMLUListElement>('cardGrid')
+
+const cardVisibility = computed<Record<DashboardCardId, boolean>>(() => ({
+  presence: presenceLoading.value || presence.value !== null,
+  devices: devicesLoading.value || devices.value !== null,
+  callsSummary: !callsState.value.error || callsState.value.data !== undefined,
+  calls: callsLoading.value || liveCalls.value !== null,
+  hourlyCalls: !callsState.value.error || callsState.value.data !== undefined,
+  trunks: !trunksState.value.error || trunksState.value.data !== undefined,
+  inboundRoutes: !inboundRoutesState.value.error || inboundRoutesState.value.data !== undefined,
+}))
+
+const visibleCards = computed(() =>
+  dashboardLayoutStore.cardOrder.filter((card) => cardVisibility.value[card]),
+)
+
+const armedCard = ref<DashboardCardId | null>(null)
+const draggedCard = ref<DashboardCardId | null>(null)
+const dropTarget = ref<DashboardCardId | null>(null)
+const moveAnnouncement = ref('')
+
+const cardTitle = (card: DashboardCardId) => t(CARD_TITLES[card])
+
+function announceMove(card: DashboardCardId) {
+  moveAnnouncement.value = t('dashboard.card_moved', {
+    card: cardTitle(card),
+    position: visibleCards.value.indexOf(card) + 1,
+    total: visibleCards.value.length,
+  })
+}
+
+function resetDrag() {
+  armedCard.value = null
+  draggedCard.value = null
+  dropTarget.value = null
+}
+
+function onDragStart(event: DragEvent, card: DashboardCardId) {
+  if (armedCard.value !== card) {
+    event.preventDefault()
+    return
+  }
+  draggedCard.value = card
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', card)
+  }
+}
+
+function onDragOver(event: DragEvent, card: DashboardCardId) {
+  if (draggedCard.value === null) {
+    return
+  }
+  event.preventDefault()
+  dropTarget.value = card
+}
+
+function onDragLeave(event: DragEvent, card: DashboardCardId) {
+  const target = event.currentTarget
+  const related = event.relatedTarget
+
+  if (target instanceof HTMLElement && related instanceof Node && target.contains(related)) {
+    return
+  }
+  if (dropTarget.value === card) {
+    dropTarget.value = null
+  }
+}
+
+function onDrop(event: DragEvent, card: DashboardCardId) {
+  event.preventDefault()
+  const dragged = draggedCard.value
+
+  if (dragged !== null && dragged !== card) {
+    dashboardLayoutStore.setCardOrder(moveCardTo(dashboardLayoutStore.cardOrder, dragged, card))
+    announceMove(dragged)
+  }
+  resetDrag()
+}
+
+async function moveWithKeyboard(card: DashboardCardId, offset: number) {
+  const order = dashboardLayoutStore.cardOrder
+  const next = moveCardBy(order, visibleCards.value, card, offset)
+
+  if (next === order) {
+    return
+  }
+  dashboardLayoutStore.setCardOrder(next)
+  announceMove(card)
+  await nextTick()
+  cardGrid.value
+    ?.querySelector<HTMLElement>(`[data-card="${card}"] [data-testid="drag-handle"]`)
+    ?.focus()
+}
+
+useEventListener(window, 'pointerup', () => {
+  if (draggedCard.value === null) {
+    armedCard.value = null
+  }
+})
 
 const trunkRows = computed(() =>
   listTrunkStatuses(
@@ -270,6 +422,14 @@ const loadFailures = computed(() => {
       retry: () => failedCounters.value.forEach((query) => query.refetch()),
     })
   }
+  if (isEnterprise.value && callsState.value.error) {
+    failures.push({
+      part: 'dashboard.load_error.calls',
+      title: 'dashboard.cannot_load_calls',
+      error: callsState.value.error,
+      retry: () => refetchCalls(),
+    })
+  }
   if (failedLiveQueries.value.length) {
     failures.push({
       part: 'dashboard.load_error.live_data',
@@ -278,7 +438,7 @@ const loadFailures = computed(() => {
       retry: () => failedLiveQueries.value.forEach((query) => query.refetch()),
     })
   }
-  if (trunksState.value.error) {
+  if (isEnterprise.value && trunksState.value.error) {
     failures.push({
       part: 'dashboard.load_error.trunks',
       title: 'dashboard.cannot_load_trunks',
@@ -286,7 +446,7 @@ const loadFailures = computed(() => {
       retry: () => refetchTrunks(),
     })
   }
-  if (inboundRoutesState.value.error) {
+  if (isEnterprise.value && inboundRoutesState.value.error) {
     failures.push({
       part: 'dashboard.load_error.inbound_routes',
       title: 'dashboard.cannot_load_inbound_routes',
@@ -323,7 +483,7 @@ function retryFailedSources() {
 
 usePolling(() => {
   if (loginStore.isAuthenticated) {
-    liveQueries
+    activeLiveQueries.value
       .filter((query) => query.asyncStatus.value === 'idle')
       .forEach((query) => query.refetch())
   }
@@ -333,8 +493,11 @@ usePolling(() => {
   if (loginStore.isAuthenticated) {
     counterQueries.forEach((query) => query.refresh())
     refreshSubscription()
-    refreshTrunks()
-    refreshInboundRoutes()
+    if (isEnterprise.value) {
+      refreshCalls()
+      refreshTrunks()
+      refreshInboundRoutes()
+    }
   }
 }, DASHBOARD_COUNTERS_REFRESH_INTERVAL)
 </script>
@@ -391,79 +554,175 @@ usePolling(() => {
           :to="can(counter.section) ? counter.to : undefined"
         />
       </div>
-      <div
-        v-if="presenceLoading || presence || devicesLoading || devices || callsLoading || liveCalls"
+      <p v-if="isEnterprise" class="sr-only" aria-live="polite" data-testid="card-move-status">
+        {{ moveAnnouncement }}
+      </p>
+      <ul
+        v-if="isEnterprise"
+        ref="cardGrid"
         class="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-4"
+        data-testid="dashboard-cards"
       >
-        <DashboardBreakdownCard
-          v-if="presenceLoading || presence"
-          data-testid="presence-card"
-          :title="$t('dashboard.presence.title')"
-          :bars="presenceBars"
-          orientation="vertical"
-          :loading="presenceLoading"
-        />
-        <DashboardBreakdownCard
-          v-if="devicesLoading || devices"
-          data-testid="devices-card"
-          :title="$t('dashboard.devices.title')"
-          :tooltip="$t('dashboard.devices.tooltip')"
-          :empty-text="$t('dashboard.devices.no_devices')"
-          :bars="deviceBars"
-          orientation="horizontal"
-          :loading="devicesLoading"
-        />
-        <DashboardCallsCard
-          v-if="callsLoading || liveCalls"
-          class="md:col-span-2"
-          :calls="liveCalls?.calls ?? []"
-          :fetched-at="liveCalls?.fetchedAt ?? 0"
-          :loading="callsLoading"
-        />
-      </div>
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-        <DashboardListCard
-          v-if="!trunksState.error || trunksState.data"
-          data-testid="trunks-card"
-          :title="$t('dashboard.trunks.title')"
-          :items="trunkRows"
-          :label-header="$t('common.name')"
-          :value-header="$t('common.status')"
-          :empty-title="$t('dashboard.trunks.no_trunks')"
-          :empty-icon="faNetworkWired"
-          :loading="trunksState.status === 'pending'"
+        <li
+          v-for="card in visibleCards"
+          :key="card"
+          :data-card="card"
+          :draggable="armedCard === card"
+          :class="[
+            'rounded-lg',
+            CARD_SPANS[card],
+            dropTarget === card && draggedCard !== card
+              ? 'bg-emerald-100 dark:bg-emerald-700 [&>*]:invisible'
+              : '',
+            draggedCard ? '[&_*]:pointer-events-none' : '',
+          ]"
+          @dragstart="onDragStart($event, card)"
+          @dragover="onDragOver($event, card)"
+          @dragleave="onDragLeave($event, card)"
+          @drop="onDrop($event, card)"
+          @dragend="resetDrag"
         >
-          <template #value="{ item }">
-            <TrunkStatusIndicator class="whitespace-nowrap" :status="item.status" />
-          </template>
-        </DashboardListCard>
-        <DashboardListCard
-          v-if="!inboundRoutesState.error || inboundRoutesState.data"
-          data-testid="inbound-routes-card"
-          :title="$t('dashboard.inbound_routes.title')"
-          :items="inboundRouteRows"
-          :label-header="$t('routes.route')"
-          :value-header="$t('routes.destination')"
-          :empty-title="$t('dashboard.inbound_routes.no_routes')"
-          :empty-icon="faRoute"
-          :loading="inboundRoutesState.status === 'pending'"
-        >
-          <template #value="{ item }">
-            <span
-              v-if="item.invalidDestination"
-              class="inline-flex items-center gap-2 text-amber-700 dark:text-amber-500"
-            >
-              <FontAwesomeIcon
-                :icon="faTriangleExclamation"
-                class="size-4 shrink-0"
-                aria-hidden="true"
+          <DashboardBreakdownCard
+            v-if="card === 'presence'"
+            class="h-full"
+            data-testid="presence-card"
+            :title="$t('dashboard.presence.title')"
+            :bars="presenceBars"
+            orientation="vertical"
+            :loading="presenceLoading"
+          >
+            <template #handle>
+              <DashboardDragHandle
+                :card="cardTitle(card)"
+                @arm="armedCard = card"
+                @move="moveWithKeyboard(card, $event)"
               />
-              {{ $t('dashboard.inbound_routes.invalid_destination') }}
-            </span>
-            <template v-else>{{ item.destination || '-' }}</template>
-          </template>
-        </DashboardListCard>
-      </div>
+            </template>
+          </DashboardBreakdownCard>
+          <DashboardBreakdownCard
+            v-else-if="card === 'devices'"
+            class="h-full"
+            data-testid="devices-card"
+            :title="$t('dashboard.devices.title')"
+            :empty-text="$t('dashboard.devices.no_devices')"
+            :bars="deviceBars"
+            orientation="horizontal"
+            :loading="devicesLoading"
+          >
+            <template #handle>
+              <DashboardDragHandle
+                :card="cardTitle(card)"
+                @arm="armedCard = card"
+                @move="moveWithKeyboard(card, $event)"
+              />
+            </template>
+          </DashboardBreakdownCard>
+          <DashboardBreakdownCard
+            v-else-if="card === 'callsSummary'"
+            class="h-full"
+            data-testid="calls-summary-card"
+            :title="$t('dashboard.calls_summary.title')"
+            :empty-text="$t('dashboard.calls_summary.no_calls')"
+            :bars="callOutcomeBars"
+            orientation="horizontal"
+            :loading="callsState.status === 'pending'"
+          >
+            <template #handle>
+              <DashboardDragHandle
+                :card="cardTitle(card)"
+                @arm="armedCard = card"
+                @move="moveWithKeyboard(card, $event)"
+              />
+            </template>
+          </DashboardBreakdownCard>
+          <DashboardHourlyCard
+            v-else-if="card === 'hourlyCalls'"
+            class="h-full"
+            :hourly-calls="callsState.data?.incomingByHour ?? []"
+            :loading="callsState.status === 'pending'"
+          >
+            <template #handle>
+              <DashboardDragHandle
+                :card="cardTitle(card)"
+                @arm="armedCard = card"
+                @move="moveWithKeyboard(card, $event)"
+              />
+            </template>
+          </DashboardHourlyCard>
+          <DashboardCallsCard
+            v-else-if="card === 'calls'"
+            class="h-full"
+            :calls="liveCalls?.calls ?? []"
+            :fetched-at="liveCalls?.fetchedAt ?? 0"
+            :loading="callsLoading"
+          >
+            <template #handle>
+              <DashboardDragHandle
+                :card="cardTitle(card)"
+                @arm="armedCard = card"
+                @move="moveWithKeyboard(card, $event)"
+              />
+            </template>
+          </DashboardCallsCard>
+          <DashboardListCard
+            v-else-if="card === 'trunks'"
+            class="h-full"
+            data-testid="trunks-card"
+            :title="$t('dashboard.trunks.title')"
+            :items="trunkRows"
+            :label-header="$t('common.name')"
+            :value-header="$t('common.status')"
+            :empty-title="$t('dashboard.trunks.no_trunks')"
+            :empty-icon="faNetworkWired"
+            :loading="trunksState.status === 'pending'"
+          >
+            <template #handle>
+              <DashboardDragHandle
+                :card="cardTitle(card)"
+                @arm="armedCard = card"
+                @move="moveWithKeyboard(card, $event)"
+              />
+            </template>
+            <template #value="{ item }">
+              <TrunkStatusIndicator class="whitespace-nowrap" :status="item.status" />
+            </template>
+          </DashboardListCard>
+          <DashboardListCard
+            v-else
+            class="h-full"
+            data-testid="inbound-routes-card"
+            :title="$t('dashboard.inbound_routes.title')"
+            :items="inboundRouteRows"
+            :label-header="$t('routes.route')"
+            :value-header="$t('routes.destination')"
+            :empty-title="$t('dashboard.inbound_routes.no_routes')"
+            :empty-icon="faRoute"
+            :loading="inboundRoutesState.status === 'pending'"
+          >
+            <template #handle>
+              <DashboardDragHandle
+                :card="cardTitle(card)"
+                @arm="armedCard = card"
+                @move="moveWithKeyboard(card, $event)"
+              />
+            </template>
+            <template #value="{ item }">
+              <span
+                v-if="item.invalidDestination"
+                class="inline-flex items-center gap-2 text-amber-700 dark:text-amber-500"
+              >
+                <FontAwesomeIcon
+                  :icon="faTriangleExclamation"
+                  class="size-4 shrink-0"
+                  aria-hidden="true"
+                />
+                {{ $t('dashboard.inbound_routes.invalid_destination') }}
+              </span>
+              <template v-else>{{ item.destination || '-' }}</template>
+            </template>
+          </DashboardListCard>
+        </li>
+      </ul>
     </div>
   </div>
 </template>

@@ -7,21 +7,23 @@
 import { computed, useTemplateRef } from 'vue'
 import { useElementSize } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
+import { VisStackedBar, VisTooltip, VisXYContainer } from '@unovis/vue'
+import { Orientation, StackedBar } from '@unovis/ts'
 import {
   getBarRatios,
-  horizontalBarPath,
-  layoutVerticalBars,
-  verticalBarPath,
+  getCenteredBarDomain,
   type ChartBar,
   type ChartOrientation,
 } from '@/lib/dashboard/chart'
 
 const CHART_HEIGHT = 148
-const VERTICAL_MAX_BAR_HEIGHT = 116
 const VERTICAL_MAX_BAR_WIDTH = 49
-const BAR_GAP = 12
+const VERTICAL_MAX_BAR_HEIGHT = 116
 const HORIZONTAL_BAR_THICKNESS = 16
-const HORIZONTAL_TOP_OFFSET = 36
+const BAR_GAP = 12
+const BAR_RADIUS = 4
+
+type Datum = { position: number; ratio: number; bar: ChartBar }
 
 const { bars, orientation } = defineProps<{
   bars: ChartBar[]
@@ -32,60 +34,100 @@ const { t } = useI18n()
 const container = useTemplateRef<HTMLDivElement>('container')
 const { width } = useElementSize(container)
 
+const isVertical = computed(() => orientation === 'vertical')
+
 const describeBar = (bar: ChartBar) =>
   t('dashboard.chart_value', { label: bar.label, value: bar.value })
 
 const summary = computed(() => bars.map(describeBar).join(', '))
 
-const shapes = computed(() => {
+const data = computed<Datum[]>(() => {
   const ratios = getBarRatios(bars.map((bar) => bar.value))
 
-  if (orientation === 'vertical') {
-    const layout = layoutVerticalBars(bars.length, width.value, VERTICAL_MAX_BAR_WIDTH, BAR_GAP)
-
-    return bars.map((bar, index) => ({
-      bar,
-      path: verticalBarPath(
-        layout.offset + layout.step * index,
-        layout.barWidth,
-        ratios[index] * VERTICAL_MAX_BAR_HEIGHT,
-        CHART_HEIGHT,
-      ),
-    }))
-  }
-
   return bars.map((bar, index) => ({
+    position: isVertical.value ? index : bars.length - 1 - index,
+    ratio: ratios[index],
     bar,
-    path: horizontalBarPath(
-      HORIZONTAL_TOP_OFFSET + (HORIZONTAL_BAR_THICKNESS + BAR_GAP) * index,
-      ratios[index] * width.value,
-      HORIZONTAL_BAR_THICKNESS,
-    ),
   }))
 })
+
+const barWidth = computed(() => {
+  if (!isVertical.value) {
+    return HORIZONTAL_BAR_THICKNESS
+  }
+  const count = Math.max(bars.length, 1)
+  const available = (width.value - BAR_GAP * (count - 1)) / count
+
+  return Math.max(1, Math.min(VERTICAL_MAX_BAR_WIDTH, available))
+})
+
+const positionDomain = computed(() =>
+  getCenteredBarDomain(
+    bars.length,
+    isVertical.value ? width.value : CHART_HEIGHT,
+    barWidth.value,
+    BAR_GAP,
+  ),
+)
+
+const valueDomain = computed<[number, number]>(() => [
+  0,
+  isVertical.value ? CHART_HEIGHT / VERTICAL_MAX_BAR_HEIGHT : 1,
+])
+
+const xDomain = computed(() => (isVertical.value ? positionDomain.value : valueDomain.value))
+const yDomain = computed(() => (isVertical.value ? valueDomain.value : positionDomain.value))
+
+const getPosition = (datum: Datum) => datum.position
+const getRatio = (datum: Datum) => datum.ratio
+const getColor = (datum: Datum) => datum.bar.color
+
+const toDatum = (record: Datum | { datum: Datum }): Datum =>
+  'bar' in record ? record : record.datum
+
+const tooltipTriggers = {
+  [StackedBar.selectors.bar]: (record: Datum | { datum: Datum }) =>
+    describeBar(toDatum(record).bar),
+}
 </script>
 
 <template>
   <div
     ref="container"
+    role="img"
+    :aria-label="summary"
     :class="[
-      'w-full border-gray-200 dark:border-gray-700',
-      orientation === 'vertical' ? 'border-b' : 'border-l',
+      'dashboard-bar-chart w-full border-gray-200 dark:border-gray-700',
+      isVertical ? 'border-b' : 'border-l',
     ]"
+    data-testid="bar-chart"
   >
-    <svg
-      role="img"
-      :aria-label="summary"
-      :width="width"
+    <VisXYContainer
+      :data="data"
       :height="CHART_HEIGHT"
-      :viewBox="`0 0 ${Math.max(width, 1)} ${CHART_HEIGHT}`"
-      class="block"
+      :x-domain="xDomain"
+      :y-domain="yDomain"
+      :auto-margin="false"
+      aria-hidden="true"
     >
-      <template v-for="shape in shapes" :key="shape.bar.id">
-        <path v-if="shape.path" :d="shape.path" :class="shape.bar.fillClass">
-          <title>{{ describeBar(shape.bar) }}</title>
-        </path>
-      </template>
-    </svg>
+      <VisStackedBar
+        :x="getPosition"
+        :y="getRatio"
+        :color="getColor"
+        :orientation="isVertical ? Orientation.Vertical : Orientation.Horizontal"
+        :bar-width="barWidth"
+        :rounded-corners="BAR_RADIUS"
+      />
+      <VisTooltip :triggers="tooltipTriggers" />
+    </VisXYContainer>
   </div>
 </template>
+
+<style scoped>
+.dashboard-bar-chart {
+  --vis-font-family: inherit;
+  --vis-tooltip-background-color: var(--elevation-0);
+  --vis-tooltip-border-color: var(--border-secondary);
+  --vis-tooltip-text-color: var(--primary-neutral);
+}
+</style>

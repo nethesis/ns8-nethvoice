@@ -18,6 +18,7 @@ export const RuntimeConfigSchema = v.object({
   LOGIN_BACKGROUND_URL: OptionalText,
   FAVICON_URL: OptionalText,
   HOSTNAME: OptionalText,
+  INSTANCE_NAME: OptionalText,
 })
 
 export type RuntimeConfig = {
@@ -29,6 +30,7 @@ export type RuntimeConfig = {
   loginBackgroundUrl: string
   faviconUrl: string
   hostname: string
+  instanceName: string
 }
 
 export const DEFAULT_DOCS_URL = 'https://docs.nethvoice.com/'
@@ -67,6 +69,7 @@ export const DEFAULT_RUNTIME_CONFIG: RuntimeConfig = {
   loginBackgroundUrl: '',
   faviconUrl: '',
   hostname: '',
+  instanceName: '',
 }
 
 const safeUrl = (value: string): string => {
@@ -99,6 +102,7 @@ export const parseRuntimeConfig = (raw: unknown): RuntimeConfig => {
     loginBackgroundUrl: safeUrl(config.LOGIN_BACKGROUND_URL),
     faviconUrl: safeUrl(config.FAVICON_URL),
     hostname: config.HOSTNAME.trim(),
+    instanceName: config.INSTANCE_NAME.trim(),
   }
 }
 
@@ -143,7 +147,9 @@ export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
 
   const hostname = computed(() => config.value.hostname || window.location.hostname)
 
+  const instanceLabel = computed(() => config.value.instanceName || hostname.value)
+
   const docsUrl = computed(() => localizeDocsUrl(config.value.docsUrl, i18n.global.locale.value))
 
-  return { config, loaded, hostname, docsUrl, load }
+  return { config, loaded, hostname, instanceLabel, docsUrl, load }
 })

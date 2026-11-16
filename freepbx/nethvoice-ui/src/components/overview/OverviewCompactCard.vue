@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faEye, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faEye, faUserGroup } from '@fortawesome/free-solid-svg-icons'
 import { NeButton, NeTooltip } from '@nethesis/vue-components'
 import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
@@ -33,7 +33,7 @@ const { t } = useI18n()
             {{ user.name }} {{ user.mainExtension }}
           </p>
           <p v-if="user.groups.length" class="text-tertiary-neutral flex items-center gap-2">
-            <FontAwesomeIcon :icon="faUsers" class="size-4 shrink-0" aria-hidden="true" />
+            <FontAwesomeIcon :icon="faUserGroup" class="size-4 shrink-0" aria-hidden="true" />
             <span class="truncate">{{ user.groups.join(', ') }}</span>
           </p>
         </div>

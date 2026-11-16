@@ -170,6 +170,9 @@ export const test = base.extend<Fixtures>({
       .on('GET', '/freepbx/rest/mainextensions/userlimits', {
         json: { configured: 0, limit: false, configurable: false },
       })
+      .on('GET', '/freepbx/rest/dashboard/calls', {
+        json: { total: 0, answered: 0, missed: 0, invalid: 0, incoming_by_hour: [] },
+      })
     mockWizardState(mockApi, 13, false)
     mockPermissions(mockApi, ['superadmin'])
 
