@@ -1167,6 +1167,7 @@ function streamingPinCertificate(array $source): array
  * "currentDescr" (or the route argument) is the current name of the source.
  * An empty or missing "secret" (or gate "password") keeps the stored one; an empty "user" (or gate "username") removes the credentials.
  * Without "gates", the legacy "open" code replaces the first DTMF gate.
+ * "door_phone" works as for POST /cti/streaming.
  */
 $app->put('/cti/streaming/{descr}', function (Request $request, Response $response, $args) {
     try {
@@ -1179,6 +1180,11 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
         $sources = streaming_load_sources($dbh);
         if (!isset($sources[$currentDescr])) {
             return jsonResponse($response, ['status' => "video source $currentDescr not found"], 404);
+        }
+        // Moved to a door phone: its generated password, never sent to the client
+        $doorSecret = door_phone_request_secret($data);
+        if ($doorSecret !== null) {
+            $data['secret'] = $doorSecret;
         }
         $source = streaming_normalize_source($data, $sources[$currentDescr]);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
