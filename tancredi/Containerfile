@@ -7,9 +7,17 @@ COPY entrypoint.sh /
 COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
 
 ARG TANCREDI_VERSION=1.11.3
+# Track a minimum so newer Debian security packages remain installable.
+ARG APACHE_MIN_VERSION=2.4.71-1~deb12u1
 
 RUN apt update && \
-	apt install -y libapache2-mod-xsendfile zip && \
+	apt install -y \
+		apache2 \
+		apache2-bin \
+		apache2-data \
+		apache2-utils \
+		libapache2-mod-xsendfile zip && \
+	dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apache2)" ge "${APACHE_MIN_VERSION}" && \
 	a2enmod headers rewrite && \
 	ln -sf /etc/apache2/sites-available/tancredi.conf /etc/apache2/sites-enabled/tancredi.conf && \
 	sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:$\{TANCREDIPORT\}>/' /etc/apache2/sites-enabled/000-default.conf && \
