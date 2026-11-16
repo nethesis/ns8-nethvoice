@@ -1674,8 +1674,9 @@ paths:
       operationId: post_cti_streaming_doorphones_mac_sync
   /cti/streaming/reachability:
     post:
-      summary: Check whether the PBX reaches the device of a RTSP URL.
-      description: Opens a TCP connection to the host and port of the URL (2
+      summary: Check whether the PBX reaches the device of a source URL.
+      description: Opens a TCP connection to the host and port of a rtsp,
+        rtsps, http or https URL (default ports 554, 322, 80, 443; 2
         seconds), nothing is sent to the device. `private` tells that the
         address belongs to a private network. With `door_phone`, when the
         device is not reachable, the public address the door phone registers
@@ -1716,7 +1717,7 @@ paths:
                     type: string
                     nullable: true
         '400':
-          description: Not a RTSP URL or invalid door phone
+          description: Not a source URL or invalid door phone
       operationId: post_cti_streaming_reachability
   /cti/paramurls:
     get:

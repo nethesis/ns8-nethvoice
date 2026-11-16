@@ -1202,5 +1202,8 @@
   "Password of the door phone, managed by the PBX": "Password del citofono, gestita dal centralino",
   "To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences": "Per leggerla o cambiarla: Utenti, l'utente del citofono, matita accanto al modello del dispositivo, Preferenze",
   "Use different credentials": "Usa credenziali diverse",
-  "Use the door phone credentials": "Usa le credenziali del citofono"
+  "Use the door phone credentials": "Usa le credenziali del citofono",
+  "The PBX cannot reach the device at this address": "Il centralino non raggiunge il dispositivo a questo indirizzo",
+  "The PBX reaches the device at this address": "Il centralino raggiunge il dispositivo a questo indirizzo",
+  "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL": "Inoltra la porta del dispositivo ({{port}}) sul suo router, consentila solo dall'indirizzo IP pubblico del centralino e inserisci nell'URL l'indirizzo pubblico"
 }

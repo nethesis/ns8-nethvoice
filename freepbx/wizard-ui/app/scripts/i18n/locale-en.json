@@ -332,5 +332,8 @@
   "Password of the door phone, managed by the PBX": "Password of the door phone, managed by the PBX",
   "To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences": "To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences",
   "Use different credentials": "Use different credentials",
-  "Use the door phone credentials": "Use the door phone credentials"
+  "Use the door phone credentials": "Use the door phone credentials",
+  "The PBX cannot reach the device at this address": "The PBX cannot reach the device at this address",
+  "The PBX reaches the device at this address": "The PBX reaches the device at this address",
+  "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL": "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL"
 }
