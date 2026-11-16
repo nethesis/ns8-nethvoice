@@ -15,7 +15,8 @@
   ignores a different "RTSP Server Passwd". An empty password leaves the
   device RTSP credentials untouched. The camera streams (video1 main, video2 sub)
   get a lower main bitrate, a VGA sub stream and frequent keyframes, so that
-  the keyframes stay small: see the door_video_* model variables.
+  the keyframes stay small: see the door_video_* model variables. The
+  language is not written: the i62 keeps its own web interface language.
 #}
 {% import 'fanvil.macros' as fanvil %}
 
@@ -47,7 +48,6 @@ SIP1 TLS Version        :2
 {% endif %}
 
 <PHONE FEATURE MODULE>
-Default Language   :{{ fanvil.language_codeNEW(language) }}
 --DateTime Config--:
 Enable SNTP        :1
 SNTP Server        :{{ ntp_server | default('pool.ntp.org') }}
