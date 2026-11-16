@@ -1201,5 +1201,6 @@
   "Admin password of the door phone, managed by the PBX": "Password di amministrazione del citofono, gestita dal centralino",
   "Password of the door phone, managed by the PBX": "Password del citofono, gestita dal centralino",
   "To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences": "Per leggerla o cambiarla: Utenti, l'utente del citofono, matita accanto al modello del dispositivo, Preferenze",
-  "Use different credentials": "Usa credenziali diverse"
+  "Use different credentials": "Usa credenziali diverse",
+  "Use the door phone credentials": "Usa le credenziali del citofono"
 }
