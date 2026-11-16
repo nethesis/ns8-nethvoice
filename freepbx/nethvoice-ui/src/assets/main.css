@@ -175,6 +175,11 @@
   --ring-button: var(--color-gray-300);
   --ring-input: var(--color-gray-300);
   --accent-rose: var(--color-rose-700);
+  --accent-green: var(--color-green-500);
+  --accent-gray: var(--color-gray-700);
+  --accent-blue: var(--color-blue-700);
+  --accent-indigo: var(--color-indigo-500);
+  --accent-amber: var(--color-amber-500);
   --error-focus: var(--color-rose-500);
   --border-secondary: var(--color-gray-300);
 
@@ -213,6 +218,11 @@
   --ring-button: var(--color-gray-500);
   --ring-input: var(--color-gray-500);
   --accent-rose: var(--color-rose-500);
+  --accent-green: var(--color-green-400);
+  --accent-gray: var(--color-gray-500);
+  --accent-blue: var(--color-blue-500);
+  --accent-indigo: var(--color-indigo-400);
+  --accent-amber: var(--color-amber-400);
   --error-focus: var(--color-rose-400);
   --border-secondary: var(--color-gray-700);
 
@@ -250,6 +260,12 @@
   --color-border-secondary: var(--border-secondary);
   --color-icon-enabled: var(--icon-enabled);
   --color-icon-neutral: var(--icon-neutral);
+  --color-accent-green: var(--accent-green);
+  --color-accent-gray: var(--accent-gray);
+  --color-accent-rose: var(--accent-rose);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-indigo: var(--accent-indigo);
+  --color-accent-amber: var(--accent-amber);
 
   --border-ring-button: var(--ring-button);
   --border-ring-input: var(--ring-input);

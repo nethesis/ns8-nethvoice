@@ -5,9 +5,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { NeCard, NeSkeleton, NeTooltip } from '@nethesis/vue-components'
-import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { NeCard, NeSkeleton } from '@nethesis/vue-components'
 import DashboardBarChart from './DashboardBarChart.vue'
 import type { ChartBar, ChartOrientation } from '@/lib/dashboard/chart'
 
@@ -15,14 +13,12 @@ const {
   title,
   bars,
   orientation,
-  tooltip = '',
   emptyText = '',
   loading = false,
 } = defineProps<{
   title: string
   bars: ChartBar[]
   orientation: ChartOrientation
-  tooltip?: string
   emptyText?: string
   loading?: boolean
 }>()
@@ -33,22 +29,10 @@ const empty = computed(() => Boolean(emptyText) && bars.every((bar) => bar.value
 <template>
   <NeCard>
     <template #title>
-      <span class="text-secondary-neutral text-sm font-normal">{{ title }}</span>
-    </template>
-    <template v-if="tooltip" #titleTooltip>
-      <NeTooltip trigger-event="mouseenter focus" placement="top">
-        <template #trigger>
-          <button type="button" class="inline-flex" data-testid="breakdown-info">
-            <FontAwesomeIcon
-              :icon="faCircleInfo"
-              class="size-4 text-indigo-500 dark:text-indigo-300"
-              aria-hidden="true"
-            />
-            <span class="sr-only">{{ tooltip }}</span>
-          </button>
-        </template>
-        <template #content>{{ tooltip }}</template>
-      </NeTooltip>
+      <span class="flex items-center gap-2">
+        <slot name="handle" />
+        <span class="text-secondary-neutral text-sm font-normal">{{ title }}</span>
+      </span>
     </template>
     <NeSkeleton v-if="loading" :lines="8" class="w-full" />
     <div v-else class="flex flex-col gap-6">
@@ -67,7 +51,7 @@ const empty = computed(() => Boolean(emptyText) && bars.every((bar) => bar.value
           class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
         >
           <dt class="text-primary-neutral flex min-w-0 items-center gap-2.5 font-medium">
-            <span :class="['size-3 shrink-0 rounded-full', bar.dotClass]" aria-hidden="true" />
+            <span :class="['shrink-0 rounded-full', bar.dotClass]" aria-hidden="true" />
             <span class="truncate">{{ bar.label }}</span>
           </dt>
           <dd class="text-tertiary-neutral tabular-nums" :data-testid="`breakdown-${bar.id}`">

@@ -190,6 +190,15 @@ describe('sortOverviewUsers', () => {
     expect(sorted('extension', true)).toEqual(['b.lee', 'a.miller'])
     expect(sorted('status')).toEqual(['b.lee', 'a.miller'])
   })
+
+  it('should put the favorites first in any order', () => {
+    const favorites = new Set(['b.lee'])
+    const sorted = (descending: boolean) =>
+      sortOverviewUsers(overviewUsers, 'name', descending, favorites).map((user) => user.username)
+
+    expect(sorted(false)).toEqual(['b.lee', 'a.miller'])
+    expect(sorted(true)).toEqual(['b.lee', 'a.miller'])
+  })
 })
 
 describe('getInitials', () => {

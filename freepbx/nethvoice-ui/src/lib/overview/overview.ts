@@ -232,7 +232,9 @@ export const sortOverviewUsers = (
   users: OverviewUser[],
   sortKey: OverviewSortKey,
   descending: boolean,
+  favorites: ReadonlySet<string> = new Set(),
 ): OverviewUser[] => {
+  const favoriteRank = (user: OverviewUser) => (favorites.has(user.username) ? 0 : 1)
   const compare = (a: OverviewUser, b: OverviewUser): number => {
     switch (sortKey) {
       case 'extension':
@@ -247,7 +249,9 @@ export const sortOverviewUsers = (
     }
   }
 
-  return [...users].sort((a, b) => (descending ? compare(b, a) : compare(a, b)))
+  return [...users].sort(
+    (a, b) => favoriteRank(a) - favoriteRank(b) || (descending ? compare(b, a) : compare(a, b)),
+  )
 }
 
 export const getInitials = (name: string): string =>

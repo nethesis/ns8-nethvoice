@@ -104,6 +104,14 @@ const INBOUND_ROUTES = {
   ],
 }
 
+const CALLS_TODAY = {
+  total: 12,
+  answered: 9,
+  missed: 2,
+  invalid: 1,
+  incoming_by_hour: [0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 2],
+}
+
 const mockDashboard = (mockApi: MockApi) =>
   mockApi
     .on('GET', '/freepbx/rest/users/count', { json: 5 })
@@ -131,6 +139,7 @@ const mockDashboard = (mockApi: MockApi) =>
     .on('GET', '/api/astproxy/extensions', { json: EXTENSIONS })
     .on('GET', '/api/astproxy/trunks', { json: TRUNKS })
     .on('GET', '/api/user/endpoints/all', { json: USERS })
+    .on('GET', '/freepbx/rest/dashboard/calls', { json: CALLS_TODAY })
 
 const counterValue = (page: import('@playwright/test').Page, id: string) =>
   page.getByTestId(`counter-${id}`).getByTestId('counter-value')
@@ -170,6 +179,18 @@ test.describe('dashboard', () => {
     await expect(devices.getByTestId('breakdown-webPhone')).toHaveText('3')
     await expect(devices.getByTestId('breakdown-desktopPhone')).toHaveText('0')
     await expect(devices.getByTestId('breakdown-mobileApp')).toHaveText('1')
+
+    const callsToday = page.getByTestId('calls-summary-card')
+    await expect(callsToday).toContainText('Calls today')
+    await expect(callsToday.getByTestId('breakdown-total')).toHaveText('12')
+    await expect(callsToday.getByTestId('breakdown-answered')).toHaveText('9')
+    await expect(callsToday.getByTestId('breakdown-missed')).toHaveText('2')
+    await expect(callsToday.getByTestId('breakdown-invalid')).toHaveText('1')
+
+    await expect(
+      page.getByRole('img', { name: '7 incoming calls today, most at 09:00 with 4' }),
+    ).toBeVisible()
+    await expect(page.getByTestId('hourly-calls-card')).toContainText('Incoming calls')
 
     const rows = page.getByTestId('call-row')
     await expect(rows).toHaveCount(2)
@@ -392,6 +413,68 @@ test.describe('dashboard', () => {
       page.getByRole('progressbar', { name: '4 of 8 extensions configured' }),
     ).toBeVisible()
     await expect(page.getByTestId('extensions-limit-reached')).toHaveCount(0)
+    await expect(counterValue(page, 'callsInProgress')).toHaveText('2')
+    await expect(counterValue(page, 'outboundRoutes')).toHaveText('7')
+    await expect(page.getByTestId('dashboard-cards')).toHaveCount(0)
+    await expect(page.getByTestId('drag-handle')).toHaveCount(0)
+    expect(mockApi.callsTo('GET', '/freepbx/rest/dashboard/calls')).toHaveLength(0)
+  })
+
+  test('does not report the live users on Community', async ({ page, mockApi }) => {
+    mockApi
+      .on('GET', '/freepbx/rest/mainextensions/userlimits', {
+        json: { configured: 4, limit: 8, configurable: 4 },
+      })
+      .on('GET', '/api/user/endpoints/all', { status: 500, json: { message: 'busy' } })
+
+    await page.goto('./dashboard')
+
+    await expect(counterValue(page, 'callsInProgress')).toHaveText('2')
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
+  })
+
+  test('reports the calls of today when they cannot be loaded', async ({ page, mockApi }) => {
+    let fail = true
+
+    mockApi.on('GET', '/freepbx/rest/dashboard/calls', () =>
+      fail ? { status: 500, json: 'An error occurred' } : { json: CALLS_TODAY },
+    )
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByText("Cannot load today's calls")).toBeVisible()
+    await expect(page.getByTestId('calls-summary-card')).toHaveCount(0)
+    await expect(page.getByTestId('hourly-calls-card')).toHaveCount(0)
+
+    fail = false
+    await page.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(page.getByTestId('calls-summary-card').getByTestId('breakdown-total')).toHaveText(
+      '12',
+    )
+    await expect(page.getByTestId('hourly-calls-card')).toBeVisible()
+  })
+
+  test('moves a card with the keyboard and remembers the order', async ({ page }) => {
+    await page.goto('./dashboard')
+
+    const cards = page.getByTestId('dashboard-cards').locator('> li')
+    await expect(cards.first()).toHaveAttribute('data-card', 'presence')
+
+    const handle = page.getByRole('button', { name: 'Move Devices' })
+    await handle.focus()
+    await page.keyboard.press('ArrowLeft')
+
+    await expect(cards.first()).toHaveAttribute('data-card', 'devices')
+    await expect(cards.nth(1)).toHaveAttribute('data-card', 'presence')
+    await expect(page.getByTestId('card-move-status')).toHaveText(
+      'Devices moved to position 1 of 7',
+    )
+    await expect(page.getByRole('button', { name: 'Move Devices' })).toBeFocused()
+
+    await page.reload()
+
+    await expect(cards.first()).toHaveAttribute('data-card', 'devices')
   })
 
   test('warns when the community limit is exceeded', async ({ page, mockApi }) => {
@@ -601,9 +684,6 @@ test.describe('dashboard', () => {
     await expect(devices.getByTestId('breakdown-empty')).toHaveText('No devices connected')
     await expect(devices.getByRole('img')).toHaveCount(0)
     await expect(devices.getByTestId('breakdown-webPhone')).toHaveText('0')
-    await expect(
-      devices.getByRole('button', { name: 'Devices currently connected to the PBX' }),
-    ).toBeVisible()
   })
 
   test('waits for a slow live response before polling again', async ({ page, mockApi }) => {

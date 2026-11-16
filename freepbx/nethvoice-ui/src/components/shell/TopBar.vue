@@ -144,15 +144,24 @@ function openNotificationsDrawer() {
     <div class="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
       <div class="relative flex flex-1 items-center"></div>
       <div class="flex items-center gap-x-4">
-        <p
+        <NeTooltip
           v-if="isEnterprise"
-          class="text-secondary-neutral hidden items-center gap-2 text-sm sm:flex"
-          data-testid="topbar-subscription"
+          trigger-event="mouseenter focus"
+          placement="bottom"
+          class="hidden min-w-0 sm:flex"
         >
-          <FontAwesomeIcon :icon="faAward" class="size-4 shrink-0" aria-hidden="true" />
-          <span class="sr-only">{{ $t('dashboard.system.subscription') }}:</span>
-          {{ $t('dashboard.system.enterprise') }}
-        </p>
+          <template #trigger>
+            <p
+              class="text-secondary-neutral flex min-w-0 items-center gap-2 text-sm"
+              data-testid="topbar-subscription"
+            >
+              <FontAwesomeIcon :icon="faAward" class="size-4 shrink-0" aria-hidden="true" />
+              <span class="sr-only">{{ $t('shell.enterprise_instance') }}:</span>
+              <span class="truncate">{{ runtimeConfigStore.instanceLabel }}</span>
+            </p>
+          </template>
+          <template #content>{{ $t('shell.enterprise_instance') }}</template>
+        </NeTooltip>
         <div
           class="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200 dark:lg:bg-gray-700"
           aria-hidden="true"
