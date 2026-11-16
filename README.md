@@ -480,7 +480,7 @@ no longer updated.
 
 | Directory | Former repository | Imported commit |
 | --- | --- | --- |
-| `nethcti-server` | [nethesis/nethcti-server](https://github.com/nethesis/nethcti-server) | [62be5d9](https://github.com/nethesis/nethcti-server/commit/62be5d93d6bdb5a6ede6081f453e4bfb6d664ec7) |
+| `nethcti-server` | [nethesis/nethcti-server](https://github.com/nethesis/nethcti-server) | [08c8bc3](https://github.com/nethesis/nethcti-server/commit/08c8bc374ab609e94db8f349ffbce62084b2f00d) |
 | `nethcti-server/root/usr/lib/node/nethcti-server/packages/astproxy` | [nethesis/astproxy](https://github.com/nethesis/astproxy) | [94f495d](https://github.com/nethesis/astproxy/commit/94f495d53c1e7b13a224ad7e7c79161b6e27e7bf) (v0.2.3) |
 | `nethcti-middleware` | [nethesis/nethcti-middleware](https://github.com/nethesis/nethcti-middleware) | [1b89f9c](https://github.com/nethesis/nethcti-middleware/commit/1b89f9c0265e1093ac7d4d0465c1aaee2de88f30) (v0.7.0) |
 | `nethvoice-cti` | [nethesis/nethvoice-cti](https://github.com/nethesis/nethvoice-cti) | [7ea0b35](https://github.com/nethesis/nethvoice-cti/commit/7ea0b35e3ca51c4da0dab892fc55e678ecdba41d) (v1.2.21) |

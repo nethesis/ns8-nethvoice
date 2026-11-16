@@ -619,7 +619,7 @@ function startIntervalRemoveExpiredTokens() {
             // check the token expiration
             if (currentTimestamp > userTokens[tokenid].expires) {
 
-              logger.log.info(IDLOG, 'the token "' + tokenid + '" of user "' + username + '" has expired: remove it');
+              logger.log.info(IDLOG, 'the token "' + maskToken(tokenid) + '" of user "' + username + '" has expired: remove it');
               removeToken(username, tokenid); // remove the token
             }
           }
@@ -1152,7 +1152,7 @@ function removeToken(username, token) {
     for (key in grants) {
       if (key === username) {
         delete grants[key][token];
-        logger.log.info(IDLOG, 'removed token "' + token + '" for username ' + key);
+        logger.log.info(IDLOG, 'removed token "' + maskToken(token) + '" for username ' + key);
       }
       if (Object.keys(grants[key]).length === 0) {
         delete grants[key];
@@ -1196,7 +1196,7 @@ function updateTokenExpires(username, token) {
     }
 
     grants[username][token].expires = (new Date()).getTime() + expires;
-    logger.log.info(IDLOG, 'token expiration "' + token + '" has been updated for username ' + username);
+    logger.log.info(IDLOG, 'token expiration "' + maskToken(token) + '" has been updated for username ' + username);
 
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
@@ -1324,7 +1324,7 @@ function verifyToken(username, token, isRemote) {
     // check the token expiration when not persistent token
     if (userTokens[token] && (new Date()).getTime() > userTokens[token].expires) {
       removeToken(username, token); // remove the token
-      logger.log.info(IDLOG, 'the token "' + token + '" has expired for ' + (isRemote ? 'remote site ' : 'local ') + 'username ' + username);
+      logger.log.info(IDLOG, 'the token "' + maskToken(token) + '" has expired for ' + (isRemote ? 'remote site ' : 'local ') + 'username ' + username);
       return false;
     }
 
@@ -1334,7 +1334,7 @@ function verifyToken(username, token, isRemote) {
     }
 
     // authentication successfull
-    logger.log.info(IDLOG, (isRemote ? 'remote site ' : 'local ') + 'username "' + username + '" has been successfully authenticated with token "' + token + '"');
+    logger.log.info(IDLOG, (isRemote ? 'remote site ' : 'local ') + 'username "' + username + '" has been successfully authenticated with token "' + maskToken(token) + '"');
     return true;
 
   } catch (err) {
@@ -1478,11 +1478,78 @@ function ssoLogin(username, secret) {
   }
 }
 
+/**
+ * Returns a short prefix of a token, to log it without disclosing it.
+ *
+ * @method maskToken
+ * @param {string} token The token
+ * @return {string} The masked token
+ * @private
+ */
+function maskToken(token) {
+  return typeof token === 'string' && token.length > 8 ? token.substring(0, 6) + '...' : '...';
+}
+
+/**
+ * Environment variable holding the secret that authorizes the internal login:
+ * the middleware super admin token, shared with this container through the
+ * module environment. The internal login is disabled when it is empty.
+ *
+ * @property INTERNAL_LOGIN_SECRET_ENV
+ * @type string
+ * @private
+ * @final
+ */
+var INTERNAL_LOGIN_SECRET_ENV = 'NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN';
+
+/**
+ * Attempts an internal login: the middleware, on behalf of a super admin,
+ * asks a session for the user without a user password (e.g. to issue the
+ * mobile app token of a hotel room user that never logged in). It is
+ * independent from the SSO configuration. The caller must also make sure the
+ * request did not come through the reverse proxy (see the login REST API).
+ *
+ * @method internalLogin
+ * @param {string} username The user to log in
+ * @param {string} secret The internal login secret
+ * @return {object|false} False when the secret is wrong or the internal login
+ *   is disabled; { denied: true } when the username is not allowed; else
+ *   { username, tokenPassword }.
+ */
+function internalLogin(username, secret) {
+  try {
+    var expected = process.env[INTERNAL_LOGIN_SECRET_ENV] || '';
+    if (expected === '' ||
+      typeof username !== 'string' || username.trim() === '' ||
+      typeof secret !== 'string' || secret === '') {
+
+      return false;
+    }
+    var a = Buffer.from(secret);
+    var b = Buffer.from(expected);
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+      return false;
+    }
+    var u = username.trim().toLowerCase();
+    if (sso.userDenylist.indexOf(u) !== -1) {
+      logger.log.warn(IDLOG, 'internal login rejected for "' + username + '"');
+      return { denied: true };
+    }
+    // the token key is derived from the secret, which is never used as is
+    var tokenPassword = crypto.createHmac('sha256', expected).update('nethcti-internal-login').digest('hex');
+    return { username: u, tokenPassword: tokenPassword };
+  } catch (err) {
+    logger.log.error(IDLOG, err.stack);
+    return false;
+  }
+}
+
 // public interface
 exports.on = on;
 exports.start = start;
 exports.config = config;
 exports.ssoLogin = ssoLogin;
+exports.internalLogin = internalLogin;
 exports.reload = reload;
 exports.getNonce = getNonce;
 exports.setLogger = setLogger;

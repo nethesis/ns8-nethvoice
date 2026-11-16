@@ -92,6 +92,8 @@ ExecStart=runagent /usr/bin/podman run \
 ExecStartPost=podman exec freepbx bash -c "until test -f /var/run/nethvoice/freepbx-ready; do test ! -f /var/run/nethvoice/freepbx-failed || exit 1; ((++attempt<570)) || exit 2; sleep 1; done"
 
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/freepbx.ctr-id
+# Discard reload requests after their producer exits, including failed startup.
+ExecStopPost=/bin/rm -f %E/state/notify/reload_nethcti-server %E/state/notify/restart_reports-api
 PIDFile=%t/freepbx.pid
 Type=forking
 

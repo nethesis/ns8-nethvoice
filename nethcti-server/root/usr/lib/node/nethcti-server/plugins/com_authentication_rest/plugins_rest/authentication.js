@@ -293,6 +293,34 @@ function setCompUser(comp) {
             req.params.password = ssoLogin.tokenPassword;
             logger.log.info(IDLOG, 'trusted SSO login: corresponding username is "' + req.params.username + '"');
           }
+          // internal login (see authentication.internalLogin): accepted only
+          // from a local client, never through the reverse proxy, which always
+          // adds the forwarding headers (their presence counts, even if empty)
+          var internalLogin = false;
+          if ('x-internal-user' in req.headers || 'x-internal-secret' in req.headers) {
+            var proxied = Object.keys(req.headers).some(function (h) {
+              return h.indexOf('x-forwarded-') === 0 || h === 'x-real-ip' || h === 'forwarded';
+            });
+            if (proxied) {
+              logger.log.warn(IDLOG, 'internal login refused: request from the reverse proxy (' + req.headers['x-forwarded-for'] + ')');
+              compUtil.net.sendHttp401(IDLOG, res);
+              return;
+            }
+            internalLogin = compAuthe.internalLogin(req.headers['x-internal-user'], req.headers['x-internal-secret']);
+            // only the exact username of a configured user: no extension
+            // number or "@domain" alias, which the login maps to another user
+            if (!internalLogin || internalLogin.denied ||
+              internalLogin.username.indexOf('@') !== -1 ||
+              !compUser.isUserPresent(internalLogin.username)) {
+
+              logger.log.warn(IDLOG, 'internal login refused for "' + req.headers['x-internal-user'] + '"');
+              compUtil.net.sendHttp401(IDLOG, res);
+              return;
+            }
+            req.params.username = internalLogin.username;
+            req.params.password = internalLogin.tokenPassword;
+            logger.log.info(IDLOG, 'internal login: corresponding username is "' + req.params.username + '"');
+          }
           // username can be a real username or an extension number. This is because
           // the user can do the login with his username or with the main extension number
           var username = req.params.username;
@@ -352,9 +380,9 @@ function setCompUser(comp) {
               compUtil.net.sendHttp401(IDLOG, res);
             }
           };
-          // trusted SSO login skips the password verification (PAM): the user
-          // has already been authenticated by the trusted front-end
-          if (ssoLogin) {
+          // trusted SSO and internal logins skip the password verification
+          // (PAM): the user has already been authenticated by the caller
+          if (ssoLogin || internalLogin) {
             onAuthenticated();
           } else {
             compAuthe.authenticate(username, password, onAuthenticated);
