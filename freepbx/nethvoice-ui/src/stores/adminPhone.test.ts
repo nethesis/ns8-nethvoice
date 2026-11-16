@@ -11,7 +11,7 @@ import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/errors'
 import { CREDENTIALS_STORAGE_KEY } from '@/lib/config'
 import { useLoginStore } from '@/stores/login'
-import { COST_NOTICE_STORAGE_KEY, useAdminPhoneStore } from './adminPhone'
+import { useAdminPhoneStore } from './adminPhone'
 
 vi.mock('@/lib/api/client', () => ({
   api: { GET: vi.fn(), POST: vi.fn(), PATCH: vi.fn(), DELETE: vi.fn(), use: vi.fn() },
@@ -274,25 +274,6 @@ describe('useAdminPhoneStore', () => {
     store.handleIslandEvent('phone-island-call-ended', {})
     expect(store.inCall).toBe(false)
     calls.stop()
-  })
-
-  it('shows the notice about the cost of calls once per session, at the first call', async () => {
-    mockSession()
-    const store = createStore()
-
-    await store.enable()
-    store.handleIslandEvent('phone-island-webrtc-registered', {})
-    expect(notifications.createNotification).not.toHaveBeenCalled()
-
-    await store.call('0612345678')
-    store.handleIslandEvent('phone-island-call-ended', {})
-    await store.call('0612345678')
-
-    expect(notifications.createNotification).toHaveBeenCalledTimes(1)
-    expect(notifications.createNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: 'info', title: 'Calls to external numbers' }),
-    )
-    expect(sessionStorage.getItem(COST_NOTICE_STORAGE_KEY)).toBe('true')
   })
 
   it('enables the phone on start when the browser has no lock manager', async () => {

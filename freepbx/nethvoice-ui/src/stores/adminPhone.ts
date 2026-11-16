@@ -4,7 +4,6 @@
 import { computed, ref, shallowRef, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { useQueryCache } from '@pinia/colada'
-import i18n from '@/i18n'
 import {
   ADMIN_PHONE_LOCK_NAME,
   ADMIN_PHONE_RELOAD_DELAY,
@@ -21,43 +20,22 @@ import {
   type AdminPhoneState,
 } from '@/lib/adminPhone/adminPhone'
 import { useLoginStore } from '@/stores/login'
-import { describeError, useNotificationsStore } from '@/stores/notifications'
-
-export const COST_NOTICE_STORAGE_KEY = 'nethvoiceAdminPhoneCostNotice'
+import { describeError } from '@/stores/notifications'
 
 const wait = (milliseconds: number) =>
   new Promise<void>((resolve) => {
     setTimeout(resolve, milliseconds)
   })
 
-const readCostNoticeShown = (): boolean => {
-  try {
-    return sessionStorage.getItem(COST_NOTICE_STORAGE_KEY) === 'true'
-  } catch {
-    return false
-  }
-}
-
-const saveCostNoticeShown = () => {
-  try {
-    sessionStorage.setItem(COST_NOTICE_STORAGE_KEY, 'true')
-  } catch {
-    return
-  }
-}
-
 export const useAdminPhoneStore = defineStore('adminPhone', () => {
   const loginStore = useLoginStore()
   const queryCache = useQueryCache()
-  const notificationsStore = useNotificationsStore()
-  const { t } = i18n.global
 
   const state = ref<AdminPhoneState>('inactive')
   const inCall = ref(false)
   const errorMessage = ref('')
   const session = shallowRef<AdminPhoneSession | null>(null)
   const pendingNumber = ref('')
-  let costNoticeShown = readCostNoticeShown()
   let attempt = 0
 
   const extension = computed(() => session.value?.extension ?? '')
@@ -66,19 +44,6 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
   const isEnabled = computed(() => state.value === 'starting' || session.value !== null)
   const isConnecting = computed(() => state.value === 'starting' || state.value === 'registering')
   const canCall = computed(() => state.value === 'ready' && !inCall.value)
-
-  const showCostNotice = () => {
-    if (costNoticeShown) {
-      return
-    }
-    costNoticeShown = true
-    saveCostNoticeShown()
-    notificationsStore.createNotification({
-      kind: 'info',
-      title: t('admin_phone.cost_notice_title'),
-      description: t('admin_phone.cost_notice_description'),
-    })
-  }
 
   const startCall = (number: string) => {
     setTimeout(() => {
@@ -238,7 +203,6 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     if (!isCallableNumber(target) || inCall.value || state.value === 'elsewhere') {
       return
     }
-    showCostNotice()
     if (state.value === 'ready') {
       startCall(target)
       return
