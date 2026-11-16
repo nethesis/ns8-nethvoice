@@ -8,7 +8,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faAngleDown, faPhone } from '@fortawesome/free-solid-svg-icons'
-import { NeButton, NeDropdown, NeTooltip, type NeDropdownItem } from '@nethesis/vue-components'
+import { NeDropdown, NeSpinner, NeTooltip, type NeDropdownItem } from '@nethesis/vue-components'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
 import type { OverviewDevice } from '@/lib/overview/overview'
 
@@ -44,38 +44,46 @@ const deviceItems = computed<NeDropdownItem[]>(() =>
 const isMenuDisabled = computed(() => disabled || loading || deviceItems.value.length === 0)
 
 const segmentClasses =
-  'flex h-9 items-center gap-3 rounded-r-md bg-primary-700 pr-3 text-white shadow-sm transition-colors duration-200 dark:bg-primary-500 dark:text-gray-950'
-const dividerClasses = 'h-5 w-px bg-white dark:bg-gray-950'
+  'focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex h-9 items-center gap-3 transition-colors duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2'
 </script>
 
 <template>
-  <div class="inline-flex items-stretch" data-testid="call-split-button">
+  <div
+    :class="[
+      'bg-primary-700 dark:bg-primary-500 inline-flex items-stretch rounded-md text-sm font-medium text-white shadow-xs dark:text-gray-950',
+      { 'opacity-50': disabled },
+    ]"
+    data-testid="call-split-button"
+  >
     <NeTooltip trigger-event="mouseenter focus" class="inline-flex">
       <template #trigger>
-        <NeButton
-          kind="primary"
-          size="lg"
-          class="rounded-r-none!"
-          :disabled="disabled"
-          :loading="loading"
+        <button
+          type="button"
+          :class="[
+            segmentClasses,
+            'rounded-l-md pr-3 pl-3',
+            disabled || loading
+              ? 'cursor-not-allowed'
+              : 'hover:bg-primary-800 dark:hover:bg-primary-300',
+          ]"
+          :disabled="disabled || loading"
           :aria-describedby="describedBy"
           data-testid="call-operator"
           @click="emit('call')"
         >
-          <template #prefix>
-            <FontAwesomeIcon :icon="faPhone" class="size-4" aria-hidden="true" />
-          </template>
+          <NeSpinner v-if="loading" size="4" color="white" />
+          <FontAwesomeIcon v-else :icon="faPhone" class="size-4" aria-hidden="true" />
           {{ t('user_overview.call') }}
-        </NeButton>
+        </button>
       </template>
       <template #content>{{ tooltip }}</template>
     </NeTooltip>
+    <span class="my-2 w-px bg-white dark:bg-gray-950" aria-hidden="true"></span>
     <span
       v-if="isMenuDisabled"
-      :class="[segmentClasses, 'cursor-not-allowed opacity-50']"
+      :class="[segmentClasses, 'cursor-not-allowed rounded-r-md px-3']"
       data-testid="call-device-menu-disabled"
     >
-      <span :class="dividerClasses" aria-hidden="true"></span>
       <FontAwesomeIcon :icon="faAngleDown" class="size-4" aria-hidden="true" />
       <span class="sr-only">{{ t('user_overview.call_device_unavailable') }}</span>
     </span>
@@ -84,18 +92,17 @@ const dividerClasses = 'h-5 w-px bg-white dark:bg-gray-950'
       :items="deviceItems"
       :open-menu-aria-label="t('user_overview.call_device')"
       menu-classes="z-150!"
-      class="*:focus-visible:outline-hidden"
+      class="flex *:focus-visible:outline-hidden"
       data-testid="call-device-menu"
     >
       <template #button>
         <span
           :class="[
             segmentClasses,
-            'in-focus-visible:ring-primary-500 dark:in-focus-visible:ring-primary-300 hover:bg-primary-800 dark:hover:bg-primary-300 dark:in-focus-visible:ring-offset-primary-950 in-focus-visible:ring-2 in-focus-visible:ring-offset-2 in-focus-visible:ring-offset-white',
+            'hover:bg-primary-800 dark:hover:bg-primary-300 in-focus-visible:ring-primary-500 dark:in-focus-visible:ring-primary-300 in-focus-visible:ring-offset-primary-950 rounded-r-md px-3 text-white in-focus-visible:ring-2 in-focus-visible:ring-offset-2 dark:text-gray-950',
           ]"
           aria-hidden="true"
         >
-          <span :class="dividerClasses"></span>
           <FontAwesomeIcon :icon="faAngleDown" class="size-4" />
         </span>
       </template>
