@@ -7,8 +7,9 @@
 import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faChevronDown, faPhone, faUsers } from '@fortawesome/free-solid-svg-icons'
-import { NeBadgeV2, NeButton, NeSideDrawer, NeTooltip } from '@nethesis/vue-components'
+import { faChevronDown, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { NeBadgeV2, NeSideDrawer } from '@nethesis/vue-components'
+import CallSplitButton from '@/components/overview/CallSplitButton.vue'
 import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
@@ -86,8 +87,8 @@ const callTooltip = computed(() => {
   }
 })
 
-function callOperator() {
-  void adminPhoneStore.call(mainExtension.value)
+function callOperator(extension?: string) {
+  void adminPhoneStore.call(extension ?? mainExtension.value)
 }
 
 function getDeviceLabel(device: OverviewDevice) {
@@ -119,24 +120,14 @@ function getDeviceLabel(device: OverviewDevice) {
         </div>
       </div>
       <div>
-        <NeTooltip trigger-event="mouseenter focus" class="inline-block">
-          <template #trigger>
-            <NeButton
-              kind="primary"
-              :disabled="isCallDisabled"
-              :aria-describedby="isCallDisabled ? `${idPrefix}-call-reason` : undefined"
-              :loading="adminPhoneStore.isConnecting"
-              data-testid="call-operator"
-              @click="callOperator"
-            >
-              <template #prefix>
-                <FontAwesomeIcon :icon="faPhone" class="size-4" aria-hidden="true" />
-              </template>
-              {{ t('user_overview.call') }}
-            </NeButton>
-          </template>
-          <template #content>{{ callTooltip }}</template>
-        </NeTooltip>
+        <CallSplitButton
+          :devices="devices"
+          :disabled="isCallDisabled"
+          :loading="adminPhoneStore.isConnecting"
+          :tooltip="callTooltip"
+          :described-by="isCallDisabled ? `${idPrefix}-call-reason` : undefined"
+          @call="callOperator"
+        />
         <p
           v-if="isCallDisabled"
           :id="`${idPrefix}-call-reason`"

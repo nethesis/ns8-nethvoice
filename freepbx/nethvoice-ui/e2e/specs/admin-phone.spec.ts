@@ -111,7 +111,7 @@ test.describe('administrator phone', () => {
     await page.goto('./users/overview')
 
     await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
-    const callButton = page.getByRole('button', { name: 'Call' })
+    const callButton = page.getByRole('button', { name: 'Call', exact: true })
 
     await callButton.hover()
     await expect(page.getByRole('tooltip', { name: 'Enable the phone and call 300' })).toBeVisible()
@@ -128,6 +128,44 @@ test.describe('administrator phone', () => {
     await callButton.click()
     await expect(island(page)).toHaveAttribute('data-calls', '300,300')
     expect(mockApi.callsTo('POST', SESSION_PATH)).toHaveLength(1)
+  })
+
+  test('calls a single online device from the call menu', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+      .on('GET', '/api/astproxy/extensions', {
+        json: {
+          '300': { status: 'online', codecs: [] },
+          '91300': { status: 'online', codecs: [] },
+          '92300': { status: 'offline', codecs: [] },
+        },
+      })
+      .on('GET', '/api/user/endpoints/all', {
+        json: {
+          'a.miller': {
+            name: 'Anna Miller',
+            username: 'a.miller',
+            mainPresence: 'online',
+            presence: 'online',
+            endpoints: {
+              mainextension: [{ id: '300' }],
+              extension: [
+                { id: '91300', type: 'webrtc' },
+                { id: '92300', type: 'mobile' },
+              ],
+            },
+          },
+        },
+      })
+      .on('POST', SESSION_PATH, { json: SESSION })
+    await page.goto('./users/overview')
+
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    await page.getByRole('button', { name: 'Call a device' }).click()
+
+    await expect(page.getByRole('menuitem')).toHaveText(['91300'])
+    await page.getByRole('menuitem', { name: '91300' }).click()
+
+    await expect(island(page)).toHaveAttribute('data-calls', '91300')
   })
 
   test('regenerates the credentials from the account menu', async ({ page, mockApi }) => {
