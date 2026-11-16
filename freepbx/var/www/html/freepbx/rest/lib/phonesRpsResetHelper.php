@@ -89,9 +89,11 @@ foreach ($mac_addresses as $mac_address) {
     $mac_address = implode('-', str_split($compactMac, 2));
     
     // Call Tancredi API to create a new tok1
-    $queryUrl = "http://{$_ENV['NETHVOICE_HOST']}/tancredi/api/v1/phones/{$mac_address}/tok1";
+    $queryUrl = "http://127.0.0.1:{$_ENV['TANCREDIPORT']}/tancredi/api/v1/phones/{$mac_address}/tok1";
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $queryUrl);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
 
     curl_setopt($ch, CURLOPT_HEADER, FALSE);
@@ -115,9 +117,11 @@ foreach ($mac_addresses as $mac_address) {
     }
 
     // Call Tancredi API to get provisioning url for the phone
-    $queryUrl = "http://{$_ENV['NETHVOICE_HOST']}/tancredi/api/v1/phones/{$mac_address}";
+    $queryUrl = "http://127.0.0.1:{$_ENV['TANCREDIPORT']}/tancredi/api/v1/phones/{$mac_address}";
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $queryUrl);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
     curl_setopt($ch, CURLOPT_HEADER, FALSE);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
     curl_setopt($ch, CURLOPT_HTTPHEADER, array(

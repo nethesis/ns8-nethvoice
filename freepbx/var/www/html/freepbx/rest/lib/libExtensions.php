@@ -563,6 +563,8 @@ function setFalconieriRPS($mac, $provisioningUrl, $lk = null, $secret = null) {
 
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $queryUrl);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 5);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 15);
     curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 
