@@ -24,6 +24,7 @@ teardown_file () {
     run GET /tancredi/api/v1/models/fanvil-i62
     assert_http_code "200"
     assert_http_body '"cap_door_phone":"1"'
+    assert_http_body '"cap_door_rtsp_adminpw":"1"'
     assert_http_body '"tmpl_phone":"fanvil-i6x.tmpl"'
     assert_http_body '"door_rtsp_path":"/h264/stream.live1"'
 }
@@ -97,11 +98,30 @@ EOF
     ! assert_http_body "RTSP Server Passwd"
 }
 
-@test "Door phone without RTSP password leaves the device RTSP credentials untouched" {
+@test "Door phone RTSP password defaults to the admin password on i6x" {
     run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
 {
     "variables": {
         "door_rtsp_password": ""
+    }
+}
+EOF
+    assert_http_code "200"
+
+    run GET "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}"
+    tok1=$(extract_field "tok1")
+    run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/${tok1}/0c383eaabbe0.cfg"
+    assert_http_code "200"
+    assert_http_body "RTSP Server User   :nethvoice"
+    assert_http_body "RTSP Server Passwd :doorweb123"
+}
+
+@test "Door phone without RTSP password leaves the device RTSP credentials untouched" {
+    run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
+{
+    "variables": {
+        "door_rtsp_password": "",
+        "cap_door_rtsp_adminpw": ""
     }
 }
 EOF
