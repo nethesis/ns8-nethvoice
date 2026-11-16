@@ -3943,6 +3943,11 @@ a.black:active {
   margin-bottom: -4px !important;
 }
 
-.streaming-nowrap {
+/* Action column as narrow as its button, button centred */
+.streaming-action-cell {
+  width: 1%;
   white-space: nowrap;
+  text-align: center;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
 }
