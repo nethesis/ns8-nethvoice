@@ -256,10 +256,13 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(s.reachability.reachable).toBe(false);
   });
 
-  it('never sends the door phone reference when a source is modified', function () {
+  it('keeps a modified source linked until different credentials are chosen', function () {
     var stored = storedSource();
     stored.door_phone = '0C-38-3E-32-6B-84';
     scope.modifySource(stored);
+    expect(scope.sourcePayload(scope.newSource).door_phone).toBe('0C-38-3E-32-6B-84');
+    scope.useDifferentCredentials(scope.newSource);
+    expect(scope.newSource.user).toBe('');
     expect(scope.sourcePayload(scope.newSource).door_phone).toBeUndefined();
   });
 });

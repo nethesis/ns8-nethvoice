@@ -206,19 +206,25 @@ function door_phone_request_secret(array $data): ?string
 
 /*
  * Give the sources linked to a door phone ("door_phone") the current password
- * of the door phone, e.g. after the administrator changed it in the phone
- * settings. Return the number of updated sources. Errors are logged: a source
+ * of the door phone: at every configuration reload, and when the
+ * administrator saves the settings of a door phone ($mac). Return the number of updated sources. Errors are logged: a source
  * keeps its stored password when Tancredi cannot be read.
  */
-function door_phone_sync_sources(\PDO $db): int
+function door_phone_sync_sources(\PDO $db, ?string $mac = null, ?callable $variables = null): int
 {
+    $variables = $variables ?? 'door_phone_variables';
     $updated = 0;
-    $stmt = $db->query("SELECT `descr`, `user`, `secret`, `door_phone` FROM `rest_cti_streaming` WHERE `door_phone` IS NOT NULL AND `door_phone` != ''");
+    if ($mac === null) {
+        $stmt = $db->query("SELECT `descr`, `user`, `secret`, `door_phone` FROM `rest_cti_streaming` WHERE `door_phone` IS NOT NULL AND `door_phone` != ''");
+    } else {
+        $stmt = $db->prepare("SELECT `descr`, `user`, `secret`, `door_phone` FROM `rest_cti_streaming` WHERE `door_phone` = ?");
+        $stmt->execute([$mac]);
+    }
     $update = $db->prepare('UPDATE `rest_cti_streaming` SET `secret` = ? WHERE `descr` = ?');
     foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
         try {
-            $mac = streaming_door_phone_mac((string) $row['door_phone']);
-            $phone = $mac !== null ? door_phone_variables($mac) : null;
+            $phoneMac = streaming_door_phone_mac((string) $row['door_phone']);
+            $phone = $phoneMac !== null ? $variables($phoneMac) : null;
             if ($phone === null || !streaming_is_door_phone($phone['variables'])) {
                 continue;
             }

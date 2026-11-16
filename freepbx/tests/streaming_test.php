@@ -12,6 +12,7 @@
 
 require_once __DIR__ . '/../var/www/html/freepbx/rest/lib/libStreaming.php';
 require_once __DIR__ . '/../initdb.d/streaming-migration.php';
+require_once __DIR__ . '/../var/www/html/freepbx/rest/lib/libDoorPhones.php';
 
 $failures = 0;
 $count = 0;
@@ -817,6 +818,26 @@ $connected = [];
 check(streaming_tcp_reachability('rtsp://127.0.0.1:554/x', $fakeConnect)['reachable'] === false && $connected === [], 'loopback never contacted');
 check(streaming_tcp_reachability('rtsp://door.invalid:554/x', $fakeConnect, function () { return []; })['reachable'] === false, 'unresolved name');
 expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('http://192.0.2.1/x.jpg', $fakeConnect); }, 'url', 'only RTSP URLs');
+
+// --- Sources linked to a door phone follow its password -------------------------
+
+$sqlite = new \PDO('sqlite::memory:');
+$sqlite->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+$sqlite->exec('CREATE TABLE `rest_cti_streaming` (`descr` TEXT PRIMARY KEY, `user` TEXT, `secret` TEXT, `door_phone` TEXT)');
+$sqlite->exec("INSERT INTO `rest_cti_streaming` VALUES ('Linked', 'admin', 'Old1', '0C-38-3E-32-6B-84'), ('Other', 'admin', 'Mine1', NULL), ('Gone', 'admin', 'Keep1', '0C-38-3E-00-00-01'), ('Typed', 'viewer', 'Viewer1', '0C-38-3E-32-6B-84')");
+$tancredi = function (string $mac) use ($i6x) {
+    if ($mac === '0C-38-3E-32-6B-84') {
+        return ['variables' => $i6x, 'phone_variables' => ['adminpw' => 'New1']];
+    }
+    return null;
+};
+check(door_phone_sync_sources($sqlite, '0C-38-3E-00-00-09', $tancredi) === 0, 'sync of an unrelated door phone changes nothing');
+check(door_phone_sync_sources($sqlite, null, $tancredi) === 1, 'one linked source updated');
+$secrets = $sqlite->query('SELECT `descr`, `secret` FROM `rest_cti_streaming` ORDER BY `descr`')->fetchAll(\PDO::FETCH_KEY_PAIR);
+check($secrets === ['Gone' => 'Keep1', 'Linked' => 'New1', 'Other' => 'Mine1', 'Typed' => 'Viewer1'], 'linked source follows the door phone; others, missing door phones and other users untouched');
+check(door_phone_sync_sources($sqlite, '0C-38-3E-32-6B-84', $tancredi) === 0, 'nothing to do the second time');
+$failing = function () { throw new \RuntimeException('Tancredi down'); };
+check(door_phone_sync_sources($sqlite, null, $failing) === 0, 'Tancredi errors keep the stored passwords');
 
 if ($failures > 0) {
     fwrite(STDERR, "$failures of $count checks failed\n");
