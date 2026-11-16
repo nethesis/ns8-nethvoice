@@ -157,7 +157,7 @@ test.describe('dashboard', () => {
     await expect(counterValue(page, 'outboundRoutes')).toHaveText('7')
 
     await expect(page.getByTestId('subscription-plan')).toHaveText('Enterprise')
-    await expect(page.getByTestId('extensions-usage')).toHaveText('5')
+    await expect(page.getByTestId('extensions-usage')).toHaveCount(0)
     await expect(page.getByTestId('updated-at')).toContainText('Updated at')
 
     const presence = page.getByTestId('presence-card')
