@@ -111,7 +111,7 @@
       "outbound_routes": "Rotte in uscita"
     },
     "system": {
-      "subscription": "Sottoscrizione",
+      "subscription": "Subscription",
       "enterprise": "Enterprise",
       "community": "Community",
       "extensions": "Interni",
