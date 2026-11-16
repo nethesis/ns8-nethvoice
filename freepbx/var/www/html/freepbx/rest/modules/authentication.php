@@ -57,7 +57,7 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
         include_once(__DIR__.'/../../admin/libraries/ampuser.class.php');
         session_start();
         $_SESSION['AMP_user'] = new ampuser($username);
-        if ($_SESSION['AMP_user']->checkPassword($password) && $_SESSION['AMP_user']->checkSection('*')) {
+        if ($_SESSION['AMP_user']->checkPassword($password) && ($_SESSION['AMP_user']->checkSection('*') || nethvoiceParseSections($_SESSION['AMP_user']->getSections()))) {
             unset($no_auth);
             require(__DIR__.'/../config.inc.php');
             $secret = $config['settings']['secretkey'];
@@ -69,3 +69,9 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
     return $response->withStatus(401);
 });
 
+$app->get('/me', function (Request $request, Response $response) {
+    return jsonResponse($response, [
+        'username' => $request->getAttribute(NETHVOICE_USERNAME_ATTRIBUTE),
+        'permissions' => $request->getAttribute(NETHVOICE_PERMISSIONS_ATTRIBUTE),
+    ]);
+});

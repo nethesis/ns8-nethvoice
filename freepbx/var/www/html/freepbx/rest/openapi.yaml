@@ -9,7 +9,8 @@ info:
 
     Each request must include two HTTP headers:
 
-    - `User`: must be a valid FreePBX administrator (ampusers table)
+    - `User`: must be a valid FreePBX administrator (ampusers table) with the `*`
+    section or at least one `nethvoice:<section>` section
 
     - `Secretkey`: must be a valid hash calculated from user + password (SHA1) + shared
     secret
@@ -68,6 +69,29 @@ paths:
         true }`.'
       operationId: get_logout
       security: []
+  /me:
+    get:
+      summary: Return the authenticated administrator and the sections he can manage.
+      description: '`superadmin` grants every section and the endpoints reserved to
+        the FreePBX administrator. Requests to a section the administrator cannot
+        manage are rejected with 403 and `{ "message": "Forbidden: missing permission"
+        }`.'
+      tags:
+      - Authentication
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentAdmin'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: get_me
   /testauth:
     post:
       summary: Validate FreePBX credentials and disclose the shared secret.
@@ -4705,6 +4729,29 @@ components:
       properties:
         success:
           type: boolean
+    AdminSection:
+      type: string
+      enum:
+      - superadmin
+      - dashboard
+      - users
+      - trunks
+      - routes
+      - phones
+      - integrations
+      - settings
+    CurrentAdmin:
+      type: object
+      required:
+      - username
+      - permissions
+      properties:
+        username:
+          type: string
+        permissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminSection'
     WizardState:
       type: object
       required:
