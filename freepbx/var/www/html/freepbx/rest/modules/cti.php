@@ -25,6 +25,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 include_once('lib/libCTI.php');
 include_once('lib/libMiddleware.php');
 include_once('lib/libStreaming.php');
+include_once('lib/libDoorPhones.php');
 
 /* GET /cti/profiles
 Return: [{id:1, name: admin, macro_permissions [ oppanel: {value: true, permissions [ {name: "foo", description: "descrizione...", value: false},{..} ]}
@@ -1038,6 +1039,61 @@ $app->get('/cti/streaming', function (Request $request, Response $response, $arg
 });
 
 /*
+ * GET /cti/streaming/doorphones
+ * Provisioned door phones (model with the "cap_door_phone" capability)
+ * assigned to an extension: [{ mac, model, model_name, extension, name, ip,
+ * registered, url, user, has_secret, dtmf_code, sources }]. "ip" comes from
+ * the SIP registration of the extension (null if not registered), "url" is
+ * the suggested RTSP URL (empty without "ip"), "sources" the names of the
+ * sources that already use the extension. Secrets are never returned.
+ */
+$app->get('/cti/streaming/doorphones', function (Request $request, Response $response, $args) {
+    try {
+        $items = door_phone_list(streaming_load_sources(FreePBX::Database()));
+        return jsonResponse($response, array_values($items));
+    } catch (Throwable $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
+
+/*
+ * POST /cti/streaming/doorphones/:mac
+ * Prepare a video source for a door phone: generate its RTSP password (and
+ * user name) if it has none yet, store them as Tancredi phone variables, so
+ * that its provisioning writes them on the device, and ask the device to
+ * fetch its configuration. Answer the form prefill
+ * { descr, exten, url, user, has_secret, door_phone, gates, ip, registered,
+ *   credentials_generated }: the password is not returned, POST
+ * /cti/streaming and POST /cti/sources/test use the stored one when they get
+ * "door_phone" (the MAC), the same "user" and no "secret".
+ */
+$app->post('/cti/streaming/doorphones/{mac}', function (Request $request, Response $response, $args) {
+    try {
+        $mac = streaming_door_phone_mac((string) $args['mac']);
+        if ($mac === null) {
+            return jsonResponse($response, ['status' => 'invalid door phone'], 400);
+        }
+        $sources = streaming_load_sources(FreePBX::Database());
+        $items = door_phone_list($sources);
+        if (!isset($items[$mac])) {
+            return jsonResponse($response, ['status' => 'door phone not found'], 404);
+        }
+        $phone = door_phone_variables($mac);
+        $generated = door_phone_ensure_credentials($mac, $phone['variables'], $items[$mac]['extension']);
+        if ($generated) {
+            $items = door_phone_list($sources);
+        }
+        $prefill = streaming_door_phone_prefill($items[$mac]);
+        $prefill['credentials_generated'] = $generated;
+        return jsonResponse($response, $prefill);
+    } catch (Throwable $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
+
+/*
  * GET /cti/paramurls { url: string, profiles: array, only_queue: boolean }
  */
 $app->get('/cti/paramurls', function (Request $request, Response $response, $args) {
@@ -1139,7 +1195,9 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
 
 /*
  * POST /cti/streaming
- * { descr, url, user, secret, exten, frame-rate, open, gates: [{ name, type, code | url, method, username, password }], tls_skip_verify, profiles }
+ * { descr, url, user, secret, exten, frame-rate, open, gates: [{ name, type, code | url, method, username, password }], tls_skip_verify, profiles, door_phone }
+ * "door_phone" (MAC of a door phone, see POST /cti/streaming/doorphones/:mac)
+ * without "secret" and with the door phone user name uses its stored password.
  * The type ("image" for http(s), "rtsp" for rtsp(s)) follows the URL scheme;
  * credentials pasted into the URL are stored separately.
  * "tls_skip_verify" (default false, stored as false when neither the URL nor
@@ -1156,6 +1214,11 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         if (!is_array($data)) {
             return jsonResponse($response, ['status' => 'Invalid request'], 400);
         }
+        // Created from a door phone: its generated password, never sent to the client
+        $doorSecret = door_phone_request_secret($data);
+        if ($doorSecret !== null) {
+            $data['secret'] = $doorSecret;
+        }
         $source = streaming_normalize_source($data);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
         $source = streamingPinCertificate($source);
@@ -1168,7 +1231,7 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
 });
 
 /*
- * POST /cti/sources/test { url, user, secret, descr, tls_skip_verify, details }
+ * POST /cti/sources/test { url, user, secret, descr, tls_skip_verify, details, door_phone }
  *
  * Check a video source and return a preview. "descr" is the name of a stored
  * source: when "secret" is empty its stored password is used, and when
@@ -1211,6 +1274,15 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         if ($parsed['has_credentials']) {
             $user = $user !== '' ? $user : $parsed['user'];
             $secret = $secret !== '' ? $secret : $parsed['secret'];
+        }
+        // A source being created from a door phone: its generated password
+        try {
+            $doorSecret = door_phone_request_secret(['door_phone' => $data['door_phone'] ?? null, 'user' => $user, 'secret' => $secret]);
+        } catch (StreamingValidationException $e) {
+            return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
+        }
+        if ($doorSecret !== null) {
+            $secret = $doorSecret;
         }
         $stored = null;
         if (isset($data['descr']) && is_string($data['descr']) && $data['descr'] !== '') {

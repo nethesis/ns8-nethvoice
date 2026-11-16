@@ -17,6 +17,9 @@
  * With the option the PBX pins the certificate each TLS device presents when
  * the source is saved ("tls_fingerprint" of the source and of its gates);
  * "tls_unpinned" flags a source saved by an older version without them.
+ * A source can be created from a provisioned door phone: the PBX generates
+ * the RTSP password of the device and the form references it by
+ * "door_phone" (the MAC) instead of receiving it.
  */
 angular.module('nethvoiceWizardUiApp')
   .controller('AppsStreamingCtrl', function ($scope, $filter, ProfileService, ApplicationService, UserService) {
@@ -29,6 +32,9 @@ angular.module('nethvoiceWizardUiApp')
     $scope.urlPattern = /^(https?|rtsps?):\/\/[^\s]+$/i;
     $scope.httpPattern = /^https?:\/\/[^\s]+$/i;
     $scope.dtmfPattern = /^[0-9A-Da-d*#+]{1,30}$/;
+    $scope.doorPhones = [];
+    $scope.doorPhonesLoading = false;
+    $scope.doorPhonesError = false;
 
     var reasonMessages = {
       auth_failed: 'Wrong username or password',
@@ -114,6 +120,7 @@ angular.module('nethvoiceWizardUiApp')
         exten: s.exten,
         tls_skip_verify: $scope.tlsSkipVerify(s),
         profiles: s.profiles,
+        door_phone: !s.onMod && s.door_phone ? s.door_phone : undefined,
         gates: (s.gates || []).map(function (gate) {
           var item = {
             id: gate.id,
@@ -263,6 +270,9 @@ angular.module('nethvoiceWizardUiApp')
       var storedDescr = s.currentDescr || (s.permission ? s.descr : null);
       if (storedDescr) {
         request.descr = storedDescr;
+      } else if (s.door_phone) {
+        // New source from a door phone: the API uses its generated password
+        request.door_phone = s.door_phone;
       }
       ApplicationService.checkConnectionVideoSource(request).then(function (res) {
         var check = res.data || {};
@@ -276,6 +286,59 @@ angular.module('nethvoiceWizardUiApp')
         s.isChecking = false;
         s.verified = false;
         s.check = { success: false, reason: 'unknown', message: err && err.data && err.data.status ? err.data.status : '' };
+        console.log(err);
+      });
+    };
+
+    // Door phones provisioned by the PBX (model with the door phone flag)
+    $scope.getDoorPhones = function () {
+      $scope.doorPhonesLoading = true;
+      $scope.doorPhonesError = false;
+      ApplicationService.allDoorPhones().then(function (res) {
+        $scope.doorPhones = res.data || [];
+        $scope.doorPhonesLoading = false;
+      }, function (err) {
+        $scope.doorPhones = [];
+        $scope.doorPhonesLoading = false;
+        $scope.doorPhonesError = true;
+        console.log(err);
+      });
+    };
+
+    // Fill the new source form from a door phone, generating its RTSP
+    // credentials on the first use
+    $scope.useDoorPhone = function (d) {
+      d.onPrepare = true;
+      $scope.doorPhonesError = false;
+      ApplicationService.prepareDoorPhone(d.mac).then(function (res) {
+        var p = res.data || {};
+        var s = emptySource();
+        s.descr = p.descr;
+        s.exten = p.exten;
+        s.url = p.url || '';
+        s.user = p.user || '';
+        s.has_secret = !!p.has_secret;
+        s.door_phone = p.door_phone;
+        s.doorPhoneIp = p.ip;
+        s.doorPhoneRegistered = !!p.registered;
+        s.credentialsGenerated = !!p.credentials_generated;
+        s.gates = (p.gates || []).map(function (gate, index) {
+          return {
+            name: $filter('translate')('Door') + ' ' + (index + 1),
+            type: gate.type,
+            code: gate.code,
+            method: 'GET'
+          };
+        });
+        d.onPrepare = false;
+        $scope.newSource = s;
+        // Open the form once the list is closed: two modals at once break the backdrop
+        $('#doorPhoneModal').one('hidden.bs.modal', function () {
+          $('#newSourceModal').modal('show');
+        }).modal('hide');
+      }, function (err) {
+        d.onPrepare = false;
+        $scope.doorPhonesError = true;
         console.log(err);
       });
     };
