@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Store the instance name given in the cluster administration in
+# NETHVOICE_UI_NAME: the administration UI shows it in the top bar of
+# Enterprise systems. The name is the argument, or the ui_name of the module
+# when it is missing. A running freepbx gets the new name in its UI
+# configuration without restarting; otherwise the entrypoint writes it at the
+# next start.
+
+import os
+import subprocess
+import sys
+
+import agent
+
+UI_CONFIG = "/var/www/html/freepbx/nethvoice-ui/config.json"
+UPDATE_UI_CONFIG = (
+    '$file = getenv("UI_CONFIG");'
+    '$config = json_decode((string) @file_get_contents($file), true);'
+    'if (!is_array($config)) { exit(1); }'
+    '$config["INSTANCE_NAME"] = getenv("NETHVOICE_UI_NAME");'
+    'file_put_contents($file, json_encode($config, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT) . "\\n");'
+)
+
+if len(sys.argv) > 1:
+    name = sys.argv[1]
+else:
+    rdb = agent.redis_connect(use_replica=True)
+    name = rdb.get(f"module/{os.environ['MODULE_ID']}/ui_name") or ""
+
+agent.set_env("NETHVOICE_UI_NAME", name)
+
+subprocess.run(
+    ["podman", "exec", "--env", f"UI_CONFIG={UI_CONFIG}", "--env", f"NETHVOICE_UI_NAME={name}",
+     "freepbx", "php", "-r", UPDATE_UI_CONFIG],
+    stdout=subprocess.DEVNULL,
+    stderr=subprocess.DEVNULL,
+    check=False,
+)

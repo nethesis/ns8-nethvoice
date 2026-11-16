@@ -1,0 +1,16 @@
+#!/bin/bash
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Store the instance name for the administration UI. Also linked from
+# update-module.d, for instances named before the UI showed the name. A
+# failure must not stop them.
+
+exec 1>&2
+
+if ! sync-ui-name; then
+    echo "Warning: instance name not stored for the administration UI"
+fi
