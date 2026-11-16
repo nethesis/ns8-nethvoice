@@ -56,7 +56,8 @@ test("CleverAI trunk accepts only name and project, without local secrets or dis
   });
   await page.goto("./#/trunks");
   await page.getByRole("button", { name: "Create trunk", exact: true }).click();
-  await page.getByRole("radio", { name: "CleverAI", exact: true }).check();
+  await page.getByRole("combobox", { name: "Voice provider" }).click();
+  await page.getByRole("option", { name: "CleverAI", exact: true }).click();
   for (const label of [
     "Provider API key",
     "Webhook signing secret",
@@ -142,7 +143,8 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
     });
   });
   await page.goto("./#/agents/new");
-  await page.getByRole("radio", { name: "CleverAI", exact: true }).check();
+  await page.getByRole("combobox", { name: "Agent type" }).click();
+  await page.getByRole("option", { name: "CleverAI", exact: true }).click();
   for (const label of [
     "Conversation instructions",
     "Greeting",

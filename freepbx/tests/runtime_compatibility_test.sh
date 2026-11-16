@@ -28,6 +28,9 @@ cleanup() {
 trap cleanup EXIT
 mkdir -p "$test_dir"/{etc,data,run,log,spool,cache}
 ln -s /var/lib/asterisk/documentation "$test_dir/data/documentation"
+test -L /etc/asterisk/extensions.conf
+test -r /etc/asterisk/extensions.conf
+cp -a /etc/asterisk/extensions*.conf "$test_dir/etc/"
 cat > "$test_dir/etc/asterisk.conf" <<EOF
 [directories]
 astetcdir => $test_dir/etc
@@ -53,6 +56,7 @@ load=format_g729.so
 load=format_sln.so
 load=format_mp3.so
 load=res_convert.so
+load=pbx_config.so
 EOF
 dd if=/dev/zero of="$test_dir/input.sln" bs=160 count=20 status=none
 chown -R asterisk:asterisk "$test_dir"
@@ -80,6 +84,9 @@ if ! codec_running; then
     exit 1
 fi
 ast 'core waitfullybooted' >/dev/null
+ast 'module show like pbx_config.so' | grep -E '^pbx_config\.so[[:space:]].*[[:space:]][0-9]+[[:space:]]+Running[[:space:]]' >/dev/null
+ast 'dialplan show from-internal' | grep -F "[ Context 'from-internal'" >/dev/null
+echo 'The image bootstrap dialplan loads before FreePBX initialization'
 ast "file convert $test_dir/input.sln $test_dir/encoded.g729"
 test -s "$test_dir/encoded.g729"
 ast "file convert $test_dir/encoded.g729 $test_dir/decoded.sln"

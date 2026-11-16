@@ -68,6 +68,7 @@ Check if the facts are returned as expected
     Dictionary Should Contain Key    ${response}    nethvoice_ai_voicemail_transcription_enabled
 
     Dictionary Should Contain Key   ${response}    nethvoice_subscription_enabled
+    Dictionary Should Contain Key   ${response}    nethvoice_alerts_enabled
     Dictionary Should Contain Key   ${response}    nethvoice_user_domain_type
     Dictionary Should Contain Key   ${response}    nethvoice_user_domain_location
 

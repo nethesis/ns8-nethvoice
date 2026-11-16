@@ -1,0 +1,22 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Tell the other modules (e.g. WebTop) that the chat may have been switched on or off.
+
+import json
+import os
+
+import agent
+
+with agent.redis_connect(privileged=True) as prdb:
+    prdb.publish(os.environ['AGENT_ID'] + "/event/chat-settings-changed", json.dumps({
+        "reason": os.getenv("AGENT_TASK_ACTION", "unknown"),
+        "module_id": os.environ['MODULE_ID'],
+        "node_id": int(os.environ['NODE_ID']),
+        "module_uuid": os.environ['MODULE_UUID'],
+        "chat_enabled": os.getenv("CHAT_ENABLED", "false") == "true",
+    }))

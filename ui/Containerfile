@@ -1,11 +1,13 @@
 FROM docker.io/library/node:26.13.0-slim as node_builder
+# renovate: datasource=npm packageName=corepack
+ARG COREPACK_VERSION=0.36.0
 WORKDIR /app
 # install deps
 COPY package.json .
 COPY yarn.lock .
 COPY .yarnrc.yml .
 RUN --mount=type=cache,id=nethvoice-ui-yarn,target=/var/cache/yarn \
-    npm install -g corepack && corepack enable && \
+    npm install -g corepack@${COREPACK_VERSION} && corepack enable && \
     YARN_CACHE_FOLDER=/var/cache/yarn yarn install --immutable
 # copy application
 COPY public public

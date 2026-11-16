@@ -1,7 +1,10 @@
 // Package address: the tenant's XMPP addresses, how they are built and read.
 package address
 
-import "strings"
+import (
+	"regexp"
+	"strings"
+)
 
 // The services ejabberd runs beside the tenant's domain.
 func MUC(host string) string    { return "conference." + host }
@@ -34,3 +37,14 @@ func Thread(name string) string { return toThread.Replace(name) }
 
 // Name is the group name behind an app address.
 func Name(thread string) string { return fromThread.Replace(thread) }
+
+var username = regexp.MustCompile(`^[a-z0-9][a-z0-9._-]*$`)
+
+// Author is who wrote in a room as a notification or the app shows it: colleagues by name, people
+// outside by the nick they chose (never username-like), marked so they never pass for a colleague.
+func Author(nick, name string) string {
+	if nick == "" || username.MatchString(nick) {
+		return name
+	}
+	return strings.TrimSuffix(nick, " ·") + " (External)"
+}

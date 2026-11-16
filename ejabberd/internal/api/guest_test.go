@@ -1,6 +1,14 @@
 package api
 
-import "testing"
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"github.com/nethesis/ns8-nethvoice/ejabberd/internal/store"
+)
 
 func TestGuestNick(t *testing.T) {
 	taken := map[string]bool{"Mario Rossi": true, "Mario Rossi 2": true}
@@ -24,5 +32,63 @@ func TestGuestName(t *testing.T) {
 		if _, ok := guestName(in); ok {
 			t.Errorf("guestName(%q) accepted", in)
 		}
+	}
+}
+
+// A room with guests that ejabberd no longer has loses its link and guests; one still there keeps them.
+func TestDropGoneExtRooms(t *testing.T) {
+	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var args map[string]string
+		_ = json.NewDecoder(r.Body).Decode(&args)
+		if args["room"] == "g-gone" {
+			http.Error(w, `"The room does not exist."`, http.StatusBadRequest)
+			return
+		}
+		w.Write([]byte(`[]`))
+	}))
+	defer api.Close()
+	st, err := store.Open(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, room := range []string{"g-gone", "g-here"} {
+		if err := st.PutExtRoom(store.ExtRoom{Room: room, Title: room, Owner: "mario", Link: "link-" + room}); err != nil {
+			t.Fatal(err)
+		}
+		if err := st.PutGuest(store.Guest{ID: "g~" + room, Room: room, Name: "Ada", Nick: "Ada", Token: "token-" + room}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	s := &Server{Host: "chat.internal", EjabberdAPI: api.URL, Store: st}
+	s.DropGoneExtRooms(context.Background())
+	if e, _ := st.ExtRoom("g-gone"); e != nil {
+		t.Error("gone room kept")
+	}
+	if g, _ := st.Guests("g-gone"); len(g) != 0 {
+		t.Errorf("gone room's guests kept: %v", g)
+	}
+	if e, _ := st.ExtRoom("g-here"); e == nil {
+		t.Error("live room dropped")
+	}
+	if g, _ := st.Guests("g-here"); len(g) != 1 {
+		t.Errorf("live room's guests = %v", g)
+	}
+}
+
+// A colleague's name passes neither with other letters that look the same nor with case, accents or dots.
+func TestSkeleton(t *testing.T) {
+	want := skeleton("Mario Rossi")
+	for _, n := range []string{"mario rossi", "Mario  Rossi.", "Mаrio Rossi", "Mario R0ssi", "Màrio Rossi", "mario.rossi", "MARIO_ROSSI", "Mario Ross1"} {
+		if skeleton(n) != want {
+			t.Errorf("skeleton(%q) = %q, want %q", n, skeleton(n), want)
+		}
+	}
+	for _, n := range []string{"Maria Rossi", "Mario Bianchi", "Mario Rossi 2"} {
+		if skeleton(n) == want {
+			t.Errorf("skeleton(%q) matches Mario Rossi", n)
+		}
+	}
+	if skeleton("😀 !!") != "" {
+		t.Error("signs only should fold to nothing")
 	}
 }

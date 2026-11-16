@@ -162,6 +162,16 @@ func (s *Store) DeletePNM(node string) error {
 	return err
 }
 
+// DeletePNMToken: the app logged out; only the device holding the token can name it.
+func (s *Store) DeletePNMToken(username, selector, token string) (bool, error) {
+	res, err := s.db.Exec(`DELETE FROM pnm_tokens WHERE username = ? AND selector = ? AND token = ?`, username, selector, token)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
+
 // Seen records that the app of this account called the gateway: it is logged in and answering.
 func (s *Store) Seen(username string) {
 	_, _ = s.db.Exec(`UPDATE pnm_tokens SET last_seen = ?, pending_since = 0 WHERE username = ?`, time.Now().Unix(), username)

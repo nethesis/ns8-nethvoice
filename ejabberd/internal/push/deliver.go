@@ -153,7 +153,8 @@ func (r *Router) text(sender, body string) string {
 	body = preview(body)
 	if address.IsRoom(sender) {
 		if i := strings.IndexByte(sender, '/'); i >= 0 {
-			return r.name(sender[i+1:]) + ": " + body
+			nick := sender[i+1:]
+			return address.Author(nick, r.name(nick)) + ": " + body
 		}
 	}
 	return body
