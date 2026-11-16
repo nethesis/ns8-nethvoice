@@ -197,6 +197,8 @@ agent.set_env('SAML2_PROXY_PORT', port_list[36])
 agent.set_env('OAUTH2_PROXY_PORT', port_list[37])
 # Chat owns slots 38..41; keep the provider webhook listener separate.
 agent.set_env('VOICE_AGENT_HTTP_PORT', port_list[42])
+agent.set_env('NETHVOICE_RECIPIENT_SERVICE_PORT', port_list[43])
+agent.set_env('VOICE_AGENT_CHAT_PORT', port_list[44])
 
 # IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 1001
 agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)

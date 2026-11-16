@@ -369,12 +369,12 @@ fi
 reponame="nethvoice-satellite"
 if should_build "${reponame}"; then
     start_timing "${reponame}"
-    # Development PR #56: replace with a versioned Satellite release before merging.
-    # Source 52b178eb28ffecc81f8dc5d4d724bb8730020097; keep agents-checks.yml aligned.
-    satellite_image="${SATELLITE_IMAGE:-ghcr.io/nethesis/satellite:pr-56@sha256:ef50b10b07135e0a730587b1f7ab9779113b0f6536d793f591fbe08425bb73e4}"
+    # Development PR #57: replace with a versioned Satellite release before merging.
+    # Source 14fac4d00c76cfa67fb2e839aa507c640ac6611d; keep agents-checks.yml aligned.
+    satellite_image="${SATELLITE_IMAGE:-ghcr.io/nethesis/satellite:pr-57@sha256:8a60dc2fdf2b8029f5101aa22fa11b166da7d1e0d69c4b552c9d72fb6e409f65}"
     container=$(buildah from "$satellite_image")
     # Require the shared lifecycle before starting voice agents and optional transcription.
-    if ! buildah run "${container}" -- python -c 'from main import run; from transcription import run as transcribe; from voice_agent.runner import app_from_env'; then
+    if ! buildah run "${container}" -- python -c 'from main import run; from transcription import run as transcribe; from voice_agent.runner import app_from_env; from voice_agent.consultation import Consultations'; then
         printf 'Satellite base must include the shared main.run lifecycle; refresh the published image pin or set SATELLITE_IMAGE.\n' >&2
         buildah rm "${container}"
         exit 1

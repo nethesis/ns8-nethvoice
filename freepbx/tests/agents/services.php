@@ -30,7 +30,15 @@ function denied(callable $call, string $code) {
 }
 $internal = $service->get('receptionist');
 $external = $service->save(null,['name'=>'Independent custom','draft'=>$internal['draft']],0,'test-admin');
-check(array_column(array_filter($service->all(),fn($agent)=>$agent['kind']==='builtin'),'agent_id')===['receptionist'],'sole_builtin');
+check(array_column(array_filter($service->all(),fn($agent)=>$agent['kind']==='builtin'),'agent_id')===['consultation_assistant','receptionist'],'default_builtins');
+$consultation=$service->get('consultation_assistant');
+check($consultation['kind']==='builtin' && $consultation['agent_type']==='consultation','consultation_builtin');
+check(!$consultation['enabled'] && !$consultation['published'] && !$consultation['routable'],'consultation_requires_publication');
+check($consultation['draft']['conversation']['language']==='it','consultation_native_language');
+check($consultation['draft']['conversation']['instructions']===Service::consultationDraft()['conversation']['instructions'],'shared_consultation_prompt');
+check(!array_filter($consultation['draft']['tool_bindings'],fn($b)=>$b['enabled']),'no_general_consultation_tools');
+denied(fn()=>$service->remove('consultation_assistant',$consultation['revision'],'test-admin'),'builtin_protected');
+denied(fn()=>$service->publish('consultation_assistant',$consultation['revision'],'test-admin'),'provider_required');
 check($internal['kind'] === 'builtin' && !$internal['enabled'], 'seed_disabled');
 check($internal['draft']['contract_version']===8,'receptionist_latest_routing');
 check(str_contains($internal['draft']['conversation']['instructions'],'You are the Receptionist'),'receptionist_prompt_seeded');
@@ -75,7 +83,7 @@ $service->saveVisualPlan(['receptionist'=>$enabled['revision']],function() use (
 });
 check($writes===1,'current_visualplan_saves_under_lock');
 check($enabled['published']['contract_version']===8,'typed_publication');
-check(array_map(fn($row)=>json_decode($row['manifest_json'],true),$db->query('SELECT manifest_json FROM asterisk.voice_agent_runtime_tools ORDER BY tool_id')->fetchAll(PDO::FETCH_ASSOC))===array_values((function($tools) { usort($tools,fn($a,$b)=>strcmp($a['id'],$b['id']));return $tools; })(json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v5.json'),true))),'immutable_catalog_contract');
+check(array_map(fn($row)=>json_decode($row['manifest_json'],true),$db->query('SELECT manifest_json FROM asterisk.voice_agent_runtime_tools WHERE NOT (tool_id=\'pbx.transfer\' AND tool_version=3) ORDER BY tool_id')->fetchAll(PDO::FETCH_ASSOC))===array_values((function($tools) { usort($tools,fn($a,$b)=>strcmp($a['id'],$b['id']));return $tools; })(json_decode(file_get_contents(__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/contracts/tools-v5.json'),true))),'immutable_catalog_contract');
 check(!$service->get($external['agent_id'])['draft']['tool_bindings'][1]['config']['extensions_enabled'], 'independent_grants');
 $reloads = $native->reloads;
 $draft['conversation']['instructions'] = 'Updated synthetic instructions';

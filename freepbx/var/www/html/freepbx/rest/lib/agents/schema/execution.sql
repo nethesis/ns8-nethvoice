@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS asteriskcdrdb.`voice_agent_pending_calls` (
 CREATE TABLE IF NOT EXISTS asteriskcdrdb.`voice_agent_run_events` (
   `event_id` char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `run_id` char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-  `event_type` enum('admitted','provider_connected','media_connected','response_completed','completed','fallback','failed','interrupted','tool_started','tool_completed','tool_failed','tool_denied','transfer_requested','transfer_committed','transfer_failed','transfer_uncertain','trace_started','trace_finished','trace_gap','usage_snapshot','provider_output','transcription_failed') NOT NULL,
+  `event_type` enum('admitted','provider_connected','media_connected','response_completed','completed','fallback','failed','interrupted','tool_started','tool_completed','tool_failed','tool_denied','transfer_requested','transfer_committed','transfer_failed','transfer_uncertain','trace_started','trace_finished','trace_gap','usage_snapshot','provider_output','transcription_failed','consultation_announced','consultation_held','consultation_phone','consultation_phone_failed','consultation_chat','consultation_connecting','consultation_clarification','consultation_transferred','consultation_uncertain','consultation_replied','consultation_declined','consultation_unavailable','consultation_timed_out','consultation_cancelled','consultation_failed','consultation_recovery_failed') NOT NULL,
   `occurred_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6),
   `error_code` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `tool_id` enum('pbx.find_destinations','pbx.transfer','pbx.find_recent_callers','telephony.hangup') DEFAULT NULL,

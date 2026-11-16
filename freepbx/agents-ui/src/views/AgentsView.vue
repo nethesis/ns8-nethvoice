@@ -49,7 +49,7 @@ const filters = computed(() => [
   {
     key: "type",
     label: t("kind"),
-    options: ["basic_voice", "cleverai"].map((id) => ({
+    options: ["basic_voice", "consultation", "cleverai"].map((id) => ({
       id,
       label: t("agentTypes." + id),
     })),

@@ -9,14 +9,23 @@ final class PublishedContract
     public static function validate(array $snapshot): array
     {
         $version=$snapshot['contract_version']??0;
-        if ($version!==8) throw new \InvalidArgumentException('invalid_snapshot');
-        $schema = json_decode(file_get_contents(__DIR__ . '/contracts/published-v8.schema.json'), true, 512, JSON_THROW_ON_ERROR);
+        if (!in_array($version,[8,9],true)) throw new \InvalidArgumentException('invalid_snapshot');
+        $schema = json_decode(file_get_contents(__DIR__ . '/contracts/published-v'.$version.'.schema.json'), true, 512, JSON_THROW_ON_ERROR);
         if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > 65536 ||
             !self::matches($snapshot, $schema) ||
             $snapshot['destination_id'] !== 'agent:' . $snapshot['agent_id']) {
             throw new \InvalidArgumentException('invalid_snapshot');
         }
         $ids=array_column($snapshot['tool_bindings'],'tool_id');
+        if ($version===9) {
+            $config=$snapshot['consultation'];
+            if ($snapshot['role']==='public' && $snapshot['chat_model']!==null) throw new \InvalidArgumentException('invalid_snapshot');
+            if ($snapshot['role']==='consultation') {
+                if ($config['mode']!=='direct' || $config['phone'] || $config['chat'] || $config['assistant_id']!==null || $snapshot['fallback_destination_id']!=='hangup' || array_filter($snapshot['tool_bindings'],fn($b)=>$b['enabled'])) throw new \InvalidArgumentException('invalid_snapshot');
+            } elseif ($config['mode']==='attended') {
+                if ((!$config['phone'] && !$config['chat']) || !$config['assistant_id'] || $config['assistant_id']===$snapshot['agent_id']) throw new \InvalidArgumentException('invalid_snapshot');
+            } elseif ($config['assistant_id']!==null || $config['phone'] || $config['chat']) throw new \InvalidArgumentException('invalid_snapshot');
+        }
         if (count($ids)!==count(array_unique($ids))) throw new \InvalidArgumentException('invalid_snapshot');
         foreach ($snapshot['tool_bindings'] as $binding) if (!is_int($binding['tool_version'])) throw new \InvalidArgumentException('invalid_snapshot');
         if ($snapshot['debug']['transcription_enabled'] && $snapshot['provider']!=='openai') throw new \InvalidArgumentException('invalid_snapshot');

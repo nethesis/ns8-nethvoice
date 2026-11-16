@@ -46,8 +46,17 @@ foreach (['voice_agent_recent_cdr','voice_agent_callback_devices','voice_agent_c
 $insert=$db->prepare("INSERT INTO asteriskcdrdb.cdr (calldate,src,dst,channel,dstchannel,lastapp,lastdata,disposition,linkedid,uniqueid,sequence) VALUES (UTC_TIMESTAMP()-INTERVAL 2 HOUR,'90203',?,'PJSIP/90203-00000001','','Dial',?,'NO ANSWER',?,?,?)");
 $insert->execute(['+390212345678','PJSIP/+390212345678@outbound-test,30','recent-one','recent-one',1]);
 $insert->execute(['+390299999999','SIP/user:synthetic-private@custom.invalid,30','unsafe-dial','unsafe-dial',0]);
+$incoming=$db->prepare("INSERT INTO asteriskcdrdb.cdr (calldate,src,dst,channel,dstchannel,lastapp,lastdata,billsec,disposition,linkedid,uniqueid,sequence) VALUES (UTC_TIMESTAMP()-INTERVAL 1 HOUR,?,'203','PJSIP/outbound-test-00000003','PJSIP/203-00000004','Dial','PJSIP/203',? ,?,?,?,?)");
+$incoming->execute(['+390212345679',30,'ANSWERED','incoming-conversation','incoming-conversation',1]);
+$incoming->execute(['+390212345679',0,'NO ANSWER','incoming-missed','incoming-missed',1]);
+$bridge=$db->prepare("INSERT INTO asteriskcdrdb.cdr (calldate,src,dst,channel,dstchannel,lastapp,lastdata,billsec,disposition,linkedid,uniqueid,sequence) VALUES (UTC_TIMESTAMP()-INTERVAL 1 HOUR,'+390212345680','203','PJSIP/outbound-test-00000005','Local/203@voice-agent-consult-000000ab;1','Bridge',?,20,'ANSWERED','native-bridge',?,1)");
+$bridge->execute(['Local/203@voice-agent-consult-000000ab;1,x','native-bridge']);
+$bridge->execute(['Local/203@unverified-context-000000ab;1,private','unsafe-bridge']);
+assert($db->query("SELECT lastdata FROM asterisk.voice_agent_recent_cdr WHERE uniqueid='native-bridge'")->fetchColumn()==='Local/203@voice-agent-consult-000000ab;1');
+assert($db->query("SELECT lastdata FROM asterisk.voice_agent_recent_cdr WHERE uniqueid='unsafe-bridge'")->fetchColumn()==='');
 assert($db->query("SELECT lastdata FROM asterisk.voice_agent_recent_cdr WHERE uniqueid='unsafe-dial'")->fetchColumn()==='');
 $db->beginTransaction();
 for ($i=0;$i<1001;$i++) $insert->execute(['+390212340999','PJSIP/+390212340999@outbound-test,30','large-'.$i,'large-'.$i,$i+2]);
+for ($i=0;$i<1001;$i++) $incoming->execute(['+390212340998',30,'ANSWERED','incoming-large-'.$i,'incoming-large-'.$i,$i+2]);
 $db->commit();
 echo "Recent-callback defaults, independent policies, additive views and synthetic CDR fixtures passed\n";
