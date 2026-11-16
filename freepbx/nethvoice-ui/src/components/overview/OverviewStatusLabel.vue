@@ -34,10 +34,10 @@ const statusIcon = computed(() => STATUS_ICONS[status])
 </script>
 
 <template>
-  <span class="text-secondary-neutral inline-flex items-center gap-1.5">
+  <span class="text-secondary-neutral inline-flex items-center gap-2">
     <FontAwesomeIcon
       :icon="statusIcon.icon"
-      :class="['size-3.5', statusIcon.color]"
+      :class="['size-4', statusIcon.color]"
       aria-hidden="true"
     />
     {{ t(`user_overview.status.${status}`) }}
