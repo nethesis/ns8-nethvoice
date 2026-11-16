@@ -5,14 +5,23 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { APP_BASE_PATH } from '@/lib/config'
 import { useLoginStore } from '@/stores/login'
 import { SETUP_STEPS } from '@/lib/setup/steps'
-import { getInternalRedirect, getWizardRedirect } from '@/lib/setup/guard'
+import { getInternalRedirect } from '@/lib/setup/guard'
 import { loadWizardState } from '@/queries/setup/wizardState'
+import {
+  getAccessRedirect,
+  NO_ACCESS_ROUTE,
+  SETUP_PENDING_ROUTE,
+  SUPERADMIN,
+  type Permission,
+} from '@/lib/permissions/permissions'
+import { loadPermissions } from '@/queries/permissions/me'
 
 declare module 'vue-router' {
   interface RouteMeta {
     layout?: 'app' | 'blank'
     titleKey?: string
     public?: boolean
+    section?: Permission
   }
 }
 
@@ -20,7 +29,7 @@ const setupStepRoutes: RouteRecordRaw[] = SETUP_STEPS.map((step) => ({
   path: step.path,
   name: `setup-${step.id}`,
   component: step.component,
-  meta: { layout: 'blank', titleKey: `setup.${step.i18n}.title` },
+  meta: { layout: 'blank', titleKey: `setup.${step.i18n}.title`, section: SUPERADMIN },
 }))
 
 const routes: RouteRecordRaw[] = [
@@ -34,13 +43,13 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/setup',
     component: () => import('@/views/SetupView.vue'),
-    meta: { layout: 'blank' },
+    meta: { layout: 'blank', section: SUPERADMIN },
     children: [
       {
         path: '',
         name: 'setup',
         component: () => import('@/components/setup/SetupWelcome.vue'),
-        meta: { layout: 'blank', titleKey: 'setup.welcome.title' },
+        meta: { layout: 'blank', titleKey: 'setup.welcome.title', section: SUPERADMIN },
       },
       ...setupStepRoutes,
     ],
@@ -49,43 +58,55 @@ const routes: RouteRecordRaw[] = [
     path: '/dashboard',
     name: 'dashboard',
     component: () => import('@/views/DashboardView.vue'),
-    meta: { titleKey: 'dashboard.title' },
+    meta: { titleKey: 'dashboard.title', section: 'dashboard' },
   },
   {
     path: '/users/:tab(overview|users|groups|profiles)?',
     name: 'users',
     component: () => import('@/views/UsersView.vue'),
-    meta: { titleKey: 'users.title' },
+    meta: { titleKey: 'users.title', section: 'users' },
   },
   {
     path: '/trunks/:tab(voip|physical)?',
     name: 'trunks',
     component: () => import('@/views/TrunksView.vue'),
-    meta: { titleKey: 'trunks.title' },
+    meta: { titleKey: 'trunks.title', section: 'trunks' },
   },
   {
     path: '/routes/:tab(inbound|outbound)?',
     name: 'routes',
     component: () => import('@/views/RoutesView.vue'),
-    meta: { titleKey: 'routes.title' },
+    meta: { titleKey: 'routes.title', section: 'routes' },
   },
   {
     path: '/phones/:tab(phones|models|settings)?',
     name: 'phones',
     component: () => import('@/views/PhonesView.vue'),
-    meta: { titleKey: 'phones.title' },
+    meta: { titleKey: 'phones.title', section: 'phones' },
   },
   {
     path: '/integrations/:tab(phonebook|video-sources|parameterized-urls|customer-cards|external-services)?',
     name: 'integrations',
     component: () => import('@/views/IntegrationsView.vue'),
-    meta: { titleKey: 'integrations.title' },
+    meta: { titleKey: 'integrations.title', section: 'integrations' },
   },
   {
     path: '/settings',
     name: 'settings',
     component: () => import('@/views/SettingsView.vue'),
-    meta: { titleKey: 'settings.title' },
+    meta: { titleKey: 'settings.title', section: 'settings' },
+  },
+  {
+    path: '/setup-pending',
+    name: SETUP_PENDING_ROUTE,
+    component: () => import('@/views/SetupPendingView.vue'),
+    meta: { layout: 'blank', titleKey: 'permissions.setup_pending_title' },
+  },
+  {
+    path: '/no-access',
+    name: NO_ACCESS_ROUTE,
+    component: () => import('@/views/NoAccessView.vue'),
+    meta: { titleKey: 'permissions.no_access_title' },
   },
   {
     path: '/:pathMatch(.*)*',
@@ -114,12 +135,9 @@ router.beforeEach(async (to) => {
   if (to.meta.public) {
     return true
   }
-  const wizardState = await loadWizardState()
+  const [permissions, wizardState] = await Promise.all([loadPermissions(), loadWizardState()])
 
-  if (!wizardState) {
-    return true
-  }
-  return getWizardRedirect(to.name, wizardState) ?? true
+  return getAccessRedirect(to.name, to.meta.section, permissions, wizardState) ?? true
 })
 
 export default router

@@ -137,6 +137,12 @@ export const mockWizardState = (mockApi: MockApi, step: number | null, inProgres
     })
 }
 
+export const mockPermissions = (
+  mockApi: MockApi,
+  permissions: string[],
+  username = E2E_CREDENTIALS.user,
+) => mockApi.on('GET', '/freepbx/rest/me', { json: { username, permissions } })
+
 type Fixtures = {
   mockApi: MockApi
   signedIn: void
@@ -165,6 +171,7 @@ export const test = base.extend<Fixtures>({
         json: { configured: 0, limit: false, configurable: false },
       })
     mockWizardState(mockApi, 13, false)
+    mockPermissions(mockApi, ['superadmin'])
 
     await mockApi.install(page)
     await use(mockApi)

@@ -4,6 +4,7 @@
 -->
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -26,16 +27,19 @@ import {
   faGear as falGear,
   faOfficePhone as falOfficePhone,
 } from '@nethesis/nethesis-light-svg-icons'
+import type { Section } from '@/lib/permissions/permissions'
+import { usePermissions } from '@/queries/permissions/me'
 
 type MenuItem = {
   name: string
-  to: string
+  to: Section
   solidIcon: IconDefinition
   lightIcon: IconDefinition
 }
 
 const { t } = useI18n()
 const route = useRoute()
+const { can } = usePermissions()
 
 const navigation: MenuItem[] = [
   { name: 'dashboard.title', to: 'dashboard', solidIcon: fasHouse, lightIcon: falHouse },
@@ -47,13 +51,15 @@ const navigation: MenuItem[] = [
   { name: 'settings.title', to: 'settings', solidIcon: fasGear, lightIcon: falGear },
 ]
 
+const allowedNavigation = computed(() => navigation.filter((item) => can(item.to)))
+
 function isCurrentRoute(itemPath: string) {
   return route.path === `/${itemPath}` || route.path.startsWith(`/${itemPath}/`)
 }
 </script>
 
 <template>
-  <li v-for="item in navigation" :key="item.to">
+  <li v-for="item in allowedNavigation" :key="item.to">
     <router-link
       :to="`/${item.to}`"
       :aria-current="isCurrentRoute(item.to) ? 'page' : undefined"
