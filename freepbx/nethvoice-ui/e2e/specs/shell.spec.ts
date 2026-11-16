@@ -15,6 +15,25 @@ test.describe('shell', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   })
 
+  test('shows the Enterprise subscription in the top bar', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/mainextensions/userlimits', {
+      json: { configured: 5, limit: false, configurable: false },
+    })
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('topbar-subscription')).toHaveText(/Enterprise/)
+  })
+
+  test('hides the subscription in the top bar on Community', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/mainextensions/userlimits', {
+      json: { configured: 5, limit: 8, configurable: 3 },
+    })
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('extensions-usage')).toBeVisible()
+    await expect(page.getByTestId('topbar-subscription')).toHaveCount(0)
+  })
+
   test('opens the account menu from a single button', async ({ page }) => {
     await page.goto('./dashboard')
 
