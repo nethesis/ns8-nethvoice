@@ -42,6 +42,7 @@ import EditOutboundRouteDrawer from './EditOutboundRouteDrawer.vue'
 import RouteTrunkBadge from './RouteTrunkBadge.vue'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useOutboundRoutes } from '@/queries/routes/outbound'
+import { usePermissions } from '@/queries/permissions/me'
 import { useTrunkProviders, useTrunks } from '@/queries/trunks/trunks'
 import { getTrunkLabelById } from '@/lib/trunks/providers'
 import {
@@ -75,6 +76,7 @@ const { showFilters = true, busy = false } = defineProps<{
 
 const { t } = useI18n()
 const { state, refetch } = useOutboundRoutes()
+const { isSuperadmin } = usePermissions()
 const { getRouteTitleAmong, getRouteDescription } = useOutboundRouteLabels()
 const { state: trunksState } = useTrunks()
 const { state: providersState } = useTrunkProviders()
@@ -175,7 +177,9 @@ watch(
 )
 
 onMounted(() => {
-  refreshFreepbxSession()
+  if (isSuperadmin.value) {
+    refreshFreepbxSession()
+  }
 })
 
 function clearFilters() {
@@ -326,6 +330,7 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
                 <span class="sr-only">{{ getRouteTitle(item) }}</span>
               </NeButton>
               <NeDropdown
+                v-if="isSuperadmin"
                 :items="getKebabMenuItems(item)"
                 :align-to-right="true"
                 :open-menu-aria-label="t('routes.open_route_menu', { name: getRouteTitle(item) })"
