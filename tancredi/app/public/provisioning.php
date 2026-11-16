@@ -217,7 +217,9 @@ $app->get('/{filename}', function(Request $request, Response $response, array $a
     foreach ($scope_data as $key => $value) {
         if (strpos($key, 'account_') !== FALSE ||
             strpos($key, 'adminpw') !== FALSE ||
-            strpos($key, 'userpw') !== FALSE) {
+            strpos($key, 'userpw') !== FALSE ||
+            strpos($key, 'door_rtsp_password') !== FALSE ||
+            strpos($key, 'door_dtmf_code') !== FALSE) {
             $scope_data[$key] = '';
         }
     }

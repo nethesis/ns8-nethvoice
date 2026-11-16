@@ -1,0 +1,79 @@
+<<VOIP CONFIG FILE>>Version:2.0000000000
+{#
+  Fanvil i6x video door phones (i60/i60K, i61, i62, i63, i64; firmware 2.12.x)
+
+  Partial configuration: only the keys below are changed on the device, the
+  door phone settings that have no confirmed provisioning key (access rules,
+  remote door-open password, camera encoder) keep the values set from the
+  device web interface.
+
+  Key names come from the existing Fanvil templates and from configurations
+  exported by Fanvil devices of the same firmware family. The RTSP server
+  keys are those of the <RTSP SERVER CONFIG MODULE> of the Fanvil 2.12.x
+  firmware. RTSP credentials come from the per-phone variables
+  door_rtsp_user and door_rtsp_password: an empty password leaves the device
+  RTSP credentials untouched.
+#}
+{% import 'fanvil.macros' as fanvil %}
+
+<MM CONFIG MODULE>
+Dtmf Payload Type  :101
+
+<SIP CONFIG MODULE>
+SIP  Port          :5060
+--SIP Line List--  :
+{% if account_username_1 is defined %}
+SIP1 Phone Number       :{{ account_username_1 }}
+SIP1 Display Name       :{{ account_display_name_1 }}
+SIP1 Sip Name           :{{ account_username_1 }}
+SIP1 Register Addr      :{{ hostname }}
+SIP1 Register Port      :{{ account_encryption_1 ? sip_tls_port : sip_udp_port }}
+SIP1 Register User      :{{ account_username_1 }}
+SIP1 Register Pswd      :{{ account_password_1 }}
+SIP1 Register TTL       :3600
+SIP1 Enable Reg         :1
+SIP1 Proxy Addr         :{{ outbound_proxy_1 is defined ? outbound_proxy_1 : '' }}
+SIP1 Proxy Port         :{{ outbound_proxy_port_1 is defined ? outbound_proxy_port_1 : account_encryption_1 ? '5061' : '5060' }}
+SIP1 Media Crypto       :{{ account_encryption_1 ? '2' : '0' }}
+SIP1 DTMF Mode          :{{ fanvil.dtmf_map(account_dtmf_type_1) }}
+SIP1 DTMF Info Mode     :0
+SIP1 Transport          :{{ account_encryption_1 ? '3' : '0' }}
+SIP1 VoiceCodecMap      :G722,PCMU,PCMA
+SIP1 VideoCodecMap      :H264
+SIP1 TLS Version        :2
+{% endif %}
+
+<PHONE FEATURE MODULE>
+Default Language   :{{ fanvil.language_codeNEW(language) }}
+--DateTime Config--:
+Enable SNTP        :1
+SNTP Server        :{{ ntp_server | default('pool.ntp.org') }}
+Second SNTP Server :
+Time Zone          :{{ fanvil.tz_map(timezone, 'offset') }}
+Time Zone Name     :{{ fanvil.tz_map(timezone, 'name') }}
+SNTP Timeout       :3600
+DST Type           :1
+DST Location       :{{ fanvil.tz_map(timezone, 'location') }}
+
+<MMI CONFIG MODULE>
+--MMI Account--    :
+Account1 Name               :admin
+Account1 Password           :{{ adminpw | default('admin') }}
+Account1 Level              :10
+
+<AUTOUPDATE CONFIG MODULE>
+Flash Server IP    :{{ hostname }}
+Flash File Name    :{{ 'http' in provisioning_url_scheme ? (provisioning_url_path | trim('/', 'left') ~ tok2 ~ '/$mac.cfg') : '$mac.cfg' }}
+Flash Protocol     :{{ fanvil.scheme_map(provisioning_url_scheme) }}
+Flash Mode         :{{ (provisioning_complete and provisioning_freq == 'never') ? '1' : '2' }}
+Flash Interval     :{{ provisioning_complete ? fanvil.upgrade_wait_hours(timezone, short_mac) : '1' }}
+Auto Image Url     :{{ firmware_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/#{firmware_file}" : "" }}
+
+<RTSP SERVER CONFIG MODULE>
+Enable RTSP        :1
+{% if door_rtsp_password is defined and door_rtsp_password != '' %}
+Enable RTSP Auth   :1
+RTSP Server User   :{{ door_rtsp_user | default('admin') }}
+RTSP Server Passwd :{{ door_rtsp_password }}
+{% endif %}
+<<END OF FILE>>
