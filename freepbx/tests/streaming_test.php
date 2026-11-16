@@ -716,6 +716,63 @@ $deletes = array_values(array_filter($fakeDb->log, function ($entry) { return st
 check(count($deletes) === 3 && $deletes[0][1] === ['vs_ingresso'] && $deletes[2][1] === ['Ingresso'], 'exact name: permission, gates and source deleted');
 check(strpos($deletes[2][0], 'BINARY') !== false, 'the source row is matched exactly');
 
+// --- Door phones --------------------------------------------------------------
+
+check(streaming_door_phone_mac('0c:38:3e:32:6b:84') === '0C-38-3E-32-6B-84', 'door phone MAC normalized to the Tancredi scope id');
+check(streaming_door_phone_mac('0C-38-3E-32-6B') === null && streaming_door_phone_mac('zz:38:3e:32:6b:84') === null, 'invalid MAC refused');
+check(streaming_is_door_phone(['cap_door_phone' => '1']) && !streaming_is_door_phone(['cap_door_phone' => '']) && !streaming_is_door_phone([]), 'door phone capability');
+
+$password = streaming_generate_door_password();
+check(strlen($password) === STREAMING_DOOR_PASSWORD_LENGTH && preg_match('/^[A-Za-z0-9]+$/', $password) === 1, 'generated password: letters and digits');
+check(streaming_generate_door_password() !== $password, 'generated passwords differ');
+
+$missing = streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin'], function () { return 'Generated1'; });
+check($missing === ['door_rtsp_password' => 'Generated1'], 'missing password generated, model user kept');
+$missing = streaming_door_phone_missing_credentials([], function () { return 'Generated1'; });
+check($missing === ['door_rtsp_password' => 'Generated1', 'door_rtsp_user' => 'admin'], 'missing user defaults to admin');
+check(streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin', 'door_rtsp_password' => 'Stored1']) === [], 'stored credentials are never regenerated');
+
+$contacts = [
+    ['via_addr' => '192.168.5.10', 'uri' => 'sip:203@2.119.67.169:1053;transport=tls', 'expiration_time' => '100'],
+    ['via_addr' => '192.168.5.218', 'uri' => 'sip:203@2.119.67.169:1053;transport=tls', 'expiration_time' => '200'],
+];
+check(streaming_contact_address($contacts) === '192.168.5.218', 'device address: Via of the latest registration');
+check(streaming_contact_address([['via_addr' => '', 'uri' => 'sip:203@192.0.2.7:5060']]) === '192.0.2.7', 'device address: Contact URI host without Via');
+check(streaming_contact_address([['via_addr' => 'phone.lan', 'uri' => 'sip:203@phone.lan']]) === null, 'host names are not device addresses');
+check(streaming_contact_address([]) === null, 'not registered: no address');
+
+$fanvil = ['cap_door_phone' => '1', 'door_rtsp_port' => '554', 'door_rtsp_path' => '/h264/stream.live1', 'door_rtsp_user' => 'admin', 'door_rtsp_password' => 'Stored1', 'door_dtmf_code' => '*'];
+check(streaming_door_phone_url('192.168.5.218', $fanvil) === 'rtsp://192.168.5.218:554/h264/stream.live1', 'door phone RTSP URL');
+check(streaming_door_phone_url('2001:db8::5', ['door_rtsp_port' => '8554', 'door_rtsp_path' => 'live']) === 'rtsp://[2001:db8::5]:8554/live', 'IPv6 door phone RTSP URL with port and path');
+check(streaming_door_phone_url(null, $fanvil) === '' && streaming_door_phone_url('door.lan', $fanvil) === '', 'no URL without an IP address');
+
+$item = streaming_door_phone_item(
+    ['mac' => '0C:38:3E:32:6B:84', 'model' => 'fanvil-i62', 'model_name' => 'Fanvil i62', 'extension' => '91203', 'name' => 'Ingresso'],
+    $fanvil,
+    '192.168.5.218',
+    [['descr' => 'Ingresso B', 'exten' => 91203], ['descr' => 'Ingresso A', 'exten' => '91203'], ['descr' => 'Other', 'exten' => '200']]
+);
+check($item['mac'] === '0C-38-3E-32-6B-84' && $item['registered'] && $item['url'] === 'rtsp://192.168.5.218:554/h264/stream.live1', 'door phone item');
+check($item['has_secret'] === true && !array_key_exists('door_rtsp_password', $item) && strpos(json_encode($item), 'Stored1') === false, 'door phone item has no secret');
+check($item['sources'] === ['Ingresso A', 'Ingresso B'], 'sources already using the extension');
+check($item['dtmf_code'] === '*', 'door-open code');
+$bad = streaming_door_phone_item(['mac' => '0C383E326B84', 'extension' => '203'], ['door_dtmf_code' => 'x;y'], null);
+check($bad['dtmf_code'] === null && !$bad['registered'] && $bad['url'] === '' && $bad['has_secret'] === false, 'unregistered door phone with an invalid code');
+
+$prefill = streaming_door_phone_prefill($item);
+check($prefill['descr'] === 'Ingresso' && $prefill['exten'] === '91203' && $prefill['door_phone'] === '0C-38-3E-32-6B-84', 'prefill: name, extension, door phone');
+check($prefill['user'] === 'admin' && $prefill['has_secret'] === true && !array_key_exists('secret', $prefill), 'prefill: user, no password');
+check($prefill['gates'] === [['name' => 'Door 1', 'type' => 'dtmf', 'code' => '*']], 'prefill: one DTMF gate');
+check(streaming_door_phone_prefill($bad)['gates'] === [] && streaming_door_phone_prefill($bad)['descr'] === '203', 'prefill without code: no gate, extension as name');
+$normalized = streaming_normalize_source(array_merge($prefill, ['secret' => 'Stored1']), null, function () { return ['192.168.5.218']; });
+check($normalized['type'] === 'rtsp' && $normalized['gates'][0]['code'] === '*' && $normalized['exten'] === 91203, 'prefill is a valid source');
+
+check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], $fanvil) === 'Stored1', 'door phone password used when none is typed');
+check(streaming_door_phone_secret(['user' => 'admin', 'secret' => 'typed'], $fanvil) === null, 'a typed password wins');
+check(streaming_door_phone_secret(['user' => 'other', 'secret' => ''], $fanvil) === null, 'another user never gets the door phone password');
+check(streaming_door_phone_secret(['user' => '', 'secret' => ''], $fanvil) === null, 'no user, no password');
+check(streaming_door_phone_secret(['user' => 'admin'], array_merge($fanvil, ['cap_door_phone' => ''])) === null, 'only door phones');
+
 if ($failures > 0) {
     fwrite(STDERR, "$failures of $count checks failed\n");
     exit(1);

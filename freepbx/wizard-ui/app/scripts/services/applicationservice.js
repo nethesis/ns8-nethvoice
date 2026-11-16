@@ -125,6 +125,28 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    // Provisioned door phones that can become a video source
+    this.allDoorPhones = function () {
+      return $q(function (resolve, reject) {
+        RestService.get('/cti/streaming/doorphones').then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
+    // Generate the door phone RTSP credentials if missing, get the form prefill
+    this.prepareDoorPhone = function (mac) {
+      return $q(function (resolve, reject) {
+        RestService.post('/cti/streaming/doorphones/' + encodeURIComponent(mac), {}).then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
     this.checkConnectionVideoSource = function (obj) {
       return $q(function (resolve, reject) {
         RestService.post('/cti/sources/test', obj).then(function (res) {

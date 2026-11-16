@@ -23,7 +23,9 @@ describe('Controller: AppsStreamingCtrl', function () {
       checkConnectionVideoSource: jasmine.createSpy('checkConnectionVideoSource'),
       createVideoSource: jasmine.createSpy('createVideoSource').and.callFake(function () { return resolved(''); }),
       updateVideoSource: jasmine.createSpy('updateVideoSource').and.callFake(function () { return resolved(''); }),
-      deleteVideoSource: jasmine.createSpy('deleteVideoSource').and.callFake(function () { return resolved(''); })
+      deleteVideoSource: jasmine.createSpy('deleteVideoSource').and.callFake(function () { return resolved(''); }),
+      allDoorPhones: jasmine.createSpy('allDoorPhones').and.callFake(function () { return resolved([]); }),
+      prepareDoorPhone: jasmine.createSpy('prepareDoorPhone')
     };
     ProfileService = {
       allProfiles: jasmine.createSpy('allProfiles').and.callFake(function () { return resolved([]); })
@@ -211,5 +213,50 @@ describe('Controller: AppsStreamingCtrl', function () {
     scope.sourceChanged(source);
     expect(source.verified).toBe(false);
     expect(source.preview).toBe(null);
+  });
+  it('lists the door phones', function () {
+    ApplicationService.allDoorPhones.and.callFake(function () {
+      return resolved([{ mac: '0C-38-3E-32-6B-84', extension: '91203', registered: true, ip: '192.168.5.218' }]);
+    });
+    scope.getDoorPhones();
+    scope.$apply();
+    expect(scope.doorPhones.length).toBe(1);
+    expect(scope.doorPhonesError).toBe(false);
+  });
+
+  it('fills a new source from a door phone without its password', function () {
+    ApplicationService.prepareDoorPhone.and.callFake(function () {
+      return resolved({
+        descr: 'Ingresso', exten: '91203', url: 'rtsp://192.168.5.218:554/h264/stream.live1',
+        user: 'admin', has_secret: true, door_phone: '0C-38-3E-32-6B-84', registered: true, ip: '192.168.5.218',
+        gates: [{ name: 'Door 1', type: 'dtmf', code: '*' }], credentials_generated: true
+      });
+    });
+    var d = { mac: '0C-38-3E-32-6B-84' };
+    scope.useDoorPhone(d);
+    scope.$apply();
+    expect(ApplicationService.prepareDoorPhone).toHaveBeenCalledWith('0C-38-3E-32-6B-84');
+    var s = scope.newSource;
+    expect(s.onMod).toBe(false);
+    expect(s.secret).toBe('');
+    expect(s.credentialsGenerated).toBe(true);
+    expect(s.gates).toEqual([{ name: 'Door 1', type: 'dtmf', code: '*', method: 'GET' }]);
+    var payload = scope.sourcePayload(s);
+    expect(payload.door_phone).toBe('0C-38-3E-32-6B-84');
+    expect(payload.secret).toBe('');
+    expect(payload.url).toBe('rtsp://192.168.5.218:554/h264/stream.live1');
+
+    ApplicationService.checkConnectionVideoSource.and.callFake(function () { return resolved({ success: true }); });
+    scope.checkConnection(s);
+    var request = ApplicationService.checkConnectionVideoSource.calls.mostRecent().args[0];
+    expect(request.door_phone).toBe('0C-38-3E-32-6B-84');
+    expect(request.descr).toBeUndefined();
+  });
+
+  it('never sends the door phone reference when a source is modified', function () {
+    var stored = storedSource();
+    stored.door_phone = '0C-38-3E-32-6B-84';
+    scope.modifySource(stored);
+    expect(scope.sourcePayload(scope.newSource).door_phone).toBeUndefined();
   });
 });
