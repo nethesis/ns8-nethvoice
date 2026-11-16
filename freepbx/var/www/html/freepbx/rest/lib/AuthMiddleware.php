@@ -26,6 +26,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+require_once __DIR__ . '/Permissions.php';
+
 class AuthMiddleware implements MiddlewareInterface
 {
     private $secret = NULL;
@@ -62,14 +64,14 @@ class AuthMiddleware implements MiddlewareInterface
         $given_user = $request->getHeaderLine('User');
         $given_secret = $request->getHeaderLine('Secretkey');
 
-        $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
+        $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE username = ?");
         $stmt->execute(array($given_user));
         $user = $stmt->fetch(\PDO::FETCH_ASSOC) ?: array();
         $password_sha1 = $user['password_sha1'] ?? '';
         $username = $user['username'] ?? '';
+        $permissions = $username ? nethvoicePermissionsFor($user) : [];
 
-        # check the user is valid and is an admin (sections = *)
-        if (!$username) {
+        if (!$username || !$permissions) {
             return $this->jsonResponse(['error' => 'Forbidden: invalid user'], 403);
         }
         $hash = sha1($username . $password_sha1 . $this->secret);
@@ -77,7 +79,11 @@ class AuthMiddleware implements MiddlewareInterface
             return $this->jsonResponse(['error' => 'Forbidden: wrong secret key'], 403);
         }
 
-        return $handler->handle($request);
+        return $handler->handle(
+            $request
+                ->withAttribute(NETHVOICE_USERNAME_ATTRIBUTE, $username)
+                ->withAttribute(NETHVOICE_PERMISSIONS_ATTRIBUTE, $permissions)
+        );
     }
 
     private function jsonResponse(array $payload, int $status): ResponseInterface

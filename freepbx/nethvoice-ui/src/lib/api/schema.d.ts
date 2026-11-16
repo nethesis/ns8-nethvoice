@@ -44,6 +44,26 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/me': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Return the authenticated administrator and the sections he can manage.
+     * @description `superadmin` grants every section and the endpoints reserved to the FreePBX administrator. Requests to a section the administrator cannot manage are rejected with 403 and `{ "message": "Forbidden: missing permission" }`.
+     */
+    get: operations['get_me']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/testauth': {
     parameters: {
       query?: never
@@ -2791,6 +2811,20 @@ export interface components {
     SuccessFlag: {
       success: boolean
     }
+    /** @enum {string} */
+    AdminSection:
+      | 'superadmin'
+      | 'dashboard'
+      | 'users'
+      | 'trunks'
+      | 'routes'
+      | 'phones'
+      | 'integrations'
+      | 'settings'
+    CurrentAdmin: {
+      username: string
+      permissions: components['schemas']['AdminSection'][]
+    }
     WizardState: {
       /** @description Wizard step reached. 13 is the final step. */
       step: number | string
@@ -3633,6 +3667,35 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['SuccessFlag']
+        }
+      }
+    }
+  }
+  get_me: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CurrentAdmin']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
         }
       }
     }
