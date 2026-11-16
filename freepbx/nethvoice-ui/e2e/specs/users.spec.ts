@@ -427,6 +427,7 @@ test.describe('users', () => {
     await page.goto('./users/users')
     await page.getByRole('button', { name: 'Create user' }).first().click()
     const drawer = page.getByRole('dialog', { name: 'Create user' })
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeFocused()
     await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
     await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
     await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
