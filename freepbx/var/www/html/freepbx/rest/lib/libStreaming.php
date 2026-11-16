@@ -1935,18 +1935,19 @@ function streaming_url_with_host(string $url, string $host): ?string
 }
 
 /*
- * Whether the PBX can open a TCP connection to the device of a RTSP URL: a
- * plain TCP connect with a short timeout, nothing is sent to the device.
- * Return { reachable, private, host, port }; loopback and link-local
- * addresses are never contacted (reachable false).
+ * Whether the PBX can open a TCP connection to the device of a source URL
+ * (rtsp, rtsps, http, https): a plain TCP connect with a short timeout,
+ * nothing is sent to the device. Return { reachable, private, host, port };
+ * loopback and link-local addresses are never contacted (reachable false).
  */
 function streaming_tcp_reachability(string $url, ?callable $connect = null, ?callable $resolve = null, float $timeout = 2.0): array
 {
     $parsed = streaming_parse_url($url);
-    if ($parsed === null || $parsed['type'] !== 'rtsp') {
-        throw new StreamingValidationException('url', 'URL must be rtsp:// or rtsps:// with a host');
+    if ($parsed === null) {
+        throw new StreamingValidationException('url', 'URL must be http(s):// or rtsp(s):// with a host');
     }
-    $port = $parsed['port'] !== '' ? (int) $parsed['port'] : ($parsed['scheme'] === 'rtsps' ? 322 : 554);
+    $defaults = ['http' => 80, 'https' => 443, 'rtsp' => 554, 'rtsps' => 322];
+    $port = $parsed['port'] !== '' ? (int) $parsed['port'] : $defaults[$parsed['scheme']];
     $addresses = ($resolve ?? 'streaming_resolve_host')($parsed['host']);
     $result = [
         'host' => $parsed['host'],

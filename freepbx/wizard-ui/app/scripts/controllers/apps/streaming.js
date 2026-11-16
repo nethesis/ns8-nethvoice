@@ -254,6 +254,7 @@ angular.module('nethvoiceWizardUiApp')
         return id;
       });
       $scope.newSource = copy;
+      $scope.checkReachability(copy);
     };
 
     $scope.checkConnection = function (s) {
@@ -291,19 +292,25 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
-    // Door phone sources: can the PBX open a TCP connection to the address
-    // of the URL? A LAN address is not reachable from a PBX in the cloud.
+    // Can the PBX open a TCP connection to the device of the URL? A LAN
+    // address is not reachable from a PBX in the cloud. Only the response
+    // for the current URL is kept.
     var reachabilityTimer = null;
     $scope.checkReachability = function (s) {
-      if (!s || !s.door_phone || s.onMod || !$scope.isRtsp(s)) {
-        if (s) {
-          s.reachability = null;
-        }
+      if (!s) {
+        return;
+      }
+      if (!s.url || !$scope.urlPattern.test(s.url)) {
+        s.reachability = null;
         return;
       }
       var url = s.url;
+      var request = { url: url };
+      if (s.door_phone) {
+        request.door_phone = s.door_phone;
+      }
       s.reachabilityChecking = true;
-      ApplicationService.videoSourceReachability({ url: url, door_phone: s.door_phone }).then(function (res) {
+      ApplicationService.videoSourceReachability(request).then(function (res) {
         if (s.url === url) {
           s.reachability = res.data || null;
           s.reachabilityChecking = false;
@@ -320,9 +327,7 @@ angular.module('nethvoiceWizardUiApp')
     // Check again a while after the administrator stops typing the URL
     $scope.urlChanged = function (s) {
       $scope.sourceChanged(s);
-      if (!s.door_phone || s.onMod) {
-        return;
-      }
+      s.reachability = null;
       if (reachabilityTimer) {
         $timeout.cancel(reachabilityTimer);
       }
@@ -331,8 +336,6 @@ angular.module('nethvoiceWizardUiApp')
       }, 800);
     };
 
-    // Leave the credentials of the door phone: the source gets its own user
-    // and password (the API unlinks the source when a password is typed)
     // Nothing changes on the server until the source is saved: the door
     // phone link is kept aside, so the administrator can go back to it.
     $scope.useDifferentCredentials = function (s) {

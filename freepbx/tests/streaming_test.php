@@ -817,7 +817,12 @@ check(streaming_tcp_reachability('rtsps://2.119.67.174/x', $fakeConnect)['port']
 $connected = [];
 check(streaming_tcp_reachability('rtsp://127.0.0.1:554/x', $fakeConnect)['reachable'] === false && $connected === [], 'loopback never contacted');
 check(streaming_tcp_reachability('rtsp://door.invalid:554/x', $fakeConnect, function () { return []; })['reachable'] === false, 'unresolved name');
-expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('http://192.0.2.1/x.jpg', $fakeConnect); }, 'url', 'only RTSP URLs');
+$reach = streaming_tcp_reachability('http://192.168.5.218/snapshot.jpg', $fakeConnect);
+check($reach['port'] === 80 && $reach['private'] && !$reach['reachable'], 'JPEG source on a private address, default HTTP port');
+check(streaming_tcp_reachability('https://2.119.67.174/snapshot.jpg', $fakeConnect)['port'] === 443, 'default HTTPS port');
+check(streaming_tcp_reachability('http://2.119.67.174:8080/snapshot.jpg', $fakeConnect)['port'] === 8080, 'explicit HTTP port');
+expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('ftp://192.0.2.1/x', $fakeConnect); }, 'url', 'only source URLs');
+expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('not a url', $fakeConnect); }, 'url', 'invalid URL');
 
 // --- Sources linked to a door phone follow its password -------------------------
 
