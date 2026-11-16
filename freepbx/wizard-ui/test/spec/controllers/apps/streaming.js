@@ -264,5 +264,11 @@ describe('Controller: AppsStreamingCtrl', function () {
     scope.useDifferentCredentials(scope.newSource);
     expect(scope.newSource.user).toBe('');
     expect(scope.sourcePayload(scope.newSource).door_phone).toBeUndefined();
+    scope.newSource.user = 'other';
+    scope.newSource.secret = 'typed';
+    scope.useDoorPhoneCredentials(scope.newSource);
+    expect(scope.newSource.user).toBe('admin');
+    expect(scope.newSource.secret).toBe('');
+    expect(scope.sourcePayload(scope.newSource).door_phone).toBe('0C-38-3E-32-6B-84');
   });
 });
