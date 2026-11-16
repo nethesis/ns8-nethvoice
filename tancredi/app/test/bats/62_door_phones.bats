@@ -27,7 +27,8 @@ teardown_file () {
     assert_http_body '"cap_door_rtsp_adminpw":"1"'
     assert_http_body '"cap_settings_sections_blacklist":"displayAndRingtones,network,phonebook"'
     assert_http_body '"tmpl_phone":"fanvil-i6x.tmpl"'
-    assert_http_body '"door_rtsp_path":"/h264/stream.live1"'
+    assert_http_body '"door_rtsp_path_main":"/h264/stream.live0"'
+    assert_http_body '"door_rtsp_path_sub":"/h264/stream.live1"'
 }
 
 @test "POST /tancredi/api/v1/phones (${DOOR_PHONE_MAC}, Fanvil i62)" {
