@@ -1547,7 +1547,8 @@ paths:
     get:
       summary: List the provisioned door phones that can become a video source.
       description: Devices of the inventory assigned to an extension whose
-        Tancredi model has `cap_door_phone`. `ip` comes from the SIP
+        Tancredi model has `cap_door_phone`. `password_is_admin` tells that the
+        RTSP password is the admin password of the door phone. `ip` comes from the SIP
         registration of the extension (null when not registered), `url` is the
         suggested RTSP URL, `sources` the sources that already use the
         extension. Secrets are never returned.
@@ -1645,6 +1646,52 @@ paths:
         '404':
           description: Not a door phone assigned to an extension
       operationId: post_cti_streaming_doorphones_mac
+  /cti/streaming/reachability:
+    post:
+      summary: Check whether the PBX reaches the device of a RTSP URL.
+      description: Opens a TCP connection to the host and port of the URL (2
+        seconds), nothing is sent to the device. `private` tells that the
+        address belongs to a private network. With `door_phone`, when the
+        device is not reachable, the public address the door phone registers
+        from is returned in `public_address` and `public_url` if the PBX
+        reaches it on the same port.
+      tags:
+      - CTI
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                door_phone:
+                  type: string
+      responses:
+        '200':
+          description: Reachability
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  host:
+                    type: string
+                  port:
+                    type: integer
+                  private:
+                    type: boolean
+                  reachable:
+                    type: boolean
+                  public_address:
+                    type: string
+                    nullable: true
+                  public_url:
+                    type: string
+                    nullable: true
+        '400':
+          description: Not a RTSP URL or invalid door phone
+      operationId: post_cti_streaming_reachability
   /cti/paramurls:
     get:
       summary: Return the current parameterized URL mappings grouped by URL.
