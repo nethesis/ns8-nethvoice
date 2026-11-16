@@ -335,5 +335,11 @@
   "Use the door phone credentials": "Use the door phone credentials",
   "The PBX cannot reach the device at this address": "The PBX cannot reach the device at this address",
   "The PBX reaches the device at this address": "The PBX reaches the device at this address",
-  "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL": "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL"
+  "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL": "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL",
+  "Device type": "Device type",
+  "Other": "Other",
+  "Video quality": "Video quality",
+  "High (main stream)": "High (main stream)",
+  "Standard (sub stream, for slow connections)": "Standard (sub stream, for slow connections)",
+  "Custom path": "Custom path"
 }

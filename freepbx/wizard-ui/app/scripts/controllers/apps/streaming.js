@@ -36,6 +36,102 @@ angular.module('nethvoiceWizardUiApp')
     $scope.doorPhonesLoading = false;
     $scope.doorPhonesError = false;
 
+    // Stream presets of devices verified with NethVoice, for manual sources.
+    // The only place with brand data: provisioned door phones take their
+    // streams from the Tancredi model ("streams" of the door phone API).
+    $scope.devicePresets = [
+      {
+        id: 'fanvil-i',
+        name: 'Fanvil i-series',
+        port: 554,
+        streams: { main: '/h264/stream.live0', sub: '/h264/stream.live1', main_label: '', sub_label: '640x480' }
+      }
+    ];
+
+    var findPreset = function (id) {
+      for (var i = 0; i < $scope.devicePresets.length; i++) {
+        if ($scope.devicePresets[i].id === id) {
+          return $scope.devicePresets[i];
+        }
+      }
+      return null;
+    };
+
+    // "rtsp://host:port" + path + query of a RTSP URL
+    var splitRtspUrl = function (url) {
+      var m = /^(rtsps?:\/\/[^\/?#]+)([^?#]*)(.*)$/i.exec(url || '');
+      return m ? { base: m[1], path: m[2], rest: m[3] } : null;
+    };
+
+    // The quality choice is shown only for RTSP URLs of a device with a main
+    // and a sub stream
+    $scope.showQuality = function (s) {
+      return !!(s && s.streams && s.streams.main && s.streams.sub && $scope.isRtsp(s));
+    };
+
+    var detectQuality = function (s) {
+      var parts = splitRtspUrl(s.url);
+      if (!s.streams || !parts) {
+        return null;
+      }
+      if (parts.path === s.streams.main) {
+        return 'main';
+      }
+      if (parts.path === s.streams.sub) {
+        return 'sub';
+      }
+      return 'custom';
+    };
+
+    $scope.qualityLabel = function (s, quality) {
+      var label = s && s.streams ? s.streams[quality + '_label'] : '';
+      var text = $filter('translate')(quality === 'main' ? 'High (main stream)' : 'Standard (sub stream, for slow connections)');
+      return label ? text + ' - ' + label : text;
+    };
+
+    // Rewrite only the path of the URL; a custom path is left alone
+    $scope.qualityChanged = function (s) {
+      if (s.quality !== 'main' && s.quality !== 'sub') {
+        return;
+      }
+      var parts = splitRtspUrl(s.url);
+      if (!parts) {
+        return;
+      }
+      s.url = parts.base + s.streams[s.quality] + parts.rest;
+      $scope.urlChanged(s);
+    };
+
+    // Manual sources: fill port and path of a known device, keep the host
+    $scope.deviceTypeChanged = function (s) {
+      var preset = findPreset(s.deviceType);
+      if (!preset) {
+        s.streams = null;
+        s.quality = null;
+        return;
+      }
+      var host = /^[a-z][a-z0-9+.-]*:\/\/(?:[^@\/?#]*@)?(\[[^\]]+\]|[^:\/?#]+)/i.exec(s.url || '');
+      s.streams = angular.copy(preset.streams);
+      s.quality = 'main';
+      s.url = 'rtsp://' + (host ? host[1] : '192.0.2.10') + ':' + preset.port + preset.streams.main;
+      $scope.urlChanged(s);
+    };
+
+    // Device type of a stored manual source, from its port and path
+    var detectDeviceType = function (s) {
+      var parts = splitRtspUrl(s.url);
+      if (!parts) {
+        return '';
+      }
+      for (var i = 0; i < $scope.devicePresets.length; i++) {
+        var preset = $scope.devicePresets[i];
+        if ((parts.path === preset.streams.main || parts.path === preset.streams.sub) && /:554$/.test(parts.base)) {
+          return preset.id;
+        }
+      }
+      return '';
+    };
+
     var reasonMessages = {
       auth_failed: 'Wrong username or password',
       connection_refused: 'Connection refused: check the address, the port and the port-forward of the device',
@@ -57,7 +153,10 @@ angular.module('nethvoiceWizardUiApp')
         secret: '',
         tls_skip_verify: false,
         gates: [],
-        profiles: []
+        profiles: [],
+        deviceType: '',
+        streams: null,
+        quality: null
       };
     };
     $scope.newSource = emptySource();
@@ -253,6 +352,30 @@ angular.module('nethvoiceWizardUiApp')
         }
         return id;
       });
+      copy.streams = null;
+      copy.quality = null;
+      copy.deviceType = '';
+      if (copy.door_phone) {
+        // Linked to a door phone: its streams come from its model
+        ApplicationService.allDoorPhones().then(function (res) {
+          (res.data || []).forEach(function (d) {
+            if (d.mac === copy.door_phone && d.streams) {
+              copy.streams = d.streams;
+              copy.streamsFromDoorPhone = true;
+              copy.quality = detectQuality(copy);
+            }
+          });
+        }, function (err) {
+          console.log(err);
+        });
+      } else {
+        copy.deviceType = detectDeviceType(copy);
+        var preset = findPreset(copy.deviceType);
+        if (preset) {
+          copy.streams = angular.copy(preset.streams);
+          copy.quality = detectQuality(copy);
+        }
+      }
       $scope.newSource = copy;
       $scope.checkReachability(copy);
     };
@@ -296,12 +419,25 @@ angular.module('nethvoiceWizardUiApp')
     // address is not reachable from a PBX in the cloud. Only the response
     // for the current URL is kept.
     var reachabilityTimer = null;
+    // The check depends only on the device endpoint: "host:port" with the
+    // default port of the scheme
+    var defaultPorts = { http: '80', https: '443', rtsp: '554', rtsps: '322' };
+    var reachabilityKey = function (s) {
+      var m = /^([a-z]+):\/\/(?:[^@\/?#]*@)?(\[[^\]]+\]|[^:\/?#]+)(?::(\d+))?/i.exec(s.url || '');
+      if (!m || !defaultPorts[m[1].toLowerCase()]) {
+        return null;
+      }
+      return m[2].toLowerCase() + ':' + (m[3] || defaultPorts[m[1].toLowerCase()]);
+    };
+
     $scope.checkReachability = function (s) {
       if (!s) {
         return;
       }
-      if (!s.url || !$scope.urlPattern.test(s.url)) {
+      var key = reachabilityKey(s);
+      if (!s.url || !$scope.urlPattern.test(s.url) || !key) {
         s.reachability = null;
+        s.reachabilityKey = null;
         return;
       }
       var url = s.url;
@@ -309,14 +445,16 @@ angular.module('nethvoiceWizardUiApp')
       if (s.door_phone) {
         request.door_phone = s.door_phone;
       }
+      s.reachabilityKey = key;
       s.reachabilityChecking = true;
       ApplicationService.videoSourceReachability(request).then(function (res) {
-        if (s.url === url) {
+        // a response for another endpoint is stale
+        if (s.reachabilityKey === key) {
           s.reachability = res.data || null;
           s.reachabilityChecking = false;
         }
       }, function (err) {
-        if (s.url === url) {
+        if (s.reachabilityKey === key) {
           s.reachability = null;
           s.reachabilityChecking = false;
         }
@@ -334,7 +472,22 @@ angular.module('nethvoiceWizardUiApp')
     // Check again a while after the administrator stops typing the URL
     $scope.urlChanged = function (s) {
       $scope.sourceChanged(s);
+      // A device preset never applies to a JPEG snapshot URL
+      if (!s.streamsFromDoorPhone && s.deviceType && /^https?:\/\//i.test(s.url || '')) {
+        s.deviceType = '';
+        s.streams = null;
+      }
+      s.quality = detectQuality(s);
+      // Same host and port (e.g. only the path changed): keep the result
+      if (s.reachabilityKey && reachabilityKey(s) === s.reachabilityKey) {
+        if (reachabilityTimer) {
+          $timeout.cancel(reachabilityTimer);
+          reachabilityTimer = null;
+        }
+        return;
+      }
       s.reachability = null;
+      s.reachabilityKey = null;
       if (reachabilityTimer) {
         $timeout.cancel(reachabilityTimer);
       }
@@ -349,14 +502,12 @@ angular.module('nethvoiceWizardUiApp')
       s.doorPhoneLink = {
         door_phone: s.door_phone,
         user: s.user,
-        has_secret: s.has_secret,
-        reachability: s.reachability
+        has_secret: s.has_secret
       };
       s.door_phone = null;
       s.user = '';
       s.secret = '';
       s.has_secret = false;
-      s.reachability = null;
       $scope.sourceChanged(s);
     };
 
@@ -371,8 +522,6 @@ angular.module('nethvoiceWizardUiApp')
       s.secret = '';
       s.doorPhoneLink = null;
       $scope.sourceChanged(s);
-      s.reachability = null;
-      $scope.checkReachability(s);
     };
 
     $scope.usePublicAddress = function (s) {
@@ -409,6 +558,9 @@ angular.module('nethvoiceWizardUiApp')
         s.descr = p.descr;
         s.exten = p.exten;
         s.url = p.url || '';
+        s.streams = p.streams || null;
+        s.streamsFromDoorPhone = !!p.streams;
+        s.quality = detectQuality(s);
         s.user = p.user || '';
         s.has_secret = !!p.has_secret;
         s.door_phone = p.door_phone;

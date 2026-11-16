@@ -148,6 +148,25 @@
               <select data-live-search="true" title="-" pf-select="{ width: '180px' }" ng-model="newSource.exten" ng-options="u.id as (u.name + ' - ' + u.id) for u in users">
             </select></div>
           </div>
+          <div ng-if="!newSource.door_phone && !newSource.doorPhoneLink && !newSource.streamsFromDoorPhone" class="form-group">
+            <label class="col-sm-3 control-label" for="streaming-device-type">{{'Device type' | translate}}</label>
+            <div class="col-sm-9">
+              <select id="streaming-device-type" ng-model="newSource.deviceType" ng-change="deviceTypeChanged(newSource)" class="form-control">
+                <option value="">{{'Other' | translate}}</option>
+                <option ng-repeat="preset in devicePresets" value="{{preset.id}}">{{preset.name}}</option>
+              </select>
+            </div>
+          </div>
+          <div ng-if="showQuality(newSource)" class="form-group">
+            <label class="col-sm-3 control-label" for="streaming-quality">{{'Video quality' | translate}}</label>
+            <div class="col-sm-9">
+              <select id="streaming-quality" ng-model="newSource.quality" ng-change="qualityChanged(newSource)" class="form-control">
+                <option value="main">{{qualityLabel(newSource, 'main')}}</option>
+                <option value="sub">{{qualityLabel(newSource, 'sub')}}</option>
+                <option ng-if="newSource.quality === 'custom'" value="custom">{{'Custom path' | translate}}</option>
+              </select>
+            </div>
+          </div>
           <div class="form-group">
             <label class="col-sm-3 control-label" for="streaming-url">{{'URL' | translate}}</label>
             <div class="col-sm-9">
