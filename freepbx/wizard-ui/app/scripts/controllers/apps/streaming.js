@@ -120,7 +120,7 @@ angular.module('nethvoiceWizardUiApp')
         exten: s.exten,
         tls_skip_verify: $scope.tlsSkipVerify(s),
         profiles: s.profiles,
-        door_phone: !s.onMod && s.door_phone ? s.door_phone : undefined,
+        door_phone: s.door_phone ? s.door_phone : undefined,
         gates: (s.gates || []).map(function (gate) {
           var item = {
             id: gate.id,
@@ -270,8 +270,9 @@ angular.module('nethvoiceWizardUiApp')
       var storedDescr = s.currentDescr || (s.permission ? s.descr : null);
       if (storedDescr) {
         request.descr = storedDescr;
-      } else if (s.door_phone) {
-        // New source from a door phone: the API uses its generated password
+      }
+      if (s.door_phone) {
+        // Linked to a door phone: the API uses the password of the door phone
         request.door_phone = s.door_phone;
       }
       ApplicationService.checkConnectionVideoSource(request).then(function (res) {
@@ -328,6 +329,17 @@ angular.module('nethvoiceWizardUiApp')
       reachabilityTimer = $timeout(function () {
         $scope.checkReachability(s);
       }, 800);
+    };
+
+    // Leave the credentials of the door phone: the source gets its own user
+    // and password (the API unlinks the source when a password is typed)
+    $scope.useDifferentCredentials = function (s) {
+      s.door_phone = null;
+      s.user = '';
+      s.secret = '';
+      s.has_secret = false;
+      s.reachability = null;
+      $scope.sourceChanged(s);
     };
 
     $scope.usePublicAddress = function (s) {

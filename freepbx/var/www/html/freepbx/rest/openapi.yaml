@@ -1646,6 +1646,32 @@ paths:
         '404':
           description: Not a door phone assigned to an extension
       operationId: post_cti_streaming_doorphones_mac
+  /cti/streaming/doorphones/{mac}/sync:
+    post:
+      summary: Give the sources linked to a door phone its current password.
+      description: Called by the wizard after the settings of a door phone are
+        saved. Applies the configuration when a source changed.
+      tags:
+      - CTI
+      parameters:
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Number of updated sources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+        '400':
+          description: Invalid MAC address
+      operationId: post_cti_streaming_doorphones_mac_sync
   /cti/streaming/reachability:
     post:
       summary: Check whether the PBX reaches the device of a RTSP URL.
