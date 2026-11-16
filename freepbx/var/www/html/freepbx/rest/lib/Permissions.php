@@ -48,6 +48,7 @@ const NETHVOICE_ROUTE_RULES = [
 ];
 
 const NETHVOICE_PREFIX_RULES = [
+    '/dashboard' => 'dashboard',
     '/users' => 'users',
     '/mainextensions' => 'users',
     '/voicemails' => 'users',
