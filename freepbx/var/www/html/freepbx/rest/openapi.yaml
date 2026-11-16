@@ -1515,7 +1515,10 @@ paths:
       description: The type follows the URL scheme (`http(s)` image polled by
         the CTI, `rtsp(s)` stream served by the video gateway). Credentials
         pasted into the URL are stored separately. Without `gates`, the legacy
-        `open` code creates a first DTMF gate named "Door 1".
+        `open` code creates a first DTMF gate named "Door 1". With
+        `door_phone` (the MAC of a door phone prepared by
+        `POST /cti/streaming/doorphones/{mac}`), no `secret` and the door phone
+        user name, the RTSP password generated for the door phone is used.
       tags:
       - CTI
       responses:
@@ -1540,6 +1543,108 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/VideoSourceInput'
+  /cti/streaming/doorphones:
+    get:
+      summary: List the provisioned door phones that can become a video source.
+      description: Devices of the inventory assigned to an extension whose
+        Tancredi model has `cap_door_phone`. `ip` comes from the SIP
+        registration of the extension (null when not registered), `url` is the
+        suggested RTSP URL, `sources` the sources that already use the
+        extension. Secrets are never returned.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    mac:
+                      type: string
+                      example: 0C-38-3E-32-6B-84
+                    model:
+                      type: string
+                      example: fanvil-i62
+                    model_name:
+                      type: string
+                    extension:
+                      type: string
+                    name:
+                      type: string
+                    ip:
+                      type: string
+                      nullable: true
+                    registered:
+                      type: boolean
+                    url:
+                      type: string
+                    user:
+                      type: string
+                    has_secret:
+                      type: boolean
+                    dtmf_code:
+                      type: string
+                      nullable: true
+                    sources:
+                      type: array
+                      items:
+                        type: string
+      operationId: get_cti_streaming_doorphones
+  /cti/streaming/doorphones/{mac}:
+    post:
+      summary: Prepare a video source for a door phone.
+      description: Generate the RTSP password (and user name) of the door phone
+        when it has none, store them as Tancredi phone variables written on the
+        device by its provisioning, ask the device to update its configuration
+        and return the form prefill. The password is not returned.
+      tags:
+      - CTI
+      parameters:
+      - name: mac
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Form prefill
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  descr:
+                    type: string
+                  exten:
+                    type: string
+                  url:
+                    type: string
+                  user:
+                    type: string
+                  has_secret:
+                    type: boolean
+                  door_phone:
+                    type: string
+                  gates:
+                    type: array
+                    items:
+                      type: object
+                  ip:
+                    type: string
+                    nullable: true
+                  registered:
+                    type: boolean
+                  credentials_generated:
+                    type: boolean
+        '400':
+          description: Invalid MAC address
+        '404':
+          description: Not a door phone assigned to an extension
+      operationId: post_cti_streaming_doorphones_mac
   /cti/paramurls:
     get:
       summary: Return the current parameterized URL mappings grouped by URL.
@@ -4198,6 +4303,12 @@ components:
           type: array
           items:
             type: string
+        door_phone:
+          type: string
+          description: Creation only. MAC of a door phone prepared by
+            `POST /cti/streaming/doorphones/{mac}`, whose generated RTSP
+            password is used when `secret` is empty and `user` is the door
+            phone user name.
     VideoSource:
       type: object
       properties:
