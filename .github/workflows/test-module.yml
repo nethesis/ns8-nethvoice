@@ -19,6 +19,11 @@ on:
         required: false
         default: ""
         type: string
+      satellite_restore_tests:
+        description: "Run only the two Satellite backup-and-restore scenarios"
+        required: false
+        default: false
+        type: boolean
   workflow_run:
     workflows: ["Publish images"]
     types: [completed]
@@ -26,6 +31,7 @@ on:
 jobs:
   run:
     name: "Run tests"
+    if: ${{ !inputs.satellite_restore_tests }}
     permissions:
       contents: write
       pull-requests: write
@@ -36,12 +42,13 @@ jobs:
       debug_shell: ${{ inputs.debug_shell == true }}
 
   module:
-    name: "Resolve FIAS test image"
-    if: inputs.fias_tests
+    name: "Resolve end-to-end test image"
+    if: inputs.fias_tests || inputs.satellite_restore_tests
     uses: NethServer/ns8-github-actions/.github/workflows/module-info.yml@v1
 
   fias-e2e:
     name: "FIAS E2E (${{ matrix.scenario }})"
+    if: inputs.fias_tests
     needs: module
     permissions:
       contents: read
@@ -65,4 +72,30 @@ jobs:
       script: ""
       artifact_suffix: ${{ format('fias-{0}', matrix.scenario) }}
       status_suffix: fias
+      debug_shell: ${{ inputs.debug_shell == true }}
+
+  satellite-restore:
+    name: "Satellite restore (${{ matrix.distro }})"
+    if: inputs.satellite_restore_tests
+    needs: module
+    permissions:
+      contents: read
+      statuses: write
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [debian13, rocky9]
+    uses: NethServer/ns8-github-actions/.github/workflows/test-on-qemu.yml@v1
+    with:
+      distro: ${{ matrix.distro }}
+      image_url: ${{ needs.module.outputs.image }}
+      repo_ref: ${{ needs.module.outputs.sha }}
+      version_tag: ${{ needs.module.outputs.tag }}
+      args: >-
+        --test 'Setup internal user provider'
+        --test 'Check if nethvoice-proxy*'
+        --test 'Restore a real*'
+        --test 'Remove internal domain'
+      artifact_suffix: satellite-restore
+      status_suffix: satellite-restore
       debug_shell: ${{ inputs.debug_shell == true }}
