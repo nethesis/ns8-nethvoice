@@ -135,7 +135,9 @@ The wizard is publicly reachable both from `/freepbx/wizard/#!/` and from the sh
 - `--all` resets every physical phone with a MAC address in the `rest_devices_phones` table.
 - `--host-changed` checks the `NETHVOICE_HOST` marker in the `asterisk.admin` table. If the stored hostname differs from the current environment value, it behaves like `--all`. If the marker is missing or unchanged, no phones are reset. The current hostname is stored before a reset attempt, so the operation is performed at most once for each hostname change.
 
-The container automatically runs the helper with `--host-changed` after FreePBX modules have been initialized and `fwconsole reload` has completed. Individual phone failures are logged and do not stop the helper from processing the remaining phones.
+After FreePBX modules have been initialized and `fwconsole reload` has completed, the container signals readiness and runs phone RPS maintenance in the background. It probes the local Tancredi API up to 30 times, with a 2-second connection timeout, a 5-second total timeout and a 2-second delay between probes, before running the helper with `--host-changed`. If Tancredi remains unavailable, the reset is skipped and a warning is logged without changing the hostname marker. Phone RPS maintenance does not block FreePBX startup.
+
+The helper calls Tancredi directly at `127.0.0.1:${TANCREDIPORT}`, avoiding the public hostname and HTTP ingress. Tancredi and Falconieri requests have a 5-second connection timeout and a 15-second total timeout. Individual phone failures are logged and do not stop the helper from processing the remaining phones. Once the helper starts a hostname-change reset, its existing one-shot marker behavior still applies, including when individual phones fail.
 
 Examples from inside the FreePBX container:
 

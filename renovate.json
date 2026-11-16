@@ -15,7 +15,44 @@
     "**/__fixtures__/**",
     "freepbx/wizard-ui/**"
   ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^(tancredi|saml2-proxy)\\/Containerfile$/"],
+      "matchStrings": ["(?:^|\\n)ARG APACHE_MIN_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "apache2",
+      "datasourceTemplate": "custom.debian-bookworm",
+      "versioningTemplate": "deb"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^freepbx\\/Containerfile$/"],
+      "matchStrings": ["(?:^|\\n)ARG APACHE_MIN_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "apache2",
+      "datasourceTemplate": "custom.debian-trixie",
+      "versioningTemplate": "deb"
+    }
+  ],
+  "customDatasources": {
+    "debian-bookworm": {
+      "defaultRegistryUrlTemplate": "https://packages.debian.org/bookworm/amd64/{{{packageName}}}/download",
+      "format": "html"
+    },
+    "debian-trixie": {
+      "defaultRegistryUrlTemplate": "https://packages.debian.org/trixie/amd64/{{{packageName}}}/download",
+      "format": "html"
+    }
+  },
   "packageRules": [
+    {
+      "description": "Track Apache security updates using Debian download pages (the deb datasource requires unavailable Packages.gz indexes)",
+      "matchManagers": ["custom.regex"],
+      "matchFileNames": ["tancredi/Containerfile", "saml2-proxy/Containerfile", "freepbx/Containerfile"],
+      "matchDatasources": ["custom.debian-bookworm", "custom.debian-trixie"],
+      "matchDepNames": ["apache2"],
+      "extractVersion": "^https?://[^?#]+/apache2_(?<version>[^_]+)_amd64\\.deb$",
+      "groupName": "Apache"
+    },
     {
       "description": "nethcti-server and the reports UI build on Node 14: major bumps break node-sass",
       "matchFileNames": ["nethcti-server/**", "reports/**"],
