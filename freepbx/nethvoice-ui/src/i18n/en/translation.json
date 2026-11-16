@@ -1635,7 +1635,9 @@
     "call_ready": "Call {extension} from the administrator phone",
     "call_connecting": "Connecting the phone, then calling {extension}",
     "call_in_progress": "A call is already in progress",
-    "call_no_extension": "This user has no main extension"
+    "call_no_extension": "This user has no main extension",
+    "call_device": "Call a device",
+    "call_device_unavailable": "No device online to call"
   },
   "admin_phone": {
     "enable_phone": "Enable phone",
