@@ -181,6 +181,7 @@
             <div class="col-sm-9">
               <input id="streaming-secret" maxlength="255" ng-model="newSource.secret" ng-change="sourceChanged(newSource)" ng-disabled="!newSource.user" type="password" autocomplete="new-password"
                 placeholder="{{newSource.has_secret ? ('Unchanged' | translate) : ''}}" class="form-control">
+              <button ng-if="newSource.doorPhoneLink" type="button" class="btn btn-link no-lateral-padding" ng-click="useDoorPhoneCredentials(newSource)">{{'Use the door phone credentials' | translate}}</button>
             </div>
           </div>
           <!-- Linked to a door phone: the PBX manages the credentials -->

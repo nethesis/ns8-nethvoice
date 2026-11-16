@@ -333,13 +333,36 @@ angular.module('nethvoiceWizardUiApp')
 
     // Leave the credentials of the door phone: the source gets its own user
     // and password (the API unlinks the source when a password is typed)
+    // Nothing changes on the server until the source is saved: the door
+    // phone link is kept aside, so the administrator can go back to it.
     $scope.useDifferentCredentials = function (s) {
+      s.doorPhoneLink = {
+        door_phone: s.door_phone,
+        user: s.user,
+        has_secret: s.has_secret,
+        reachability: s.reachability
+      };
       s.door_phone = null;
       s.user = '';
       s.secret = '';
       s.has_secret = false;
       s.reachability = null;
       $scope.sourceChanged(s);
+    };
+
+    // Back to the credentials of the door phone, discarding what was typed
+    $scope.useDoorPhoneCredentials = function (s) {
+      if (!s.doorPhoneLink) {
+        return;
+      }
+      s.door_phone = s.doorPhoneLink.door_phone;
+      s.user = s.doorPhoneLink.user;
+      s.has_secret = s.doorPhoneLink.has_secret;
+      s.secret = '';
+      s.doorPhoneLink = null;
+      $scope.sourceChanged(s);
+      s.reachability = null;
+      $scope.checkReachability(s);
     };
 
     $scope.usePublicAddress = function (s) {
