@@ -49,12 +49,7 @@ const usageValue = computed(() =>
 </script>
 
 <template>
-  <NeCard data-testid="system-card">
-    <template #title>
-      <span class="text-secondary-neutral text-sm font-normal">
-        {{ $t('dashboard.system.title') }}
-      </span>
-    </template>
+  <NeCard data-testid="system-card" :aria-label="$t('dashboard.system.title')" role="region">
     <div class="flex flex-col gap-6">
       <div class="flex items-center gap-2.5">
         <NeRoundedIcon
@@ -62,17 +57,17 @@ const usageValue = computed(() =>
           custom-background-classes="bg-emerald-100 dark:bg-emerald-700"
           custom-foreground-classes="text-emerald-700 dark:text-emerald-50"
         />
-        <span class="text-primary-neutral">{{ runtimeConfigStore.config.brandName }}</span>
+        <span class="text-primary-neutral text-sm">{{ runtimeConfigStore.config.brandName }}</span>
       </div>
       <dl>
         <div
           class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
         >
-          <dt class="text-primary-neutral shrink-0 font-medium">
+          <dt class="text-tertiary-neutral shrink-0 font-medium">
             {{ $t('dashboard.system.hostname') }}
           </dt>
           <dd
-            class="text-tertiary-neutral min-w-0 text-right break-words"
+            class="text-primary-neutral min-w-0 text-right break-words"
             data-testid="system-hostname"
           >
             <template v-for="(part, index) in hostnameParts" :key="index"
@@ -84,7 +79,7 @@ const usageValue = computed(() =>
           <div
             class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
           >
-            <dt class="text-primary-neutral font-medium">
+            <dt class="text-tertiary-neutral font-medium">
               {{ $t('dashboard.system.subscription') }}
             </dt>
             <dd data-testid="subscription-plan">
@@ -100,10 +95,10 @@ const usageValue = computed(() =>
           </div>
           <div class="flex flex-col gap-2 py-3">
             <div class="flex items-center justify-between gap-4">
-              <dt class="text-primary-neutral font-medium">
+              <dt class="text-tertiary-neutral font-medium">
                 {{ $t('dashboard.system.extensions') }}
               </dt>
-              <dd class="text-tertiary-neutral tabular-nums" data-testid="extensions-usage">
+              <dd class="text-primary-neutral tabular-nums" data-testid="extensions-usage">
                 <template v-if="subscription.extensionsLimit !== null">
                   {{ subscription.configuredExtensions }}/{{ subscription.extensionsLimit }}
                 </template>
