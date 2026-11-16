@@ -82,6 +82,8 @@ $app->add(function (Request $request, RequestHandlerInterface $handler): Respons
   return $handler->handle($request);
 });
 
+$app->add(new PermissionMiddleware($app->getResponseFactory()));
+
 $app->addRoutingMiddleware();
 
 // Slim executes middleware in reverse order: authenticate before routing.
