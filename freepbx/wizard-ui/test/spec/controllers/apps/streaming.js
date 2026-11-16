@@ -25,7 +25,8 @@ describe('Controller: AppsStreamingCtrl', function () {
       updateVideoSource: jasmine.createSpy('updateVideoSource').and.callFake(function () { return resolved(''); }),
       deleteVideoSource: jasmine.createSpy('deleteVideoSource').and.callFake(function () { return resolved(''); }),
       allDoorPhones: jasmine.createSpy('allDoorPhones').and.callFake(function () { return resolved([]); }),
-      prepareDoorPhone: jasmine.createSpy('prepareDoorPhone')
+      prepareDoorPhone: jasmine.createSpy('prepareDoorPhone'),
+      videoSourceReachability: jasmine.createSpy('videoSourceReachability').and.callFake(function () { return resolved({ reachable: false, private: true, public_address: null, public_url: null }); })
     };
     ProfileService = {
       allProfiles: jasmine.createSpy('allProfiles').and.callFake(function () { return resolved([]); })
@@ -251,6 +252,8 @@ describe('Controller: AppsStreamingCtrl', function () {
     var request = ApplicationService.checkConnectionVideoSource.calls.mostRecent().args[0];
     expect(request.door_phone).toBe('0C-38-3E-32-6B-84');
     expect(request.descr).toBeUndefined();
+    expect(ApplicationService.videoSourceReachability).toHaveBeenCalled();
+    expect(s.reachability.reachable).toBe(false);
   });
 
   it('never sends the door phone reference when a source is modified', function () {

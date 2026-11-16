@@ -820,6 +820,13 @@ function nethcti3_get_config_late($engine) {
  */
 function nethcti3_write_streaming_config($nethcti3) {
     include_once('/var/www/html/freepbx/rest/lib/libStreaming.php');
+    include_once('/var/www/html/freepbx/rest/lib/libDoorPhones.php');
+    try {
+        // Sources created from a door phone follow its current password
+        door_phone_sync_sources(FreePBX::Database());
+    } catch (Throwable $e) {
+        error_log('Failed to update the door phone passwords of the video sources: ' . $e->getMessage());
+    }
     try {
         $sources = streaming_load_sources(FreePBX::Database());
     } catch (Exception $e) {

@@ -147,6 +147,17 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    // TCP reachability of the device of a RTSP URL from the PBX
+    this.videoSourceReachability = function (obj) {
+      return $q(function (resolve, reject) {
+        RestService.post('/cti/streaming/reachability', obj).then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
     this.checkConnectionVideoSource = function (obj) {
       return $q(function (resolve, reject) {
         RestService.post('/cti/sources/test', obj).then(function (res) {

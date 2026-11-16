@@ -56,7 +56,11 @@ function door_phone_tancredi(string $method, string $path, ?array $body = null):
     return [$code, is_array($decoded) ? $decoded : []];
 }
 
-/* Merged Tancredi variables of a phone, null if the phone does not exist */
+/*
+ * Tancredi variables of a phone, null if the phone does not exist:
+ * "variables" merged with the model and the defaults, "phone_variables" of
+ * the phone scope only.
+ */
 function door_phone_variables(string $mac): ?array
 {
     [$code, $phone] = door_phone_tancredi('GET', '/phones/' . $mac . '?inherit=1');
@@ -67,6 +71,11 @@ function door_phone_variables(string $mac): ?array
         throw new DoorPhoneException("Tancredi phone $mac: HTTP $code");
     }
     $phone['variables'] = isset($phone['variables']) && is_array($phone['variables']) ? $phone['variables'] : [];
+    [$code, $own] = door_phone_tancredi('GET', '/phones/' . $mac);
+    if ($code !== 200) {
+        throw new DoorPhoneException("Tancredi phone $mac: HTTP $code");
+    }
+    $phone['phone_variables'] = isset($own['variables']) && is_array($own['variables']) ? $own['variables'] : [];
     return $phone;
 }
 
@@ -116,7 +125,7 @@ function door_phone_list(array $sources): array
         $device['model'] = (string) ($phone['model'] ?? $device['model']);
         $device['model_name'] = door_phone_model_name($device['model']);
         $ip = streaming_contact_address(door_phone_contacts((string) $device['extension']));
-        $items[$mac] = streaming_door_phone_item($device, $phone['variables'], $ip, $sources);
+        $items[$mac] = streaming_door_phone_item($device, $phone['variables'], $ip, $sources, $phone['phone_variables']);
     }
     return $items;
 }
@@ -140,19 +149,20 @@ function door_phone_model_name(string $model): string
 }
 
 /*
- * Make sure a door phone has its RTSP credentials: the missing ones are
- * generated, stored as Tancredi phone variables and the device is asked to
- * fetch its configuration again. Return true when something was generated.
+ * Make sure a door phone has its own password: when missing, it is generated,
+ * stored as a Tancredi phone variable (the web admin password for models with
+ * "cap_door_rtsp_adminpw") and the device is asked to fetch its configuration.
+ * Return true when something was generated.
  */
-function door_phone_ensure_credentials(string $mac, array $variables, string $extension): bool
+function door_phone_ensure_credentials(string $mac, array $phone, string $extension): bool
 {
-    $missing = streaming_door_phone_missing_credentials($variables);
+    $missing = streaming_door_phone_missing_credentials($phone['variables'], $phone['phone_variables'] ?? []);
     if (!$missing) {
         return false;
     }
     [$code] = door_phone_tancredi('PATCH', '/phones/' . $mac, ['variables' => $missing]);
     if ($code !== 200) {
-        throw new DoorPhoneException("cannot store the RTSP credentials of door phone $mac: HTTP $code");
+        throw new DoorPhoneException("cannot store the password of door phone $mac: HTTP $code");
     }
     door_phone_resync($extension);
     return true;
@@ -191,5 +201,68 @@ function door_phone_request_secret(array $data): ?string
     if ($phone === null || !streaming_is_door_phone($phone['variables'])) {
         throw new StreamingValidationException('door_phone', 'door phone not found');
     }
-    return streaming_door_phone_secret($data, $phone['variables']);
+    return streaming_door_phone_secret($data, $phone['variables'], $phone['phone_variables']);
+}
+
+/*
+ * Give the sources linked to a door phone ("door_phone") the current password
+ * of the door phone, e.g. after the administrator changed it in the phone
+ * settings. Return the number of updated sources. Errors are logged: a source
+ * keeps its stored password when Tancredi cannot be read.
+ */
+function door_phone_sync_sources(\PDO $db): int
+{
+    $updated = 0;
+    $stmt = $db->query("SELECT `descr`, `user`, `secret`, `door_phone` FROM `rest_cti_streaming` WHERE `door_phone` IS NOT NULL AND `door_phone` != ''");
+    $update = $db->prepare('UPDATE `rest_cti_streaming` SET `secret` = ? WHERE `descr` = ?');
+    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        try {
+            $mac = streaming_door_phone_mac((string) $row['door_phone']);
+            $phone = $mac !== null ? door_phone_variables($mac) : null;
+            if ($phone === null || !streaming_is_door_phone($phone['variables'])) {
+                continue;
+            }
+            $secret = streaming_door_phone_secret(['user' => (string) $row['user'], 'secret' => ''], $phone['variables'], $phone['phone_variables']);
+            if ($secret !== null && $secret !== (string) $row['secret']) {
+                $update->execute([$secret, $row['descr']]);
+                $updated++;
+            }
+        } catch (\Throwable $e) {
+            error_log("video source {$row['descr']}: cannot read the password of door phone {$row['door_phone']}: " . $e->getMessage());
+        }
+    }
+    return $updated;
+}
+
+/*
+ * Reachability of the RTSP URL of a door phone (TCP connect only, see
+ * streaming_tcp_reachability). When the PBX does not reach it and the door
+ * phone registers from a public address that the PBX reaches on the same
+ * port, that address is suggested ("public_address", "public_url").
+ */
+function door_phone_reachability(string $url, ?string $mac): array
+{
+    $result = streaming_tcp_reachability($url);
+    $result['public_address'] = null;
+    $result['public_url'] = null;
+    if ($result['reachable'] || $mac === null) {
+        return $result;
+    }
+    $dbh = FreePBX::Database();
+    $stmt = $dbh->prepare("SELECT `extension` FROM `rest_devices_phones` WHERE `mac` = ? AND `extension` IS NOT NULL AND `extension` != ''");
+    $stmt->execute([str_replace('-', ':', $mac)]);
+    $extension = $stmt->fetchColumn();
+    if ($extension === false) {
+        return $result;
+    }
+    $public = streaming_contact_public_address(door_phone_contacts((string) $extension));
+    if ($public === null || $public === $result['host']) {
+        return $result;
+    }
+    $publicUrl = streaming_url_with_host($url, $public);
+    if ($publicUrl !== null && streaming_tcp_reachability($publicUrl)['reachable']) {
+        $result['public_address'] = $public;
+        $result['public_url'] = $publicUrl;
+    }
+    return $result;
 }

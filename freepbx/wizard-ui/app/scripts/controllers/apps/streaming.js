@@ -22,7 +22,7 @@
  * "door_phone" (the MAC) instead of receiving it.
  */
 angular.module('nethvoiceWizardUiApp')
-  .controller('AppsStreamingCtrl', function ($scope, $filter, ProfileService, ApplicationService, UserService) {
+  .controller('AppsStreamingCtrl', function ($scope, $filter, $timeout, ProfileService, ApplicationService, UserService) {
     $scope.allSources = [];
     $scope.allProfiles = [];
     $scope.currentSource = {};
@@ -290,6 +290,54 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    // Door phone sources: can the PBX open a TCP connection to the address
+    // of the URL? A LAN address is not reachable from a PBX in the cloud.
+    var reachabilityTimer = null;
+    $scope.checkReachability = function (s) {
+      if (!s || !s.door_phone || s.onMod || !$scope.isRtsp(s)) {
+        if (s) {
+          s.reachability = null;
+        }
+        return;
+      }
+      var url = s.url;
+      s.reachabilityChecking = true;
+      ApplicationService.videoSourceReachability({ url: url, door_phone: s.door_phone }).then(function (res) {
+        if (s.url === url) {
+          s.reachability = res.data || null;
+          s.reachabilityChecking = false;
+        }
+      }, function (err) {
+        if (s.url === url) {
+          s.reachability = null;
+          s.reachabilityChecking = false;
+        }
+        console.log(err);
+      });
+    };
+
+    // Check again a while after the administrator stops typing the URL
+    $scope.urlChanged = function (s) {
+      $scope.sourceChanged(s);
+      if (!s.door_phone || s.onMod) {
+        return;
+      }
+      if (reachabilityTimer) {
+        $timeout.cancel(reachabilityTimer);
+      }
+      reachabilityTimer = $timeout(function () {
+        $scope.checkReachability(s);
+      }, 800);
+    };
+
+    $scope.usePublicAddress = function (s) {
+      if (s.reachability && s.reachability.public_url) {
+        s.url = s.reachability.public_url;
+        $scope.sourceChanged(s);
+        $scope.checkReachability(s);
+      }
+    };
+
     // Door phones provisioned by the PBX (model with the door phone flag)
     $scope.getDoorPhones = function () {
       $scope.doorPhonesLoading = true;
@@ -322,6 +370,7 @@ angular.module('nethvoiceWizardUiApp')
         s.doorPhoneIp = p.ip;
         s.doorPhoneRegistered = !!p.registered;
         s.credentialsGenerated = !!p.credentials_generated;
+        s.passwordIsAdmin = !!p.password_is_admin;
         s.gates = (p.gates || []).map(function (gate, index) {
           return {
             name: $filter('translate')('Door') + ' ' + (index + 1),
@@ -336,6 +385,7 @@ angular.module('nethvoiceWizardUiApp')
         $('#doorPhoneModal').one('hidden.bs.modal', function () {
           $('#newSourceModal').modal('show');
         }).modal('hide');
+        $scope.checkReachability(s);
       }, function (err) {
         d.onPrepare = false;
         $scope.doorPhonesError = true;
