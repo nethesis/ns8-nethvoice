@@ -28,7 +28,6 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useI18n } from 'vue-i18n'
 import { useNotificationsStore } from '@/stores/notifications'
 import { LEGACY_WIZARD_URL } from '@/lib/config'
-import AdminPhoneButton from '@/components/phone/AdminPhoneButton.vue'
 import { useDashboardSubscription } from '@/queries/dashboard/subscription'
 
 const emit = defineEmits<{ openSidebar: [] }>()
@@ -150,8 +149,6 @@ function openNotificationsDrawer() {
         />
 
         <div class="-mr-2.5 flex items-center gap-x-1">
-          <AdminPhoneButton :button-classes="topBarButtonClasses" />
-
           <NeTooltip trigger-event="mouseenter focus" placement="bottom" class="flex">
             <template #trigger>
               <a

@@ -6,6 +6,7 @@ import { defineStore } from 'pinia'
 import { useQueryCache } from '@pinia/colada'
 import i18n from '@/i18n'
 import {
+  ADMIN_PHONE_LOCK_NAME,
   ADMIN_PHONE_RELOAD_DELAY,
   ADMIN_PHONE_STATUS_KEY,
   applyPhoneIslandSignal,
@@ -133,14 +134,111 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     reset('inactive')
   }
 
-  const toggle = () => (isEnabled.value ? disable() : enable())
+  let active = false
+  let lockGeneration = 0
+  let releaseLock: (() => void) | null = null
+  let queuedRequest: AbortController | null = null
+
+  const lockManager = (): LockManager | null =>
+    typeof navigator !== 'undefined' && 'locks' in navigator ? navigator.locks : null
+
+  const releaseHeldLock = () => {
+    releaseLock?.()
+    releaseLock = null
+  }
+
+  const requestLock = (options: LockOptions): Promise<boolean> => {
+    const manager = lockManager()
+
+    if (!manager) {
+      return Promise.resolve(false)
+    }
+    const generation = ++lockGeneration
+    queuedRequest?.abort()
+    queuedRequest = null
+
+    let lockOptions = options
+
+    if (!options.ifAvailable && !options.steal) {
+      const controller = new AbortController()
+      queuedRequest = controller
+      lockOptions = { ...options, signal: controller.signal }
+    }
+
+    const granted = manager.request(ADMIN_PHONE_LOCK_NAME, lockOptions, async (lock) => {
+      if (!lock) {
+        return false
+      }
+      if (generation !== lockGeneration || !active) {
+        return true
+      }
+      queuedRequest = null
+      releaseHeldLock()
+      const held = new Promise<void>((resolve) => {
+        releaseLock = resolve
+      })
+      void enable()
+      await held
+      return true
+    })
+
+    return granted
+      .then((value) => value)
+      .catch(() => {
+        if (generation === lockGeneration && active) {
+          releaseLock = null
+          waitForLock()
+        }
+        return true
+      })
+  }
+
+  const waitForLock = () => {
+    disable()
+    state.value = 'elsewhere'
+    void requestLock({})
+  }
+
+  const start = () => {
+    if (active || !loginStore.isAuthenticated) {
+      return
+    }
+    active = true
+
+    if (!lockManager()) {
+      void enable()
+      return
+    }
+    void requestLock({ ifAvailable: true }).then((acquired) => {
+      if (!acquired && active && state.value === 'inactive') {
+        waitForLock()
+      }
+    })
+  }
+
+  const stop = () => {
+    active = false
+    lockGeneration += 1
+    queuedRequest?.abort()
+    queuedRequest = null
+    releaseHeldLock()
+    disable()
+  }
+
+  const useHere = () => {
+    if (!active || state.value !== 'elsewhere') {
+      return
+    }
+    void requestLock({ steal: true })
+  }
 
   const call = async (number: string) => {
     const target = number.trim()
 
-    if (!isCallableNumber(target) || inCall.value) {
+    if (!isCallableNumber(target) || inCall.value || state.value === 'elsewhere') {
       return
     }
+    showCostNotice()
     if (state.value === 'ready') {
       startCall(target)
       return
@@ -168,7 +266,6 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     }
     if (next.state === 'ready') {
       errorMessage.value = ''
-      showCostNotice()
 
       if (pendingNumber.value) {
         startCall(pendingNumber.value)
@@ -186,7 +283,7 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     () => loginStore.isAuthenticated,
     (authenticated) => {
       if (!authenticated) {
-        disable()
+        stop()
         forgetServiceExtension()
       }
     },
@@ -204,7 +301,9 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     canCall,
     enable,
     disable,
-    toggle,
+    start,
+    stop,
+    useHere,
     call,
     handleIslandEvent,
     fail,

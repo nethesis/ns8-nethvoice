@@ -10,7 +10,16 @@ export const ADMIN_PHONE_RELOAD_DELAY = 5000
 
 export const ADMIN_PHONE_UA_TYPE = 'desktop'
 
-export const ADMIN_PHONE_STATES = ['inactive', 'starting', 'registering', 'ready', 'error'] as const
+export const ADMIN_PHONE_STATES = [
+  'inactive',
+  'starting',
+  'registering',
+  'ready',
+  'error',
+  'elsewhere',
+] as const
+
+export const ADMIN_PHONE_LOCK_NAME = 'nethvoice-admin-phone'
 
 export type AdminPhoneState = (typeof ADMIN_PHONE_STATES)[number]
 
@@ -126,7 +135,11 @@ export const applyPhoneIslandSignal = (
   snapshot: AdminPhoneSnapshot,
   signal: PhoneIslandSignal,
 ): AdminPhoneSnapshot => {
-  if (snapshot.state === 'inactive' || snapshot.state === 'starting') {
+  if (
+    snapshot.state === 'inactive' ||
+    snapshot.state === 'starting' ||
+    snapshot.state === 'elsewhere'
+  ) {
     return snapshot
   }
 
