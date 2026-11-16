@@ -1590,6 +1590,22 @@ paths:
                     dtmf_code:
                       type: string
                       nullable: true
+                    streams:
+                      type: object
+                      description: RTSP paths of the main (high quality,
+                        default) and sub (slow connections) streams, with the
+                        resolution labels of the model
+                      properties:
+                        main:
+                          type: string
+                          nullable: true
+                        sub:
+                          type: string
+                          nullable: true
+                        main_label:
+                          type: string
+                        sub_label:
+                          type: string
                     sources:
                       type: array
                       items:
@@ -1630,6 +1646,9 @@ paths:
                     type: boolean
                   door_phone:
                     type: string
+                  streams:
+                    type: object
+                    description: Same as in GET /cti/streaming/doorphones
                   gates:
                     type: array
                     items:

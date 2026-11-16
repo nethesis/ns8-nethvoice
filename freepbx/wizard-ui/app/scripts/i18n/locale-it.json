@@ -1205,5 +1205,11 @@
   "Use the door phone credentials": "Usa le credenziali del citofono",
   "The PBX cannot reach the device at this address": "Il centralino non raggiunge il dispositivo a questo indirizzo",
   "The PBX reaches the device at this address": "Il centralino raggiunge il dispositivo a questo indirizzo",
-  "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL": "Inoltra la porta del dispositivo ({{port}}) sul suo router, consentila solo dall'indirizzo IP pubblico del centralino e inserisci nell'URL l'indirizzo pubblico"
+  "Forward the port of the device ({{port}}) on its router, allow it only from the public IP address of the PBX and type the public address in the URL": "Inoltra la porta del dispositivo ({{port}}) sul suo router, consentila solo dall'indirizzo IP pubblico del centralino e inserisci nell'URL l'indirizzo pubblico",
+  "Device type": "Tipo di dispositivo",
+  "Other": "Altro",
+  "Video quality": "Qualità video",
+  "High (main stream)": "Alta (flusso principale)",
+  "Standard (sub stream, for slow connections)": "Standard (flusso secondario, per connessioni lente)",
+  "Custom path": "Percorso personalizzato"
 }

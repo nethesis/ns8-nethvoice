@@ -219,6 +219,46 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(source.reachability.reachable).toBe(false);
   }));
 
+  it('switches the stream path with the video quality and detects a custom path', function () {
+    var source = { url: 'rtsp://2.119.67.174:554/h264/stream.live0', streams: { main: '/h264/stream.live0', sub: '/h264/stream.live1', main_label: '', sub_label: '640x480' }, gates: [] };
+    scope.urlChanged(source);
+    expect(source.quality).toBe('main');
+    source.quality = 'sub';
+    scope.qualityChanged(source);
+    expect(source.url).toBe('rtsp://2.119.67.174:554/h264/stream.live1');
+    source.url = 'rtsp://2.119.67.174:554/custom';
+    scope.urlChanged(source);
+    expect(source.quality).toBe('custom');
+    expect(scope.showQuality({ url: 'rtsp://h/x', streams: { main: '/x', sub: null } })).toBe(false);
+    expect(scope.showQuality({ url: 'http://h/x.jpg', streams: source.streams })).toBe(false);
+  });
+
+  it('fills port and path of a device preset keeping the host', function () {
+    var source = { url: 'rtsp://10.0.0.5:8554/x', deviceType: 'fanvil-i', gates: [] };
+    scope.deviceTypeChanged(source);
+    expect(source.url).toBe('rtsp://10.0.0.5:554/h264/stream.live0');
+    expect(source.quality).toBe('main');
+    source.url = 'http://10.0.0.5/snapshot.jpg';
+    scope.urlChanged(source);
+    expect(source.deviceType).toBe('');
+    expect(scope.showQuality(source)).toBe(false);
+  });
+
+  it('checks the reachability again only when host or port change', inject(function ($timeout) {
+    var source = { url: 'rtsp://2.119.67.174:554/h264/stream.live0', streams: { main: '/h264/stream.live0', sub: '/h264/stream.live1' }, gates: [] };
+    scope.checkReachability(source);
+    scope.$apply();
+    ApplicationService.videoSourceReachability.calls.reset();
+    source.quality = 'sub';
+    scope.qualityChanged(source);
+    $timeout.verifyNoPendingTasks();
+    expect(ApplicationService.videoSourceReachability).not.toHaveBeenCalled();
+    source.url = 'rtsps://2.119.67.174/h264/stream.live1';
+    scope.urlChanged(source);
+    $timeout.flush(800);
+    expect(ApplicationService.videoSourceReachability).toHaveBeenCalled();
+  }));
+
   it('requires a new check when the URL or the credentials change', function () {
     var source = { verified: true, checked: true, check: { success: true }, preview: 'data:' };
     scope.sourceChanged(source);

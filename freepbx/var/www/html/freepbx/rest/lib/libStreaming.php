@@ -1767,7 +1767,31 @@ function streaming_contact_address(array $contacts): ?string
     return null;
 }
 
-/* RTSP URL of a door phone, empty when its address is unknown */
+/*
+ * RTSP stream paths of a door phone model: "main" (high quality, the default)
+ * and "sub" (lower quality, for slow connections), with the resolution labels
+ * the model declares. Models with only "door_rtsp_path" have a main stream.
+ */
+function streaming_door_phone_streams(array $variables): array
+{
+    $normalize = function ($path) {
+        $path = trim((string) $path);
+        if ($path === '' || !preg_match('#^/?[^\s?\#]*$#', $path)) {
+            return null;
+        }
+        return $path[0] === '/' ? $path : '/' . $path;
+    };
+    $main = $normalize($variables['door_rtsp_path_main'] ?? '') ?? $normalize($variables['door_rtsp_path'] ?? '');
+    $sub = $normalize($variables['door_rtsp_path_sub'] ?? '');
+    return [
+        'main' => $main,
+        'sub' => $sub !== $main ? $sub : null,
+        'main_label' => (string) ($variables['door_video_main_label'] ?? ''),
+        'sub_label' => (string) ($variables['door_video_sub_label'] ?? ''),
+    ];
+}
+
+/* RTSP URL of a door phone (main stream), empty when its address is unknown */
 function streaming_door_phone_url(?string $ip, array $variables): string
 {
     if ($ip === null || $ip === '' || filter_var($ip, FILTER_VALIDATE_IP) === false) {
@@ -1778,10 +1802,7 @@ function streaming_door_phone_url(?string $ip, array $variables): string
     if (!preg_match('/^\d{1,5}$/', $port)) {
         $port = '554';
     }
-    $path = (string) ($variables['door_rtsp_path'] ?? '');
-    if ($path !== '' && $path[0] !== '/') {
-        $path = '/' . $path;
-    }
+    $path = (string) (streaming_door_phone_streams($variables)['main'] ?? '');
     $url = 'rtsp://' . $host . ':' . $port . $path;
     return streaming_parse_url($url) !== null ? $url : '';
 }
@@ -1817,6 +1838,7 @@ function streaming_door_phone_item(array $device, array $variables, ?string $ip,
         'has_secret' => streaming_door_phone_password($variables, $phoneVariables) !== '',
         'password_is_admin' => streaming_door_password_variable($variables) === 'adminpw',
         'dtmf_code' => preg_match('/^[0-9A-Da-d*#+]{1,30}$/', $code) ? $code : null,
+        'streams' => streaming_door_phone_streams($variables),
         'sources' => $used,
     ];
 }
@@ -1839,6 +1861,7 @@ function streaming_door_phone_prefill(array $item): array
         'has_secret' => $item['has_secret'],
         'password_is_admin' => $item['password_is_admin'],
         'door_phone' => $item['mac'],
+        'streams' => $item['streams'] ?? null,
         'gates' => $gates,
         'ip' => $item['ip'],
         'registered' => $item['registered'],
