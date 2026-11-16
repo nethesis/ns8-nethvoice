@@ -68,6 +68,8 @@ angular.module('nethvoiceWizardUiApp')
         "general": {
           "settings": true,
           "password": true,
+          // Door phones: the admin password is generated per device by the PBX
+          "door_phone": variables.cap_door_phone == "1",
           "date_format": {
             "blacklist":  date_formats_blacklist
           }

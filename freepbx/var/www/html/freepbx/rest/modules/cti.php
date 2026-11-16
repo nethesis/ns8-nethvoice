@@ -1020,6 +1020,10 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
 $app->get('/cti/streaming', function (Request $request, Response $response, $args) {
     try {
         $dbh = FreePBX::Database();
+        // A door phone password changed in the phone settings: apply it
+        if (door_phone_sync_sources($dbh) > 0) {
+            system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        }
         $res = [];
         $sth = $dbh->prepare('SELECT `profile_id` FROM `rest_cti_profiles_permissions` JOIN `rest_cti_permissions` ON `rest_cti_permissions`.`id` = `rest_cti_profiles_permissions`.`permission_id` WHERE `rest_cti_permissions`.`name` = ?');
         foreach (streaming_load_sources($dbh) as $source) {
@@ -1080,13 +1084,44 @@ $app->post('/cti/streaming/doorphones/{mac}', function (Request $request, Respon
             return jsonResponse($response, ['status' => 'door phone not found'], 404);
         }
         $phone = door_phone_variables($mac);
-        $generated = door_phone_ensure_credentials($mac, $phone['variables'], $items[$mac]['extension']);
+        $generated = door_phone_ensure_credentials($mac, $phone, $items[$mac]['extension']);
         if ($generated) {
             $items = door_phone_list($sources);
         }
         $prefill = streaming_door_phone_prefill($items[$mac]);
         $prefill['credentials_generated'] = $generated;
         return jsonResponse($response, $prefill);
+    } catch (Throwable $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
+
+/*
+ * POST /cti/streaming/reachability { url, door_phone }
+ * Whether the PBX can open a TCP connection to the device of a RTSP URL (2
+ * seconds, nothing is sent to the device): { host, port, private, reachable,
+ * public_address, public_url }. "private" tells that the address belongs to a
+ * private network. With "door_phone", when the device is not reachable, the
+ * public address the door phone registers from is suggested if the PBX
+ * reaches it on the same port.
+ */
+$app->post('/cti/streaming/reachability', function (Request $request, Response $response, $args) {
+    try {
+        $data = $request->getParsedBody();
+        if (!is_array($data) || !isset($data['url']) || !is_string($data['url'])) {
+            return jsonResponse($response, ['status' => 'Invalid source URL', 'field' => 'url'], 400);
+        }
+        $mac = null;
+        if (isset($data['door_phone']) && is_string($data['door_phone']) && $data['door_phone'] !== '') {
+            $mac = streaming_door_phone_mac($data['door_phone']);
+            if ($mac === null) {
+                return jsonResponse($response, ['status' => 'invalid door phone', 'field' => 'door_phone'], 400);
+            }
+        }
+        return jsonResponse($response, door_phone_reachability(trim($data['url']), $mac));
+    } catch (StreamingValidationException $e) {
+        return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
     } catch (Throwable $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1187,6 +1222,10 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
             $data['secret'] = $doorSecret;
         }
         $source = streaming_normalize_source($data, $sources[$currentDescr]);
+        // The link to the door phone stays while its password is kept
+        $source['door_phone'] = $doorSecret !== null
+            ? streaming_door_phone_mac((string) $data['door_phone'])
+            : (((string) ($data['secret'] ?? '') === '' && $source['user'] === $sources[$currentDescr]['user']) ? $sources[$currentDescr]['door_phone'] : null);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
         $source = streamingPinCertificate($source);
         // A stored password is never kept for a device with a new certificate
@@ -1226,6 +1265,7 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
             $data['secret'] = $doorSecret;
         }
         $source = streaming_normalize_source($data);
+        $source['door_phone'] = $doorSecret !== null ? streaming_door_phone_mac((string) $data['door_phone']) : null;
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
         $source = streamingPinCertificate($source);
         streaming_store_source(FreePBX::Database(), $source, $profiles);

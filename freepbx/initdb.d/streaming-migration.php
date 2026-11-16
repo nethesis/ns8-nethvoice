@@ -107,6 +107,10 @@ function migrateStreamingTlsSchema(\PDO $db): void
     if (!in_array('tls_fingerprint', $columns, true)) {
         $db->exec("ALTER TABLE `asterisk`.`rest_cti_streaming` ADD COLUMN `tls_fingerprint` varchar(64) DEFAULT NULL");
     }
+    // MAC of the provisioned door phone whose password the source uses
+    if (!in_array('door_phone', $columns, true)) {
+        $db->exec("ALTER TABLE `asterisk`.`rest_cti_streaming` ADD COLUMN `door_phone` varchar(17) DEFAULT NULL");
+    }
     // The pinned certificate of the https:// URL gates. Existing gates stay
     // without it: they keep working unpinned until the source is saved again.
     $gateColumns = $db->query("SELECT COLUMN_NAME
