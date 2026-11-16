@@ -174,35 +174,52 @@ test.describe('user overview', () => {
     await expect(page.getByRole('button', { name: 'Call', exact: true })).toBeEnabled()
 
     const drawer = page.getByRole('dialog')
-    const webPhone = drawer.getByRole('button', { name: /Web phone/ })
-    const mobileApp = drawer.getByRole('button', { name: /Mobile app/ })
-    const panelOf = async (toggle: typeof webPhone) =>
-      drawer.locator(`[id="${await toggle.getAttribute('aria-controls')}"]`)
-    const webPhonePanel = await panelOf(webPhone)
-    const mobileAppPanel = await panelOf(mobileApp)
+    await expect(drawer.getByTestId('device-row')).toHaveCount(3)
+    await expect(drawer.getByTestId('device-row').nth(1)).toContainText('92300')
 
-    await expect(drawer.getByRole('navigation', { name: 'Tabs' })).toHaveCount(0)
-    await expect(webPhone).toHaveAttribute('aria-expanded', 'true')
-    await expect(webPhonePanel).toBeVisible()
-    await expect(webPhonePanel).toContainText('opus, alaw')
-    await expect(mobileApp).toHaveAttribute('aria-expanded', 'false')
-    await expect(mobileAppPanel).toBeHidden()
+    const tabs = drawer.getByRole('navigation', { name: 'Tabs' })
+    const details = drawer.getByTestId('device-details')
+    await expect(details).toContainText('opus, alaw')
+    await expect(details).not.toContainText('0612345678')
 
-    await mobileApp.click()
-    await expect(mobileApp).toHaveAttribute('aria-expanded', 'true')
-    await expect(mobileAppPanel).toBeVisible()
-    await expect(mobileAppPanel).toContainText('0612345678')
-
-    await webPhone.click()
-    await expect(webPhone).toHaveAttribute('aria-expanded', 'false')
-    await expect(webPhonePanel).toBeHidden()
-    await expect(mobileAppPanel).toBeVisible()
+    await tabs.getByText(/Mobile app/).click()
+    await expect(details).toContainText('0612345678')
     expect(
       await drawer.evaluate((element) => {
         const scroller = element.querySelector('.overflow-y-auto') ?? element
         return scroller.scrollWidth <= scroller.clientWidth
       }),
     ).toBe(true)
+  })
+
+  test('disables the call without a device online', async ({ page, mockApi }) => {
+    mockOverview(mockApi, {
+      'a.miller': endpointUser('a.miller', 'Anna Miller', 'offline', '300', [
+        { id: '93300', type: 'physical' },
+      ]),
+    })
+    await page.goto('./users/overview')
+
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    const call = page.getByRole('button', { name: 'Call', exact: true })
+    await expect(call).toBeDisabled()
+    await call.locator('..').hover()
+    await expect(page.getByRole('tooltip', { name: 'No device online to call' })).toBeVisible()
+  })
+
+  test('puts the favorite users first', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    const users = page.locator('li[data-user]')
+    await expect(users.first()).toHaveAttribute('data-user', 'a.miller')
+
+    await page.getByRole('button', { name: 'Show details of Carla Rossi' }).click()
+    await page.getByRole('button', { name: 'Add to favorites' }).click()
+    await page.keyboard.press('Escape')
+
+    await expect(users.first()).toHaveAttribute('data-user', 'c.rossi')
+    await expect(users.nth(1)).toHaveAttribute('data-user', 'a.miller')
   })
 
   test('names the icon buttons with a tooltip', async ({ page, mockApi }) => {

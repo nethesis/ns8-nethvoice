@@ -68,7 +68,8 @@
     "open_legacy_wizard": "Go to the previous interface",
     "administrator": "Administrator",
     "switch_to_compact_view": "Switch to compact view",
-    "switch_to_standard_view": "Switch to standard view"
+    "switch_to_standard_view": "Switch to standard view",
+    "enterprise_instance": "Enterprise subscription"
   },
   "login": {
     "welcome": "Welcome",
@@ -129,7 +130,6 @@
     },
     "devices": {
       "title": "Devices",
-      "tooltip": "Devices currently connected to the PBX",
       "web_phone": "Web phone",
       "desktop_phone": "Desktop app",
       "mobile_app": "Mobile app",
@@ -169,8 +169,28 @@
       "counters": "counters",
       "live_data": "live data",
       "trunks": "trunks",
-      "inbound_routes": "inbound routes"
-    }
+      "inbound_routes": "inbound routes",
+      "calls": "today's calls"
+    },
+    "move_card": "Move {card}",
+    "drag_to_reorder": "Drag to reorder, or use the arrow keys",
+    "card_moved": "{card} moved to position {position} of {total}",
+    "calls_summary": {
+      "title": "Calls today",
+      "total": "Total calls",
+      "answered": "Answered",
+      "missed": "Missed",
+      "invalid": "Invalid",
+      "no_calls": "No calls today"
+    },
+    "hourly_calls": {
+      "title": "Hourly distribution of incoming calls",
+      "legend": "Incoming calls",
+      "summary": "{total} incoming calls today, most at {hour} with {calls}",
+      "no_calls": "No incoming calls today",
+      "hour_value": "{hour}: {calls}"
+    },
+    "cannot_load_calls": "Cannot load today's calls"
   },
   "users": {
     "title": "Users and groups",

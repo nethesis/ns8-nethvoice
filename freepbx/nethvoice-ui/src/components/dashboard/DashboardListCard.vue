@@ -40,7 +40,7 @@ const {
   loading?: boolean
 }>()
 
-defineSlots<{ value(props: { item: TItem }): unknown }>()
+defineSlots<{ value(props: { item: TItem }): unknown; handle?(): unknown }>()
 
 const { pageNum, pageSize, page } = useClientPagination(computed(() => items))
 pageSize.value = DASHBOARD_LIST_PAGE_SIZE
@@ -49,7 +49,10 @@ pageSize.value = DASHBOARD_LIST_PAGE_SIZE
 <template>
   <NeCard>
     <template #title>
-      <span class="text-secondary-neutral text-sm font-normal">{{ title }}</span>
+      <span class="flex items-center gap-2">
+        <slot name="handle" />
+        <span class="text-secondary-neutral text-sm font-normal">{{ title }}</span>
+      </span>
     </template>
     <NeSkeleton v-if="loading" :lines="6" class="w-full" />
     <NeEmptyState v-else-if="items.length === 0" :title="emptyTitle" :icon="emptyIcon" />

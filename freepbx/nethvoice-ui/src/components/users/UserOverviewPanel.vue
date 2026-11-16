@@ -12,11 +12,10 @@ import {
   faEye,
   faMagnifyingGlass,
   faStar,
-  faTableCells,
-  faTableCellsLarge,
-  faUsers,
+  faUserGroup,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons'
+import { faGrid2, faGridDividers } from '@nethesis/nethesis-solid-svg-icons'
 import {
   NeButton,
   NeDropdownFilterV2,
@@ -71,9 +70,9 @@ const selectedUsername = ref('')
 const isShownDetails = ref(false)
 
 const VIEW_OPTIONS: { id: OverviewView; icon: IconDefinition }[] = [
-  { id: 'grid', icon: faTableCellsLarge },
+  { id: 'grid', icon: faGrid2 },
   { id: 'list', icon: faBars },
-  { id: 'compact', icon: faTableCells },
+  { id: 'compact', icon: faGridDividers },
 ]
 
 const loading = computed(
@@ -109,6 +108,7 @@ const shownUsers = computed(() =>
     }),
     sortKey.value,
     sortDescending.value,
+    favoritesStore.favorites,
   ),
 )
 
@@ -146,7 +146,7 @@ const groupedUsers = computed<UserSection[]>(() => {
       id: `status-${status}`,
       label: t(`user_overview.status.${status}`),
       kind: 'gray' as const,
-      icon: faUsers,
+      icon: faUserGroup,
       users: shownUsers.value.filter((user) => user.presence === status),
     })).filter((section) => section.users.length > 0)
   }
@@ -170,7 +170,7 @@ const groupedUsers = computed<UserSection[]>(() => {
       id: `group-${name}`,
       label: name,
       kind: 'blue',
-      icon: faUsers,
+      icon: faUserGroup,
       users: shownUsers.value.filter((user) => user.groups.includes(name)),
     })
   }
@@ -181,7 +181,7 @@ const groupedUsers = computed<UserSection[]>(() => {
       id: 'no-group',
       label: t('user_overview.no_group'),
       kind: 'gray',
-      icon: faUsers,
+      icon: faUserGroup,
       users: withoutGroup,
     })
   }
@@ -338,7 +338,7 @@ function reload() {
         v-else-if="overviewUsers.length === 0"
         :title="t('user_overview.no_users')"
         :description="t('user_overview.no_users_description')"
-        :icon="faUsers"
+        :icon="faUserGroup"
         class="bg-elevation-2"
       />
       <NeEmptyState
@@ -372,7 +372,7 @@ function reload() {
               <div class="min-w-0">
                 <p class="text-primary-neutral truncate" :title="user.name">{{ user.name }}</p>
                 <p v-if="user.groups.length" class="text-tertiary-neutral flex items-center gap-2">
-                  <FontAwesomeIcon :icon="faUsers" class="size-4 shrink-0" aria-hidden="true" />
+                  <FontAwesomeIcon :icon="faUserGroup" class="size-4 shrink-0" aria-hidden="true" />
                   <span class="truncate">{{ user.groups.join(', ') }}</span>
                 </p>
               </div>

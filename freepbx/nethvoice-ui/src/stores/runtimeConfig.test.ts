@@ -34,6 +34,10 @@ describe('parseRuntimeConfig', () => {
   it('should read the configured host name', () => {
     expect(parseRuntimeConfig({ HOSTNAME: ' pbx.example.org ' }).hostname).toBe('pbx.example.org')
     expect(parseRuntimeConfig({}).hostname).toBe('')
+    expect(parseRuntimeConfig({ INSTANCE_NAME: ' Milan office ' }).instanceName).toBe(
+      'Milan office',
+    )
+    expect(parseRuntimeConfig({}).instanceName).toBe('')
   })
 
   it('should drop URLs with a scheme other than http and https', () => {

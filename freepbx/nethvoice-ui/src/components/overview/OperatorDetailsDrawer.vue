@@ -7,9 +7,9 @@
 import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faChevronDown, faStar, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faStar, faUserGroup } from '@fortawesome/free-solid-svg-icons'
 import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
-import { NeBadgeV2, NeButton, NeSideDrawer, NeTooltip } from '@nethesis/vue-components'
+import { NeBadgeV2, NeButton, NeSideDrawer, NeTabs, NeTooltip } from '@nethesis/vue-components'
 import CallSplitButton from '@/components/overview/CallSplitButton.vue'
 import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
@@ -36,38 +36,38 @@ const favoriteLabel = computed(() =>
   isFavorite.value ? t('user_overview.remove_favorite') : t('user_overview.add_favorite'),
 )
 
-const expandedExtensions = ref<string[]>([])
-
 const devices = computed(() => user?.devices ?? [])
+
+const selectedExtension = ref('')
 
 watch(
   () => [isShown, user?.username],
   () => {
     if (isShown) {
-      expandedExtensions.value = devices.value[0] ? [devices.value[0].extension] : []
+      selectedExtension.value = devices.value[0]?.extension ?? ''
     }
   },
+  { immediate: true },
 )
 
-function isExpanded(device: OverviewDevice) {
-  return expandedExtensions.value.includes(device.extension)
-}
+const deviceTabs = computed(() =>
+  devices.value.map((device) => ({ name: device.extension, label: getDeviceLabel(device) })),
+)
 
-function toggleDevice(device: OverviewDevice) {
-  expandedExtensions.value = isExpanded(device)
-    ? expandedExtensions.value.filter((extension) => extension !== device.extension)
-    : [...expandedExtensions.value, device.extension]
-}
+const selectedDevice = computed(
+  () =>
+    devices.value.find((device) => device.extension === selectedExtension.value) ??
+    devices.value[0],
+)
 
-function getPanelId(device: OverviewDevice) {
-  return `${idPrefix}-device-${device.extension}`
-}
+const hasOnlineDevice = computed(() => devices.value.some((device) => device.status !== 'offline'))
 
 const mainExtension = computed(() => user?.mainExtension ?? '')
 
 const isCallDisabled = computed(
   () =>
     !mainExtension.value ||
+    !hasOnlineDevice.value ||
     adminPhoneStore.inCall ||
     adminPhoneStore.state === 'elsewhere' ||
     (adminPhoneStore.state === 'error' && adminPhoneStore.isEnabled),
@@ -78,6 +78,9 @@ const callTooltip = computed(() => {
 
   if (!extension) {
     return t('user_overview.call_no_extension')
+  }
+  if (!hasOnlineDevice.value) {
+    return t('user_overview.call_device_unavailable')
   }
   if (adminPhoneStore.inCall) {
     return t('user_overview.call_in_progress')
@@ -150,7 +153,7 @@ function getDeviceLabel(device: OverviewDevice) {
           </div>
           <div v-if="user.groups.length" class="flex flex-wrap gap-1">
             <NeBadgeV2 v-for="group in user.groups" :key="group" kind="blue" size="xs">
-              <FontAwesomeIcon :icon="faUsers" class="mr-1 size-4" aria-hidden="true" />
+              <FontAwesomeIcon :icon="faUserGroup" class="mr-1 size-4" aria-hidden="true" />
               {{ group }}
             </NeBadgeV2>
           </div>
@@ -194,73 +197,64 @@ function getDeviceLabel(device: OverviewDevice) {
           <li
             v-for="device in devices"
             :key="device.extension"
-            class="border-b border-gray-200 pb-2 last:border-b-0 dark:border-gray-700"
+            class="flex items-center gap-2 border-b border-gray-200 pb-2 last:border-b-0 dark:border-gray-700"
+            data-testid="device-row"
           >
-            <h5 class="-mx-2">
-              <button
-                type="button"
-                class="focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors duration-200 hover:bg-gray-200/70 focus:outline-hidden focus-visible:ring-2 dark:hover:bg-gray-600/30"
-                :aria-expanded="isExpanded(device)"
-                :aria-controls="getPanelId(device)"
-                data-testid="device-toggle"
-                @click="toggleDevice(device)"
-              >
-                <FontAwesomeIcon
-                  :icon="DEVICE_ICONS[device.type]"
-                  class="text-tertiary-neutral size-4 shrink-0"
-                  aria-hidden="true"
-                />
-                <span class="text-tertiary-neutral w-28 shrink-0 truncate">
-                  {{ getDeviceLabel(device) }}
-                </span>
-                <span class="text-primary-700 dark:text-primary-500 grow">
-                  {{ device.extension }}
-                </span>
-                <OverviewStatusLabel :status="device.status" class="shrink-0" />
-                <FontAwesomeIcon
-                  :icon="faChevronDown"
-                  :class="[
-                    'text-tertiary-neutral size-3 shrink-0 transition-transform duration-200',
-                    { 'rotate-180': isExpanded(device) },
-                  ]"
-                  aria-hidden="true"
-                />
-              </button>
-            </h5>
-            <dl
-              v-show="isExpanded(device)"
-              :id="getPanelId(device)"
-              class="bg-elevation-0 text-secondary-neutral mt-2 rounded-lg px-4 py-1"
-              data-testid="device-details"
+            <FontAwesomeIcon
+              :icon="DEVICE_ICONS[device.type]"
+              class="text-tertiary-neutral size-4 shrink-0"
+              aria-hidden="true"
+            />
+            <span
+              class="text-tertiary-neutral w-28 shrink-0 truncate"
+              :title="getDeviceLabel(device)"
             >
-              <div
-                class="flex justify-between gap-4 border-b border-gray-200 py-3 dark:border-gray-700"
-              >
-                <dt class="shrink-0">{{ t('user_overview.codecs') }}</dt>
-                <dd class="text-right wrap-anywhere">
-                  {{ device.codecs.length ? device.codecs.join(', ') : '-' }}
-                </dd>
-              </div>
-              <div
-                class="flex justify-between gap-4 border-b border-gray-200 py-3 dark:border-gray-700"
-              >
-                <dt class="shrink-0">{{ t('user_overview.do_not_disturb') }}</dt>
-                <dd class="text-right">
-                  {{ device.doNotDisturb ? t('user_overview.on') : t('user_overview.off') }}
-                </dd>
-              </div>
-              <div class="flex justify-between gap-4 py-3">
-                <dt class="shrink-0">{{ t('user_overview.call_forward') }}</dt>
-                <dd class="text-right wrap-anywhere">
-                  {{ device.callForward || t('user_overview.off') }}
-                </dd>
-              </div>
-            </dl>
+              {{ getDeviceLabel(device) }}
+            </span>
+            <span class="text-primary-700 dark:text-primary-500 grow">{{ device.extension }}</span>
+            <OverviewStatusLabel :status="device.status" class="shrink-0" />
           </li>
         </ul>
         <p v-if="devices.length === 0" class="text-tertiary-neutral">
           {{ t('user_overview.no_devices') }}
         </p>
+      </div>
+      <div v-if="selectedDevice" class="flex flex-col gap-4">
+        <NeTabs
+          v-keyboard-tabs
+          :tabs="deviceTabs"
+          :selected="selectedDevice.extension"
+          :sr-tabs-label="t('ne_tabs.tabs')"
+          :sr-select-tab-label="t('ne_tabs.select_a_tab')"
+          @select-tab="selectedExtension = $event"
+        />
+        <dl
+          class="bg-elevation-0 text-secondary-neutral rounded-lg px-4 py-1"
+          data-testid="device-details"
+        >
+          <div
+            class="flex justify-between gap-4 border-b border-gray-200 py-3 dark:border-gray-700"
+          >
+            <dt class="shrink-0">{{ t('user_overview.codecs') }}</dt>
+            <dd class="text-right wrap-anywhere">
+              {{ selectedDevice.codecs.length ? selectedDevice.codecs.join(', ') : '-' }}
+            </dd>
+          </div>
+          <div
+            class="flex justify-between gap-4 border-b border-gray-200 py-3 dark:border-gray-700"
+          >
+            <dt class="shrink-0">{{ t('user_overview.do_not_disturb') }}</dt>
+            <dd class="text-right">
+              {{ selectedDevice.doNotDisturb ? t('user_overview.on') : t('user_overview.off') }}
+            </dd>
+          </div>
+          <div class="flex justify-between gap-4 py-3">
+            <dt class="shrink-0">{{ t('user_overview.call_forward') }}</dt>
+            <dd class="text-right wrap-anywhere">
+              {{ selectedDevice.callForward || t('user_overview.off') }}
+            </dd>
+          </div>
+        </dl>
       </div>
     </div>
   </NeSideDrawer>

@@ -68,7 +68,8 @@
     "open_legacy_wizard": "Vai all'interfaccia precedente",
     "administrator": "Amministratore",
     "switch_to_compact_view": "Passa alla vista compatta",
-    "switch_to_standard_view": "Passa alla vista standard"
+    "switch_to_standard_view": "Passa alla vista standard",
+    "enterprise_instance": "Subscription Enterprise"
   },
   "login": {
     "welcome": "Benvenuto",
@@ -129,7 +130,6 @@
     },
     "devices": {
       "title": "Dispositivi",
-      "tooltip": "Dispositivi attualmente connessi al centralino",
       "web_phone": "Web phone",
       "desktop_phone": "App desktop",
       "mobile_app": "App mobile",
@@ -169,8 +169,28 @@
       "counters": "contatori",
       "live_data": "dati in tempo reale",
       "trunks": "fasci",
-      "inbound_routes": "rotte in ingresso"
-    }
+      "inbound_routes": "rotte in ingresso",
+      "calls": "chiamate di oggi"
+    },
+    "move_card": "Sposta {card}",
+    "drag_to_reorder": "Trascina per riordinare, oppure usa i tasti freccia",
+    "card_moved": "{card} spostata in posizione {position} di {total}",
+    "calls_summary": {
+      "title": "Chiamate di oggi",
+      "total": "Chiamate totali",
+      "answered": "Risposte",
+      "missed": "Perse",
+      "invalid": "Non valide",
+      "no_calls": "Nessuna chiamata oggi"
+    },
+    "hourly_calls": {
+      "title": "Distribuzione oraria delle chiamate in ingresso",
+      "legend": "Chiamate in ingresso",
+      "summary": "{total} chiamate in ingresso oggi, il massimo alle {hour} con {calls}",
+      "no_calls": "Nessuna chiamata in ingresso oggi",
+      "hour_value": "{hour}: {calls}"
+    },
+    "cannot_load_calls": "Impossibile caricare le chiamate di oggi"
   },
   "users": {
     "title": "Utenti e gruppi",

@@ -15,13 +15,33 @@ test.describe('shell', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   })
 
-  test('shows the Enterprise subscription in the top bar', async ({ page, mockApi }) => {
+  test('shows the instance name in the top bar on Enterprise', async ({ page, mockApi }) => {
+    await page.route('**/nethvoice/config.json', (route) =>
+      route.fulfill({ json: { HOSTNAME: 'pbx.example.org', INSTANCE_NAME: 'Milan office' } }),
+    )
     mockApi.on('GET', '/freepbx/rest/mainextensions/userlimits', {
       json: { configured: 5, limit: false, configurable: false },
     })
     await page.goto('./dashboard')
 
-    await expect(page.getByTestId('topbar-subscription')).toHaveText(/Enterprise/)
+    const subscription = page.getByTestId('topbar-subscription')
+    await expect(subscription).toHaveText(/^Enterprise subscription:\s*Milan office$/)
+    await subscription.hover()
+    await expect(page.getByRole('tooltip', { name: 'Enterprise subscription' })).toBeVisible()
+  })
+
+  test('shows the host name in the top bar without an instance name', async ({ page, mockApi }) => {
+    await page.route('**/nethvoice/config.json', (route) =>
+      route.fulfill({ json: { HOSTNAME: 'pbx.example.org' } }),
+    )
+    mockApi.on('GET', '/freepbx/rest/mainextensions/userlimits', {
+      json: { configured: 5, limit: false, configurable: false },
+    })
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('topbar-subscription')).toHaveText(
+      /^Enterprise subscription:\s*pbx\.example\.org$/,
+    )
   })
 
   test('hides the subscription in the top bar on Community', async ({ page, mockApi }) => {

@@ -62,7 +62,7 @@ const avatarSize = computed<AvatarSize>(() =>
     <NeAvatar :size="avatarSize" :initials="initials" :alt="name" />
     <span
       :class="[
-        'absolute right-0 bottom-0 block rounded-full ring-2 ring-white',
+        'absolute right-0 bottom-0 block rounded-full border-2 border-white',
         DOT_SIZE[avatarSize],
         PRESENCE_DOT[presence],
       ]"
@@ -75,7 +75,7 @@ const avatarSize = computed<AvatarSize>(() =>
       v-if="favorite"
       :icon="faStar"
       :class="[
-        'absolute top-0 right-0 text-indigo-500 dark:text-indigo-400',
+        'text-accent-indigo absolute top-0 right-0 stroke-white stroke-170 [paint-order:stroke]',
         STAR_SIZE[avatarSize],
       ]"
       data-testid="favorite-star"
