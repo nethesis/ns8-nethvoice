@@ -1118,8 +1118,8 @@ $app->post('/cti/streaming/doorphones/{mac}/sync', function (Request $request, R
 
 /*
  * POST /cti/streaming/reachability { url, door_phone }
- * Whether the PBX can open a TCP connection to the device of a RTSP URL (2
- * seconds, nothing is sent to the device): { host, port, private, reachable,
+ * Whether the PBX can open a TCP connection to the device of a source URL
+ * (rtsp, rtsps, http, https; 2 seconds, nothing is sent to the device): { host, port, private, reachable,
  * public_address, public_url }. "private" tells that the address belongs to a
  * private network. With "door_phone", when the device is not reachable, the
  * public address the door phone registers from is suggested if the PBX

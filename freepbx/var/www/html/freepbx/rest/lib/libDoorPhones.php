@@ -241,7 +241,7 @@ function door_phone_sync_sources(\PDO $db, ?string $mac = null, ?callable $varia
 }
 
 /*
- * Reachability of the RTSP URL of a door phone (TCP connect only, see
+ * Reachability of the URL of a source (TCP connect only, see
  * streaming_tcp_reachability). When the PBX does not reach it and the door
  * phone registers from a public address that the PBX reaches on the same
  * port, that address is suggested ("public_address", "public_url").

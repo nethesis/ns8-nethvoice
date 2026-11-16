@@ -209,6 +209,16 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(ApplicationService.checkConnectionVideoSource.calls.mostRecent().args[0].tls_skip_verify).toBe(false);
   });
 
+  it('checks whether the PBX reaches any source after the URL is typed', inject(function ($timeout) {
+    ApplicationService.videoSourceReachability.calls.reset();
+    var source = { url: 'http://192.168.1.2/snapshot.jpg', gates: [] };
+    scope.urlChanged(source);
+    expect(ApplicationService.videoSourceReachability).not.toHaveBeenCalled();
+    $timeout.flush(800);
+    expect(ApplicationService.videoSourceReachability.calls.mostRecent().args[0]).toEqual({ url: 'http://192.168.1.2/snapshot.jpg' });
+    expect(source.reachability.reachable).toBe(false);
+  }));
+
   it('requires a new check when the URL or the credentials change', function () {
     var source = { verified: true, checked: true, check: { success: true }, preview: 'data:' };
     scope.sourceChanged(source);
