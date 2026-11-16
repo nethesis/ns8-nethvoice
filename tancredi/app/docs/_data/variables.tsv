@@ -122,3 +122,5 @@ ro	door_video_sub_bitrate		Door phones: bitrate of the sub camera stream, in bit
 ro	door_video_sub_resolution		Door phones: resolution code of the sub camera stream (Fanvil i6x: `4` = VGA).	integer	
 ro	door_video_iframe_interval		Door phones: keyframe interval of the camera streams, in frames.	integer	
 ro	cap_door_rtsp_adminpw		Door phones: the RTSP password of the device is its web admin password ([adminpw](#adminpw)), used when [door_rtsp_password](#door_rtsp_password) is empty.	boolean	
+ro	cap_settings_sections_blacklist		Comma separated list of the sections of the phone settings that a PBX user interface should hide because the device does not have them, e.g. `displayAndRingtones,network,phonebook` for door phones.	string	
+ro	cap_settings_blacklist		Comma separated list of variables that a PBX user interface should hide in the phone settings because the template does not write them for this model.	string	

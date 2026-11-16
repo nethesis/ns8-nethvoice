@@ -25,6 +25,7 @@ teardown_file () {
     assert_http_code "200"
     assert_http_body '"cap_door_phone":"1"'
     assert_http_body '"cap_door_rtsp_adminpw":"1"'
+    assert_http_body '"cap_settings_sections_blacklist":"displayAndRingtones,network,phonebook"'
     assert_http_body '"tmpl_phone":"fanvil-i6x.tmpl"'
     assert_http_body '"door_rtsp_path":"/h264/stream.live1"'
 }
@@ -79,6 +80,7 @@ EOF
     ! assert_http_body "<NET CONFIG MODULE>"
     ! assert_http_body "Web Port"
     ! assert_http_body "<EGS CONFIG MODULE>"
+    ! assert_http_body "Default Language"
     assert_http_body "Enable RTSP        :1"
     assert_http_body "Enable RTSP Auth   :1"
     assert_http_body "RTSP Server User   :nethvoice"
