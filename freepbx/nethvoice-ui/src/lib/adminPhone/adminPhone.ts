@@ -170,10 +170,6 @@ export const postAdminPhoneSession = async (): Promise<AdminPhoneSession> => {
   return parseAdminPhoneSession(data)
 }
 
-export const postAdminPhoneRotate = async (): Promise<void> => {
-  await api.POST('/adminphone/rotate')
-}
-
 let serviceExtension: Promise<string | null> | null = null
 
 export const getServiceExtension = (): Promise<string | null> => {

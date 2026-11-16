@@ -2750,26 +2750,6 @@ export interface paths {
     patch?: never
     trace?: never
   }
-  '/adminphone/rotate': {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    /**
-     * Generate a new SIP secret for the administrator phone.
-     * @description The previous secret stops working after the FreePBX reload started by this call.
-     */
-    post: operations['post_adminphone_rotate']
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   '/devices/gateways/download/{name}/{mac}': {
     parameters: {
       query?: never
@@ -9030,42 +9010,6 @@ export interface operations {
       }
       /** @description Validation failed */
       422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['UsersMessage']
-        }
-      }
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['UsersMessage']
-        }
-      }
-    }
-  }
-  post_adminphone_rotate: {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description No content */
-      204: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-      /** @description Administrator phone not configured */
-      404: {
         headers: {
           [name: string]: unknown
         }

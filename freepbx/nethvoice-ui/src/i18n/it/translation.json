@@ -1649,10 +1649,6 @@
     "status_in_call": "Chiamata in corso, interno {extension}",
     "status_connection_lost": "Il telefono non riesce a connettersi al centralino e continua a riprovare",
     "status_error": "Impossibile abilitare il telefono: {error}",
-    "regenerate_credentials": "Rigenera le credenziali del telefono",
-    "credentials_regenerated": "Credenziali del telefono rigenerate",
-    "credentials_regenerated_description": "Le credenziali precedenti non funzionano più.",
-    "cannot_regenerate_credentials": "Impossibile rigenerare le credenziali del telefono",
     "cost_notice_title": "Chiamate verso numeri esterni",
     "cost_notice_description": "Le chiamate verso numeri esterni passano dalle rotte in uscita e possono essere addebitate dall'operatore telefonico."
   }

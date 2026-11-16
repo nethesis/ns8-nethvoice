@@ -208,15 +208,6 @@ function adminPhoneSession($env, $name = null) {
     );
 }
 
-function adminPhoneRotate() {
-    $extension = adminPhoneStoredExtension();
-    if (!adminPhoneExtensionExists($extension)) {
-        return false;
-    }
-    setSipData($extension, 'secret', adminPhoneNewSecret());
-    return true;
-}
-
 function adminPhoneDelete() {
     global $astman;
     $nethcti3 = FreePBX::Nethcti3();

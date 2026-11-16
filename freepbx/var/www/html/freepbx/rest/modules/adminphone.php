@@ -71,19 +71,6 @@ $app->post('/adminphone/session', function (Request $request, Response $response
     }
 });
 
-$app->post('/adminphone/rotate', function (Request $request, Response $response, $args) {
-    try {
-        if (!adminPhoneLocked(fn() => adminPhoneRotate())) {
-            return jsonResponse($response, array('message' => 'Administrator phone not configured'), 404);
-        }
-        adminPhoneReload();
-        return $response->withStatus(204);
-    } catch (Throwable $e) {
-        error_log('adminphone rotate: '.$e->getMessage());
-        return jsonResponse($response, array('message' => 'Cannot rotate the administrator phone secret'), 500);
-    }
-});
-
 $app->delete('/adminphone', function (Request $request, Response $response, $args) {
     try {
         if (adminPhoneLocked(fn() => adminPhoneDelete())) {
