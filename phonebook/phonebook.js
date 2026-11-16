@@ -52,6 +52,14 @@ if (config.certificate !== undefined && config.key !== undefined) {
   server = ldap.createServer();
 }
 
+server.on('error', function (err) {
+  if (err && err.syscall) {
+    console.error("LDAP server fatal error: " + err.message);
+    process.exit(1);
+  }
+  console.error("LDAP client error: " + (err && err.message));
+});
+
 if (config.username !== undefined && config.password !== undefined) {
   authentication = true;
 }
