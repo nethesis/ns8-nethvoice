@@ -7,14 +7,16 @@
 import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faChevronDown, faUsers } from '@fortawesome/free-solid-svg-icons'
-import { NeBadgeV2, NeButton, NeSideDrawer } from '@nethesis/vue-components'
+import { faChevronDown, faStar, faUsers } from '@fortawesome/free-solid-svg-icons'
+import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
+import { NeBadgeV2, NeButton, NeSideDrawer, NeTooltip } from '@nethesis/vue-components'
 import CallSplitButton from '@/components/overview/CallSplitButton.vue'
 import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
 import type { OverviewDevice, OverviewUser } from '@/lib/overview/overview'
 import { useAdminPhoneStore } from '@/stores/adminPhone'
+import { useFavoritesStore } from '@/stores/favorites'
 
 const { isShown = false, user = undefined } = defineProps<{
   isShown: boolean
@@ -26,6 +28,13 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const idPrefix = useId()
 const adminPhoneStore = useAdminPhoneStore()
+const favoritesStore = useFavoritesStore()
+
+const isFavorite = computed(() => (user ? favoritesStore.isFavorite(user.username) : false))
+
+const favoriteLabel = computed(() =>
+  isFavorite.value ? t('user_overview.remove_favorite') : t('user_overview.add_favorite'),
+)
 
 const expandedExtensions = ref<string[]>([])
 
@@ -105,15 +114,43 @@ function getDeviceLabel(device: OverviewDevice) {
     :close-aria-label="t('shell.close_side_drawer')"
     @close="emit('close')"
   >
-    <div v-if="user" class="space-y-8">
-      <div class="flex items-start gap-4">
-        <OverviewAvatar :name="user.name" :presence="user.presence" size="xl" surface="drawer" />
-        <div class="min-w-0 space-y-1">
-          <p class="text-primary-neutral text-lg font-medium wrap-anywhere">{{ user.name }}</p>
-          <p class="text-secondary-neutral">{{ user.mainExtension }}</p>
+    <div v-if="user" class="flex flex-col gap-8">
+      <div class="flex items-start gap-6">
+        <OverviewAvatar :name="user.name" :presence="user.presence" size="3xl" />
+        <div class="flex min-w-0 flex-col gap-2">
+          <div>
+            <div class="flex items-center gap-2.5">
+              <p class="text-primary-neutral text-lg font-medium wrap-anywhere">{{ user.name }}</p>
+              <NeTooltip trigger-event="mouseenter focus" placement="top">
+                <template #trigger>
+                  <button
+                    type="button"
+                    class="focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 -m-1 flex rounded-md p-1 focus:outline-hidden focus-visible:ring-2"
+                    :aria-pressed="isFavorite"
+                    data-testid="favorite-toggle"
+                    @click="favoritesStore.toggleFavorite(user.username)"
+                  >
+                    <FontAwesomeIcon
+                      :icon="isFavorite ? faStar : faStarRegular"
+                      :class="[
+                        'size-5',
+                        isFavorite
+                          ? 'text-indigo-500 dark:text-indigo-400'
+                          : 'text-tertiary-neutral hover:text-indigo-500 dark:hover:text-indigo-400',
+                      ]"
+                      aria-hidden="true"
+                    />
+                    <span class="sr-only">{{ favoriteLabel }}</span>
+                  </button>
+                </template>
+                <template #content>{{ favoriteLabel }}</template>
+              </NeTooltip>
+            </div>
+            <p class="text-secondary-neutral text-base">{{ user.mainExtension }}</p>
+          </div>
           <div v-if="user.groups.length" class="flex flex-wrap gap-1">
             <NeBadgeV2 v-for="group in user.groups" :key="group" kind="blue" size="xs">
-              <FontAwesomeIcon :icon="faUsers" class="mr-1 size-3" aria-hidden="true" />
+              <FontAwesomeIcon :icon="faUsers" class="mr-1 size-4" aria-hidden="true" />
               {{ group }}
             </NeBadgeV2>
           </div>
@@ -147,16 +184,22 @@ function getDeviceLabel(device: OverviewDevice) {
           {{ t('admin_phone.use_here') }}
         </NeButton>
       </div>
-      <div>
-        <h4 class="text-primary-neutral mb-2 font-medium">
+      <div class="flex flex-col gap-2">
+        <h4
+          class="text-primary-neutral border-b border-gray-200 pb-2 text-base font-medium dark:border-gray-700"
+        >
           {{ t('user_overview.devices_title') }}
         </h4>
-        <ul class="divide-y divide-gray-200 dark:divide-gray-700" data-testid="device-list">
-          <li v-for="device in devices" :key="device.extension">
+        <ul class="flex flex-col gap-2" data-testid="device-list">
+          <li
+            v-for="device in devices"
+            :key="device.extension"
+            class="border-b border-gray-200 pb-2 last:border-b-0 dark:border-gray-700"
+          >
             <h5 class="-mx-2">
               <button
                 type="button"
-                class="focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex w-full items-center gap-3 rounded-md px-2 py-3 text-left transition-colors duration-200 hover:bg-gray-200/70 focus:outline-hidden focus-visible:ring-2 dark:hover:bg-gray-600/30"
+                class="focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex w-full items-center gap-2 rounded-md px-2 py-1 text-left transition-colors duration-200 hover:bg-gray-200/70 focus:outline-hidden focus-visible:ring-2 dark:hover:bg-gray-600/30"
                 :aria-expanded="isExpanded(device)"
                 :aria-controls="getPanelId(device)"
                 data-testid="device-toggle"
@@ -164,14 +207,14 @@ function getDeviceLabel(device: OverviewDevice) {
               >
                 <FontAwesomeIcon
                   :icon="DEVICE_ICONS[device.type]"
-                  class="text-secondary-neutral size-4 shrink-0"
+                  class="text-tertiary-neutral size-4 shrink-0"
                   aria-hidden="true"
                 />
-                <span class="flex min-w-0 grow flex-col">
-                  <span class="text-primary-neutral truncate">{{ getDeviceLabel(device) }}</span>
-                  <span class="text-primary-700 dark:text-primary-500">
-                    {{ device.extension }}
-                  </span>
+                <span class="text-tertiary-neutral w-28 shrink-0 truncate">
+                  {{ getDeviceLabel(device) }}
+                </span>
+                <span class="text-primary-700 dark:text-primary-500 grow">
+                  {{ device.extension }}
                 </span>
                 <OverviewStatusLabel :status="device.status" class="shrink-0" />
                 <FontAwesomeIcon
@@ -187,28 +230,28 @@ function getDeviceLabel(device: OverviewDevice) {
             <dl
               v-show="isExpanded(device)"
               :id="getPanelId(device)"
-              class="mb-3 ml-7 divide-y divide-gray-200 border-t border-gray-200 dark:divide-gray-700 dark:border-gray-700"
+              class="bg-elevation-0 text-secondary-neutral mt-2 rounded-lg px-4 py-1"
               data-testid="device-details"
             >
-              <div class="flex justify-between gap-4 py-2">
-                <dt class="text-secondary-neutral shrink-0">{{ t('user_overview.codecs') }}</dt>
-                <dd class="text-primary-neutral text-right wrap-anywhere">
+              <div
+                class="flex justify-between gap-4 border-b border-gray-200 py-3 dark:border-gray-700"
+              >
+                <dt class="shrink-0">{{ t('user_overview.codecs') }}</dt>
+                <dd class="text-right wrap-anywhere">
                   {{ device.codecs.length ? device.codecs.join(', ') : '-' }}
                 </dd>
               </div>
-              <div class="flex justify-between gap-4 py-2">
-                <dt class="text-secondary-neutral shrink-0">
-                  {{ t('user_overview.do_not_disturb') }}
-                </dt>
-                <dd class="text-primary-neutral text-right">
+              <div
+                class="flex justify-between gap-4 border-b border-gray-200 py-3 dark:border-gray-700"
+              >
+                <dt class="shrink-0">{{ t('user_overview.do_not_disturb') }}</dt>
+                <dd class="text-right">
                   {{ device.doNotDisturb ? t('user_overview.on') : t('user_overview.off') }}
                 </dd>
               </div>
-              <div class="flex justify-between gap-4 py-2">
-                <dt class="text-secondary-neutral shrink-0">
-                  {{ t('user_overview.call_forward') }}
-                </dt>
-                <dd class="text-primary-neutral text-right wrap-anywhere">
+              <div class="flex justify-between gap-4 py-3">
+                <dt class="shrink-0">{{ t('user_overview.call_forward') }}</dt>
+                <dd class="text-right wrap-anywhere">
                   {{ device.callForward || t('user_overview.off') }}
                 </dd>
               </div>

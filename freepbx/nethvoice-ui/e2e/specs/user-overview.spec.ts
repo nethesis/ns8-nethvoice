@@ -235,9 +235,22 @@ test.describe('user overview', () => {
       'aria-pressed',
       'false',
     )
-    await expect(page.getByRole('grid', { name: 'User overview' }).getByRole('row')).toHaveCount(4)
-    await views.getByRole('button', { name: 'Condensed view' }).click()
     await expect(page.locator('li[data-user]')).toHaveCount(3)
+    await expect(userCard(page, 'a.miller').getByTestId('device-circle')).toHaveCount(3)
+    await expect(userCard(page, 'a.miller')).toContainText('Anna Miller 300')
+
+    await views.getByRole('button', { name: 'Grouped view' }).click()
+    await expect(page.getByTestId('overview-group')).toHaveText([/Sales/, /Support/])
+    await expect(page.getByRole('region', { name: 'Sales' }).locator('li[data-user]')).toHaveCount(
+      2,
+    )
+
+    await page.getByRole('button', { name: 'Group by', exact: true }).click()
+    await page.getByRole('radio', { name: 'Status' }).check()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('region', { name: 'Online' }).locator('li[data-user]')).toHaveCount(
+      1,
+    )
   })
 
   test('anchors the presence to the corner of the avatar in every view', async ({
@@ -250,9 +263,9 @@ test.describe('user overview', () => {
     await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
     await page.getByRole('button', { name: 'List view' }).click()
     await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
-    await page.getByRole('button', { name: 'Condensed view' }).click()
+    await page.getByRole('button', { name: 'Grouped view' }).click()
     await expectDotOnAvatarCorner(userCard(page, 'a.miller'), 'Online')
-    await page.getByRole('button', { name: 'Anna Miller 300 Details' }).click()
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
     await expectDotOnAvatarCorner(page.getByRole('dialog'), 'Online')
   })
 })

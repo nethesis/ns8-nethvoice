@@ -8,9 +8,10 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
+  faBars,
   faEye,
-  faList,
   faMagnifyingGlass,
+  faStar,
   faTableCells,
   faTableCellsLarge,
   faUsers,
@@ -21,13 +22,8 @@ import {
   NeDropdownFilterV2,
   NeEmptyState,
   NeSkeleton,
+  NeBadgeV2,
   NeSortDropdown,
-  NeTable,
-  NeTableBody,
-  NeTableCell,
-  NeTableHead,
-  NeTableHeadCell,
-  NeTableRow,
   NeTextInput,
   NeTooltip,
   type NeDropdownFilterV2Option,
@@ -35,11 +31,13 @@ import {
 import LoadError from '@/components/common/LoadError.vue'
 import OperatorDetailsDrawer from '@/components/overview/OperatorDetailsDrawer.vue'
 import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
+import OverviewCompactCard from '@/components/overview/OverviewCompactCard.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
 import { usePolling } from '@/composables/usePolling'
 import {
   buildOverviewUsers,
+  FAVORITES_FILTER_ID,
   filterOverviewUsers,
   OVERVIEW_REFRESH_INTERVAL,
   OVERVIEW_SORT_KEYS,
@@ -52,6 +50,7 @@ import {
 import { useGroups } from '@/queries/groups/groups'
 import { useOverviewLiveState } from '@/queries/overview/overview'
 import { useUsers } from '@/queries/users/users'
+import { useFavoritesStore } from '@/stores/favorites'
 
 const { t } = useI18n()
 const { state: liveState, refetch: refetchLive } = useOverviewLiveState()
@@ -63,6 +62,8 @@ usePolling(() => refetchLive(), OVERVIEW_REFRESH_INTERVAL)
 const textFilter = ref('')
 const statusFilter = ref<NeDropdownFilterV2Option[]>([])
 const groupFilter = ref<NeDropdownFilterV2Option[]>([])
+const groupByFilter = ref<NeDropdownFilterV2Option[]>([])
+const favoritesStore = useFavoritesStore()
 const sortKey = ref<OverviewSortKey>('name')
 const sortDescending = ref(false)
 const view = ref<OverviewView>('grid')
@@ -71,7 +72,7 @@ const isShownDetails = ref(false)
 
 const VIEW_OPTIONS: { id: OverviewView; icon: IconDefinition }[] = [
   { id: 'grid', icon: faTableCellsLarge },
-  { id: 'list', icon: faList },
+  { id: 'list', icon: faBars },
   { id: 'compact', icon: faTableCells },
 ]
 
@@ -104,6 +105,7 @@ const shownUsers = computed(() =>
         statusFilter.value.some((option) => option.id === status),
       ),
       groups: groupFilter.value.map((option) => option.id),
+      favorites: favoritesStore.favorites,
     }),
     sortKey.value,
     sortDescending.value,
@@ -118,9 +120,73 @@ const statusOptions = computed<NeDropdownFilterV2Option[]>(() =>
   OVERVIEW_STATUSES.map((status) => ({ id: status, label: t(`user_overview.status.${status}`) })),
 )
 
-const groupOptions = computed<NeDropdownFilterV2Option[]>(() =>
-  (groupsState.value.data ?? []).map((group) => ({ id: group.name, label: group.name })),
-)
+const groupOptions = computed<NeDropdownFilterV2Option[]>(() => [
+  { id: FAVORITES_FILTER_ID, label: t('user_overview.favorites') },
+  ...(groupsState.value.data ?? []).map((group) => ({ id: group.name, label: group.name })),
+])
+
+const groupByOptions = computed<NeDropdownFilterV2Option[]>(() => [
+  { id: 'group', label: t('user_overview.group_by.group') },
+  { id: 'status', label: t('user_overview.group_by.status') },
+])
+
+const groupBy = computed(() => (groupByFilter.value[0]?.id === 'status' ? 'status' : 'group'))
+
+type UserSection = {
+  id: string
+  label: string
+  kind: 'blue' | 'gray'
+  icon: IconDefinition
+  users: OverviewUser[]
+}
+
+const groupedUsers = computed<UserSection[]>(() => {
+  if (groupBy.value === 'status') {
+    return OVERVIEW_STATUSES.map((status) => ({
+      id: `status-${status}`,
+      label: t(`user_overview.status.${status}`),
+      kind: 'gray' as const,
+      icon: faUsers,
+      users: shownUsers.value.filter((user) => user.presence === status),
+    })).filter((section) => section.users.length > 0)
+  }
+  const sections: UserSection[] = []
+  const favorites = shownUsers.value.filter((user) => favoritesStore.isFavorite(user.username))
+
+  if (favorites.length > 0) {
+    sections.push({
+      id: 'favorites',
+      label: t('user_overview.favorites'),
+      kind: 'blue',
+      icon: faStar,
+      users: favorites,
+    })
+  }
+  const names = [...new Set(shownUsers.value.flatMap((user) => user.groups))].sort((a, b) =>
+    a.localeCompare(b),
+  )
+  for (const name of names) {
+    sections.push({
+      id: `group-${name}`,
+      label: name,
+      kind: 'blue',
+      icon: faUsers,
+      users: shownUsers.value.filter((user) => user.groups.includes(name)),
+    })
+  }
+  const withoutGroup = shownUsers.value.filter((user) => user.groups.length === 0)
+
+  if (withoutGroup.length > 0) {
+    sections.push({
+      id: 'no-group',
+      label: t('user_overview.no_group'),
+      kind: 'gray',
+      icon: faUsers,
+      users: withoutGroup,
+    })
+  }
+  return sections
+})
 
 const sortOptions = computed(() =>
   OVERVIEW_SORT_KEYS.map((key) => ({ id: key, label: t(`user_overview.sort.${key}`) })),
@@ -138,6 +204,7 @@ const defaultFilters = computed(
     textFilter.value === '' &&
     statusFilter.value.length === 0 &&
     groupFilter.value.length === 0 &&
+    groupByFilter.value.length === 0 &&
     sortKey.value === 'name' &&
     !sortDescending.value,
 )
@@ -146,6 +213,7 @@ function resetFilters() {
   textFilter.value = ''
   statusFilter.value = []
   groupFilter.value = []
+  groupByFilter.value = []
   sortKey.value = 'name'
   sortDescending.value = false
 }
@@ -216,6 +284,18 @@ function reload() {
             :ascending-label="t('sort.ascending')"
             :descending-label="t('sort.descending')"
           />
+          <NeDropdownFilterV2
+            v-if="view === 'compact'"
+            v-model="groupByFilter"
+            kind="radio"
+            :label="t('user_overview.group_by.label')"
+            :options="groupByOptions"
+            :clear-filter-label="t('ne_dropdown_filter.clear_selection')"
+            :open-menu-aria-label="t('ne_dropdown_filter.open_filter')"
+            :no-options-label="t('ne_dropdown_filter.no_options')"
+            :more-options-hidden-label="t('ne_dropdown_filter.more_options_hidden')"
+            :clear-search-label="t('ne_dropdown_filter.clear_search')"
+          />
           <NeButton kind="tertiary" :disabled="defaultFilters" @click="resetFilters">
             {{ t('common.reset_filters') }}
           </NeButton>
@@ -272,24 +352,30 @@ function reload() {
       </NeEmptyState>
       <ul
         v-else-if="view === 'grid'"
-        class="3xl:grid-cols-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+        class="3xl:grid-cols-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
       >
         <li
           v-for="user in shownUsers"
           :key="user.username"
           :data-user="user.username"
-          class="bg-elevation-0 min-w-0 rounded-lg shadow-xs"
+          class="bg-elevation-0 flex min-w-0 flex-col gap-4 rounded-lg py-4 shadow-md"
         >
           <div
-            class="flex items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700"
+            class="flex items-start justify-between gap-3 border-b border-gray-200 px-4 pb-2 dark:border-gray-700"
           >
-            <OverviewAvatar :name="user.name" :presence="user.presence" size="sm" />
-            <div class="min-w-0 grow">
-              <p class="text-primary-neutral truncate" :title="user.name">{{ user.name }}</p>
-              <p v-if="user.groups.length" class="text-tertiary-neutral flex items-center gap-1.5">
-                <FontAwesomeIcon :icon="faUsers" class="size-3 shrink-0" aria-hidden="true" />
-                <span class="truncate">{{ user.groups.join(', ') }}</span>
-              </p>
+            <div class="flex min-w-0 items-center gap-3">
+              <OverviewAvatar
+                :name="user.name"
+                :presence="user.presence"
+                :favorite="favoritesStore.isFavorite(user.username)"
+              />
+              <div class="min-w-0">
+                <p class="text-primary-neutral truncate" :title="user.name">{{ user.name }}</p>
+                <p v-if="user.groups.length" class="text-tertiary-neutral flex items-center gap-2">
+                  <FontAwesomeIcon :icon="faUsers" class="size-4 shrink-0" aria-hidden="true" />
+                  <span class="truncate">{{ user.groups.join(', ') }}</span>
+                </p>
+              </div>
             </div>
             <NeTooltip trigger-event="mouseenter focus" placement="top">
               <template #trigger>
@@ -303,15 +389,15 @@ function reload() {
               <template #content>{{ t('common.show_details') }}</template>
             </NeTooltip>
           </div>
-          <ul class="divide-y divide-gray-200 px-4 dark:divide-gray-700">
+          <ul class="flex flex-col gap-2 px-6">
             <li
               v-for="device in user.devices"
               :key="device.extension"
-              class="flex items-center gap-4 py-2"
+              class="flex items-center gap-5 border-b border-gray-200 pb-2 last:border-b-0 dark:border-gray-700"
             >
               <FontAwesomeIcon
                 :icon="DEVICE_ICONS[device.type]"
-                class="text-secondary-neutral size-5 shrink-0"
+                class="text-tertiary-neutral size-6 shrink-0"
                 :aria-label="t(`user_overview.devices.${device.type}`)"
               />
               <div>
@@ -319,84 +405,49 @@ function reload() {
                 <OverviewStatusLabel :status="device.status" />
               </div>
             </li>
-            <li v-if="user.devices.length === 0" class="text-tertiary-neutral py-3">
+            <li v-if="user.devices.length === 0" class="text-tertiary-neutral pb-2">
               {{ t('user_overview.no_devices') }}
             </li>
           </ul>
         </li>
       </ul>
       <ul
-        v-else-if="view === 'compact'"
-        class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-6"
+        v-else-if="view === 'list'"
+        class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
       >
-        <li
-          v-for="user in shownUsers"
-          :key="user.username"
-          :data-user="user.username"
-          class="bg-elevation-0 flex min-w-0 items-center gap-3 rounded-lg px-3 py-2 shadow-xs"
-        >
-          <OverviewAvatar :name="user.name" :presence="user.presence" size="sm" />
-          <button type="button" class="min-w-0 grow text-left" @click="showDetails(user)">
-            <span class="text-primary-neutral block truncate">{{ user.name }}</span>
-            <span class="text-tertiary-neutral block">{{ user.mainExtension }}</span>
-            <span class="sr-only">{{ t('common.details') }}</span>
-          </button>
+        <li v-for="user in shownUsers" :key="user.username" :data-user="user.username">
+          <OverviewCompactCard
+            :user="user"
+            :favorite="favoritesStore.isFavorite(user.username)"
+            @details="showDetails(user)"
+          />
         </li>
       </ul>
-      <NeTable v-else :aria-label="t('user_overview.table_label')" card-breakpoint="lg">
-        <NeTableHead>
-          <NeTableHeadCell>{{ t('user_overview.name') }}</NeTableHeadCell>
-          <NeTableHeadCell>{{ t('user_overview.groups') }}</NeTableHeadCell>
-          <NeTableHeadCell>{{ t('user_overview.devices_title') }}</NeTableHeadCell>
-          <NeTableHeadCell>
-            <span class="sr-only">{{ t('common.actions') }}</span>
-          </NeTableHeadCell>
-        </NeTableHead>
-        <NeTableBody>
-          <NeTableRow v-for="user in shownUsers" :key="user.username" :data-user="user.username">
-            <NeTableCell :data-label="t('user_overview.name')">
-              <div class="flex items-center gap-3">
-                <OverviewAvatar :name="user.name" :presence="user.presence" size="sm" />
-                <div class="min-w-0">
-                  <p class="truncate">{{ user.name }}</p>
-                  <p class="text-tertiary-neutral">{{ user.mainExtension }}</p>
-                </div>
-              </div>
-            </NeTableCell>
-            <NeTableCell :data-label="t('user_overview.groups')">
-              {{ user.groups.length ? user.groups.join(', ') : '-' }}
-            </NeTableCell>
-            <NeTableCell :data-label="t('user_overview.devices_title')">
-              <div class="flex flex-wrap gap-x-5 gap-y-1">
-                <span
-                  v-for="device in user.devices"
-                  :key="device.extension"
-                  class="inline-flex items-center gap-2"
-                >
-                  <FontAwesomeIcon
-                    :icon="DEVICE_ICONS[device.type]"
-                    class="text-secondary-neutral size-4"
-                    :aria-label="t(`user_overview.devices.${device.type}`)"
-                  />
-                  <span class="text-primary-700 dark:text-primary-500">{{ device.extension }}</span>
-                  <OverviewStatusLabel :status="device.status" />
-                </span>
-              </div>
-            </NeTableCell>
-            <NeTableCell :data-label="t('common.actions')">
-              <div class="-ml-2.5 flex lg:ml-0 lg:justify-end">
-                <NeButton kind="tertiary" @click="showDetails(user)">
-                  <template #prefix>
-                    <FontAwesomeIcon :icon="faEye" class="size-4" aria-hidden="true" />
-                  </template>
-                  {{ t('common.details') }}
-                  <span class="sr-only">{{ user.name }}</span>
-                </NeButton>
-              </div>
-            </NeTableCell>
-          </NeTableRow>
-        </NeTableBody>
-      </NeTable>
+      <div v-else class="flex flex-col gap-8">
+        <section
+          v-for="section in groupedUsers"
+          :key="section.id"
+          :aria-label="section.label"
+          class="flex flex-col gap-4"
+          data-testid="overview-group"
+        >
+          <h3 class="flex">
+            <NeBadgeV2 :kind="section.kind" size="xs">
+              <FontAwesomeIcon :icon="section.icon" class="mr-1 size-4" aria-hidden="true" />
+              {{ section.label }}
+            </NeBadgeV2>
+          </h3>
+          <ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            <li v-for="user in section.users" :key="user.username" :data-user="user.username">
+              <OverviewCompactCard
+                :user="user"
+                :favorite="favoritesStore.isFavorite(user.username)"
+                @details="showDetails(user)"
+              />
+            </li>
+          </ul>
+        </section>
+      </div>
     </template>
     <OperatorDetailsDrawer
       :is-shown="isShownDetails"
