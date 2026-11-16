@@ -130,6 +130,21 @@ test.describe('administrator phone', () => {
     expect(mockApi.callsTo('POST', SESSION_PATH)).toHaveLength(1)
   })
 
+  test('keeps the phone usable while the operator details are open', async ({ page, mockApi }) => {
+    mockOverview(mockApi).on('POST', SESSION_PATH, { json: SESSION })
+    await page.goto('./users/overview')
+
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    const callButton = page.getByRole('button', { name: 'Call', exact: true })
+    await callButton.click()
+    await expect(callButton).toBeDisabled()
+
+    await island(page).getByRole('button', { name: 'Hang up' }).click()
+
+    await expect(callButton).toBeEnabled()
+    await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
+  })
+
   test('calls a single online device from the call menu', async ({ page, mockApi }) => {
     mockOverview(mockApi)
       .on('GET', '/api/astproxy/extensions', {
