@@ -14,5 +14,6 @@ CREATE TABLE `rest_cti_streaming` (
   `open` varchar(30) DEFAULT '',
   `tls_skip_verify` tinyint(1) NOT NULL DEFAULT 0,
   `tls_fingerprint` varchar(64) DEFAULT NULL,
+  `door_phone` varchar(17) DEFAULT NULL,
   PRIMARY KEY (`descr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

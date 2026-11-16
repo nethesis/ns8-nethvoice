@@ -724,13 +724,20 @@ check(streaming_is_door_phone(['cap_door_phone' => '1']) && !streaming_is_door_p
 
 $password = streaming_generate_door_password();
 check(strlen($password) === STREAMING_DOOR_PASSWORD_LENGTH && preg_match('/^[A-Za-z0-9]+$/', $password) === 1, 'generated password: letters and digits');
+check(preg_match('/[A-Z]/', $password) && preg_match('/[a-z]/', $password) && preg_match('/[0-9]/', $password), 'generated password: upper, lower case and digits');
 check(streaming_generate_door_password() !== $password, 'generated passwords differ');
 
-$missing = streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin'], function () { return 'Generated1'; });
+$gen = function () { return 'Generated1'; };
+$missing = streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin'], [], $gen);
 check($missing === ['door_rtsp_password' => 'Generated1'], 'missing password generated, model user kept');
-$missing = streaming_door_phone_missing_credentials([], function () { return 'Generated1'; });
+$missing = streaming_door_phone_missing_credentials([], [], $gen);
 check($missing === ['door_rtsp_password' => 'Generated1', 'door_rtsp_user' => 'admin'], 'missing user defaults to admin');
 check(streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin', 'door_rtsp_password' => 'Stored1']) === [], 'stored credentials are never regenerated');
+$i6x = ['cap_door_phone' => '1', 'cap_door_rtsp_adminpw' => '1', 'door_rtsp_user' => 'admin', 'adminpw' => 'SharedDefault1'];
+check(streaming_door_password_variable($i6x) === 'adminpw' && streaming_door_password_variable(['cap_door_phone' => '1']) === 'door_rtsp_password', 'password variable of the model');
+check(streaming_door_phone_missing_credentials($i6x, [], $gen) === ['adminpw' => 'Generated1'], 'i6x: an inherited admin password is not the door phone password, one is generated');
+check(streaming_door_phone_missing_credentials($i6x, ['adminpw' => 'Own1'], $gen) === [], 'i6x: own admin password kept');
+check(streaming_door_phone_password($i6x, ['adminpw' => 'Own1']) === 'Own1' && streaming_door_phone_password($i6x, []) === '', 'i6x: RTSP password is the own admin password');
 
 $contacts = [
     ['via_addr' => '192.168.5.10', 'uri' => 'sip:203@2.119.67.169:1053;transport=tls', 'expiration_time' => '100'],
@@ -772,6 +779,44 @@ check(streaming_door_phone_secret(['user' => 'admin', 'secret' => 'typed'], $fan
 check(streaming_door_phone_secret(['user' => 'other', 'secret' => ''], $fanvil) === null, 'another user never gets the door phone password');
 check(streaming_door_phone_secret(['user' => '', 'secret' => ''], $fanvil) === null, 'no user, no password');
 check(streaming_door_phone_secret(['user' => 'admin'], array_merge($fanvil, ['cap_door_phone' => ''])) === null, 'only door phones');
+check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], $i6x, ['adminpw' => 'Own1']) === 'Own1', 'i6x: source password is the own admin password');
+check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], $i6x, []) === null, 'i6x: never the shared default admin password');
+$i6xItem = streaming_door_phone_item(['mac' => '0C383E326B84', 'extension' => '91203'], $i6x, null, [['descr' => 'Linked', 'exten' => '1', 'door_phone' => '0C-38-3E-32-6B-84']], ['adminpw' => 'Own1']);
+check($i6xItem['has_secret'] && $i6xItem['password_is_admin'] && strpos(json_encode($i6xItem), 'Own1') === false, 'i6x item: password flags, no password');
+check($i6xItem['sources'] === ['Linked'], 'sources linked by door phone MAC');
+$public = streaming_public_source(['descr' => 'A', 'type' => 'rtsp', 'url' => 'rtsp://192.0.2.1/x', 'user' => 'admin', 'secret' => 'Own1', 'gates' => [], 'door_phone' => '0C-38-3E-32-6B-84']);
+check($public['door_phone'] === '0C-38-3E-32-6B-84' && strpos(json_encode($public), 'Own1') === false, 'public source shows the door phone link, not the password');
+
+// --- Door phone reachability ---------------------------------------------------
+
+foreach (['10.1.2.3', '172.16.0.1', '172.31.255.254', '192.168.5.218', '100.64.0.1', '100.127.255.254', '169.254.1.1', '127.0.0.1', 'fd00::1', 'fe80::1', '::ffff:192.168.1.1'] as $ip) {
+    check(streaming_ip_is_private($ip), "$ip is private");
+}
+foreach (['2.119.67.174', '172.32.0.1', '100.128.0.1', '8.8.8.8', '2001:db8::1', 'not-an-ip'] as $ip) {
+    check(!streaming_ip_is_private($ip), "$ip is not private");
+}
+
+$natContacts = [['via_addr' => '192.168.5.218', 'uri' => 'sip:91203@2.119.67.169:1609;transport=tls', 'expiration_time' => '10']];
+check(streaming_contact_public_address($natContacts) === '2.119.67.169', 'public registration address of a device behind NAT');
+check(streaming_contact_public_address([['via_addr' => '192.0.2.7', 'uri' => 'sip:1@192.0.2.7:5060']]) === null, 'no NAT: no public address');
+check(streaming_contact_public_address([['via_addr' => '10.0.0.2', 'uri' => 'sip:1@10.0.0.9:5060']]) === null, 'private Contact host is not public');
+check(streaming_contact_public_address([]) === null, 'not registered');
+
+check(streaming_url_with_host('rtsp://192.168.5.218:554/h264/stream.live1', '2.119.67.174') === 'rtsp://2.119.67.174:554/h264/stream.live1', 'host replaced, port and path kept');
+check(streaming_url_with_host('rtsp://192.168.5.218/live', '2001:db8::5') === 'rtsp://[2001:db8::5]/live', 'IPv6 host');
+check(streaming_url_with_host('rtsp://192.168.5.218/live', 'evil.example') === null, 'only IP addresses');
+
+$connected = [];
+$fakeConnect = function (string $address, int $port, float $timeout) use (&$connected) { $connected[] = "$address:$port"; return $address === '2.119.67.174'; };
+$reach = streaming_tcp_reachability('rtsp://192.168.5.218:554/h264/stream.live1', $fakeConnect);
+check($reach === ['host' => '192.168.5.218', 'port' => 554, 'private' => true, 'reachable' => false], 'LAN address not reachable from the cloud');
+$reach = streaming_tcp_reachability('rtsp://2.119.67.174/h264/stream.live1', $fakeConnect);
+check($reach['reachable'] && !$reach['private'] && $reach['port'] === 554, 'public address reachable, default RTSP port');
+check(streaming_tcp_reachability('rtsps://2.119.67.174/x', $fakeConnect)['port'] === 322, 'default RTSPS port');
+$connected = [];
+check(streaming_tcp_reachability('rtsp://127.0.0.1:554/x', $fakeConnect)['reachable'] === false && $connected === [], 'loopback never contacted');
+check(streaming_tcp_reachability('rtsp://door.invalid:554/x', $fakeConnect, function () { return []; })['reachable'] === false, 'unresolved name');
+expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('http://192.0.2.1/x.jpg', $fakeConnect); }, 'url', 'only RTSP URLs');
 
 if ($failures > 0) {
     fwrite(STDERR, "$failures of $count checks failed\n");
