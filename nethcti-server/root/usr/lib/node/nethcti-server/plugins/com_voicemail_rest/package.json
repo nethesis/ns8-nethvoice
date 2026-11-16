@@ -1,0 +1,16 @@
+{
+  "name": "com_voicemail_rest",
+  "main": "arch_com_voicemail_rest.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "user",
+      "util",
+      "logger",
+      "staticHttp",
+      "voicemail",
+      "authorization"
+    ],
+    "provides": []
+  }
+}

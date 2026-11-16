@@ -5,6 +5,8 @@ set -e
 
 # Prepare variables for later use
 images=()
+source_tags=()
+reused_images=()
 timings=()
 build_timing_file="${BUILD_TIMING_FILE:-build-timings.tsv}"
 # The image will be pushed to GitHub container registry
@@ -74,7 +76,68 @@ should_build() {
     return 1
 }
 
+repo_root=$(dirname "$(realpath "$0")")
+
+# Build context of each image, relative to the repository root. An image
+# without an entry is always built.
+declare -A image_sources=(
+    [nethvoice-mariadb]="mariadb"
+    [nethvoice-freepbx]="freepbx"
+    [nethvoice-tancredi]="tancredi"
+    [nethvoice-cti-server]="nethcti-server"
+    [nethvoice-cti-middleware]="nethcti-middleware"
+    [nethvoice-cti-ui]="nethvoice-cti"
+    [nethvoice-saml2-proxy]="saml2-proxy"
+    [nethvoice-oauth2-proxy]=""
+    [nethvoice-janus]="janus"
+    [nethvoice-phonebook]="phonebook"
+    [nethvoice-reports-api]="reports"
+    [nethvoice-reports-ui]="reports"
+    [nethvoice-sftp]="sftp"
+    [nethvoice-ejabberd]="ejabberd"
+    [nethvoice-satellite]="satellite"
+)
+
+# Print the source tag of an image: a hash of the committed build-images.sh
+# and build context. It changes only when the image sources change.
+source_tag() {
+    local name="$1" path
+    {
+        printf "%s\n" "${name}"
+        git -C "${repo_root}" rev-parse "HEAD:build-images.sh"
+        for path in ${image_sources[${name}]}; do
+            git -C "${repo_root}" rev-parse "HEAD:${path}"
+        done
+    } | sha256sum | cut -c1-16 | sed 's/^/src-/'
+}
+
+# With REUSE_IMAGES=1, return success when the image sources did not change
+# since an image was published with the same source tag: that image is
+# reused instead of building a new one.
+reuse_image() {
+    local name="$1" tag
+
+    [[ "${REUSE_IMAGES:-}" == "1" ]] || return 1
+    [[ -v "image_sources[${name}]" ]] || return 1
+    # Uncommitted changes are not part of the source tag
+    if [[ -n "$(git -C "${repo_root}" status --porcelain -- build-images.sh ${image_sources[${name}]})" ]]; then
+        return 1
+    fi
+    tag=$(source_tag "${name}")
+    if skopeo inspect --raw "docker://${repobase}/${name}:${tag}" >/dev/null 2>&1; then
+        reused_images+=("${repobase}/${name}:${tag}")
+        reused_image="${name}"
+        printf "[*] Reuse %s:%s (sources not changed)\n" "${repobase}/${name}" "${tag}"
+        return 0
+    fi
+    source_tags+=("${repobase}/${name}:${tag}")
+    return 1
+}
+
 skip_build() {
+    if [[ "${reused_image:-}" == "$1" ]]; then
+        return 0
+    fi
     printf "[*] Skip %s (not selected by BUILD_IMAGES=%s)\n" "$1" "${BUILD_IMAGES}"
 }
 
@@ -113,7 +176,7 @@ fi
 ##      MariaDB      ##
 #######################
 reponame="nethvoice-mariadb"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     container=$(buildah from docker.io/library/mariadb:11.8.9)
     buildah add "${container}" mariadb/ /
@@ -133,7 +196,7 @@ fi
 ##      FreePBX 16      ##
 ##########################
 reponame="nethvoice-freepbx"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     pushd freepbx
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
@@ -153,7 +216,7 @@ fi
 ##      Tancredi      ##
 ########################
 reponame="nethvoice-tancredi"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     pushd tancredi
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
@@ -172,7 +235,7 @@ fi
 ##      NethCTI Server     ##
 #############################
 reponame="nethvoice-cti-server"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     pushd nethcti-server
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" --target production \
@@ -191,13 +254,13 @@ fi
 ##    NethCTI Middleware   ##
 #############################
 reponame="nethvoice-cti-middleware"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethcti-middleware:v0.7.0)
-
-    # Commit the image
-    buildah commit "${container}" "${repobase}/${reponame}"
-    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    pushd nethcti-middleware
+    build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
+        --tag "${repobase}/${reponame}" \
+        --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    popd
     finish_timing
     # Append the image URL to the images array
     images+=("${repobase}/${reponame}")
@@ -210,13 +273,13 @@ fi
 ##      NethCTI Client     ##
 #############################
 reponame="nethvoice-cti-ui"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/nethvoice-cti:v1.2.21)
-
-    # Commit the image
-    buildah commit "${container}" "${repobase}/${reponame}"
-    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    pushd nethvoice-cti
+    build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
+        --tag "${repobase}/${reponame}" \
+        --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    popd
     finish_timing
     # Append the image URL to the images array
     images+=("${repobase}/${reponame}")
@@ -228,7 +291,7 @@ fi
 ##  SAML2 SP (SSO)    ##
 #############################
 reponame="nethvoice-saml2-proxy"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     pushd saml2-proxy
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
@@ -248,7 +311,7 @@ fi
 #############################
 # Mirror of the upstream oauth2-proxy (configured entirely via env at runtime).
 reponame="nethvoice-oauth2-proxy"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     container=$(buildah from quay.io/oauth2-proxy/oauth2-proxy:v7.15.6)
     buildah commit "${container}" "${repobase}/${reponame}"
@@ -265,7 +328,7 @@ fi
 ##      Janus Gateway      ##
 #############################
 reponame="nethvoice-janus"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     pushd janus
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
@@ -285,7 +348,7 @@ fi
 ##      Phonebook      ##
 #########################
 reponame="nethvoice-phonebook"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     pushd phonebook
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
@@ -306,7 +369,7 @@ fi
 #########################
 pushd reports
 reponame="nethvoice-reports-api"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" --target api-production \
         --tag "${repobase}"/"${reponame}" \
@@ -317,7 +380,7 @@ else
     skip_build "${reponame}"
 fi
 reponame="nethvoice-reports-ui"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" --target ui-production \
         --tag "${repobase}"/"${reponame}" \
@@ -333,7 +396,7 @@ popd
 ##   sftp recordings   ##
 #########################
 reponame="nethvoice-sftp"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     pushd sftp
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
@@ -350,7 +413,7 @@ fi
 ##      ejabberd       ##
 #########################
 reponame="nethvoice-ejabberd"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     pushd ejabberd
     build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
@@ -367,12 +430,13 @@ fi
 ## Satellite AI STT/TTS ##
 ##########################
 reponame="nethvoice-satellite"
-if should_build "${reponame}"; then
+if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
-    container=$(buildah from ghcr.io/nethesis/satellite:0.3.0)
-    # Commit the image
-    buildah commit "${container}" "${repobase}/${reponame}"
-    buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    pushd satellite
+    build_image "${reponame}" --force-rm --layers --jobs "$(nproc)" \
+        --tag "${repobase}/${reponame}" \
+        --tag "${repobase}/${reponame}:${IMAGETAG:-latest}"
+    popd
     finish_timing
     # Append the image URL to the images array
     images+=("${repobase}/${reponame}")
@@ -382,7 +446,7 @@ fi
 
 write_timing_summary
 
-if ((${#images[@]} == 0)); then
+if ((${#images[@]} + ${#reused_images[@]} == 0)); then
     printf "No images selected. Check BUILD_IMAGES=%s\n" "${BUILD_IMAGES:-}" >&2
     exit 1
 fi
@@ -394,7 +458,11 @@ if [[ -n "${CI}" ]]; then
         printf "GITHUB_OUTPUT is required when CI is set\n" >&2
         exit 1
     fi
-    printf "images=%s\n" "${images[*]}" >> "${GITHUB_OUTPUT}"
+    {
+        printf "images=%s\n" "${images[*]}"
+        printf "source_tags=%s\n" "${source_tags[*]}"
+        printf "reused_images=%s\n" "${reused_images[*]}"
+    } >> "${GITHUB_OUTPUT}"
 else
     # Just print info for manual push
     printf "Publish the images with:\n\n"

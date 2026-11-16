@@ -834,6 +834,8 @@ function nethcti3_get_config_early($engine) {
     global $amp_conf;
     global $db;
 
+    enableHotelServicesForCTIProfiles();
+
     $pjsip = \FreePBX::Core()->getDriver('pjsip');
     $trunks = FreePBX::Core()->listTrunks();
     foreach ($trunks as $trunk) {

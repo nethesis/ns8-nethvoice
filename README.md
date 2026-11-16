@@ -402,6 +402,7 @@ path with `BUILD_TIMING_FILE` when comparing repeated runs.
 | `IMAGETAG` | `latest` locally, current ref name in workflows | Tag applied to the built images. Slashes are normalized to dashes. |
 | `BUILD_IMAGES` | empty | Comma-separated list of image names to build. Both full names (`nethvoice-freepbx`) and short names (`freepbx`) are accepted. Empty means build everything. |
 | `BUILD_TIMING_FILE` | `build-timings.tsv` | Output file written at the end of the run with one timing row per image. |
+| `REUSE_IMAGES` | empty, `1` in workflows | Reuse a published image when its sources did not change, instead of building it again (see below). Requires `skopeo`. |
 
 Package-manager cache mounts are enabled inside the Containerfiles where they
 already exist. The consolidated branch does not use Buildah registry layer cache
@@ -435,11 +436,16 @@ and two callers:
 Both callers build the same ordered matrix groups with `max-parallel: 3`:
 
 1. `freepbx`
-2. `app-support` (`tancredi,cti-server,phonebook,sftp`)
-3. `reports` (`reports-api,reports-ui`)
-4. `wrappers` (`mariadb,cti-middleware,cti-ui,satellite`)
+2. `cti` (`cti-server,cti-middleware,cti-ui`)
+3. `services` (`mariadb,tancredi,phonebook,satellite,sftp,saml2-proxy,oauth2-proxy,ejabberd`)
+4. `reports` (`reports-api,reports-ui`)
 5. `janus`
 6. `module` (`nethvoice`)
+
+Component tests run in dedicated workflows, only when the component sources
+change: `cti-middleware-tests.yml`, `satellite-tests.yml` and
+`tancredi-tests.yml`. `cti-middleware-apidoc.yml` publishes the NethCTI
+Middleware API documentation on Bump.sh.
 
 The reusable workflow accepts:
 
@@ -450,9 +456,44 @@ The reusable workflow accepts:
 | `runner-version` | Runner label, defaults to `ubuntu-latest` |
 | `secrets.netrcb64` | Optional Base64-encoded `.netrc` used for authenticated downloads |
 
+Every image except the module one also gets a source tag (`src-<hash>`),
+computed from the committed `build-images.sh` and the image build context
+directory. With `REUSE_IMAGES=1`, `build-images.sh` checks the registry for the
+source tag of each selected image: when it exists, the sources did not change
+and the workflow copies that image to the new tag instead of building it again.
+Only the images whose sources changed are built. Any change to
+`build-images.sh` rebuilds every image.
+
+`.github/workflows/clean-registry.yml` deletes the images of a branch when the
+branch is deleted, and every week the images left with source tags only for
+more than 7 days.
+
 GitHub Actions also keeps `ui/node_modules` in `actions/cache`, keyed by
 `ui/yarn.lock`. When a UI dependency changes, commit the updated lockfile so the
 workflow cache key changes with it.
+
+### Components
+
+The NethVoice components are part of this repository and follow the module
+version. Change them here, not in the former component repositories, which are
+no longer updated.
+
+| Directory | Former repository | Branch | Imported commit |
+| --- | --- | --- | --- |
+| `nethcti-server` | [nethesis/nethcti-server](https://github.com/nethesis/nethcti-server) | `ns8` | [08c8bc3](https://github.com/nethesis/nethcti-server/commit/08c8bc374ab609e94db8f349ffbce62084b2f00d) |
+| `nethcti-server/root/usr/lib/node/nethcti-server/packages/astproxy` | [nethesis/astproxy](https://github.com/nethesis/astproxy) | `master` | [dc4590e](https://github.com/nethesis/astproxy/commit/dc4590e43d57351cf3dac3b3909e4d426866aedf) |
+| `nethcti-middleware` | [nethesis/nethcti-middleware](https://github.com/nethesis/nethcti-middleware) | `main` | [de4bff0](https://github.com/nethesis/nethcti-middleware/commit/de4bff0e2ae79f4b41a57603dcdd38c503048ee6) |
+| `nethvoice-cti` | [nethesis/nethvoice-cti](https://github.com/nethesis/nethvoice-cti) | `main` | [9dd9486](https://github.com/nethesis/nethvoice-cti/commit/9dd948698f3b6c5bc9cc54513b66d50d0d37bf86) |
+| `reports` | [nethesis/nethvoice-report](https://github.com/nethesis/nethvoice-report) | `ns8` | [8d62ed2](https://github.com/nethesis/nethvoice-report/commit/8d62ed29faba31b8edc4e3780c0577c94035392a) |
+| `satellite` | [nethesis/satellite](https://github.com/nethesis/satellite) | `main` | [4969fd5](https://github.com/nethesis/satellite/commit/4969fd5558a0426660c601cd2c76aa3887a63c7d) |
+| `tancredi/app` | [nethesis/tancredi](https://github.com/nethesis/tancredi) | `master` | [a27892d](https://github.com/nethesis/tancredi/commit/a27892de5e004fd310400c47939ed6f083ba84da) |
+
+When a component directory already had a `README.md` for the module image, the
+component one is kept as `README.upstream.md`.
+
+[phone-island](https://github.com/nethesis/phone-island) and
+[chat-island](https://github.com/nethesis/chat-island) stay in their own
+repositories: they are integrated in other products too.
 
 ### Adding or updating an external resource
 
@@ -498,7 +539,7 @@ component, keep it out of mergeable defaults:
    reuse an older local copy:
 
    ```bash
-   buildah pull ghcr.io/nethesis/nethvoice-cti:issue_8009
+   buildah pull quay.io/oauth2-proxy/oauth2-proxy:v7.15.6
    ```
 
    If you need a complete reset, remove the affected local image from
@@ -548,49 +589,13 @@ A new version can be released only when there are no release blockers.
 gh ns8 module-release create --with-linked-issues 1.7.10
 ```
 
-### 3. Add the external components `HEAD` to the release notes
-
-Edit the release message and append the latest commit of `nethesis/nethcti-server` (branch `ns8`).
-The following script prints the section to paste into the release notes (it requires Bash 4 or later):
-
-```sh
-#!/bin/bash
-
-# Associative array to store repositories, branches, and their corresponding GitHub URLs
-declare -A repositories=(
-    ["nethesis/nethcti-server"]="ns8"
-)
-
-# Function to get the last commit SHA for a given repository and branch
-get_last_commit_sha() {
-    repo=$1
-    branch=$2
-    last_commit_sha=$(gh api repos/"$repo"/commits/"$branch" --jq '.sha')
-    echo -n "* https://github.com/$repo/commit/$last_commit_sha"
-}
-
-# Check if gh CLI is installed
-if ! command -v gh &> /dev/null; then
-    echo "GitHub CLI (gh) is not installed. Please install it first."
-    exit 1
-fi
-
-# Process each repository and branch in the associative array
-echo "### External components \`HEAD\`"
-for repo in "${!repositories[@]}"; do
-    branch=${repositories[$repo]}
-    get_last_commit_sha "$repo" "$branch"
-    echo
-done
-```
-
-### 4. Clean up intermediate testing releases
+### 3. Clean up intermediate testing releases
 
 ```bash
 gh ns8 module-release clean 1.7.10
 ```
 
-### 5. Comment the linked issues
+### 4. Comment the linked issues
 
 ```bash
 gh ns8 module-release comment 1.7.10

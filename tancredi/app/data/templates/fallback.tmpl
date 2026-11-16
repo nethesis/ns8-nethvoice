@@ -1,0 +1,17 @@
+{%- if provisioning_user_agent starts with 'Fanvil X3' -%}
+{% include 'fanvil-X3.tmpl' %}
+{%- elseif provisioning_user_agent starts with 'Fanvil X5' -%}
+{% include 'fanvil-X5.tmpl' %}
+{%- elseif provisioning_user_agent matches '/snomD?\d+-SIP/' -%}
+{% include 'snom.tmpl' %}
+{%- elseif provisioning_user_agent starts with 'Yealink SIP' -%}
+{% include 'yealink.tmpl' %}
+{%- elseif provisioning_user_agent starts with 'Sangoma' -%}
+{% include 'sangoma.tmpl' %}
+{%- elseif provisioning_user_agent starts with 'Maxwell' -%}
+{% include 'gigaset-Maxwell.tmpl' %}
+{%- elseif provisioning_user_agent starts with 'Nethesis' -%}
+{% include 'nethesis.tmpl' %}
+{%- else -%}
+{{ throw.error() }}
+{%- endif -%}

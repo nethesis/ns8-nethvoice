@@ -1,0 +1,12 @@
+{
+  "name": "exec_script",
+  "main": "arch_exec_script.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "logger",
+      "astProxy"
+    ],
+    "provides": []
+  }
+}

@@ -1,0 +1,9 @@
+{
+    "name": "mailer",
+    "main": "arch_mailer.js",
+    "private": true,
+    "plugin": {
+        "consumes": [ "logger" ],
+        "provides": [ "mailer" ]
+    }
+}

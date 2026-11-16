@@ -1,0 +1,15 @@
+{
+  "name": "astproxy",
+  "main": "arch_astproxy.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "dbconn",
+      "logger",
+      "authentication"
+    ],
+    "provides": [
+      "astProxy"
+    ]
+  }
+}

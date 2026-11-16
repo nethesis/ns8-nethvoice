@@ -207,11 +207,26 @@ for ((reload_attempt=1; reload_attempt<=60; reload_attempt++)); do
     sleep 5
 done
 
-# Reset phones RPS after FreePBX modules have been initialized
-php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
-
 # Required modules, user synchronization and reload have all completed.
 touch "$ready" || exit $?
+
+# Tancredi starts after FreePBX is ready; RPS maintenance must not block startup.
+(
+    trap - EXIT
+    for ((rps_attempt=1; rps_attempt<=30; rps_attempt++)); do
+        tancredi_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --connect-timeout 2 --max-time 5 \
+            "http://127.0.0.1:${TANCREDIPORT}/tancredi/api/v1/phones")
+        # An unauthenticated API request returns 403 once Tancredi is available.
+        if [[ "$tancredi_status" == 200 || "$tancredi_status" == 403 ]]; then
+            php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
+            exit $?
+        fi
+        sleep 2
+    done
+    echo "Phone RPS reset skipped: timed out waiting for Tancredi" >&2
+    exit 1
+) &
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &

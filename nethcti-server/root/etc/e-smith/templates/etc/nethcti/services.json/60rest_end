@@ -1,0 +1,7 @@
+    "authentication": \{
+      "port": "50113",
+      "proto": "http",
+      "address": "localhost"
+    \}
+  \}
+\}

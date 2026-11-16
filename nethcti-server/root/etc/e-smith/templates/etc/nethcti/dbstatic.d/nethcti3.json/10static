@@ -1,0 +1,40 @@
+    "cti_phonebook": \{
+        "dbhost":     "localhost",
+        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbtype":     "mysql",
+        "dbuser":     "nethcti",
+        "dbpassword": "{$ctidb_pwd}",
+        "dbname":     "nethcti3"
+    \},
+    "customer_card": \{
+        "dbhost":     "localhost",
+        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbtype":     "mysql",
+        "dbuser":     "nethcti",
+        "dbpassword": "{$ctidb_pwd}",
+        "dbname":     "nethcti3"
+    \},
+    "user_dbconn": \{
+        "dbhost":     "localhost",
+        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbtype":     "mysql",
+        "dbuser":     "nethcti",
+        "dbpassword": "{$ctidb_pwd}",
+        "dbname":     "nethcti3"
+    \},
+    "auth": \{
+        "dbhost":     "localhost",
+        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbtype":     "mysql",
+        "dbuser":     "nethcti",
+        "dbpassword": "{$ctidb_pwd}",
+        "dbname":     "nethcti3"
+    \},
+    "offhour_files": \{
+        "dbhost":     "localhost",
+        "dbport":     "/var/lib/mysql/mysql.sock",
+        "dbtype":     "mysql",
+        "dbuser":     "nethcti",
+        "dbpassword": "{$ctidb_pwd}",
+        "dbname":     "nethcti3"
+    \},

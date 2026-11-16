@@ -1,0 +1,68 @@
+.filters-form {
+  text-align: left;
+  margin-top: 30px;
+  .fluid.ui.buttons {
+    min-height: 38px;
+  }
+  .ui.negative.button {
+    min-height: 38px;
+  }
+  .fields {
+    margin-top: 0 !important;
+    margin-right: -.5em !important;
+
+    .field {
+      @media only screen and (max-width: 767px) {
+        & {
+          margin-top: 15px !important;
+        }
+      }
+    }
+    .field:first-child {
+      margin-top: 0px !important;
+    }
+  }
+}
+
+.ui.form.filters-form .fields .field {
+  margin-bottom: 1rem;
+}
+
+.filters-form .fields.interval-buttons .field {
+  margin-bottom: 1rem !important;
+}
+
+.filters-form .filter-actions {
+  margin-top: 0.5rem !important;
+  margin-bottom: 2rem !important;
+}
+
+.datepicker-field .mx-datepicker:last-child {
+  @media only screen and (max-width: 767px) {
+    margin-top: 8px;
+  }
+}
+
+.interval-buttons .fluid.ui.buttons {
+  overflow-x: auto;
+}
+
+.searchContactName > .results {
+  overflow: auto;
+  max-height: 300px;
+}
+
+.filters-form .ui.grid {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}
+
+.ui.input.time-filter {
+  width: auto !important;
+}
+
+i.icon.time-filter {
+  margin: 0 .25rem;
+  position: relative;
+  top: 0.5rem;
+}

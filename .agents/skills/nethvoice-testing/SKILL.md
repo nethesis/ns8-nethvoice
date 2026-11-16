@@ -37,10 +37,8 @@ Use sources in this order:
 
 1. Local live system state: module environment, containers, API schemas, logs, databases, Asterisk CLI.
 2. Current repository code:
-   - `nethesis/ns8-nethvoice`
+   - `nethesis/ns8-nethvoice` (it includes NethCTI server, astproxy, NethCTI middleware, CTI UI, Satellite, Tancredi and reports)
    - `nethesis/ns8-nethvoice-proxy`
-   - `nethesis/nethcti-middleware`
-   - `nethesis/nethcti-server`
    - `nethesis/nethvoice-wizard-restapi`
    - `nethesis/phone-island`
 3. Published docs:

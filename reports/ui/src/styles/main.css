@@ -1,0 +1,97 @@
+.mb-5 {
+    margin-bottom: 5px !important;
+}
+
+.mb-10 {
+    margin-bottom: 10px !important;
+}
+
+.mb-15 {
+    margin-bottom: 15px !important;
+}
+
+.mb-20 {
+    margin-bottom: 20px !important;
+}
+
+.mt-5 {
+    margin-top: 5px !important;
+}
+
+.mt-10 {
+    margin-top: 10px !important;
+}
+
+.mt-15 {
+    margin-top: 15px !important;
+}
+
+.mt-20 {
+    margin-top: 210px !important;
+}
+
+.mr-10 {
+    margin-right: 10px !important;
+}
+
+.mr-15 {
+    margin-right: 15px !important;
+}
+
+.mr-20 {
+    margin-right: 20px !important;
+}
+
+.right-floated {
+    float: right !important;
+}
+
+.mt-2 {
+    margin-top: 2px;
+}
+
+.mt-10m {
+    margin-top: -10px;
+}
+
+.mt-30m {
+    margin-top: -30px;
+}
+
+.h-10 {
+    height: 10px;
+}
+
+.h-19 {
+    height: 19px;
+}
+
+.h-20 {
+    height: 20px;
+}
+
+.h-30 {
+    height: 30px;
+}
+
+.full-width {
+    width: 100%;
+}
+
+.no-margin-top {
+    margin-top: 0px;
+}
+
+.fw-6 {
+    font-weight: 600 !important;
+}
+
+.white-color {
+    color: white !important;
+}
+
+.ellipsis {
+    white-space: nowrap;
+    overflow: hidden !important;
+    text-overflow: ellipsis;
+}

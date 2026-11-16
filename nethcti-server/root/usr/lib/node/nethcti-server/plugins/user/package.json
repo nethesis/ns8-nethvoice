@@ -1,0 +1,15 @@
+{
+  "name": "user",
+  "main": "arch_controller_user.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "logger",
+      "dbconn",
+      "astProxy"
+    ],
+    "provides": [
+      "user"
+    ]
+  }
+}

@@ -50,6 +50,21 @@ The test refuses an existing `asterisk` database, creates and removes its own
 synthetic fixture, and checks migration versions 1 and 2, repeated execution,
 valid and empty mailbox settings, and preservation of unrelated settings.
 
+Check automatic hotel-service access against the same kind of disposable MariaDB,
+using the Custom Contexts and framework sources pinned in `freepbx/Containerfile`:
+
+```bash
+php local_testing/hotel_contexts_test.php 'mysql:host=127.0.0.1;port=3306' \
+  .test-sources/customcontexts \
+  .test-sources/framework/amp_conf/htdocs/admin/libraries/extensions.class.php
+```
+
+The test refuses an existing `asterisk` database and removes its synthetic fixture.
+It runs the actual Custom Contexts dialplan generator to verify existing and new
+CTI profiles, repeated backfills, saves before context discovery, internal-context
+precedence, preserved outbound restrictions, disable/re-enable cleanup and reloads,
+and room/trunk exclusion.
+
 Build the FreePBX image and run the focused regressions against its installed
 Slim 4 dependencies, patched Paging module, Core and framework:
 
