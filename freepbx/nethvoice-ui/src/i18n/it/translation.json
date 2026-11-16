@@ -1635,7 +1635,9 @@
     "call_ready": "Chiama {extension} dal telefono dell'amministratore",
     "call_connecting": "Connessione del telefono in corso, poi chiamata a {extension}",
     "call_in_progress": "C'è già una chiamata in corso",
-    "call_no_extension": "Questo utente non ha un interno principale"
+    "call_no_extension": "Questo utente non ha un interno principale",
+    "call_device": "Chiama un dispositivo",
+    "call_device_unavailable": "Nessun dispositivo online da chiamare"
   },
   "admin_phone": {
     "enable_phone": "Abilita il telefono",
