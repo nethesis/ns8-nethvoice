@@ -13,7 +13,6 @@ import {
   forgetServiceExtension,
   isCallableNumber,
   PHONE_ISLAND_CALL_START_EVENT,
-  postAdminPhoneRotate,
   postAdminPhoneSession,
   rememberServiceExtension,
   toPhoneIslandSignal,
@@ -57,7 +56,6 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
   const errorMessage = ref('')
   const session = shallowRef<AdminPhoneSession | null>(null)
   const pendingNumber = ref('')
-  const isRotating = ref(false)
   let costNoticeShown = readCostNoticeShown()
   let attempt = 0
 
@@ -184,33 +182,6 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     reset('error', describeError(error))
   }
 
-  const rotate = async () => {
-    const wasEnabled = isEnabled.value
-
-    isRotating.value = true
-    try {
-      await postAdminPhoneRotate()
-      notificationsStore.createNotification({
-        kind: 'success',
-        title: t('admin_phone.credentials_regenerated'),
-        description: t('admin_phone.credentials_regenerated_description'),
-      })
-
-      if (wasEnabled) {
-        disable()
-        await wait(ADMIN_PHONE_RELOAD_DELAY)
-        await enable()
-      }
-    } catch (error) {
-      notificationsStore.createNotificationFromError(
-        error,
-        t('admin_phone.cannot_regenerate_credentials'),
-      )
-    } finally {
-      isRotating.value = false
-    }
-  }
-
   watch(
     () => loginStore.isAuthenticated,
     (authenticated) => {
@@ -231,13 +202,11 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     isEnabled,
     isConnecting,
     canCall,
-    isRotating,
     enable,
     disable,
     toggle,
     call,
     handleIslandEvent,
     fail,
-    rotate,
   }
 })

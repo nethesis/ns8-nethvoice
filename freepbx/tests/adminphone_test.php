@@ -189,15 +189,12 @@ foreach (['', '   ', str_repeat('x', 51), 42] as $invalid) {
 }
 check(adminPhoneNormalizeName("Admin <x>\n") === 'Admin x', 'display name not sanitized');
 
-$old = Pbx::$sip['770000']['secret'];
-check(adminPhoneRotate() === true, 'rotate failed');
-check(Pbx::$sip['770000']['secret'] !== $old && preg_match('/^[0-9a-f]{32}$/', Pbx::$sip['770000']['secret']) === 1, 'secret not rotated');
 check(adminPhoneSession($env)['session']['secret'] === Pbx::$sip['770000']['secret'], 'session returns a stale secret');
 
 check(adminPhoneDelete() === true, 'delete failed');
 check(!isset(Pbx::$sip['770000']) && !isset(Pbx::$astdb['AMPUSER/770000/accountcode']), 'extension not removed');
 check(adminPhoneStatus() === ['enabled' => false, 'extension' => null], 'phone reported after delete');
-check(adminPhoneDelete() === false && adminPhoneRotate() === false, 'missing phone not reported');
+check(adminPhoneDelete() === false, 'missing phone not reported');
 check($foreign() === $before, 'delete changed other extensions');
 
 Pbx::reset();
@@ -228,4 +225,4 @@ $threw = false;
 try { adminPhoneSession($env); } catch (RuntimeException $e) { $threw = true; }
 check($threw && count(Pbx::$created) === 0, 'exhausted numbering not reported');
 
-echo "PASS: administrator phone created without users, reused, repaired, rotated and removed\n";
+echo "PASS: administrator phone created without users, reused, repaired and removed\n";
