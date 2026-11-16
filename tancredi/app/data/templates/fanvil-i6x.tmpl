@@ -2,17 +2,17 @@
 {#
   Fanvil i6x video door phones (i60/i60K, i61, i62, i63, i64; firmware 2.12.x)
 
-  Partial configuration: only the keys below are changed on the device, the
-  door phone settings that have no confirmed provisioning key (access rules,
-  remote door-open password, camera encoder) keep the values set from the
-  device web interface.
+  Partial configuration: only the keys below are changed on the device.
+  Network, web server and access control settings are never written: the
+  door-open passwords are rules of the EGS password list of the device, not
+  configuration keys, and keep the values set from the web interface.
 
-  Key names come from the existing Fanvil templates and from configurations
-  exported by Fanvil devices of the same firmware family. The RTSP server
-  keys are those of the <RTSP SERVER CONFIG MODULE> of the Fanvil 2.12.x
-  firmware. RTSP credentials come from the per-phone variables
+  Key names checked against the configuration exported by a Fanvil i62 with
+  firmware 2.12.51. RTSP credentials come from the per-phone variables
   door_rtsp_user and door_rtsp_password: an empty password leaves the device
-  RTSP credentials untouched.
+  RTSP credentials untouched. The camera streams (video1 main, video2 sub)
+  get a lower main bitrate, a VGA sub stream and frequent keyframes, so that
+  the keyframes stay small: see the door_video_* model variables.
 #}
 {% import 'fanvil.macros' as fanvil %}
 
@@ -67,8 +67,17 @@ Flash File Name    :{{ 'http' in provisioning_url_scheme ? (provisioning_url_pat
 Flash Protocol     :{{ fanvil.scheme_map(provisioning_url_scheme) }}
 Flash Mode         :{{ (provisioning_complete and provisioning_freq == 'never') ? '1' : '2' }}
 Flash Interval     :{{ provisioning_complete ? fanvil.upgrade_wait_hours(timezone, short_mac) : '1' }}
-Auto Image Url     :{{ firmware_file ? "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/#{firmware_file}" : "" }}
 
+{% if door_video_sub_bitrate is defined and door_video_sub_bitrate != '' %}
+<CAMERA CONFIG MODULE>
+--Video Stream-- :
+video1 BitRate          :{{ door_video_main_bitrate }}
+video1 I Frame Interval :{{ door_video_iframe_interval }}
+video2 BitRate          :{{ door_video_sub_bitrate }}
+video2 Resolution       :{{ door_video_sub_resolution }}
+video2 I Frame Interval :{{ door_video_iframe_interval }}
+
+{% endif %}
 <RTSP SERVER CONFIG MODULE>
 Enable RTSP        :1
 {% if door_rtsp_password is defined and door_rtsp_password != '' %}
