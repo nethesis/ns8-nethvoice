@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import type { RouteLocationRaw } from 'vue-router'
 import { NeHeading, NeInlineNotification } from '@nethesis/vue-components'
 import {
   faNetworkWired,
@@ -51,20 +52,55 @@ import { useTrunks } from '@/queries/trunks/trunks'
 import { useLoginStore } from '@/stores/login'
 import { describeError } from '@/stores/notifications'
 
-type CounterCard = { id: DashboardCounterId; label: string; icon: IconDefinition }
+type CounterCard = {
+  id: DashboardCounterId
+  label: string
+  icon: IconDefinition
+  to: RouteLocationRaw
+}
 
 type LoadFailure = { part: string; title: string; error: unknown; retry: () => void }
 
 const COUNTER_CARDS_BEFORE_CALLS: CounterCard[] = [
-  { id: 'users', label: 'dashboard.counters.users', icon: faUserGroup },
-  { id: 'groups', label: 'dashboard.counters.groups', icon: faUserGroup },
-  { id: 'physicalPhones', label: 'dashboard.counters.physical_phones', icon: faOfficePhone },
+  {
+    id: 'users',
+    label: 'dashboard.counters.users',
+    icon: faUserGroup,
+    to: { name: 'users', params: { tab: 'users' } },
+  },
+  {
+    id: 'groups',
+    label: 'dashboard.counters.groups',
+    icon: faUserGroup,
+    to: { name: 'users', params: { tab: 'groups' } },
+  },
+  {
+    id: 'physicalPhones',
+    label: 'dashboard.counters.physical_phones',
+    icon: faOfficePhone,
+    to: { name: 'phones', params: { tab: 'phones' } },
+  },
 ]
 
 const COUNTER_CARDS_AFTER_CALLS: CounterCard[] = [
-  { id: 'trunks', label: 'dashboard.counters.trunks', icon: faNetworkWired },
-  { id: 'inboundRoutes', label: 'dashboard.counters.inbound_routes', icon: faRoute },
-  { id: 'outboundRoutes', label: 'dashboard.counters.outbound_routes', icon: faRoute },
+  {
+    id: 'trunks',
+    label: 'dashboard.counters.trunks',
+    icon: faNetworkWired,
+    to: { name: 'trunks' },
+  },
+  {
+    id: 'inboundRoutes',
+    label: 'dashboard.counters.inbound_routes',
+    icon: faRoute,
+    to: { name: 'routes', params: { tab: 'inbound' } },
+  },
+  {
+    id: 'outboundRoutes',
+    label: 'dashboard.counters.outbound_routes',
+    icon: faRoute,
+    to: { name: 'routes', params: { tab: 'outbound' } },
+  },
 ]
 
 const PRESENCE_STYLES: Record<PresenceStatus, { fillClass: string; dotClass: string }> = {
@@ -325,6 +361,7 @@ usePolling(() => {
           :icon="counter.icon"
           :counter="counter.state.value.data"
           :loading="counter.state.value.status === 'pending'"
+          :to="counter.to"
         />
         <DashboardCounterCard
           counter-id="callsInProgress"
@@ -341,6 +378,7 @@ usePolling(() => {
           :icon="counter.icon"
           :counter="counter.state.value.data"
           :loading="counter.state.value.status === 'pending'"
+          :to="counter.to"
         />
       </div>
       <div

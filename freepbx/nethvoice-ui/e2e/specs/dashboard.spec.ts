@@ -182,6 +182,16 @@ test.describe('dashboard', () => {
     await expect(rows.nth(1)).toContainText('Bob Smith')
   })
 
+  test('opens the section of a counter', async ({ page }) => {
+    await page.goto('./dashboard')
+
+    await page
+      .getByTestId('counter-inboundRoutes')
+      .getByRole('link', { name: 'Inbound routes: 6' })
+      .click()
+    await expect(page).toHaveURL(/\/nethvoice\/routes\/inbound$/)
+  })
+
   test('shows the system host name, the trunks and the inbound routes', async ({ page }) => {
     await page.route('**/nethvoice/config.json', (route) =>
       route.fulfill({ json: { HOSTNAME: 'pbx.example.org' } }),
