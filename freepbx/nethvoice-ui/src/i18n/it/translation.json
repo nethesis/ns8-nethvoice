@@ -1641,8 +1641,6 @@
   "admin_phone": {
     "status_connection_lost": "Il telefono non riesce a connettersi al centralino e continua a riprovare",
     "status_error": "Impossibile collegare il telefono: {error}. Chiama di nuovo per riprovare.",
-    "cost_notice_title": "Chiamate verso numeri esterni",
-    "cost_notice_description": "Le chiamate verso numeri esterni passano dalle rotte in uscita e possono essere addebitate dall'operatore telefonico.",
     "status_elsewhere": "Il telefono dell'amministratore è attivo in un'altra scheda",
     "use_here": "Usa il telefono in questa scheda"
   }

@@ -56,7 +56,6 @@ test.describe('administrator phone', () => {
     await expect(island(page)).toHaveAttribute('data-display-name', 'Admin (test)')
     expect(mockApi.callsTo('POST', SESSION_PATH)).toHaveLength(1)
     await expect(page.getByRole('button', { name: /Enable phone|Disable phone/ })).toHaveCount(0)
-    await expect(page.getByText('Calls to external numbers')).toHaveCount(0)
     expect(
       await page.evaluate(() => JSON.stringify({ ...localStorage, ...sessionStorage })),
     ).not.toContain('e2e-sip-secret')
@@ -113,7 +112,6 @@ test.describe('administrator phone', () => {
     await callButton.click()
 
     await expect(island(page)).toHaveAttribute('data-calls', '300')
-    await expect(page.getByText('Calls to external numbers').first()).toBeVisible()
     await expect(callButton).toBeDisabled()
 
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('phone-island-call-end')))
