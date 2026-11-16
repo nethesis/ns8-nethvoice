@@ -41,6 +41,26 @@ test.describe('login', () => {
     expect(stored.hash).toMatch(/^[0-9a-f]{40}$/)
   })
 
+  test('remembers the username after sign out and a reload', async ({ page, mockApi }) => {
+    mockApi.allowUnmockedCalls()
+    mockApi.on('POST', '/freepbx/rest/testauth', { json: { result: 'shared-secret' } })
+
+    await page.goto('./login')
+    await page.getByRole('textbox', { name: 'Username' }).fill('admin')
+    await page.getByRole('textbox', { name: 'Password' }).fill('correct-password')
+    await page.getByText('Remember username').click()
+    await page.getByRole('button', { name: 'Sign in' }).click()
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+
+    await page.getByRole('button', { name: 'Open account menu' }).click()
+    await page.getByRole('menuitem', { name: 'Sign out' }).click()
+    await expect(page.getByRole('textbox', { name: 'Username' })).toHaveValue('admin')
+
+    await page.reload()
+    await expect(page.getByRole('textbox', { name: 'Username' })).toHaveValue('admin')
+    await expect(page.getByRole('checkbox', { name: 'Remember username' })).toBeChecked()
+  })
+
   test('sends the secret key headers on authenticated calls', async ({ page, mockApi }) => {
     mockApi.allowUnmockedCalls()
     let headers: Record<string, string> = {}
