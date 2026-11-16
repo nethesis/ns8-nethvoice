@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { onBeforeUnmount, useTemplateRef, watch } from 'vue'
+import { onBeforeUnmount, onMounted, useTemplateRef, watch } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import { PHONE_ISLAND_EVENT_NAMES } from '@/lib/adminPhone/adminPhone'
 import type { PhoneIslandInstance } from '@/lib/adminPhone/phoneIslandRuntime'
@@ -82,9 +82,13 @@ for (const name of PHONE_ISLAND_EVENT_NAMES) {
   })
 }
 
+onMounted(() => {
+  adminPhoneStore.start()
+})
+
 onBeforeUnmount(() => {
   unmountIsland()
-  adminPhoneStore.disable()
+  adminPhoneStore.stop()
 })
 </script>
 

@@ -8,7 +8,7 @@ import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faChevronDown, faUsers } from '@fortawesome/free-solid-svg-icons'
-import { NeBadgeV2, NeSideDrawer } from '@nethesis/vue-components'
+import { NeBadgeV2, NeButton, NeSideDrawer } from '@nethesis/vue-components'
 import CallSplitButton from '@/components/overview/CallSplitButton.vue'
 import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
@@ -60,6 +60,7 @@ const isCallDisabled = computed(
   () =>
     !mainExtension.value ||
     adminPhoneStore.inCall ||
+    adminPhoneStore.state === 'elsewhere' ||
     (adminPhoneStore.state === 'error' && adminPhoneStore.isEnabled),
 )
 
@@ -75,15 +76,14 @@ const callTooltip = computed(() => {
   switch (adminPhoneStore.state) {
     case 'ready':
       return t('user_overview.call_ready', { extension })
-    case 'starting':
-    case 'registering':
-      return t('user_overview.call_connecting', { extension })
+    case 'elsewhere':
+      return t('admin_phone.status_elsewhere')
     case 'error':
       return adminPhoneStore.isEnabled
         ? t('admin_phone.status_connection_lost')
-        : t('user_overview.call_enable_phone', { extension })
+        : t('admin_phone.status_error', { error: adminPhoneStore.errorMessage })
     default:
-      return t('user_overview.call_enable_phone', { extension })
+      return t('user_overview.call_connecting', { extension })
   }
 })
 
@@ -136,6 +136,16 @@ function getDeviceLabel(device: OverviewDevice) {
         >
           {{ callTooltip }}
         </p>
+        <NeButton
+          v-if="adminPhoneStore.state === 'elsewhere'"
+          kind="tertiary"
+          size="sm"
+          class="mt-2"
+          data-testid="use-phone-here"
+          @click="adminPhoneStore.useHere()"
+        >
+          {{ t('admin_phone.use_here') }}
+        </NeButton>
       </div>
       <div>
         <h4 class="text-primary-neutral mb-2 font-medium">
