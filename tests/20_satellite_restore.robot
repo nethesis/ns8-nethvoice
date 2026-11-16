@@ -78,21 +78,22 @@ Restore legacy backup
         IF    $satellite
             ${satellite_before} =    Read Satellite sentinel    ${legacy_id}    ${legacy_uuid}    ${vpn_ip}
         END
+        # Cluster destinations require the exact node URL, without a subpath.
+        # A local Rclone destination gives this fixture its own directory instead.
         # Discard the generated backup password on the node, before Robot can log it.
-        # Use a distinct destination even if the node already has a backup repository.
-        ${repository}    ${rc} =    Execute Command    bash -o pipefail -c 'api-cli run cluster/add-backup-repository --data - | jq -er .id' <<'JSON'${\n}{"provider":"cluster","name":"Satellite restore fixture","url":"webdav:http://${vpn_ip}:4694/${legacy_uuid}","password":"","parameters":{}}${\n}JSON    return_rc=True
-        Should Be Equal As Integers    ${rc}    0
+        ${repository}    ${rc} =    Execute Command    bash -o pipefail -c 'api-cli run cluster/add-backup-repository --data - | jq -er .id' <<'JSON'${\n}{"provider":"rclone","name":"Satellite restore fixture","url":"","password":"","parameters":{"rclone_conf_secret":"type = local","basepath":"/srv/repo/satellite-restore-${legacy_uuid}"}}${\n}JSON    return_rc=True
+        Should Be Equal As Integers    ${rc}    0    Fixture backup repository creation failed
         ${backup_id} =    Run task    cluster/add-backup    {"name":"Satellite restore fixture","repository":"${repository}","schedule":"daily","retention":1,"instances":["${legacy_id}"],"enabled":false}
         ${rc} =    Execute Command    runagent -m ${legacy_id} timeout --kill-after=15s 10m module-backup ${backup_id} >/dev/null 2>&1    return_stdout=False    return_rc=True    timeout=20m
-        Should Be Equal As Integers    ${rc}    0
+        Should Be Equal As Integers    ${rc}    0    Legacy module-backup failed (exit ${rc})
         ${snapshots}    ${rc} =    Execute Command    runagent -m ${legacy_id} restic-wrapper --destination ${repository} snapshots --json    return_rc=True    timeout=2m
-        Should Be Equal As Integers    ${rc}    0
+        Should Be Equal As Integers    ${rc}    0    Listing legacy backup snapshots failed
         ${snapshots} =    Evaluate    json.loads($snapshots)    modules=json
         Length Should Be    ${snapshots}    1
         ${snapshot} =    Set Variable    ${snapshots}[0][id]
         # Filter on the node: other backed-up filenames can contain Tancredi tokens.
         ${dump_count}    ${rc} =    Execute Command    runagent -m ${legacy_id} bash -o pipefail -s <<'SH'${\n}restic-wrapper --destination ${repository} ls ${snapshot} --json | jq -s '[.[] | select((.path // "") | endswith("/satellite_postgresql.pg_dump.gz"))] | length'${\n}SH    return_rc=True    timeout=2m
-        Should Be Equal As Integers    ${rc}    0
+        Should Be Equal As Integers    ${rc}    0    Listing the Satellite dump in the snapshot failed
         Should Be Equal As Integers    ${dump_count}    ${{ int($satellite) }}
         Run task    cluster/remove-module    {"module_id":"${legacy_id}","preserve_data":false}
         ${legacy_id} =    Set Variable    ${EMPTY}
@@ -122,7 +123,7 @@ Restore legacy backup
         ${restore_result}    ${rc} =    Execute Command    runagent -m cluster python3 - <<'PY'${\n}${restore}${\n}PY    return_rc=True    timeout=20m
         Should Be Equal As Integers    ${rc}    0    ${restore_result}
         ${rc} =    Execute Command    runagent -m ${restored_id} sh -c 'test ! -e "$AGENT_STATE_DIR/satellite_postgresql.pg_dump.gz" && test ! -e "$AGENT_STATE_DIR/restore" && ! podman container exists restore_db'    return_stdout=False    return_rc=True
-        Should Be Equal As Integers    ${rc}    0
+        Should Be Equal As Integers    ${rc}    0    Successful restore left temporary artifacts
         IF    $satellite
             ${satellite_after} =    Wait Until Keyword Succeeds    2m    3s    Read Satellite sentinel    ${restored_id}    ${legacy_uuid}    ${vpn_ip}
             Should Be Equal    ${satellite_after}    ${satellite_before}
@@ -150,8 +151,8 @@ Restore legacy backup
             Run Keyword And Continue On Failure    Run task    cluster/remove-backup    {"id":${backup_id}}
         END
         IF    $repository
-            ${rc} =    Execute Command    podman exec rclone-gateway rclone purge ${repository}:/srv/repo/nethvoice/${legacy_uuid}    return_stdout=False    return_rc=True
-            Run Keyword And Continue On Failure    Should Be Equal As Integers    ${rc}    0
+            ${rc} =    Execute Command    podman exec rclone-gateway rclone purge ${repository}:/srv/repo/satellite-restore-${legacy_uuid}    return_stdout=False    return_rc=True
+            Run Keyword And Continue On Failure    Should Be Equal As Integers    ${rc}    0    Fixture backup cleanup failed
             Run task    cluster/remove-backup-repository    {"id":"${repository}"}
         END
     END
