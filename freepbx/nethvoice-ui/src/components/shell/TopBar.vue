@@ -13,6 +13,7 @@ import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import {
   faArrowRightFromBracket,
+  faAward,
   faBars,
   faBell,
   faCircleQuestion,
@@ -31,6 +32,7 @@ import { LEGACY_WIZARD_URL } from '@/lib/config'
 import AdminPhoneButton from '@/components/phone/AdminPhoneButton.vue'
 import { useAdminPhoneStatus } from '@/queries/adminPhone/adminPhone'
 import { useAdminPhoneStore } from '@/stores/adminPhone'
+import { useDashboardSubscription } from '@/queries/dashboard/subscription'
 
 const emit = defineEmits<{ openSidebar: [] }>()
 
@@ -39,6 +41,8 @@ const router = useRouter()
 const themeStore = useThemeStore()
 const densityStore = useDensityStore()
 const loginStore = useLoginStore()
+const { state: subscriptionState } = useDashboardSubscription()
+const isEnterprise = computed(() => subscriptionState.value.data?.plan === 'enterprise')
 const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
 const adminPhoneStore = useAdminPhoneStore()
@@ -147,6 +151,15 @@ function openNotificationsDrawer() {
     <div class="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
       <div class="relative flex flex-1 items-center"></div>
       <div class="flex items-center gap-x-4">
+        <p
+          v-if="isEnterprise"
+          class="text-secondary-neutral hidden items-center gap-2 text-sm sm:flex"
+          data-testid="topbar-subscription"
+        >
+          <FontAwesomeIcon :icon="faAward" class="size-4 shrink-0" aria-hidden="true" />
+          <span class="sr-only">{{ $t('dashboard.system.subscription') }}:</span>
+          {{ $t('dashboard.system.enterprise') }}
+        </p>
         <div
           class="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200 dark:lg:bg-gray-700"
           aria-hidden="true"
