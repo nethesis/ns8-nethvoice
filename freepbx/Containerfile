@@ -3,6 +3,7 @@ FROM docker.io/debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505e
 
 # Set fixed Asterisk version
 ARG ASTERISK_VERSION=22.10.0
+ARG ASTERISK_SHA256=27e49d483efb0739faf7d0a17a9e55f88439347ed9668f24eea909440473c32e
 ARG PJSIP_VERSION=2.17
 ARG JANSSON_VERSION=2.15.0
 ARG LIBJWT_VERSION=1.15.3
@@ -69,8 +70,7 @@ RUN apt-get update && \
 
 RUN cd /usr/src/asterisk && \
 	wget -O asterisk-${ASTERISK_VERSION}.tar.gz https://downloads.asterisk.org/pub/telephony/asterisk/old-releases/asterisk-${ASTERISK_VERSION}.tar.gz && \
-	artifact_checksum=$(grep "  asterisk-${ASTERISK_VERSION}.tar.gz$" remote-artifacts.sha256) && \
-	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	printf "%s  asterisk-%s.tar.gz\n" "${ASTERISK_SHA256}" "${ASTERISK_VERSION}" | sha256sum -c - && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
 	cd asterisk-${ASTERISK_VERSION} && \
 	patch --batch --fuzz=0 -p1 < ../asterisk-22-lazymembers.patch && \
