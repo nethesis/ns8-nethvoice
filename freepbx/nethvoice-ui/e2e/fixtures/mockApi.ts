@@ -144,6 +144,9 @@ export const test = base.extend<Fixtures>({
       .on('GET', '/freepbx/rest/login', { json: { success: true } })
       .on('GET', '/freepbx/rest/logout', { json: { success: true } })
       .on('GET', '/freepbx/rest/adminphone', { json: { enabled: false, extension: null } })
+      .on('GET', '/freepbx/rest/mainextensions/userlimits', {
+        json: { configured: 0, limit: false, configurable: false },
+      })
     mockWizardState(mockApi, 13, false)
 
     await mockApi.install(page)
