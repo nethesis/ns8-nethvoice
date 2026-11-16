@@ -115,7 +115,11 @@ ro	cap_door_phone		The model is a door phone (video intercom) that can be used a
 rw	door_rtsp_user		Door phones: user name of the RTSP server of the device.	string	
 rw	door_rtsp_password		Door phones: password of the RTSP server of the device. Empty leaves the device RTSP credentials unchanged. Removed from tokenless provisioning.	string	
 ro	door_rtsp_port		Door phones: TCP port of the RTSP server of the device.	integer	
-ro	door_rtsp_path		Door phones: path of the recommended RTSP stream of the device, e.g. `/h264/stream.live1`.	string	
+ro	door_rtsp_path_main		Door phones: path of the main (high quality) RTSP stream of the device, e.g. `/h264/stream.live0`.	string	
+ro	door_rtsp_path_sub		Door phones: path of the secondary (lower quality, for slow connections) RTSP stream of the device, e.g. `/h264/stream.live1`.	string	
+ro	door_rtsp_path		Door phones: path of the RTSP stream of models without door_rtsp_path_main and door_rtsp_path_sub.	string	
+ro	door_video_main_label		Door phones: resolution of the main stream, shown next to the quality choice when the template sets it.	string	
+ro	door_video_sub_label		Door phones: resolution of the secondary stream, shown next to the quality choice when the template sets it, e.g. `640x480`.	string	
 rw	door_dtmf_code		Door phones: DTMF code that opens the door during a call. Informative for the PBX: templates write it only where the device provisioning key is known. Removed from tokenless provisioning.	string	
 ro	door_video_main_bitrate		Door phones: bitrate of the main camera stream, in bit/s. Empty or absent: camera streams are not changed.	integer	
 ro	door_video_sub_bitrate		Door phones: bitrate of the sub camera stream, in bit/s.	integer	
