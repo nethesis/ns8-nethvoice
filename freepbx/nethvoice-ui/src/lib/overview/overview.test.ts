@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildOverviewUsers,
+  FAVORITES_FILTER_ID,
   filterOverviewUsers,
   formatPhoneModel,
   getInitials,
@@ -165,6 +166,17 @@ describe('filterOverviewUsers', () => {
     expect(filter('', ['online'])).toEqual(['b.lee'])
     expect(filter('', [], ['Sales'])).toEqual(['a.miller'])
     expect(filter('', [], ['Support'])).toEqual([])
+  })
+
+  it('should keep the favorites with the favorites filter', () => {
+    const favorites = new Set(['b.lee'])
+    const shown = (groups: string[]) =>
+      filterOverviewUsers(overviewUsers, { text: '', statuses: [], groups, favorites }).map(
+        (user) => user.username,
+      )
+
+    expect(shown([FAVORITES_FILTER_ID])).toEqual(['b.lee'])
+    expect(shown([FAVORITES_FILTER_ID, 'Sales'])).toEqual(['a.miller', 'b.lee'])
   })
 })
 

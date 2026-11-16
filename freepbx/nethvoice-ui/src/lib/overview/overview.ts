@@ -97,7 +97,10 @@ export type OverviewFilters = {
   text: string
   statuses: OverviewStatus[]
   groups: string[]
+  favorites?: ReadonlySet<string>
 }
+
+export const FAVORITES_FILTER_ID = '@favorites'
 
 const STATUS_BY_RAW_VALUE: Record<string, OverviewStatus> = {
   online: 'online',
@@ -217,7 +220,12 @@ export const filterOverviewUsers = (
         ...user.devices.map((device) => device.extension),
       ) &&
       (filters.statuses.length === 0 || filters.statuses.includes(user.presence)) &&
-      (filters.groups.length === 0 || filters.groups.some((group) => user.groups.includes(group))),
+      (filters.groups.length === 0 ||
+        filters.groups.some((group) =>
+          group === FAVORITES_FILTER_ID
+            ? (filters.favorites?.has(user.username) ?? false)
+            : user.groups.includes(group),
+        )),
   )
 
 export const sortOverviewUsers = (

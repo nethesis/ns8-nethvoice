@@ -1595,7 +1595,7 @@
     "views": {
       "grid": "Vista a griglia",
       "list": "Vista a elenco",
-      "compact": "Vista ridotta"
+      "compact": "Vista raggruppata"
     },
     "sort": {
       "name": "Nome",
@@ -1636,7 +1636,17 @@
     "call_in_progress": "C'è già una chiamata in corso",
     "call_no_extension": "Questo utente non ha un interno principale",
     "call_device": "Chiama un dispositivo",
-    "call_device_unavailable": "Nessun dispositivo online da chiamare"
+    "call_device_unavailable": "Nessun dispositivo online da chiamare",
+    "favorites": "Preferiti",
+    "favorite": "Preferito",
+    "no_group": "Nessun gruppo",
+    "add_favorite": "Aggiungi ai preferiti",
+    "remove_favorite": "Rimuovi dai preferiti",
+    "group_by": {
+      "label": "Raggruppa per",
+      "group": "Gruppo",
+      "status": "Stato"
+    }
   },
   "admin_phone": {
     "status_connection_lost": "Il telefono non riesce a connettersi al centralino e continua a riprovare",
