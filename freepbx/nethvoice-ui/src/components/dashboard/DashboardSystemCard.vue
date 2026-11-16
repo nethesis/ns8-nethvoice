@@ -93,20 +93,16 @@ const usageValue = computed(() =>
               </NeBadgeV2>
             </dd>
           </div>
-          <div class="flex flex-col gap-2 py-3">
+          <div v-if="subscription.extensionsLimit !== null" class="flex flex-col gap-2 py-3">
             <div class="flex items-center justify-between gap-4">
               <dt class="text-tertiary-neutral font-medium">
                 {{ $t('dashboard.system.extensions') }}
               </dt>
               <dd class="text-primary-neutral tabular-nums" data-testid="extensions-usage">
-                <template v-if="subscription.extensionsLimit !== null">
-                  {{ subscription.configuredExtensions }}/{{ subscription.extensionsLimit }}
-                </template>
-                <template v-else>{{ subscription.configuredExtensions }}</template>
+                {{ subscription.configuredExtensions }}/{{ subscription.extensionsLimit }}
               </dd>
             </div>
             <NeProgressBar
-              v-if="subscription.extensionsLimit !== null"
               :progress="usagePercent"
               size="sm"
               color="custom"
