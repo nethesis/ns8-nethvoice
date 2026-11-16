@@ -163,7 +163,7 @@
               </span>
               <div ng-if="newSource.door_phone && !newSource.onMod && newSource.reachability && !newSource.reachability.reachable" class="alert alert-warning no-margin-bottom">
                 <span class="pficon pficon-warning-triangle-o"></span>
-                <strong>{{'The PBX cannot reach the door phone at this address' | translate}}</strong>
+                <strong>{{'The PBX cannot reach the door phone at this address' | translate}}.</strong>
                 <span ng-if="newSource.reachability.private">{{'It is an address of a private network: the PBX is in the cloud or in another network' | translate}}.</span>
                 {{'Forward the RTSP port on the router of the door phone, allow it only from the public IP address of the PBX and type the public address of the door phone in the URL' | translate}}<span ng-if="gateway.public_ip">. {{'Public IP address of the PBX' | translate}}: <strong>{{gateway.public_ip}}</strong></span>
                 <div ng-if="newSource.reachability.public_address" class="streaming-gate-detail">
@@ -398,7 +398,7 @@
               <th>{{'Extension' | translate}}</th>
               <th>{{'Model' | translate}}</th>
               <th>{{'IP address' | translate}}</th>
-              <th></th>
+              <th class="streaming-action-cell"></th>
             </tr>
           </thead>
           <tbody>
@@ -413,7 +413,7 @@
                 <span ng-if="d.registered">{{d.ip}}</span>
                 <span ng-if="!d.registered" class="text-warning"><span class="pficon pficon-warning-triangle-o"></span> {{'Not registered' | translate}}</span>
               </td>
-              <td class="vertical-middle text-right streaming-nowrap">
+              <td class="vertical-middle streaming-action-cell">
                 <span ng-show="d.onPrepare" class="spinner spinner-xs spinner-inline"></span>
                 <button type="button" class="btn btn-primary" ng-disabled="d.onPrepare" ng-click="useDoorPhone(d)">{{'Use' | translate}}</button>
               </td>
