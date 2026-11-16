@@ -1641,8 +1641,6 @@
   "admin_phone": {
     "status_connection_lost": "The phone cannot connect to the PBX and keeps trying",
     "status_error": "Cannot connect the phone: {error}. Call again to retry.",
-    "cost_notice_title": "Calls to external numbers",
-    "cost_notice_description": "Calls to external numbers go through the outbound routes and can be charged by the provider.",
     "status_elsewhere": "The administrator phone is active in another tab",
     "use_here": "Use the phone in this tab"
   }
