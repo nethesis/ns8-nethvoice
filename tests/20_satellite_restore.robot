@@ -50,6 +50,7 @@ Restore legacy backup
     ${restored_id} =    Set Variable    ${EMPTY}
     ${repository} =    Set Variable    ${EMPTY}
     ${backup_id} =    Set Variable    ${EMPTY}
+    ${backup_path} =    Set Variable    ${EMPTY}
     TRY
         ${legacy} =    Run task    cluster/add-module    {"image":"${LEGACY_NETHVOICE_IMAGE}","node":1}
         ${legacy_id} =    Set Variable    ${legacy}[module_id]
@@ -80,8 +81,13 @@ Restore legacy backup
         END
         # Cluster destinations require the exact node URL, without a subpath.
         # A local Rclone destination gives this fixture its own directory instead.
+        # NS8 validates read access before testing writes, so create it first.
+        ${fixture_path} =    Set Variable    /srv/repo/satellite-restore-${legacy_uuid}
+        ${rc} =    Execute Command    podman exec rclone-gateway mkdir ${fixture_path}    return_stdout=False    return_rc=True
+        Should Be Equal As Integers    ${rc}    0    Fixture backup directory creation failed
+        ${backup_path} =    Set Variable    ${fixture_path}
         # Discard the generated backup password on the node, before Robot can log it.
-        ${repository}    ${rc} =    Execute Command    bash -o pipefail -c 'api-cli run cluster/add-backup-repository --data - | jq -er .id' <<'JSON'${\n}{"provider":"rclone","name":"Satellite restore fixture","url":"","password":"","parameters":{"rclone_conf_secret":"type = local","basepath":"/srv/repo/satellite-restore-${legacy_uuid}"}}${\n}JSON    return_rc=True
+        ${repository}    ${rc} =    Execute Command    bash -o pipefail -c 'api-cli run cluster/add-backup-repository --data - | jq -er .id' <<'JSON'${\n}{"provider":"rclone","name":"Satellite restore fixture","url":"","password":"","parameters":{"rclone_conf_secret":"type = local","basepath":"${backup_path}"}}${\n}JSON    return_rc=True
         Should Be Equal As Integers    ${rc}    0    Fixture backup repository creation failed
         ${backup_id} =    Run task    cluster/add-backup    {"name":"Satellite restore fixture","repository":"${repository}","schedule":"daily","retention":1,"instances":["${legacy_id}"],"enabled":false}
         ${rc} =    Execute Command    runagent -m ${legacy_id} timeout --kill-after=15s 10m module-backup ${backup_id} >/dev/null 2>&1    return_stdout=False    return_rc=True    timeout=20m
@@ -151,9 +157,14 @@ Restore legacy backup
             Run Keyword And Continue On Failure    Run task    cluster/remove-backup    {"id":${backup_id}}
         END
         IF    $repository
-            ${rc} =    Execute Command    podman exec rclone-gateway rclone purge ${repository}:/srv/repo/satellite-restore-${legacy_uuid}    return_stdout=False    return_rc=True
+            ${rc} =    Execute Command    podman exec rclone-gateway rclone purge ${repository}:${backup_path}    return_stdout=False    return_rc=True
             Run Keyword And Continue On Failure    Should Be Equal As Integers    ${rc}    0    Fixture backup cleanup failed
             Run task    cluster/remove-backup-repository    {"id":"${repository}"}
+        END
+        IF    $backup_path
+            # Registration can fail before the destination exists in Rclone's config.
+            ${rc} =    Execute Command    podman exec rclone-gateway sh -c 'if [ -d "${backup_path}" ]; then rmdir "${backup_path}"; fi'    return_stdout=False    return_rc=True
+            Run Keyword And Continue On Failure    Should Be Equal As Integers    ${rc}    0    Fixture backup directory cleanup failed
         END
     END
 
