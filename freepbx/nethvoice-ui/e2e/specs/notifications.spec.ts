@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import type { Page } from '@playwright/test'
-import { expect, test, type MockApi, type MockResponse } from '../fixtures/mockApi'
+import { expect, mockPermissions, test, type MockApi, type MockResponse } from '../fixtures/mockApi'
 
 const LIVE_TRUNKS_PATH = '/api/astproxy/trunks'
 
@@ -138,6 +138,23 @@ test.describe('system alerts', () => {
 
     expect(checksDone(mockApi)).toBe(done)
     await expect(toasts(page).getByText('Cannot load live data')).toHaveCount(0)
+  })
+
+  test('does not check the live data for an account other than admin', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['trunks', 'settings'], 'operator')
+    mockLiveTrunks(mockApi, { json: ONLINE })
+    await page.goto('./settings')
+    await expect(page).toHaveURL(/\/nethvoice\/settings$/)
+
+    await page.clock.runFor(POLL_INTERVAL * 2)
+
+    expect(checksDone(mockApi)).toBe(0)
   })
 
   test('warns once when the extension limit is reached', async ({ page, mockApi }) => {

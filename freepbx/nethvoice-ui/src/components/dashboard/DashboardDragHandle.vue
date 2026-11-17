@@ -8,26 +8,27 @@ import { useI18n } from 'vue-i18n'
 import { NeTooltip } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faGripVertical } from '@fortawesome/free-solid-svg-icons'
+import type { CardMoveDirection } from '@/lib/dashboard/layout'
 
 const { card } = defineProps<{ card: string }>()
 
-const emit = defineEmits<{ arm: []; move: [offset: number] }>()
+const emit = defineEmits<{ arm: []; move: [direction: CardMoveDirection] }>()
 
 const { t } = useI18n()
 
-const KEY_OFFSETS: Record<string, number> = {
-  ArrowUp: -1,
-  ArrowLeft: -1,
-  ArrowDown: 1,
-  ArrowRight: 1,
+const KEY_DIRECTIONS: Record<string, CardMoveDirection> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'previous',
+  ArrowRight: 'next',
 }
 
 function onKeydown(event: KeyboardEvent) {
-  const offset = KEY_OFFSETS[event.key]
+  const direction = KEY_DIRECTIONS[event.key]
 
-  if (offset !== undefined) {
+  if (direction !== undefined) {
     event.preventDefault()
-    emit('move', offset)
+    emit('move', direction)
   }
 }
 </script>

@@ -39,7 +39,7 @@ export const RAW_USERS = [
       device(1, 'webrtc', '300'),
       device(2, 'physical', '91300', {
         mac: '00:15:65:AB:CD:01',
-        vendor: 'Yealink',
+        vendor: 'Yealink/Dreamwave',
         model: 'yealink-T46',
         line: 1,
       }),
@@ -97,6 +97,11 @@ export const TANCREDI_PHONES = [
   { mac: FREE_PHONE_MAC, model: 'fanvil-X4U', display_name: 'Fanvil' },
 ]
 
+export const TANCREDI_MODELS = [
+  { name: 'yealink-T46', display_name: 'Yealink T46', model_url: '' },
+  { name: 'fanvil-X4U', display_name: 'Fanvil X4U', model_url: '' },
+]
+
 type UsersApiOptions = {
   users?: unknown
   usersStatus?: number
@@ -139,17 +144,13 @@ export const mockUsersApi = (mockApi: MockApi, options: UsersApiOptions = {}) =>
       json: { configured: 2, limit: false, configurable: false },
     })
     .on('GET', `${REST}/mainextensions/orphans`, { json: options.orphans ?? [] })
+    .on('GET', `${TANCREDI}/models`, { json: TANCREDI_MODELS })
 }
 
 export const mockUserPhonesApi = (mockApi: MockApi) =>
   mockApi
     .on('GET', `${TANCREDI}/phones`, { json: TANCREDI_PHONES })
-    .on('GET', `${TANCREDI}/models`, {
-      json: [
-        { name: 'yealink-T46', display_name: 'Yealink T46', model_url: '' },
-        { name: 'fanvil-X4U', display_name: 'Fanvil X4U', model_url: '' },
-      ],
-    })
+    .on('GET', `${TANCREDI}/models`, { json: TANCREDI_MODELS })
     .on('GET', `${TANCREDI}/defaults`, { json: { adminpw: 'invented-admin-pw' } })
 
 export const mockWrites = (mockApi: MockApi) =>

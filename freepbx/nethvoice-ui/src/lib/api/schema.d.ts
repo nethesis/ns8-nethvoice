@@ -534,7 +534,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List the database connections used by customer cards. */
+    /**
+     * List the database connections used by customer cards.
+     * @description The password is never returned to administrators who are not superadmin; `has_password` tells whether one is stored.
+     */
     get: operations['get_cti_dbconn']
     put?: never
     /**
@@ -578,7 +581,7 @@ export interface paths {
     get?: never
     /**
      * Update the given fields of a database connection.
-     * @description Reloads nethcti-server so the customer cards use the new parameters.
+     * @description Reloads nethcti-server so the customer cards use the new parameters. An empty or omitted `pass` keeps the stored password, unless `host`, `port` or `type` change, which requires the password again.
      */
     put: operations['put_cti_dbconn_id']
     post?: never
@@ -617,6 +620,26 @@ export interface paths {
     put?: never
     /** Unbind a parameterized URL from the given profiles. */
     post: operations['post_cti_paramurl_delete']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/cti/dbconn/test': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Test a database connection through nethcti-server.
+     * @description With `id` and an empty `pass`, the stored password of that connection is used, only when `host`, `port` and `type` are the stored ones.
+     */
+    post: operations['post_cti_dbconn_test']
     delete?: never
     options?: never
     head?: never
@@ -880,7 +903,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Return the consolidated phone inventory, combining scans and configured devices. */
+    /**
+     * Return the consolidated phone inventory, combining scans and configured devices.
+     * @description The `secret`, `web_user` and `web_password` fields of the lines are returned only to the superadmin.
+     */
     get: operations['get_devices_phones_list']
     put?: never
     post?: never
@@ -1737,7 +1763,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List the external phonebook sources. */
+    /**
+     * List the external phonebook sources.
+     * @description The password is never returned to administrators who are not superadmin; `has_password` tells whether one is stored.
+     */
     get: operations['get_phonebook_config']
     put?: never
     /** Create an external phonebook source. */
@@ -1779,7 +1808,7 @@ export interface paths {
     put?: never
     /**
      * Replace an external phonebook source.
-     * @description When the URL changes, the previously uploaded CSV file is removed if no other source uses it.
+     * @description When the URL changes, the previously uploaded CSV file is removed if no other source uses it. An empty or omitted `password` keeps the stored one, unless the type, the host, the port or the Infinity URL change, which requires the password again.
      */
     post: operations['post_phonebook_config_id']
     /**
@@ -1803,7 +1832,7 @@ export interface paths {
     put?: never
     /**
      * Read the first rows of a phonebook source without saving it.
-     * @description Testing a mysql or mssql source requires the superadmin permission. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files.
+     * @description Testing a mysql or mssql source requires the superadmin permission. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files. With `id` and an empty `password`, the stored password of that source is used, only for the same server.
      */
     post: operations['post_phonebook_test']
     delete?: never
@@ -3298,8 +3327,10 @@ export interface components {
       host?: string
       port?: string | number
       user?: string
-      /** @description Returned in clear text */
+      /** @description Returned only to the superadmin, for the legacy wizard */
       password?: string
+      /** @description Whether a password is stored */
+      has_password?: boolean
       dbname?: string
       query?: string
       url?: string
@@ -3356,6 +3387,8 @@ export interface components {
       url?: string
       username?: string
       cti_import?: boolean
+      /** @description Stored source whose password is used when `password` is empty */
+      id?: string
     }
     /** @description The first three rows read from the source, or a `status: false` object when the source cannot be read. */
     IntegrationsPhonebookTestResult:
@@ -3416,8 +3449,10 @@ export interface components {
       port: string
       type: string
       user: string
-      /** @description Returned in clear text */
+      /** @description Returned only to the superadmin, for the legacy wizard */
       pass?: string
+      /** @description Whether a password is stored */
+      has_password?: boolean
       /** @description Database name */
       name: string
       creation?: string
@@ -3429,6 +3464,20 @@ export interface components {
       user?: string
       pass?: string
       name?: string
+    }
+    IntegrationsDbConnectionTestInput: {
+      /** @description Stored connection whose password is used when `pass` is empty */
+      id?: string
+      host: string
+      port: string
+      type: string
+      user?: string
+      pass?: string
+      name: string
+    }
+    IntegrationsDbConnectionTestResult: {
+      /** @description Whether the connection succeeded */
+      status: boolean
     }
     /** @description Database type id to label */
     IntegrationsDbConnectionTypes: {
@@ -4894,7 +4943,7 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request */
+      /** @description Bad request, or the password is missing for a different server */
       400: {
         headers: {
           [name: string]: unknown
@@ -4996,6 +5045,64 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+    }
+  }
+  post_cti_dbconn_test: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IntegrationsDbConnectionTestInput']
+      }
+    }
+    responses: {
+      /** @description Test completed */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsDbConnectionTestResult']
+        }
+      }
+      /** @description Bad request, or the password is missing for a different server */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Database connection not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description nethcti-server is not reachable */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
       }
     }
   }
@@ -7142,7 +7249,7 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Invalid request or invalid source URL */
+      /** @description Invalid request, invalid source URL or missing password for a different server */
       400: {
         headers: {
           [name: string]: unknown
@@ -7235,6 +7342,15 @@ export interface operations {
           'application/json': {
             message?: string
           }
+        }
+      }
+      /** @description Phonebook source not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
         }
       }
       /** @description Internal server error */

@@ -7,8 +7,14 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NeCard, NeSkeleton } from '@nethesis/vue-components'
-import { VisArea, VisCrosshair, VisTooltip, VisXYContainer } from '@unovis/vue'
+import { VisArea, VisAxis, VisCrosshair, VisTooltip, VisXYContainer } from '@unovis/vue'
 import { CurveType } from '@unovis/ts'
+import {
+  formatHourOfDay,
+  getIntegerTicks,
+  HOUR_TICKS,
+  LAST_HOUR_OF_DAY,
+} from '@/lib/dashboard/chart'
 
 const CHART_HEIGHT = 304
 const AREA_OPACITY = 0.6
@@ -20,7 +26,7 @@ const { hourlyCalls, loading = false } = defineProps<{
   loading?: boolean
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const data = computed<Datum[]>(() => hourlyCalls.map((calls, hour) => ({ hour, calls })))
 
@@ -33,7 +39,7 @@ const peak = computed(() =>
   ),
 )
 
-const formatHour = (hour: number) => `${String(hour).padStart(2, '0')}:00`
+const formatHour = (hour: number | Date) => formatHourOfDay(Number(hour), locale.value)
 
 const summary = computed(() =>
   peak.value
@@ -45,9 +51,14 @@ const summary = computed(() =>
     : t('dashboard.hourly_calls.no_calls'),
 )
 
-const xDomain = computed<[number, number]>(() => [0, Math.max(1, hourlyCalls.length - 1)])
+const X_DOMAIN: [number, number] = [0, LAST_HOUR_OF_DAY]
 
-const yDomain = computed<[number, number]>(() => [0, Math.max(1, peak.value?.calls ?? 0)])
+const yTicks = computed(() => getIntegerTicks(peak.value?.calls ?? 0))
+
+const yDomain = computed<[number, number]>(() => [0, yTicks.value.at(-1) ?? 1])
+
+const formatCalls = (calls: number | Date) =>
+  new Intl.NumberFormat(locale.value).format(Number(calls))
 
 const getHour = (datum: Datum) => datum.hour
 const getCalls = (datum: Datum) => datum.calls
@@ -84,9 +95,8 @@ const describeHour = (datum: Datum) =>
         <VisXYContainer
           :data="data"
           :height="CHART_HEIGHT"
-          :x-domain="xDomain"
+          :x-domain="X_DOMAIN"
           :y-domain="yDomain"
-          :auto-margin="false"
           aria-hidden="true"
         >
           <VisArea
@@ -95,6 +105,20 @@ const describeHour = (datum: Datum) =>
             color="var(--accent-indigo)"
             :opacity="AREA_OPACITY"
             :curve-type="CurveType.MonotoneX"
+          />
+          <VisAxis
+            type="x"
+            :tick-values="HOUR_TICKS"
+            :tick-format="formatHour"
+            :grid-line="false"
+            :tick-line="false"
+          />
+          <VisAxis
+            type="y"
+            :tick-values="yTicks"
+            :tick-format="formatCalls"
+            :domain-line="false"
+            :tick-line="false"
           />
           <VisCrosshair :template="describeHour" color="var(--accent-indigo)" />
           <VisTooltip />
@@ -111,6 +135,12 @@ const describeHour = (datum: Datum) =>
 <style scoped>
 .dashboard-hourly-chart {
   --vis-font-family: inherit;
+  --vis-axis-font-family: inherit;
+  --vis-axis-tick-label-color: var(--tertiary-neutral);
+  --vis-axis-tick-label-font-size: var(--text-xs);
+  --vis-axis-tick-label-weight: 400;
+  --vis-axis-grid-color: var(--border-secondary);
+  --vis-axis-domain-color: var(--border-secondary);
   --vis-tooltip-background-color: var(--elevation-0);
   --vis-tooltip-border-color: var(--border-secondary);
   --vis-tooltip-text-color: var(--primary-neutral);

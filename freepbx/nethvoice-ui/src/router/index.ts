@@ -2,13 +2,16 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import i18n from '@/i18n'
 import { APP_BASE_PATH } from '@/lib/config'
 import { useLoginStore } from '@/stores/login'
+import { useNotificationsStore } from '@/stores/notifications'
 import { SETUP_STEPS } from '@/lib/setup/steps'
 import { getInternalRedirect } from '@/lib/setup/guard'
 import { loadWizardState } from '@/queries/setup/wizardState'
 import {
   getAccessRedirect,
+  isDeniedSectionRedirect,
   NO_ACCESS_ROUTE,
   SETUP_PENDING_ROUTE,
   SUPERADMIN,
@@ -121,6 +124,8 @@ const router = createRouter({
   routes,
 })
 
+let deniedSectionPending = false
+
 router.beforeEach(async (to) => {
   const loginStore = useLoginStore()
 
@@ -137,7 +142,24 @@ router.beforeEach(async (to) => {
   }
   const [permissions, wizardState] = await Promise.all([loadPermissions(), loadWizardState()])
 
-  return getAccessRedirect(to.name, to.meta.section, permissions, wizardState) ?? true
+  const redirect = getAccessRedirect(to.name, to.meta.section, permissions, wizardState)
+
+  if (redirect && isDeniedSectionRedirect(to.name, to.meta.section, permissions, wizardState)) {
+    deniedSectionPending = true
+  }
+  return redirect ?? true
+})
+
+router.afterEach((_to, _from, failure) => {
+  if (!deniedSectionPending || failure) {
+    return
+  }
+  deniedSectionPending = false
+  useNotificationsStore().createNotification({
+    kind: 'info',
+    title: i18n.global.t('permissions.section_denied_title'),
+    description: i18n.global.t('permissions.section_denied_description'),
+  })
 })
 
 export default router

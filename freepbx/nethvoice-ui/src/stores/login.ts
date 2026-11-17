@@ -8,6 +8,8 @@ import { api, configureApiClient, type Credentials } from '@/lib/api/client'
 import { CREDENTIALS_STORAGE_KEY } from '@/lib/config'
 import { buildSecretKey } from '@/lib/sha1'
 import { postTestAuth } from '@/lib/auth'
+import { isSuperadmin } from '@/lib/permissions/permissions'
+import { loadPermissions } from '@/queries/permissions/me'
 
 const LAST_USER_STORAGE_KEY = 'lastUser'
 const REMEMBERED_USERNAME_STORAGE_KEY = 'nethvoiceRememberedUsername'
@@ -75,7 +77,11 @@ export const useLoginStore = defineStore('login', () => {
       localStorage.removeItem(REMEMBERED_USERNAME_STORAGE_KEY)
     }
 
-    await api.GET('/login').catch(() => undefined)
+    const permissions = await loadPermissions().catch(() => undefined)
+
+    if (permissions && isSuperadmin(permissions)) {
+      await api.GET('/login').catch(() => undefined)
+    }
   }
 
   const logout = async () => {

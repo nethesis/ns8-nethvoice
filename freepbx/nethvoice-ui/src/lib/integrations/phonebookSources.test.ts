@@ -40,6 +40,7 @@ const rawSources = {
     port: 3306,
     user: 'reader',
     password: 'stored-password',
+    has_password: true,
     dbname: 'crm',
     query: 'SELECT * FROM contacts',
     mapping: { full_name: 'name' },
@@ -78,7 +79,7 @@ describe('parsePhonebookSources', () => {
         host: 'crm.example.com',
         port: '3306',
         user: 'reader',
-        password: 'stored-password',
+        hasPassword: true,
         database: 'crm',
         query: 'SELECT * FROM contacts',
         url: '',
@@ -95,7 +96,7 @@ describe('parsePhonebookSources', () => {
         host: '',
         port: '',
         user: '',
-        password: '',
+        hasPassword: false,
         database: '',
         query: '',
         url: 'https://files.example.com/contacts.csv',
@@ -122,6 +123,16 @@ describe('parsePhonebookSources', () => {
 
   it('should reject an unexpected shape', () => {
     expect(() => parsePhonebookSources({ custom_1: 'mysql' })).toThrow()
+  })
+
+  it('should never keep a password returned by the server', () => {
+    expect(JSON.stringify(parsePhonebookSources(rawSources))).not.toContain('stored-password')
+  })
+
+  it('should read the stored password flag of a redacted source', () => {
+    const [source] = parsePhonebookSources({ custom_5: { dbtype: 'mysql', has_password: true } })
+
+    expect(source?.hasPassword).toBe(true)
   })
 })
 
@@ -236,6 +247,34 @@ describe('validatePhonebookSourceForm', () => {
     expect(validatePhonebookSourceForm(databaseForm({ password: '' }), crmSource())).toEqual({})
   })
 
+  it('should require the password again for a different server', () => {
+    const required = { password: 'integrations.password_required' }
+    const edited = (changes: Partial<PhonebookSourceForm>) =>
+      validatePhonebookSourceForm(databaseForm({ password: '', ...changes }), crmSource())
+
+    expect(edited({ host: 'other.example.com' })).toEqual(required)
+    expect(edited({ port: '3307' })).toEqual(required)
+    expect(edited({ kind: 'mssql' })).toEqual(required)
+    expect(edited({ user: 'writer', database: 'crm2' })).toEqual({})
+  })
+
+  it('should require the password again for a different Infinity address', () => {
+    const [infinity] = parsePhonebookSources({
+      custom_6: {
+        dbtype: 'infinity',
+        url: 'https://infinity.example.com/api',
+        username: 'api',
+        has_password: true,
+      },
+    })
+    const form = { ...toPhonebookSourceForm(infinity!), name: 'Infinity' }
+
+    expect(validatePhonebookSourceForm(form, infinity)).toEqual({})
+    expect(
+      validatePhonebookSourceForm({ ...form, url: 'https://other.example.com/api' }, infinity),
+    ).toEqual({ password: 'integrations.password_required' })
+  })
+
   it('should validate the address of a CSV source', () => {
     const csv = (url: string) =>
       validatePhonebookSourceForm(databaseForm({ kind: 'csv', url, mapping: { Name: 'name' } }))
@@ -293,10 +332,10 @@ describe('payloads', () => {
     })
   })
 
-  it('should send the stored password back when it was not changed', () => {
-    const payload = buildPhonebookSourcePayload(databaseForm({ password: '' }), crmSource())
-
-    expect(payload.password).toBe('stored-password')
+  it('should omit an unchanged password so the server keeps the stored one', () => {
+    expect(buildPhonebookSourcePayload(databaseForm({ password: '' }))).not.toHaveProperty(
+      'password',
+    )
   })
 
   it('should ignore selected groups when the source is public', () => {
@@ -360,6 +399,19 @@ describe('payloads', () => {
         databaseForm({ kind: 'csv', url: 'https://files.example.com/c.csv' }),
       ),
     ).toEqual({ dbtype: 'csv', url: 'https://files.example.com/c.csv' })
+  })
+
+  it('should test an edited source with its stored password', () => {
+    expect(buildPhonebookTestPayload(databaseForm({ password: '' }), crmSource())).toEqual({
+      dbtype: 'mysql',
+      host: 'crm.example.com',
+      port: '3306',
+      user: 'reader',
+      dbname: 'crm',
+      query: 'SELECT * FROM contacts',
+      id: 'custom_1',
+    })
+    expect(buildPhonebookTestPayload(databaseForm(), crmSource())).not.toHaveProperty('id')
   })
 })
 

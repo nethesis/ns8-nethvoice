@@ -39,3 +39,31 @@ export const getCenteredBarDomain = (
 
   return [center - halfSpan, center + halfSpan]
 }
+
+export const LAST_HOUR_OF_DAY = 23
+
+export const HOUR_TICK_STEP = 3
+
+export const HOUR_TICKS = Array.from(
+  { length: Math.floor(LAST_HOUR_OF_DAY / HOUR_TICK_STEP) + 1 },
+  (_, index) => index * HOUR_TICK_STEP,
+)
+
+const NICE_STEP_FACTORS = [1, 2, 5, 10]
+
+export const formatHourOfDay = (hour: number, locale: string): string =>
+  new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(
+    new Date(2000, 0, 1, hour),
+  )
+
+export const getIntegerTicks = (max: number, maxTicks = 5): number[] => {
+  const top = Math.max(1, Math.ceil(max))
+  const roughStep = top / Math.max(1, maxTicks - 1)
+  const magnitude = 10 ** Math.floor(Math.log10(roughStep))
+  const niceStep =
+    NICE_STEP_FACTORS.map((factor) => factor * magnitude).find((step) => step >= roughStep) ??
+    roughStep
+  const step = Math.max(1, Math.round(niceStep))
+
+  return Array.from({ length: Math.ceil(top / step) + 1 }, (_, index) => index * step)
+}

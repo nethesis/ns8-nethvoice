@@ -263,9 +263,16 @@ function reload() {
               />
             </div>
           </div>
-          <p class="text-primary-700 dark:text-primary-500">
+          <NeButton
+            kind="tertiary"
+            size="sm"
+            class="-ml-2.5 self-start"
+            :data-testid="`profile-users-${profile.id}`"
+            @click="showEditDrawer(profile)"
+          >
             {{ t('profiles.users_assigned', usersCount(profile)) }}
-          </p>
+            <span class="sr-only">{{ profile.name }}</span>
+          </NeButton>
         </li>
       </ul>
     </template>

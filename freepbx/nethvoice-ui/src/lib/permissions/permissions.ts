@@ -101,3 +101,17 @@ export const getAccessRedirect = (
   }
   return permission && !canAccess(permissions, permission) ? firstAllowedRoute : null
 }
+
+export const isDeniedSectionRedirect = (
+  routeName: unknown,
+  permission: Permission | undefined,
+  permissions: readonly Permission[] | undefined,
+  wizardState?: WizardState,
+): boolean =>
+  routeName !== DASHBOARD_ROUTE.name &&
+  permission !== undefined &&
+  permissions !== undefined &&
+  !isSuperadmin(permissions) &&
+  !wizardState?.inProgress &&
+  !canAccess(permissions, permission) &&
+  getAllowedSections(permissions).length > 0

@@ -51,6 +51,7 @@ import {
 import { PHONE_ENCRYPTION_KEY } from '@/lib/phones/encryption'
 import { PHONE_MODELS_KEY } from '@/lib/phones/models'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 type Row = {
   key: number
@@ -83,6 +84,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const queryCache = useQueryCache()

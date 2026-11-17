@@ -49,6 +49,7 @@ import {
 import { hasMainExtension, USERS_KEY, type User } from '@/lib/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const {
   isShown = false,
@@ -65,6 +66,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const runtimeConfigStore = useRuntimeConfigStore()

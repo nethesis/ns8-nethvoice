@@ -210,7 +210,11 @@
       "failed": "Falliti",
       "no_phones": "Nessun telefono fisico"
     },
-    "cannot_load_phones": "Impossibile caricare lo stato dei telefoni"
+    "cannot_load_phones": "Impossibile caricare lo stato dei telefoni",
+    "live_unavailable": {
+      "title": "Dati in tempo reale non disponibili",
+      "description": "I dati in tempo reale, come le chiamate in corso, la presence degli utenti e lo stato dei fasci, sono disponibili solo per l'account amministratore principale."
+    }
   },
   "users": {
     "title": "Utenti e gruppi",
@@ -325,7 +329,6 @@
     "csv_file": "File CSV",
     "download_template": "Scarica il modello",
     "download_template_suffix": "per iniziare",
-    "import": "Importa",
     "import_choose_file": "Scegli un file CSV",
     "import_no_users_in_file": "Il file non contiene utenti",
     "import_cannot_read_file": "Impossibile leggere il file",
@@ -339,11 +342,11 @@
     "import_summary": "Riepilogo dell'importazione",
     "import_summary_detected": "Rilevati {users} e {groups}",
     "import_users_detected": "{count} utente rilevato nel file selezionato: | {count} utenti rilevati nel file selezionato:",
-    "import_valid": "{count} validi",
-    "import_with_errors": "{count} con errori (verranno saltati)",
+    "import_valid": "{count} valido | {count} validi",
+    "import_with_errors": "{count} con errori (verrà saltato) | {count} con errori (verranno saltati)",
     "import_existing_skipped": "{count} utente esistente (verrà saltato) | {count} utenti esistenti (verranno saltati)",
     "import_errors_title": "{count} utente contiene errori e non verrà importato: | {count} utenti contengono errori e non verranno importati:",
-    "import_existing_title": "{count} utente esistente verrà saltato | {count} utenti esistenti verranno saltati",
+    "import_existing_title": "Questo utente esiste già: | Questi utenti esistono già:",
     "import_row": "Riga {row} ({username})",
     "import_row_issue": "Riga {row} ({username}): {issue}",
     "import_issue_missing_username": "nome utente mancante",
@@ -475,7 +478,8 @@
     "no_physical_phone": "Senza telefono fisico",
     "physical_phones_of": "Telefoni fisici di {name}: {count}",
     "physical_phones_limit": "Un utente può avere fino a {max} dispositivi, inclusi i telefoni fisici",
-    "mobile_number_helper": "Usato per la visualizzazione e la presenza in {brand} CTI e nel pannello operatore."
+    "mobile_number_helper": "Usato per la visualizzazione e la presenza in {brand} CTI e nel pannello operatore.",
+    "filtered_counter": "Mostrato {shown} di {total} utente | Mostrati {shown} di {total} utenti"
   },
   "trunks": {
     "title": "Fasci",
@@ -625,7 +629,8 @@
       "mac_address_placeholder": "es. 00:1A:2B:3C:4D:5E",
       "ip_address_placeholder": "es. 192.168.1.10",
       "netmask_placeholder": "es. 255.255.255.0",
-      "network_gateway_placeholder": "es. 192.168.1.1"
+      "network_gateway_placeholder": "es. 192.168.1.1",
+      "pbx_address_placeholder": "es. 192.168.1.2"
     },
     "cannot_check_outbound_routes": "Impossibile verificare quali rotte in uscita usano questo fascio",
     "routes_left_without_trunks": "Alcune rotte in uscita resteranno senza fasci",
@@ -986,7 +991,8 @@
       "model_not_found": "Modello non trovato",
       "model_not_found_description": "Questo modello non esiste più o l'indirizzo è errato.",
       "discard": "Scarta",
-      "discard_changes_description": "Le modifiche non salvate a questo modello andranno perse."
+      "discard_changes_description": "Le modifiche non salvate a questo modello andranno perse.",
+      "model_not_saved": "Il centralino non ha salvato il modello. Riprova."
     },
     "settings": {
       "default_configuration": "Configurazione predefinita dei telefoni",
@@ -1052,7 +1058,7 @@
     "profiles": "Profili",
     "open_menu_of": "Apri il menu di {name}",
     "cannot_load_profiles": "Impossibile caricare i profili",
-    "password_keep_helper": "Lascia vuoto per mantenere la password attuale",
+    "password_keep_helper": "Lascia vuoto per mantenere la password attuale.",
     "host_required": "Inserisci l'host",
     "port_required": "Inserisci la porta",
     "port_invalid": "Inserisci una porta tra 1 e 65535",
@@ -1322,7 +1328,8 @@
       "call_transcription": "Trascrizione delle chiamate in tempo reale",
       "voicemail_transcription": "Trascrizione della segreteria",
       "call_summary": "Riassunto delle chiamate"
-    }
+    },
+    "password_server_changed_helper": "Inserisci di nuovo la password per connetterti a un server diverso."
   },
   "settings": {
     "title": "Impostazioni",
@@ -1342,7 +1349,7 @@
     "confirm_password": "Conferma password",
     "change_password": "Cambia password",
     "password_requirements": {
-      "min_length": "Minimo {minLength} caratteri",
+      "min_length": "Almeno {minLength} caratteri",
       "uppercase": "Almeno una lettera maiuscola (A-Z)",
       "lowercase": "Almeno una lettera minuscola (a-z)",
       "number": "Almeno un numero (0-9)",
@@ -1731,7 +1738,9 @@
     "cannot_load_permissions": "Impossibile caricare i tuoi permessi",
     "setup_pending_title": "Configurazione non completata",
     "setup_pending_description": "L'amministratore deve completare la prima configurazione prima che tu possa usare l'amministrazione del centralino.",
-    "check_again": "Verifica di nuovo"
+    "check_again": "Verifica di nuovo",
+    "section_denied_title": "Sezione non disponibile",
+    "section_denied_description": "Il tuo account non può gestire la sezione che hai provato ad aprire. Chiedi all'amministratore di concederti l'accesso."
   },
   "system_alerts": {
     "trunk_down_title": "Fascio non raggiungibile",

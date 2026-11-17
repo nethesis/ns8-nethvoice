@@ -15,6 +15,7 @@ import {
   type PhoneModel,
 } from '@/lib/phones/models'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const { visible = false, model = undefined } = defineProps<{
   visible?: boolean
@@ -22,6 +23,8 @@ const { visible = false, model = undefined } = defineProps<{
 }>()
 
 const emit = defineEmits<{ close: []; reset: [] }>()
+
+useFocusReturn(() => visible)
 
 const { t } = useI18n()
 const queryCache = useQueryCache()

@@ -64,6 +64,7 @@ import {
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 type Field = NewUserField | 'profileId'
 
@@ -84,6 +85,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: []; created: [username: string, extension: string] }>()
+
+useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const runtimeConfigStore = useRuntimeConfigStore()

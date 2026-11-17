@@ -5,6 +5,8 @@ import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import { isApiError } from '@/lib/api/errors'
 import { postTestAuth } from '@/lib/auth'
+import { isSuperadmin } from '@/lib/permissions/permissions'
+import { loadPermissions } from '@/queries/permissions/me'
 
 export const ADMIN_USERNAME = 'admin'
 
@@ -92,12 +94,20 @@ export const getChangeAdminPasswordIssues = (
   return issues
 }
 
+const restoreFreepbxSession = async (): Promise<void> => {
+  const permissions = await loadPermissions().catch(() => undefined)
+
+  if (permissions && isSuperadmin(permissions)) {
+    await api.GET('/login').catch(() => undefined)
+  }
+}
+
 const verifyAdminPassword = async (password: string): Promise<void> => {
   try {
     await postTestAuth(ADMIN_USERNAME, password)
   } catch (error) {
     if (isApiError(error) && error.status === 401) {
-      await api.GET('/login').catch(() => undefined)
+      await restoreFreepbxSession()
       throw new WrongCurrentPasswordError()
     }
     throw error
