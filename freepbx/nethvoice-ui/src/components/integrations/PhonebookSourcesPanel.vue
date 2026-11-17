@@ -133,10 +133,7 @@ const { mutate: syncMutate } = useMutation({
 const { mutate: toggleMutate } = useMutation({
   mutation: (source: PhonebookSource) =>
     savePhonebookSource(
-      buildPhonebookSourcePayload(
-        { ...toPhonebookSourceForm(source), enabled: !source.enabled },
-        source,
-      ),
+      buildPhonebookSourcePayload({ ...toPhonebookSourceForm(source), enabled: !source.enabled }),
       source.id,
     ),
   onMutate(source) {

@@ -6,10 +6,13 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { NeModal } from '@nethesis/vue-components'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const { visible = false } = defineProps<{ visible: boolean }>()
 
 const emit = defineEmits<{ close: []; discard: [] }>()
+
+useFocusReturn(() => visible)
 
 const { t } = useI18n()
 </script>

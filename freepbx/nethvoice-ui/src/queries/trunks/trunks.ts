@@ -10,6 +10,7 @@ import {
   TRUNK_PROVIDERS_KEY,
 } from '@/lib/trunks/providers'
 import { getTrunksLiveState, TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
+import { canReadCtiLiveData } from '@/lib/dashboard/ctiClient'
 import { useLoginStore } from '@/stores/login'
 
 export const useTrunks = defineQuery(() => {
@@ -53,7 +54,7 @@ export const useTrunksLiveState = defineQuery(() => {
 
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [TRUNKS_LIVE_STATE_KEY],
-    enabled: () => loginStore.isAuthenticated,
+    enabled: () => loginStore.isAuthenticated && canReadCtiLiveData(loginStore.username),
     refetchOnWindowFocus: false,
     query: () => {
       if (!loginStore.credentials) {

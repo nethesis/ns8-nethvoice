@@ -39,6 +39,7 @@ import {
 } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 export type BulkUsersAction = 'profile' | 'voicemail' | 'devices'
 
@@ -55,6 +56,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()

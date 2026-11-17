@@ -49,6 +49,7 @@ import { UserSettingsStepError } from '@/lib/users/userSettings'
 import { MAX_DEVICES_PER_USER, type User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const {
   isShown = false,
@@ -61,6 +62,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: []; imported: [usernames: string[]] }>()
+
+useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
@@ -319,7 +322,7 @@ const formatDevices = (row: ImportRow) => {
       </div>
       <div class="flex justify-end gap-4 border-t border-gray-200 pt-6 dark:border-gray-700">
         <NeButton kind="tertiary" @click="close">{{ t('common.cancel') }}</NeButton>
-        <NeButton kind="primary" type="submit">{{ t('users.import') }}</NeButton>
+        <NeButton kind="primary" type="submit">{{ t('common.next') }}</NeButton>
       </div>
     </form>
   </NeSideDrawer>
@@ -432,9 +435,17 @@ const formatDevices = (row: ImportRow) => {
             t('users.import_users_detected', { count: analysis.total }, analysis.total)
           }}</span>
           <ul class="list-inside list-disc">
-            <li>{{ t('users.import_valid', { count: analysis.valid.length }) }}</li>
+            <li>
+              {{ t('users.import_valid', { count: analysis.valid.length }, analysis.valid.length) }}
+            </li>
             <li v-if="analysis.errors.length" class="text-rose-700 dark:text-rose-400">
-              {{ t('users.import_with_errors', { count: analysis.errors.length }) }}
+              {{
+                t(
+                  'users.import_with_errors',
+                  { count: analysis.errors.length },
+                  analysis.errors.length,
+                )
+              }}
             </li>
             <li v-if="analysis.existing.length" class="text-amber-700 dark:text-amber-400">
               {{

@@ -30,6 +30,7 @@ import {
 import { usePhoneDefaults } from '@/queries/phones/defaults'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 type PasswordField = 'password' | 'confirmPassword'
 
@@ -39,6 +40,8 @@ const { isShown = false, kind = 'admin' } = defineProps<{
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const queryCache = useQueryCache()

@@ -30,8 +30,11 @@ import LoadError from '@/components/common/LoadError.vue'
 import OperatorDetailsDrawer from '@/components/overview/OperatorDetailsDrawer.vue'
 import OverviewCompactCard from '@/components/overview/OverviewCompactCard.vue'
 import OverviewUserCard from '@/components/overview/OverviewUserCard.vue'
+import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
+import { useCtiLiveAccess } from '@/composables/useCtiLiveAccess'
 import { usePolling } from '@/composables/usePolling'
 import {
+  buildModelLabels,
   buildOverviewUsers,
   FAVORITES_FILTER_ID,
   filterOverviewUsers,
@@ -45,6 +48,7 @@ import {
 } from '@/lib/overview/overview'
 import { useGroups } from '@/queries/groups/groups'
 import { useOverviewLiveState } from '@/queries/overview/overview'
+import { usePhoneModels } from '@/queries/phones/models'
 import { useUsers } from '@/queries/users/users'
 import { useFavoritesStore } from '@/stores/favorites'
 
@@ -52,8 +56,15 @@ const { t } = useI18n()
 const { state: liveState, refetch: refetchLive } = useOverviewLiveState()
 const { state: usersState, refetch: refetchUsers } = useUsers()
 const { state: groupsState, refetch: refetchGroups } = useGroups()
+const { state: phoneModelsState } = usePhoneModels()
 
-usePolling(() => refetchLive(), OVERVIEW_REFRESH_INTERVAL)
+const liveAvailable = useCtiLiveAccess()
+
+usePolling(() => {
+  if (liveAvailable.value) {
+    refetchLive()
+  }
+}, OVERVIEW_REFRESH_INTERVAL)
 
 const textFilter = ref('')
 const statusFilter = ref<NeDropdownFilterV2Option[]>([])
@@ -89,6 +100,7 @@ const overviewUsers = computed(() =>
         liveState.value.data,
         usersState.value.data ?? [],
         groupsState.value.data ?? [],
+        buildModelLabels(phoneModelsState.value.data ?? []),
       )
     : [],
 )
@@ -221,7 +233,9 @@ function showDetails(user: OverviewUser) {
 }
 
 function reload() {
-  refetchLive()
+  if (liveAvailable.value) {
+    refetchLive()
+  }
   refetchUsers()
   refetchGroups()
 }
@@ -229,8 +243,9 @@ function reload() {
 
 <template>
   <div>
+    <LiveDataUnavailableNotice v-if="!liveAvailable" />
     <LoadError
-      v-if="loadError"
+      v-else-if="loadError"
       :error="loadError"
       :title="t('user_overview.cannot_load')"
       @retry="reload"

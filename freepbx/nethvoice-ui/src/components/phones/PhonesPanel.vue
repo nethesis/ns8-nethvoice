@@ -49,6 +49,8 @@ import EditPhoneDrawer from './EditPhoneDrawer.vue'
 import DeletePhoneModal from './DeletePhoneModal.vue'
 import PhonePasswordDrawer from './PhonePasswordDrawer.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
+import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
+import { useCtiLiveAccess } from '@/composables/useCtiLiveAccess'
 import { usePolling } from '@/composables/usePolling'
 import { PAGE_SIZES } from '@/lib/common'
 import { formatMac } from '@/lib/phones/mac'
@@ -77,7 +79,13 @@ const { state: defaultsState, refetch: refetchDefaults } = usePhoneDefaults()
 const { state: macVendorsState } = useMacVendors()
 const { state: registrationsState, refetch: refetchRegistrations } = usePhoneRegistrations()
 
-usePolling(() => refetchRegistrations(), PHONE_REGISTRATIONS_REFRESH_INTERVAL)
+const liveAvailable = useCtiLiveAccess()
+
+usePolling(() => {
+  if (liveAvailable.value) {
+    refetchRegistrations()
+  }
+}, PHONE_REGISTRATIONS_REFRESH_INTERVAL)
 
 const textFilter = ref('')
 const modelFilter = ref<NeDropdownFilterV2Option[]>([])
@@ -355,6 +363,7 @@ function showDeletePhoneModal(phone: Phone) {
       :description="$t('phones.inventory.admin_password_missing_description')"
       class="mb-6"
     />
+    <LiveDataUnavailableNotice v-if="!liveAvailable && !isEmptyStateShown" class="mb-6" />
     <NeEmptyState
       v-if="isEmptyStateShown"
       :title="$t('phones.inventory.no_phones')"

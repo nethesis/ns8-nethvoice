@@ -73,9 +73,15 @@ test.describe('users', () => {
     const rows = page.locator('[data-testid^="user-"]')
     await expect(rows).toHaveCount(3)
 
+    await expect(page.getByTestId('users-filtered-counter')).toHaveCount(0)
     await page.getByPlaceholder('Filter users').fill('davis')
     await expect(rows).toHaveCount(1)
+    await expect(page.getByTestId('users-filtered-counter')).toHaveText('Showing 1 of 3 users')
+    await expect(page.getByTestId('users-counter')).toContainText(
+      '2 out of 3 users configured with an extension',
+    )
     await page.getByPlaceholder('Filter users').fill('')
+    await expect(page.getByTestId('users-filtered-counter')).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Voicemail', exact: true }).click()
     await page.getByRole('radio', { name: 'Voicemail enabled' }).click()
@@ -815,7 +821,7 @@ test.describe('users', () => {
     await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
 
     const drawer = page.getByRole('dialog', { name: 'Import users' })
-    await drawer.getByRole('button', { name: 'Import' }).click()
+    await drawer.getByRole('button', { name: 'Next' }).click()
     await expect(drawer.getByText('Choose a CSV file')).toBeVisible()
 
     await drawer.locator('input[type=file]').setInputFiles({
@@ -831,7 +837,7 @@ test.describe('users', () => {
         ].join('\n'),
       ),
     })
-    await drawer.getByRole('button', { name: 'Import' }).click()
+    await drawer.getByRole('button', { name: 'Next' }).click()
 
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
@@ -845,7 +851,12 @@ test.describe('users', () => {
     await expect(modal.getByTestId('import-summary')).toContainText(
       '1 existing user (will be skipped)',
     )
-    await expect(modal).toContainText('1 existing user will be skipped')
+    await expect(modal.getByTestId('import-summary')).toContainText('1 valid')
+    await expect(modal.getByTestId('import-summary')).toContainText(
+      '2 with errors (will be skipped)',
+    )
+    await expect(modal).toContainText('This user already exists:')
+    await expect(modal).not.toContainText('1 existing user will be skipped')
     await expect(modal).toContainText('Row 2 (a.miller)')
     await expect(modal.getByRole('button', { name: 'Import 1 user' })).toBeVisible()
     await expect(modal.getByTestId('import-summary')).toContainText('Import summary')
@@ -861,7 +872,7 @@ test.describe('users', () => {
 
     await modal.getByRole('radio', { name: 'Overwrite existing users' }).check()
     await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeVisible()
-    await expect(modal).not.toContainText('1 existing user will be skipped')
+    await expect(modal).not.toContainText('This user already exists:')
 
     await modal.getByRole('radio', { name: 'Skip existing users' }).check()
     await expect(modal).toContainText('Row 2 (a.miller)')
@@ -901,7 +912,7 @@ test.describe('users', () => {
         ].join('\n'),
       ),
     })
-    await drawer.getByRole('button', { name: 'Import' }).click()
+    await drawer.getByRole('button', { name: 'Next' }).click()
 
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
@@ -940,7 +951,7 @@ test.describe('users', () => {
       mimeType: 'text/csv',
       buffer: Buffer.from('Nome;Cognome;Interno\nMario;Rossi;201'),
     })
-    await drawer.getByRole('button', { name: 'Import' }).click()
+    await drawer.getByRole('button', { name: 'Next' }).click()
     await expect(drawer.getByText('no username column')).toBeVisible()
 
     const rows = Array.from(
@@ -952,7 +963,7 @@ test.describe('users', () => {
       mimeType: 'text/csv',
       buffer: Buffer.from(['username,fullname,extension', ...rows].join('\n')),
     })
-    await drawer.getByRole('button', { name: 'Import' }).click()
+    await drawer.getByRole('button', { name: 'Next' }).click()
 
     const modal = page
       .getByRole('dialog', { name: 'Import users' })

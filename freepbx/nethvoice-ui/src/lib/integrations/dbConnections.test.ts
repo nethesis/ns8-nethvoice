@@ -22,6 +22,7 @@ const rawConnections = [
     type: 'mysql',
     user: 'ctiuser',
     pass: 'stored-password',
+    has_password: true,
     name: 'phonebook',
     creation: '2026-01-10 09:00:00',
   },
@@ -31,8 +32,17 @@ const rawConnections = [
     port: 5432,
     type: 'postgres',
     user: 'reader',
-    pass: 'crm-password',
+    has_password: true,
     name: 'crm',
+  },
+  {
+    id: 7,
+    host: 'erp.example.com',
+    port: '1433',
+    type: 'mssql:7_4',
+    user: 'erp',
+    has_password: false,
+    name: 'erp',
   },
 ]
 
@@ -58,7 +68,17 @@ describe('parseDbConnections', () => {
         host: 'crm.example.com',
         port: '5432',
         user: 'reader',
-        password: 'crm-password',
+        hasPassword: true,
+        builtIn: false,
+      },
+      {
+        id: '7',
+        name: 'erp',
+        type: 'mssql:7_4',
+        host: 'erp.example.com',
+        port: '1433',
+        user: 'erp',
+        hasPassword: false,
         builtIn: false,
       },
       {
@@ -68,10 +88,22 @@ describe('parseDbConnections', () => {
         host: 'localhost',
         port: '3306',
         user: 'ctiuser',
-        password: 'stored-password',
+        hasPassword: true,
         builtIn: true,
       },
     ])
+  })
+
+  it('should never keep a password returned by the server', () => {
+    expect(JSON.stringify(connections())).not.toContain('stored-password')
+  })
+
+  it('should read a stored password from a server without has_password', () => {
+    const [connection] = parseDbConnections([
+      { id: 2, host: 'h', port: '1', type: 'mysql', user: 'u', pass: 'p', name: 'n' },
+    ])
+
+    expect(connection?.hasPassword).toBe(true)
   })
 
   it('should reject an unexpected shape', () => {
@@ -126,6 +158,31 @@ describe('validateDbConnectionForm', () => {
   it('should keep the stored password when editing', () => {
     expect(validateDbConnectionForm(form({ password: '' }), connections()[0])).toEqual({})
   })
+
+  it('should require the password again for a different server', () => {
+    const issues = { password: 'integrations.password_required' }
+
+    expect(
+      validateDbConnectionForm(form({ password: '', host: 'other' }), connections()[0]),
+    ).toEqual(issues)
+    expect(
+      validateDbConnectionForm(form({ password: '', port: '5433' }), connections()[0]),
+    ).toEqual(issues)
+    expect(
+      validateDbConnectionForm(form({ password: '', type: 'mysql' }), connections()[0]),
+    ).toEqual(issues)
+    expect(
+      validateDbConnectionForm(form({ password: '', host: ' crm.example.com ' }), connections()[0]),
+    ).toEqual({})
+  })
+
+  it('should require a password when none is stored', () => {
+    const erp = connections()[1]!
+
+    expect(validateDbConnectionForm({ ...toDbConnectionForm(erp) }, erp)).toEqual({
+      password: 'integrations.password_required',
+    })
+  })
 })
 
 describe('payloads', () => {
@@ -144,15 +201,27 @@ describe('payloads', () => {
     expect(buildDbConnectionPayload(form()).pass).toBe('new-password')
   })
 
-  it('should test with the stored password when it was not changed', () => {
+  it('should test with the stored password of the connection when it was not changed', () => {
     expect(buildDbConnectionTestPayload(form({ password: '' }), connections()[0])).toEqual({
       type: 'postgres',
       name: 'crm',
       host: 'crm.example.com',
       port: '5432',
       user: 'reader',
-      pass: 'crm-password',
+      pass: '',
+      id: '5',
     })
-    expect(buildDbConnectionTestPayload(form()).pass).toBe('new-password')
+  })
+
+  it('should test with the typed password', () => {
+    expect(buildDbConnectionTestPayload(form(), connections()[0])).toEqual({
+      type: 'postgres',
+      name: 'crm',
+      host: 'crm.example.com',
+      port: '5432',
+      user: 'reader',
+      pass: 'new-password',
+    })
+    expect(buildDbConnectionTestPayload(form()).id).toBeUndefined()
   })
 })

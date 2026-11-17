@@ -92,6 +92,10 @@ test.describe('trunks: physical', () => {
       'placeholder',
       'e.g. 192.168.1.10',
     )
+    await expect(page.getByRole('textbox', { name: 'PBX address' })).toHaveAttribute(
+      'placeholder',
+      'e.g. 192.168.1.2',
+    )
     await page.getByRole('textbox', { name: 'PBX address' }).fill('')
     await page.getByRole('button', { name: 'Add trunk' }).click()
 

@@ -3,10 +3,8 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
-import { isApiError } from '@/lib/api/errors'
 import type { components } from '@/lib/api/schema'
 import { compareNatural } from '@/lib/common'
-import { postCtiApi } from './ctiApi'
 import { type FieldIssues, PortSchema, requiredText, validateForm } from './validation'
 
 export const DB_CONNECTIONS_KEY = 'customerCardDbConnections'
@@ -15,6 +13,8 @@ export const DB_CONNECTION_TYPES_KEY = 'customerCardDbConnectionTypes'
 export const BUILT_IN_DB_CONNECTIONS = ['phonebook', 'asteriskcdrdb']
 
 type DbConnectionInput = components['schemas']['IntegrationsDbConnectionInput']
+
+type DbConnectionTestInput = components['schemas']['IntegrationsDbConnectionTestInput']
 
 const DEFAULT_PORTS: Record<string, string> = {
   mysql: '3306',
@@ -36,8 +36,11 @@ const DbConnectionsResponseSchema = v.array(
     port: TextSchema,
     user: TextSchema,
     pass: TextSchema,
+    has_password: v.optional(v.boolean()),
   }),
 )
+
+const DbConnectionTestResponseSchema = v.object({ status: v.boolean() })
 
 const DbConnectionTypesResponseSchema = v.union([
   v.record(v.string(), v.string()),
@@ -51,7 +54,7 @@ export type DbConnection = {
   host: string
   port: string
   user: string
-  password: string
+  hasPassword: boolean
   builtIn: boolean
 }
 
@@ -76,7 +79,7 @@ export const parseDbConnections = (raw: unknown): DbConnection[] =>
       host: connection.host,
       port: connection.port,
       user: connection.user,
-      password: connection.pass,
+      hasPassword: connection.has_password ?? connection.pass !== '',
       builtIn: BUILT_IN_DB_CONNECTIONS.includes(connection.name),
     }))
     .sort((a, b) => compareNatural(a.name, b.name))
@@ -113,6 +116,15 @@ export const toDbConnectionForm = (connection: DbConnection): DbConnectionForm =
   password: '',
 })
 
+export const isDbConnectionPasswordKept = (
+  form: DbConnectionForm,
+  existing?: DbConnection,
+): boolean =>
+  !!existing?.hasPassword &&
+  form.type === existing.type &&
+  form.host.trim() === existing.host.trim() &&
+  form.port.trim() === existing.port.trim()
+
 const buildDbConnectionSchema = (passwordRequired: boolean) =>
   v.object({
     type: requiredText('integrations.cards.connection_type_required'),
@@ -126,7 +138,8 @@ const buildDbConnectionSchema = (passwordRequired: boolean) =>
 export const validateDbConnectionForm = (
   form: DbConnectionForm,
   existing?: DbConnection,
-): FieldIssues => validateForm(buildDbConnectionSchema(!existing?.password), form)
+): FieldIssues =>
+  validateForm(buildDbConnectionSchema(!isDbConnectionPasswordKept(form, existing)), form)
 
 export const buildDbConnectionPayload = (form: DbConnectionForm): DbConnectionInput => ({
   type: form.type,
@@ -140,13 +153,14 @@ export const buildDbConnectionPayload = (form: DbConnectionForm): DbConnectionIn
 export const buildDbConnectionTestPayload = (
   form: DbConnectionForm,
   existing?: DbConnection,
-): Required<DbConnectionInput> => ({
+): DbConnectionTestInput => ({
   type: form.type,
   name: form.name.trim(),
   host: form.host.trim(),
   port: form.port.trim(),
   user: form.user.trim(),
-  pass: form.password || existing?.password || '',
+  pass: form.password,
+  ...(existing && !form.password ? { id: existing.id } : {}),
 })
 
 export const getDbConnections = async (): Promise<DbConnection[]> => {
@@ -171,14 +185,7 @@ export const deleteDbConnection = async (id: string): Promise<void> => {
   await api.DELETE('/cti/dbconn/{id}', { params: { path: { id } } })
 }
 
-export const testDbConnection = async (payload: Required<DbConnectionInput>): Promise<boolean> => {
-  try {
-    await postCtiApi('/dbconn/test', payload)
-    return true
-  } catch (error) {
-    if (isApiError(error) && error.status === 503) {
-      return false
-    }
-    throw error
-  }
+export const testDbConnection = async (payload: DbConnectionTestInput): Promise<boolean> => {
+  const { data } = await api.POST('/cti/dbconn/test', { body: payload })
+  return v.parse(DbConnectionTestResponseSchema, data).status
 }

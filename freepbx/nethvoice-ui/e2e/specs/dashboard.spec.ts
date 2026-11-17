@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test, type MockApi } from '../fixtures/mockApi'
+import { expect, mockPermissions, test, type MockApi } from '../fixtures/mockApi'
 
 const extension = (exten: string, name: string, status: string, conversations = {}) => ({
   exten,
@@ -158,6 +158,8 @@ const mockDashboard = (mockApi: MockApi) =>
     .on('GET', '/freepbx/rest/dashboard/system', { json: SYSTEM })
     .on('GET', '/freepbx/rest/dashboard/phones', { json: PHONE_STATUS })
 
+const LIVE_PATHS = ['/api/astproxy/extensions', '/api/astproxy/trunks', '/api/user/endpoints/all']
+
 const counterValue = (page: import('@playwright/test').Page, id: string) =>
   page.getByTestId(`counter-${id}`).getByTestId('counter-value')
 
@@ -228,6 +230,11 @@ test.describe('dashboard', () => {
       page.getByRole('img', { name: '7 calls today, most at 09:00 with 4' }),
     ).toBeVisible()
     await expect(page.getByTestId('hourly-calls-card')).toContainText('Calls')
+    const hourlyChart = page.getByTestId('hourly-chart')
+    for (const hour of ['00:00', '03:00', '12:00', '21:00']) {
+      await expect(hourlyChart.locator('svg text', { hasText: hour })).toHaveCount(1)
+    }
+    await expect(hourlyChart.locator('svg text', { hasText: /^4$/ })).toHaveCount(1)
 
     const rows = page.getByTestId('call-row')
     await expect(rows).toHaveCount(2)
@@ -609,9 +616,24 @@ test.describe('dashboard', () => {
     )
     await expect(page.getByRole('button', { name: 'Move Devices' })).toBeFocused()
 
+    await page.getByRole('button', { name: 'Move Users presence' }).focus()
+    await page.keyboard.press('ArrowDown')
+
+    await expect(cards.nth(4)).toHaveAttribute('data-card', 'presence')
+    await expect(page.getByTestId('card-move-status')).toHaveText(
+      'Users presence moved to position 5 of 8',
+    )
+    await expect(page.getByRole('button', { name: 'Move Users presence' })).toBeFocused()
+
+    await page.keyboard.press('ArrowUp')
+
+    await expect(cards.nth(2)).toHaveAttribute('data-card', 'presence')
+    await expect(cards.nth(3)).toHaveAttribute('data-card', 'callsSummary')
+
     await page.reload()
 
     await expect(cards.first()).toHaveAttribute('data-card', 'devices')
+    await expect(cards.nth(2)).toHaveAttribute('data-card', 'presence')
   })
 
   test('warns when the community limit is exceeded', async ({ page, mockApi }) => {
@@ -852,6 +874,78 @@ test.describe('dashboard', () => {
 
     await expect(page.getByTestId('call-row')).toHaveCount(1)
     expect(mockApi.callsTo('GET', '/api/astproxy/extensions').length).toBeGreaterThan(before)
+  })
+
+  test('explains the missing live data to an account other than admin', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['dashboard'], 'operator')
+    await page.clock.install()
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('dashboard-live-unavailable')).toContainText(
+      'Live data not available',
+    )
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
+    await expect(counterValue(page, 'users')).toHaveText('5')
+    await expect(page.getByTestId('counter-users').getByRole('link')).toHaveCount(0)
+    await expect(page.getByTestId('counter-callsInProgress')).toHaveCount(0)
+    await expect(page.getByTestId('calls-summary-card')).toBeVisible()
+    for (const card of [
+      'presence-card',
+      'devices-card',
+      'calls-card',
+      'trunks-card',
+      'inbound-routes-card',
+    ]) {
+      await expect(page.getByTestId(card)).toHaveCount(0)
+    }
+
+    await page.clock.runFor(12000)
+
+    for (const path of LIVE_PATHS) {
+      expect(mockApi.callsTo('GET', path)).toHaveLength(0)
+    }
+  })
+
+  test('stops polling the live data when the CTI API denies it', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/api/astproxy/extensions', {
+      status: 403,
+      json: { message: 'Forbidden' },
+    })
+    await page.clock.install()
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('dashboard-live-unavailable')).toBeVisible()
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
+    await expect(page.getByTestId('presence-card')).toHaveCount(0)
+    const before = LIVE_PATHS.map((path) => mockApi.callsTo('GET', path).length)
+
+    await page.clock.runFor(12000)
+
+    expect(LIVE_PATHS.map((path) => mockApi.callsTo('GET', path).length)).toEqual(before)
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+  })
+
+  test('shows the trunks and the inbound routes only to who can manage them', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['dashboard', 'routes'])
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('inbound-routes-card')).toBeVisible()
+    await expect(page.getByTestId('presence-card')).toBeVisible()
+    await expect(page.getByTestId('trunks-card')).toHaveCount(0)
+    await expect(counterValue(page, 'trunks')).toHaveText('1')
+    await expect(page.getByTestId('counter-trunks').getByRole('link')).toHaveCount(0)
+    await expect(
+      page.getByTestId('counter-inboundRoutes').getByRole('link', { name: 'Inbound routes: 6' }),
+    ).toBeVisible()
   })
 
   test('signs out when the CTI API rejects the secret key', async ({ page, mockApi }) => {

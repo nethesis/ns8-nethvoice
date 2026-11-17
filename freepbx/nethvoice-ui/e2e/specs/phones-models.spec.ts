@@ -59,7 +59,7 @@ test.describe('physical phones: models', () => {
       })
       .on('POST', `${TANCREDI}/models`, (request) => {
         const body = request.body as { name: string; display_name: string }
-        return { status: 201, json: { ...body, variables: MODEL_VARIABLES } }
+        return { status: 201, json: { name: body.name, variables: MODEL_VARIABLES } }
       })
     await page.goto('./phones/models')
 
@@ -78,6 +78,7 @@ test.describe('physical phones: models', () => {
     await drawer.getByRole('button', { name: 'Add', exact: true }).click()
 
     await expect(page.getByText('Model added')).toBeVisible()
+    await expect(page.getByText('Front office has been created successfully')).toBeVisible()
     expect(mockApi.callsTo('POST', `${TANCREDI}/models`)[0].body).toEqual({
       name: 'yealink-T46-Front_office',
       display_name: 'Front office',
@@ -85,6 +86,33 @@ test.describe('physical phones: models', () => {
     })
     await expect(page.getByRole('heading', { name: 'Front office' })).toBeVisible()
     await expect(page).toHaveURL(/\/phones\/models\?model=yealink-T46-Front_office$/)
+  })
+
+  test('reports a model that the PBX did not save and stays on the list', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPhonesApi(mockApi)
+      .on('GET', `${TANCREDI}/models/:id`, (request) => {
+        const name = request.path.split('/').pop() ?? ''
+        return name === 'yealink-T46'
+          ? { json: { name, display_name: 'Yealink T46', variables: MODEL_VARIABLES } }
+          : { status: 404, json: { title: 'Resource not found' } }
+      })
+      .on('POST', `${TANCREDI}/models`, (request) => ({ status: 201, json: request.body }))
+    await page.goto('./phones/models')
+
+    await page.getByRole('button', { name: 'Add model' }).click()
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('textbox', { name: 'Name' }).fill('Front office')
+    await drawer.getByRole('combobox', { name: 'Base model' }).fill('T46')
+    await page.getByRole('option', { name: /Yealink T46/ }).click()
+    await drawer.getByRole('button', { name: 'Add', exact: true }).click()
+
+    await expect(page.getByText('Cannot add model')).toBeVisible()
+    await expect(page.getByText('Model added')).toHaveCount(0)
+    await expect(page.getByText('Model not found')).toHaveCount(0)
+    await expect(page).toHaveURL(/\/phones\/models$/)
   })
 
   test('offers every Tancredi model as base model', async ({ page, mockApi }) => {

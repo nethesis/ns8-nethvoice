@@ -403,6 +403,7 @@ function discardChanges() {
           v-model="form.pbxAddress"
           :label="t('trunks.physical.pbx_address')"
           :helper-text="t('trunks.physical.pbx_address_helper')"
+          :placeholder="t('trunks.physical.pbx_address_placeholder')"
           :invalid-message="issue('pbxAddress')"
           :disabled="saving || isReadOnly"
           @blur="form.pbxAddress = form.pbxAddress.trim()"

@@ -21,6 +21,7 @@ import {
 } from '@/lib/users/orphans'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const { isShown = false, orphans = [] } = defineProps<{
   isShown: boolean
@@ -28,6 +29,8 @@ const { isShown = false, orphans = [] } = defineProps<{
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+useFocusReturn(() => isShown)
 
 const { t, locale } = useI18n()
 const notificationsStore = useNotificationsStore()

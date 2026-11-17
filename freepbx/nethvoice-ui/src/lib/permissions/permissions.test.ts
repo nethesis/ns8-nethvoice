@@ -7,6 +7,7 @@ import {
   getAccessRedirect,
   getAllowedSections,
   getFirstAllowedRoute,
+  isDeniedSectionRedirect,
   isSuperadmin,
   parseMe,
   type Permission,
@@ -141,5 +142,29 @@ describe('getAccessRedirect', () => {
       name: 'no-access',
     })
     expect(getAccessRedirect('no-access', undefined, undefined, completed)).toBeNull()
+  })
+})
+
+describe('isDeniedSectionRedirect', () => {
+  it('should report a section the administrator cannot open', () => {
+    expect(isDeniedSectionRedirect('trunks', 'trunks', dashboardOnly, completed)).toBe(true)
+    expect(isDeniedSectionRedirect('setup-users', 'superadmin', dashboardOnly, completed)).toBe(
+      true,
+    )
+  })
+
+  it('should stay silent on the default page and on allowed sections', () => {
+    expect(isDeniedSectionRedirect('dashboard', 'dashboard', trunksAndRoutes, completed)).toBe(
+      false,
+    )
+    expect(isDeniedSectionRedirect('routes', 'routes', trunksAndRoutes, completed)).toBe(false)
+    expect(isDeniedSectionRedirect('not-found', undefined, dashboardOnly, completed)).toBe(false)
+    expect(isDeniedSectionRedirect('trunks', 'trunks', superadmin, completed)).toBe(false)
+  })
+
+  it('should stay silent when another page explains the redirect', () => {
+    expect(isDeniedSectionRedirect('trunks', 'trunks', dashboardOnly, atVoipTrunks)).toBe(false)
+    expect(isDeniedSectionRedirect('trunks', 'trunks', nothing, completed)).toBe(false)
+    expect(isDeniedSectionRedirect('trunks', 'trunks', undefined, completed)).toBe(false)
   })
 })

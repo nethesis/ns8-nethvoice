@@ -8,7 +8,7 @@ import * as v from 'valibot'
 import type { NeNotificationV2 } from '@nethesis/vue-components'
 import { isApiError } from '@/lib/api/errors'
 import { IS_E2E } from '@/lib/config'
-import { ctiGet } from '@/lib/dashboard/ctiClient'
+import { canReadCtiLiveData, ctiGet, isCtiAccessDenied } from '@/lib/dashboard/ctiClient'
 import { isExtensionsLimitReached } from '@/lib/dashboard/subscription'
 import {
   ADMIN_PHONE_ALERT_KEY,
@@ -41,9 +41,6 @@ const LIVE_TRUNKS_PATH = '/astproxy/trunks'
 export const areSystemAlertsAllowed = (): boolean =>
   !IS_E2E || Reflect.get(window, 'e2eSystemAlerts') === true
 
-const isForbidden = (error: unknown): boolean =>
-  isApiError(error) && (error.status === 401 || error.status === 403)
-
 const readLiveTrunks = (raw: unknown): TrunksLiveState | null => {
   try {
     return parseTrunksLiveState(raw)
@@ -70,7 +67,12 @@ export const useSystemAlerts = (isEnabled: () => boolean) => {
   let polling: AbortController | null = null
 
   const running = computed(() => isEnabled() && loginStore.username !== '')
-  const canSeeTrunks = computed(() => permissions.can('trunks') && !trunksForbidden.value)
+  const canSeeTrunks = computed(
+    () =>
+      permissions.can('trunks') &&
+      canReadCtiLiveData(loginStore.username) &&
+      !trunksForbidden.value,
+  )
   const isPolling = computed(
     () => running.value && canSeeTrunks.value && visibility.value === 'visible',
   )
@@ -175,7 +177,7 @@ export const useSystemAlerts = (isEnabled: () => boolean) => {
       if (controller.signal.aborted) {
         return
       }
-      if (isForbidden(error)) {
+      if (isCtiAccessDenied(error)) {
         trunksForbidden.value = true
         return
       }

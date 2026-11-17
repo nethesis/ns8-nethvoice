@@ -18,6 +18,7 @@ import { getReassignTargets, reassignMainExtension } from '@/lib/users/extension
 import type { User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const {
   visible = false,
@@ -30,6 +31,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+useFocusReturn(() => visible)
 
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()

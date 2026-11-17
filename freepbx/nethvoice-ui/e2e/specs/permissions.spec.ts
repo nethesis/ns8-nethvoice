@@ -47,11 +47,23 @@ test.describe('section permissions', () => {
       }
     })
 
-    test('redirects a forbidden section to the dashboard', async ({ page }) => {
+    test('redirects a forbidden section to the dashboard and says why', async ({ page }) => {
       for (const path of ['./trunks', './settings', './users/groups', './setup']) {
         await page.goto(path)
         await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+        await expect(
+          page.getByTestId('toast-notifications').getByText('Section not available'),
+        ).toBeVisible()
       }
+    })
+
+    test('opens the dashboard without a notice', async ({ page }) => {
+      await page.goto('./dashboard')
+
+      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+      await expect(
+        page.getByTestId('toast-notifications').getByText('Section not available'),
+      ).toHaveCount(0)
     })
 
     test('hides the legacy wizard and the settings from the account menu', async ({ page }) => {
@@ -86,6 +98,9 @@ test.describe('section permissions', () => {
 
     await expect(page).toHaveURL(/\/nethvoice\/trunks/)
     await expect(page.getByRole('navigation').getByRole('link', { name: 'Routes' })).toHaveCount(1)
+    await expect(
+      page.getByTestId('toast-notifications').getByText('Section not available'),
+    ).toHaveCount(0)
   })
 
   test('hides the Visual Plan and FreePBX links from a routes administrator', async ({

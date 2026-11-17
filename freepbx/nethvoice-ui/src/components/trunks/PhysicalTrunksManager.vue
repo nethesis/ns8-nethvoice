@@ -51,6 +51,8 @@ import { PAGE_SIZES } from '@/lib/common'
 import { useGatewayModels, useGateways } from '@/queries/trunks/gateways'
 import { useTrunks, useTrunksLiveState } from '@/queries/trunks/trunks'
 import { useClientPagination } from '@/composables/useClientPagination'
+import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
+import { useCtiLiveAccess } from '@/composables/useCtiLiveAccess'
 import { usePolling } from '@/composables/usePolling'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
@@ -87,8 +89,14 @@ const isLoaded = computed(() => !isLoading.value && !loadError.value)
 
 const gateways = computed(() => gatewaysState.value.data ?? [])
 
+const liveAvailable = useCtiLiveAccess()
+
 usePolling(
-  () => refetchLiveState(),
+  () => {
+    if (liveAvailable.value) {
+      refetchLiveState()
+    }
+  },
   TRUNKS_LIVE_STATE_REFRESH_INTERVAL,
   () => gateways.value.length > 0,
 )
@@ -296,6 +304,7 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
           {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
+      <LiveDataUnavailableNotice v-if="gateways.length > 0 && !liveAvailable" />
       <NeTable
         v-if="isTableShown"
         :aria-label="t('trunks.tab_physical')"

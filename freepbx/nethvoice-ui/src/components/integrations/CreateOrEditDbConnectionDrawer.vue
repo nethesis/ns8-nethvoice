@@ -28,6 +28,7 @@ import {
   type DbConnectionForm,
   emptyDbConnectionForm,
   getDbConnectionDefaultPort,
+  isDbConnectionPasswordKept,
   saveDbConnection,
   testDbConnection,
   toDbConnectionForm,
@@ -72,6 +73,15 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
   user: userRef,
   password: passwordRef,
 }
+
+const passwordHelper = computed(() => {
+  if (!currentConnection?.hasPassword) {
+    return ''
+  }
+  return isDbConnectionPasswordKept(form.value, currentConnection)
+    ? t('integrations.password_keep_helper')
+    : t('integrations.password_server_changed_helper')
+})
 
 const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
 
@@ -282,7 +292,7 @@ function save() {
           autocomplete="new-password"
           :show-password-label="t('ne_text_input.show_password')"
           :hide-password-label="t('ne_text_input.hide_password')"
-          :helper-text="currentConnection?.password ? t('integrations.password_keep_helper') : ''"
+          :helper-text="passwordHelper"
           :invalid-message="validationIssues.password ? t(validationIssues.password) : ''"
           :disabled="busy"
         />

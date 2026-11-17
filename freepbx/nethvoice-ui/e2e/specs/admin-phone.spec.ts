@@ -36,6 +36,9 @@ const mockOverview = (mockApi: MockApi) =>
       },
     })
     .on('GET', '/freepbx/rest/users/:all', { json: PBX_USERS })
+    .on('GET', '/tancredi/api/v1/models', {
+      json: [{ name: 'fanvil-X4U', display_name: 'Fanvil X4U Pro' }],
+    })
     .on('GET', '/freepbx/rest/cti/groups', { json: GROUPS })
     .on('GET', '/freepbx/rest/cti/users/groups/:id', (request) => ({
       json: GROUP_MEMBERS[request.path.split('/').pop() ?? ''] ?? [],
@@ -186,6 +189,62 @@ test.describe('administrator phone', () => {
 
     await expect(island(second)).toHaveCount(1)
     await expect(island(page)).toHaveCount(0)
+    await second.close()
+  })
+
+  test('explains a call in progress before the status of the devices', async ({
+    page,
+    mockApi,
+  }) => {
+    mockOverview(mockApi)
+      .on('GET', '/api/astproxy/extensions', {
+        json: { '300': { status: 'online', codecs: [] }, '301': { status: 'busy', codecs: [] } },
+      })
+      .on('GET', '/api/user/endpoints/all', {
+        json: {
+          'a.miller': {
+            name: 'Anna Miller',
+            username: 'a.miller',
+            mainPresence: 'online',
+            presence: 'online',
+            endpoints: {
+              mainextension: [{ id: '300' }],
+              extension: [{ id: '300', type: 'webrtc' }],
+            },
+          },
+          'b.smith': {
+            name: 'Bob Smith',
+            username: 'b.smith',
+            mainPresence: 'busy',
+            presence: 'busy',
+            endpoints: {
+              mainextension: [{ id: '301' }],
+              extension: [{ id: '301', type: 'webrtc' }],
+            },
+          },
+        },
+      })
+      .on('POST', SESSION_PATH, { json: SESSION })
+    await page.goto('./users/overview')
+    await page.getByRole('button', { name: 'Call 300', exact: true }).click()
+    await expect(island(page)).toHaveAttribute('data-calls', '300')
+
+    await page.getByRole('button', { name: 'Show details of Bob Smith' }).click()
+    await expect(page.getByTestId('call-disabled-reason')).toHaveText(
+      'A call is already in progress',
+    )
+
+    const second = await page.context().newPage()
+    await mockApi.install(second)
+    await second.goto('./users/overview')
+    await second.getByRole('button', { name: 'Show details of Bob Smith' }).click()
+    await expect(second.getByTestId('call-disabled-reason')).toHaveText(
+      'The administrator phone is in a call in another tab',
+    )
+
+    await island(page).getByRole('button', { name: 'Hang up' }).click()
+    await expect(page.getByTestId('call-disabled-reason')).toHaveText('No device online to call')
+    await expect(page.getByRole('button', { name: 'Call', exact: true })).toBeDisabled()
     await second.close()
   })
 

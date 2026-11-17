@@ -3,6 +3,7 @@
 
 import { defineQuery, useQuery } from '@pinia/colada'
 import { getPhoneRegistrations, PHONE_REGISTRATIONS_KEY } from '@/lib/phones/registration'
+import { canReadCtiLiveData } from '@/lib/dashboard/ctiClient'
 import { useLoginStore } from '@/stores/login'
 
 export const usePhoneRegistrations = defineQuery(() => {
@@ -10,7 +11,7 @@ export const usePhoneRegistrations = defineQuery(() => {
 
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [PHONE_REGISTRATIONS_KEY],
-    enabled: () => loginStore.isAuthenticated,
+    enabled: () => loginStore.isAuthenticated && canReadCtiLiveData(loginStore.username),
     refetchOnWindowFocus: false,
     query: ({ signal }) => getPhoneRegistrations(signal),
   })
