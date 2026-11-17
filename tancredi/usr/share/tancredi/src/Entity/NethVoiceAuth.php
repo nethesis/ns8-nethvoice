@@ -63,16 +63,15 @@ class NethVoiceAuth implements MiddlewareInterface
                 ($this->config['auth_nethvoice_dbuser'] ?? 'tancredi'),
                 $this->config['auth_nethvoice_dbpass']
             );
-            $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
+            $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE username = ?");
             $stmt->execute(array($request->getHeaderLine('User')));
             $user = $stmt->fetchAll();
 
-            if (!empty($user)) {
+            if (!empty($user) && self::isPhonesAdministrator($user[0]['sections'] ?? '')) {
                 $password_sha1 = $user[0]['password_sha1'];
                 $username = $user[0]['username'];
 
-                // check the user is valid and is an admin (sections = *)
-                if (isset($username, $password_sha1) && $request->getHeaderLine('Secretkey') === sha1($username . $password_sha1 . $this->config['secret'])) {
+                if (isset($username, $password_sha1) && hash_equals(sha1($username . $password_sha1 . $this->config['secret']), $request->getHeaderLine('Secretkey'))) {
                     return $handler->handle($request);
                 }
             }
@@ -83,6 +82,16 @@ class NethVoiceAuth implements MiddlewareInterface
         } else {
             return $this->createForbiddenResponse('Invalid NethVoiceAuth authentication headers');
         }
+    }
+
+    public static function isPhonesAdministrator($sections): bool
+    {
+        $entries = array_map('trim', explode(';', (string) $sections));
+        if (in_array('*', $entries, true)) {
+            return true;
+        }
+
+        return (bool) array_intersect(['nethvoice:superadmin', 'nethvoice:phones', 'nethvoice:users'], $entries);
     }
 
     private function createForbiddenResponse($detail = 'Invalid client credentials'): ResponseInterface

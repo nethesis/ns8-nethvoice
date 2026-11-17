@@ -45,6 +45,8 @@ const NETHVOICE_ROUTE_RULES = [
     'GET /users/{username}/password' => NETHVOICE_SUPERADMIN,
     'POST /users/{username}/password' => ['sections' => ['settings'], 'self' => 'username'],
     'POST /physicalextensions/adminpw' => 'phones',
+    'POST /cti/customer_card/template' => NETHVOICE_SUPERADMIN,
+    'PUT /cti/customer_card/template/{name}' => NETHVOICE_SUPERADMIN,
 ];
 
 const NETHVOICE_PREFIX_RULES = [
@@ -173,6 +175,30 @@ function nethvoiceIsAllowed(array $permissions, string $username, string $method
     return true;
 }
 
+function nethvoiceRequestPermissions(ServerRequestInterface $request): array
+{
+    return (array) $request->getAttribute(NETHVOICE_PERMISSIONS_ATTRIBUTE, []);
+}
+
+function nethvoiceRequestIsSuperadmin(ServerRequestInterface $request): bool
+{
+    return in_array(NETHVOICE_SUPERADMIN, nethvoiceRequestPermissions($request), true);
+}
+
+function nethvoiceRequestHasSection(ServerRequestInterface $request, string $section): bool
+{
+    $permissions = nethvoiceRequestPermissions($request);
+
+    return in_array(NETHVOICE_SUPERADMIN, $permissions, true) || in_array($section, $permissions, true);
+}
+
+function nethvoiceForbidden(ResponseInterface $response): ResponseInterface
+{
+    $response->getBody()->write(json_encode(['message' => 'Forbidden: missing permission']));
+
+    return $response->withStatus(403)->withHeader('Content-Type', 'application/json;charset=utf-8');
+}
+
 class PermissionMiddleware implements MiddlewareInterface
 {
     private const PUBLIC_ROUTES = ['POST /testauth'];
@@ -188,10 +214,7 @@ class PermissionMiddleware implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        $response = $this->responseFactory->createResponse(403);
-        $response->getBody()->write(json_encode(['message' => 'Forbidden: missing permission']));
-
-        return $response->withHeader('Content-Type', 'application/json;charset=utf-8');
+        return nethvoiceForbidden($this->responseFactory->createResponse());
     }
 
     private function isAllowed(ServerRequestInterface $request, RouteInterface $route): bool

@@ -8,7 +8,8 @@
 # Store the instance name given in the cluster administration in
 # NETHVOICE_UI_NAME: the administration UI shows it in the top bar of
 # Enterprise systems. The name is the argument, or the ui_name of the module
-# when it is missing. A running freepbx gets the new name in its UI
+# when it is missing; without a name it is the module ID, as in the cluster
+# administration. A running freepbx gets the new name in its UI
 # configuration without restarting; otherwise the entrypoint writes it at the
 # next start.
 
@@ -28,10 +29,12 @@ UPDATE_UI_CONFIG = (
 )
 
 if len(sys.argv) > 1:
-    name = sys.argv[1]
+    name = sys.argv[1].strip()
 else:
     rdb = agent.redis_connect(use_replica=True)
-    name = rdb.get(f"module/{os.environ['MODULE_ID']}/ui_name") or ""
+    name = (rdb.get(f"module/{os.environ['MODULE_ID']}/ui_name") or "").strip()
+name = "".join(char for char in name if char.isprintable()).strip()
+name = name or os.environ["MODULE_ID"]
 
 agent.set_env("NETHVOICE_UI_NAME", name)
 

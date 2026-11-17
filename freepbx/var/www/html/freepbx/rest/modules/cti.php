@@ -24,6 +24,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libCTI.php');
 include_once('lib/libMiddleware.php');
+include_once('lib/libSecurity.php');
 
 /* GET /cti/profiles
 Return: [{id:1, name: admin, macro_permissions [ oppanel: {value: true, permissions [ {name: "foo", description: "descrizione...", value: false},{..} ]}
@@ -1139,6 +1140,9 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
         $currentDescr = $data['currentDescr'];
         $name = $data['descr'];
         $url = $data['url'];
+        if (!nethvoiceRequestIsSuperadmin($request) && nethvoiceCheckFetchUrl($url) === null) {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
         $exten = $data['exten'];
         $open = $data['open'];
         $profiles = $data['profiles'];
@@ -1219,6 +1223,9 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         $exten = $data['exten'];
         $open = $data['open'];
         $profiles = $data['profiles'];
+        if (!nethvoiceRequestIsSuperadmin($request) && nethvoiceCheckFetchUrl($url) === null) {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
 
         $dbi = FreePBX::Database();
         // Insert into cti permissions
@@ -1293,19 +1300,13 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         if (!is_array($data) || !isset($data['url']) || !is_string($data['url']) || $data['url'] === '') {
             return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
         }
-        $url = $data['url'];
-
-        $curl = curl_init($url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
-        curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 5);
-        curl_setopt($curl, CURLOPT_TIMEOUT, 10);
-        $ret_val = curl_exec($curl);
+        $ret_val = nethvoiceFetchUrl($data['url']);
+        if ($ret_val === null) {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
         if ($ret_val === false) {
-            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($curl));
-            curl_close($curl);
             return $response->withStatus(500);
         }
-        curl_close($curl);
 
         if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false) {
             return $response->withStatus(500);
