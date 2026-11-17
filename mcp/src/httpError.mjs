@@ -8,7 +8,67 @@ export class UpstreamError extends Error {
     super(`${method} ${path} failed with status ${status}${detail ? `: ${detail}` : ''}`)
     this.name = 'UpstreamError'
     this.status = status
+    this.method = method
+    this.path = path
+    this.detail = detail
   }
+}
+
+export class NetworkError extends Error {
+  constructor(method, path, code) {
+    super(`${method} ${path} failed: ${code}`)
+    this.name = 'NetworkError'
+    this.method = method
+    this.path = path
+    this.code = code
+  }
+}
+
+export const describeCause = (error) => {
+  if (error?.name === 'TimeoutError') {
+    return 'timeout'
+  }
+
+  if (error?.name === 'AbortError') {
+    return 'aborted'
+  }
+  const code = error?.cause?.code ?? error?.code
+
+  return typeof code === 'string' && code ? code : 'network error'
+}
+
+export const send = async (fetchImpl, url, init, method, path) => {
+  try {
+    return await fetchImpl(url, init)
+  } catch (error) {
+    throw new NetworkError(method, path, describeCause(error))
+  }
+}
+
+export const abortable = (promise, signal, method, path) => {
+  if (!signal) {
+    return promise
+  }
+
+  if (signal.aborted) {
+    return Promise.reject(new NetworkError(method, path, describeCause(signal.reason)))
+  }
+
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(new NetworkError(method, path, describeCause(signal.reason)))
+
+    signal.addEventListener('abort', onAbort, { once: true })
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort)
+        resolve(value)
+      },
+      (error) => {
+        signal.removeEventListener('abort', onAbort)
+        reject(error)
+      },
+    )
+  })
 }
 
 export const readErrorDetail = async (response) => {
@@ -27,8 +87,14 @@ export const readErrorDetail = async (response) => {
   }
 }
 
-export const readJson = async (response) => {
-  const text = await response.text()
+export const readJson = async (response, method, path) => {
+  let text
+
+  try {
+    text = await response.text()
+  } catch (error) {
+    throw new NetworkError(method, path, describeCause(error))
+  }
 
   if (!text) {
     return null
@@ -37,6 +103,6 @@ export const readJson = async (response) => {
   try {
     return JSON.parse(text)
   } catch {
-    throw new UpstreamError(response.status, 'GET', new URL(response.url).pathname, 'not JSON')
+    throw new UpstreamError(response.status, method, path, 'not JSON')
   }
 }
