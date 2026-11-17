@@ -18,6 +18,7 @@ const CONNECTIONS = [
     type: 'mysql',
     user: 'ctiuser',
     pass: 'stored-password',
+    has_password: true,
     name: 'phonebook',
     creation: '2026-01-10 09:00:00',
   },
@@ -27,7 +28,7 @@ const CONNECTIONS = [
     port: '5432',
     type: 'postgres',
     user: 'reader',
-    pass: 'crm-password',
+    has_password: true,
     name: 'crm',
     creation: '2026-02-01 10:00:00',
   },
@@ -37,7 +38,7 @@ const CONNECTIONS = [
     port: '1433',
     type: 'mssql:7_4',
     user: 'erp',
-    pass: 'erp-password',
+    has_password: true,
     name: 'erp',
     creation: '2026-02-02 10:00:00',
   },
@@ -107,7 +108,7 @@ test.describe('integrations: customer cards', () => {
     await expect(connections.nth(3)).toContainText('phonebook')
     await expect(connections.nth(3)).toContainText('Managed by the system')
     await expect(page.getByRole('button', { name: 'Edit phonebook' })).toHaveCount(0)
-    await expect(page.getByText('crm-password')).toHaveCount(0)
+    await expect(page.getByText('stored-password')).toHaveCount(0)
   })
 
   test('shows an empty state', async ({ page, mockApi }) => {
@@ -140,7 +141,7 @@ test.describe('integrations: customer cards', () => {
 
   test('validates, tests and creates a database connection', async ({ page, mockApi }) => {
     mockApi
-      .on('POST', '/api/dbconn/test', { status: 200 })
+      .on('POST', '/freepbx/rest/cti/dbconn/test', { json: { status: true } })
       .on('POST', '/freepbx/rest/cti/dbconn', { status: 200 })
 
     await page.goto('./integrations/customer-cards')
@@ -164,7 +165,7 @@ test.describe('integrations: customer cards', () => {
     await drawer.getByRole('button', { name: 'Test connection' }).click()
 
     await expect(drawer.getByText('Connection succeeded')).toBeVisible()
-    expect(mockApi.callsTo('POST', '/api/dbconn/test')[0].body).toEqual({
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test')[0].body).toEqual({
       type: 'postgres',
       name: 'orders',
       host: 'orders.example.com',
@@ -187,18 +188,50 @@ test.describe('integrations: customer cards', () => {
   })
 
   test('reports a failed connection test', async ({ page, mockApi }) => {
-    mockApi.on('POST', '/api/dbconn/test', { status: 503 })
+    mockApi.on('POST', '/freepbx/rest/cti/dbconn/test', { json: { status: false } })
 
     await page.goto('./integrations/customer-cards')
     await page.getByRole('button', { name: 'Edit crm' }).click()
 
     const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText('Leave empty to keep the current password')).toBeVisible()
     await drawer.getByRole('button', { name: 'Test connection' }).click()
 
     await expect(drawer.getByText('Connection failed')).toBeVisible()
-    expect(mockApi.callsTo('POST', '/api/dbconn/test')[0].body).toMatchObject({
-      pass: 'crm-password',
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test')[0].body).toEqual({
+      type: 'postgres',
+      name: 'crm',
+      host: 'crm.example.com',
+      port: '5432',
+      user: 'reader',
+      pass: '',
+      id: '5',
     })
+  })
+
+  test('asks the password again to connect to a different server', async ({ page, mockApi }) => {
+    mockApi.on('POST', '/freepbx/rest/cti/dbconn/test', { json: { status: true } })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit crm' }).click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('textbox', { name: 'Host' }).fill('crm2.example.com')
+    await expect(
+      drawer.getByText('Enter the password again to connect to a different server.'),
+    ).toBeVisible()
+    await drawer.getByRole('button', { name: 'Test connection' }).click()
+
+    await expect(drawer.getByText('Enter the password', { exact: true })).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test')).toHaveLength(0)
+
+    await drawer.getByLabel('Password', { exact: true }).fill('crm2-secret')
+    await drawer.getByRole('button', { name: 'Test connection' }).click()
+
+    await expect(drawer.getByText('Connection succeeded')).toBeVisible()
+    const body = mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test')[0].body
+    expect(body).toMatchObject({ host: 'crm2.example.com', pass: 'crm2-secret' })
+    expect(body).not.toHaveProperty('id')
   })
 
   test('edits a connection without sending the unchanged password', async ({ page, mockApi }) => {
@@ -209,7 +242,7 @@ test.describe('integrations: customer cards', () => {
 
     const drawer = page.getByRole('dialog')
     await expect(drawer.getByLabel('Password', { exact: true })).toHaveValue('')
-    await drawer.getByRole('textbox', { name: 'Host' }).fill('crm2.example.com')
+    await drawer.getByRole('textbox', { name: 'User' }).fill('writer')
     await drawer.getByRole('button', { name: 'Save' }).click()
 
     await expect(drawer).toBeHidden()
@@ -218,9 +251,9 @@ test.describe('integrations: customer cards', () => {
     expect(put[0].body).toEqual({
       type: 'postgres',
       name: 'crm',
-      host: 'crm2.example.com',
+      host: 'crm.example.com',
       port: '5432',
-      user: 'reader',
+      user: 'writer',
     })
   })
 

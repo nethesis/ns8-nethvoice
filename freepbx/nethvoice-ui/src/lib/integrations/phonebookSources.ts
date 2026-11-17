@@ -73,6 +73,7 @@ const RawSourceSchema = v.object({
   port: TextSchema,
   user: TextSchema,
   password: TextSchema,
+  has_password: v.optional(v.boolean()),
   dbname: TextSchema,
   query: TextSchema,
   url: TextSchema,
@@ -101,7 +102,7 @@ export type PhonebookSource = {
   host: string
   port: string
   user: string
-  password: string
+  hasPassword: boolean
   database: string
   query: string
   url: string
@@ -201,7 +202,7 @@ export const parsePhonebookSources = (raw: unknown): PhonebookSource[] => {
         host: source.host,
         port: source.port,
         user: source.user,
-        password: source.password,
+        hasPassword: source.has_password ?? source.password !== '',
         database: source.dbname,
         query: source.query,
         url: source.url,
@@ -358,11 +359,25 @@ const buildSourceSchema = (passwordRequired: boolean) => {
   ])
 }
 
+export const isPhonebookPasswordKept = (
+  form: PhonebookSourceForm,
+  existing?: PhonebookSource,
+): boolean => {
+  if (!existing?.hasPassword || form.kind !== existing.kind) {
+    return false
+  }
+
+  if (form.kind === 'infinity') {
+    return form.url.trim() === existing.url.trim()
+  }
+  return form.host.trim() === existing.host.trim() && form.port.trim() === existing.port.trim()
+}
+
 export const validatePhonebookSourceForm = (
   form: PhonebookSourceForm,
   existing?: PhonebookSource,
 ): FieldIssues => {
-  const issues = validateForm(buildSourceSchema(!existing?.password), form)
+  const issues = validateForm(buildSourceSchema(!isPhonebookPasswordKept(form, existing)), form)
 
   if (form.sharing === 'groups' && form.groups.length === 0) {
     issues.groups = 'integrations.phonebook.groups_required'
@@ -370,8 +385,8 @@ export const validatePhonebookSourceForm = (
   return issues
 }
 
-const buildConnection = (form: PhonebookSourceForm, existing?: PhonebookSource) => {
-  const password = form.password || existing?.password || ''
+const buildConnection = (form: PhonebookSourceForm) => {
+  const password = form.password ? { password: form.password } : {}
 
   if (isDatabaseKind(form.kind)) {
     return {
@@ -379,7 +394,7 @@ const buildConnection = (form: PhonebookSourceForm, existing?: PhonebookSource) 
       host: form.host.trim(),
       port: form.port.trim(),
       user: form.user.trim(),
-      password,
+      ...password,
       dbname: form.database.trim(),
       query: form.query.trim(),
     }
@@ -388,19 +403,19 @@ const buildConnection = (form: PhonebookSourceForm, existing?: PhonebookSource) 
   if (form.kind === 'csv') {
     return { dbtype: form.kind, url: form.url.trim() }
   }
-  return { dbtype: form.kind, url: form.url.trim(), username: form.username.trim(), password }
+  return { dbtype: form.kind, url: form.url.trim(), username: form.username.trim(), ...password }
 }
 
 export const buildPhonebookTestPayload = (
   form: PhonebookSourceForm,
   existing?: PhonebookSource,
-): PhonebookTestInput => buildConnection(form, existing)
+): PhonebookTestInput => ({
+  ...buildConnection(form),
+  ...(existing && !form.password && form.kind !== 'csv' ? { id: existing.id } : {}),
+})
 
-export const buildPhonebookSourcePayload = (
-  form: PhonebookSourceForm,
-  existing?: PhonebookSource,
-): PhonebookSourceInput => ({
-  ...buildConnection(form, existing),
+export const buildPhonebookSourcePayload = (form: PhonebookSourceForm): PhonebookSourceInput => ({
+  ...buildConnection(form),
   ...(form.kind === 'infinity' ? {} : { mapping: cleanMapping(form.mapping) }),
   type: form.name.trim(),
   access: buildAccess(form.sharing === 'groups' ? form.groups : []),

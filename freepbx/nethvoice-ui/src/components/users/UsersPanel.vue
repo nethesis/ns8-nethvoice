@@ -55,7 +55,7 @@ import RemoveExtensionModal from '@/components/users/RemoveExtensionModal.vue'
 import UserDeviceIcons from '@/components/users/UserDeviceIcons.vue'
 import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
 import { DEFAULT_PAGE_SIZE, paginate } from '@/lib/common'
-import { formatPhoneModel } from '@/lib/overview/overview'
+import { buildModelLabels, getPhoneModelLabel } from '@/lib/overview/overview'
 import { formatMac } from '@/lib/phones/mac'
 import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
 import {
@@ -79,6 +79,7 @@ import {
   type SoftwareDeviceType,
   type UserDevice,
 } from '@/lib/users/users'
+import { usePhoneModels } from '@/queries/phones/models'
 import { useOrphanExtensions } from '@/queries/users/orphanExtensions'
 import { useUsers } from '@/queries/users/users'
 import { useUsersDirectory } from '@/queries/users/usersDirectory'
@@ -90,6 +91,8 @@ const MAX_GROUPS_SHOWN = 2
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const usersQuery = useUsers()
+const { state: phoneModelsState } = usePhoneModels()
+const modelLabels = computed(() => buildModelLabels(phoneModelsState.value.data ?? []))
 const directoryQuery = useUsersDirectory()
 
 const loading = computed(
@@ -156,7 +159,7 @@ const deviceOptions = computed<NeDropdownFilterV2Option[]>(() =>
 )
 
 function describePhone(phone: UserDevice) {
-  const model = formatPhoneModel(phone.vendor, phone.model)
+  const model = getPhoneModelLabel(phone.vendor, phone.model, modelLabels.value)
   const mac = phone.mac ? formatMac(phone.mac) : ''
 
   if (model && mac) {
@@ -472,6 +475,19 @@ const filterLabels = computed(() => ({
         data-testid="users-counter"
       >
         {{ t('users.configured_counter', { configured: configuredCount, total: users.length }) }}
+        <template v-if="!defaultFilters">
+          <span class="mx-1" aria-hidden="true">·</span>
+          <span class="sr-only">, </span>
+          <span data-testid="users-filtered-counter">
+            {{
+              t(
+                'users.filtered_counter',
+                { shown: filteredRows.length, total: rows.length },
+                rows.length,
+              )
+            }}
+          </span>
+        </template>
       </p>
       <NeEmptyState
         v-if="isEmptyStateShown"

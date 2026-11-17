@@ -16,7 +16,7 @@ const SOURCES = {
     host: 'crm.example.com',
     port: '3306',
     user: 'reader',
-    password: 'stored-password',
+    has_password: true,
     dbname: 'crm',
     query: 'SELECT * FROM contacts',
     mapping: { full_name: 'name', phone: 'workphone' },
@@ -298,6 +298,40 @@ test.describe('integrations: phonebook sources', () => {
     await expect(drawer.getByRole('combobox', { name: 'Company' })).toHaveValue('company')
     await expect(drawer.getByRole('combobox', { name: 'full_name' })).toHaveValue('name')
     await expect(drawer.getByRole('combobox', { name: 'notes' })).toHaveValue('Not imported')
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/test')[0].body).toEqual({
+      dbtype: 'mysql',
+      host: 'crm.example.com',
+      port: '3306',
+      user: 'reader',
+      dbname: 'crm',
+      query: 'SELECT * FROM contacts',
+      id: 'custom_1',
+    })
+  })
+
+  test('asks the password again to read a different server', async ({ page, mockApi }) => {
+    mockApi.on('POST', '/freepbx/rest/phonebook/test', { json: [{ full_name: 'Anna Miller' }] })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Edit CRM contacts' }).click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('textbox', { name: 'Host' }).fill('crm2.example.com')
+    await expect(
+      drawer.getByText('Enter the password again to connect to a different server.'),
+    ).toBeVisible()
+    await drawer.getByRole('button', { name: 'Test source' }).click()
+
+    await expect(drawer.getByText('Enter the password', { exact: true })).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/test')).toHaveLength(0)
+
+    await drawer.getByLabel('Password', { exact: true }).fill('crm2-secret')
+    await drawer.getByRole('button', { name: 'Test source' }).click()
+
+    await expect(drawer.getByRole('combobox', { name: 'full_name' })).toHaveValue('name')
+    const body = mockApi.callsTo('POST', '/freepbx/rest/phonebook/test')[0].body
+    expect(body).toMatchObject({ host: 'crm2.example.com', password: 'crm2-secret' })
+    expect(body).not.toHaveProperty('id')
   })
 
   test('edits a source keeping the stored password', async ({ page, mockApi }) => {
@@ -322,7 +356,6 @@ test.describe('integrations: phonebook sources', () => {
       host: 'crm.example.com',
       port: '3306',
       user: 'reader',
-      password: 'stored-password',
       dbname: 'crm',
       query: 'SELECT * FROM contacts',
       mapping: { full_name: 'name', phone: 'workphone' },

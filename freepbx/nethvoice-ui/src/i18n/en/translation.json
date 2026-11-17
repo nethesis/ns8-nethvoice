@@ -210,7 +210,11 @@
       "failed": "Failed",
       "no_phones": "No physical phones"
     },
-    "cannot_load_phones": "Cannot load the phone status"
+    "cannot_load_phones": "Cannot load the phone status",
+    "live_unavailable": {
+      "title": "Live data not available",
+      "description": "Live data, such as calls in progress, user presence and trunk status, is available only to the main administrator account."
+    }
   },
   "users": {
     "title": "Users and groups",
@@ -325,7 +329,6 @@
     "csv_file": "CSV file",
     "download_template": "Download the template",
     "download_template_suffix": "to get started",
-    "import": "Import",
     "import_choose_file": "Choose a CSV file",
     "import_no_users_in_file": "The file does not contain any user",
     "import_cannot_read_file": "Cannot read the file",
@@ -339,11 +342,11 @@
     "import_summary": "Import summary",
     "import_summary_detected": "{users} and {groups} detected",
     "import_users_detected": "{count} user detected in the selected file: | {count} users detected in the selected file:",
-    "import_valid": "{count} valid",
-    "import_with_errors": "{count} with errors (will be skipped)",
+    "import_valid": "{count} valid | {count} valid",
+    "import_with_errors": "{count} with errors (will be skipped) | {count} with errors (will be skipped)",
     "import_existing_skipped": "{count} existing user (will be skipped) | {count} existing users (will be skipped)",
     "import_errors_title": "{count} user contains errors and won't be imported: | {count} users contain errors and won't be imported:",
-    "import_existing_title": "{count} existing user will be skipped | {count} existing users will be skipped",
+    "import_existing_title": "This user already exists: | These users already exist:",
     "import_row": "Row {row} ({username})",
     "import_row_issue": "Row {row} ({username}): {issue}",
     "import_issue_missing_username": "missing username",
@@ -475,7 +478,8 @@
     "no_physical_phone": "No physical phone",
     "physical_phones_of": "Physical phones of {name}: {count}",
     "physical_phones_limit": "A user can have up to {max} devices, physical phones included",
-    "mobile_number_helper": "Used for display and presence in {brand} CTI and in the operator panel."
+    "mobile_number_helper": "Used for display and presence in {brand} CTI and in the operator panel.",
+    "filtered_counter": "Showing {shown} of {total} user | Showing {shown} of {total} users"
   },
   "trunks": {
     "title": "Trunks",
@@ -625,7 +629,8 @@
       "mac_address_placeholder": "e.g. 00:1A:2B:3C:4D:5E",
       "ip_address_placeholder": "e.g. 192.168.1.10",
       "netmask_placeholder": "e.g. 255.255.255.0",
-      "network_gateway_placeholder": "e.g. 192.168.1.1"
+      "network_gateway_placeholder": "e.g. 192.168.1.1",
+      "pbx_address_placeholder": "e.g. 192.168.1.2"
     },
     "cannot_check_outbound_routes": "Cannot check which outbound routes use this trunk",
     "routes_left_without_trunks": "Some outbound routes will have no trunk",
@@ -986,7 +991,8 @@
       "model_not_found": "Model not found",
       "model_not_found_description": "This model no longer exists or the address is wrong.",
       "discard": "Discard",
-      "discard_changes_description": "Unsaved changes to this model will be lost."
+      "discard_changes_description": "Unsaved changes to this model will be lost.",
+      "model_not_saved": "The PBX did not save the model. Try again."
     },
     "settings": {
       "default_configuration": "Default phone configuration",
@@ -1052,7 +1058,7 @@
     "profiles": "Profiles",
     "open_menu_of": "Open the menu of {name}",
     "cannot_load_profiles": "Cannot load the profiles",
-    "password_keep_helper": "Leave empty to keep the current password",
+    "password_keep_helper": "Leave empty to keep the current password.",
     "host_required": "Enter the host",
     "port_required": "Enter the port",
     "port_invalid": "Enter a port between 1 and 65535",
@@ -1322,7 +1328,8 @@
       "call_transcription": "Real-time call transcription",
       "voicemail_transcription": "Voicemail transcription",
       "call_summary": "Call summary"
-    }
+    },
+    "password_server_changed_helper": "Enter the password again to connect to a different server."
   },
   "settings": {
     "title": "Settings",
@@ -1731,7 +1738,9 @@
     "cannot_load_permissions": "Cannot load your permissions",
     "setup_pending_title": "Setup not completed",
     "setup_pending_description": "The administrator must complete the first configuration before you can use the PBX administration.",
-    "check_again": "Check again"
+    "check_again": "Check again",
+    "section_denied_title": "Section not available",
+    "section_denied_description": "Your account cannot manage the section you tried to open. Ask the administrator to grant you access."
   },
   "system_alerts": {
     "trunk_down_title": "Trunk unreachable",

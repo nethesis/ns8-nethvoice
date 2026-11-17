@@ -3,11 +3,17 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  buildModelLabels,
   buildOverviewUsers,
   FAVORITES_FILTER_ID,
   filterOverviewUsers,
   formatPhoneModel,
   getInitials,
+  getOverviewCallStatus,
+  getPhoneModelLabel,
+  hasOnlineDevice,
+  isOverviewCallBlocked,
+  type OverviewCallContext,
   parseOverviewEndpointUsers,
   parseOverviewExtensions,
   sortOverviewUsers,
@@ -140,6 +146,17 @@ describe('buildOverviewUsers', () => {
     expect(anna.devices[2].callForward).toBe('0612345678')
   })
 
+  it('should name the phones as the phones page does', () => {
+    const [anna] = buildOverviewUsers(
+      liveState,
+      users,
+      [],
+      buildModelLabels([{ name: 'fanvil-X4U', displayName: 'Fanvil X4U Pro' }]),
+    )
+
+    expect(anna.devices[3].model).toBe('Fanvil X4U Pro')
+  })
+
   it('should leave the groups empty for users unknown to the PBX list', () => {
     expect(overviewUsers[1].groups).toEqual([])
   })
@@ -150,6 +167,16 @@ describe('formatPhoneModel', () => {
     expect(formatPhoneModel('Fanvil', 'fanvil-X4U')).toBe('Fanvil X4U')
     expect(formatPhoneModel('Yealink', 'T54W')).toBe('Yealink T54W')
     expect(formatPhoneModel('', 'X4U')).toBe('X4U')
+  })
+})
+
+describe('getPhoneModelLabel', () => {
+  it('should prefer the name of the model and fall back to vendor and model', () => {
+    const labels = buildModelLabels([{ name: 'yealink-T43', displayName: 'Yealink T43U' }])
+
+    expect(getPhoneModelLabel('Yealink/Dreamwave', 'yealink-T43', labels)).toBe('Yealink T43U')
+    expect(getPhoneModelLabel('Fanvil', 'fanvil-X4U', labels)).toBe('Fanvil X4U')
+    expect(getPhoneModelLabel('Fanvil', 'fanvil-X4U')).toBe('Fanvil X4U')
   })
 })
 
@@ -205,5 +232,89 @@ describe('getInitials', () => {
   it('should use the first two words', () => {
     expect(getInitials('anna maria miller')).toBe('AM')
     expect(getInitials('  Bruce ')).toBe('B')
+  })
+})
+
+describe('getOverviewCallStatus', () => {
+  const ready: OverviewCallContext = {
+    mainExtension: '300',
+    devices: [{ status: 'offline' }, { status: 'online' }],
+    phoneState: 'ready',
+    phoneEnabled: true,
+    inCall: false,
+    otherTabInCall: false,
+  }
+
+  it('should allow the call when the phone is ready and a device is online', () => {
+    expect(getOverviewCallStatus(ready)).toBe('ready')
+    expect(isOverviewCallBlocked('ready')).toBe(false)
+  })
+
+  it('should report a missing main extension first', () => {
+    expect(getOverviewCallStatus({ ...ready, mainExtension: '', inCall: true, devices: [] })).toBe(
+      'no_extension',
+    )
+  })
+
+  it('should report the call in progress before the device status', () => {
+    expect(getOverviewCallStatus({ ...ready, inCall: true, devices: [{ status: 'busy' }] })).toBe(
+      'in_call',
+    )
+  })
+
+  it('should report the call in another tab before the device status', () => {
+    expect(
+      getOverviewCallStatus({
+        ...ready,
+        phoneState: 'elsewhere',
+        otherTabInCall: true,
+        devices: [{ status: 'ringing' }],
+      }),
+    ).toBe('in_call_elsewhere')
+  })
+
+  it('should report the lost connection before the device status', () => {
+    expect(getOverviewCallStatus({ ...ready, phoneState: 'error', devices: [] })).toBe(
+      'connection_lost',
+    )
+  })
+
+  it('should report a busy or ringing device as not callable', () => {
+    expect(getOverviewCallStatus({ ...ready, devices: [{ status: 'busy' }] })).toBe(
+      'no_online_device',
+    )
+    expect(getOverviewCallStatus({ ...ready, devices: [{ status: 'ringing' }] })).toBe(
+      'no_online_device',
+    )
+  })
+
+  it('should keep the call available when the phone can retry or move here', () => {
+    expect(getOverviewCallStatus({ ...ready, phoneState: 'error', phoneEnabled: false })).toBe(
+      'phone_error',
+    )
+    expect(getOverviewCallStatus({ ...ready, phoneState: 'elsewhere' })).toBe('elsewhere')
+    expect(getOverviewCallStatus({ ...ready, phoneState: 'inactive' })).toBe('connecting')
+    expect(isOverviewCallBlocked('phone_error')).toBe(false)
+    expect(isOverviewCallBlocked('elsewhere')).toBe(false)
+    expect(isOverviewCallBlocked('connecting')).toBe(false)
+  })
+
+  it('should block every reason that prevents the call', () => {
+    for (const status of [
+      'no_extension',
+      'in_call',
+      'in_call_elsewhere',
+      'connection_lost',
+      'no_online_device',
+    ] as const) {
+      expect(isOverviewCallBlocked(status)).toBe(true)
+    }
+  })
+})
+
+describe('hasOnlineDevice', () => {
+  it('should consider only online devices', () => {
+    expect(hasOnlineDevice([{ status: 'busy' }, { status: 'dnd' }])).toBe(false)
+    expect(hasOnlineDevice([{ status: 'busy' }, { status: 'online' }])).toBe(true)
   })
 })

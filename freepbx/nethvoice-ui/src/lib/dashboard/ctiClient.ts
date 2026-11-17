@@ -2,11 +2,16 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
-import { ApiError, isAuthenticationFailure } from '@/lib/api/errors'
+import { ApiError, isApiError, isAuthenticationFailure } from '@/lib/api/errors'
 import { CTI_API_URL } from '@/lib/config'
 import { useLoginStore } from '@/stores/login'
 
 export const CTI_ADMIN_USERNAME = 'admin'
+
+export const canReadCtiLiveData = (username: string): boolean => username === CTI_ADMIN_USERNAME
+
+export const isCtiAccessDenied = (error: unknown): boolean =>
+  isApiError(error) && (error.status === 401 || error.status === 403)
 
 const readBody = async (response: Response): Promise<unknown> => {
   const text = await response.text()

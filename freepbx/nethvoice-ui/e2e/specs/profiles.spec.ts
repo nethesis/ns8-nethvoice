@@ -48,6 +48,15 @@ test.describe('profiles', () => {
     await expect(card(page, 4).getByRole('button', { name: 'Sales team actions' })).toBeVisible()
   })
 
+  test('opens the users of a profile from its counter', async ({ page, mockApi }) => {
+    mockProfiles(mockApi)
+    await page.goto('./users/profiles')
+
+    await card(page, 3).getByRole('button', { name: '1 user assigned Advanced' }).click()
+    await expect(drawerHeading(page, 'Edit Advanced profile')).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Assign users' })).toBeFocused()
+  })
+
   test('filters the profiles', async ({ page, mockApi }) => {
     mockProfiles(mockApi)
     await page.goto('./users/profiles')

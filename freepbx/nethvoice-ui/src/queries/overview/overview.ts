@@ -3,6 +3,7 @@
 
 import { defineQuery, useQuery } from '@pinia/colada'
 import { getOverviewLiveState, OVERVIEW_LIVE_KEY } from '@/lib/overview/overview'
+import { canReadCtiLiveData } from '@/lib/dashboard/ctiClient'
 import { useLoginStore } from '@/stores/login'
 
 export const useOverviewLiveState = defineQuery(() => {
@@ -10,7 +11,7 @@ export const useOverviewLiveState = defineQuery(() => {
 
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [OVERVIEW_LIVE_KEY],
-    enabled: () => loginStore.isAuthenticated,
+    enabled: () => loginStore.isAuthenticated && canReadCtiLiveData(loginStore.username),
     query: () => getOverviewLiveState(),
   })
 

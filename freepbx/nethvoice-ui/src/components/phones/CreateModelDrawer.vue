@@ -21,6 +21,7 @@ import { isApiError } from '@/lib/api/errors'
 import {
   createPhoneModelFrom,
   getDuplicateDisplayName,
+  getPhoneModel,
   isDisplayNameTaken,
   NewPhoneModelSchema,
   PHONE_MODELS_KEY,
@@ -28,6 +29,7 @@ import {
   type PhoneModel,
 } from '@/lib/phones/models'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 type Field = 'name' | 'baseModel'
 
@@ -44,6 +46,8 @@ const {
 }>()
 
 const emit = defineEmits<{ close: []; created: [model: PhoneModel] }>()
+
+useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
@@ -69,26 +73,52 @@ const comboboxLabels = computed(() => ({
 
 const isConflict = (error: unknown) => isApiError(error) && error.status === 409
 
+class ModelNotSavedError extends Error {}
+
+const createAndVerify = async (newModel: NewPhoneModel): Promise<PhoneModel> => {
+  const created = await createPhoneModelFrom(newModel)
+
+  try {
+    await getPhoneModel(created.name)
+  } catch (error) {
+    if (isApiError(error) && error.status === 404) {
+      throw new ModelNotSavedError()
+    }
+    throw error
+  }
+  return created
+}
+
+const failedTitle = () =>
+  duplicateOf ? t('phones.models.cannot_duplicate_model') : t('phones.models.cannot_create_model')
+
 const {
   mutate: createMutate,
   isLoading: saving,
   reset: createReset,
   error: createError,
 } = useMutation({
-  mutation: (newModel: NewPhoneModel) => createPhoneModelFrom(newModel),
-  onSuccess(created) {
+  mutation: createAndVerify,
+  onSuccess(created, newModel) {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
         title: duplicateOf ? t('phones.models.model_duplicated') : t('phones.models.model_created'),
-        description: t('common.object_created_successfully', { name: created.displayName }),
+        description: t('common.object_created_successfully', { name: newModel.name }),
       })
     }, 500)
     emit('created', created)
     emit('close')
   },
   onError(error) {
-    if (isConflict(error)) {
+    if (error instanceof ModelNotSavedError) {
+      notificationsStore.createNotification({
+        kind: 'error',
+        title: failedTitle(),
+        description: t('phones.models.model_not_saved'),
+      })
+      emit('close')
+    } else if (isConflict(error)) {
       validationIssues.value = { name: 'phones.models.name_already_used' }
       focusElement(nameRef)
     }
@@ -182,13 +212,11 @@ const issueMessage = (field: Field) => {
           v-bind="comboboxLabels"
         />
         <NeInlineNotification
-          v-if="createError && !isConflict(createError)"
-          kind="error"
-          :title="
-            duplicateOf
-              ? $t('phones.models.cannot_duplicate_model')
-              : $t('phones.models.cannot_create_model')
+          v-if="
+            createError && !isConflict(createError) && !(createError instanceof ModelNotSavedError)
           "
+          kind="error"
+          :title="failedTitle()"
           :description="describeError(createError)"
         />
       </div>

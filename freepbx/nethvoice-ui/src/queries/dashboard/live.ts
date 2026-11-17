@@ -9,6 +9,7 @@ import {
   getLiveUsers,
   type LiveSnapshot,
 } from '@/lib/dashboard/live'
+import { canReadCtiLiveData } from '@/lib/dashboard/ctiClient'
 import { useLoginStore } from '@/stores/login'
 
 const useDashboardLiveSource = <TData>(
@@ -19,7 +20,7 @@ const useDashboardLiveSource = <TData>(
 
   const { state, asyncStatus, ...rest } = useQuery({
     key: () => [DASHBOARD_LIVE_KEY, source],
-    enabled: () => loginStore.isAuthenticated,
+    enabled: () => loginStore.isAuthenticated && canReadCtiLiveData(loginStore.username),
     refetchOnWindowFocus: false,
     query: ({ signal }) => load(signal),
   })

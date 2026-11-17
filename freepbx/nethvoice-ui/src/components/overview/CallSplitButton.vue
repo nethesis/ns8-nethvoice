@@ -85,7 +85,9 @@ const segmentClasses =
       data-testid="call-device-menu-disabled"
     >
       <FontAwesomeIcon :icon="faAngleDown" class="size-4" aria-hidden="true" />
-      <span class="sr-only">{{ t('user_overview.call_device_unavailable') }}</span>
+      <span class="sr-only">
+        {{ disabled || loading ? tooltip : t('user_overview.call_device_unavailable') }}
+      </span>
     </span>
     <NeDropdown
       v-else

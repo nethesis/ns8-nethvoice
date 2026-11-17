@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, mockWizardState, test } from '../fixtures/mockApi'
+import { expect, mockPermissions, mockWizardState, test } from '../fixtures/mockApi'
 import { mockPhonesApi, TANCREDI } from './phones-data'
 
 test.describe('login', () => {
@@ -40,6 +40,33 @@ test.describe('login', () => {
     const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('secretkey') ?? '{}'))
     expect(stored.user).toBe('admin')
     expect(stored.hash).toMatch(/^[0-9a-f]{40}$/)
+  })
+
+  test('opens the FreePBX session only for a superadmin', async ({ page, mockApi }) => {
+    mockApi.allowUnmockedCalls()
+    mockApi.on('POST', '/freepbx/rest/testauth', { json: { result: 'shared-secret' } })
+    mockPermissions(mockApi, ['dashboard'], 'operator')
+
+    await page.goto('./login')
+    await page.getByRole('textbox', { name: 'Username' }).fill('operator')
+    await page.getByRole('textbox', { name: 'Password' }).fill('correct-password')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    expect(mockApi.callsTo('GET', '/freepbx/rest/login')).toHaveLength(0)
+  })
+
+  test('opens the FreePBX session after a superadmin signs in', async ({ page, mockApi }) => {
+    mockApi.allowUnmockedCalls()
+    mockApi.on('POST', '/freepbx/rest/testauth', { json: { result: 'shared-secret' } })
+
+    await page.goto('./login')
+    await page.getByRole('textbox', { name: 'Username' }).fill('admin')
+    await page.getByRole('textbox', { name: 'Password' }).fill('correct-password')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    expect(mockApi.callsTo('GET', '/freepbx/rest/login')).toHaveLength(1)
   })
 
   test('remembers the username after sign out and a reload', async ({ page, mockApi }) => {

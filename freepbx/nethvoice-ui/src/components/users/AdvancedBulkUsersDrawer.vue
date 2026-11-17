@@ -37,6 +37,7 @@ import {
 import { hasMainExtension, type User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const { isShown = false, users } = defineProps<{
   isShown: boolean
@@ -44,6 +45,8 @@ const { isShown = false, users } = defineProps<{
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+useFocusReturn(() => isShown)
 
 const DESTINATION_FIELDS = [
   { field: 'noanswerdest', label: 'users.no_answer_destination' },

@@ -54,3 +54,49 @@ export const moveCardBy = (
   }
   return moveCardTo(order, card, target)
 }
+
+export type CardRect = {
+  card: DashboardCardId
+  top: number
+  left: number
+  width: number
+}
+
+export type VerticalDirection = 'up' | 'down'
+
+export type CardMoveDirection = VerticalDirection | 'previous' | 'next'
+
+const ROW_TOLERANCE = 1
+
+const centerOf = (rect: CardRect) => rect.left + rect.width / 2
+
+export const findCardInAdjacentRow = (
+  rects: CardRect[],
+  card: DashboardCardId,
+  direction: VerticalDirection,
+): DashboardCardId | null => {
+  const current = rects.find((rect) => rect.card === card)
+
+  if (!current) {
+    return null
+  }
+  const candidates = rects.filter((rect) =>
+    direction === 'down'
+      ? rect.top > current.top + ROW_TOLERANCE
+      : rect.top < current.top - ROW_TOLERANCE,
+  )
+
+  if (!candidates.length) {
+    return null
+  }
+  const rowTops = candidates.map((rect) => rect.top)
+  const rowTop = direction === 'down' ? Math.min(...rowTops) : Math.max(...rowTops)
+  const row = candidates.filter((rect) => Math.abs(rect.top - rowTop) <= ROW_TOLERANCE)
+  const currentCenter = centerOf(current)
+
+  return row.reduce((closest, rect) =>
+    Math.abs(centerOf(rect) - currentCenter) < Math.abs(centerOf(closest) - currentCenter)
+      ? rect
+      : closest,
+  ).card
+}

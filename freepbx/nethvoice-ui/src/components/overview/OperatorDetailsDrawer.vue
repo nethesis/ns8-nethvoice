@@ -15,9 +15,15 @@ import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewCallNumber from '@/components/overview/OverviewCallNumber.vue'
 import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
-import type { OverviewDevice, OverviewUser } from '@/lib/overview/overview'
+import {
+  getOverviewCallStatus,
+  isOverviewCallBlocked,
+  type OverviewDevice,
+  type OverviewUser,
+} from '@/lib/overview/overview'
 import { useAdminPhoneStore } from '@/stores/adminPhone'
 import { useFavoritesStore } from '@/stores/favorites'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const { isShown = false, user = undefined } = defineProps<{
   isShown: boolean
@@ -25,6 +31,8 @@ const { isShown = false, user = undefined } = defineProps<{
 }>()
 
 const emit = defineEmits<{ close: [] }>()
+
+useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const idPrefix = useId()
@@ -49,37 +57,41 @@ function toggleDevice(extension: string) {
   expandedExtension.value = expandedExtension.value === extension ? '' : extension
 }
 
-const hasOnlineDevice = computed(() => devices.value.some((device) => device.status === 'online'))
-
 const mainExtension = computed(() => user?.mainExtension ?? '')
 
-const isCallDisabled = computed(
-  () => !mainExtension.value || !hasOnlineDevice.value || adminPhoneStore.isCallBlocked,
+const callStatus = computed(() =>
+  getOverviewCallStatus({
+    mainExtension: mainExtension.value,
+    devices: devices.value,
+    phoneState: adminPhoneStore.state,
+    phoneEnabled: adminPhoneStore.isEnabled,
+    inCall: adminPhoneStore.inCall,
+    otherTabInCall: adminPhoneStore.otherTabInCall,
+  }),
 )
+
+const isCallDisabled = computed(() => isOverviewCallBlocked(callStatus.value))
 
 const callTooltip = computed(() => {
   const extension = mainExtension.value
 
-  if (!extension) {
-    return t('user_overview.call_no_extension')
-  }
-  if (!hasOnlineDevice.value) {
-    return t('user_overview.call_device_unavailable')
-  }
-  if (adminPhoneStore.inCall) {
-    return t('user_overview.call_in_progress')
-  }
-  switch (adminPhoneStore.state) {
+  switch (callStatus.value) {
+    case 'no_extension':
+      return t('user_overview.call_no_extension')
+    case 'in_call':
+      return t('user_overview.call_in_progress')
+    case 'in_call_elsewhere':
+      return t('admin_phone.status_elsewhere_in_call')
+    case 'connection_lost':
+      return t('admin_phone.status_connection_lost')
+    case 'no_online_device':
+      return t('user_overview.call_device_unavailable')
+    case 'phone_error':
+      return t('admin_phone.status_error', { error: adminPhoneStore.errorMessage })
+    case 'elsewhere':
+      return t('admin_phone.status_elsewhere')
     case 'ready':
       return t('user_overview.call_ready', { extension })
-    case 'elsewhere':
-      return adminPhoneStore.otherTabInCall
-        ? t('admin_phone.status_elsewhere_in_call')
-        : t('admin_phone.status_elsewhere')
-    case 'error':
-      return adminPhoneStore.isEnabled
-        ? t('admin_phone.status_connection_lost')
-        : t('admin_phone.status_error', { error: adminPhoneStore.errorMessage })
     default:
       return t('user_overview.call_connecting', { extension })
   }

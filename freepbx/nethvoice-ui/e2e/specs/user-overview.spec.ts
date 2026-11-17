@@ -51,6 +51,9 @@ const mockOverview = (mockApi: MockApi, endpoints: object = ENDPOINTS) =>
     .on('GET', '/api/astproxy/extensions', { json: EXTENSIONS })
     .on('GET', '/api/user/endpoints/all', { json: endpoints })
     .on('GET', '/freepbx/rest/users/:all', { json: PBX_USERS })
+    .on('GET', '/tancredi/api/v1/models', {
+      json: [{ name: 'fanvil-X4U', display_name: 'Fanvil X4U Pro' }],
+    })
     .on('GET', '/freepbx/rest/cti/groups', { json: GROUPS })
     .on('GET', '/freepbx/rest/cti/users/groups/:id', (request) => ({
       json: GROUP_MEMBERS[request.path.split('/').pop() ?? ''] ?? [],
@@ -170,7 +173,7 @@ test.describe('user overview', () => {
 
     await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
     await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
-    await expect(page.getByText('Fanvil X4U').first()).toBeVisible()
+    await expect(page.getByText('Fanvil X4U Pro', { exact: true }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Call', exact: true })).toBeEnabled()
 
     const drawer = page.getByRole('dialog')
@@ -206,6 +209,23 @@ test.describe('user overview', () => {
         return scroller.scrollWidth <= scroller.clientWidth
       }),
     ).toBe(true)
+  })
+
+  test('returns the focus to the details button when the drawer closes', async ({
+    page,
+    mockApi,
+  }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    const details = page.getByRole('button', { name: 'Show details of Anna Miller' })
+    await details.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('heading', { name: 'Operator details' })).toBeHidden()
+    await expect(details).toBeFocused()
   })
 
   test('keeps a device open while the live status refreshes', async ({ page, mockApi }) => {

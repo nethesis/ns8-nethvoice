@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
+import type { AdminPhoneState } from '@/lib/adminPhone/adminPhone'
 import { compareNatural, matchesText } from '@/lib/common'
 import { ctiGet } from '@/lib/dashboard/ctiClient'
 import type { Group } from '@/lib/groups/groups'
@@ -156,6 +157,78 @@ export const formatPhoneModel = (vendor: string, model: string): string => {
   return [vendor, name].filter((part) => part !== '').join(' ')
 }
 
+export type OverviewCallContext = {
+  mainExtension: string
+  devices: Pick<OverviewDevice, 'status'>[]
+  phoneState: AdminPhoneState
+  phoneEnabled: boolean
+  inCall: boolean
+  otherTabInCall: boolean
+}
+
+export type OverviewCallStatus =
+  | 'no_extension'
+  | 'in_call'
+  | 'in_call_elsewhere'
+  | 'connection_lost'
+  | 'no_online_device'
+  | 'phone_error'
+  | 'elsewhere'
+  | 'ready'
+  | 'connecting'
+
+const BLOCKING_CALL_STATUSES: OverviewCallStatus[] = [
+  'no_extension',
+  'in_call',
+  'in_call_elsewhere',
+  'connection_lost',
+  'no_online_device',
+]
+
+export const hasOnlineDevice = (devices: Pick<OverviewDevice, 'status'>[]): boolean =>
+  devices.some((device) => device.status === 'online')
+
+export const getOverviewCallStatus = (context: OverviewCallContext): OverviewCallStatus => {
+  if (!context.mainExtension) {
+    return 'no_extension'
+  }
+  if (context.inCall) {
+    return 'in_call'
+  }
+  if (context.phoneState === 'elsewhere' && context.otherTabInCall) {
+    return 'in_call_elsewhere'
+  }
+  if (context.phoneState === 'error' && context.phoneEnabled) {
+    return 'connection_lost'
+  }
+  if (!hasOnlineDevice(context.devices)) {
+    return 'no_online_device'
+  }
+  switch (context.phoneState) {
+    case 'error':
+      return 'phone_error'
+    case 'elsewhere':
+      return 'elsewhere'
+    case 'ready':
+      return 'ready'
+    default:
+      return 'connecting'
+  }
+}
+
+export const isOverviewCallBlocked = (status: OverviewCallStatus): boolean =>
+  BLOCKING_CALL_STATUSES.includes(status)
+
+export const buildModelLabels = (
+  models: { name: string; displayName: string }[],
+): ReadonlyMap<string, string> => new Map(models.map((model) => [model.name, model.displayName]))
+
+export const getPhoneModelLabel = (
+  vendor: string,
+  model: string,
+  modelLabels: ReadonlyMap<string, string> = new Map(),
+): string => modelLabels.get(model) ?? formatPhoneModel(vendor, model)
+
 const OFFLINE_EXTENSION: OverviewExtension = {
   status: 'offline',
   doNotDisturb: false,
@@ -167,6 +240,7 @@ export const buildOverviewUsers = (
   liveState: OverviewLiveState,
   users: User[],
   groups: Group[],
+  modelLabels: ReadonlyMap<string, string> = new Map(),
 ): OverviewUser[] =>
   liveState.users
     .filter((liveUser) => liveUser.mainExtension !== '')
@@ -195,7 +269,7 @@ export const buildOverviewUsers = (
                 ...(liveState.extensions[endpoint.extension] ?? OFFLINE_EXTENSION),
                 extension: endpoint.extension,
                 type,
-                model: device ? formatPhoneModel(device.vendor, device.model) : '',
+                model: device ? getPhoneModelLabel(device.vendor, device.model, modelLabels) : '',
               },
             ]
           })

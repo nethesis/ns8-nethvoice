@@ -49,6 +49,7 @@ import {
   INFINITY_FIELD_MAPPING,
   isCsvUploadRejected,
   isDatabaseKind,
+  isPhonebookPasswordKept,
   isPhonebookSourceKind,
   PHONEBOOK_SOURCE_KINDS,
   PHONEBOOK_SOURCES_KEY,
@@ -231,7 +232,14 @@ watch([testedColumns, fields], ([columns, available]) => {
   }
 })
 
-const hasStoredPassword = computed(() => !!currentSource?.password)
+const passwordHelper = computed(() => {
+  if (!currentSource?.hasPassword) {
+    return ''
+  }
+  return isPhonebookPasswordKept(form.value, currentSource)
+    ? t('integrations.password_keep_helper')
+    : t('integrations.password_server_changed_helper')
+})
 
 const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
 
@@ -248,7 +256,7 @@ const {
   error: saveError,
 } = useMutation({
   mutation: (sourceForm: PhonebookSourceForm) =>
-    savePhonebookSource(buildPhonebookSourcePayload(sourceForm, currentSource), currentSource?.id),
+    savePhonebookSource(buildPhonebookSourcePayload(sourceForm), currentSource?.id),
   onSuccess(_data, sourceForm) {
     const edited = !!currentSource
 
@@ -551,7 +559,7 @@ function save() {
           autocomplete="new-password"
           :show-password-label="t('ne_text_input.show_password')"
           :hide-password-label="t('ne_text_input.hide_password')"
-          :helper-text="hasStoredPassword ? t('integrations.password_keep_helper') : ''"
+          :helper-text="passwordHelper"
           :invalid-message="validationIssues.password ? t(validationIssues.password) : ''"
           :disabled="busy"
         />
