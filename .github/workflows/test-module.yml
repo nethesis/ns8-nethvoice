@@ -92,10 +92,10 @@ jobs:
       repo_ref: ${{ needs.module.outputs.sha }}
       version_tag: ${{ needs.module.outputs.tag }}
       args: >-
-        --test 'Setup internal user provider'
-        --test 'Check if nethvoice-proxy*'
-        --test 'Restore a real*'
-        --test 'Remove internal domain'
+        --test Setup_internal_user_provider
+        --test Check_if_nethvoice-proxy*
+        --test Restore_a_real*
+        --test Remove_internal_domain
       artifact_suffix: satellite-restore
       status_suffix: satellite-restore
       script: ""
