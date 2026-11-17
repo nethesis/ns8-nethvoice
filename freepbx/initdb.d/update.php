@@ -6,6 +6,18 @@
 
 include_once '/etc/freepbx_db.conf';
 
+// CDR 17 reads this setting on reload even when its installer was skipped.
+$db->exec("INSERT INTO `asterisk`.`freepbx_settings`
+    (`keyword`, `value`, `name`, `level`, `description`, `type`, `options`,
+     `defaultval`, `readonly`, `hidden`, `category`, `module`, `emptyok`, `sortorder`)
+    SELECT 'CANCELDISPOSITION', '0', 'Cancel disposition enabled', 0,
+           'Record calls cancelled before answer as CANCEL instead of NO ANSWER. Requires Asterisk 20.16 or later.',
+           'bool', '', '0', 0, 0, 'cdr', 'cdr', 0, 9
+    FROM DUAL
+    WHERE NOT EXISTS (
+        SELECT 1 FROM `asterisk`.`freepbx_settings` WHERE `keyword` = 'CANCELDISPOSITION'
+    )");
+
 // FreePBX 17 requires this keyword on older queues too; '' means Always.
 $db->exec("INSERT INTO `asterisk`.`queues_details` (`id`, `keyword`, `data`, `flags`)
     SELECT q.extension, 'skip_joinannounce', '', 0
