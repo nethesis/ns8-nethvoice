@@ -93,7 +93,7 @@ $app->post('/configuration/wizard', function (Request $request, Response $respon
         $step = $params['step'];
         $status = $params['status'];
         // Restart nethcti-server if wizard is completed
-        if ($step == 13) {
+        if ($step == 13 && ($status === false || $status === 'false')) {
             // Restart Asterisk
             system("/usr/sbin/asterisk -rx 'core restart when convenient' >/dev/null 2>&1");
             // Notify nethcti-server and nethcti-middleware restart
