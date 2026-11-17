@@ -567,7 +567,6 @@ angular.module('nethvoiceWizardUiApp')
         s.doorPhoneIp = p.ip;
         s.doorPhoneRegistered = !!p.registered;
         s.credentialsGenerated = !!p.credentials_generated;
-        s.passwordIsAdmin = !!p.password_is_admin;
         s.gates = (p.gates || []).map(function (gate, index) {
           return {
             name: $filter('translate')('Door') + ' ' + (index + 1),

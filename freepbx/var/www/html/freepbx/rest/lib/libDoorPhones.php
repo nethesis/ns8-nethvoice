@@ -76,6 +76,34 @@ function door_phone_variables(string $mac): ?array
         throw new DoorPhoneException("Tancredi phone $mac: HTTP $code");
     }
     $phone['phone_variables'] = isset($own['variables']) && is_array($own['variables']) ? $own['variables'] : [];
+    return door_phone_migrate_legacy_password($mac, $phone);
+}
+
+/*
+ * Move the RTSP password that the first door phone code stored as per-phone
+ * "adminpw" to "door_rtsp_password" (see streaming_door_phone_legacy_password).
+ * It runs the first time a door phone is read after the update: the RTSP
+ * password stays the same and the web interface keeps the phones password.
+ */
+function door_phone_migrate_legacy_password(string $mac, array $phone): array
+{
+    $patch = streaming_door_phone_legacy_password($phone['variables'], $phone['phone_variables']);
+    if (!$patch) {
+        return $phone;
+    }
+    [$code] = door_phone_tancredi('PATCH', '/phones/' . $mac, ['variables' => $patch]);
+    if ($code !== 200) {
+        throw new DoorPhoneException("cannot move the RTSP password of door phone $mac: HTTP $code");
+    }
+    error_log("door phone $mac: RTSP password moved from adminpw to door_rtsp_password");
+    // Read again: "adminpw" now comes from the model or the defaults
+    [$code, $merged] = door_phone_tancredi('GET', '/phones/' . $mac . '?inherit=1');
+    if ($code === 200 && isset($merged['variables']) && is_array($merged['variables'])) {
+        $phone['variables'] = $merged['variables'];
+    }
+    unset($phone['phone_variables']['adminpw']);
+    $phone['phone_variables']['door_rtsp_password'] = $patch['door_rtsp_password'];
+    $phone['variables']['door_rtsp_password'] = $patch['door_rtsp_password'];
     return $phone;
 }
 
@@ -125,7 +153,7 @@ function door_phone_list(array $sources): array
         $device['model'] = (string) ($phone['model'] ?? $device['model']);
         $device['model_name'] = door_phone_model_name($device['model']);
         $ip = streaming_contact_address(door_phone_contacts((string) $device['extension']));
-        $items[$mac] = streaming_door_phone_item($device, $phone['variables'], $ip, $sources, $phone['phone_variables']);
+        $items[$mac] = streaming_door_phone_item($device, $phone['variables'], $ip, $sources);
     }
     return $items;
 }
@@ -149,14 +177,13 @@ function door_phone_model_name(string $model): string
 }
 
 /*
- * Make sure a door phone has its own password: when missing, it is generated,
- * stored as a Tancredi phone variable (the web admin password for models with
- * "cap_door_rtsp_adminpw") and the device is asked to fetch its configuration.
- * Return true when something was generated.
+ * Make sure a door phone has its RTSP password: when missing, it is generated,
+ * stored as the Tancredi phone variable "door_rtsp_password" and the device is
+ * asked to fetch its configuration. Return true when something was generated.
  */
 function door_phone_ensure_credentials(string $mac, array $phone, string $extension): bool
 {
-    $missing = streaming_door_phone_missing_credentials($phone['variables'], $phone['phone_variables'] ?? []);
+    $missing = streaming_door_phone_missing_credentials($phone['variables']);
     if (!$missing) {
         return false;
     }
@@ -201,7 +228,7 @@ function door_phone_request_secret(array $data): ?string
     if ($phone === null || !streaming_is_door_phone($phone['variables'])) {
         throw new StreamingValidationException('door_phone', 'door phone not found');
     }
-    return streaming_door_phone_secret($data, $phone['variables'], $phone['phone_variables']);
+    return streaming_door_phone_secret($data, $phone['variables']);
 }
 
 /*
@@ -228,7 +255,7 @@ function door_phone_sync_sources(\PDO $db, ?string $mac = null, ?callable $varia
             if ($phone === null || !streaming_is_door_phone($phone['variables'])) {
                 continue;
             }
-            $secret = streaming_door_phone_secret(['user' => (string) $row['user'], 'secret' => ''], $phone['variables'], $phone['phone_variables']);
+            $secret = streaming_door_phone_secret(['user' => (string) $row['user'], 'secret' => ''], $phone['variables']);
             if ($secret !== null && $secret !== (string) $row['secret']) {
                 $update->execute([$secret, $row['descr']]);
                 $updated++;
