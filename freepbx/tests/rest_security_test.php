@@ -1,6 +1,6 @@
 <?php
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Check the URL restrictions of the server side fetches and the redaction of the users list.
+// Check the URL restrictions of the server side fetches and the redaction of secrets in the responses.
 
 require __DIR__ . '/../var/www/html/freepbx/rest/lib/libSecurity.php';
 
@@ -55,4 +55,51 @@ check(nethvoiceWithoutUserSecrets($users) === [
     ['id' => 4, 'username' => 'carol'],
 ], 'secrets left in the users list');
 
-echo "PASS: server side fetch URL restrictions and users list redaction\n";
+$phones = [
+    ['model' => 'custom', 'lines' => [['extension' => '91201', 'secret' => 's', 'web_user' => 'admin', 'web_password' => 'w', 'username' => 'alice']]],
+    ['mac' => 'AA', 'lines' => [(object) ['extension' => '91202', 'secret' => 's2', 'status' => 'Idle']]],
+    ['mac' => 'BB', 'lines' => []],
+    ['mac' => 'CC'],
+];
+$redacted = nethvoiceWithoutLineSecrets($phones);
+check($redacted[0]['lines'][0] === ['extension' => '91201', 'username' => 'alice'], 'secrets left in a custom line');
+check($redacted[1]['lines'][0] == (object) ['extension' => '91202', 'status' => 'Idle'], 'secret left in a scanned line');
+check(isset($phones[1]['lines'][0]->secret), 'original line object changed');
+check($redacted[2] === ['mac' => 'BB', 'lines' => []] && $redacted[3] === ['mac' => 'CC'], 'phones without lines changed');
+check(!preg_match('/secret|web_|"s2?"|"w"/', json_encode($redacted)), 'secret value left in the phones list');
+
+$connections = [
+    ['id' => 1, 'host' => 'db', 'pass' => 'stored'],
+    ['id' => 2, 'host' => 'db2', 'pass' => ''],
+    ['id' => 3, 'host' => 'db3'],
+];
+check(nethvoiceWithoutStoredPasswords($connections, 'pass') === [
+    ['id' => 1, 'host' => 'db', 'has_password' => true],
+    ['id' => 2, 'host' => 'db2', 'has_password' => false],
+    ['id' => 3, 'host' => 'db3', 'has_password' => false],
+], 'database connection password not redacted');
+check(nethvoiceWithoutStoredPasswords($connections, 'pass', true)[0] === ['id' => 1, 'host' => 'db', 'pass' => 'stored', 'has_password' => true], 'password not kept when asked');
+
+$sources = ['custom_1' => (object) ['dbtype' => 'mysql', 'password' => 'pw', 'mapping' => new stdClass()], 'custom_2' => (object) ['dbtype' => 'csv', 'url' => 'https://192.0.2.5/a.csv']];
+$redacted = nethvoiceWithoutStoredPasswords($sources, 'password');
+check(json_encode($redacted) === '{"custom_1":{"dbtype":"mysql","mapping":{},"has_password":true},"custom_2":{"dbtype":"csv","url":"https:\/\/192.0.2.5\/a.csv","has_password":false}}', 'phonebook source password not redacted');
+check($sources['custom_1']->password === 'pw', 'original source object changed');
+
+$stored = ['host' => 'crm.example.com', 'port' => '3306', 'type' => 'mysql', 'user' => 'crm', 'pass' => 'stored'];
+$targets = ['host', 'port', 'type'];
+check(nethvoiceKeepStoredPassword(['host' => 'crm.example.com', 'pass' => 'new'], $stored, 'pass', $targets) === ['host' => 'crm.example.com', 'pass' => 'new'], 'typed password replaced');
+check(nethvoiceKeepStoredPassword(['host' => 'crm.example.com', 'port' => '3306', 'pass' => ''], $stored, 'pass', $targets) === ['host' => 'crm.example.com', 'port' => '3306', 'pass' => 'stored'], 'empty password did not keep the stored one');
+check(nethvoiceKeepStoredPassword(['user' => 'other'], $stored, 'pass', $targets) === ['user' => 'other', 'pass' => 'stored'], 'omitted password did not keep the stored one');
+check(nethvoiceKeepStoredPassword(['host' => ' crm.example.com ', 'pass' => null], $stored, 'pass', $targets)['pass'] === 'stored', 'trimmed host seen as a different server');
+check(nethvoiceKeepStoredPassword(['host' => 'attacker.example.org', 'pass' => ''], $stored, 'pass', $targets) === null, 'stored password sent to a different host');
+check(nethvoiceKeepStoredPassword(['port' => '3307'], $stored, 'pass', $targets) === null, 'stored password sent to a different port');
+check(nethvoiceKeepStoredPassword(['type' => 'postgres'], $stored, 'pass', $targets) === null, 'stored password sent to a different type');
+check(nethvoiceKeepStoredPassword(['host' => 'attacker.example.org', 'pass' => 'typed'], $stored, 'pass', $targets) === ['host' => 'attacker.example.org', 'pass' => 'typed'], 'typed password refused for a new host');
+check(nethvoiceKeepStoredPassword(['host' => 'new', 'pass' => ''], null, 'pass', $targets) === ['host' => 'new'], 'empty password kept without a stored connection');
+check(nethvoiceKeepStoredPassword(['host' => 'new', 'pass' => ''], ['pass' => ''], 'pass', $targets) === ['host' => 'new'], 'empty stored password blocked a new host');
+check(nethvoiceKeepStoredPassword(['pass' => 1234], $stored, 'pass', $targets) === ['pass' => 1234], 'numeric password replaced');
+check(nethvoiceKeepStoredPassword(['pass' => ['x']], $stored, 'pass', $targets) === ['pass' => 'stored'], 'non scalar password stored');
+check(nethvoiceKeepStoredPassword(['dbtype' => 'infinity', 'url' => 'https://crm.example.com', 'password' => ''], ['dbtype' => 'infinity', 'url' => 'https://crm.example.com', 'password' => 'api'], 'password', ['dbtype', 'url'])['password'] === 'api', 'Infinity password not kept');
+check(nethvoiceKeepStoredPassword(['dbtype' => 'infinity', 'url' => 'https://evil.example.org', 'password' => ''], ['dbtype' => 'infinity', 'url' => 'https://crm.example.com', 'password' => 'api'], 'password', ['dbtype', 'url']) === null, 'Infinity password sent to a different URL');
+
+echo "PASS: server side fetch URL restrictions, users list, phone lines and stored passwords redaction\n";
