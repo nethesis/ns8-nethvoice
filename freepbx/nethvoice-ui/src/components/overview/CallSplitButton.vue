@@ -43,24 +43,32 @@ const deviceItems = computed<NeDropdownItem[]>(() =>
 
 const isMenuDisabled = computed(() => disabled || loading || deviceItems.value.length === 0)
 
+function showTooltipIfEnabled(): false | void {
+  if (disabled) return false
+}
+
+const disabledClasses = computed(() => (disabled ? 'opacity-50' : ''))
+
 const segmentClasses =
-  'focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex h-9 items-center gap-3 transition-colors duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2'
+  'bg-primary-700 dark:bg-primary-500 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex h-9 items-center gap-3 transition-colors duration-200 focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2'
 </script>
 
 <template>
   <div
-    :class="[
-      'bg-primary-700 dark:bg-primary-500 inline-flex items-stretch rounded-md text-sm font-medium text-white shadow-xs dark:text-gray-950',
-      { 'opacity-50': disabled },
-    ]"
+    class="inline-flex items-stretch rounded-md text-sm font-medium text-white shadow-xs dark:text-gray-950"
     data-testid="call-split-button"
   >
-    <NeTooltip trigger-event="mouseenter focus" class="inline-flex">
+    <NeTooltip
+      trigger-event="mouseenter focus"
+      :tippy-props="{ onShow: showTooltipIfEnabled }"
+      class="inline-flex"
+    >
       <template #trigger>
         <button
           type="button"
           :class="[
             segmentClasses,
+            disabledClasses,
             'rounded-l-md pr-3 pl-3',
             disabled || loading
               ? 'cursor-not-allowed'
@@ -78,10 +86,15 @@ const segmentClasses =
       </template>
       <template #content>{{ tooltip }}</template>
     </NeTooltip>
-    <span class="my-2 w-px bg-white dark:bg-gray-950" aria-hidden="true"></span>
+    <span
+      :class="['bg-primary-700 dark:bg-primary-500 flex py-2', disabledClasses]"
+      aria-hidden="true"
+    >
+      <span class="w-px bg-white dark:bg-gray-950"></span>
+    </span>
     <span
       v-if="isMenuDisabled"
-      :class="[segmentClasses, 'cursor-not-allowed rounded-r-md px-3']"
+      :class="[segmentClasses, disabledClasses, 'cursor-not-allowed rounded-r-md px-3']"
       data-testid="call-device-menu-disabled"
     >
       <FontAwesomeIcon :icon="faAngleDown" class="size-4" aria-hidden="true" />
