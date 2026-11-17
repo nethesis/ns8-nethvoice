@@ -71,7 +71,7 @@ Restore legacy backup
             Should Not Be Equal As Integers    ${rc}    0
         END
         # Also verify that restoration without Satellite reaches the MariaDB data.
-        ${stderr}    ${rc} =    Execute Command    runagent -m ${legacy_id} podman exec -i mariadb sh -c 'exec mysql -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}INSERT INTO admin (variable,value) VALUES ('SATELLITE_RESTORE','${legacy_uuid}');${\n}SQL    return_stdout=False    return_stderr=True    return_rc=True
+        ${stderr}    ${rc} =    Execute Command    runagent -m ${legacy_id} podman exec -i mariadb sh -c 'exec mariadb -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}INSERT INTO admin (variable,value) VALUES ('SATELLITE_RESTORE','${legacy_uuid}');${\n}SQL    return_stdout=False    return_stderr=True    return_rc=True
         Should Be Equal As Integers    ${rc}    0    ${stderr}
         ${cluster} =    Run task    get-cluster-status    {}
         ${vpn_ip} =    Evaluate    next(node['vpn']['ip_address'] for node in $cluster['nodes'] if int(node['id']) == 1)
@@ -143,8 +143,8 @@ Restore legacy backup
         Should Be Equal    ${configuration}[nethcti_ui_host]    ${RESTORE_CTI_HOST}
         ${saved} =    Execute Command    runagent -m ${restored_id} sh -c 'printf "%s\\n%s\\n" "$NETHVOICE_HOST" "$NETHCTI_UI_HOST"'
         Should Be Equal    ${saved}    ${RESTORE_VOICE_HOST}${\n}${RESTORE_CTI_HOST}
-        ${sentinel}    ${rc} =    Execute Command    runagent -m ${restored_id} podman exec -i mariadb sh -c 'exec mysql -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}SELECT value FROM admin WHERE variable='SATELLITE_RESTORE';${\n}SQL    return_rc=True
-        Should Be Equal As Integers    ${rc}    0
+        ${sentinel}    ${rc} =    Execute Command    runagent -m ${restored_id} podman exec -i mariadb sh -c 'exec mariadb -N -B -uroot -p"$MARIADB_ROOT_PASSWORD" asterisk' <<'SQL'${\n}SELECT value FROM admin WHERE variable='SATELLITE_RESTORE';${\n}SQL    return_rc=True
+        Should Be Equal As Integers    ${rc}    0    Reading the restored MariaDB sentinel failed
         Should Be Equal    ${sentinel}    ${legacy_uuid}
     FINALLY
         IF    $restored_id
