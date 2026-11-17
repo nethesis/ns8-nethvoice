@@ -43,6 +43,7 @@ const NETHVOICE_ROUTE_RULES = [
     'GET /outboundroutes/supportedLocales' => NETHVOICE_LOOKUP,
     'GET /settings/languages' => NETHVOICE_LOOKUP,
     'GET /users/{username}/password' => NETHVOICE_SUPERADMIN,
+    'GET /phones/account/{mac}' => NETHVOICE_SUPERADMIN,
     'POST /users/{username}/password' => ['sections' => ['settings'], 'self' => 'username'],
     'POST /physicalextensions/adminpw' => 'phones',
     'POST /cti/customer_card/template' => NETHVOICE_SUPERADMIN,

@@ -158,3 +158,82 @@ function nethvoiceWithoutUserSecrets(array $users): array
 
     return $users;
 }
+
+function nethvoiceWithoutLineSecrets(array $phones): array
+{
+    foreach ($phones as $i => $phone) {
+        if (!is_array($phone) || !is_array($phone['lines'] ?? null)) {
+            continue;
+        }
+        foreach ($phone['lines'] as $j => $line) {
+            if (is_object($line)) {
+                $line = clone $line;
+                unset($line->secret, $line->web_user, $line->web_password);
+            } elseif (is_array($line)) {
+                unset($line['secret'], $line['web_user'], $line['web_password']);
+            }
+            $phones[$i]['lines'][$j] = $line;
+        }
+    }
+
+    return $phones;
+}
+
+function nethvoiceWithoutStoredPassword($item, string $field, bool $keepPassword = false)
+{
+    if (is_object($item)) {
+        $item = clone $item;
+        $item->has_password = isset($item->$field) && (string) $item->$field !== '';
+        if (!$keepPassword) {
+            unset($item->$field);
+        }
+    } elseif (is_array($item)) {
+        $item['has_password'] = isset($item[$field]) && (string) $item[$field] !== '';
+        if (!$keepPassword) {
+            unset($item[$field]);
+        }
+    }
+
+    return $item;
+}
+
+function nethvoiceWithoutStoredPasswords(array $items, string $field, bool $keepPassword = false): array
+{
+    foreach ($items as $key => $item) {
+        $items[$key] = nethvoiceWithoutStoredPassword($item, $field, $keepPassword);
+    }
+
+    return $items;
+}
+
+function nethvoiceStoredTargetChanged(array $data, array $stored, array $targetFields): bool
+{
+    foreach ($targetFields as $field) {
+        if (!array_key_exists($field, $data)) {
+            continue;
+        }
+        if (trim((string) $data[$field]) !== trim((string) ($stored[$field] ?? ''))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function nethvoiceKeepStoredPassword(array $data, ?array $stored, string $field, array $targetFields): ?array
+{
+    if (isset($data[$field]) && is_scalar($data[$field]) && (string) $data[$field] !== '') {
+        return $data;
+    }
+    unset($data[$field]);
+    $storedPassword = is_array($stored) ? (string) ($stored[$field] ?? '') : '';
+    if ($storedPassword === '') {
+        return $data;
+    }
+    if (nethvoiceStoredTargetChanged($data, $stored, $targetFields)) {
+        return null;
+    }
+    $data[$field] = $storedPassword;
+
+    return $data;
+}

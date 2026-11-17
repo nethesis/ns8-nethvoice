@@ -872,6 +872,8 @@ paths:
               $ref: '#/components/schemas/IntegrationsDbConnectionInput'
     get:
       summary: List the database connections used by customer cards.
+      description: The password is never returned to administrators who are not
+        superadmin; `has_password` tells whether one is stored.
       tags:
       - CTI
       responses:
@@ -921,13 +923,15 @@ paths:
     put:
       summary: Update the given fields of a database connection.
       description: Reloads nethcti-server so the customer cards use the new parameters.
+        An empty or omitted `pass` keeps the stored password, unless `host`, `port`
+        or `type` change, which requires the password again.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
         '400':
-          description: Bad request
+          description: Bad request, or the password is missing for a different server
           content:
             application/json:
               schema:
@@ -1002,6 +1006,47 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsParamUrlDeleteInput'
+  /cti/dbconn/test:
+    post:
+      summary: Test a database connection through nethcti-server.
+      description: With `id` and an empty `pass`, the stored password of that connection
+        is used, only when `host`, `port` and `type` are the stored ones.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Test completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsDbConnectionTestResult'
+        '400':
+          description: Bad request, or the password is missing for a different server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Database connection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+        '502':
+          description: nethcti-server is not reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: post_cti_dbconn_test
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationsDbConnectionTestInput'
   /cti/dbconn/type:
     get:
       summary: List the supported database types.
@@ -1384,6 +1429,8 @@ paths:
     get:
       summary: Return the consolidated phone inventory, combining scans and configured
         devices.
+      description: The `secret`, `web_user` and `web_password` fields of the lines
+        are returned only to the superadmin.
       tags:
       - Devices
       responses:
@@ -2480,6 +2527,8 @@ paths:
   /phonebook/config:
     get:
       summary: List the external phonebook sources.
+      description: The password is never returned to administrators who are not
+        superadmin; `has_password` tells whether one is stored.
       tags:
       - Phonebook
       responses:
@@ -2571,14 +2620,17 @@ paths:
     post:
       summary: Replace an external phonebook source.
       description: When the URL changes, the previously uploaded CSV file is removed
-        if no other source uses it.
+        if no other source uses it. An empty or omitted `password` keeps the stored
+        one, unless the type, the host, the port or the Infinity URL change, which
+        requires the password again.
       tags:
       - Phonebook
       responses:
         '200':
           description: Successful response
         '400':
-          description: Invalid request or invalid source URL
+          description: Invalid request, invalid source URL or missing password for
+            a different server
           content: *id003
         '500':
           description: Internal server error
@@ -2621,6 +2673,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
         '403': *id001
+        '404':
+          description: Phonebook source not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
       operationId: post_phonebook_test
       requestBody:
         required: true
@@ -2630,7 +2688,8 @@ paths:
               $ref: '#/components/schemas/IntegrationsPhonebookTestInput'
       description: Testing a mysql or mssql source requires the superadmin permission.
         CSV and Infinity URLs of administrators who are not superadmin must be public
-        http or https addresses or uploaded files.
+        http or https addresses or uploaded files. With `id` and an empty `password`,
+        the stored password of that source is used, only for the same server.
   /phonebook/syncnow/{id}:
     post:
       summary: Import a phonebook source now (synchronous).
@@ -5245,7 +5304,10 @@ components:
           type: string
         password:
           type: string
-          description: Returned in clear text
+          description: Returned only to the superadmin, for the legacy wizard
+        has_password:
+          type: boolean
+          description: Whether a password is stored
         dbname:
           type: string
         query:
@@ -5356,6 +5418,9 @@ components:
           type: string
         cti_import:
           type: boolean
+        id:
+          type: string
+          description: Stored source whose password is used when `password` is empty
     IntegrationsPhonebookTestResult:
       description: 'The first three rows read from the source, or a `status: false`
         object when the source cannot be read.'
@@ -5511,7 +5576,10 @@ components:
           type: string
         pass:
           type: string
-          description: Returned in clear text
+          description: Returned only to the superadmin, for the legacy wizard
+        has_password:
+          type: boolean
+          description: Whether a password is stored
         name:
           type: string
           description: Database name
@@ -5532,6 +5600,37 @@ components:
           type: string
         name:
           type: string
+    IntegrationsDbConnectionTestInput:
+      type: object
+      required:
+      - host
+      - port
+      - type
+      - name
+      properties:
+        id:
+          type: string
+          description: Stored connection whose password is used when `pass` is empty
+        host:
+          type: string
+        port:
+          type: string
+        type:
+          type: string
+        user:
+          type: string
+        pass:
+          type: string
+        name:
+          type: string
+    IntegrationsDbConnectionTestResult:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: boolean
+          description: Whether the connection succeeded
     IntegrationsDbConnectionTypes:
       type: object
       description: Database type id to label
