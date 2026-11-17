@@ -98,4 +98,5 @@ jobs:
         --test 'Remove internal domain'
       artifact_suffix: satellite-restore
       status_suffix: satellite-restore
+      script: ""
       debug_shell: ${{ inputs.debug_shell == true }}
