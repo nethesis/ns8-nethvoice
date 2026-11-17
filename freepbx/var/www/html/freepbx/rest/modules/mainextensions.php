@@ -27,6 +27,12 @@ include_once('lib/libCTI.php');
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+function configuredUsersCountExcept($users, $username) {
+    return count(array_filter($users, function($user) use ($username) {
+        return $user['default_extension'] != 'none' && (string) $user['username'] !== (string) $username;
+    }));
+}
+
 $app->get('/mainextensions', function (Request $request, Response $response, $args) {
     $mainextensions = FreePBX::create()->Core->getAllUsersByDeviceType('virtual');
     return jsonResponse($response, $mainextensions, 200);
@@ -51,7 +57,7 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     $outboundcid = $params['outboundcid'] ?? '';
 
     if (
-        configuredUsersCount() >= communityUsersLimit() && // check if there are more configured users than the allowed limit
+        configuredUsersCountExcept(getAllUsers(), $username) >= communityUsersLimit() && // check if there are more configured users than the allowed limit
         (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) && // it isn't registered as enterprise
         !empty($mainextension) // the user is trying to create a new extension
     ) {
