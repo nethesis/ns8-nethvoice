@@ -167,7 +167,8 @@ test.describe('settings', () => {
       await drawer.getByLabel('Confirm password', { exact: true }).fill(NEW_PASSWORD)
       await drawer.getByRole('button', { name: 'Change password' }).click()
 
-      await expect(page.getByText('Admin password changed')).toBeVisible()
+      await expect(page.getByText('Password updated', { exact: true })).toBeVisible()
+      await expect(page.getByText('The admin password has been updated.')).toBeVisible()
       await expect(page.getByLabel('New password', { exact: true })).toHaveCount(0)
       await expect(page).toHaveURL(/\/nethvoice\/settings$/)
 

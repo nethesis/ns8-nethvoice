@@ -103,8 +103,8 @@ const shownErrors = computed(() =>
 const hiddenErrorsCount = computed(() => analysis.value.errors.length - shownErrors.value.length)
 
 const existingModeOptions = computed(() => [
-  { id: 'overwrite', label: t('users.import_overwrite_existing') },
   { id: 'skip', label: t('users.import_skip_existing') },
+  { id: 'overwrite', label: t('users.import_overwrite_existing') },
 ])
 
 const hasExistingUsers = computed(() =>
@@ -342,7 +342,79 @@ const formatDevices = (row: ImportRow) => {
     @secondary-click="showStep('file')"
   >
     <div class="flex flex-col gap-6">
+      <div class="flex flex-col gap-2">
+        <div class="flex flex-wrap items-end justify-between gap-2">
+          <span
+            class="text-primary-neutral rounded-t-md bg-indigo-300 px-4 py-1 text-sm dark:bg-indigo-800"
+          >
+            {{ t('users.file_preview') }}
+          </span>
+          <span v-if="rows.length > IMPORT_PREVIEW_ROWS" class="text-secondary-neutral text-xs">
+            {{ t('users.only_first_rows_shown', { count: IMPORT_PREVIEW_ROWS }) }}
+          </span>
+        </div>
+        <NeTable :aria-label="t('users.file_preview')" card-breakpoint="md">
+          <NeTableHead>
+            <NeTableHeadCell>{{ t('users.username') }}</NeTableHeadCell>
+            <NeTableHeadCell>{{ t('users.name') }}</NeTableHeadCell>
+            <NeTableHeadCell>{{ t('users.surname') }}</NeTableHeadCell>
+            <NeTableHeadCell>{{ t('users.extension') }}</NeTableHeadCell>
+            <NeTableHeadCell>{{ t('users.group') }}</NeTableHeadCell>
+            <NeTableHeadCell>{{ t('users.profile') }}</NeTableHeadCell>
+            <NeTableHeadCell v-if="showsVoicemailColumn">{{
+              t('users.voicemail')
+            }}</NeTableHeadCell>
+            <NeTableHeadCell v-if="showsDevicesColumn">{{ t('users.devices') }}</NeTableHeadCell>
+          </NeTableHead>
+          <NeTableBody>
+            <NeTableRow v-for="row in previewRows" :key="row.line">
+              <NeTableCell :data-label="t('users.username')">{{ row.username || '-' }}</NeTableCell>
+              <NeTableCell :data-label="t('users.name')">{{ row.name || '-' }}</NeTableCell>
+              <NeTableCell :data-label="t('users.surname')">{{ row.surname || '-' }}</NeTableCell>
+              <NeTableCell :data-label="t('users.extension')">{{
+                row.extension || '-'
+              }}</NeTableCell>
+              <NeTableCell :data-label="t('users.group')">
+                {{ row.groups?.length ? row.groups.join(', ') : '-' }}
+              </NeTableCell>
+              <NeTableCell :data-label="t('users.profile')">{{ row.profile || '-' }}</NeTableCell>
+              <NeTableCell v-if="showsVoicemailColumn" :data-label="t('users.voicemail')">
+                {{ formatFlag(row.voicemail) }}
+              </NeTableCell>
+              <NeTableCell v-if="showsDevicesColumn" :data-label="t('users.devices')">
+                {{ formatDevices(row) }}
+              </NeTableCell>
+            </NeTableRow>
+          </NeTableBody>
+        </NeTable>
+      </div>
+      <div v-if="hasExistingUsers" class="flex flex-col gap-2">
+        <div class="flex items-center gap-2">
+          <span class="text-primary-neutral text-sm font-medium">{{
+            t('users.existing_users')
+          }}</span>
+          <NeTooltip trigger-event="mouseenter focus" placement="top">
+            <template #trigger>
+              <span tabindex="0" class="flex text-indigo-500 dark:text-indigo-300">
+                <FontAwesomeIcon :icon="faCircleInfo" class="size-4" aria-hidden="true" />
+                <span class="sr-only">{{ t('users.existing_users_tooltip') }}</span>
+              </span>
+            </template>
+            <template #content>{{ t('users.existing_users_tooltip') }}</template>
+          </NeTooltip>
+        </div>
+        <NeRadioSelection
+          v-model="existingUsersMode"
+          name="existing-users"
+          :options="existingModeOptions"
+          :disabled="importing"
+        />
+        <p v-if="existingUsersMode === 'overwrite'" class="text-secondary-neutral text-sm">
+          {{ t('users.import_overwrite_helper') }}
+        </p>
+      </div>
       <div class="text-primary-neutral flex flex-col gap-1 text-sm" data-testid="import-summary">
+        <span class="font-medium">{{ t('users.import_summary') }}</span>
         <template v-if="analysis.errors.length === 0 && analysis.existing.length === 0">
           <span>{{
             t('users.import_summary_detected', {
@@ -442,77 +514,6 @@ const formatDevices = (row: ImportRow) => {
           </span>
         </template>
       </NeInlineNotification>
-      <div class="flex flex-col gap-2">
-        <div class="flex flex-wrap items-end justify-between gap-2">
-          <span
-            class="bg-primary-700 dark:bg-primary-500 rounded-t-md px-4 py-1 text-sm font-medium text-white dark:text-gray-950"
-          >
-            {{ t('users.file_preview') }}
-          </span>
-          <span v-if="rows.length > IMPORT_PREVIEW_ROWS" class="text-secondary-neutral text-xs">
-            {{ t('users.only_first_rows_shown', { count: IMPORT_PREVIEW_ROWS }) }}
-          </span>
-        </div>
-        <NeTable :aria-label="t('users.file_preview')" card-breakpoint="md">
-          <NeTableHead>
-            <NeTableHeadCell>{{ t('users.username') }}</NeTableHeadCell>
-            <NeTableHeadCell>{{ t('users.name') }}</NeTableHeadCell>
-            <NeTableHeadCell>{{ t('users.surname') }}</NeTableHeadCell>
-            <NeTableHeadCell>{{ t('users.extension') }}</NeTableHeadCell>
-            <NeTableHeadCell>{{ t('users.group') }}</NeTableHeadCell>
-            <NeTableHeadCell>{{ t('users.profile') }}</NeTableHeadCell>
-            <NeTableHeadCell v-if="showsVoicemailColumn">{{
-              t('users.voicemail')
-            }}</NeTableHeadCell>
-            <NeTableHeadCell v-if="showsDevicesColumn">{{ t('users.devices') }}</NeTableHeadCell>
-          </NeTableHead>
-          <NeTableBody>
-            <NeTableRow v-for="row in previewRows" :key="row.line">
-              <NeTableCell :data-label="t('users.username')">{{ row.username || '-' }}</NeTableCell>
-              <NeTableCell :data-label="t('users.name')">{{ row.name || '-' }}</NeTableCell>
-              <NeTableCell :data-label="t('users.surname')">{{ row.surname || '-' }}</NeTableCell>
-              <NeTableCell :data-label="t('users.extension')">{{
-                row.extension || '-'
-              }}</NeTableCell>
-              <NeTableCell :data-label="t('users.group')">
-                {{ row.groups?.length ? row.groups.join(', ') : '-' }}
-              </NeTableCell>
-              <NeTableCell :data-label="t('users.profile')">{{ row.profile || '-' }}</NeTableCell>
-              <NeTableCell v-if="showsVoicemailColumn" :data-label="t('users.voicemail')">
-                {{ formatFlag(row.voicemail) }}
-              </NeTableCell>
-              <NeTableCell v-if="showsDevicesColumn" :data-label="t('users.devices')">
-                {{ formatDevices(row) }}
-              </NeTableCell>
-            </NeTableRow>
-          </NeTableBody>
-        </NeTable>
-      </div>
-      <div v-if="hasExistingUsers" class="flex flex-col gap-2">
-        <div class="flex items-center gap-2">
-          <span class="text-primary-neutral text-sm font-medium">{{
-            t('users.existing_users')
-          }}</span>
-          <NeTooltip trigger-event="mouseenter focus" placement="top">
-            <template #trigger>
-              <span tabindex="0" class="flex text-indigo-500 dark:text-indigo-300">
-                <FontAwesomeIcon :icon="faCircleInfo" class="size-4" aria-hidden="true" />
-                <span class="sr-only">{{ t('users.existing_users_tooltip') }}</span>
-              </span>
-            </template>
-            <template #content>{{ t('users.existing_users_tooltip') }}</template>
-          </NeTooltip>
-        </div>
-        <NeRadioSelection
-          v-model="existingUsersMode"
-          name="existing-users"
-          :options="existingModeOptions"
-          :disabled="importing"
-        />
-        <p v-if="existingUsersMode === 'overwrite'" class="text-secondary-neutral text-sm">
-          {{ t('users.import_overwrite_helper') }}
-        </p>
-      </div>
       <NeProgressBar
         v-if="importing"
         :progress="progress"

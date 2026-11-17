@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation } from '@pinia/colada'
 import {
@@ -14,6 +14,7 @@ import {
   NeDropdownFilterV2,
   NeEmptyState,
   NeInlineNotification,
+  NeSpinner,
   NeTable,
   NeTableBody,
   NeTableCell,
@@ -21,26 +22,26 @@ import {
   NeTableHeadCell,
   NeTableRow,
   NeTextInput,
+  NeTooltip,
   type NeDropdownFilterV2Option,
   type NeDropdownItem,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
+  faArrowsRotate,
   faChevronDown,
   faCircleCheck,
   faCircleMinus,
   faCirclePlus,
-  faClone,
+  faCopy,
   faKey,
   faLock,
   faMagnifyingGlass,
   faPenToSquare,
-  faRotate,
   faTrash,
   faUser,
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
-import ClickToCopy from '@/components/common/ClickToCopy.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import TablePaginator from '@/components/common/TablePaginator.vue'
 import AddPhonesModal from './AddPhonesModal.vue'
@@ -67,6 +68,8 @@ import { usePhoneDefaults } from '@/queries/phones/defaults'
 import { usePhoneRegistrations } from '@/queries/phones/registration'
 import { useNotificationsStore } from '@/stores/notifications'
 
+const COPIED_FEEDBACK_MS = 2000
+
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const { phones, models, users, loading, updating, error, refetch } = usePhones()
@@ -85,6 +88,10 @@ const isShownAddPhonesModal = ref(false)
 const isShownEditPhoneDrawer = ref(false)
 const isShownDeletePhoneModal = ref(false)
 const isShownAdminPasswordDrawer = ref(false)
+const copiedMac = ref('')
+let copiedTimeout: ReturnType<typeof setTimeout> | undefined
+
+onBeforeUnmount(() => clearTimeout(copiedTimeout))
 
 const registrations = computed(() => registrationsState.value.data)
 
@@ -213,7 +220,7 @@ const actionsItems = computed<NeDropdownItem[]>(() => [
   {
     id: 'runProvisioning',
     label: t('phones.inventory.run_provisioning'),
-    icon: faRotate,
+    icon: faArrowsRotate,
     disabled: provisioning.value || assignedPhones.value.length === 0,
     action: () => provisioningMutate(assignedPhones.value),
   },
@@ -226,16 +233,17 @@ function getRowMenuItems(phone: Phone): NeDropdownItem[] {
       label: phone.extension
         ? t('phones.inventory.run_provisioning')
         : t('phones.inventory.run_provisioning_unassigned'),
-      icon: faRotate,
+      icon: faArrowsRotate,
       disabled: provisioning.value || !phone.extension,
       action: () => provisioningMutate([phone]),
     },
     {
       id: 'copyProvisioningUrl',
       label: t('phones.inventory.copy_provisioning_url'),
-      icon: faClone,
+      icon: faCopy,
       action: () => copyProvisioningUrl(phone),
     },
+    { id: 'divider' },
     {
       id: 'delete',
       label: t('common.delete'),
@@ -252,6 +260,25 @@ async function writeClipboard(text: string) {
   }
   await navigator.clipboard.writeText(text)
 }
+
+async function copyMac(phone: Phone) {
+  try {
+    await writeClipboard(formatMac(phone.mac))
+    copiedMac.value = phone.mac
+    clearTimeout(copiedTimeout)
+    copiedTimeout = setTimeout(() => {
+      copiedMac.value = ''
+    }, COPIED_FEEDBACK_MS)
+  } catch (copyError) {
+    notificationsStore.createNotificationFromError(
+      copyError,
+      t('phones.inventory.cannot_copy_mac_address'),
+    )
+  }
+}
+
+const userDetails = (phone: Phone) =>
+  [phone.user?.username ?? '', phone.extension].filter((value) => value !== '').join(' · ')
 
 async function copyProvisioningUrl(phone: Phone) {
   try {
@@ -358,76 +385,81 @@ function showDeletePhoneModal(phone: Phone) {
       </div>
     </NeEmptyState>
     <template v-else-if="!error">
-      <div class="mb-6 flex flex-col gap-4">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <p class="text-secondary-neutral max-w-2xl">
-            {{ $t('phones.inventory.description') }}
-          </p>
-          <div class="flex items-center gap-4">
-            <NeDropdown
-              :items="actionsItems"
-              align-to-right
-              :open-menu-aria-label="$t('common.actions')"
-              menu-classes="min-w-56"
-            >
-              <template #button>
-                <NeButton kind="secondary" tabindex="-1" aria-hidden="true">
-                  <template #suffix>
-                    <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
-                  </template>
-                  {{ $t('common.actions') }}
-                </NeButton>
-              </template>
-            </NeDropdown>
-            <NeButton
-              kind="primary"
-              :disabled="loading || !defaultsReady"
-              @click="isShownAddPhonesModal = true"
-            >
-              <template #prefix>
-                <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-              </template>
-              {{ $t('phones.inventory.add_phones') }}
-            </NeButton>
-          </div>
-        </div>
-        <div class="flex flex-wrap items-center gap-4">
-          <NeTextInput
-            v-model="textFilter"
-            is-search
-            :placeholder="$t('phones.inventory.filter_phones')"
-            :aria-label="$t('phones.inventory.filter_phones')"
-            :clear-search-label="$t('ne_text_input.clear_search')"
-            class="w-full max-w-xs"
-          />
-          <NeDropdownFilterV2
-            v-model="modelFilter"
-            kind="checkbox"
-            :label="$t('phones.model')"
-            :options="modelFilterOptions"
-            v-bind="filterLabels"
-          />
-          <NeDropdownFilterV2
-            v-model="userFilter"
-            kind="checkbox"
-            :label="$t('phones.user')"
-            :options="userFilterOptions"
-            show-options-filter
-            v-bind="filterLabels"
-          />
-          <NeDropdownFilterV2
-            v-model="statusFilter"
-            kind="checkbox"
-            :label="$t('phones.inventory.status')"
-            :options="statusFilterOptions"
-            v-bind="filterLabels"
-          />
-          <NeButton kind="tertiary" :disabled="!areFiltersApplied" @click="resetFilters">
-            {{ $t('common.reset_filters') }}
+      <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
+        <p class="text-secondary-neutral max-w-2xl">
+          {{ $t('phones.inventory.description') }}
+        </p>
+        <div class="mt-2 flex flex-wrap items-center gap-4 justify-self-start sm:mt-0">
+          <NeDropdown
+            :items="actionsItems"
+            align-to-right
+            :open-menu-aria-label="$t('common.actions')"
+            menu-classes="min-w-56"
+          >
+            <template #button>
+              <NeButton kind="secondary" size="lg" tabindex="-1" aria-hidden="true">
+                <template #suffix>
+                  <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
+                </template>
+                {{ $t('common.actions') }}
+              </NeButton>
+            </template>
+          </NeDropdown>
+          <NeButton
+            kind="primary"
+            size="lg"
+            :disabled="loading || !defaultsReady"
+            @click="isShownAddPhonesModal = true"
+          >
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+            </template>
+            {{ $t('phones.inventory.add_phones') }}
           </NeButton>
-          <span v-if="updating" class="text-tertiary-neutral text-sm">
-            {{ $t('phones.updating') }}
-          </span>
+        </div>
+      </div>
+      <div class="mb-6 flex flex-wrap items-center gap-4">
+        <NeTextInput
+          v-model="textFilter"
+          is-search
+          :placeholder="$t('phones.inventory.filter_phones')"
+          :aria-label="$t('phones.inventory.filter_phones')"
+          :clear-search-label="$t('ne_text_input.clear_search')"
+          class="max-w-48 sm:max-w-sm"
+        />
+        <NeDropdownFilterV2
+          v-model="modelFilter"
+          kind="checkbox"
+          :label="$t('phones.model')"
+          :options="modelFilterOptions"
+          v-bind="filterLabels"
+        />
+        <NeDropdownFilterV2
+          v-model="userFilter"
+          kind="checkbox"
+          :label="$t('phones.user')"
+          :options="userFilterOptions"
+          show-options-filter
+          v-bind="filterLabels"
+        />
+        <NeDropdownFilterV2
+          v-model="statusFilter"
+          kind="checkbox"
+          :label="$t('phones.inventory.status')"
+          :options="statusFilterOptions"
+          v-bind="filterLabels"
+        />
+        <NeButton kind="tertiary" :disabled="!areFiltersApplied" @click="resetFilters">
+          {{ $t('common.reset_filters') }}
+        </NeButton>
+        <div
+          v-if="updating"
+          class="text-tertiary-neutral ml-auto flex items-center gap-2 text-sm"
+          role="status"
+          data-testid="phones-updating"
+        >
+          <NeSpinner color="gray" size="4" />
+          <span>{{ $t('phones.updating') }}</span>
         </div>
       </div>
       <NeEmptyState
@@ -461,7 +493,28 @@ function showDeletePhoneModal(phone: Phone) {
         <NeTableBody>
           <NeTableRow v-for="phone in page" :key="phone.mac">
             <NeTableCell :data-label="$t('phones.mac_address')">
-              <ClickToCopy :text="formatMac(phone.mac)" />
+              <div class="flex items-center gap-1">
+                <span>{{ formatMac(phone.mac) }}</span>
+                <NeTooltip trigger-event="mouseenter focus" placement="top" :hide-on-click="false">
+                  <template #trigger>
+                    <NeButton kind="tertiary" size="sm" @click="copyMac(phone)">
+                      <FontAwesomeIcon :icon="faCopy" class="size-4" aria-hidden="true" />
+                      <span class="sr-only">
+                        {{
+                          $t('phones.inventory.copy_mac_address_of', { mac: formatMac(phone.mac) })
+                        }}
+                      </span>
+                    </NeButton>
+                  </template>
+                  <template #content>
+                    {{
+                      copiedMac === phone.mac
+                        ? $t('common.copied')
+                        : $t('phones.inventory.copy_mac_address')
+                    }}
+                  </template>
+                </NeTooltip>
+              </div>
             </NeTableCell>
             <NeTableCell :data-label="$t('phones.model')">
               {{ phone.modelLabel || '-' }}
@@ -476,8 +529,8 @@ function showDeletePhoneModal(phone: Phone) {
                 </span>
                 <div class="flex flex-col">
                   <span>{{ phone.user.displayName }}</span>
-                  <span class="text-tertiary-neutral">
-                    {{ phone.user.username }} · {{ phone.extension }}
+                  <span v-if="userDetails(phone)" class="text-tertiary-neutral">
+                    {{ userDetails(phone) }}
                   </span>
                 </div>
               </div>
@@ -561,6 +614,7 @@ function showDeletePhoneModal(phone: Phone) {
         </template>
       </NeTable>
     </template>
+    <span class="sr-only" aria-live="polite">{{ copiedMac ? $t('common.copied') : '' }}</span>
     <AddPhonesModal
       :is-shown="isShownAddPhonesModal"
       :existing-macs="phones.map((phone) => phone.mac)"

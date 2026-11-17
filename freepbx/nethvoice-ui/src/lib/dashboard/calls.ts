@@ -17,14 +17,14 @@ const CallsSummarySchema = v.object({
   answered: CountSchema,
   missed: CountSchema,
   invalid: CountSchema,
-  incoming_by_hour: v.pipe(v.array(CountSchema), v.maxLength(24)),
+  calls_by_hour: v.pipe(v.array(CountSchema), v.maxLength(24)),
 })
 
-export type CallsSummary = Record<CallOutcome, number> & { incomingByHour: number[] }
+export type CallsSummary = Record<CallOutcome, number> & { callsByHour: number[] }
 
 export const parseCallsSummary = (raw: unknown): CallsSummary => {
-  const { incoming_by_hour, ...outcomes } = v.parse(CallsSummarySchema, raw)
-  return { ...outcomes, incomingByHour: incoming_by_hour }
+  const { calls_by_hour, ...outcomes } = v.parse(CallsSummarySchema, raw)
+  return { ...outcomes, callsByHour: calls_by_hour }
 }
 
 export const getDashboardCalls = async (signal?: AbortSignal): Promise<CallsSummary> => {

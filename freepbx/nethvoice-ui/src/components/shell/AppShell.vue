@@ -74,10 +74,10 @@ watch(
                 </div>
               </TransitionChild>
               <div
-                class="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-2 pb-4 dark:bg-gray-950"
+                class="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-2 pt-1 pb-4 dark:bg-gray-950"
               >
-                <div class="flex h-16 shrink-0 items-center">
-                  <BrandLogo class="h-7 w-auto px-3" />
+                <div class="flex h-12.5 shrink-0 items-center px-4">
+                  <BrandLogo class="h-5.5 w-auto" />
                 </div>
                 <nav class="flex flex-1 flex-col">
                   <ul role="list" class="flex flex-1 flex-col gap-y-7">
@@ -95,12 +95,12 @@ watch(
       </Dialog>
     </TransitionRoot>
 
-    <div class="hidden lg:fixed lg:z-50 lg:flex lg:h-screen lg:w-72 lg:flex-col">
+    <div class="hidden lg:fixed lg:z-50 lg:flex lg:h-screen lg:w-75 lg:flex-col">
       <div
-        class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-2 pb-4 dark:border-gray-700 dark:bg-gray-950"
+        class="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-2 pt-1 pb-4 dark:border-gray-700 dark:bg-gray-950"
       >
-        <div class="flex h-16 shrink-0 items-center">
-          <BrandLogo class="h-7 w-auto px-3" />
+        <div class="flex h-12.5 shrink-0 items-center px-4">
+          <BrandLogo class="h-5.5 w-auto" />
         </div>
         <nav class="flex flex-1 flex-col">
           <ul role="list" class="flex flex-1 flex-col gap-y-7">
@@ -114,9 +114,9 @@ watch(
       </div>
     </div>
 
-    <div class="lg:pl-72">
+    <div class="lg:pl-75">
       <TopBar @open-sidebar="sidebarOpen = true" />
-      <main class="py-10">
+      <main class="py-6">
         <div class="px-4 sm:px-6 lg:px-8">
           <RouterView />
         </div>

@@ -56,7 +56,7 @@ const isShownDrawer = ref(false)
 const profileToDelete = ref<Profile | undefined>()
 const isShownDeleteModal = ref(false)
 
-const CARDS_GRID_CLASSES = 'grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3'
+const CARDS_GRID_CLASSES = 'grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3'
 
 const DEFAULT_PROFILE_ICONS: Record<number, IconDefinition> = {
   1: faCircleMinus,
@@ -136,7 +136,7 @@ function reload() {
   <div>
     <LoadError v-if="loadError" :error="loadError" @retry="reload" />
     <template v-else>
-      <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+      <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
         <p class="text-secondary-neutral max-w-152">
           {{ t('profiles.description_line_1') }}<br />{{
             t('profiles.description_line_2', { brand: runtimeConfigStore.config.brandName })
@@ -183,7 +183,7 @@ function reload() {
         <li
           v-for="index in DEFAULT_PROFILE_IDS.length"
           :key="index"
-          class="bg-elevation-0 flex min-w-0 flex-col gap-3 rounded-lg border-l-4 border-gray-300 p-5 shadow-xs dark:border-gray-600"
+          class="bg-elevation-0 flex min-w-0 flex-col gap-3 rounded-lg border-l-4 border-gray-300 p-6 shadow-xs dark:border-gray-600"
         >
           <NeSkeleton :lines="2" />
         </li>
@@ -210,7 +210,7 @@ function reload() {
           v-for="profile in filteredProfiles"
           :key="profile.id"
           :data-profile="profile.id"
-          class="bg-elevation-0 flex min-w-0 flex-col gap-3 rounded-lg p-5 shadow-xs"
+          class="bg-elevation-0 flex min-w-0 flex-col gap-3 rounded-lg p-6 shadow-xs"
           :class="
             isDefaultProfile(profile) ? 'border-l-4 border-gray-300 dark:border-gray-600' : ''
           "

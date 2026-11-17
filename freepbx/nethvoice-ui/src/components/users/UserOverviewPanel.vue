@@ -9,7 +9,6 @@ import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faBars,
-  faEye,
   faMagnifyingGlass,
   faStar,
   faUserGroup,
@@ -29,10 +28,8 @@ import {
 } from '@nethesis/vue-components'
 import LoadError from '@/components/common/LoadError.vue'
 import OperatorDetailsDrawer from '@/components/overview/OperatorDetailsDrawer.vue'
-import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
 import OverviewCompactCard from '@/components/overview/OverviewCompactCard.vue'
-import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
-import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
+import OverviewUserCard from '@/components/overview/OverviewUserCard.vue'
 import { usePolling } from '@/composables/usePolling'
 import {
   buildOverviewUsers,
@@ -354,61 +351,12 @@ function reload() {
         v-else-if="view === 'grid'"
         class="3xl:grid-cols-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
       >
-        <li
-          v-for="user in shownUsers"
-          :key="user.username"
-          :data-user="user.username"
-          class="bg-elevation-0 flex min-w-0 flex-col gap-4 rounded-lg py-4 shadow-md"
-        >
-          <div
-            class="flex items-start justify-between gap-3 border-b border-gray-200 px-4 pb-2 dark:border-gray-700"
-          >
-            <div class="flex min-w-0 items-center gap-3">
-              <OverviewAvatar
-                :name="user.name"
-                :presence="user.presence"
-                :favorite="favoritesStore.isFavorite(user.username)"
-              />
-              <div class="min-w-0">
-                <p class="text-primary-neutral truncate" :title="user.name">{{ user.name }}</p>
-                <p v-if="user.groups.length" class="text-tertiary-neutral flex items-center gap-2">
-                  <FontAwesomeIcon :icon="faUserGroup" class="size-4 shrink-0" aria-hidden="true" />
-                  <span class="truncate">{{ user.groups.join(', ') }}</span>
-                </p>
-              </div>
-            </div>
-            <NeTooltip trigger-event="mouseenter focus" placement="top">
-              <template #trigger>
-                <NeButton kind="tertiary" size="sm" @click="showDetails(user)">
-                  <FontAwesomeIcon :icon="faEye" class="size-4" aria-hidden="true" />
-                  <span class="sr-only">{{
-                    t('user_overview.show_details', { name: user.name })
-                  }}</span>
-                </NeButton>
-              </template>
-              <template #content>{{ t('common.show_details') }}</template>
-            </NeTooltip>
-          </div>
-          <ul class="flex flex-col gap-2 px-6">
-            <li
-              v-for="device in user.devices"
-              :key="device.extension"
-              class="flex items-center gap-5 border-b border-gray-200 pb-2 last:border-b-0 dark:border-gray-700"
-            >
-              <FontAwesomeIcon
-                :icon="DEVICE_ICONS[device.type]"
-                class="text-tertiary-neutral size-6 shrink-0"
-                :aria-label="t(`user_overview.devices.${device.type}`)"
-              />
-              <div>
-                <p class="text-primary-700 dark:text-primary-500">{{ device.extension }}</p>
-                <OverviewStatusLabel :status="device.status" />
-              </div>
-            </li>
-            <li v-if="user.devices.length === 0" class="text-tertiary-neutral pb-2">
-              {{ t('user_overview.no_devices') }}
-            </li>
-          </ul>
+        <li v-for="user in shownUsers" :key="user.username" :data-user="user.username">
+          <OverviewUserCard
+            :user="user"
+            :favorite="favoritesStore.isFavorite(user.username)"
+            @details="showDetails(user)"
+          />
         </li>
       </ul>
       <ul
@@ -433,7 +381,7 @@ function reload() {
         >
           <h3 class="flex">
             <NeBadgeV2 :kind="section.kind" size="xs">
-              <FontAwesomeIcon :icon="section.icon" class="mr-1 size-4" aria-hidden="true" />
+              <FontAwesomeIcon :icon="section.icon" class="size-4" aria-hidden="true" />
               {{ section.label }}
             </NeBadgeV2>
           </h3>

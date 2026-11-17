@@ -174,22 +174,60 @@ test.describe('user overview', () => {
     await expect(page.getByRole('button', { name: 'Call', exact: true })).toBeEnabled()
 
     const drawer = page.getByRole('dialog')
-    await expect(drawer.getByTestId('device-row')).toHaveCount(3)
-    await expect(drawer.getByTestId('device-row').nth(1)).toContainText('92300')
+    const rows = drawer.getByTestId('device-row')
+    await expect(rows).toHaveCount(3)
+    await expect(drawer.getByText('Select a device to show its settings.')).toBeVisible()
+    await expect(drawer.getByRole('button', { name: 'Call 300', exact: true })).toBeEnabled()
+    await expect(drawer.getByRole('button', { name: 'Call 92300, device ringing' })).toBeDisabled()
+    await expect(drawer.getByRole('button', { name: 'Call 93300, device offline' })).toBeDisabled()
 
-    const tabs = drawer.getByRole('navigation', { name: 'Tabs' })
+    const webPhone = drawer.getByRole('button', { name: 'Web phone 300 settings' })
+    const mobileApp = drawer.getByRole('button', { name: 'Mobile app 92300 settings' })
     const details = drawer.getByTestId('device-details')
-    await expect(details).toContainText('opus, alaw')
-    await expect(details).not.toContainText('0612345678')
+    await expect(webPhone).toHaveAttribute('aria-expanded', 'false')
+    await expect(details.first()).toBeHidden()
 
-    await tabs.getByText(/Mobile app/).click()
-    await expect(details).toContainText('0612345678')
+    await mobileApp.click({ position: { x: 8, y: 8 } })
+    await expect(mobileApp).toHaveAttribute('aria-expanded', 'true')
+    await expect(details.nth(1)).toBeVisible()
+    await expect(details.nth(1)).toContainText('0612345678')
+
+    await webPhone.click({ position: { x: 8, y: 8 } })
+    await expect(webPhone).toHaveAttribute('aria-expanded', 'true')
+    await expect(mobileApp).toHaveAttribute('aria-expanded', 'false')
+    await expect(details.first()).toContainText('opus, alaw')
+    await expect(details.nth(1)).toBeHidden()
+
+    await drawer.getByRole('button', { name: 'Call 300', exact: true }).click()
+    await expect(webPhone).toHaveAttribute('aria-expanded', 'true')
     expect(
       await drawer.evaluate((element) => {
         const scroller = element.querySelector('.overflow-y-auto') ?? element
         return scroller.scrollWidth <= scroller.clientWidth
       }),
     ).toBe(true)
+  })
+
+  test('keeps a device open while the live status refreshes', async ({ page, mockApi }) => {
+    await page.clock.install()
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    const webPhone = page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Web phone 300 settings' })
+    await webPhone.click({ position: { x: 8, y: 8 } })
+    await expect(webPhone).toHaveAttribute('aria-expanded', 'true')
+
+    const refreshes = mockApi.callsTo('GET', '/api/astproxy/extensions').length
+    await page.clock.runFor(25000)
+    await expect
+      .poll(() => mockApi.callsTo('GET', '/api/astproxy/extensions').length)
+      .toBeGreaterThan(refreshes)
+
+    await expect(webPhone).toHaveAttribute('aria-expanded', 'true')
+    await expect(page.getByRole('dialog').getByTestId('device-details').first()).toBeVisible()
   })
 
   test('disables the call without a device online', async ({ page, mockApi }) => {

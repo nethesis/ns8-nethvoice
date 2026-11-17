@@ -6,7 +6,12 @@ import { createApp, nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { PiniaColada } from '@pinia/colada'
 import i18n, { loadLocaleMessages } from '@/i18n'
-import { ADMIN_PHONE_RELOAD_DELAY, getServiceExtension } from '@/lib/adminPhone/adminPhone'
+import {
+  ADMIN_PHONE_CHANNEL_NAME,
+  ADMIN_PHONE_HOLDER_TIMEOUT,
+  ADMIN_PHONE_RELOAD_DELAY,
+  getServiceExtension,
+} from '@/lib/adminPhone/adminPhone'
 import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/errors'
 import { CREDENTIALS_STORAGE_KEY } from '@/lib/config'
@@ -130,6 +135,52 @@ class FakeLockManager {
     if (entry) {
       this.grant(entry)
     }
+  }
+}
+
+class FakeBroadcastChannel {
+  static channels: FakeBroadcastChannel[] = []
+  onmessage: ((event: MessageEvent) => void) | null = null
+  private closed = false
+
+  constructor(readonly name: string) {
+    FakeBroadcastChannel.channels.push(this)
+  }
+
+  postMessage(data: unknown) {
+    for (const channel of FakeBroadcastChannel.channels) {
+      if (channel !== this && channel.name === this.name && !channel.closed) {
+        queueMicrotask(() => channel.onmessage?.(new MessageEvent('message', { data })))
+      }
+    }
+  }
+
+  close() {
+    this.closed = true
+  }
+}
+
+const otherTab = (inCall: boolean) => {
+  const channel = new FakeBroadcastChannel(ADMIN_PHONE_CHANNEL_NAME)
+  const tab = { inCall, messages: [] as unknown[] }
+
+  channel.onmessage = (event) => {
+    tab.messages.push(event.data)
+
+    if (event.data?.type === 'query') {
+      channel.postMessage({ type: 'status', inCall: tab.inCall })
+    }
+  }
+  return {
+    messages: tab.messages,
+    query: () => channel.postMessage({ type: 'query' }),
+    setInCall: (value: boolean, announce = true) => {
+      tab.inCall = value
+
+      if (announce) {
+        channel.postMessage({ type: 'status', inCall: value })
+      }
+    },
   }
 }
 
@@ -293,52 +344,216 @@ describe('useAdminPhoneStore', () => {
     beforeEach(() => {
       fakeLocks = new FakeLockManager()
       Object.defineProperty(navigator, 'locks', { value: fakeLocks, configurable: true })
+      FakeBroadcastChannel.channels = []
+      vi.stubGlobal('BroadcastChannel', FakeBroadcastChannel)
     })
 
     afterEach(() => {
       Reflect.deleteProperty(navigator, 'locks')
+      vi.unstubAllGlobals()
     })
 
-    it('waits while another tab holds the phone and takes it over when asked', async () => {
+    const stealFromOtherTab = () => {
+      let release: () => void = () => undefined
+      void fakeLocks
+        .request('lock', { steal: true }, () => new Promise<void>((done) => (release = done)))
+        .catch(() => undefined)
+      return () => release()
+    }
+
+    it('takes the phone from another tab when it starts', async () => {
       mockSession()
-      const releaseOther = fakeLocks.holdElsewhere()
+      fakeLocks.holdElsewhere()
+      otherTab(false)
       const store = createStore()
 
       store.start()
-      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
-      expect(api.POST).not.toHaveBeenCalled()
-
-      store.useHere()
       await vi.waitFor(() => expect(store.state).toBe('registering'))
       expect(fakeLocks.stolen).toBe(true)
-      releaseOther()
       store.stop()
     })
 
-    it('takes the phone when the other tab closes', async () => {
-      mockSession()
-      const releaseOther = fakeLocks.holdElsewhere()
-      const store = createStore()
-
-      store.start()
-      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
-
-      releaseOther()
-      await vi.waitFor(() => expect(store.state).toBe('registering'))
-      store.stop()
-      await vi.waitFor(() => expect(fakeLocks.held).toBe(false))
-    })
-
-    it('ignores calls while the phone is in another tab', async () => {
+    it('takes the phone when no other tab answers, as after a reload', async () => {
       mockSession()
       fakeLocks.holdElsewhere()
       const store = createStore()
 
       store.start()
+      await vi.advanceTimersByTimeAsync(ADMIN_PHONE_HOLDER_TIMEOUT - 1)
+      expect(fakeLocks.stolen).toBe(false)
+
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      expect(fakeLocks.stolen).toBe(true)
+      store.stop()
+    })
+
+    it('waits for the tab in a call and takes the phone when the call ends', async () => {
+      mockSession()
+      fakeLocks.holdElsewhere()
+      const other = otherTab(true)
+      const store = createStore()
+
+      store.start()
       await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+      await vi.advanceTimersByTimeAsync(ADMIN_PHONE_HOLDER_TIMEOUT)
+      expect(fakeLocks.stolen).toBe(false)
+      expect(store.otherTabInCall).toBe(true)
+      expect(store.isCallBlocked).toBe(true)
+      expect(api.POST).not.toHaveBeenCalled()
+
+      other.setInCall(false)
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      expect(fakeLocks.stolen).toBe(true)
+      expect(store.otherTabInCall).toBe(false)
+      store.stop()
+    })
+
+    it('gets the phone when the tab in a call closes', async () => {
+      mockSession()
+      const release = fakeLocks.holdElsewhere()
+      otherTab(true)
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+
+      release()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      expect(fakeLocks.stolen).toBe(false)
+      store.stop()
+    })
+
+    it('does not take the phone from a tab in a call', async () => {
+      mockSession()
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      const other = otherTab(false)
+      const releaseOther = stealFromOtherTab()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+
+      other.setInCall(true)
+      await vi.waitFor(() => expect(store.otherTabInCall).toBe(true))
+      vi.mocked(api.POST).mockClear()
+
+      await store.call('300')
+      store.useHere()
+      await vi.advanceTimersByTimeAsync(ADMIN_PHONE_HOLDER_TIMEOUT * 2)
+      expect(store.state).toBe('elsewhere')
+      expect(api.POST).not.toHaveBeenCalled()
+
+      other.setInCall(false)
+      await vi.waitFor(() => expect(store.otherTabInCall).toBe(false))
+      expect(store.state).toBe('elsewhere')
+      releaseOther()
+      store.stop()
+    })
+
+    it('asks the other tab before taking the phone to call', async () => {
+      mockSession()
+      const store = createStore()
+      const calls = callStarts()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      const other = otherTab(false)
+      const releaseOther = stealFromOtherTab()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+      other.setInCall(true, false)
+      vi.mocked(api.POST).mockClear()
+
       await store.call('300')
 
+      expect(store.state).toBe('elsewhere')
+      expect(store.otherTabInCall).toBe(true)
       expect(api.POST).not.toHaveBeenCalled()
+      await vi.runOnlyPendingTimersAsync()
+      expect(calls.numbers).toEqual([])
+      calls.stop()
+      releaseOther()
+      store.stop()
+    })
+
+    it('tells the other tabs whether the phone is in a call', async () => {
+      mockSession()
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      store.handleIslandEvent('phone-island-webrtc-registered', {})
+      const other = otherTab(false)
+
+      other.query()
+      await vi.waitFor(() => expect(other.messages).toEqual([{ type: 'status', inCall: false }]))
+
+      store.handleIslandEvent('phone-island-call-started', {})
+      await vi.waitFor(() => expect(other.messages).toHaveLength(2))
+      expect(other.messages[1]).toEqual({ type: 'status', inCall: true })
+      store.stop()
+    })
+
+    it('uses the phone without the lock when the browser refuses it', async () => {
+      mockSession()
+      const request = vi.fn(() => Promise.reject(new DOMException('denied', 'SecurityError')))
+      Object.defineProperty(navigator, 'locks', { value: { request }, configurable: true })
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      await vi.advanceTimersByTimeAsync(ADMIN_PHONE_HOLDER_TIMEOUT * 2)
+      expect(request).toHaveBeenCalledTimes(1)
+      expect(api.POST).toHaveBeenCalledTimes(1)
+      store.stop()
+    })
+
+    it('waits when a newer tab takes the phone and takes it back when asked', async () => {
+      mockSession()
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+
+      const releaseOther = stealFromOtherTab()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+
+      store.useHere()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      releaseOther()
+      store.stop()
+    })
+
+    it('takes the phone back when the newer tab closes', async () => {
+      mockSession()
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+
+      const releaseOther = stealFromOtherTab()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+
+      releaseOther()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      store.stop()
+    })
+
+    it('takes the phone back to call from a tab without it', async () => {
+      mockSession()
+      const store = createStore()
+
+      store.start()
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      otherTab(false)
+      const releaseOther = stealFromOtherTab()
+      await vi.waitFor(() => expect(store.state).toBe('elsewhere'))
+      vi.mocked(api.POST).mockClear()
+
+      await store.call('300')
+
+      await vi.waitFor(() => expect(store.state).toBe('registering'))
+      expect(api.POST).toHaveBeenCalledTimes(1)
+      releaseOther()
       store.stop()
     })
   })

@@ -198,9 +198,35 @@ test.describe('physical phones: models', () => {
     await page.goto('./phones/models?model=yealink-T46')
 
     await expect(page.getByRole('heading', { name: 'Yealink T46' })).toBeVisible()
-    await page.getByRole('button', { name: 'Models', exact: true }).first().click()
+    await expect(page.getByRole('heading', { name: 'Physical phones' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Models', exact: true })).toHaveCount(1)
+    await page.getByRole('button', { name: 'Models', exact: true }).click()
     await expect(page.getByRole('row', { name: /Yealink T46/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Physical phones' })).toBeVisible()
     await expect(page).toHaveURL(/\/phones\/models$/)
+  })
+
+  test('asks before discarding the changes to a model', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi).on('GET', `${TANCREDI}/models/:id`, {
+      json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
+    })
+    await page.goto('./phones/models?model=yealink-T46')
+
+    await page.getByRole('button', { name: 'Network' }).click()
+    const vlan = page.getByRole('textbox', { name: 'Phone VLAN ID' })
+    await vlan.fill('30')
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+
+    const modal = page.getByRole('dialog')
+    await expect(modal.getByRole('heading', { name: 'Discard changes' })).toBeVisible()
+    await expect(modal.getByText('Unsaved changes to this model will be lost.')).toBeVisible()
+    await modal.getByRole('button', { name: 'Cancel' }).click()
+    await expect(vlan).toHaveValue('30')
+
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Discard', exact: true }).click()
+    await expect(vlan).toHaveValue('')
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeDisabled()
   })
 
   test('tells when the model in the address does not exist', async ({ page, mockApi }) => {

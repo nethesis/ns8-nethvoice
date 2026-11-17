@@ -6,12 +6,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NeAvatar, type AvatarSize } from '@nethesis/vue-components'
+import { NeAvatar } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faStar } from '@fortawesome/free-solid-svg-icons'
 import { PRESENCE_DOT } from '@/components/overview/presence'
 import { getInitials, type OverviewStatus } from '@/lib/overview/overview'
 import { useDensityStore } from '@/stores/density'
+
+type OverviewAvatarSize = 'sm' | 'md' | '3xl'
 
 const {
   name,
@@ -21,38 +23,28 @@ const {
 } = defineProps<{
   name: string
   presence: OverviewStatus
-  size?: AvatarSize
+  size?: OverviewAvatarSize
   favorite?: boolean
 }>()
 
 const { t } = useI18n()
 const densityStore = useDensityStore()
 
-const DOT_SIZE: Record<AvatarSize, string> = {
-  xs: 'size-1.5',
+const DOT_SIZE: Record<OverviewAvatarSize, string> = {
   sm: 'size-2',
   md: 'size-2.5',
-  lg: 'size-3',
-  xl: 'size-3.5',
-  '2xl': 'size-4',
-  '3xl': 'size-4',
-  '4xl': 'size-5',
+  '3xl': 'size-5',
 }
 
-const STAR_SIZE: Record<AvatarSize, string> = {
-  xs: 'size-2',
+const STAR_SIZE: Record<OverviewAvatarSize, string> = {
   sm: 'size-2.5',
-  md: 'size-2.5',
-  lg: 'size-3',
-  xl: 'size-3.5',
-  '2xl': 'size-4',
-  '3xl': 'size-4',
-  '4xl': 'size-5',
+  md: 'size-3',
+  '3xl': 'size-6',
 }
 
 const initials = computed(() => getInitials(name))
 
-const avatarSize = computed<AvatarSize>(() =>
+const avatarSize = computed<OverviewAvatarSize>(() =>
   densityStore.isCompact && size === 'sm' ? 'md' : size,
 )
 </script>
@@ -62,7 +54,7 @@ const avatarSize = computed<AvatarSize>(() =>
     <NeAvatar :size="avatarSize" :initials="initials" :alt="name" />
     <span
       :class="[
-        'absolute right-0 bottom-0 block rounded-full border-2 border-white',
+        'absolute right-0 bottom-0 block rounded-full ring-2 ring-white',
         DOT_SIZE[avatarSize],
         PRESENCE_DOT[presence],
       ]"
@@ -71,15 +63,24 @@ const avatarSize = computed<AvatarSize>(() =>
     >
       <span class="sr-only">{{ t(`user_overview.status.${presence}`) }}</span>
     </span>
-    <FontAwesomeIcon
-      v-if="favorite"
-      :icon="faStar"
-      :class="[
-        'text-accent-indigo absolute top-0 right-0 stroke-white stroke-170 [paint-order:stroke]',
-        STAR_SIZE[avatarSize],
-      ]"
-      data-testid="favorite-star"
-      :aria-label="t('user_overview.favorite')"
-    />
+    <template v-if="favorite">
+      <FontAwesomeIcon
+        :icon="faStar"
+        :class="[
+          'absolute -top-px -right-px scale-130 text-white drop-shadow-[0_0_1px_var(--color-white)]',
+          STAR_SIZE[avatarSize],
+        ]"
+        aria-hidden="true"
+      />
+      <FontAwesomeIcon
+        :icon="faStar"
+        :class="[
+          'absolute -top-px -right-px text-indigo-700 dark:text-indigo-500',
+          STAR_SIZE[avatarSize],
+        ]"
+        data-testid="favorite-star"
+        :aria-label="t('user_overview.favorite')"
+      />
+    </template>
   </span>
 </template>

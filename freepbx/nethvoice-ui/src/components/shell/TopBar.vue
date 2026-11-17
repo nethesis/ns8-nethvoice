@@ -143,7 +143,7 @@ function openNotificationsDrawer() {
 
     <div class="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
       <div class="relative flex flex-1 items-center"></div>
-      <div class="flex items-center gap-x-4">
+      <div class="flex items-center gap-x-4 self-stretch">
         <NeTooltip
           v-if="isEnterprise"
           trigger-event="mouseenter focus"
@@ -163,7 +163,7 @@ function openNotificationsDrawer() {
           <template #content>{{ $t('shell.enterprise_instance') }}</template>
         </NeTooltip>
         <div
-          class="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200 dark:lg:bg-gray-700"
+          class="hidden w-px self-stretch bg-gray-200 lg:block dark:bg-gray-700"
           aria-hidden="true"
         />
 

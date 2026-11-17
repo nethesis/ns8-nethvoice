@@ -3,6 +3,7 @@
 
 import { TANCREDI_API_URL } from '@/lib/config'
 import { ApiError } from '@/lib/api/errors'
+import { CTI_ADMIN_USERNAME } from '@/lib/dashboard/ctiClient'
 import { useLoginStore } from '@/stores/login'
 
 export type TancrediQuery = Record<string, string | number | boolean | undefined>
@@ -16,12 +17,17 @@ type TancrediRequestOptions = {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
-export const isTancrediAuthenticationFailure = (status: number, body: unknown): boolean => {
+export const isTancrediAuthenticationFailure = (
+  status: number,
+  body: unknown,
+  username?: string,
+): boolean => {
   if (status === 401) {
     return true
   }
   return (
     status === 403 &&
+    username === CTI_ADMIN_USERNAME &&
     isRecord(body) &&
     typeof body.type === 'string' &&
     /\/problems\/?#forbidden$/.test(body.type)
@@ -91,7 +97,7 @@ const request = async (
   const payload = await readBody(response)
 
   if (!response.ok) {
-    if (isTancrediAuthenticationFailure(response.status, payload)) {
+    if (isTancrediAuthenticationFailure(response.status, payload, credentials?.user)) {
       loginStore.handleAuthenticationFailure()
     }
 

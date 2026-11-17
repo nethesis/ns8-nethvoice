@@ -242,6 +242,13 @@ test.describe('profiles', () => {
     await page.getByRole('button', { name: 'CTI features' }).click()
     await expect(page.locator('[data-feature="qmanager"] input').first()).toBeDisabled()
     await expect(page.locator('[data-feature="presence_panel"] input').first()).toBeEnabled()
+    await page
+      .locator('[data-feature="qmanager"]')
+      .getByRole('button', { name: 'Available with an active subscription' })
+      .hover()
+    await expect(
+      page.locator('[data-tippy-root]').getByText('Available with an active subscription'),
+    ).toBeVisible()
   })
 
   test('keeps every user of the Base profile', async ({ page, mockApi }) => {

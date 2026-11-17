@@ -21,6 +21,10 @@ export const ADMIN_PHONE_STATES = [
 
 export const ADMIN_PHONE_LOCK_NAME = 'nethvoice-admin-phone'
 
+export const ADMIN_PHONE_CHANNEL_NAME = `${ADMIN_PHONE_LOCK_NAME}-tabs`
+
+export const ADMIN_PHONE_HOLDER_TIMEOUT = 300
+
 export type AdminPhoneState = (typeof ADMIN_PHONE_STATES)[number]
 
 export type AdminPhoneStatus = { enabled: boolean; extension: string | null }
@@ -85,6 +89,21 @@ const AdminPhoneSessionSchema = v.pipe(
 )
 
 const AlertSchema = v.object({ type: v.string() })
+
+const AdminPhoneTabMessageSchema = v.variant('type', [
+  v.object({ type: v.literal('query') }),
+  v.object({ type: v.literal('status'), inCall: v.boolean() }),
+])
+
+export type AdminPhoneTabMessage = v.InferOutput<typeof AdminPhoneTabMessageSchema>
+
+export const parseAdminPhoneTabMessage = (raw: unknown): AdminPhoneTabMessage | null => {
+  const message = v.safeParse(AdminPhoneTabMessageSchema, raw)
+  return message.success ? message.output : null
+}
+
+export const isAbortError = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError'
 
 export const parseAdminPhoneStatus = (raw: unknown): AdminPhoneStatus => {
   const status = v.parse(AdminPhoneStatusSchema, raw)

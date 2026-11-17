@@ -243,7 +243,7 @@ export interface paths {
     put?: never
     /**
      * Persist the current wizard step and optionally trigger service restarts.
-     * @description Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts Asterisk and signals the CTI service.
+     * @description Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts Asterisk and signals the CTI service. Saving step 13 with status false completes the wizard, restarts Asterisk and signals the CTI services to restart; other steps and statuses never restart services.
      */
     post: operations['post_configuration_wizard']
     delete?: never
@@ -652,7 +652,7 @@ export interface paths {
     put?: never
     /**
      * Create a customer card template.
-     * @description Body contains `name`, `custom` flag and base64 `html` content.
+     * @description Body contains `name`, `custom` flag and base64 `html` content. Requires the superadmin permission: templates are rendered by the CTI server.
      */
     post: operations['post_cti_customer_card_template']
     delete?: never
@@ -669,7 +669,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Overwrite a customer card template (the file is found by `name` and `custom` in the body). */
+    /**
+     * Overwrite a customer card template (the file is found by `name` and `custom` in the body).
+     * @description Requires the superadmin permission: templates are rendered by the CTI server.
+     */
     put: operations['put_cti_customer_card_template_name']
     post?: never
     /** Delete a customer card template. */
@@ -731,7 +734,10 @@ export interface paths {
     /** List the video sources with the profiles allowed to see them. */
     get: operations['get_cti_streaming']
     put?: never
-    /** Create a video source. */
+    /**
+     * Create a video source.
+     * @description For administrators who are not superadmin the URL must be a public http or https address.
+     */
     post: operations['post_cti_streaming']
     delete?: never
     options?: never
@@ -764,7 +770,10 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    /** Update a video source (found by `currentDescr` in the body). */
+    /**
+     * Update a video source (found by `currentDescr` in the body).
+     * @description For administrators who are not superadmin the URL must be a public http or https address.
+     */
     put: operations['put_cti_streaming_descr']
     post?: never
     delete?: never
@@ -784,7 +793,7 @@ export interface paths {
     put?: never
     /**
      * Fetch one frame from a video source URL.
-     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure.
+     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure. The URL is fetched only over http or https, never from a loopback, link-local or unspecified address, and redirects are not followed.
      */
     post: operations['post_cti_sources_test']
     delete?: never
@@ -1792,7 +1801,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Read the first rows of a phonebook source without saving it. */
+    /**
+     * Read the first rows of a phonebook source without saving it.
+     * @description Testing a mysql or mssql source requires the superadmin permission. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files.
+     */
     post: operations['post_phonebook_test']
     delete?: never
     options?: never
@@ -2453,9 +2465,49 @@ export interface paths {
     }
     /**
      * Summarize the calls of today for the dashboard.
-     * @description Reads the CDR from midnight of the PBX time zone. The legs of a call are counted once, feature codes are not counted. A call is answered when a leg is ANSWERED, missed when a leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). Requires the dashboard section.
+     * @description Reads the CDR from midnight of the PBX time zone. The legs of a call are counted once, feature codes and the calls of the administrator phone are not counted. A call is answered when a leg is ANSWERED, missed when a leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). Requires the dashboard section.
      */
     get: operations['get_dashboard_calls']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/dashboard/phones': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Count the physical phones by provisioning status for the dashboard.
+     * @description Counts the phones of the Tancredi inventory. A phone is unassigned when no extension is assigned to its MAC address, pending when its first-access provisioning token still exists, provisioned when it has downloaded its configuration and one of its extensions is registered, failed when it has downloaded its configuration but none of its extensions is registered. A phone whose details Tancredi does not return is unknown. The result is cached for 30 seconds. Requires the dashboard section.
+     */
+    get: operations['get_dashboard_phones']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/dashboard/system': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Return the release and the host status for the dashboard.
+     * @description The release is the tag of the NethVoice module image. Uptime, load average and memory usage come from the proc file system of the host. Requires the dashboard section.
+     */
+    get: operations['get_dashboard_system']
     put?: never
     post?: never
     delete?: never
@@ -2593,7 +2645,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List the users. `true`: all users, forcing a sync with the account provider in background. `false`: only users with a main extension. Any other value (`all`): all users without forcing a sync. */
+    /**
+     * List the users. `true`: all users, forcing a sync with the account provider in background. `false`: only users with a main extension. Any other value (`all`): all users without forcing a sync.
+     * @description The password of the users and the secret, web_user and web_password of their devices are returned only to superadmin. The value true starts a user synchronization and requires the users section.
+     */
     get: operations['get_users_all']
     put?: never
     post?: never
@@ -5018,6 +5073,17 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -5048,6 +5114,17 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
       }
       /** @description Not found */
       404: {
@@ -5260,6 +5337,17 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Invalid source URL: only http and https are accepted, and the host must not resolve to a loopback, link-local or unspecified address. Redirects are not followed. */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            status?: string
+          }
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -5318,6 +5406,17 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Invalid source URL: only http and https are accepted, and the host must not resolve to a loopback, link-local or unspecified address. Redirects are not followed. */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            status?: string
+          }
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -5349,13 +5448,15 @@ export interface operations {
           'application/json': string
         }
       }
-      /** @description Bad request */
+      /** @description Invalid source URL: only http and https are accepted, and the host must not resolve to a loopback, link-local or unspecified address. Redirects are not followed. */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['IntegrationsStatusError']
+          'application/json': {
+            status?: string
+          }
         }
       }
       /** @description Internal server error */
@@ -5869,7 +5970,7 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Community version limited to 8 configured users */
+      /** @description Community version limited to 8 configured users. The community limit does not count the current extension of the user being changed. */
       403: {
         headers: {
           [name: string]: unknown
@@ -6971,13 +7072,15 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request */
+      /** @description Invalid request or invalid source URL */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['IntegrationsStatusError']
+          'application/json': {
+            status?: string
+          }
         }
       }
       /** @description Internal server error */
@@ -7039,13 +7142,15 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request */
+      /** @description Invalid request or invalid source URL */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['IntegrationsStatusError']
+          'application/json': {
+            status?: string
+          }
         }
       }
       /** @description Internal server error */
@@ -7110,13 +7215,26 @@ export interface operations {
           'application/json': components['schemas']['IntegrationsPhonebookTestResult']
         }
       }
-      /** @description Bad request */
+      /** @description Invalid request or invalid source URL */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['IntegrationsStatusError']
+          'application/json': {
+            status?: string
+          }
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
         }
       }
       /** @description Internal server error */
@@ -8368,7 +8486,7 @@ export interface operations {
            *       "answered": 9,
            *       "missed": 2,
            *       "invalid": 1,
-           *       "incoming_by_hour": [
+           *       "calls_by_hour": [
            *         0,
            *         0,
            *         0,
@@ -8388,8 +8506,120 @@ export interface operations {
             answered: number
             missed: number
             invalid: number
-            /** @description Incoming calls started in each hour of today, from hour 0 to the current hour. */
-            incoming_by_hour: number[]
+            /** @description Calls started in each hour of today, from hour 0 to the current hour. */
+            calls_by_hour: number[]
+          }
+        }
+      }
+      /** @description Missing dashboard permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': string
+        }
+      }
+    }
+  }
+  get_dashboard_phones: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          /**
+           * @example {
+           *       "provisioned": 116,
+           *       "pending": 4,
+           *       "unassigned": 2,
+           *       "failed": 2,
+           *       "unknown": 0
+           *     }
+           */
+          'application/json': {
+            provisioned: number
+            pending: number
+            unassigned: number
+            failed: number
+            unknown: number
+          }
+        }
+      }
+      /** @description Missing dashboard permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Tancredi cannot be reached or another error occurred */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': string
+        }
+      }
+    }
+  }
+  get_dashboard_system: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          /**
+           * @example {
+           *       "release": "1.9.0",
+           *       "uptime_seconds": 1231932,
+           *       "load_average": 0.42,
+           *       "memory_used_percent": 38
+           *     }
+           */
+          'application/json': {
+            /** @description Tag of the module image, null when it is not known. */
+            release: string | null
+            /** @description Seconds since the host started. */
+            uptime_seconds: number
+            /** @description Load average of the host in the last minute. */
+            load_average: number
+            /** @description Memory of the host in use, excluding the memory available for new processes. */
+            memory_used_percent: number
           }
         }
       }
@@ -8717,6 +8947,17 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['UsersUser'][]
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
         }
       }
     }

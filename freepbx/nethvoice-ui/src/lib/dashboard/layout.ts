@@ -4,6 +4,7 @@
 export const DASHBOARD_CARDS = [
   'presence',
   'devices',
+  'phoneStatus',
   'callsSummary',
   'calls',
   'hourlyCalls',

@@ -435,13 +435,14 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
           v-model="macsText"
           :label="$t('phones.inventory.mac_addresses')"
           :helper-text="$t('phones.inventory.mac_addresses_helper')"
+          :placeholder="$t('phones.inventory.mac_addresses_placeholder')"
           :invalid-message="macsIssue"
           :rows="5"
         />
       </template>
       <template v-else>
         <p class="mb-6">{{ $t('phones.inventory.configure_phones_description') }}</p>
-        <div class="mb-8 flex flex-wrap items-end gap-4">
+        <div class="mb-6 flex flex-wrap items-end gap-4">
           <NeCombobox
             v-model="modelForAll"
             :label="$t('phones.inventory.apply_model_to_all')"
@@ -469,7 +470,7 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
             })
           "
           :description="$t('phones.inventory.model_applied_to_some_description')"
-          class="-mt-4 mb-8"
+          class="-mt-2 mb-6"
         />
         <h4 class="text-primary-neutral mb-4 text-base font-medium">
           {{ $t('phones.inventory.n_phones_to_configure', rows.length) }}
@@ -512,7 +513,9 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
               :aria-label="$t('phones.model')"
               :options="modelOptionsFor(row)"
               :placeholder="$t('phones.inventory.choose_model')"
-              :invalid-message="rowIssue(row.issues.model)"
+              :invalid-message="
+                row.issues.model ? $t('phones.inventory.select_model_for_each_phone') : ''
+              "
               :disabled="adding || row.added"
               v-bind="comboboxLabels"
               @update:model-value="clearModelIssue(row)"

@@ -84,6 +84,14 @@ test.describe('trunks: physical', () => {
     await page.goto('./trunks/physical')
 
     await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await expect(page.getByRole('textbox', { name: 'MAC address' })).toHaveAttribute(
+      'placeholder',
+      'e.g. 00:1A:2B:3C:4D:5E',
+    )
+    await expect(page.getByRole('textbox', { name: 'Device IP address' })).toHaveAttribute(
+      'placeholder',
+      'e.g. 192.168.1.10',
+    )
     await page.getByRole('textbox', { name: 'PBX address' }).fill('')
     await page.getByRole('button', { name: 'Add trunk' }).click()
 

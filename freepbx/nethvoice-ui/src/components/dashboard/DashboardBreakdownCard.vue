@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { NeCard, NeSkeleton } from '@nethesis/vue-components'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import DashboardBarChart from './DashboardBarChart.vue'
 import type { ChartBar, ChartOrientation } from '@/lib/dashboard/chart'
 
@@ -51,7 +52,13 @@ const empty = computed(() => Boolean(emptyText) && bars.every((bar) => bar.value
           class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
         >
           <dt class="text-primary-neutral flex min-w-0 items-center gap-2.5 font-medium">
-            <span :class="['shrink-0 rounded-full', bar.dotClass]" aria-hidden="true" />
+            <FontAwesomeIcon
+              v-if="bar.icon"
+              :icon="bar.icon"
+              :class="['shrink-0', bar.dotClass]"
+              aria-hidden="true"
+            />
+            <span v-else :class="['shrink-0 rounded-full', bar.dotClass]" aria-hidden="true" />
             <span class="truncate">{{ bar.label }}</span>
           </dt>
           <dd class="text-tertiary-neutral tabular-nums" :data-testid="`breakdown-${bar.id}`">

@@ -24,12 +24,12 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faArrowUpRightFromSquare,
   faCirclePlus,
-  faEarthEurope,
+  faEarthAmericas,
   faFlag,
   faMagnifyingGlass,
-  faMobileScreenButton,
+  faMobile,
   faPenToSquare,
-  faPhone,
+  faPhoneFlip,
   faRoute,
   faStar,
   faTriangleExclamation,
@@ -40,6 +40,7 @@ import TablePaginator from '@/components/common/TablePaginator.vue'
 import CreateDefaultOutboundRoutesModal from './CreateDefaultOutboundRoutesModal.vue'
 import EditOutboundRouteDrawer from './EditOutboundRouteDrawer.vue'
 import RouteTrunkBadge from './RouteTrunkBadge.vue'
+import TrunksUpdatingIndicator from '@/components/trunks/TrunksUpdatingIndicator.vue'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { usePermissions } from '@/queries/permissions/me'
@@ -64,9 +65,9 @@ const DEFAULT_SORT_KEY: OutboundRouteSortKey = 'position'
 
 const ROUTE_ICONS: Record<OutboundRouteKind, IconDefinition> = {
   national: faFlag,
-  cellphone: faMobileScreenButton,
-  international: faEarthEurope,
-  toll: faPhone,
+  cellphone: faMobile,
+  international: faEarthAmericas,
+  toll: faPhoneFlip,
 }
 
 const { showFilters = true, busy = false } = defineProps<{
@@ -75,7 +76,7 @@ const { showFilters = true, busy = false } = defineProps<{
 }>()
 
 const { t } = useI18n()
-const { state, refetch } = useOutboundRoutes()
+const { state, asyncStatus, refetch } = useOutboundRoutes()
 const { isSuperadmin } = usePermissions()
 const { getRouteTitleAmong, getRouteDescription } = useOutboundRouteLabels()
 const { state: trunksState } = useTrunks()
@@ -159,6 +160,10 @@ const isNoMatchEmptyStateShown = computed(
     filteredRoutes.value.length === 0,
 )
 
+const isUpdating = computed(
+  () => !loading.value && state.value.status === 'success' && asyncStatus.value === 'loading',
+)
+
 const isTableShown = computed(
   () => loading.value || (state.value.data !== undefined && filteredRoutes.value.length > 0),
 )
@@ -231,6 +236,7 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
       <NeButton kind="tertiary" :disabled="areDefaultFiltersApplied" @click="clearFilters">
         {{ t('common.reset_filters') }}
       </NeButton>
+      <TrunksUpdatingIndicator v-if="isUpdating" class="ml-auto" />
     </div>
     <LoadError
       v-if="state.status === 'error' && !busy"
@@ -243,9 +249,9 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
       :title="t('routes.no_outbound_routes')"
       :description="t('routes.no_outbound_routes_description')"
       :icon="faRoute"
-      class="elevation-0"
+      class="bg-elevation-0"
     >
-      <NeButton kind="primary" @click="isShownCreateDefaultRoutesModal = true">
+      <NeButton kind="primary" size="lg" @click="isShownCreateDefaultRoutesModal = true">
         <template #prefix>
           <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
         </template>
@@ -257,9 +263,11 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
       :title="t('routes.no_routes_found')"
       :description="t('common.try_changing_search_filters')"
       :icon="faMagnifyingGlass"
-      class="elevation-0"
+      class="bg-elevation-0"
     >
-      <NeButton kind="tertiary" @click="clearFilters">{{ t('common.reset_filters') }}</NeButton>
+      <NeButton kind="tertiary" size="lg" @click="clearFilters">
+        {{ t('common.reset_filters') }}
+      </NeButton>
     </NeEmptyState>
     <NeTable
       v-if="isTableShown"
@@ -281,7 +289,7 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
           <NeTableCell :data-label="t('routes.route')">
             <div class="flex items-center gap-2">
               <span
-                class="flex size-8 shrink-0 items-center justify-center rounded-full bg-gray-700 text-gray-50 dark:bg-gray-50 dark:text-gray-900"
+                class="bg-secondary-neutral text-primary-inverted-neutral flex size-8 shrink-0 items-center justify-center rounded-full"
               >
                 <FontAwesomeIcon
                   :icon="item.kind ? ROUTE_ICONS[item.kind] : faStar"
@@ -290,8 +298,10 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
                 />
               </span>
               <div class="flex min-w-0 flex-col">
-                <span class="text-primary-neutral break-words">{{ getRouteTitle(item) }}</span>
-                <span class="break-words">{{ getRouteDescription(item) }}</span>
+                <span class="text-secondary-neutral break-words">{{ getRouteTitle(item) }}</span>
+                <span class="text-secondary-neutral break-words">{{
+                  getRouteDescription(item)
+                }}</span>
               </div>
             </div>
           </NeTableCell>

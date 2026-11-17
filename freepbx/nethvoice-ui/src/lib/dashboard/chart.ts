@@ -1,6 +1,8 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+
 export const MIN_VISIBLE_BAR_RATIO = 0.03
 
 export type ChartOrientation = 'vertical' | 'horizontal'
@@ -11,6 +13,7 @@ export type ChartBar = {
   value: number
   color: string
   dotClass: string
+  icon?: IconDefinition
 }
 
 export const getBarRatios = (values: number[]): number[] => {

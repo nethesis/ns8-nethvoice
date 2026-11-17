@@ -8,10 +8,10 @@ import { onMounted, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useQueryCache } from '@pinia/colada'
-import { NeButton } from '@nethesis/vue-components'
+import { NeButton, NeLink } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
-  faCircleQuestion,
+  faArrowUpRightFromSquare,
   faGear,
   faNetworkWired,
   faRoute,
@@ -24,15 +24,14 @@ import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useNotificationsStore } from '@/stores/notifications'
 import { getCurrentSetupRoute } from '@/lib/setup/guard'
 import { SETUP_STEPS } from '@/lib/setup/steps'
-import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
-import { useWizardState } from '@/queries/setup/wizardState'
+import { postWizardState, WIZARD_STATE_KEY, type WizardState } from '@/lib/setup/wizard'
+import { fetchWizardState } from '@/queries/setup/wizardState'
 
 type Topic = { id: string; icon: IconDefinition }
 
 const { t } = useI18n()
 const router = useRouter()
 const queryCache = useQueryCache()
-const { state: wizardState } = useWizardState()
 const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
 const starting = ref(false)
@@ -47,8 +46,14 @@ const topics: Topic[] = [
   { id: 'call_routing', icon: faRoute },
 ]
 
-function openDocs() {
-  window.open(runtimeConfigStore.docsUrl, '_blank', 'noopener')
+async function loadSavedState(): Promise<WizardState | undefined> {
+  try {
+    return await fetchWizardState()
+  } catch (error) {
+    notificationsStore.createNotificationFromError(error, t('setup.cannot_check_setup'), {
+      serverDetail: false,
+    })
+  }
 }
 
 async function startSetup() {
@@ -56,9 +61,23 @@ async function startSetup() {
   starting.value = true
 
   try {
-    const savedState = wizardState.value.data
+    const savedState = await loadSavedState()
 
-    if (savedState?.inProgress && savedState.legacyStep > firstStep.legacyStep) {
+    if (!savedState) {
+      return
+    }
+
+    if (!savedState.inProgress) {
+      notificationsStore.createNotification({
+        kind: 'info',
+        title: t('setup.setup_already_completed'),
+        description: t('setup.setup_already_completed_description'),
+      })
+      await router.replace({ name: 'dashboard' })
+      return
+    }
+
+    if (savedState.legacyStep > firstStep.legacyStep) {
       await router.push(getCurrentSetupRoute(savedState))
       return
     }
@@ -89,13 +108,17 @@ async function startSetup() {
           $t('setup.welcome.sidebar_description', { brand: runtimeConfigStore.config.brandName })
         }}
       </p>
-      <div class="flex flex-wrap justify-center gap-2">
-        <NeButton kind="tertiary" size="lg" @click="openDocs">
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCircleQuestion" class="h-4 w-4" aria-hidden="true" />
-          </template>
+      <div class="flex flex-wrap items-center justify-center gap-4">
+        <NeLink
+          :href="runtimeConfigStore.docsUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2"
+        >
           {{ $t('common.need_help') }}
-        </NeButton>
+          <FontAwesomeIcon :icon="faArrowUpRightFromSquare" class="size-4" aria-hidden="true" />
+          <span class="sr-only">{{ $t('common.opens_in_new_tab') }}</span>
+        </NeLink>
         <SetupSignOutButton />
       </div>
     </aside>

@@ -30,6 +30,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
 import TablePaginator from '@/components/common/TablePaginator.vue'
+import TrunksUpdatingIndicator from '@/components/trunks/TrunksUpdatingIndicator.vue'
 import DeleteInboundRouteModal from './DeleteInboundRouteModal.vue'
 import { useInboundRouteLabels } from '@/composables/useInboundRouteLabels'
 import { useInboundRoutes } from '@/queries/routes/inbound'
@@ -47,7 +48,7 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginate } from '@/lib/common'
 const DEFAULT_SORT_KEY: InboundRouteSortKey = 'number'
 
 const { t } = useI18n()
-const { state, refetch } = useInboundRoutes()
+const { state, asyncStatus, refetch } = useInboundRoutes()
 const { isSuperadmin } = usePermissions()
 const { getRouteName, describeDestination, isInvalidDestination } = useInboundRouteLabels()
 
@@ -94,6 +95,10 @@ const isNoMatchEmptyStateShown = computed(
     state.value.status === 'success' &&
     routes.value.length > 0 &&
     filteredRoutes.value.length === 0,
+)
+
+const isUpdating = computed(
+  () => state.value.status === 'success' && asyncStatus.value === 'loading',
 )
 
 const isTableShown = computed(
@@ -169,6 +174,7 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
       <NeButton kind="tertiary" :disabled="areDefaultFiltersApplied" @click="clearFilters">
         {{ t('common.reset_filters') }}
       </NeButton>
+      <TrunksUpdatingIndicator v-if="isUpdating" class="ml-auto" />
     </div>
     <LoadError
       v-if="state.status === 'error'"
@@ -181,16 +187,20 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
       :title="t('routes.no_inbound_routes')"
       :description="t('routes.no_inbound_routes_description')"
       :icon="faRoute"
-      class="elevation-0"
-    />
+      class="bg-elevation-0"
+    >
+      <slot name="empty-state-action" />
+    </NeEmptyState>
     <NeEmptyState
       v-else-if="isNoMatchEmptyStateShown"
       :title="t('routes.no_routes_found')"
       :description="t('common.try_changing_search_filters')"
       :icon="faMagnifyingGlass"
-      class="elevation-0"
+      class="bg-elevation-0"
     >
-      <NeButton kind="tertiary" @click="clearFilters">{{ t('common.reset_filters') }}</NeButton>
+      <NeButton kind="tertiary" size="lg" @click="clearFilters">
+        {{ t('common.reset_filters') }}
+      </NeButton>
     </NeEmptyState>
     <NeTable
       v-if="isTableShown"

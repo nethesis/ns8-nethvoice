@@ -18,6 +18,7 @@ import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useWizardState } from '@/queries/setup/wizardState'
 import { IS_E2E } from '@/lib/config'
+import { areSystemAlertsAllowed, useSystemAlerts } from '@/composables/useSystemAlerts'
 
 const themeStore = useThemeStore()
 const densityStore = useDensityStore()
@@ -42,6 +43,12 @@ const pageTitle = computed(() => {
 })
 
 useTitle(pageTitle)
+
+if (areSystemAlertsAllowed()) {
+  useSystemAlerts(
+    () => loginStore.isAuthenticated && route.matched.length > 0 && layout.value === 'app',
+  )
+}
 
 watch(
   () => loginStore.isAuthenticated,

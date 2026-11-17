@@ -76,7 +76,7 @@ const { t } = useI18n()
       </ul>
       <NeTooltip trigger-event="mouseenter focus" placement="top">
         <template #trigger>
-          <NeButton kind="tertiary" size="sm" @click="emit('details')">
+          <NeButton kind="tertiary" size="sm" class="p-2.5!" @click="emit('details')">
             <FontAwesomeIcon :icon="faEye" class="size-4" aria-hidden="true" />
             <span class="sr-only">{{ t('user_overview.show_details', { name: user.name }) }}</span>
           </NeButton>

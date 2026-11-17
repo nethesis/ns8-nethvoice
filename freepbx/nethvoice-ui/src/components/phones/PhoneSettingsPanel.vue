@@ -165,15 +165,15 @@ const issueMessage = (field: ConfigurationField) => {
       :title="$t('phones.settings.cannot_load_settings')"
       @retry="refetch"
     />
-    <div v-else-if="state.status === 'pending'" class="flex max-w-4xl flex-col gap-8">
+    <div v-else-if="state.status === 'pending'" class="flex max-w-207 flex-col gap-8">
       <NeSkeleton :lines="6" />
       <NeSkeleton :lines="4" />
     </div>
-    <div v-else class="flex max-w-4xl flex-col">
+    <div v-else class="flex max-w-207 flex-col">
       <section
-        class="grid grid-cols-1 gap-6 border-b border-gray-200 pb-8 lg:grid-cols-[1fr_1.1fr] lg:gap-8 dark:border-gray-700"
+        class="flex flex-col gap-6 border-b border-gray-200 pb-8 lg:flex-row dark:border-gray-700"
       >
-        <div>
+        <div class="lg:w-96 lg:shrink-0">
           <h4 class="text-primary-neutral mb-2 text-base font-medium">
             {{ $t('phones.settings.default_configuration') }}
           </h4>
@@ -181,7 +181,7 @@ const issueMessage = (field: ConfigurationField) => {
             {{ $t('phones.settings.default_configuration_description') }}
           </p>
         </div>
-        <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
+        <form class="flex w-full flex-col gap-6 lg:max-w-105" novalidate @submit.prevent="save">
           <NeCombobox
             v-model="language"
             :label="$t('phones.settings.phone_language')"
@@ -233,7 +233,13 @@ const issueMessage = (field: ConfigurationField) => {
             :description="describeError(saveError)"
           />
           <div>
-            <NeButton type="submit" kind="primary" :loading="saving" :disabled="saving || !isDirty">
+            <NeButton
+              type="submit"
+              kind="primary"
+              size="lg"
+              :loading="saving"
+              :disabled="saving || !isDirty"
+            >
               <template #prefix>
                 <FontAwesomeIcon :icon="faFloppyDisk" class="size-4" aria-hidden="true" />
               </template>
@@ -245,10 +251,10 @@ const issueMessage = (field: ConfigurationField) => {
       <section
         v-for="kind in ['admin', 'user'] as const"
         :key="kind"
-        class="grid grid-cols-1 gap-6 border-gray-200 py-8 lg:grid-cols-[1fr_1.1fr] lg:gap-8 dark:border-gray-700"
+        class="flex flex-col gap-6 border-gray-200 py-8 lg:flex-row dark:border-gray-700"
         :class="kind === 'admin' ? 'border-b' : ''"
       >
-        <div>
+        <div class="lg:w-96 lg:shrink-0">
           <h4 class="text-primary-neutral mb-2 text-base font-medium">
             {{ $t(`phones.settings.${kind}_password`) }}
           </h4>
@@ -256,7 +262,7 @@ const issueMessage = (field: ConfigurationField) => {
             {{ $t(`phones.settings.${kind}_password_description`) }}
           </p>
         </div>
-        <div class="flex flex-col items-start gap-4">
+        <div class="flex w-full flex-col items-start gap-4 lg:max-w-105">
           <NeTextInput
             :model-value="kind === 'admin' ? state.data.adminPassword : state.data.userPassword"
             :label="$t(`phones.settings.current_${kind}_password`)"
@@ -267,7 +273,7 @@ const issueMessage = (field: ConfigurationField) => {
             :hide-password-label="$t('ne_text_input.hide_password')"
             class="w-full"
           />
-          <NeButton kind="secondary" @click="showPasswordDrawer(kind)">
+          <NeButton kind="secondary" size="lg" @click="showPasswordDrawer(kind)">
             <template #prefix>
               <FontAwesomeIcon :icon="faKey" class="size-4" aria-hidden="true" />
             </template>

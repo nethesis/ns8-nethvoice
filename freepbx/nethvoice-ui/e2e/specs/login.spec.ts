@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { expect, mockWizardState, test } from '../fixtures/mockApi'
+import { mockPhonesApi, TANCREDI } from './phones-data'
 
 test.describe('login', () => {
   test('redirects an anonymous visitor to the login page', async ({ page, mockApi }) => {
@@ -142,8 +143,30 @@ test.describe('login', () => {
         json: { error: 'Forbidden: wrong secret key' },
       })
       .on('GET', '/freepbx/rest/outboundroutes/supportedLocales', { json: ['it'] })
+      .on('GET', '/freepbx/rest/outboundroutes', { json: [] })
 
     await page.goto('./setup/system')
+
+    await expect(page).toHaveURL(/\/nethvoice\/login/)
+    await expect(page.getByText('Session expired')).toBeVisible()
+  })
+
+  test('signs out the admin user when Tancredi rejects the stored secret key', async ({
+    page,
+    mockApi,
+    signedIn,
+  }) => {
+    void signedIn
+    mockPhonesApi(mockApi)
+    mockApi.on('GET', `${TANCREDI}/models`, {
+      status: 403,
+      json: {
+        type: 'https://nethesis.github.io/tancredi/problems#forbidden',
+        title: 'Access to resource is forbidden with current client privileges',
+      },
+    })
+
+    await page.goto('./phones/models')
 
     await expect(page).toHaveURL(/\/nethvoice\/login/)
     await expect(page.getByText('Session expired')).toBeVisible()

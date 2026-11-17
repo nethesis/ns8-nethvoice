@@ -63,6 +63,7 @@ import {
 } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 type Field = NewUserField | 'profileId'
 
@@ -85,6 +86,7 @@ const {
 const emit = defineEmits<{ close: []; created: [username: string, extension: string] }>()
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
 const invalidateUsers = useInvalidateUsers()
 
@@ -632,7 +634,11 @@ const extensionChangeWarning = computed(
         v-model="mobile"
         :label="t('users.mobile_number')"
         :invalid-message="issue('mobile')"
-        :helper-text="mobileAvailable ? '' : t('users.cannot_load_mobile')"
+        :helper-text="
+          mobileAvailable
+            ? t('users.mobile_number_helper', { brand: runtimeConfigStore.config.brandName })
+            : t('users.cannot_load_mobile')
+        "
         optional
         :optional-label="t('common.optional')"
         :disabled="saving || !mobileAvailable"

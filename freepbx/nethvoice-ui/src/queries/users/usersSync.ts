@@ -11,6 +11,42 @@ export const USERS_SYNC_POLL_INTERVAL = 2000
 
 export const USERS_SYNC_MAX_POLLS = 60
 
+export const USERS_SYNC_START_GRACE = 3000
+
+export const waitForUsersSync = async ({
+  isRunning,
+  wait,
+  now = Date.now,
+  isCancelled = () => false,
+}: {
+  isRunning: () => Promise<boolean>
+  wait: (milliseconds: number) => Promise<void>
+  now?: () => number
+  isCancelled?: () => boolean
+}): Promise<boolean> => {
+  const startedAt = now()
+  let seenRunning = false
+
+  for (let poll = 0; poll < USERS_SYNC_MAX_POLLS; poll += 1) {
+    if (isCancelled()) {
+      return false
+    }
+
+    if (await isRunning()) {
+      seenRunning = true
+    } else if (seenRunning || now() - startedAt >= USERS_SYNC_START_GRACE) {
+      return true
+    }
+    const graceLeft = USERS_SYNC_START_GRACE - (now() - startedAt)
+    await wait(
+      seenRunning || graceLeft <= 0
+        ? USERS_SYNC_POLL_INTERVAL
+        : Math.min(USERS_SYNC_POLL_INTERVAL, graceLeft),
+    )
+  }
+  return false
+}
+
 export function useUsersProviderSync() {
   const queryCache = useQueryCache()
   const syncing = ref(false)
@@ -18,27 +54,26 @@ export function useUsersProviderSync() {
   let disposed = false
   let timer: ReturnType<typeof setTimeout> | undefined
 
-  const wait = () =>
+  const wait = (milliseconds: number) =>
     new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, USERS_SYNC_POLL_INTERVAL)
+      timer = setTimeout(resolve, milliseconds)
     })
 
-  const sync = async () => {
+  const sync = async (): Promise<boolean> => {
     if (syncing.value) {
-      return
+      return false
     }
     syncing.value = true
     syncError.value = null
+    let completed = false
 
     try {
       await postUsersSync()
-
-      for (let poll = 0; poll < USERS_SYNC_MAX_POLLS && !disposed; poll += 1) {
-        if (!(await getUsersSyncRunning())) {
-          break
-        }
-        await wait()
-      }
+      completed = await waitForUsersSync({
+        isRunning: getUsersSyncRunning,
+        wait,
+        isCancelled: () => disposed,
+      })
     } catch (error) {
       syncError.value = error
     } finally {
@@ -50,6 +85,7 @@ export function useUsersProviderSync() {
         queryCache.invalidateQueries({ key: [ORPHAN_EXTENSIONS_KEY] }).catch(() => undefined)
       }
     }
+    return completed
   }
 
   onScopeDispose(() => {

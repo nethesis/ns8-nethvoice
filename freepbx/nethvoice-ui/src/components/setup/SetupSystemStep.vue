@@ -20,6 +20,7 @@ import {
   postPbxDefaultLanguage,
   SystemSettingsSchema,
 } from '@/lib/settings/system'
+import { usePbxCountry } from '@/queries/setup/pbxCountry'
 import { useSetupStore } from '@/stores/setup'
 import { useNotificationsStore } from '@/stores/notifications'
 
@@ -30,6 +31,7 @@ const notificationsStore = useNotificationsStore()
 const { state: languagesState, refetch: refetchLanguages } = usePbxLanguages()
 const { state: countriesState, refetch: refetchCountries } = usePbxCountries()
 const { advancing, goToNextStep } = useSetupNavigation('system')
+const { country: pbxCountry, settled: pbxCountrySettled } = usePbxCountry()
 
 const country = ref(setupStore.country)
 const language = ref('')
@@ -67,14 +69,12 @@ watch(
 )
 
 watch(
-  () => [countriesState.value.data, languagesState.value.data] as const,
-  ([countries, languages]) => {
-    if (!countries || !languages || country.value) {
+  () => [pbxCountrySettled.value, countriesState.value.data] as const,
+  ([settled, countries]) => {
+    if (!settled || !countries || country.value) {
       return
     }
-    country.value = countries.includes(languages.defaultLanguage)
-      ? languages.defaultLanguage
-      : (countries[0] ?? '')
+    country.value = pbxCountry.value || (countries[0] ?? '')
   },
   { immediate: true },
 )

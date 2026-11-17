@@ -15,6 +15,7 @@ describe('normalizeCardOrder', () => {
       'trunks',
       'presence',
       'devices',
+      'phoneStatus',
       'callsSummary',
       'calls',
       'hourlyCalls',
@@ -31,6 +32,7 @@ describe('moveCardTo', () => {
       'trunks',
       'presence',
       'devices',
+      'phoneStatus',
       'callsSummary',
       'calls',
       'hourlyCalls',
@@ -38,6 +40,7 @@ describe('moveCardTo', () => {
     ])
     expect(moveCardTo(order, 'presence', 'calls')).toEqual([
       'devices',
+      'phoneStatus',
       'callsSummary',
       'calls',
       'presence',
@@ -63,6 +66,7 @@ describe('moveCardBy', () => {
       'calls',
       'presence',
       'devices',
+      'phoneStatus',
       'callsSummary',
       'hourlyCalls',
       'trunks',

@@ -137,7 +137,7 @@ test.describe('routes: outbound', () => {
 
     await routeRow(page, 'National').getByRole('button', { name: /Edit/ }).click()
     await expect(page.getByRole('dialog')).toContainText(
-      'All trunks are disabled: enable a trunk to add it to this route',
+      'All trunks are disabled: enable a trunk to add it to this route.',
     )
   })
 
@@ -197,7 +197,7 @@ test.describe('routes: outbound', () => {
       })
 
     await page.goto('./routes/outbound')
-    await expect(page.getByText('No outbound routes')).toBeVisible()
+    await expect(page.getByText('No outbound routes configured')).toBeVisible()
     await page.getByRole('button', { name: 'Create default routes' }).click()
 
     const modal = page.getByRole('dialog')
@@ -255,8 +255,8 @@ test.describe('routes: outbound', () => {
         { route_id: 8, name: 'Emergency', trunks: [VODAFONE, BACKUP] },
       ],
     })
-    await expect(page.getByText('Route saved')).toBeVisible()
-    await expect(page.getByText('The route Cellphone has been saved')).toBeVisible()
+    await expect(page.getByText('Route updated')).toBeVisible()
+    await expect(page.getByText('The route Cellphone has been updated')).toBeVisible()
   })
 
   test('asks before discarding the changes and keeps the drawer open while saving', async ({
@@ -360,7 +360,11 @@ test.describe('routes: outbound', () => {
 
     const drawer = page.getByRole('dialog')
 
-    await expect(drawer.getByText('No trunks in this route')).toBeVisible()
+    await expect(drawer.getByText('No trunks', { exact: true })).toBeVisible()
+    await expect(
+      drawer.getByText('Add a trunk to this route to enable outbound calls.'),
+    ).toBeVisible()
+    await expect(drawer.getByText('The first trunk has the highest priority.')).toHaveCount(0)
     await drawer.getByRole('button', { name: 'Add trunk' }).click()
     await page.getByRole('menuitem', { name: 'TWT-0212345678' }).click()
     await drawer.getByRole('button', { name: 'Save' }).click()

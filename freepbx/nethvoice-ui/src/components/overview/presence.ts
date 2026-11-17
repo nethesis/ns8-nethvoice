@@ -5,9 +5,9 @@ import type { OverviewStatus } from '@/lib/overview/overview'
 
 export const PRESENCE_DOT: Record<OverviewStatus, string> = {
   online: 'bg-green-500',
-  busy: 'bg-rose-500',
-  ringing: 'bg-rose-500',
-  dnd: 'bg-rose-500',
-  forward: 'bg-amber-500',
+  busy: 'bg-red-500',
+  ringing: 'bg-red-500',
+  dnd: 'bg-gray-950',
+  forward: 'bg-green-500',
   offline: 'bg-gray-500',
 }

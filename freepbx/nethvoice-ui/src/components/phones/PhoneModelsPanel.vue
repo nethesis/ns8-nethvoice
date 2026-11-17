@@ -27,11 +27,11 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faArrowRight,
+  faArrowRotateLeft,
   faCirclePlus,
   faClone,
   faMagnifyingGlass,
   faPenToSquare,
-  faRotateLeft,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
@@ -173,10 +173,11 @@ function getRowMenuItems(row: PhoneModelRow): NeDropdownItem[] {
     items.push({
       id: 'reset',
       label: t('phones.models.reset_to_original_settings'),
-      icon: faRotateLeft,
+      icon: faArrowRotateLeft,
       action: () => showResetModal(row),
     })
   } else {
+    items.push({ id: 'divider' })
     items.push({
       id: 'delete',
       label: row.phones > 0 ? t('phones.models.delete_model_in_use') : t('common.delete'),
@@ -263,54 +264,58 @@ function onModelCreated(model: PhoneModel) {
       </NeButton>
     </NeEmptyState>
     <template v-else-if="!loadError">
-      <div class="mb-6 flex flex-col gap-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <p class="text-secondary-neutral max-w-2xl">{{ $t('phones.models.description') }}</p>
-          <NeButton kind="primary" :disabled="loading" @click="showCreateDrawer()">
-            <template #prefix>
-              <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-            </template>
-            {{ $t('phones.models.add_model') }}
-          </NeButton>
-        </div>
-        <div class="flex flex-wrap items-center gap-4">
-          <NeTextInput
-            v-model="textFilter"
-            is-search
-            :placeholder="$t('phones.models.filter_models')"
-            :aria-label="$t('phones.models.filter_models')"
-            :clear-search-label="$t('ne_text_input.clear_search')"
-            class="w-full max-w-xs"
-          />
-          <NeDropdownFilterV2
-            v-model="brandFilter"
-            kind="checkbox"
-            :label="$t('phones.models.brand')"
-            :options="brandOptions"
-            v-bind="filterLabels"
-          />
-          <NeDropdownFilterV2
-            v-model="typeFilter"
-            kind="checkbox"
-            :label="$t('phones.models.type')"
-            :options="typeOptions"
-            v-bind="filterLabels"
-          />
-          <NeSortDropdown
-            v-model:sort-key="sortKey"
-            v-model:sort-descending="sortDescending"
-            :label="$t('sort.sort_by')"
-            :options="sortOptions"
-            :open-menu-aria-label="$t('ne_dropdown.open_menu')"
-            :sort-by-label="$t('sort.sort_by')"
-            :sort-direction-label="$t('sort.direction')"
-            :ascending-label="$t('sort.ascending')"
-            :descending-label="$t('sort.descending')"
-          />
-          <NeButton kind="tertiary" :disabled="!areFiltersApplied" @click="resetFilters">
-            {{ $t('common.reset_filters') }}
-          </NeButton>
-        </div>
+      <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
+        <p class="text-secondary-neutral max-w-2xl">{{ $t('phones.models.description') }}</p>
+        <NeButton
+          kind="primary"
+          size="lg"
+          :disabled="loading"
+          class="mt-2 justify-self-start sm:mt-0"
+          @click="showCreateDrawer()"
+        >
+          <template #prefix>
+            <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+          </template>
+          {{ $t('phones.models.add_model') }}
+        </NeButton>
+      </div>
+      <div class="mb-6 flex flex-wrap items-center gap-4">
+        <NeTextInput
+          v-model="textFilter"
+          is-search
+          :placeholder="$t('phones.models.filter_models')"
+          :aria-label="$t('phones.models.filter_models')"
+          :clear-search-label="$t('ne_text_input.clear_search')"
+          class="max-w-48 sm:max-w-sm"
+        />
+        <NeDropdownFilterV2
+          v-model="brandFilter"
+          kind="checkbox"
+          :label="$t('phones.models.brand')"
+          :options="brandOptions"
+          v-bind="filterLabels"
+        />
+        <NeDropdownFilterV2
+          v-model="typeFilter"
+          kind="checkbox"
+          :label="$t('phones.models.type')"
+          :options="typeOptions"
+          v-bind="filterLabels"
+        />
+        <NeSortDropdown
+          v-model:sort-key="sortKey"
+          v-model:sort-descending="sortDescending"
+          :label="$t('sort.sort_by')"
+          :options="sortOptions"
+          :open-menu-aria-label="$t('ne_dropdown.open_menu')"
+          :sort-by-label="$t('sort.sort_by')"
+          :sort-direction-label="$t('sort.direction')"
+          :ascending-label="$t('sort.ascending')"
+          :descending-label="$t('sort.descending')"
+        />
+        <NeButton kind="tertiary" :disabled="!areFiltersApplied" @click="resetFilters">
+          {{ $t('common.reset_filters') }}
+        </NeButton>
       </div>
       <NeEmptyState
         v-if="isNoMatchShown"

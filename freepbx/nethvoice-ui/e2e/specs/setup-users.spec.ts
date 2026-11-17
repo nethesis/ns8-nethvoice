@@ -37,6 +37,33 @@ test.describe('setup: users and extensions', () => {
     await expect(page.locator('[data-testid^="setup-user-"]')).toHaveCount(1)
   })
 
+  test('synchronizes the users once per session', async ({ page, mockApi }) => {
+    mockStep(mockApi)
+    mockWrites(mockApi)
+    await page.goto('./setup/users')
+
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/physical-trunks$/)
+    await page.getByRole('button', { name: 'Previous' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
+    await expect(extensionInput(page, 'Anna Miller')).toHaveValue('300')
+    expect(mockApi.callsTo('POST', `${REST}/users/sync`)).toHaveLength(1)
+  })
+
+  test('keeps Next disabled while the users are synchronizing', async ({ page, mockApi }) => {
+    let running = true
+    mockStep(mockApi)
+    mockApi.on('GET', `${REST}/users/sync`, () => ({ json: running }))
+    await page.goto('./setup/users')
+
+    await expect(extensionInput(page, 'Anna Miller')).toHaveValue('300')
+    await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+
+    running = false
+    await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled({ timeout: 10_000 })
+  })
+
   test('shows the empty state and keeps Next disabled', async ({ page, mockApi }) => {
     mockStep(mockApi, [])
     await page.goto('./setup/users')
@@ -146,6 +173,7 @@ test.describe('setup: users and extensions', () => {
 
     const modal = page.getByRole('dialog', { name: 'The devices will be recreated' })
     await expect(modal).toContainText('apps and physical phones get new credentials')
+    await expect(modal).toContainText('group memberships')
     await expect(modal.getByTestId('changed-extensions')).toHaveText('Anna Miller: 300 → 310')
     await modal.getByRole('button', { name: 'Cancel' }).click()
 

@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { expect, mockPermissions, mockWizardState, test } from '../fixtures/mockApi'
+import { mockPhonesApi, TANCREDI } from './phones-data'
 
 const MENU_SECTIONS = [
   'Dashboard',
@@ -109,6 +110,28 @@ test.describe('section permissions', () => {
     await page.goto('./routes/outbound')
     await expect(page.getByRole('button', { name: 'Advanced settings' })).toHaveCount(0)
     expect(mockApi.callsTo('GET', '/freepbx/rest/login')).toHaveLength(0)
+  })
+
+  test('keeps a phones administrator signed in when Tancredi denies a call', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['phones'], 'operator')
+    mockPhonesApi(mockApi)
+    mockApi.on('GET', `${TANCREDI}/models`, {
+      status: 403,
+      json: {
+        type: 'https://nethesis.github.io/tancredi/problems#forbidden',
+        title: 'Access to resource is forbidden with current client privileges',
+      },
+    })
+    await page.goto('./phones/models')
+
+    await expect(page.getByText('Cannot load models')).toBeVisible()
+    await expect(page).toHaveURL(/\/nethvoice\/phones\/models$/)
   })
 
   test.describe('no sections', () => {

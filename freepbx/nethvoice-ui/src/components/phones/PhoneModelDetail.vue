@@ -28,11 +28,11 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faArrowLeft,
+  faArrowRotateLeft,
   faMagnifyingGlass,
   faChevronDown,
   faChevronUp,
   faFloppyDisk,
-  faRotateLeft,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
 import { isApiError } from '@/lib/api/errors'
@@ -77,6 +77,7 @@ const form = ref<ModelVariables>({})
 const openSections = ref<ModelSectionId[]>([])
 const isShownResetModal = ref(false)
 const isShownUnsavedModal = ref(false)
+const isShownDiscardModal = ref(false)
 const pendingLocation = ref<RouteLocationRaw | null>(null)
 let leaveConfirmed = false
 
@@ -222,6 +223,11 @@ function discardChanges() {
   form.value = { ...initialForm.value }
 }
 
+function confirmDiscard() {
+  isShownDiscardModal.value = false
+  discardChanges()
+}
+
 function requestBack() {
   if (isDirty.value) {
     pendingLocation.value = null
@@ -293,15 +299,15 @@ function onReset() {
     </div>
     <template v-else-if="model">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <NeHeading tag="h4">{{ model.displayName }}</NeHeading>
+        <NeHeading tag="h3">{{ model.displayName }}</NeHeading>
         <NeButton v-if="!model.custom" kind="tertiary" @click="isShownResetModal = true">
           <template #prefix>
-            <FontAwesomeIcon :icon="faRotateLeft" class="size-4" aria-hidden="true" />
+            <FontAwesomeIcon :icon="faArrowRotateLeft" class="size-4" aria-hidden="true" />
           </template>
           {{ $t('phones.models.reset_to_original_settings') }}
         </NeButton>
       </div>
-      <form class="flex flex-col gap-5" novalidate @submit.prevent="save">
+      <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
         <section
           v-for="section in sections"
           :key="section.id"
@@ -310,7 +316,7 @@ function onReset() {
           <h5>
             <button
               type="button"
-              class="text-primary-neutral flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left text-base font-medium"
+              class="text-primary-neutral flex w-full items-center justify-between gap-4 px-6 py-4 text-left text-lg font-medium"
               :aria-expanded="openSections.includes(section.id)"
               :aria-controls="`model-section-${section.id}`"
               @click="toggleSection(section.id)"
@@ -339,7 +345,7 @@ function onReset() {
           <div
             v-if="openSections.includes(section.id)"
             :id="`model-section-${section.id}`"
-            class="px-5 pt-2 pb-6"
+            class="px-6 pt-2 pb-6"
           >
             <div v-if="section.keys" class="flex flex-col gap-4">
               <div
@@ -426,9 +432,13 @@ function onReset() {
             </template>
             {{ $t('common.save') }}
           </NeButton>
-          <NeButton kind="secondary" :disabled="saving || !isDirty" @click.prevent="discardChanges">
+          <NeButton
+            kind="secondary"
+            :disabled="saving || !isDirty"
+            @click.prevent="isShownDiscardModal = true"
+          >
             <template #prefix>
-              <FontAwesomeIcon :icon="faRotateLeft" class="size-4" aria-hidden="true" />
+              <FontAwesomeIcon :icon="faArrowRotateLeft" class="size-4" aria-hidden="true" />
             </template>
             {{ $t('phones.models.discard_changes') }}
           </NeButton>
@@ -453,6 +463,19 @@ function onReset() {
       @primary-click="confirmLeave"
     >
       <p>{{ $t('phones.models.unsaved_changes_description') }}</p>
+    </NeModal>
+    <NeModal
+      :visible="isShownDiscardModal"
+      :title="$t('phones.models.discard_changes')"
+      kind="warning"
+      :primary-label="$t('phones.models.discard')"
+      primary-button-kind="danger"
+      :cancel-label="$t('common.cancel')"
+      :close-aria-label="$t('common.close')"
+      @close="isShownDiscardModal = false"
+      @primary-click="confirmDiscard"
+    >
+      <p>{{ $t('phones.models.discard_changes_description') }}</p>
     </NeModal>
   </div>
 </template>

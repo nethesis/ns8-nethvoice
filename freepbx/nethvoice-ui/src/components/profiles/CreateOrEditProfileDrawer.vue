@@ -349,14 +349,16 @@ function discardChanges() {
           initially-expanded
           @update:model-value="setMacroValue(CALL_FEATURES_MACRO, $event)"
         >
-          <ProfileFeatureToggle
-            v-for="node in featureTree.callFeatures"
-            :key="node.key"
-            :node="node"
-            :form="form"
-            :parent-enabled="macroValue(CALL_FEATURES_MACRO)"
-            :disabled="saving"
-          />
+          <div class="space-y-8">
+            <ProfileFeatureToggle
+              v-for="node in featureTree.callFeatures"
+              :key="node.key"
+              :node="node"
+              :form="form"
+              :parent-enabled="macroValue(CALL_FEATURES_MACRO)"
+              :disabled="saving"
+            />
+          </div>
         </ProfileSection>
         <ProfileSection
           v-model="form.outboundEnabled"
@@ -368,17 +370,19 @@ function discardChanges() {
           <p v-if="form.outboundRoutes.length === 0" class="text-tertiary-neutral">
             {{ t('profiles.no_outbound_routes') }}
           </p>
-          <div
-            v-for="route in form.outboundRoutes"
-            :key="route.routeId"
-            :data-feature="`route.${route.routeId}`"
-          >
-            <NeToggle
-              v-model="route.allowed"
-              :top-label="getRouteLabel(route)"
-              :label="route.allowed ? t('common.enabled') : t('common.disabled')"
-              :disabled="saving || !form.outboundEnabled"
-            />
+          <div v-else class="space-y-6">
+            <div
+              v-for="route in form.outboundRoutes"
+              :key="route.routeId"
+              :data-feature="`route.${route.routeId}`"
+            >
+              <NeToggle
+                v-model="route.allowed"
+                :top-label="getRouteLabel(route)"
+                :label="route.allowed ? t('common.enabled') : t('common.disabled')"
+                :disabled="saving || !form.outboundEnabled"
+              />
+            </div>
           </div>
         </ProfileSection>
         <ProfileSection
@@ -392,30 +396,32 @@ function discardChanges() {
           :disabled="saving"
           @update:model-value="setMacroValue(CTI_MACRO, $event)"
         >
-          <div v-for="group in featureTree.ctiGroups" :key="group.id" class="space-y-4">
-            <button
-              type="button"
-              class="text-secondary-neutral flex w-full items-center gap-2 border-b border-gray-200 pb-2 text-left text-xs font-medium uppercase dark:border-gray-700"
-              :aria-expanded="!collapsedGroups.includes(group.id)"
-              @click="toggleGroup(group.id)"
-            >
-              <FontAwesomeIcon
-                :icon="collapsedGroups.includes(group.id) ? faChevronDown : faChevronUp"
-                class="size-3"
-                aria-hidden="true"
-              />
-              {{ t(`profiles.groups.${group.id}`) }}
-            </button>
-            <div v-show="!collapsedGroups.includes(group.id)" class="space-y-4">
-              <ProfileFeatureToggle
-                v-for="node in group.nodes"
-                :key="node.key"
-                :node="node"
-                :form="form"
-                :parent-enabled="macroValue(CTI_MACRO)"
-                :disabled="saving"
-                :subscription-active="subscriptionActive"
-              />
+          <div class="space-y-8 pt-4">
+            <div v-for="group in featureTree.ctiGroups" :key="group.id" class="space-y-2">
+              <button
+                type="button"
+                class="text-secondary-neutral flex w-full items-center gap-2 border-b border-gray-200 py-2 text-left text-sm font-medium uppercase dark:border-gray-700"
+                :aria-expanded="!collapsedGroups.includes(group.id)"
+                @click="toggleGroup(group.id)"
+              >
+                <FontAwesomeIcon
+                  :icon="collapsedGroups.includes(group.id) ? faChevronDown : faChevronUp"
+                  class="size-4"
+                  aria-hidden="true"
+                />
+                {{ t(`profiles.groups.${group.id}`) }}
+              </button>
+              <div v-show="!collapsedGroups.includes(group.id)" class="space-y-6">
+                <ProfileFeatureToggle
+                  v-for="node in group.nodes"
+                  :key="node.key"
+                  :node="node"
+                  :form="form"
+                  :parent-enabled="macroValue(CTI_MACRO)"
+                  :disabled="saving"
+                  :subscription-active="subscriptionActive"
+                />
+              </div>
             </div>
           </div>
         </ProfileSection>

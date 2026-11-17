@@ -121,7 +121,7 @@ test.describe('administrator phone', () => {
     expect(mockApi.callsTo('POST', SESSION_PATH)).toHaveLength(1)
   })
 
-  test('keeps the phone in one tab and moves it on request', async ({ page, mockApi }) => {
+  test('moves the phone to the last opened tab and back on request', async ({ page, mockApi }) => {
     mockOverview(mockApi)
     await page.goto('./users/overview')
     await expect(island(page)).toHaveCount(1)
@@ -129,18 +129,75 @@ test.describe('administrator phone', () => {
     const second = await page.context().newPage()
     await mockApi.install(second)
     await second.goto('./users/overview')
-    await second.getByRole('button', { name: 'Show details of Anna Miller' }).click()
 
-    await expect(second.getByTestId('call-disabled-reason')).toHaveText(
-      'The administrator phone is active in another tab',
-    )
+    await expect(island(second)).toHaveCount(1)
+    await expect(island(page)).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    await page.getByRole('button', { name: 'Use the phone in this tab' }).click()
+
+    await expect(island(page)).toHaveCount(1)
     await expect(island(second)).toHaveCount(0)
 
-    await second.getByRole('button', { name: 'Use the phone in this tab' }).click()
+    await second.reload()
 
     await expect(island(second)).toHaveCount(1)
     await expect(island(page)).toHaveCount(0)
     await second.close()
+  })
+
+  test('takes the phone back and calls from a number in another tab', async ({ page, mockApi }) => {
+    mockOverview(mockApi).on('POST', SESSION_PATH, { json: SESSION })
+    await page.goto('./users/overview')
+    await expect(island(page)).toHaveCount(1)
+
+    const second = await page.context().newPage()
+    await mockApi.install(second)
+    await second.goto('./users/overview')
+    await expect(island(page)).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Call 300', exact: true }).click()
+
+    await expect(island(page)).toHaveAttribute('data-calls', '300')
+    await expect(island(second)).toHaveCount(0)
+    await second.close()
+  })
+
+  test('does not take the phone from a tab in a call', async ({ page, mockApi }) => {
+    mockOverview(mockApi).on('POST', SESSION_PATH, { json: SESSION })
+    await page.goto('./users/overview')
+    await page.getByRole('button', { name: 'Call 300', exact: true }).click()
+    await expect(island(page)).toHaveAttribute('data-calls', '300')
+
+    const second = await page.context().newPage()
+    await mockApi.install(second)
+    await second.goto('./users/overview')
+    await second.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+
+    await expect(second.getByTestId('call-disabled-reason')).toHaveText(
+      'The administrator phone is in a call in another tab',
+    )
+    await expect(second.getByRole('button', { name: 'Call', exact: true })).toBeDisabled()
+    await expect(second.getByRole('button', { name: 'Use the phone in this tab' })).toHaveCount(0)
+    await expect(island(page)).toHaveAttribute('data-calls', '300')
+    await expect(island(second)).toHaveCount(0)
+
+    await island(page).getByRole('button', { name: 'Hang up' }).click()
+
+    await expect(island(second)).toHaveCount(1)
+    await expect(island(page)).toHaveCount(0)
+    await second.close()
+  })
+
+  test('resumes the phone after a reload', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+    await expect(island(page)).toHaveCount(1)
+
+    await page.reload()
+
+    await expect(island(page)).toHaveCount(1)
+    await expect(page.getByRole('button', { name: 'Use the phone in this tab' })).toHaveCount(0)
   })
 
   test('keeps the phone usable while the operator details are open', async ({ page, mockApi }) => {
@@ -156,6 +213,44 @@ test.describe('administrator phone', () => {
 
     await expect(callButton).toBeEnabled()
     await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
+  })
+
+  test('calls an online device from its number in the card', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+      .on('GET', '/api/astproxy/extensions', {
+        json: {
+          '91300': { status: 'online', codecs: [] },
+          '92300': { status: 'offline', codecs: [] },
+          '93300': { status: 'busy', codecs: [] },
+        },
+      })
+      .on('GET', '/api/user/endpoints/all', {
+        json: {
+          'a.miller': {
+            name: 'Anna Miller',
+            username: 'a.miller',
+            mainPresence: 'online',
+            presence: 'online',
+            endpoints: {
+              mainextension: [{ id: '300' }],
+              extension: [
+                { id: '91300', type: 'webrtc' },
+                { id: '92300', type: 'mobile' },
+                { id: '93300', type: 'physical' },
+              ],
+            },
+          },
+        },
+      })
+      .on('POST', SESSION_PATH, { json: SESSION })
+    await page.goto('./users/overview')
+
+    await expect(page.getByRole('button', { name: 'Call 92300, device offline' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Call 93300, device busy' })).toBeDisabled()
+
+    await page.getByRole('button', { name: 'Call 91300', exact: true }).click()
+
+    await expect(island(page)).toHaveAttribute('data-calls', '91300')
   })
 
   test('calls a single online device from the call menu', async ({ page, mockApi }) => {

@@ -57,31 +57,37 @@ const childrenEnabled = computed(
       :disabled="toggleDisabled"
     >
       <template v-if="node.tooltipKey" #topTooltip>
-        <NeTooltip class="inline-block align-middle">
+        <NeTooltip trigger-event="mouseenter focus" class="inline-block align-middle">
           <template #trigger>
-            <FontAwesomeIcon
-              :icon="faCircleInfo"
-              class="size-3.5 text-indigo-500 dark:text-indigo-300"
-              :aria-label="t(node.tooltipKey)"
-            />
+            <button type="button" class="inline-flex">
+              <FontAwesomeIcon
+                :icon="faCircleInfo"
+                class="size-3.5 text-indigo-500 dark:text-indigo-300"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{{ t(node.tooltipKey) }}</span>
+            </button>
           </template>
           <template #content>{{ t(node.tooltipKey) }}</template>
         </NeTooltip>
       </template>
       <template v-if="blockedBySubscription" #tooltip>
-        <NeTooltip class="inline-block align-middle">
+        <NeTooltip trigger-event="mouseenter focus" class="inline-block align-middle">
           <template #trigger>
-            <FontAwesomeIcon
-              :icon="faCircleInfo"
-              class="text-tertiary-neutral size-3.5"
-              :aria-label="t('profiles.subscription_required')"
-            />
+            <button type="button" class="inline-flex">
+              <FontAwesomeIcon
+                :icon="faCircleInfo"
+                class="text-tertiary-neutral size-3.5"
+                aria-hidden="true"
+              />
+              <span class="sr-only">{{ t('profiles.subscription_required') }}</span>
+            </button>
           </template>
           <template #content>{{ t('profiles.subscription_required') }}</template>
         </NeTooltip>
       </template>
     </NeToggle>
-    <div v-if="node.children.length" class="mt-4 space-y-4 pl-6">
+    <div v-if="node.children.length" class="mt-6 space-y-6 pl-8">
       <ProfileFeatureToggle
         v-for="child in node.children"
         :key="child.key"

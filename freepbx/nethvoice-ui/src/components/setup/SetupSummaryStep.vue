@@ -26,11 +26,12 @@ import { countConfiguredUsers } from '@/lib/users/users'
 import { getTrunkManagement, getVoipTrunks } from '@/lib/trunks/trunks'
 import { getGatewayStatus, getGatewayTrunkIds, type Gateway } from '@/lib/trunks/gateways'
 import { getInboundRouteName, sortInboundRoutes } from '@/lib/routes/inbound'
-import { getRouteTrunkState, getRoutesLocale, isOutboundTrunk } from '@/lib/routes/outbound'
+import { getRouteTrunkState, isOutboundTrunk } from '@/lib/routes/outbound'
 import { getLanguageName, getSummaryWarnings } from '@/lib/setup/summary'
 import { LEGACY_FINAL_STEP } from '@/lib/setup/steps'
 import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
 import { useSetupStore } from '@/stores/setup'
+import { usePbxCountry } from '@/queries/setup/pbxCountry'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { describeError } from '@/stores/notifications'
 
@@ -53,9 +54,7 @@ const isFinishModalShown = ref(false)
 const completionError = ref<unknown>(null)
 let completionStarted = false
 
-const country = computed(
-  () => setupStore.country || getRoutesLocale(outboundState.value.data ?? []),
-)
+const { country } = usePbxCountry({ remember: false })
 
 const configuredUsers = computed(() =>
   usersState.value.data ? countConfiguredUsers(usersState.value.data) : undefined,

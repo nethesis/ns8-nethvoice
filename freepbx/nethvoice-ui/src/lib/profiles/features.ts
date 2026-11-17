@@ -53,7 +53,7 @@ const CALL_FEATURE_SPECS: FeatureSpec[] = [
   { ref: permission('settings', 'dnd') },
   { ref: permission('settings', 'call_forward') },
   { ref: permission('settings', 'recording') },
-  { ref: permission('settings', 'conference') },
+  { ref: permission('settings', 'conference'), tooltip: true },
   { ref: permission('settings', 'parkings'), tooltip: true },
   { ref: permission('settings', 'pickup') },
   { ref: permission('settings', 'spy'), tooltip: true },

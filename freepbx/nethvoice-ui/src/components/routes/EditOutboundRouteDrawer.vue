@@ -11,6 +11,7 @@ import {
   NeBadgeV2,
   NeButton,
   NeDropdown,
+  NeEmptyState,
   NeInlineNotification,
   NeSideDrawer,
   NeSkeleton,
@@ -22,9 +23,9 @@ import {
   faArrowDown,
   faArrowUp,
   faChevronDown,
+  faCircleMinus,
   faCirclePlus,
   faGripVertical,
-  faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
@@ -67,6 +68,7 @@ useFocusReturn(() => isShown)
 
 const trunks = ref<RouteTrunk[]>([])
 const draggedIndex = ref<number | null>(null)
+const isShownDropPlaceholder = ref(false)
 const orderBeforeDrag = ref<RouteTrunk[] | null>(null)
 const announcement = ref('')
 const isShownDiscardModal = ref(false)
@@ -93,8 +95,8 @@ const {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: t('routes.route_saved'),
-        description: t('routes.route_saved_description', { name: vars.title }),
+        title: t('routes.route_updated'),
+        description: t('routes.route_updated_description', { name: vars.title }),
       })
     }, 500)
     emit('close')
@@ -162,6 +164,7 @@ watch(
       saveTrunksReset()
       trunks.value = [...(route?.trunks ?? [])]
       draggedIndex.value = null
+      isShownDropPlaceholder.value = false
       orderBeforeDrag.value = null
       announcement.value = ''
       isShownDiscardModal.value = false
@@ -206,6 +209,10 @@ async function moveTrunk(index: number, offset: -1 | 1) {
   }
 }
 
+function isDropPlaceholder(index: number): boolean {
+  return isShownDropPlaceholder.value && draggedIndex.value === index
+}
+
 function getTrunkState(trunk: RouteTrunk) {
   return getRouteTrunkState(trunk.id, loadedTrunks.value)
 }
@@ -227,6 +234,9 @@ function onDragStart(event: DragEvent, index: number) {
     event.dataTransfer.effectAllowed = 'move'
     event.dataTransfer.setData('text/plain', getTrunkLabel(trunks.value[index]))
   }
+  setTimeout(() => {
+    isShownDropPlaceholder.value = draggedIndex.value !== null
+  })
 }
 
 function onDragEnter(index: number) {
@@ -249,6 +259,7 @@ function onDragEnd(event: DragEvent) {
     })
   }
   draggedIndex.value = null
+  isShownDropPlaceholder.value = false
   orderBeforeDrag.value = null
 }
 
@@ -291,17 +302,24 @@ function discardChanges() {
   >
     <form @submit.prevent="saveRoute">
       <div class="flex flex-col gap-2">
-        <div class="flex flex-col gap-1">
+        <div class="flex flex-col gap-2">
           <h3 id="trunk-priority-label" class="text-primary-neutral text-sm font-medium">
             {{ t('routes.trunk_priority') }}
           </h3>
-          <p id="trunk-priority-helper" class="text-secondary-neutral text-xs">
+          <p
+            v-if="trunks.length > 0"
+            id="trunk-priority-helper"
+            class="text-secondary-neutral text-xs"
+          >
             {{ t('routes.trunk_priority_helper') }}
           </p>
         </div>
-        <p v-if="trunks.length === 0" class="text-tertiary-neutral py-2">
-          {{ t('routes.route_without_trunks') }}
-        </p>
+        <NeEmptyState
+          v-if="trunks.length === 0"
+          :title="t('routes.no_trunks')"
+          :description="t('routes.route_without_trunks_description')"
+          class="bg-elevation-2 rounded-md"
+        />
         <ol
           v-else
           ref="trunkListRef"
@@ -317,8 +335,10 @@ function discardChanges() {
             :data-trunk-id="trunk.id"
             :draggable="!saveTrunksLoading"
             :class="[
-              'flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-gray-100 py-1 pr-2 pl-4 dark:bg-gray-800',
-              { 'opacity-50': draggedIndex === index },
+              'flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md py-1 pr-2 pl-6 shadow-sm',
+              isDropPlaceholder(index)
+                ? 'bg-primary-700 dark:bg-primary-500 *:invisible'
+                : 'bg-elevation-2',
             ]"
             @dragstart="onDragStart($event, index)"
             @dragenter.prevent="onDragEnter(index)"
@@ -331,14 +351,16 @@ function discardChanges() {
               class="text-secondary-neutral h-4 w-4 shrink-0 cursor-grab"
               aria-hidden="true"
             />
-            <span class="flex min-w-6 shrink-0 justify-center">
-              <NeBadgeV2 kind="indigo" size="xs" pill>{{ index + 1 }}</NeBadgeV2>
-            </span>
-            <span class="flex min-w-0 flex-1 basis-40 flex-wrap items-center gap-x-2 gap-y-1">
-              <span class="text-primary-neutral min-w-0 break-words">{{
-                getTrunkLabel(trunk)
-              }}</span>
-              <RouteTrunkBadge :state="getTrunkState(trunk)" />
+            <span class="flex min-w-0 flex-1 basis-40 items-center gap-2">
+              <span class="flex min-w-6 shrink-0 justify-center">
+                <NeBadgeV2 kind="indigo" size="xs" pill>{{ index + 1 }}</NeBadgeV2>
+              </span>
+              <span class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <span class="text-secondary-neutral min-w-0 break-words">{{
+                  getTrunkLabel(trunk)
+                }}</span>
+                <RouteTrunkBadge :state="getTrunkState(trunk)" />
+              </span>
             </span>
             <div class="ml-auto flex shrink-0 items-center">
               <NeTooltip trigger-event="mouseenter focus" placement="top">
@@ -346,7 +368,7 @@ function discardChanges() {
                   <NeButton
                     type="button"
                     kind="tertiary"
-                    size="sm"
+                    size="lg"
                     data-move="up"
                     :disabled="index === 0 || saveTrunksLoading"
                     @click="moveTrunk(index, -1)"
@@ -364,7 +386,7 @@ function discardChanges() {
                   <NeButton
                     type="button"
                     kind="tertiary"
-                    size="sm"
+                    size="lg"
                     data-move="down"
                     :disabled="index === trunks.length - 1 || saveTrunksLoading"
                     @click="moveTrunk(index, 1)"
@@ -382,14 +404,14 @@ function discardChanges() {
                   <NeButton
                     type="button"
                     kind="tertiary"
-                    size="sm"
+                    size="lg"
                     :disabled="saveTrunksLoading"
                     @click="removeTrunk(trunk)"
                   >
                     <span class="sr-only">{{
                       t('routes.remove_trunk', { name: getTrunkLabel(trunk) })
                     }}</span>
-                    <FontAwesomeIcon :icon="faTrash" class="h-4 w-4" aria-hidden="true" />
+                    <FontAwesomeIcon :icon="faCircleMinus" class="h-4 w-4" aria-hidden="true" />
                   </NeButton>
                 </template>
                 <template #content>{{ t('common.remove') }}</template>
@@ -418,7 +440,7 @@ function discardChanges() {
               >
                 <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
                 {{ t('routes.add_trunk') }}
-                <FontAwesomeIcon :icon="faChevronDown" class="h-3 w-3" aria-hidden="true" />
+                <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
               </span>
             </template>
           </NeDropdown>
@@ -434,7 +456,7 @@ function discardChanges() {
               </template>
               {{ t('routes.add_trunk') }}
               <template #suffix>
-                <FontAwesomeIcon :icon="faChevronDown" class="h-3 w-3" aria-hidden="true" />
+                <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
               </template>
             </NeButton>
             <p

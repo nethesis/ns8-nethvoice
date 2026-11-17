@@ -18,21 +18,29 @@ describe('buildTancrediUrl', () => {
 })
 
 describe('isTancrediAuthenticationFailure', () => {
-  it('should treat 401 and the forbidden problem as credential errors', () => {
+  const forbidden = {
+    type: 'https://nethesis.github.io/tancredi/problems#forbidden',
+    title: 'Access to resource is forbidden with current client privileges',
+  }
+
+  it('should treat 401 and the forbidden problem of the admin user as credential errors', () => {
     expect(isTancrediAuthenticationFailure(401, null)).toBe(true)
-    expect(
-      isTancrediAuthenticationFailure(403, {
-        type: 'https://nethesis.github.io/tancredi/problems#forbidden',
-        title: 'Access to resource is forbidden with current client privileges',
-      }),
-    ).toBe(true)
+    expect(isTancrediAuthenticationFailure(401, null, 'operator')).toBe(true)
+    expect(isTancrediAuthenticationFailure(403, forbidden, 'admin')).toBe(true)
+  })
+
+  it('should not sign out another administrator on the forbidden problem', () => {
+    expect(isTancrediAuthenticationFailure(403, forbidden, 'operator')).toBe(false)
+    expect(isTancrediAuthenticationFailure(403, forbidden)).toBe(false)
   })
 
   it('should not sign out on other 403 problems', () => {
     expect(
-      isTancrediAuthenticationFailure(403, {
-        type: 'https://nethesis.github.io/tancredi/problems/#read-only-attribute',
-      }),
+      isTancrediAuthenticationFailure(
+        403,
+        { type: 'https://nethesis.github.io/tancredi/problems/#read-only-attribute' },
+        'admin',
+      ),
     ).toBe(false)
   })
 })
