@@ -216,6 +216,8 @@ def syncSourceCsv(path, output, deleteonly):
   crl.setopt(crl.FAILONERROR, 1)
   crl.setopt(crl.FOLLOWLOCATION, 1)
   crl.setopt(crl.MAXREDIRS, 5)
+  crl.setopt(crl.PROTOCOLS, pycurl.PROTO_HTTP | pycurl.PROTO_HTTPS | pycurl.PROTO_FILE)
+  crl.setopt(crl.REDIR_PROTOCOLS, pycurl.PROTO_HTTP | pycurl.PROTO_HTTPS)
 
   try:
     crl.perform()

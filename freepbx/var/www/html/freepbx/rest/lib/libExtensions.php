@@ -45,7 +45,7 @@ function createExtension($mainextensionnumber,$delete=false){
 
         if ($delete) {
             $stmt = $dbh->prepare('SELECT `extension` FROM `rest_devices_phones` WHERE `extension` LIKE ? AND `type` = "temporaryphysical"');
-            $stmt->execute(array('%'.$mainextensionnumber));
+            $stmt->execute(array('9_'.$mainextensionnumber));
             $res = $stmt->fetchAll();
             if (count($res) >0 ) {
                 foreach ($res as $extension) {
@@ -784,8 +784,9 @@ function _getTypeExtension($mainextension,$type) {
 
 function getUserExtensionNumbers($mainextension) {
     $extensions = array($mainextension);
+    $pattern = '/^9[0-9]' . preg_quote((string) $mainextension, '/') . '$/';
     foreach (FreePBX::create()->Core->getAllUsers() as $ext) {
-        if (substr($ext['extension'], 2) === $mainextension) {
+        if (preg_match($pattern, (string) $ext['extension'])) {
             $extensions[] = $ext['extension'];
         }
     }

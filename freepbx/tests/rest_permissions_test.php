@@ -15,6 +15,7 @@ const AMPUSERS = [
     'boss' => 'nethvoice:superadmin',
     'dash' => 'nethvoice:dashboard',
     'setter' => 'nethvoice:settings',
+    'integrator' => 'nethvoice:integrations',
     'mixed' => 'cdr; nethvoice:users ;nethvoice:bogus;nethvoice:phones',
     'wildcard' => 'nethvoice:*',
     'star' => 'cdr*',
@@ -116,6 +117,10 @@ $expected = [
     'POST /cti/paramurl/delete' => 'integrations',
     'GET /cti/dbconn/type' => 'integrations',
     'DELETE /cti/customer_card/template/{name}' => 'integrations',
+    'GET /cti/customer_card/template' => 'integrations',
+    'POST /cti/customer_card/template' => 'superadmin',
+    'PUT /cti/customer_card/template/{name}' => 'superadmin',
+    'POST /phonebook/test' => 'integrations',
     'POST /settings/defaultlanguage' => 'settings',
     'POST /users/{username}/password' => 'settings self:username',
     'GET /users/{username}/password' => 'superadmin',
@@ -166,6 +171,7 @@ $expectedSuperadminOnly = [
     'POST /configuration/externalip/{ip}',
     'POST /configuration/localnetworks',
     'POST /configuration/wizard',
+    'POST /cti/customer_card/template',
     'POST /devices/scan',
     'POST /migration/announcements',
     'POST /migration/cdr',
@@ -189,14 +195,15 @@ $expectedSuperadminOnly = [
     'POST /migration/timegroups',
     'POST /migration/trunksroutesassignements',
     'POST /testauth',
+    'PUT /cti/customer_card/template/{name}',
 ];
 check($superadminOnly === $expectedSuperadminOnly, "superadmin-only routes changed:\n" . implode("\n", array_diff($superadminOnly, $expectedSuperadminOnly)) . "\n--\n" . implode("\n", array_diff($expectedSuperadminOnly, $superadminOnly)));
 
 $app = AppFactory::create();
 $app->setBasePath('/freepbx/rest');
 $ok = fn($req, $res) => $res->withStatus(200);
-foreach (['/trunks', '/trunks/{trunkid}', '/migration/report', '/settings/defaultlanguage', '/users/{all}', '/users/{username}/password', '/adminphone', '/adminphone/session', '/physicalextensions/{mac}'] as $pattern) {
-    $app->map(['GET', 'POST', 'PATCH', 'DELETE'], $pattern, $ok);
+foreach (['/trunks', '/trunks/{trunkid}', '/migration/report', '/settings/defaultlanguage', '/users/{all}', '/users/{username}/password', '/adminphone', '/adminphone/session', '/physicalextensions/{mac}', '/cti/customer_card/template', '/cti/customer_card/template/{name}'] as $pattern) {
+    $app->map(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], $pattern, $ok);
 }
 require $rest . '/modules/authentication.php';
 $app->add(new PermissionMiddleware($app->getResponseFactory()));
@@ -247,6 +254,22 @@ check(status($app, $factory, 'setter', 'POST', '/users/SETTER/password') === 200
 check(status($app, $factory, 'setter', 'POST', '/users/admin/password') === 403, 'an administrator must not change other passwords');
 check(status($app, $factory, 'setter', 'GET', '/users/setter/password') === 403, 'reading passwords is reserved to superadmin');
 check(status($app, $factory, 'mixed', 'POST', '/users/mixed/password') === 403, 'the own password needs the settings section');
+
+check(status($app, $factory, 'integrator', 'GET', '/cti/customer_card/template') === 200, 'integrations must read the customer card templates');
+check(status($app, $factory, 'integrator', 'DELETE', '/cti/customer_card/template/base') === 200, 'integrations must delete the customer card templates');
+check(status($app, $factory, 'integrator', 'POST', '/cti/customer_card/template') === 403, 'writing a customer card template is reserved to superadmin');
+check(status($app, $factory, 'integrator', 'PUT', '/cti/customer_card/template/base') === 403, 'changing a customer card template is reserved to superadmin');
+check(status($app, $factory, 'boss', 'PUT', '/cti/customer_card/template/base') === 200, 'superadmin must change the customer card templates');
+
+$request = (new ServerRequestFactory())->createServerRequest('GET', '/');
+check(!nethvoiceRequestIsSuperadmin($request) && !nethvoiceRequestHasSection($request, 'users'), 'a request without permissions must grant nothing');
+$sectioned = $request->withAttribute(NETHVOICE_PERMISSIONS_ATTRIBUTE, ['dashboard', 'users']);
+check(!nethvoiceRequestIsSuperadmin($sectioned), 'sections must not grant superadmin');
+check(nethvoiceRequestHasSection($sectioned, 'users') && !nethvoiceRequestHasSection($sectioned, 'phones'), 'only the granted sections must be reported');
+$superadmin = $request->withAttribute(NETHVOICE_PERMISSIONS_ATTRIBUTE, ['superadmin']);
+check(nethvoiceRequestIsSuperadmin($superadmin) && nethvoiceRequestHasSection($superadmin, 'phones'), 'superadmin must have every section');
+$forbidden = nethvoiceForbidden((new Slim\Psr7\Factory\ResponseFactory())->createResponse());
+check($forbidden->getStatusCode() === 403 && json_decode((string) $forbidden->getBody(), true) === ['message' => 'Forbidden: missing permission'], 'handlers must deny like the middleware');
 
 foreach (['wildcard', 'star', 'legacy', 'ghost'] as $user) {
     $response = call($app, $factory, $user, 'GET', '/me');

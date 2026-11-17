@@ -26,6 +26,7 @@ include_once('lib/libCTI.php');
 include_once('lib/libMiddleware.php');
 include_once('lib/libStreaming.php');
 include_once('lib/libDoorPhones.php');
+include_once('lib/libSecurity.php');
 
 /* GET /cti/profiles
 Return: [{id:1, name: admin, macro_permissions [ oppanel: {value: true, permissions [ {name: "foo", description: "descrizione...", value: false},{..} ]}
