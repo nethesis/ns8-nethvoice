@@ -135,9 +135,13 @@ test.describe('routes: inbound', () => {
 
     await page.goto('./routes/inbound')
 
-    await expect(page.getByText('No inbound routes')).toBeVisible()
+    await expect(page.getByText('No inbound routes configured')).toBeVisible()
+    await expect(
+      page.getByText('Define how incoming calls are routed to internal destinations.'),
+    ).toBeVisible()
     await expect(page.getByRole('grid')).toHaveCount(0)
     await expect(page.getByRole('textbox', { name: 'Filter routes' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /Create route/ })).toHaveCount(1)
   })
 
   test('reports a load error and retries', async ({ page, mockApi }) => {

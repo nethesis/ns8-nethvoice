@@ -97,7 +97,7 @@ export type ImportRowError = {
 
 export type ExistingUsersMode = 'skip' | 'overwrite'
 
-export const DEFAULT_EXISTING_USERS_MODE: ExistingUsersMode = 'overwrite'
+export const DEFAULT_EXISTING_USERS_MODE: ExistingUsersMode = 'skip'
 
 export type ImportAnalysis = {
   total: number

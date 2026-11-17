@@ -66,9 +66,11 @@ import { useInvalidateUsers, useUsers } from '@/queries/users/users'
 import { useUsersDirectory } from '@/queries/users/usersDirectory'
 import { useUsersProviderSync } from '@/queries/users/usersSync'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useSetupStore } from '@/stores/setup'
 
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
+const setupStore = useSetupStore()
 const invalidateUsers = useInvalidateUsers()
 const usersQuery = useUsers()
 const directoryQuery = useUsersDirectory()
@@ -96,7 +98,17 @@ const errorRef = useTemplateRef<HTMLElement>('errorRef')
 useFocusReturn(() => isShownUserDrawer.value)
 useFocusReturn(() => isShownImport.value)
 
-onMounted(sync)
+async function syncUsers() {
+  if (await sync()) {
+    setupStore.usersSynced = true
+  }
+}
+
+onMounted(() => {
+  if (!setupStore.usersSynced) {
+    syncUsers()
+  }
+})
 
 const loading = computed(
   () =>
@@ -323,7 +335,7 @@ function provisionAndContinue() {
     :title="t('setup.users.title')"
     :hide-header="provisioning"
     :next-loading="advancing"
-    :next-disabled="loading || !!loadError || configuredCount === 0 || overLimit"
+    :next-disabled="loading || syncing || !!loadError || configuredCount === 0 || overLimit"
     @next="saveAndContinue"
   >
     <template #description>
@@ -337,7 +349,7 @@ function provisionAndContinue() {
       :title="t('users.cannot_sync_users')"
       :description="t('setup.users.cannot_sync_users_description')"
       :primary-button-label="t('common.retry')"
-      @primary-click="sync"
+      @primary-click="syncUsers"
     />
     <div
       v-if="provisioning"
@@ -385,7 +397,7 @@ function provisionAndContinue() {
     >
       <div class="flex flex-col items-center gap-4">
         <NeSpinner v-if="syncing" />
-        <NeButton kind="primary" @click="showCreateUser">
+        <NeButton kind="secondary" @click="showCreateUser">
           <template #prefix>
             <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
           </template>

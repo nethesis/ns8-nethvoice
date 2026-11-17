@@ -1,7 +1,12 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { getStepForLegacyStep, getStepIndex, SETUP_STEPS } from '@/lib/setup/steps'
+import {
+  getStepForLegacyStep,
+  getStepIndex,
+  LEGACY_SUMMARY_STEP,
+  SETUP_STEPS,
+} from '@/lib/setup/steps'
 import type { WizardState } from '@/lib/setup/wizard'
 
 export type NamedRoute = { name: string }
@@ -39,7 +44,10 @@ export const getWizardRedirect = (routeName: unknown, state: WizardState): Named
 }
 
 export const getLegacyStepToSave = (nextLegacyStep: number, state?: WizardState): number =>
-  state?.inProgress ? Math.max(nextLegacyStep, state.legacyStep) : nextLegacyStep
+  Math.min(
+    state?.inProgress ? Math.max(nextLegacyStep, state.legacyStep) : nextLegacyStep,
+    LEGACY_SUMMARY_STEP,
+  )
 
 export const getInternalRedirect = (redirect: unknown): string | null =>
   typeof redirect === 'string' &&

@@ -49,6 +49,15 @@ test.describe('users', () => {
     await expect(anna).toContainText('Standard')
     await expect(anna.getByText('Voicemail enabled')).toBeAttached()
     await expect(anna.getByTestId('device-webrtc')).toBeVisible()
+    await expect(anna.getByRole('button', { name: 'Physical phones of a.miller: 1' })).toHaveText(
+      '1',
+    )
+    await anna.getByTestId('phones-count-a.miller').hover()
+    const phonesTooltip = page.getByTestId('phones-tooltip-a.miller')
+    await expect(phonesTooltip).toContainText('Yealink T46 (00:15:65:AB:CD:01)')
+    await expect(
+      phonesTooltip.getByRole('link', { name: 'Go to Physical phones' }),
+    ).toHaveAttribute('href', /\/phones$/)
 
     const christopher = page.getByTestId('user-c.davis')
     await expect(christopher).toContainText('Backoffice, Sales')
@@ -76,7 +85,20 @@ test.describe('users', () => {
     await page.getByRole('button', { name: 'Reset filters' }).click()
     await expect(rows).toHaveCount(3)
 
+    await page.getByRole('button', { name: 'Physical phones', exact: true }).click()
+    await page.getByRole('radio', { name: 'Has physical phone' }).click()
+    await expect(rows).toHaveCount(1)
+    await expect(rows.first()).toContainText('a.miller')
+    await page.keyboard.press('Escape')
+    await page.mouse.move(0, 0)
+    await page.getByRole('button', { name: 'Physical phones', exact: true }).click()
+    await page.getByRole('radio', { name: 'No physical phone' }).click()
+    await expect(rows).toHaveCount(2)
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Reset filters' }).click()
+
     await page.getByRole('button', { name: 'Devices', exact: true }).click()
+    await expect(page.getByPlaceholder('Filter options')).toBeVisible()
     await page.getByRole('checkbox', { name: 'Desktop app' }).click()
     await expect(rows).toHaveCount(1)
     await expect(rows.first()).toContainText('c.davis')
@@ -819,11 +841,27 @@ test.describe('users', () => {
     )
     await expect(modal).toContainText('Row 4 (b.boone): invalid extension')
     await expect(modal).toContainText('Row 5 (c.wolf): unrecognized value "maybe" in Voicemail')
-    await expect(modal.getByRole('radio', { name: 'Overwrite existing users' })).toBeChecked()
-    await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeVisible()
+    await expect(modal.getByRole('radio', { name: 'Skip existing users' })).toBeChecked()
+    await expect(modal.getByTestId('import-summary')).toContainText(
+      '1 existing user (will be skipped)',
+    )
+    await expect(modal).toContainText('1 existing user will be skipped')
+    await expect(modal).toContainText('Row 2 (a.miller)')
+    await expect(modal.getByRole('button', { name: 'Import 1 user' })).toBeVisible()
+    await expect(modal.getByTestId('import-summary')).toContainText('Import summary')
     const summaryBox = await modal.getByTestId('import-summary').boundingBox()
     const previewBox = await modal.getByRole('grid', { name: 'File preview' }).boundingBox()
-    expect(summaryBox?.y ?? 0).toBeLessThan(previewBox?.y ?? 0)
+    const radiosBox = await modal.getByRole('radio', { name: 'Skip existing users' }).boundingBox()
+    const overwriteBox = await modal
+      .getByRole('radio', { name: 'Overwrite existing users' })
+      .boundingBox()
+    expect(previewBox?.y ?? 0).toBeLessThan(radiosBox?.y ?? 0)
+    expect(radiosBox?.y ?? 0).toBeLessThan(overwriteBox?.y ?? 0)
+    expect(overwriteBox?.y ?? 0).toBeLessThan(summaryBox?.y ?? 0)
+
+    await modal.getByRole('radio', { name: 'Overwrite existing users' }).check()
+    await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeVisible()
+    await expect(modal).not.toContainText('1 existing user will be skipped')
 
     await modal.getByRole('radio', { name: 'Skip existing users' }).check()
     await expect(modal).toContainText('Row 2 (a.miller)')

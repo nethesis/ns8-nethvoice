@@ -110,6 +110,12 @@ function showDeleteGroupModal(group: Group) {
   isShownDeleteGroupModal.value = true
 }
 
+function showOnlyIfTruncated(instance: { reference: Element }): false | undefined {
+  const name = instance.reference.querySelector('[data-group-name]')
+
+  return name !== null && name.scrollWidth > name.clientWidth ? undefined : false
+}
+
 function getKebabMenuItems(group: Group): NeDropdownItem[] {
   return [
     {
@@ -146,7 +152,7 @@ function reload() {
       </NeButton>
     </NeEmptyState>
     <template v-else>
-      <div class="mb-4 flex flex-wrap items-start justify-between gap-4">
+      <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
         <p class="text-secondary-neutral max-w-152">
           {{ t('groups.description_line_1') }}<br />{{ t('groups.description_line_2') }}
         </p>
@@ -204,17 +210,28 @@ function reload() {
         <NeTableBody>
           <NeTableRow v-for="group in groupsPage" :key="group.id">
             <NeTableCell :data-label="t('groups.group')">
-              <span class="wrap-anywhere">{{ group.name }}</span>
+              <NeTooltip
+                trigger-event="mouseenter focus"
+                placement="top"
+                :tippy-props="{ onShow: showOnlyIfTruncated }"
+                class="block max-w-xs min-w-0"
+              >
+                <template #trigger>
+                  <span class="block truncate" data-group-name>{{ group.name }}</span>
+                </template>
+                <template #content>{{ group.name }}</template>
+              </NeTooltip>
             </NeTableCell>
             <NeTableCell :data-label="t('groups.users')">
               <span v-if="getUsernames(group).length === 0">-</span>
-              <span v-else class="wrap-anywhere">
-                {{ getUsernames(group).slice(0, MAX_GROUP_USERS_SHOWN).join(', ') }}
+              <div v-else class="flex flex-col items-start">
+                <span class="wrap-anywhere">
+                  {{ getUsernames(group).slice(0, MAX_GROUP_USERS_SHOWN).join(', ') }}
+                </span>
                 <NeTooltip
                   v-if="getUsernames(group).length > MAX_GROUP_USERS_SHOWN"
                   trigger-event="mouseenter focus"
                   placement="bottom"
-                  class="ml-1 inline-block"
                 >
                   <template #trigger>
                     <button
@@ -232,7 +249,7 @@ function reload() {
                     {{ getUsernames(group).slice(MAX_GROUP_USERS_SHOWN).join(', ') }}
                   </template>
                 </NeTooltip>
-              </span>
+              </div>
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
               <div class="-ml-2.5 flex gap-1 md:ml-0 md:justify-end">

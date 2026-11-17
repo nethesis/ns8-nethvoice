@@ -50,6 +50,7 @@ const mockSummary = (mockApi: MockApi) =>
     .on('GET', '/freepbx/rest/devices/gateways/list/all', { json: [] })
     .on('GET', '/freepbx/rest/inboundroutes', { json: INBOUND_ROUTES })
     .on('GET', '/freepbx/rest/outboundroutes', { json: OUTBOUND_ROUTES })
+    .on('GET', '/freepbx/rest/outboundroutes/supportedLocales', { json: ['it', 'en'] })
 
 const mockDashboard = (mockApi: MockApi) => {
   for (const path of [

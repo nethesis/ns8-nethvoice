@@ -51,7 +51,10 @@
     "click_to_copy": "Clicca per copiare",
     "name": "Nome",
     "show_details": "Mostra dettagli",
-    "error_service_unavailable": "Il servizio non è raggiungibile in questo momento. Riprova tra poco."
+    "error_service_unavailable": "Il servizio non è raggiungibile in questo momento. Riprova tra poco.",
+    "clear_filter": "Azzera filtro",
+    "try_different_words": "Prova con parole diverse o con meno parole.",
+    "opens_in_new_tab": "(si apre in una nuova scheda)"
   },
   "shell": {
     "open_sidebar": "Apri barra laterale",
@@ -89,7 +92,8 @@
   },
   "notifications": {
     "title": "Notifiche",
-    "no_notification": "Ancora nessuna notifica"
+    "no_notification": "Ancora nessuna notifica",
+    "clear_all": "Azzera tutto"
   },
   "not_found": {
     "title": "Pagina non trovata",
@@ -119,7 +123,13 @@
       "extensions_usage": "{configured} interni configurati su {limit}",
       "title": "Sistema",
       "hostname": "Nome host",
-      "limit_reached": "Limite di interni raggiunto"
+      "limit_reached": "Limite di interni raggiunto",
+      "release": "Versione",
+      "uptime": "Tempo di attività",
+      "uptime_days": "{count} giorno | {count} giorni",
+      "uptime_hours": "{count} ora | {count} ore",
+      "uptime_minutes": "{count} minuto | {count} minuti",
+      "load_memory": "Carico / memoria"
     },
     "presence": {
       "title": "Presence degli utenti",
@@ -170,7 +180,8 @@
       "live_data": "dati in tempo reale",
       "trunks": "fasci",
       "inbound_routes": "rotte in ingresso",
-      "calls": "chiamate di oggi"
+      "calls": "chiamate di oggi",
+      "phones": "stato dei telefoni"
     },
     "move_card": "Sposta {card}",
     "drag_to_reorder": "Trascina per riordinare, oppure usa i tasti freccia",
@@ -184,13 +195,22 @@
       "no_calls": "Nessuna chiamata oggi"
     },
     "hourly_calls": {
-      "title": "Distribuzione oraria delle chiamate in ingresso",
-      "legend": "Chiamate in ingresso",
-      "summary": "{total} chiamate in ingresso oggi, il massimo alle {hour} con {calls}",
-      "no_calls": "Nessuna chiamata in ingresso oggi",
+      "title": "Distribuzione oraria delle chiamate",
+      "legend": "Chiamate",
+      "summary": "{total} chiamate oggi, il massimo alle {hour} con {calls}",
+      "no_calls": "Nessuna chiamata oggi",
       "hour_value": "{hour}: {calls}"
     },
-    "cannot_load_calls": "Impossibile caricare le chiamate di oggi"
+    "cannot_load_calls": "Impossibile caricare le chiamate di oggi",
+    "phone_status": {
+      "title": "Stato dei telefoni",
+      "provisioned": "Provisionati",
+      "pending": "In attesa",
+      "unassigned": "Non assegnati",
+      "failed": "Falliti",
+      "no_phones": "Nessun telefono fisico"
+    },
+    "cannot_load_phones": "Impossibile caricare lo stato dei telefoni"
   },
   "users": {
     "title": "Utenti e gruppi",
@@ -244,8 +264,6 @@
     "cannot_load_phones": "Impossibile caricare i telefoni fisici",
     "filter_users": "Filtra utenti",
     "filter_any": "Qualsiasi",
-    "with_physical_phones": "Con telefoni fisici",
-    "without_physical_phones": "Senza telefoni fisici",
     "configured_counter": "{configured} utenti su {total} configurati con un interno",
     "no_users": "Nessun utente",
     "no_users_description": "Crea gli utenti o importali da un file",
@@ -273,7 +291,7 @@
     "extension_error_users_limit": "La versione community consente al massimo 8 utenti con un interno.",
     "extension_error_user_not_found": "L'utente non è ancora sincronizzato con il PBX. Riprova tra qualche secondo.",
     "extension_change_warning_title": "I dispositivi verranno ricreati",
-    "extension_change_warning_description": "Cambiare l'interno elimina e ricrea tutti i dispositivi dell'utente: app e telefoni fisici ricevono nuove credenziali e vanno riconfigurati.",
+    "extension_change_warning_description": "Cambiare l'interno elimina e ricrea tutti i dispositivi dell'utente: app e telefoni fisici ricevono nuove credenziali e vanno riconfigurati. L'utente perde anche le appartenenze ai gruppi.",
     "username_required": "Inserisci il nome utente",
     "username_invalid": "Usa lettere minuscole, numeri, punto, trattino e trattino basso, iniziando con una lettera",
     "username_already_exists": "Questo nome utente esiste già",
@@ -452,7 +470,12 @@
     "cannot_delete_orphan_extensions": "Impossibile eliminare gli interni",
     "orphan_extensions_deleted": "Interni eliminati",
     "orphan_extensions_deleted_description": "L'interno {extensions} è stato eliminato | Gli interni {extensions} sono stati eliminati",
-    "import_issue_invalid_flag": "valore \"{value}\" non riconosciuto in {column}"
+    "import_issue_invalid_flag": "valore \"{value}\" non riconosciuto in {column}",
+    "has_physical_phone": "Con telefono fisico",
+    "no_physical_phone": "Senza telefono fisico",
+    "physical_phones_of": "Telefoni fisici di {name}: {count}",
+    "physical_phones_limit": "Un utente può avere fino a {max} dispositivi, inclusi i telefoni fisici",
+    "mobile_number_helper": "Usato per la visualizzazione e la presenza in {brand} CTI e nel pannello operatore."
   },
   "trunks": {
     "title": "Fasci",
@@ -461,12 +484,11 @@
     "trunk": "Fascio",
     "filter_trunks": "Filtra fasci",
     "no_trunks_found": "Nessun fascio trovato",
-    "updating": "Aggiornamento in corso",
+    "updating": "Aggiornamento in corso…",
     "add_trunk": "Aggiungi fascio",
     "delete_trunk": "Elimina fascio",
     "open_trunk_menu": "Apri il menu di {name}",
     "trunk_created": "Fascio creato",
-    "trunk_saved": "Fascio salvato",
     "trunk_deleted": "Fascio eliminato",
     "cannot_create_trunk": "Impossibile creare il fascio",
     "cannot_save_trunk": "Impossibile salvare il fascio",
@@ -495,19 +517,19 @@
       "cannot_load_providers": "Impossibile caricare i provider",
       "provider": "Provider",
       "choose_provider": "Scegli un provider",
-      "provider_cannot_be_changed": "Il provider di un fascio esistente non può essere cambiato",
+      "provider_cannot_be_changed": "Il provider di un fascio esistente non può essere cambiato.",
       "trunk_name": "Nome del fascio",
       "trunk_name_helper": "Un nome per identificare il fascio: lettere, cifre, punto, trattino e trattino basso",
-      "name_cannot_be_changed": "Il nome di un fascio esistente non può essere cambiato",
+      "name_cannot_be_changed": "Il nome di un fascio esistente non può essere cambiato.",
       "phone_number": "Numero di telefono",
       "phone_number_helper": "Il numero di telefono assegnato al fascio dal provider",
       "username": "Nome utente",
-      "username_helper": "Inserisci il nome utente fornito dal provider",
+      "username_helper": "Inserisci il nome utente fornito dal provider.",
       "password": "Password",
-      "password_helper": "Inserisci la password fornita dal provider",
-      "password_edit_helper": "Lascia vuoto per mantenere la password attuale",
+      "password_helper": "Inserisci la password fornita dal provider.",
+      "password_edit_helper": "Lascia vuoto per mantenere la password attuale.",
       "allowed_codecs": "Codec consentiti",
-      "allowed_codecs_helper": "Codec preferiti per questo fascio. Se non ne scegli nessuno, si usano quelli predefiniti del provider",
+      "allowed_codecs_helper": "Codec preferiti per questo fascio. Se non ne scegli nessuno, si usano quelli predefiniti del provider.",
       "codecs": "Codec",
       "force_codec": "Forza codec",
       "force_codec_tooltip": "Se attivo, si usano solo i codec consentiti. Se disattivo, sono ammessi anche i codec del provider.",
@@ -526,7 +548,7 @@
       "empty_description_line_1": "Aggiungi i fasci VoIP per gestire le chiamate in ingresso e in uscita su reti IP.",
       "empty_description_line_2": "Imposta le connessioni ai provider e i parametri necessari all'instradamento delle chiamate.",
       "trunk_name_username_helper": "Un nome per identificare il fascio, usato anche come nome utente: lettere, cifre, punto, trattino e trattino basso",
-      "provider_codecs_added": "Si aggiungono anche i codec del provider: {codecs}. Attiva Forza codec per usare solo quelli scelti",
+      "provider_codecs_added": "Si aggiungono anche i codec del provider: {codecs}. Attiva Forza codec per usare solo quelli scelti.",
       "force_codec_info": "Informazioni su Forza codec",
       "name_too_long": "Usa al massimo 50 caratteri",
       "password_only_spaces": "La password non può contenere solo spazi",
@@ -534,7 +556,10 @@
       "ai_agents_read_only": "Questo fascio è gestito dagli agenti AI. Modificarlo o eliminarlo da qui li farebbe smettere di funzionare.",
       "other_technology_read_only": "Questo fascio usa la tecnologia {technology} e si può modificare solo dalle impostazioni avanzate.",
       "read_only": "Sola lettura",
-      "cannot_load_gateways": "Impossibile caricare i gateway, quindi i loro fasci potrebbero comparire anche qui"
+      "cannot_load_gateways": "Impossibile caricare i gateway, quindi i loro fasci potrebbero comparire anche qui",
+      "trunk_name_placeholder": "es. Ingresso",
+      "phone_number_placeholder": "es. +39 02 1234567",
+      "username_placeholder": "es. account_98765"
     },
     "physical": {
       "description_line_1": "Configura i fasci fisici per collegare il centralino alle linee telefoniche tradizionali.",
@@ -596,13 +621,19 @@
       "ip_address_not_host": "Inserisci l'indirizzo di un dispositivo, non quello della rete o di broadcast",
       "network_gateway_same_as_ip": "Il gateway di rete deve essere diverso dall'indirizzo IP del dispositivo",
       "network_gateway_outside_subnet": "Il gateway di rete deve essere nella stessa rete del dispositivo",
-      "delete_confirmation_details_no_fxs": "Saranno eliminati anche i suoi fasci."
+      "delete_confirmation_details_no_fxs": "Saranno eliminati anche i suoi fasci.",
+      "mac_address_placeholder": "es. 00:1A:2B:3C:4D:5E",
+      "ip_address_placeholder": "es. 192.168.1.10",
+      "netmask_placeholder": "es. 255.255.255.0",
+      "network_gateway_placeholder": "es. 192.168.1.1"
     },
     "cannot_check_outbound_routes": "Impossibile verificare quali rotte in uscita usano questo fascio",
     "routes_left_without_trunks": "Alcune rotte in uscita resteranno senza fasci",
     "used_by_outbound_routes": "Usato da rotte in uscita",
     "routes_without_trunks_description": "Queste rotte in uscita usano solo questo fascio e non potranno più effettuare chiamate: {routes}.",
-    "routes_keep_trunks_description": "Il fascio sarà rimosso da queste rotte in uscita, che continueranno a usare gli altri fasci: {routes}."
+    "routes_keep_trunks_description": "Il fascio sarà rimosso da queste rotte in uscita, che continueranno a usare gli altri fasci: {routes}.",
+    "trunk_updated": "Fascio aggiornato",
+    "trunk_updated_description": "Il fascio {name} è stato aggiornato"
   },
   "routes": {
     "title": "Rotte",
@@ -629,10 +660,10 @@
     "cannot_delete_route": "Impossibile eliminare la rotta",
     "cannot_load_inbound_routes": "Impossibile caricare le rotte in ingresso",
     "cannot_load_outbound_routes": "Impossibile caricare le rotte in uscita",
-    "no_inbound_routes": "Nessuna rotta in ingresso",
+    "no_inbound_routes": "Nessuna rotta in ingresso configurata",
     "no_inbound_routes_description": "Crea una rotta con il Visual Plan per definire come vengono gestite le chiamate in arrivo.",
     "no_routes_found": "Nessuna rotta trovata",
-    "no_outbound_routes": "Nessuna rotta in uscita",
+    "no_outbound_routes": "Nessuna rotta in uscita configurata",
     "no_outbound_routes_description": "Crea le rotte predefinite del tuo paese, poi scegli i fasci usati da ciascuna.",
     "create_default_routes": "Crea rotte predefinite",
     "create_default_routes_description": "Le rotte per chiamate nazionali, verso cellulari, internazionali e a numeri speciali vengono create con le regole di composizione del paese scelto. A ogni rotta vengono assegnati tutti i fasci attivi, esclusi quelli degli agenti AI.",
@@ -647,7 +678,6 @@
     "no_trunks": "Nessun fascio",
     "edit_route": "Modifica {name}",
     "trunk_priority_helper": "Trascina o usa le frecce per riordinare. Il primo fascio ha la priorità più alta.",
-    "route_without_trunks": "Nessun fascio in questa rotta: le chiamate che la usano non possono essere effettuate.",
     "add_trunk": "Aggiungi fascio",
     "remove_trunk": "Rimuovi {name}",
     "move_trunk_up": "Sposta {name} in su",
@@ -655,10 +685,9 @@
     "trunk_added": "{name} aggiunto in posizione {position}",
     "trunk_removed": "{name} rimosso",
     "trunk_moved": "{name} spostato in posizione {position}",
-    "all_trunks_assigned": "Tutti i fasci sono già in questa rotta",
+    "all_trunks_assigned": "Tutti i fasci sono già in questa rotta.",
     "no_trunks_configured": "Nessun fascio ancora configurato",
     "cannot_load_trunks": "Impossibile caricare i fasci",
-    "route_saved": "Rotta salvata",
     "cannot_save_route": "Impossibile salvare la rotta",
     "outbound_kind": {
       "national": "Nazionali",
@@ -699,7 +728,6 @@
     "route_deleted_description": "La rotta {name} è stata eliminata",
     "route_already_deleted": "Rotta già eliminata",
     "route_already_deleted_description": "La rotta {name} non esiste più. L'elenco è stato aggiornato.",
-    "route_saved_description": "La rotta {name} è stata salvata",
     "route_not_found": "Questa rotta non esiste più. Chiudi il pannello per vedere l'elenco aggiornato.",
     "no_default_routes": "Non ci sono rotte predefinite per il paese scelto.",
     "no_trunks_warning": "Nessun fascio: le chiamate non possono essere effettuate",
@@ -707,8 +735,11 @@
     "trunk_voice_agents": "Agenti AI",
     "move_up": "Sposta su",
     "move_down": "Sposta giù",
-    "no_enabled_trunks": "Tutti i fasci sono disabilitati: abilita un fascio per aggiungerlo a questa rotta",
-    "no_enabled_trunks_warning": "Nessun fascio abilitato: le chiamate non possono essere effettuate"
+    "no_enabled_trunks": "Tutti i fasci sono disabilitati: abilita un fascio per aggiungerlo a questa rotta.",
+    "no_enabled_trunks_warning": "Nessun fascio abilitato: le chiamate non possono essere effettuate",
+    "route_updated": "Rotta aggiornata",
+    "route_updated_description": "La rotta {name} è stata aggiornata",
+    "route_without_trunks_description": "Aggiungi un fascio a questa rotta per abilitare le chiamate in uscita."
   },
   "phones": {
     "title": "Telefoni fisici",
@@ -734,10 +765,10 @@
       "choose_user": "Digita o scegli un utente",
       "n_phones_to_configure": "{n} telefono da configurare | {n} telefoni da configurare",
       "remove_phone": "Rimuovi {mac}",
-      "mac_invalid": "Inserisci un indirizzo MAC valido",
+      "mac_invalid": "Inserisci un indirizzo MAC valido: usa solo caratteri esadecimali (0-9, A-F) e i separatori supportati",
       "mac_already_exists": "Esiste già un telefono con questo indirizzo MAC",
       "mac_duplicated": "Questo indirizzo MAC è ripetuto nell'elenco",
-      "model_required": "Scegli un modello",
+      "model_required": "Seleziona un modello",
       "added_but_not_assigned": "Il telefono è stato aggiunto ma non è stato possibile assegnarlo all'utente: {error}",
       "cannot_add_phones": "Impossibile aggiungere i telefoni",
       "phones_added": "Telefono aggiunto | Telefoni aggiunti",
@@ -798,7 +829,14 @@
       "pending_changes": "Modifiche da salvare",
       "model_change": "Modello: {from} → {to}.",
       "user_change": "Utente: {from} → {to}.",
-      "reassigned_with_errors": "Il telefono è stato assegnato al nuovo utente, ma la modifica non è stata completata: {error}"
+      "reassigned_with_errors": "Il telefono è stato assegnato al nuovo utente, ma la modifica non è stata completata: {error}",
+      "copy_mac_address": "Copia indirizzo MAC",
+      "copy_mac_address_of": "Copia indirizzo MAC {mac}",
+      "cannot_copy_mac_address": "Impossibile copiare l'indirizzo MAC",
+      "encryption_disabled": "Cifratura disabilitata",
+      "encryption_disabled_description": "Questo telefono userà una connessione non sicura.",
+      "mac_addresses_placeholder": "es.\n00:04:13:11:22:31\n00-04-13-11-22-31\n000413112231",
+      "select_model_for_each_phone": "Seleziona un modello per ogni telefono"
     },
     "models": {
       "description": "Gestisci i modelli di telefono supportati e le relative impostazioni di provisioning.",
@@ -946,7 +984,9 @@
       "vlan_id_phone": "ID VLAN telefono",
       "vlan_id_pc_port": "ID VLAN porta PC",
       "model_not_found": "Modello non trovato",
-      "model_not_found_description": "Questo modello non esiste più o l'indirizzo è errato."
+      "model_not_found_description": "Questo modello non esiste più o l'indirizzo è errato.",
+      "discard": "Scarta",
+      "discard_changes_description": "Le modifiche non salvate a questo modello andranno perse."
     },
     "settings": {
       "default_configuration": "Configurazione predefinita dei telefoni",
@@ -966,12 +1006,12 @@
       "admin_password_description": "Usata per accedere all'interfaccia web del telefono come amministratore. Per impostazione predefinita viene generata una password casuale.",
       "current_admin_password": "Password amministratore attuale",
       "change_admin_password": "Cambia password amministratore",
-      "admin_password_changed": "Password amministratore cambiata",
+      "admin_password_changed": "Password amministratore aggiornata",
       "user_password": "Password utente",
       "user_password_description": "Usata per accedere all'interfaccia web del telefono come utente standard. Per impostazione predefinita viene generata una password casuale.",
       "current_user_password": "Password utente attuale",
       "change_user_password": "Cambia password utente",
-      "user_password_changed": "Password utente cambiata",
+      "user_password_changed": "Password utente aggiornata",
       "password_changed_description": "I telefoni useranno la nuova password dopo il prossimo provisioning.",
       "changes_apply_after_provisioning": "Le modifiche verranno applicate dopo il prossimo provisioning.",
       "new_password": "Nuova password",
@@ -990,7 +1030,8 @@
         "special": "Almeno un carattere speciale ({characters})",
         "requirement_met": "Requisito soddisfatto",
         "requirement_not_met": "Requisito non soddisfatto"
-      }
+      },
+      "admin_password_affects_cti": "La modifica della password può influire sulle funzionalità di {brand} CTI"
     }
   },
   "integrations": {
@@ -1106,7 +1147,8 @@
       "csv_file_invalid": "Scegli un file .csv o .txt",
       "csv_file_empty": "Il file è vuoto",
       "csv_file_too_large": "Il file supera {size} MB",
-      "csv_upload_rejected": "Il centralino ha rifiutato il file: potrebbe essere vuoto o più grande della dimensione massima consentita (8 MB)."
+      "csv_upload_rejected": "Il centralino ha rifiutato il file: potrebbe essere vuoto o più grande della dimensione massima consentita (8 MB).",
+      "database_test_superadmin_only": "Solo un superamministratore può testare una sorgente database."
     },
     "video": {
       "description": "Mostra in NethVoice CTI le immagini di telecamere IP e citofoni e apri la porta da lì.",
@@ -1315,8 +1357,8 @@
     "new_password_must_be_different": "La nuova password deve essere diversa da quella attuale",
     "confirm_password_required": "Conferma la nuova password",
     "passwords_do_not_match": "Le password non coincidono",
-    "admin_password_changed": "Password amministratore cambiata",
-    "admin_password_changed_description": "Usa la nuova password dal prossimo accesso",
+    "admin_password_changed": "Password aggiornata",
+    "admin_password_changed_description": "La password amministratore è stata aggiornata. Usala dal prossimo accesso.",
     "cannot_change_admin_password": "Impossibile cambiare la password amministratore"
   },
   "setup": {
@@ -1416,7 +1458,9 @@
       "finish_setup_description": "La configurazione verrà applicata. Asterisk verrà riavviato appena non ci saranno chiamate in corso e verrà riavviato anche {brand} CTI: i suoi utenti verranno disconnessi per qualche istante."
     },
     "cannot_save_progress": "Impossibile salvare l'avanzamento della configurazione",
-    "cannot_check_setup": "Impossibile verificare lo stato della configurazione"
+    "cannot_check_setup": "Impossibile verificare lo stato della configurazione",
+    "setup_already_completed": "Configurazione già completata",
+    "setup_already_completed_description": "La configurazione è stata completata in un'altra sessione."
   },
   "ne_table": {
     "no_items": "Nessun elemento",
@@ -1602,7 +1646,8 @@
       "phone_buttons": "Configurazione tasti del telefono",
       "satellite_stt": "Trascrizione chiamate (speech-to-text)",
       "satellite_stt_tooltip": "Trascrizione e riassunto delle chiamate",
-      "streaming": "Pannello sorgenti video"
+      "streaming": "Pannello sorgenti video",
+      "conference_tooltip": "Aggiungi altre persone a una chiamata in corso per parlare tutti insieme"
     },
     "name_not_allowed": "Questo nome non può essere usato per questo profilo",
     "profile_change_in_progress": "È in corso un'altra modifica dei profili: riprova tra qualche secondo."
@@ -1644,8 +1689,8 @@
     "codecs": "Codec",
     "do_not_disturb": "Non disturbare",
     "call_forward": "Inoltro chiamate",
-    "on": "ON",
-    "off": "OFF",
+    "on": "Attivo",
+    "off": "Disattivo",
     "no_users": "Nessun utente con un interno",
     "no_users_description": "Assegna un interno a un utente per vedere qui lo stato in tempo reale dei suoi dispositivi.",
     "no_users_found": "Nessun utente trovato",
@@ -1666,19 +1711,41 @@
       "label": "Raggruppa per",
       "group": "Gruppo",
       "status": "Stato"
-    }
+    },
+    "call_extension": "Chiama {extension}",
+    "call_extension_unavailable": "Chiama {extension}, dispositivo {status}",
+    "call_extension_blocked": "Chiama {extension}, il telefono dell'amministratore non è disponibile",
+    "devices_description": "Seleziona un dispositivo per vederne le impostazioni.",
+    "device_settings": "Impostazioni di {device} {extension}"
   },
   "admin_phone": {
     "status_connection_lost": "Il telefono non riesce a connettersi al centralino e continua a riprovare",
     "status_error": "Impossibile collegare il telefono: {error}. Chiama di nuovo per riprovare.",
     "status_elsewhere": "Il telefono dell'amministratore è attivo in un'altra scheda",
-    "use_here": "Usa il telefono in questa scheda"
+    "use_here": "Usa il telefono in questa scheda",
+    "status_elsewhere_in_call": "Il telefono dell'amministratore è in chiamata in un'altra scheda"
   },
   "permissions": {
     "no_access_title": "Nessuna sezione disponibile",
     "no_access_description": "Il tuo account non può gestire alcuna sezione. Chiedi all'amministratore di concederti l'accesso.",
     "cannot_load_permissions": "Impossibile caricare i tuoi permessi",
     "setup_pending_title": "Configurazione non completata",
-    "setup_pending_description": "L'amministratore deve completare la prima configurazione prima che tu possa usare l'amministrazione del centralino."
+    "setup_pending_description": "L'amministratore deve completare la prima configurazione prima che tu possa usare l'amministrazione del centralino.",
+    "check_again": "Verifica di nuovo"
+  },
+  "system_alerts": {
+    "trunk_down_title": "Fascio non raggiungibile",
+    "trunk_down_description": "Le chiamate tramite il fascio {name} non possono essere effettuate né ricevute.",
+    "trunk_up_title": "Fascio riconnesso",
+    "trunk_up_description": "Le chiamate tramite il fascio {name} possono di nuovo essere effettuate e ricevute.",
+    "live_down_title": "Impossibile caricare i dati in tempo reale",
+    "live_up_title": "Dati in tempo reale ripristinati",
+    "live_up_description": "Le chiamate in corso e lo stato dei fasci sono di nuovo aggiornati.",
+    "extensions_limit_title": "Limite di interni raggiunto",
+    "extensions_limit_description": "Tutti i {limit} interni della versione Community sono in uso. Elimina un interno prima di crearne uno nuovo.",
+    "admin_phone_down_title": "Impossibile connettere il telefono dell'amministratore",
+    "admin_phone_down_description": "Il telefono non riesce a connettersi al centralino e continua a riprovare.",
+    "admin_phone_up_title": "Telefono dell'amministratore riconnesso",
+    "admin_phone_up_description": "Il telefono dell'amministratore è di nuovo connesso al centralino."
   }
 }

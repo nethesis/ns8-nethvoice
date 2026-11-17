@@ -4,8 +4,12 @@
 -->
 
 <script setup lang="ts">
-import { NeSideDrawer, NeEmptyState } from '@nethesis/vue-components'
-import { NeToastNotificationV2 } from '@nethesis/vue-components'
+import {
+  NeButton,
+  NeEmptyState,
+  NeSideDrawer,
+  NeToastNotificationV2,
+} from '@nethesis/vue-components'
 import { useI18n } from 'vue-i18n'
 import { useNotificationsStore } from '@/stores/notifications'
 import isEmpty from 'lodash/isEmpty'
@@ -33,6 +37,9 @@ function closeDrawer() {
       :icon="faBell"
     />
     <div v-else class="flex w-full flex-col items-center space-y-4 sm:items-end">
+      <NeButton kind="tertiary" size="sm" @click="notificationsStore.clearNotifications()">
+        {{ t('notifications.clear_all') }}
+      </NeButton>
       <TransitionGroup name="fade">
         <NeToastNotificationV2
           v-for="notification in notificationsStore.notifications"

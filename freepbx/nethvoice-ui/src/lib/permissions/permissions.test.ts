@@ -84,6 +84,15 @@ describe('getAccessRedirect', () => {
     })
   })
 
+  it('should leave superadmin on the requested page when the wizard state is unknown', () => {
+    expect(getAccessRedirect('setup', 'superadmin', superadmin, undefined)).toBeNull()
+    expect(getAccessRedirect('setup-users', 'superadmin', superadmin, undefined)).toBeNull()
+    expect(getAccessRedirect('dashboard', 'dashboard', superadmin, undefined)).toBeNull()
+    expect(getAccessRedirect('setup-pending', undefined, superadmin, undefined)).toEqual({
+      name: 'dashboard',
+    })
+  })
+
   it('should redirect a forbidden section to the first allowed one', () => {
     expect(getAccessRedirect('trunks', 'trunks', dashboardOnly, completed)).toEqual({
       name: 'dashboard',

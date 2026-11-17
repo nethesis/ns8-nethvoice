@@ -289,6 +289,12 @@ function save() {
           {{ $t('phones.inventory.encryption_requires_user') }}
         </p>
         <NeInlineNotification
+          v-if="mainExtension && !encrypted"
+          kind="warning"
+          :title="$t('phones.inventory.encryption_disabled')"
+          :description="$t('phones.inventory.encryption_disabled_description')"
+        />
+        <NeInlineNotification
           v-if="pendingChanges.length > 0"
           kind="info"
           :title="$t('phones.inventory.pending_changes')"

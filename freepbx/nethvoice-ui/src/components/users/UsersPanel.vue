@@ -6,12 +6,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { RouterLink } from 'vue-router'
 import {
   NeButton,
   NeDropdown,
   NeDropdownFilterV2,
   NeEmptyState,
   NeInlineNotification,
+  NeLink,
   NeTable,
   NeTableBody,
   NeTableCell,
@@ -53,6 +55,8 @@ import RemoveExtensionModal from '@/components/users/RemoveExtensionModal.vue'
 import UserDeviceIcons from '@/components/users/UserDeviceIcons.vue'
 import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
 import { DEFAULT_PAGE_SIZE, paginate } from '@/lib/common'
+import { formatPhoneModel } from '@/lib/overview/overview'
+import { formatMac } from '@/lib/phones/mac'
 import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
 import {
   buildUserRows,
@@ -73,6 +77,7 @@ import {
   countConfiguredUsers,
   SOFTWARE_DEVICE_TYPES,
   type SoftwareDeviceType,
+  type UserDevice,
 } from '@/lib/users/users'
 import { useOrphanExtensions } from '@/queries/users/orphanExtensions'
 import { useUsers } from '@/queries/users/users'
@@ -134,8 +139,8 @@ const voicemailOptions = computed<NeDropdownFilterV2Option[]>(() => [
 
 const phonesOptions = computed<NeDropdownFilterV2Option[]>(() => [
   anyOption(),
-  { id: 'with', label: t('users.with_physical_phones') },
-  { id: 'without', label: t('users.without_physical_phones') },
+  { id: 'with', label: t('users.has_physical_phone') },
+  { id: 'without', label: t('users.no_physical_phone') },
 ])
 
 const groupOptions = computed<NeDropdownFilterV2Option[]>(() =>
@@ -149,6 +154,16 @@ const profileOptions = computed<NeDropdownFilterV2Option[]>(() =>
 const deviceOptions = computed<NeDropdownFilterV2Option[]>(() =>
   SOFTWARE_DEVICE_TYPES.map((device) => ({ id: device, label: t(`users.device_${device}`) })),
 )
+
+function describePhone(phone: UserDevice) {
+  const model = formatPhoneModel(phone.vendor, phone.model)
+  const mac = phone.mac ? formatMac(phone.mac) : ''
+
+  if (model && mac) {
+    return `${model} (${mac})`
+  }
+  return model || mac || phone.extension
+}
 
 const firstId = (options: NeDropdownFilterV2Option[]) => options[0]?.id ?? 'any'
 
@@ -355,7 +370,7 @@ const filterLabels = computed(() => ({
 
 <template>
   <div>
-    <div class="mb-6 flex flex-wrap items-start justify-between gap-4">
+    <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
       <p class="text-secondary-neutral max-w-152">
         {{ t('users.description_line_1') }}<br />{{ t('users.description_line_2') }}
       </p>
@@ -420,7 +435,7 @@ const filterLabels = computed(() => ({
           kind="checkbox"
           :label="t('users.groups')"
           :options="groupOptions"
-          :show-options-filter="groupOptions.length > 8"
+          show-options-filter
           v-bind="filterLabels"
         />
         <NeDropdownFilterV2
@@ -428,6 +443,7 @@ const filterLabels = computed(() => ({
           kind="checkbox"
           :label="t('users.profiles')"
           :options="profileOptions"
+          show-options-filter
           v-bind="filterLabels"
         />
         <NeDropdownFilterV2
@@ -435,6 +451,7 @@ const filterLabels = computed(() => ({
           kind="checkbox"
           :label="t('users.devices')"
           :options="deviceOptions"
+          show-options-filter
           v-bind="filterLabels"
         />
         <NeDropdownFilterV2
@@ -524,7 +541,7 @@ const filterLabels = computed(() => ({
                   <span class="truncate" :title="row.displayName">{{ row.displayName }}</span>
                   <NeTooltip v-if="row.voicemail" trigger-event="mouseenter focus" placement="top">
                     <template #trigger>
-                      <span tabindex="0" class="flex text-indigo-500 dark:text-indigo-300">
+                      <span tabindex="0" class="text-secondary flex">
                         <FontAwesomeIcon :icon="faVoicemail" class="size-4" aria-hidden="true" />
                         <span class="sr-only">{{ t('users.voicemail_enabled') }}</span>
                       </span>
@@ -576,10 +593,38 @@ const filterLabels = computed(() => ({
             </NeTableCell>
             <NeTableCell :data-label="t('users.physical_phones')">
               <span v-if="row.physicalPhones.length === 0">-</span>
-              <span v-else class="flex items-center gap-2">
-                <FontAwesomeIcon :icon="faOfficePhone" class="size-4" aria-hidden="true" />
-                {{ row.physicalPhones.length }}
-              </span>
+              <NeTooltip v-else trigger-event="mouseenter focus" placement="top">
+                <template #trigger>
+                  <button
+                    type="button"
+                    class="focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex items-center gap-2 rounded-sm focus:outline-hidden focus-visible:ring-2"
+                    :aria-label="
+                      t('users.physical_phones_of', {
+                        name: row.username,
+                        count: row.physicalPhones.length,
+                      })
+                    "
+                    :data-testid="`phones-count-${row.username}`"
+                  >
+                    <FontAwesomeIcon :icon="faOfficePhone" class="size-4" aria-hidden="true" />
+                    {{ row.physicalPhones.length }}
+                  </button>
+                </template>
+                <template #content>
+                  <div class="flex flex-col gap-2" :data-testid="`phones-tooltip-${row.username}`">
+                    <ul>
+                      <li v-for="phone in row.physicalPhones" :key="phone.id">
+                        {{ describePhone(phone) }}
+                      </li>
+                    </ul>
+                    <RouterLink v-slot="{ href, navigate }" :to="{ name: 'phones' }" custom>
+                      <NeLink inverted-theme :href="href" @click="navigate">
+                        {{ t('common.go_to_page', { page: t('phones.title') }) }}
+                      </NeLink>
+                    </RouterLink>
+                  </div>
+                </template>
+              </NeTooltip>
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
               <div class="-ml-2.5 flex items-center gap-2 xl:ml-0 xl:justify-end">

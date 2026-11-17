@@ -19,7 +19,7 @@ import {
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
+import { faCircleQuestion } from '@fortawesome/free-solid-svg-icons'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import {
   getAddedProviderCodecs,
@@ -193,8 +193,8 @@ const {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: t('trunks.trunk_saved'),
-        description: t('common.object_saved_successfully', { name: item.name }),
+        title: t('trunks.trunk_updated'),
+        description: t('trunks.trunk_updated_description', { name: item.name }),
       })
     }, 500)
     emit('close')
@@ -373,6 +373,7 @@ function issue(field: VoipTrunkField): string {
           v-model="form.name"
           :label="t('trunks.voip.trunk_name')"
           :helper-text="nameHelperText"
+          :placeholder="t('trunks.voip.trunk_name_placeholder')"
           :invalid-message="issue('name')"
           :disabled="saving || isEditing"
           :maxlength="TRUNK_NAME_MAX_LENGTH"
@@ -383,6 +384,7 @@ function issue(field: VoipTrunkField): string {
           v-model="form.phoneNumber"
           :label="t('trunks.voip.phone_number')"
           :helper-text="t('trunks.voip.phone_number_helper')"
+          :placeholder="t('trunks.voip.phone_number_placeholder')"
           :invalid-message="issue('phoneNumber')"
           :disabled="saving"
           @blur="normalizePhoneNumberField"
@@ -393,6 +395,7 @@ function issue(field: VoipTrunkField): string {
           v-model="form.username"
           :label="t('trunks.voip.username')"
           :helper-text="t('trunks.voip.username_helper')"
+          :placeholder="t('trunks.voip.username_placeholder')"
           :invalid-message="issue('username')"
           :disabled="saving"
           autocomplete="off"
@@ -444,10 +447,10 @@ function issue(field: VoipTrunkField): string {
               <template #trigger>
                 <button
                   type="button"
-                  class="inline-flex text-indigo-500 dark:text-indigo-300"
+                  class="inline-flex text-indigo-800 dark:text-indigo-300"
                   :aria-label="t('trunks.voip.force_codec_info')"
                 >
-                  <FontAwesomeIcon :icon="faCircleInfo" class="size-4" aria-hidden="true" />
+                  <FontAwesomeIcon :icon="faCircleQuestion" class="size-4" aria-hidden="true" />
                 </button>
               </template>
               <template #content>{{ t('trunks.voip.force_codec_tooltip') }}</template>

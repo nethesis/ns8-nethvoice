@@ -22,7 +22,7 @@ import {
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
-  faCircleDown,
+  faCircleArrowDown,
   faCirclePlus,
   faEthernet,
   faEye,
@@ -197,172 +197,180 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
+  <div>
     <div
       v-if="variant === 'admin' && !isNoDataEmptyStateShown"
-      class="flex flex-col items-start justify-between gap-4 sm:flex-row"
+      class="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row"
     >
       <div class="text-secondary-neutral max-w-2xl">
         <p>{{ t('trunks.physical.description_line_1') }}</p>
         <p>{{ t('trunks.physical.description_line_2') }}</p>
       </div>
-      <NeButton kind="primary" class="shrink-0" @click="showCreateDrawer">
+      <NeButton kind="primary" size="lg" class="shrink-0" @click="showCreateDrawer">
         <template #prefix>
           <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
         </template>
         {{ t('trunks.physical.add_physical_trunk') }}
       </NeButton>
     </div>
-    <div
-      v-if="!isNoDataEmptyStateShown && !loadError"
-      class="flex flex-wrap items-center justify-between gap-4"
-    >
-      <div class="flex flex-wrap items-center gap-4">
-        <NeTextInput
-          v-model="textFilter"
-          is-search
-          :placeholder="t('trunks.filter_trunks')"
-          :aria-label="t('trunks.filter_trunks')"
-          :clear-search-label="t('ne_text_input.clear_search')"
-          class="w-full max-w-xs"
-          @blur="textFilter = textFilter.trim()"
-        />
-        <NeButton
-          v-if="variant === 'admin'"
-          kind="tertiary"
-          :disabled="!textFilter"
-          @click="textFilter = ''"
-        >
-          {{ t('common.reset_filters') }}
+    <div class="flex flex-col gap-6">
+      <div
+        v-if="!isNoDataEmptyStateShown && !loadError"
+        class="flex flex-wrap items-center justify-between gap-4"
+      >
+        <div class="flex flex-wrap items-center gap-4">
+          <NeTextInput
+            v-model="textFilter"
+            is-search
+            :placeholder="t('trunks.filter_trunks')"
+            :aria-label="t('trunks.filter_trunks')"
+            :clear-search-label="t('ne_text_input.clear_search')"
+            class="w-full max-w-xs"
+            @blur="textFilter = textFilter.trim()"
+          />
+          <NeButton
+            v-if="variant === 'admin'"
+            kind="tertiary"
+            :disabled="!textFilter"
+            @click="textFilter = ''"
+          >
+            {{ t('common.clear_filter') }}
+          </NeButton>
+        </div>
+        <div class="flex items-center gap-4">
+          <TrunksUpdatingIndicator v-if="isUpdating" />
+          <NeButton v-if="variant === 'setup'" kind="secondary" @click="showCreateDrawer">
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+            </template>
+            {{ t('trunks.physical.add_physical_trunk') }}
+          </NeButton>
+        </div>
+      </div>
+      <LoadError
+        v-if="loadError"
+        :error="loadError"
+        :title="t('trunks.physical.cannot_load_trunks')"
+        @retry="retry"
+      />
+      <NeInlineNotification
+        v-if="isLoaded && modelsState.status === 'error'"
+        kind="warning"
+        :title="t('trunks.physical.cannot_load_models')"
+        :description="describeError(modelsState.error)"
+        :primary-button-label="t('common.retry')"
+        @primary-click="refetchModels()"
+      />
+      <NeEmptyState
+        v-if="isNoDataEmptyStateShown"
+        :title="t('trunks.physical.no_trunks')"
+        :description="emptyStateDescription"
+        :icon="faEthernet"
+        class="bg-elevation-0"
+      >
+        <div v-if="variant === 'admin'" class="text-tertiary-neutral -mt-4 mb-5 text-center">
+          <p>{{ t('trunks.physical.empty_description_line_1') }}</p>
+          <p>{{ t('trunks.physical.empty_description_line_2') }}</p>
+        </div>
+        <div class="flex justify-center">
+          <NeButton
+            :kind="variant === 'admin' ? 'primary' : 'secondary'"
+            :size="variant === 'admin' ? 'lg' : 'md'"
+            @click="showCreateDrawer"
+          >
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+            </template>
+            {{ t('trunks.physical.add_physical_trunk') }}
+          </NeButton>
+        </div>
+      </NeEmptyState>
+      <NeEmptyState
+        v-else-if="isNoMatchEmptyStateShown"
+        :title="t('trunks.no_trunks_found')"
+        :description="t('common.try_different_words')"
+        :icon="faMagnifyingGlass"
+        class="bg-elevation-0"
+      >
+        <NeButton kind="tertiary" size="lg" @click="textFilter = ''">
+          {{ t('common.clear_filter') }}
         </NeButton>
-      </div>
-      <div class="flex items-center gap-4">
-        <TrunksUpdatingIndicator v-if="isUpdating" />
-        <NeButton v-if="variant === 'setup'" kind="secondary" @click="showCreateDrawer">
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
-          </template>
-          {{ t('trunks.physical.add_physical_trunk') }}
-        </NeButton>
-      </div>
-    </div>
-    <LoadError
-      v-if="loadError"
-      :error="loadError"
-      :title="t('trunks.physical.cannot_load_trunks')"
-      @retry="retry"
-    />
-    <NeInlineNotification
-      v-if="isLoaded && modelsState.status === 'error'"
-      kind="warning"
-      :title="t('trunks.physical.cannot_load_models')"
-      :description="describeError(modelsState.error)"
-      :primary-button-label="t('common.retry')"
-      @primary-click="refetchModels()"
-    />
-    <NeEmptyState
-      v-if="isNoDataEmptyStateShown"
-      :title="t('trunks.physical.no_trunks')"
-      :description="emptyStateDescription"
-      :icon="faEthernet"
-      class="elevation-0"
-    >
-      <div v-if="variant === 'admin'" class="text-tertiary-neutral -mt-4 mb-5 text-center">
-        <p>{{ t('trunks.physical.empty_description_line_1') }}</p>
-        <p>{{ t('trunks.physical.empty_description_line_2') }}</p>
-      </div>
-      <div class="flex justify-center">
-        <NeButton :kind="variant === 'admin' ? 'primary' : 'secondary'" @click="showCreateDrawer">
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
-          </template>
-          {{ t('trunks.physical.add_physical_trunk') }}
-        </NeButton>
-      </div>
-    </NeEmptyState>
-    <NeEmptyState
-      v-else-if="isNoMatchEmptyStateShown"
-      :title="t('trunks.no_trunks_found')"
-      :description="t('common.try_changing_search_filters')"
-      :icon="faMagnifyingGlass"
-      class="elevation-0"
-    >
-      <NeButton kind="tertiary" @click="textFilter = ''">{{ t('common.reset_filters') }}</NeButton>
-    </NeEmptyState>
-    <NeTable
-      v-if="isTableShown"
-      :aria-label="t('trunks.tab_physical')"
-      card-breakpoint="lg"
-      :loading="isLoading"
-      :skeleton-columns="5"
-      :skeleton-rows="3"
-    >
-      <NeTableHead>
-        <NeTableHeadCell>{{ t('trunks.trunk') }}</NeTableHeadCell>
-        <NeTableHeadCell>{{ t('trunks.physical.ip_address_column') }}</NeTableHeadCell>
-        <NeTableHeadCell>{{ t('trunks.physical.mac_column') }}</NeTableHeadCell>
-        <NeTableHeadCell>{{ t('common.status') }}</NeTableHeadCell>
-        <NeTableHeadCell>
-          <span class="sr-only">{{ t('common.actions') }}</span>
-        </NeTableHeadCell>
-      </NeTableHead>
-      <NeTableBody>
-        <NeTableRow v-for="item in page" :key="item.id">
-          <NeTableCell :data-label="t('trunks.trunk')">
-            <div class="flex flex-col">
-              <span>{{ item.manufacturer || '-' }}</span>
-              <span class="break-words">
-                {{ getGatewayModelDescription(item, models) || item.name }}
-              </span>
-            </div>
-          </NeTableCell>
-          <NeTableCell :data-label="t('trunks.physical.ip_address_column')">
-            <ClickToCopy v-if="item.ipAddress" :text="item.ipAddress" />
-            <template v-else>-</template>
-          </NeTableCell>
-          <NeTableCell :data-label="t('trunks.physical.mac_column')">
-            <ClickToCopy
-              v-if="formatMacAddress(item.macAddress)"
-              :text="formatMacAddress(item.macAddress)"
-            />
-            <template v-else>-</template>
-          </NeTableCell>
-          <NeTableCell :data-label="t('common.status')">
-            <TrunkStatusIndicator :status="getGatewayStatus(item, trunksState.data, liveData)" />
-          </NeTableCell>
-          <NeTableCell :data-label="t('common.actions')">
-            <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
-              <NeButton
-                kind="tertiary"
-                :loading="downloadingId === item.id"
-                :disabled="downloadingId === item.id"
-                @click="downloadConfiguration(item)"
-              >
-                <template #prefix>
-                  <FontAwesomeIcon :icon="faCircleDown" class="h-4 w-4" aria-hidden="true" />
-                </template>
-                {{ t('trunks.physical.download') }}
-                <span class="sr-only">{{ getGatewayLabel(item, models) }}</span>
-              </NeButton>
-              <NeDropdown
-                :items="getKebabMenuItems(item)"
-                :align-to-right="true"
-                :open-menu-aria-label="
-                  t('trunks.open_trunk_menu', { name: getGatewayLabel(item, models) })
-                "
+      </NeEmptyState>
+      <NeTable
+        v-if="isTableShown"
+        :aria-label="t('trunks.tab_physical')"
+        card-breakpoint="lg"
+        :loading="isLoading"
+        :skeleton-columns="5"
+        :skeleton-rows="3"
+      >
+        <NeTableHead>
+          <NeTableHeadCell>{{ t('trunks.trunk') }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ t('trunks.physical.ip_address_column') }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ t('trunks.physical.mac_column') }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ t('common.status') }}</NeTableHeadCell>
+          <NeTableHeadCell>
+            <span class="sr-only">{{ t('common.actions') }}</span>
+          </NeTableHeadCell>
+        </NeTableHead>
+        <NeTableBody>
+          <NeTableRow v-for="item in page" :key="item.id">
+            <NeTableCell :data-label="t('trunks.trunk')">
+              <div class="flex flex-col">
+                <span>{{ item.manufacturer || '-' }}</span>
+                <span class="break-words">
+                  {{ getGatewayModelDescription(item, models) || item.name }}
+                </span>
+              </div>
+            </NeTableCell>
+            <NeTableCell :data-label="t('trunks.physical.ip_address_column')">
+              <ClickToCopy v-if="item.ipAddress" :text="item.ipAddress" />
+              <template v-else>-</template>
+            </NeTableCell>
+            <NeTableCell :data-label="t('trunks.physical.mac_column')">
+              <ClickToCopy
+                v-if="formatMacAddress(item.macAddress)"
+                :text="formatMacAddress(item.macAddress)"
               />
-            </div>
-          </NeTableCell>
-        </NeTableRow>
-      </NeTableBody>
-      <template v-if="filteredGateways.length > PAGE_SIZES[0]" #paginator>
-        <TablePaginator
-          v-model:page-num="pageNum"
-          v-model:page-size="pageSize"
-          :total-rows="filteredGateways.length"
-        />
-      </template>
-    </NeTable>
+              <template v-else>-</template>
+            </NeTableCell>
+            <NeTableCell :data-label="t('common.status')">
+              <TrunkStatusIndicator :status="getGatewayStatus(item, trunksState.data, liveData)" />
+            </NeTableCell>
+            <NeTableCell :data-label="t('common.actions')">
+              <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+                <NeButton
+                  kind="tertiary"
+                  :loading="downloadingId === item.id"
+                  :disabled="downloadingId === item.id"
+                  @click="downloadConfiguration(item)"
+                >
+                  <template #prefix>
+                    <FontAwesomeIcon :icon="faCircleArrowDown" class="h-4 w-4" aria-hidden="true" />
+                  </template>
+                  {{ t('trunks.physical.download') }}
+                  <span class="sr-only">{{ getGatewayLabel(item, models) }}</span>
+                </NeButton>
+                <NeDropdown
+                  :items="getKebabMenuItems(item)"
+                  :align-to-right="true"
+                  :open-menu-aria-label="
+                    t('trunks.open_trunk_menu', { name: getGatewayLabel(item, models) })
+                  "
+                />
+              </div>
+            </NeTableCell>
+          </NeTableRow>
+        </NeTableBody>
+        <template v-if="filteredGateways.length > PAGE_SIZES[0]" #paginator>
+          <TablePaginator
+            v-model:page-num="pageNum"
+            v-model:page-size="pageSize"
+            :total-rows="filteredGateways.length"
+          />
+        </template>
+      </NeTable>
+    </div>
     <GatewayDrawer
       :is-shown="isShownDrawer"
       :gateway="currentGateway"

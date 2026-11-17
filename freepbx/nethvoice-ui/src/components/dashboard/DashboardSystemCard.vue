@@ -5,6 +5,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   NeBadgeV2,
   NeCard,
@@ -24,14 +25,43 @@ import {
   isExtensionsLimitReached,
   type DashboardSubscription,
 } from '@/lib/dashboard/subscription'
+import { formatLoadAndMemory, splitUptime, type DashboardSystemInfo } from '@/lib/dashboard/system'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
-const { subscription = undefined, loading = false } = defineProps<{
+const {
+  subscription = undefined,
+  loading = false,
+  system = undefined,
+  systemLoading = false,
+} = defineProps<{
   subscription?: DashboardSubscription
   loading?: boolean
+  system?: DashboardSystemInfo
+  systemLoading?: boolean
 }>()
 
+const { t, locale } = useI18n()
 const runtimeConfigStore = useRuntimeConfigStore()
+
+const release = computed(() =>
+  system?.release ? `${runtimeConfigStore.config.brandName} ${system.release}` : '',
+)
+
+const uptime = computed(() => {
+  if (!system) {
+    return ''
+  }
+  const integer = new Intl.NumberFormat(locale.value, { maximumFractionDigits: 0 })
+  return splitUptime(system.uptimeSeconds)
+    .map(({ unit, value }) =>
+      t(`dashboard.system.uptime_${unit}`, { count: integer.format(value) }, value),
+    )
+    .join(' ')
+})
+
+const loadAndMemory = computed(() => (system ? formatLoadAndMemory(system, locale.value) : ''))
+
+const skeletonLines = computed(() => (systemLoading ? 3 : 0) + (loading ? 2 : 0))
 
 const usagePercent = computed(() => (subscription ? getExtensionsUsagePercent(subscription) : 0))
 
@@ -75,6 +105,48 @@ const usageValue = computed(() =>
             >
           </dd>
         </div>
+        <template v-if="!systemLoading && system">
+          <div
+            v-if="release"
+            class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
+          >
+            <dt class="text-tertiary-neutral shrink-0 font-medium">
+              {{ $t('dashboard.system.release') }}
+            </dt>
+            <dd
+              class="text-primary-neutral min-w-0 text-right break-words"
+              data-testid="system-release"
+            >
+              {{ release }}
+            </dd>
+          </div>
+          <div
+            class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
+          >
+            <dt class="text-tertiary-neutral shrink-0 font-medium">
+              {{ $t('dashboard.system.uptime') }}
+            </dt>
+            <dd
+              class="text-primary-neutral min-w-0 text-right break-words"
+              data-testid="system-uptime"
+            >
+              {{ uptime }}
+            </dd>
+          </div>
+          <div
+            class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
+          >
+            <dt class="text-tertiary-neutral shrink-0 font-medium">
+              {{ $t('dashboard.system.load_memory') }}
+            </dt>
+            <dd
+              class="text-primary-neutral min-w-0 text-right tabular-nums"
+              data-testid="system-load-memory"
+            >
+              {{ loadAndMemory }}
+            </dd>
+          </div>
+        </template>
         <template v-if="!loading && subscription">
           <div
             class="flex items-center justify-between gap-4 border-b border-gray-200 py-3 last:border-b-0 dark:border-gray-700"
@@ -139,7 +211,7 @@ const usageValue = computed(() =>
           </div>
         </template>
       </dl>
-      <NeSkeleton v-if="loading" :lines="2" class="w-full" />
+      <NeSkeleton v-if="skeletonLines" :lines="skeletonLines" class="w-full" />
     </div>
   </NeCard>
 </template>

@@ -67,6 +67,13 @@ const describeHour = (datum: Datum) =>
       </span>
     </template>
     <NeSkeleton v-if="loading" :lines="10" class="w-full" />
+    <p
+      v-else-if="totalCalls === 0"
+      class="text-tertiary-neutral py-6 text-center text-sm"
+      data-testid="hourly-calls-empty"
+    >
+      {{ $t('dashboard.hourly_calls.no_calls') }}
+    </p>
     <div v-else class="flex flex-col gap-6">
       <div
         role="img"

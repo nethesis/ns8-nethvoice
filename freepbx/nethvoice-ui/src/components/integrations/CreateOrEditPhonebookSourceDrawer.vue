@@ -67,6 +67,7 @@ import type { FieldIssues } from '@/lib/integrations/validation'
 import { useGroupNames } from '@/queries/integrations/lookups'
 import { usePhonebookFields } from '@/queries/integrations/phonebookSources'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { usePermissions } from '@/queries/permissions/me'
 
 type MappingOption = { id: string; label: string }
 
@@ -80,6 +81,7 @@ const { isShown = false, currentSource = undefined } = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const { isSuperadmin } = usePermissions()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: fieldsState } = usePhonebookFields(() => isShown)
@@ -297,6 +299,8 @@ const {
 })
 
 const busy = computed(() => saving.value || testing.value || uploading.value)
+
+const databaseTestDenied = computed(() => isDatabaseKind(form.value.kind) && !isSuperadmin.value)
 
 watch(
   () => isShown,
@@ -569,7 +573,7 @@ function save() {
               type="button"
               :aria-describedby="validationIssues.mapping ? 'phonebook-mapping-status' : undefined"
               kind="secondary"
-              :disabled="busy"
+              :disabled="busy || databaseTestDenied"
               :loading="testing"
               @click="testSource"
             >
@@ -579,6 +583,13 @@ function save() {
               {{ t('integrations.phonebook.test_source') }}
             </NeButton>
           </div>
+          <p
+            v-if="databaseTestDenied"
+            class="text-tertiary-neutral text-sm"
+            data-testid="database-test-superadmin-only"
+          >
+            {{ t('integrations.phonebook.database_test_superadmin_only') }}
+          </p>
           <NeInlineNotification
             v-if="testError"
             kind="error"

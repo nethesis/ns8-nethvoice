@@ -103,10 +103,19 @@ type UsersApiOptions = {
   orphans?: unknown
 }
 
-export const mockUsersApi = (mockApi: MockApi, options: UsersApiOptions = {}) =>
-  mockApi
-    .on('GET', `${REST}/users/sync`, { json: false })
-    .on('POST', `${REST}/users/sync`, { status: 200 })
+export const mockUsersApi = (mockApi: MockApi, options: UsersApiOptions = {}) => {
+  let syncRunning = false
+
+  return mockApi
+    .on('GET', `${REST}/users/sync`, () => {
+      const running = syncRunning
+      syncRunning = false
+      return { json: running }
+    })
+    .on('POST', `${REST}/users/sync`, () => {
+      syncRunning = true
+      return { status: 200 }
+    })
     .on('GET', `${REST}/users/:all`, {
       status: options.usersStatus ?? 200,
       json: options.users ?? RAW_USERS,
@@ -130,6 +139,7 @@ export const mockUsersApi = (mockApi: MockApi, options: UsersApiOptions = {}) =>
       json: { configured: 2, limit: false, configurable: false },
     })
     .on('GET', `${REST}/mainextensions/orphans`, { json: options.orphans ?? [] })
+}
 
 export const mockUserPhonesApi = (mockApi: MockApi) =>
   mockApi

@@ -274,7 +274,7 @@ describe('analyzeImport', () => {
   it('imports the existing users in overwrite mode', () => {
     const analysis = analyzeImport(rows, USERS, DIRECTORY, 'overwrite')
 
-    expect(DEFAULT_EXISTING_USERS_MODE).toBe('overwrite')
+    expect(DEFAULT_EXISTING_USERS_MODE).toBe('skip')
 
     expect(analysis.valid.map((row) => row.username)).toEqual(['a.miller', 'k.lee'])
     expect(analysis.existing).toEqual([])

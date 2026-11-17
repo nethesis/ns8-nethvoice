@@ -32,7 +32,7 @@ const { t } = useI18n()
 
 const deviceItems = computed<NeDropdownItem[]>(() =>
   devices
-    .filter((device) => device.status !== 'offline')
+    .filter((device) => device.status === 'online')
     .map((device) => ({
       id: `device-${device.extension}`,
       label: device.extension,

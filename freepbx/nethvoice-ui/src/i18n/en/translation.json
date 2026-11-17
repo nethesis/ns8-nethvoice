@@ -51,7 +51,10 @@
     "click_to_copy": "Click to copy",
     "name": "Name",
     "show_details": "Show details",
-    "error_service_unavailable": "The service is not reachable at the moment. Try again shortly."
+    "error_service_unavailable": "The service is not reachable at the moment. Try again shortly.",
+    "clear_filter": "Clear filter",
+    "try_different_words": "Try different or fewer words.",
+    "opens_in_new_tab": "(opens in a new tab)"
   },
   "shell": {
     "open_sidebar": "Open sidebar",
@@ -89,7 +92,8 @@
   },
   "notifications": {
     "title": "Notifications",
-    "no_notification": "No notifications yet"
+    "no_notification": "No notifications yet",
+    "clear_all": "Clear all"
   },
   "not_found": {
     "title": "Page not found",
@@ -119,7 +123,13 @@
       "extensions_usage": "{configured} of {limit} extensions configured",
       "title": "System",
       "hostname": "Hostname",
-      "limit_reached": "Extension limit reached"
+      "limit_reached": "Extension limit reached",
+      "release": "Release",
+      "uptime": "Uptime",
+      "uptime_days": "{count} day | {count} days",
+      "uptime_hours": "{count} hour | {count} hours",
+      "uptime_minutes": "{count} minute | {count} minutes",
+      "load_memory": "Load / memory"
     },
     "presence": {
       "title": "Users presence",
@@ -170,7 +180,8 @@
       "live_data": "live data",
       "trunks": "trunks",
       "inbound_routes": "inbound routes",
-      "calls": "today's calls"
+      "calls": "today's calls",
+      "phones": "phone status"
     },
     "move_card": "Move {card}",
     "drag_to_reorder": "Drag to reorder, or use the arrow keys",
@@ -184,13 +195,22 @@
       "no_calls": "No calls today"
     },
     "hourly_calls": {
-      "title": "Hourly distribution of incoming calls",
-      "legend": "Incoming calls",
-      "summary": "{total} incoming calls today, most at {hour} with {calls}",
-      "no_calls": "No incoming calls today",
+      "title": "Hourly distribution of calls",
+      "legend": "Calls",
+      "summary": "{total} calls today, most at {hour} with {calls}",
+      "no_calls": "No calls today",
       "hour_value": "{hour}: {calls}"
     },
-    "cannot_load_calls": "Cannot load today's calls"
+    "cannot_load_calls": "Cannot load today's calls",
+    "phone_status": {
+      "title": "Phone status",
+      "provisioned": "Provisioned",
+      "pending": "Pending",
+      "unassigned": "Unassigned",
+      "failed": "Failed",
+      "no_phones": "No physical phones"
+    },
+    "cannot_load_phones": "Cannot load the phone status"
   },
   "users": {
     "title": "Users and groups",
@@ -244,8 +264,6 @@
     "cannot_load_phones": "Cannot load the physical phones",
     "filter_users": "Filter users",
     "filter_any": "Any",
-    "with_physical_phones": "With physical phones",
-    "without_physical_phones": "Without physical phones",
     "configured_counter": "{configured} out of {total} users configured with an extension",
     "no_users": "No users",
     "no_users_description": "Create users or import them from a file",
@@ -273,7 +291,7 @@
     "extension_error_users_limit": "The community version allows up to 8 users with an extension.",
     "extension_error_user_not_found": "The user is not synchronized with the PBX yet. Try again in a few seconds.",
     "extension_change_warning_title": "The devices will be recreated",
-    "extension_change_warning_description": "Changing the extension deletes and recreates all the devices of the user: apps and physical phones get new credentials and must be configured again.",
+    "extension_change_warning_description": "Changing the extension deletes and recreates all the devices of the user: apps and physical phones get new credentials and must be configured again. The user also loses the group memberships.",
     "username_required": "Enter the username",
     "username_invalid": "Use lowercase letters, numbers, dot, dash and underscore, starting with a letter",
     "username_already_exists": "This username already exists",
@@ -452,7 +470,12 @@
     "cannot_delete_orphan_extensions": "Cannot delete the extensions",
     "orphan_extensions_deleted": "Extensions deleted",
     "orphan_extensions_deleted_description": "Extension {extensions} has been deleted | Extensions {extensions} have been deleted",
-    "import_issue_invalid_flag": "unrecognized value \"{value}\" in {column}"
+    "import_issue_invalid_flag": "unrecognized value \"{value}\" in {column}",
+    "has_physical_phone": "Has physical phone",
+    "no_physical_phone": "No physical phone",
+    "physical_phones_of": "Physical phones of {name}: {count}",
+    "physical_phones_limit": "A user can have up to {max} devices, physical phones included",
+    "mobile_number_helper": "Used for display and presence in {brand} CTI and in the operator panel."
   },
   "trunks": {
     "title": "Trunks",
@@ -461,12 +484,11 @@
     "trunk": "Trunk",
     "filter_trunks": "Filter trunks",
     "no_trunks_found": "No trunks found",
-    "updating": "Updating",
+    "updating": "Updating…",
     "add_trunk": "Add trunk",
     "delete_trunk": "Delete trunk",
     "open_trunk_menu": "Open the menu of {name}",
     "trunk_created": "Trunk created",
-    "trunk_saved": "Trunk saved",
     "trunk_deleted": "Trunk deleted",
     "cannot_create_trunk": "Cannot create the trunk",
     "cannot_save_trunk": "Cannot save the trunk",
@@ -495,19 +517,19 @@
       "cannot_load_providers": "Cannot load the providers",
       "provider": "Provider",
       "choose_provider": "Choose a provider",
-      "provider_cannot_be_changed": "The provider of an existing trunk cannot be changed",
+      "provider_cannot_be_changed": "The provider of an existing trunk cannot be changed.",
       "trunk_name": "Trunk name",
       "trunk_name_helper": "A name to identify this trunk: letters, digits, dot, dash and underscore",
-      "name_cannot_be_changed": "The name of an existing trunk cannot be changed",
+      "name_cannot_be_changed": "The name of an existing trunk cannot be changed.",
       "phone_number": "Phone number",
       "phone_number_helper": "The phone number assigned to this trunk by the provider",
       "username": "Username",
-      "username_helper": "Enter the username given by the provider",
+      "username_helper": "Enter the username given by the provider.",
       "password": "Password",
-      "password_helper": "Enter the password given by the provider",
-      "password_edit_helper": "Leave empty to keep the current password",
+      "password_helper": "Enter the password given by the provider.",
+      "password_edit_helper": "Leave empty to keep the current password.",
       "allowed_codecs": "Allowed codecs",
-      "allowed_codecs_helper": "Codecs preferred for this trunk. When none is chosen, the provider defaults are used",
+      "allowed_codecs_helper": "Codecs preferred for this trunk. When none is chosen, the provider defaults are used.",
       "codecs": "Codecs",
       "force_codec": "Force codec",
       "force_codec_tooltip": "When enabled, only the allowed codecs are used. When disabled, the codecs of the provider are allowed too.",
@@ -526,7 +548,7 @@
       "empty_description_line_1": "Add VoIP trunks to handle inbound and outbound calls over IP networks.",
       "empty_description_line_2": "Set up provider connections and parameters required for call routing.",
       "trunk_name_username_helper": "A name to identify this trunk, also used as username: letters, digits, dot, dash and underscore",
-      "provider_codecs_added": "The provider codecs are added too: {codecs}. Enable Force codec to use only the chosen ones",
+      "provider_codecs_added": "The provider codecs are added too: {codecs}. Enable Force codec to use only the chosen ones.",
       "force_codec_info": "About Force codec",
       "name_too_long": "Use at most 50 characters",
       "password_only_spaces": "The password cannot contain only spaces",
@@ -534,7 +556,10 @@
       "ai_agents_read_only": "This trunk is managed by the AI agents. Changing or deleting it here would stop them from working.",
       "other_technology_read_only": "This trunk uses the {technology} technology and can be changed only from the advanced settings.",
       "read_only": "Read only",
-      "cannot_load_gateways": "Cannot load the gateways, so their trunks may be listed here too"
+      "cannot_load_gateways": "Cannot load the gateways, so their trunks may be listed here too",
+      "trunk_name_placeholder": "e.g. Inbound",
+      "phone_number_placeholder": "e.g. +39 02 1234567",
+      "username_placeholder": "e.g. account_98765"
     },
     "physical": {
       "description_line_1": "Configure physical trunks to connect your PBX to traditional telephony lines.",
@@ -596,13 +621,19 @@
       "ip_address_not_host": "Enter a device address, not the network or broadcast address",
       "network_gateway_same_as_ip": "The network gateway must differ from the device IP address",
       "network_gateway_outside_subnet": "The network gateway must be in the same network as the device",
-      "delete_confirmation_details_no_fxs": "Its trunks are deleted too."
+      "delete_confirmation_details_no_fxs": "Its trunks are deleted too.",
+      "mac_address_placeholder": "e.g. 00:1A:2B:3C:4D:5E",
+      "ip_address_placeholder": "e.g. 192.168.1.10",
+      "netmask_placeholder": "e.g. 255.255.255.0",
+      "network_gateway_placeholder": "e.g. 192.168.1.1"
     },
     "cannot_check_outbound_routes": "Cannot check which outbound routes use this trunk",
     "routes_left_without_trunks": "Some outbound routes will have no trunk",
     "used_by_outbound_routes": "Used by outbound routes",
     "routes_without_trunks_description": "These outbound routes use only this trunk and will no longer be able to make calls: {routes}.",
-    "routes_keep_trunks_description": "The trunk will be removed from these outbound routes, which will keep using their other trunks: {routes}."
+    "routes_keep_trunks_description": "The trunk will be removed from these outbound routes, which will keep using their other trunks: {routes}.",
+    "trunk_updated": "Trunk updated",
+    "trunk_updated_description": "The trunk {name} has been updated"
   },
   "routes": {
     "title": "Routes",
@@ -629,10 +660,10 @@
     "cannot_delete_route": "Cannot delete route",
     "cannot_load_inbound_routes": "Cannot load inbound routes",
     "cannot_load_outbound_routes": "Cannot load outbound routes",
-    "no_inbound_routes": "No inbound routes",
+    "no_inbound_routes": "No inbound routes configured",
     "no_inbound_routes_description": "Create a route with the Visual Plan to define how incoming calls are handled.",
     "no_routes_found": "No routes found",
-    "no_outbound_routes": "No outbound routes",
+    "no_outbound_routes": "No outbound routes configured",
     "no_outbound_routes_description": "Create the default routes of your country, then choose the trunks used by each of them.",
     "create_default_routes": "Create default routes",
     "create_default_routes_description": "National, cellphone, international and toll routes are created with the dialing rules of the chosen country. Every enabled trunk is assigned to each route, except the trunks of the AI agents.",
@@ -647,7 +678,6 @@
     "no_trunks": "No trunks",
     "edit_route": "Edit {name}",
     "trunk_priority_helper": "Drag or use the arrows to reorder. The first trunk has the highest priority.",
-    "route_without_trunks": "No trunks in this route: calls matching it cannot be placed.",
     "add_trunk": "Add trunk",
     "remove_trunk": "Remove {name}",
     "move_trunk_up": "Move {name} up",
@@ -655,10 +685,9 @@
     "trunk_added": "{name} added in position {position}",
     "trunk_removed": "{name} removed",
     "trunk_moved": "{name} moved to position {position}",
-    "all_trunks_assigned": "All trunks are already in this route",
+    "all_trunks_assigned": "All trunks are already in this route.",
     "no_trunks_configured": "No trunks configured yet",
     "cannot_load_trunks": "Cannot load trunks",
-    "route_saved": "Route saved",
     "cannot_save_route": "Cannot save route",
     "outbound_kind": {
       "national": "National",
@@ -699,7 +728,6 @@
     "route_deleted_description": "The route {name} has been deleted",
     "route_already_deleted": "Route already deleted",
     "route_already_deleted_description": "The route {name} no longer exists. The list has been updated.",
-    "route_saved_description": "The route {name} has been saved",
     "route_not_found": "This route no longer exists. Close the panel to see the updated list.",
     "no_default_routes": "No default routes are available for the chosen country.",
     "no_trunks_warning": "No trunks: calls cannot be placed",
@@ -707,8 +735,11 @@
     "trunk_voice_agents": "AI agents",
     "move_up": "Move up",
     "move_down": "Move down",
-    "no_enabled_trunks": "All trunks are disabled: enable a trunk to add it to this route",
-    "no_enabled_trunks_warning": "No enabled trunks: calls cannot be placed"
+    "no_enabled_trunks": "All trunks are disabled: enable a trunk to add it to this route.",
+    "no_enabled_trunks_warning": "No enabled trunks: calls cannot be placed",
+    "route_updated": "Route updated",
+    "route_updated_description": "The route {name} has been updated",
+    "route_without_trunks_description": "Add a trunk to this route to enable outbound calls."
   },
   "phones": {
     "title": "Physical phones",
@@ -734,10 +765,10 @@
       "choose_user": "Type or choose user",
       "n_phones_to_configure": "{n} phone to configure | {n} phones to configure",
       "remove_phone": "Remove {mac}",
-      "mac_invalid": "Enter a valid MAC address",
+      "mac_invalid": "Enter a valid MAC address: use only hexadecimal characters (0-9, A-F) and the supported separators",
       "mac_already_exists": "A phone with this MAC address already exists",
       "mac_duplicated": "This MAC address is repeated in the list",
-      "model_required": "Choose a model",
+      "model_required": "Select a model",
       "added_but_not_assigned": "The phone has been added but it could not be assigned to the user: {error}",
       "cannot_add_phones": "Cannot add phones",
       "phones_added": "Phone added | Phones added",
@@ -798,7 +829,14 @@
       "pending_changes": "Changes to save",
       "model_change": "Model: {from} → {to}.",
       "user_change": "User: {from} → {to}.",
-      "reassigned_with_errors": "The phone has been assigned to the new user, but the change could not be completed: {error}"
+      "reassigned_with_errors": "The phone has been assigned to the new user, but the change could not be completed: {error}",
+      "copy_mac_address": "Copy MAC address",
+      "copy_mac_address_of": "Copy MAC address {mac}",
+      "cannot_copy_mac_address": "Cannot copy MAC address",
+      "encryption_disabled": "Encryption is disabled",
+      "encryption_disabled_description": "This phone will use an insecure connection.",
+      "mac_addresses_placeholder": "e.g.\n00:04:13:11:22:31\n00-04-13-11-22-31\n000413112231",
+      "select_model_for_each_phone": "Select a model for each phone"
     },
     "models": {
       "description": "Manage supported phone models and their provisioning settings.",
@@ -946,7 +984,9 @@
       "vlan_id_phone": "Phone VLAN ID",
       "vlan_id_pc_port": "PC port VLAN ID",
       "model_not_found": "Model not found",
-      "model_not_found_description": "This model no longer exists or the address is wrong."
+      "model_not_found_description": "This model no longer exists or the address is wrong.",
+      "discard": "Discard",
+      "discard_changes_description": "Unsaved changes to this model will be lost."
     },
     "settings": {
       "default_configuration": "Default phone configuration",
@@ -966,12 +1006,12 @@
       "admin_password_description": "Used to access the phone web interface as administrator. A random password is generated by default.",
       "current_admin_password": "Current admin password",
       "change_admin_password": "Change admin password",
-      "admin_password_changed": "Admin password changed",
+      "admin_password_changed": "Admin password updated",
       "user_password": "User password",
       "user_password_description": "Used to access the phone web interface as a standard user. A random password is generated by default.",
       "current_user_password": "Current user password",
       "change_user_password": "Change user password",
-      "user_password_changed": "User password changed",
+      "user_password_changed": "User password updated",
       "password_changed_description": "Phones will use the new password after the next provisioning.",
       "changes_apply_after_provisioning": "Changes will apply after the next provisioning.",
       "new_password": "New password",
@@ -990,7 +1030,8 @@
         "special": "At least one special character ({characters})",
         "requirement_met": "Requirement met",
         "requirement_not_met": "Requirement not met"
-      }
+      },
+      "admin_password_affects_cti": "Updating the password may affect {brand} CTI features"
     }
   },
   "integrations": {
@@ -1106,7 +1147,8 @@
       "csv_file_invalid": "Choose a .csv or .txt file",
       "csv_file_empty": "The file is empty",
       "csv_file_too_large": "The file is larger than {size} MB",
-      "csv_upload_rejected": "The PBX rejected the file: it may be empty or larger than the maximum size allowed (8 MB)."
+      "csv_upload_rejected": "The PBX rejected the file: it may be empty or larger than the maximum size allowed (8 MB).",
+      "database_test_superadmin_only": "Only a superadministrator can test a database source."
     },
     "video": {
       "description": "Show the images of IP cameras and door phones in NethVoice CTI and open the door from there.",
@@ -1315,8 +1357,8 @@
     "new_password_must_be_different": "The new password must be different from the current one",
     "confirm_password_required": "Confirm the new password",
     "passwords_do_not_match": "Passwords do not match",
-    "admin_password_changed": "Admin password changed",
-    "admin_password_changed_description": "Use the new password from your next sign-in",
+    "admin_password_changed": "Password updated",
+    "admin_password_changed_description": "The admin password has been updated. Use it from your next sign-in.",
     "cannot_change_admin_password": "Cannot change admin password"
   },
   "setup": {
@@ -1416,7 +1458,9 @@
       "finish_setup_description": "The configuration will be applied. Asterisk will restart as soon as there are no calls in progress, and {brand} CTI will restart too: its users will be disconnected for a few moments."
     },
     "cannot_save_progress": "Cannot save the setup progress",
-    "cannot_check_setup": "Cannot check the setup status"
+    "cannot_check_setup": "Cannot check the setup status",
+    "setup_already_completed": "Setup already completed",
+    "setup_already_completed_description": "The setup was completed in another session."
   },
   "ne_table": {
     "no_items": "No items",
@@ -1602,7 +1646,8 @@
       "phone_buttons": "Configure phone keys",
       "satellite_stt": "Transcribe calls (speech-to-text)",
       "satellite_stt_tooltip": "Transcription and summary of calls",
-      "streaming": "Video sources panel"
+      "streaming": "Video sources panel",
+      "conference_tooltip": "Add other people to an ongoing call to talk all together"
     },
     "name_not_allowed": "This name cannot be used for this profile",
     "profile_change_in_progress": "Another profile change is in progress: try again in a few seconds."
@@ -1644,8 +1689,8 @@
     "codecs": "Codecs",
     "do_not_disturb": "Do not disturb",
     "call_forward": "Call forward",
-    "on": "ON",
-    "off": "OFF",
+    "on": "On",
+    "off": "Off",
     "no_users": "No users with an extension",
     "no_users_description": "Assign an extension to a user to see the live status of their devices here.",
     "no_users_found": "No users found",
@@ -1666,19 +1711,41 @@
       "label": "Group by",
       "group": "Group",
       "status": "Status"
-    }
+    },
+    "call_extension": "Call {extension}",
+    "call_extension_unavailable": "Call {extension}, device {status}",
+    "call_extension_blocked": "Call {extension}, the administrator phone is not available",
+    "devices_description": "Select a device to show its settings.",
+    "device_settings": "{device} {extension} settings"
   },
   "admin_phone": {
     "status_connection_lost": "The phone cannot connect to the PBX and keeps trying",
     "status_error": "Cannot connect the phone: {error}. Call again to retry.",
     "status_elsewhere": "The administrator phone is active in another tab",
-    "use_here": "Use the phone in this tab"
+    "use_here": "Use the phone in this tab",
+    "status_elsewhere_in_call": "The administrator phone is in a call in another tab"
   },
   "permissions": {
     "no_access_title": "No sections available",
     "no_access_description": "Your account cannot manage any section. Ask the administrator to grant you access.",
     "cannot_load_permissions": "Cannot load your permissions",
     "setup_pending_title": "Setup not completed",
-    "setup_pending_description": "The administrator must complete the first configuration before you can use the PBX administration."
+    "setup_pending_description": "The administrator must complete the first configuration before you can use the PBX administration.",
+    "check_again": "Check again"
+  },
+  "system_alerts": {
+    "trunk_down_title": "Trunk unreachable",
+    "trunk_down_description": "Calls through trunk {name} cannot be placed or received.",
+    "trunk_up_title": "Trunk reconnected",
+    "trunk_up_description": "Calls through trunk {name} can be placed and received again.",
+    "live_down_title": "Cannot load live data",
+    "live_up_title": "Live data restored",
+    "live_up_description": "Calls in progress and the status of the trunks are updated again.",
+    "extensions_limit_title": "Extension limit reached",
+    "extensions_limit_description": "All {limit} extensions of the Community version are in use. Delete an extension before creating a new one.",
+    "admin_phone_down_title": "Cannot connect administrator phone",
+    "admin_phone_down_description": "The phone cannot connect to the PBX and keeps trying.",
+    "admin_phone_up_title": "Administrator phone reconnected",
+    "admin_phone_up_description": "The administrator phone is connected to the PBX again."
   }
 }
