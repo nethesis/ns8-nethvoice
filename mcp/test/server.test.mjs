@@ -8,7 +8,8 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js'
 import { CtiClient } from '../src/ctiClient.mjs'
 import { PbxClient } from '../src/pbxClient.mjs'
 import { createServer } from '../src/server.mjs'
-import { createFakeFetch } from './fakeFetch.mjs'
+import { buildTools } from '../src/tools.mjs'
+import { createFakeFetch, networkError } from './fakeFetch.mjs'
 
 const CTI_ROUTES = {
   'GET /api/user/me': {
@@ -20,7 +21,10 @@ const CTI_ROUTES = {
       lkhash: 'must-not-leak',
       default_device: { id: '300', secret: 'must-not-leak' },
       profile: { id: '3', name: 'Advanced', macro_permissions: {} },
-      endpoints: { mainextension: [{ id: '300' }], extension: [{ id: '300', secret: 'must-not-leak' }, { id: '91300' }] },
+      endpoints: {
+        mainextension: [{ id: '300' }],
+        extension: [{ id: '300', type: 'webrtc', secret: 'must-not-leak' }, { id: '91300', type: 'physical' }, { id: '92300' }],
+      },
     },
   },
   'GET /api/astproxy/extensions': {
@@ -58,7 +62,8 @@ const PBX_ROUTES = {
   'GET /freepbx/rest/configuration/userprovider': { json: { configured: 1, type: 'ldap', local: 1, domain: 'example.org' } },
   'GET /freepbx/rest/mainextensions/userlimits': { json: { configured: 2, limit: false, configurable: false } },
   'GET /freepbx/rest/configuration/wizard': { json: [{ step: 13, status: 'false' }] },
-  'GET /freepbx/rest/users/true': {
+  'GET /freepbx/rest/dashboard/calls': { json: { total: 5, answered: 3, missed: 1, invalid: 1, calls_by_hour: [0, 2, 3] } },
+  'GET /freepbx/rest/users/all': {
     json: [
       {
         username: 'a.miller',
@@ -68,7 +73,7 @@ const PBX_ROUTES = {
         password: 'must-not-leak',
         devices: [{ type: 'webrtc', extension: '300', secret: 'must-not-leak', web_password: 'must-not-leak' }],
       },
-      { username: 'c.davis', displayname: 'Christopher Davis', default_extension: null, profile: 1, devices: [] },
+      { username: 'c.davis', displayname: 'Christopher Davis', default_extension: 'none', profile: null, devices: [] },
     ],
   },
   'GET /freepbx/rest/outboundroutes': {
@@ -76,9 +81,17 @@ const PBX_ROUTES = {
   },
 }
 
-const connect = async ({ withCti = true, withPbx = false, enableWrites = false } = {}) => {
-  const ctiFetch = createFakeFetch(CTI_ROUTES)
-  const pbxFetch = createFakeFetch(PBX_ROUTES)
+const connect = async ({
+  withCti = true,
+  withPbx = false,
+  enableWrites = false,
+  adminPermissions = ['superadmin'],
+  ctiRoutes = {},
+  pbxRoutes = {},
+  timeoutMs,
+} = {}) => {
+  const ctiFetch = createFakeFetch({ ...CTI_ROUTES, ...ctiRoutes })
+  const pbxFetch = createFakeFetch({ ...PBX_ROUTES, ...pbxRoutes })
   const audit = []
   const { server } = createServer({
     cti: withCti ? new CtiClient({ baseUrl: 'https://cti.example.org', token: 'jwt', fetch: ctiFetch.fetch }) : undefined,
@@ -86,8 +99,10 @@ const connect = async ({ withCti = true, withPbx = false, enableWrites = false }
       ? new PbxClient({ baseUrl: 'https://voice.example.org', username: 'admin', password: 'pw', fetch: pbxFetch.fetch })
       : undefined,
     enableWrites,
+    adminPermissions,
     audit: (entry) => audit.push(entry),
-    identity: 'a.miller',
+    identities: { cti: 'a.miller', pbx: 'mcp-admin' },
+    ...(timeoutMs ? { timeoutMs } : {}),
   })
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   const client = new Client({ name: 'test', version: '0.0.0' })
@@ -127,8 +142,29 @@ describe('tool catalogue', () => {
     const { client } = await connect({ withCti: false, withPbx: true, enableWrites: true })
     const { tools } = await client.listTools()
 
-    assert.deepEqual(tools.map((tool) => tool.name).sort(), ['get_system_overview', 'list_outbound_routes', 'list_users'])
+    assert.deepEqual(tools.map((tool) => tool.name).sort(), [
+      'get_system_overview',
+      'get_today_calls',
+      'list_outbound_routes',
+      'list_users',
+    ])
     assert.ok(tools.every((tool) => tool.annotations.readOnlyHint === true))
+  })
+
+  it('offers only the admin tools allowed by the sections of the administrator', async () => {
+    const names = async (adminPermissions) => {
+      const { client } = await connect({ withCti: false, withPbx: true, adminPermissions })
+      return (await client.listTools()).tools.map((tool) => tool.name).sort()
+    }
+
+    assert.deepEqual(await names(['users']), ['get_system_overview', 'list_outbound_routes', 'list_users'])
+    assert.deepEqual(await names(['dashboard']), [
+      'get_system_overview',
+      'get_today_calls',
+      'list_outbound_routes',
+      'list_users',
+    ])
+    assert.deepEqual(buildTools({ pbx: {}, adminPermissions: [] }), [])
   })
 })
 
@@ -140,8 +176,9 @@ describe('user tools', () => {
     assert.equal(data.username, 'a.miller')
     assert.equal(data.mainExtension, '300')
     assert.deepEqual(data.extensions, [
-      { id: '300', type: null },
-      { id: '91300', type: 'mobile' },
+      { id: '300', type: 'webrtc' },
+      { id: '91300', type: 'physical' },
+      { id: '92300', type: null },
     ])
     assert.doesNotMatch(result.content[0].text, /must-not-leak/)
   })
@@ -223,6 +260,105 @@ describe('admin tools', () => {
     })
   })
 
+  it('reports the fields an administrator cannot read instead of failing', async () => {
+    const { call } = await connect({
+      withPbx: true,
+      adminPermissions: ['users'],
+      pbxRoutes: {
+        'GET /freepbx/rest/configuration/userprovider': { status: 403, json: { message: 'Forbidden: missing permission' } },
+      },
+    })
+    const { result, data } = await call('get_system_overview')
+
+    assert.equal(result.isError, undefined)
+    assert.equal(data.users, 2)
+    assert.equal(data.userProvider, null)
+    assert.deepEqual(Object.keys(data.unavailable), ['userProvider'])
+    assert.match(data.unavailable.userProvider, /GET \/freepbx\/rest\/configuration\/userprovider failed with status 403/)
+  })
+
+  it('fails the overview when no source answers', async () => {
+    const { call } = await connect({ withPbx: true, pbxRoutes: { 'POST /freepbx/rest/testauth': { status: 401 } } })
+    const { result } = await call('get_system_overview')
+
+    assert.equal(result.isError, true)
+    assert.match(result.content[0].text, /POST \/freepbx\/rest\/testauth failed with status 401/)
+  })
+
+  it('lists users without forcing a user provider sync', async () => {
+    const { call, pbxCalls } = await connect({ withPbx: true })
+
+    await call('list_users')
+    assert.ok(pbxCalls.some((entry) => entry.path === '/freepbx/rest/users/all'))
+    assert.ok(!pbxCalls.some((entry) => entry.path === '/freepbx/rest/users/true'))
+  })
+
+  it('rejects a response with an unexpected shape', async () => {
+    const { call } = await connect({
+      withPbx: true,
+      pbxRoutes: {
+        'GET /freepbx/rest/users/all': { json: { error: 'x' } },
+        'GET /freepbx/rest/outboundroutes': { json: null },
+      },
+    })
+    const users = await call('list_users')
+    const routes = await call('list_outbound_routes')
+
+    assert.equal(users.result.isError, true)
+    assert.match(users.result.content[0].text, /unexpected response from GET \/freepbx\/rest\/users\/all: expected a list/)
+    assert.equal(routes.result.isError, true)
+  })
+
+  it('summarizes the calls of today', async () => {
+    const { call } = await connect({ withPbx: true, adminPermissions: ['dashboard'] })
+
+    assert.deepEqual((await call('get_today_calls')).data, {
+      total: 5,
+      answered: 3,
+      missed: 1,
+      invalid: 1,
+      callsByHour: [
+        { hour: 0, calls: 0 },
+        { hour: 1, calls: 2 },
+        { hour: 2, calls: 3 },
+      ],
+    })
+  })
+
+  it('rejects call counters with an unexpected shape', async () => {
+    const { call } = await connect({
+      withPbx: true,
+      pbxRoutes: { 'GET /freepbx/rest/dashboard/calls': { json: { total: '5', calls_by_hour: [] } } },
+    })
+    const { result } = await call('get_today_calls')
+
+    assert.equal(result.isError, true)
+    assert.match(result.content[0].text, /unexpected response from GET \/freepbx\/rest\/dashboard\/calls/)
+  })
+
+  it('applies one deadline to the whole tool call', async () => {
+    const hang = { hang: true }
+    const { call } = await connect({
+      withPbx: true,
+      timeoutMs: 100,
+      pbxRoutes: {
+        'GET /freepbx/rest/users/count': hang,
+        'GET /freepbx/rest/trunks/count': hang,
+        'GET /freepbx/rest/inboundroutes/count': hang,
+        'GET /freepbx/rest/outboundroutes/count': hang,
+        'GET /freepbx/rest/configuration/userprovider': hang,
+        'GET /freepbx/rest/mainextensions/userlimits': hang,
+        'GET /freepbx/rest/configuration/wizard': hang,
+      },
+    })
+    const startedAt = Date.now()
+    const { result } = await call('get_system_overview')
+
+    assert.equal(result.isError, true)
+    assert.match(result.content[0].text, /GET \/freepbx\/rest\/users\/count failed: timeout/)
+    assert.ok(Date.now() - startedAt < 1000)
+  })
+
   it('lists users and routes without any credential', async () => {
     const { call, pbxCalls } = await connect({ withPbx: true })
     const users = await call('list_users', { search: 'miller' })
@@ -237,6 +373,7 @@ describe('admin tools', () => {
         devices: [{ type: 'webrtc', extension: '300', model: null }],
       },
     ])
+    assert.equal((await call('list_users', { search: 'davis' })).data.items[0].mainExtension, null)
     assert.deepEqual(routes.data.routes, [{ id: 1, name: 'national_it', trunks: ['Provider'] }])
     assert.doesNotMatch(users.result.content[0].text + routes.result.content[0].text, /must-not-leak/)
     assert.ok(pbxCalls.every((entry) => entry.method === 'GET' || entry.path === '/freepbx/rest/testauth'))
@@ -257,5 +394,30 @@ describe('audit log', () => {
     )
     assert.equal(audit[1].outcome, 'error')
     assert.match(audit[1].error, /status 404/)
+  })
+
+  it('records the admin username for admin tools and the CTI username for user tools', async () => {
+    const { call, audit } = await connect({ withPbx: true })
+
+    await call('get_my_profile')
+    await call('list_outbound_routes')
+
+    assert.deepEqual(
+      audit.map((entry) => [entry.tool, entry.identity]),
+      [
+        ['get_my_profile', 'a.miller'],
+        ['list_outbound_routes', 'mcp-admin'],
+      ],
+    )
+  })
+
+  it('names the request and the network cause of a failure', async () => {
+    const { call, audit } = await connect({
+      ctiRoutes: { 'GET /api/astproxy/trunks': { throws: networkError('ECONNREFUSED') } },
+    })
+    const { result } = await call('get_trunks_status')
+
+    assert.equal(result.content[0].text, 'GET /api/astproxy/trunks failed: ECONNREFUSED')
+    assert.equal(audit[0].error, 'GET /api/astproxy/trunks failed: ECONNREFUSED')
   })
 })

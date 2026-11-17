@@ -12,9 +12,29 @@ const pick = (source, keys) =>
 const pickFilled = (source, keys) =>
   Object.fromEntries(Object.entries(pick(source, keys)).filter(([, value]) => value !== '' && value !== null))
 
-const values = (record) => (record && typeof record === 'object' ? Object.values(record) : [])
+const isRecord = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 
-const DEVICE_TYPE_BY_PREFIX = { 91: 'mobile', 92: 'nethlink', 93: 'physical' }
+const unexpected = (source, expected) => new Error(`unexpected response from ${source}: expected ${expected}`)
+
+export const expectArray = (value, source) => {
+  if (!Array.isArray(value)) {
+    throw unexpected(source, 'a list')
+  }
+  return value
+}
+
+export const expectRecord = (value, source) => {
+  if (!isRecord(value)) {
+    throw unexpected(source, 'an object')
+  }
+  return value
+}
+
+const values = (record, source) => Object.values(expectRecord(record, source))
+
+const listOrEmpty = (value) => (Array.isArray(value) ? value : [])
+
+const isCount = (value) => Number.isInteger(value) && value >= 0
 
 export const summarizeExtension = (extension) => ({
   ...pick(extension, ['exten', 'name', 'status', 'dnd', 'cf', 'username', 'context']),
@@ -28,7 +48,7 @@ export const summarizeTrunk = (trunk) => ({
 })
 
 export const summarizeQueue = (queue) => {
-  const members = values(queue?.members)
+  const members = isRecord(queue?.members) ? Object.values(queue.members) : []
 
   return {
     ...pick(queue, ['queue', 'name', 'avgHoldTime', 'avgTalkTime', 'completedCallsCount', 'abandonedCallsCount']),
@@ -58,9 +78,9 @@ export const summarizeContact = (contact) =>
 export const summarizeUser = (user) => ({
   username: user?.username,
   displayName: user?.displayname,
-  mainExtension: user?.default_extension ?? null,
+  mainExtension: user?.default_extension && user.default_extension !== 'none' ? user.default_extension : null,
   profileId: user?.profile ?? null,
-  devices: (user?.devices ?? []).map((device) => ({
+  devices: listOrEmpty(user?.devices).map((device) => ({
     type: device?.type,
     extension: device?.extension,
     model: device?.model ?? null,
@@ -71,17 +91,48 @@ export const summarizeProfile = (me) => ({
   ...pick(me, ['name', 'username', 'mainPresence', 'presence', 'presenceOnBusy', 'presenceOnUnavailable']),
   profile: me?.profile ? pick(me.profile, ['id', 'name']) : null,
   mainExtension: me?.endpoints?.mainextension?.[0]?.id ?? null,
-  extensions: (me?.endpoints?.extension ?? []).map((extension) => ({
+  extensions: listOrEmpty(me?.endpoints?.extension).map((extension) => ({
     id: extension?.id,
-    type: extension?.type ?? DEVICE_TYPE_BY_PREFIX[String(extension?.id ?? '').slice(0, 2)] ?? null,
+    type: typeof extension?.type === 'string' && extension.type ? extension.type : null,
   })),
 })
 
 const summarizeOutboundRoute = (route) => ({
   id: route?.route_id,
   name: route?.name,
-  trunks: (route?.trunks ?? []).map((trunk) => trunk?.name),
+  trunks: listOrEmpty(route?.trunks).map((trunk) => trunk?.name),
 })
+
+export const summarizeTodayCalls = (summary, source) => {
+  const calls = expectRecord(summary, source)
+  const byHour = expectArray(calls.calls_by_hour, source)
+
+  if (!['total', 'answered', 'missed', 'invalid'].every((key) => isCount(calls[key])) || !byHour.every(isCount)) {
+    throw unexpected(source, 'call counters')
+  }
+
+  return {
+    total: calls.total,
+    answered: calls.answered,
+    missed: calls.missed,
+    invalid: calls.invalid,
+    callsByHour: byHour.map((count, hour) => ({ hour, calls: count })),
+  }
+}
+
+const OVERVIEW_SOURCES = [
+  ['users', '/users/count', (value) => value],
+  ['trunks', '/trunks/count', (value) => value],
+  ['inboundRoutes', '/inboundroutes/count', (value) => value],
+  ['outboundRoutes', '/outboundroutes/count', (value) => value],
+  ['userProvider', '/configuration/userprovider', (value) => pick(value, ['configured', 'type', 'local', 'domain'])],
+  ['userLimits', '/mainextensions/userlimits', (value) => pick(value, ['configured', 'limit', 'configurable'])],
+  [
+    'setupWizardCompleted',
+    '/configuration/wizard',
+    (value) => (Array.isArray(value) && value[0] ? String(value[0].status) !== 'true' : false),
+  ],
+]
 
 const ctiReadTools = (cti) => [
   {
@@ -91,7 +142,7 @@ const ctiReadTools = (cti) => [
       'Profile of the signed-in NethVoice user: name, presence (online, dnd, callforward, voicemail, cellphone), CTI profile and extensions.',
     inputSchema: {},
     annotations: READ_ONLY,
-    handler: async () => summarizeProfile(await cti.get('/user/me')),
+    handler: async (_args, { signal }) => summarizeProfile(await cti.get('/user/me', { signal })),
   },
   {
     name: 'list_extensions_status',
@@ -104,9 +155,9 @@ const ctiReadTools = (cti) => [
       limit: z.number().int().min(1).max(200).optional().describe('Maximum number of rows, default 50'),
     },
     annotations: READ_ONLY,
-    handler: async ({ search = '', onlyOnline = false, limit = 50 }) => {
+    handler: async ({ search = '', onlyOnline = false, limit = 50 }, { signal }) => {
       const needle = search.trim().toLowerCase()
-      const extensions = values(await cti.get('/astproxy/extensions'))
+      const extensions = values(await cti.get('/astproxy/extensions', { signal }), 'GET /api/astproxy/extensions')
         .map(summarizeExtension)
         .filter((extension) => !onlyOnline || extension.online)
         .filter(
@@ -125,7 +176,9 @@ const ctiReadTools = (cti) => [
     description: 'Status and registration of the PBX trunks, with the number of calls in progress on each.',
     inputSchema: {},
     annotations: READ_ONLY,
-    handler: async () => ({ trunks: values(await cti.get('/astproxy/trunks')).map(summarizeTrunk) }),
+    handler: async (_args, { signal }) => ({
+      trunks: values(await cti.get('/astproxy/trunks', { signal }), 'GET /api/astproxy/trunks').map(summarizeTrunk),
+    }),
   },
   {
     name: 'get_queues_status',
@@ -133,7 +186,9 @@ const ctiReadTools = (cti) => [
     description: 'Call queues with waiting callers, logged-in and paused agents and call statistics.',
     inputSchema: {},
     annotations: READ_ONLY,
-    handler: async () => ({ queues: values(await cti.get('/astproxy/queues')).map(summarizeQueue) }),
+    handler: async (_args, { signal }) => ({
+      queues: values(await cti.get('/astproxy/queues', { signal }), 'GET /api/astproxy/queues').map(summarizeQueue),
+    }),
   },
   {
     name: 'search_contacts',
@@ -144,13 +199,16 @@ const ctiReadTools = (cti) => [
       limit: z.number().int().min(1).max(50).optional().describe('Maximum number of contacts, default 10'),
     },
     annotations: READ_ONLY,
-    handler: async ({ term, limit = 10 }) => {
+    handler: async ({ term, limit = 10 }, { signal }) => {
       const query = new URLSearchParams({ view: 'all', limit: String(limit), offset: '0' })
-      const result = await cti.get(`/phonebook/search/${encodeURIComponent(term)}?${query}`)
+      const source = 'GET /api/phonebook/search'
+      const path = `/phonebook/search/${encodeURIComponent(term)}?${query}`
+      const result = expectRecord(await cti.get(path, { signal }), source)
+      const rows = result.rows === undefined || result.rows === null ? [] : expectArray(result.rows, source)
 
       return {
-        total: result?.count ?? 0,
-        contacts: (result?.rows ?? []).map(summarizeContact),
+        total: isCount(result.count) ? result.count : rows.length,
+        contacts: rows.map(summarizeContact),
       }
     },
   },
@@ -171,11 +229,11 @@ const ctiWriteTools = (cti) => [
         .describe('Destination number, required when status is callforward'),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-    handler: async ({ status, to }) => {
+    handler: async ({ status, to }, { signal }) => {
       if (status === 'callforward' && !to) {
         throw new Error('"to" is required when status is callforward')
       }
-      await cti.post('/user/presence', status === 'callforward' ? { status, to } : { status })
+      await cti.post('/user/presence', status === 'callforward' ? { status, to } : { status }, { signal })
 
       return { presence: status, ...(status === 'callforward' ? { to } : {}) }
     },
@@ -185,36 +243,38 @@ const ctiWriteTools = (cti) => [
 const adminReadTools = (pbx) => [
   {
     name: 'get_system_overview',
+    section: 'lookup',
     title: 'PBX configuration overview',
     description:
-      'Administrator view of the PBX configuration: number of users, trunks, inbound and outbound routes, user provider, licence limits and whether the first configuration wizard is complete.',
+      'Administrator view of the PBX configuration: number of users, trunks, inbound and outbound routes, user provider, licence limits and whether the first configuration wizard is complete. Fields the administrator cannot read are null and listed in "unavailable".',
     inputSchema: {},
     annotations: READ_ONLY,
-    handler: async () => {
-      const [users, trunks, inboundRoutes, outboundRoutes, provider, limits, wizard] = await Promise.all([
-        pbx.get('/users/count'),
-        pbx.get('/trunks/count'),
-        pbx.get('/inboundroutes/count'),
-        pbx.get('/outboundroutes/count'),
-        pbx.get('/configuration/userprovider'),
-        pbx.get('/mainextensions/userlimits'),
-        pbx.get('/configuration/wizard'),
-      ])
-      const wizardRow = Array.isArray(wizard) ? wizard[0] : undefined
+    handler: async (_args, { signal }) => {
+      const results = await Promise.allSettled(OVERVIEW_SOURCES.map(([, path]) => pbx.get(path, { signal })))
 
-      return {
-        users,
-        trunks,
-        inboundRoutes,
-        outboundRoutes,
-        userProvider: pick(provider, ['configured', 'type', 'local', 'domain']),
-        userLimits: pick(limits, ['configured', 'limit', 'configurable']),
-        setupWizardCompleted: wizardRow ? String(wizardRow.status) !== 'true' : false,
+      if (results.every((result) => result.status === 'rejected')) {
+        throw results[0].reason
       }
+      const overview = {}
+      const unavailable = {}
+
+      OVERVIEW_SOURCES.forEach(([field, , shape], index) => {
+        const result = results[index]
+
+        if (result.status === 'fulfilled') {
+          overview[field] = shape(result.value)
+          return
+        }
+        overview[field] = null
+        unavailable[field] = result.reason instanceof Error ? result.reason.message : String(result.reason)
+      })
+
+      return Object.keys(unavailable).length ? { ...overview, unavailable } : overview
     },
   },
   {
     name: 'list_users',
+    section: 'lookup',
     title: 'PBX users',
     description:
       'Administrator list of PBX users with main extension, CTI profile id and device types. Credentials are never returned.',
@@ -223,9 +283,9 @@ const adminReadTools = (pbx) => [
       limit: z.number().int().min(1).max(200).optional().describe('Maximum number of rows, default 50'),
     },
     annotations: READ_ONLY,
-    handler: async ({ search = '', limit = 50 }) => {
+    handler: async ({ search = '', limit = 50 }, { signal }) => {
       const needle = search.trim().toLowerCase()
-      const users = (await pbx.get('/users/true'))
+      const users = expectArray(await pbx.get('/users/all', { signal }), 'GET /freepbx/rest/users/all')
         .map(summarizeUser)
         .filter(
           (user) =>
@@ -240,18 +300,44 @@ const adminReadTools = (pbx) => [
   },
   {
     name: 'list_outbound_routes',
+    section: 'lookup',
     title: 'Outbound routes',
     description: 'Administrator list of outbound routes with their trunks in priority order.',
     inputSchema: {},
     annotations: READ_ONLY,
-    handler: async () => ({ routes: (await pbx.get('/outboundroutes')).map(summarizeOutboundRoute) }),
+    handler: async (_args, { signal }) => ({
+      routes: expectArray(await pbx.get('/outboundroutes', { signal }), 'GET /freepbx/rest/outboundroutes').map(
+        summarizeOutboundRoute,
+      ),
+    }),
+  },
+  {
+    name: 'get_today_calls',
+    section: 'dashboard',
+    title: 'Calls of today',
+    description:
+      'Calls handled by the PBX since midnight: total, answered, missed, invalid and calls per hour of the day (hour 0 is 00:00-00:59). Calls of the administrator phone and feature codes are not counted.',
+    inputSchema: {},
+    annotations: READ_ONLY,
+    handler: async (_args, { signal }) =>
+      summarizeTodayCalls(await pbx.get('/dashboard/calls', { signal }), 'GET /freepbx/rest/dashboard/calls'),
   },
 ]
 
-export const buildTools = ({ cti, pbx, enableWrites = false }) => [
-  ...(cti ? ctiReadTools(cti) : []),
-  ...(cti && enableWrites ? ctiWriteTools(cti) : []),
-  ...(pbx ? adminReadTools(pbx) : []),
+export const isAdminToolAllowed = (section, permissions = []) =>
+  permissions.length > 0 &&
+  (section === 'lookup' || permissions.includes('superadmin') || permissions.includes(section))
+
+const withBackend = (backend) => (tool) => ({ ...tool, backend })
+
+export const buildTools = ({ cti, pbx, enableWrites = false, adminPermissions = [] }) => [
+  ...(cti ? ctiReadTools(cti).map(withBackend('cti')) : []),
+  ...(cti && enableWrites ? ctiWriteTools(cti).map(withBackend('cti')) : []),
+  ...(pbx
+    ? adminReadTools(pbx)
+        .filter((tool) => isAdminToolAllowed(tool.section, adminPermissions))
+        .map(withBackend('pbx'))
+    : []),
 ]
 
-export const runTool = async (tool, args) => sanitize(await tool.handler(args ?? {}))
+export const runTool = async (tool, args, context = {}) => sanitize(await tool.handler(args ?? {}, context))

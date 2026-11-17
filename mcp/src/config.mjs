@@ -1,6 +1,9 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
+const LOOPBACK_HOSTNAMES = ['localhost', '127.0.0.1', '[::1]']
+const WILDCARD_HOSTS = ['0.0.0.0', '::', '[::]']
+
 const trimTrailingSlash = (value) => value.replace(/\/+$/, '')
 
 const readUrl = (env, name) => {
@@ -18,7 +21,7 @@ const readUrl = (env, name) => {
     throw new Error(`${name} is not a valid URL`)
   }
 
-  if (url.protocol !== 'https:' && !['localhost', '127.0.0.1'].includes(url.hostname)) {
+  if (url.protocol !== 'https:' && !LOOPBACK_HOSTNAMES.includes(url.hostname)) {
     throw new Error(`${name} must use https`)
   }
   return trimTrailingSlash(url.href)
@@ -38,7 +41,31 @@ const readPositiveInteger = (env, name, fallback) => {
   return value
 }
 
+const readList = (env, name) =>
+  (env[name] ?? '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+const formatHost = (host) => (host.includes(':') && !host.startsWith('[') ? `[${host}]` : host)
+
+export const defaultAllowedHosts = (host, port) => {
+  const formatted = formatHost(host)
+
+  if (WILDCARD_HOSTS.includes(formatted)) {
+    return []
+  }
+
+  if (LOOPBACK_HOSTNAMES.includes(formatted)) {
+    return LOOPBACK_HOSTNAMES.map((name) => `${name}:${port}`)
+  }
+  return [`${formatted}:${port}`]
+}
+
 export const loadConfig = (env = process.env) => {
+  const httpHost = (env.NETHVOICE_MCP_HOST ?? '127.0.0.1').trim()
+  const httpPort = readPositiveInteger(env, 'NETHVOICE_MCP_PORT', 8765)
+  const allowedHosts = readList(env, 'NETHVOICE_MCP_ALLOWED_HOSTS')
   const config = {
     ctiUrl: readUrl(env, 'NETHVOICE_CTI_URL'),
     pbxUrl: readUrl(env, 'NETHVOICE_PBX_URL'),
@@ -48,8 +75,10 @@ export const loadConfig = (env = process.env) => {
     adminUsername: (env.NETHVOICE_ADMIN_USERNAME ?? '').trim(),
     adminPassword: env.NETHVOICE_ADMIN_PASSWORD ?? '',
     enableWrites: env.NETHVOICE_MCP_ENABLE_WRITES === '1',
-    httpHost: (env.NETHVOICE_MCP_HOST ?? '127.0.0.1').trim(),
-    httpPort: readPositiveInteger(env, 'NETHVOICE_MCP_PORT', 8765),
+    httpHost,
+    httpPort,
+    allowedHosts: allowedHosts.length ? allowedHosts : defaultAllowedHosts(httpHost, httpPort),
+    allowedOrigins: readList(env, 'NETHVOICE_MCP_ALLOWED_ORIGINS'),
     timeoutMs: readPositiveInteger(env, 'NETHVOICE_MCP_TIMEOUT_MS', 15000),
   }
 
@@ -66,5 +95,4 @@ export const loadConfig = (env = process.env) => {
 export const hasCtiCredentials = (config) =>
   Boolean(config.ctiUrl && (config.ctiToken || (config.ctiUsername && config.ctiPassword)))
 
-export const hasAdminCredentials = (config) =>
-  Boolean(config.pbxUrl && config.adminUsername && config.adminPassword)
+export const hasAdminCredentials = (config) => Boolean(config.pbxUrl && config.adminUsername && config.adminPassword)
