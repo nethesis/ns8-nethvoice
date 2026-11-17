@@ -17,7 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import type { OverviewStatus } from '@/lib/overview/overview'
 
-const { status } = defineProps<{ status: OverviewStatus }>()
+const { status, emphasis = false } = defineProps<{ status: OverviewStatus; emphasis?: boolean }>()
 
 const { t } = useI18n()
 
@@ -34,7 +34,12 @@ const statusIcon = computed(() => STATUS_ICONS[status])
 </script>
 
 <template>
-  <span class="text-secondary-neutral inline-flex items-center gap-2">
+  <span
+    :class="[
+      'inline-flex items-center',
+      emphasis ? 'text-primary-neutral gap-1.5' : 'text-secondary-neutral gap-2',
+    ]"
+  >
     <FontAwesomeIcon
       :icon="statusIcon.icon"
       :class="['size-4', statusIcon.color]"

@@ -28,6 +28,7 @@ import {
   type PhonePasswordKind,
 } from '@/lib/phones/defaults'
 import { usePhoneDefaults } from '@/queries/phones/defaults'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 type PasswordField = 'password' | 'confirmPassword'
@@ -42,6 +43,7 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
+const runtimeConfigStore = useRuntimeConfigStore()
 const { state: defaultsState } = usePhoneDefaults()
 
 const password = ref('')
@@ -147,10 +149,16 @@ const issueMessage = (field: PasswordField) => {
     <form novalidate @submit.prevent="submit">
       <div class="flex flex-col gap-8">
         <NeInlineNotification
+          v-if="kind === 'admin'"
           kind="warning"
-          :title="$t('phones.settings.changes_apply_after_provisioning')"
+          :title="
+            $t('phones.settings.admin_password_affects_cti', {
+              brand: runtimeConfigStore.config.brandName,
+            })
+          "
+          :description="$t('phones.settings.changes_apply_after_provisioning')"
         />
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-2">
           <NeTextInput
             ref="passwordRef"
             v-model="password"

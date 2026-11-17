@@ -26,19 +26,21 @@ test.describe('physical phones: inventory', () => {
     void signedIn
   })
 
-  test('copies the MAC address with a click', async ({ page, context, mockApi }) => {
+  test('copies the MAC address with its copy button', async ({ page, context, mockApi }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     mockPhonesApi(mockApi)
     await page.goto('./phones/phones')
 
-    const mac = page.getByRole('button', { name: '00:15:65:AB:CD:01', exact: true })
-    await mac.hover()
-    await expect(page.getByRole('tooltip', { name: 'Click to copy' })).toBeVisible()
+    const copyButton = page.getByRole('button', {
+      name: 'Copy MAC address 00:15:65:AB:CD:01',
+      exact: true,
+    })
+    await copyButton.hover()
+    await expect(page.getByRole('tooltip', { name: 'Copy MAC address' })).toBeVisible()
 
-    await mac.click()
+    await copyButton.click()
     await expect(page.getByRole('tooltip', { name: 'Copied!' })).toBeVisible()
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('00:15:65:AB:CD:01')
-    await expect(page.getByRole('button', { name: /^Copy/ })).toHaveCount(0)
   })
 
   test('lists phones with model, user and encryption', async ({ page, mockApi }) => {
@@ -108,6 +110,9 @@ test.describe('physical phones: inventory', () => {
     await page.getByRole('button', { name: 'Change admin password' }).click()
 
     const drawer = page.getByRole('dialog')
+    await expect(
+      drawer.getByText(/^Updating the password may affect .*CTI features$/),
+    ).toBeVisible()
     await expect(drawer.getByText('Changes will apply after the next provisioning.')).toBeVisible()
     await drawer.getByLabel('New password', { exact: true }).fill('weak')
     await drawer.getByLabel('Confirm password').fill('weak')
@@ -123,7 +128,7 @@ test.describe('physical phones: inventory', () => {
     await drawer.getByLabel('Confirm password').fill('Phones-2026!')
     await drawer.getByRole('button', { name: 'Change password' }).click()
 
-    await expect(page.getByText('Admin password changed')).toBeVisible()
+    await expect(page.getByText('Admin password updated')).toBeVisible()
     expect(mockApi.callsTo('PATCH', `${TANCREDI}/defaults`)[0].body).toEqual({
       adminpw: 'Phones-2026!',
     })
@@ -216,7 +221,7 @@ test.describe('physical phones: inventory', () => {
     await expect(modal.getByText('2 phones to configure')).toBeVisible()
 
     await modal.getByRole('button', { name: 'Add', exact: true }).click()
-    await expect(modal.getByText('Choose a model')).toHaveCount(2)
+    await expect(modal.getByText('Select a model for each phone', { exact: true })).toHaveCount(2)
 
     const firstRow = modal.getByTestId('phone-row-0')
     await firstRow.getByRole('combobox').nth(0).click()
@@ -425,8 +430,11 @@ test.describe('physical phones: inventory', () => {
     await drawer.getByRole('combobox', { name: 'Model' }).click()
     await page.getByRole('option', { name: 'Yealink T54' }).click()
     await expect(drawer.getByRole('checkbox')).not.toBeChecked()
+    await expect(drawer.getByText('Encryption is disabled')).toBeVisible()
+    await expect(drawer.getByText('This phone will use an insecure connection.')).toBeVisible()
     await drawer.getByText('Disabled', { exact: true }).click()
     await expect(drawer.getByRole('checkbox')).toBeChecked()
+    await expect(drawer.getByText('Encryption is disabled')).toHaveCount(0)
     await drawer.getByRole('button', { name: 'Save' }).click()
 
     await expect(page.getByText('Phone updated')).toBeVisible()

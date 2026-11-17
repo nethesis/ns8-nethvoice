@@ -67,7 +67,8 @@ test.describe('trunks: VoIP', () => {
 
     await page.getByRole('textbox', { name: 'Filter trunks' }).fill('nothing')
     await expect(page.getByText('No trunks found')).toBeVisible()
-    await page.getByRole('button', { name: 'Reset filters' }).last().click()
+    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filter' }).last().click()
     await expect(page.getByRole('row')).toHaveCount(3)
   })
 
@@ -237,7 +238,7 @@ test.describe('trunks: VoIP', () => {
     await page.getByRole('textbox', { name: 'Phone number' }).fill('0212345699')
     await page.getByRole('button', { name: 'Save' }).click()
 
-    await expect(page.getByText('main_trunk has been updated successfully')).toBeVisible()
+    await expect(page.getByText('The trunk main_trunk has been updated')).toBeVisible()
     const [call] = mockApi.callsTo('PATCH', '/freepbx/rest/trunks/:trunkid')
     expect(call.path).toBe('/freepbx/rest/trunks/2')
     expect(call.body).toEqual({ username: 'account_98765', phone: '0212345699' })
@@ -259,12 +260,12 @@ test.describe('trunks: VoIP', () => {
     await expect(forceCodec).not.toBeChecked()
     await expect(
       page.getByText(
-        'The provider codecs are added too: G.711 μ-law, G.711 A-law. Enable Force codec to use only the chosen ones',
+        'The provider codecs are added too: G.711 μ-law, G.711 A-law. Enable Force codec to use only the chosen ones.',
       ),
     ).toBeVisible()
     await page.getByRole('button', { name: 'Save' }).click()
 
-    await expect(page.getByText('main_trunk has been updated successfully')).toBeVisible()
+    await expect(page.getByText('The trunk main_trunk has been updated')).toBeVisible()
     expect(mockApi.callsTo('PATCH', '/freepbx/rest/trunks/:trunkid')[0].body).toEqual({
       password: 'New,5678',
       codecs: ['g729'],
@@ -286,7 +287,7 @@ test.describe('trunks: VoIP', () => {
     await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Save' }).click()
 
-    await expect(page.getByText('main_trunk has been updated successfully')).toBeVisible()
+    await expect(page.getByText('The trunk main_trunk has been updated')).toBeVisible()
     expect(mockApi.callsTo('PATCH', '/freepbx/rest/trunks/:trunkid')[0].body).toEqual({
       codecs: ['g729', 'alaw'],
       forceCodec: true,
@@ -301,6 +302,14 @@ test.describe('trunks: VoIP', () => {
     await expect(page.getByRole('group', { name: 'Force codec' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'About Force codec' })).toBeVisible()
     await expect(page.getByRole('combobox', { name: 'Provider' })).toBeFocused()
+    await expect(page.getByRole('textbox', { name: 'Trunk name' })).toHaveAttribute(
+      'placeholder',
+      'e.g. Inbound',
+    )
+    await expect(page.getByRole('textbox', { name: 'Phone number' })).toHaveAttribute(
+      'placeholder',
+      'e.g. +39 02 1234567',
+    )
   })
 
   test('closes the edit drawer without calling the API when nothing changed', async ({
@@ -465,7 +474,7 @@ test.describe('trunks: VoIP, special cases', () => {
     await page.keyboard.press('Escape')
     await expect(heading).toBeVisible()
     release()
-    await expect(page.getByText('main_trunk has been updated successfully')).toBeVisible()
+    await expect(page.getByText('The trunk main_trunk has been updated')).toBeVisible()
     await expect(heading).toBeHidden()
   })
 

@@ -1,14 +1,23 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { type NeNotificationV2 } from '@nethesis/vue-components'
 import { useI18n } from 'vue-i18n'
+import { useEventListener } from '@vueuse/core'
 import { isValiError } from 'valibot'
 import i18n from '@/i18n'
 import { getApiErrorDetail, isApiError, isServiceUnavailable } from '@/lib/api/errors'
+import {
+  forgetStoredNotifications,
+  notificationsStorageKey,
+  parseStoredNotifications,
+  readStoredNotifications,
+  writeStoredNotifications,
+} from '@/lib/notifications/history'
 import { MissingWebPasswordError } from '@/lib/phones/phones'
+import { useLoginStore } from '@/stores/login'
 
 const NOTIFICATIONS_LIMIT = 30
 const DEFAULT_NOTIFICATION_TIMEOUT = 5000
@@ -74,8 +83,47 @@ export const describeError = (
 
 export const useNotificationsStore = defineStore('notifications', () => {
   const { t } = useI18n()
+  const loginStore = useLoginStore()
   const notifications = ref<NeNotificationV2[]>([])
   const isNotificationDrawerOpen = ref(false)
+
+  const persist = () => {
+    if (loginStore.username) {
+      writeStoredNotifications(loginStore.username, notifications.value)
+    }
+  }
+
+  const keepShown = (restored: NeNotificationV2[]) => {
+    const shown = new Set(notifications.value.filter((item) => item.isShown).map((item) => item.id))
+    return restored.map((item) => ({ ...item, isShown: shown.has(item.id) }))
+  }
+
+  watch(
+    () => loginStore.username,
+    (username, previous) => {
+      if (!username) {
+        if (previous) {
+          forgetStoredNotifications(previous)
+        }
+        notifications.value = []
+        return
+      }
+      const restored = readStoredNotifications(username)
+      const ids = new Set(restored.map((item) => item.id))
+
+      notifications.value = [
+        ...notifications.value.filter((item) => !ids.has(item.id)),
+        ...restored,
+      ].slice(0, NOTIFICATIONS_LIMIT)
+    },
+    { immediate: true, flush: 'sync' },
+  )
+
+  useEventListener(window, 'storage', (event: StorageEvent) => {
+    if (loginStore.username && event.key === notificationsStorageKey(loginStore.username)) {
+      notifications.value = keepShown(parseStoredNotifications(event.newValue))
+    }
+  })
 
   const numNotifications = computed(() => notifications.value.length)
 
@@ -113,6 +161,12 @@ export const useNotificationsStore = defineStore('notifications', () => {
     notifications.value.unshift(notification)
     notifications.value = notifications.value.slice(0, NOTIFICATIONS_LIMIT)
     setNotificationShown(notification.id, true)
+    persist()
+  }
+
+  const clearNotifications = () => {
+    notifications.value = []
+    persist()
   }
 
   const createNotificationFromError = (
@@ -142,6 +196,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     createNotification,
     createNotificationFromError,
     hideNotification,
+    clearNotifications,
     setNotificationDrawerOpen,
   }
 })

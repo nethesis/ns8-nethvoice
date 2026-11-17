@@ -15,6 +15,19 @@ test.describe('shell', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   })
 
+  test('marks the current page in the side menu', async ({ page }) => {
+    await page.goto('./settings')
+
+    const navigation = page.getByRole('navigation')
+    await expect(navigation.getByRole('link', { name: 'Settings', exact: true })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    await expect(
+      navigation.getByRole('link', { name: 'Dashboard', exact: true }),
+    ).not.toHaveAttribute('aria-current')
+  })
+
   test('shows the instance name in the top bar on Enterprise', async ({ page, mockApi }) => {
     await page.route('**/nethvoice/config.json', (route) =>
       route.fulfill({ json: { HOSTNAME: 'pbx.example.org', INSTANCE_NAME: 'Milan office' } }),

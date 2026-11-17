@@ -14,6 +14,7 @@ test.describe('setup wizard: welcome and system settings', () => {
       .on('GET', '/freepbx/rest/outboundroutes/supportedLocales', {
         json: ['it', 'en', 'de', 'es', 'fr'],
       })
+      .on('GET', '/freepbx/rest/outboundroutes', { json: [] })
       .on('POST', '/freepbx/rest/settings/defaultlanguage', { status: 200 })
   })
 
@@ -39,6 +40,14 @@ test.describe('setup wizard: welcome and system settings', () => {
       step: 0,
       status: 'true',
     })
+  })
+
+  test('welcome page links the documentation in a new tab', async ({ page }) => {
+    await page.goto('./setup')
+
+    const help = page.getByRole('link', { name: 'Need help? (opens in a new tab)' })
+    await expect(help).toHaveAttribute('target', '_blank')
+    await expect(help).toHaveAttribute('rel', /noopener/)
   })
 
   test('welcome page stays put and reports the error when the wizard cannot start', async ({

@@ -41,6 +41,21 @@ test.describe('groups', () => {
     await expect(rows(page).nth(2)).toContainText('c.rossi')
   })
 
+  test('truncates a long group name and shows it in a tooltip', async ({ page, mockApi }) => {
+    const longName = 'Customer success international team of the northern region offices'
+    mockGroups(mockApi, [...GROUPS, { id: 3, name: longName }])
+    await page.goto('./users/groups')
+
+    const name = rows(page).filter({ hasText: longName }).locator('[data-group-name]')
+    await expect(name).toHaveCSS('text-overflow', 'ellipsis')
+    expect(await name.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true)
+    await name.hover()
+    await expect(page.locator('[data-tippy-root]').getByText(longName)).toBeVisible()
+
+    await rows(page).filter({ hasText: 'Support' }).locator('[data-group-name]').hover()
+    await expect(page.locator('[data-tippy-root]').getByText('Support')).toBeHidden()
+  })
+
   test('filters the groups by name or member', async ({ page, mockApi }) => {
     mockGroups(mockApi)
     await page.goto('./users/groups')

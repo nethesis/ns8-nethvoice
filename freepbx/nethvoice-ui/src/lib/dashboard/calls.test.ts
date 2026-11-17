@@ -12,15 +12,15 @@ describe('parseCallsSummary', () => {
         answered: 2,
         missed: 1,
         invalid: 1,
-        incoming_by_hour: [0, 3],
+        calls_by_hour: [0, 3],
       }),
-    ).toEqual({ total: 4, answered: 2, missed: 1, invalid: 1, incomingByHour: [0, 3] })
+    ).toEqual({ total: 4, answered: 2, missed: 1, invalid: 1, callsByHour: [0, 3] })
   })
 
   it('should reject negative counts and more than 24 hours', () => {
-    const valid = { total: 0, answered: 0, missed: 0, invalid: 0, incoming_by_hour: [] }
+    const valid = { total: 0, answered: 0, missed: 0, invalid: 0, calls_by_hour: [] }
 
     expect(() => parseCallsSummary({ ...valid, missed: -1 })).toThrow()
-    expect(() => parseCallsSummary({ ...valid, incoming_by_hour: Array(25).fill(0) })).toThrow()
+    expect(() => parseCallsSummary({ ...valid, calls_by_hour: Array(25).fill(0) })).toThrow()
   })
 })

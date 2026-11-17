@@ -41,11 +41,14 @@ test.describe('physical phones: settings', () => {
 
     await page.getByRole('button', { name: 'Change user password' }).click()
     const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText(/^Updating the password may affect .*CTI features$/)).toHaveCount(
+      0,
+    )
     await drawer.getByLabel('New password', { exact: true }).fill('Desk-phone-9')
     await drawer.getByLabel('Confirm password').fill('Desk-phone-9')
     await drawer.getByRole('button', { name: 'Change password' }).click()
 
-    await expect(page.getByText('User password changed')).toBeVisible()
+    await expect(page.getByText('User password updated')).toBeVisible()
     expect(mockApi.callsTo('PATCH', `${TANCREDI}/defaults`)[0].body).toEqual({
       userpw: 'Desk-phone-9',
     })

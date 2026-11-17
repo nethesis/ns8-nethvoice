@@ -109,7 +109,22 @@ const CALLS_TODAY = {
   answered: 9,
   missed: 2,
   invalid: 1,
-  incoming_by_hour: [0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 2],
+  calls_by_hour: [0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 2],
+}
+
+const PHONE_STATUS = {
+  provisioned: 116,
+  pending: 4,
+  unassigned: 2,
+  failed: 2,
+  unknown: 1,
+}
+
+const SYSTEM = {
+  release: '8.10.0',
+  uptime_seconds: 14 * 86400 + 6 * 3600 + 12 * 60 + 30,
+  load_average: 0.42,
+  memory_used_percent: 38.2,
 }
 
 const mockDashboard = (mockApi: MockApi) =>
@@ -140,6 +155,8 @@ const mockDashboard = (mockApi: MockApi) =>
     .on('GET', '/api/astproxy/trunks', { json: TRUNKS })
     .on('GET', '/api/user/endpoints/all', { json: USERS })
     .on('GET', '/freepbx/rest/dashboard/calls', { json: CALLS_TODAY })
+    .on('GET', '/freepbx/rest/dashboard/system', { json: SYSTEM })
+    .on('GET', '/freepbx/rest/dashboard/phones', { json: PHONE_STATUS })
 
 const counterValue = (page: import('@playwright/test').Page, id: string) =>
   page.getByTestId(`counter-${id}`).getByTestId('counter-value')
@@ -180,6 +197,26 @@ test.describe('dashboard', () => {
     await expect(devices.getByTestId('breakdown-desktopPhone')).toHaveText('0')
     await expect(devices.getByTestId('breakdown-mobileApp')).toHaveText('1')
 
+    const phoneStatus = page.getByTestId('phone-status-card')
+    await expect(phoneStatus).toContainText('Phone status')
+    await expect(phoneStatus.getByRole('term')).toHaveText([
+      'Provisioned',
+      'Pending',
+      'Unassigned',
+      'Failed',
+    ])
+    await expect(phoneStatus.getByTestId('breakdown-provisioned')).toHaveText('116')
+    await expect(phoneStatus.getByTestId('breakdown-pending')).toHaveText('4')
+    await expect(phoneStatus.getByTestId('breakdown-unassigned')).toHaveText('2')
+    await expect(phoneStatus.getByTestId('breakdown-failed')).toHaveText('2')
+    await expect(phoneStatus.getByTestId('breakdown-unknown')).toHaveCount(0)
+    await expect(
+      phoneStatus.getByRole('img', {
+        name: 'Provisioned: 116, Pending: 4, Unassigned: 2, Failed: 2',
+      }),
+    ).toBeVisible()
+    await expect(page.locator('[data-card]').nth(2)).toHaveAttribute('data-card', 'phoneStatus')
+
     const callsToday = page.getByTestId('calls-summary-card')
     await expect(callsToday).toContainText('Calls today')
     await expect(callsToday.getByTestId('breakdown-total')).toHaveText('12')
@@ -188,9 +225,9 @@ test.describe('dashboard', () => {
     await expect(callsToday.getByTestId('breakdown-invalid')).toHaveText('1')
 
     await expect(
-      page.getByRole('img', { name: '7 incoming calls today, most at 09:00 with 4' }),
+      page.getByRole('img', { name: '7 calls today, most at 09:00 with 4' }),
     ).toBeVisible()
-    await expect(page.getByTestId('hourly-calls-card')).toContainText('Incoming calls')
+    await expect(page.getByTestId('hourly-calls-card')).toContainText('Calls')
 
     const rows = page.getByTestId('call-row')
     await expect(rows).toHaveCount(2)
@@ -220,6 +257,16 @@ test.describe('dashboard', () => {
     await page.goto('./dashboard')
 
     await expect(page.getByTestId('system-hostname')).toHaveText('pbx.example.org')
+    await expect(page.getByTestId('system-release')).toHaveText('NethVoice 8.10.0')
+    await expect(page.getByTestId('system-uptime')).toHaveText('14 days 6 hours 12 minutes')
+    await expect(page.getByTestId('system-load-memory')).toHaveText('0.42 · 38%')
+    await expect(page.getByTestId('system-card').locator('dt')).toHaveText([
+      'Hostname',
+      'Release',
+      'Uptime',
+      'Load / memory',
+      'Subscription',
+    ])
 
     const trunksCard = page.getByTestId('trunks-card')
     await expect(trunksCard.getByRole('columnheader')).toHaveText(['Name', 'Status'])
@@ -409,6 +456,9 @@ test.describe('dashboard', () => {
 
     await expect(page.getByTestId('subscription-plan')).toHaveText('Community')
     await expect(page.getByTestId('extensions-usage')).toHaveText('4/8')
+    await expect(page.getByTestId('system-release')).toHaveText('NethVoice 8.10.0')
+    await expect(page.getByTestId('system-uptime')).toHaveText('14 days 6 hours 12 minutes')
+    await expect(page.getByTestId('system-load-memory')).toHaveText('0.42 · 38%')
     await expect(
       page.getByRole('progressbar', { name: '4 of 8 extensions configured' }),
     ).toBeVisible()
@@ -418,6 +468,7 @@ test.describe('dashboard', () => {
     await expect(page.getByTestId('dashboard-cards')).toHaveCount(0)
     await expect(page.getByTestId('drag-handle')).toHaveCount(0)
     expect(mockApi.callsTo('GET', '/freepbx/rest/dashboard/calls')).toHaveLength(0)
+    expect(mockApi.callsTo('GET', '/freepbx/rest/dashboard/phones')).toHaveLength(0)
   })
 
   test('does not report the live users on Community', async ({ page, mockApi }) => {
@@ -455,6 +506,92 @@ test.describe('dashboard', () => {
     await expect(page.getByTestId('hourly-calls-card')).toBeVisible()
   })
 
+  test('reports the phone status when it cannot be loaded', async ({ page, mockApi }) => {
+    let fail = true
+
+    mockApi.on('GET', '/freepbx/rest/dashboard/phones', () =>
+      fail ? { status: 500, json: 'An error occurred' } : { json: PHONE_STATUS },
+    )
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByText('Cannot load the phone status')).toBeVisible()
+    await expect(page.getByTestId('phone-status-card')).toHaveCount(0)
+    await expect(page.getByTestId('calls-summary-card')).toBeVisible()
+
+    fail = false
+    await page.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
+    await expect(
+      page.getByTestId('phone-status-card').getByTestId('breakdown-provisioned'),
+    ).toHaveText('116')
+  })
+
+  test('replaces the phone status chart with a text without phones', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/dashboard/phones', {
+      json: { provisioned: 0, pending: 0, unassigned: 0, failed: 0, unknown: 0 },
+    })
+
+    await page.goto('./dashboard')
+
+    const phoneStatus = page.getByTestId('phone-status-card')
+    await expect(phoneStatus.getByTestId('breakdown-empty')).toHaveText('No physical phones')
+    await expect(phoneStatus.getByRole('img')).toHaveCount(0)
+    await expect(phoneStatus.getByTestId('breakdown-failed')).toHaveText('0')
+  })
+
+  test('reports the system information when it cannot be loaded', async ({ page, mockApi }) => {
+    let fail = true
+
+    mockApi.on('GET', '/freepbx/rest/dashboard/system', () =>
+      fail ? { status: 500, json: 'An error occurred' } : { json: SYSTEM },
+    )
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByText('Cannot load system information')).toBeVisible()
+    await expect(page.getByTestId('system-uptime')).toHaveCount(0)
+    await expect(page.getByTestId('system-hostname')).toBeVisible()
+    await expect(page.getByTestId('subscription-plan')).toHaveText('Enterprise')
+
+    const subscriptionCalls = mockApi.callsTo(
+      'GET',
+      '/freepbx/rest/mainextensions/userlimits',
+    ).length
+    fail = false
+    await page.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(page.getByTestId('system-uptime')).toHaveText('14 days 6 hours 12 minutes')
+    await expect(page.getByText('Cannot load system information')).toHaveCount(0)
+    expect(mockApi.callsTo('GET', '/freepbx/rest/mainextensions/userlimits')).toHaveLength(
+      subscriptionCalls,
+    )
+  })
+
+  test('shows a short uptime and hides an unknown release', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/dashboard/system', {
+      json: { ...SYSTEM, release: null, uptime_seconds: 3600 + 59, memory_used_percent: 100 },
+    })
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('system-uptime')).toHaveText('1 hour')
+    await expect(page.getByTestId('system-load-memory')).toHaveText('0.42 · 100%')
+    await expect(page.getByTestId('system-release')).toHaveCount(0)
+  })
+
+  test('explains the hourly chart without calls today', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/dashboard/calls', {
+      json: { total: 0, answered: 0, missed: 0, invalid: 0, calls_by_hour: [0, 0, 0] },
+    })
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('hourly-calls-empty')).toHaveText('No calls today')
+    await expect(page.getByTestId('hourly-chart')).toHaveCount(0)
+  })
+
   test('moves a card with the keyboard and remembers the order', async ({ page }) => {
     await page.goto('./dashboard')
 
@@ -468,7 +605,7 @@ test.describe('dashboard', () => {
     await expect(cards.first()).toHaveAttribute('data-card', 'devices')
     await expect(cards.nth(1)).toHaveAttribute('data-card', 'presence')
     await expect(page.getByTestId('card-move-status')).toHaveText(
-      'Devices moved to position 1 of 7',
+      'Devices moved to position 1 of 8',
     )
     await expect(page.getByRole('button', { name: 'Move Devices' })).toBeFocused()
 

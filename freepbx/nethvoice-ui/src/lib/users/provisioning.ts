@@ -8,7 +8,7 @@ import type { User } from '@/lib/users/users'
 
 export type ProvisioningPlan = {
   extensions: ExtensionStep[]
-  defaults: { user: User; extension: string; setProfile: boolean }[]
+  defaults: { user: User; extension: string; setProfile: boolean; enableWebrtc: boolean }[]
 }
 
 export class ProvisioningError extends Error {
@@ -31,6 +31,9 @@ export const getDraftExtension = (user: User, edits: Record<string, string>): st
 export const getDrafts = (users: User[], edits: Record<string, string>): Record<string, string> =>
   Object.fromEntries(users.map((user) => [user.username, getDraftExtension(user, edits)]))
 
+const hasWebrtcDevice = (user: User): boolean =>
+  user.devices.some((device) => device.type === 'webrtc')
+
 export const planProvisioning = (
   users: User[],
   edits: Record<string, string>,
@@ -38,8 +41,14 @@ export const planProvisioning = (
   const extensions = planExtensionSteps(users, getDrafts(users, edits))
   const defaults = users
     .map((user) => ({ user, extension: getDraftExtension(user, edits) }))
-    .filter(({ user, extension }) => extension !== '' && extension !== user.mainExtension)
-    .map(({ user, extension }) => ({ user, extension, setProfile: user.profileId === null }))
+    .filter(({ extension }) => extension !== '')
+    .map(({ user, extension }) => ({
+      user,
+      extension,
+      setProfile: user.profileId === null,
+      enableWebrtc: extension !== user.mainExtension || !hasWebrtcDevice(user),
+    }))
+    .filter(({ setProfile, enableWebrtc }) => setProfile || enableWebrtc)
 
   return { extensions, defaults }
 }
@@ -67,7 +76,10 @@ export const runProvisioning = async (
       if (item.setProfile && baseProfileId !== null) {
         await postUserProfile(item.user.id, baseProfileId)
       }
-      await enableSoftwareDevice('webrtc', item.extension)
+
+      if (item.enableWebrtc) {
+        await enableSoftwareDevice('webrtc', item.extension)
+      }
     } catch (error) {
       throw new ProvisioningError(item.user.username, 'defaults', error)
     }

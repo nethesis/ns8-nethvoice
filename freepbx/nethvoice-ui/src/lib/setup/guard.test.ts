@@ -73,6 +73,12 @@ describe('getLegacyStepToSave', () => {
     expect(getLegacyStepToSave(4, atVoipTrunks)).toBe(4)
   })
 
+  it('should never save a step after the summary while the wizard is in progress', () => {
+    expect(getLegacyStepToSave(2, { inProgress: true, legacyStep: 13 })).toBe(12)
+    expect(getLegacyStepToSave(12, { inProgress: true, legacyStep: 13 })).toBe(12)
+    expect(getLegacyStepToSave(13, atVoipTrunks)).toBe(12)
+  })
+
   it('should save the next step when the state is unknown or completed', () => {
     expect(getLegacyStepToSave(1)).toBe(1)
     expect(getLegacyStepToSave(1, completed)).toBe(1)

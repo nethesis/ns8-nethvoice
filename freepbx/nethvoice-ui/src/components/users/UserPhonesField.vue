@@ -16,7 +16,7 @@ import {
   type NeComboboxOption,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faCirclePlus, faTrash } from '@fortawesome/free-solid-svg-icons'
+import { faCircleInfo, faCirclePlus, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import { getPhoneWebPassword } from '@/lib/phones/defaults'
 import { formatMac } from '@/lib/phones/mac'
@@ -83,11 +83,12 @@ const limitReached = computed(() => selectedMacs.value.length >= maxPhones)
 const phoneOptions = computed<NeComboboxOption[]>(() =>
   phones.value
     .filter((phone) => phone.user === null || phone.user.username === username)
-    .map((phone) => ({
-      id: phone.mac,
-      label: formatMac(phone.mac),
-      description: phone.modelLabel || phone.vendor,
-    })),
+    .map((phone) => {
+      const model = phone.modelLabel || phone.vendor
+      const mac = formatMac(phone.mac)
+
+      return { id: phone.mac, label: model ? `${model} (${mac})` : mac }
+    }),
 )
 
 const optionsByRow = computed<NeComboboxOption[][]>(() =>
@@ -121,7 +122,26 @@ function removePhone(index: number) {
 <template>
   <div class="flex flex-col gap-2">
     <NeFormItemLabel class="!mb-0 flex justify-between">
-      {{ t('users.physical_phones') }}
+      <span class="flex items-center gap-2">
+        {{ t('users.physical_phones') }}
+        <NeTooltip trigger-event="mouseenter focus" placement="top">
+          <template #trigger>
+            <button type="button" class="inline-flex" data-testid="user-phones-info">
+              <FontAwesomeIcon
+                :icon="faCircleInfo"
+                class="size-4 text-indigo-500 dark:text-indigo-300"
+                aria-hidden="true"
+              />
+              <span class="sr-only">
+                {{ t('users.physical_phones_limit', { max: MAX_DEVICES_PER_USER }) }}
+              </span>
+            </button>
+          </template>
+          <template #content>
+            {{ t('users.physical_phones_limit', { max: MAX_DEVICES_PER_USER }) }}
+          </template>
+        </NeTooltip>
+      </span>
       <span class="text-secondary-neutral font-normal">{{ t('common.optional') }}</span>
     </NeFormItemLabel>
     <NeSkeleton v-if="loading" :lines="2" />

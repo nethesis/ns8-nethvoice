@@ -171,8 +171,15 @@ export const test = base.extend<Fixtures>({
         json: { configured: 0, limit: false, configurable: false },
       })
       .on('GET', '/freepbx/rest/dashboard/calls', {
-        json: { total: 0, answered: 0, missed: 0, invalid: 0, incoming_by_hour: [] },
+        json: { total: 0, answered: 0, missed: 0, invalid: 0, calls_by_hour: [] },
       })
+      .on('GET', '/freepbx/rest/dashboard/system', {
+        json: { release: null, uptime_seconds: 0, load_average: 0, memory_used_percent: 0 },
+      })
+      .on('GET', '/freepbx/rest/dashboard/phones', {
+        json: { provisioned: 0, pending: 0, unassigned: 0, failed: 0, unknown: 0 },
+      })
+      .on('GET', '/api/astproxy/trunks', { json: {} })
     mockWizardState(mockApi, 13, false)
     mockPermissions(mockApi, ['superadmin'])
 

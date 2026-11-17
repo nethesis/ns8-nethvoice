@@ -7,7 +7,6 @@
 import { computed } from 'vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
-  faBan,
   faCircleCheck,
   faCircleMinus,
   faCircleQuestion,
@@ -25,6 +24,7 @@ const { status } = defineProps<{ status: TrunkStatus }>()
 const NEUTRAL = 'text-icon-neutral'
 const SUCCESS = 'text-icon-enabled'
 const DANGER = 'text-rose-700 dark:text-rose-500'
+const DISABLED = 'text-gray-700 dark:text-gray-400'
 
 const STYLES: Record<TrunkStatus, { icon: IconDefinition; color: string }> = {
   pending: { icon: faClock, color: NEUTRAL },
@@ -36,7 +36,7 @@ const STYLES: Record<TrunkStatus, { icon: IconDefinition; color: string }> = {
   rejected: { icon: faCircleXmark, color: DANGER },
   not_connected: { icon: faCircleXmark, color: DANGER },
   unknown: { icon: faCircleQuestion, color: NEUTRAL },
-  disabled: { icon: faBan, color: NEUTRAL },
+  disabled: { icon: faCircleXmark, color: DISABLED },
 }
 
 const style = computed(() => STYLES[status])

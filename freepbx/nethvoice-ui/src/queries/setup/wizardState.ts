@@ -23,3 +23,13 @@ export const loadWizardState = async (): Promise<WizardState | undefined> => {
   const state = await refresh()
   return state.data
 }
+
+export const fetchWizardState = async (): Promise<WizardState> => {
+  const { refetch } = useWizardState()
+  const state = await refetch(true)
+
+  if (!state.data) {
+    throw new Error('missing wizard state')
+  }
+  return state.data
+}

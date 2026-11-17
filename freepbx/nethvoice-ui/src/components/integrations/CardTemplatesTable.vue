@@ -42,6 +42,7 @@ import {
 } from '@/lib/integrations/cardTemplates'
 import { getCardsUsingTemplate } from '@/lib/integrations/customerCards'
 import { useCardTemplates, useCustomerCards } from '@/queries/integrations/customerCards'
+import { usePermissions } from '@/queries/permissions/me'
 
 type DrawerMode = 'create' | 'edit' | 'duplicate' | 'view'
 
@@ -50,6 +51,7 @@ const { hideEmptyState = false } = defineProps<{ hideEmptyState?: boolean }>()
 const { t } = useI18n()
 const { state, refetch } = useCardTemplates()
 const { state: cardsState } = useCustomerCards()
+const { isSuperadmin } = usePermissions()
 
 const currentTemplate = ref<CardTemplate | undefined>()
 const drawerMode = ref<DrawerMode>('create')
@@ -77,14 +79,16 @@ function openDrawer(mode: DrawerMode, template?: CardTemplate) {
 }
 
 function getKebabMenuItems(template: CardTemplate): NeDropdownItem[] {
-  const items: NeDropdownItem[] = [
-    {
-      id: 'duplicate',
-      label: t('integrations.cards.duplicate'),
-      icon: faClone,
-      action: () => openDrawer('duplicate', template),
-    },
-  ]
+  const items: NeDropdownItem[] = isSuperadmin.value
+    ? [
+        {
+          id: 'duplicate',
+          label: t('integrations.cards.duplicate'),
+          icon: faClone,
+          action: () => openDrawer('duplicate', template),
+        },
+      ]
+    : []
 
   if (template.custom) {
     items.push({
@@ -119,6 +123,7 @@ function deleteCurrentTemplate() {
         </p>
       </div>
       <NeButton
+        v-if="isSuperadmin"
         kind="secondary"
         :disabled="state.status !== 'success'"
         @click="openDrawer('create')"
@@ -174,19 +179,22 @@ function deleteCurrentTemplate() {
             <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
               <NeButton
                 kind="tertiary"
-                @click="openDrawer(template.custom ? 'edit' : 'view', template)"
+                @click="openDrawer(template.custom && isSuperadmin ? 'edit' : 'view', template)"
               >
                 <template #prefix>
                   <FontAwesomeIcon
-                    :icon="template.custom ? faPenToSquare : faEye"
+                    :icon="template.custom && isSuperadmin ? faPenToSquare : faEye"
                     class="h-4 w-4"
                     aria-hidden="true"
                   />
                 </template>
-                {{ template.custom ? t('common.edit') : t('integrations.cards.view') }}
+                {{
+                  template.custom && isSuperadmin ? t('common.edit') : t('integrations.cards.view')
+                }}
                 <span class="sr-only">{{ template.name }}</span>
               </NeButton>
               <NeDropdown
+                v-if="getKebabMenuItems(template).length"
                 :items="getKebabMenuItems(template)"
                 :align-to-right="true"
                 :open-menu-aria-label="t('integrations.open_menu_of', { name: template.name })"

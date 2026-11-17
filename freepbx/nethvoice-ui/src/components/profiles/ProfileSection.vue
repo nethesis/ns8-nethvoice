@@ -36,14 +36,14 @@ const expanded = ref(initiallyExpanded)
     <div class="flex items-center justify-between gap-4">
       <button
         type="button"
-        class="text-primary-neutral flex items-center gap-2 text-left text-base font-medium"
+        class="text-primary-neutral flex items-center gap-2 text-left text-lg font-medium"
         :aria-expanded="expanded"
         :aria-controls="`profile-section-${sectionId}`"
         @click="expanded = !expanded"
       >
         <FontAwesomeIcon
           :icon="expanded ? faChevronUp : faChevronDown"
-          class="size-3"
+          class="size-4"
           aria-hidden="true"
         />
         {{ title }}
@@ -55,8 +55,8 @@ const expanded = ref(initiallyExpanded)
         class="[&_label>span:last-child]:sr-only"
       />
     </div>
-    <p v-if="description" class="text-tertiary-neutral mt-1 pl-5">{{ description }}</p>
-    <div v-show="expanded" :id="`profile-section-${sectionId}`" class="mt-4 space-y-4 pl-5">
+    <p v-if="description" class="text-tertiary-neutral mt-2 pl-6 text-sm">{{ description }}</p>
+    <div v-show="expanded" :id="`profile-section-${sectionId}`" class="mt-4 pl-6">
       <slot />
     </div>
   </section>

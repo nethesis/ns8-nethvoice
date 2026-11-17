@@ -65,14 +65,19 @@ function isCurrentRoute(itemPath: string) {
       :aria-current="isCurrentRoute(item.to) ? 'page' : undefined"
       :class="[
         isCurrentRoute(item.to)
-          ? 'border-primary-700 dark:border-primary-500 bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-50'
-          : 'text-tertiary-neutral dark:text-tertiary-neutral border-transparent hover:text-gray-900 dark:hover:text-gray-50',
-        'group flex cursor-pointer items-center gap-x-3 rounded-md border-l-4 px-3 py-2 text-sm leading-6 font-medium transition-colors duration-(--duration-small) hover:bg-gray-100 dark:hover:bg-gray-800',
+          ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-50'
+          : 'text-tertiary-neutral dark:text-tertiary-neutral hover:text-gray-900 dark:hover:text-gray-50',
+        'group relative flex h-12.5 cursor-pointer items-center gap-x-4 rounded-md px-3 text-base font-medium transition-colors duration-(--duration-small) hover:bg-gray-100 dark:hover:bg-gray-800',
       ]"
     >
+      <span
+        v-if="isCurrentRoute(item.to)"
+        class="bg-primary-700 dark:bg-primary-500 absolute top-1/2 left-0 h-9 w-1 -translate-y-1/2 rounded-r-sm"
+        aria-hidden="true"
+      />
       <FontAwesomeIcon
         :icon="isCurrentRoute(item.to) ? item.solidIcon : item.lightIcon"
-        class="h-6 w-8 shrink-0"
+        class="size-6 shrink-0"
         aria-hidden="true"
       />
       {{ t(item.name) }}

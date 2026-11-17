@@ -197,7 +197,7 @@ const issueMessage = (field: ChangeAdminPasswordField) => {
           :hide-password-label="$t('ne_text_input.hide_password')"
           :disabled="changing"
         />
-        <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-2">
           <NeTextInput
             ref="newPasswordRef"
             v-model="newPassword"

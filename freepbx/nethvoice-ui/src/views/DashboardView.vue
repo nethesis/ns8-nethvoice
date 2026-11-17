@@ -30,6 +30,7 @@ import TrunkStatusIndicator from '@/components/trunks/TrunkStatusIndicator.vue'
 import { usePolling } from '@/composables/usePolling'
 import { CALL_OUTCOMES, type CallOutcome } from '@/lib/dashboard/calls'
 import type { ChartBar } from '@/lib/dashboard/chart'
+import { getPhoneStatusBars } from '@/lib/dashboard/phones'
 import { moveCardBy, moveCardTo, type DashboardCardId } from '@/lib/dashboard/layout'
 import {
   DASHBOARD_COUNTERS_REFRESH_INTERVAL,
@@ -47,12 +48,14 @@ import {
 import { listInboundRouteDestinations, listTrunkStatuses } from '@/lib/dashboard/routing'
 import { useDashboardCalls } from '@/queries/dashboard/calls'
 import { useDashboardCounter } from '@/queries/dashboard/counters'
+import { useDashboardPhones } from '@/queries/dashboard/phones'
 import {
   useDashboardLiveExtensions,
   useDashboardLiveTrunks,
   useDashboardLiveUsers,
 } from '@/queries/dashboard/live'
 import { useDashboardSubscription } from '@/queries/dashboard/subscription'
+import { useDashboardSystem } from '@/queries/dashboard/system'
 import { useInboundRoutes } from '@/queries/routes/inbound'
 import { useTrunks } from '@/queries/trunks/trunks'
 import { useDashboardLayoutStore } from '@/stores/dashboardLayout'
@@ -162,6 +165,7 @@ const {
   refetch: refetchSubscription,
   refresh: refreshSubscription,
 } = useDashboardSubscription()
+const { state: systemState, refetch: refetchSystem, refresh: refreshSystem } = useDashboardSystem()
 const { state: trunksState, refetch: refetchTrunks, refresh: refreshTrunks } = useTrunks()
 const {
   state: inboundRoutesState,
@@ -174,6 +178,11 @@ const {
   refetch: refetchCalls,
   refresh: refreshCalls,
 } = useDashboardCalls(() => isEnterprise.value)
+const {
+  state: phonesState,
+  refetch: refetchPhones,
+  refresh: refreshPhones,
+} = useDashboardPhones(() => isEnterprise.value)
 const liveExtensionsQuery = useDashboardLiveExtensions()
 const liveTrunksQuery = useDashboardLiveTrunks()
 const liveUsersQuery = useDashboardLiveUsers()
@@ -266,9 +275,14 @@ const callOutcomeBars = computed<ChartBar[]>(() =>
   })),
 )
 
+const phoneStatusBars = computed<ChartBar[]>(() =>
+  getPhoneStatusBars(phonesState.value.data, (status) => t(`dashboard.phone_status.${status}`)),
+)
+
 const CARD_TITLES: Record<DashboardCardId, string> = {
   presence: 'dashboard.presence.title',
   devices: 'dashboard.devices.title',
+  phoneStatus: 'dashboard.phone_status.title',
   callsSummary: 'dashboard.calls_summary.title',
   calls: 'dashboard.calls.title',
   hourlyCalls: 'dashboard.hourly_calls.title',
@@ -279,6 +293,7 @@ const CARD_TITLES: Record<DashboardCardId, string> = {
 const CARD_SPANS: Record<DashboardCardId, string> = {
   presence: '',
   devices: '',
+  phoneStatus: '',
   callsSummary: '',
   calls: 'md:col-span-2',
   hourlyCalls: 'md:col-span-2',
@@ -292,6 +307,7 @@ const cardGrid = useTemplateRef<HTMLUListElement>('cardGrid')
 const cardVisibility = computed<Record<DashboardCardId, boolean>>(() => ({
   presence: presenceLoading.value || presence.value !== null,
   devices: devicesLoading.value || devices.value !== null,
+  phoneStatus: !phonesState.value.error || phonesState.value.data !== undefined,
   callsSummary: !callsState.value.error || callsState.value.data !== undefined,
   calls: callsLoading.value || liveCalls.value !== null,
   hourlyCalls: !callsState.value.error || callsState.value.data !== undefined,
@@ -406,12 +422,19 @@ const inboundRouteRows = computed(() =>
 const loadFailures = computed(() => {
   const failures: LoadFailure[] = []
 
-  if (subscriptionState.value.error) {
+  if (subscriptionState.value.error || systemState.value.error) {
     failures.push({
       part: 'dashboard.load_error.system',
       title: 'dashboard.cannot_load_system',
-      error: subscriptionState.value.error,
-      retry: () => refetchSubscription(),
+      error: subscriptionState.value.error ?? systemState.value.error,
+      retry: () => {
+        if (subscriptionState.value.error) {
+          refetchSubscription()
+        }
+        if (systemState.value.error) {
+          refetchSystem()
+        }
+      },
     })
   }
   if (failedCounters.value.length) {
@@ -428,6 +451,14 @@ const loadFailures = computed(() => {
       title: 'dashboard.cannot_load_calls',
       error: callsState.value.error,
       retry: () => refetchCalls(),
+    })
+  }
+  if (isEnterprise.value && phonesState.value.error) {
+    failures.push({
+      part: 'dashboard.load_error.phones',
+      title: 'dashboard.cannot_load_phones',
+      error: phonesState.value.error,
+      retry: () => refetchPhones(),
     })
   }
   if (failedLiveQueries.value.length) {
@@ -493,8 +524,10 @@ usePolling(() => {
   if (loginStore.isAuthenticated) {
     counterQueries.forEach((query) => query.refresh())
     refreshSubscription()
+    refreshSystem()
     if (isEnterprise.value) {
       refreshCalls()
+      refreshPhones()
       refreshTrunks()
       refreshInboundRoutes()
     }
@@ -525,6 +558,8 @@ usePolling(() => {
           class="md:row-span-3"
           :subscription="subscriptionState.data"
           :loading="subscriptionState.status === 'pending'"
+          :system="systemState.data"
+          :system-loading="systemState.status === 'pending'"
         />
         <DashboardCounterCard
           v-for="counter in countersBeforeCalls"
@@ -618,6 +653,24 @@ usePolling(() => {
             </template>
           </DashboardBreakdownCard>
           <DashboardBreakdownCard
+            v-else-if="card === 'phoneStatus'"
+            class="h-full"
+            data-testid="phone-status-card"
+            :title="$t('dashboard.phone_status.title')"
+            :empty-text="$t('dashboard.phone_status.no_phones')"
+            :bars="phoneStatusBars"
+            orientation="vertical"
+            :loading="phonesState.status === 'pending'"
+          >
+            <template #handle>
+              <DashboardDragHandle
+                :card="cardTitle(card)"
+                @arm="armedCard = card"
+                @move="moveWithKeyboard(card, $event)"
+              />
+            </template>
+          </DashboardBreakdownCard>
+          <DashboardBreakdownCard
             v-else-if="card === 'callsSummary'"
             class="h-full"
             data-testid="calls-summary-card"
@@ -638,7 +691,7 @@ usePolling(() => {
           <DashboardHourlyCard
             v-else-if="card === 'hourlyCalls'"
             class="h-full"
-            :hourly-calls="callsState.data?.incomingByHour ?? []"
+            :hourly-calls="callsState.data?.callsByHour ?? []"
             :loading="callsState.status === 'pending'"
           >
             <template #handle>
