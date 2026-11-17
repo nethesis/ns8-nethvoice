@@ -24,7 +24,6 @@ teardown_file () {
     run GET /tancredi/api/v1/models/fanvil-i62
     assert_http_code "200"
     assert_http_body '"cap_door_phone":"1"'
-    assert_http_body '"cap_door_rtsp_adminpw":"1"'
     assert_http_body '"cap_settings_sections_blacklist":"displayAndRingtones,network,phonebook"'
     assert_http_body '"tmpl_phone":"fanvil-i6x.tmpl"'
     assert_http_body '"door_rtsp_path_main":"/h264/stream.live0"'
@@ -73,7 +72,8 @@ EOF
     assert_http_body "SIP1 Register Pswd      :doorsip123"
     assert_http_body "SIP1 DTMF Mode          :1"
     assert_http_body "SIP1 Transport          :3"
-    assert_http_body "Account1 Password           :doorweb123"
+    ! assert_http_body "Account1 Password"
+    ! assert_http_body "<MMI CONFIG MODULE>"
     assert_http_body "video2 BitRate          :512000"
     assert_http_body "video2 Resolution       :4"
     assert_http_body "video1 I Frame Interval :25"
@@ -101,7 +101,7 @@ EOF
     ! assert_http_body "RTSP Server Passwd"
 }
 
-@test "Door phone RTSP password defaults to the admin password on i6x" {
+@test "Door phone without RTSP password leaves the device RTSP credentials untouched" {
     run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
 {
     "variables": {
@@ -115,26 +115,8 @@ EOF
     tok1=$(extract_field "tok1")
     run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/${tok1}/0c383eaabbe0.cfg"
     assert_http_code "200"
-    assert_http_body "RTSP Server User   :nethvoice"
-    assert_http_body "RTSP Server Passwd :doorweb123"
-}
-
-@test "Door phone without RTSP password leaves the device RTSP credentials untouched" {
-    run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
-{
-    "variables": {
-        "door_rtsp_password": "",
-        "cap_door_rtsp_adminpw": ""
-    }
-}
-EOF
-    assert_http_code "200"
-
-    run GET "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}"
-    tok1=$(extract_field "tok1")
-    run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/${tok1}/0c383eaabbe0.cfg"
-    assert_http_code "200"
     assert_http_body "Enable RTSP        :1"
     ! assert_http_body "RTSP Server User"
     ! assert_http_body "RTSP Server Passwd"
+    ! assert_http_body "doorweb123"
 }
