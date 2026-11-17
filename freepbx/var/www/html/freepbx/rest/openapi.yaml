@@ -319,7 +319,9 @@ paths:
         '500':
           description: Internal server error
       description: 'Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts
-        Asterisk and signals the CTI service.'
+        Asterisk and signals the CTI service. Saving step 13 with status false completes
+        the wizard, restarts Asterisk and signals the CTI services to restart; other
+        steps and statuses never restart services.'
       operationId: post_configuration_wizard
       requestBody:
         required: true
@@ -1041,7 +1043,17 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
-      description: Body contains `name`, `custom` flag and base64 `html` content.
+        '403': &id001
+          description: 'Forbidden: missing permission'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+      description: 'Body contains `name`, `custom` flag and base64 `html` content.
+        Requires the superadmin permission: templates are rendered by the CTI server.'
       operationId: post_cti_customer_card_template
       requestBody:
         required: true
@@ -1062,6 +1074,7 @@ paths:
           description: Not found
         '500':
           description: Internal server error
+        '403': *id001
       operationId: put_cti_customer_card_template_name
       parameters:
       - name: name
@@ -1075,6 +1088,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsCardTemplateInput'
+      description: 'Requires the superadmin permission: templates are rendered by
+        the CTI server.'
     delete:
       summary: Delete a customer card template.
       tags:
@@ -1129,8 +1144,8 @@ paths:
   /cti/customer_card/{id}:
     put:
       summary: Update a customer card.
-      description: When the name changes, the related CTI permission is renamed
-        too (name cc_<sanitized name>, displayname <name>).
+      description: When the name changes, the related CTI permission is renamed too
+        (name cc_<sanitized name>, displayname <name>).
       tags:
       - CTI
       responses:
@@ -1195,6 +1210,17 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
+        '400': &id002
+          description: 'Invalid source URL: only http and https are accepted, and
+            the host must not resolve to a loopback, link-local or unspecified address.
+            Redirects are not followed.'
+          content: &id003
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
       operationId: post_cti_streaming
       requestBody:
         required: true
@@ -1202,6 +1228,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsVideoSourceInput'
+      description: For administrators who are not superadmin the URL must be a public
+        http or https address.
   /cti/paramurls:
     get:
       summary: List the parameterized URLs, one row per URL.
@@ -1229,6 +1257,7 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
+        '400': *id002
       operationId: put_cti_streaming_descr
       parameters:
       - name: descr
@@ -1242,6 +1271,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsVideoSourceInput'
+      description: For administrators who are not superadmin the URL must be a public
+        http or https address.
   /cti/sources/test:
     post:
       summary: Fetch one frame from a video source URL.
@@ -1255,16 +1286,13 @@ paths:
               schema:
                 type: string
                 description: Base64 encoded image
-        '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IntegrationsStatusError'
+        '400': *id002
         '500':
           description: Internal server error
       description: 'Body: `{ "url": "http(s)://..." }`. Returns the content encoded
-        in Base64 or HTTP 500 on failure.'
+        in Base64 or HTTP 500 on failure. The URL is fetched only over http or https,
+        never from a loopback, link-local or unspecified address, and redirects are
+        not followed.'
       operationId: post_cti_sources_test
       requestBody:
         required: true
@@ -1469,11 +1497,11 @@ paths:
   /devices/gateways:
     post:
       summary: Create or update a gateway configuration and related trunks.
-      description: Trunks and FXS extensions are created first and the gateway
-        configuration is written in one transaction at the end. When any step fails,
-        the trunks and extensions created by the request are removed and an existing
-        configuration with the same name and MAC address is kept. Cleanup failures
-        are listed in `warnings`.
+      description: Trunks and FXS extensions are created first and the gateway configuration
+        is written in one transaction at the end. When any step fails, the trunks
+        and extensions created by the request are removed and an existing configuration
+        with the same name and MAC address is kept. Cleanup failures are listed in
+        `warnings`.
       tags:
       - Devices
       responses:
@@ -1666,7 +1694,8 @@ paths:
         '201':
           description: Extension assigned
         '403':
-          description: Community version limited to 8 configured users
+          description: Community version limited to 8 configured users. The community
+            limit does not count the current extension of the user being changed.
           content:
             application/json:
               schema:
@@ -2475,11 +2504,8 @@ paths:
         '200':
           description: Successful response
         '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IntegrationsStatusError'
+          description: Invalid request or invalid source URL
+          content: *id003
         '500':
           description: Internal server error
           content:
@@ -2522,8 +2548,8 @@ paths:
     delete:
       summary: Delete an external phonebook source and the contacts imported from
         it.
-      description: The uploaded CSV file of the source is removed when no other
-        source uses it.
+      description: The uploaded CSV file of the source is removed when no other source
+        uses it.
       tags:
       - Phonebook
       responses:
@@ -2552,11 +2578,8 @@ paths:
         '200':
           description: Successful response
         '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IntegrationsStatusError'
+          description: Invalid request or invalid source URL
+          content: *id003
         '500':
           description: Internal server error
           content:
@@ -2589,17 +2612,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/IntegrationsPhonebookTestResult'
         '400':
-          description: Bad request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IntegrationsStatusError'
+          description: Invalid request or invalid source URL
+          content: *id003
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
+        '403': *id001
       operationId: post_phonebook_test
       requestBody:
         required: true
@@ -2607,6 +2628,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsPhonebookTestInput'
+      description: Testing a mysql or mssql source requires the superadmin permission.
+        CSV and Infinity URLs of administrators who are not superadmin must be public
+        http or https addresses or uploaded files.
   /phonebook/syncnow/{id}:
     post:
       summary: Import a phonebook source now (synchronous).
@@ -3529,10 +3553,11 @@ paths:
   /dashboard/calls:
     get:
       summary: Summarize the calls of today for the dashboard.
-      description: Reads the CDR from midnight of the PBX time zone. The legs of
-        a call are counted once, feature codes are not counted. A call is answered
-        when a leg is ANSWERED, missed when a leg is NO ANSWER or BUSY, invalid
-        otherwise (FAILED or CONGESTION). Requires the dashboard section.
+      description: Reads the CDR from midnight of the PBX time zone. The legs of a
+        call are counted once, feature codes and the calls of the administrator phone
+        are not counted. A call is answered when a leg is ANSWERED, missed when a
+        leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). Requires
+        the dashboard section.
       tags:
       - Dashboard
       responses:
@@ -3547,7 +3572,7 @@ paths:
                 - answered
                 - missed
                 - invalid
-                - incoming_by_hour
+                - calls_by_hour
                 properties:
                   total:
                     type: integer
@@ -3561,10 +3586,10 @@ paths:
                   invalid:
                     type: integer
                     minimum: 0
-                  incoming_by_hour:
+                  calls_by_hour:
                     type: array
-                    description: Incoming calls started in each hour of today,
-                      from hour 0 to the current hour.
+                    description: Calls started in each hour of today, from hour 0
+                      to the current hour.
                     items:
                       type: integer
                       minimum: 0
@@ -3573,7 +3598,18 @@ paths:
                 answered: 9
                 missed: 2
                 invalid: 1
-                incoming_by_hour: [0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 2]
+                calls_by_hour:
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 0
+                - 1
+                - 3
+                - 2
         '403':
           description: Missing dashboard permission
           content:
@@ -3590,6 +3626,129 @@ paths:
               schema:
                 type: string
       operationId: get_dashboard_calls
+  /dashboard/phones:
+    get:
+      summary: Count the physical phones by provisioning status for the dashboard.
+      description: Counts the phones of the Tancredi inventory. A phone is unassigned
+        when no extension is assigned to its MAC address, pending when its first-access
+        provisioning token still exists, provisioned when it has downloaded its configuration
+        and one of its extensions is registered, failed when it has downloaded its
+        configuration but none of its extensions is registered. A phone whose details
+        Tancredi does not return is unknown. The result is cached for 30 seconds.
+        Requires the dashboard section.
+      tags:
+      - Dashboard
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - provisioned
+                - pending
+                - unassigned
+                - failed
+                - unknown
+                properties:
+                  provisioned:
+                    type: integer
+                    minimum: 0
+                  pending:
+                    type: integer
+                    minimum: 0
+                  unassigned:
+                    type: integer
+                    minimum: 0
+                  failed:
+                    type: integer
+                    minimum: 0
+                  unknown:
+                    type: integer
+                    minimum: 0
+              example:
+                provisioned: 116
+                pending: 4
+                unassigned: 2
+                failed: 2
+                unknown: 0
+        '403':
+          description: Missing dashboard permission
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Tancredi cannot be reached or another error occurred
+          content:
+            application/json:
+              schema:
+                type: string
+      operationId: get_dashboard_phones
+  /dashboard/system:
+    get:
+      summary: Return the release and the host status for the dashboard.
+      description: The release is the tag of the NethVoice module image. Uptime, load
+        average and memory usage come from the proc file system of the host. Requires
+        the dashboard section.
+      tags:
+      - Dashboard
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - release
+                - uptime_seconds
+                - load_average
+                - memory_used_percent
+                properties:
+                  release:
+                    type: string
+                    nullable: true
+                    description: Tag of the module image, null when it is not known.
+                  uptime_seconds:
+                    type: integer
+                    minimum: 0
+                    description: Seconds since the host started.
+                  load_average:
+                    type: number
+                    minimum: 0
+                    description: Load average of the host in the last minute.
+                  memory_used_percent:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                    description: Memory of the host in use, excluding the memory available
+                      for new processes.
+              example:
+                release: 1.9.0
+                uptime_seconds: 1231932
+                load_average: 0.42
+                memory_used_percent: 38
+        '403':
+          description: Missing dashboard permission
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
+      operationId: get_dashboard_system
   /trunks/count:
     get:
       summary: Return the number of trunks defined in FreePBX.
@@ -3796,6 +3955,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/UsersUser'
+        '403': *id001
       operationId: get_users_all
       parameters:
       - name: all
@@ -3807,6 +3967,9 @@ paths:
           - 'true'
           - 'false'
           - all
+      description: The password of the users and the secret, web_user and web_password
+        of their devices are returned only to superadmin. The value true starts a
+        user synchronization and requires the users section.
   /users:
     post:
       summary: Create or update an LDAP user (legacy mode).
@@ -4069,9 +4232,9 @@ paths:
   /adminphone:
     get:
       summary: Return the state of the administrator phone.
-      description: 'The administrator phone is a service PJSIP extension configured
+      description: The administrator phone is a service PJSIP extension configured
         for WebRTC and not linked to any user. It lets the administrator place test
-        calls from the administration UI. The response never contains the SIP secret.'
+        calls from the administration UI. The response never contains the SIP secret.
       tags:
       - AdminPhone
       responses:
