@@ -28,6 +28,73 @@ include_once('lib/libStreaming.php');
 include_once('lib/libDoorPhones.php');
 include_once('lib/libSecurity.php');
 
+const CTI_DBCONN_TARGET_FIELDS = ['host', 'port', 'type'];
+const CTI_DBCONN_PASSWORD_REQUIRED = 'Enter the password to connect to a different server';
+
+function ctiStoredDbConnection($dbh, $id): ?array
+{
+    if (!is_scalar($id) || !ctype_digit((string) $id)) {
+        return null;
+    }
+    $sth = $dbh->prepare('SELECT * FROM user_dbconn WHERE id = ?');
+    $sth->execute([(int) $id]);
+    $row = $sth->fetch(PDO::FETCH_ASSOC);
+
+    return is_array($row) ? $row : null;
+}
+
+function ctiAdminSecretKey(): ?string
+{
+    global $config;
+    $secret = $config['settings']['secretkey'] ?? ($_ENV['NETHVOICESECRETKEY'] ?? getenv('NETHVOICESECRETKEY'));
+    $passwordHash = FreePBX::Database()
+        ->query("SELECT `password_sha1` FROM `ampusers` WHERE `username` = 'admin'")
+        ->fetchColumn();
+    if (empty($secret) || empty($passwordHash)) {
+        return null;
+    }
+
+    return sha1('admin' . $passwordHash . $secret);
+}
+
+function ctiTestDbConnection(array $connection): ?bool
+{
+    $port = $_ENV['NETHCTI_SERVER_API_PORT'] ?? getenv('NETHCTI_SERVER_API_PORT');
+    $secretKey = is_scalar($port) && ctype_digit((string) $port) ? ctiAdminSecretKey() : null;
+    if ($secretKey === null) {
+        error_log('database connection test skipped: missing NETHCTI_SERVER_API_PORT or admin secret key');
+        return null;
+    }
+
+    $ch = curl_init('http://127.0.0.1:' . (int) $port . '/dbconn/test');
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => 20,
+        CURLOPT_HTTPHEADER => [
+            'Content-Type: application/json',
+            'User: admin',
+            'Secretkey: ' . $secretKey,
+        ],
+        CURLOPT_POSTFIELDS => json_encode($connection),
+    ]);
+    curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        return true;
+    }
+    if ($httpCode === 503) {
+        return false;
+    }
+    error_log('database connection test failed: HTTP ' . $httpCode . ' ' . $error);
+
+    return null;
+}
+
 /* GET /cti/profiles
 Return: [{id:1, name: admin, macro_permissions [ oppanel: {value: true, permissions [ {name: "foo", description: "descrizione...", value: false},{..} ]}
 */
@@ -490,6 +557,15 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
             return jsonResponse($response, ['message' => 'Invalid database connection fields'], 400);
         }
 
+        $dbh = NethCTI::Database();
+        $data = nethvoiceKeepStoredPassword($data, ctiStoredDbConnection($dbh, $id), 'pass', CTI_DBCONN_TARGET_FIELDS);
+        if ($data === null) {
+            return jsonResponse($response, ['message' => CTI_DBCONN_PASSWORD_REQUIRED], 400);
+        }
+        if (!$data) {
+            return $response->withStatus(200);
+        }
+
         foreach ($data as $p=>$v) {
             $fields[] = $p. ' = ?';
             $args[] = $v;
@@ -497,7 +573,6 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
 
         $args[] = $id;
 
-        $dbh = NethCTI::Database();
         $sql = 'UPDATE user_dbconn SET '. implode(', ', $fields). ' WHERE id = ?';
         $sth = $dbh->prepare($sql);
         $res = $sth->execute($args);
@@ -583,7 +658,46 @@ $app->get('/cti/dbconn', function (Request $request, Response $response, $args) 
 
         $res = $sth->fetchAll(PDO::FETCH_ASSOC);
 
-        return jsonResponse($response, $res);
+        return jsonResponse($response, nethvoiceWithoutStoredPasswords($res, 'pass', nethvoiceRequestIsSuperadmin($request)));
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
+
+$app->post('/cti/dbconn/test', function (Request $request, Response $response, $args) {
+    try {
+        $data = $request->getParsedBody();
+        if (!is_array($data)) {
+            return jsonResponse($response, ['message' => 'Invalid database connection fields'], 400);
+        }
+        $connection = [];
+        foreach (['host', 'port', 'type', 'user', 'name'] as $field) {
+            $value = $data[$field] ?? '';
+            if (!is_scalar($value) || ($field !== 'user' && trim((string) $value) === '')) {
+                return jsonResponse($response, ['message' => "Missing value: $field"], 400);
+            }
+            $connection[$field] = trim((string) $value);
+        }
+        $connection['pass'] = isset($data['pass']) && is_scalar($data['pass']) ? (string) $data['pass'] : '';
+
+        if ($connection['pass'] === '' && isset($data['id']) && $data['id'] !== '') {
+            $stored = ctiStoredDbConnection(NethCTI::Database(), $data['id']);
+            if ($stored === null) {
+                return jsonResponse($response, ['message' => 'Database connection not found'], 404);
+            }
+            $connection = nethvoiceKeepStoredPassword($connection, $stored, 'pass', CTI_DBCONN_TARGET_FIELDS);
+            if ($connection === null) {
+                return jsonResponse($response, ['message' => CTI_DBCONN_PASSWORD_REQUIRED], 400);
+            }
+            $connection['pass'] = $connection['pass'] ?? '';
+        }
+
+        $result = ctiTestDbConnection($connection);
+        if ($result === null) {
+            return jsonResponse($response, ['message' => 'Cannot reach the CTI server'], 502);
+        }
+        return jsonResponse($response, ['status' => $result], 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);

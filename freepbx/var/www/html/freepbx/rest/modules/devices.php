@@ -26,6 +26,7 @@ require_once(__DIR__. '/../lib/modelRetrieve.php');
 require_once(__DIR__. '/../../admin/modules/core/functions.inc.php');
 include_once(__DIR__. '/../lib/gateway/functions.inc.php');
 include_once(__DIR__. '/../lib/libExtensions.php');
+include_once(__DIR__. '/../lib/libSecurity.php');
 
 /*
 *  Launch a scan: POST/devices/scan
@@ -205,6 +206,9 @@ $app->get('/devices/phones/list', function (Request $request, Response $response
                 "statusText"=>$state['StatusText'],
             );
             $res[] = $phone;
+        }
+        if (!nethvoiceRequestIsSuperadmin($request)) {
+            $res = nethvoiceWithoutLineSecrets($res);
         }
         return jsonResponse($response, $res,200);
     } catch (Exception $e) {

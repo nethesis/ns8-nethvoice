@@ -57,6 +57,25 @@ function validatePhonebookSharing($rawType) {
     return 'group:'.implode(',', $validGroups);
 }
 
+const PHONEBOOK_PASSWORD_REQUIRED = 'Enter the password to connect to a different server';
+
+function phonebookStoredSource($id) {
+    if (!is_string($id) || !preg_match('/^[A-Za-z0-9_-]+$/', $id)) {
+        return null;
+    }
+    $file = '/etc/phonebook/sources.d/' . $id . '.json';
+    if (!is_file($file)) {
+        return null;
+    }
+    $config = json_decode(file_get_contents($file), true);
+
+    return is_array($config) && isset($config[$id]) && is_array($config[$id]) ? $config[$id] : null;
+}
+
+function phonebookTargetFields($dbtype) {
+    return $dbtype === 'infinity' ? array('dbtype', 'url') : array('dbtype', 'host', 'port');
+}
+
 $app->get('/phonebook/fields', function (Request $request, Response $response, $args) {
     $fields = array(
        'cellphone',
@@ -111,7 +130,7 @@ $app->get('/phonebook/config', function (Request $request, Response $response, $
             }
         }
         closedir($handle);
-        return jsonResponse($response, $config, 200);
+        return jsonResponse($response, nethvoiceWithoutStoredPasswords($config, 'password', nethvoiceRequestIsSuperadmin($request)), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);
@@ -133,6 +152,15 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             }
             $id = 'custom_'.$i;
             $new = true;
+        }
+        if (!is_array($data)) {
+            return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
+        }
+        if (empty($new)) {
+            $data = nethvoiceKeepStoredPassword($data, phonebookStoredSource($id), 'password', phonebookTargetFields($data['dbtype'] ?? ''));
+            if ($data === null) {
+                return jsonResponse($response, array("status"=>PHONEBOOK_PASSWORD_REQUIRED), 400);
+            }
         }
         if(!isset($data['dbtype'])) {
             return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
@@ -240,6 +268,16 @@ $app->delete('/phonebook/config/{id}', function (Request $request, Response $res
 $app->post('/phonebook/test', function (Request $request, Response $response, $args) {
     try {
         $data = $request->getParsedBody();
+        if (is_array($data) && isset($data['id']) && $data['id'] !== '') {
+            $stored = phonebookStoredSource($data['id']);
+            if ($stored === null) {
+                return jsonResponse($response, array("status"=>"Phonebook source not found"), 404);
+            }
+            $data = nethvoiceKeepStoredPassword($data, $stored, 'password', phonebookTargetFields($data['dbtype'] ?? ''));
+            if ($data === null) {
+                return jsonResponse($response, array("status"=>PHONEBOOK_PASSWORD_REQUIRED), 400);
+            }
+        }
         // write a temporary configuration file
         $id = uniqid('phonebook_test_');
         $file = '/tmp/'.$id.'.json';
