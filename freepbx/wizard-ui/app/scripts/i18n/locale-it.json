@@ -1191,15 +1191,12 @@
   "New credentials: the door phone was asked to update its configuration. If the check fails, wait a minute or restart the door phone": "Nuove credenziali: è stato chiesto al citofono di aggiornare la configurazione. Se la verifica non riesce, attendi un minuto o riavvia il citofono",
   "door phone not found": "Citofono non trovato",
   "invalid door phone": "Citofono non valido",
-  "door_phone_admin_password_label": "Password di amministrazione (web e flusso video)",
   "The PBX reaches the door phone at this address": "Il centralino raggiunge il citofono a questo indirizzo",
   "The PBX cannot reach the door phone at this address": "Il centralino non raggiunge il citofono a questo indirizzo",
   "It is an address of a private network: the PBX is in the cloud or in another network": "È un indirizzo di una rete privata: il centralino è nel cloud o in un'altra rete",
   "Forward the RTSP port on the router of the door phone, allow it only from the public IP address of the PBX and type the public address of the door phone in the URL": "Inoltra la porta RTSP sul router del citofono, consentila solo dall'indirizzo IP pubblico del centralino e inserisci nell'URL l'indirizzo pubblico del citofono",
   "Public IP address of the PBX": "Indirizzo IP pubblico del centralino",
   "Use public address": "Usa l'indirizzo pubblico",
-  "Admin password of the door phone, managed by the PBX": "Password di amministrazione del citofono, gestita dal centralino",
-  "Password of the door phone, managed by the PBX": "Password del citofono, gestita dal centralino",
   "To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences": "Per leggerla o cambiarla: Utenti, l'utente del citofono, matita accanto al modello del dispositivo, Preferenze",
   "Use different credentials": "Usa credenziali diverse",
   "Use the door phone credentials": "Usa le credenziali del citofono",
@@ -1211,5 +1208,7 @@
   "Video quality": "Qualità video",
   "High (main stream)": "Alta (flusso principale)",
   "Standard (sub stream, for slow connections)": "Standard (flusso secondario, per connessioni lente)",
-  "Custom path": "Percorso personalizzato"
+  "Custom path": "Percorso personalizzato",
+  "door_phone_rtsp_password_label": "Password RTSP (flusso video)",
+  "RTSP password of the door phone, managed by the PBX": "Password RTSP del citofono, gestita dal centralino"
 }

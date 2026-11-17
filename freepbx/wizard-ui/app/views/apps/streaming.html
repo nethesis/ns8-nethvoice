@@ -215,7 +215,7 @@
             <div class="col-sm-9">
               <p class="form-control-static streaming-static">
                 <span class="fa fa-lock"></span>
-                {{(newSource.passwordIsAdmin === false ? 'Password of the door phone, managed by the PBX' : 'Admin password of the door phone, managed by the PBX') | translate}}
+                {{'RTSP password of the door phone, managed by the PBX' | translate}}
               </p>
               <span class="help-block streaming-help-tight">{{'To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences' | translate}}</span>
               <div ng-if="!newSource.onMod && newSource.credentialsGenerated" class="alert alert-info">
