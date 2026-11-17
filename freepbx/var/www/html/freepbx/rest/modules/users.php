@@ -22,6 +22,7 @@
 include_once('lib/libUsers.php');
 include_once('lib/libExtensions.php');
 include_once('lib/libMiddleware.php');
+include_once('lib/libSecurity.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -80,10 +81,17 @@ $app->get('/users/sync', function (Request $request, Response $response, $args) 
 $app->get('/users/{all}', function (Request $request, Response $response, $args) {
     $all = $args['all'];
     if($all == "true") {
+        if (!nethvoiceRequestHasSection($request, 'users')) {
+            return nethvoiceForbidden($response);
+        }
         system('fwconsole userman --syncall --force > /dev/null &'); // force FreePBX user sync
         triggerMiddlewareProfilesReloadAfterUserSync();
     }
-    return jsonResponse($response, array_values(getAllUsers($all)),200);
+    $users = array_values(getAllUsers($all));
+    if (!nethvoiceRequestIsSuperadmin($request)) {
+        $users = nethvoiceWithoutUserSecrets($users);
+    }
+    return jsonResponse($response, $users, 200);
 });
 
 
@@ -142,7 +150,7 @@ $app->post('/users/{username}/password', function (Request $request, Response $r
             $tmp = tempnam("/tmp","ASTPWD");
             file_put_contents($tmp, $password);
 
-            exec("/usr/bin/sudo /sbin/e-smith/signal-event password-modify '".$username."' $tmp", $out, $ret);
+            exec("/usr/bin/sudo /sbin/e-smith/signal-event password-modify ".escapeshellarg($username)." ".escapeshellarg($tmp), $out, $ret);
             if ($ret === 0) {
                 setPassword($username, $password);
                 return $response->withStatus(201);

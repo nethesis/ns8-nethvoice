@@ -361,5 +361,16 @@ namespace {
     check($threw && count(Pbx::$extensions) === 6 && $currentSecrets() === $aliceSecrets && $userGroups(1) === [10, 20], 'missing table lost data');
     check(listOrphanExtensions() === [] && reattachOrphanExtension(Pbx::addUser(9, 'alice')) === false, 'missing table not tolerated');
 
+    Pbx::reset();
+    Pbx::$extensions[] = '10201';
+    Pbx::$extensions[] = '9201';
+    Pbx::$extensions[] = '991201';
+    Pbx::$secrets['10201'] = 'm10201';
+    check(getUserExtensionNumbers('201') === ['201', '91201', '92201', '93201'], 'extensions of other users matched as devices');
+    orphanUserExtensions(1, Pbx::removeUser(1));
+    check(json_decode(Pbx::$orphans[0]['secrets'], true) === $aliceSecrets && Pbx::$secrets['10201'] === 'm10201', 'another user extension was locked');
+    check(releaseOrphanExtensions(['201']) === true, 'release with similar extensions failed');
+    check(Pbx::$extensions === ['202', '91202', '10201', '9201', '991201'], 'release deleted extensions of other users');
+
     echo "PASS: extensions of removed users kept, locked, restored and deleted on request\n";
 }
