@@ -1,0 +1,103 @@
+<?php
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Run the community users limit of POST /mainextensions against an in-memory PBX.
+
+namespace Psr\Http\Message {
+    interface ServerRequestInterface {}
+    interface ResponseInterface {}
+}
+
+namespace {
+    use Psr\Http\Message\ResponseInterface;
+    use Psr\Http\Message\ServerRequestInterface;
+
+    function check($condition, $message) {
+        if (!$condition) throw new RuntimeException($message);
+    }
+
+    class Pbx {
+        public static array $users = [];
+        public static array $created = [];
+
+        public static function reset($configured) {
+            self::$users = [];
+            for ($i = 1; $i <= $configured; $i++) {
+                self::$users[] = ['username' => "user$i", 'default_extension' => (string) (200 + $i)];
+            }
+            self::$users[] = ['username' => 'newcomer', 'default_extension' => 'none'];
+            self::$created = [];
+        }
+    }
+
+    class FakeApp {
+        public array $routes = [];
+        public function get($path, $handler) { $this->routes["GET $path"] = $handler; }
+        public function post($path, $handler) { $this->routes["POST $path"] = $handler; }
+        public function delete($path, $handler) { $this->routes["DELETE $path"] = $handler; }
+        public function put($path, $handler) { $this->routes["PUT $path"] = $handler; }
+        public function patch($path, $handler) { $this->routes["PATCH $path"] = $handler; }
+    }
+
+    class FakeRequest implements ServerRequestInterface {
+        public function __construct(private array $body) {}
+        public function getParsedBody() { return $this->body; }
+    }
+
+    class FakeResponse implements ResponseInterface {
+        public int $status = 200;
+        public function withStatus($status) { $this->status = $status; return $this; }
+    }
+
+    function getAllUsers($all = "true") { return Pbx::$users; }
+    function communityUsersLimit() { return 8; }
+    function createMainExtensionForUser($username, $mainextension, $outboundcid = '') {
+        Pbx::$created[] = [$username, $mainextension];
+        return true;
+    }
+    function jsonResponse($response, $body, $status) { return $response->withStatus($status); }
+
+    $stubs = sys_get_temp_dir().'/mainextensions_limit_test_'.getmypid();
+    @mkdir($stubs.'/lib', 0700, true);
+    foreach (['libExtensions.php', 'libUsers.php', 'libMiddleware.php', 'libCTI.php'] as $lib) {
+        file_put_contents("$stubs/lib/$lib", '<?php');
+    }
+    set_include_path($stubs);
+    $previousDir = getcwd();
+    chdir($stubs);
+
+    unset($_ENV['SUBSCRIPTION_SYSTEMID'], $_ENV['SUBSCRIPTION_SECRET']);
+    $app = new FakeApp();
+    require __DIR__.'/../var/www/html/freepbx/rest/modules/mainextensions.php';
+    chdir($previousDir);
+    foreach (glob("$stubs/lib/*.php") as $file) unlink($file);
+    rmdir("$stubs/lib");
+    rmdir($stubs);
+
+    $post = function ($username, $extension) use ($app) {
+        $handler = $app->routes['POST /mainextensions'];
+        return $handler(new FakeRequest(['username' => $username, 'extension' => $extension]), new FakeResponse(), [])->status;
+    };
+
+    Pbx::reset(8);
+    check(configuredUsersCountExcept(Pbx::$users, 'user1') === 7, 'the user being changed was counted');
+    check(configuredUsersCountExcept(Pbx::$users, 'newcomer') === 8, 'configured users were not counted');
+
+    Pbx::reset(8);
+    check($post('user1', '301') !== 403, 'changing the extension of a configured user was blocked at the limit');
+    check(Pbx::$created === [['user1', '301']], 'the extension was not changed');
+
+    Pbx::reset(8);
+    check($post('newcomer', '309') === 403, 'a new extension was allowed beyond the limit');
+    check(Pbx::$created === [], 'an extension was created beyond the limit');
+
+    Pbx::reset(7);
+    check($post('newcomer', '308') !== 403, 'a new extension was blocked below the limit');
+
+    Pbx::reset(8);
+    $_ENV['SUBSCRIPTION_SYSTEMID'] = 'id';
+    $_ENV['SUBSCRIPTION_SECRET'] = 'secret';
+    check($post('newcomer', '309') !== 403, 'an enterprise system was limited');
+    unset($_ENV['SUBSCRIPTION_SYSTEMID'], $_ENV['SUBSCRIPTION_SECRET']);
+
+    echo "PASS: community users limit counts the other configured users only\n";
+}
