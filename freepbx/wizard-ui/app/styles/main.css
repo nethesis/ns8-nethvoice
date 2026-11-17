@@ -3951,3 +3951,15 @@ a.black:active {
   padding-left: 10px !important;
   padding-right: 10px !important;
 }
+
+/* Credentials managed by the PBX: static rows as tall as the input rows */
+.form-control-static.streaming-static {
+  min-height: 26px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.help-block.streaming-help-tight {
+  margin-top: 2px;
+  margin-bottom: 0;
+}
