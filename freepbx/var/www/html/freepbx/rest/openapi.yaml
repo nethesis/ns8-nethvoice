@@ -1547,8 +1547,7 @@ paths:
     get:
       summary: List the provisioned door phones that can become a video source.
       description: Devices of the inventory assigned to an extension whose
-        Tancredi model has `cap_door_phone`. `password_is_admin` tells that the
-        RTSP password is the admin password of the door phone. `ip` comes from the SIP
+        Tancredi model has `cap_door_phone`. `ip` comes from the SIP
         registration of the extension (null when not registered), `url` is the
         suggested RTSP URL, `sources` the sources that already use the
         extension. Secrets are never returned.

@@ -321,15 +321,12 @@
   "New credentials: the door phone was asked to update its configuration. If the check fails, wait a minute or restart the door phone": "New credentials: the door phone was asked to update its configuration. If the check fails, wait a minute or restart the door phone",
   "door phone not found": "Door phone not found",
   "invalid door phone": "Invalid door phone",
-  "door_phone_admin_password_label": "Admin password (web and video stream)",
   "The PBX reaches the door phone at this address": "The PBX reaches the door phone at this address",
   "The PBX cannot reach the door phone at this address": "The PBX cannot reach the door phone at this address",
   "It is an address of a private network: the PBX is in the cloud or in another network": "It is an address of a private network: the PBX is in the cloud or in another network",
   "Forward the RTSP port on the router of the door phone, allow it only from the public IP address of the PBX and type the public address of the door phone in the URL": "Forward the RTSP port on the router of the door phone, allow it only from the public IP address of the PBX and type the public address of the door phone in the URL",
   "Public IP address of the PBX": "Public IP address of the PBX",
   "Use public address": "Use public address",
-  "Admin password of the door phone, managed by the PBX": "Admin password of the door phone, managed by the PBX",
-  "Password of the door phone, managed by the PBX": "Password of the door phone, managed by the PBX",
   "To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences": "To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences",
   "Use different credentials": "Use different credentials",
   "Use the door phone credentials": "Use the door phone credentials",
@@ -341,5 +338,7 @@
   "Video quality": "Video quality",
   "High (main stream)": "High (main stream)",
   "Standard (sub stream, for slow connections)": "Standard (sub stream, for slow connections)",
-  "Custom path": "Custom path"
+  "Custom path": "Custom path",
+  "door_phone_rtsp_password_label": "RTSP password (video stream)",
+  "RTSP password of the door phone, managed by the PBX": "RTSP password of the door phone, managed by the PBX"
 }

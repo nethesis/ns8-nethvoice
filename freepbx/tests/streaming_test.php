@@ -729,16 +729,18 @@ check(preg_match('/[A-Z]/', $password) && preg_match('/[a-z]/', $password) && pr
 check(streaming_generate_door_password() !== $password, 'generated passwords differ');
 
 $gen = function () { return 'Generated1'; };
-$missing = streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin'], [], $gen);
+$missing = streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin'], $gen);
 check($missing === ['door_rtsp_password' => 'Generated1'], 'missing password generated, model user kept');
-$missing = streaming_door_phone_missing_credentials([], [], $gen);
+$missing = streaming_door_phone_missing_credentials([], $gen);
 check($missing === ['door_rtsp_password' => 'Generated1', 'door_rtsp_user' => 'admin'], 'missing user defaults to admin');
 check(streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin', 'door_rtsp_password' => 'Stored1']) === [], 'stored credentials are never regenerated');
-$i6x = ['cap_door_phone' => '1', 'cap_door_rtsp_adminpw' => '1', 'door_rtsp_user' => 'admin', 'adminpw' => 'SharedDefault1'];
-check(streaming_door_password_variable($i6x) === 'adminpw' && streaming_door_password_variable(['cap_door_phone' => '1']) === 'door_rtsp_password', 'password variable of the model');
-check(streaming_door_phone_missing_credentials($i6x, [], $gen) === ['adminpw' => 'Generated1'], 'i6x: an inherited admin password is not the door phone password, one is generated');
-check(streaming_door_phone_missing_credentials($i6x, ['adminpw' => 'Own1'], $gen) === [], 'i6x: own admin password kept');
-check(streaming_door_phone_password($i6x, ['adminpw' => 'Own1']) === 'Own1' && streaming_door_phone_password($i6x, []) === '', 'i6x: RTSP password is the own admin password');
+$i6x = ['cap_door_phone' => '1', 'door_rtsp_user' => 'admin', 'adminpw' => 'PhonesAdmin1'];
+check(streaming_door_phone_missing_credentials($i6x, $gen) === ['door_rtsp_password' => 'Generated1'], 'i6x: the phones admin password is never the RTSP password, one is generated');
+check(streaming_door_phone_password(array_merge($i6x, ['door_rtsp_password' => 'Rtsp1'])) === 'Rtsp1' && streaming_door_phone_password($i6x) === '', 'RTSP password is door_rtsp_password only');
+check(streaming_door_phone_legacy_password($i6x, ['adminpw' => 'Old1']) === ['door_rtsp_password' => 'Old1', 'adminpw' => null], 'legacy per-phone adminpw moves to door_rtsp_password');
+check(streaming_door_phone_legacy_password($i6x, ['adminpw' => 'Old1', 'door_rtsp_password' => 'Rtsp1']) === [], 'no move when door_rtsp_password exists');
+check(streaming_door_phone_legacy_password($i6x, []) === [], 'no move without a per-phone adminpw');
+check(streaming_door_phone_legacy_password(['adminpw' => 'X'], ['adminpw' => 'Own1']) === [], 'phones keep their per-phone adminpw');
 
 $contacts = [
     ['via_addr' => '192.168.5.10', 'uri' => 'sip:203@2.119.67.169:1053;transport=tls', 'expiration_time' => '100'],
@@ -786,10 +788,10 @@ check(streaming_door_phone_secret(['user' => 'admin', 'secret' => 'typed'], $fan
 check(streaming_door_phone_secret(['user' => 'other', 'secret' => ''], $fanvil) === null, 'another user never gets the door phone password');
 check(streaming_door_phone_secret(['user' => '', 'secret' => ''], $fanvil) === null, 'no user, no password');
 check(streaming_door_phone_secret(['user' => 'admin'], array_merge($fanvil, ['cap_door_phone' => ''])) === null, 'only door phones');
-check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], $i6x, ['adminpw' => 'Own1']) === 'Own1', 'i6x: source password is the own admin password');
-check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], $i6x, []) === null, 'i6x: never the shared default admin password');
-$i6xItem = streaming_door_phone_item(['mac' => '0C383E326B84', 'extension' => '91203'], $i6x, null, [['descr' => 'Linked', 'exten' => '1', 'door_phone' => '0C-38-3E-32-6B-84']], ['adminpw' => 'Own1']);
-check($i6xItem['has_secret'] && $i6xItem['password_is_admin'] && strpos(json_encode($i6xItem), 'Own1') === false, 'i6x item: password flags, no password');
+check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], array_merge($i6x, ['door_rtsp_password' => 'Rtsp1'])) === 'Rtsp1', 'i6x: source password is door_rtsp_password');
+check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], $i6x) === null, 'i6x: never the phones admin password');
+$i6xItem = streaming_door_phone_item(['mac' => '0C383E326B84', 'extension' => '91203'], array_merge($i6x, ['door_rtsp_password' => 'Rtsp1']), null, [['descr' => 'Linked', 'exten' => '1', 'door_phone' => '0C-38-3E-32-6B-84']]);
+check($i6xItem['has_secret'] && !array_key_exists('password_is_admin', $i6xItem) && strpos(json_encode($i6xItem), 'Rtsp1') === false, 'i6x item: has_secret, no password');
 check($i6xItem['sources'] === ['Linked'], 'sources linked by door phone MAC');
 $public = streaming_public_source(['descr' => 'A', 'type' => 'rtsp', 'url' => 'rtsp://192.0.2.1/x', 'user' => 'admin', 'secret' => 'Own1', 'gates' => [], 'door_phone' => '0C-38-3E-32-6B-84']);
 check($public['door_phone'] === '0C-38-3E-32-6B-84' && strpos(json_encode($public), 'Own1') === false, 'public source shows the door phone link, not the password');
@@ -838,7 +840,7 @@ $sqlite->exec('CREATE TABLE `rest_cti_streaming` (`descr` TEXT PRIMARY KEY, `use
 $sqlite->exec("INSERT INTO `rest_cti_streaming` VALUES ('Linked', 'admin', 'Old1', '0C-38-3E-32-6B-84'), ('Other', 'admin', 'Mine1', NULL), ('Gone', 'admin', 'Keep1', '0C-38-3E-00-00-01'), ('Typed', 'viewer', 'Viewer1', '0C-38-3E-32-6B-84')");
 $tancredi = function (string $mac) use ($i6x) {
     if ($mac === '0C-38-3E-32-6B-84') {
-        return ['variables' => $i6x, 'phone_variables' => ['adminpw' => 'New1']];
+        return ['variables' => array_merge($i6x, ['door_rtsp_password' => 'New1']), 'phone_variables' => ['door_rtsp_password' => 'New1']];
     }
     return null;
 };

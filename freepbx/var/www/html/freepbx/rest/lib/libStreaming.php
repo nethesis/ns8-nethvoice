@@ -1658,14 +1658,13 @@ function streaming_probe_image(string $url, string $user, string $secret, bool $
  * Door phones: provisioned devices (Tancredi phones) whose model has the
  * "cap_door_phone" capability. Their model scope describes the RTSP server of
  * the device ("door_rtsp_port", "door_rtsp_path", "door_rtsp_user") and the
- * door-open code ("door_dtmf_code"). The RTSP password is a per-phone
- * Tancredi variable written on the device by the provisioning template:
- * "door_rtsp_password", or the web admin password "adminpw" when the model
- * has "cap_door_rtsp_adminpw" (devices whose RTSP server always uses the web
- * admin password, like the Fanvil i6x). NethVoice generates it once per door
- * phone and never returns it from the video sources API. A source created
- * from a door phone keeps its MAC ("door_phone") and takes the current
- * password of the door phone at every configuration reload.
+ * door-open code ("door_dtmf_code"). The RTSP password is the per-phone
+ * Tancredi variable "door_rtsp_password", written on the device by the
+ * provisioning template; the web interface of the device keeps the admin
+ * password of the phones. NethVoice generates it once per door phone and
+ * never returns it from the video sources API. A source created from a door
+ * phone keeps its MAC ("door_phone") and takes the current password of the
+ * door phone at every configuration reload.
  */
 
 // Length of the generated password: letters and digits only, a device web
@@ -1705,40 +1704,45 @@ function streaming_generate_door_password(int $length = STREAMING_DOOR_PASSWORD_
     throw new \RuntimeException('cannot generate a door phone password');
 }
 
-/* Tancredi variable that holds the RTSP password of a door phone */
-function streaming_door_password_variable(array $variables): string
+/* Stored RTSP password of a door phone (merged variables), empty if none */
+function streaming_door_phone_password(array $variables): string
 {
-    return !empty($variables['cap_door_rtsp_adminpw']) ? 'adminpw' : 'door_rtsp_password';
+    return (string) ($variables['door_rtsp_password'] ?? '');
 }
 
 /*
- * Stored RTSP password of a door phone, empty if none. $variables are the
- * merged variables, $phoneVariables those of the phone scope only: an admin
- * password inherited from the defaults is shared by all the phones and is
- * never used as the password of a door phone.
- */
-function streaming_door_phone_password(array $variables, array $phoneVariables): string
-{
-    $variable = streaming_door_password_variable($variables);
-    $source = $variable === 'adminpw' ? $phoneVariables : $variables;
-    return (string) ($source[$variable] ?? '');
-}
-
-/*
- * Variables to store on a door phone that has no password of its own yet:
- * an empty array when nothing is missing. The user name comes from the model
+ * Variables to store on a door phone that has no RTSP password yet: an empty
+ * array when nothing is missing. The user name comes from the model
  * ("door_rtsp_user"), "admin" otherwise.
  */
-function streaming_door_phone_missing_credentials(array $variables, array $phoneVariables = [], ?callable $generate = null): array
+function streaming_door_phone_missing_credentials(array $variables, ?callable $generate = null): array
 {
     $missing = [];
-    if (streaming_door_phone_password($variables, $phoneVariables) === '') {
-        $missing[streaming_door_password_variable($variables)] = ($generate ?? 'streaming_generate_door_password')();
+    if (streaming_door_phone_password($variables) === '') {
+        $missing['door_rtsp_password'] = ($generate ?? 'streaming_generate_door_password')();
         if ((string) ($variables['door_rtsp_user'] ?? '') === '') {
             $missing['door_rtsp_user'] = 'admin';
         }
     }
     return $missing;
+}
+
+/*
+ * Compatibility with the first door phone code, which stored the generated
+ * password as the per-phone web admin password ("adminpw") of the Fanvil
+ * i6x: the device used it as RTSP password only. When a door phone has no
+ * "door_rtsp_password" but a per-phone "adminpw", return the variables that
+ * move it to "door_rtsp_password" and remove the per-phone "adminpw" (null),
+ * so the RTSP password does not change. Empty array otherwise.
+ */
+function streaming_door_phone_legacy_password(array $variables, array $phoneVariables): array
+{
+    $legacy = (string) ($phoneVariables['adminpw'] ?? '');
+    if (!streaming_is_door_phone($variables) || $legacy === ''
+        || (string) ($phoneVariables['door_rtsp_password'] ?? '') !== '') {
+        return [];
+    }
+    return ['door_rtsp_password' => $legacy, 'adminpw' => null];
 }
 
 /*
@@ -1810,9 +1814,9 @@ function streaming_door_phone_url(?string $ip, array $variables): string
 /*
  * A door phone as listed by the API: no secrets. $device is the inventory
  * row (mac, model, extension, name), $variables the merged Tancredi variables,
- * $phoneVariables those of the phone scope, $sources the stored sources.
+ * $sources the stored sources.
  */
-function streaming_door_phone_item(array $device, array $variables, ?string $ip, array $sources = [], array $phoneVariables = []): array
+function streaming_door_phone_item(array $device, array $variables, ?string $ip, array $sources = []): array
 {
     $extension = (string) ($device['extension'] ?? '');
     $mac = streaming_door_phone_mac((string) $device['mac']);
@@ -1835,8 +1839,7 @@ function streaming_door_phone_item(array $device, array $variables, ?string $ip,
         'registered' => $ip !== null,
         'url' => streaming_door_phone_url($ip, $variables),
         'user' => (string) ($variables['door_rtsp_user'] ?? ''),
-        'has_secret' => streaming_door_phone_password($variables, $phoneVariables) !== '',
-        'password_is_admin' => streaming_door_password_variable($variables) === 'adminpw',
+        'has_secret' => streaming_door_phone_password($variables) !== '',
         'dtmf_code' => preg_match('/^[0-9A-Da-d*#+]{1,30}$/', $code) ? $code : null,
         'streams' => streaming_door_phone_streams($variables),
         'sources' => $used,
@@ -1859,7 +1862,6 @@ function streaming_door_phone_prefill(array $item): array
         'url' => $item['url'],
         'user' => $item['user'],
         'has_secret' => $item['has_secret'],
-        'password_is_admin' => $item['password_is_admin'],
         'door_phone' => $item['mac'],
         'streams' => $item['streams'] ?? null,
         'gates' => $gates,
@@ -1873,11 +1875,11 @@ function streaming_door_phone_prefill(array $item): array
  * password and kept the door phone user name, the stored password of the
  * door phone is used. Null otherwise.
  */
-function streaming_door_phone_secret(array $data, array $variables, array $phoneVariables = []): ?string
+function streaming_door_phone_secret(array $data, array $variables): ?string
 {
     $user = isset($data['user']) && is_string($data['user']) ? $data['user'] : '';
     $secret = isset($data['secret']) && is_string($data['secret']) ? $data['secret'] : '';
-    $stored = streaming_door_phone_password($variables, $phoneVariables);
+    $stored = streaming_door_phone_password($variables);
     if ($secret !== '' || $user === '' || $stored === '' || !streaming_is_door_phone($variables)
         || $user !== (string) ($variables['door_rtsp_user'] ?? '')) {
         return null;
