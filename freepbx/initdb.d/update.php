@@ -6,6 +6,15 @@
 
 include_once '/etc/freepbx_db.conf';
 
+// FreePBX 17 requires this keyword on older queues too; '' means Always.
+$db->exec("INSERT INTO `asterisk`.`queues_details` (`id`, `keyword`, `data`, `flags`)
+    SELECT q.extension, 'skip_joinannounce', '', 0
+    FROM `asterisk`.`queues_config` AS q
+    WHERE NOT EXISTS (
+        SELECT 1 FROM `asterisk`.`queues_details` AS d
+        WHERE d.id = q.extension AND d.keyword = 'skip_joinannounce'
+    )");
+
 // The image supplies SLN sounds. Avoid downloading other formats when
 // soundlang updates the installed languages.
 $db->exec("UPDATE `asterisk`.`soundlang_settings` SET `value` = 'sln' WHERE `keyword` = 'formats'");
