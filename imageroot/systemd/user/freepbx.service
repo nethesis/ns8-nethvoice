@@ -84,6 +84,7 @@ ExecStart=runagent /usr/bin/podman run \
     --env=USER_DOMAIN \
     --env=SATELLITE* \
     --env=SMTP_FROM_ADDRESS \
+    --env=IMAGE_URL \
     --env-file=%E/state/smarthost.env \
     --network=host \
     --tz=${TIMEZONE} \
