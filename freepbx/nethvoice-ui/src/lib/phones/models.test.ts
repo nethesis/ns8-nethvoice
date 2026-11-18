@@ -14,10 +14,15 @@ import {
   isCustomModelName,
   parsePhoneModelDetail,
   parsePhoneModels,
+  patchPhoneModelVariables,
+  resetPhoneModel,
 } from './models'
+import { PhoneSettingsNotSavedError } from './persistence'
 import { tancredi } from './tancrediClient'
 
-vi.mock('./tancrediClient', () => ({ tancredi: { get: vi.fn(), post: vi.fn() } }))
+vi.mock('./tancrediClient', () => ({
+  tancredi: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
+}))
 
 const models = parsePhoneModels([
   { name: 'yealink-T46', display_name: 'Yealink T46', model_url: '/x' },
@@ -183,5 +188,47 @@ describe('createPhoneModelFrom', () => {
       variables: { tmpl_phone: 'fanvil-X5.tmpl', cap_linekey_count: '21', ldap_server: '' },
     })
     expect(created.displayName).toBe('Reception copy')
+  })
+})
+
+describe('patchPhoneModelVariables', () => {
+  const stored = (variables: Record<string, string>) => ({
+    name: 'fanvil-X4U-reception',
+    display_name: 'Reception',
+    variables,
+  })
+
+  it('reads the model back after saving it', async () => {
+    vi.mocked(tancredi.patch).mockResolvedValue(undefined)
+    vi.mocked(tancredi.get).mockResolvedValue(stored({ language: 'it', tonezone: 'it' }))
+
+    await patchPhoneModelVariables('fanvil-X4U-reception', { language: 'it', ldap_server: null })
+
+    expect(tancredi.get).toHaveBeenLastCalledWith('/models/fanvil-X4U-reception')
+  })
+
+  it('fails when the saved values were not stored', async () => {
+    vi.mocked(tancredi.patch).mockResolvedValue(undefined)
+    vi.mocked(tancredi.get).mockResolvedValue(stored({ language: 'en' }))
+
+    await expect(
+      patchPhoneModelVariables('fanvil-X4U-reception', { language: 'it' }),
+    ).rejects.toBeInstanceOf(PhoneSettingsNotSavedError)
+  })
+
+  it('fails a reset that was not stored', async () => {
+    vi.mocked(tancredi.patch).mockResolvedValue(undefined)
+    vi.mocked(tancredi.get).mockImplementation(async (path) =>
+      path.endsWith('/version/original')
+        ? stored({ language: 'en' })
+        : stored({ language: 'it', ldap_server: 'ldap.example.org' }),
+    )
+
+    await expect(resetPhoneModel('fanvil-X4U-reception')).rejects.toBeInstanceOf(
+      PhoneSettingsNotSavedError,
+    )
+    expect(tancredi.patch).toHaveBeenCalledWith('/models/fanvil-X4U-reception', {
+      variables: { language: 'en', ldap_server: null },
+    })
   })
 })

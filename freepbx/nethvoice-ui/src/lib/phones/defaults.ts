@@ -5,6 +5,7 @@ import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import { tancredi } from './tancrediClient'
 import { VariablesSchema, type ModelVariables, type ModelVariablesPatch } from './models'
+import { assertVariablesSaved } from './persistence'
 
 export const PHONE_DEFAULTS_KEY = 'phoneDefaults'
 
@@ -120,6 +121,7 @@ export const getPhoneDefaults = async (): Promise<PhoneDefaults> =>
 
 export const patchPhoneDefaults = async (variables: ModelVariablesPatch): Promise<void> => {
   await tancredi.patch('/defaults', variables)
+  assertVariablesSaved(variables, v.parse(VariablesSchema, await tancredi.get('/defaults')))
 }
 
 export const saveDefaultPhoneConfiguration = async (

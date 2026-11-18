@@ -6,6 +6,8 @@ import {
   ASSIGNED_MAC,
   DEFAULTS,
   mockPhonesApi,
+  mockStoredDefaults,
+  mockStoredPhoneModels,
   REST,
   TANCREDI,
   TANCREDI_MODELS,
@@ -100,9 +102,11 @@ test.describe('physical phones: inventory', () => {
     page,
     mockApi,
   }) => {
-    mockPhonesApi(mockApi, { phones: [] })
-      .on('PATCH', `${TANCREDI}/defaults`, { status: 204 })
-      .on('POST', `${REST}/physicalextensions/adminpw`, { status: 200 })
+    mockStoredDefaults(mockPhonesApi(mockApi, { phones: [] })).on(
+      'POST',
+      `${REST}/physicalextensions/adminpw`,
+      { status: 200 },
+    )
     await page.goto('./phones/phones')
 
     await expect(page.getByText('No phones configured')).toBeVisible()
@@ -155,9 +159,11 @@ test.describe('physical phones: inventory', () => {
     page,
     mockApi,
   }) => {
-    mockPhonesApi(mockApi, { phones: [] })
-      .on('PATCH', `${TANCREDI}/defaults`, { status: 204 })
-      .on('POST', `${REST}/physicalextensions/adminpw`, { status: 500, json: {} })
+    mockStoredDefaults(mockPhonesApi(mockApi, { phones: [] })).on(
+      'POST',
+      `${REST}/physicalextensions/adminpw`,
+      { status: 500, json: {} },
+    )
     await page.goto('./phones/phones')
 
     await page.getByRole('button', { name: 'Change admin password' }).click()
@@ -413,8 +419,7 @@ test.describe('physical phones: inventory', () => {
   })
 
   test('edits model, user and encryption of a phone', async ({ page, mockApi }) => {
-    mockPhonesApi(mockApi)
-      .on('PATCH', `${TANCREDI}/phones/:mac`, { json: {} })
+    mockStoredPhoneModels(mockPhonesApi(mockApi))
       .on('PATCH', `${REST}/physicalextensions/:mac`, { status: 200 })
       .on('POST', `${REST}/extensions/:extension/srtp/:enabled`, { status: 200 })
     await page.goto('./phones/phones')
@@ -520,6 +525,61 @@ test.describe('physical phones: inventory', () => {
       `POST ${REST}/extensions/91301/srtp/false`,
       `DELETE ${REST}/physicalextensions/91300`,
     ])
+  })
+
+  test('reports a model change that the PBX did not store', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+      .on('PATCH', `${TANCREDI}/phones/:mac`, { json: {} })
+      .on('GET', `${TANCREDI}/phones/:mac`, { json: { mac: ASSIGNED_MAC, model: 'yealink-T46' } })
+    await page.goto('./phones/phones')
+
+    await page
+      .getByRole('row', { name: /00:15:65:AB:CD:01/ })
+      .getByRole('button', { name: /Edit/ })
+      .click()
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('combobox', { name: 'Model' }).click()
+    await page.getByRole('option', { name: 'Yealink T54' }).click()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(drawer.getByText('The PBX did not save the changes. Try again.')).toBeVisible()
+    await expect(drawer.getByRole('combobox', { name: 'Model' })).toHaveValue('Yealink T54')
+    await expect(page.getByText('Phone updated')).toHaveCount(0)
+    expect(mockApi.callsTo('PATCH', `${REST}/physicalextensions/:mac`)).toHaveLength(0)
+  })
+
+  test('closes the drawer and refreshes the phones after an incomplete reassignment', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPhonesApi(mockApi)
+      .on('POST', `${REST}/physicalextensions`, { json: { extension: '91301' } })
+      .on('POST', `${REST}/extensions/:extension/srtp/:enabled`, { status: 200 })
+      .on('DELETE', `${REST}/physicalextensions/:id`, {
+        status: 500,
+        json: { title: 'Cannot delete the extension' },
+      })
+    await page.goto('./phones/phones')
+
+    await page
+      .getByRole('row', { name: /00:15:65:AB:CD:01/ })
+      .getByRole('button', { name: /Edit/ })
+      .click()
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('combobox', { name: /^User/ }).click()
+    await page.getByRole('option', { name: /John Smith/ }).click()
+    const phoneLoads = mockApi.callsTo('GET', `${TANCREDI}/phones`).length
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('Cannot complete the phone assignment')).toBeVisible()
+    await expect(
+      page.getByText(/Check the phone in the list before changing it again/),
+    ).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Edit phone' })).toBeHidden()
+    await expect
+      .poll(() => mockApi.callsTo('GET', `${TANCREDI}/phones`).length)
+      .toBeGreaterThan(phoneLoads)
+    expect(mockApi.callsTo('POST', `${REST}/physicalextensions`)).toHaveLength(1)
   })
 
   test('keeps the previous user when the new assignment fails', async ({ page, mockApi }) => {

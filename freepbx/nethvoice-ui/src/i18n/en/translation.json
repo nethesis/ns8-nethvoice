@@ -385,8 +385,6 @@
     "advanced_bulk_actions": "Advanced bulk actions",
     "advanced_bulk_description": "Fields show the value shared by all the chosen users. Empty fields don't change.",
     "keep_current_values": "Keep current values",
-    "display_name": "Display name",
-    "bulk_display_name_helper": "Use ? for the last digits of the extension: Room ??? becomes Room 201",
     "call_waiting": "Call waiting",
     "ring_time": "Ring time (seconds)",
     "bulk_ringtime_helper": "From 0 to 120. 0 uses the system default",
@@ -834,14 +832,15 @@
       "pending_changes": "Changes to save",
       "model_change": "Model: {from} → {to}.",
       "user_change": "User: {from} → {to}.",
-      "reassigned_with_errors": "The phone has been assigned to the new user, but the change could not be completed: {error}",
       "copy_mac_address": "Copy MAC address",
       "copy_mac_address_of": "Copy MAC address {mac}",
       "cannot_copy_mac_address": "Cannot copy MAC address",
       "encryption_disabled": "Encryption is disabled",
       "encryption_disabled_description": "This phone will use an insecure connection.",
       "mac_addresses_placeholder": "e.g.\n00:04:13:11:22:31\n00-04-13-11-22-31\n000413112231",
-      "select_model_for_each_phone": "Select a model for each phone"
+      "select_model_for_each_phone": "Select a model for each phone",
+      "cannot_complete_reassignment": "Cannot complete the phone assignment",
+      "reassignment_incomplete_description": "Phone {mac} has been assigned to the new user, but the change could not be completed: {error} Check the phone in the list before changing it again."
     },
     "models": {
       "description": "Manage supported phone models and their provisioning settings.",
@@ -1038,7 +1037,8 @@
         "requirement_not_met": "Requirement not met"
       },
       "admin_password_affects_cti": "Updating the password may affect {brand} CTI features"
-    }
+    },
+    "changes_not_saved": "The PBX did not save the changes. Try again."
   },
   "integrations": {
     "title": "Integrations",
@@ -1720,8 +1720,6 @@
       "status": "Status"
     },
     "call_extension": "Call {extension}",
-    "call_extension_unavailable": "Call {extension}, device {status}",
-    "call_extension_blocked": "Call {extension}, the administrator phone is not available",
     "devices_description": "Select a device to show its settings.",
     "device_settings": "{device} {extension} settings"
   },

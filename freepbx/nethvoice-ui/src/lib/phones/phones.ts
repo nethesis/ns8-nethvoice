@@ -16,6 +16,7 @@ import { findDuplicatedMacs, formatMac, isUnicastMac, isValidMac, toTancrediMac 
 import { getModelBrand, type PhoneModel } from './models'
 import type { PhoneRegistrations } from './registration'
 import { getTancrediProblemType, tancredi } from './tancrediClient'
+import { PhoneSettingsNotSavedError } from './persistence'
 
 export const PHONES_KEY = 'phones'
 
@@ -139,6 +140,7 @@ const TancrediPhonesResponseSchema = v.array(TancrediPhoneSchema)
 
 const TancrediPhoneDetailSchema = v.object({
   mac: v.string(),
+  model: v.nullish(v.string(), ''),
   provisioning_url1: v.nullish(v.string(), ''),
   provisioning_url2: v.nullish(v.string(), ''),
 })
@@ -301,6 +303,14 @@ export const getTancrediPhones = async (): Promise<TancrediPhone[]> =>
 export const getProvisioningUrls = async (mac: string): Promise<ProvisioningUrls> =>
   parseProvisioningUrls(await tancredi.get(phonePath(mac)))
 
+const assertPhoneModelSaved = async (mac: string, model: string): Promise<void> => {
+  const phone = v.parse(TancrediPhoneDetailSchema, await tancredi.get(phonePath(mac)))
+
+  if (phone.model !== model) {
+    throw new PhoneSettingsNotSavedError()
+  }
+}
+
 export const getProvisioningUrl = async (mac: string): Promise<string> => {
   const urls = await getProvisioningUrls(mac)
   return urls.firstAccess || urls.permanent
@@ -446,6 +456,7 @@ export const updatePhone = async (
     await tancredi.patch(phonePath(phone.mac), { model: changes.model })
 
     try {
+      await assertPhoneModelSaved(phone.mac, changes.model)
       await api.PATCH('/physicalextensions/{mac}', {
         params: { path: { mac: phone.mac } },
         body: { model: changes.model },

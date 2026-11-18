@@ -385,8 +385,6 @@
     "advanced_bulk_actions": "Azioni massive avanzate",
     "advanced_bulk_description": "I campi mostrano il valore comune a tutti gli utenti scelti. I campi vuoti non cambiano.",
     "keep_current_values": "Mantieni i valori attuali",
-    "display_name": "Nome visualizzato",
-    "bulk_display_name_helper": "Usa ? per le ultime cifre dell'interno: Stanza ??? diventa Stanza 201",
     "call_waiting": "Avviso di chiamata",
     "ring_time": "Tempo di squillo (secondi)",
     "bulk_ringtime_helper": "Da 0 a 120. 0 usa il valore di sistema",
@@ -834,14 +832,15 @@
       "pending_changes": "Modifiche da salvare",
       "model_change": "Modello: {from} → {to}.",
       "user_change": "Utente: {from} → {to}.",
-      "reassigned_with_errors": "Il telefono è stato assegnato al nuovo utente, ma la modifica non è stata completata: {error}",
       "copy_mac_address": "Copia indirizzo MAC",
       "copy_mac_address_of": "Copia indirizzo MAC {mac}",
       "cannot_copy_mac_address": "Impossibile copiare l'indirizzo MAC",
       "encryption_disabled": "Cifratura disabilitata",
       "encryption_disabled_description": "Questo telefono userà una connessione non sicura.",
       "mac_addresses_placeholder": "es.\n00:04:13:11:22:31\n00-04-13-11-22-31\n000413112231",
-      "select_model_for_each_phone": "Seleziona un modello per ogni telefono"
+      "select_model_for_each_phone": "Seleziona un modello per ogni telefono",
+      "cannot_complete_reassignment": "Impossibile completare l'assegnazione del telefono",
+      "reassignment_incomplete_description": "Il telefono {mac} è stato assegnato al nuovo utente, ma la modifica non è stata completata: {error} Controlla il telefono nell'elenco prima di modificarlo di nuovo."
     },
     "models": {
       "description": "Gestisci i modelli di telefono supportati e le relative impostazioni di provisioning.",
@@ -1038,7 +1037,8 @@
         "requirement_not_met": "Requisito non soddisfatto"
       },
       "admin_password_affects_cti": "La modifica della password può influire sulle funzionalità di {brand} CTI"
-    }
+    },
+    "changes_not_saved": "Il centralino non ha salvato le modifiche. Riprova."
   },
   "integrations": {
     "title": "Integrazioni",
@@ -1720,8 +1720,6 @@
       "status": "Stato"
     },
     "call_extension": "Chiama {extension}",
-    "call_extension_unavailable": "Chiama {extension}, dispositivo {status}",
-    "call_extension_blocked": "Chiama {extension}, il telefono dell'amministratore non è disponibile",
     "devices_description": "Seleziona un dispositivo per vederne le impostazioni.",
     "device_settings": "Impostazioni di {device} {extension}"
   },
