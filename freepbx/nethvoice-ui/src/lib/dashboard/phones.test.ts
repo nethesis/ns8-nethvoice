@@ -5,18 +5,19 @@ import { describe, expect, it } from 'vitest'
 import { getPhoneStatusBars, parsePhoneStatusSummary } from './phones'
 
 describe('parsePhoneStatusSummary', () => {
-  const valid = { provisioned: 116, pending: 4, unassigned: 2, failed: 2, unknown: 1 }
+  const valid = { provisioned: 116, pending: 4, unassigned: 2, failed: 2, unknown: 1, total: 125 }
 
   it('should read the phones of every status', () => {
     expect(parsePhoneStatusSummary(valid)).toEqual(valid)
   })
 
   it('should drop unexpected fields', () => {
-    expect(parsePhoneStatusSummary({ ...valid, total: 125 })).toEqual(valid)
+    expect(parsePhoneStatusSummary({ ...valid, extra: 1 })).toEqual(valid)
   })
 
   it('should reject missing, negative and fractional counts', () => {
     expect(() => parsePhoneStatusSummary({ ...valid, unknown: undefined })).toThrow()
+    expect(() => parsePhoneStatusSummary({ ...valid, total: undefined })).toThrow()
     expect(() => parsePhoneStatusSummary({ ...valid, failed: -1 })).toThrow()
     expect(() => parsePhoneStatusSummary({ ...valid, pending: 1.5 })).toThrow()
     expect(() => parsePhoneStatusSummary('An error occurred')).toThrow()
@@ -28,7 +29,7 @@ describe('getPhoneStatusBars', () => {
 
   it('should show a bar for every status except the unknown phones', () => {
     const bars = getPhoneStatusBars(
-      { provisioned: 116, pending: 4, unassigned: 2, failed: 2, unknown: 3 },
+      { provisioned: 116, pending: 4, unassigned: 2, failed: 2, unknown: 3, total: 127 },
       label,
     )
 
