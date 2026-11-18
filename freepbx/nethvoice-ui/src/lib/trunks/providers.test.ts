@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 import {
+  findTrunkProvider,
   getCodecLabel,
   getProviderName,
   getSelectableCodecs,
@@ -15,8 +16,13 @@ import {
 import type { Trunk } from './trunks'
 
 const providers: TrunkProvider[] = [
-  { id: 'messagenet', name: 'MessageNet', defaultCodecs: ['ulaw', 'alaw', 'g729'] },
-  { id: 'twt', name: 'TWT', defaultCodecs: ['ulaw', 'alaw'] },
+  {
+    id: 'messagenet',
+    name: 'MessageNet',
+    defaultCodecs: ['ulaw', 'alaw', 'g729'],
+    sipServer: 'sip.messagenet.it',
+  },
+  { id: 'twt', name: 'TWT', defaultCodecs: ['ulaw', 'alaw'], sipServer: '' },
 ]
 
 const trunk: Trunk = {
@@ -37,7 +43,13 @@ describe('parseTrunkProviders', () => {
     expect(
       parseTrunkProviders([
         { id: 13, provider: 'twt', description: 'TWT', codecs: 'ulaw,alaw' },
-        { id: 4, provider: 'messagenet', description: 'MessageNet', codecs: 'ulaw,alaw,g729' },
+        {
+          id: 4,
+          provider: 'messagenet',
+          description: 'MessageNet',
+          codecs: 'ulaw,alaw,g729',
+          sip_server: 'sip.messagenet.it ',
+        },
       ]),
     ).toEqual(providers)
   })
@@ -45,7 +57,7 @@ describe('parseTrunkProviders', () => {
   it('should fall back to the identifier and tolerate missing codecs', () => {
     expect(
       parseTrunkProviders([{ id: 1, provider: 'custom', description: '', codecs: null }]),
-    ).toEqual([{ id: 'custom', name: 'custom', defaultCodecs: [] }])
+    ).toEqual([{ id: 'custom', name: 'custom', defaultCodecs: [], sipServer: '' }])
   })
 
   it('should reject an unexpected shape', () => {
@@ -73,6 +85,32 @@ describe('getProviderName', () => {
   it('should be empty when the trunk has no known provider', () => {
     expect(getProviderName({ ...trunk, provider: '' }, providers)).toBe('')
     expect(getProviderName({ ...trunk, provider: 'satellite-agent' }, providers)).toBe('')
+  })
+})
+
+describe('findTrunkProvider', () => {
+  const legacyTrunk = { ...trunk, provider: '', sipServer: 'SIP.messagenet.it' }
+
+  it('should find the provider of an old trunk by its SIP server', () => {
+    expect(findTrunkProvider(legacyTrunk, providers)?.id).toBe('messagenet')
+    expect(getProviderName(legacyTrunk, providers)).toBe('MessageNet')
+  })
+
+  it('should prefer the stored provider', () => {
+    expect(findTrunkProvider({ ...legacyTrunk, provider: 'twt' }, providers)?.id).toBe('twt')
+  })
+
+  it('should not guess when the SIP server is unknown, empty or shared', () => {
+    expect(findTrunkProvider({ ...legacyTrunk, sipServer: 'pbx.example.com' }, providers)).toBe(
+      undefined,
+    )
+    expect(findTrunkProvider({ ...legacyTrunk, sipServer: '' }, providers)).toBe(undefined)
+    expect(
+      findTrunkProvider(legacyTrunk, [
+        ...providers,
+        { id: 'other', name: 'Other', defaultCodecs: [], sipServer: 'sip.messagenet.it' },
+      ]),
+    ).toBe(undefined)
   })
 })
 

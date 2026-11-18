@@ -8,6 +8,7 @@ import {
   GATEWAY_TRUNK,
   IAX_TRUNK,
   mockTrunksApi,
+  PROVIDERS,
   VOIP_TRUNK,
 } from './trunks-data'
 
@@ -288,6 +289,46 @@ test.describe('trunks: VoIP', () => {
     await page.getByRole('button', { name: 'Save' }).click()
 
     await expect(page.getByText('The trunk main_trunk has been updated')).toBeVisible()
+    expect(mockApi.callsTo('PATCH', '/freepbx/rest/trunks/:trunkid')[0].body).toEqual({
+      codecs: ['g729', 'alaw'],
+      forceCodec: true,
+    })
+  })
+
+  test('recognizes the provider of an old trunk by its SIP server', async ({ page, mockApi }) => {
+    const legacyTrunk = {
+      ...VOIP_TRUNK,
+      trunkid: 9,
+      channelid: 'legacy_trunk',
+      name: 'legacy_trunk',
+      provider: '',
+      details: { ...VOIP_TRUNK.details, sip_server: 'sip.messagenet.it', codecs: 'g729' },
+    }
+    mockTrunksApi(mockApi, { trunks: [legacyTrunk] })
+      .on('GET', '/freepbx/rest/providers', {
+        json: PROVIDERS.map((provider) =>
+          provider.provider === 'messagenet'
+            ? { ...provider, sip_server: 'sip.messagenet.it' }
+            : { ...provider, sip_server: `sip.${provider.provider}.example.org` },
+        ),
+      })
+      .on('PATCH', '/freepbx/rest/trunks/:trunkid', { status: 204 })
+    await page.goto('./trunks/voip')
+
+    const row = page.getByRole('row', { name: /legacy_trunk/ })
+    await expect(row).toContainText('MessageNet')
+    await expect(row).not.toContainText('sip.messagenet.it')
+    await row.getByRole('button', { name: /Edit/ }).click()
+
+    await expect(
+      page.getByRole('group', { name: 'Force codec' }).getByRole('checkbox'),
+    ).toBeChecked()
+    await page.getByRole('combobox', { name: 'Allowed codecs' }).click()
+    await page.getByRole('option', { name: 'G.711 A-law' }).click()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('The trunk legacy_trunk has been updated')).toBeVisible()
     expect(mockApi.callsTo('PATCH', '/freepbx/rest/trunks/:trunkid')[0].body).toEqual({
       codecs: ['g729', 'alaw'],
       forceCodec: true,
