@@ -45,8 +45,7 @@ function check($condition, $message) {
 }
 
 function access($method, $pattern) {
-    $access = nethvoiceRouteAccess($method, $pattern);
-    return implode('|', $access['sections']) . ($access['self'] ? ' self:' . $access['self'] : '');
+    return implode('|', nethvoiceRouteAccess($method, $pattern)['sections']);
 }
 
 check(nethvoiceParseSections('*') === ['superadmin'], '* must grant superadmin');
@@ -102,7 +101,8 @@ $expected = [
     'POST /physicalextensions/adminpw' => 'phones',
     'GET /phones/state' => 'phones',
     'GET /devices/phones/list' => 'phones',
-    'POST /extensions/{extension}/srtp/{enabled}' => 'phones',
+    'POST /extensions/{extension}/srtp/{enabled}' => 'users|phones',
+    'DELETE /outboundroutes/{route_id}/trunks/{id}' => 'superadmin',
     'PATCH /trunks/{trunkid}' => 'trunks',
     'GET /trunks/{tech}' => 'trunks',
     'GET /devices/gateways/list/{id}' => 'trunks',
@@ -119,13 +119,15 @@ $expected = [
     'GET /cti/dbconn/type' => 'integrations',
     'POST /cti/dbconn/test' => 'integrations',
     'PUT /cti/dbconn/{id}' => 'integrations',
-    'DELETE /cti/customer_card/template/{name}' => 'integrations',
+    'DELETE /cti/customer_card/template/{name}' => 'superadmin',
     'GET /cti/customer_card/template' => 'integrations',
     'POST /cti/customer_card/template' => 'superadmin',
     'PUT /cti/customer_card/template/{name}' => 'superadmin',
     'POST /phonebook/test' => 'integrations',
+    'GET /phonebook/ldap' => 'phones',
+    'POST /phonebook/config[/{id}]' => 'integrations',
     'POST /settings/defaultlanguage' => 'settings',
-    'POST /users/{username}/password' => 'settings self:username',
+    'POST /users/{username}/password' => 'superadmin',
     'GET /users/{username}/password' => 'superadmin',
     'GET /phones/account/{mac}' => 'superadmin',
     'POST /configuration/wizard' => 'superadmin',
@@ -155,6 +157,8 @@ foreach (glob($rest . '/modules/*.php') as $module) {
 sort($superadminOnly);
 $expectedSuperadminOnly = [
     'DELETE /adminphone',
+    'DELETE /cti/customer_card/template/{name}',
+    'DELETE /outboundroutes/{route_id}/trunks/{id}',
     'GET /configuration/allowexternalsips',
     'GET /configuration/externalip',
     'GET /configuration/localnetworks',
@@ -200,6 +204,7 @@ $expectedSuperadminOnly = [
     'POST /migration/timegroups',
     'POST /migration/trunksroutesassignements',
     'POST /testauth',
+    'POST /users/{username}/password',
     'PUT /cti/customer_card/template/{name}',
 ];
 check($superadminOnly === $expectedSuperadminOnly, "superadmin-only routes changed:\n" . implode("\n", array_diff($superadminOnly, $expectedSuperadminOnly)) . "\n--\n" . implode("\n", array_diff($expectedSuperadminOnly, $superadminOnly)));
@@ -254,14 +259,15 @@ check(status($app, $factory, 'mixed', 'PATCH', '/physicalextensions/AA-BB') === 
 check(status($app, $factory, 'mixed', 'PATCH', '/trunks/1') === 403, 'users and phones must not reach trunks');
 
 check(status($app, $factory, 'setter', 'POST', '/settings/defaultlanguage') === 200, 'settings must reach settings');
-check(status($app, $factory, 'setter', 'POST', '/users/setter/password') === 200, 'an administrator may change his own password');
-check(status($app, $factory, 'setter', 'POST', '/users/SETTER/password') === 200, 'the own password check must ignore case');
-check(status($app, $factory, 'setter', 'POST', '/users/admin/password') === 403, 'an administrator must not change other passwords');
+foreach (['/users/setter/password', '/users/SETTER/password', '/users/admin/password'] as $path) {
+    check(status($app, $factory, 'setter', 'POST', $path) === 403, "changing a password is reserved to superadmin: $path");
+}
 check(status($app, $factory, 'setter', 'GET', '/users/setter/password') === 403, 'reading passwords is reserved to superadmin');
-check(status($app, $factory, 'mixed', 'POST', '/users/mixed/password') === 403, 'the own password needs the settings section');
+check(status($app, $factory, 'mixed', 'POST', '/users/mixed/password') === 403, 'the own password needs superadmin');
 
 check(status($app, $factory, 'integrator', 'GET', '/cti/customer_card/template') === 200, 'integrations must read the customer card templates');
-check(status($app, $factory, 'integrator', 'DELETE', '/cti/customer_card/template/base') === 200, 'integrations must delete the customer card templates');
+check(status($app, $factory, 'integrator', 'DELETE', '/cti/customer_card/template/base') === 403, 'deleting a customer card template is reserved to superadmin');
+check(status($app, $factory, 'boss', 'DELETE', '/cti/customer_card/template/base') === 200, 'superadmin must delete the customer card templates');
 check(status($app, $factory, 'integrator', 'POST', '/cti/customer_card/template') === 403, 'writing a customer card template is reserved to superadmin');
 check(status($app, $factory, 'integrator', 'PUT', '/cti/customer_card/template/base') === 403, 'changing a customer card template is reserved to superadmin');
 check(status($app, $factory, 'boss', 'PUT', '/cti/customer_card/template/base') === 200, 'superadmin must change the customer card templates');
@@ -283,4 +289,4 @@ foreach (['wildcard', 'star', 'legacy', 'ghost'] as $user) {
 }
 check(status($app, $factory, null, 'GET', '/me') === 403, '/me requires credentials');
 
-echo "PASS: REST section permissions, lookups, own password, superadmin bypass and default deny\n";
+echo "PASS: REST section permissions, lookups, superadmin bypass and default deny\n";
