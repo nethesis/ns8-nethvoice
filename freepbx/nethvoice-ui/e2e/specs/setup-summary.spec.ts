@@ -56,7 +56,7 @@ const mockDashboard = (mockApi: MockApi) => {
   for (const path of [
     '/freepbx/rest/users/count',
     '/freepbx/rest/cti/groups',
-    '/tancredi/api/v1/phones',
+    '/freepbx/rest/dashboard/phones',
     '/freepbx/rest/trunks/count',
     '/freepbx/rest/inboundroutes/count',
     '/freepbx/rest/outboundroutes/count',
@@ -264,6 +264,26 @@ test.describe('setup wizard: summary', () => {
       status: 'false',
     })
     expect(await page.evaluate(() => localStorage.getItem('nethvoiceSetupCountry'))).toBe('')
+  })
+
+  test('does not restart a setup completed in another session', async ({ page, mockApi }) => {
+    mockDashboard(mockApi)
+
+    await page.goto('./setup/summary')
+    await expect(section(page, '6. Outbound routes')).toContainText('National')
+    mockApi.on('GET', '/freepbx/rest/configuration/wizard', {
+      json: [{ step: 13, status: 'false' }],
+    })
+
+    await page.getByRole('button', { name: 'Finish setup' }).click()
+    await page
+      .getByRole('dialog', { name: 'Finish setup' })
+      .getByRole('button', { name: 'Finish', exact: true })
+      .click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(page.getByText('Setup already completed')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard')).toHaveLength(0)
   })
 
   test('stays on the summary and shows the error when completion fails', async ({
