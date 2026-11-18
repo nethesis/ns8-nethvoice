@@ -15,8 +15,10 @@ FreePBX 17 module updates are grouped in the Dependency Dashboard and require
 approval before Renovate opens a PR. They do not automerge. Before building an
 approved update, refresh the changed archive checksums in
 `remote-artifacts.sha256`; for framework, also update the bootstrap archive
-filenames and checksum. Review the compatibility patches and run
-`tools/test-freepbx.sh` from the repository root. GitHub release tags can precede
+filenames and checksum. Review the compatibility patches. From the repository
+root, run `sources=$(mktemp -d)`, then
+`python3 tools/prepare-freepbx-test-sources.py "$sources"` followed by
+`sh tools/test-freepbx.sh "$sources"`. GitHub release tags can precede
 promotion to FreePBX's stable module repository, so review release suitability.
 
 ## Vendored FreePBX modules
