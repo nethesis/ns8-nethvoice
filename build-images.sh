@@ -113,18 +113,19 @@ source_tag() {
 
 # With REUSE_IMAGES=1, return success when the image sources did not change
 # since an image was published with the same source tag: that image is
-# reused instead of building a new one.
+# reused instead of building a new one. Otherwise the image is built and the
+# source tag moves to it, so a forced rebuild is reused by the next builds.
 reuse_image() {
     local name="$1" tag
 
-    [[ "${REUSE_IMAGES:-}" == "1" ]] || return 1
     [[ -v "image_sources[${name}]" ]] || return 1
     # Uncommitted changes are not part of the source tag
     if [[ -n "$(git -C "${repo_root}" status --porcelain -- build-images.sh ${image_sources[${name}]})" ]]; then
         return 1
     fi
     tag=$(source_tag "${name}")
-    if skopeo inspect --raw "docker://${repobase}/${name}:${tag}" >/dev/null 2>&1; then
+    if [[ "${REUSE_IMAGES:-}" == "1" ]] &&
+        skopeo inspect --raw "docker://${repobase}/${name}:${tag}" >/dev/null 2>&1; then
         reused_images+=("${repobase}/${name}:${tag}")
         reused_image="${name}"
         printf "[*] Reuse %s:%s (sources not changed)\n" "${repobase}/${name}" "${tag}"

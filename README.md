@@ -453,6 +453,7 @@ The reusable workflow accepts:
 | --- | --- |
 | `imagetag` | Tag to publish, normalized before use |
 | `build-images` | Comma-separated image list for the selected matrix group |
+| `reuse-images` | Reuse the images whose sources did not change, defaults to `true` |
 | `runner-version` | Runner label, defaults to `ubuntu-latest` |
 | `secrets.netrcb64` | Optional Base64-encoded `.netrc` used for authenticated downloads |
 
@@ -463,6 +464,10 @@ source tag of each selected image: when it exists, the sources did not change
 and the workflow copies that image to the new tag instead of building it again.
 Only the images whose sources changed are built. Any change to
 `build-images.sh` rebuilds every image.
+
+A reused image does not get the security updates of its base image. To rebuild
+every image, run the "Publish images" workflow manually with `rebuild` enabled:
+the source tags then move to the rebuilt images.
 
 `.github/workflows/clean-registry.yml` deletes the images of a branch when the
 branch is deleted, and every week the images left with source tags only for

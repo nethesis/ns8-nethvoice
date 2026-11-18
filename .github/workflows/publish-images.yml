@@ -3,6 +3,11 @@ name: "Publish images"
 on:
   push:
   workflow_dispatch:
+    inputs:
+      rebuild:
+        description: "Rebuild all images, also when their sources did not change (base image security updates)"
+        type: boolean
+        default: false
 
 permissions:
   packages: write
@@ -39,6 +44,7 @@ jobs:
     with:
       imagetag: ${{ github.ref_name }}
       build-images: ${{ matrix.images }}
+      reuse-images: ${{ !inputs.rebuild }}
     secrets: inherit
   module:
     needs: publish-images
