@@ -30,7 +30,7 @@ const notificationsStore = useNotificationsStore()
 const { state: wizardState } = useWizardState()
 const { t, te } = useI18n()
 
-const layout = computed(() => route.meta.layout ?? 'app')
+const layout = computed(() => (route.matched.length > 0 ? (route.meta.layout ?? 'app') : null))
 
 const pageTitle = computed(() => {
   const brandName = runtimeConfigStore.config.brandName
@@ -45,9 +45,7 @@ const pageTitle = computed(() => {
 useTitle(pageTitle)
 
 if (areSystemAlertsAllowed()) {
-  useSystemAlerts(
-    () => loginStore.isAuthenticated && route.matched.length > 0 && layout.value === 'app',
-  )
+  useSystemAlerts(() => loginStore.isAuthenticated && layout.value === 'app')
 }
 
 watch(
@@ -85,7 +83,7 @@ onMounted(() => {
 <template>
   <div class="h-full">
     <AppShell v-if="layout === 'app'" />
-    <RouterView v-else />
+    <RouterView v-else-if="layout === 'blank'" />
     <ToastNotificationsArea />
   </div>
   <PiniaColadaDevtools v-if="!IS_E2E" />
