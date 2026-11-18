@@ -118,6 +118,7 @@ const PHONE_STATUS = {
   unassigned: 2,
   failed: 2,
   unknown: 1,
+  total: 125,
 }
 
 const SYSTEM = {
@@ -134,13 +135,6 @@ const mockDashboard = (mockApi: MockApi) =>
       json: [
         { id: 1, name: 'Sales' },
         { id: 2, name: 'Support' },
-      ],
-    })
-    .on('GET', '/tancredi/api/v1/phones', {
-      json: [
-        { mac: 'AA-BB-CC-DD-EE-01' },
-        { mac: 'AA-BB-CC-DD-EE-02' },
-        { mac: 'AA-BB-CC-DD-EE-03' },
       ],
     })
     .on('GET', '/freepbx/rest/trunks/count', { json: 1 })
@@ -178,7 +172,7 @@ test.describe('dashboard', () => {
     )
     await expect(counterValue(page, 'users')).toHaveText('5')
     await expect(counterValue(page, 'groups')).toHaveText('2')
-    await expect(counterValue(page, 'physicalPhones')).toHaveText('3')
+    await expect(counterValue(page, 'physicalPhones')).toHaveText('125')
     await expect(counterValue(page, 'callsInProgress')).toHaveText('2')
     await expect(counterValue(page, 'trunks')).toHaveText('1')
     await expect(counterValue(page, 'inboundRoutes')).toHaveText('6')
@@ -245,6 +239,19 @@ test.describe('dashboard', () => {
     await expect(rows.nth(1)).toContainText('Internal')
     await expect(rows.nth(1)).toContainText('Anna Miller')
     await expect(rows.nth(1)).toContainText('Bob Smith')
+
+    const callsCard = page.getByTestId('calls-card')
+    await expect(callsCard.getByRole('columnheader')).toHaveText([
+      'Call type',
+      'Source',
+      'Destination',
+      'Duration',
+    ])
+    await expect(callsCard.getByRole('navigation', { name: 'Table pagination' })).toHaveCount(0)
+    const queue = rows.nth(0).getByTestId('through-queue')
+    await expect(queue).toHaveText('Through a queue')
+    await queue.hover()
+    await expect(page.getByRole('tooltip', { name: 'Through a queue' })).toBeVisible()
   })
 
   test('opens the section of a counter', async ({ page }) => {
@@ -335,6 +342,44 @@ test.describe('dashboard', () => {
     const routesCard = page.getByTestId('inbound-routes-card')
     await expect(routesCard.getByTestId('list-row')).toHaveCount(5)
     await expect(routesCard).toContainText('1 - 5 of 6')
+  })
+
+  test('paginates the calls in progress only when they exceed a page', async ({
+    page,
+    mockApi,
+  }) => {
+    const conversations = Object.fromEntries(
+      Array.from({ length: 7 }, (_, index) => [
+        `t${index}`,
+        {
+          id: `PJSIP/Provider-1${index}>PJSIP/31${index}-2${index}`,
+          duration: 700 - index * 10,
+          direction: 'in',
+          internalNum: `31${index}`,
+          internalName: `Agent ${index}`,
+          externalNum: `061234500${index}`,
+          externalName: '',
+          throughQueue: false,
+        },
+      ]),
+    )
+
+    mockApi.on('GET', '/api/astproxy/extensions', { json: {} }).on('GET', '/api/astproxy/trunks', {
+      json: { Provider: { ...TRUNKS.Provider, conversations } },
+    })
+
+    await page.goto('./dashboard')
+
+    const callsCard = page.getByTestId('calls-card')
+    const rows = callsCard.getByTestId('call-row')
+    await expect(rows).toHaveCount(5)
+    await expect(callsCard).toContainText('1 - 5 of 7')
+    await expect(callsCard.getByRole('navigation', { name: 'Table pagination' })).toBeVisible()
+
+    await callsCard.getByRole('button', { name: 'Go to next page' }).click()
+    await expect(rows).toHaveCount(2)
+    await expect(rows.nth(0)).toContainText('Agent 5')
+    await expect(rows.nth(1)).toContainText('Agent 6')
   })
 
   test('puts an offline provider before the trunk registration', async ({ page, mockApi }) => {
@@ -475,7 +520,7 @@ test.describe('dashboard', () => {
     await expect(page.getByTestId('dashboard-cards')).toHaveCount(0)
     await expect(page.getByTestId('drag-handle')).toHaveCount(0)
     expect(mockApi.callsTo('GET', '/freepbx/rest/dashboard/calls')).toHaveLength(0)
-    expect(mockApi.callsTo('GET', '/freepbx/rest/dashboard/phones')).toHaveLength(0)
+    await expect(page.getByTestId('phone-status-card')).toHaveCount(0)
   })
 
   test('does not report the live users on Community', async ({ page, mockApi }) => {
@@ -522,8 +567,11 @@ test.describe('dashboard', () => {
 
     await page.goto('./dashboard')
 
-    await expect(page.getByText('Cannot load the phone status')).toBeVisible()
+    await expect(page.getByTestId('dashboard-load-error')).toContainText(
+      'Not available: counters and phone status.',
+    )
     await expect(page.getByTestId('phone-status-card')).toHaveCount(0)
+    await expect(counterValue(page, 'physicalPhones')).toHaveCount(0)
     await expect(page.getByTestId('calls-summary-card')).toBeVisible()
 
     fail = false
@@ -533,11 +581,12 @@ test.describe('dashboard', () => {
     await expect(
       page.getByTestId('phone-status-card').getByTestId('breakdown-provisioned'),
     ).toHaveText('116')
+    await expect(counterValue(page, 'physicalPhones')).toHaveText('125')
   })
 
   test('replaces the phone status chart with a text without phones', async ({ page, mockApi }) => {
     mockApi.on('GET', '/freepbx/rest/dashboard/phones', {
-      json: { provisioned: 0, pending: 0, unassigned: 0, failed: 0, unknown: 0 },
+      json: { provisioned: 0, pending: 0, unassigned: 0, failed: 0, unknown: 0, total: 0 },
     })
 
     await page.goto('./dashboard')
@@ -714,7 +763,7 @@ test.describe('dashboard', () => {
       '/api/astproxy/extensions': EXTENSIONS,
       '/api/astproxy/trunks': TRUNKS,
       '/api/user/endpoints/all': USERS,
-      '/tancredi/api/v1/phones': [],
+      '/freepbx/rest/cti/groups': [{ id: 1, name: 'Sales' }],
     }
 
     for (const [path, json] of Object.entries(responses)) {
