@@ -107,7 +107,9 @@ paths:
         '401':
           description: Invalid credentials
       description: 'Body: `{ "username": "", "password": "" }`. On success returns
-        `{ "result": "<secret>" }` with status 200; otherwise 401.'
+        `{ "result": "<secret>" }` with status 200; otherwise 401. The FreePBX session
+        (`AMP_user`) stays open only for superadmin: for administrators who are not
+        superadmin it is cleared after the credentials are checked.'
       operationId: post_testauth
       security: []
       requestBody:
@@ -861,8 +863,31 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
+        '400': &id004
+          description: 'Bad request: invalid parameters'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '403': &id001
+          description: 'Forbidden: missing permission'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
       description: Body includes host, port, type, credentials and database name;
-        credentials are stored for later use by customer cards.
+        credentials are stored for later use by customer cards. For administrators
+        who are not superadmin, a body that is not a JSON or form object returns 400,
+        and a connection to the built-in NethVoice databases returns 403. Built-in
+        means connection 1 or 2 on a local host, or any connection to a local host
+        (empty, localhost, loopback, link-local or unspecified address) without a
+        port or on the port of connection 1 or 2.
       operationId: post_cti_dbconn
       requestBody:
         required: true
@@ -924,20 +949,25 @@ paths:
       summary: Update the given fields of a database connection.
       description: Reloads nethcti-server so the customer cards use the new parameters.
         An empty or omitted `pass` keeps the stored password, unless `host`, `port`
-        or `type` change, which requires the password again.
+        or `type` change, which requires the password again. For administrators who
+        are not superadmin, a non-numeric `id` or a body that is not a JSON or form
+        object returns 400, and 403 is returned when the stored connection or the
+        result of the update is a built-in NethVoice database (see `POST /cti/dbconn`).
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
         '400':
-          description: Bad request, or the password is missing for a different server
+          description: Bad request, invalid parameters, or the password is missing
+            for a different server
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
+        '403': *id001
       operationId: put_cti_dbconn_id
       parameters:
       - name: id
@@ -1088,15 +1118,7 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
-        '403': &id001
-          description: 'Forbidden: missing permission'
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+        '403': *id001
       description: 'Body contains `name`, `custom` flag and base64 `html` content.
         Requires the superadmin permission: templates are rendered by the CTI server.'
       operationId: post_cti_customer_card_template
@@ -1144,6 +1166,9 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
+        '403': *id001
+      description: 'Requires the superadmin permission: templates are rendered by
+        the CTI server.'
       operationId: delete_cti_customer_card_template_name
       parameters:
       - name: name
@@ -1167,7 +1192,32 @@ paths:
                   $ref: '#/components/schemas/IntegrationsCustomerCard'
         '500':
           description: Internal server error
+        '400': *id004
+      description: Every query parameter filters the cards by the column with the
+        same name. Administrators who are not superadmin can filter only by `id`,
+        `name`, `dbconn_id` and `template`; any other parameter returns 400.
       operationId: get_cti_customer_card
+      parameters:
+      - name: id
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: dbconn_id
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: template
+        in: query
+        required: false
+        schema:
+          type: string
     post:
       summary: Create a customer card.
       tags:
@@ -1177,8 +1227,12 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
+        '400': *id004
+        '403': *id001
       description: Body includes name, Base64 encoded query, template name, DB connection
-        id and profile ids. Generates a permission entry automatically.
+        id and profile ids. Generates a permission entry automatically. For administrators
+        who are not superadmin, a missing or non-numeric `dbconn_id` returns 400 and
+        a card on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
       operationId: post_cti_customer_card
       requestBody:
         required: true
@@ -1190,7 +1244,12 @@ paths:
     put:
       summary: Update a customer card.
       description: When the name changes, the related CTI permission is renamed too
-        (name cc_<sanitized name>, displayname <name>).
+        (name cc_<sanitized name>, displayname <name>). For administrators who are
+        not superadmin, 400 is returned for a non-numeric `id`, an empty body, a key
+        other than `name`, `query`, `template`, `dbconn_id` and `profiles`, a value
+        of those fields that is not a scalar (an array for `profiles`) or a non-numeric
+        `dbconn_id`. Changing the query or the connection of a card that ends up on
+        a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
       tags:
       - CTI
       responses:
@@ -1200,6 +1259,8 @@ paths:
           description: Not found
         '500':
           description: Internal server error
+        '400': *id004
+        '403': *id001
       operationId: put_cti_customer_card_id
       parameters:
       - name: id
@@ -2432,6 +2493,9 @@ paths:
             application/json:
               schema:
                 type: object
+        '400': *id004
+      description: For administrators who are not superadmin, a username that does
+        not match `^[A-Za-z0-9._@-]+$` returns 400.
       operationId: get_mobiles_username
       parameters:
       - name: username
@@ -2553,14 +2617,24 @@ paths:
         '200':
           description: Successful response
         '400':
-          description: Invalid request or invalid source URL
-          content: *id003
+          description: Invalid request, invalid source URL or invalid mapping
+          content: &id005
+            application/json:
+              schema:
+                anyOf:
+                - $ref: '#/components/schemas/IntegrationsStatusError'
+                - $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
+        '403': *id001
+      description: Creating a mysql or mssql source requires the superadmin permission.
+        For administrators who are not superadmin, a body that is not a JSON or form
+        object, a `dbtype` that is not a string or a `mapping` destination that is
+        not one of `GET /phonebook/fields` returns 400.
       operationId: post_phonebook_config
       requestBody:
         required: true
@@ -2598,7 +2672,9 @@ paths:
       summary: Delete an external phonebook source and the contacts imported from
         it.
       description: The uploaded CSV file of the source is removed when no other source
-        uses it.
+        uses it. Deleting a mysql or mssql source requires the superadmin permission.
+        For administrators who are not superadmin, an `id` that does not match
+        `^[A-Za-z0-9_-]+$` returns 400.
       tags:
       - Phonebook
       responses:
@@ -2610,6 +2686,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
+        '400': *id004
+        '403': *id001
       operationId: delete_phonebook_config_id
       parameters:
       - name: id
@@ -2622,22 +2700,27 @@ paths:
       description: When the URL changes, the previously uploaded CSV file is removed
         if no other source uses it. An empty or omitted `password` keeps the stored
         one, unless the type, the host, the port or the Infinity URL change, which
-        requires the password again.
+        requires the password again. Saving a mysql or mssql source, or replacing
+        a stored one, requires the superadmin permission. For administrators who are
+        not superadmin, an `id` that does not match `^[A-Za-z0-9_-]+$`, a body that
+        is not a JSON or form object, a `dbtype` that is not a string or a `mapping`
+        destination that is not one of `GET /phonebook/fields` returns 400.
       tags:
       - Phonebook
       responses:
         '200':
           description: Successful response
         '400':
-          description: Invalid request, invalid source URL or missing password for
-            a different server
-          content: *id003
+          description: Invalid request, invalid source URL, invalid mapping or missing
+            password for a different server
+          content: *id005
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
+        '403': *id001
       operationId: post_phonebook_config_id
       parameters:
       - name: id
@@ -2704,16 +2787,15 @@ paths:
                 $ref: '#/components/schemas/IntegrationsStatusError'
         '400':
           description: Invalid source id
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/IntegrationsStatusError'
+          content: *id005
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
+        '403': *id001
+      description: Importing a mysql or mssql source requires the superadmin permission.
       operationId: post_phonebook_syncnow_id
       parameters:
       - name: id
@@ -2788,6 +2870,9 @@ paths:
                   name_attr: cn o
                   number_filter: (|(telephoneNumber=%)(mobile=%)(homePhone=%))
                   name_filter: (|(cn=%)(o=%))
+        '403': *id001
+      description: Requires the phones section. The `password` of each entry is returned
+        only to superadmin.
       operationId: get_phonebook_ldap
   /phonebook/sources:
     get:
@@ -3710,6 +3795,7 @@ paths:
                 - unassigned
                 - failed
                 - unknown
+                - total
                 properties:
                   provisioned:
                     type: integer
@@ -3726,12 +3812,17 @@ paths:
                   unknown:
                     type: integer
                     minimum: 0
+                  total:
+                    type: integer
+                    minimum: 0
+                    description: All the phones of the Tancredi inventory.
               example:
                 provisioned: 116
                 pending: 4
                 unassigned: 2
                 failed: 2
                 unknown: 0
+                total: 124
         '403':
           description: Missing dashboard permission
           content:
@@ -4071,6 +4162,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SettingsPasswordError'
+        '403': *id001
+      description: Requires the superadmin permission.
       operationId: post_users_username_password
       parameters:
       - name: username
@@ -4158,6 +4251,8 @@ paths:
                 type: string
         '500':
           description: Internal server error
+      description: For administrators who are not superadmin the password column
+        (the fourth) is empty in every row.
       operationId: get_csv_csvexport
   /voicemails:
     get:
@@ -4176,11 +4271,16 @@ paths:
                   additionalProperties:
                     type: object
                     additionalProperties: true
+                    properties:
+                      pwd:
+                        type: string
+                        description: Voicemail PIN, returned only to superadmin.
                 - type: array
                   maxItems: 0
                   items: {}
         '500':
           description: Internal server error
+      description: The `pwd` of each box is returned only to superadmin.
       operationId: get_voicemails
     post:
       summary: Enable or disable the voicemail box of an extension.
@@ -4220,6 +4320,12 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties: true
+                properties:
+                  pwd:
+                    type: string
+                    description: Voicemail PIN, returned only to superadmin.
+      description: The `pwd` of the box is returned only to superadmin.
       operationId: get_voicemails_extension
       parameters:
       - name: extension
@@ -4665,6 +4771,11 @@ components:
           nullable: true
           description: Comma separated default codecs of the provider
           example: ulaw,alaw,g729
+        sip_server:
+          type: string
+          nullable: true
+          description: Default SIP server of the provider, used to recognize trunks created without a provider
+          example: sip.example.com
     TrunkCodec:
       type: object
       required:
