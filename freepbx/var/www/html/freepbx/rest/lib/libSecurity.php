@@ -5,6 +5,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+const NETHVOICE_PHONEBOOK_FIELDS = [
+    'cellphone', 'cellphone2', 'company', 'facebook', 'fax', 'firstname', 'homecity', 'homecountry',
+    'homeemail', 'homephone', 'homepob', 'homepostalcode', 'homeprovince', 'homestreet', 'instagram', 'job',
+    'lastname', 'linkedin', 'name', 'notes', 'otheremail', 'otherphone', 'owner_id', 'title', 'url',
+    'workcity', 'workcountry', 'workemail', 'workphone', 'workphone2', 'workpob', 'workpostalcode',
+    'workprovince', 'workstreet',
+];
+const NETHVOICE_DATABASE_PHONEBOOK_TYPES = ['mysql', 'mssql'];
+const NETHVOICE_BUILTIN_DBCONN_IDS = ['1', '2'];
+const NETHVOICE_USERNAME_PATTERN = '/^[A-Za-z0-9._@-]+$/D';
+const NETHVOICE_PHONEBOOK_SOURCE_ID_PATTERN = '/^[A-Za-z0-9_-]+$/D';
+
 function nethvoiceIsForbiddenAddress(string $ip): bool
 {
     $packed = @inet_pton($ip);
@@ -236,4 +248,146 @@ function nethvoiceKeepStoredPassword(array $data, ?array $stored, string $field,
     $data[$field] = $storedPassword;
 
     return $data;
+}
+
+function nethvoiceIsValidUsername($username): bool
+{
+    return is_string($username) && preg_match(NETHVOICE_USERNAME_PATTERN, $username) === 1;
+}
+
+function nethvoiceIsValidPhonebookSourceId($id): bool
+{
+    return is_string($id) && preg_match(NETHVOICE_PHONEBOOK_SOURCE_ID_PATTERN, $id) === 1;
+}
+
+function nethvoiceDbConnectionId($id): ?int
+{
+    if (is_int($id) && $id >= 0) {
+        return $id;
+    }
+    if (is_string($id) && ctype_digit($id) && strlen($id) < 10) {
+        return (int) $id;
+    }
+
+    return null;
+}
+
+function nethvoiceIsLocalHost($host): bool
+{
+    if (!is_scalar($host)) {
+        return false;
+    }
+    $host = strtolower(trim((string) $host, " \t\n\r\0\x0B[]"));
+    if ($host === '' || $host === 'localhost' || str_ends_with($host, '.localhost')) {
+        return true;
+    }
+    foreach (nethvoiceResolveHost($host) as $address) {
+        if (nethvoiceIsForbiddenAddress($address)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function nethvoiceIsBuiltinDbConnection(array $connection): bool
+{
+    return in_array((string) ($connection['id'] ?? ''), NETHVOICE_BUILTIN_DBCONN_IDS, true)
+        && nethvoiceIsLocalHost($connection['host'] ?? '');
+}
+
+function nethvoiceTargetsBuiltinDbConnection(array $connection, array $builtins): bool
+{
+    if (nethvoiceIsBuiltinDbConnection($connection)) {
+        return true;
+    }
+    if (!array_key_exists('host', $connection) || !nethvoiceIsLocalHost($connection['host'])) {
+        return false;
+    }
+    $port = is_scalar($connection['port'] ?? null) ? trim((string) $connection['port']) : '';
+    foreach ($builtins as $builtin) {
+        if ($port === '' || $port === trim((string) ($builtin['port'] ?? ''))) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function nethvoiceIsDatabasePhonebookSource($source): bool
+{
+    return is_array($source) && in_array($source['dbtype'] ?? null, NETHVOICE_DATABASE_PHONEBOOK_TYPES, true);
+}
+
+function nethvoiceIsValidPhonebookMapping($mapping): bool
+{
+    if (!is_array($mapping)) {
+        return false;
+    }
+    foreach ($mapping as $destination) {
+        if (!is_string($destination) || !in_array($destination, NETHVOICE_PHONEBOOK_FIELDS, true)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+function nethvoiceWithoutField($item, string $field)
+{
+    if (is_object($item)) {
+        $item = clone $item;
+        unset($item->$field);
+    } elseif (is_array($item)) {
+        unset($item[$field]);
+    }
+
+    return $item;
+}
+
+function nethvoiceWithoutFieldInEach($items, string $field)
+{
+    if (!is_array($items) && !is_object($items)) {
+        return $items;
+    }
+    $result = is_object($items) ? clone $items : $items;
+    foreach ($items as $key => $item) {
+        if (is_object($result)) {
+            $result->$key = nethvoiceWithoutField($item, $field);
+        } else {
+            $result[$key] = nethvoiceWithoutField($item, $field);
+        }
+    }
+
+    return $result;
+}
+
+function nethvoiceCsvWithoutColumn(string $csv, int $column): string
+{
+    $input = fopen('php://temp', 'r+');
+    fwrite($input, $csv);
+    rewind($input);
+    $output = fopen('php://temp', 'r+');
+    while (($row = fgetcsv($input, null, ',', '"', '')) !== false) {
+        if ($row === [null]) {
+            continue;
+        }
+        if (array_key_exists($column, $row)) {
+            $row[$column] = '';
+        }
+        fputcsv($output, array_map('strval', $row), ',', '"', '', "\r\n");
+    }
+    fclose($input);
+    rewind($output);
+    $result = stream_get_contents($output);
+    fclose($output);
+
+    return $result;
+}
+
+function nethvoiceBase64CsvWithoutColumn($data, int $column): string
+{
+    $csv = is_string($data) ? base64_decode($data, true) : false;
+
+    return $csv === false ? '' : base64_encode(nethvoiceCsvWithoutColumn($csv, $column));
 }
