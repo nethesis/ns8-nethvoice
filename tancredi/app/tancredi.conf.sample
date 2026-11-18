@@ -1,0 +1,64 @@
+; Tancredi sample configuration file
+
+; Configuration section
+[config]
+
+; Tancredi log verbosity level. Allowed level names are
+;  - DEBUG (default)
+;  - INFO
+;  - WARNING
+;  - ERROR
+loglevel = "DEBUG"
+
+; Write log entries to the given path. Ensure proper permissions are set.
+; If "logfile" is empty or not set, log messages are sent to PHP error_log.
+;logfile = "/var/log/tancredi/tancredi.log"
+
+; Directory where Tancredi has Read/Write access
+rw_dir = "/usr/share/tancredi/data/"
+
+; Directory where Tancredi has Read access
+ro_dir = "/usr/share/tancredi/data/"
+
+; provisioning_url_path and api_url_path depends on your web server configuration
+provisioning_url_path = "/provisioning/"
+api_url_path = "/tancredi/api/v1/"
+
+; Add a sample runtime filter that adds current date to the current scope
+; SampleFilter class is here: /src/Entity/SampleFilter.php
+; You can call multiple filter classes separated by ","
+runtime_filters = "SampleFilter"
+samplefilter_format = "d M Y H:i:s"
+
+; Methods to return static files to the client:
+; - native - use PHP itself (default)
+; - apache - return X-Sendfile header
+; - nginx - return X-Accel-Redirect
+; When using apache or nginx, configure the web server to allow protected
+; assets from both rw_dir/{backgrounds,firmware,ringtones,screensavers}/ and
+; ro_dir/{backgrounds,firmware,ringtones,screensavers}/ too.
+file_reader = "native"
+
+; Comma-separated list of IP addresses for trusted upstream proxies.
+;
+; If Tancredi is behind a proxy, set its IP address here to get the
+; original phone IP address in the log files.
+;
+; Refer to https://github.com/akrabat/ip-address-middleware for more
+; information.
+upstream_proxies =
+
+; macvendors section contains a list of MAC address prefixes
+; and the brand associated with them. The prefixes must be
+; in hexadecimal format with upper case letters.
+[macvendors]
+00A859 = fanvil
+0C383E = fanvil
+7C2F80 = gigaset
+589EC6 = gigaset
+005058 = sangoma
+000413 = snom
+001565 = yealink
+805E0C = yealink
+805EC0 = yealink
+

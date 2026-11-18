@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{% import 'gigaset.macros' as gigaset %}
+{% import 'language.macros' as l10n %}
+{% autoescape %}
+<provisioning version="1.1">
+{% if firmware_file matches '/(\\d+\\.\\d+\\.\\d+)/' %}
+  <firmware>
+    <file version="{{ firmware_file | preg_replace('/^.+(\\d+\\.\\d+\\.\\d+).+$/', '$1') }}" url="{{ "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/firmware/#{firmware_file}" }}" />
+  </firmware>
+{% endif %}
+  <nvm>
+    <param name="WebUI.AdminPassword" value="{{ adminpw | default('admin') }}" />
+    <param name="WebUI.UserPassword" value="{{ userpw | default('1234') }}" />
+    
+    <param name="System.DateAndTime.AutoAdjustTime" value="{{ ntp_server ? 'NTPServiceEnabled' : 'NTPServiceDHCP' }}" />
+    <param name="System.DateAndTime.TimeServer" value="{{ ntp_server ?? 'pool.ntp.org' }}" />
+    <param name="System.DateAndTime.TimeZone" value="{{ gigaset.timezone_map(timezone) }}" />
+    <param name="System.DateAndTime.AutoAdjustClockForDST" value="AutomatedDaylightSavingEnabled" />
+    <param name="System.DateAndTime.TimeFormat" value="{{ time_format == '12' ? '12h' : '24h' }}" />
+    <param name="System.DateAndTime.DateOrder" value="{{ gigaset.date_format(date_format) }}" />
+
+    <param name="Telephony.ToneScheme" value="{{ gigaset.tones_code(tonezone) }}" />
+    <param name="Telephony.CallTransfer.HoldOnTransfer.Attended" value="{{ dss_transfer != 'attended' ? 'Disabled' : 'Enabled' }}" />
+    <param name="Telephony.CallTransfer.HoldOnTransfer.Unattended" value="{{ dss_transfer == 'attended' ? 'Disabled' : 'Enabled' }}" />
+    <param name="Telephony.DnD.Active" value="{{ account_dnd_enable_1 ? '1' : '0' }}" />
+
+    <param name="PhoneUI.Settings.Language" value="{{ gigaset.language_code(language) }}" />
+    <param name="WebUI.Language" value="{{ gigaset.language_code(language) }}" />
+    
+    <param name="FirmwareManagment.AutomaticCheckForUpdates" value="{{ firmware_file ? '1' : '0' }}" />
+    <param name="System.Provision.Period" value="{{ provisioning_complete ? '0' : '600' }}" />
+    <param name="System.Provision.ProvisioningServer" value="{{ provisioning_url2 | replace({'%25': '%'}) }}" />
+    <param name="NET.IP.IPv4.DHCP.Options.Disabled" value="66,114" />
+
+    <param name="SIP.Port" value="{{ account_encryption_1 ? sip_tls_port : sip_udp_port }}" />
+    <param name="SIP.RTP.Port" value="5004"  />
+    <param name="SIP.Security.UseSIPS" value="{{ account_encryption_1 ? '1' : '0' }}" />
+    <param name="SIP.TransportProtocol" value="{{ account_encryption_1 ? '2' : '1' }}" />
+    <param name="SIP.Security.SRTP" value="{{ account_encryption_1 ? '1' : '0' }}" />
+    <param name="SIP.Security.AcceptNonSRTPCalls" value="{{ account_encryption_1 ? '0' : '1' }}" />
+    <param name="SIP.PRACK" value="0" />
+    <param name="SIP.DefaultRingtone" value="{{ gigaset.ringtone_map(ringtone) }}" />
+
+    <param name="SIP.DefaultAccount" value="0" />
+    <param name="SIP.ActiveCodecs" value="18,0,8" />
+
+    {% for line in range(1,4) -%}
+    {%- if _context['account_username_' ~ line] is defined -%}
+    {%- set idx = line - 1 -%}
+    <param name="SIP.Account.{{ idx }}.AccountName" value="{{ _context['account_username_' ~ line] }}" />
+    <param name="SIP.Account.{{ idx }}.Active" value="1" />
+    <param name="SIP.Account.{{ idx }}.Provider" value="{{ _context['account_username_' ~ line] }}" />
+    <param name="SIP.Account.{{ idx }}.AuthName" value="{{ _context['account_username_' ~ line] }}" />
+    <param name="SIP.Account.{{ idx }}.AuthPassword" value="{{ _context['account_password_' ~ line] }}" />
+    <param name="SIP.Account.{{ idx }}.DisplayName" value="{{ _context['account_display_name_' ~ line] }}" />
+    <param name="SIP.Account.{{ idx }}.Username" value="{{ _context['account_username_' ~ line] }}" />
+    <param name="SIP.Account.{{ idx }}.Domain" value="{{ hostname }}" />
+    {% if _context['outbound_proxy_' ~ line] is defined and _context['outbound_proxy_' ~ line] != '' %}
+    <param name="SIP.Account.{{ idx }}.ProxyServer.Address" value="{{ _context['outbound_proxy_' ~ line] }}" />
+    <param name="SIP.Account.{{ idx }}.ProxyServer.Port" value="{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}" />
+    <param name="SIP.Account.{{ idx }}.OutboundProxy.Mode" value="1"/>
+    <param name="SIP.Account.{{ idx }}.OutboundProxy.Address" value="{{ _context['outbound_proxy_' ~ line] }}"/>
+    <param name="SIP.Account.{{ idx }}.OutboundProxy.Port" value="{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}"/>
+    {% else %}
+    <param name="SIP.Account.{{ idx }}.ProxyServer.Address" value="{{ hostname }}" />
+    <param name="SIP.Account.{{ idx }}.ProxyServer.Port" value="{{ _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}" />
+    {% endif %}
+    <param name="SIP.Account.{{ idx }}.RegistrationServer.Address" value="{{ hostname }}" />
+    <param name="SIP.Account.{{ idx }}.RegistrationServer.Port" value="{{ _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}" />
+    <param name="SIP.Account.{{ idx }}.DTMFTransmission" value="{{ gigaset.dtmf_map(_context['account_dtmf_type_' ~ line]) }}" />
+    <param name="SIP.Account.{{ idx }}.FailoverServer.Enabled" value="0" />
+    <param name="SIP.Account.{{ idx }}.STUN.Enabled" value="0" />
+    <param name="SIP.Account.{{ idx }}.VoiceMail.Active" value="1" />
+    <param name="SIP.Account.{{ idx }}.VoiceMail.Mailbox" value="{{ _context['account_voicemail_' ~ line]|default }}" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.External" value="06_Gigaset.mp3" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.HeaderExternal" value="&lt;http://www.notused.com&gt;\;info=ring2" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.Internal" value="{{ gigaset.ringtone_map(ringtone) }}" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.HeaderInternal" value="&lt;http://www.notused.com&gt;\;info=ring1" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.Group" value="03_Vibe.wav" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.HeaderGroup" value="&lt;http://www.notused.com&gt;\;info=ring3" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.Doorstation" value="04_Listen.wav" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.HeaderDoorstation" value="&lt;http://www.notused.com&gt;\;info=ring4" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.Optional" value="05_Down.wav" />
+    <param name="SIP.Account.{{ idx }}.Ringtone.HeaderOptional" value="&lt;http://www.notused.com&gt;\;info=ring5" />
+    <param name="Telephony.CallDivert.{{ idx }}.All.Active" value="{{ _context['account_always_fwd_target_' ~ line] ? '1' : '0' }}" />
+    <param name="Telephony.CallDivert.{{ idx }}.All.VoiceMail" value="0" />
+    <param name="Telephony.CallDivert.{{ idx }}.All.Target" value="{{ _context['account_always_fwd_target_' ~ line]|default }}" />
+    <param name="Telephony.CallDivert.{{ idx }}.Busy.Active" value="{{ _context['account_busy_fwd_target_' ~ line] ? '1' : '0' }}" />
+    <param name="Telephony.CallDivert.{{ idx }}.Busy.VoiceMail" value="0" />
+    <param name="Telephony.CallDivert.{{ idx }}.Busy.Target" value="{{ _context['account_busy_fwd_target_' ~ line]|default }}" />
+    <param name="Telephony.CallDivert.{{ idx }}.NoAnswer.Active" value="{{ _context['account_timeout_fwd_target_' ~ line] ? '1' : '0' }}" />
+    <param name="Telephony.CallDivert.{{ idx }}.NoAnswer.Delay" value="{{ _context['account_cftimeout_' ~ line] | default('120') }}" />
+    <param name="Telephony.CallDivert.{{ idx }}.NoAnswer.VoiceMail" value="0" />
+    <param name="Telephony.CallDivert.{{ idx }}.NoAnswer.Target" value="{{ _context['account_timeout_fwd_target_' ~ line]|default }}" />
+    {%- endif %}
+    {%- endfor %}
+
+    {# LDAP #}
+    <param name="NetDir.LDAP.0.DirectoryName" value="{{ l10n.gettext('Phonebook', language) }}"/>
+    <param name="NetDir.LDAP.0.Enable" value="1"/>
+    <param name="NetDir.LDAP.0.Lookup" value="0"/>
+    <param name="NetDir.LDAP.0.Server.Address" value="{{ ldap_server | default(hostname) }}"/>
+    <param name="NetDir.LDAP.0.Server.Port" value="{{ ldap_port | default( ldap_tls == 'ldaps' ? '636' : '389' ) }}"/>
+    <param name="NetDir.LDAP.0.BaseDN" value="{{ ldap_base }}"/>
+    <param name="NetDir.LDAP.0.Security" value="
+{%- if ldap_tls == 'starttls' %}
+    {{- '1' -}}
+{% elseif ldap_tls == 'ldaps' %}
+    {{- '2' -}}
+{% else %}
+    {{- '0' -}}
+{% endif -%}
+"/>
+    <param name="NetDir.LDAP.0.Username" value="{{ ldap_user }}"/>
+    <param name="NetDir.LDAP.0.Password" value="{{ ldap_password }}"/>
+    <param name="NetDir.LDAP.0.NameFilter" value="{{ ldap_name_filter }}"/>
+    <param name="NetDir.LDAP.0.NumberFilter" value="{{ ldap_number_filter }}"/>
+    <param name="NetDir.LDAP.0.DisplayFormat" value="{{ ldap_name_display }}"/>
+    <param name="NetDir.LDAP.0.MaxNumberOfSearchResults" value="50"/>
+    <param name="NetDir.LDAP.0.FirstName" value="{{ ldap_name_attr | split(' ')[0] | default('') }}"/>
+    <param name="NetDir.LDAP.0.Surname" value="{{ ldap_name_attr | split(' ')[1] | default('') }}"/>
+    <param name="NetDir.LDAP.0.PhoneHome" value="{{ ldap_mainphone_number_attr }}"/>
+    <param name="NetDir.LDAP.0.PhoneOffice" value="{{ ldap_otherphone_number_attr }}"/>
+    <param name="NetDir.LDAP.0.PhoneMobile" value="{{ ldap_mobilephone_number_attr }}"/>
+    {# soft keys #}
+    {% if cap_softkey_count > 0 %}
+      {% for number in 1..(cap_softkey_count) %}
+          {{ gigaset.softkey_type_map(_context['softkey_type_' ~ number], (number-1), _context['softkey_value_' ~ number], dndtoggle) }}
+      {% endfor %}
+    {% endif %}
+    {# end soft keys #}
+    {# line keys #}
+    {% if cap_linekey_count > 0 %}
+      {% for number in 1..(cap_linekey_count) %}
+        {{ gigaset.linekey_type_map(_context['linekey_type_' ~ number], (number-1), _context['linekey_value_' ~ number], dndtoggle, pickup_group, queuetoggle, pickup_direct) }}
+        <param name="PhoneUI.Keys.FunctionKeys.{{number-1}}.DisplayName" value="{{_context['linekey_label_' ~ number]}}" />
+      {% endfor %}
+    {% endif %}
+    <param name="Telephony.ShowKeysDisplayName" value="1"/>
+    <param name="PhoneUI.Keys.FunctionKeys.Icons" value="1"/>
+    <param name="PhoneUI.Keys.FunctionKeys.Indicator" value="1"/>
+    <param name="PhoneUI.Keys.ProgrammableKeys.Directory.Type" value="1"/>
+    <param name="PhoneUI.Keys.ProgrammableKeys.DND.Type" value="1"/>
+    <param name="PhoneUI.Keys.ProgrammableKeys.DND.FAC.enable" value="{{ dndon }}"/>
+    <param name="PhoneUI.Keys.ProgrammableKeys.DND.FAC.disable" value="{{ dndoff }}"/>
+
+{% if vlan_id_phone > 0 and vlan_id_pcport > 0 %}
+    <param name="NET.VLAN.Tagging" value="2" />
+{% elseif vlan_id_phone > 0 %}
+    <param name="NET.VLAN.Tagging" value="1" />
+{% else %}
+    <param name="NET.VLAN.Tagging" value="0" />
+{% endif %}
+    <param name="NET.VLAN.LAN.Identifier" value ="{{ vlan_id_phone > 0 and vlan_id_phone < 4095 ? vlan_id_phone : '0' }}" />
+    <param name="NET.VLAN.LAN.Priority" value ="0" />
+    <param name="NET.VLAN.PC.Identifier" value ="{{ vlan_id_pcport > 0 and vlan_id_phone < 4095 ? vlan_id_pcport : '0' }}" />
+    <param name="NET.VLAN.PC.Priority" value ="0" />
+
+{% if cap_background_file and background_file matches '/\.(png|jpg|jpeg)$/' %}
+    <param name="PhoneUI.Settings.SelectedWallpapers" value="{{ background_file }}"/>
+{% endif %}
+{% if cap_screensaver_file and screensaver_file matches '/\.(png|jpg|jpeg)$/' %}
+    <param name="PhoneUI.Settings.ScreenSaverSelection" value="3" />
+    <param name="PhoneUI.Settings.ScreenSaverHTTPSource" value="{{ "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/screensavers/#{screensaver_file}" }}"/>
+{% endif %}
+{% if screensaver_time != '' %}
+{% set gigaset_screensaver_time = (screensaver_time / 600 | round(0, "ceil") * 10) %}
+    <param name="PhoneUI.Settings.ScreenSaverTimeout" value="{{ gigaset_screensaver_time >= 0 and gigaset_screensaver_time <= 60 ? gigaset_screensaver_time : 0 }}" />
+{% endif %}
+{% if cap_contrast %}
+    <param name="PhoneUI.Settings.Contrast" value="{{ contrast + 1 }}" />
+{% endif %}
+{% if cap_brightness %}
+    <param name="PhoneUI.Settings.Backlight" value="{{ brightness + 1 }}" />
+{% endif %}
+    <param name="PhoneUI.Settings.BacklightTimeout" value="{{ backlight_time / 60 | round(0, "ceil") }}" />
+  </nvm>
+  <custom>
+{% if cap_background_file and background_file matches '/\.(png|jpg|jpeg)$/' %}
+    <step type="DownloadWallpaper" url="{{ "#{provisioning_url_scheme}://#{hostname}/#{provisioning_url_path}#{tok2}/backgrounds/#{background_file}" }}" />
+{% endif %}
+    <step type="UnlockAllFunctionKeys" />
+  </custom>
+  {# end line keys #}
+</provisioning>
+{% endautoescape %}

@@ -1,0 +1,26 @@
+#
+# Translate generic strings
+#
+{% macro gettext(txt, lang) %}
+    {%- set l10n = {
+        'it': {
+            'Phonebook': 'Rubrica',
+            'Pickup': 'Pickup',
+            'Forward': 'Inoltro',
+            'DND': 'DND',
+            'Hold': 'Attesa',
+            'Line %s': 'Linea %s',
+            'Lock phone': 'Blocca telefono',
+            'Redial': 'Richiama',
+            'Record': 'Registra',
+            'Transfer': 'Trasferimento',
+            'URL': 'URL',
+            'Voice mail': 'Casella vocale',
+        }
+    } -%}
+    {% if l10n[lang] is defined %}
+        {{- l10n[lang][txt] ?? txt -}}
+    {% else %}
+        {{- txt -}}
+    {% endif %}
+{% endmacro gettext %}

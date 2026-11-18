@@ -107,36 +107,40 @@ fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$mo
 
 php /apply-instance-bindings.php --save-transports || exit $?
 
-# Install required modules
-for module in "${modules_to_install[@]}"; do
-    if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
-        echo Installing module "$module"
+# Root installers create group-writable files in the image's setgid asset directories.
+(
+    umask 0002
+
+    for module in "${modules_to_install[@]}"; do
+        if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
+            echo Installing module "$module"
+            fwconsole moduleadmin --skipchown install "$module" || exit $?
+        fi
+    done
+
+    # Custom archives need the normal permission pass after installation.
+    for module_file in $(ls /freepbx_custom_modules); do
+        module=$(echo "${module_file}" | sed 's/.tar.gz//')
+        mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
+        tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
+        echo Installing custom module "$module"
         fwconsole moduleadmin install "$module" || exit $?
-    fi
-done
+    done
 
-# Add custom freepbx modules
-for module_file in $(ls /freepbx_custom_modules); do
-	module=$(echo "${module_file}" | sed 's/.tar.gz//')
-	mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
-	tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
-	echo Installing custom module "$module"
-    fwconsole moduleadmin install "$module" || exit $?
-done
-
-# Remove obsolete modules if required
-for module in "${obsolete_modules[@]}"; do
-    if grep -q "$module" "$module_status" ; then
-        echo Removing obsolete module "$module"
-        fwconsole moduleadmin uninstall "$module" &>/dev/null || true # ignore errors, we know module files are missing
-    fi
-done
+    # Remove obsolete modules if required
+    for module in "${obsolete_modules[@]}"; do
+        if grep -q "$module" "$module_status" ; then
+            echo Removing obsolete module "$module"
+            fwconsole moduleadmin uninstall "$module" &>/dev/null || true # ignore errors, we know module files are missing
+        fi
+    done
+) || exit $?
 
 # Convert unsupported trunks before any sync/reload, including on recovery starts.
 php /convert-legacy-sip-trunks.php
 
-# Fix permissions
-ionice -c2 -n7 nice -n 10 fwconsole chown
+# Apply registered runtime rules without scanning the entire web tree.
+ionice -c2 -n7 nice -n 10 fwconsole chown --module=framework
 
 # Disable signature check
 php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = 0 WHERE keyword = \"SIGNATURECHECK\"");'

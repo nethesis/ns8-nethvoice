@@ -1,0 +1,10 @@
+{
+	our $international_prefix = ${'nethvoice-report'}{'InternationalPrefix'} || '+39';
+
+	$OUT = '';
+}
+
+DROP FUNCTION IF EXISTS clean_prefix;
+CREATE FUNCTION clean_prefix (s VARCHAR(255))
+  RETURNS VARCHAR(255) CHARACTER SET 'utf8' COLLATE 'utf8_bin' DETERMINISTIC
+  RETURN REPLACE(Substring_index(s,"{{$international_prefix}}",-1),"+","00");
