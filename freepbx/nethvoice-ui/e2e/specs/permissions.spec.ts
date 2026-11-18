@@ -66,6 +66,23 @@ test.describe('section permissions', () => {
       ).toHaveCount(0)
     })
 
+    test('counts the physical phones without the phones section', async ({ page, mockApi }) => {
+      mockApi
+        .on('GET', `${TANCREDI}/phones`, {
+          status: 403,
+          json: { type: 'https://nethesis.github.io/tancredi/problems#forbidden' },
+        })
+        .on('GET', '/freepbx/rest/dashboard/phones', {
+          json: { provisioned: 2, pending: 0, unassigned: 1, failed: 0, unknown: 0, total: 3 },
+        })
+      await page.goto('./dashboard')
+
+      await expect(
+        page.getByTestId('counter-physicalPhones').getByTestId('counter-value'),
+      ).toHaveText('3')
+      expect(mockApi.callsTo('GET', `${TANCREDI}/phones`)).toHaveLength(0)
+    })
+
     test('hides the legacy wizard and the settings from the account menu', async ({ page }) => {
       await page.goto('./dashboard')
       await page.getByRole('button', { name: 'Open account menu' }).click()

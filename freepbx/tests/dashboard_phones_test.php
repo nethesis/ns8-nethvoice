@@ -86,7 +86,10 @@ check($summary === [
     'unassigned' => 2,
     'failed' => 1,
     'unknown' => 2,
+    'total' => 7,
 ], 'every phone of the inventory must be counted once');
+
+check(dashboardSummarizePhones([], [], [], [])['total'] === 0, 'an empty inventory must have no phones');
 
 $cacheDirectory = sys_get_temp_dir() . '/dashboard-phones-test-' . getmypid();
 mkdir($cacheDirectory);
@@ -94,7 +97,7 @@ $cacheFile = "$cacheDirectory/phones.json";
 $loads = 0;
 $load = function () use (&$loads) {
     $loads++;
-    return ['provisioned' => $loads, 'pending' => 0, 'unassigned' => 0, 'failed' => 0, 'unknown' => 0];
+    return ['provisioned' => $loads, 'pending' => 0, 'unassigned' => 0, 'failed' => 0, 'unknown' => 0, 'total' => $loads];
 };
 check(dashboardCachedPhoneSummary($load, $cacheFile, 30, 1000)['provisioned'] === 1, 'the first request must load the summary');
 check(dashboardCachedPhoneSummary($load, $cacheFile, 30, 1029)['provisioned'] === 1, 'a recent summary must come from the cache');
@@ -102,6 +105,8 @@ check(dashboardCachedPhoneSummary($load, $cacheFile, 30, 1030)['provisioned'] ==
 check(dashboardCachedPhoneSummary($load, $cacheFile, 30, 900)['provisioned'] === 3, 'a summary from the future must be loaded again');
 file_put_contents($cacheFile, 'not json');
 check(dashboardCachedPhoneSummary($load, $cacheFile, 30, 1000)['provisioned'] === 4, 'a broken cache must be ignored');
+file_put_contents($cacheFile, json_encode(['time' => 1000, 'summary' => ['provisioned' => 9, 'pending' => 0, 'unassigned' => 0, 'failed' => 0, 'unknown' => 0]]));
+check(dashboardCachedPhoneSummary($load, $cacheFile, 30, 1000)['total'] === 5, 'a cached summary without the total must be loaded again');
 $failing = function () { throw new RuntimeException('Tancredi is down'); };
 unlink($cacheFile);
 $failed = false;
@@ -112,7 +117,7 @@ try {
 }
 check($failed && !file_exists($cacheFile), 'a failure must be reported and not cached');
 $partial = function () {
-    return ['provisioned' => 1, 'pending' => 0, 'unassigned' => 0, 'failed' => 0, 'unknown' => 2];
+    return ['provisioned' => 1, 'pending' => 0, 'unassigned' => 0, 'failed' => 0, 'unknown' => 2, 'total' => 3];
 };
 check(dashboardCachedPhoneSummary($partial, $cacheFile, 30, 1000)['unknown'] === 2, 'a partial summary must be returned');
 check(!file_exists($cacheFile), 'a summary with unknown phones must not be cached');

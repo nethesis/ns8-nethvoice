@@ -44,6 +44,7 @@ const PhoneStatusSummarySchema = v.object({
   unassigned: CountSchema,
   failed: CountSchema,
   unknown: CountSchema,
+  total: CountSchema,
 })
 
 export type PhoneStatusSummary = v.InferOutput<typeof PhoneStatusSummarySchema>

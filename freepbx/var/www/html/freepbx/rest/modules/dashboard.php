@@ -182,6 +182,7 @@ function dashboardSummarizePhones(array $inventory, array $assignments, array $d
             : dashboardPhoneStatus($assignments[$mac] ?? [], $details[$mac] ?? null, $registered);
         $summary[$status]++;
     }
+    $summary['total'] = count($inventory);
     return $summary;
 }
 
@@ -284,6 +285,7 @@ function dashboardCachedPhoneSummary(callable $load, string $cacheFile, int $ttl
     if ($cached !== false) {
         $entry = json_decode($cached, true);
         if (is_array($entry) && is_int($entry['time'] ?? null) && is_array($entry['summary'] ?? null)
+            && is_int($entry['summary']['total'] ?? null)
             && $now - $entry['time'] >= 0 && $now - $entry['time'] < $ttl) {
             return $entry['summary'];
         }
