@@ -181,8 +181,9 @@ test.describe('user overview', () => {
     await expect(rows).toHaveCount(3)
     await expect(drawer.getByText('Select a device to show its settings.')).toBeVisible()
     await expect(drawer.getByRole('button', { name: 'Call 300', exact: true })).toBeEnabled()
-    await expect(drawer.getByRole('button', { name: 'Call 92300, device ringing' })).toBeDisabled()
-    await expect(drawer.getByRole('button', { name: 'Call 93300, device offline' })).toBeDisabled()
+    await expect(drawer.getByRole('button', { name: /^Call 92300/ })).toHaveCount(0)
+    await expect(drawer.getByRole('button', { name: /^Call 93300/ })).toHaveCount(0)
+    await expect(drawer.getByTestId('call-number-text')).toHaveText(['92300', '93300'])
 
     const webPhone = drawer.getByRole('button', { name: 'Web phone 300 settings' })
     const mobileApp = drawer.getByRole('button', { name: 'Mobile app 92300 settings' })
@@ -261,8 +262,10 @@ test.describe('user overview', () => {
     await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
     const call = page.getByRole('button', { name: 'Call', exact: true })
     await expect(call).toBeDisabled()
+    await expect(page.getByTestId('call-disabled-reason')).toHaveText('No device online to call')
+    await expect(call).toHaveAccessibleDescription('No device online to call')
     await call.locator('..').hover()
-    await expect(page.getByRole('tooltip', { name: 'No device online to call' })).toBeVisible()
+    await expect(page.getByRole('tooltip')).toHaveCount(0)
   })
 
   test('puts the favorite users first', async ({ page, mockApi }) => {
@@ -310,9 +313,7 @@ test.describe('user overview', () => {
       'aria-pressed',
       'false',
     )
-    await expect(page.locator('li[data-user]')).toHaveCount(3)
-    await expect(userCard(page, 'a.miller').getByTestId('device-circle')).toHaveCount(3)
-    await expect(userCard(page, 'a.miller')).toContainText('Anna Miller 300')
+    await expect(page.locator('tr[data-user]')).toHaveCount(3)
 
     await views.getByRole('button', { name: 'Grouped view' }).click()
     await expect(page.getByTestId('overview-group')).toHaveText([/Sales/, /Support/])
@@ -326,6 +327,101 @@ test.describe('user overview', () => {
     await expect(page.getByRole('region', { name: 'Online' }).locator('li[data-user]')).toHaveCount(
       1,
     )
+  })
+
+  test('shows the users in a table in the list view', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+    await page.getByRole('button', { name: 'List view' }).click()
+
+    const table = page.getByRole('grid', { name: 'User overview' })
+    await expect(table.getByRole('columnheader')).toHaveText([
+      'Name',
+      'Groups',
+      'Devices',
+      'Status',
+      'Actions',
+    ])
+    await expect(table.locator('tbody tr')).toHaveCount(3)
+
+    const anna = table.locator('tr[data-user="a.miller"]')
+    await expect(anna.getByRole('gridcell')).toHaveText(
+      [/Anna Miller/, 'Sales', /300[\s\S]*92300[\s\S]*93300/, 'Online', /Details/],
+      { useInnerText: true },
+    )
+    await expect(anna.getByTestId('device-item')).toHaveText([
+      'Web phone 300 Online',
+      'Mobile app 92300 Ringing',
+      'Fanvil X4U Pro 93300 Offline',
+    ])
+    await expect(anna.getByRole('button', { name: /^Call/ })).toHaveCount(0)
+    await expect(table.locator('tr[data-user="b.smith"]').getByRole('gridcell').nth(3)).toHaveText(
+      /DND$/,
+      { useInnerText: true },
+    )
+
+    await anna.getByTestId('device-item').nth(1).locator('[tabindex="0"]').hover()
+    await expect(page.getByRole('tooltip', { name: 'Mobile app · Ringing' })).toBeVisible()
+
+    const details = anna.getByRole('button', { name: 'Details Anna Miller' })
+    await details.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(details).toBeFocused()
+  })
+
+  test('marks the favorite users and filters the list view', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    await page.getByRole('button', { name: 'Show details of Carla Rossi' }).click()
+    await page.getByRole('button', { name: 'Add to favorites' }).click()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'List view' }).click()
+
+    const rows = page.locator('tr[data-user]')
+    await expect(rows.first()).toHaveAttribute('data-user', 'c.rossi')
+    await expect(rows.first().getByTestId('favorite-star')).toBeVisible()
+    await expect(rows.nth(1).getByTestId('favorite-star')).toHaveCount(0)
+
+    await page.getByRole('textbox', { name: 'Filter users' }).fill('nobody')
+    await expect(page.getByText('No users found')).toBeVisible()
+    await expect(page.getByRole('grid')).toHaveCount(0)
+  })
+
+  test('shows a number that cannot be called as plain text', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    const anna = userCard(page, 'a.miller')
+    await expect(anna.getByRole('button', { name: 'Call 300', exact: true })).toBeEnabled()
+    const offline = anna.getByTestId('call-number-text')
+    await expect(offline).toHaveText(['92300', '93300'])
+    await expect(offline.first()).not.toHaveAttribute('tabindex')
+    await offline.first().hover()
+    await expect(page.getByRole('tooltip')).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    const drawer = page.getByRole('dialog')
+    const number = drawer.getByTestId('call-number-text').last()
+    const physical = drawer.getByRole('button', { name: /93300 settings/ })
+    await expect(number).toHaveText('93300')
+    expect(
+      await number.evaluate((element) => {
+        const style = getComputedStyle(element)
+        return [style.backgroundColor, style.opacity]
+      }),
+    ).toEqual(['rgba(0, 0, 0, 0)', '1'])
+
+    await physical.click({ trial: true })
+    const box = await number.boundingBox()
+    expect(box).not.toBeNull()
+    await page.mouse.click(
+      (box?.x ?? 0) + (box?.width ?? 0) / 2,
+      (box?.y ?? 0) + (box?.height ?? 0) / 2,
+    )
+    await expect(physical).toHaveAttribute('aria-expanded', 'true')
   })
 
   test('anchors the presence to the corner of the avatar in every view', async ({

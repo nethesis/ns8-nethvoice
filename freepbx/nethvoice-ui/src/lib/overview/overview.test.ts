@@ -12,6 +12,7 @@ import {
   getOverviewCallStatus,
   getPhoneModelLabel,
   hasOnlineDevice,
+  isDeviceCallable,
   isOverviewCallBlocked,
   type OverviewCallContext,
   parseOverviewEndpointUsers,
@@ -316,5 +317,15 @@ describe('hasOnlineDevice', () => {
   it('should consider only online devices', () => {
     expect(hasOnlineDevice([{ status: 'busy' }, { status: 'dnd' }])).toBe(false)
     expect(hasOnlineDevice([{ status: 'busy' }, { status: 'online' }])).toBe(true)
+  })
+})
+
+describe('isDeviceCallable', () => {
+  it('should allow the call only to an online device while the phone is free', () => {
+    expect(isDeviceCallable({ status: 'online' }, false)).toBe(true)
+    expect(isDeviceCallable({ status: 'online' }, true)).toBe(false)
+    for (const status of ['offline', 'busy', 'ringing', 'dnd', 'forward'] as const) {
+      expect(isDeviceCallable({ status }, false)).toBe(false)
+    }
   })
 })
