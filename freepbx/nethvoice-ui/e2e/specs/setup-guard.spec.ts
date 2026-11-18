@@ -153,6 +153,31 @@ test.describe('setup wizard: navigation guard', () => {
     expect(mockApi.callsTo('POST', WIZARD)).toHaveLength(0)
   })
 
+  test('never shows the app or starts the phone while a setup page loads', async ({
+    page,
+    mockApi,
+  }) => {
+    let release: () => void = () => undefined
+    const stateRead = new Promise<void>((resolve) => {
+      release = resolve
+    })
+
+    mockApi.on('GET', WIZARD, async () => {
+      await stateRead
+      return { json: [{ step: 3, status: 'true' }] }
+    })
+
+    await page.goto('./setup/voip-trunks')
+    await page.waitForTimeout(500)
+    await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0)
+    release()
+
+    await expect(page.getByRole('heading', { name: 'VoIP trunks', level: 1 })).toBeVisible()
+    await expect(page.getByTestId('phone-island-host')).toHaveCount(0)
+    expect(mockApi.callsTo('POST', '/freepbx/rest/adminphone/session')).toHaveLength(0)
+    expect(mockApi.callsTo('GET', '/freepbx/rest/adminphone')).toHaveLength(0)
+  })
+
   test('opens the app from the pending page once the setup is completed', async ({
     page,
     mockApi,
