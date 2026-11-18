@@ -58,6 +58,9 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
         session_start();
         $_SESSION['AMP_user'] = new ampuser($username);
         if ($_SESSION['AMP_user']->checkPassword($password) && ($_SESSION['AMP_user']->checkSection('*') || nethvoiceParseSections($_SESSION['AMP_user']->getSections()))) {
+            if (!$_SESSION['AMP_user']->checkSection('*') && !nethvoiceKeepsFreepbxSession($_SESSION['AMP_user']->getSections())) {
+                unset($_SESSION['AMP_user']);
+            }
             unset($no_auth);
             require(__DIR__.'/../config.inc.php');
             $secret = $config['settings']['secretkey'];

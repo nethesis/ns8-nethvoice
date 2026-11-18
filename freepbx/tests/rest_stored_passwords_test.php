@@ -5,7 +5,7 @@ $rest = __DIR__ . '/../var/www/html/freepbx/rest';
 require $rest . '/vendor/autoload.php';
 require $rest . '/lib/JsonResponse.php';
 require $rest . '/lib/Permissions.php';
-require $rest . '/lib/libSecurity.php';
+require_once $rest . '/lib/libSecurity.php';
 
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
