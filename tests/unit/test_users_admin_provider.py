@@ -147,8 +147,17 @@ class UsersAdminProviderTest(unittest.TestCase):
         )
 
         self.assertTrue(changed)
-        self.agent.run_helper.assert_called_once_with(
-            "restart-services-when-convenient", "freepbx"
+        self.assertEqual(
+            self.agent.run_helper.call_args_list,
+            [
+                mock.call(
+                    "systemctl",
+                    "--user",
+                    "try-restart",
+                    "nethcti-middleware.service",
+                ),
+                mock.call("restart-services-when-convenient", "freepbx"),
+            ],
         )
 
     def test_set_route_failure_does_not_persist_provider(self):

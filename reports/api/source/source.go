@@ -79,6 +79,19 @@ func FreePBXInstance() *sql.DB {
 	return dbF
 }
 
+// Close closes every pool that was opened, so that connections are terminated with a
+// regular COM_QUIT. Short-lived processes (the "tasks" CLI) must call it before exiting:
+// otherwise the server finds the sockets closed and logs an
+// "Aborted connection ... (Got an error reading communication packets)" warning for each one.
+func Close() {
+	for _, db := range []**sql.DB{&dbQ, &dbMig, &dbViews, &dbP, &dbF} {
+		if *db != nil {
+			(*db).Close()
+			*db = nil
+		}
+	}
+}
+
 func CDRInit() *sql.DB {
 	// define uri connection string
 	uri := configuration.Config.CDRDatabase.User + ":" + configuration.Config.CDRDatabase.Password + "@tcp(" + configuration.Config.CDRDatabase.Host + ":" + configuration.Config.CDRDatabase.Port + ")/" + configuration.Config.CDRDatabase.Name

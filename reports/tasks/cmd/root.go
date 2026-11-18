@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/nethesis/nethvoice-report/api/source"
 	"github.com/nethesis/nethvoice-report/tasks/helper"
 )
 
@@ -38,7 +39,12 @@ var RootCmd = &cobra.Command{
 }
 
 func Execute() {
-	if err := RootCmd.Execute(); err != nil {
+	err := RootCmd.Execute()
+
+	// close database pools before exiting, see source.Close()
+	source.Close()
+
+	if err != nil {
 		helper.LogError(errors.Wrap(err, "error executing command"))
 		os.Exit(1)
 	}

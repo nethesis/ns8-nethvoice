@@ -298,6 +298,12 @@ cat > /etc/freepbx.conf <<EOF
 \$amp_conf['AMPDBENGINE'] = 'mysql';
 \$amp_conf['datasource'] = ''; //for sqlite3
 
+// Whoops renders request and environment data even with display_errors disabled.
+// Keep web errors in PHP's log and preserve fwconsole/AGI diagnostics.
+if (PHP_SAPI !== 'cli') {
+    \$bootstrap_settings['freepbx_error_handler'] = false;
+}
+
 require_once('/var/www/html/freepbx/admin/bootstrap.php');
 ?>
 EOF

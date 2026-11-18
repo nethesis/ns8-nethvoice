@@ -27,6 +27,7 @@ import (
 	"os"
 
 	"github.com/fatih/color"
+	"github.com/nethesis/nethvoice-report/api/source"
 	"github.com/pkg/errors"
 )
 
@@ -64,5 +65,6 @@ func LogError(err error) {
 // Print an error message to stderr and exit with non-zero status code
 func FatalError(err error) {
 	LogError(errors.Wrap(err, "FATAL"))
+	source.Close()
 	os.Exit(1)
 }

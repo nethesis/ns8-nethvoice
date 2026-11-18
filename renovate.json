@@ -19,6 +19,32 @@
   "customManagers": [
     {
       "customType": "regex",
+      "description": "Update Asterisk 22 and its source archive checksum together",
+      "managerFilePatterns": [
+        "/^freepbx\\/Containerfile$/"
+      ],
+      "matchStrings": [
+        "ARG ASTERISK_VERSION=(?<currentValue>\\S+)\\nARG ASTERISK_SHA256=(?<currentDigest>[a-f0-9]{64})"
+      ],
+      "depNameTemplate": "asterisk",
+      "datasourceTemplate": "custom.asterisk-22",
+      "versioningTemplate": "semver"
+    },
+    {
+      "customType": "regex",
+      "description": "Track upstream FreePBX 17 module release tags",
+      "managerFilePatterns": [
+        "/^freepbx\\/Containerfile$/"
+      ],
+      "matchStrings": [
+        "https://github\\.com/(?<depName>(?:FreePBX|FreePBX-ContributedModules)/[^/\\s]+)/archive/refs/tags/release/(?<currentValue>[0-9.]+)\\.tar\\.gz"
+      ],
+      "datasourceTemplate": "github-tags",
+      "extractVersionTemplate": "^release/(?<version>17\\.[0-9]+(?:\\.[0-9]+)*)$",
+      "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
       "managerFilePatterns": ["/^(tancredi|saml2-proxy)\\/Containerfile$/"],
       "matchStrings": ["(?:^|\\n)ARG APACHE_MIN_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "apache2",
@@ -35,6 +61,13 @@
     }
   ],
   "customDatasources": {
+    "asterisk-22": {
+      "defaultRegistryUrlTemplate": "https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-22-current.sha256",
+      "format": "plain",
+      "transformTemplates": [
+        "($release := $match(releases[0].version, /^([a-f0-9]{64})\\s+asterisk-(22\\.[0-9]+\\.[0-9]+)\\.tar\\.gz$/); {\"releases\": [{\"version\": $release.groups[1], \"digest\": $release.groups[0]}], \"sourceUrl\": \"https://github.com/asterisk/asterisk\"})"
+      ]
+    },
     "debian-bookworm": {
       "defaultRegistryUrlTemplate": "https://packages.debian.org/bookworm/amd64/{{{packageName}}}/download",
       "format": "html"
@@ -45,6 +78,21 @@
     }
   },
   "packageRules": [
+    {
+      "description": "Module updates need archive checksums and local patches reviewed before building",
+      "matchManagers": [
+        "custom.regex"
+      ],
+      "matchDepNames": [
+        "/^(FreePBX|FreePBX-ContributedModules)\\//"
+      ],
+      "groupName": "FreePBX modules",
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "prBodyNotes": [
+        "Before building, refresh the changed module entries in freepbx/remote-artifacts.sha256. For framework, also update the bootstrap archive filenames and checksum. Review the local compatibility patches. From the repository root, run `sources=$(mktemp -d)`, then `python3 tools/prepare-freepbx-test-sources.py \"$sources\"` followed by `sh tools/test-freepbx.sh \"$sources\"`."
+      ]
+    },
     {
       "description": "Track Apache security updates using Debian download pages (the deb datasource requires unavailable Packages.gz indexes)",
       "matchManagers": ["custom.regex"],

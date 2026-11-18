@@ -2,6 +2,25 @@
 
 FreePBX container for NethServer 8
 
+## Upstream updates
+
+Renovate tracks stable Asterisk 22 releases using the official
+`asterisk-22-current.sha256` file. It updates `ASTERISK_VERSION` and
+`ASTERISK_SHA256` in the Containerfile together; the existing PR image workflow
+builds the updated source and checks its SHA-256 before extraction.
+The feed lists only the latest release, so Renovate can warn that it cannot
+refresh an older pin's digest; the version update still includes the new hash.
+
+FreePBX 17 module updates are grouped in the Dependency Dashboard and require
+approval before Renovate opens a PR. They do not automerge. Before building an
+approved update, refresh the changed archive checksums in
+`remote-artifacts.sha256`; for framework, also update the bootstrap archive
+filenames and checksum. Review the compatibility patches. From the repository
+root, run `sources=$(mktemp -d)`, then
+`python3 tools/prepare-freepbx-test-sources.py "$sources"` followed by
+`sh tools/test-freepbx.sh "$sources"`. GitHub release tags can precede
+promotion to FreePBX's stable module repository, so review release suitability.
+
 ## Vendored FreePBX modules
 
 Boss Secretary and QueueMetrics are stored in `var/www/html/freepbx/admin/modules/`
