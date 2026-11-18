@@ -304,8 +304,9 @@ test.describe('administrator phone', () => {
       .on('POST', SESSION_PATH, { json: SESSION })
     await page.goto('./users/overview')
 
-    await expect(page.getByRole('button', { name: 'Call 92300, device offline' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: 'Call 93300, device busy' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: /92300/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /93300/ })).toHaveCount(0)
+    await expect(page.getByTestId('call-number-text')).toHaveText(['92300', '93300'])
 
     await page.getByRole('button', { name: 'Call 91300', exact: true }).click()
 
