@@ -29,10 +29,12 @@ require_once(__DIR__. '/../../admin/modules/core/functions.inc.php');
 $app->get('/providers', function (Request $request, Response $response, $args) {
     try {
         global $db;
-        $sql = 'SELECT `providers`.*, `defaults`.`data` AS `codecs` '
+        $sql = 'SELECT `providers`.*, `defaults`.`data` AS `codecs`, `servers`.`data` AS `sip_server` '
              . 'FROM `rest_pjsip_providers` AS `providers` '
              . 'LEFT JOIN `rest_pjsip_trunks_defaults` AS `defaults` '
              . "ON `defaults`.`provider_id` = `providers`.`id` AND `defaults`.`keyword` = 'codecs' "
+             . 'LEFT JOIN `rest_pjsip_trunks_defaults` AS `servers` '
+             . "ON `servers`.`provider_id` = `providers`.`id` AND `servers`.`keyword` = 'sip_server' "
              . 'ORDER BY `providers`.`description`';
         $results = $db->getAll($sql, DB_FETCHMODE_ASSOC);
         if(DB::IsError($results)) {
