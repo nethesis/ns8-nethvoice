@@ -177,7 +177,7 @@ export const test = base.extend<Fixtures>({
         json: { release: null, uptime_seconds: 0, load_average: 0, memory_used_percent: 0 },
       })
       .on('GET', '/freepbx/rest/dashboard/phones', {
-        json: { provisioned: 0, pending: 0, unassigned: 0, failed: 0, unknown: 0 },
+        json: { provisioned: 0, pending: 0, unassigned: 0, failed: 0, unknown: 0, total: 0 },
       })
       .on('GET', '/api/astproxy/trunks', { json: {} })
     mockWizardState(mockApi, 13, false)

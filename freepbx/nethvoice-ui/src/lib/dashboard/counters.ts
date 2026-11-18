@@ -3,9 +3,8 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
-import { TANCREDI_API_URL } from '@/lib/config'
 import { parseGroups } from '@/lib/groups/groups'
-import { adminApiGet } from './ctiClient'
+import { getDashboardPhones } from './phones'
 
 export const DASHBOARD_COUNTER_KEY = 'dashboardCounter'
 
@@ -26,15 +25,12 @@ export type DashboardCounterId = (typeof DASHBOARD_COUNTER_IDS)[number]
 
 const CountSchema = v.pipe(v.number(), v.integer(), v.minValue(0))
 
-const ListSchema = v.array(v.unknown())
-
 export const parseCount = (raw: unknown): number => v.parse(CountSchema, raw)
 
 const COUNTER_LOADERS: Record<DashboardCounterId, (signal?: AbortSignal) => Promise<number>> = {
   users: async (signal) => parseCount((await api.GET('/users/count', { signal })).data),
   groups: async (signal) => parseGroups((await api.GET('/cti/groups', { signal })).data).length,
-  physicalPhones: async (signal) =>
-    (await adminApiGet(`${TANCREDI_API_URL}/phones`, ListSchema, signal)).length,
+  physicalPhones: async (signal) => (await getDashboardPhones(signal)).total,
   trunks: async (signal) => parseCount((await api.GET('/trunks/count', { signal })).data),
   inboundRoutes: async (signal) =>
     parseCount((await api.GET('/inboundroutes/count', { signal })).data),
