@@ -106,7 +106,6 @@ describe('parseBulkSettings', () => {
         outboundcid: '0721405516',
       }),
     ).toEqual({
-      displayname: '',
       callwaiting: 'disabled',
       ringtime: '0',
       callgroup: '1',

@@ -790,7 +790,7 @@ test.describe('users', () => {
     await page.keyboard.press('Escape')
 
     await expect(drawer.getByLabel('Ring time (seconds)')).toHaveValue('0')
-    await expect(drawer.getByLabel('Display name')).toHaveValue('')
+    await expect(drawer.getByLabel('Display name')).toHaveCount(0)
     await drawer.getByRole('button', { name: 'Save' }).click()
     await expect(drawer.getByText('Change at least one setting')).toBeVisible()
 
