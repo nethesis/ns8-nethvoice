@@ -40,7 +40,12 @@ import {
   type VoipTrunkForm,
   type VoipTrunkValidationIssues,
 } from '@/lib/trunks/trunks'
-import { getCodecLabel, getProviderName, getSelectableCodecs } from '@/lib/trunks/providers'
+import {
+  findTrunkProvider,
+  getCodecLabel,
+  getProviderName,
+  getSelectableCodecs,
+} from '@/lib/trunks/providers'
 import { markTrunkChanged, TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
 import type { Focusable } from '@/lib/common'
 import { useTrunkCodecs, useTrunkProviders } from '@/queries/trunks/trunks'
@@ -219,12 +224,15 @@ function notifyErrorIfClosed(title: string, error: unknown) {
 }
 
 function getTrunkDefaultCodecs(item: Trunk): string[] {
-  return providers.value.find((provider) => provider.id === item.provider)?.defaultCodecs ?? []
+  return findTrunkProvider(item, providers.value)?.defaultCodecs ?? []
 }
 
 function initForm() {
   form.value = trunk
-    ? getVoipTrunkForm(trunk, getTrunkDefaultCodecs(trunk))
+    ? {
+        ...getVoipTrunkForm(trunk, getTrunkDefaultCodecs(trunk)),
+        provider: findTrunkProvider(trunk, providers.value)?.id ?? trunk.provider,
+      }
     : getEmptyVoipTrunkForm()
   initialSnapshot.value = JSON.stringify(form.value)
 }

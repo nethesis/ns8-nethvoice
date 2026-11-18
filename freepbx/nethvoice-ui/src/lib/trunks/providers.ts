@@ -23,6 +23,7 @@ const ProvidersResponseSchema = v.array(
     provider: v.string(),
     description: v.nullish(v.string(), ''),
     codecs: v.nullish(v.string(), ''),
+    sip_server: v.nullish(v.string(), ''),
   }),
 )
 
@@ -37,6 +38,7 @@ export type TrunkProvider = {
   id: string
   name: string
   defaultCodecs: string[]
+  sipServer: string
 }
 
 export const parseTrunkProviders = (raw: unknown): TrunkProvider[] =>
@@ -46,6 +48,7 @@ export const parseTrunkProviders = (raw: unknown): TrunkProvider[] =>
       id: provider.provider,
       name: provider.description.trim() || provider.provider,
       defaultCodecs: splitCodecs(provider.codecs),
+      sipServer: provider.sip_server.trim(),
     }))
     .sort((a, b) => compareNatural(a.name, b.name))
 
@@ -65,8 +68,27 @@ export const getTrunkCodecs = async (): Promise<string[]> => {
   return parseTrunkCodecs(data)
 }
 
+export const findTrunkProvider = (
+  trunk: Trunk,
+  providers: TrunkProvider[],
+): TrunkProvider | undefined => {
+  if (trunk.provider) {
+    return providers.find((provider) => provider.id === trunk.provider)
+  }
+  const sipServer = trunk.sipServer.trim().toLowerCase()
+
+  if (!sipServer) {
+    return undefined
+  }
+  const matches = providers.filter(
+    (provider) => provider.sipServer !== '' && provider.sipServer.toLowerCase() === sipServer,
+  )
+
+  return matches.length === 1 ? matches[0] : undefined
+}
+
 export const getProviderName = (trunk: Trunk, providers: TrunkProvider[]): string =>
-  providers.find((provider) => provider.id === trunk.provider)?.name ?? ''
+  findTrunkProvider(trunk, providers)?.name ?? ''
 
 export const getTrunkLabel = (trunk: Trunk, providers: TrunkProvider[]): string => {
   const providerName = getProviderName(trunk, providers)
