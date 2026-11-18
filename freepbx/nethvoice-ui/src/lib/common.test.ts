@@ -2,7 +2,14 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { describe, expect, it } from 'vitest'
-import { compareNatural, foldText, matchesText, normalize, paginate } from './common'
+import {
+  compareNatural,
+  foldText,
+  matchesText,
+  needsPaginator,
+  normalize,
+  paginate,
+} from './common'
 
 describe('normalize', () => {
   it('should lowercase and replace spaces', () => {
@@ -45,6 +52,27 @@ describe('paginate', () => {
 
   it('should return a short last page', () => {
     expect(paginate([1, 2, 3, 4, 5], 3, 2)).toEqual([5])
+  })
+})
+
+describe('needsPaginator', () => {
+  it('should hide the paginator when every row fits in the default page', () => {
+    expect(needsPaginator(0, 5, 5)).toBe(false)
+    expect(needsPaginator(5, 5, 5)).toBe(false)
+    expect(needsPaginator(4, 10, 5)).toBe(false)
+  })
+
+  it('should show the paginator when the rows exceed the page', () => {
+    expect(needsPaginator(6, 5, 5)).toBe(true)
+  })
+
+  it('should keep the page size control after a larger page size is chosen', () => {
+    expect(needsPaginator(7, 25, 5)).toBe(true)
+  })
+
+  it('should show the paginator when a smaller page size is chosen', () => {
+    expect(needsPaginator(7, 5, 10)).toBe(true)
+    expect(needsPaginator(7, 25, 10)).toBe(false)
   })
 })
 
