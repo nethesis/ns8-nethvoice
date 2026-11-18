@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { expect, test } from '../fixtures/mockApi'
-import { DEFAULTS, REST, TANCREDI } from './phones-data'
+import { DEFAULTS, mockStoredDefaults, REST, TANCREDI } from './phones-data'
 
 test.describe('physical phones: settings', () => {
   test.beforeEach(({ signedIn, mockApi }) => {
@@ -11,7 +11,7 @@ test.describe('physical phones: settings', () => {
   })
 
   test('shows and saves the default phone configuration', async ({ page, mockApi }) => {
-    mockApi.on('PATCH', `${TANCREDI}/defaults`, { status: 204 })
+    mockStoredDefaults(mockApi)
     await page.goto('./phones/settings')
 
     await expect(page.getByRole('combobox', { name: 'Phone language' })).toHaveValue('Italiano')
@@ -32,7 +32,7 @@ test.describe('physical phones: settings', () => {
   })
 
   test('reveals the current passwords and changes the user password', async ({ page, mockApi }) => {
-    mockApi.on('PATCH', `${TANCREDI}/defaults`, { status: 204 })
+    mockStoredDefaults(mockApi)
     await page.goto('./phones/settings')
 
     const userPassword = page.getByLabel('Current user password')
@@ -67,6 +67,36 @@ test.describe('physical phones: settings', () => {
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByText('Cannot save phone settings')).toBeVisible()
     await expect(page.getByText(/Cannot write defaults/)).toBeVisible()
+  })
+
+  test('reports a save that the PBX did not store and keeps the changes', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('PATCH', `${TANCREDI}/defaults`, { status: 204 })
+    await page.goto('./phones/settings')
+
+    await page.getByText('Only at startup').click()
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('Cannot save phone settings')).toBeVisible()
+    await expect(page.getByText('The PBX did not save the changes. Try again.')).toBeVisible()
+    await expect(page.getByText('Default configuration saved')).toHaveCount(0)
+    await expect(page.getByRole('radio', { name: 'Only at startup' })).toBeChecked()
+  })
+
+  test('reports a password change that the PBX did not store', async ({ page, mockApi }) => {
+    mockApi.on('PATCH', `${TANCREDI}/defaults`, { status: 204 })
+    await page.goto('./phones/settings')
+
+    await page.getByRole('button', { name: 'Change user password' }).click()
+    const drawer = page.getByRole('dialog')
+    await drawer.getByLabel('New password', { exact: true }).fill('Desk-phone-9')
+    await drawer.getByLabel('Confirm password').fill('Desk-phone-9')
+    await drawer.getByRole('button', { name: 'Change password' }).click()
+
+    await expect(drawer.getByText('The PBX did not save the changes. Try again.')).toBeVisible()
+    await expect(page.getByText('User password updated')).toHaveCount(0)
   })
 
   test('reports a load error and retries', async ({ page, mockApi }) => {

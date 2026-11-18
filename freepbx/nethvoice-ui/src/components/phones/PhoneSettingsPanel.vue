@@ -113,7 +113,7 @@ const {
 watch(
   () => state.value.data,
   (defaults) => {
-    if (!defaults) {
+    if (!defaults || saveError.value) {
       return
     }
     language.value = defaults.language
