@@ -35,5 +35,11 @@ export const paginate = <T>(items: T[], pageNum: number, pageSize: number): T[] 
   return items.slice(start, start + pageSize)
 }
 
+export const needsPaginator = (
+  totalRows: number,
+  pageSize: number,
+  defaultPageSize: number,
+): boolean => totalRows > Math.min(pageSize, defaultPageSize)
+
 export const compareNatural = (a: string, b: string) =>
   a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })

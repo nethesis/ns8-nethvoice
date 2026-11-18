@@ -19,7 +19,7 @@ import {
 import type { IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import TablePaginator from '@/components/common/TablePaginator.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
-import { PAGE_SIZES } from '@/lib/common'
+import { needsPaginator } from '@/lib/common'
 import { DASHBOARD_LIST_PAGE_SIZE } from '@/lib/dashboard/routing'
 
 const {
@@ -75,7 +75,7 @@ pageSize.value = DASHBOARD_LIST_PAGE_SIZE
           </NeTableCell>
         </NeTableRow>
       </NeTableBody>
-      <template v-if="items.length > PAGE_SIZES[0]" #paginator>
+      <template v-if="needsPaginator(items.length, pageSize, DASHBOARD_LIST_PAGE_SIZE)" #paginator>
         <TablePaginator
           v-model:page-num="pageNum"
           v-model:page-size="pageSize"
