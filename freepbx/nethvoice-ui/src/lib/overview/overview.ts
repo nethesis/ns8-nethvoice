@@ -188,6 +188,11 @@ const BLOCKING_CALL_STATUSES: OverviewCallStatus[] = [
 export const hasOnlineDevice = (devices: Pick<OverviewDevice, 'status'>[]): boolean =>
   devices.some((device) => device.status === 'online')
 
+export const isDeviceCallable = (
+  device: Pick<OverviewDevice, 'status'>,
+  callBlocked: boolean,
+): boolean => device.status === 'online' && !callBlocked
+
 export const getOverviewCallStatus = (context: OverviewCallContext): OverviewCallStatus => {
   if (!context.mainExtension) {
     return 'no_extension'

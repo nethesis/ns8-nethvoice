@@ -17,6 +17,7 @@ import OverviewStatusLabel from '@/components/overview/OverviewStatusLabel.vue'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
 import {
   getOverviewCallStatus,
+  isDeviceCallable,
   isOverviewCallBlocked,
   type OverviewDevice,
   type OverviewUser,
@@ -238,7 +239,14 @@ function getDeviceLabel(device: OverviewDevice) {
                 >
                   {{ getDeviceLabel(device) }}
                 </span>
-                <span class="relative -ml-2" @click.stop>
+                <span
+                  v-if="isDeviceCallable(device, adminPhoneStore.isCallBlocked)"
+                  class="relative -ml-2"
+                  @click.stop
+                >
+                  <OverviewCallNumber :device="device" />
+                </span>
+                <span v-else class="pointer-events-none relative -ml-2">
                   <OverviewCallNumber :device="device" />
                 </span>
                 <OverviewStatusLabel
