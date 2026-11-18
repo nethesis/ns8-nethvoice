@@ -20,11 +20,13 @@ const {
   presence,
   size = 'md',
   favorite = false,
+  variant = 'card',
 } = defineProps<{
   name: string
   presence: OverviewStatus
   size?: OverviewAvatarSize
   favorite?: boolean
+  variant?: 'card' | 'row'
 }>()
 
 const { t } = useI18n()
@@ -42,6 +44,12 @@ const STAR_SIZE: Record<OverviewAvatarSize, string> = {
   '3xl': 'size-6',
 }
 
+const dotClasses = computed(() =>
+  variant === 'row'
+    ? '-right-0.5 -bottom-0.5 size-3 ring-elevation-0'
+    : ['right-0 bottom-0 ring-white', DOT_SIZE[avatarSize.value]],
+)
+
 const initials = computed(() => getInitials(name))
 
 const avatarSize = computed<OverviewAvatarSize>(() =>
@@ -53,11 +61,7 @@ const avatarSize = computed<OverviewAvatarSize>(() =>
   <span class="relative inline-flex shrink-0">
     <NeAvatar :size="avatarSize" :initials="initials" :alt="name" />
     <span
-      :class="[
-        'absolute right-0 bottom-0 block rounded-full ring-2 ring-white',
-        DOT_SIZE[avatarSize],
-        PRESENCE_DOT[presence],
-      ]"
+      :class="['absolute block rounded-full ring-2', dotClasses, PRESENCE_DOT[presence]]"
       :title="t(`user_overview.status.${presence}`)"
       data-testid="presence-dot"
     >

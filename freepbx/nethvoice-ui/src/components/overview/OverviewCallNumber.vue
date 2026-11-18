@@ -7,7 +7,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { NeButton, NeTooltip } from '@nethesis/vue-components'
-import type { OverviewDevice } from '@/lib/overview/overview'
+import { isDeviceCallable, type OverviewDevice } from '@/lib/overview/overview'
 import { useAdminPhoneStore } from '@/stores/adminPhone'
 
 const { device } = defineProps<{ device: OverviewDevice }>()
@@ -15,16 +15,7 @@ const { device } = defineProps<{ device: OverviewDevice }>()
 const { t } = useI18n()
 const adminPhoneStore = useAdminPhoneStore()
 
-const isCallable = computed(() => device.status === 'online' && !adminPhoneStore.isCallBlocked)
-
-const unavailableLabel = computed(() =>
-  device.status === 'online'
-    ? t('user_overview.call_extension_blocked', { extension: device.extension })
-    : t('user_overview.call_extension_unavailable', {
-        extension: device.extension,
-        status: t(`user_overview.status.${device.status}`).toLowerCase(),
-      }),
-)
+const isCallable = computed(() => isDeviceCallable(device, adminPhoneStore.isCallBlocked))
 
 function call() {
   void adminPhoneStore.call(device.extension)
@@ -32,16 +23,13 @@ function call() {
 </script>
 
 <template>
-  <NeButton
+  <span
     v-if="!isCallable"
-    kind="tertiary"
-    size="sm"
-    disabled
-    :aria-label="unavailableLabel"
-    data-testid="call-number"
+    class="text-secondary-neutral inline-block px-2 py-1 text-sm font-medium"
+    data-testid="call-number-text"
   >
     {{ device.extension }}
-  </NeButton>
+  </span>
   <NeTooltip v-else trigger-event="mouseenter focus" placement="top">
     <template #trigger>
       <NeButton

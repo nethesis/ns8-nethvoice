@@ -30,6 +30,7 @@ import LoadError from '@/components/common/LoadError.vue'
 import OperatorDetailsDrawer from '@/components/overview/OperatorDetailsDrawer.vue'
 import OverviewCompactCard from '@/components/overview/OverviewCompactCard.vue'
 import OverviewUserCard from '@/components/overview/OverviewUserCard.vue'
+import OverviewUsersTable from '@/components/overview/OverviewUsersTable.vue'
 import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
 import { useCtiLiveAccess } from '@/composables/useCtiLiveAccess'
 import { usePolling } from '@/composables/usePolling'
@@ -338,8 +339,14 @@ function reload() {
           </NeTooltip>
         </div>
       </div>
+      <OverviewUsersTable
+        v-if="loading && view === 'list'"
+        :users="[]"
+        loading
+        :is-favorite="favoritesStore.isFavorite"
+      />
       <div
-        v-if="loading"
+        v-else-if="loading"
         class="3xl:grid-cols-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
       >
         <div v-for="index in 5" :key="index" class="bg-elevation-0 rounded-lg p-5">
@@ -374,18 +381,12 @@ function reload() {
           />
         </li>
       </ul>
-      <ul
+      <OverviewUsersTable
         v-else-if="view === 'list'"
-        class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
-      >
-        <li v-for="user in shownUsers" :key="user.username" :data-user="user.username">
-          <OverviewCompactCard
-            :user="user"
-            :favorite="favoritesStore.isFavorite(user.username)"
-            @details="showDetails(user)"
-          />
-        </li>
-      </ul>
+        :users="shownUsers"
+        :is-favorite="favoritesStore.isFavorite"
+        @details="showDetails"
+      />
       <div v-else class="flex flex-col gap-8">
         <section
           v-for="section in groupedUsers"
