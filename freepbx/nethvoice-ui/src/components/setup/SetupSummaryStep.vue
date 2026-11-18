@@ -32,14 +32,16 @@ import { LEGACY_FINAL_STEP } from '@/lib/setup/steps'
 import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
 import { useSetupStore } from '@/stores/setup'
 import { usePbxCountry } from '@/queries/setup/pbxCountry'
+import { fetchWizardState } from '@/queries/setup/wizardState'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
-import { describeError } from '@/stores/notifications'
+import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { t, locale } = useI18n()
 const router = useRouter()
 const queryCache = useQueryCache()
 const setupStore = useSetupStore()
 const runtimeConfigStore = useRuntimeConfigStore()
+const notificationsStore = useNotificationsStore()
 const { getRouteTitle } = useOutboundRouteLabels()
 
 const { state: languagesState, refetch: refetchLanguages } = usePbxLanguages()
@@ -121,6 +123,18 @@ async function completeSetup() {
   completionError.value = null
 
   try {
+    const savedState = await fetchWizardState()
+
+    if (!savedState.inProgress) {
+      setupStore.reset()
+      notificationsStore.createNotification({
+        kind: 'info',
+        title: t('setup.setup_already_completed'),
+        description: t('setup.setup_already_completed_description'),
+      })
+      await router.replace({ name: 'dashboard' })
+      return
+    }
     await postWizardState(LEGACY_FINAL_STEP, false)
     setupStore.reset()
     await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] })
