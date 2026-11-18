@@ -297,14 +297,6 @@ const comboboxLabels = computed(() => ({
         data-testid="bulk-settings-loading"
       />
       <template v-else-if="settingsReady">
-        <NeTextInput
-          :model-value="form.displayname"
-          :label="t('users.display_name')"
-          :helper-text="t('users.bulk_display_name_helper')"
-          :placeholder="t('users.keep_current_values')"
-          :disabled="saving"
-          @update:model-value="setField('displayname', $event)"
-        />
         <NeCombobox
           :model-value="form.callwaiting"
           :label="t('users.call_waiting')"

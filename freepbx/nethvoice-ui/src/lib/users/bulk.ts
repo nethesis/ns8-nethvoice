@@ -32,7 +32,6 @@ export const DEFAULT_DESTINATION = 'default'
 export const MAX_RING_TIME = 120
 
 export const ADVANCED_BULK_FIELDS = [
-  'displayname',
   'callwaiting',
   'ringtime',
   'callgroup',
@@ -79,7 +78,6 @@ export class BulkUserError extends Error {
 }
 
 export const EMPTY_ADVANCED_BULK_FORM: AdvancedBulkForm = {
-  displayname: '',
   callwaiting: '',
   ringtime: '',
   callgroup: '',
@@ -238,7 +236,6 @@ const NullableTextSchema = v.optional(
 )
 
 const BulkSettingsSchema = v.object({
-  displayname: NullableTextSchema,
   callwaiting: v.optional(v.nullable(v.union([v.boolean(), v.number()])), null),
   ringtime: NullableTextSchema,
   callgroup: NullableTextSchema,
@@ -267,7 +264,6 @@ export const parseBulkSettings = (raw: unknown): AdvancedBulkForm => {
   const settings = v.parse(BulkSettingsSchema, raw)
 
   return {
-    displayname: settings.displayname ?? '',
     callwaiting: toCallWaitingValue(settings.callwaiting),
     ringtime:
       settings.ringtime !== null && /^[0-9]+$/.test(settings.ringtime) ? settings.ringtime : '',
@@ -355,10 +351,6 @@ export const buildBulkRequest = (
   form: AdvancedBulkForm,
 ): UsersBulkRequest => {
   const body: UsersBulkRequest = {}
-
-  if (isChanged(initial, form, 'displayname')) {
-    body.displayname = form.displayname.trim()
-  }
 
   if (isChanged(initial, form, 'callwaiting')) {
     body.callwaiting = form.callwaiting === 'enabled'
