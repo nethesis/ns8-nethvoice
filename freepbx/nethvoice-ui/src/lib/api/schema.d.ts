@@ -75,7 +75,7 @@ export interface paths {
     put?: never
     /**
      * Validate FreePBX credentials and disclose the shared secret.
-     * @description Body: `{ "username": "", "password": "" }`. On success returns `{ "result": "<secret>" }` with status 200; otherwise 401.
+     * @description Body: `{ "username": "", "password": "" }`. On success returns `{ "result": "<secret>" }` with status 200; otherwise 401. The FreePBX session (`AMP_user`) stays open only for superadmin: for administrators who are not superadmin it is cleared after the credentials are checked.
      */
     post: operations['post_testauth']
     delete?: never
@@ -542,7 +542,7 @@ export interface paths {
     put?: never
     /**
      * Create a database connection.
-     * @description Body includes host, port, type, credentials and database name; credentials are stored for later use by customer cards.
+     * @description Body includes host, port, type, credentials and database name; credentials are stored for later use by customer cards. For administrators who are not superadmin, a body that is not a JSON or form object returns 400, and a connection to the built-in NethVoice databases returns 403. Built-in means connection 1 or 2 on a local host, or any connection to a local host (empty, localhost, loopback, link-local or unspecified address) without a port or on the port of connection 1 or 2.
      */
     post: operations['post_cti_dbconn']
     delete?: never
@@ -581,7 +581,7 @@ export interface paths {
     get?: never
     /**
      * Update the given fields of a database connection.
-     * @description Reloads nethcti-server so the customer cards use the new parameters. An empty or omitted `pass` keeps the stored password, unless `host`, `port` or `type` change, which requires the password again.
+     * @description Reloads nethcti-server so the customer cards use the new parameters. An empty or omitted `pass` keeps the stored password, unless `host`, `port` or `type` change, which requires the password again. For administrators who are not superadmin, a non-numeric `id` or a body that is not a JSON or form object returns 400, and 403 is returned when the stored connection or the result of the update is a built-in NethVoice database (see `POST /cti/dbconn`).
      */
     put: operations['put_cti_dbconn_id']
     post?: never
@@ -698,7 +698,10 @@ export interface paths {
      */
     put: operations['put_cti_customer_card_template_name']
     post?: never
-    /** Delete a customer card template. */
+    /**
+     * Delete a customer card template.
+     * @description Requires the superadmin permission: templates are rendered by the CTI server.
+     */
     delete: operations['delete_cti_customer_card_template_name']
     options?: never
     head?: never
@@ -712,12 +715,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List the customer cards. */
+    /**
+     * List the customer cards.
+     * @description Every query parameter filters the cards by the column with the same name. Administrators who are not superadmin can filter only by `id`, `name`, `dbconn_id` and `template`; any other parameter returns 400.
+     */
     get: operations['get_cti_customer_card']
     put?: never
     /**
      * Create a customer card.
-     * @description Body includes name, Base64 encoded query, template name, DB connection id and profile ids. Generates a permission entry automatically.
+     * @description Body includes name, Base64 encoded query, template name, DB connection id and profile ids. Generates a permission entry automatically. For administrators who are not superadmin, a missing or non-numeric `dbconn_id` returns 400 and a card on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
      */
     post: operations['post_cti_customer_card']
     delete?: never
@@ -736,7 +742,7 @@ export interface paths {
     get?: never
     /**
      * Update a customer card.
-     * @description When the name changes, the related CTI permission is renamed too (name cc_<sanitized name>, displayname <name>).
+     * @description When the name changes, the related CTI permission is renamed too (name cc_<sanitized name>, displayname <name>). For administrators who are not superadmin, 400 is returned for a non-numeric `id`, an empty body, a key other than `name`, `query`, `template`, `dbconn_id` and `profiles`, a value of those fields that is not a scalar (an array for `profiles`) or a non-numeric `dbconn_id`. Changing the query or the connection of a card that ends up on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
      */
     put: operations['put_cti_customer_card_id']
     post?: never
@@ -1694,7 +1700,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Fetch the mobile number tied to the given username. */
+    /**
+     * Fetch the mobile number tied to the given username.
+     * @description For administrators who are not superadmin, a username that does not match `^[A-Za-z0-9._@-]+$` returns 400.
+     */
     get: operations['get_mobiles_username']
     put?: never
     post?: never
@@ -1769,7 +1778,10 @@ export interface paths {
      */
     get: operations['get_phonebook_config']
     put?: never
-    /** Create an external phonebook source. */
+    /**
+     * Create an external phonebook source.
+     * @description Creating a mysql or mssql source requires the superadmin permission. For administrators who are not superadmin, a body that is not a JSON or form object, a `dbtype` that is not a string or a `mapping` destination that is not one of `GET /phonebook/fields` returns 400.
+     */
     post: operations['post_phonebook_config']
     delete?: never
     options?: never
@@ -1808,12 +1820,12 @@ export interface paths {
     put?: never
     /**
      * Replace an external phonebook source.
-     * @description When the URL changes, the previously uploaded CSV file is removed if no other source uses it. An empty or omitted `password` keeps the stored one, unless the type, the host, the port or the Infinity URL change, which requires the password again.
+     * @description When the URL changes, the previously uploaded CSV file is removed if no other source uses it. An empty or omitted `password` keeps the stored one, unless the type, the host, the port or the Infinity URL change, which requires the password again. Saving a mysql or mssql source, or replacing a stored one, requires the superadmin permission. For administrators who are not superadmin, an `id` that does not match `^[A-Za-z0-9_-]+$`, a body that is not a JSON or form object, a `dbtype` that is not a string or a `mapping` destination that is not one of `GET /phonebook/fields` returns 400.
      */
     post: operations['post_phonebook_config_id']
     /**
      * Delete an external phonebook source and the contacts imported from it.
-     * @description The uploaded CSV file of the source is removed when no other source uses it.
+     * @description The uploaded CSV file of the source is removed when no other source uses it. Deleting a mysql or mssql source requires the superadmin permission. For administrators who are not superadmin, an `id` that does not match `^[A-Za-z0-9_-]+$` returns 400.
      */
     delete: operations['delete_phonebook_config_id']
     options?: never
@@ -1850,7 +1862,10 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Import a phonebook source now (synchronous). */
+    /**
+     * Import a phonebook source now (synchronous).
+     * @description Importing a mysql or mssql source requires the superadmin permission.
+     */
     post: operations['post_phonebook_syncnow_id']
     delete?: never
     options?: never
@@ -1885,7 +1900,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Return system LDAP phonebook connection details for clients. */
+    /**
+     * Return system LDAP phonebook connection details for clients.
+     * @description Requires the phones section. The `password` of each entry is returned only to superadmin.
+     */
     get: operations['get_phonebook_ldap']
     put?: never
     post?: never
@@ -2717,7 +2735,10 @@ export interface paths {
     /** Return the stored clear-text password for a user when available. */
     get: operations['get_users_username_password']
     put?: never
-    /** Set the password of the FreePBX administrator (`admin`) or, in legacy mode only, of a user. */
+    /**
+     * Set the password of the FreePBX administrator (`admin`) or, in legacy mode only, of a user.
+     * @description Requires the superadmin permission.
+     */
     post: operations['post_users_username_password']
     delete?: never
     options?: never
@@ -2750,7 +2771,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Export the users as base64 of a CSV without header (same columns of the import, without nethlink). */
+    /**
+     * Export the users as base64 of a CSV without header (same columns of the import, without nethlink).
+     * @description For administrators who are not superadmin the password column (the fourth) is empty in every row.
+     */
     get: operations['get_csv_csvexport']
     put?: never
     post?: never
@@ -2767,7 +2791,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Voicemail boxes of the default context keyed by extension (an empty array when there is none). */
+    /**
+     * Voicemail boxes of the default context keyed by extension (an empty array when there is none).
+     * @description The `pwd` of each box is returned only to superadmin.
+     */
     get: operations['get_voicemails']
     put?: never
     /** Enable or disable the voicemail box of an extension. */
@@ -2785,7 +2812,10 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Return the voicemail configuration for a specific extension. */
+    /**
+     * Return the voicemail configuration for a specific extension.
+     * @description The `pwd` of the box is returned only to superadmin.
+     */
     get: operations['get_voicemails_extension']
     put?: never
     post?: never
@@ -3031,6 +3061,11 @@ export interface components {
        * @example ulaw,alaw,g729
        */
       codecs?: string | null
+      /**
+       * @description Default SIP server of the provider, used to recognize trunks created without a provider
+       * @example sip.example.com
+       */
+      sip_server?: string | null
     }
     TrunkCodec: {
       /** @example alaw */
@@ -4872,6 +4907,28 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -4943,13 +5000,24 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request, or the password is missing for a different server */
+      /** @description Bad request, invalid parameters, or the password is missing for a different server */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
           'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
         }
       }
       /** @description Internal server error */
@@ -5267,6 +5335,17 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -5278,7 +5357,12 @@ export interface operations {
   }
   get_cti_customer_card: {
     parameters: {
-      query?: never
+      query?: {
+        id?: string
+        name?: string
+        dbconn_id?: string
+        template?: string
+      }
       header?: never
       path?: never
       cookie?: never
@@ -5292,6 +5376,17 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['IntegrationsCustomerCard'][]
+        }
+      }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
         }
       }
       /** @description Internal server error */
@@ -5323,6 +5418,28 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -5353,6 +5470,28 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
       }
       /** @description Not found */
       404: {
@@ -7015,6 +7154,17 @@ export interface operations {
           'application/json': Record<string, never>
         }
       }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
     }
   }
   get_nethlink_mainextension: {
@@ -7179,14 +7329,24 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Invalid request or invalid source URL */
+      /** @description Invalid request, invalid source URL or invalid mapping */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
+          'application/json':
+            components['schemas']['IntegrationsStatusError'] | components['schemas']['Error']
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
           'application/json': {
-            status?: string
+            message?: string
           }
         }
       }
@@ -7249,14 +7409,24 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Invalid request, invalid source URL or missing password for a different server */
+      /** @description Invalid request, invalid source URL, invalid mapping or missing password for a different server */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
+          'application/json':
+            components['schemas']['IntegrationsStatusError'] | components['schemas']['Error']
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
           'application/json': {
-            status?: string
+            message?: string
           }
         }
       }
@@ -7288,6 +7458,28 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
       }
       /** @description Internal server error */
       500: {
@@ -7390,7 +7582,19 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['IntegrationsStatusError']
+          'application/json':
+            components['schemas']['IntegrationsStatusError'] | components['schemas']['Error']
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
         }
       }
       /** @description Internal server error */
@@ -7484,6 +7688,17 @@ export interface operations {
            *     }
            */
           'application/json': Record<string, never>
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
         }
       }
     }
@@ -8670,7 +8885,8 @@ export interface operations {
            *       "pending": 4,
            *       "unassigned": 2,
            *       "failed": 2,
-           *       "unknown": 0
+           *       "unknown": 0,
+           *       "total": 124
            *     }
            */
           'application/json': {
@@ -8679,6 +8895,8 @@ export interface operations {
             unassigned: number
             failed: number
             unknown: number
+            /** @description All the phones of the Tancredi inventory. */
+            total: number
           }
         }
       }
@@ -9155,6 +9373,17 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Unknown user, or the legacy password command failed (always the case for non-admin users on NS8) */
       422: {
         headers: {
@@ -9278,6 +9507,9 @@ export interface operations {
           'application/json':
             | {
                 [key: string]: {
+                  /** @description Voicemail PIN, returned only to superadmin. */
+                  pwd?: string
+                } & {
                   [key: string]: unknown
                 }
               }
@@ -9350,7 +9582,12 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': Record<string, never>
+          'application/json': {
+            /** @description Voicemail PIN, returned only to superadmin. */
+            pwd?: string
+          } & {
+            [key: string]: unknown
+          }
         }
       }
     }
