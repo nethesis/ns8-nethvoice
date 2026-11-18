@@ -25,6 +25,7 @@ import {
   validateNewPhoneRows,
   type Phone,
 } from './phones'
+import { PhoneSettingsNotSavedError } from './persistence'
 import { tancredi } from './tancrediClient'
 
 vi.mock('@/lib/api/client', () => ({
@@ -245,6 +246,14 @@ describe('phone writes', () => {
     vi.mocked(tancredi.patch).mockImplementation(record('tancredi PATCH'))
     vi.mocked(tancredi.post).mockImplementation(record('tancredi POST'))
     vi.mocked(tancredi.delete).mockImplementation(record('tancredi DELETE'))
+    vi.mocked(tancredi.get).mockImplementation(async () => {
+      const body = vi.mocked(tancredi.patch).mock.lastCall?.[1]
+
+      return {
+        mac: assigned.mac,
+        model: typeof body === 'object' && body !== null && 'model' in body ? body.model : '',
+      }
+    })
   })
 
   it('should assign the new user before removing the extension of the previous one', async () => {
@@ -309,6 +318,30 @@ describe('phone writes', () => {
       ['/phones/00-15-65-AB-CD-01', { model: 'yealink-T54' }],
       ['/phones/00-15-65-AB-CD-01', { model: 'yealink-T46' }],
     ])
+  })
+
+  it('should not change the PBX model when Tancredi did not store it', async () => {
+    vi.mocked(tancredi.get).mockResolvedValue({ mac: assigned.mac, model: assigned.model })
+
+    await expect(
+      updatePhone(
+        assigned,
+        { model: 'yealink-T54', mainExtension: '300', encrypted: true },
+        'Secret-1x',
+      ),
+    ).rejects.toBeInstanceOf(PhoneSettingsNotSavedError)
+    expect(api.PATCH).not.toHaveBeenCalled()
+  })
+
+  it('should change the PBX model after Tancredi stored it', async () => {
+    await updatePhone(
+      assigned,
+      { model: 'yealink-T54', mainExtension: '300', encrypted: assigned.encrypted },
+      'Secret-1x',
+    )
+
+    expect(tancredi.get).toHaveBeenCalledWith('/phones/00-15-65-AB-CD-01')
+    expect(calls).toEqual(['tancredi PATCH', 'PATCH /physicalextensions/{mac}'])
   })
 
   it('should delete a phone from the PBX before Tancredi', async () => {

@@ -4,6 +4,7 @@
 import * as v from 'valibot'
 import { compareNatural } from '@/lib/common'
 import { tancredi } from './tancrediClient'
+import { assertVariablesSaved } from './persistence'
 
 export const PHONE_MODELS_KEY = 'phoneModels'
 export const PHONE_MODEL_KEY = 'phoneModel'
@@ -204,6 +205,7 @@ export const patchPhoneModelVariables = async (
   variables: ModelVariablesPatch,
 ): Promise<void> => {
   await tancredi.patch(modelPath(name), { variables })
+  assertVariablesSaved(variables, (await getPhoneModel(name)).variables)
 }
 
 export const deletePhoneModel = async (name: string): Promise<void> => {

@@ -165,6 +165,19 @@ const {
     }, 500)
     emit('close')
   },
+  onError(error, { target }) {
+    if (error instanceof PhoneReassignmentError) {
+      notificationsStore.createNotification({
+        kind: 'error',
+        title: t('phones.inventory.cannot_complete_reassignment'),
+        description: t('phones.inventory.reassignment_incomplete_description', {
+          mac: formatMac(target.mac),
+          error: describeError(error.reason),
+        }),
+      })
+      emit('close')
+    }
+  },
   onSettled() {
     queryCache.invalidateQueries({ key: [PHONES_KEY] })
     queryCache.invalidateQueries({ key: [PHONE_MODELS_KEY] })
@@ -198,10 +211,6 @@ watch(mainExtension, (current, previous) => {
 
 const saveErrorDescription = computed(() => {
   const error = savePhoneError.value
-
-  if (error instanceof PhoneReassignmentError) {
-    return t('phones.inventory.reassigned_with_errors', { error: describeError(error.reason) })
-  }
 
   if (error instanceof MissingWebPasswordError) {
     return t('phones.inventory.admin_password_missing_description')

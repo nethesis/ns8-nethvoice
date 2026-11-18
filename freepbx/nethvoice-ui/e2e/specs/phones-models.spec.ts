@@ -2,7 +2,13 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { expect, test } from '../fixtures/mockApi'
-import { MODEL_VARIABLES, mockPhonesApi, TANCREDI, TANCREDI_MODELS } from './phones-data'
+import {
+  MODEL_VARIABLES,
+  mockPhonesApi,
+  mockStoredModel,
+  TANCREDI,
+  TANCREDI_MODELS,
+} from './phones-data'
 
 test.describe('physical phones: models', () => {
   test.beforeEach(({ signedIn }) => {
@@ -146,18 +152,13 @@ test.describe('physical phones: models', () => {
   })
 
   test('resets a default model to the original settings', async ({ page, mockApi }) => {
-    mockPhonesApi(mockApi)
-      .on('GET', `${TANCREDI}/models/:id`, {
-        json: {
-          name: 'yealink-T46',
-          display_name: 'Yealink T46',
-          variables: { ...MODEL_VARIABLES, ringtone: '4', vlan_id_phone: '20' },
-        },
-      })
-      .on('GET', `${TANCREDI}/models/:id/version/original`, {
-        json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
-      })
-      .on('PATCH', `${TANCREDI}/models/:id`, { json: {} })
+    mockStoredModel(mockPhonesApi(mockApi), {
+      name: 'yealink-T46',
+      display_name: 'Yealink T46',
+      variables: { ...MODEL_VARIABLES, ringtone: '4', vlan_id_phone: '20' },
+    }).on('GET', `${TANCREDI}/models/:id/version/original`, {
+      json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
+    })
     await page.goto('./phones/models')
 
     await page.getByRole('button', { name: 'Open the menu of model Yealink T46' }).click()
@@ -185,11 +186,11 @@ test.describe('physical phones: models', () => {
   })
 
   test('edits the settings of a model and saves only the changes', async ({ page, mockApi }) => {
-    mockPhonesApi(mockApi)
-      .on('GET', `${TANCREDI}/models/:id`, {
-        json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
-      })
-      .on('PATCH', `${TANCREDI}/models/:id`, { json: {} })
+    mockStoredModel(mockPhonesApi(mockApi), {
+      name: 'yealink-T46',
+      display_name: 'Yealink T46',
+      variables: MODEL_VARIABLES,
+    })
     await page.goto('./phones/models')
 
     await page
@@ -217,6 +218,49 @@ test.describe('physical phones: models', () => {
         variables: { ringtone: '4', ntp_server: 'ntp.example.com', softkey_label_1: 'Calls' },
       },
     })
+  })
+
+  test('keeps the changes of a model that the PBX did not store', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+      .on('GET', `${TANCREDI}/models/:id`, {
+        json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
+      })
+      .on('PATCH', `${TANCREDI}/models/:id`, { json: {} })
+    await page.goto('./phones/models?model=yealink-T46')
+
+    await page.getByRole('button', { name: 'Preferences' }).click()
+    await page.getByRole('textbox', { name: 'NTP server address' }).fill('ntp.example.com')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    await expect(page.getByText('The PBX did not save the changes. Try again.')).toBeVisible()
+    await expect(page.getByText('Model saved')).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: 'NTP server address' })).toHaveValue(
+      'ntp.example.com',
+    )
+  })
+
+  test('reports a reset that the PBX did not store', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+      .on('GET', `${TANCREDI}/models/:id`, {
+        json: {
+          name: 'yealink-T46',
+          display_name: 'Yealink T46',
+          variables: { ...MODEL_VARIABLES, ringtone: '4' },
+        },
+      })
+      .on('GET', `${TANCREDI}/models/:id/version/original`, {
+        json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
+      })
+      .on('PATCH', `${TANCREDI}/models/:id`, { json: {} })
+    await page.goto('./phones/models')
+
+    await page.getByRole('button', { name: 'Open the menu of model Yealink T46' }).click()
+    await page.getByRole('menuitem', { name: 'Reset to original settings' }).click()
+    const modal = page.getByRole('dialog')
+    await modal.getByRole('button', { name: 'Reset' }).click()
+
+    await expect(modal.getByText('The PBX did not save the changes. Try again.')).toBeVisible()
+    await expect(page.getByText('Model reset')).toHaveCount(0)
   })
 
   test('opens a model from its address and goes back to the list', async ({ page, mockApi }) => {

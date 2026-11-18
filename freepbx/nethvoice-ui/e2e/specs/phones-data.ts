@@ -132,3 +132,65 @@ export const mockPhonesApi = (mockApi: MockApi, options: PhonesApiOptions = {}) 
       json: [{ name: 'company-logo.png', size: 2048, mtime: 1767225600 }],
     })
     .on('GET', '/api/astproxy/extensions', { json: EXTENSIONS })
+
+const applyPatch = (stored: Record<string, unknown>, patch: unknown) => {
+  if (typeof patch !== 'object' || patch === null) {
+    return
+  }
+
+  for (const [name, value] of Object.entries(patch)) {
+    if (value === null) {
+      delete stored[name]
+    } else {
+      stored[name] = value
+    }
+  }
+}
+
+export const mockStoredDefaults = (
+  mockApi: MockApi,
+  initial: Record<string, unknown> = DEFAULTS,
+) => {
+  const stored = { ...initial }
+
+  return mockApi
+    .on('GET', `${TANCREDI}/defaults`, () => ({ json: stored }))
+    .on('PATCH', `${TANCREDI}/defaults`, (request) => {
+      applyPatch(stored, request.body)
+      return { status: 204 }
+    })
+}
+
+export const mockStoredModel = (
+  mockApi: MockApi,
+  model: { name: string; display_name: string; variables: Record<string, unknown> },
+) => {
+  const stored = { ...model.variables }
+
+  return mockApi
+    .on('GET', `${TANCREDI}/models/:id`, () => ({ json: { ...model, variables: stored } }))
+    .on('PATCH', `${TANCREDI}/models/:id`, (request) => {
+      const body = request.body as { variables?: unknown } | null
+      applyPatch(stored, body?.variables)
+      return { json: { ...model, variables: stored } }
+    })
+}
+
+export const mockStoredPhoneModels = (mockApi: MockApi) => {
+  const models = new Map(TANCREDI_PHONES.map((phone) => [phone.mac, phone.model]))
+
+  return mockApi
+    .on('GET', `${TANCREDI}/phones/:mac`, (request) => {
+      const mac = decodeURIComponent(request.path.split('/').pop() ?? '')
+      return { json: { mac, model: models.get(mac) ?? '' } }
+    })
+    .on('PATCH', `${TANCREDI}/phones/:mac`, (request) => {
+      const mac = decodeURIComponent(request.path.split('/').pop() ?? '')
+      const body = request.body as { model?: string } | null
+
+      if (body?.model) {
+        models.set(mac, body.model)
+      }
+      return { json: { mac, model: models.get(mac) ?? '' } }
+    })
+}

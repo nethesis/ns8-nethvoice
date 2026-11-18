@@ -17,6 +17,7 @@ import {
   writeStoredNotifications,
 } from '@/lib/notifications/history'
 import { MissingWebPasswordError } from '@/lib/phones/phones'
+import { PhoneSettingsNotSavedError } from '@/lib/phones/persistence'
 import { useLoginStore } from '@/stores/login'
 
 const NOTIFICATIONS_LIMIT = 30
@@ -77,6 +78,10 @@ export const describeError = (
 
   if (error instanceof MissingWebPasswordError) {
     return t('phones.inventory.admin_password_missing_description')
+  }
+
+  if (error instanceof PhoneSettingsNotSavedError) {
+    return t('phones.changes_not_saved')
   }
   return error instanceof Error ? error.message : ''
 }
