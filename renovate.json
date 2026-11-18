@@ -89,7 +89,7 @@
       "dependencyDashboardApproval": true,
       "automerge": false,
       "prBodyNotes": [
-        "Before building, refresh the changed module entries in freepbx/remote-artifacts.sha256. For framework, also update the bootstrap archive filenames and checksum. Review the local compatibility patches and run tools/test-freepbx.sh."
+        "Before building, refresh the changed module entries in freepbx/remote-artifacts.sha256. For framework, also update the bootstrap archive filenames and checksum. Review the local compatibility patches. From the repository root, run `sources=$(mktemp -d)`, then `python3 tools/prepare-freepbx-test-sources.py \"$sources\"` followed by `sh tools/test-freepbx.sh \"$sources\"`."
       ]
     },
     {
