@@ -1,0 +1,6 @@
+# Development dependencies and private local settings never belong in the build context.
+agents-ui/node_modules
+agents-ui/dist
+agents-ui/test-results
+agents-ui/playwright-report
+agents-ui/.env*

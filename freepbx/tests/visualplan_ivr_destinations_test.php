@@ -20,7 +20,9 @@ function check($condition, $message) {
 class FreePBX {
     public static array $ivr;
     public static function Ivr() { return new self(); }
+    public static function Satellite() { return new self(); }
     public function getDetails() { return [self::$ivr]; }
+    public function agentDestinations() { return []; }
 }
 function ivr_get_entries($id) {
     return [['selection' => '1', 'dest' => 'from-did-direct,201,1']];
