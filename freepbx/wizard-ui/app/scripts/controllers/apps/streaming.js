@@ -19,7 +19,10 @@
  * "tls_unpinned" flags a source saved by an older version without them.
  * A source can be created from a provisioned door phone: the PBX generates
  * the RTSP password of the device and the form references it by
- * "door_phone" (the MAC) instead of receiving it.
+ * "door_phone" (the MAC) instead of receiving it; the credential fields are
+ * not shown for a source linked to a door phone. The profile of a new source
+ * follows the user of its extension ("Base" without an extension) until the
+ * administrator changes it.
  */
 angular.module('nethvoiceWizardUiApp')
   .controller('AppsStreamingCtrl', function ($scope, $filter, $timeout, ProfileService, ApplicationService, UserService) {
@@ -328,6 +331,7 @@ angular.module('nethvoiceWizardUiApp')
 
     $scope.cancelSource = function () {
       $scope.newSource = emptySource();
+      $scope.newSource.profiles = $scope.defaultProfiles(null);
     };
 
     $scope.modifySource = function (s) {
@@ -496,34 +500,6 @@ angular.module('nethvoiceWizardUiApp')
       }, 800);
     };
 
-    // Nothing changes on the server until the source is saved: the door
-    // phone link is kept aside, so the administrator can go back to it.
-    $scope.useDifferentCredentials = function (s) {
-      s.doorPhoneLink = {
-        door_phone: s.door_phone,
-        user: s.user,
-        has_secret: s.has_secret
-      };
-      s.door_phone = null;
-      s.user = '';
-      s.secret = '';
-      s.has_secret = false;
-      $scope.sourceChanged(s);
-    };
-
-    // Back to the credentials of the door phone, discarding what was typed
-    $scope.useDoorPhoneCredentials = function (s) {
-      if (!s.doorPhoneLink) {
-        return;
-      }
-      s.door_phone = s.doorPhoneLink.door_phone;
-      s.user = s.doorPhoneLink.user;
-      s.has_secret = s.doorPhoneLink.has_secret;
-      s.secret = '';
-      s.doorPhoneLink = null;
-      $scope.sourceChanged(s);
-    };
-
     $scope.usePublicAddress = function (s) {
       if (s.reachability && s.reachability.public_url) {
         s.url = s.reachability.public_url;
@@ -567,6 +543,7 @@ angular.module('nethvoiceWizardUiApp')
         s.doorPhoneIp = p.ip;
         s.doorPhoneRegistered = !!p.registered;
         s.credentialsGenerated = !!p.credentials_generated;
+        s.profiles = $scope.defaultProfiles(s.exten);
         s.gates = (p.gates || []).map(function (gate, index) {
           return {
             name: $filter('translate')('Door') + ' ' + (index + 1),
@@ -624,6 +601,60 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    // CTI profile of the user of each extension (main and device extensions)
+    $scope.extensionProfiles = {};
+    $scope.getExtensionProfiles = function () {
+      UserService.list(false).then(function (res) {
+        var map = {};
+        (res.data || []).forEach(function (user) {
+          if (user.profile === undefined || user.profile === null || user.profile === '') {
+            return;
+          }
+          if (user.default_extension) {
+            map[String(user.default_extension)] = user.profile;
+          }
+          (user.devices || []).forEach(function (device) {
+            if (device.extension) {
+              map[String(device.extension)] = user.profile;
+            }
+          });
+        });
+        $scope.extensionProfiles = map;
+      }, function (err) {
+        $scope.extensionProfiles = {};
+        console.log(err);
+      });
+    };
+
+    var findProfile = function (match) {
+      for (var i = 0; i < $scope.allProfiles.length; i++) {
+        if (match($scope.allProfiles[i])) {
+          return $scope.allProfiles[i];
+        }
+      }
+      return null;
+    };
+
+    // Profiles of a new source: those of the user of the extension, the
+    // "Base" profile (found by name) without an extension
+    $scope.defaultProfiles = function (exten) {
+      var profile = null;
+      if (exten !== undefined && exten !== null && exten !== '' && $scope.extensionProfiles[String(exten)] !== undefined) {
+        var id = String($scope.extensionProfiles[String(exten)]);
+        profile = findProfile(function (p) { return String(p.id) === id; });
+      }
+      if (!profile) {
+        profile = findProfile(function (p) { return String(p.name || '').toLowerCase() === 'base'; });
+      }
+      return profile ? [profile.id] : [];
+    };
+
+    $scope.extenChanged = function (s) {
+      if (!s.onMod && !s.profilesTouched) {
+        s.profiles = $scope.defaultProfiles(s.exten);
+      }
+    };
+
     $scope.getAllProfiles = function () {
       ProfileService.allProfiles().then(function (res) {
         $scope.allProfiles = res.data;
@@ -642,6 +673,7 @@ angular.module('nethvoiceWizardUiApp')
       pageInitialized = true;
       $scope.getUserList();
       $scope.getAllProfiles();
+      $scope.getExtensionProfiles();
       $scope.getGatewayInfo();
     };
 
