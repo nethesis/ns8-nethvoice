@@ -145,10 +145,10 @@
           <div class="form-group">
             <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Extension' | translate}}</label>
             <div class="col-sm-9">
-              <select data-live-search="true" title="-" pf-select="{ width: '180px' }" ng-model="newSource.exten" ng-options="u.id as (u.name + ' - ' + u.id) for u in users">
+              <select data-live-search="true" title="-" pf-select="{ width: '180px' }" ng-model="newSource.exten" ng-change="extenChanged(newSource)" ng-options="u.id as (u.name + ' - ' + u.id) for u in users">
             </select></div>
           </div>
-          <div ng-if="!newSource.door_phone && !newSource.doorPhoneLink && !newSource.streamsFromDoorPhone" class="form-group">
+          <div ng-if="!newSource.door_phone && !newSource.streamsFromDoorPhone" class="form-group">
             <label class="col-sm-3 control-label" for="streaming-device-type">{{'Device type' | translate}}</label>
             <div class="col-sm-9">
               <select id="streaming-device-type" ng-model="newSource.deviceType" ng-change="deviceTypeChanged(newSource)" class="form-control">
@@ -200,29 +200,15 @@
             <div class="col-sm-9">
               <input id="streaming-secret" maxlength="255" ng-model="newSource.secret" ng-change="sourceChanged(newSource)" ng-disabled="!newSource.user" type="password" autocomplete="new-password"
                 placeholder="{{newSource.has_secret ? ('Unchanged' | translate) : ''}}" class="form-control">
-              <button ng-if="newSource.doorPhoneLink" type="button" class="btn btn-link no-lateral-padding" ng-click="useDoorPhoneCredentials(newSource)">{{'Use the door phone credentials' | translate}}</button>
             </div>
           </div>
-          <!-- Linked to a door phone: the PBX manages the credentials -->
-          <div ng-if="newSource.door_phone" class="form-group">
-            <label class="col-sm-3 control-label">{{'Username' | translate}}</label>
-            <div class="col-sm-9">
-              <p class="form-control-static streaming-static">{{newSource.user}}</p>
-            </div>
-          </div>
-          <div ng-if="newSource.door_phone" class="form-group">
-            <label class="col-sm-3 control-label">{{'Password' | translate}}</label>
-            <div class="col-sm-9">
-              <p class="form-control-static streaming-static">
-                <span class="fa fa-lock"></span>
-                {{'RTSP password of the door phone, managed by the PBX' | translate}}
-              </p>
-              <span class="help-block streaming-help-tight">{{'To read or change it: Users, the user of the door phone, pencil next to the model of the device, Preferences' | translate}}</span>
-              <div ng-if="!newSource.onMod && newSource.credentialsGenerated" class="alert alert-info">
+          <!-- Linked to a door phone: the PBX manages the credentials, no fields -->
+          <div ng-if="newSource.door_phone && !newSource.onMod && newSource.credentialsGenerated" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="alert alert-info no-margin-bottom">
                 <span class="pficon pficon-info"></span>
                 {{'New credentials: the door phone was asked to update its configuration. If the check fails, wait a minute or restart the door phone' | translate}}
               </div>
-              <button type="button" class="btn btn-link no-lateral-padding" ng-click="useDifferentCredentials(newSource)">{{'Use different credentials' | translate}}</button>
             </div>
           </div>
           <div ng-if="isRtsp(newSource) && !(newSource.door_phone && !newSource.onMod) && !(newSource.reachability && !newSource.reachability.reachable)" class="form-group">
@@ -311,7 +297,7 @@
           <div class="form-group">
             <label class="col-sm-3 control-label" for="textInput-modal-markup">{{'Profile' | translate}}</label>
             <div class="col-sm-9">
-              <select multiple required title="-" pf-select="{ width: '180px' }" ng-model="newSource.profiles" ng-options="p.id as p.name for p in allProfiles">
+              <select multiple required title="-" pf-select="{ width: '180px' }" ng-model="newSource.profiles" ng-change="newSource.profilesTouched = true" ng-options="p.id as p.name for p in allProfiles">
               </select>
             </div>
           </div>

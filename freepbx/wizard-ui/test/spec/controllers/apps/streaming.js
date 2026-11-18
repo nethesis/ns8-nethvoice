@@ -306,19 +306,24 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(s.reachability.reachable).toBe(false);
   });
 
-  it('keeps a modified source linked until different credentials are chosen', function () {
+  it('keeps a modified source linked to its door phone', function () {
     var stored = storedSource();
     stored.door_phone = '0C-38-3E-32-6B-84';
     scope.modifySource(stored);
     expect(scope.sourcePayload(scope.newSource).door_phone).toBe('0C-38-3E-32-6B-84');
-    scope.useDifferentCredentials(scope.newSource);
-    expect(scope.newSource.user).toBe('');
-    expect(scope.sourcePayload(scope.newSource).door_phone).toBeUndefined();
-    scope.newSource.user = 'other';
-    scope.newSource.secret = 'typed';
-    scope.useDoorPhoneCredentials(scope.newSource);
-    expect(scope.newSource.user).toBe('admin');
-    expect(scope.newSource.secret).toBe('');
-    expect(scope.sourcePayload(scope.newSource).door_phone).toBe('0C-38-3E-32-6B-84');
+  });
+
+  it('prefills the profiles from the user of the extension, Base without one', function () {
+    scope.allProfiles = [{ id: 1, name: 'Base' }, { id: 3, name: 'Advanced' }];
+    scope.extensionProfiles = { '91203': 3 };
+    scope.cancelSource();
+    expect(scope.newSource.profiles).toEqual([1]);
+    scope.newSource.exten = '91203';
+    scope.extenChanged(scope.newSource);
+    expect(scope.newSource.profiles).toEqual([3]);
+    scope.newSource.profilesTouched = true;
+    scope.newSource.exten = '200';
+    scope.extenChanged(scope.newSource);
+    expect(scope.newSource.profiles).toEqual([3]);
   });
 });
