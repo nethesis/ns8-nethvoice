@@ -3,7 +3,7 @@ module github.com/nethesis/nethvoice-report/tasks
 go 1.26.0
 
 require (
-	github.com/fatih/color v1.9.0
+	github.com/fatih/color v1.19.0
 	github.com/nethesis/nethvoice-report/api v0.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.0.0
