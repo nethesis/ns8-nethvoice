@@ -179,7 +179,7 @@ func Intersect(a []string, b []string, objType string) []string {
 
 	case "agents":
 		// intersect arrays and return []interface{}
-		r := intersect.Simple(a, b).([]interface{})
+		r := intersect.Simple(a, b)
 
 		// iterate over []interface{}
 		result := make([]string, len(r))
@@ -217,7 +217,7 @@ func Intersect(a []string, b []string, objType string) []string {
 
 	default:
 		// intersect arrays and return []interface{}
-		r := intersect.Simple(a, b).([]interface{})
+		r := intersect.Simple(a, b)
 
 		// iterate over []interface{}
 		result := make([]string, len(r))
