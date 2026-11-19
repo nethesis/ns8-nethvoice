@@ -40,7 +40,7 @@ import { getProfilingInfo } from '../../services/profiling'
 import { ProfilingTypes } from '../../models/profiling'
 import { Portal } from '@headlessui/react'
 import { ParkCards } from '../parks/parkCards'
-import { motion, useAnimation } from 'framer-motion'
+import { motion, useAnimation } from 'motion/react'
 import { pauseQueue, unpauseQueue } from '../../lib/queuesLib'
 import { Button } from '../common'
 
