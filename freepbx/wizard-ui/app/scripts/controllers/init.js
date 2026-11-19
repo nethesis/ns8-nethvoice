@@ -488,6 +488,7 @@ angular.module('nethvoiceWizardUiApp')
         expansionKeys: convertKeysMap(service.expansionKeys(map)),
         displayAndRingtones: service.displayAndRingtones(map),
         preferences: service.preferences(map),
+        doorRelays: service.doorRelays ? service.doorRelays(map) : undefined,
         phonebook: service.phonebook(map),
         network: service.network(map)
       }, variables)

@@ -737,10 +737,6 @@ check(streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin', 'do
 $i6x = ['cap_door_phone' => '1', 'door_rtsp_user' => 'admin', 'adminpw' => 'PhonesAdmin1'];
 check(streaming_door_phone_missing_credentials($i6x, $gen) === ['door_rtsp_password' => 'Generated1'], 'i6x: the phones admin password is never the RTSP password, one is generated');
 check(streaming_door_phone_password(array_merge($i6x, ['door_rtsp_password' => 'Rtsp1'])) === 'Rtsp1' && streaming_door_phone_password($i6x) === '', 'RTSP password is door_rtsp_password only');
-check(streaming_door_phone_legacy_password($i6x, ['adminpw' => 'Old1']) === ['door_rtsp_password' => 'Old1', 'adminpw' => null], 'legacy per-phone adminpw moves to door_rtsp_password');
-check(streaming_door_phone_legacy_password($i6x, ['adminpw' => 'Old1', 'door_rtsp_password' => 'Rtsp1']) === [], 'no move when door_rtsp_password exists');
-check(streaming_door_phone_legacy_password($i6x, []) === [], 'no move without a per-phone adminpw');
-check(streaming_door_phone_legacy_password(['adminpw' => 'X'], ['adminpw' => 'Own1']) === [], 'phones keep their per-phone adminpw');
 
 $contacts = [
     ['via_addr' => '192.168.5.10', 'uri' => 'sip:203@2.119.67.169:1053;transport=tls', 'expiration_time' => '100'],
@@ -780,6 +776,24 @@ check($prefill['user'] === 'admin' && $prefill['has_secret'] === true && !array_
 check($prefill['gates'] === [['name' => 'Door 1', 'type' => 'dtmf', 'code' => '*']], 'prefill: one DTMF gate');
 check($prefill['streams']['main'] === '/h264/stream.live0' && $prefill['streams']['sub'] === '/h264/stream.live1' && $prefill['url'] === 'rtsp://192.168.5.218:554/h264/stream.live0', 'prefill: both stream paths, main by default');
 check(streaming_door_phone_prefill($bad)['gates'] === [] && streaming_door_phone_prefill($bad)['descr'] === '203', 'prefill without code: no gate, extension as name');
+$two_relays = streaming_door_phone_item(['mac' => '0C383E326B84', 'extension' => '203'], array_merge($fanvil, ['cap_door_relay_count' => '2', 'door_dtmf_code_2' => '#']), null);
+check(streaming_door_phone_prefill($two_relays)['gates'] === [['name' => 'Door 1', 'type' => 'dtmf', 'code' => '*'], ['name' => 'Door 2', 'type' => 'dtmf', 'code' => '#']], 'prefill: a DTMF gate for each relay');
+$one_relay = streaming_door_phone_item(['mac' => '0C383E326B84', 'extension' => '203'], array_merge($fanvil, ['cap_door_relay_count' => '1', 'door_dtmf_code_2' => '#']), null);
+check($one_relay['dtmf_code_2'] === null && count(streaming_door_phone_prefill($one_relay)['gates']) === 1, 'prefill: no second gate on a model with one relay');
+$i6xVars = array_merge($fanvil, ['cap_door_relay_count' => '2', 'door_dtmf_code_2' => '#', 'door_open_url_path_1' => '/cgi-bin/ConfigManApp.com?egs&output1=OUT1_SOS', 'door_open_url_path_2' => '/cgi-bin/ConfigManApp.com?egs&output2=OUT2_SOS', 'door_open_url_user' => 'admin']);
+check(streaming_door_phone_gates('192.168.5.249', $i6xVars) === [
+    ['relay' => 1, 'code' => '*', 'url' => 'http://192.168.5.249/cgi-bin/ConfigManApp.com?egs&output1=OUT1_SOS', 'user' => 'admin'],
+    ['relay' => 2, 'code' => '#', 'url' => 'http://192.168.5.249/cgi-bin/ConfigManApp.com?egs&output2=OUT2_SOS', 'user' => 'admin'],
+], 'door phone relays: DTMF code and open URL of each relay');
+check(streaming_door_phone_gates('2001:db8::5', $i6xVars)[0]['url'] === 'http://[2001:db8::5]/cgi-bin/ConfigManApp.com?egs&output1=OUT1_SOS', 'open URL with an IPv6 address');
+check(streaming_door_phone_gates(null, $i6xVars)[1] === ['relay' => 2, 'code' => '#', 'url' => null, 'user' => null], 'no open URL without the device address');
+check(streaming_door_phone_gates('192.168.5.249', ['door_dtmf_code' => '*']) === [['relay' => 1, 'code' => '*', 'url' => null, 'user' => null]], 'models without relays and URLs: one relay, DTMF only');
+check(streaming_door_phone_gates('192.168.5.249', array_merge($i6xVars, ['door_open_url_path_1' => 'no-slash', 'door_open_url_path_2' => '/a b']))[0]['url'] === null && streaming_door_phone_gates('192.168.5.249', array_merge($i6xVars, ['door_open_url_path_2' => '/a b']))[1]['url'] === null, 'invalid open URL paths are refused');
+$i6xItem = streaming_door_phone_item(['mac' => '0C383E328271', 'extension' => '302'], $i6xVars, '192.168.5.249');
+check($i6xItem['max_gates'] === 2 && streaming_door_phone_prefill($i6xItem)['max_gates'] === 2, 'door phone with two relays: at most two gates');
+check($item['max_gates'] === null, 'models without relays: no gate limit of their own');
+check(streaming_door_phone_item(['mac' => '0C383E328271', 'extension' => '300'], array_merge($i6xVars, ['cap_door_relay_count' => '1']), null)['max_gates'] === 1, 'door phone with one relay: one gate');
+check(count(streaming_door_phone_prefill($i6xItem)['door_gates']) === 2 && streaming_door_phone_prefill($i6xItem)['door_gates'][1]['code'] === '#', 'prefill: door phone relays for the gates form');
 $normalized = streaming_normalize_source(array_merge($prefill, ['secret' => 'Stored1']), null, function () { return ['192.168.5.218']; });
 check($normalized['type'] === 'rtsp' && $normalized['gates'][0]['code'] === '*' && $normalized['exten'] === 91203, 'prefill is a valid source');
 
@@ -840,7 +854,7 @@ $sqlite->exec('CREATE TABLE `rest_cti_streaming` (`descr` TEXT PRIMARY KEY, `use
 $sqlite->exec("INSERT INTO `rest_cti_streaming` VALUES ('Linked', 'admin', 'Old1', '0C-38-3E-32-6B-84'), ('Other', 'admin', 'Mine1', NULL), ('Gone', 'admin', 'Keep1', '0C-38-3E-00-00-01'), ('Typed', 'viewer', 'Viewer1', '0C-38-3E-32-6B-84')");
 $tancredi = function (string $mac) use ($i6x) {
     if ($mac === '0C-38-3E-32-6B-84') {
-        return ['variables' => array_merge($i6x, ['door_rtsp_password' => 'New1']), 'phone_variables' => ['door_rtsp_password' => 'New1']];
+        return ['variables' => array_merge($i6x, ['door_rtsp_password' => 'New1'])];
     }
     return null;
 };

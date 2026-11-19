@@ -120,7 +120,14 @@ ro	door_rtsp_path_sub		Door phones: path of the secondary (lower quality, for sl
 ro	door_rtsp_path		Door phones: path of the RTSP stream of models without door_rtsp_path_main and door_rtsp_path_sub.	string	
 ro	door_video_main_label		Door phones: resolution of the main stream, shown next to the quality choice when the template sets it.	string	
 ro	door_video_sub_label		Door phones: resolution of the secondary stream, shown next to the quality choice when the template sets it, e.g. `640x480`.	string	
-rw	door_dtmf_code		Door phones: DTMF code that opens the door during a call. Informative for the PBX: templates write it only where the device provisioning key is known. Removed from tokenless provisioning.	string	
+rw	door_dtmf_code		Door phones: DTMF code that opens the door (relay 1) during a call. The PBX sends it to open the door; templates write it as the relay 1 trigger code where the device provisioning key is known. Removed from tokenless provisioning.	string	
+rw	door_dtmf_code_2		Door phones: DTMF code that activates relay 2 during a call, on models with cap_door_relay_count of 2 or more. Removed from tokenless provisioning.	string	
+rw	door_relay_duration_1		Door phones: seconds relay 1 stays active after its DTMF code. Empty leaves the device value.	integer	
+rw	door_relay_duration_2		Door phones: seconds relay 2 stays active after its DTMF code. Empty leaves the device value.	integer	
+ro	cap_door_relay_count		Door phones: number of relays of the device that the template can configure.	integer	
+ro	door_open_url_path_1		Door phones: path and query of the http URL that opens relay 1, on the device address, e.g. `/cgi-bin/ConfigManApp.com?egs&output1=OUT1_SOS`. Proposed by the PBX for URL gates.	string	
+ro	door_open_url_path_2		Door phones: path and query of the http URL that opens relay 2.	string	
+ro	door_open_url_user		Door phones: web user for the door open URLs, e.g. `admin`.	string	
 ro	door_video_main_bitrate		Door phones: bitrate of the main camera stream, in bit/s. Empty or absent: camera streams are not changed.	integer	
 ro	door_video_sub_bitrate		Door phones: bitrate of the sub camera stream, in bit/s.	integer	
 ro	door_video_sub_resolution		Door phones: resolution code of the sub camera stream (Fanvil i6x: `4` = VGA).	integer	

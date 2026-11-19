@@ -102,6 +102,8 @@ angular.module('nethvoiceWizardUiApp')
           "password": true,
           // Door phones: the admin password is generated per device by the PBX
           "door_phone": variables.cap_door_phone == "1",
+          // Door phones: relays configurable from the PBX (DTMF code, duration)
+          "door_relay_count": variables.cap_door_phone == "1" ? (parseInt(variables.cap_door_relay_count) || 0) : 0,
           "date_format": {
             "blacklist":  date_formats_blacklist
           }
@@ -150,6 +152,8 @@ angular.module('nethvoiceWizardUiApp')
             "visible": brightness_cap == "1" ? true : false
           }
         },
+        // Door phones: section of the relays, shown only when the model has some
+        "doorRelays": variables.cap_door_phone == "1" && parseInt(variables.cap_door_relay_count) > 0 ? {} : undefined,
         "phonebook": {
           "ldap": true,
           "ldap_tls": {

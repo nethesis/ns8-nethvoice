@@ -28,6 +28,18 @@ teardown_file () {
     assert_http_body '"tmpl_phone":"fanvil-i6x.tmpl"'
     assert_http_body '"door_rtsp_path_main":"/h264/stream.live0"'
     assert_http_body '"door_rtsp_path_sub":"/h264/stream.live1"'
+    assert_http_body '"cap_linekey_count":"1"'
+    assert_http_body '"linekey_type_1":"speed_dial"'
+    assert_http_body '"door_open_url_path_1":"/cgi-bin/ConfigManApp.com?egs&output1=OUT1_SOS"'
+    assert_http_body '"door_open_url_path_2":"/cgi-bin/ConfigManApp.com?egs&output2=OUT2_SOS"'
+    assert_http_body '"door_open_url_user":"admin"'
+    assert_http_body '"cap_linekey_type_blacklist":"conference,forward,transfer,hold,dnd,recall,direct_pickup,dtmf,queuetoggle,voice_mail,line,blf,url,group_pickup,multicast_paging,record,prefix,phone_lock,ldap"'
+}
+
+@test "GET /tancredi/api/v1/models/fanvil-i63 has five call buttons" {
+    run GET /tancredi/api/v1/models/fanvil-i63
+    assert_http_code "200"
+    assert_http_body '"cap_linekey_count":"5"'
 }
 
 @test "POST /tancredi/api/v1/phones (${DOOR_PHONE_MAC}, Fanvil i62)" {
@@ -72,8 +84,10 @@ EOF
     assert_http_body "SIP1 Register Pswd      :doorsip123"
     assert_http_body "SIP1 DTMF Mode          :1"
     assert_http_body "SIP1 Transport          :3"
-    ! assert_http_body "Account1 Password"
-    ! assert_http_body "<MMI CONFIG MODULE>"
+    assert_http_body "<MMI CONFIG MODULE>"
+    assert_http_body "Account1 Name               :admin"
+    assert_http_body "Account1 Password           :doorweb123"
+    ! assert_http_body "RTSP Server Passwd :doorweb123"
     assert_http_body "video2 BitRate          :512000"
     assert_http_body "video2 Resolution       :4"
     assert_http_body "video1 I Frame Interval :25"
@@ -81,6 +95,14 @@ EOF
     ! assert_http_body "<NET CONFIG MODULE>"
     ! assert_http_body "Web Port"
     ! assert_http_body "<EGS CONFIG MODULE>"
+    ! assert_http_body "<DSSKEY CONFIG MODULE>"
+    assert_http_body "<SECURITY CONFIG MODULE>"
+    assert_http_body "Output1 Trigger By DTMF    :1"
+    assert_http_body "Output1 DTMF Trigger Code  :4711"
+    assert_http_body "Output2 Trigger By DTMF    :1"
+    assert_http_body "Output2 DTMF Trigger Code  :#"
+    ! assert_http_body "Trigger Duration"
+    ! assert_http_body "Output3"
     ! assert_http_body "Default Language"
     assert_http_body "Enable RTSP        :1"
     assert_http_body "Enable RTSP Auth   :1"
@@ -99,6 +121,10 @@ EOF
     ! assert_http_body "doorrtsp123"
     ! assert_http_body "4711"
     ! assert_http_body "RTSP Server Passwd"
+    ! assert_http_body "<SECURITY CONFIG MODULE>"
+    ! assert_http_body "DTMF Trigger Code"
+    ! assert_http_body "<MMI CONFIG MODULE>"
+    ! assert_http_body "Account1 Password"
 }
 
 @test "Door phone without RTSP password leaves the device RTSP credentials untouched" {
@@ -118,5 +144,62 @@ EOF
     assert_http_body "Enable RTSP        :1"
     ! assert_http_body "RTSP Server User"
     ! assert_http_body "RTSP Server Passwd"
-    ! assert_http_body "doorweb123"
+    assert_http_body "Account1 Password           :doorweb123"
+}
+
+@test "Door phone call button is always written as a SoftDss speed dial key" {
+    run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
+{
+    "variables": {
+        "linekey_type_1": "blf",
+        "linekey_value_1": "603",
+        "linekey_label_1": "Reception"
+    }
+}
+EOF
+    assert_http_code "200"
+
+    run GET "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}"
+    tok1=$(extract_field "tok1")
+    run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/${tok1}/0c383eaabbe0.cfg"
+    assert_http_code "200"
+    assert_http_body "<DSSKEY CONFIG MODULE>"
+    assert_http_body "SoftDss Config-- :"
+    assert_http_body "Fkey1 Type               :1"
+    assert_http_body "Fkey1 Value              :603@1/f"
+    assert_http_body "Fkey1 Title              :Reception"
+    ! assert_http_body "Fkey2 "
+    ! assert_http_body "Dsskey Config1--"
+    ! assert_http_body "Desktop Click"
+    ! assert_http_body "{{"
+    ! assert_http_body "{%"
+}
+
+@test "Door phone relays use the default codes and the configured open time" {
+    run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
+{
+    "variables": {
+        "door_dtmf_code": null,
+        "door_relay_duration_1": "3",
+        "door_relay_duration_2": "7"
+    }
+}
+EOF
+    assert_http_code "200"
+
+    run GET "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}"
+    tok1=$(extract_field "tok1")
+    run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/${tok1}/0c383eaabbe0.cfg"
+    assert_http_code "200"
+    assert_http_body "Output1 DTMF Trigger Code  :*"
+    assert_http_body "Output1 Trigger Duration  :3"
+    assert_http_body "Output2 DTMF Trigger Code  :#"
+    assert_http_body "Output2 Trigger Duration  :7"
+}
+
+@test "GET /tancredi/api/v1/models/fanvil-i60 has one relay" {
+    run GET /tancredi/api/v1/models/fanvil-i60
+    assert_http_code "200"
+    assert_http_body '"cap_door_relay_count":"1"'
+    ! assert_http_body '"door_dtmf_code_2"'
 }

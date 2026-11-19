@@ -1206,5 +1206,16 @@
   "High (main stream)": "Alta (flusso principale)",
   "Standard (sub stream, for slow connections)": "Standard (flusso secondario, per connessioni lente)",
   "Custom path": "Percorso personalizzato",
-  "door_phone_rtsp_password_label": "Password RTSP (flusso video)"
+  "door_phone_rtsp_password_label": "Password RTSP (flusso video)",
+  "door_phone_relays_section": "Relè",
+  "door_phone_relay_1_dtmf_label": "Relè 1: codice DTMF di apertura",
+  "door_phone_relay_1_duration_label": "Relè 1: tempo di apertura (secondi)",
+  "door_phone_relay_2_dtmf_label": "Relè 2: codice DTMF di apertura",
+  "door_phone_relay_2_duration_label": "Relè 2: tempo di apertura (secondi)",
+  "Code of the door phone relay": "Codice del relè del citofono",
+  "set in the door phone provisioning": "impostato dal provisioning del citofono",
+  "URL that opens the door phone relay": "URL che apre il relè del citofono",
+  "User and password of the door phone web interface": "Utente e password dell'interfaccia web del citofono",
+  "One gate per relay of the door phone": "Un varco per ogni relè del citofono",
+  "The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN": "Il collegamento è HTTP: nome utente e password viaggiano in chiaro. Usalo solo in una rete fidata o tramite una VPN"
 }
