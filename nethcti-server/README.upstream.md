@@ -97,25 +97,18 @@ POST /authentication/logout
 
 ## Disabling
 
-To disable the authentication:
+The authentication is controlled by the `NETHCTI_AUTHENTICATION_ENABLED` variable of the NethVoice module, written to `/etc/nethcti/authentication.json` when the container starts.
+
+To disable the authentication (replace `nethvoice1` with the module instance name):
 
 ```bash
-config setprop nethcti AuthenticationEnabled false
-config setprop nethcti-server AuthenticationEnabled false
-signal-event nethcti3-update
-signal-event nethcti-server3-update
+runagent -m nethvoice1 python3 -c 'import agent; agent.set_env("NETHCTI_AUTHENTICATION_ENABLED", "false")'
+runagent -m nethvoice1 systemctl --user restart nethcti-server
 ```
 
 at this point you can login to NethCTI only using the username.
 
-To re-enable it:
-
-```bash
-config setprop nethcti AuthenticationEnabled true
-config setprop nethcti-server AuthenticationEnabled true
-signal-event nethcti3-update
-signal-event nethcti-server3-update
-```
+To re-enable it, run the same commands with `true`.
 
 ## REST API
 

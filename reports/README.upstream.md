@@ -24,9 +24,12 @@ Report requests are handled by `IdentityHandler` and `Authorizator` functions in
 
 ### Enable debug on api daemon
 
-As default, the api daemon runs using `GIN_MODE=release`.
+As default, the api daemon runs using `GIN_MODE=release`, taken from the `REPORTS_GIN_MODE` variable of the NethVoice module.
 
-To switch on debug mode, just execute:
+To switch on debug mode, set the variable and restart the api service (replace `nethvoice1` with the module instance name):
 ```
-echo GIN_MODE=debug > /etc/sysconfig/nethvoice-report
+runagent -m nethvoice1 python3 -c 'import agent; agent.set_env("REPORTS_GIN_MODE", "debug")'
+runagent -m nethvoice1 systemctl --user restart reports-api
 ```
+
+To go back to the default, run the same commands with `release`.

@@ -144,7 +144,7 @@ EOF
     echo "REPORTS_INTERNATIONAL_PREFIX is not set"
     exit 1
   fi
-  # Fetch credentials from nethvoice-report.json
+  # Fetch credentials from reports config
   cdr_database_user=$(jq -r '.cdr_database.user' $reports_config)
   cdr_database_password=$(jq -r '.cdr_database.password' $reports_config)
   cdr_database_name=$(jq -r '.cdr_database.name' $reports_config)
