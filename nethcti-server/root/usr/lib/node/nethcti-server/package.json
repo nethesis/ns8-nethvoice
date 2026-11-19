@@ -16,7 +16,7 @@
     "mssql": "3.3.0",
     "mysql": "2.18.1",
     "mysql2": "^2.1.0",
-    "netmask": "2.0.2",
+    "netmask": "2.1.1",
     "node-ipc": "9.1.5",
     "node-static": "0.7.10",
     "nodemailer": "^6.5.0",
