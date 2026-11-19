@@ -3,12 +3,18 @@
 
 import { watch } from 'vue'
 
-const RETURN_DELAY = 350
+const findClosingDialog = () =>
+  document.activeElement?.closest('[role="dialog"]') ??
+  Array.from(document.querySelectorAll('[role="dialog"]')).at(-1)
 
 export const useFocusReturn = (isShown: () => boolean) => {
   let opener: HTMLElement | null = null
+  let cancelReturn: (() => void) | null = null
 
   watch(isShown, (shown) => {
+    cancelReturn?.()
+    cancelReturn = null
+
     if (shown) {
       const active = document.activeElement
       opener = active instanceof HTMLElement && active !== document.body ? active : null
@@ -17,12 +23,30 @@ export const useFocusReturn = (isShown: () => boolean) => {
     const target = opener
     opener = null
 
-    if (target) {
-      setTimeout(() => {
-        if (target.isConnected) {
-          target.focus()
-        }
-      }, RETURN_DELAY)
+    if (!target) {
+      return
     }
+    const dialog = findClosingDialog()
+    const returnFocus = () => {
+      if (dialog?.isConnected) {
+        return false
+      }
+      if (target.isConnected) {
+        target.focus()
+      }
+      return true
+    }
+
+    if (returnFocus()) {
+      return
+    }
+    const observer = new MutationObserver(() => {
+      if (returnFocus()) {
+        observer.disconnect()
+        cancelReturn = null
+      }
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    cancelReturn = () => observer.disconnect()
   })
 }
