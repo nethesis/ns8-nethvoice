@@ -11,12 +11,12 @@
         <P8851 para="Account1.SecondFailoverSipserver" />
         <P4567 para="Account1.PreferPrimaryServer">1</P4567>
         {% if outbound_proxy_1 is defined and outbound_proxy_1 != '' %}
-        <P48 para="Account1.OutboundProxy">{{ outbound_proxy_1 }}:{{ outbound_proxy_port_1 is defined and outbound_proxy_port_1 != '' ? outbound_proxy_port_1 : account_encryption_1 ? '5061' : '5060' }}</P48>
+        <P48 para="Account1.OutboundProxy">{{ outbound_proxy_1 }}:{{ outbound_proxy_port_1 is defined and outbound_proxy_port_1 != '' ? outbound_proxy_port_1 : account_encryption_1 ? sip_tls_port : sip_udp_port }}</P48>
         {% else %}
         <P48 para="Account1.OutboundProxy" />
         {% endif %}
         {% if outbound_proxy_1 is defined and outbound_proxy_1 != '' and outbound_proxy2_1 is defined and outbound_proxy2_1 != '' %}
-        <P20047 para="Account1.BackUpOutboundProxy">{{ outbound_proxy2_1 }}:{{ outbound_proxy2_port_1 is defined and outbound_proxy2_port_1 != '' ? outbound_proxy2_port_1 : account_encryption_1 ? '5061' : '5060' }}</P20047>
+        <P20047 para="Account1.BackUpOutboundProxy">{{ outbound_proxy2_1 }}:{{ outbound_proxy2_port_1 is defined and outbound_proxy2_port_1 != '' ? outbound_proxy2_port_1 : account_encryption_1 ? sip_tls_port : sip_udp_port }}</P20047>
         {% else %}
         <P20047 para="Account1.BackUpOutboundProxy" />
         {% endif %}

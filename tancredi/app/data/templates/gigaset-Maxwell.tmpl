@@ -57,10 +57,10 @@
     <param name="SIP.Account.{{ idx }}.Domain" value="{{ hostname }}" />
     {% if _context['outbound_proxy_' ~ line] is defined and _context['outbound_proxy_' ~ line] != '' %}
     <param name="SIP.Account.{{ idx }}.ProxyServer.Address" value="{{ _context['outbound_proxy_' ~ line] }}" />
-    <param name="SIP.Account.{{ idx }}.ProxyServer.Port" value="{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}" />
+    <param name="SIP.Account.{{ idx }}.ProxyServer.Port" value="{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}" />
     <param name="SIP.Account.{{ idx }}.OutboundProxy.Mode" value="1"/>
     <param name="SIP.Account.{{ idx }}.OutboundProxy.Address" value="{{ _context['outbound_proxy_' ~ line] }}"/>
-    <param name="SIP.Account.{{ idx }}.OutboundProxy.Port" value="{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}"/>
+    <param name="SIP.Account.{{ idx }}.OutboundProxy.Port" value="{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}"/>
     {% else %}
     <param name="SIP.Account.{{ idx }}.ProxyServer.Address" value="{{ hostname }}" />
     <param name="SIP.Account.{{ idx }}.ProxyServer.Port" value="{{ _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}" />

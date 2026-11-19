@@ -199,9 +199,9 @@ Config.Account{{ line }}.SIP.ListenPortMax = 65535
 
 Config.Account{{ line }}.OUTPROXY.Enable = {{ _context['outbound_proxy_' ~ line] is defined and _context['outbound_proxy_' ~ line] != '' ? '1' : '0' }}
 Config.Account{{ line }}.OUTPROXY.Server = {{ _context['outbound_proxy_' ~ line] is defined ? _context['outbound_proxy_' ~ line] : '' }}
-Config.Account{{ line }}.OUTPROXY.Port = {{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+Config.Account{{ line }}.OUTPROXY.Port = {{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}
 Config.Account{{ line }}.OUTPROXY.BakServer = {{ _context['outbound_proxy2_' ~ line] is defined ? _context['outbound_proxy2_' ~ line] : '' }}
-Config.Account{{ line }}.OUTPROXY.BakPort = {{ _context['outbound_proxy2_port_' ~ line] is defined ? _context['outbound_proxy2_port' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+Config.Account{{ line }}.OUTPROXY.BakPort = {{ _context['outbound_proxy2_port_' ~ line] is defined ? _context['outbound_proxy2_port_' ~ line] : _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}
 Config.Account{{ line }}.OUTPROXY.DHCPOption = 0
 
 Config.Account{{ line }}.STUN.Enable = 0

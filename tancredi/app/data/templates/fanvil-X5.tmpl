@@ -122,11 +122,11 @@ SIP{{ line }} Backup Transport   :0
 SIP{{ line }} Backup TTL         :3600
 SIP{{ line }} Enable Reg         :1
 SIP{{ line }} Proxy Addr         :{{ _context['outbound_proxy_' ~ line] is defined ? _context['outbound_proxy_' ~ line] : '' }}
-SIP{{ line }} Proxy Port         :{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+SIP{{ line }} Proxy Port         :{{ _context['outbound_proxy_port_' ~ line] is defined ? _context['outbound_proxy_port_' ~ line] : _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}
 SIP{{ line }} Proxy User         :
 SIP{{ line }} Proxy Pswd         :
 SIP{{ line }} BakProxy Addr      :{{ _context['outbound_proxy2_' ~ line] is defined ? _context['outbound_proxy2_' ~ line] : '' }}
-SIP{{ line }} BakProxy Port      :{{ _context['outbound_proxy2_port_' ~ line] is defined ? _context['outbound_proxy2_port' ~ line] : _context['account_encryption_' ~ line] ? '5061' : '5060' }}
+SIP{{ line }} BakProxy Port      :{{ _context['outbound_proxy2_port_' ~ line] is defined ? _context['outbound_proxy2_port_' ~ line] : _context['account_encryption_' ~ line] ? sip_tls_port : sip_udp_port }}
 SIP{{ line }} Enable Failback    :{{ _context['outbound_proxy2_' ~ line] is defined and _context['outbound_proxy2_' ~ line] != '' ? '1' : '0' }}
 SIP{{ line }} Failback Interval  :1800
 SIP{{ line }} Signal Failback    :0
