@@ -57,7 +57,9 @@ module.exports = function(options, imports, register) {
     dbconnPluginsManager.setLogger(logger.ctilog);
     dbconnPluginsManager.setCompDbconnMain(dbconnMain);
     dbconnPluginsManager.setCompUtil(imports.util);
-    dbconnPluginsManager.start();
+    setImmediate(function() {
+      dbconnPluginsManager.start();
+    });
   } catch (err) {
     logger.ctilog.log.error(IDLOG, err.stack);
   }

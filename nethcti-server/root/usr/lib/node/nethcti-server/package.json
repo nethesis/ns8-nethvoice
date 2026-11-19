@@ -5,7 +5,7 @@
   "main": "nethcti.js",
   "dependencies": {
     "@nethesis/astproxy": "file:packages/astproxy",
-    "architect": "0.1.11",
+    "architect": "0.1.13",
     "asterisk-ami": "0.2.0-beta1",
     "ejs": "3.1.10",
     "google-libphonenumber": "^3.2.13",
