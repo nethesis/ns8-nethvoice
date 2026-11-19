@@ -1704,18 +1704,10 @@ function streaming_generate_door_password(int $length = STREAMING_DOOR_PASSWORD_
     throw new \RuntimeException('cannot generate a door phone password');
 }
 
-/*
- * RTSP password of a door phone (merged variables): "door_rtsp_password",
- * otherwise the web admin password ("adminpw") that the template writes as
- * RTSP password too. Empty if none.
- */
+/* Stored RTSP password of a door phone (merged variables), empty if none */
 function streaming_door_phone_password(array $variables): string
 {
-    $password = (string) ($variables['door_rtsp_password'] ?? '');
-    if ($password === '' && streaming_is_door_phone($variables)) {
-        $password = (string) ($variables['adminpw'] ?? '');
-    }
-    return $password;
+    return (string) ($variables['door_rtsp_password'] ?? '');
 }
 
 /*

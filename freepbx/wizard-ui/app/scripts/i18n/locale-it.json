@@ -1206,7 +1206,7 @@
   "High (main stream)": "Alta (flusso principale)",
   "Standard (sub stream, for slow connections)": "Standard (flusso secondario, per connessioni lente)",
   "Custom path": "Percorso personalizzato",
-  "door_phone_rtsp_password_label": "Password RTSP (flusso video; vuota: la password web)",
+  "door_phone_rtsp_password_label": "Password RTSP (flusso video)",
   "door_phone_relays_section": "Relè",
   "door_phone_relay_1_dtmf_label": "Relè 1: codice DTMF di apertura",
   "door_phone_relay_1_duration_label": "Relè 1: tempo di apertura (secondi)",

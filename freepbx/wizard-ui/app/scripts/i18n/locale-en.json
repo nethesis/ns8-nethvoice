@@ -336,7 +336,7 @@
   "High (main stream)": "High (main stream)",
   "Standard (sub stream, for slow connections)": "Standard (sub stream, for slow connections)",
   "Custom path": "Custom path",
-  "door_phone_rtsp_password_label": "RTSP password (video stream; empty: the web password)",
+  "door_phone_rtsp_password_label": "RTSP password (video stream)",
   "door_phone_relays_section": "Relays",
   "door_phone_relay_1_dtmf_label": "Relay 1: DTMF code to open",
   "door_phone_relay_1_duration_label": "Relay 1: open time (seconds)",
