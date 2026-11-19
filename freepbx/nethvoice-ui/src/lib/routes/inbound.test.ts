@@ -10,7 +10,7 @@ import {
   filterInboundRoutes,
   getDestinationKind,
   getInboundRouteName,
-  getVisualPlanRouteUrl,
+  getVisualPlanLocation,
   isInvalidDestination,
   parseInboundRoutes,
   sortInboundRoutes,
@@ -348,17 +348,19 @@ describe('sortInboundRoutes', () => {
   })
 })
 
-describe('getVisualPlanRouteUrl', () => {
-  it('should point to a new route when none is given', () => {
-    expect(getVisualPlanRouteUrl()).toBe('/freepbx/visualplan/?did=new_route')
+describe('getVisualPlanLocation', () => {
+  it('should open an empty flow when no route is given', () => {
+    expect(getVisualPlanLocation()).toEqual({ name: 'visual-plan' })
   })
 
   it('should identify a route by number and caller ID', () => {
-    expect(getVisualPlanRouteUrl({ number: '0212345670', cid: '' })).toBe(
-      '/freepbx/visualplan/?did=0212345670%20%2F%20',
-    )
-    expect(getVisualPlanRouteUrl({ number: '+39021234', cid: '333' })).toBe(
-      '/freepbx/visualplan/?did=%2B39021234%20%2F%20333',
-    )
+    expect(getVisualPlanLocation({ number: '0212345670', cid: '' })).toEqual({
+      name: 'visual-plan',
+      query: { route: '0212345670/' },
+    })
+    expect(getVisualPlanLocation({ number: '+39021234', cid: '333' })).toEqual({
+      name: 'visual-plan',
+      query: { route: '+39021234/333' },
+    })
   })
 })

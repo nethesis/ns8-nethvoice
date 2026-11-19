@@ -33,7 +33,7 @@ class Queueoptions implements \BMO
      * the new list. Only a queue with "Restrict Dynamic Agents" on keeps unlisted
      * agents out: otherwise anyone may log in, listed or not.
      */
-    private function logoutUnlistedDynamicMembers($queue)
+    public function logoutUnlistedDynamicMembers($queue)
     {
         global $astman;
 

@@ -300,3 +300,88 @@
   /* prettier-ignore */
   border-color: --value(--border-*);
 }
+
+/* Vue Flow (Visual Plan): canvas pattern, minimap and handles in both themes, unlayered to win
+   over the library stylesheets */
+.visual-plan-canvas .vue-flow__background pattern circle {
+  @apply fill-gray-300 dark:fill-gray-700;
+}
+
+.visual-plan-canvas .vue-flow__minimap {
+  @apply bg-elevation-0 overflow-hidden rounded-lg shadow-sm ring-1 ring-gray-200 dark:ring-gray-700;
+}
+
+.visual-plan-canvas .vue-flow__minimap-mask {
+  @apply fill-gray-200/60 dark:fill-gray-800/60;
+}
+
+.visual-plan-canvas .vue-flow__minimap-node {
+  @apply fill-gray-300 stroke-none dark:fill-gray-600;
+}
+
+.visual-plan-canvas .vue-flow__nodesselection {
+  @apply hidden;
+}
+
+.visual-plan-canvas .vue-flow__selection {
+  @apply border-primary-active bg-primary-active/10 rounded-sm border border-dashed;
+}
+
+.visual-plan-canvas .vue-flow__pane.selection {
+  @apply cursor-crosshair;
+}
+
+.visual-plan-canvas .vue-flow__handle {
+  @apply rounded-full;
+}
+
+.visual-plan-canvas {
+  @apply bg-gray-100 dark:bg-gray-900;
+}
+
+.visual-plan-canvas .vue-flow__node:focus-visible {
+  @apply outline-none;
+}
+
+.visual-plan-canvas .vue-flow__node:focus-visible > div {
+  @apply ring-primary-focus ring-offset-elevation-1 ring-2 ring-offset-2;
+}
+
+.visual-plan-canvas .vue-flow__edge:focus-visible .vue-flow__edge-path {
+  @apply stroke-primary-focus!;
+}
+
+.dark input[type='time'],
+.dark input[type='date'],
+.dark input[type='datetime-local'] {
+  color-scheme: dark;
+}
+
+/* thin scrollbar of the Nebula Design System (Surface/Scrollbar tokens), the same as NethVoice CTI */
+@utility scrollbar-thin-neutral {
+  &::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+  &::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-gray-400/50;
+  }
+  &::-webkit-scrollbar-track {
+    @apply rounded-full bg-gray-200/25 dark:bg-gray-900/25;
+  }
+  &::-webkit-scrollbar-corner {
+    @apply bg-transparent;
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklab, var(--color-gray-400) 50%, transparent) transparent;
+  }
+}
+
+.visual-plan-canvas .vue-flow__edge.animated path {
+  @apply motion-reduce:animate-none;
+}
+
+.visual-plan-canvas.is-animating .vue-flow__node {
+  @apply motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out;
+}

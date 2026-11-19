@@ -4498,6 +4498,108 @@ paths:
         required: true
         schema:
           type: string
+  /visualplan:
+    get:
+      summary: Read every call flow object the visual plan can show and edit.
+      tags:
+      - Visual plan
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualPlanData'
+        '500':
+          description: Internal server error
+      operationId: get_visualplan
+    post:
+      summary: Create and update call flow objects in one request, then reload the
+        dialplan.
+      tags:
+      - Visual plan
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualPlanSaveResponse'
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualPlanValidationError'
+        '500':
+          description: Internal server error
+      operationId: post_visualplan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisualPlanSaveRequest'
+  /visualplan/layout:
+    post:
+      summary: Replace the saved canvas layout of one inbound route; empty positions
+        remove it.
+      tags:
+      - Visual plan
+      responses:
+        '204':
+          description: Layout saved
+        '422':
+          description: Validation failed (error type "layout", ref the route)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualPlanValidationError'
+        '500':
+          description: Internal server error
+      operationId: post_visualplan_layout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisualPlanLayoutSaveRequest'
+  /visualplan/recordings:
+    post:
+      summary: Upload an audio file (wav or mp3) as a new system recording.
+      tags:
+      - Visual plan
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualPlanRecording'
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VisualPlanValidationError'
+        '500':
+          description: Internal server error
+      operationId: post_visualplan_recordings
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              - name
+              properties:
+                file:
+                  type: string
+                  format: binary
+                name:
+                  type: string
 components:
   securitySchemes:
     FreePBXAuth:
@@ -6279,6 +6381,724 @@ components:
       properties:
         result:
           type: string
+    VisualPlanDestination:
+      type: string
+      description: FreePBX goto string (context,exten,priority). Empty when not set.
+        In a save request it can also be "new:<ref>" to point at an object created
+        in the same request.
+    VisualPlanInboundRoute:
+      type: object
+      required:
+      - extension
+      - cidnum
+      - description
+      - alertinfo
+      - grppre
+      - destination
+      properties:
+        extension:
+          type: string
+        cidnum:
+          type: string
+        description:
+          type: string
+        alertinfo:
+          type: string
+        grppre:
+          type: string
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanExtension:
+      type: object
+      required:
+      - extension
+      - name
+      - voicemail
+      properties:
+        extension:
+          type: string
+        name:
+          type: string
+        voicemail:
+          type: boolean
+    VisualPlanConference:
+      type: object
+      required:
+      - id
+      - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    VisualPlanRingGroup:
+      type: object
+      required:
+      - id
+      - description
+      - members
+      - strategy
+      - ringTime
+      - destination
+      properties:
+        id:
+          type: string
+        description:
+          type: string
+        members:
+          type: array
+          items:
+            type: string
+        strategy:
+          type: string
+        ringTime:
+          type: integer
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanQueueMember:
+      type: object
+      required:
+      - extension
+      - penalty
+      properties:
+        extension:
+          type: string
+        penalty:
+          type: integer
+    VisualPlanQueue:
+      type: object
+      required:
+      - id
+      - name
+      - staticMembers
+      - dynamicMembers
+      - strategy
+      - agentTimeout
+      - maxWait
+      - destination
+      - ringing
+      - cidPrefix
+      - joinAnnouncement
+      - positionAnnouncement
+      - announceFrequency
+      - breakoutIvr
+      - musicOnHold
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        staticMembers:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanQueueMember'
+        dynamicMembers:
+          type: array
+          items:
+            type: string
+        strategy:
+          type: string
+        agentTimeout:
+          type: integer
+          description: Seconds, 0 means unlimited
+        maxWait:
+          type: integer
+          description: Seconds, 0 means unlimited
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        ringing:
+          type: string
+          enum:
+          - moh
+          - ring
+        cidPrefix:
+          type: string
+        joinAnnouncement:
+          type: integer
+          nullable: true
+          description: Recording id
+        positionAnnouncement:
+          type: boolean
+        announceFrequency:
+          type: integer
+          description: Seconds between position announcements, 0 means only on join
+        breakoutIvr:
+          type: integer
+          nullable: true
+          description: IVR id used as break out menu
+        musicOnHold:
+          type: string
+    VisualPlanIvrEntry:
+      type: object
+      required:
+      - selection
+      - destination
+      properties:
+        selection:
+          type: string
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanIvr:
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - announcement
+      - directDial
+      - invalidDestination
+      - timeoutDestination
+      - entries
+      properties:
+        id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        description:
+          type: string
+        announcement:
+          type: integer
+          nullable: true
+        directDial:
+          type: boolean
+        invalidDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        timeoutDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanIvrEntry'
+    VisualPlanCqrEntry:
+      type: object
+      required:
+      - condition
+      - destination
+      properties:
+        condition:
+          type: string
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanCqr:
+      type: object
+      required:
+      - id
+      - name
+      - description
+      - announcement
+      - defaultDestination
+      - entries
+      properties:
+        id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        description:
+          type: string
+        announcement:
+          type: integer
+          nullable: true
+        defaultDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanCqrEntry'
+    VisualPlanAnnouncement:
+      type: object
+      required:
+      - id
+      - description
+      - recording
+      - destination
+      properties:
+        id:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        recording:
+          type: integer
+          nullable: true
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanTimeCondition:
+      type: object
+      required:
+      - id
+      - name
+      - timeGroup
+      - trueDestination
+      - falseDestination
+      properties:
+        id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        timeGroup:
+          type: integer
+          nullable: true
+        timeGroupRef:
+          type: string
+          description: Only in a save request, with timeGroup null, to use the time
+            group created in the same request with this ref
+        trueDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        falseDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanTimeGroup:
+      type: object
+      required:
+      - id
+      - description
+      - times
+      properties:
+        id:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        times:
+          type: array
+          description: Asterisk time specs "hours|weekdays|monthdays|months", e.g.
+            "09:00-18:00|mon-fri|*|*"
+          items:
+            type: string
+    VisualPlanCallFlowControl:
+      type: object
+      required:
+      - id
+      - name
+      - state
+      - normalDestination
+      - overrideDestination
+      properties:
+        id:
+          type: string
+          description: Control code index, dialed as *28<id>
+        name:
+          type: string
+        state:
+          type: string
+          description: Ignored when saving an existing control, which keeps its current
+            state; a new control starts in DAY unless NIGHT is given
+          enum:
+          - DAY
+          - NIGHT
+        normalDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        overrideDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanSetCallerId:
+      type: object
+      required:
+      - id
+      - description
+      - cidName
+      - cidNum
+      - destination
+      properties:
+        id:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        cidName:
+          type: string
+        cidNum:
+          type: string
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanDirectDid:
+      type: object
+      required:
+      - id
+      - prefix
+      - root
+      - varlength
+      - timeout
+      - timeoutDestination
+      - busyDestination
+      - unavailableDestination
+      properties:
+        id:
+          type: integer
+          nullable: true
+        prefix:
+          type: string
+        root:
+          type: string
+        varlength:
+          type: integer
+        timeout:
+          type: integer
+        timeoutDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        busyDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        unavailableDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanQueueExit:
+      type: object
+      required:
+      - id
+      - name
+      - timeoutDestination
+      - fullDestination
+      - joinEmptyDestination
+      - leaveEmptyDestination
+      - joinUnavailableDestination
+      - leaveUnavailableDestination
+      - continueDestination
+      properties:
+        id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        timeoutDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        fullDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        joinEmptyDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        leaveEmptyDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        joinUnavailableDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        leaveUnavailableDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        continueDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanQueueOptions:
+      type: object
+      required:
+      - id
+      - name
+      - cidPrefix
+      - alertInfo
+      - joinAnnouncement
+      - musicOnHold
+      - positionEnabled
+      - position
+      - maxWaitEnabled
+      - maxWait
+      - failoverEnabled
+      - failoverDestination
+      - destination
+      properties:
+        id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        cidPrefix:
+          type: string
+        alertInfo:
+          type: string
+        joinAnnouncement:
+          type: integer
+          nullable: true
+          description: Recording id
+        musicOnHold:
+          type: string
+        positionEnabled:
+          type: boolean
+        position:
+          type: integer
+        maxWaitEnabled:
+          type: boolean
+        maxWait:
+          type: integer
+        failoverEnabled:
+          type: boolean
+        failoverDestination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanQueuePriority:
+      type: object
+      required:
+      - id
+      - description
+      - priority
+      - destination
+      properties:
+        id:
+          type: integer
+          nullable: true
+        description:
+          type: string
+        priority:
+          type: integer
+        destination:
+          $ref: '#/components/schemas/VisualPlanDestination'
+    VisualPlanRecording:
+      type: object
+      required:
+      - id
+      - name
+      - description
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+    VisualPlanPosition:
+      type: object
+      required:
+      - x
+      - y
+      properties:
+        x:
+          type: integer
+          minimum: -1000000
+          maximum: 1000000
+        y:
+          type: integer
+          minimum: -1000000
+          maximum: 1000000
+    VisualPlanLayout:
+      type: object
+      description: Node positions by node id (1 to 200 characters, at most 2000 nodes)
+      additionalProperties:
+        $ref: '#/components/schemas/VisualPlanPosition'
+    VisualPlanLayoutSaveRequest:
+      type: object
+      required:
+      - route
+      - positions
+      properties:
+        route:
+          type: string
+          description: Key "extension/cidnum" of an existing inbound route
+        positions:
+          $ref: '#/components/schemas/VisualPlanLayout'
+    VisualPlanOtherDestination:
+      type: object
+      required:
+      - destination
+      - category
+      - description
+      properties:
+        destination:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+    VisualPlanData:
+      type: object
+      required:
+      - inboundRoutes
+      - extensions
+      - conferences
+      - ringGroups
+      - queues
+      - ivrs
+      - cqrs
+      - announcements
+      - timeConditions
+      - timeGroups
+      - callFlowControls
+      - availableCallFlowCodes
+      - setCallerIds
+      - directDids
+      - queueExits
+      - queueOptions
+      - queuePriorities
+      - recordings
+      - musicOnHold
+      - destinations
+      - layouts
+      - unavailable
+      properties:
+        inboundRoutes:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanInboundRoute'
+        extensions:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanExtension'
+        conferences:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanConference'
+        ringGroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanRingGroup'
+        queues:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanQueue'
+        ivrs:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanIvr'
+        cqrs:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanCqr'
+        announcements:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanAnnouncement'
+        timeConditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanTimeCondition'
+        timeGroups:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanTimeGroup'
+        callFlowControls:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanCallFlowControl'
+        availableCallFlowCodes:
+          type: array
+          items:
+            type: string
+        setCallerIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanSetCallerId'
+        directDids:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanDirectDid'
+        queueExits:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanQueueExit'
+        queueOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanQueueOptions'
+        queuePriorities:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanQueuePriority'
+        recordings:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanRecording'
+        musicOnHold:
+          type: array
+          items:
+            type: string
+        destinations:
+          type: array
+          description: Every destination FreePBX offers, used to label destinations
+            that have no node type
+          items:
+            $ref: '#/components/schemas/VisualPlanOtherDestination'
+        layouts:
+          type: object
+          description: Saved canvas layout of each inbound route, by route key "extension/cidnum".
+            Empty when no layout is saved or the layouts cannot be read.
+          additionalProperties:
+            $ref: '#/components/schemas/VisualPlanLayout'
+        unavailable:
+          type: array
+          description: Lists that could not be loaded; the editor must not allow saving
+            objects of these kinds
+          items:
+            type: string
+    VisualPlanChange:
+      type: object
+      required:
+      - type
+      - ref
+      - isNew
+      - data
+      properties:
+        type:
+          type: string
+          enum:
+          - inboundRoute
+          - voicemail
+          - conference
+          - ringGroup
+          - queue
+          - ivr
+          - cqr
+          - announcement
+          - timeCondition
+          - timeGroup
+          - callFlowControl
+          - setCallerId
+          - directDid
+          - queueExit
+          - queueOptions
+          - queuePriority
+        ref:
+          type: string
+          description: For an existing object, its key (id; "extension/cidnum" for
+            an inbound route; extension for a voicemail). For a new one, a client
+            id that other changes reference as "new:<ref>"
+        isNew:
+          type: boolean
+        data:
+          type: object
+          description: The object in the shape of the matching VisualPlanData item
+            (VisualPlanExtension with only extension for a voicemail)
+          additionalProperties: true
+    VisualPlanSaveRequest:
+      type: object
+      required:
+      - changes
+      properties:
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/VisualPlanChange'
+    VisualPlanSaveResponse:
+      type: object
+      required:
+      - refs
+      properties:
+        refs:
+          type: object
+          description: Key of every saved object by its ref
+          additionalProperties:
+            type: string
+    VisualPlanValidationError:
+      type: object
+      required:
+      - message
+      - errors
+      properties:
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+            - type
+            - ref
+            - field
+            - message
+            properties:
+              type:
+                type: string
+                description: Change type of the ref, e.g. ivr; empty for errors of
+                  the whole request
+              ref:
+                type: string
+              field:
+                type: string
+              message:
+                type: string
+                description: 'Error code: required, invalid, number_in_use, not_found'
   responses:
     UnauthorizedError:
       description: Authentication information is missing or invalid

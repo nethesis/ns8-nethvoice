@@ -93,6 +93,7 @@ const NETHVOICE_PREFIX_RULES = [
     '/configuration/networks' => 'trunks',
     '/inboundroutes' => 'routes',
     '/outboundroutes' => 'routes',
+    '/visualplan' => 'routes',
     '/phonebook' => 'integrations',
     '/cti/streaming' => 'integrations',
     '/cti/sources' => 'integrations',
