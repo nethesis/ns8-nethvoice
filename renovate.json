@@ -139,9 +139,32 @@
       "description": "Reports UI is Vue 2 on vue-cli 4: no major updates of the Vue toolchain without a migration",
       "matchFileNames": ["reports/ui/**"],
       "matchManagers": ["npm"],
-      "matchPackageNames": ["vue", "vue-*", "@vue/**", "chart.js", "portal-vue", "node-sass", "sass-loader", "eslint", "eslint-plugin-vue", "@babel/eslint-parser", "chai"],
+      "matchPackageNames": ["vue", "vue-*", "@vue/**", "chart.js", "portal-vue", "sass-loader", "eslint", "eslint-plugin-vue", "@babel/eslint-parser", "chai"],
       "matchUpdateTypes": ["major"],
       "enabled": false
+    },
+    {
+      "description": "Reports UI: node-sass majors need a newer sass-loader and vue-cli, so they wait for approval in the Dependency Dashboard (security updates too)",
+      "matchFileNames": ["reports/ui/**"],
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["node-sass"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "nethcti-server runs on Node 14 and Sequelize 3: these majors need a migration, so they wait for approval in the Dependency Dashboard (security updates too)",
+      "matchFileNames": ["nethcti-server/**"],
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["sequelize", "mysql2", "nodemailer", "uuid"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "reports/tasks uses reports/api through a local replace: update its indirect pins too, so api updates land in the same PR and the reports image builds",
+      "matchManagers": ["gomod"],
+      "matchFileNames": ["reports/tasks/go.mod"],
+      "matchDepTypes": ["indirect"],
+      "enabled": true
     }
   ]
 }
