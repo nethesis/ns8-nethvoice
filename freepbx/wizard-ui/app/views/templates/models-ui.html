@@ -26,7 +26,7 @@
       <form id="currentModelForm">
         <!-- sections -->
         <div ng-if="currentModel.ui.map[sectionkey] && currentModel.ui[sectionkey]"
-          ng-repeat="(sectionkey, section) in ::currentModel.ui track by sectionkey">
+          ng-repeat="(sectionkey, section) in currentModel.ui track by sectionkey">
           <!-- if it's a key section -->
           <div class="mt-20" ng-if="isKeysSection(sectionkey)">
             <h2 ng-click="openSection(sectionkey)"

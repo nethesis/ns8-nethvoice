@@ -3,20 +3,38 @@
   Fanvil i6x video door phones (i60/i60K, i61, i62, i63, i64; firmware 2.12.x)
 
   Partial configuration: only the keys below are changed on the device.
-  Network, web server, web login and access control settings are never
-  written: the door-open passwords are rules of the EGS password list of the
-  device, not configuration keys, and keep the values set from the web
-  interface.
+  Network, web server and access control (EGS) settings are never written:
+  the door-open passwords of the EGS password list keep the values set from
+  the web interface. The web admin password (adminpw) is written as
+  password of the web user admin (MMI Account1), like on the other Fanvil
+  phones; it is never used for the video stream.
 
   Key names checked against the configuration exported by a Fanvil i62 with
   firmware 2.12.51. RTSP credentials come from the per-phone variables
-  door_rtsp_user and door_rtsp_password; an empty password leaves the device
-  RTSP credentials untouched. The camera streams (video1 main, video2 sub)
+  door_rtsp_user and door_rtsp_password, a password of the video stream only
+  that the PBX generates for each door phone; an empty password leaves the
+  device RTSP credentials untouched. The camera streams (video1 main, video2 sub)
   get a lower main bitrate, a VGA sub stream and frequent keyframes, so that
   the keyframes stay small: see the door_video_* model variables. The
   language is not written: the i62 keeps its own web interface language.
+
+  The call buttons are the "SoftDss" keys of the DSSKEY CONFIG MODULE
+  (Fkey1..FkeyN, N = cap_linekey_count of the model): the i62 export maps
+  the physical buttons to them with "Desktop Click :dss1;dss2;...", which is
+  not written. Every key is a speed dial, whatever linekey_type says: only
+  the keys with a linekey_value are written, so a key set from the web
+  interface stays as it is until the PBX sets a number for that key.
+
+  The relays are the outputs of the SECURITY CONFIG MODULE (Output1 is
+  Relay1, Output2 is Relay2; cap_door_relay_count of the model). A relay
+  opens when the device receives its DTMF code during a call: door_dtmf_code
+  for relay 1 (the code the PBX sends to open the door), door_dtmf_code_2
+  for relay 2. door_relay_duration_N sets how long the relay stays active, in
+  seconds. A relay without a code is not written, so the tokenless
+  provisioning, which strips the codes, leaves the relays as they are.
 #}
 {% import 'fanvil.macros' as fanvil %}
+{% import 'language.macros' as l10n %}
 
 <MM CONFIG MODULE>
 Dtmf Payload Type  :101
@@ -63,6 +81,53 @@ Flash Protocol     :{{ fanvil.scheme_map(provisioning_url_scheme) }}
 Flash Mode         :{{ (provisioning_complete and provisioning_freq == 'never') ? '1' : '2' }}
 Flash Interval     :{{ provisioning_complete ? fanvil.upgrade_wait_hours(timezone, short_mac) : '1' }}
 
+{% set door_keys = [] %}
+{% for index in (cap_linekey_count | default(0)) > 0 ? range(1, cap_linekey_count) : [] %}
+{% if _context['linekey_value_' ~ index] | default('') != '' %}
+{% set door_keys = door_keys | merge([index]) %}
+{% endif %}
+{% endfor %}
+{% if door_keys | length > 0 %}
+<DSSKEY CONFIG MODULE>
+--SoftDss Config-- :
+{% for index in door_keys %}
+{{ fanvil.linekey_type_map(
+    'speed_dial',
+    _context['linekey_value_' ~ index],
+    _context['linekey_label_' ~ index] | default(''),
+    index,
+    l10n,
+    language | default('en'),
+    pickup_direct | default(''),
+    pickup_group | default(''),
+    'attended',
+    queuetoggle | default('')
+) }}
+{% endfor %}
+
+{% endif %}
+
+{% set door_relay_codes = [door_dtmf_code | default(''), door_dtmf_code_2 | default('')] %}
+{% set door_relays = [] %}
+{% for relay in (cap_door_relay_count | default(0)) > 0 ? range(1, min(cap_door_relay_count, 2)) : [] %}
+{% if door_relay_codes[relay - 1] != '' %}
+{% set door_relays = door_relays | merge([relay]) %}
+{% endif %}
+{% endfor %}
+{% if door_relays | length > 0 %}
+<SECURITY CONFIG MODULE>
+--Output List--    :
+{% for relay in door_relays %}
+{% set relay_duration = _context['door_relay_duration_' ~ relay] | default('') %}
+Output{{ relay }} Enabled           :1
+Output{{ relay }} Trigger By DTMF    :1
+Output{{ relay }} DTMF Trigger Code  :{{ door_relay_codes[relay - 1] }}
+{% if relay_duration != '' %}
+Output{{ relay }} Trigger Duration  :{{ relay_duration }}
+{% endif %}
+{% endfor %}
+
+{% endif %}
 {% if door_video_sub_bitrate is defined and door_video_sub_bitrate != '' %}
 <CAMERA CONFIG MODULE>
 --Video Stream-- :
@@ -71,6 +136,14 @@ video1 I Frame Interval :{{ door_video_iframe_interval }}
 video2 BitRate          :{{ door_video_sub_bitrate }}
 video2 Resolution       :{{ door_video_sub_resolution }}
 video2 I Frame Interval :{{ door_video_iframe_interval }}
+
+{% endif %}
+{% if adminpw is defined and adminpw != '' %}
+<MMI CONFIG MODULE>
+--MMI Account--    :
+Account1 Name               :admin
+Account1 Password           :{{ adminpw }}
+Account1 Level              :10
 
 {% endif %}
 <RTSP SERVER CONFIG MODULE>
