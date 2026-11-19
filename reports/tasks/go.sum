@@ -313,8 +313,8 @@ github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65E
 github.com/ugorji/go/codec v1.2.12/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
 github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2/go.mod h1:UETIi67q53MR2AWcXfiuqkDkRtnGDLqkBTpCHuJHxtU=
 github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:aYKd//L2LvnjZzWKhF00oedf4jCCReLcmhLdhm1A27Q=
-github.com/ziutek/rrd v0.0.3 h1:tGu7Dy0Z2Ij0qF7/7+fqWBZlM0j2Kp/RoTEG3+zHXjQ=
-github.com/ziutek/rrd v0.0.3/go.mod h1:PAFbtWhFYrVeILz+2a6OKKdLYk8RlPJotQXlj7O0Z0A=
+github.com/ziutek/rrd v0.0.4 h1:/5geVHps7GtdlJzaC8WLh1u6mP/Z/Z8rcHyAhzSA4e0=
+github.com/ziutek/rrd v0.0.4/go.mod h1:PAFbtWhFYrVeILz+2a6OKKdLYk8RlPJotQXlj7O0Z0A=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.0/go.mod h1:+kGneAE2xo2IficOXnaByMWTGM9T73dGwxeWcUqIpI8=

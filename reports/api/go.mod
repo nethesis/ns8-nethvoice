@@ -14,7 +14,7 @@ require (
 	github.com/juliangruber/go-intersect v1.0.0
 	github.com/nleeper/goment v1.4.0
 	github.com/pkg/errors v0.9.1
-	github.com/ziutek/rrd v0.0.3
+	github.com/ziutek/rrd v0.0.4
 	golang.org/x/time v0.15.0
 )
 
