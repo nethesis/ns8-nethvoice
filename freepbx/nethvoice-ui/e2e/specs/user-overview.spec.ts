@@ -367,6 +367,7 @@ test.describe('user overview', () => {
     await details.focus()
     await page.keyboard.press('Enter')
     await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
+    await expect(page.getByRole('tooltip', { includeHidden: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
     await expect(details).toBeFocused()
   })
