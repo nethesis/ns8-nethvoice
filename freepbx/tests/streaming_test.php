@@ -737,10 +737,6 @@ check(streaming_door_phone_missing_credentials(['door_rtsp_user' => 'admin', 'do
 $i6x = ['cap_door_phone' => '1', 'door_rtsp_user' => 'admin', 'adminpw' => 'PhonesAdmin1'];
 check(streaming_door_phone_missing_credentials($i6x, $gen) === ['door_rtsp_password' => 'Generated1'], 'i6x: the phones admin password is never the RTSP password, one is generated');
 check(streaming_door_phone_password(array_merge($i6x, ['door_rtsp_password' => 'Rtsp1'])) === 'Rtsp1' && streaming_door_phone_password($i6x) === '', 'RTSP password is door_rtsp_password only');
-check(streaming_door_phone_legacy_password($i6x, ['adminpw' => 'Old1']) === ['door_rtsp_password' => 'Old1', 'adminpw' => null], 'legacy per-phone adminpw moves to door_rtsp_password');
-check(streaming_door_phone_legacy_password($i6x, ['adminpw' => 'Old1', 'door_rtsp_password' => 'Rtsp1']) === [], 'no move when door_rtsp_password exists');
-check(streaming_door_phone_legacy_password($i6x, []) === [], 'no move without a per-phone adminpw');
-check(streaming_door_phone_legacy_password(['adminpw' => 'X'], ['adminpw' => 'Own1']) === [], 'phones keep their per-phone adminpw');
 
 $contacts = [
     ['via_addr' => '192.168.5.10', 'uri' => 'sip:203@2.119.67.169:1053;transport=tls', 'expiration_time' => '100'],
@@ -858,7 +854,7 @@ $sqlite->exec('CREATE TABLE `rest_cti_streaming` (`descr` TEXT PRIMARY KEY, `use
 $sqlite->exec("INSERT INTO `rest_cti_streaming` VALUES ('Linked', 'admin', 'Old1', '0C-38-3E-32-6B-84'), ('Other', 'admin', 'Mine1', NULL), ('Gone', 'admin', 'Keep1', '0C-38-3E-00-00-01'), ('Typed', 'viewer', 'Viewer1', '0C-38-3E-32-6B-84')");
 $tancredi = function (string $mac) use ($i6x) {
     if ($mac === '0C-38-3E-32-6B-84') {
-        return ['variables' => array_merge($i6x, ['door_rtsp_password' => 'New1']), 'phone_variables' => ['door_rtsp_password' => 'New1']];
+        return ['variables' => array_merge($i6x, ['door_rtsp_password' => 'New1'])];
     }
     return null;
 };

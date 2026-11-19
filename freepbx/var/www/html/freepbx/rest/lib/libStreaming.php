@@ -1728,24 +1728,6 @@ function streaming_door_phone_missing_credentials(array $variables, ?callable $g
 }
 
 /*
- * Compatibility with the first door phone code, which stored the generated
- * password as the per-phone web admin password ("adminpw") of the Fanvil
- * i6x: the device used it as RTSP password only. When a door phone has no
- * "door_rtsp_password" but a per-phone "adminpw", return the variables that
- * move it to "door_rtsp_password" and remove the per-phone "adminpw" (null),
- * so the RTSP password does not change. Empty array otherwise.
- */
-function streaming_door_phone_legacy_password(array $variables, array $phoneVariables): array
-{
-    $legacy = (string) ($phoneVariables['adminpw'] ?? '');
-    if (!streaming_is_door_phone($variables) || $legacy === ''
-        || (string) ($phoneVariables['door_rtsp_password'] ?? '') !== '') {
-        return [];
-    }
-    return ['door_rtsp_password' => $legacy, 'adminpw' => null];
-}
-
-/*
  * IP address of a device from its registrar contacts (the decoded JSON values
  * of the Asterisk "registrar/contact" database entries of its extension): the
  * address in the Via header of the most recent registration, i.e. the LAN

@@ -58,8 +58,7 @@ function door_phone_tancredi(string $method, string $path, ?array $body = null):
 
 /*
  * Tancredi variables of a phone, null if the phone does not exist:
- * "variables" merged with the model and the defaults, "phone_variables" of
- * the phone scope only.
+ * "variables" merged with the model and the defaults.
  */
 function door_phone_variables(string $mac): ?array
 {
@@ -71,39 +70,6 @@ function door_phone_variables(string $mac): ?array
         throw new DoorPhoneException("Tancredi phone $mac: HTTP $code");
     }
     $phone['variables'] = isset($phone['variables']) && is_array($phone['variables']) ? $phone['variables'] : [];
-    [$code, $own] = door_phone_tancredi('GET', '/phones/' . $mac);
-    if ($code !== 200) {
-        throw new DoorPhoneException("Tancredi phone $mac: HTTP $code");
-    }
-    $phone['phone_variables'] = isset($own['variables']) && is_array($own['variables']) ? $own['variables'] : [];
-    return door_phone_migrate_legacy_password($mac, $phone);
-}
-
-/*
- * Move the RTSP password that the first door phone code stored as per-phone
- * "adminpw" to "door_rtsp_password" (see streaming_door_phone_legacy_password).
- * It runs the first time a door phone is read after the update: the RTSP
- * password stays the same and the web interface keeps the phones password.
- */
-function door_phone_migrate_legacy_password(string $mac, array $phone): array
-{
-    $patch = streaming_door_phone_legacy_password($phone['variables'], $phone['phone_variables']);
-    if (!$patch) {
-        return $phone;
-    }
-    [$code] = door_phone_tancredi('PATCH', '/phones/' . $mac, ['variables' => $patch]);
-    if ($code !== 200) {
-        throw new DoorPhoneException("cannot move the RTSP password of door phone $mac: HTTP $code");
-    }
-    error_log("door phone $mac: RTSP password moved from adminpw to door_rtsp_password");
-    // Read again: "adminpw" now comes from the model or the defaults
-    [$code, $merged] = door_phone_tancredi('GET', '/phones/' . $mac . '?inherit=1');
-    if ($code === 200 && isset($merged['variables']) && is_array($merged['variables'])) {
-        $phone['variables'] = $merged['variables'];
-    }
-    unset($phone['phone_variables']['adminpw']);
-    $phone['phone_variables']['door_rtsp_password'] = $patch['door_rtsp_password'];
-    $phone['variables']['door_rtsp_password'] = $patch['door_rtsp_password'];
     return $phone;
 }
 
