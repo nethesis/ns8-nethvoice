@@ -105,6 +105,9 @@ function gateway_generate_configuration_file($name,$mac = false){
         $output = str_replace("DEFGATEWAY",$config['gateway'],$output);
         $output = str_replace("NETMASK",$config['netmask_green'],$output);
         $output = str_replace("DATE",date ('d/m/Y G:i:s'),$output);
+        // SIP and SIPS ports of the proxy, published by its service discovery
+        $output = str_replace("PXSIPSPORT",!empty($_ENV['NETHVOICE_PROXY_SIPS_PORT']) ? $_ENV['NETHVOICE_PROXY_SIPS_PORT'] : '5061',$output);
+        $output = str_replace("PXSIPPORT",!empty($_ENV['NETHVOICE_PROXY_SIP_PORT']) ? $_ENV['NETHVOICE_PROXY_SIP_PORT'] : '5060',$output);
         $output = str_replace("PROXY",$config['proxy'],$output);
 
         if ($config['manufacturer'] === 'Grandstream'){
