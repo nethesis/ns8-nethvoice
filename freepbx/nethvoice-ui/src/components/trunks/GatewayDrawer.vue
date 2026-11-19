@@ -41,7 +41,7 @@ import {
 import { getFxsUserOptions, FXS_USERS_KEY } from '@/lib/trunks/fxsUsers'
 import { TRUNKS_KEY } from '@/lib/trunks/trunks'
 import { TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
-import type { Focusable } from '@/lib/common'
+import { focusUnlessFocusedWithin, type Focusable } from '@/lib/common'
 import { useFxsUsers, useGatewayModels, useHostNetworks } from '@/queries/trunks/gateways'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
@@ -97,6 +97,7 @@ const fieldRefs: Record<GatewayField, Readonly<ShallowRef<Focusable | null>>> = 
 }
 const fxoRefs = useTemplateRef<Focusable[]>('fxoRefs')
 const fxsRefs = useTemplateRef<Focusable[]>('fxsRefs')
+const formRef = useTemplateRef<HTMLFormElement>('formRef')
 
 const isReadOnly = computed(() => gateway !== undefined)
 
@@ -196,7 +197,10 @@ watch(
     initForm()
 
     if (!gateway) {
-      setTimeout(() => fieldRefs.manufacturer.value?.focus(), FOCUS_DELAY)
+      setTimeout(
+        () => focusUnlessFocusedWithin(formRef.value, fieldRefs.manufacturer.value),
+        FOCUS_DELAY,
+      )
     }
   },
 )
@@ -316,7 +320,7 @@ function discardChanges() {
     :close-aria-label="t('shell.close_side_drawer')"
     @close="requestClose"
   >
-    <form novalidate @submit.prevent="save">
+    <form ref="formRef" novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
         <NeInlineNotification
           v-if="isReadOnly"
