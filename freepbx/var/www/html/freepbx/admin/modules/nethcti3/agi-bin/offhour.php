@@ -106,8 +106,15 @@ switch ($res['action']) {
         $agi->stream_file($res['message']);
         if ($res['param'] != '') {
             @$agi->verbose("[offhour] Message on Voicemail: ".$res['param'],4);
-            $agi->exec("Gosub","macro-vm,s,1({$res['param']},NOMESSAGE)");
-        } 
+            // Resume in the dialplan so Gosub runs before the call is ended.
+            $mailbox = $agi->set_variable('NETHVOICE_OFFHOUR_MAILBOX', $res['param']);
+            if ($mailbox['result'] == 1) {
+                $destination = $agi->exec_goto('nethvoice-offhour-voicemail', 's', 1);
+                if ($destination['code'] == 200 && $destination['result'] == 0) {
+                    break;
+                }
+            }
+        }
         $agi->hangup();
     break;
     case "2":
