@@ -30,6 +30,7 @@ import {
   setVoicemailForUsers,
   type BulkDevicesPlan,
 } from '@/lib/users/bulk'
+import { focusUnlessFocusedWithin } from '@/lib/common'
 import type { UsersDirectory } from '@/lib/users/directory'
 import {
   hasMainExtension,
@@ -74,6 +75,7 @@ const disablingPlans = ref<BulkDevicesPlan[]>([])
 const isShownDisableModal = ref(false)
 const isShownDiscardModal = ref(false)
 const usersRef = useTemplateRef<{ focus(): void }>('usersRef')
+const formRef = useTemplateRef<HTMLFormElement>('formRef')
 const profileRef = useTemplateRef<{ focus(): void }>('profileRef')
 
 const selectableUsers = computed(() =>
@@ -142,7 +144,7 @@ watch(
       isShownDisableModal.value = false
       isShownDiscardModal.value = false
       reset()
-      setTimeout(() => usersRef.value?.focus(), 300)
+      setTimeout(() => focusUnlessFocusedWithin(formRef.value, usersRef.value), 300)
     }
   },
 )
@@ -302,7 +304,7 @@ function discardChanges() {
     :close-aria-label="t('common.close')"
     @close="requestClose"
   >
-    <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
+    <form ref="formRef" class="flex flex-col gap-6" novalidate @submit.prevent="save">
       <NeMultiselectCombobox
         ref="usersRef"
         v-model="selectedUsers"

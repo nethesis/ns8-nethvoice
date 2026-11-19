@@ -24,6 +24,7 @@ import {
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import UserPhonesField from '@/components/users/UserPhonesField.vue'
 import { isApiError } from '@/lib/api/errors'
+import { focusUnlessFocusedWithin } from '@/lib/common'
 import { isCsvImportError } from '@/lib/users/csv'
 import {
   createUser,
@@ -117,6 +118,7 @@ const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
 const focusAfterSave = ref<'error' | 'extension' | null>(null)
 const errorRef = useTemplateRef<HTMLElement>('errorRef')
+const formRef = useTemplateRef<HTMLFormElement>('formRef')
 
 const usernameRef = useTemplateRef<{ focus(): void }>('usernameRef')
 const nameRef = useTemplateRef<{ focus(): void }>('nameRef')
@@ -262,7 +264,14 @@ watch(
     }
     validationIssues.value = {}
     initialSnapshot.value = formSnapshot()
-    setTimeout(() => (isEdit.value ? extensionRef.value : usernameRef.value)?.focus(), 300)
+    setTimeout(
+      () =>
+        focusUnlessFocusedWithin(
+          formRef.value,
+          isEdit.value ? extensionRef.value : usernameRef.value,
+        ),
+      300,
+    )
   },
 )
 
@@ -557,7 +566,7 @@ const extensionChangeWarning = computed(
     :close-aria-label="t('common.close')"
     @close="requestClose"
   >
-    <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
+    <form ref="formRef" class="flex flex-col gap-6" novalidate @submit.prevent="save">
       <template v-if="!isEdit">
         <NeTextInput
           ref="usernameRef"

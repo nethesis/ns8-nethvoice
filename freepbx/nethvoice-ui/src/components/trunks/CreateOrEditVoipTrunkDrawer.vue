@@ -47,7 +47,7 @@ import {
   getSelectableCodecs,
 } from '@/lib/trunks/providers'
 import { markTrunkChanged, TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
-import type { Focusable } from '@/lib/common'
+import { focusUnlessFocusedWithin, type Focusable } from '@/lib/common'
 import { useTrunkCodecs, useTrunkProviders } from '@/queries/trunks/trunks'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
@@ -96,6 +96,7 @@ const fieldRefs: Record<VoipTrunkField, Readonly<ShallowRef<Focusable | null>>> 
   password: useTemplateRef<Focusable>('passwordRef'),
   codecs: useTemplateRef<Focusable>('codecsRef'),
 }
+const formRef = useTemplateRef<HTMLFormElement>('formRef')
 
 const isEditing = computed(() => trunk !== undefined)
 
@@ -248,7 +249,14 @@ watch(
     resetUpdate()
     validationIssues.value = {}
     initForm()
-    setTimeout(() => fieldRefs[trunk ? 'phoneNumber' : 'provider'].value?.focus(), FOCUS_DELAY)
+    setTimeout(
+      () =>
+        focusUnlessFocusedWithin(
+          formRef.value,
+          fieldRefs[trunk ? 'phoneNumber' : 'provider'].value,
+        ),
+      FOCUS_DELAY,
+    )
   },
 )
 
@@ -343,7 +351,7 @@ function issue(field: VoipTrunkField): string {
     :close-aria-label="t('shell.close_side_drawer')"
     @close="requestClose"
   >
-    <form novalidate @submit.prevent="save">
+    <form ref="formRef" novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
         <NeInlineNotification
           v-if="providersState.status === 'error'"

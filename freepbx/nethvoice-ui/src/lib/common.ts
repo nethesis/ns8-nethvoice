@@ -9,6 +9,15 @@ export const PAGE_SIZES = [5, 10, 25, 50, 100]
 
 export type Focusable = { focus(): void }
 
+export const focusUnlessFocusedWithin = (
+  container: Element | null | undefined,
+  target: Focusable | null | undefined,
+) => {
+  if (!container?.contains(document.activeElement)) {
+    target?.focus()
+  }
+}
+
 export const normalize = (str: string) => {
   return str.toLowerCase().replace(/\s+/g, '_')
 }

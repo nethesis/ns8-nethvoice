@@ -34,6 +34,7 @@ import {
   type AdvancedBulkForm,
   type AdvancedBulkIssues,
 } from '@/lib/users/bulk'
+import { focusUnlessFocusedWithin } from '@/lib/common'
 import { hasMainExtension, type User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
@@ -66,6 +67,7 @@ const usersIssue = ref('')
 const noChanges = ref(false)
 const isShownDiscardModal = ref(false)
 const usersRef = useTemplateRef<{ focus(): void }>('usersRef')
+const formRef = useTemplateRef<HTMLFormElement>('formRef')
 const ringtimeRef = useTemplateRef<{ focus(): void }>('ringtimeRef')
 const outboundcidRef = useTemplateRef<{ focus(): void }>('outboundcidRef')
 const digitsRef = useTemplateRef<{ focus(): void }>('digitsRef')
@@ -139,7 +141,7 @@ watch(
       noChanges.value = false
       isShownDiscardModal.value = false
       reset()
-      setTimeout(() => usersRef.value?.focus(), 300)
+      setTimeout(() => focusUnlessFocusedWithin(formRef.value, usersRef.value), 300)
     }
   },
 )
@@ -267,7 +269,7 @@ const comboboxLabels = computed(() => ({
     :close-aria-label="t('common.close')"
     @close="requestClose"
   >
-    <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
+    <form ref="formRef" class="flex flex-col gap-6" novalidate @submit.prevent="save">
       <p class="text-secondary-neutral text-sm">{{ t('users.advanced_bulk_description') }}</p>
       <NeMultiselectCombobox
         ref="usersRef"

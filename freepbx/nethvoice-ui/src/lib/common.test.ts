@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   compareNatural,
+  focusUnlessFocusedWithin,
   foldText,
   matchesText,
   needsPaginator,
@@ -84,5 +85,35 @@ describe('compareNatural', () => {
       '1000',
       '91200',
     ])
+  })
+})
+
+describe('focusUnlessFocusedWithin', () => {
+  const setup = () => {
+    const outside = document.createElement('button')
+    const form = document.createElement('form')
+    const first = document.createElement('input')
+    const second = document.createElement('input')
+    form.append(first, second)
+    document.body.replaceChildren(outside, form)
+    return { outside, form, first, second }
+  }
+
+  it('should focus the target when focus is outside the container', () => {
+    const { outside, form, first } = setup()
+    outside.focus()
+
+    focusUnlessFocusedWithin(form, first)
+
+    expect(document.activeElement).toBe(first)
+  })
+
+  it('should keep focus on a field already focused inside the container', () => {
+    const { form, first, second } = setup()
+    second.focus()
+
+    focusUnlessFocusedWithin(form, first)
+
+    expect(document.activeElement).toBe(second)
   })
 })
