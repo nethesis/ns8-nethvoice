@@ -195,6 +195,42 @@
       "matchManagers": ["npm"],
       "matchPackageNames": ["node-ipc"],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "nethcti-server runs on Node 14 and pg 8.16.1+ requires Node 16: pg updates wait for approval in the Dependency Dashboard until the Node upgrade",
+      "matchFileNames": ["nethcti-server/**"],
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["pg"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Reports Go majors (gin-jwt v3, gzip v1, go-intersect v2, gin-contrib/sse v1...) need code changes or a coordinated gin upgrade: they wait for approval in the Dependency Dashboard",
+      "matchFileNames": ["reports/**"],
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "These majors change the Go module path (hcl/v2, go-toml/v2, yaml.v3) of indirect dependencies required by viper: bumping the go.mod line alone can never work, and they go away when viper is upgraded",
+      "matchFileNames": ["reports/**"],
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["github.com/hashicorp/hcl", "github.com/pelletier/go-toml", "gopkg.in/yaml.v2"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "NethVoice CTI: Node.js majors of the Next.js image wait for approval in the Dependency Dashboard and need a CTI check",
+      "matchFileNames": ["nethvoice-cti/**"],
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["docker.io/library/node"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Tancredi documentation site (not part of the product): Jekyll majors wait for approval in the Dependency Dashboard",
+      "matchFileNames": ["tancredi/app/docs/**"],
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
     }
   ]
 }
