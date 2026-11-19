@@ -5,7 +5,6 @@ import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import { isApiError } from '@/lib/api/errors'
 import { compareNatural, matchesText } from '@/lib/common'
-import { VISUAL_PLAN_URL } from '@/lib/config'
 
 export const INBOUND_ROUTES_KEY = 'inboundRoutes'
 
@@ -264,7 +263,7 @@ export const sortInboundRoutes = (
   return descending ? sorted.reverse() : sorted
 }
 
-export const getVisualPlanRouteUrl = (route?: Pick<InboundRoute, 'number' | 'cid'>): string => {
-  const did = route ? `${route.number} / ${route.cid}` : 'new_route'
-  return `${VISUAL_PLAN_URL}/?did=${encodeURIComponent(did)}`
-}
+export const getVisualPlanLocation = (route?: Pick<InboundRoute, 'number' | 'cid'>) =>
+  route
+    ? { name: 'visual-plan', query: { route: `${route.number}/${route.cid}` } }
+    : { name: 'visual-plan' }

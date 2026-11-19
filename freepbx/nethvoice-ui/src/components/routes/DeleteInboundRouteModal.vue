@@ -10,6 +10,7 @@ import { useMutation, useQueryCache } from '@pinia/colada'
 import DeleteObjectModal from '@/components/common/DeleteObjectModal.vue'
 import { useInboundRouteLabels } from '@/composables/useInboundRouteLabels'
 import { deleteInboundRoute, INBOUND_ROUTES_KEY, type InboundRoute } from '@/lib/routes/inbound'
+import { VISUAL_PLAN_KEY } from '@/lib/visualplan/api'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { visible = false, route = undefined } = defineProps<{
@@ -53,6 +54,7 @@ const {
   },
   onSettled: () => {
     queryCache.invalidateQueries({ key: [INBOUND_ROUTES_KEY] })
+    queryCache.invalidateQueries({ key: [VISUAL_PLAN_KEY] })
   },
 })
 

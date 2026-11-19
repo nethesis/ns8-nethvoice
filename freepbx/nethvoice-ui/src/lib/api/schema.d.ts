@@ -2921,6 +2921,58 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/visualplan': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Read every call flow object the visual plan can show and edit. */
+    get: operations['get_visualplan']
+    put?: never
+    /** Create and update call flow objects in one request, then reload the dialplan. */
+    post: operations['post_visualplan']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/visualplan/layout': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Replace the saved canvas layout of one inbound route; empty positions remove it. */
+    post: operations['post_visualplan_layout']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/visualplan/recordings': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Upload an audio file (wav or mp3) as a new system recording. */
+    post: operations['post_visualplan_recordings']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -3752,6 +3804,268 @@ export interface components {
     }
     SettingsPasswordError: {
       result: string
+    }
+    /** @description FreePBX goto string (context,exten,priority). Empty when not set. In a save request it can also be "new:<ref>" to point at an object created in the same request. */
+    VisualPlanDestination: string
+    VisualPlanInboundRoute: {
+      extension: string
+      cidnum: string
+      description: string
+      alertinfo: string
+      grppre: string
+      destination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanExtension: {
+      extension: string
+      name: string
+      voicemail: boolean
+    }
+    VisualPlanConference: {
+      id: string
+      name: string
+    }
+    VisualPlanRingGroup: {
+      id: string
+      description: string
+      members: string[]
+      strategy: string
+      ringTime: number
+      destination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanQueueMember: {
+      extension: string
+      penalty: number
+    }
+    VisualPlanQueue: {
+      id: string
+      name: string
+      staticMembers: components['schemas']['VisualPlanQueueMember'][]
+      dynamicMembers: string[]
+      strategy: string
+      /** @description Seconds, 0 means unlimited */
+      agentTimeout: number
+      /** @description Seconds, 0 means unlimited */
+      maxWait: number
+      destination: components['schemas']['VisualPlanDestination']
+      /** @enum {string} */
+      ringing: 'moh' | 'ring'
+      cidPrefix: string
+      /** @description Recording id */
+      joinAnnouncement: number | null
+      positionAnnouncement: boolean
+      /** @description Seconds between position announcements, 0 means only on join */
+      announceFrequency: number
+      /** @description IVR id used as break out menu */
+      breakoutIvr: number | null
+      musicOnHold: string
+    }
+    VisualPlanIvrEntry: {
+      selection: string
+      destination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanIvr: {
+      id: number | null
+      name: string
+      description: string
+      announcement: number | null
+      directDial: boolean
+      invalidDestination: components['schemas']['VisualPlanDestination']
+      timeoutDestination: components['schemas']['VisualPlanDestination']
+      entries: components['schemas']['VisualPlanIvrEntry'][]
+    }
+    VisualPlanCqrEntry: {
+      condition: string
+      destination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanCqr: {
+      id: number | null
+      name: string
+      description: string
+      announcement: number | null
+      defaultDestination: components['schemas']['VisualPlanDestination']
+      entries: components['schemas']['VisualPlanCqrEntry'][]
+    }
+    VisualPlanAnnouncement: {
+      id: number | null
+      description: string
+      recording: number | null
+      destination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanTimeCondition: {
+      id: number | null
+      name: string
+      timeGroup: number | null
+      /** @description Only in a save request, with timeGroup null, to use the time group created in the same request with this ref */
+      timeGroupRef?: string
+      trueDestination: components['schemas']['VisualPlanDestination']
+      falseDestination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanTimeGroup: {
+      id: number | null
+      description: string
+      /** @description Asterisk time specs "hours|weekdays|monthdays|months", e.g. "09:00-18:00|mon-fri|*|*" */
+      times: string[]
+    }
+    VisualPlanCallFlowControl: {
+      /** @description Control code index, dialed as *28<id> */
+      id: string
+      name: string
+      /**
+       * @description Ignored when saving an existing control, which keeps its current state; a new control starts in DAY unless NIGHT is given
+       * @enum {string}
+       */
+      state: 'DAY' | 'NIGHT'
+      normalDestination: components['schemas']['VisualPlanDestination']
+      overrideDestination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanSetCallerId: {
+      id: number | null
+      description: string
+      cidName: string
+      cidNum: string
+      destination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanDirectDid: {
+      id: number | null
+      prefix: string
+      root: string
+      varlength: number
+      timeout: number
+      timeoutDestination: components['schemas']['VisualPlanDestination']
+      busyDestination: components['schemas']['VisualPlanDestination']
+      unavailableDestination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanQueueExit: {
+      id: number | null
+      name: string
+      timeoutDestination: components['schemas']['VisualPlanDestination']
+      fullDestination: components['schemas']['VisualPlanDestination']
+      joinEmptyDestination: components['schemas']['VisualPlanDestination']
+      leaveEmptyDestination: components['schemas']['VisualPlanDestination']
+      joinUnavailableDestination: components['schemas']['VisualPlanDestination']
+      leaveUnavailableDestination: components['schemas']['VisualPlanDestination']
+      continueDestination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanQueueOptions: {
+      id: number | null
+      name: string
+      cidPrefix: string
+      alertInfo: string
+      /** @description Recording id */
+      joinAnnouncement: number | null
+      musicOnHold: string
+      positionEnabled: boolean
+      position: number
+      maxWaitEnabled: boolean
+      maxWait: number
+      failoverEnabled: boolean
+      failoverDestination: components['schemas']['VisualPlanDestination']
+      destination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanQueuePriority: {
+      id: number | null
+      description: string
+      priority: number
+      destination: components['schemas']['VisualPlanDestination']
+    }
+    VisualPlanRecording: {
+      id: number
+      name: string
+      description: string
+    }
+    VisualPlanPosition: {
+      x: number
+      y: number
+    }
+    /** @description Node positions by node id (1 to 200 characters, at most 2000 nodes) */
+    VisualPlanLayout: {
+      [key: string]: components['schemas']['VisualPlanPosition']
+    }
+    VisualPlanLayoutSaveRequest: {
+      /** @description Key "extension/cidnum" of an existing inbound route */
+      route: string
+      positions: components['schemas']['VisualPlanLayout']
+    }
+    VisualPlanOtherDestination: {
+      destination: string
+      category: string
+      description: string
+    }
+    VisualPlanData: {
+      inboundRoutes: components['schemas']['VisualPlanInboundRoute'][]
+      extensions: components['schemas']['VisualPlanExtension'][]
+      conferences: components['schemas']['VisualPlanConference'][]
+      ringGroups: components['schemas']['VisualPlanRingGroup'][]
+      queues: components['schemas']['VisualPlanQueue'][]
+      ivrs: components['schemas']['VisualPlanIvr'][]
+      cqrs: components['schemas']['VisualPlanCqr'][]
+      announcements: components['schemas']['VisualPlanAnnouncement'][]
+      timeConditions: components['schemas']['VisualPlanTimeCondition'][]
+      timeGroups: components['schemas']['VisualPlanTimeGroup'][]
+      callFlowControls: components['schemas']['VisualPlanCallFlowControl'][]
+      availableCallFlowCodes: string[]
+      setCallerIds: components['schemas']['VisualPlanSetCallerId'][]
+      directDids: components['schemas']['VisualPlanDirectDid'][]
+      queueExits: components['schemas']['VisualPlanQueueExit'][]
+      queueOptions: components['schemas']['VisualPlanQueueOptions'][]
+      queuePriorities: components['schemas']['VisualPlanQueuePriority'][]
+      recordings: components['schemas']['VisualPlanRecording'][]
+      musicOnHold: string[]
+      /** @description Every destination FreePBX offers, used to label destinations that have no node type */
+      destinations: components['schemas']['VisualPlanOtherDestination'][]
+      /** @description Saved canvas layout of each inbound route, by route key "extension/cidnum". Empty when no layout is saved or the layouts cannot be read. */
+      layouts: {
+        [key: string]: components['schemas']['VisualPlanLayout']
+      }
+      /** @description Lists that could not be loaded; the editor must not allow saving objects of these kinds */
+      unavailable: string[]
+    }
+    VisualPlanChange: {
+      /** @enum {string} */
+      type:
+        | 'inboundRoute'
+        | 'voicemail'
+        | 'conference'
+        | 'ringGroup'
+        | 'queue'
+        | 'ivr'
+        | 'cqr'
+        | 'announcement'
+        | 'timeCondition'
+        | 'timeGroup'
+        | 'callFlowControl'
+        | 'setCallerId'
+        | 'directDid'
+        | 'queueExit'
+        | 'queueOptions'
+        | 'queuePriority'
+      /** @description For an existing object, its key (id; "extension/cidnum" for an inbound route; extension for a voicemail). For a new one, a client id that other changes reference as "new:<ref>" */
+      ref: string
+      isNew: boolean
+      /** @description The object in the shape of the matching VisualPlanData item (VisualPlanExtension with only extension for a voicemail) */
+      data: {
+        [key: string]: unknown
+      }
+    }
+    VisualPlanSaveRequest: {
+      changes: components['schemas']['VisualPlanChange'][]
+    }
+    VisualPlanSaveResponse: {
+      /** @description Key of every saved object by its ref */
+      refs: {
+        [key: string]: string
+      }
+    }
+    VisualPlanValidationError: {
+      message: string
+      errors: {
+        /** @description Change type of the ref, e.g. ivr; empty for errors of the whole request */
+        type: string
+        ref: string
+        field: string
+        /** @description Error code: required, invalid, number_in_use, not_found */
+        message: string
+      }[]
     }
   }
   responses: {
@@ -9792,6 +10106,155 @@ export interface operations {
         }
         content: {
           'application/json': string
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  get_visualplan: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VisualPlanData']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  post_visualplan: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['VisualPlanSaveRequest']
+      }
+    }
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VisualPlanSaveResponse']
+        }
+      }
+      /** @description Validation failed */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VisualPlanValidationError']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  post_visualplan_layout: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['VisualPlanLayoutSaveRequest']
+      }
+    }
+    responses: {
+      /** @description Layout saved */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Validation failed (error type "layout", ref the route) */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VisualPlanValidationError']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  post_visualplan_recordings: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': {
+          /** Format: binary */
+          file: string
+          name: string
+        }
+      }
+    }
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VisualPlanRecording']
+        }
+      }
+      /** @description Validation failed */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VisualPlanValidationError']
         }
       }
       /** @description Internal server error */

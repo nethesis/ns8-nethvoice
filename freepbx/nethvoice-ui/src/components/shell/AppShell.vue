@@ -27,7 +27,7 @@ watch(
 </script>
 
 <template>
-  <div>
+  <div :class="{ 'h-full': route.meta.fullBleed }">
     <TransitionRoot as="template" :show="sidebarOpen">
       <Dialog as="div" class="relative z-50 lg:hidden" @close="sidebarOpen = false">
         <TransitionChild
@@ -114,9 +114,12 @@ watch(
       </div>
     </div>
 
-    <div class="lg:pl-75">
+    <div :class="['lg:pl-75', { 'flex h-full flex-col': route.meta.fullBleed }]">
       <TopBar @open-sidebar="sidebarOpen = true" />
-      <main class="py-6">
+      <main v-if="route.meta.fullBleed" class="min-h-0 flex-1">
+        <RouterView />
+      </main>
+      <main v-else class="py-6">
         <div class="px-4 sm:px-6 lg:px-8">
           <RouterView />
         </div>
