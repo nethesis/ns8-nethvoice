@@ -3,7 +3,7 @@ module github.com/nethesis/nethvoice-report/tasks
 go 1.26.0
 
 require (
-	github.com/fatih/color v1.9.0
+	github.com/fatih/color v1.19.0
 	github.com/nethesis/nethvoice-report/api v0.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.10.2
@@ -13,7 +13,7 @@ require (
 
 require (
 	github.com/appleboy/gin-jwt/v2 v2.6.4 // indirect
-	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.5 // indirect
 	github.com/bytedance/sonic/loader v0.5.3 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
