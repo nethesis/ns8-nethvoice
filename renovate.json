@@ -158,6 +158,13 @@
       "matchPackageNames": ["sequelize", "mysql2", "nodemailer", "uuid"],
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "reports/tasks uses reports/api through a local replace: update its indirect pins too, so api updates land in the same PR and the reports image builds",
+      "matchManagers": ["gomod"],
+      "matchFileNames": ["reports/tasks/go.mod"],
+      "matchDepTypes": ["indirect"],
+      "enabled": true
     }
   ]
 }
