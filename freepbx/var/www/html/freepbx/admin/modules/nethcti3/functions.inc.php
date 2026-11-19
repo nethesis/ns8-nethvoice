@@ -502,6 +502,8 @@ function nethcti3_get_config_late($engine) {
             $ext->splice($context, $exten, "dial", new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script-extension-ring',0);
         }
         /*Off-Hour*/
+        $ext->add('nethvoice-offhour-voicemail', 's', '', new ext_gosub(1, 's', 'macro-vm', '${NETHVOICE_OFFHOUR_MAILBOX},NOMESSAGE'));
+        $ext->add('nethvoice-offhour-voicemail', 's', '', new ext_hangup());
         $routes = FreePBX::Core()->getAllDIDs();
         foreach ($routes as $did) {
             /*add off-hour agi for each inbound routes*/
