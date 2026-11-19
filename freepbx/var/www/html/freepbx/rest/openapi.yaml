@@ -1589,6 +1589,37 @@ paths:
                     dtmf_code:
                       type: string
                       nullable: true
+                    dtmf_code_2:
+                      type: string
+                      nullable: true
+                      description: DTMF code of the second relay
+                    max_gates:
+                      type: integer
+                      nullable: true
+                      description: Most gates a source of this door phone can
+                        have (one per relay), null when the model does not
+                        declare its relays
+                    door_gates:
+                      type: array
+                      description: The relays of the door phone, the gate N
+                        of a source opens the relay N. code is the DTMF code
+                        that opens it during a call; url and user, when the
+                        model knows them and the device address is known, the
+                        http URL that opens it and its web user
+                      items:
+                        type: object
+                        properties:
+                          relay:
+                            type: integer
+                          code:
+                            type: string
+                            nullable: true
+                          url:
+                            type: string
+                            nullable: true
+                          user:
+                            type: string
+                            nullable: true
                     streams:
                       type: object
                       description: RTSP paths of the main (high quality,
@@ -1652,6 +1683,15 @@ paths:
                     type: array
                     items:
                       type: object
+                  door_gates:
+                    type: array
+                    description: Same as in GET /cti/streaming/doorphones
+                    items:
+                      type: object
+                  max_gates:
+                    type: integer
+                    nullable: true
+                    description: Same as in GET /cti/streaming/doorphones
                   ip:
                     type: string
                     nullable: true

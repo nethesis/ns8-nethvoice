@@ -1704,10 +1704,18 @@ function streaming_generate_door_password(int $length = STREAMING_DOOR_PASSWORD_
     throw new \RuntimeException('cannot generate a door phone password');
 }
 
-/* Stored RTSP password of a door phone (merged variables), empty if none */
+/*
+ * RTSP password of a door phone (merged variables): "door_rtsp_password",
+ * otherwise the web admin password ("adminpw") that the template writes as
+ * RTSP password too. Empty if none.
+ */
 function streaming_door_phone_password(array $variables): string
 {
-    return (string) ($variables['door_rtsp_password'] ?? '');
+    $password = (string) ($variables['door_rtsp_password'] ?? '');
+    if ($password === '' && streaming_is_door_phone($variables)) {
+        $password = (string) ($variables['adminpw'] ?? '');
+    }
+    return $password;
 }
 
 /*
@@ -1812,6 +1820,40 @@ function streaming_door_phone_url(?string $ip, array $variables): string
 }
 
 /*
+ * The relays of a door phone, opened by the gates of its sources: for each
+ * relay (1..cap_door_relay_count, at most 2; 1 for models without it) the
+ * DTMF code that opens it during a call (door_dtmf_code, door_dtmf_code_2)
+ * and, when the model knows it (door_open_url_path_N) and the device address
+ * is known, the http URL that opens it with the web user door_open_url_user.
+ * Null for what is missing or invalid. No secrets.
+ */
+function streaming_door_phone_gates(?string $ip, array $variables): array
+{
+    $count = min(max((int) ($variables['cap_door_relay_count'] ?? 0), 1), 2);
+    $host = null;
+    if ($ip !== null && filter_var($ip, FILTER_VALIDATE_IP) !== false) {
+        $host = filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false ? "[$ip]" : $ip;
+    }
+    $gates = [];
+    for ($relay = 1; $relay <= $count; $relay++) {
+        $code = (string) ($variables[$relay === 1 ? 'door_dtmf_code' : 'door_dtmf_code_' . $relay] ?? '');
+        $path = (string) ($variables['door_open_url_path_' . $relay] ?? '');
+        $url = null;
+        if ($host !== null && preg_match('#^/[\x21-\x7e]*$#', $path)) {
+            $candidate = 'http://' . $host . $path;
+            $url = streaming_parse_url($candidate) !== null ? $candidate : null;
+        }
+        $gates[] = [
+            'relay' => $relay,
+            'code' => preg_match('/^[0-9A-Da-d*#+]{1,30}$/', $code) ? $code : null,
+            'url' => $url,
+            'user' => $url !== null ? (string) ($variables['door_open_url_user'] ?? '') : null,
+        ];
+    }
+    return $gates;
+}
+
+/*
  * A door phone as listed by the API: no secrets. $device is the inventory
  * row (mac, model, extension, name), $variables the merged Tancredi variables,
  * $sources the stored sources.
@@ -1828,7 +1870,8 @@ function streaming_door_phone_item(array $device, array $variables, ?string $ip,
         }
     }
     sort($used);
-    $code = (string) ($variables['door_dtmf_code'] ?? '');
+    $doorGates = streaming_door_phone_gates($ip, $variables);
+    $relays = (int) ($variables['cap_door_relay_count'] ?? 0);
     return [
         'mac' => $mac,
         'model' => (string) ($device['model'] ?? ''),
@@ -1840,7 +1883,11 @@ function streaming_door_phone_item(array $device, array $variables, ?string $ip,
         'url' => streaming_door_phone_url($ip, $variables),
         'user' => (string) ($variables['door_rtsp_user'] ?? ''),
         'has_secret' => streaming_door_phone_password($variables) !== '',
-        'dtmf_code' => preg_match('/^[0-9A-Da-d*#+]{1,30}$/', $code) ? $code : null,
+        'dtmf_code' => $doorGates[0]['code'],
+        'dtmf_code_2' => $doorGates[1]['code'] ?? null,
+        'door_gates' => $doorGates,
+        // Models that declare their relays: a source has at most one gate per relay
+        'max_gates' => $relays > 0 ? min($relays, STREAMING_MAX_GATES) : null,
         'streams' => streaming_door_phone_streams($variables),
         'sources' => $used,
     ];
@@ -1856,6 +1903,9 @@ function streaming_door_phone_prefill(array $item): array
     if ($item['dtmf_code'] !== null) {
         $gates[] = ['name' => 'Door 1', 'type' => 'dtmf', 'code' => $item['dtmf_code']];
     }
+    if (($item['dtmf_code_2'] ?? null) !== null) {
+        $gates[] = ['name' => 'Door 2', 'type' => 'dtmf', 'code' => $item['dtmf_code_2']];
+    }
     return [
         'descr' => mb_substr($item['name'] !== '' ? $item['name'] : $item['extension'], 0, 50),
         'exten' => $item['extension'],
@@ -1865,6 +1915,8 @@ function streaming_door_phone_prefill(array $item): array
         'door_phone' => $item['mac'],
         'streams' => $item['streams'] ?? null,
         'gates' => $gates,
+        'door_gates' => $item['door_gates'] ?? [],
+        'max_gates' => $item['max_gates'] ?? null,
         'ip' => $item['ip'],
         'registered' => $item['registered'],
     ];

@@ -230,7 +230,7 @@
                     <input required maxlength="50" ng-model="gate.name" type="text" placeholder="{{'Gate name' | translate}}" class="form-control">
                   </div>
                   <div class="col-sm-3">
-                    <select ng-model="gate.type" class="form-control">
+                    <select ng-model="gate.type" ng-change="gateTypeChanged(newSource)" class="form-control">
                       <option value="dtmf">{{'DTMF' | translate}}</option>
                       <option value="url">{{'URL' | translate}}</option>
                     </select>
@@ -243,9 +243,10 @@
                 </div>
                 <div ng-if="gate.type === 'dtmf'" class="row streaming-gate-detail">
                   <div class="col-sm-5">
-                    <input required maxlength="30" ng-model="gate.code" ng-pattern="dtmfPattern" type="text" placeholder="{{'DTMF code' | translate}}" class="form-control">
+                    <input required maxlength="30" ng-model="gate.code" ng-pattern="dtmfPattern" ng-readonly="doorGateCodeLocked(newSource, gate, $index)" type="text" placeholder="{{'DTMF code' | translate}}" class="form-control">
                   </div>
-                  <div class="col-sm-7 help-block">{{'Sent to the extension of the source during a call' | translate}}</div>
+                  <div ng-if="!doorGateCodeLocked(newSource, gate, $index)" class="col-sm-7 help-block">{{'Sent to the extension of the source during a call' | translate}}</div>
+                  <div ng-if="doorGateCodeLocked(newSource, gate, $index)" class="col-sm-7 help-block">{{'Code of the door phone relay' | translate}} {{$index + 1}}, {{'set in the door phone provisioning' | translate}}</div>
                 </div>
                 <div ng-if="gate.type === 'url'" class="streaming-gate-detail">
                   <div class="row">
@@ -268,12 +269,16 @@
                         placeholder="{{gate.has_password ? ('Unchanged' | translate) : ('Password' | translate)}}" class="form-control">
                     </div>
                   </div>
+                  <div ng-if="doorGate(newSource, $index).url" class="help-block">
+                    {{'URL that opens the door phone relay' | translate}} {{$index + 1}}: <code>{{doorGate(newSource, $index).url}}</code>. {{'User and password of the door phone web interface' | translate}}
+                  </div>
                   <div ng-if="gate.tls_fingerprint && tlsSkipVerify(newSource)" class="help-block">
                     {{'Pinned certificate' | translate}} <small>SHA-256 <code class="streaming-fingerprint">{{gate.tls_fingerprint}}</code></small>
                   </div>
                 </div>
               </div>
-              <button type="button" class="btn btn-default" ng-disabled="newSource.gates.length >= maxGates" ng-click="addGate()"><span class="fa fa-plus"></span> {{'Add gate' | translate}}</button>
+              <button type="button" class="btn btn-default" ng-disabled="newSource.gates.length >= gateLimit(newSource)" ng-click="addGate()"><span class="fa fa-plus"></span> {{'Add gate' | translate}}</button>
+              <span ng-if="gateLimit(newSource) < maxGates" class="help-block">{{'One gate per relay of the door phone' | translate}}: {{gateLimit(newSource)}}</span>
             </div>
           </div>
           <div ng-if="tlsRelevant(newSource)" class="form-group streaming-tls">

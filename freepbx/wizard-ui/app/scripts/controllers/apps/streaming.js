@@ -242,8 +242,54 @@ angular.module('nethvoiceWizardUiApp')
       };
     };
 
+    // Most gates of a source: one per relay for a door phone whose model
+    // declares its relays (Fanvil i6x), the general limit otherwise
+    $scope.gateLimit = function (s) {
+      return s && s.door_phone && s.doorMaxGates ? s.doorMaxGates : $scope.maxGates;
+    };
+
+    // Source linked to a door phone: the gate N opens the relay N of the
+    // door phone ("door_gates" of the door phone, null if it has no such relay)
+    $scope.doorGate = function (s, index) {
+      if (!s || !s.door_phone || !s.doorGates) {
+        return null;
+      }
+      return s.doorGates[index] || null;
+    };
+
+    // The DTMF code of a door phone relay comes from the door phone
+    // provisioning: shown, not changed here
+    $scope.doorGateCodeLocked = function (s, gate, index) {
+      var doorGate = $scope.doorGate(s, index);
+      return gate.type === 'dtmf' && !!(doorGate && doorGate.code);
+    };
+
+    // Give the gates of a door phone source the code of their relay and, for
+    // URL gates still empty, propose the URL and the user that open it
+    var syncDoorGates = function (s) {
+      (s.gates || []).forEach(function (gate, index) {
+        var doorGate = $scope.doorGate(s, index);
+        if (!doorGate) {
+          return;
+        }
+        if (gate.type === 'dtmf' && doorGate.code) {
+          gate.code = doorGate.code;
+        } else if (gate.type === 'url' && !gate.url && doorGate.url) {
+          gate.url = doorGate.url;
+          gate.method = 'GET';
+          if (!gate.username && doorGate.user) {
+            gate.username = doorGate.user;
+          }
+        }
+      });
+    };
+
+    $scope.gateTypeChanged = function (s) {
+      syncDoorGates(s);
+    };
+
     $scope.addGate = function () {
-      if ($scope.newSource.gates.length >= $scope.maxGates) {
+      if ($scope.newSource.gates.length >= $scope.gateLimit($scope.newSource)) {
         return;
       }
       $scope.newSource.gates.push({
@@ -252,10 +298,12 @@ angular.module('nethvoiceWizardUiApp')
         code: '',
         method: 'GET'
       });
+      syncDoorGates($scope.newSource);
     };
 
     $scope.removeGate = function (index) {
       $scope.newSource.gates.splice(index, 1);
+      syncDoorGates($scope.newSource);
     };
 
     $scope.moveGate = function (index, delta) {
@@ -266,6 +314,7 @@ angular.module('nethvoiceWizardUiApp')
       }
       var gate = gates.splice(index, 1)[0];
       gates.splice(target, 0, gate);
+      syncDoorGates($scope.newSource);
     };
 
     // A different URL or different credentials must be checked again
@@ -367,6 +416,11 @@ angular.module('nethvoiceWizardUiApp')
               copy.streams = d.streams;
               copy.streamsFromDoorPhone = true;
               copy.quality = detectQuality(copy);
+            }
+            if (d.mac === copy.door_phone) {
+              copy.doorGates = d.door_gates || [];
+              copy.doorMaxGates = d.max_gates || null;
+              syncDoorGates(copy);
             }
           });
         }, function (err) {
@@ -552,6 +606,9 @@ angular.module('nethvoiceWizardUiApp')
             method: 'GET'
           };
         });
+        s.doorGates = p.door_gates || [];
+        s.doorMaxGates = p.max_gates || null;
+        syncDoorGates(s);
         d.onPrepare = false;
         $scope.newSource = s;
         // Open the form once the list is closed: two modals at once break the backdrop

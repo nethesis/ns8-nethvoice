@@ -1211,5 +1211,10 @@
   "door_phone_relay_1_dtmf_label": "Relè 1: codice DTMF di apertura",
   "door_phone_relay_1_duration_label": "Relè 1: tempo di apertura (secondi)",
   "door_phone_relay_2_dtmf_label": "Relè 2: codice DTMF di apertura",
-  "door_phone_relay_2_duration_label": "Relè 2: tempo di apertura (secondi)"
+  "door_phone_relay_2_duration_label": "Relè 2: tempo di apertura (secondi)",
+  "Code of the door phone relay": "Codice del relè del citofono",
+  "set in the door phone provisioning": "impostato dal provisioning del citofono",
+  "URL that opens the door phone relay": "URL che apre il relè del citofono",
+  "User and password of the door phone web interface": "Utente e password dell'interfaccia web del citofono",
+  "One gate per relay of the door phone": "Un varco per ogni relè del citofono"
 }
