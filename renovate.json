@@ -165,6 +165,36 @@
       "matchFileNames": ["reports/tasks/go.mod"],
       "matchDepTypes": ["indirect"],
       "enabled": true
+    },
+    {
+      "description": "Reports: group non-major updates of indirect Go dependencies in one PR. Direct dependencies of reports/api stay out of the group (they are indirect in reports/tasks and must move in the same PR as the api change), and so do majors",
+      "matchManagers": ["gomod"],
+      "matchFileNames": ["reports/**"],
+      "matchDepTypes": ["indirect"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "matchPackageNames": [
+        "!github.com/appleboy/gin-jwt/v2",
+        "!github.com/gin-contrib/cors",
+        "!github.com/gin-contrib/gzip",
+        "!github.com/gin-gonic/gin",
+        "!github.com/go-redis/redis",
+        "!github.com/go-sql-driver/mysql",
+        "!github.com/google/uuid",
+        "!github.com/jinzhu/gorm",
+        "!github.com/juliangruber/go-intersect",
+        "!github.com/nleeper/goment",
+        "!github.com/pkg/errors",
+        "!github.com/ziutek/rrd",
+        "!golang.org/x/time"
+      ],
+      "groupName": "reports indirect Go dependencies"
+    },
+    {
+      "description": "node-ipc had malicious releases (9.2.2, 10.1.x) and new 9.x releases appeared in 2026: every update waits for approval in the Dependency Dashboard and needs a code review",
+      "matchFileNames": ["nethcti-server/**"],
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["node-ipc"],
+      "dependencyDashboardApproval": true
     }
   ]
 }
