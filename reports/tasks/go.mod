@@ -34,7 +34,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/gorm v1.9.16 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/juliangruber/go-intersect v1.0.0 // indirect
+	github.com/juliangruber/go-intersect v1.1.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.4.2 // indirect
 	github.com/leodido/go-urn v1.5.0 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect

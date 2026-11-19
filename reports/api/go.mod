@@ -11,7 +11,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/google/uuid v1.6.0
 	github.com/jinzhu/gorm v1.9.16
-	github.com/juliangruber/go-intersect v1.0.0
+	github.com/juliangruber/go-intersect v1.1.0
 	github.com/nleeper/goment v1.4.4
 	github.com/pkg/errors v0.9.1
 	github.com/ziutek/rrd v0.0.4
@@ -19,7 +19,6 @@ require (
 )
 
 require (
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/bytedance/gopkg v0.1.4 // indirect
 	github.com/bytedance/sonic v1.15.2 // indirect
 	github.com/bytedance/sonic/loader v0.5.1 // indirect
