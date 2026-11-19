@@ -181,7 +181,8 @@
       "trunks": "fasci",
       "inbound_routes": "rotte in ingresso",
       "calls": "chiamate di oggi",
-      "phones": "stato dei telefoni"
+      "phones": "stato dei telefoni",
+      "calls_per_hour": "chiamate per ora"
     },
     "move_card": "Sposta {card}",
     "drag_to_reorder": "Trascina per riordinare, oppure usa i tasti freccia",
@@ -195,13 +196,24 @@
       "no_calls": "Nessuna chiamata oggi"
     },
     "hourly_calls": {
-      "title": "Distribuzione oraria delle chiamate",
+      "title": "Chiamate per ora",
       "legend": "Chiamate",
-      "summary": "{total} chiamate oggi, il massimo alle {hour} con {calls}",
-      "no_calls": "Nessuna chiamata oggi",
-      "hour_value": "{hour}: {calls}"
+      "period": "Periodo",
+      "range": {
+        "last_24_hours": "Ultime 24 ore",
+        "last_7_days": "Ultimi 7 giorni",
+        "last_15_days": "Ultimi 15 giorni"
+      },
+      "summary": "{period}: {total} chiamate, ora di picco {time} con {calls}",
+      "no_calls": "Nessuna chiamata nel periodo",
+      "no_data": "Ancora nessuna chiamata",
+      "no_data_description": "Le chiamate compariranno qui dopo la prima.",
+      "available_from": "Dati disponibili dal {time}",
+      "tooltip_calls": "Chiamate: {calls}",
+      "tooltip_no_data": "Nessun dato"
     },
     "cannot_load_calls": "Impossibile caricare le chiamate di oggi",
+    "cannot_load_calls_per_hour": "Impossibile caricare le chiamate per ora",
     "phone_status": {
       "title": "Stato dei telefoni",
       "provisioned": "Provisionati",
