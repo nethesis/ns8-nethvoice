@@ -728,6 +728,12 @@ function setCompUtil(comp) {
               logger.log.info(IDLOG, "Proxy fqdn missing");
             }
 
+            // Add NS8 proxy TLS port
+            var proxy_tls_port = parseInt(process.env.NETHVOICE_PROXY_SIPS_PORT, 10);
+            if (proxy_tls_port > 0) {
+              result.proxy_tls_port = proxy_tls_port;
+            }
+
             // Speech-To-Text features depend both on the module-level switch
             // (SATELLITE_* env vars) and on the user's "satellite_stt" profile permission.
             var hasSttPermission = compAuthorization.authorizeSttUser(username);
