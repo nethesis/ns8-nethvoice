@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, mockPermissions, test, type MockApi } from '../fixtures/mockApi'
+import { expect, mockPermissions, test, type MockApi, type MockRequest } from '../fixtures/mockApi'
 
 const extension = (exten: string, name: string, status: string, conversations = {}) => ({
   exten,
@@ -112,6 +112,47 @@ const CALLS_TODAY = {
   calls_by_hour: [0, 0, 0, 0, 0, 0, 0, 0, 1, 4, 2],
 }
 
+const HOUR = 3600
+
+const LAST_HOUR = Date.UTC(2026, 10, 18, 11) / 1000
+
+const RANGE_HOURS: Record<string, number> = { '24h': 24, '7d': 168, '15d': 360 }
+
+const CALLS_AT_HOUR: Record<number, number> = { 8: 1, 9: 4, 10: 2.5 }
+
+const callsHistory = (range: string, historyStart: number | null = LAST_HOUR - 400 * HOUR) => {
+  const hours = RANGE_HOURS[range] ?? 24
+
+  return {
+    range,
+    source: 'cdr',
+    history_start: historyStart,
+    series: Array.from({ length: hours }, (_, index) => {
+      const time = LAST_HOUR - (hours - 1 - index) * HOUR
+
+      return {
+        time,
+        calls:
+          historyStart === null || time < historyStart
+            ? null
+            : (CALLS_AT_HOUR[new Date(time * 1000).getUTCHours()] ?? 0),
+      }
+    }),
+  }
+}
+
+const callsResponse =
+  (history: (range: string) => object = callsHistory, ranges: string[] = []) =>
+  (request: MockRequest) => {
+    const range = request.query.get('range')
+
+    if (range === null) {
+      return { json: CALLS_TODAY }
+    }
+    ranges.push(range)
+    return { json: { ...CALLS_TODAY, ...history(range) } }
+  }
+
 const PHONE_STATUS = {
   provisioned: 116,
   pending: 4,
@@ -148,7 +189,7 @@ const mockDashboard = (mockApi: MockApi) =>
     .on('GET', '/api/astproxy/extensions', { json: EXTENSIONS })
     .on('GET', '/api/astproxy/trunks', { json: TRUNKS })
     .on('GET', '/api/user/endpoints/all', { json: USERS })
-    .on('GET', '/freepbx/rest/dashboard/calls', { json: CALLS_TODAY })
+    .on('GET', '/freepbx/rest/dashboard/calls', callsResponse())
     .on('GET', '/freepbx/rest/dashboard/system', { json: SYSTEM })
     .on('GET', '/freepbx/rest/dashboard/phones', { json: PHONE_STATUS })
 
@@ -158,6 +199,8 @@ const counterValue = (page: import('@playwright/test').Page, id: string) =>
   page.getByTestId(`counter-${id}`).getByTestId('counter-value')
 
 test.describe('dashboard', () => {
+  test.use({ timezoneId: 'UTC' })
+
   test.beforeEach(({ signedIn, mockApi }) => {
     void signedIn
     mockDashboard(mockApi)
@@ -220,15 +263,18 @@ test.describe('dashboard', () => {
     await expect(callsToday.getByTestId('breakdown-missed')).toHaveText('2')
     await expect(callsToday.getByTestId('breakdown-invalid')).toHaveText('1')
 
+    await expect(page.getByTestId('hourly-calls-card')).toContainText('Calls per hour')
     await expect(
-      page.getByRole('img', { name: '7 calls today, most at 09:00 with 4' }),
+      page.getByRole('img', {
+        name: 'Last 24 hours: 7.5 calls, busiest hour Wed, Nov 18, 09:00 with 4',
+      }),
     ).toBeVisible()
-    await expect(page.getByTestId('hourly-calls-card')).toContainText('Calls')
     const hourlyChart = page.getByTestId('hourly-chart')
     for (const hour of ['00:00', '03:00', '12:00', '21:00']) {
       await expect(hourlyChart.locator('svg text', { hasText: hour })).toHaveCount(1)
     }
     await expect(hourlyChart.locator('svg text', { hasText: /^4$/ })).toHaveCount(1)
+    await expect(page.getByTestId('hourly-calls-available-from')).toHaveCount(0)
 
     const rows = page.getByTestId('call-row')
     await expect(rows).toHaveCount(2)
@@ -538,16 +584,19 @@ test.describe('dashboard', () => {
 
   test('reports the calls of today when they cannot be loaded', async ({ page, mockApi }) => {
     let fail = true
+    const respond = callsResponse()
 
-    mockApi.on('GET', '/freepbx/rest/dashboard/calls', () =>
-      fail ? { status: 500, json: 'An error occurred' } : { json: CALLS_TODAY },
+    mockApi.on('GET', '/freepbx/rest/dashboard/calls', (request) =>
+      fail && !request.query.has('range')
+        ? { status: 500, json: 'An error occurred' }
+        : respond(request),
     )
 
     await page.goto('./dashboard')
 
     await expect(page.getByText("Cannot load today's calls")).toBeVisible()
     await expect(page.getByTestId('calls-summary-card')).toHaveCount(0)
-    await expect(page.getByTestId('hourly-calls-card')).toHaveCount(0)
+    await expect(page.getByTestId('hourly-chart')).toBeVisible()
 
     fail = false
     await page.getByRole('button', { name: 'Retry' }).click()
@@ -555,7 +604,33 @@ test.describe('dashboard', () => {
     await expect(page.getByTestId('calls-summary-card').getByTestId('breakdown-total')).toHaveText(
       '12',
     )
-    await expect(page.getByTestId('hourly-calls-card')).toBeVisible()
+  })
+
+  test('reports the calls per hour when they cannot be loaded', async ({ page, mockApi }) => {
+    let fail = true
+    const respond = callsResponse()
+
+    mockApi.on('GET', '/freepbx/rest/dashboard/calls', (request) =>
+      fail && request.query.has('range')
+        ? { status: 500, json: 'Prometheus query failed' }
+        : respond(request),
+    )
+
+    await page.goto('./dashboard')
+
+    const notification = page.getByTestId('dashboard-load-error')
+    await expect(notification).toContainText('Cannot load calls per hour')
+    await expect(notification).not.toContainText('Prometheus')
+    const card = page.getByTestId('hourly-calls-card')
+    await expect(card.getByTestId('hourly-calls-unavailable')).toHaveText('Not available')
+    await expect(card.getByRole('button', { name: 'Open filter Period' })).toBeVisible()
+    await expect(page.getByTestId('calls-summary-card')).toBeVisible()
+
+    fail = false
+    await page.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(card.getByTestId('hourly-chart')).toBeVisible()
+    await expect(notification).toHaveCount(0)
   })
 
   test('reports the phone status when it cannot be loaded', async ({ page, mockApi }) => {
@@ -637,15 +712,98 @@ test.describe('dashboard', () => {
     await expect(page.getByTestId('system-release')).toHaveCount(0)
   })
 
-  test('explains the hourly chart without calls today', async ({ page, mockApi }) => {
-    mockApi.on('GET', '/freepbx/rest/dashboard/calls', {
-      json: { total: 0, answered: 0, missed: 0, invalid: 0, calls_by_hour: [0, 0, 0] },
-    })
+  test('explains the hourly chart without calls in the period', async ({ page, mockApi }) => {
+    mockApi.on(
+      'GET',
+      '/freepbx/rest/dashboard/calls',
+      callsResponse((range) => ({
+        ...callsHistory(range),
+        series: callsHistory(range).series.map((point) => ({ ...point, calls: 0 })),
+      })),
+    )
 
     await page.goto('./dashboard')
 
-    await expect(page.getByTestId('hourly-calls-empty')).toHaveText('No calls today')
+    await expect(page.getByTestId('hourly-calls-empty')).toContainText('No calls in this period')
     await expect(page.getByTestId('hourly-chart')).toHaveCount(0)
+  })
+
+  test('requests the last 24 hours and remembers another period', async ({ page, mockApi }) => {
+    const ranges: string[] = []
+    mockApi.on('GET', '/freepbx/rest/dashboard/calls', callsResponse(callsHistory, ranges))
+
+    await page.goto('./dashboard')
+
+    const card = page.getByTestId('hourly-calls-card')
+    await expect(card.getByTestId('hourly-chart')).toBeVisible()
+    expect(ranges).toEqual(['24h'])
+
+    await card.getByRole('button', { name: 'Open filter Period' }).click()
+    await page.getByRole('radio', { name: 'Last 7 days' }).check()
+
+    await expect(
+      card.getByRole('img', {
+        name: 'Last 7 days: 52.5 calls, busiest hour Thu, Nov 12, 09:00 with 4',
+      }),
+    ).toBeVisible()
+    expect(ranges).toEqual(['24h', '7d'])
+    await expect(card.locator('svg text', { hasText: 'Nov 18' })).toHaveCount(1)
+    await expect(card.locator('svg text', { hasText: '00:00' })).toHaveCount(0)
+
+    await page.reload()
+
+    await expect(card.getByRole('button', { name: 'Open filter Period' })).toContainText(
+      'Last 7 days',
+    )
+    await expect(card.getByTestId('hourly-chart')).toBeVisible()
+    expect(ranges).toEqual(['24h', '7d', '7d'])
+  })
+
+  test('shows the value of an hour in the tooltip', async ({ page }) => {
+    await page.goto('./dashboard')
+
+    const chart = page.getByTestId('hourly-chart')
+    await expect(chart).toBeVisible()
+    const box = await chart.boundingBox()
+    if (!box) {
+      throw new Error('missing chart')
+    }
+    const axisWidth = 20
+    const x = axisWidth + ((box.width - axisWidth) * 22) / 23
+    await chart.hover({ position: { x, y: box.height / 2 } })
+
+    await expect(page.getByText('Wed, Nov 18, 10:00')).toBeVisible()
+    await expect(page.getByText('Calls: 2.5', { exact: true })).toBeVisible()
+  })
+
+  test('explains that no calls have been recorded yet', async ({ page, mockApi }) => {
+    mockApi.on(
+      'GET',
+      '/freepbx/rest/dashboard/calls',
+      callsResponse((range) => callsHistory(range, null)),
+    )
+
+    await page.goto('./dashboard')
+
+    const empty = page.getByTestId('hourly-calls-no-data')
+    await expect(empty).toContainText('No calls yet')
+    await expect(empty).toContainText('Calls will appear here after the first one.')
+    await expect(page.getByTestId('hourly-chart')).toHaveCount(0)
+  })
+
+  test('shows when a partial history starts', async ({ page, mockApi }) => {
+    mockApi.on(
+      'GET',
+      '/freepbx/rest/dashboard/calls',
+      callsResponse((range) => callsHistory(range, LAST_HOUR - 9 * HOUR)),
+    )
+
+    await page.goto('./dashboard')
+
+    await expect(page.getByTestId('hourly-calls-available-from')).toHaveText(
+      'Data available from Nov 18, 2026, 02:00',
+    )
+    await expect(page.getByTestId('hourly-chart')).toBeVisible()
   })
 
   test('moves a card with the keyboard and remembers the order', async ({ page }) => {

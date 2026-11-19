@@ -54,7 +54,7 @@ import {
   type PresenceStatus,
 } from '@/lib/dashboard/live'
 import { listInboundRouteDestinations, listTrunkStatuses } from '@/lib/dashboard/routing'
-import { useDashboardCalls } from '@/queries/dashboard/calls'
+import { useDashboardCalls, useDashboardCallsHistory } from '@/queries/dashboard/calls'
 import { useDashboardCounter } from '@/queries/dashboard/counters'
 import { useDashboardPhones } from '@/queries/dashboard/phones'
 import {
@@ -80,7 +80,13 @@ type CounterCard = {
   section: Section
 }
 
-type LoadFailure = { part: string; title: string; error: unknown; retry: () => void }
+type LoadFailure = {
+  part: string
+  title: string
+  error: unknown
+  retry: () => void
+  serverDetail?: boolean
+}
 
 const COUNTER_CARDS_BEFORE_CALLS: CounterCard[] = [
   {
@@ -186,6 +192,15 @@ const {
   refetch: refetchCalls,
   refresh: refreshCalls,
 } = useDashboardCalls(() => isEnterprise.value)
+const dashboardLayoutStore = useDashboardLayoutStore()
+const {
+  state: callsHistoryState,
+  refetch: refetchCallsHistory,
+  refresh: refreshCallsHistory,
+} = useDashboardCallsHistory(
+  () => dashboardLayoutStore.callsRange,
+  () => isEnterprise.value,
+)
 const {
   state: phonesState,
   refetch: refetchPhones,
@@ -316,7 +331,6 @@ const CARD_SPANS: Record<DashboardCardId, string> = {
   inboundRoutes: '2xl:col-span-2',
 }
 
-const dashboardLayoutStore = useDashboardLayoutStore()
 const cardGrid = useTemplateRef<HTMLUListElement>('cardGrid')
 
 const showTrunks = computed(() => can('trunks') && liveDataAvailable.value)
@@ -328,7 +342,7 @@ const cardVisibility = computed<Record<DashboardCardId, boolean>>(() => ({
   phoneStatus: !phonesState.value.error || phonesState.value.data !== undefined,
   callsSummary: !callsState.value.error || callsState.value.data !== undefined,
   calls: liveDataAvailable.value && (callsLoading.value || liveCalls.value !== null),
-  hourlyCalls: !callsState.value.error || callsState.value.data !== undefined,
+  hourlyCalls: true,
   trunks: showTrunks.value && (!trunksState.value.error || trunksState.value.data !== undefined),
   inboundRoutes:
     showInboundRoutes.value &&
@@ -497,6 +511,15 @@ const loadFailures = computed(() => {
       retry: () => refetchCalls(),
     })
   }
+  if (isEnterprise.value && callsHistoryState.value.error) {
+    failures.push({
+      part: 'dashboard.load_error.calls_per_hour',
+      title: 'dashboard.cannot_load_calls_per_hour',
+      error: callsHistoryState.value.error,
+      retry: () => refetchCallsHistory(),
+      serverDetail: false,
+    })
+  }
   if (isEnterprise.value && phonesState.value.error) {
     failures.push({
       part: 'dashboard.load_error.phones',
@@ -539,7 +562,13 @@ const loadErrorTitle = computed(() =>
 )
 
 const loadErrorDescription = computed(() => {
-  const reasons = [...new Set(loadFailures.value.map((failure) => describeError(failure.error)))]
+  const reasons = [
+    ...new Set(
+      loadFailures.value.map((failure) =>
+        describeError(failure.error, { serverDetail: failure.serverDetail ?? true }),
+      ),
+    ),
+  ]
 
   if (loadFailures.value.length === 1) {
     return reasons[0]
@@ -571,6 +600,7 @@ usePolling(() => {
     refreshSystem()
     if (isEnterprise.value) {
       refreshCalls()
+      refreshCallsHistory()
       refreshPhones()
       if (showTrunks.value) {
         refreshTrunks()
@@ -747,8 +777,10 @@ usePolling(() => {
           <DashboardHourlyCard
             v-else-if="card === 'hourlyCalls'"
             class="h-full"
-            :hourly-calls="callsState.data?.callsByHour ?? []"
-            :loading="callsState.status === 'pending'"
+            :range="dashboardLayoutStore.callsRange"
+            :history="callsHistoryState.data"
+            :loading="callsHistoryState.status === 'pending'"
+            @update:range="dashboardLayoutStore.setCallsRange"
           >
             <template #handle>
               <DashboardDragHandle

@@ -170,8 +170,15 @@ export const test = base.extend<Fixtures>({
       .on('GET', '/freepbx/rest/mainextensions/userlimits', {
         json: { configured: 0, limit: false, configurable: false },
       })
-      .on('GET', '/freepbx/rest/dashboard/calls', {
-        json: { total: 0, answered: 0, missed: 0, invalid: 0, calls_by_hour: [] },
+      .on('GET', '/freepbx/rest/dashboard/calls', (request) => {
+        const today = { total: 0, answered: 0, missed: 0, invalid: 0, calls_by_hour: [] }
+        const range = request.query.get('range')
+
+        return {
+          json: range
+            ? { ...today, range, source: 'local', history_start: null, series: [] }
+            : today,
+        }
       })
       .on('GET', '/freepbx/rest/dashboard/system', {
         json: { release: null, uptime_seconds: 0, load_average: 0, memory_used_percent: 0 },
