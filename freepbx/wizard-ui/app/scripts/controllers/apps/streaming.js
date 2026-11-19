@@ -284,6 +284,11 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    // http:// URL gate with a username: the credentials travel in clear text
+    $scope.gateClearText = function (gate) {
+      return gate.type === 'url' && !!gate.username && /^http:\/\//i.test(gate.url || '');
+    };
+
     $scope.gateTypeChanged = function (s) {
       syncDoorGates(s);
     };

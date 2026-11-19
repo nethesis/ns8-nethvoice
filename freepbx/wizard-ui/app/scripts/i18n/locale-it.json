@@ -1216,5 +1216,6 @@
   "set in the door phone provisioning": "impostato dal provisioning del citofono",
   "URL that opens the door phone relay": "URL che apre il relè del citofono",
   "User and password of the door phone web interface": "Utente e password dell'interfaccia web del citofono",
-  "One gate per relay of the door phone": "Un varco per ogni relè del citofono"
+  "One gate per relay of the door phone": "Un varco per ogni relè del citofono",
+  "The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN": "Il collegamento è HTTP: nome utente e password viaggiano in chiaro. Usalo solo in una rete fidata o tramite una VPN"
 }

@@ -346,5 +346,6 @@
   "set in the door phone provisioning": "set in the door phone provisioning",
   "URL that opens the door phone relay": "URL that opens the door phone relay",
   "User and password of the door phone web interface": "User and password of the door phone web interface",
-  "One gate per relay of the door phone": "One gate per relay of the door phone"
+  "One gate per relay of the door phone": "One gate per relay of the door phone",
+  "The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN": "The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN"
 }

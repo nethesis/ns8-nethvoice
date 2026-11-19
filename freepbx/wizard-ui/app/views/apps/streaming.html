@@ -269,6 +269,9 @@
                         placeholder="{{gate.has_password ? ('Unchanged' | translate) : ('Password' | translate)}}" class="form-control">
                     </div>
                   </div>
+                  <div ng-if="gateClearText(gate)" class="help-block text-warning">
+                    <span class="fa fa-exclamation-triangle"></span> {{'The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN' | translate}}
+                  </div>
                   <div ng-if="doorGate(newSource, $index).url" class="help-block">
                     {{'URL that opens the door phone relay' | translate}} {{$index + 1}}: <code>{{doorGate(newSource, $index).url}}</code>. {{'User and password of the door phone web interface' | translate}}
                   </div>
