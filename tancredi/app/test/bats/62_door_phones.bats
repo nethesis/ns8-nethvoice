@@ -87,7 +87,7 @@ EOF
     assert_http_body "<MMI CONFIG MODULE>"
     assert_http_body "Account1 Name               :admin"
     assert_http_body "Account1 Password           :doorweb123"
-    ! assert_http_body "Account1 Password           :doorrtsp123"
+    ! assert_http_body "RTSP Server Passwd :doorweb123"
     assert_http_body "video2 BitRate          :512000"
     assert_http_body "video2 Resolution       :4"
     assert_http_body "video1 I Frame Interval :25"
@@ -127,7 +127,7 @@ EOF
     ! assert_http_body "Account1 Password"
 }
 
-@test "Door phone without RTSP password uses the web password for RTSP" {
+@test "Door phone without RTSP password leaves the device RTSP credentials untouched" {
     run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
 {
     "variables": {
@@ -142,10 +142,9 @@ EOF
     run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/${tok1}/0c383eaabbe0.cfg"
     assert_http_code "200"
     assert_http_body "Enable RTSP        :1"
-    assert_http_body "RTSP Server User   :nethvoice"
-    assert_http_body "RTSP Server Passwd :doorweb123"
+    ! assert_http_body "RTSP Server User"
+    ! assert_http_body "RTSP Server Passwd"
     assert_http_body "Account1 Password           :doorweb123"
-    ! assert_http_body "doorrtsp123"
 }
 
 @test "Door phone call button is always written as a SoftDss speed dial key" {

@@ -113,7 +113,7 @@ rw	lldp_enable		Enable LLDP on supported phones. Shipped defaults enable it; a s
 rw	auto_headset		On Fanvil and NethPhone phones, answer an incoming call through the headset when it is connected (Fanvil `Auto Headset`). Shipped defaults disable it; missing or invalid values fall back to disabled.	string	`1` = enabled, `0` = disabled
 ro	cap_door_phone		The model is a door phone (video intercom) that can be used as a video source.	boolean	
 rw	door_rtsp_user		Door phones: user name of the RTSP server of the device.	string	
-rw	door_rtsp_password		Door phones: password of the RTSP server of the device. Empty: the web admin password (adminpw) is the RTSP password; with both empty the device RTSP credentials are unchanged. Removed from tokenless provisioning.	string	
+rw	door_rtsp_password		Door phones: password of the RTSP server of the device. Empty leaves the device RTSP credentials unchanged. Removed from tokenless provisioning.	string	
 ro	door_rtsp_port		Door phones: TCP port of the RTSP server of the device.	integer	
 ro	door_rtsp_path_main		Door phones: path of the main (high quality) RTSP stream of the device, e.g. `/h264/stream.live0`.	string	
 ro	door_rtsp_path_sub		Door phones: path of the secondary (lower quality, for slow connections) RTSP stream of the device, e.g. `/h264/stream.live1`.	string	
