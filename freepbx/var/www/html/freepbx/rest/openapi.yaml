@@ -4052,10 +4052,28 @@ paths:
       description: Reads the CDR from midnight of the PBX time zone. The legs of a
         call are counted once, feature codes and the calls of the administrator phone
         are not counted. A call is answered when a leg is ANSWERED, missed when a
-        leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). Requires
-        the dashboard section.
+        leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). With
+        range, the response also has the calls per hour of the period, counted
+        from the CDR with the same rules; a call belongs to the hour of its first
+        leg. The calls
+        per hour are cached for 5 minutes per range; completed hours are kept
+        and only the six hours before the hour of the previous read and the
+        following ones are read again.
+        Requires the dashboard section.
       tags:
       - Dashboard
+      parameters:
+      - name: range
+        in: query
+        required: false
+        description: Period of the calls per hour. Without it the response has only
+          the calls of today.
+        schema:
+          type: string
+          enum:
+          - 24h
+          - 7d
+          - 15d
       responses:
         '200':
           description: Successful response
@@ -4089,6 +4107,43 @@ paths:
                     items:
                       type: integer
                       minimum: 0
+                  range:
+                    type: string
+                    description: The requested range, only with range.
+                    enum:
+                    - 24h
+                    - 7d
+                    - 15d
+                  source:
+                    type: string
+                    description: Where the calls per hour come from, only with range.
+                    example: cdr
+                  history_start:
+                    type: integer
+                    nullable: true
+                    description: Unix time of the oldest CDR row, only with range.
+                      Later than the time of the first point when the CDR does not
+                      cover the whole range; null when the CDR is empty.
+                  series:
+                    type: array
+                    description: Calls per hour of the range, only with range. One
+                      point per hour of the PBX time zone, oldest first, the last
+                      one is the current hour (24, 168 or 360 points).
+                    items:
+                      type: object
+                      required:
+                      - time
+                      - calls
+                      properties:
+                        time:
+                          type: integer
+                          description: Unix time of the start of the hour.
+                        calls:
+                          type: integer
+                          nullable: true
+                          minimum: 0
+                          description: Calls started in the hour, 0 without calls;
+                            null when the hour ended before history_start.
               example:
                 total: 12
                 answered: 9
@@ -4106,6 +4161,15 @@ paths:
                 - 1
                 - 3
                 - 2
+        '400':
+          description: Invalid range
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
         '403':
           description: Missing dashboard permission
           content:

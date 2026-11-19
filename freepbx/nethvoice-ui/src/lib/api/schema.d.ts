@@ -2512,7 +2512,7 @@ export interface paths {
     }
     /**
      * Summarize the calls of today for the dashboard.
-     * @description Reads the CDR from midnight of the PBX time zone. The legs of a call are counted once, feature codes and the calls of the administrator phone are not counted. A call is answered when a leg is ANSWERED, missed when a leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). Requires the dashboard section.
+     * @description Reads the CDR from midnight of the PBX time zone. The legs of a call are counted once, feature codes and the calls of the administrator phone are not counted. A call is answered when a leg is ANSWERED, missed when a leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). With range, the response also has the calls per hour of the period, counted from the CDR with the same rules; a call belongs to the hour of its first leg. The calls per hour are cached for 5 minutes per range; completed hours are kept and only the six hours before the hour of the previous read and the following ones are read again. Requires the dashboard section.
      */
     get: operations['get_dashboard_calls']
     put?: never
@@ -8798,7 +8798,10 @@ export interface operations {
   }
   get_dashboard_calls: {
     parameters: {
-      query?: never
+      query?: {
+        /** @description Period of the calls per hour. Without it the response has only the calls of today. */
+        range?: '24h' | '7d' | '15d'
+      }
       header?: never
       path?: never
       cookie?: never
@@ -8839,6 +8842,36 @@ export interface operations {
             invalid: number
             /** @description Calls started in each hour of today, from hour 0 to the current hour. */
             calls_by_hour: number[]
+            /**
+             * @description The requested range, only with range.
+             * @enum {string}
+             */
+            range?: '24h' | '7d' | '15d'
+            /**
+             * @description Where the calls per hour come from, only with range.
+             * @example cdr
+             */
+            source?: string
+            /** @description Unix time of the oldest CDR row, only with range. Later than the time of the first point when the CDR does not cover the whole range; null when the CDR is empty. */
+            history_start?: number | null
+            /** @description Calls per hour of the range, only with range. One point per hour of the PBX time zone, oldest first, the last one is the current hour (24, 168 or 360 points). */
+            series?: {
+              /** @description Unix time of the start of the hour. */
+              time: number
+              /** @description Calls started in the hour, 0 without calls; null when the hour ended before history_start. */
+              calls: number | null
+            }[]
+          }
+        }
+      }
+      /** @description Invalid range */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
           }
         }
       }
