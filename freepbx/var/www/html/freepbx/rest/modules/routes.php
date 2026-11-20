@@ -60,6 +60,22 @@ $app->get('/inboundroutes', function (Request $request, Response $response, $arg
 $app->post('/inboundroutes', function (Request $request, Response $response, $args) {
     $params = $request->getParsedBody();
 
+    if (!is_array($params)
+        || !isset($params['extension'])
+        || !is_scalar($params['extension'])
+        || !isset($params['destination'])
+        || !is_string($params['destination'])
+        || trim($params['destination']) === '') {
+      return jsonResponse($response, array('message' => 'Inbound route extension and destination are required'), 422);
+    }
+    $controls = false;
+    array_walk_recursive($params, function ($value) use (&$controls) {
+      $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+    });
+    if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
+      return jsonResponse($response, array('message' => 'Invalid control character'), 400);
+    }
+
     try {
       $res = FreePBX::Core()->addDID($params);
     } catch (Exception $e) {
@@ -77,15 +93,15 @@ $app->post('/inboundroutes', function (Request $request, Response $response, $ar
 $app->post('/inboundroutes/delete', function (Request $request, Response $response, $args) {
   $params = $request->getParsedBody();
   $extension = $params['extension'];
-  $cidnum = $params['cid'];
+  $cidnum = $params['cid'] ?? '';
 
   try {
-    $res = FreePBX::Core()->getDID($extension, $cidnum ? $cidnum : '');
+    $res = FreePBX::Core()->getDID($extension, $cidnum);
 
     if ($res === false)
       return $response->withStatus(404);
 
-    FreePBX::Core()->delDID($extension, $cidnum ? $cidnum : '');
+    FreePBX::Core()->delDID($extension, $cidnum);
   } catch (Exception $e) {
     error_log($e->getMessage());
     return jsonResponse($response, 'An error occurred', 500);
@@ -183,6 +199,15 @@ $app->get('/outboundroutes/count', function (Request $request, Response $respons
  $app->post('/outboundroutes', function (Request $request, Response $response, $args) {
     try {
         $params = $request->getParsedBody();
+        $controls = false;
+        if (is_array($params)) {
+            array_walk_recursive($params, function ($value) use (&$controls) {
+                $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+            });
+        }
+        if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
+            return jsonResponse($response, array('message' => 'Invalid control character'), 400);
+        }
         reset($params);
         $locale = key($params);
 
@@ -209,8 +234,15 @@ $app->get('/outboundroutes/count', function (Request $request, Response $respons
         } else {
             // initialize data into the freepbx db tables using data of table "outbound_routes_locales"
             $dbh = FreePBX::Database();
-            $sql = "SELECT * FROM `outbound_routes_locales` where locale=\"$locale\"";
-            $dblocales = $dbh->sql($sql,"getAll",\PDO::FETCH_ASSOC);
+            $supported = $dbh->sql("SELECT DISTINCT `locale` FROM `outbound_routes_locales`","getAll",\PDO::FETCH_COLUMN);
+            $dblocales = array();
+            if (in_array($locale, $supported, true)) {
+                $sth = $dbh->prepare("SELECT * FROM `outbound_routes_locales` where locale=?");
+                $sth->execute(array($locale));
+                $dblocales = $sth->fetchAll(\PDO::FETCH_ASSOC);
+            } elseif (!nethvoiceRequestIsSuperadmin($request) && preg_match('/["\\\\]/', (string) $locale)) {
+                return jsonResponse($response, array('message' => 'Unsupported locale'), 400);
+            }
 
             foreach($params[$locale] as $route) {
 
@@ -262,9 +294,9 @@ $app->get('/outboundroutes/count', function (Request $request, Response $respons
         $route = $request->getAttribute('route');
         $trunk_id = $route->getArgument('id');
         $route_id = $route->getArgument('route_id');
-        $sql = "DELETE FROM `outbound_route_trunks` WHERE `route_id`=\"$route_id\" AND `trunk_id`=\"$trunk_id\"";
+        $sql = "DELETE FROM `outbound_route_trunks` WHERE `route_id`=? AND `trunk_id`=?";
         $sth = FreePBX::Database()->prepare($sql);
-        $res = $sth->execute();
+        $res = $sth->execute(array($route_id, $trunk_id));
    } catch (Exception $e) {
      error_log($e->getMessage());
      return jsonResponse($response, 'An error occurred', 500);

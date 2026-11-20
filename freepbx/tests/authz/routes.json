@@ -1,0 +1,1062 @@
+{
+  "about": [
+    "One entry per route registered in freepbx/var/www/html/freepbx/rest/modules, keyed METHOD /pattern exactly as registered. freepbx/tests/authz_routes_test.php fails on a route with no entry and on an entry with no route.",
+    "intent is what the route SHOULD require, decided from what the endpoint does and from which screen of the new UI calls it (freepbx/nethvoice-ui/src). It is never copied from NETHVOICE_ROUTE_RULES or NETHVOICE_PREFIX_RULES in rest/lib/Permissions.php: a disagreement with the code is the finding.",
+    "Values: public (no credentials, only the authenticator), superadmin, lookup (any administrator with at least one section), one section, or a list of sections (any one is enough).",
+    "Rules of thumb: anything that returns secrets, runs commands, changes global PBX state, or is used only by the previous wizard or by no client is superadmin; reads needed by several sections are lookup. The previous wizard always signs in as a superadmin.",
+    "callers records who calls the route: ui:<area> for the new UI, legacy for the previous wizard, mcp, nethcti-server, none.",
+    "known_finding marks a reviewed disagreement between intent and code: the test prints it and does not fail. When the code is fixed the test fails until known_finding is removed.",
+    "Request-level checks for limited administrators (rejected parameters, removed secrets) and the Tancredi section checks are asserted in scenarios.json."
+  ],
+  "personas": {
+    "admin": { "sections": "*", "grants": ["superadmin"] },
+    "boss": { "sections": "nethvoice:superadmin", "grants": ["superadmin"] },
+    "dash": { "sections": "nethvoice:dashboard", "grants": ["dashboard"] },
+    "userer": { "sections": "nethvoice:users", "grants": ["users"] },
+    "trunker": { "sections": "nethvoice:trunks", "grants": ["trunks"] },
+    "router": { "sections": "nethvoice:routes", "grants": ["routes"] },
+    "phoner": { "sections": "nethvoice:phones", "grants": ["phones"] },
+    "integrator": { "sections": "nethvoice:integrations", "grants": ["integrations"] },
+    "setter": { "sections": "nethvoice:settings", "grants": ["settings"] },
+    "allsections": {
+      "sections": "nethvoice:dashboard;nethvoice:users;nethvoice:trunks;nethvoice:routes;nethvoice:phones;nethvoice:integrations;nethvoice:settings",
+      "grants": ["dashboard", "users", "trunks", "routes", "phones", "integrations", "settings"]
+    },
+    "legacy": { "sections": "cdr;queues", "grants": [] },
+    "ghost": { "sections": null, "grants": [] },
+    "anonymous": { "sections": null, "grants": [], "anonymous": true }
+  },
+  "routes": {
+    "GET /adminphone": {
+      "intent": "lookup",
+      "callers": ["ui:shell"],
+      "reason": "Every administrator gets the administrator phone in the top bar.",
+      "note": "Access to the administrator phone is under review by the team and is kept as it is on purpose."
+    },
+    "POST /adminphone/session": {
+      "intent": "lookup",
+      "callers": ["ui:shell"],
+      "reason": "Starts the administrator phone session for the signed-in administrator.",
+      "note": "Access to the administrator phone is under review by the team and is kept as it is on purpose."
+    },
+    "DELETE /adminphone": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "Removes the shared administrator phone extension, which is global PBX state."
+    },
+    "GET /login": {
+      "intent": "superadmin",
+      "callers": ["ui:routes", "ui:settings", "legacy"],
+      "reason": "Opens a FreePBX GUI session, which gives full access to the PBX."
+    },
+    "GET /logout": {
+      "intent": "lookup",
+      "callers": ["ui:shell", "legacy"],
+      "reason": "Every signed-in administrator must be able to sign out."
+    },
+    "POST /testauth": {
+      "intent": "public",
+      "callers": ["ui:shell", "legacy"],
+      "reason": "The login endpoint: it is the authenticator, so it is reachable without credentials."
+    },
+    "GET /me": {
+      "intent": "lookup",
+      "callers": ["ui:shell"],
+      "reason": "Returns the signed-in administrator and the sections it holds; the UI needs it to build the menu."
+    },
+    "GET /contexts": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Lists dialplan contexts for the previous wizard bulk editor; the new UI never calls it.",
+      "known_finding": "Open to the users section through the /contexts prefix rule although only the previous wizard uses it."
+    },
+    "GET /bulk/{mainextensions}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Reads the shared settings of the users selected for a bulk edit."
+    },
+    "POST /bulk/{mainextensions}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Applies a bulk edit to the selected users."
+    },
+    "GET /destinations": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Lists call destinations offered by the user bulk editor."
+    },
+    "GET /codecs/voip": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "legacy"],
+      "reason": "Codec list for the VoIP trunk form."
+    },
+    "GET /configuration/userprovider": {
+      "intent": "superadmin",
+      "callers": ["legacy", "mcp"],
+      "reason": "Describes the account provider of the PBX; the MCP documents it as superadmin only."
+    },
+    "GET /configuration/mode": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Legacy mode of the previous wizard, a global setting."
+    },
+    "GET /configuration/networks": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "ui:setup", "legacy"],
+      "reason": "Local networks offered when configuring a physical gateway."
+    },
+    "GET /configuration/wizard": {
+      "intent": "lookup",
+      "callers": ["ui:shell", "ui:setup", "legacy", "mcp"],
+      "reason": "Every administrator needs to know whether the first configuration is still in progress to be routed to the right page."
+    },
+    "POST /configuration/wizard": {
+      "intent": "superadmin",
+      "callers": ["ui:setup", "legacy"],
+      "reason": "Moves the first configuration forward and, on completion, restarts Asterisk and the CTI services."
+    },
+    "GET /configuration/externalip": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Global NAT setting of the PBX, managed only by the previous wizard."
+    },
+    "POST /configuration/externalip/{ip}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Changes the global NAT setting of the PBX."
+    },
+    "GET /configuration/suggestedip": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Global NAT helper of the previous wizard."
+    },
+    "GET /configuration/allowexternalsips": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Global SIP exposure setting."
+    },
+    "POST /configuration/allowexternalsips/{status:enabled|disabled}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Changes the global SIP exposure of the PBX."
+    },
+    "GET /configuration/localnetworks": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Global NAT local networks."
+    },
+    "POST /configuration/localnetworks": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Changes the global NAT local networks."
+    },
+    "GET /cti/profiles": {
+      "intent": "lookup",
+      "callers": ["ui:users", "ui:integrations", "legacy"],
+      "reason": "Profile names are needed by the users screen and by every integration that is assigned to profiles."
+    },
+    "GET /cti/profiles/{id}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Profile detail in the profiles tab of Users."
+    },
+    "GET /cti/permissions": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Permission catalogue used only by the previous wizard profile editor.",
+      "known_finding": "Open to the users section through the /cti/permissions prefix rule although only the previous wizard uses it."
+    },
+    "POST /cti/profiles/{id}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Edits a profile in the profiles tab of Users."
+    },
+    "POST /cti/profiles": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Creates a profile in the profiles tab of Users."
+    },
+    "GET /cti/profiles/users/{user_id}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Profile of one user, read only by the previous wizard; the new UI reads profiles from the user list.",
+      "known_finding": "Open to the users section through the /cti/profiles prefix rule although only the previous wizard uses it."
+    },
+    "POST /cti/profiles/users/{user_id}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Assigns a profile to a user."
+    },
+    "DELETE /cti/profiles/{id}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Deletes a profile in the profiles tab of Users."
+    },
+    "GET /cti/groups": {
+      "intent": "lookup",
+      "callers": ["ui:users", "ui:integrations", "ui:dashboard", "legacy"],
+      "reason": "Group names are read by the users screen, the integrations and the dashboard."
+    },
+    "GET /cti/groups/users/{id}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Members of a group in the groups tab of Users."
+    },
+    "GET /cti/users/groups/{id}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Groups of a user in the groups tab of Users."
+    },
+    "POST /cti/groups": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Creates a group."
+    },
+    "DELETE /cti/groups/{id}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Deletes a group."
+    },
+    "POST /cti/groups/users/{id}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Changes the members of a group."
+    },
+    "POST /cti/dbconn": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Creates a database connection for customer cards; connections to the PBX own databases are refused to limited administrators by a request check."
+    },
+    "PUT /cti/paramurl/{id}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Edits a parameterized URL."
+    },
+    "PUT /cti/dbconn/{id}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Edits a database connection; the built-in connections are refused to limited administrators by a request check."
+    },
+    "POST /cti/paramurl": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Creates a parameterized URL."
+    },
+    "POST /cti/paramurl/delete": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Deletes a parameterized URL."
+    },
+    "GET /cti/dbconn": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Lists database connections; stored passwords are returned only to superadmin."
+    },
+    "POST /cti/dbconn/test": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Tests a database connection from the connection form; a target on the PBX own databases, or a stored built-in connection, is refused to limited administrators by a request check."
+    },
+    "DELETE /cti/dbconn/{id}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Deletes a database connection; the built-in connections are refused to limited administrators by a request check."
+    },
+    "GET /cti/dbconn/type": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Database types offered by the connection form."
+    },
+    "GET /cti/customer_card/template": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Customer card templates are listed and viewed from Integrations."
+    },
+    "POST /cti/customer_card/template": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Creates a custom customer card template. A template is EJS code run by the CTI server: the product owner opened it to the Integrations section and accepted that risk. Limited administrators get form checks only (lowercase letters and digits in the name, custom template), no content check."
+    },
+    "PUT /cti/customer_card/template/{name}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Changes a custom customer card template, an EJS code run by the CTI server, opened to the Integrations section by the product owner. Limited administrators get form checks only: the body name must be the path name and the template custom, so the built-in templates stay with the superadmin."
+    },
+    "DELETE /cti/customer_card/template/{name}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Deletes a custom template from the templates table; a built-in template, or a name that is not a template name, is refused to limited administrators by a request check."
+    },
+    "POST /cti/customer_card/preview": {
+      "intent": "integrations",
+      "callers": ["ui:integrations"],
+      "reason": "Shows the preview of a customer card through the CTI server; a card on the built-in connections is refused to limited administrators by a request check, and the CTI error text never reaches the client."
+    },
+    "GET /cti/customer_card": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Lists customer cards; only the documented filters are accepted from limited administrators."
+    },
+    "POST /cti/customer_card": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Creates a customer card; cards on the built-in connections are refused to limited administrators."
+    },
+    "PUT /cti/customer_card/{id}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Edits a customer card; query changes on the built-in connections are refused to limited administrators."
+    },
+    "DELETE /cti/customer_card/{id}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Deletes a customer card."
+    },
+    "GET /cti/streaming": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Lists video sources; stored secrets are returned only to superadmin."
+    },
+    "GET /cti/paramurls": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Lists parameterized URLs."
+    },
+    "PUT /cti/streaming/{descr}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Edits a video source."
+    },
+    "POST /cti/streaming": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Creates a video source."
+    },
+    "POST /cti/sources/test": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Tests a video source URL from the video source form; limited administrators get only JPEG, PNG or GIF images."
+    },
+    "DELETE /cti/streaming/{name}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Deletes a video source."
+    },
+    "GET /dashboard/calls": {
+      "intent": "dashboard",
+      "callers": ["ui:dashboard", "mcp"],
+      "reason": "Call statistics of the dashboard."
+    },
+    "GET /dashboard/system": {
+      "intent": "dashboard",
+      "callers": ["ui:dashboard"],
+      "reason": "System card of the dashboard."
+    },
+    "GET /dashboard/phones": {
+      "intent": "dashboard",
+      "callers": ["ui:dashboard"],
+      "reason": "Phone counters of the dashboard."
+    },
+    "GET /dashboard/live/extensions": {
+      "intent": ["dashboard", "users", "phones"],
+      "callers": ["ui:dashboard", "ui:users", "ui:phones"],
+      "reason": "Live state of the extensions for the calls in progress and devices of the dashboard, the users overview and the phone registration status; only allow-listed fields, never credentials."
+    },
+    "GET /dashboard/live/trunks": {
+      "intent": ["dashboard", "trunks"],
+      "callers": ["ui:dashboard", "ui:trunks", "ui:shell"],
+      "reason": "Live state of the trunks for the dashboard, the trunks screen and the trunk alerts of the notifications drawer; only allow-listed fields."
+    },
+    "GET /dashboard/live/users": {
+      "intent": ["dashboard", "users"],
+      "callers": ["ui:dashboard", "ui:users"],
+      "reason": "Presence and endpoint types of the users for the dashboard and the users overview; never the WebRTC secret or the endpoint usernames."
+    },
+    "POST /devices/scan": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Network scan of the previous wizard."
+    },
+    "GET /devices/{mac}/brand": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "MAC vendor lookup of the previous wizard; the new UI asks Tancredi."
+    },
+    "GET /devices/gateways/list/{id}": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "legacy"],
+      "reason": "Detail of a configured physical gateway."
+    },
+    "GET /devices/phones/list": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Phone inventory of the previous wizard; the new UI reads phones from Tancredi and from the user list.",
+      "known_finding": "Open to the phones section through the /devices/phones prefix rule although only the previous wizard uses it (line secrets are removed for limited administrators)."
+    },
+    "GET /devices/gateways/list": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Gateways found by the network scan of the previous wizard.",
+      "known_finding": "Open to the trunks section through the /devices/gateways prefix rule although only the previous wizard uses it."
+    },
+    "GET /devices/phones/manufacturers": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Phone vendors of the previous wizard; the new UI reads models from Tancredi.",
+      "known_finding": "Open to the phones section through the /devices/phones prefix rule although only the previous wizard uses it."
+    },
+    "GET /devices/gateways/manufacturers": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "legacy"],
+      "reason": "Gateway models offered by the physical gateway form."
+    },
+    "POST /devices/phones/reload/{extension:[0-9]+}": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "No client calls it; the phones screen reconfigures phones through POST /phones/reconfigure.",
+      "known_finding": "Open to the phones section through the /devices/phones prefix rule although no client uses it."
+    },
+    "POST /devices/phones/model": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Previous wizard provisioning: deletes and recreates the phone row of a MAC address.",
+      "known_finding": "Open to the phones section through the /devices/phones prefix rule although only the previous wizard uses it."
+    },
+    "POST /devices/gateways": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "ui:setup", "legacy"],
+      "reason": "Creates or updates a physical gateway configuration."
+    },
+    "POST /devices/gateways/push": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Runs the TFTP push command of the previous wizard; the new UI downloads the configuration instead.",
+      "known_finding": "Open to the trunks section through the /devices/gateways prefix rule although only the previous wizard uses it; it runs a command."
+    },
+    "DELETE /devices/gateways/{id}": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "legacy"],
+      "reason": "Deletes a physical gateway."
+    },
+    "GET /devices/gateways/download/{name}[/{mac}]": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "legacy"],
+      "reason": "Downloads the configuration of a physical gateway."
+    },
+    "POST /devices/phones/provision": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "FreePBX provisioning of the previous wizard; it runs a command through sudo.",
+      "known_finding": "Open to the phones section through the /devices/phones prefix rule although only the previous wizard uses it; it runs a command."
+    },
+    "POST /devices/phones/reboot": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "Endpoint manager reboot of the FreePBX provisioning era; no client calls this path.",
+      "known_finding": "Open to the phones section through the /devices/phones prefix rule although no client uses it."
+    },
+    "GET /mobiles": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Mobile numbers shown in the user list."
+    },
+    "GET /mobiles/{username}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Mobile number of one user, read only by the previous wizard; the handler builds its SQL from the path.",
+      "known_finding": "Open to the users section through the /mobiles prefix rule although only the previous wizard uses it; a request check limits the username for limited administrators."
+    },
+    "POST /mobiles": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Saves the mobile number of a user."
+    },
+    "GET /nethlink/{mainextension}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "NethLink extension of a user, read only by the previous wizard; the new UI reads devices from the user list.",
+      "known_finding": "Open to the users section through the /nethlink prefix rule although only the previous wizard uses it."
+    },
+    "GET /nethlink/info/{username}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "NethLink client details of a user, read only by the previous wizard.",
+      "known_finding": "Open to the users section through the /nethlink prefix rule although only the previous wizard uses it."
+    },
+    "POST /nethlink": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Enables NethLink for a user."
+    },
+    "DELETE /nethlink/{mainextension}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Disables NethLink for a user."
+    },
+    "GET /physicalextensions": {
+      "intent": "lookup",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Extension directory: the same names and numbers every administrator already reads through GET /users/{all}."
+    },
+    "GET /physicalextensions/{extension}": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "No client calls it.",
+      "known_finding": "Open to the users and phones sections through the /physicalextensions prefix rule although no client uses it."
+    },
+    "POST /physicalextensions": {
+      "intent": ["users", "phones"],
+      "callers": ["ui:users", "ui:phones", "ui:setup", "legacy"],
+      "reason": "Creates the extension of a phone; the phones screen adds phones and the users screen assigns them to a user."
+    },
+    "DELETE /physicalextensions/{id}": {
+      "intent": ["users", "phones"],
+      "callers": ["ui:users", "ui:phones", "legacy"],
+      "reason": "Removes the extension of a phone; the users screen does it when it unassigns a phone."
+    },
+    "POST /physicalextensions/adminpw": {
+      "intent": "phones",
+      "callers": ["ui:phones", "legacy"],
+      "reason": "Sets the phone web administrator password from the phone settings."
+    },
+    "PATCH /physicalextensions/{mac}": {
+      "intent": "phones",
+      "callers": ["ui:phones", "legacy"],
+      "reason": "Changes the model of a phone; only the phones screen changes models, the users screen keeps the model.",
+      "known_finding": "Also open to the users section (the /physicalextensions prefix rule grants users and phones) although the users screen never changes a phone model."
+    },
+    "POST /mobileapp": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Enables the mobile app for a user."
+    },
+    "GET /mobileapp/{mainextension}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Mobile app extension of a user, read only by the previous wizard.",
+      "known_finding": "Open to the users section through the /mobileapp prefix rule although only the previous wizard uses it."
+    },
+    "DELETE /mobileapp/{extension}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Disables the mobile app for a user."
+    },
+    "POST /extension/{mainextension}": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "No client calls it; it renames every extension whose number ends with the given one.",
+      "known_finding": "Open to the users section through the /extension prefix rule although no client uses it."
+    },
+    "GET /extension/{extension}/displayname": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "No client calls it.",
+      "known_finding": "Open to the users section through the /extension prefix rule although no client uses it."
+    },
+    "POST /phones/reconfigure": {
+      "intent": "phones",
+      "callers": ["ui:phones", "ui:setup", "legacy"],
+      "reason": "Sends the reload notify to a phone; only the phones screen offers it.",
+      "known_finding": "Also open to the users section (an explicit users and phones prefix rule) although the users screen never reconfigures phones."
+    },
+    "POST /phones/rps/{mac}": {
+      "intent": "phones",
+      "callers": ["ui:phones", "ui:setup", "legacy"],
+      "reason": "Registers a new phone to the vendor redirect service; only the phones screen adds phones.",
+      "known_finding": "Also open to the users section (an explicit users and phones prefix rule) although the users screen never adds phones."
+    },
+    "GET /phones/account/{mac}": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "Returns the SIP secret of a phone line."
+    },
+    "GET /provisioning/engine": {
+      "intent": "superadmin",
+      "callers": ["legacy", "nethcti-server"],
+      "reason": "Read by the previous wizard and by nethcti-server, which calls it as admin.",
+      "known_finding": "Open to the phones section through the /provisioning prefix rule although only the previous wizard and nethcti-server (as admin) use it."
+    },
+    "GET /phones/state": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "No client calls it; the phones screen reads registration state from the CTI server.",
+      "known_finding": "Open to the phones section through the /phones prefix rule although no client uses it."
+    },
+    "GET /extensions/{extension}/srtp": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Encryption flag of one line, read only by the previous wizard; the new UI reads it from the user list.",
+      "known_finding": "Open to the phones section through the /extensions prefix rule although only the previous wizard uses it."
+    },
+    "POST /extensions/{extension}/srtp/{enabled}": {
+      "intent": ["users", "phones"],
+      "callers": ["ui:users", "ui:phones", "ui:setup", "legacy"],
+      "reason": "Sets the encryption of a phone line; the users screen calls it when it assigns a phone to a user (lib/phones/phones.ts reassignPhone)."
+    },
+    "POST /provisioning/connectivitycheck": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Placeholder of the previous wizard that always answers success.",
+      "known_finding": "Open to the phones section through the /provisioning prefix rule although only the previous wizard uses it."
+    },
+    "GET /inboundroutes/count": {
+      "intent": "lookup",
+      "callers": ["ui:dashboard", "legacy", "mcp"],
+      "reason": "Counter shown on the dashboard and in the MCP overview, open to any administrator."
+    },
+    "GET /inboundroutes": {
+      "intent": "lookup",
+      "callers": ["ui:routes", "ui:trunks", "ui:dashboard", "legacy"],
+      "reason": "Inbound routes are labelled on the routes, trunks and dashboard screens."
+    },
+    "POST /inboundroutes": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Creates an inbound route for the previous wizard; the new UI creates inbound routes in FreePBX, which is superadmin only.",
+      "known_finding": "Open to the routes section through the /inboundroutes prefix rule although only the previous wizard uses it."
+    },
+    "POST /inboundroutes/delete": {
+      "intent": "routes",
+      "callers": ["ui:routes", "legacy"],
+      "reason": "Deletes an inbound route from the routes screen."
+    },
+    "GET /outboundroutes/count": {
+      "intent": "lookup",
+      "callers": ["ui:dashboard", "legacy", "mcp"],
+      "reason": "Counter shown on the dashboard and in the MCP overview, open to any administrator."
+    },
+    "GET /outboundroutes": {
+      "intent": "lookup",
+      "callers": ["ui:routes", "ui:trunks", "ui:setup", "legacy", "mcp"],
+      "reason": "Outbound routes are read by the routes and trunks screens and by the MCP."
+    },
+    "GET /outboundroutes/defaults": {
+      "intent": "routes",
+      "callers": ["ui:routes", "ui:setup", "legacy"],
+      "reason": "Default outbound routes offered by the routes screen."
+    },
+    "POST /outboundroutes": {
+      "intent": "routes",
+      "callers": ["ui:routes", "ui:setup", "legacy"],
+      "reason": "Saves outbound routes and their trunk order."
+    },
+    "DELETE /outboundroutes/{route_id}/trunks/{id}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Used only by the previous wizard; the handler concatenates both path arguments into an SQL statement."
+    },
+    "GET /outboundroutes/supportedLocales": {
+      "intent": "lookup",
+      "callers": ["ui:settings", "ui:routes", "ui:phones", "ui:setup"],
+      "reason": "Locale list read by the settings, routes and phones screens."
+    },
+    "GET /providers": {
+      "intent": "lookup",
+      "callers": ["ui:trunks", "ui:routes", "legacy"],
+      "reason": "VoIP provider catalogue read by the trunks and routes screens."
+    },
+    "GET /mainextensions": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "No client calls it.",
+      "known_finding": "Open to the users section through the /mainextensions prefix rule although no client uses it."
+    },
+    "GET /mainextensions/{extension:[0-9]+}": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "No client calls it.",
+      "known_finding": "Open to the users section through the /mainextensions prefix rule although no client uses it."
+    },
+    "POST /mainextensions": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Creates or changes the main extension of a user."
+    },
+    "POST /mainextensions/{extension:[0-9]+}/reassign": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Moves a main extension to another user."
+    },
+    "GET /mainextensions/orphans": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Lists extensions left without a user."
+    },
+    "POST /mainextensions/orphans/release": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Releases extensions left without a user."
+    },
+    "GET /mainextensions/userlimits": {
+      "intent": "lookup",
+      "callers": ["ui:users", "ui:dashboard", "legacy", "mcp"],
+      "reason": "Subscription user limit shown by the users and dashboard screens and by the MCP."
+    },
+    "GET /migration/ismigration": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/endmigration": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/migrationstatus": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "GET /migration/migrationstatus": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "GET /migration/oldusers": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "GET /migration/report": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/importusers": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/importprofiles": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/importoldvoiptrunks": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/gateways": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/importoutboundroutes": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/trunksroutesassignements": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/groups": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/queues": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/ivr": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/cqr": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/recordings": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/announcements": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/timegroups": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/timeconditions": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/inboundroutes": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "GET /migration/cdrrowcount": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/cdr": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "GET /migration/cdr": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/iax": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/daynight": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "POST /migration/postmigration": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Migration from NethVoice 14 runs only in the previous wizard."
+    },
+    "GET /phonebook/fields": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Phonebook fields offered by the source mapping form."
+    },
+    "GET /phonebook/config": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Lists phonebook sources; stored passwords are returned only to superadmin."
+    },
+    "POST /phonebook/config[/{id}]": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Creates or edits a phonebook source; for limited administrators a database source on a local address of the PBX, a stored local database source, a query or target change that reuses the stored password, and invalid mappings are refused."
+    },
+    "DELETE /phonebook/config/{id}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Deletes a phonebook source and the contacts imported from it."
+    },
+    "POST /phonebook/test": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Tests a phonebook source; for limited administrators the handler refuses a database test on a local address of the PBX, on a stored local source, or with a changed query or target and the stored password."
+    },
+    "POST /phonebook/syncnow/{id}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Synchronizes a phonebook source now with its stored configuration."
+    },
+    "POST /phonebook/uploadfile": {
+      "intent": "integrations",
+      "callers": ["ui:integrations"],
+      "reason": "Uploads the CSV file of a phonebook source."
+    },
+    "POST /phonebook/import-cti": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "One-shot import into the CTI phonebook, offered only by the previous wizard; it becomes integrations when the new UI adopts it.",
+      "known_finding": "Open to the integrations section through the /phonebook prefix rule although only the previous wizard uses it."
+    },
+    "GET /phonebook/ldap": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Returns the LDAP phonebook credentials for the previous wizard phone models; the new UI phone settings do not read it.",
+      "known_finding": "Open to the phones section by an explicit rule although only the previous wizard uses it (the password is removed for limited administrators)."
+    },
+    "GET /phonebook/sources": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Placeholder of the previous wizard that always answers the same object.",
+      "known_finding": "Open to the integrations section through the /phonebook prefix rule although only the previous wizard uses it."
+    },
+    "POST /phonebook/sources/{prop:speeddial|extensions|nethcti}/{status:enabled|disabled}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Placeholder of the previous wizard that does nothing.",
+      "known_finding": "Open to the integrations section through the /phonebook prefix rule although only the previous wizard uses it."
+    },
+    "POST /settings/language": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Placeholder of the previous wizard that does nothing.",
+      "known_finding": "Open to the settings section through the /settings prefix rule although only the previous wizard uses it."
+    },
+    "POST /settings/defaultlanguage": {
+      "intent": "settings",
+      "callers": ["ui:settings", "ui:setup", "legacy"],
+      "reason": "PBX language, the main setting of the settings screen."
+    },
+    "GET /settings/languages": {
+      "intent": "lookup",
+      "callers": ["ui:settings", "ui:phones", "ui:routes", "ui:setup", "legacy"],
+      "reason": "Installed languages read by the settings, phones and routes screens."
+    },
+    "GET /settings/conferenceurl": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Conference URL shown only by the previous wizard.",
+      "known_finding": "Open to the settings section through the /settings prefix rule although only the previous wizard uses it."
+    },
+    "GET /tasks/{task}": {
+      "intent": "superadmin",
+      "callers": ["none"],
+      "reason": "Placeholder that always answers complete; no client calls it.",
+      "known_finding": "Open to every administrator by an explicit lookup rule although no client uses it."
+    },
+    "GET /trunks/count": {
+      "intent": "lookup",
+      "callers": ["ui:dashboard", "legacy", "mcp"],
+      "reason": "Counter shown on the dashboard and in the MCP overview, open to any administrator."
+    },
+    "GET /trunks": {
+      "intent": "lookup",
+      "callers": ["ui:trunks", "ui:routes", "ui:setup", "legacy"],
+      "reason": "Trunk list read by the trunks and routes screens."
+    },
+    "GET /trunks/{tech}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Trunks of one technology with their usernames, read only by the previous wizard.",
+      "known_finding": "Open to the trunks section through the /trunks prefix rule although only the previous wizard uses it."
+    },
+    "DELETE /trunks/{trunkid}": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "legacy"],
+      "reason": "Deletes a trunk."
+    },
+    "PATCH /trunks/{trunkid}": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "legacy"],
+      "reason": "Edits a trunk."
+    },
+    "POST /trunks": {
+      "intent": "trunks",
+      "callers": ["ui:trunks", "ui:setup", "legacy"],
+      "reason": "Creates a trunk."
+    },
+    "GET /final": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Final report of the previous wizard with user and voicemail passwords."
+    },
+    "GET /users/count": {
+      "intent": "lookup",
+      "callers": ["ui:dashboard", "legacy", "mcp"],
+      "reason": "Counter shown on the dashboard and in the MCP overview, open to any administrator."
+    },
+    "GET /users/sync": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Whether the user synchronization is running."
+    },
+    "GET /users/{all}": {
+      "intent": "lookup",
+      "callers": ["ui:users", "ui:phones", "ui:trunks", "ui:setup", "legacy", "mcp"],
+      "reason": "User directory read by several screens and by the MCP; secrets are removed for limited administrators and forcing a synchronization (all = true) needs the users section, checked by the handler."
+    },
+    "POST /users": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Creates a system account through sudo for the NethServer 7 legacy mode of the previous wizard.",
+      "known_finding": "Open to the users section through the /users prefix rule although only the previous wizard uses it; it runs a command through sudo."
+    },
+    "POST /users/{username}/password": {
+      "intent": "superadmin",
+      "callers": ["ui:settings", "legacy"],
+      "reason": "Changes an account password; the settings screen offers it only for admin."
+    },
+    "GET /users/{username}/password": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Returns an account password."
+    },
+    "POST /users/sync": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Starts the user synchronization from the users screen."
+    },
+    "GET /users/domain": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Whether the user domain can be managed from NethVoice; never returns the URL, the credentials or the token of the users-admin service."
+    },
+    "GET /users/domain/accounts": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Name, email, lock state and domain administrator flag of the domain accounts, shown in the users screen."
+    },
+    "PUT /users/{username}/account/password": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Changes the password of a domain account from the users screen; the handler refuses the PBX admin and system accounts, the caller's own account and, for limited administrators, the domain administrators."
+    },
+    "PATCH /users/{username}/account": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Changes name, email and lock state of a domain account from the users screen; the handler refuses locking the caller's own account and, for limited administrators, locking a domain administrator."
+    },
+    "DELETE /users/{username}/account": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Deletes a domain account from the users screen and keeps its extension as an extension of a removed user; the handler refuses the PBX admin and system accounts, the caller's own account and, for limited administrators, the domain administrators."
+    },
+    "POST /csv/csvimport": {
+      "intent": "users",
+      "callers": ["ui:users", "ui:setup", "legacy"],
+      "reason": "Imports users from CSV."
+    },
+    "GET /csv/csvimport": {
+      "intent": "users",
+      "callers": ["ui:users", "ui:setup", "legacy"],
+      "reason": "Progress of the CSV import."
+    },
+    "GET /csv/csvexport": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Exports users to CSV; the password column is emptied for limited administrators."
+    },
+    "GET /voicemails": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Voicemail settings shown in the user list; PINs are removed for limited administrators."
+    },
+    "GET /voicemails/{extension}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "Voicemail of one user, read only by the previous wizard.",
+      "known_finding": "Open to the users section through the /voicemails prefix rule although only the previous wizard uses it (the PIN is removed for limited administrators)."
+    },
+    "POST /voicemails": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Enables or changes the voicemail of a user."
+    },
+    "GET /webrtc/{mainextension}": {
+      "intent": "superadmin",
+      "callers": ["legacy"],
+      "reason": "WebRTC extension of a user, read only by the previous wizard.",
+      "known_finding": "Open to the users section through the /webrtc prefix rule although only the previous wizard uses it."
+    },
+    "POST /webrtc": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Enables the web phone for a user."
+    },
+    "DELETE /webrtc/{mainextension}": {
+      "intent": "users",
+      "callers": ["ui:users", "legacy"],
+      "reason": "Disables the web phone for a user."
+    }
+  }
+}

@@ -24,6 +24,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libMiddleware.php');
 include_once('lib/libUsers.php');
+include_once('lib/libSecurity.php');
 
 /**
  * Validate a sharing value ('public' or 'group:<g1,g2>'). Group names are checked
@@ -54,6 +55,25 @@ function validatePhonebookSharing($rawType) {
         throw new \InvalidArgumentException('none of the selected sharing groups exist');
     }
     return 'group:'.implode(',', $validGroups);
+}
+
+const PHONEBOOK_PASSWORD_REQUIRED = 'Enter the password to connect to a different server';
+
+function phonebookStoredSource($id) {
+    if (!is_string($id) || !preg_match('/^[A-Za-z0-9_-]+$/', $id)) {
+        return null;
+    }
+    $file = '/etc/phonebook/sources.d/' . $id . '.json';
+    if (!is_file($file)) {
+        return null;
+    }
+    $config = json_decode(file_get_contents($file), true);
+
+    return is_array($config) && isset($config[$id]) && is_array($config[$id]) ? $config[$id] : null;
+}
+
+function phonebookTargetFields($dbtype) {
+    return $dbtype === 'infinity' ? array('dbtype', 'url') : array('dbtype', 'host', 'port');
 }
 
 $app->get('/phonebook/fields', function (Request $request, Response $response, $args) {
@@ -110,7 +130,7 @@ $app->get('/phonebook/config', function (Request $request, Response $response, $
             }
         }
         closedir($handle);
-        return jsonResponse($response, $config, 200);
+        return jsonResponse($response, nethvoiceWithoutStoredPasswords($config, 'password', nethvoiceRequestIsSuperadmin($request)), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);
@@ -132,6 +152,15 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             }
             $id = 'custom_'.$i;
             $new = true;
+        }
+        if (!is_array($data)) {
+            return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
+        }
+        if (empty($new)) {
+            $data = nethvoiceKeepStoredPassword($data, phonebookStoredSource($id), 'password', phonebookTargetFields($data['dbtype'] ?? ''));
+            if ($data === null) {
+                return jsonResponse($response, array("status"=>PHONEBOOK_PASSWORD_REQUIRED), 400);
+            }
         }
         if(!isset($data['dbtype'])) {
             return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
@@ -177,9 +206,23 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
         $file = $config_dir.'/'.$id.'.json';
+        $oldsource = null;
+        if (empty($new) && file_exists($file)) {
+            $oldconfig = json_decode(file_get_contents($file), true);
+            $oldsource = isset($oldconfig[$id]) ? $oldconfig[$id] : null;
+        }
+        $knownUrls = is_array($oldsource) && isset($oldsource['url']) ? array($oldsource['url']) : array();
+        if (!nethvoiceRequestIsSuperadmin($request) && !phonebookSourceUrlAllowed($newsource['dbtype'], $newsource['url'] ?? null, $knownUrls)) {
+            return jsonResponse($response, array("status"=>"Invalid source URL"), 400);
+        }
         $res = file_put_contents($file, json_encode(array($id => $newsource)));
         if ($res === false) {
            throw new Exception("Error writing $file"); 
+        }
+        if (is_array($oldsource) && isset($oldsource['url'])
+            && (!isset($newsource['url']) || $oldsource['url'] !== $newsource['url'])
+        ) {
+            unlink_local_csv($oldsource);
         }
 
         return $response->withStatus(200);
@@ -206,7 +249,9 @@ $app->delete('/phonebook/config/{id}', function (Request $request, Response $res
 
         // Erase related local CSV file, if necessary:
         $config = json_decode(file_get_contents($file), true);
-        unlink_local_csv($config[$id]);
+        if (isset($config[$id])) {
+            unlink_local_csv($config[$id], $id);
+        }
 
         $res = unlink($file);
         if (!$res) {
@@ -223,6 +268,18 @@ $app->delete('/phonebook/config/{id}', function (Request $request, Response $res
 $app->post('/phonebook/test', function (Request $request, Response $response, $args) {
     try {
         $data = $request->getParsedBody();
+        $requested = $data;
+        $stored = null;
+        if (is_array($data) && isset($data['id']) && $data['id'] !== '') {
+            $stored = phonebookStoredSource($data['id']);
+            if ($stored === null) {
+                return jsonResponse($response, array("status"=>"Phonebook source not found"), 404);
+            }
+            $data = nethvoiceKeepStoredPassword($data, $stored, 'password', phonebookTargetFields($data['dbtype'] ?? ''));
+            if ($data === null) {
+                return jsonResponse($response, array("status"=>PHONEBOOK_PASSWORD_REQUIRED), 400);
+            }
+        }
         // write a temporary configuration file
         $id = uniqid('phonebook_test_');
         $file = '/tmp/'.$id.'.json';
@@ -230,6 +287,9 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
         if(!isset($data['dbtype'])) {
             return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
         } else if($data['dbtype'] == 'mysql' || $data['dbtype'] == 'mssql') {
+            if (!nethvoiceRequestIsSuperadmin($request) && nethvoicePhonebookDatabaseTargetStatus($requested, $stored) !== null) {
+                return nethvoiceForbidden($response);
+            }
             $mandatory_params = array('host','port','user','password','dbname','query');
         } else if($data['dbtype'] == 'csv') {
             $mandatory_params = array('url');
@@ -251,6 +311,9 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
                 return jsonResponse($response, array("status"=>"Missing value: $var"), 400);
             }
             $newsource[$id][$var] = $data[$var];
+        }
+        if (!nethvoiceRequestIsSuperadmin($request) && !phonebookSourceUrlAllowed($data['dbtype'], $data['url'] ?? null, phonebookConfiguredUrls())) {
+            return jsonResponse($response, array("status"=>"Invalid source URL"), 400);
         }
         $newsource[$id]['dbtype'] = $data['dbtype'];
         $newsource[$id]['enabled'] = true;
@@ -285,9 +348,12 @@ $app->post('/phonebook/syncnow/{id}', function (Request $request, Response $resp
     try {
         $route = $request->getAttribute('route');
         $id = $route->getArgument('id');
+        if (!is_string($id) || !preg_match('/^[A-Za-z0-9_-]+$/', $id)) {
+            return jsonResponse($response, array("status"=>"Invalid source id"), 400);
+        }
 
         # launch import of the source now
-        exec("/usr/share/phonebooks/phonebook-import /etc/phonebook/sources.d/$id.json",$output,$return);
+        exec("/usr/share/phonebooks/phonebook-import ".escapeshellarg("/etc/phonebook/sources.d/$id.json"),$output,$return);
 
         if ($return!=0) {
             return jsonResponse($response, array("status"=>false),500);
@@ -500,6 +566,25 @@ function uploadedCsvPath($url)
     return $path;
 }
 
+function phonebookSourceUrlAllowed($dbtype, $url, array $knownUrls = array())
+{
+    return nethvoicePhonebookUrlAllowed($dbtype, $url, $knownUrls, is_string($url) && uploadedCsvPath(trim($url)) !== false);
+}
+
+function phonebookConfiguredUrls()
+{
+    $urls = array();
+    foreach (glob('/etc/phonebook/sources.d/*.json') ?: array() as $file) {
+        $sources = json_decode(file_get_contents($file), true);
+        foreach (is_array($sources) ? $sources : array() as $source) {
+            if (is_array($source) && isset($source['url']) && is_string($source['url'])) {
+                $urls[] = $source['url'];
+            }
+        }
+    }
+    return $urls;
+}
+
 /**
  * The CTI phonebook import reads the CSV with the comma delimiter only: reject a
  * header that is clearly split by semicolons or tabs instead.
@@ -519,12 +604,33 @@ function csvHeaderIsCommaSeparated($path)
     return $commas >= substr_count($line, ';') && $commas >= substr_count($line, "\t");
 }
 
-function unlink_local_csv($config)
+function unlink_local_csv($config, $excludeId = null)
 {
-    if(isset($config['dbtype'], $config['url'])
-        && $config['dbtype'] == 'csv'
-        && substr($config['url'], 0, 55) == 'file:///var/lib/nethvoice/phonebook/uploads/'
-    ) {
-        unlink(substr($config['url'], 7));
+    if (!isset($config['dbtype'], $config['url']) || $config['dbtype'] != 'csv') {
+        return;
     }
+    $path = uploadedCsvPath($config['url']);
+    if ($path === false || localCsvInUse($path, $excludeId)) {
+        return;
+    }
+    unlink($path);
+}
+
+function localCsvInUse($path, $excludeId = null)
+{
+    foreach (glob('/etc/phonebook/sources.d/*.json') ?: array() as $file) {
+        $sources = json_decode(file_get_contents($file), true);
+        if (!is_array($sources)) {
+            continue;
+        }
+        foreach ($sources as $sid => $source) {
+            if (($excludeId !== null && (string) $sid === (string) $excludeId) || !is_array($source) || !isset($source['dbtype'], $source['url']) || $source['dbtype'] != 'csv') {
+                continue;
+            }
+            if (uploadedCsvPath($source['url']) === $path) {
+                return true;
+            }
+        }
+    }
+    return false;
 }

@@ -21,9 +21,17 @@
 
 include_once('lib/libExtensions.php');
 include_once('lib/libUsers.php');
+include_once('lib/libMiddleware.php');
+include_once('lib/libCTI.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+
+function configuredUsersCountExcept($users, $username) {
+    return count(array_filter($users, function($user) use ($username) {
+        return $user['default_extension'] != 'none' && (string) $user['username'] !== (string) $username;
+    }));
+}
 
 $app->get('/mainextensions', function (Request $request, Response $response, $args) {
     $mainextensions = FreePBX::create()->Core->getAllUsersByDeviceType('virtual');
@@ -48,8 +56,12 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     $mainextension = $params['extension'];
     $outboundcid = $params['outboundcid'] ?? '';
 
+    if (!nethvoiceRequestIsSuperadmin($request) && !empty($mainextension) && $mainextension != 'none' && !isExtensionNumber($mainextension)) {
+        return jsonResponse($response, array('message' => 'Invalid extension'), 400);
+    }
+
     if (
-        configuredUsersCount() >= communityUsersLimit() && // check if there are more configured users than the allowed limit
+        configuredUsersCountExcept(getAllUsers(), $username) >= communityUsersLimit() && // check if there are more configured users than the allowed limit
         (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) && // it isn't registered as enterprise
         !empty($mainextension) // the user is trying to create a new extension
     ) {
@@ -65,6 +77,28 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     return jsonResponse($response, $ret[0],$ret[1]);
 });
 
+$app->post('/mainextensions/{extension:[0-9]+}/reassign', function (Request $request, Response $response, $args) {
+    try {
+        $params = $request->getParsedBody();
+        $username = is_array($params) && isset($params['username']) && is_string($params['username']) ? trim($params['username']) : '';
+        if ($username === '') {
+            return jsonResponse($response, array('message' => 'Missing username'), 400);
+        }
+        $extension = $request->getAttribute('route')->getArgument('extension');
+        $keyLabels = null;
+        $ret = reassignMainExtension($extension, $username, $keyLabels);
+        if ($ret !== true) {
+            return jsonResponse($response, $ret[0], $ret[1]);
+        }
+        triggerMiddlewareProfilesReloadAfterUserSync();
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return jsonResponse($response, $keyLabels, 200);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, array('message' => 'Cannot reassign the main extension'), 500);
+    }
+});
+
 /**
  * Retrieves configurable user limits.
  *
@@ -72,6 +106,39 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
  * It checks if the system is running the community version or the enterprise version
  * and returns the appropriate limits and configurable counts accordingly.
  */
+$app->get('/mainextensions/orphans', function (Request $request, Response $response, $args) {
+    try {
+        return jsonResponse($response, listOrphanExtensions(), 200);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, array('message' => 'Cannot list the extensions of removed users'), 500);
+    }
+});
+
+$app->post('/mainextensions/orphans/release', function (Request $request, Response $response, $args) {
+    try {
+        $params = $request->getParsedBody();
+        $extensions = is_array($params) && isset($params['extensions']) && is_array($params['extensions']) ? $params['extensions'] : array();
+        foreach ($extensions as $extension) {
+            if (!is_string($extension) || !isExtensionNumber($extension)) {
+                return jsonResponse($response, array('message' => 'Invalid extension'), 400);
+            }
+        }
+        if (empty($extensions)) {
+            return jsonResponse($response, array('message' => 'Missing extensions'), 400);
+        }
+        $ret = releaseOrphanExtensions($extensions);
+        if ($ret !== true) {
+            return jsonResponse($response, $ret[0], $ret[1]);
+        }
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return $response->withStatus(204);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, array('message' => 'Cannot delete the extensions of removed users'), 500);
+    }
+});
+
 $app->get('/mainextensions/userlimits', function (Request $request, Response $response, $args) {
     $limits = array(
         'configured' => configuredUsersCount(),

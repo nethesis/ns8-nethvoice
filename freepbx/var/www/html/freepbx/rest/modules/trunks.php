@@ -22,6 +22,18 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+function redactTrunkDetails($details) {
+    if (!is_array($details)) {
+        return $details;
+    }
+    foreach (array_keys($details) as $keyword) {
+        if (preg_match('/^(secret|md5_cred|auth_)/i', (string) $keyword)) {
+            unset($details[$keyword]);
+        }
+    }
+    return $details;
+}
+
 /**
  * @api {get} /trunks/count  Retrieve count of all trunks
  */
@@ -51,7 +63,7 @@ $app->get('/trunks', function (Request $request, Response $response, $args) {
             // Get trunk username
             $details = FreePBX::Core()->getTrunkDetails($trunk['trunkid']);
             $trunk['username'] = $details['username'];
-            $trunk['details'] = $details;
+            $trunk['details'] = redactTrunkDetails($details);
             array_push($result, $trunk);
         }
         return jsonResponse($response, $result,200);
@@ -151,6 +163,15 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
                 }
             }
         }
+        $controls = false;
+        if (is_array($params)) {
+            array_walk_recursive($params, function ($value) use (&$controls) {
+                $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+            });
+        }
+        if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
+            return jsonResponse($response, ['error'=>'Invalid control character'],400);
+        }
 
         // Change username
         if (isset($params['username'])) {
@@ -163,7 +184,7 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
         }
 
         // Change secret
-        if (isset($params['password'])) {
+        if (isset($params['password']) && trim((string) $params['password']) !== '') {
             $sql = 'UPDATE `pjsip` SET `data` = ? WHERE `id` = ? AND `keyword` = ?';
             $sth = $dbh->prepare($sql);
             $res = $sth->execute([$params['password'],$trunkid,'secret']);
@@ -253,6 +274,17 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
             return jsonResponse($response, ['error'=>'codecs must contain strings'],400);
         }
     }
+    $controls = false;
+    array_walk_recursive($params, function ($value) use (&$controls) {
+        $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+    });
+    if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
+        return jsonResponse($response, ['error'=>'Invalid control character'],400);
+    }
+    $trunkName = (empty($params['name'])) ? $params['provider'] : $params['name'];
+    if (!is_scalar($trunkName) || mb_strlen((string) $trunkName, 'UTF-8') > 50) {
+        return jsonResponse($response, ['message'=>'Trunk name must be a string of at most 50 characters'],422);
+    }
 
     $dbh = FreePBX::Database();
 
@@ -286,7 +318,7 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
         '',
         '',
         '',
-        '',
+        $params['provider'],
         'off',
         'off'
     ));

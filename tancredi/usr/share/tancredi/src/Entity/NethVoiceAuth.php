@@ -24,6 +24,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Slim\Psr7\Factory\StreamFactory;
 use Slim\Psr7\Response;
 
 class NethVoiceAuth implements MiddlewareInterface
@@ -58,22 +59,22 @@ class NethVoiceAuth implements MiddlewareInterface
                 return $this->createForbiddenResponse();
             }
         } elseif ($request->hasHeader('Secretkey') && $request->hasHeader('User')) {
-            $dbh = new \PDO(
-                'mysql:dbname=asterisk;host='.($this->config['auth_nethvoice_dbhost'] ?? 'localhost').';port='.($this->config['auth_nethvoice_dbport'] ?? '3306'),
-                ($this->config['auth_nethvoice_dbuser'] ?? 'tancredi'),
-                $this->config['auth_nethvoice_dbpass']
-            );
-            $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
-            $stmt->execute(array($request->getHeaderLine('User')));
-            $user = $stmt->fetchAll();
+            $user = $this->findUser($request->getHeaderLine('User'));
 
-            if (!empty($user)) {
+            if (!empty($user) && self::isPhonesAdministrator($user[0]['sections'] ?? '')) {
                 $password_sha1 = $user[0]['password_sha1'];
                 $username = $user[0]['username'];
 
-                // check the user is valid and is an admin (sections = *)
-                if (isset($username, $password_sha1) && $request->getHeaderLine('Secretkey') === sha1($username . $password_sha1 . $this->config['secret'])) {
-                    return $handler->handle($request);
+                if (isset($username, $password_sha1) && hash_equals(sha1($username . $password_sha1 . $this->config['secret']), $request->getHeaderLine('Secretkey'))) {
+                    $sections = $user[0]['sections'] ?? '';
+                    if (self::isSuperAdministrator($sections)) {
+                        return $handler->handle($request);
+                    }
+                    if (!self::sectionMayRequest($sections, $request->getMethod(), $request->getUri()->getPath())) {
+                        return $this->createForbiddenResponse('Missing permission for this resource');
+                    }
+
+                    return self::withoutLinePasswords($handler->handle($request));
                 }
             }
 
@@ -83,6 +84,87 @@ class NethVoiceAuth implements MiddlewareInterface
         } else {
             return $this->createForbiddenResponse('Invalid NethVoiceAuth authentication headers');
         }
+    }
+
+    protected function findUser(string $username): array
+    {
+        $dbh = new \PDO(
+            'mysql:dbname=asterisk;host='.($this->config['auth_nethvoice_dbhost'] ?? 'localhost').';port='.($this->config['auth_nethvoice_dbport'] ?? '3306'),
+            ($this->config['auth_nethvoice_dbuser'] ?? 'tancredi'),
+            $this->config['auth_nethvoice_dbpass']
+        );
+        $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE username = ?");
+        $stmt->execute(array($username));
+
+        return $stmt->fetchAll();
+    }
+
+    public static function isPhonesAdministrator($sections): bool
+    {
+        $entries = self::sectionEntries($sections);
+        if (in_array('*', $entries, true)) {
+            return true;
+        }
+
+        return (bool) array_intersect(['nethvoice:superadmin', 'nethvoice:phones', 'nethvoice:users'], $entries);
+    }
+
+    public static function isSuperAdministrator($sections): bool
+    {
+        return (bool) array_intersect(['*', 'nethvoice:superadmin'], self::sectionEntries($sections));
+    }
+
+    public static function sectionMayRequest($sections, string $method, string $path): bool
+    {
+        if (in_array(strtoupper($method), ['GET', 'HEAD', 'OPTIONS'], true)) {
+            return true;
+        }
+        if (preg_match('#/defaults/*$#', rawurldecode($path))) {
+            return in_array('nethvoice:phones', self::sectionEntries($sections), true);
+        }
+
+        return true;
+    }
+
+    public static function withoutLinePasswords(ResponseInterface $response): ResponseInterface
+    {
+        $contents = (string) $response->getBody();
+        if ($contents === '') {
+            return $response;
+        }
+        $data = json_decode($contents);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $response;
+        }
+        $flags = defined('JSON_FLAGS') ? JSON_FLAGS : (JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        return $response
+            ->withoutHeader('Content-Length')
+            ->withBody((new StreamFactory())->createStream(json_encode(self::stripLinePasswords($data), $flags)));
+    }
+
+    private static function stripLinePasswords($data)
+    {
+        if (is_array($data)) {
+            foreach ($data as $key => $value) {
+                $data[$key] = self::stripLinePasswords($value);
+            }
+        } elseif (is_object($data)) {
+            foreach (get_object_vars($data) as $key => $value) {
+                if (str_starts_with((string) $key, 'account_password_')) {
+                    unset($data->$key);
+                } else {
+                    $data->$key = self::stripLinePasswords($value);
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    private static function sectionEntries($sections): array
+    {
+        return array_map('trim', explode(';', (string) $sections));
     }
 
     private function createForbiddenResponse($detail = 'Invalid client credentials'): ResponseInterface

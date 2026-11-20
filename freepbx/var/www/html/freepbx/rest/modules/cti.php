@@ -24,6 +24,136 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libCTI.php');
 include_once('lib/libMiddleware.php');
+include_once('lib/libSecurity.php');
+include_once('lib/libParamUrls.php');
+
+const CTI_DBCONN_TARGET_FIELDS = ['host', 'port', 'type'];
+const CTI_DBCONN_PASSWORD_REQUIRED = 'Enter the password to connect to a different server';
+const CTI_SOURCE_NOT_AN_IMAGE = 'The source did not return a JPEG, PNG or GIF image';
+const CTI_IMAGE_SIGNATURES = ["\xff\xd8\xff", "\x89PNG\r\n\x1a\n", 'GIF87a', 'GIF89a'];
+const CTI_PREVIEW_INVALID = 'Invalid customer card preview fields';
+const CTI_PREVIEW_UNREACHABLE = 'The CTI server is not reachable';
+const CTI_PREVIEW_FAILED = 'The CTI server cannot show the preview';
+
+function ctiIsImage($data): bool
+{
+    if (!is_string($data)) {
+        return false;
+    }
+    foreach (CTI_IMAGE_SIGNATURES as $signature) {
+        if (str_starts_with($data, $signature)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function ctiStoredDbConnection($dbh, $id): ?array
+{
+    if (!is_scalar($id) || !ctype_digit((string) $id)) {
+        return null;
+    }
+    $sth = $dbh->prepare('SELECT * FROM user_dbconn WHERE id = ?');
+    $sth->execute([(int) $id]);
+    $row = $sth->fetch(PDO::FETCH_ASSOC);
+
+    return is_array($row) ? $row : null;
+}
+
+function ctiAdminSecretKey(): ?string
+{
+    global $config;
+    $secret = $config['settings']['secretkey'] ?? ($_ENV['NETHVOICESECRETKEY'] ?? getenv('NETHVOICESECRETKEY'));
+    $passwordHash = FreePBX::Database()
+        ->query("SELECT `password_sha1` FROM `ampusers` WHERE `username` = 'admin'")
+        ->fetchColumn();
+    if (empty($secret) || empty($passwordHash)) {
+        return null;
+    }
+
+    return sha1('admin' . $passwordHash . $secret);
+}
+
+function ctiServerRequest(string $path, ?array $body = null, int $timeout = 20): ?array
+{
+    $port = $_ENV['NETHCTI_SERVER_API_PORT'] ?? getenv('NETHCTI_SERVER_API_PORT');
+    $secretKey = is_scalar($port) && ctype_digit((string) $port) ? ctiAdminSecretKey() : null;
+    if ($secretKey === null) {
+        error_log("CTI server request $path skipped: missing NETHCTI_SERVER_API_PORT or admin secret key");
+        return null;
+    }
+    $headers = ['Accept: application/json', 'User: admin', 'Secretkey: ' . $secretKey];
+    $options = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => $timeout,
+    ];
+    if ($body !== null) {
+        $headers[] = 'Content-Type: application/json';
+        $options[CURLOPT_POST] = true;
+        $options[CURLOPT_POSTFIELDS] = json_encode($body);
+    }
+    $options[CURLOPT_HTTPHEADER] = $headers;
+
+    $ch = curl_init('http://127.0.0.1:' . (int) $port . $path);
+    curl_setopt_array($ch, $options);
+    $answer = curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+    if ($answer === false) {
+        error_log("CTI server request $path failed: $error");
+        return null;
+    }
+
+    return ['status' => $status, 'body' => $answer];
+}
+
+function ctiTestDbConnection(array $connection): ?bool
+{
+    $answer = ctiServerRequest('/dbconn/test', $connection);
+    if ($answer === null) {
+        return null;
+    }
+    if ($answer['status'] === 200) {
+        return true;
+    }
+    if ($answer['status'] === 503) {
+        return false;
+    }
+    error_log('database connection test failed: HTTP ' . $answer['status']);
+
+    return null;
+}
+
+function ctiCustomerCardPreviewResponse($data, callable $send, callable $templateExists): array
+{
+    if (!is_array($data)) {
+        return [400, ['message' => CTI_PREVIEW_INVALID]];
+    }
+    $dbconn = nethvoiceDbConnectionId($data['dbconn_id'] ?? null);
+    $template = $data['template'] ?? null;
+    $query = $data['query'] ?? null;
+    if ($dbconn === null || !nethvoiceIsValidCardTemplate($template) || !is_string($query)
+        || $query === '' || base64_decode($query, true) === false) {
+        return [400, ['message' => CTI_PREVIEW_INVALID]];
+    }
+    if (!$templateExists($template)) {
+        return [400, ['message' => CTI_PREVIEW_INVALID]];
+    }
+    $answer = $send('/custcard/preview', ['dbconn_id' => (string) $dbconn, 'template' => $template, 'query' => $query]);
+    if ($answer === null) {
+        return [503, ['message' => CTI_PREVIEW_UNREACHABLE]];
+    }
+    $preview = $answer['status'] === 200 ? json_decode((string) $answer['body'], true) : null;
+    if (!is_array($preview) || !is_string($preview['html'] ?? null)) {
+        error_log('customer card preview: unexpected answer from the CTI server, HTTP ' . $answer['status']);
+        return [502, ['message' => CTI_PREVIEW_FAILED]];
+    }
+
+    return [200, ['html' => $preview['html']]];
+}
 
 /* GET /cti/profiles
 Return: [{id:1, name: admin, macro_permissions [ oppanel: {value: true, permissions [ {name: "foo", description: "descrizione...", value: false},{..} ]}
@@ -84,19 +214,42 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
         $sharedLock = '/var/run/nethvoice/contextLock';
         $timeoutSeconds = 5;
 
-        // Check and create lock file
-        if ( !file_exists(dirname($sharedLock))
-            || !is_writable(dirname($sharedLock))
-            || ( file_exists($sharedLock) && filemtime($sharedLock) > time()-$timeoutSeconds )
-            || !touch($sharedLock))
-        {
+        $current = getCTIPermissionProfiles($id);
+        if (!is_array($current) || !isset($current['name'])) {
+            return jsonResponse($response, array('message' => 'CTI profile not found'), 404);
+        }
+        $name = isset($profile['name']) && is_string($profile['name']) ? trim($profile['name']) : $current['name'];
+        if ($name === '') {
+            return jsonResponse($response, array('message' => 'Profile name cannot be empty'), 422);
+        }
+        if ($name !== $current['name']) {
+            if ($current['name'] === 'Hotel' || $name === 'Hotel') {
+                return jsonResponse($response, array('message' => 'Hotel profile name cannot be changed'), 422);
+            }
+            $dbh = FreePBX::Database();
+            $sth = $dbh->prepare('SELECT COUNT(*) FROM `rest_cti_profiles` WHERE `name` = ? AND `id` != ?');
+            $sth->execute(array($name, $id));
+            if ($sth->fetchColumn() > 0) {
+                return jsonResponse($response, array('message' => 'A profile with this name already exists'), 409);
+            }
+        }
+        $profile['name'] = $name;
+
+        if (!file_exists(dirname($sharedLock)) || !is_writable(dirname($sharedLock))) {
+            throw new Exception('Can\'t acquire lock');
+        }
+        if (file_exists($sharedLock) && filemtime($sharedLock) > time()-$timeoutSeconds) {
+            return jsonResponse($response, array('message' => 'Another profile change is in progress, retry in a few seconds'), 423);
+        }
+        if (!touch($sharedLock)) {
             throw new Exception('Can\'t acquire lock');
         }
 
-        $res = postCTIProfile($profile,$id);
-
-        // Release lock
-        unlink($sharedLock);
+        try {
+            $res = postCTIProfile($profile,$id);
+        } finally {
+            unlink($sharedLock);
+        }
 
         if ($res) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -116,6 +269,17 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
 $app->post('/cti/profiles', function (Request $request, Response $response, $args) {
     try {
         $profile = $request->getParsedBody();
+        $name = isset($profile['name']) && is_string($profile['name']) ? trim($profile['name']) : '';
+        if ($name === '') {
+            return jsonResponse($response, array('message' => 'Profile name cannot be empty'), 422);
+        }
+        $dbh = FreePBX::Database();
+        $sth = $dbh->prepare('SELECT COUNT(*) FROM `rest_cti_profiles` WHERE `name` = ?');
+        $sth->execute(array($name));
+        if ($sth->fetchColumn() > 0) {
+            return jsonResponse($response, array('message' => 'A profile with this name already exists'), 409);
+        }
+        $profile['name'] = $name;
         $id = postCTIProfile($profile);
         if ($id) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -406,6 +570,10 @@ $app->put('/cti/paramurl/{id}', function (Request $request, Response $response, 
         $profiles[] = (int) $profile;
       }
       $profiles = array_values(array_unique($profiles));
+      $names = nethvoiceParamUrlNamesInput($data, !nethvoiceRequestIsSuperadmin($request));
+      if ($names === null) {
+        return jsonResponse($response, array('status' => 'Invalid parameterized URL name'), 400);
+      }
 
       $dbh = FreePBX::Database();
       foreach ($profiles as $p) {
@@ -429,6 +597,7 @@ $app->put('/cti/paramurl/{id}', function (Request $request, Response $response, 
       if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
       }
+      nethvoiceSaveParamUrlNames($dbh, $profiles, $names);
       system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
       return $response->withStatus(200);
   } catch (Exception $e) {
@@ -453,6 +622,15 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
             return jsonResponse($response, ['message' => 'Invalid database connection fields'], 400);
         }
 
+        $dbh = NethCTI::Database();
+        $data = nethvoiceKeepStoredPassword($data, ctiStoredDbConnection($dbh, $id), 'pass', CTI_DBCONN_TARGET_FIELDS);
+        if ($data === null) {
+            return jsonResponse($response, ['message' => CTI_DBCONN_PASSWORD_REQUIRED], 400);
+        }
+        if (!$data) {
+            return $response->withStatus(200);
+        }
+
         foreach ($data as $p=>$v) {
             $fields[] = $p. ' = ?';
             $args[] = $v;
@@ -460,7 +638,6 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
 
         $args[] = $id;
 
-        $dbh = NethCTI::Database();
         $sql = 'UPDATE user_dbconn SET '. implode(', ', $fields). ' WHERE id = ?';
         $sth = $dbh->prepare($sql);
         $res = $sth->execute($args);
@@ -469,6 +646,7 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
             throw new Exception($sth->errorInfo()[2]);
         }
 
+        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -483,6 +661,10 @@ $app->post('/cti/paramurl', function (Request $request, Response $response, $arg
   try {
       $route = $request->getAttribute('route');
       $data = $request->getParsedBody();
+      $names = nethvoiceParamUrlNamesInput($data, !nethvoiceRequestIsSuperadmin($request));
+      if ($names === null) {
+        return jsonResponse($response, array('status' => 'Invalid parameterized URL name'), 400);
+      }
       $url = $data['url'];
       $profiles = $data['profiles'];
       $only_queues = ($data['only_queues']) ? 1 : 0;
@@ -495,6 +677,7 @@ $app->post('/cti/paramurl', function (Request $request, Response $response, $arg
             throw new Exception($sth->errorInfo()[2]);
         }
       }
+      nethvoiceSaveParamUrlNames($dbi, is_array($profiles) ? $profiles : array(), $names);
       system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
       return $response->withStatus(200);
   } catch (Exception $e) {
@@ -545,7 +728,46 @@ $app->get('/cti/dbconn', function (Request $request, Response $response, $args) 
 
         $res = $sth->fetchAll(PDO::FETCH_ASSOC);
 
-        return jsonResponse($response, $res);
+        return jsonResponse($response, nethvoiceWithoutStoredPasswords($res, 'pass', nethvoiceRequestIsSuperadmin($request)));
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
+
+$app->post('/cti/dbconn/test', function (Request $request, Response $response, $args) {
+    try {
+        $data = $request->getParsedBody();
+        if (!is_array($data)) {
+            return jsonResponse($response, ['message' => 'Invalid database connection fields'], 400);
+        }
+        $connection = [];
+        foreach (['host', 'port', 'type', 'user', 'name'] as $field) {
+            $value = $data[$field] ?? '';
+            if (!is_scalar($value) || ($field !== 'user' && trim((string) $value) === '')) {
+                return jsonResponse($response, ['message' => "Missing value: $field"], 400);
+            }
+            $connection[$field] = trim((string) $value);
+        }
+        $connection['pass'] = isset($data['pass']) && is_scalar($data['pass']) ? (string) $data['pass'] : '';
+
+        if ($connection['pass'] === '' && isset($data['id']) && $data['id'] !== '') {
+            $stored = ctiStoredDbConnection(NethCTI::Database(), $data['id']);
+            if ($stored === null) {
+                return jsonResponse($response, ['message' => 'Database connection not found'], 404);
+            }
+            $connection = nethvoiceKeepStoredPassword($connection, $stored, 'pass', CTI_DBCONN_TARGET_FIELDS);
+            if ($connection === null) {
+                return jsonResponse($response, ['message' => CTI_DBCONN_PASSWORD_REQUIRED], 400);
+            }
+            $connection['pass'] = $connection['pass'] ?? '';
+        }
+
+        $result = ctiTestDbConnection($connection);
+        if ($result === null) {
+            return jsonResponse($response, ['message' => 'Cannot reach the CTI server'], 502);
+        }
+        return jsonResponse($response, ['status' => $result], 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -701,6 +923,9 @@ $app->delete('/cti/customer_card/template/{name}', function (Request $request, R
     try {
         $route = $request->getAttribute('route');
         $name = $route->getArgument('name');
+        if (!nethvoiceRequestIsSuperadmin($request) && !preg_match('/^[a-z0-9]+$/D', $name)) {
+            throw new Exception('template not found');
+        }
 
         $tpl_path = '/var/lib/nethserver/nethcti/templates/customer_card';
 
@@ -719,6 +944,20 @@ $app->delete('/cti/customer_card/template/{name}', function (Request $request, R
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
+    }
+});
+
+$app->post('/cti/customer_card/preview', function (Request $request, Response $response, $args) {
+    try {
+        [$status, $body] = ctiCustomerCardPreviewResponse(
+            $request->getParsedBody(),
+            'ctiServerRequest',
+            [new NethvoiceDatabaseLookup(), 'cardTemplateExists']
+        );
+        return jsonResponse($response, $body, $status);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, ['message' => 'An error occurred'], 500);
     }
 });
 
@@ -914,6 +1153,18 @@ $app->put('/cti/customer_card/{id}', function (Request $request, Response $respo
             }
         }
 
+        if (isset($data['name']) && $data['name'] !== $name) {
+            $dbi = FreePBX::Database();
+            $permname = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$data['name'])));
+            $sql = 'UPDATE rest_cti_permissions SET name = ?, displayname = ? WHERE id = ?';
+            $sth = $dbi->prepare($sql);
+            $res = $sth->execute(array($permname, $data['name'], $permission_id));
+
+            if ($res === FALSE) {
+                throw new Exception($sth->errorInfo()[2]);
+            }
+        }
+
         foreach ($data as $p=>$v) {
             // Exclude profiles from simple params updating
             if ($p === 'profiles') {
@@ -1044,7 +1295,7 @@ $app->get('/cti/streaming', function (Request $request, Response $response, $arg
                 }
             }
         }
-        return jsonResponse($response, $res);
+        return jsonResponse($response, nethvoiceRequestIsSuperadmin($request) ? $res : nethvoiceWithoutStoredPasswords($res, 'secret'));
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1068,12 +1319,18 @@ $app->get('/cti/paramurls', function (Request $request, Response $response, $arg
       $sth = $dbh->prepare($sql);
       $sth->execute();
       $res = $sth->fetchAll(PDO::FETCH_ASSOC);
+      $names = nethvoiceParamUrlNamesByProfile($dbh);
       for ($i = 0; $i < count($res); $i++) {
         if ($res[$i]["only_queues"] == "1") {
           $res[$i]["only_queues"] = true;
         } else {
           $res[$i]["only_queues"] = false;
         }
+        $groupNames = array();
+        foreach (explode(',', (string) $res[$i]['profiles']) as $profileId) {
+          $groupNames[$profileId] = $names[$profileId] ?? '';
+        }
+        $res[$i]['names'] = (object) $groupNames;
       }
       return jsonResponse($response, $res);
   } catch (Exception $e) {
@@ -1092,6 +1349,9 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
         $currentDescr = $data['currentDescr'];
         $name = $data['descr'];
         $url = $data['url'];
+        if (!nethvoiceRequestIsSuperadmin($request) && nethvoiceCheckFetchUrl($url) === null) {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
         $exten = $data['exten'];
         $open = $data['open'];
         $profiles = $data['profiles'];
@@ -1172,6 +1432,9 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         $exten = $data['exten'];
         $open = $data['open'];
         $profiles = $data['profiles'];
+        if (!nethvoiceRequestIsSuperadmin($request) && nethvoiceCheckFetchUrl($url) === null) {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
 
         $dbi = FreePBX::Database();
         // Insert into cti permissions
@@ -1246,17 +1509,16 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         if (!is_array($data) || !isset($data['url']) || !is_string($data['url']) || $data['url'] === '') {
             return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
         }
-        $url = $data['url'];
-
-        $curl = curl_init($url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true );
-        $ret_val = curl_exec($curl);
+        $ret_val = nethvoiceFetchUrl($data['url']);
+        if ($ret_val === null) {
+            return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
         if ($ret_val === false) {
-            error_log(__FILE__.':'.__LINE__.' curl error: '.curl_error($curl));
-            curl_close($curl);
             return $response->withStatus(500);
         }
-        curl_close($curl);
+        if (!nethvoiceRequestIsSuperadmin($request) && !ctiIsImage($ret_val)) {
+            return jsonResponse($response, array('status' => CTI_SOURCE_NOT_AN_IMAGE), 422);
+        }
 
         if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false) {
             return $response->withStatus(500);

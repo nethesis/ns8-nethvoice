@@ -9,7 +9,7 @@ class FreePBX {
 class TestDatabase {
     public function prepare($sql) { return $this; }
     public function execute($args) {}
-    public function fetch($mode) { return ['username' => 'admin', 'password_sha1' => 'test']; }
+    public function fetch($mode) { return ['username' => 'admin', 'password_sha1' => 'test', 'sections' => '*']; }
 }
 function check($condition, $message) {
     if (!$condition) { throw new RuntimeException($message); }

@@ -99,3 +99,60 @@ EOF
     run GET /tancredi/api/v1/models/acme19_2/version/1
     assert_http_code "404"
 }
+
+@test "POST /tancredi/api/v1/models returns last_edit_time" {
+    run POST /tancredi/api/v1/models <<EOF2
+{
+    "name": "acme19_3",
+    "display_name": "Acme IP phone v19 rev. 3",
+    "variables": {
+        "var1": "value1"
+    }
+}
+EOF2
+    assert_http_code "201"
+    assert_http_body_re '"last_edit_time":[0-9]+'
+    run DELETE /tancredi/api/v1/models/acme19_3
+    assert_http_code "204"
+}
+
+@test "GET /tancredi/api/v1/models/acme19_2 does not change last_edit_time" {
+    scope_path="$(tancredi_scope_path acme19_2)"
+    test -f "$scope_path"
+    run grep -E '^last_edit_time = [0-9]+$' "$scope_path"
+    [[ "$status" -eq 0 ]]
+    seeded="$(sed -r 's/^last_edit_time = [0-9]+$/last_edit_time = 1700000000/' "$scope_path")"
+    printf '%s\n' "$seeded" > "$scope_path"
+    run GET /tancredi/api/v1/models/acme19_2
+    assert_http_code "200"
+    assert_http_body '"last_edit_time":1700000000'
+    run GET /tancredi/api/v1/models/acme19_2?inherit=1
+    assert_http_code "200"
+    assert_http_body '"last_edit_time":1700000000'
+    run grep -F 'last_edit_time = 1700000000' "$scope_path"
+    [[ "$status" -eq 0 ]]
+}
+
+@test "PATCH /tancredi/api/v1/models/acme19_2 updates last_edit_time" {
+    started_at="$(date +%s)"
+    run PATCH /tancredi/api/v1/models/acme19_2 <<EOF2
+{
+    "display_name": "Acme IP phone v19 rev. 2 (changed)"
+}
+EOF2
+    assert_http_code "200"
+    patched="$(sed -n -r '/^\s*$/,$ p' <<<"$output" | grep -o '"last_edit_time":[0-9]*' | cut -d: -f2)"
+    [[ -n "$patched" && "$patched" -ge "$started_at" ]]
+    run GET /tancredi/api/v1/models/acme19_2
+    assert_http_body "\"last_edit_time\":${patched}"
+}
+
+@test "GET /tancredi/api/v1/models/yealink-T21 (never edited, last_edit_time null)" {
+    rm -f "$(tancredi_scope_path yealink-T21)"
+    run GET /tancredi/api/v1/models/yealink-T21
+    assert_http_code "200"
+    assert_http_body '"last_edit_time":null'
+    run GET /tancredi/api/v1/models
+    assert_http_code "200"
+    assert_http_body_re '"name":"yealink-T21","display_name":"[^"]*","model_url":"[^"]*","last_edit_time":null'
+}
