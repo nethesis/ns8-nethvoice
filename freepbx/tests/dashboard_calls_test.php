@@ -565,6 +565,64 @@ namespace {
     check(array_slice(array_column($result['series'], 'calls'), -4) === [0, 2, 0, 0], 'a call of the repeated hour written late must be counted in its first occurrence');
     unlink($lateCache);
 
+    check(DASHBOARD_CALLS_FULL_REFRESH === 86400, 'the whole range must be counted again once a day');
+    $recountCache = "$temporary/recount.json";
+    $recount = [['2026-10-01 08:00:00', 'old', '201', '', '']];
+    $recountAsked = [];
+    $recountQuery = function ($since, $until) use (&$recount, &$recountAsked, $cdr) {
+        $recountAsked[] = $since;
+        return $cdr($recount)($since, $until);
+    };
+    $recountHistory = fn($now, $range = '24h') => dashboardCallsHistory($range, $now, $rome, $recountQuery, fn() => '2026-10-01 08:00:00', $recountCache);
+    $imported = $at('2026-11-19 00:00', $rome);
+    $importedCalls = fn($result) => array_column($result['series'], 'calls', 'time')[$imported];
+    for ($now = $at('2026-11-18 10:20', $rome); $now <= $at('2026-11-19 07:20', $rome); $now += 3600) {
+        $recountHistory($now);
+    }
+    $recount[] = ['2026-11-19 00:20:00', 'imported', '201', '', ''];
+    $recountAsked = [];
+    $result = $recountHistory($at('2026-11-19 10:15', $rome));
+    check($recountAsked === ['2026-11-19 01:00:00'] && $importedCalls($result) === 0, 'a call written later for an hour older than six hours must not be counted by a refresh');
+    $recountAsked = [];
+    $result = $recountHistory($at('2026-11-19 10:20', $rome));
+    check($recountAsked === ['2026-11-18 11:00:00'], 'a cache counted in full 24 hours ago must count the whole range again');
+    check($importedCalls($result) === 1 && array_sum(array_column($result['series'], 'calls')) === 1, 'the count of the whole range must add the calls written later');
+    check(json_decode(file_get_contents($recountCache), true)['full_time'] === $at('2026-11-19 10:20', $rome), 'the cache must store the time of the last count of the whole range');
+    $recountAsked = [];
+    $result = $recountHistory($at('2026-11-19 10:25', $rome));
+    check($recountAsked === ['2026-11-19 04:00:00'] && $importedCalls($result) === 1, 'the refresh after a count of the whole range must read only the last hours');
+    $legacy = json_decode(file_get_contents($recountCache), true);
+    unset($legacy['full_time']);
+    file_put_contents($recountCache, json_encode($legacy));
+    $recountAsked = [];
+    $recountHistory($at('2026-11-19 10:30', $rome));
+    check($recountAsked === ['2026-11-18 11:00:00'], 'a cache without the time of the last full count must count the whole range again');
+    check(json_decode(file_get_contents($recountCache), true)['full_time'] === $at('2026-11-19 10:30', $rome), 'a cache without the time of the last full count must store it');
+    unlink($recountCache);
+    $recountHistory($at('2026-11-19 10:30', $rome), '15d');
+    $legacy = json_decode(file_get_contents($recountCache), true);
+    $legacy['full_time'] = $legacy['time'] - 86400;
+    $legacy['time'] -= DASHBOARD_CALLS_HISTORY_TTL;
+    file_put_contents($recountCache, json_encode($legacy));
+    $recountAsked = [];
+    $recountHistory($at('2026-11-19 10:30', $rome), '15d');
+    check($recountAsked === ['2026-11-04 11:00:00', ...array_map(fn($day) => sprintf('2026-11-%02d 00:00:00', $day), range(5, 19))], 'the count of the whole 15 days must read one day per query');
+    $legacy['time'] = $at('2026-11-19 10:30', $rome) - DASHBOARD_CALLS_HISTORY_TTL;
+    file_put_contents($recountCache, json_encode($legacy));
+    $failed = false;
+    try {
+        dashboardCallsHistory('15d', $at('2026-11-19 10:30', $rome), $rome, fn($since, $until) => throw new RuntimeException('database unavailable'), fn() => null, $recountCache);
+    } catch (RuntimeException $e) {
+        $failed = true;
+    }
+    $probe = fopen("$recountCache.lock", 'c');
+    check($failed && flock($probe, LOCK_EX | LOCK_NB), 'a failed count of the whole range must release the lock');
+    flock($probe, LOCK_UN);
+    fclose($probe);
+    check(json_decode(file_get_contents($recountCache), true) === $legacy, 'a failed count of the whole range must keep the cache');
+    unlink($recountCache);
+    unlink("$recountCache.lock");
+
     $blocked = "$temporary/blocked";
     mkdir($blocked);
     mkdir("$blocked/nethvoice-dashboard-calls-24h.json");
