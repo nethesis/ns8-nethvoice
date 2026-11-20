@@ -8,37 +8,35 @@
 set -e -o pipefail
 exec 1>&2 # Redirect any output to the journal (stderr)
 
-SATELLITE_PGSQL_PASSWORD=$(grep '^SATELLITE_PGSQL_PASSWORD=' ./passwords.env) && export "${SATELLITE_PGSQL_PASSWORD?}"
+# Satellite is optional, so older backups may not contain a dump or credentials.
+dump=satellite_postgresql.pg_dump.gz
+if [[ ! -e "$dump" ]]; then
+    exit 0
+fi
 
-mkdir -vp restore
-cat - >restore/satellite_postgresql_restore.sh <<'EOS'
-# Restore all databases from the compressed dump file:
-set -e -o pipefail
-cleanup() {
-    ec=$?
-    trap - EXIT
-    docker_temp_server_stop
-    exit "$ec"
-}
-trap cleanup EXIT
-gunzip -c /tmp/satellite_postgresql.pg_dump.gz | psql -U postgres
-EOS
+# Validate the entire gzip stream, including the case of an empty SQL payload.
+dump_bytes=$(gzip -cd "$dump" | wc -c)
+if (( dump_bytes == 0 )); then
+    echo 'The Satellite PostgreSQL dump is empty'
+    exit 1
+fi
 
-# Override the image /docker-entrypoint-initdb.d contents, to restore the
-# DB dump file. The container will be stopped at the end
+POSTGRES_PASSWORD=$(sed -n 's/^SATELLITE_PGSQL_PASSWORD=//p' ./passwords.env)
+: "${POSTGRES_PASSWORD:?Missing Satellite PostgreSQL password}"
+export POSTGRES_PASSWORD
+
+# The image's init-only command refuses an existing database and stops after import.
 podman run \
     --rm \
-    --interactive \
     --network=none \
-    --volume=./restore:/docker-entrypoint-initdb.d/:Z \
-    --volume=satellite_pgdata:/var/lib/postgresql/data:Z \
-    --volume=./satellite_postgresql.pg_dump.gz:/tmp/satellite_postgresql.pg_dump.gz:Z \
-    --replace --name=restore_db \
-    --env POSTGRES_USER=${SATELLITE_PGSQL_USER} \
-    --env POSTGRES_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
+    --volume="${AGENT_INSTALL_DIR:?}/etc/satellite-restore:/docker-entrypoint-initdb.d:ro,Z" \
+    --volume=satellite_pgdata:/var/lib/postgresql/18/docker:Z \
+    --volume="./$dump:/tmp/$dump:ro,Z" \
+    --name=restore_db \
+    --env POSTGRES_USER="${SATELLITE_PGSQL_USER:?}" \
+    --env POSTGRES_PASSWORD \
+    --env POSTGRES_DB=postgres \
     --env TZ=UTC \
-    "${POSTGRES_IMAGE}"
+    "${PGVECTOR_IMAGE:?}" docker-enforce-initdb.sh
 
-
-# If the restore is successful, clean up:
-rm -rfv restore/ satellite_postgresql.pg_dump.gz
+rm -v -- "$dump"
