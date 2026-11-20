@@ -8,6 +8,7 @@
 import os
 
 import agent
+import video_gateway
 
 # Authoritative public-firewall port set for this instance. Applied with
 # replace_ports=True so it is the single source of truth on both fresh install
@@ -27,6 +28,7 @@ agent.add_public_service(os.environ['MODULE_ID'], [
     os.environ['ASTERISK_RECORDING_SFTP_PORT']+"/tcp", # Asterisk recordings SFTP
     os.environ['ASTERISK_WSS_PORT']+"/tcp", # Asterisk WSS
     os.environ['ASTERISK_RTPSTART']+"-"+os.environ['ASTERISK_RTPEND']+"/udp", # Asterisk RTP for WSS
-], replace_ports=True)
+] + video_gateway.firewall_ports(os.environ), # Video gateway ICE (UDP and TCP), when allocated
+replace_ports=True)
 
 # Ignore exit code

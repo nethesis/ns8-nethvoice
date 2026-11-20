@@ -1,7 +1,7 @@
 // Copyright (C) 2024 Nethesis S.r.l.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { FC, ComponentProps, Fragment, ReactNode } from 'react'
+import { FC, ComponentProps, CSSProperties, Fragment, ReactNode } from 'react'
 import { Menu, MenuButton, MenuItems, Transition } from '@headlessui/react'
 import { DropdownItem } from './DropdownItem'
 import { DropdownHeader } from './DropdownHeader'
@@ -29,6 +29,8 @@ export interface DropdownProps extends ComponentProps<'div'> {
   size?: 'full'
   // Anchored to the button and drawn outside any scrolling parent; it flips up when there is no room below.
   anchor?: ComponentProps<typeof MenuItems>['anchor']
+  // style of the menu (e.g. --anchor-max-height to limit an anchored menu)
+  itemsStyle?: CSSProperties
 }
 
 const DropdownComponent: FC<DropdownProps> = ({
@@ -39,6 +41,7 @@ const DropdownComponent: FC<DropdownProps> = ({
   size,
   className,
   anchor,
+  itemsStyle,
 }) => {
   const { dropdown: theme } = useTheme().theme
 
@@ -49,6 +52,7 @@ const DropdownComponent: FC<DropdownProps> = ({
       </MenuButton>
       <MenuItems
         anchor={anchor}
+        style={itemsStyle}
         className={classNames(
           theme.items.base,
           divider && theme.items.divider,

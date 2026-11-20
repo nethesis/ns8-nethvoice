@@ -115,6 +115,49 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    this.videoSourcesGateway = function () {
+      return $q(function (resolve, reject) {
+        RestService.get('/cti/sources/gateway').then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
+    // Provisioned door phones that can become a video source
+    this.allDoorPhones = function () {
+      return $q(function (resolve, reject) {
+        RestService.get('/cti/streaming/doorphones').then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
+    // Generate the door phone RTSP credentials if missing, get the form prefill
+    this.prepareDoorPhone = function (mac) {
+      return $q(function (resolve, reject) {
+        RestService.post('/cti/streaming/doorphones/' + encodeURIComponent(mac), {}).then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
+    // TCP reachability of the device of a RTSP URL from the PBX
+    this.videoSourceReachability = function (obj) {
+      return $q(function (resolve, reject) {
+        RestService.post('/cti/streaming/reachability', obj).then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
     this.checkConnectionVideoSource = function (obj) {
       return $q(function (resolve, reject) {
         RestService.post('/cti/sources/test', obj).then(function (res) {
@@ -187,7 +230,7 @@ angular.module('nethvoiceWizardUiApp')
 
     this.updateVideoSource = function (descr, obj) {
       return $q(function (resolve, reject) {
-        RestService.put('/cti/streaming/' + descr, obj).then(function (res) {
+        RestService.put('/cti/streaming/' + encodeURIComponent(descr), obj).then(function (res) {
           resolve(res);
         }, function (err) {
           reject(err);
@@ -217,7 +260,7 @@ angular.module('nethvoiceWizardUiApp')
 
     this.deleteVideoSource = function (name) {
       return $q(function (resolve, reject) {
-        RestService.delete('/cti/streaming/' + name).then(function (res) {
+        RestService.delete('/cti/streaming/' + encodeURIComponent(name)).then(function (res) {
           resolve(res);
         }, function (err) {
           reject(err);

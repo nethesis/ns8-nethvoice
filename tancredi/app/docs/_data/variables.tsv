@@ -111,3 +111,26 @@ ro	cap_screensaver_time_blacklist		Comma separated list of [screensaver_time](#s
 ro	cap_brightness		Capability to set a custom brightness.	boolean	
 rw	lldp_enable		Enable LLDP on supported phones. Shipped defaults enable it; a scope can override its parent, and removing the override restores inheritance. Missing or invalid values use each template's behavior from before this variable was introduced.	string	`1` = enabled, `0` = disabled
 rw	auto_headset		On Fanvil and NethPhone phones, answer an incoming call through the headset when it is connected (Fanvil `Auto Headset`). Shipped defaults disable it; missing or invalid values fall back to disabled.	string	`1` = enabled, `0` = disabled
+ro	cap_door_phone		The model is a door phone (video intercom) that can be used as a video source.	boolean	
+rw	door_rtsp_user		Door phones: user name of the RTSP server of the device.	string	
+rw	door_rtsp_password		Door phones: password of the RTSP server of the device. Empty leaves the device RTSP credentials unchanged. Removed from tokenless provisioning.	string	
+ro	door_rtsp_port		Door phones: TCP port of the RTSP server of the device.	integer	
+ro	door_rtsp_path_main		Door phones: path of the main (high quality) RTSP stream of the device, e.g. `/h264/stream.live0`.	string	
+ro	door_rtsp_path_sub		Door phones: path of the secondary (lower quality, for slow connections) RTSP stream of the device, e.g. `/h264/stream.live1`.	string	
+ro	door_rtsp_path		Door phones: path of the RTSP stream of models without door_rtsp_path_main and door_rtsp_path_sub.	string	
+ro	door_video_main_label		Door phones: resolution of the main stream, shown next to the quality choice when the template sets it.	string	
+ro	door_video_sub_label		Door phones: resolution of the secondary stream, shown next to the quality choice when the template sets it, e.g. `640x480`.	string	
+rw	door_dtmf_code		Door phones: DTMF code that opens the door (relay 1) during a call. The PBX sends it to open the door; templates write it as the relay 1 trigger code where the device provisioning key is known. Removed from tokenless provisioning.	string	
+rw	door_dtmf_code_2		Door phones: DTMF code that activates relay 2 during a call, on models with cap_door_relay_count of 2 or more. Removed from tokenless provisioning.	string	
+rw	door_relay_duration_1		Door phones: seconds relay 1 stays active after its DTMF code. Empty leaves the device value.	integer	
+rw	door_relay_duration_2		Door phones: seconds relay 2 stays active after its DTMF code. Empty leaves the device value.	integer	
+ro	cap_door_relay_count		Door phones: number of relays of the device that the template can configure.	integer	
+ro	door_open_url_path_1		Door phones: path and query of the http URL that opens relay 1, on the device address, e.g. `/cgi-bin/ConfigManApp.com?egs&output1=OUT1_SOS`. Proposed by the PBX for URL gates.	string	
+ro	door_open_url_path_2		Door phones: path and query of the http URL that opens relay 2.	string	
+ro	door_open_url_user		Door phones: web user for the door open URLs, e.g. `admin`.	string	
+ro	door_video_main_bitrate		Door phones: bitrate of the main camera stream, in bit/s. Empty or absent: camera streams are not changed.	integer	
+ro	door_video_sub_bitrate		Door phones: bitrate of the sub camera stream, in bit/s.	integer	
+ro	door_video_sub_resolution		Door phones: resolution code of the sub camera stream (Fanvil i6x: `4` = VGA).	integer	
+ro	door_video_iframe_interval		Door phones: keyframe interval of the camera streams, in frames.	integer	
+ro	cap_settings_sections_blacklist		Comma separated list of the sections of the phone settings that a PBX user interface should hide because the device does not have them, e.g. `displayAndRingtones,network,phonebook` for door phones.	string	
+ro	cap_settings_blacklist		Comma separated list of variables that a PBX user interface should hide in the phone settings because the template does not write them for this model.	string	

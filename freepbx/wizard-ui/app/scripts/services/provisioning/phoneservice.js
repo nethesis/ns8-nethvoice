@@ -79,6 +79,18 @@ angular.module('nethvoiceWizardUiApp')
       });
     };
 
+    // Door phones: the video sources linked to the door phone take its
+    // current admin password (after the phone settings are saved)
+    this.syncDoorPhoneSources = function (mac) {
+      return $q(function (resolve, reject) {
+        RestService.post('/cti/streaming/doorphones/' + encodeURIComponent(mac) + '/sync', {}).then(function (res) {
+          resolve(res);
+        }, function (err) {
+          reject(err);
+        });
+      });
+    };
+
     // Remove a phone from the inventory
     this.deletePhone = function (mac) {
       return $q(function (resolve, reject) {

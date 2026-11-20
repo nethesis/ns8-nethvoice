@@ -17,12 +17,35 @@ export const getVideoSources = async () => {
   }
 }
 
-export const openVideoSource = async (obj: any) => {
+export interface StreamingToken {
+  token: string
+  expires_in: number
+  whep: string
+}
+
+// Short-lived token used to authenticate on the video gateway (WHEP) of an "rtsp" source
+export const getStreamingToken = async (id: string): Promise<StreamingToken> => {
+  const response = await axios.post(`${PATH}/token`, { id })
+  return response.data
+}
+
+// The gateway is published on the CTI host, the same host of the API (see config/axios.ts)
+export const getWhepUrl = (whep: string) => {
+  // @ts-ignore
+  const base = `${window.CONFIG.API_SCHEME}${window.CONFIG.API_ENDPOINT}/`
+  return new URL(whep, base).toString()
+}
+
+export const openVideoSource = async (obj: { id: string; gate?: string }) => {
   try {
     await axios.post(`${PATH}/open`, obj)
     return true
   } catch (error) {
-    handleNetworkError(error)
+    // refusals of the gate ({ code, message }) are shown to the user, they are not errors
+    const isRefusal =
+      axios.isAxiosError(error) &&
+      ((error.response?.data as any)?.code || error.response?.status === 403)
+    if (!isRefusal) handleNetworkError(error)
     throw error
   }
 }
