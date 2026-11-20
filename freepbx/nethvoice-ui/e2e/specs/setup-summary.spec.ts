@@ -99,6 +99,27 @@ test.describe('setup wizard: summary', () => {
     await expect(page.getByText('Some settings may need attention')).toHaveCount(0)
   })
 
+  test('shows the country of the existing outbound routes', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('nethvoiceSetupCountry', 'en'))
+    await page.goto('./setup/summary')
+
+    await expect(section(page, '6. Outbound routes')).toContainText('National: TWT-0212345678')
+    await expect(section(page, '1. System settings')).toContainText('PBX country: Italy')
+    await expect(section(page, '1. System settings')).not.toContainText('United States')
+  })
+
+  test('shows the country chosen in this browser when there are no outbound routes', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('GET', '/freepbx/rest/outboundroutes', { json: [] })
+    await page.addInitScript(() => localStorage.setItem('nethvoiceSetupCountry', 'en'))
+    await page.goto('./setup/summary')
+
+    await expect(section(page, '6. Outbound routes')).toContainText('No outbound routes')
+    await expect(section(page, '1. System settings')).toContainText('PBX country: United States')
+  })
+
   test('warns about missing pieces', async ({ page, mockApi }) => {
     mockApi
       .on('GET', '/freepbx/rest/users/all', { json: [USERS[2]] })
@@ -215,16 +236,28 @@ test.describe('setup wizard: summary', () => {
 
   test('reports a section that cannot be loaded and retries it', async ({ page, mockApi }) => {
     let failing = true
+    let held = false
+    let release: () => void = () => undefined
+    const released = new Promise<void>((resolve) => (release = resolve))
 
-    mockApi.on('GET', '/freepbx/rest/inboundroutes', () =>
-      failing ? { status: 500, json: 'An error occurred' } : { json: INBOUND_ROUTES },
-    )
+    mockApi.on('GET', '/freepbx/rest/inboundroutes', async () => {
+      if (held) {
+        await released
+      }
+      return failing ? { status: 500, json: 'An error occurred' } : { json: INBOUND_ROUTES }
+    })
 
     await page.goto('./setup/summary')
     await expect(section(page, '5. Inbound routes')).toContainText('Cannot load data')
+    const failedCalls = mockApi.callsTo('GET', '/freepbx/rest/inboundroutes').length
 
+    held = true
     failing = false
     await section(page, '5. Inbound routes').getByRole('button', { name: 'Retry' }).click()
+    await expect
+      .poll(() => mockApi.callsTo('GET', '/freepbx/rest/inboundroutes').length)
+      .toBeGreaterThan(failedCalls)
+    release()
 
     await expect(section(page, '5. Inbound routes')).toContainText('Sales department')
   })
@@ -318,5 +351,18 @@ test.describe('setup wizard: summary', () => {
     await expect(modal).toBeHidden()
     await expect(page).toHaveURL(/\/nethvoice\/setup\/summary$/)
     expect(mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard')).toHaveLength(0)
+  })
+
+  test('returns the focus to Finish setup when the dialog is closed with Esc', async ({ page }) => {
+    await page.goto('./setup/summary')
+    const finish = page.getByRole('button', { name: 'Finish setup' })
+    await finish.click()
+
+    const modal = page.getByRole('dialog', { name: 'Finish setup' })
+    await expect(modal.getByRole('heading', { name: 'Finish setup' })).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    await expect(modal).toHaveCount(0)
+    await expect(finish).toBeFocused()
   })
 })

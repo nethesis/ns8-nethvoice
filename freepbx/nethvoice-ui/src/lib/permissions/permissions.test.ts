@@ -67,7 +67,6 @@ describe('canAccess', () => {
 describe('getAccessRedirect', () => {
   it('should leave superadmin to the setup guard', () => {
     expect(getAccessRedirect('trunks', 'trunks', superadmin, completed)).toBeNull()
-    expect(getAccessRedirect('trunks', 'trunks', superadmin)).toBeNull()
     expect(getAccessRedirect('trunks', 'trunks', superadmin, atVoipTrunks)).toEqual({
       name: 'setup-voip-trunks',
     })
@@ -85,13 +84,29 @@ describe('getAccessRedirect', () => {
     })
   })
 
-  it('should leave superadmin on the requested page when the wizard state is unknown', () => {
+  it('should send superadmin to the setup when the wizard state is unknown', () => {
     expect(getAccessRedirect('setup', 'superadmin', superadmin, undefined)).toBeNull()
     expect(getAccessRedirect('setup-users', 'superadmin', superadmin, undefined)).toBeNull()
-    expect(getAccessRedirect('dashboard', 'dashboard', superadmin, undefined)).toBeNull()
-    expect(getAccessRedirect('setup-pending', undefined, superadmin, undefined)).toEqual({
-      name: 'dashboard',
+    expect(getAccessRedirect('dashboard', 'dashboard', superadmin, undefined)).toEqual({
+      name: 'setup',
     })
+    expect(getAccessRedirect('trunks', 'trunks', superadmin)).toEqual({ name: 'setup' })
+    expect(getAccessRedirect('setup-pending', undefined, superadmin, undefined)).toEqual({
+      name: 'setup',
+    })
+    expect(getAccessRedirect('no-access', undefined, superadmin, undefined)).toEqual({
+      name: 'setup',
+    })
+  })
+
+  it('should send a restricted administrator to the waiting page when the wizard state is unknown', () => {
+    expect(getAccessRedirect('dashboard', 'dashboard', dashboardOnly, undefined)).toEqual({
+      name: 'setup-pending',
+    })
+    expect(getAccessRedirect('no-access', undefined, nothing, undefined)).toEqual({
+      name: 'setup-pending',
+    })
+    expect(getAccessRedirect('setup-pending', undefined, dashboardOnly, undefined)).toBeNull()
   })
 
   it('should redirect a forbidden section to the first allowed one', () => {
@@ -166,5 +181,6 @@ describe('isDeniedSectionRedirect', () => {
     expect(isDeniedSectionRedirect('trunks', 'trunks', dashboardOnly, atVoipTrunks)).toBe(false)
     expect(isDeniedSectionRedirect('trunks', 'trunks', nothing, completed)).toBe(false)
     expect(isDeniedSectionRedirect('trunks', 'trunks', undefined, completed)).toBe(false)
+    expect(isDeniedSectionRedirect('trunks', 'trunks', dashboardOnly, undefined)).toBe(false)
   })
 })

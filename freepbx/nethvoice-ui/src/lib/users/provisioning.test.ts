@@ -2,7 +2,13 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getDraftExtension, getDrafts, planProvisioning, runProvisioning } from './provisioning'
+import {
+  getDraftExtension,
+  getDrafts,
+  MissingBaseProfileError,
+  planProvisioning,
+  runProvisioning,
+} from './provisioning'
 import type { User, UserDevice } from './users'
 
 const mocks = vi.hoisted(() => ({
@@ -159,5 +165,25 @@ describe('runProvisioning', () => {
       ['webrtc', '301'],
       ['webrtc', '302'],
     ])
+  })
+
+  it('stops with a defaults error when the Base profile is missing', async () => {
+    const users = [user(3, 'd.jones', '', 3), user(2, 'c.davis', '', null)]
+
+    const result = runProvisioning(
+      planProvisioning(users, { 'd.jones': '302', 'c.davis': '301' }),
+      null,
+    )
+
+    await expect(result).rejects.toMatchObject({ username: 'c.davis', phase: 'defaults' })
+    await expect(result).rejects.toHaveProperty('cause', expect.any(MissingBaseProfileError))
+    expect(mocks.postUserProfile).not.toHaveBeenCalled()
+    expect(mocks.enableSoftwareDevice.mock.calls).toEqual([['webrtc', '302']])
+  })
+
+  it('does not need the Base profile when every user already has a profile', async () => {
+    await runProvisioning(planProvisioning([user(3, 'd.jones', '', 3)], { 'd.jones': '302' }), null)
+
+    expect(mocks.enableSoftwareDevice.mock.calls).toEqual([['webrtc', '302']])
   })
 })

@@ -226,7 +226,7 @@ test.describe('login', () => {
     await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
   })
 
-  test('warns when the setup status cannot be read and opens the dashboard', async ({
+  test('opens the setup status error when the setup status cannot be read', async ({
     page,
     mockApi,
   }) => {
@@ -240,7 +240,10 @@ test.describe('login', () => {
     await page.getByRole('textbox', { name: 'Password' }).fill('correct-password')
     await page.getByRole('button', { name: 'Sign in' }).click()
 
-    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
-    await expect(page.getByText('Cannot check the setup status').first()).toBeVisible()
+    await expect(page).toHaveURL(/\/nethvoice\/setup$/)
+    await expect(page.getByTestId('setup-state-error')).toContainText(
+      'Cannot check the setup status',
+    )
+    await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0)
   })
 })

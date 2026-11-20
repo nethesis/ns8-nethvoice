@@ -22,11 +22,11 @@ export const useUsers = defineQuery(() => {
 })
 
 export const USERS_RELATED_KEYS = [
+  GROUPS_KEY,
+  PROFILES_KEY,
   USERS_KEY,
   USERS_DIRECTORY_KEY,
   USER_LIMITS_KEY,
-  GROUPS_KEY,
-  PROFILES_KEY,
   PROFILES_USER_LIMITS_KEY,
 ]
 

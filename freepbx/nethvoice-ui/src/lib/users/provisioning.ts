@@ -25,6 +25,13 @@ export class ProvisioningError extends Error {
   }
 }
 
+export class MissingBaseProfileError extends Error {
+  constructor() {
+    super('missing base profile')
+    this.name = 'MissingBaseProfileError'
+  }
+}
+
 export const getDraftExtension = (user: User, edits: Record<string, string>): string =>
   (edits[user.username] ?? user.mainExtension).trim()
 
@@ -73,7 +80,10 @@ export const runProvisioning = async (
 
   for (const item of plan.defaults) {
     try {
-      if (item.setProfile && baseProfileId !== null) {
+      if (item.setProfile) {
+        if (baseProfileId === null) {
+          throw new MissingBaseProfileError()
+        }
         await postUserProfile(item.user.id, baseProfileId)
       }
 

@@ -121,6 +121,56 @@ test.describe('setup wizard: navigation guard', () => {
     expect(mockApi.callsTo('POST', WIZARD)).toHaveLength(0)
   })
 
+  test('sends superadmin to the setup status error when the wizard state cannot be read', async ({
+    page,
+    mockApi,
+  }) => {
+    let failing = true
+    mockApi.on('GET', WIZARD, () =>
+      failing
+        ? { status: 500, json: { message: 'db down' } }
+        : { json: [{ step: 13, status: 'false' }] },
+    )
+
+    for (const path of ['./dashboard', './users/users', './no-access']) {
+      await page.goto(path)
+      await expect(page).toHaveURL(/\/nethvoice\/setup$/)
+      await expect(page.getByTestId('setup-state-error')).toContainText(
+        'Cannot check the setup status',
+      )
+    }
+    await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0)
+
+    failing = false
+    await page.getByTestId('setup-state-error').getByRole('button', { name: 'Retry' }).click()
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+
+    await page.getByRole('link', { name: 'Users' }).first().click()
+    await expect(page).toHaveURL(/\/nethvoice\/users/)
+    expect(mockApi.callsTo('POST', WIZARD)).toHaveLength(0)
+  })
+
+  test('sends a restricted administrator to the pending page when the wizard state cannot be read', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['dashboard'], 'operator')
+    let failing = true
+    mockApi.on('GET', WIZARD, () =>
+      failing
+        ? { status: 500, json: { message: 'db down' } }
+        : { json: [{ step: 13, status: 'false' }] },
+    )
+
+    await page.goto('./dashboard')
+    await expect(page).toHaveURL(/\/nethvoice\/setup-pending$/)
+    await expect(page.getByRole('heading', { name: 'Dashboard' })).toHaveCount(0)
+
+    failing = false
+    await page.getByRole('button', { name: 'Check again' }).click()
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+  })
+
   test('does not restart a wizard completed in another session from the welcome page', async ({
     page,
     mockApi,

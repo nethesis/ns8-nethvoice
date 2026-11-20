@@ -27,9 +27,6 @@ export function useSetupNavigation(stepId: SetupStepId) {
     advancing.value = true
 
     try {
-      if (beforeAdvance && (await beforeAdvance()) === false) {
-        return
-      }
       const savedState = await fetchWizardState()
 
       if (!savedState.inProgress) {
@@ -39,6 +36,10 @@ export function useSetupNavigation(stepId: SetupStepId) {
           description: t('setup.setup_already_completed_description'),
         })
         await router.replace({ name: 'dashboard' })
+        return
+      }
+
+      if (beforeAdvance && (await beforeAdvance()) === false) {
         return
       }
       await postWizardState(getLegacyStepToSave(nextStep.legacyStep, savedState), true)

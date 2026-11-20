@@ -7,8 +7,12 @@ import { derivePbxCountry } from './country'
 const countries = ['it', 'en', 'de']
 
 describe('derivePbxCountry', () => {
-  it('should keep the country chosen in this browser', () => {
-    expect(derivePbxCountry({ cached: 'de', routesLocale: 'it', countries })).toBe('de')
+  it('should use the country of the existing outbound routes over the one chosen in this browser', () => {
+    expect(derivePbxCountry({ cached: 'de', routesLocale: 'it', countries })).toBe('it')
+  })
+
+  it('should keep the country chosen in this browser when there are no outbound routes', () => {
+    expect(derivePbxCountry({ cached: 'de', routesLocale: '', countries })).toBe('de')
     expect(derivePbxCountry({ cached: 'de', routesLocale: '' })).toBe('de')
   })
 
