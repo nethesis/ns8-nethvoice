@@ -856,9 +856,23 @@ function nethcti3_get_config_early($engine) {
                 && !empty($pjsip_trunk['outbound_proxy'])
                 && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound' || $pjsip_trunk['authentication'] === 'off')
                 && preg_match('/^sip:'. preg_quote($_ENV['PROXY_IP'], '/') .':'. preg_quote($_ENV['PROXY_PORT'], '/') .';lr$/', $pjsip_trunk['outbound_proxy'])) {
-                // if sip_server is a hostname, resolve it to an IP address
-                $sip_server_ip = gethostbyname($pjsip_trunk['sip_server']);
-                $pjsip->addIdentify($pjsip_trunk['trunk_name'], 'match_header', 'X-Forwarded-For: /' . preg_quote($sip_server_ip, '/') . '$/');
+                // Resolve the complete address set each time FreePBX generates the configuration.
+                $host = $pjsip_trunk['sip_server'];
+                $records = @socket_addrinfo_lookup($host, null, ['ai_socktype' => SOCK_DGRAM]);
+                if (!$records) {
+                    error_log("Cannot resolve SIP server $host for trunk " . $pjsip_trunk['trunk_name']);
+                    continue;
+                }
+
+                $addresses = [];
+                foreach ($records as $record) {
+                    $address = socket_addrinfo_explain($record)['ai_addr'];
+                    $addresses[] = $address['sin_addr'] ?? $address['sin6_addr'];
+                }
+                $addresses = array_unique($addresses);
+                sort($addresses, SORT_STRING);
+                $pattern = implode('|', array_map(static fn($ip) => preg_quote($ip, '/'), $addresses));
+                $pjsip->addIdentify($pjsip_trunk['trunk_name'], 'match_header', "X-Forwarded-For: /^($pattern)$/");
             }
         }
     }
