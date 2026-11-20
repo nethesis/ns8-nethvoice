@@ -219,6 +219,15 @@
       "enabled": false
     },
     {
+      "description": "Indirect Go dependencies whose major changes the module path (golang-jwt/jwt/v4 required by gin-jwt v2, go.yaml.in/yaml/v3 required by gin and viper): bumping the go.mod line alone can never work, they move when the modules that require them are upgraded",
+      "matchFileNames": ["reports/**", "nethcti-middleware/**"],
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "matchPackageNames": ["github.com/golang-jwt/jwt/v4", "go.yaml.in/yaml/v3"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
       "description": "NethVoice CTI: Node.js majors of the Next.js image wait for approval in the Dependency Dashboard and need a CTI check",
       "matchFileNames": ["nethvoice-cti/**"],
       "matchDatasources": ["docker"],
