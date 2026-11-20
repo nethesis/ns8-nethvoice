@@ -362,6 +362,7 @@ const buildSourceSchema = (passwordRequired: boolean) => {
 export const isPhonebookPasswordKept = (
   form: PhonebookSourceForm,
   existing?: PhonebookSource,
+  sameQuery = false,
 ): boolean => {
   if (!existing?.hasPassword || form.kind !== existing.kind) {
     return false
@@ -370,14 +371,25 @@ export const isPhonebookPasswordKept = (
   if (form.kind === 'infinity') {
     return form.url.trim() === existing.url.trim()
   }
-  return form.host.trim() === existing.host.trim() && form.port.trim() === existing.port.trim()
+  return (
+    form.host.trim() === existing.host.trim() &&
+    form.port.trim() === existing.port.trim() &&
+    (!sameQuery ||
+      (form.database.trim() === existing.database.trim() &&
+        form.user.trim() === existing.user.trim() &&
+        form.query.trim() === existing.query.trim()))
+  )
 }
 
 export const validatePhonebookSourceForm = (
   form: PhonebookSourceForm,
   existing?: PhonebookSource,
+  sameQuery = false,
 ): FieldIssues => {
-  const issues = validateForm(buildSourceSchema(!isPhonebookPasswordKept(form, existing)), form)
+  const issues = validateForm(
+    buildSourceSchema(!isPhonebookPasswordKept(form, existing, sameQuery)),
+    form,
+  )
 
   if (form.sharing === 'groups' && form.groups.length === 0) {
     issues.groups = 'integrations.phonebook.groups_required'
@@ -405,6 +417,9 @@ const buildConnection = (form: PhonebookSourceForm) => {
   }
   return { dbtype: form.kind, url: form.url.trim(), username: form.username.trim(), ...password }
 }
+
+export const isLocalHostRefusal = (error: unknown, form: PhonebookSourceForm): boolean =>
+  isDatabaseKind(form.kind) && isApiError(error) && error.status === 403
 
 export const buildPhonebookTestPayload = (
   form: PhonebookSourceForm,

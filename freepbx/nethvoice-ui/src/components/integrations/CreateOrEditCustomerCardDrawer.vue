@@ -11,14 +11,12 @@ import {
   focusElement,
   NeButton,
   NeCombobox,
-  NeFormItemLabel,
   NeInlineNotification,
   NeSideDrawer,
+  NeTabs,
   NeTextArea,
   NeTextInput,
 } from '@nethesis/vue-components'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faEye } from '@fortawesome/free-solid-svg-icons'
 import ProfilesMultiselect from './ProfilesMultiselect.vue'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
@@ -35,8 +33,10 @@ import {
   previewCustomerCard,
   saveCustomerCard,
   toCustomerCardForm,
+  toDuplicatedCustomerCardForm,
   validateCustomerCardForm,
 } from '@/lib/integrations/customerCards'
+import { getDbConnectionTypeLabel } from '@/lib/integrations/dbConnections'
 import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import { PROFILES_KEY } from '@/lib/profiles/profiles'
 import type { FieldIssues } from '@/lib/integrations/validation'
@@ -45,26 +45,37 @@ import {
   useCardTemplates,
   useCustomerCards,
   useDbConnections,
+  useDbConnectionStatuses,
+  useDbConnectionTypes,
 } from '@/queries/integrations/customerCards'
+import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useThemeStore } from '@/stores/theme'
 
 const PREVIEW_STYLESHEET =
   'https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css'
 
-const { isShown = false, currentCard = undefined } = defineProps<{
+const {
+  isShown = false,
+  mode = 'create',
+  currentCard = undefined,
+} = defineProps<{
   isShown: boolean
+  mode?: 'create' | 'edit' | 'duplicate'
   currentCard: CustomerCard | undefined
 }>()
 
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const { isSuperadmin } = usePermissions()
 const themeStore = useThemeStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: profilesState } = useProfileOptions()
 const { state: connectionsState } = useDbConnections()
+const { state: typesState } = useDbConnectionTypes()
+const { getStatus } = useDbConnectionStatuses()
 const { state: templatesState } = useCardTemplates()
 const { state: cardsState } = useCustomerCards()
 
@@ -94,18 +105,38 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
   testNumber: testNumberRef,
 }
 
+const editing = computed(() => (mode === 'edit' ? currentCard : undefined))
+
 const profiles = computed(() => profilesState.value.data ?? [])
 
 const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
 
 const usesCallerNumber = computed(() => form.value.query.includes(CALLER_NUMBER_PLACEHOLDER))
 
+const connections = computed(() => connectionsState.value.data ?? [])
+
+const queryLocked = computed(
+  () =>
+    !isSuperadmin.value &&
+    !!connections.value.find((connection) => connection.id === form.value.dbConnectionId)?.builtIn,
+)
+
 const connectionOptions = computed(() =>
-  (connectionsState.value.data ?? []).map((connection) => ({
-    id: connection.id,
-    label: connection.name,
-    description: `${connection.host}:${connection.port}`,
-  })),
+  connections.value
+    .filter(
+      (connection) =>
+        isSuperadmin.value ||
+        !connection.builtIn ||
+        (mode === 'edit' && connection.id === currentCard?.dbConnectionId),
+    )
+    .map((connection) => ({
+      id: connection.id,
+      label: connection.name,
+      description:
+        getStatus(connection.id) === 'notConnected'
+          ? t('integrations.cards.not_connected')
+          : getDbConnectionTypeLabel(connection.type, typesState.value.data ?? []),
+    })),
 )
 
 const templateOptions = computed(() => {
@@ -140,14 +171,14 @@ const {
   error: saveError,
 } = useMutation({
   mutation: (cardForm: CustomerCardForm) =>
-    saveCustomerCard(buildCustomerCardPayload(cardForm), currentCard?.id),
+    saveCustomerCard(buildCustomerCardPayload(cardForm), editing.value?.id),
   onSuccess(_data, cardForm) {
-    const edited = !!currentCard
+    const edited = !!editing.value
 
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: edited ? t('integrations.cards.card_saved') : t('integrations.cards.card_created'),
+        title: edited ? t('integrations.cards.card_updated') : t('integrations.cards.card_created'),
         description: t(
           edited
             ? 'integrations.cards.card_updated_description'
@@ -188,11 +219,38 @@ watch(
     previewReset()
     validationIssues.value = {}
     testNumber.value = ''
-    form.value = currentCard ? toCustomerCardForm(currentCard) : emptyCustomerCardForm()
+    form.value = initialForm()
     initialSnapshot.value = JSON.stringify(form.value)
     focusElement(nameRef)
   },
 )
+
+watch(
+  () => [form.value.dbConnectionId, form.value.templateId, form.value.query],
+  () => {
+    if (previewHtml.value !== undefined || previewError.value) {
+      previewReset()
+    }
+  },
+)
+
+function initialForm(): CustomerCardForm {
+  if (!currentCard) {
+    return emptyCustomerCardForm()
+  }
+  if (mode !== 'duplicate') {
+    return toCustomerCardForm(currentCard)
+  }
+  const duplicated = toDuplicatedCustomerCardForm(
+    currentCard,
+    t('integrations.cards.copy_name', { name: currentCard.name }),
+  )
+  const builtIn = connections.value.some(
+    (connection) => connection.id === duplicated.dbConnectionId && connection.builtIn,
+  )
+
+  return !isSuperadmin.value && builtIn ? { ...duplicated, dbConnectionId: '' } : duplicated
+}
 
 function focusFirstInvalidField(fields: string[]): boolean {
   const firstInvalidField = Object.keys(validationIssues.value).find((field) =>
@@ -253,7 +311,7 @@ function save() {
   saveReset()
   validationIssues.value = validateCustomerCardForm(
     form.value,
-    (cardsState.value.data ?? []).filter((card) => card.id !== currentCard?.id),
+    (cardsState.value.data ?? []).filter((card) => card.id !== editing.value?.id),
   )
 
   if (!focusFirstInvalidField(Object.keys(fieldRefs))) {
@@ -265,7 +323,7 @@ function save() {
 <template>
   <NeSideDrawer
     :is-shown="isShown"
-    :title="currentCard ? t('integrations.cards.edit_card') : t('integrations.cards.create_card')"
+    :title="editing ? t('integrations.cards.edit_card') : t('integrations.cards.create_card')"
     :close-aria-label="t('shell.close_side_drawer')"
     @close="requestClose"
   >
@@ -275,6 +333,8 @@ function save() {
           ref="nameRef"
           v-model="form.name"
           :label="t('integrations.name')"
+          :placeholder="t('integrations.cards.card_name_placeholder')"
+          :helper-text="t('integrations.cards.card_name_helper')"
           :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
           :disabled="busy"
           @blur="form.name = form.name.trim()"
@@ -282,7 +342,7 @@ function save() {
         <NeCombobox
           ref="connectionRef"
           v-model="form.dbConnectionId"
-          :label="t('integrations.cards.connection')"
+          :label="t('integrations.database')"
           :options="connectionOptions"
           :placeholder="t('ne_combobox.choose')"
           :invalid-message="
@@ -291,7 +351,7 @@ function save() {
           :disabled="busy || connectionsState.status !== 'success'"
           :no-results-label="t('ne_combobox.no_results')"
           :limited-options-label="t('ne_combobox.limited_options_label')"
-          :no-options-label="t('integrations.cards.no_connections')"
+          :no-options-label="t('integrations.cards.no_databases')"
           :selected-label="t('ne_combobox.selected')"
           :user-input-label="t('ne_combobox.user_input_label')"
           :optional-label="t('common.optional')"
@@ -330,19 +390,30 @@ function save() {
           ref="queryRef"
           v-model="form.query"
           :label="t('integrations.query')"
-          :rows="6"
+          :rows="7"
           class="[&_textarea]:font-mono"
-          placeholder="SELECT * FROM contacts WHERE phone LIKE '%$NUMBER'"
-          :helper-text="t('integrations.cards.query_helper')"
+          :placeholder="
+            t('integrations.cards.query_placeholder', {
+              query: `SELECT * FROM contacts WHERE phone LIKE '%${CALLER_NUMBER_PLACEHOLDER}'`,
+            })
+          "
+          :helper-text="
+            queryLocked
+              ? t('integrations.cards.query_built_in_helper')
+              : t('integrations.cards.query_helper', { placeholder: CALLER_NUMBER_PLACEHOLDER })
+          "
           :invalid-message="validationIssues.query ? t(validationIssues.query) : ''"
           :disabled="busy"
+          :readonly="queryLocked"
         />
         <NeTextInput
           v-if="usesCallerNumber"
           ref="testNumberRef"
           v-model="testNumber"
           :label="t('integrations.cards.test_number')"
-          :helper-text="t('integrations.cards.test_number_helper')"
+          :helper-text="
+            t('integrations.cards.test_number_helper', { placeholder: CALLER_NUMBER_PLACEHOLDER })
+          "
           inputmode="tel"
           :invalid-message="validationIssues.testNumber ? t(validationIssues.testNumber) : ''"
           :disabled="busy"
@@ -350,18 +421,15 @@ function save() {
           :optional-label="t('common.optional')"
           @blur="testNumber = testNumber.trim()"
         />
-        <div class="flex flex-col gap-3">
+        <section class="flex flex-col gap-4" :aria-label="t('integrations.cards.preview')">
           <div>
             <NeButton
               type="button"
               kind="secondary"
-              :disabled="busy"
+              :disabled="busy || queryLocked"
               :loading="previewing"
               @click="preview"
             >
-              <template #prefix>
-                <FontAwesomeIcon :icon="faEye" class="h-4 w-4" aria-hidden="true" />
-              </template>
               {{ t('integrations.cards.show_preview') }}
             </NeButton>
           </div>
@@ -371,8 +439,19 @@ function save() {
             :title="t('integrations.cards.preview_failed')"
             :description="describePreviewError(previewError)"
           />
-          <div v-else-if="previewHtml !== undefined">
-            <NeFormItemLabel>{{ t('integrations.cards.preview') }}</NeFormItemLabel>
+          <div
+            v-else-if="previewHtml !== undefined"
+            class="rounded-md border border-gray-300 p-4 dark:border-gray-600"
+          >
+            <NeTabs
+              :tabs="[
+                { name: 'card', label: form.name.trim() || t('integrations.cards.customer_card') },
+              ]"
+              selected="card"
+              :sr-tabs-label="t('integrations.cards.preview_tabs')"
+              :sr-select-tab-label="t('ne_tabs.select_a_tab')"
+              class="mb-4"
+            />
             <p v-if="!themeStore.isLight" class="text-tertiary-neutral mb-2 text-sm">
               {{ t('integrations.cards.preview_light_background') }}
             </p>
@@ -380,16 +459,20 @@ function save() {
               :srcdoc="previewDocument"
               sandbox=""
               referrerpolicy="no-referrer"
-              :title="t('integrations.cards.preview')"
-              class="h-80 w-full rounded-md border border-gray-300 bg-white dark:border-gray-600"
+              :title="
+                t('integrations.cards.preview_of', {
+                  name: form.name.trim() || t('integrations.cards.customer_card'),
+                })
+              "
+              class="h-80 w-full rounded-md bg-white"
             />
           </div>
-        </div>
+        </section>
         <NeInlineNotification
           v-if="saveError"
           kind="error"
           :title="
-            currentCard
+            editing
               ? t('integrations.cards.cannot_save_card')
               : t('integrations.cards.cannot_create_card')
           "
@@ -397,19 +480,12 @@ function save() {
         />
       </div>
       <hr class="my-8" />
-      <div class="flex justify-end">
-        <NeButton
-          type="button"
-          kind="tertiary"
-          size="lg"
-          :disabled="saving"
-          class="mr-3"
-          @click="requestClose"
-        >
+      <div class="flex justify-end gap-3">
+        <NeButton type="button" kind="tertiary" size="lg" :disabled="saving" @click="requestClose">
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="busy" :loading="saving">
-          {{ currentCard ? t('common.save') : t('integrations.cards.create_card') }}
+          {{ editing ? t('common.save') : t('common.create') }}
         </NeButton>
       </div>
     </form>

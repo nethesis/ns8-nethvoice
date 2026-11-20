@@ -49,6 +49,7 @@ import {
   INFINITY_FIELD_MAPPING,
   isCsvUploadRejected,
   isDatabaseKind,
+  isLocalHostRefusal,
   isPhonebookPasswordKept,
   isPhonebookSourceKind,
   PHONEBOOK_SOURCE_KINDS,
@@ -96,6 +97,7 @@ const csvFileIssue = ref('')
 const isCsvUploadedNow = ref(false)
 const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
+const isHostRefused = ref(false)
 
 useFocusReturn(() => isShown)
 
@@ -232,12 +234,17 @@ watch([testedColumns, fields], ([columns, available]) => {
   }
 })
 
+const sameQueryForPassword = computed(() => !isSuperadmin.value)
+
 const passwordHelper = computed(() => {
   if (!currentSource?.hasPassword) {
     return ''
   }
+  if (isPhonebookPasswordKept(form.value, currentSource, sameQueryForPassword.value)) {
+    return t('integrations.password_keep_helper')
+  }
   return isPhonebookPasswordKept(form.value, currentSource)
-    ? t('integrations.password_keep_helper')
+    ? t('integrations.phonebook.password_query_changed_helper')
     : t('integrations.password_server_changed_helper')
 })
 
@@ -257,6 +264,7 @@ const {
 } = useMutation({
   mutation: (sourceForm: PhonebookSourceForm) =>
     savePhonebookSource(buildPhonebookSourcePayload(sourceForm), currentSource?.id),
+  onError: (error, sourceForm) => showLocalHostRefusal(error, sourceForm),
   onSuccess(_data, sourceForm) {
     const edited = !!currentSource
 
@@ -289,6 +297,7 @@ const {
 } = useMutation({
   mutation: (sourceForm: PhonebookSourceForm) =>
     testPhonebookSource(buildPhonebookTestPayload(sourceForm, currentSource)),
+  onError: (error, sourceForm) => showLocalHostRefusal(error, sourceForm),
   onSuccess(result) {
     testResult.value = result
   },
@@ -309,8 +318,6 @@ const {
 })
 
 const busy = computed(() => saving.value || testing.value || uploading.value)
-
-const databaseTestDenied = computed(() => isDatabaseKind(form.value.kind) && !isSuperadmin.value)
 
 watch(
   () => isShown,
@@ -333,6 +340,17 @@ watch(
   },
 )
 
+watch(
+  busy,
+  (isBusy) => {
+    if (!isBusy && isHostRefused.value) {
+      isHostRefused.value = false
+      hostRef.value?.focus()
+    }
+  },
+  { flush: 'post' },
+)
+
 watch(csvFile, (file) => {
   uploadReset()
   csvFileIssue.value = file ? validateCsvFile(file) : ''
@@ -341,6 +359,14 @@ watch(csvFile, (file) => {
     uploadMutate(file)
   }
 })
+
+function showLocalHostRefusal(error: unknown, sourceForm: PhonebookSourceForm) {
+  if (!isLocalHostRefusal(error, sourceForm)) {
+    return
+  }
+  validationIssues.value = { ...validationIssues.value, host: 'integrations.phonebook.host_local' }
+  isHostRefused.value = true
+}
 
 function haveSameOptions(a: MappingOption[], b: MappingOption[]): boolean {
   return (
@@ -362,6 +388,7 @@ function testSource() {
   const issues = validatePhonebookSourceForm(
     { ...form.value, name: form.value.name || '-', mapping: { '-': '-' } },
     currentSource,
+    sameQueryForPassword.value,
   )
   delete issues.groups
   validationIssues.value = issues
@@ -408,7 +435,11 @@ function describeUploadError(error: unknown): string {
 
 function save() {
   saveReset()
-  validationIssues.value = validatePhonebookSourceForm(form.value, currentSource)
+  validationIssues.value = validatePhonebookSourceForm(
+    form.value,
+    currentSource,
+    sameQueryForPassword.value,
+  )
   const [firstInvalidField] = Object.keys(validationIssues.value)
 
   if (firstInvalidField === 'mapping') {
@@ -583,7 +614,7 @@ function save() {
               type="button"
               :aria-describedby="validationIssues.mapping ? 'phonebook-mapping-status' : undefined"
               kind="secondary"
-              :disabled="busy || databaseTestDenied"
+              :disabled="busy"
               :loading="testing"
               @click="testSource"
             >
@@ -593,15 +624,8 @@ function save() {
               {{ t('integrations.phonebook.test_source') }}
             </NeButton>
           </div>
-          <p
-            v-if="databaseTestDenied"
-            class="text-tertiary-neutral text-sm"
-            data-testid="database-test-superadmin-only"
-          >
-            {{ t('integrations.phonebook.database_test_superadmin_only') }}
-          </p>
           <NeInlineNotification
-            v-if="testError"
+            v-if="testError && !isLocalHostRefusal(testError, form)"
             kind="error"
             :title="t('integrations.phonebook.test_failed')"
             :description="describeTestError(testError)"
@@ -761,7 +785,7 @@ function save() {
           />
         </div>
         <NeInlineNotification
-          v-if="saveError"
+          v-if="saveError && !isLocalHostRefusal(saveError, form)"
           kind="error"
           :title="
             currentSource

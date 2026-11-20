@@ -10,22 +10,26 @@ import { useMutation, useQueryCache } from '@pinia/colada'
 import {
   focusElement,
   NeButton,
+  NeCombobox,
   NeInlineNotification,
   NeLink,
   NeSideDrawer,
   NeTextArea,
   NeTextInput,
+  type NeComboboxOption,
 } from '@nethesis/vue-components'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
 import {
+  buildCardTemplateColorPayload,
   buildCardTemplatePayload,
   CARD_TEMPLATES_KEY,
   type CardTemplate,
   type CardTemplateForm,
   emptyCardTemplateForm,
   saveCardTemplate,
+  TEMPLATE_COLORS,
   toCardTemplateForm,
   toDuplicatedCardTemplateForm,
   validateCardTemplateForm,
@@ -41,20 +45,23 @@ const {
   mode,
   currentTemplate = undefined,
   templates,
+  usedBy = [],
 } = defineProps<{
   isShown: boolean
-  mode: 'create' | 'edit' | 'duplicate' | 'view'
+  mode: 'create' | 'edit' | 'duplicate'
   currentTemplate: CardTemplate | undefined
   templates: CardTemplate[]
+  usedBy?: string[]
 }>()
 
 const emit = defineEmits<{ close: [] }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 
 const form = ref<CardTemplateForm>(emptyCardTemplateForm())
+const color = ref('')
 const validationIssues = ref<FieldIssues>({})
 const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
@@ -63,6 +70,7 @@ useFocusReturn(() => isShown)
 
 const nameRef = useTemplateRef<Focusable>('nameRef')
 const codeRef = useTemplateRef<Focusable>('codeRef')
+const colorRef = useTemplateRef<Focusable>('colorRef')
 
 const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
   name: nameRef,
@@ -70,24 +78,42 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
 }
 
 const editing = computed(() => mode === 'edit' && !!currentTemplate)
-const readOnly = computed(() => mode === 'view')
+const editingColor = computed(() => editing.value && !currentTemplate?.custom)
 
-const isDirty = computed(
-  () => !readOnly.value && JSON.stringify(form.value) !== initialSnapshot.value,
-)
+const isDirty = computed(() => snapshot() !== initialSnapshot.value)
 
 const title = computed(() => {
   switch (mode) {
     case 'edit':
       return t('integrations.cards.edit_template')
-    case 'duplicate':
-      return t('integrations.cards.duplicate_template', { name: currentTemplate?.name ?? '' })
-    case 'view':
-      return t('integrations.cards.view_template', { name: currentTemplate?.name ?? '' })
     default:
       return t('integrations.cards.create_template')
   }
 })
+
+const colorOptions = computed<NeComboboxOption[]>(() => {
+  const options = TEMPLATE_COLORS.map((id) => ({
+    id,
+    label: t(`integrations.cards.colors.${id}`),
+  }))
+
+  if (color.value && !TEMPLATE_COLORS.includes(color.value)) {
+    options.unshift({ id: color.value, label: color.value })
+  }
+  return options
+})
+
+const usedByText = computed(() =>
+  t(
+    'integrations.cards.template_used_by',
+    { cards: new Intl.ListFormat(locale.value, { type: 'conjunction' }).format(usedBy) },
+    usedBy.length,
+  ),
+)
+
+function snapshot(): string {
+  return JSON.stringify([form.value, color.value])
+}
 
 const {
   mutate: saveMutate,
@@ -97,7 +123,9 @@ const {
 } = useMutation({
   mutation: (templateForm: CardTemplateForm) =>
     saveCardTemplate(
-      buildCardTemplatePayload(templateForm),
+      editingColor.value && currentTemplate
+        ? buildCardTemplateColorPayload(currentTemplate, color.value)
+        : buildCardTemplatePayload(templateForm),
       editing.value ? currentTemplate : undefined,
     ),
   onSuccess(_data, templateForm) {
@@ -107,13 +135,17 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: edited
-          ? t('integrations.cards.template_saved')
+          ? t('integrations.cards.template_updated')
           : t('integrations.cards.template_created'),
         description: t(
           edited
             ? 'integrations.cards.template_updated_description'
             : 'integrations.cards.template_created_description',
-          { name: buildCardTemplatePayload(templateForm).name },
+          {
+            name: editingColor.value
+              ? (currentTemplate?.name ?? '')
+              : buildCardTemplatePayload(templateForm).name,
+          },
         ),
       })
     }, 500)
@@ -141,10 +173,9 @@ watch(
     } else {
       form.value = emptyCardTemplateForm()
     }
-    initialSnapshot.value = JSON.stringify(form.value)
-    if (mode !== 'view') {
-      focusElement(mode === 'edit' ? codeRef : nameRef)
-    }
+    color.value = currentTemplate?.color ?? ''
+    initialSnapshot.value = snapshot()
+    focusElement(editingColor.value ? colorRef : mode === 'edit' ? codeRef : nameRef)
   },
 )
 
@@ -167,6 +198,17 @@ function discardChanges() {
 
 function save() {
   saveReset()
+
+  if (editingColor.value) {
+    validationIssues.value = color.value ? {} : { color: 'integrations.cards.color_required' }
+
+    if (color.value) {
+      saveMutate({ ...form.value })
+    } else {
+      colorRef.value?.focus()
+    }
+    return
+  }
   validationIssues.value = validateCardTemplateForm(
     form.value,
     templates.filter((template) => !editing.value || template.id !== currentTemplate?.id),
@@ -190,41 +232,58 @@ function save() {
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
-        <NeTextInput
-          v-if="!readOnly"
-          ref="nameRef"
-          v-model="form.name"
-          :label="t('integrations.name')"
-          :helper-text="
-            editing
-              ? t('integrations.cards.template_name_locked')
-              : t('integrations.cards.template_name_helper')
-          "
-          :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
-          :disabled="saving || editing"
-          @blur="form.name = form.name.trim()"
-        />
-        <NeInlineNotification
-          v-if="readOnly"
-          kind="info"
-          :description="t('integrations.cards.built_in_template_info')"
-        />
-        <NeTextArea
-          ref="codeRef"
-          v-model="form.code"
-          :label="t('integrations.cards.template_code')"
-          :rows="18"
-          class="[&_textarea]:font-mono"
-          :readonly="readOnly"
-          :invalid-message="validationIssues.code ? t(validationIssues.code) : ''"
+        <NeCombobox
+          v-if="editingColor"
+          ref="colorRef"
+          v-model="color"
+          :label="t('integrations.cards.color')"
+          :options="colorOptions"
+          :placeholder="t('ne_combobox.choose')"
+          :invalid-message="validationIssues.color ? t(validationIssues.color) : ''"
           :disabled="saving"
+          :no-results-label="t('ne_combobox.no_results')"
+          :limited-options-label="t('ne_combobox.limited_options_label')"
+          :no-options-label="t('ne_combobox.no_options_label')"
+          :selected-label="t('ne_combobox.selected')"
+          :user-input-label="t('ne_combobox.user_input_label')"
+          :optional-label="t('common.optional')"
         />
-        <p class="text-secondary-neutral text-sm">
-          {{ t('integrations.cards.template_code_helper') }}
-          <NeLink :href="EJS_DOCS_URL" target="_blank" rel="noopener noreferrer">
-            {{ t('integrations.cards.ejs_docs') }}
-          </NeLink>
-        </p>
+        <template v-else>
+          <NeTextInput
+            ref="nameRef"
+            v-model="form.name"
+            :label="t('integrations.name')"
+            :placeholder="t('integrations.cards.template_name_placeholder')"
+            :helper-text="
+              editing
+                ? t('integrations.cards.template_name_locked')
+                : t('integrations.cards.template_name_helper')
+            "
+            :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
+            :disabled="saving || editing"
+            @blur="form.name = form.name.trim()"
+          />
+          <p v-if="editing && usedBy.length" class="text-tertiary-neutral text-sm">
+            {{ usedByText }}
+          </p>
+          <div class="flex flex-col gap-2">
+            <NeTextArea
+              ref="codeRef"
+              v-model="form.code"
+              :label="t('integrations.cards.template_code')"
+              :rows="10"
+              class="[&_textarea]:font-mono"
+              :helper-text="t('integrations.cards.template_code_helper')"
+              :invalid-message="validationIssues.code ? t(validationIssues.code) : ''"
+              :disabled="saving"
+            />
+            <div>
+              <NeLink :href="EJS_DOCS_URL" target="_blank" rel="noopener noreferrer">
+                {{ t('integrations.cards.ejs_docs') }}
+              </NeLink>
+            </div>
+          </div>
+        </template>
         <NeInlineNotification
           v-if="saveError"
           kind="error"
@@ -237,26 +296,12 @@ function save() {
         />
       </div>
       <hr class="my-8" />
-      <div class="flex justify-end">
-        <NeButton
-          type="button"
-          :kind="readOnly ? 'primary' : 'tertiary'"
-          size="lg"
-          :disabled="saving"
-          :class="{ 'mr-3': !readOnly }"
-          @click="requestClose"
-        >
-          {{ readOnly ? t('common.close') : t('common.cancel') }}
+      <div class="flex justify-end gap-3">
+        <NeButton type="button" kind="tertiary" size="lg" :disabled="saving" @click="requestClose">
+          {{ t('common.cancel') }}
         </NeButton>
-        <NeButton
-          v-if="!readOnly"
-          type="submit"
-          kind="primary"
-          size="lg"
-          :disabled="saving"
-          :loading="saving"
-        >
-          {{ editing ? t('common.save') : t('integrations.cards.create_template') }}
+        <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
+          {{ editing ? t('common.save') : t('common.create') }}
         </NeButton>
       </div>
     </form>

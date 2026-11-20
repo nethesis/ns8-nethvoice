@@ -16,18 +16,20 @@ import {
   NeTextInput,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faCircleCheck, faPlugCircleBolt } from '@fortawesome/free-solid-svg-icons'
+import { faArrowRightArrowLeft, faCircleCheck } from '@fortawesome/free-solid-svg-icons'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
 import {
   buildDbConnectionPayload,
   buildDbConnectionTestPayload,
+  DB_CONNECTION_STATUSES_KEY,
   DB_CONNECTIONS_KEY,
   type DbConnection,
   type DbConnectionForm,
   emptyDbConnectionForm,
   getDbConnectionDefaultPort,
+  getDbConnectionTypeLabel,
   isDbConnectionPasswordKept,
   saveDbConnection,
   testDbConnection,
@@ -39,14 +41,19 @@ import type { FieldIssues } from '@/lib/integrations/validation'
 import { useDbConnectionTypes } from '@/queries/integrations/customerCards'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
-const { isShown = false, currentConnection = undefined } = defineProps<{
+const {
+  isShown = false,
+  currentConnection = undefined,
+  usedBy = [],
+} = defineProps<{
   isShown: boolean
   currentConnection: DbConnection | undefined
+  usedBy?: string[]
 }>()
 
 const emit = defineEmits<{ close: [] }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: typesState } = useDbConnectionTypes()
@@ -58,16 +65,16 @@ const isShownDiscardModal = ref(false)
 
 useFocusReturn(() => isShown)
 
-const typeRef = useTemplateRef<Focusable>('typeRef')
 const nameRef = useTemplateRef<Focusable>('nameRef')
+const typeRef = useTemplateRef<Focusable>('typeRef')
 const hostRef = useTemplateRef<Focusable>('hostRef')
 const portRef = useTemplateRef<Focusable>('portRef')
 const userRef = useTemplateRef<Focusable>('userRef')
 const passwordRef = useTemplateRef<Focusable>('passwordRef')
 
 const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
-  type: typeRef,
   name: nameRef,
+  type: typeRef,
   host: hostRef,
   port: portRef,
   user: userRef,
@@ -89,15 +96,22 @@ const typeOptions = computed(() =>
   (typesState.value.data ?? []).map((type) => ({ id: type.id, label: type.label })),
 )
 
-const type = computed({
-  get: () => form.value.type,
-  set: (value: string) => {
-    if (value !== form.value.type) {
-      form.value.type = value
-      form.value.port = getDbConnectionDefaultPort(value) || form.value.port
-    }
-  },
-})
+const defaultPort = computed(() => getDbConnectionDefaultPort(form.value.type))
+
+const portHelper = computed(() =>
+  defaultPort.value
+    ? t('integrations.cards.database_port_helper', {
+        type: getDbConnectionTypeLabel(form.value.type, typesState.value.data ?? []),
+        port: defaultPort.value,
+      })
+    : '',
+)
+
+const usedByText = computed(() =>
+  t('integrations.cards.database_used_by', {
+    cards: new Intl.ListFormat(locale.value, { type: 'conjunction' }).format(usedBy),
+  }),
+)
 
 const {
   mutate: saveMutate,
@@ -114,7 +128,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: edited
-          ? t('integrations.cards.connection_saved')
+          ? t('integrations.cards.connection_updated')
           : t('integrations.cards.connection_created'),
         description: t(
           edited
@@ -128,11 +142,12 @@ const {
   },
   onSettled: () => {
     queryCache.invalidateQueries({ key: [DB_CONNECTIONS_KEY] })
+    queryCache.invalidateQueries({ key: [DB_CONNECTION_STATUSES_KEY] })
   },
 })
 
 const {
-  mutate: testMutate,
+  mutateAsync: testMutateAsync,
   isLoading: testing,
   reset: testReset,
   error: testError,
@@ -181,11 +196,19 @@ function validate(): boolean {
   return true
 }
 
-function testConnection() {
+async function runTest(): Promise<boolean> {
   testReset()
 
+  try {
+    return await testMutateAsync({ ...form.value })
+  } catch {
+    return false
+  }
+}
+
+function testConnection() {
   if (validate()) {
-    testMutate({ ...form.value })
+    void runTest()
   }
 }
 
@@ -206,10 +229,14 @@ function discardChanges() {
   emit('close')
 }
 
-function save() {
+async function save() {
   saveReset()
 
-  if (validate()) {
+  if (!validate()) {
+    return
+  }
+
+  if ((testSucceeded.value === true || (await runTest())) && isShown) {
     saveMutate({ ...form.value })
   }
 }
@@ -228,10 +255,23 @@ function save() {
   >
     <form novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
+        <p v-if="currentConnection && usedBy.length" class="text-tertiary-neutral text-sm">
+          {{ usedByText }}
+        </p>
+        <NeTextInput
+          ref="nameRef"
+          v-model="form.name"
+          :label="t('integrations.name')"
+          :placeholder="t('integrations.cards.database_name_placeholder')"
+          :helper-text="t('integrations.cards.database_name_helper')"
+          :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
+          :disabled="busy"
+          @blur="form.name = form.name.trim()"
+        />
         <NeCombobox
           ref="typeRef"
-          v-model="type"
-          :label="t('integrations.cards.connection_type')"
+          v-model="form.type"
+          :label="t('integrations.cards.database_type')"
           :options="typeOptions"
           :placeholder="t('ne_combobox.choose')"
           :invalid-message="validationIssues.type ? t(validationIssues.type) : ''"
@@ -250,37 +290,36 @@ function save() {
           :description="describeError(typesState.error)"
         />
         <NeTextInput
-          ref="nameRef"
-          v-model="form.name"
-          :label="t('integrations.database')"
-          :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
+          ref="hostRef"
+          v-model="form.host"
+          :label="t('integrations.cards.database_address')"
+          :placeholder="t('integrations.cards.database_address_placeholder')"
+          :helper-text="t('integrations.cards.database_address_helper')"
+          :invalid-message="validationIssues.host ? t(validationIssues.host) : ''"
           :disabled="busy"
-          @blur="form.name = form.name.trim()"
+          @blur="form.host = form.host.trim()"
         />
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
-          <NeTextInput
-            ref="hostRef"
-            v-model="form.host"
-            :label="t('integrations.host')"
-            :invalid-message="validationIssues.host ? t(validationIssues.host) : ''"
-            :disabled="busy"
-            class="sm:col-span-2"
-            @blur="form.host = form.host.trim()"
-          />
-          <NeTextInput
-            ref="portRef"
-            v-model="form.port"
-            :label="t('integrations.port')"
-            inputmode="numeric"
-            :invalid-message="validationIssues.port ? t(validationIssues.port) : ''"
-            :disabled="busy"
-            @blur="form.port = form.port.trim()"
-          />
-        </div>
+        <NeTextInput
+          ref="portRef"
+          v-model="form.port"
+          :label="t('integrations.port')"
+          :placeholder="
+            defaultPort
+              ? t('integrations.cards.database_port_placeholder', { port: defaultPort })
+              : ''
+          "
+          :helper-text="portHelper"
+          inputmode="numeric"
+          optional
+          :optional-label="t('common.optional')"
+          :invalid-message="validationIssues.port ? t(validationIssues.port) : ''"
+          :disabled="busy"
+          @blur="form.port = form.port.trim()"
+        />
         <NeTextInput
           ref="userRef"
           v-model="form.user"
-          :label="t('integrations.user')"
+          :label="t('integrations.cards.database_username')"
           autocomplete="off"
           :invalid-message="validationIssues.user ? t(validationIssues.user) : ''"
           :disabled="busy"
@@ -298,8 +337,8 @@ function save() {
           :invalid-message="validationIssues.password ? t(validationIssues.password) : ''"
           :disabled="busy"
         />
-        <div class="flex flex-col gap-3">
-          <div>
+        <div class="flex flex-col gap-4">
+          <div class="flex flex-col items-start gap-2">
             <NeButton
               type="button"
               kind="secondary"
@@ -308,10 +347,13 @@ function save() {
               @click="testConnection"
             >
               <template #prefix>
-                <FontAwesomeIcon :icon="faPlugCircleBolt" class="h-4 w-4" aria-hidden="true" />
+                <FontAwesomeIcon :icon="faArrowRightArrowLeft" class="size-4" aria-hidden="true" />
               </template>
               {{ t('integrations.cards.test_connection') }}
             </NeButton>
+            <p class="text-tertiary-neutral text-sm">
+              {{ t('integrations.cards.test_before_save') }}
+            </p>
           </div>
           <NeInlineNotification
             v-if="testError"
@@ -325,11 +367,12 @@ function save() {
             :title="t('integrations.cards.test_failed')"
             :description="t('integrations.cards.test_failed_description')"
           />
-          <p
-            v-else-if="testSucceeded"
-            class="flex items-center gap-2 text-sm text-green-700 dark:text-green-500"
-          >
-            <FontAwesomeIcon :icon="faCircleCheck" class="h-4 w-4" aria-hidden="true" />
+          <p v-else-if="testSucceeded" role="status" class="flex items-center gap-2 text-sm">
+            <FontAwesomeIcon
+              :icon="faCircleCheck"
+              class="text-icon-enabled size-4"
+              aria-hidden="true"
+            />
             {{ t('integrations.cards.test_succeeded') }}
           </p>
         </div>
@@ -345,19 +388,12 @@ function save() {
         />
       </div>
       <hr class="my-8" />
-      <div class="flex justify-end">
-        <NeButton
-          type="button"
-          kind="tertiary"
-          size="lg"
-          :disabled="saving"
-          class="mr-3"
-          @click="requestClose"
-        >
+      <div class="flex justify-end gap-3">
+        <NeButton type="button" kind="tertiary" size="lg" :disabled="saving" @click="requestClose">
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="busy" :loading="saving">
-          {{ currentConnection ? t('common.save') : t('integrations.cards.create_connection') }}
+          {{ currentConnection ? t('common.save') : t('common.create') }}
         </NeButton>
       </div>
     </form>

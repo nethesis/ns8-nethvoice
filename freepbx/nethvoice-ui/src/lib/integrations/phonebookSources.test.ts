@@ -11,6 +11,7 @@ import {
   getMappingColumns,
   getSyncIntervals,
   isCsvUploadRejected,
+  isLocalHostRefusal,
   isUploadedCsv,
   parsePhonebookSources,
   parsePhonebookTestResult,
@@ -256,6 +257,42 @@ describe('validatePhonebookSourceForm', () => {
     expect(edited({ port: '3307' })).toEqual(required)
     expect(edited({ kind: 'mssql' })).toEqual(required)
     expect(edited({ user: 'writer', database: 'crm2' })).toEqual({})
+  })
+
+  it('should require the password again for another query when the query must stay with it', () => {
+    const required = { password: 'integrations.password_required' }
+    const edited = (changes: Partial<PhonebookSourceForm>) =>
+      validatePhonebookSourceForm(databaseForm({ password: '', ...changes }), crmSource(), true)
+
+    expect(edited({})).toEqual({})
+    expect(edited({ name: 'Renamed', interval: 60 })).toEqual({})
+    expect(edited({ query: 'SELECT * FROM other' })).toEqual(required)
+    expect(edited({ database: 'crm2' })).toEqual(required)
+    expect(edited({ user: 'writer' })).toEqual(required)
+    expect(edited({ host: 'other.example.com' })).toEqual(required)
+    expect(
+      validatePhonebookSourceForm(
+        databaseForm({ password: 'typed', query: 'SELECT * FROM other' }),
+        crmSource(),
+        true,
+      ),
+    ).toEqual({})
+  })
+
+  it('should read a refused database source as a host on the PBX', () => {
+    const refused = new ApiError({
+      status: 403,
+      method: 'POST',
+      url: '/phonebook/config',
+      body: {},
+    })
+    const failed = new ApiError({ status: 500, method: 'POST', url: '/phonebook/config', body: {} })
+
+    expect(isLocalHostRefusal(refused, databaseForm())).toBe(true)
+    expect(isLocalHostRefusal(refused, databaseForm({ kind: 'mssql' }))).toBe(true)
+    expect(isLocalHostRefusal(refused, databaseForm({ kind: 'csv' }))).toBe(false)
+    expect(isLocalHostRefusal(failed, databaseForm())).toBe(false)
+    expect(isLocalHostRefusal(new Error('x'), databaseForm())).toBe(false)
   })
 
   it('should require the password again for a different Infinity address', () => {

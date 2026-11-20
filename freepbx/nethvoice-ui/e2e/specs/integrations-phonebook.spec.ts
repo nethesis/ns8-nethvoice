@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockPermissions, type MockRequest, test } from '../fixtures/mockApi'
 
 const FIELDS = ['company', 'name', 'owner_id', 'workemail', 'workphone']
 
@@ -466,6 +466,131 @@ test.describe('integrations: phonebook sources', () => {
     await expect(modal).toBeHidden()
     expect(mockApi.callsTo('DELETE', '/freepbx/rest/phonebook/config/:id')[0].path).toBe(
       '/freepbx/rest/phonebook/config/custom_2',
+    )
+  })
+
+  test('creates a database source on another server as an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/test', (request: MockRequest) =>
+        (request.body as { host?: string }).host === '127.0.0.1'
+          ? { status: 403, json: { message: 'Forbidden: missing permission' } }
+          : { json: [{ full_name: 'Anna Miller' }] },
+      )
+      .on('POST', '/freepbx/rest/phonebook/config', { status: 200 })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Create source' }).first().click()
+
+    const drawer = page.getByRole('dialog')
+    const host = drawer.getByRole('textbox', { name: 'Host' })
+    await drawer.getByRole('textbox', { name: 'Phonebook name' }).fill('CRM')
+    await host.fill('127.0.0.1')
+    await drawer.getByRole('textbox', { name: 'Database' }).fill('crm')
+    await drawer.getByRole('textbox', { name: 'User' }).fill('reader')
+    await drawer.getByLabel('Password', { exact: true }).fill('new-secret')
+    await drawer.getByRole('textbox', { name: 'Query' }).fill('SELECT * FROM people')
+    await expect(drawer.getByRole('button', { name: 'Test source' })).toBeEnabled()
+    await drawer.getByRole('button', { name: 'Test source' }).click()
+
+    await expect(drawer.getByText('Enter a server other than the PBX')).toBeVisible()
+    await expect(host).toBeFocused()
+    await expect(drawer.getByText('Cannot read the source')).toHaveCount(0)
+
+    await host.fill('db.example.com')
+    await drawer.getByRole('button', { name: 'Test source' }).click()
+    await drawer.getByRole('combobox', { name: 'full_name' }).click()
+    await page.getByRole('option', { name: 'name', exact: true }).click()
+    await drawer.getByRole('button', { name: 'Create source' }).click()
+
+    await expect(drawer).toBeHidden()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/config')[0].body).toMatchObject({
+      dbtype: 'mysql',
+      host: 'db.example.com',
+      query: 'SELECT * FROM people',
+    })
+  })
+
+  test('shows a database source refused by the PBX on the host field', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi.on('POST', '/freepbx/rest/phonebook/config/:id', {
+      status: 403,
+      json: { message: 'Forbidden: missing permission' },
+    })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Edit CRM contacts' }).click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('textbox', { name: 'Phonebook name' }).fill('CRM customers')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(drawer.getByText('Enter a server other than the PBX')).toBeVisible()
+    await expect(drawer.getByRole('textbox', { name: 'Host' })).toBeFocused()
+    await expect(drawer.getByText('Cannot save the source')).toHaveCount(0)
+  })
+
+  test('asks an administrator with only Integrations the password again for another query', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi.on('POST', '/freepbx/rest/phonebook/config/:id', { status: 200 })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Edit CRM contacts' }).click()
+
+    const drawer = page.getByRole('dialog')
+    await expect(drawer.getByText('Leave empty to keep the current password')).toBeVisible()
+    await drawer.getByRole('textbox', { name: 'Query' }).fill('SELECT * FROM other')
+    await expect(
+      drawer.getByText('Enter the password again to change the database, the user or the query.'),
+    ).toBeVisible()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(drawer.getByText('Enter the password', { exact: true })).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/config/:id')).toHaveLength(0)
+
+    await drawer.getByLabel('Password', { exact: true }).fill('crm-secret')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(drawer).toBeHidden()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/config/:id')[0].body).toMatchObject({
+      password: 'crm-secret',
+      query: 'SELECT * FROM other',
+    })
+  })
+
+  test('synchronizes and deletes a database source as an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/syncnow/:id', { json: { status: true } })
+      .on('DELETE', '/freepbx/rest/phonebook/config/:id', { status: 200 })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Open the menu of CRM contacts' }).click()
+    await page.getByRole('menuitem', { name: 'Sync now' }).click()
+    await expect(page.getByText('Synchronization completed')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Open the menu of CRM contacts' }).click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
+    const modal = page.getByRole('dialog')
+    await modal.getByRole('button', { name: 'Delete' }).click()
+
+    await expect(modal).toBeHidden()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/syncnow/:id')[0].path).toBe(
+      '/freepbx/rest/phonebook/syncnow/custom_1',
+    )
+    expect(mockApi.callsTo('DELETE', '/freepbx/rest/phonebook/config/:id')[0].path).toBe(
+      '/freepbx/rest/phonebook/config/custom_1',
     )
   })
 })

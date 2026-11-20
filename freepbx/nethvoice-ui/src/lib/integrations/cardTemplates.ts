@@ -24,6 +24,7 @@ const CardTemplatesResponseSchema = v.array(
     name: v.string(),
     custom: v.nullish(v.boolean(), false),
     html: v.nullish(v.string(), ''),
+    color: v.nullish(v.string(), ''),
   }),
 )
 
@@ -32,6 +33,7 @@ export type CardTemplate = {
   name: string
   custom: boolean
   code: string
+  color: string
 }
 
 export type CardTemplateForm = {
@@ -53,6 +55,7 @@ export const parseCardTemplates = (raw: unknown): CardTemplate[] =>
       name: template.name,
       custom: template.custom,
       code: decodeBase64Utf8(template.html),
+      color: template.color.trim(),
     }))
     .sort((a, b) => Number(a.custom) - Number(b.custom) || compareNatural(a.name, b.name))
 
@@ -67,8 +70,55 @@ export const toCardTemplateForm = (template: CardTemplate): CardTemplateForm => 
 })
 
 export const toDuplicatedCardTemplateForm = (template: CardTemplate): CardTemplateForm => ({
-  name: '',
+  name: `${normalizeTemplateName(template.name)}copy`,
   code: template.code,
+})
+
+export const TEMPLATE_COLOR_CLASSES: Record<string, string> = {
+  red: 'red-600',
+  orange: 'yellow-600',
+  yellow: 'yellow-500',
+  olive: 'lime-800',
+  green: 'emerald-600',
+  teal: 'green-400',
+  blue: 'blue-600',
+  violet: 'violet-500',
+  purple: 'purple-600',
+  pink: 'pink-500',
+  brown: 'yellow-800',
+}
+
+export const TEMPLATE_COLORS = Object.keys(TEMPLATE_COLOR_CLASSES)
+
+const COLOR_COMMENT = /<!--\s*color:\s*(.*?)\s*-->/
+
+const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+export const setCardTemplateColor = (code: string, color: string): string => {
+  const current = COLOR_COMMENT.exec(code)?.[1] ?? ''
+  const comment = `<!-- color: ${color} -->`
+  let result = COLOR_COMMENT.test(code)
+    ? code.replace(COLOR_COMMENT, comment)
+    : `${comment}\n${code}`
+  const from = TEMPLATE_COLOR_CLASSES[current]
+  const to = TEMPLATE_COLOR_CLASSES[color]
+
+  if (from && to && from !== to) {
+    result = result.replace(
+      new RegExp(`(^|[\\s"'])bg-${escapeRegExp(from)}(?=[\\s"']|$)`, 'g'),
+      `$1bg-${to}`,
+    )
+  }
+  return result
+}
+
+export const buildCardTemplateColorPayload = (
+  template: CardTemplate,
+  color: string,
+): CardTemplateInput => ({
+  name: template.name,
+  custom: false,
+  html: encodeBase64Utf8(setCardTemplateColor(template.code, color)),
 })
 
 const CardTemplateFormSchema = v.object({
