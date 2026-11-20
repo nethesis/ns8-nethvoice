@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
+import { formatDateTimeNoSeconds, formatRelativeTime } from '@nethesis/vue-components'
 import { compareNatural } from '@/lib/common'
 import { tancredi } from './tancrediClient'
 import { assertVariablesSaved } from './persistence'
@@ -22,6 +23,7 @@ export type PhoneModel = {
   displayName: string
   brand: string
   custom: boolean
+  lastUpdate: number | null
 }
 
 export type PhoneModelDetail = PhoneModel & {
@@ -52,9 +54,18 @@ export const VariablesSchema = v.pipe(
   }),
 )
 
+const LastEditTimeSchema = v.pipe(
+  v.nullish(v.unknown(), null),
+  v.transform((value): number | null => {
+    const seconds = typeof value === 'number' || typeof value === 'string' ? Number(value) : NaN
+    return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : null
+  }),
+)
+
 const ModelSummarySchema = v.object({
   name: v.string(),
   display_name: v.nullish(v.string(), ''),
+  last_edit_time: LastEditTimeSchema,
 })
 
 const ModelsResponseSchema = v.array(ModelSummarySchema)
@@ -62,6 +73,7 @@ const ModelsResponseSchema = v.array(ModelSummarySchema)
 const ModelDetailSchema = v.object({
   name: v.string(),
   display_name: v.nullish(v.string(), ''),
+  last_edit_time: LastEditTimeSchema,
   variables: VariablesSchema,
 })
 
@@ -95,6 +107,7 @@ const toPhoneModel = (model: v.InferOutput<typeof ModelSummarySchema>): PhoneMod
   displayName: model.display_name.trim().replace(/;+$/, '').trim() || model.name,
   brand: getModelBrand(model.name),
   custom: isCustomModelName(model.name),
+  lastUpdate: model.last_edit_time,
 })
 
 export const parsePhoneModels = (raw: unknown): PhoneModel[] =>
@@ -107,6 +120,11 @@ export const parsePhoneModelDetail = (raw: unknown): PhoneModelDetail => {
   const model = v.parse(ModelDetailSchema, raw)
   return { ...toPhoneModel(model), variables: model.variables }
 }
+
+export const formatModelLastUpdate = (lastUpdate: number | null, locale: string): string =>
+  lastUpdate === null
+    ? '-'
+    : `${formatDateTimeNoSeconds(lastUpdate, locale)} (${formatRelativeTime(lastUpdate, locale)})`
 
 export const filterModelsByVendor = (models: PhoneModel[], vendor: string): PhoneModel[] => {
   const prefix = vendor.trim().toLowerCase()

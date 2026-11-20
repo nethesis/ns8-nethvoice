@@ -1012,7 +1012,8 @@
       "upload_background": "Upload background image",
       "upload_firmware": "Upload firmware",
       "upload_ringtone": "Upload ringtone",
-      "upload_screensaver": "Upload screensaver"
+      "upload_screensaver": "Upload screensaver",
+      "last_update": "Last update"
     },
     "settings": {
       "default_configuration": "Default phone configuration",

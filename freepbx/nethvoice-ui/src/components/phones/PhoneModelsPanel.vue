@@ -28,6 +28,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faArrowRight,
   faArrowRotateLeft,
+  faCalendar,
   faCirclePlus,
   faClone,
   faMagnifyingGlass,
@@ -43,17 +44,22 @@ import ResetModelModal from './ResetModelModal.vue'
 import PhoneModelDetail from './PhoneModelDetail.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { compareNatural, matchesText, PAGE_SIZES } from '@/lib/common'
-import { buildModelRows, type PhoneModel, type PhoneModelRow } from '@/lib/phones/models'
+import {
+  buildModelRows,
+  formatModelLastUpdate,
+  type PhoneModel,
+  type PhoneModelRow,
+} from '@/lib/phones/models'
 import { usePhoneModels } from '@/queries/phones/models'
 import { useTancrediPhones } from '@/queries/phones/phones'
 
-const SORT_KEYS = ['displayName', 'brand', 'phones'] as const
+const SORT_KEYS = ['displayName', 'brand', 'phones', 'lastUpdate'] as const
 
 type SortKey = (typeof SORT_KEYS)[number]
 
 const DEFAULT_SORT_KEY: SortKey = 'displayName'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { state: modelsState, refetch: refetchModels } = usePhoneModels()
@@ -105,6 +111,7 @@ const sortOptions = computed(() => [
   { id: 'displayName', label: t('phones.model') },
   { id: 'brand', label: t('phones.models.brand') },
   { id: 'phones', label: t('phones.models.phones') },
+  { id: 'lastUpdate', label: t('phones.models.last_update') },
 ])
 
 const filteredRows = computed(() => {
@@ -122,7 +129,11 @@ const filteredRows = computed(() => {
     )
     .sort((a, b) => {
       const result =
-        key === 'phones' ? a.phones - b.phones : compareNatural(String(a[key]), String(b[key]))
+        key === 'phones'
+          ? a.phones - b.phones
+          : key === 'lastUpdate'
+            ? (a.lastUpdate ?? 0) - (b.lastUpdate ?? 0)
+            : compareNatural(String(a[key]), String(b[key]))
       return (result || compareNatural(a.displayName, b.displayName)) * direction
     })
 })
@@ -330,7 +341,7 @@ function onModelCreated(model: PhoneModel) {
         :aria-label="$t('phones.models.models_table')"
         card-breakpoint="xl"
         :loading="loading"
-        :skeleton-columns="5"
+        :skeleton-columns="6"
         :skeleton-rows="5"
       >
         <NeTableHead>
@@ -338,6 +349,7 @@ function onModelCreated(model: PhoneModel) {
           <NeTableHeadCell>{{ $t('phones.models.brand') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ $t('phones.models.phones') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ $t('phones.models.type') }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ $t('phones.models.last_update') }}</NeTableHeadCell>
           <NeTableHeadCell>
             <span class="sr-only">{{ $t('common.actions') }}</span>
           </NeTableHeadCell>
@@ -362,6 +374,17 @@ function onModelCreated(model: PhoneModel) {
                   row.custom ? $t('phones.models.type_custom') : $t('phones.models.type_default')
                 }}
               </NeBadgeV2>
+            </NeTableCell>
+            <NeTableCell :data-label="$t('phones.models.last_update')">
+              <div v-if="row.lastUpdate !== null" class="flex items-center gap-2">
+                <FontAwesomeIcon
+                  :icon="faCalendar"
+                  class="text-tertiary-neutral size-4"
+                  aria-hidden="true"
+                />
+                {{ formatModelLastUpdate(row.lastUpdate, locale) }}
+              </div>
+              <template v-else>-</template>
             </NeTableCell>
             <NeTableCell :data-label="$t('common.actions')">
               <div class="-ml-2.5 flex items-center gap-2 xl:ml-0 xl:justify-end">

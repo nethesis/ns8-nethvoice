@@ -1012,7 +1012,8 @@
       "upload_background": "Carica immagine di sfondo",
       "upload_firmware": "Carica firmware",
       "upload_ringtone": "Carica suoneria",
-      "upload_screensaver": "Carica screensaver"
+      "upload_screensaver": "Carica screensaver",
+      "last_update": "Ultimo aggiornamento"
     },
     "settings": {
       "default_configuration": "Configurazione predefinita dei telefoni",
