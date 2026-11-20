@@ -309,6 +309,7 @@ const DASHBOARD_CALLS_RANGES = ['24h' => 24, '7d' => 168, '15d' => 360];
 const DASHBOARD_CALLS_HISTORY_TTL = 300;
 const DASHBOARD_CALLS_MARGIN = 21600;
 const DASHBOARD_CALLS_CHUNK = 86400;
+const DASHBOARD_CALLS_FULL_REFRESH = 86400;
 const DASHBOARD_CALLS_PER_HOUR_QUERY = "SELECT DATE_FORMAT(started, '%Y-%m-%d %H') AS local_hour, COUNT(*) AS calls
     FROM (
         SELECT COALESCE(NULLIF(linkedid, ''), uniqueid) AS id, MIN(calldate) AS started
@@ -507,7 +508,9 @@ function dashboardCallsHistory(
         try {
             $entry = dashboardReadCallsCache($cacheFile, $zone, $first, $current, $now + $ttl - 1);
             if (!dashboardCallsCacheFresh($entry, $current, $now, $ttl)) {
-                $from = $entry === null ? $first : dashboardRefreshStart($entry, $first, $zone);
+                $full = $entry === null || !is_int($entry['full_time'] ?? null)
+                    || $now - $entry['full_time'] >= DASHBOARD_CALLS_FULL_REFRESH;
+                $from = $full ? $first : dashboardRefreshStart($entry, $first, $zone);
                 $buckets = [];
                 for ($time = $first; $time < $from; $time += 3600) {
                     $buckets[$time] = $entry['buckets'][$time];
@@ -516,6 +519,7 @@ function dashboardCallsHistory(
                 $entry = [
                     'zone' => $zone->getName(),
                     'time' => $now,
+                    'full_time' => $full ? $now : $entry['full_time'],
                     'current' => $current,
                     'history_start' => dashboardUnixTime($oldest(), $zone),
                     'buckets' => $buckets,
