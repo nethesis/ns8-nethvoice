@@ -243,7 +243,7 @@ export interface paths {
     put?: never
     /**
      * Persist the current wizard step and optionally trigger service restarts.
-     * @description Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts Asterisk and signals the CTI service. Saving step 13 with status false completes the wizard, restarts Asterisk and signals the CTI services to restart; other steps and statuses never restart services.
+     * @description Body: `{ "step": <int>, "status": <bool> }`. Saving step 13 with status false completes the wizard, restarts Asterisk and signals the CTI services to restart; other steps and statuses never restart services.
      */
     post: operations['post_configuration_wizard']
     delete?: never
@@ -760,12 +760,15 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** List the video sources with the profiles allowed to see them. */
+    /**
+     * List the video sources with the profiles allowed to see them.
+     * @description The stored secret is never returned to administrators who are not superadmin; `has_password` tells whether one is stored.
+     */
     get: operations['get_cti_streaming']
     put?: never
     /**
      * Create a video source.
-     * @description For administrators who are not superadmin the URL must be a public http or https address.
+     * @description For administrators who are not superadmin the URL must use http or https and its host must not resolve to a loopback, link-local or unspecified address.
      */
     post: operations['post_cti_streaming']
     delete?: never
@@ -801,7 +804,7 @@ export interface paths {
     get?: never
     /**
      * Update a video source (found by `currentDescr` in the body).
-     * @description For administrators who are not superadmin the URL must be a public http or https address.
+     * @description For administrators who are not superadmin the URL must use http or https and its host must not resolve to a loopback, link-local or unspecified address.
      */
     put: operations['put_cti_streaming_descr']
     post?: never
@@ -822,7 +825,7 @@ export interface paths {
     put?: never
     /**
      * Fetch one frame from a video source URL.
-     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure. The URL is fetched only over http or https, never from a loopback, link-local or unspecified address, and redirects are not followed.
+     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure; for administrators who are not superadmin only a JPEG, PNG or GIF image is returned. The URL is fetched only over http or https, never from a loopback, link-local or unspecified address, and redirects are not followed.
      */
     post: operations['post_cti_sources_test']
     delete?: never
@@ -2512,7 +2515,7 @@ export interface paths {
     }
     /**
      * Summarize the calls of today for the dashboard.
-     * @description Reads the CDR from midnight of the PBX time zone. The legs of a call are counted once, feature codes and the calls of the administrator phone are not counted. A call is answered when a leg is ANSWERED, missed when a leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). With range, the response also has the calls per hour of the period, counted from the CDR with the same rules; a call belongs to the hour of its first leg. The calls per hour are cached for 5 minutes per range; completed hours are kept and only the six hours before the hour of the previous read and the following ones are read again. Requires the dashboard section.
+     * @description Reads the CDR from midnight of the PBX time zone. The legs of a call are counted once, feature codes and the calls of the administrator phone are not counted. A call is answered when a leg is ANSWERED, missed when a leg is NO ANSWER or BUSY, invalid otherwise (FAILED or CONGESTION). With range, the response also has the calls per hour of the period, counted from the CDR with the same rules; a call belongs to the hour of its first leg. The calls per hour are cached for 5 minutes per range; completed hours are kept and only the six hours before the hour of the previous read and the following ones are read again. Once a day the whole period is counted again. Requires the dashboard section.
      */
     get: operations['get_dashboard_calls']
     put?: never
@@ -2966,7 +2969,7 @@ export interface components {
       status: string | null
     }
     WizardStateRequest: {
-      /** @description Saving step 13 restarts Asterisk, nethcti-server and nethcti-middleware. */
+      /** @description Saving step 13 with status false restarts Asterisk, nethcti-server and nethcti-middleware. */
       step: number
       /** @enum {string} */
       status: 'true' | 'false'
@@ -3441,7 +3444,10 @@ export interface components {
       descr: string
       url: string
       user?: string | null
+      /** @description Returned only to the superadmin, for the legacy wizard */
       secret?: string | null
+      /** @description Whether a secret is stored, returned only to administrators who are not superadmin */
+      has_password?: boolean
       'frame-rate'?: number | null
       exten?: number | null
       /** @description Code dialed to open the door */
@@ -5696,6 +5702,17 @@ export interface operations {
       }
       /** @description Invalid source URL: only http and https are accepted, and the host must not resolve to a loopback, link-local or unspecified address. Redirects are not followed. */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            status?: string
+          }
+        }
+      }
+      /** @description The content is not a JPEG, PNG or GIF image (administrators who are not superadmin only) */
+      422: {
         headers: {
           [name: string]: unknown
         }

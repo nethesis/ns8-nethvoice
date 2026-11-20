@@ -320,10 +320,9 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
-      description: 'Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts
-        Asterisk and signals the CTI service. Saving step 13 with status false completes
-        the wizard, restarts Asterisk and signals the CTI services to restart; other
-        steps and statuses never restart services.'
+      description: 'Body: `{ "step": <int>, "status": <bool> }`. Saving step 13 with
+        status false completes the wizard, restarts Asterisk and signals the CTI services
+        to restart; other steps and statuses never restart services.'
       operationId: post_configuration_wizard
       requestBody:
         required: true
@@ -4059,6 +4058,7 @@ paths:
         per hour are cached for 5 minutes per range; completed hours are kept
         and only the six hours before the hour of the previous read and the
         following ones are read again.
+        Once a day the whole period is counted again.
         Requires the dashboard section.
       tags:
       - Dashboard
@@ -5226,7 +5226,8 @@ components:
           type: integer
           minimum: 0
           maximum: 13
-          description: Saving step 13 restarts Asterisk, nethcti-server and nethcti-middleware.
+          description: Saving step 13 with status false restarts Asterisk, nethcti-server
+            and nethcti-middleware.
         status:
           type: string
           enum:
@@ -6200,6 +6201,11 @@ components:
         secret:
           type: string
           nullable: true
+          description: Returned only to the superadmin, for the legacy wizard
+        has_password:
+          type: boolean
+          description: Whether a secret is stored, returned only to administrators
+            who are not superadmin
         frame-rate:
           type: integer
           nullable: true
