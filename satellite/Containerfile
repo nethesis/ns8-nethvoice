@@ -23,7 +23,7 @@ RUN pip install --no-cache-dir --no-warn-script-location --user -r /tmp/requirem
 FROM python:slim
 
 # Install runtime dependencies for PyAudio
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
     libportaudio2 \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*

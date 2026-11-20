@@ -9,6 +9,7 @@ COPY entrypoint.sh /
 ARG APACHE_MIN_VERSION=2.4.71-1~deb12u1
 
 RUN apt update && \
+	apt upgrade -y && \
 	apt install -y \
 		apache2 \
 		apache2-bin \
