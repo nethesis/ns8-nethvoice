@@ -966,6 +966,31 @@
       "callers": ["ui:users", "legacy"],
       "reason": "Starts the user synchronization from the users screen."
     },
+    "GET /users/domain": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Whether the user domain can be managed from NethVoice; never returns the URL, the credentials or the token of the users-admin service."
+    },
+    "GET /users/domain/accounts": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Name, email, lock state and domain administrator flag of the domain accounts, shown in the users screen."
+    },
+    "PUT /users/{username}/account/password": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Changes the password of a domain account from the users screen; the handler refuses the PBX admin and system accounts, the caller's own account and, for limited administrators, the domain administrators."
+    },
+    "PATCH /users/{username}/account": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Changes name, email and lock state of a domain account from the users screen; the handler refuses locking the caller's own account and, for limited administrators, locking a domain administrator."
+    },
+    "DELETE /users/{username}/account": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Deletes a domain account from the users screen and keeps its extension as an extension of a removed user; the handler refuses the PBX admin and system accounts, the caller's own account and, for limited administrators, the domain administrators."
+    },
     "POST /csv/csvimport": {
       "intent": "users",
       "callers": ["ui:users", "ui:setup", "legacy"],

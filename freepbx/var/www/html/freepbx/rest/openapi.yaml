@@ -4669,6 +4669,257 @@ paths:
         required: true
         schema:
           type: string
+  /users/domain:
+    get:
+      summary: Tell whether the accounts of the user domain can be managed from NethVoice.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersDomainStatus'
+        '403': *id001
+      operationId: get_users_domain
+      description: The answer is cached for 30 seconds. It never contains the address,
+        the credentials or the token of the users-admin service.
+  /users/domain/accounts:
+    get:
+      summary: List the accounts of the user domain.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsersDomainAccount'
+        '403': *id001
+        '409':
+          description: The user domain is external and cannot be managed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '502':
+          description: The user domain answered with an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '503':
+          description: The user domain is not reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+      operationId: get_users_domain_accounts
+  /users/{username}/account:
+    patch:
+      summary: Change the display name, the email address or the lock state of a
+        domain account.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Account changed. `synchronized` is false when the following
+            user synchronization failed, null when no synchronization was needed (lock
+            state only).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountResult'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '403':
+          description: Missing permission, or `protected_account`, `own_account`
+            (locking the caller's account) or `domain_admin` (a limited administrator
+            locking a domain administrator)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '404':
+          description: '`user_not_found`: the account does not exist in the user domain'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '409':
+          description: The user domain is external and cannot be managed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '422':
+          description: '`invalid_mail` or `invalid_display_name` (the display name
+            contains control characters)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '502':
+          description: The user domain answered with an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '503':
+          description: The user domain is not reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+      operationId: patch_users_username_account
+      description: Locking only prevents the sign-in with the account; extension,
+        devices, voicemail, profile and groups do not change. A change of name or
+        email synchronizes the users before answering.
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersAccountUpdate'
+    delete:
+      summary: Delete a domain account.
+      tags:
+      - Users
+      responses:
+        '200':
+          description: Account deleted. `synchronized` is false when the following
+            user synchronization failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountResult'
+        '400':
+          description: Invalid username
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '403':
+          description: Missing permission, or `protected_account`, `own_account`
+            or `domain_admin`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '404':
+          description: '`user_not_found`: the account does not exist in the user domain'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '409':
+          description: The user domain is external and cannot be managed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '502':
+          description: The user domain answered with an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '503':
+          description: The user domain is not reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+      operationId: delete_users_username_account
+      description: The account is removed from the user domain, then the users are
+        synchronized. The extension of the user is kept as an extension of a removed
+        user (see `/mainextensions/orphans`).
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+  /users/{username}/account/password:
+    put:
+      summary: Set the password of a domain account.
+      tags:
+      - Users
+      responses:
+        '204':
+          description: Password changed
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '403':
+          description: Missing permission, or `protected_account`, `own_account`
+            or `domain_admin`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '404':
+          description: '`user_not_found`: the account does not exist in the user domain'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '409':
+          description: The user domain is external and cannot be managed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '422':
+          description: The user domain refused the password (`password_complexity`,
+            `password_history`, `password_same`, `password_rejected`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '502':
+          description: The user domain answered with an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+        '503':
+          description: The user domain is not reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
+      operationId: put_users_username_account_password
+      description: The password is neither stored nor logged.
+      parameters:
+      - name: username
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsersAccountPassword'
   /csv/csvimport:
     post:
       summary: Start the import of users from a CSV in background.
@@ -6761,6 +7012,101 @@ components:
     UsersMessage:
       type: object
       properties:
+        message:
+          type: string
+    UsersDomainStatus:
+      type: object
+      required:
+      - manageable
+      - reason
+      properties:
+        manageable:
+          type: boolean
+        reason:
+          type: string
+          nullable: true
+          enum:
+          - external
+          - unavailable
+          - null
+    UsersDomainAccount:
+      type: object
+      required:
+      - username
+      - display_name
+      - mail
+      - locked
+      - domain_admin
+      properties:
+        username:
+          type: string
+        display_name:
+          type: string
+        mail:
+          type: string
+        locked:
+          type: boolean
+          nullable: true
+          description: Null when the user domain does not tell.
+        domain_admin:
+          type: boolean
+          nullable: true
+          description: Member of the domain admins group of the user domain; null
+            when the groups cannot be read.
+    UsersAccountUpdate:
+      type: object
+      minProperties: 1
+      additionalProperties: false
+      properties:
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 256
+        mail:
+          type: string
+          maxLength: 256
+        locked:
+          type: boolean
+    UsersAccountPassword:
+      type: object
+      required:
+      - password
+      additionalProperties: false
+      properties:
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+    UsersAccountResult:
+      type: object
+      required:
+      - synchronized
+      properties:
+        synchronized:
+          type: boolean
+          nullable: true
+    UsersAccountError:
+      type: object
+      required:
+      - code
+      properties:
+        code:
+          type: string
+          enum:
+          - invalid_request
+          - protected_account
+          - own_account
+          - domain_admin
+          - domain_not_manageable
+          - domain_unavailable
+          - provider_error
+          - password_complexity
+          - password_history
+          - password_same
+          - password_rejected
+          - invalid_mail
+          - invalid_display_name
+          - user_not_found
         message:
           type: string
     UsersStatusMessage:
