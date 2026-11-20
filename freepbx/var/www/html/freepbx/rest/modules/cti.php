@@ -853,6 +853,9 @@ $app->delete('/cti/customer_card/template/{name}', function (Request $request, R
     try {
         $route = $request->getAttribute('route');
         $name = $route->getArgument('name');
+        if (!nethvoiceRequestIsSuperadmin($request) && !preg_match('/^[a-z0-9]+$/D', $name)) {
+            throw new Exception('template not found');
+        }
 
         $tpl_path = '/var/lib/nethserver/nethcti/templates/customer_card';
 

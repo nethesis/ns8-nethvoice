@@ -299,7 +299,7 @@ function gateway_rollback_created($createdTrunks, $createdExtensions, $originalA
     return $warnings;
 }
 
-function addEditGateway($params){
+function addEditGateway($params, $restricted = false){
     $errors = array(); $warnings = array(); $infos = array();
     $createdTrunks = array(); $createdExtensions = array(); $originalAors = array();
     $dbh = null;
@@ -308,6 +308,19 @@ function addEditGateway($params){
         foreach ($required as $field) {
             if (!isset($params[$field]) || $params[$field] === '') {
                 $errors[] = 'Missing gateway field '.$field;
+            }
+        }
+        if (!empty($errors)) {
+            return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos, 'http_status' => 400);
+        }
+        if ($restricted && (!is_string($params['mac']) || preg_match('/^[0-9A-Fa-f]{12}$/', str_replace(array(':', '-', '.'), '', $params['mac'])) !== 1)) {
+            $errors[] = 'Invalid gateway MAC address';
+        }
+        foreach ($restricted && is_array($params['trunks_fxs'] ?? null) ? $params['trunks_fxs'] : array() as $trunk) {
+            $linkedExtension = $trunk['linked_extension'] ?? null;
+            if (!(is_string($linkedExtension) || is_int($linkedExtension)) || preg_match('/^[0-9]+$/D', (string) $linkedExtension) !== 1) {
+                $errors[] = 'Invalid linked extension';
+                break;
             }
         }
         if (!empty($errors)) {

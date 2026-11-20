@@ -163,6 +163,15 @@ $app->patch('/trunks/{trunkid}', function (Request $request, Response $response,
                 }
             }
         }
+        $controls = false;
+        if (is_array($params)) {
+            array_walk_recursive($params, function ($value) use (&$controls) {
+                $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+            });
+        }
+        if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
+            return jsonResponse($response, ['error'=>'Invalid control character'],400);
+        }
 
         // Change username
         if (isset($params['username'])) {
@@ -264,6 +273,13 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
         if (!is_string($codec)) {
             return jsonResponse($response, ['error'=>'codecs must contain strings'],400);
         }
+    }
+    $controls = false;
+    array_walk_recursive($params, function ($value) use (&$controls) {
+        $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+    });
+    if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
+        return jsonResponse($response, ['error'=>'Invalid control character'],400);
     }
     $trunkName = (empty($params['name'])) ? $params['provider'] : $params['name'];
     if (!is_scalar($trunkName) || mb_strlen((string) $trunkName, 'UTF-8') > 50) {

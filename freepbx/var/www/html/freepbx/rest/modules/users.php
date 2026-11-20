@@ -107,7 +107,9 @@ $app->post('/users', function (Request $request, Response $response, $args) {
     $params = $request->getParsedBody();
     $username = $params['username'];
     $fullname = $params['fullname'];
-    if ( ! $username || ! $fullname || preg_match('/^[0-9]/',$username)) {
+    if ( ! $username || ! $fullname || preg_match('/^[0-9]/',$username)
+        || (!nethvoiceRequestIsSuperadmin($request) && is_string($username) && preg_match('/[\x00-\x1F\x7F]/', $username) === 1)
+        || (!nethvoiceRequestIsSuperadmin($request) && is_string($fullname) && preg_match('/[\x00-\x1F\x7F]/', $fullname) === 1)) {
         return jsonResponse($response, ['result' => 'User name or full name invalid'], 422);
     }
     $username = strtolower($username);
@@ -199,7 +201,7 @@ $app->post('/csv/csvimport', function (Request $request, Response $response, $ar
         if (file_exists($statusfile)) {
             unlink($statusfile);
         }
-        system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ".escapeshellarg($base64csv)." > /dev/null 2>&1 &");
+        system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ".escapeshellarg($base64csv).(nethvoiceRequestIsSuperadmin($request) ? '' : ' restricted')." > /dev/null 2>&1 &");
         return $response->withStatus(200);
     } catch (Exception $e) {
         error_log($e->getMessage());

@@ -3968,7 +3968,7 @@ export interface operations {
           'application/json': components['schemas']['UsersBulkResult']
         }
       }
-      /** @description Bad request */
+      /** @description `Invalid request body`; for administrators who are not superadmin also `Invalid ring time` (not digits only or greater than 120) and `Invalid control character` (a value contains C0 control characters or DEL) */
       400: {
         headers: {
           [name: string]: unknown
@@ -6001,7 +6001,7 @@ export interface operations {
           'application/json': components['schemas']['GatewaySaveResult']
         }
       }
-      /** @description Bad request */
+      /** @description Bad request; for administrators who are not superadmin also `Invalid control character` (a value contains C0 control characters or DEL), `Invalid gateway MAC address` and `Invalid linked extension` in `errors` */
       400: {
         headers: {
           [name: string]: unknown
@@ -6232,6 +6232,15 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description For administrators who are not superadmin, the extension is not made of digits only */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
       }
       /** @description Community version limited to 8 configured users. The community limit does not count the current extension of the user being changed. */
       403: {
@@ -7266,6 +7275,15 @@ export interface operations {
           'application/json': components['schemas']['UsersDeviceExtension']
         }
       }
+      /** @description For administrators who are not superadmin, `Invalid extension`: the extension is not made of digits only */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersStatusMessage']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -7854,6 +7872,15 @@ export interface operations {
           'application/json': components['schemas']['PhonesPhysicalExtensionResponse']
         }
       }
+      /** @description For administrators who are not superadmin, `Invalid MAC address` (not 12 hexadecimal digits) or `Invalid extension` (`mainextension` not made of digits only) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['PhonesStatusError']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -8001,6 +8028,15 @@ export interface operations {
           'application/json': components['schemas']['UsersDeviceExtension']
         }
       }
+      /** @description For administrators who are not superadmin, `Invalid extension`: the main extension is not made of digits only */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersStatusMessage']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -8094,6 +8130,13 @@ export interface operations {
         content: {
           'application/json': Record<string, never>
         }
+      }
+      /** @description For administrators who are not superadmin, the display name contains C0 control characters or DEL. The body is empty. */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
     }
   }
@@ -8457,6 +8500,15 @@ export interface operations {
           'application/json': Record<string, never>
         }
       }
+      /** @description For administrators who are not superadmin, `Invalid control character`: a value contains C0 control characters or DEL */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
       /** @description Missing extension or empty destination */
       422: {
         headers: {
@@ -8593,6 +8645,15 @@ export interface operations {
         }
         content?: never
       }
+      /** @description For administrators who are not superadmin, `Invalid control character` (a value contains C0 control characters or DEL) or `Unsupported locale` (an unknown locale containing a double quote or a backslash) */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -8724,6 +8785,13 @@ export interface operations {
     responses: {
       /** @description Successful response */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description For administrators who are not superadmin, the language contains C0 control characters or DEL. The body is empty. */
+      400: {
         headers: {
           [name: string]: unknown
         }
@@ -9108,7 +9176,7 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Missing or invalid parameter. The body is empty when a parameter is missing. */
+      /** @description Missing or invalid parameter, or, for administrators who are not superadmin, `Invalid control character` when a value contains C0 control characters or DEL. The body is empty when a parameter is missing. */
       400: {
         headers: {
           [name: string]: unknown
@@ -9213,7 +9281,7 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request */
+      /** @description Bad request, or, for administrators who are not superadmin, `Invalid control character` when a value contains C0 control characters or DEL */
       400: {
         headers: {
           [name: string]: unknown
@@ -9712,6 +9780,15 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['UsersDeviceExtension']
+        }
+      }
+      /** @description For administrators who are not superadmin, `Invalid extension`: the extension is not made of digits only */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersStatusMessage']
         }
       }
       /** @description Internal server error */

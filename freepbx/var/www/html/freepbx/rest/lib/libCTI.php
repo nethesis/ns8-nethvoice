@@ -640,7 +640,7 @@ function setCustomContextPermissions($profile){
     // Get context data
     $context = customcontexts_customcontexts_get($context_name);
     // Set permissions
-    customcontexts_customcontexts_edit($context[0],$context[0],$context[1],$context[2],$context[3],$context[4],$context[5],$context[6]);
+    customcontexts_customcontexts_edit($context[0],$context[0],addslashes($context[1]),$context[2],$context[3],$context[4],$context[5],$context[6]);
     uasort($context_permissions,'context_permission_compare');
     customcontexts_customcontexts_editincludes($context[0],$context_permissions,$context[0]);
 }

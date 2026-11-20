@@ -40,6 +40,9 @@ $app->post('/webrtc', function (Request $request, Response $response, $args) {
     try {
         $params = $request->getParsedBody();
         $extensionnumber = $params['extension'];
+        if (!nethvoiceRequestIsSuperadmin($request) && !isExtensionNumber($extensionnumber)) {
+            return jsonResponse($response, array("status"=>"Invalid extension"), 400);
+        }
         $fpbx = FreePBX::create();
 
         $extension = createExtension($extensionnumber,false);

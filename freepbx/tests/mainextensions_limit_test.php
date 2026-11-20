@@ -50,6 +50,8 @@ namespace {
 
     function getAllUsers($all = "true") { return Pbx::$users; }
     function communityUsersLimit() { return 8; }
+    function isExtensionNumber($extension) { return preg_match('/^[0-9]+$/D', (string) $extension) === 1; }
+    function nethvoiceRequestIsSuperadmin($request) { return false; }
     function createMainExtensionForUser($username, $mainextension, $outboundcid = '') {
         Pbx::$created[] = [$username, $mainextension];
         return true;
