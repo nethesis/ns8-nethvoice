@@ -28,6 +28,7 @@ import type { FieldIssues } from '@/lib/integrations/validation'
 import {
   buildVideoSourcePayload,
   emptyVideoSourceForm,
+  maskVideoSourceUrl,
   saveVideoSource,
   testVideoSource,
   toVideoSourceForm,
@@ -106,7 +107,9 @@ const {
           ? t('integrations.video.source_saved')
           : t('integrations.video.source_created'),
         description: t(
-          edited ? 'common.object_saved_successfully' : 'common.object_created_successfully',
+          edited
+            ? 'integrations.video.source_updated_description'
+            : 'integrations.video.source_created_description',
           { name: sourceForm.name.trim() },
         ),
       })
@@ -273,7 +276,11 @@ function save() {
               <NeFormItemLabel>{{ t('integrations.video.preview') }}</NeFormItemLabel>
               <img
                 :src="snapshot"
-                :alt="t('integrations.video.preview_alt', { name: form.name || form.url })"
+                :alt="
+                  t('integrations.video.preview_alt', {
+                    name: form.name || maskVideoSourceUrl(form.url),
+                  })
+                "
                 class="max-h-64 max-w-full rounded-md border border-gray-300 dark:border-gray-600"
               />
             </div>
