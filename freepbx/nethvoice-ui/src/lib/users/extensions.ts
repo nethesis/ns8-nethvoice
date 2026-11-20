@@ -52,12 +52,36 @@ export const postMainExtension = async (username: string, extension: string): Pr
   await api.POST('/mainextensions', { body: { username, extension }, parseAs: 'text' })
 }
 
-export const reassignMainExtension = async (extension: string, username: string): Promise<void> => {
-  await api.POST('/mainextensions/{extension}/reassign', {
+export type ReassignResult = {
+  keyLabelsUpdated: number
+  keyLabelsIncomplete: boolean
+}
+
+const ReassignResultSchema = v.object({
+  key_labels_updated: v.fallback(v.pipe(v.number(), v.integer(), v.minValue(0)), 0),
+  key_labels_incomplete: v.fallback(v.boolean(), false),
+})
+
+export const parseReassignResult = (raw: unknown): ReassignResult => {
+  const result = v.safeParse(ReassignResultSchema, raw)
+
+  return result.success
+    ? {
+        keyLabelsUpdated: result.output.key_labels_updated,
+        keyLabelsIncomplete: result.output.key_labels_incomplete,
+      }
+    : { keyLabelsUpdated: 0, keyLabelsIncomplete: false }
+}
+
+export const reassignMainExtension = async (
+  extension: string,
+  username: string,
+): Promise<ReassignResult> => {
+  const { data } = await api.POST('/mainextensions/{extension}/reassign', {
     params: { path: { extension } },
     body: { username },
-    parseAs: 'text',
   })
+  return parseReassignResult(data)
 }
 
 export const getReassignTargets = (users: User[], owner: User): User[] =>

@@ -12,6 +12,7 @@ import {
   isChangingExtension,
   isRemovingExtension,
   isValidExtension,
+  parseReassignResult,
   parseUserLimits,
   planExtensionSteps,
   reassignMainExtension,
@@ -170,15 +171,42 @@ describe('getReassignTargets', () => {
 })
 
 describe('reassignMainExtension', () => {
-  it('posts the new owner of the main extension', async () => {
-    vi.mocked(api.POST).mockResolvedValue({ data: '', response: new Response() })
+  it('posts the new owner of the main extension and returns the key labels result', async () => {
+    vi.mocked(api.POST).mockResolvedValue({
+      data: { key_labels_updated: 3, key_labels_incomplete: false },
+      response: new Response(),
+    })
 
-    await reassignMainExtension('201', 'bob')
-
+    await expect(reassignMainExtension('201', 'bob')).resolves.toEqual({
+      keyLabelsUpdated: 3,
+      keyLabelsIncomplete: false,
+    })
     expect(api.POST).toHaveBeenCalledWith('/mainextensions/{extension}/reassign', {
       params: { path: { extension: '201' } },
       body: { username: 'bob' },
-      parseAs: 'text',
+    })
+  })
+})
+
+describe('parseReassignResult', () => {
+  it('reads the key labels result', () => {
+    expect(parseReassignResult({ key_labels_updated: 0, key_labels_incomplete: true })).toEqual({
+      keyLabelsUpdated: 0,
+      keyLabelsIncomplete: true,
+    })
+  })
+
+  it('reports no key labels change for an empty or unexpected response', () => {
+    const none = { keyLabelsUpdated: 0, keyLabelsIncomplete: false }
+
+    expect(parseReassignResult(undefined)).toEqual(none)
+    expect(parseReassignResult('')).toEqual(none)
+    expect(parseReassignResult({ key_labels_updated: -1, key_labels_incomplete: 'yes' })).toEqual(
+      none,
+    )
+    expect(parseReassignResult({ key_labels_updated: 2 })).toEqual({
+      keyLabelsUpdated: 2,
+      keyLabelsIncomplete: false,
     })
   })
 })

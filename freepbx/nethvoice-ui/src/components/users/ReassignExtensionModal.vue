@@ -62,16 +62,38 @@ const userOptions = computed<NeComboboxOption[]>(() =>
 const { mutate, isLoading, error, reset } = useMutation({
   mutation: ({ owner, target }: { owner: User; target: User }) =>
     reassignMainExtension(owner.mainExtension, target.username),
-  onSuccess(_, { owner, target }) {
+  onSuccess(result, { owner, target }) {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('users.extension_reassigned'),
-        description: t('users.extension_reassigned_description', {
-          extension: owner.mainExtension,
-          name: target.displayName,
-        }),
+        description:
+          result.keyLabelsUpdated > 0
+            ? t(
+                'users.extension_reassigned_key_labels_description',
+                {
+                  extension: owner.mainExtension,
+                  name: target.displayName,
+                  count: result.keyLabelsUpdated,
+                },
+                result.keyLabelsUpdated,
+              )
+            : t('users.extension_reassigned_description', {
+                extension: owner.mainExtension,
+                name: target.displayName,
+              }),
       })
+
+      if (result.keyLabelsIncomplete) {
+        notificationsStore.createNotification({
+          kind: 'warning',
+          title: t('users.cannot_update_key_labels'),
+          description: t('users.cannot_update_key_labels_description', {
+            extension: owner.mainExtension,
+            previous: owner.displayName,
+          }),
+        })
+      }
     }, 500)
     emit('close')
   },

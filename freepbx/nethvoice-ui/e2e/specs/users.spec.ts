@@ -546,7 +546,9 @@ test.describe('users', () => {
     page,
     mockApi,
   }) => {
-    mockApi.on('POST', `${REST}/mainextensions/:ext/reassign`, { status: 204 })
+    mockApi.on('POST', `${REST}/mainextensions/:ext/reassign`, {
+      json: { key_labels_updated: 0, key_labels_incomplete: false },
+    })
     await page.goto('./users/users')
     await page.getByRole('button', { name: 'Actions for c.davis' }).click()
     await page.getByRole('menuitem', { name: 'Reassign extension' }).click()
@@ -565,6 +567,53 @@ test.describe('users', () => {
     expect(mockApi.callsTo('POST', `${REST}/mainextensions/301/reassign`)[0].body).toEqual({
       username: 'd.jones',
     })
+  })
+
+  test('tells how many phone key labels the reassignment updated', async ({ page, mockApi }) => {
+    mockApi.on('POST', `${REST}/mainextensions/:ext/reassign`, {
+      json: { key_labels_updated: 3, key_labels_incomplete: false },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions for c.davis' }).click()
+    await page.getByRole('menuitem', { name: 'Reassign extension' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Reassign extension' })
+    await modal.getByRole('combobox', { name: 'Assign to' }).click()
+    await modal.getByRole('option', { name: /d\.jones/ }).click()
+    await modal.getByRole('button', { name: 'Reassign' }).click()
+
+    await expect(page.getByText('Extension reassigned')).toBeVisible()
+    await expect(
+      page.getByText(
+        'The extension 301 has been assigned to Daniel Jones and 3 phone key labels now show the new name',
+      ),
+    ).toBeVisible()
+    await expect(page.getByText('Cannot update the phone key labels')).toHaveCount(0)
+  })
+
+  test('warns when the phone key labels could not be updated', async ({ page, mockApi }) => {
+    mockApi.on('POST', `${REST}/mainextensions/:ext/reassign`, {
+      json: { key_labels_updated: 0, key_labels_incomplete: true },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions for c.davis' }).click()
+    await page.getByRole('menuitem', { name: 'Reassign extension' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Reassign extension' })
+    await modal.getByRole('combobox', { name: 'Assign to' }).click()
+    await modal.getByRole('option', { name: /d\.jones/ }).click()
+    await modal.getByRole('button', { name: 'Reassign' }).click()
+
+    await expect(page.getByText('Extension reassigned')).toBeVisible()
+    await expect(
+      page.getByText('The extension 301 has been assigned to Daniel Jones'),
+    ).toBeVisible()
+    await expect(page.getByText('Cannot update the phone key labels')).toBeVisible()
+    await expect(
+      page.getByText(
+        'Some phone keys of the extension 301 may still show Christopher Davis. Change their labels in the phone settings.',
+      ),
+    ).toBeVisible()
   })
 
   test('shows the error of a failed reassignment in the modal', async ({ page, mockApi }) => {
