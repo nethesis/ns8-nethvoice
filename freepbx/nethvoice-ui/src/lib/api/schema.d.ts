@@ -561,7 +561,7 @@ export interface paths {
     get?: never
     /**
      * Update the URL and the profiles of a parameterized URL.
-     * @description Body: `{ "url": "...", "profiles": [ids], "only_queues": <bool> }`. Synchronizes the profile list for the URL.
+     * @description Body: `{ "url": "...", "profiles": [ids], "only_queues": <bool> }`. Synchronizes the profile list for the URL. `names` renames the given profiles only; the others keep their name.
      */
     put: operations['put_cti_paramurl_id']
     post?: never
@@ -3554,12 +3554,20 @@ export interface components {
       /** @description Comma separated ids of the CTI profiles bound to the URL */
       profiles: string
       only_queues: boolean
+      /** @description Name of the parameterized URL of each profile, keyed by profile id */
+      names?: {
+        [key: string]: string
+      }
     }
     IntegrationsParamUrlInput: {
       id?: string
       url: string
       profiles: number[]
       only_queues: boolean
+      /** @description New name of the parameterized URL of some of the profiles, keyed by profile id. A profile without a name keeps its name, or gets the host of the URL when it is new. Limited administrators must send 1 to 50 characters without control characters. */
+      names?: {
+        [key: string]: string
+      }
     }
     IntegrationsParamUrlDeleteInput: {
       url: string
@@ -5214,6 +5222,15 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Bad request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
       }
       /** @description Internal server error */
       500: {

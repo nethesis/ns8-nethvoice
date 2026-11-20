@@ -932,7 +932,8 @@ paths:
         '500':
           description: Internal server error
       description: 'Body: `{ "url": "...", "profiles": [ids], "only_queues": <bool>
-        }`. Synchronizes the profile list for the URL.'
+        }`. Synchronizes the profile list for the URL. `names` renames the given
+        profiles only; the others keep their name.'
       operationId: put_cti_paramurl_id
       parameters:
       - name: id
@@ -1012,6 +1013,12 @@ paths:
       responses:
         '200':
           description: Successful response
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
         '500':
           description: Internal server error
       operationId: post_cti_paramurl
@@ -6593,6 +6600,11 @@ components:
           description: Comma separated ids of the CTI profiles bound to the URL
         only_queues:
           type: boolean
+        names:
+          type: object
+          description: Name of the parameterized URL of each profile, keyed by profile id
+          additionalProperties:
+            type: string
     IntegrationsParamUrlInput:
       type: object
       required:
@@ -6611,6 +6623,15 @@ components:
             type: integer
         only_queues:
           type: boolean
+        names:
+          type: object
+          description: New name of the parameterized URL of some of the profiles, keyed
+            by profile id. A profile without a name keeps its name, or gets the host of
+            the URL when it is new. Limited administrators must send 1 to 50 characters
+            without control characters.
+          additionalProperties:
+            type: string
+            maxLength: 50
     IntegrationsParamUrlDeleteInput:
       type: object
       required:

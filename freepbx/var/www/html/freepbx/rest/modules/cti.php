@@ -27,6 +27,7 @@ include_once('lib/libMiddleware.php');
 include_once('lib/libStreaming.php');
 include_once('lib/libDoorPhones.php');
 include_once('lib/libSecurity.php');
+include_once('lib/libParamUrls.php');
 
 const CTI_DBCONN_TARGET_FIELDS = ['host', 'port', 'type'];
 const CTI_DBCONN_PASSWORD_REQUIRED = 'Enter the password to connect to a different server';
@@ -510,6 +511,10 @@ $app->put('/cti/paramurl/{id}', function (Request $request, Response $response, 
         $profiles[] = (int) $profile;
       }
       $profiles = array_values(array_unique($profiles));
+      $names = nethvoiceParamUrlNamesInput($data, !nethvoiceRequestIsSuperadmin($request));
+      if ($names === null) {
+        return jsonResponse($response, array('status' => 'Invalid parameterized URL name'), 400);
+      }
 
       $dbh = FreePBX::Database();
       foreach ($profiles as $p) {
@@ -533,6 +538,7 @@ $app->put('/cti/paramurl/{id}', function (Request $request, Response $response, 
       if ($res === FALSE) {
           throw new Exception($sth->errorInfo()[2]);
       }
+      nethvoiceSaveParamUrlNames($dbh, $profiles, $names);
       system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
       return $response->withStatus(200);
   } catch (Exception $e) {
@@ -596,6 +602,10 @@ $app->post('/cti/paramurl', function (Request $request, Response $response, $arg
   try {
       $route = $request->getAttribute('route');
       $data = $request->getParsedBody();
+      $names = nethvoiceParamUrlNamesInput($data, !nethvoiceRequestIsSuperadmin($request));
+      if ($names === null) {
+        return jsonResponse($response, array('status' => 'Invalid parameterized URL name'), 400);
+      }
       $url = $data['url'];
       $profiles = $data['profiles'];
       $only_queues = ($data['only_queues']) ? 1 : 0;
@@ -608,6 +618,7 @@ $app->post('/cti/paramurl', function (Request $request, Response $response, $arg
             throw new Exception($sth->errorInfo()[2]);
         }
       }
+      nethvoiceSaveParamUrlNames($dbi, is_array($profiles) ? $profiles : array(), $names);
       system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
       return $response->withStatus(200);
   } catch (Exception $e) {
@@ -1335,12 +1346,18 @@ $app->get('/cti/paramurls', function (Request $request, Response $response, $arg
       $sth = $dbh->prepare($sql);
       $sth->execute();
       $res = $sth->fetchAll(PDO::FETCH_ASSOC);
+      $names = nethvoiceParamUrlNamesByProfile($dbh);
       for ($i = 0; $i < count($res); $i++) {
         if ($res[$i]["only_queues"] == "1") {
           $res[$i]["only_queues"] = true;
         } else {
           $res[$i]["only_queues"] = false;
         }
+        $groupNames = array();
+        foreach (explode(',', (string) $res[$i]['profiles']) as $profileId) {
+          $groupNames[$profileId] = $names[$profileId] ?? '';
+        }
+        $res[$i]['names'] = (object) $groupNames;
       }
       return jsonResponse($response, $res);
   } catch (Exception $e) {

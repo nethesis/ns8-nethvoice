@@ -110,6 +110,16 @@ if ((int)$db->query($sql)->fetchColumn() === 0) {
 	$db->exec('ALTER TABLE `roomsdb`.`room_groups` ADD UNIQUE KEY `unique_fias_guest_group_number` (`fias_guest_group_number`)');
 }
 
+$sql = "SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_cti_profiles_paramurl'
+          AND COLUMN_NAME = 'name'";
+if ((int)$db->query($sql)->fetchColumn() === 0) {
+	$db->exec("ALTER TABLE `asterisk`.`rest_cti_profiles_paramurl` ADD COLUMN `name` varchar(50) NOT NULL DEFAULT '' AFTER `only_queues`");
+}
+require_once '/var/www/html/freepbx/rest/lib/libParamUrls.php';
+nethvoiceFillParamUrlNames($db);
+
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
 $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';
