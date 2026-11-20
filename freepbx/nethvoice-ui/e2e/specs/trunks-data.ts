@@ -201,5 +201,5 @@ export const mockTrunksApi = (mockApi: MockApi, data: TrunksMockData = {}) =>
     .on('GET', '/freepbx/rest/devices/gateways/manufacturers', { json: GATEWAY_MODELS })
     .on('GET', '/freepbx/rest/configuration/networks', { json: null })
     .on('GET', '/freepbx/rest/users/:all', { json: USERS })
-    .on('GET', '/api/astproxy/trunks', { json: data.liveState ?? LIVE_STATE })
+    .on('GET', '/freepbx/rest/dashboard/live/trunks', { json: data.liveState ?? LIVE_STATE })
     .on('GET', '/freepbx/rest/outboundroutes', { json: data.routes ?? OUTBOUND_ROUTES })

@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockPermissions, test } from '../fixtures/mockApi'
 import {
   AI_AGENT_TRUNK,
   BACKUP_TRUNK,
@@ -123,7 +123,7 @@ test.describe('trunks: VoIP', () => {
     await expect(page.getByText('Patton_0b1cdd_isdn_0')).toHaveCount(0)
     expect(JSON.stringify(await page.content())).not.toContain('invented-secret')
 
-    const call = mockApi.callsTo('GET', '/api/astproxy/trunks')[0]
+    const call = mockApi.callsTo('GET', '/freepbx/rest/dashboard/live/trunks')[0]
     expect(call).toBeDefined()
   })
 
@@ -170,9 +170,31 @@ test.describe('trunks: VoIP', () => {
     await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
   })
 
+  test('shows the live status to an administrator with only the trunks section', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['trunks'], 'operator')
+    mockTrunksApi(mockApi)
+    await page.goto('./trunks/voip')
+
+    const main = page.getByRole('row', { name: /main_trunk/ })
+    await expect(main).toContainText('Online')
+    await expect(main).toContainText('Registered')
+    await expect(page.getByRole('row', { name: /backup_trunk/ })).toContainText('Rejected')
+    await expect(page.getByText('Live data not available')).toHaveCount(0)
+    await expect(page.getByText('Cannot load the live status of the trunks')).toHaveCount(0)
+  })
+
   test('keeps the list when the live status is not available', async ({ page, mockApi }) => {
     mockTrunksApi(mockApi)
-    mockApi.on('GET', '/api/astproxy/trunks', { status: 502, json: { message: 'Bad gateway' } })
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/trunks', {
+      status: 502,
+      json: { message: 'Bad gateway' },
+    })
     await page.goto('./trunks/voip')
 
     await expect(page.getByText('Cannot load the live status of the trunks')).toBeVisible()

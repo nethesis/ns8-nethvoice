@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import type { Page } from '@playwright/test'
-import { expect, test, type MockApi } from '../fixtures/mockApi'
+import { expect, mockPermissions, test, type MockApi } from '../fixtures/mockApi'
 import { GROUP_MEMBERS, GROUPS, PBX_USERS } from './groups-data'
 
 const extension = (status: string, extra: Record<string, unknown> = {}) => ({
@@ -31,7 +31,6 @@ const endpointUser = (
   name,
   username,
   mainPresence,
-  presence: 'online',
   endpoints: { mainextension: main ? [{ id: main }] : [], extension: extensions },
 })
 
@@ -48,8 +47,8 @@ const ENDPOINTS = {
 
 const mockOverview = (mockApi: MockApi, endpoints: object = ENDPOINTS) =>
   mockApi
-    .on('GET', '/api/astproxy/extensions', { json: EXTENSIONS })
-    .on('GET', '/api/user/endpoints/all', { json: endpoints })
+    .on('GET', '/freepbx/rest/dashboard/live/extensions', { json: EXTENSIONS })
+    .on('GET', '/freepbx/rest/dashboard/live/users', { json: endpoints })
     .on('GET', '/freepbx/rest/users/:all', { json: PBX_USERS })
     .on('GET', '/tancredi/api/v1/models', {
       json: [{ name: 'fanvil-X4U', display_name: 'Fanvil X4U Pro' }],
@@ -103,6 +102,31 @@ test.describe('user overview', () => {
     expect(mockApi.calls.every((call) => call.method === 'GET')).toBe(true)
   })
 
+  for (const [account, permissions] of [
+    ['operator', ['users']],
+    ['boss', ['superadmin']],
+  ] as const) {
+    test(`shows the live status to ${account} with ${permissions[0]}`, async ({
+      page,
+      mockApi,
+    }) => {
+      await page.addInitScript((user) => {
+        localStorage.setItem('secretkey', JSON.stringify({ user, hash: 'e2e-secret' }))
+      }, account)
+      mockPermissions(mockApi, [...permissions], account)
+      mockOverview(mockApi)
+      await page.goto('./users/overview')
+
+      await expect(userCard(page, 'a.miller').getByRole('listitem')).toHaveText([
+        /300\s*Online/,
+        /92300\s*Ringing/,
+        /93300\s*Offline/,
+      ])
+      await expect(page.getByText('Live data not available')).toHaveCount(0)
+      await expect(page.getByText('Cannot load the status of users')).toHaveCount(0)
+    })
+  }
+
   test('filters by text, status and group', async ({ page, mockApi }) => {
     mockOverview(mockApi)
     await page.goto('./users/overview')
@@ -154,9 +178,9 @@ test.describe('user overview', () => {
   test('shows a load error and retries', async ({ page, mockApi }) => {
     let fail = true
 
-    mockOverview(mockApi).on('GET', '/api/astproxy/extensions', () =>
+    mockOverview(mockApi).on('GET', '/freepbx/rest/dashboard/live/extensions', () =>
       fail
-        ? { status: 500, json: { code: 500, message: 'astproxy unavailable' } }
+        ? { status: 503, json: { message: 'The CTI server is not reachable' } }
         : { json: EXTENSIONS },
     )
     await page.goto('./users/overview')
@@ -244,10 +268,10 @@ test.describe('user overview', () => {
     await webPhone.click({ position: { x: 8, y: 8 } })
     await expect(webPhone).toHaveAttribute('aria-expanded', 'true')
 
-    const refreshes = mockApi.callsTo('GET', '/api/astproxy/extensions').length
+    const refreshes = mockApi.callsTo('GET', '/freepbx/rest/dashboard/live/extensions').length
     await page.clock.runFor(25000)
     await expect
-      .poll(() => mockApi.callsTo('GET', '/api/astproxy/extensions').length)
+      .poll(() => mockApi.callsTo('GET', '/freepbx/rest/dashboard/live/extensions').length)
       .toBeGreaterThan(refreshes)
 
     await expect(webPhone).toHaveAttribute('aria-expanded', 'true')

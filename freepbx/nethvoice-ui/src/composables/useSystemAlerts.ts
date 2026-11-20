@@ -4,11 +4,9 @@
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { useDocumentVisibility, useIntervalFn } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
-import * as v from 'valibot'
 import type { NeNotificationV2 } from '@nethesis/vue-components'
 import { isApiError } from '@/lib/api/errors'
 import { IS_E2E } from '@/lib/config'
-import { canReadCtiLiveData, ctiGet, isCtiAccessDenied } from '@/lib/dashboard/ctiClient'
 import { isExtensionsLimitReached } from '@/lib/dashboard/subscription'
 import {
   ADMIN_PHONE_ALERT_KEY,
@@ -27,7 +25,7 @@ import {
   writeNotifiedAlerts,
   type AlertCheck,
 } from '@/lib/notifications/systemAlerts'
-import { parseTrunksLiveState, type TrunksLiveState } from '@/lib/trunks/liveState'
+import { fetchLiveTrunks, parseTrunksLiveState, type TrunksLiveState } from '@/lib/trunks/liveState'
 import { useDashboardSubscription } from '@/queries/dashboard/subscription'
 import { usePermissions } from '@/queries/permissions/me'
 import { useAdminPhoneStore } from '@/stores/adminPhone'
@@ -35,8 +33,6 @@ import { useLoginStore } from '@/stores/login'
 import { describeError, isNetworkError, useNotificationsStore } from '@/stores/notifications'
 
 type AlertNotification = Pick<NeNotificationV2, 'kind' | 'title' | 'description'>
-
-const LIVE_TRUNKS_PATH = '/astproxy/trunks'
 
 export const areSystemAlertsAllowed = (): boolean =>
   !IS_E2E || Reflect.get(window, 'e2eSystemAlerts') === true
@@ -48,6 +44,8 @@ const readLiveTrunks = (raw: unknown): TrunksLiveState | null => {
     return null
   }
 }
+
+const isAccessDenied = (error: unknown): boolean => isApiError(error) && error.status === 403
 
 const isServiceDown = (error: unknown): boolean =>
   isNetworkError(error) || (isApiError(error) && error.status >= 500)
@@ -68,10 +66,7 @@ export const useSystemAlerts = (isEnabled: () => boolean) => {
 
   const running = computed(() => isEnabled() && loginStore.username !== '')
   const canSeeTrunks = computed(
-    () =>
-      permissions.can('trunks') &&
-      canReadCtiLiveData(loginStore.username) &&
-      !trunksForbidden.value,
+    () => (permissions.can('trunks') || permissions.can('dashboard')) && !trunksForbidden.value,
   )
   const isPolling = computed(
     () => running.value && canSeeTrunks.value && visibility.value === 'visible',
@@ -165,7 +160,7 @@ export const useSystemAlerts = (isEnabled: () => boolean) => {
     polling = controller
 
     try {
-      const raw = await ctiGet(LIVE_TRUNKS_PATH, v.unknown(), controller.signal)
+      const raw = await fetchLiveTrunks(controller.signal)
       const liveTrunks = readLiveTrunks(raw)
 
       liveFailures = 0
@@ -177,7 +172,7 @@ export const useSystemAlerts = (isEnabled: () => boolean) => {
       if (controller.signal.aborted) {
         return
       }
-      if (isCtiAccessDenied(error)) {
+      if (isAccessDenied(error)) {
         trunksForbidden.value = true
         return
       }

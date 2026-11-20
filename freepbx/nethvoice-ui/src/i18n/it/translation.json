@@ -220,7 +220,7 @@
     "cannot_load_phones": "Impossibile caricare lo stato dei telefoni",
     "live_unavailable": {
       "title": "Dati in tempo reale non disponibili",
-      "description": "I dati in tempo reale, come le chiamate in corso, la presence degli utenti e lo stato dei fasci, sono disponibili solo per l'account amministratore principale."
+      "description": "Lo stato in tempo reale non è disponibile in questo momento. Riprova tra poco."
     }
   },
   "users": {

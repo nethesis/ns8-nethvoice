@@ -23,8 +23,10 @@ const EXPECTED_CONFIG = Buffer.from(
 
 const mockOverview = (mockApi: MockApi) =>
   mockApi
-    .on('GET', '/api/astproxy/extensions', { json: { '300': { status: 'online', codecs: [] } } })
-    .on('GET', '/api/user/endpoints/all', {
+    .on('GET', '/freepbx/rest/dashboard/live/extensions', {
+      json: { '300': { status: 'online', codecs: [] } },
+    })
+    .on('GET', '/freepbx/rest/dashboard/live/users', {
       json: {
         'a.miller': {
           name: 'Anna Miller',
@@ -197,10 +199,10 @@ test.describe('administrator phone', () => {
     mockApi,
   }) => {
     mockOverview(mockApi)
-      .on('GET', '/api/astproxy/extensions', {
+      .on('GET', '/freepbx/rest/dashboard/live/extensions', {
         json: { '300': { status: 'online', codecs: [] }, '301': { status: 'busy', codecs: [] } },
       })
-      .on('GET', '/api/user/endpoints/all', {
+      .on('GET', '/freepbx/rest/dashboard/live/users', {
         json: {
           'a.miller': {
             name: 'Anna Miller',
@@ -276,14 +278,14 @@ test.describe('administrator phone', () => {
 
   test('calls an online device from its number in the card', async ({ page, mockApi }) => {
     mockOverview(mockApi)
-      .on('GET', '/api/astproxy/extensions', {
+      .on('GET', '/freepbx/rest/dashboard/live/extensions', {
         json: {
           '91300': { status: 'online', codecs: [] },
           '92300': { status: 'offline', codecs: [] },
           '93300': { status: 'busy', codecs: [] },
         },
       })
-      .on('GET', '/api/user/endpoints/all', {
+      .on('GET', '/freepbx/rest/dashboard/live/users', {
         json: {
           'a.miller': {
             name: 'Anna Miller',
@@ -315,14 +317,14 @@ test.describe('administrator phone', () => {
 
   test('calls a single online device from the call menu', async ({ page, mockApi }) => {
     mockOverview(mockApi)
-      .on('GET', '/api/astproxy/extensions', {
+      .on('GET', '/freepbx/rest/dashboard/live/extensions', {
         json: {
           '300': { status: 'online', codecs: [] },
           '91300': { status: 'online', codecs: [] },
           '92300': { status: 'offline', codecs: [] },
         },
       })
-      .on('GET', '/api/user/endpoints/all', {
+      .on('GET', '/freepbx/rest/dashboard/live/users', {
         json: {
           'a.miller': {
             name: 'Anna Miller',

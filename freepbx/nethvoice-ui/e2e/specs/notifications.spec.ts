@@ -4,7 +4,7 @@
 import type { Page } from '@playwright/test'
 import { expect, mockPermissions, test, type MockApi, type MockResponse } from '../fixtures/mockApi'
 
-const LIVE_TRUNKS_PATH = '/api/astproxy/trunks'
+const LIVE_TRUNKS_PATH = '/freepbx/rest/dashboard/live/trunks'
 
 const POLL_INTERVAL = 60_000
 
@@ -129,7 +129,7 @@ test.describe('system alerts', () => {
   })
 
   test('stays silent when the account cannot read the live data', async ({ page, mockApi }) => {
-    mockLiveTrunks(mockApi, { status: 403, json: { message: 'Forbidden' } })
+    mockLiveTrunks(mockApi, { status: 403, json: { message: 'Forbidden: missing permission' } })
     await page.goto('./settings')
     await expect.poll(() => checksDone(mockApi)).toBeGreaterThanOrEqual(1)
     const done = checksDone(mockApi)
@@ -140,21 +140,45 @@ test.describe('system alerts', () => {
     await expect(toasts(page).getByText('Cannot load live data')).toHaveCount(0)
   })
 
-  test('does not check the live data for an account other than admin', async ({
+  for (const sections of [
+    ['trunks', 'settings'],
+    ['dashboard', 'settings'],
+  ]) {
+    test(`alerts a limited administrator with ${sections[0]} when a trunk goes down`, async ({
+      page,
+      mockApi,
+    }) => {
+      await page.addInitScript(() => {
+        localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+      })
+      mockPermissions(mockApi, sections, 'operator')
+      const respond = mockLiveTrunks(mockApi, { json: ONLINE })
+      await page.goto('./settings')
+      await expect(page).toHaveURL(/\/nethvoice\/settings$/)
+      await expect.poll(() => checksDone(mockApi)).toBeGreaterThanOrEqual(1)
+
+      respond({ json: OFFLINE })
+      await nextCheck(page, mockApi)
+      await expect(toasts(page).getByText('Trunk unreachable')).toBeVisible()
+    })
+  }
+
+  test('does not check the trunks without the trunks or dashboard section', async ({
     page,
     mockApi,
   }) => {
     await page.addInitScript(() => {
       localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
     })
-    mockPermissions(mockApi, ['trunks', 'settings'], 'operator')
-    mockLiveTrunks(mockApi, { json: ONLINE })
+    mockPermissions(mockApi, ['settings'], 'operator')
+    mockLiveTrunks(mockApi, { json: OFFLINE })
     await page.goto('./settings')
     await expect(page).toHaveURL(/\/nethvoice\/settings$/)
 
     await page.clock.runFor(POLL_INTERVAL * 2)
 
     expect(checksDone(mockApi)).toBe(0)
+    await expect(toasts(page).getByText('Trunk unreachable')).toHaveCount(0)
   })
 
   test('warns once when the extension limit is reached', async ({ page, mockApi }) => {

@@ -131,7 +131,7 @@ export const mockPhonesApi = (mockApi: MockApi, options: PhonesApiOptions = {}) 
     .on('GET', `${TANCREDI}/backgrounds`, {
       json: [{ name: 'company-logo.png', size: 2048, mtime: 1767225600 }],
     })
-    .on('GET', '/api/astproxy/extensions', { json: EXTENSIONS })
+    .on('GET', `${REST}/dashboard/live/extensions`, { json: EXTENSIONS })
 
 const applyPatch = (stored: Record<string, unknown>, patch: unknown) => {
   if (typeof patch !== 'object' || patch === null) {

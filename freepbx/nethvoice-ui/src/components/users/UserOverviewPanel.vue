@@ -33,8 +33,6 @@ import OperatorDetailsDrawer from '@/components/overview/OperatorDetailsDrawer.v
 import OverviewCompactCard from '@/components/overview/OverviewCompactCard.vue'
 import OverviewUserCard from '@/components/overview/OverviewUserCard.vue'
 import OverviewUsersTable from '@/components/overview/OverviewUsersTable.vue'
-import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
-import { useCtiLiveAccess } from '@/composables/useCtiLiveAccess'
 import { usePolling } from '@/composables/usePolling'
 import {
   buildModelLabels,
@@ -52,6 +50,7 @@ import {
 } from '@/lib/overview/overview'
 import { useGroups } from '@/queries/groups/groups'
 import { useOverviewLiveState } from '@/queries/overview/overview'
+import { usePermissions } from '@/queries/permissions/me'
 import { usePhoneModels } from '@/queries/phones/models'
 import { useUsers } from '@/queries/users/users'
 import { useFavoritesStore } from '@/stores/favorites'
@@ -65,10 +64,10 @@ const { state: usersState, refetch: refetchUsers } = useUsers()
 const { state: groupsState, refetch: refetchGroups } = useGroups()
 const { state: phoneModelsState } = usePhoneModels()
 
-const liveAvailable = useCtiLiveAccess()
+const { can } = usePermissions()
 
 usePolling(() => {
-  if (liveAvailable.value) {
+  if (can('users')) {
     refetchLive()
   }
 }, OVERVIEW_REFRESH_INTERVAL)
@@ -264,7 +263,7 @@ function showDetails(user: OverviewUser) {
 }
 
 function reload() {
-  if (liveAvailable.value) {
+  if (can('users')) {
     refetchLive()
   }
   refetchUsers()
@@ -274,9 +273,8 @@ function reload() {
 
 <template>
   <div>
-    <LiveDataUnavailableNotice v-if="!liveAvailable" />
     <LoadError
-      v-else-if="loadError"
+      v-if="loadError"
       :error="loadError"
       :title="t('user_overview.cannot_load')"
       @retry="reload"

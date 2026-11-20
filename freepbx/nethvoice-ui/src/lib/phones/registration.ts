@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
-import { ctiGet } from '@/lib/dashboard/ctiClient'
+import { api } from '@/lib/api/client'
 
 export const PHONE_REGISTRATIONS_KEY = 'phoneRegistrations'
 
@@ -48,5 +48,7 @@ export const parsePhoneRegistrations = (raw: unknown): PhoneRegistrations => {
   return registrations
 }
 
-export const getPhoneRegistrations = async (signal?: AbortSignal): Promise<PhoneRegistrations> =>
-  parsePhoneRegistrations(await ctiGet('/astproxy/extensions', v.unknown(), signal))
+export const getPhoneRegistrations = async (signal?: AbortSignal): Promise<PhoneRegistrations> => {
+  const { data } = await api.GET('/dashboard/live/extensions', { signal })
+  return parsePhoneRegistrations(data)
+}

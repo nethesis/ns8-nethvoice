@@ -50,9 +50,9 @@ import { TRUNKS_LIVE_STATE_REFRESH_INTERVAL } from '@/lib/trunks/liveState'
 import { PAGE_SIZES } from '@/lib/common'
 import { useGatewayModels, useGateways } from '@/queries/trunks/gateways'
 import { useTrunks, useTrunksLiveState } from '@/queries/trunks/trunks'
+import { usePermissions } from '@/queries/permissions/me'
 import { useClientPagination } from '@/composables/useClientPagination'
 import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
-import { useCtiLiveAccess } from '@/composables/useCtiLiveAccess'
 import { usePolling } from '@/composables/usePolling'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
@@ -89,11 +89,11 @@ const isLoaded = computed(() => !isLoading.value && !loadError.value)
 
 const gateways = computed(() => gatewaysState.value.data ?? [])
 
-const liveAvailable = useCtiLiveAccess()
+const { can } = usePermissions()
 
 usePolling(
   () => {
-    if (liveAvailable.value) {
+    if (can('trunks')) {
       refetchLiveState()
     }
   },
@@ -304,7 +304,7 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
           {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
-      <LiveDataUnavailableNotice v-if="gateways.length > 0 && !liveAvailable" />
+      <LiveDataUnavailableNotice v-if="gateways.length > 0 && liveState.status === 'error'" />
       <NeTable
         v-if="isTableShown"
         :aria-label="t('trunks.tab_physical')"

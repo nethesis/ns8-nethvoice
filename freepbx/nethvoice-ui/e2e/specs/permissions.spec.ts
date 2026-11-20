@@ -35,6 +35,16 @@ test.describe('section permissions', () => {
   test.describe('dashboard only', () => {
     test.beforeEach(({ mockApi }) => {
       mockPermissions(mockApi, ['dashboard'], 'viewer')
+      mockApi
+        .on('GET', '/freepbx/rest/dashboard/live/extensions', { json: {} })
+        .on('GET', '/freepbx/rest/dashboard/live/users', { json: {} })
+        .on('GET', '/freepbx/rest/trunks', { json: [] })
+        .on('GET', '/freepbx/rest/inboundroutes', { json: { destinations: {}, routes: [] } })
+        .on('GET', '/freepbx/rest/users/count', { json: 0 })
+        .on('GET', '/freepbx/rest/cti/groups', { json: [] })
+        .on('GET', '/freepbx/rest/trunks/count', { json: 0 })
+        .on('GET', '/freepbx/rest/inboundroutes/count', { json: 0 })
+        .on('GET', '/freepbx/rest/outboundroutes/count', { json: 0 })
     })
 
     test('shows only the dashboard in the side menu', async ({ page }) => {
@@ -60,10 +70,48 @@ test.describe('section permissions', () => {
     test('opens the dashboard without a notice', async ({ page }) => {
       await page.goto('./dashboard')
 
-      await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
       await expect(
         page.getByTestId('toast-notifications').getByText('Section not available'),
       ).toHaveCount(0)
+    })
+
+    test('shows the live data cards', async ({ page, mockApi }) => {
+      mockApi
+        .on('GET', '/freepbx/rest/dashboard/live/extensions', {
+          json: {
+            '300': { exten: '300', name: 'Anna Miller', status: 'online', conversations: {} },
+          },
+        })
+        .on('GET', '/freepbx/rest/dashboard/live/users', {
+          json: {
+            'a.miller': {
+              name: 'Anna Miller',
+              username: 'a.miller',
+              mainPresence: 'online',
+              endpoints: {
+                mainextension: [{ id: '300' }],
+                extension: [{ id: '300', type: 'webrtc' }],
+              },
+            },
+          },
+        })
+        .on('GET', '/freepbx/rest/trunks', { json: [] })
+        .on('GET', '/freepbx/rest/inboundroutes', { json: { destinations: {}, routes: [] } })
+      await page.goto('./dashboard')
+
+      await expect(page.getByTestId('presence-card').getByTestId('breakdown-online')).toHaveText(
+        '1',
+      )
+      await expect(page.getByTestId('devices-card').getByTestId('breakdown-webPhone')).toHaveText(
+        '1',
+      )
+      await expect(
+        page.getByTestId('counter-callsInProgress').getByTestId('counter-value'),
+      ).toHaveText('0')
+      await expect(page.getByTestId('trunks-card')).toBeVisible()
+      await expect(page.getByTestId('inbound-routes-card')).toBeVisible()
+      await expect(page.getByText('Live data not available')).toHaveCount(0)
     })
 
     test('counts the physical phones without the phones section', async ({ page, mockApi }) => {

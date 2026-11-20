@@ -53,9 +53,8 @@ import {
 import { PAGE_SIZES } from '@/lib/common'
 import { useTrunkProviders, useTrunks, useTrunksLiveState } from '@/queries/trunks/trunks'
 import { useGateways } from '@/queries/trunks/gateways'
+import { usePermissions } from '@/queries/permissions/me'
 import { useClientPagination } from '@/composables/useClientPagination'
-import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
-import { useCtiLiveAccess } from '@/composables/useCtiLiveAccess'
 import { usePolling } from '@/composables/usePolling'
 import { describeError } from '@/stores/notifications'
 
@@ -71,10 +70,10 @@ const {
   refetch: refetchLiveState,
 } = useTrunksLiveState()
 
-const liveAvailable = useCtiLiveAccess()
+const { can } = usePermissions()
 
 usePolling(() => {
-  if (liveAvailable.value) {
+  if (can('trunks')) {
     refetchLiveState()
   }
 }, TRUNKS_LIVE_STATE_REFRESH_INTERVAL)
@@ -248,9 +247,8 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
         :title="t('trunks.voip.cannot_load_trunks')"
         @retry="retry"
       />
-      <LiveDataUnavailableNotice v-if="isLoaded && voipTrunks.length > 0 && !liveAvailable" />
       <NeInlineNotification
-        v-else-if="isLoaded && voipTrunks.length > 0 && liveState.status === 'error'"
+        v-if="isLoaded && voipTrunks.length > 0 && liveState.status === 'error'"
         kind="warning"
         :title="t('trunks.cannot_load_live_status')"
         :description="describeError(liveState.error)"
