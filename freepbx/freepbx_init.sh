@@ -136,8 +136,22 @@ php /apply-instance-bindings.php --save-transports || exit $?
     done
 ) || exit $?
 
-# Convert unsupported trunks before any sync/reload, including on recovery starts.
+# Convert legacy SIP configurations before user sync or reload.
 php /convert-legacy-sip-trunks.php
+if legacy_extensions=$(php -r '
+    require "/etc/freepbx_db.conf";
+    $query = $db->prepare("SELECT id FROM devices WHERE tech = ?");
+    $query->execute(["sip"]);
+    echo implode(",", preg_grep("/^[0-9]+$/D", $query->fetchAll(PDO::FETCH_COLUMN)));
+' 2>/dev/null); then
+    if [[ -n "$legacy_extensions" ]]; then
+        # FreePBX may print credentials in its conversion errors.
+        fwconsole convert2pjsip --range "$legacy_extensions" >/dev/null 2>&1 ||
+            echo 'Legacy SIP extension conversion command failed' >&2
+    fi
+else
+    echo 'Could not list legacy SIP extensions for conversion' >&2
+fi
 
 # Apply registered runtime rules without scanning the entire web tree.
 ionice -c2 -n7 nice -n 10 fwconsole chown --module=framework
