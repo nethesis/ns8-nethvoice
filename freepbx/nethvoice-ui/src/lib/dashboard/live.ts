@@ -2,8 +2,8 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
+import { api } from '@/lib/api/client'
 import type { TrunksLiveState } from '@/lib/trunks/liveState'
-import { ctiGet } from './ctiClient'
 
 export const DASHBOARD_LIVE_KEY = 'dashboardLive'
 
@@ -304,20 +304,21 @@ export const getElapsedCallDuration = (
   now: number,
 ): number => call.duration + Math.max(0, Math.floor((now - fetchedAt) / 1000))
 
-const getLiveSnapshot = async <TSchema extends v.GenericSchema>(
-  path: string,
-  schema: TSchema,
+const toSnapshot = <TData>(data: TData): LiveSnapshot<TData> => ({ data, fetchedAt: Date.now() })
+
+export const getLiveExtensions = async (
   signal?: AbortSignal,
-): Promise<LiveSnapshot<v.InferOutput<TSchema>>> => ({
-  data: await ctiGet(path, schema, signal),
-  fetchedAt: Date.now(),
-})
+): Promise<LiveSnapshot<CtiExtensions>> => {
+  const { data } = await api.GET('/dashboard/live/extensions', { signal })
+  return toSnapshot(parseCtiExtensions(data))
+}
 
-export const getLiveExtensions = (signal?: AbortSignal): Promise<LiveSnapshot<CtiExtensions>> =>
-  getLiveSnapshot('/astproxy/extensions', ExtensionsResponseSchema, signal)
+export const getLiveTrunks = async (signal?: AbortSignal): Promise<LiveSnapshot<CtiTrunks>> => {
+  const { data } = await api.GET('/dashboard/live/trunks', { signal })
+  return toSnapshot(parseCtiTrunks(data))
+}
 
-export const getLiveTrunks = (signal?: AbortSignal): Promise<LiveSnapshot<CtiTrunks>> =>
-  getLiveSnapshot('/astproxy/trunks', TrunksResponseSchema, signal)
-
-export const getLiveUsers = (signal?: AbortSignal): Promise<LiveSnapshot<CtiUsers>> =>
-  getLiveSnapshot('/user/endpoints/all', UsersResponseSchema, signal)
+export const getLiveUsers = async (signal?: AbortSignal): Promise<LiveSnapshot<CtiUsers>> => {
+  const { data } = await api.GET('/dashboard/live/users', { signal })
+  return toSnapshot(parseCtiUsers(data))
+}

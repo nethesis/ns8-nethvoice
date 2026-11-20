@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockPermissions, test } from '../fixtures/mockApi'
 import { ISDN_GATEWAY, mockTrunksApi } from './trunks-data'
 
 test.describe('trunks: physical', () => {
@@ -39,6 +39,33 @@ test.describe('trunks: physical', () => {
     await expect(grandstream).toContainText('Grandstream')
     await expect(grandstream).toContainText('Unmonitored')
     expect(mockApi.callsTo('GET', '/freepbx/rest/devices/gateways/list/:id')).not.toHaveLength(0)
+  })
+
+  test('shows the gateway status to an administrator with only the trunks section', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['trunks'], 'operator')
+    mockTrunksApi(mockApi)
+    await page.goto('./trunks/physical')
+
+    await expect(page.getByRole('row', { name: /TRINITY ISDN 2 Porte/ })).toContainText('Connected')
+    await expect(page.getByTestId('live-data-unavailable')).toHaveCount(0)
+  })
+
+  test('keeps the gateways when the live status cannot be loaded', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/trunks', {
+      status: 503,
+      json: { message: 'The CTI server is not reachable' },
+    })
+    await page.goto('./trunks/physical')
+
+    await expect(page.getByTestId('live-data-unavailable')).toContainText('Live data not available')
+    await expect(page.getByRole('row', { name: /TRINITY ISDN 2 Porte/ })).toContainText('Patton')
   })
 
   test('filters the gateways', async ({ page, mockApi }) => {

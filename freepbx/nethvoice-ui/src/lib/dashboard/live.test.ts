@@ -1,11 +1,15 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import {
   combineLiveCalls,
   formatCallDuration,
   getElapsedCallDuration,
+  getLiveExtensions,
+  getLiveTrunks,
+  getLiveUsers,
   listCallsInProgress,
   parseCtiExtensions,
   parseCtiTrunks,
@@ -15,6 +19,8 @@ import {
   summarizeTrunks,
   type CtiExtensions,
 } from './live'
+
+vi.mock('@/lib/api/client', () => ({ api: { GET: vi.fn() } }))
 
 const extension = (exten: string, name: string, status = 'online', conversations = {}) => ({
   exten,
@@ -451,5 +457,125 @@ describe('getElapsedCallDuration', () => {
 
     expect(getElapsedCallDuration(call, 1_000, 4_500)).toBe(13)
     expect(getElapsedCallDuration(call, 5_000, 1_000)).toBe(10)
+  })
+})
+
+describe('live data routes', () => {
+  const respond = (data: unknown) =>
+    vi.mocked(api.GET).mockResolvedValueOnce({ data, response: new Response() } as never)
+
+  it('should read the extensions from the dashboard route', async () => {
+    respond({
+      '201': {
+        exten: '201',
+        name: 'Alice Example',
+        status: 'busy',
+        conversations: {
+          c1: {
+            id: 'c1',
+            linkedId: '1700000000.1',
+            duration: 42,
+            direction: 'out',
+            connected: true,
+            throughQueue: false,
+            throughTrunk: false,
+            counterpartNum: '202',
+            counterpartName: 'Bob Example',
+          },
+        },
+        dnd: false,
+        cf: '',
+        codecs: ['alaw'],
+        ip: '192.0.2.10',
+        port: '5060',
+        sipuseragent: 'Yealink T46U',
+      },
+      '202': { exten: '202', name: 'Bob Example', status: 'online', conversations: {} },
+    })
+
+    const snapshot = await getLiveExtensions()
+
+    expect(api.GET).toHaveBeenLastCalledWith('/dashboard/live/extensions', { signal: undefined })
+    expect(listCallsInProgress(snapshot.data, {})).toEqual([
+      {
+        id: 'internal:1700000000.1',
+        type: 'internal',
+        source: 'Alice Example',
+        destination: 'Bob Example',
+        duration: 42,
+        throughQueue: false,
+      },
+    ])
+  })
+
+  it('should read the trunks from the dashboard route', async () => {
+    respond({
+      Provider: {
+        name: 'Provider',
+        status: 'online',
+        registration: 'registered',
+        conversations: {
+          c1: {
+            id: 'c1',
+            duration: 7,
+            direction: 'in',
+            chSource: { channelStatus: 'up' },
+            chDest: { channelStatus: 'up' },
+            internalNum: '201',
+            internalName: 'Alice Example',
+            externalNum: '0200000000',
+            externalName: '',
+            throughQueue: true,
+          },
+        },
+      },
+      Unmonitored: { name: 'Unmonitored', status: null, conversations: {} },
+    })
+
+    const snapshot = await getLiveTrunks()
+
+    expect(api.GET).toHaveBeenLastCalledWith('/dashboard/live/trunks', { signal: undefined })
+    expect(summarizeTrunks(snapshot.data)).toEqual({
+      Provider: { status: 'online', registration: 'registered' },
+      Unmonitored: { status: 'unmonitored', registration: 'unmonitored' },
+    })
+    expect(listCallsInProgress({}, snapshot.data)[0]).toMatchObject({
+      type: 'incoming',
+      source: '0200000000',
+      destination: 'Alice Example',
+      throughQueue: true,
+    })
+  })
+
+  it('should read the users from the dashboard route', async () => {
+    respond({
+      alice: {
+        name: 'Alice Example',
+        username: 'alice',
+        mainPresence: 'busy',
+        endpoints: {
+          mainextension: [{ id: '201' }],
+          extension: [
+            { id: '201', type: 'physical' },
+            { id: '91201', type: 'webrtc' },
+          ],
+        },
+      },
+    })
+
+    const snapshot = await getLiveUsers()
+
+    expect(api.GET).toHaveBeenLastCalledWith('/dashboard/live/users', { signal: undefined })
+    expect(summarizePresence(snapshot.data)).toEqual({ online: 0, busy: 1, dnd: 0, offline: 0 })
+    expect(snapshot.data.alice.endpoints.extension).toEqual([
+      { id: '201', type: 'physical' },
+      { id: '91201', type: 'webrtc' },
+    ])
+  })
+
+  it('should reject an answer that is not an object', async () => {
+    respond('broken')
+
+    await expect(getLiveUsers()).rejects.toThrow()
   })
 })

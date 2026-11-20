@@ -14,8 +14,7 @@ const ctiUser = (mainPresence: string, extensions: { id: string; type: string }[
   name: 'Anna Miller',
   username: 'a.miller',
   mainPresence,
-  presence: 'online',
-  endpoints: { extension: extensions, mainextension: [] },
+  endpoints: { mainextension: [], extension: extensions },
 })
 
 const EXTENSIONS = {
@@ -186,14 +185,18 @@ const mockDashboard = (mockApi: MockApi) =>
     .on('GET', '/freepbx/rest/mainextensions/userlimits', {
       json: { configured: 5, limit: false, configurable: false },
     })
-    .on('GET', '/api/astproxy/extensions', { json: EXTENSIONS })
-    .on('GET', '/api/astproxy/trunks', { json: TRUNKS })
-    .on('GET', '/api/user/endpoints/all', { json: USERS })
+    .on('GET', '/freepbx/rest/dashboard/live/extensions', { json: EXTENSIONS })
+    .on('GET', '/freepbx/rest/dashboard/live/trunks', { json: TRUNKS })
+    .on('GET', '/freepbx/rest/dashboard/live/users', { json: USERS })
     .on('GET', '/freepbx/rest/dashboard/calls', callsResponse())
     .on('GET', '/freepbx/rest/dashboard/system', { json: SYSTEM })
     .on('GET', '/freepbx/rest/dashboard/phones', { json: PHONE_STATUS })
 
-const LIVE_PATHS = ['/api/astproxy/extensions', '/api/astproxy/trunks', '/api/user/endpoints/all']
+const LIVE_PATHS = [
+  '/freepbx/rest/dashboard/live/extensions',
+  '/freepbx/rest/dashboard/live/trunks',
+  '/freepbx/rest/dashboard/live/users',
+]
 
 const counterValue = (page: import('@playwright/test').Page, id: string) =>
   page.getByTestId(`counter-${id}`).getByTestId('counter-value')
@@ -417,9 +420,11 @@ test.describe('dashboard', () => {
       ]),
     )
 
-    mockApi.on('GET', '/api/astproxy/extensions', { json: {} }).on('GET', '/api/astproxy/trunks', {
-      json: { Provider: { ...TRUNKS.Provider, conversations } },
-    })
+    mockApi
+      .on('GET', '/freepbx/rest/dashboard/live/extensions', { json: {} })
+      .on('GET', '/freepbx/rest/dashboard/live/trunks', {
+        json: { Provider: { ...TRUNKS.Provider, conversations } },
+      })
 
     await page.goto('./dashboard')
 
@@ -440,7 +445,7 @@ test.describe('dashboard', () => {
       .on('GET', '/freepbx/rest/trunks', {
         json: [...FREEPBX_TRUNKS, { trunkid: 3, tech: 'pjsip', name: 'Fallback', disabled: 'off' }],
       })
-      .on('GET', '/api/astproxy/trunks', {
+      .on('GET', '/freepbx/rest/dashboard/live/trunks', {
         json: {
           Provider: { ...TRUNKS.Provider, status: 'offline' },
           Backup: {
@@ -539,10 +544,10 @@ test.describe('dashboard', () => {
     await expect(page.getByText('No inbound routes configured')).toBeVisible()
   })
 
-  test('sends the admin credentials to the CTI API', async ({ page, mockApi }) => {
+  test('sends the administrator credentials to the live data routes', async ({ page, mockApi }) => {
     let headers: Record<string, string> = {}
 
-    mockApi.on('GET', '/api/astproxy/trunks', (request) => {
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/trunks', (request) => {
       headers = request.headers
       return { json: TRUNKS }
     })
@@ -583,7 +588,7 @@ test.describe('dashboard', () => {
       .on('GET', '/freepbx/rest/mainextensions/userlimits', {
         json: { configured: 4, limit: 8, configurable: 4 },
       })
-      .on('GET', '/api/user/endpoints/all', { status: 500, json: { message: 'busy' } })
+      .on('GET', '/freepbx/rest/dashboard/live/users', { status: 500, json: { message: 'busy' } })
 
     await page.goto('./dashboard')
 
@@ -868,10 +873,10 @@ test.describe('dashboard', () => {
 
   test('shows an empty state when no call is in progress', async ({ page, mockApi }) => {
     mockApi
-      .on('GET', '/api/astproxy/extensions', {
+      .on('GET', '/freepbx/rest/dashboard/live/extensions', {
         json: { '300': extension('300', 'Anna Miller', 'online') },
       })
-      .on('GET', '/api/astproxy/trunks', { json: {} })
+      .on('GET', '/freepbx/rest/dashboard/live/trunks', { json: {} })
 
     await page.goto('./dashboard')
 
@@ -883,7 +888,7 @@ test.describe('dashboard', () => {
   test('reports a live data error and retries', async ({ page, mockApi }) => {
     let fail = true
 
-    mockApi.on('GET', '/api/astproxy/trunks', () =>
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/trunks', () =>
       fail ? { status: 500, json: { message: 'astproxy not ready' } } : { json: TRUNKS },
     )
 
@@ -929,9 +934,9 @@ test.describe('dashboard', () => {
   test('summarizes the unreachable services in one notification', async ({ page, mockApi }) => {
     let fail = true
     const responses: Record<string, unknown> = {
-      '/api/astproxy/extensions': EXTENSIONS,
-      '/api/astproxy/trunks': TRUNKS,
-      '/api/user/endpoints/all': USERS,
+      '/freepbx/rest/dashboard/live/extensions': EXTENSIONS,
+      '/freepbx/rest/dashboard/live/trunks': TRUNKS,
+      '/freepbx/rest/dashboard/live/users': USERS,
       '/freepbx/rest/cti/groups': [{ id: 1, name: 'Sales' }],
     }
 
@@ -963,7 +968,10 @@ test.describe('dashboard', () => {
   })
 
   test('keeps the presence and the trunks when the extensions fail', async ({ page, mockApi }) => {
-    mockApi.on('GET', '/api/astproxy/extensions', { status: 500, json: { message: 'busy' } })
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/extensions', {
+      status: 500,
+      json: { message: 'busy' },
+    })
 
     await page.goto('./dashboard')
 
@@ -977,7 +985,7 @@ test.describe('dashboard', () => {
   })
 
   test('counts an unknown presence as offline', async ({ page, mockApi }) => {
-    mockApi.on('GET', '/api/user/endpoints/all', {
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/users', {
       json: { ...USERS, 'f.neri': ctiUser('away', []) },
     })
 
@@ -993,7 +1001,7 @@ test.describe('dashboard', () => {
     mockApi,
   }) => {
     mockApi
-      .on('GET', '/api/astproxy/extensions', {
+      .on('GET', '/freepbx/rest/dashboard/live/extensions', {
         json: {
           ...EXTENSIONS,
           '302': extension('302', 'Carla Rossi', 'busy', {
@@ -1019,7 +1027,7 @@ test.describe('dashboard', () => {
           }),
         },
       })
-      .on('GET', '/api/astproxy/trunks', {
+      .on('GET', '/freepbx/rest/dashboard/live/trunks', {
         json: {
           Provider: {
             ...TRUNKS.Provider,
@@ -1051,7 +1059,7 @@ test.describe('dashboard', () => {
     page,
     mockApi,
   }) => {
-    mockApi.on('GET', '/api/user/endpoints/all', {
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/users', {
       json: { 'e.verdi': ctiUser('offline', []) },
     })
 
@@ -1067,7 +1075,7 @@ test.describe('dashboard', () => {
     let inFlight = 0
     let maxInFlight = 0
 
-    mockApi.on('GET', '/api/astproxy/extensions', async () => {
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/extensions', async () => {
       inFlight += 1
       maxInFlight = Math.max(maxInFlight, inFlight)
       await new Promise((resolve) => setTimeout(resolve, 7000))
@@ -1085,16 +1093,18 @@ test.describe('dashboard', () => {
     await page.clock.install()
     await page.goto('./dashboard')
     await expect(page.getByTestId('call-row')).toHaveCount(2)
-    const before = mockApi.callsTo('GET', '/api/astproxy/extensions').length
+    const before = mockApi.callsTo('GET', '/freepbx/rest/dashboard/live/extensions').length
 
-    mockApi.on('GET', '/api/astproxy/trunks', { json: {} })
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/trunks', { json: {} })
     await page.clock.runFor(6000)
 
     await expect(page.getByTestId('call-row')).toHaveCount(1)
-    expect(mockApi.callsTo('GET', '/api/astproxy/extensions').length).toBeGreaterThan(before)
+    expect(
+      mockApi.callsTo('GET', '/freepbx/rest/dashboard/live/extensions').length,
+    ).toBeGreaterThan(before)
   })
 
-  test('explains the missing live data to an account other than admin', async ({
+  test('shows the live data to an administrator with only the dashboard section', async ({
     page,
     mockApi,
   }) => {
@@ -1102,54 +1112,44 @@ test.describe('dashboard', () => {
       localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
     })
     mockPermissions(mockApi, ['dashboard'], 'operator')
-    await page.clock.install()
     await page.goto('./dashboard')
 
-    await expect(page.getByTestId('dashboard-live-unavailable')).toContainText(
-      'Live data not available',
-    )
+    await expect(counterValue(page, 'callsInProgress')).toHaveText('2')
+    await expect(page.getByTestId('presence-card').getByTestId('breakdown-busy')).toHaveText('2')
+    await expect(page.getByTestId('devices-card').getByTestId('breakdown-webPhone')).toHaveText('3')
+    await expect(page.getByTestId('call-row')).toHaveCount(2)
+    await expect(
+      page.getByTestId('trunks-card').getByTestId('list-row').filter({ hasText: 'Provider' }),
+    ).toContainText('Registered')
+    await expect(page.getByTestId('inbound-routes-card')).toBeVisible()
     await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
-    await expect(counterValue(page, 'users')).toHaveText('5')
-    await expect(page.getByTestId('counter-users').getByRole('link')).toHaveCount(0)
-    await expect(page.getByTestId('counter-callsInProgress')).toHaveCount(0)
-    await expect(page.getByTestId('calls-summary-card')).toBeVisible()
-    for (const card of [
-      'presence-card',
-      'devices-card',
-      'calls-card',
-      'trunks-card',
-      'inbound-routes-card',
-    ]) {
-      await expect(page.getByTestId(card)).toHaveCount(0)
+    await expect(page.getByText('Live data not available')).toHaveCount(0)
+    for (const counter of ['users', 'trunks', 'inboundRoutes', 'outboundRoutes']) {
+      await expect(page.getByTestId(`counter-${counter}`).getByRole('link')).toHaveCount(0)
     }
-
-    await page.clock.runFor(12000)
-
     for (const path of LIVE_PATHS) {
-      expect(mockApi.callsTo('GET', path)).toHaveLength(0)
+      expect(mockApi.callsTo('GET', path).length).toBeGreaterThan(0)
     }
   })
 
-  test('stops polling the live data when the CTI API denies it', async ({ page, mockApi }) => {
-    mockApi.on('GET', '/api/astproxy/extensions', {
-      status: 403,
-      json: { message: 'Forbidden' },
+  test('shows the live data to a superadmin with another name', async ({ page, mockApi }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'boss', hash: 'e2e-secret' }))
     })
-    await page.clock.install()
+    mockPermissions(mockApi, ['superadmin'], 'boss')
     await page.goto('./dashboard')
 
-    await expect(page.getByTestId('dashboard-live-unavailable')).toBeVisible()
-    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
-    await expect(page.getByTestId('presence-card')).toHaveCount(0)
-    const before = LIVE_PATHS.map((path) => mockApi.callsTo('GET', path).length)
-
-    await page.clock.runFor(12000)
-
-    expect(LIVE_PATHS.map((path) => mockApi.callsTo('GET', path).length)).toEqual(before)
-    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(counterValue(page, 'callsInProgress')).toHaveText('2')
+    await expect(page.getByTestId('presence-card').getByTestId('breakdown-online')).toHaveText('1')
+    await expect(page.getByTestId('call-row')).toHaveCount(2)
+    await expect(page.getByTestId('trunks-card')).toBeVisible()
+    await expect(page.getByText('Live data not available')).toHaveCount(0)
+    await expect(
+      page.getByTestId('counter-trunks').getByRole('link', { name: 'Trunks: 1' }),
+    ).toBeVisible()
   })
 
-  test('shows the trunks and the inbound routes only to who can manage them', async ({
+  test('links the trunks and the inbound routes only to who can open them', async ({
     page,
     mockApi,
   }) => {
@@ -1158,7 +1158,7 @@ test.describe('dashboard', () => {
 
     await expect(page.getByTestId('inbound-routes-card')).toBeVisible()
     await expect(page.getByTestId('presence-card')).toBeVisible()
-    await expect(page.getByTestId('trunks-card')).toHaveCount(0)
+    await expect(page.getByTestId('trunks-card')).toBeVisible()
     await expect(counterValue(page, 'trunks')).toHaveText('1')
     await expect(page.getByTestId('counter-trunks').getByRole('link')).toHaveCount(0)
     await expect(
@@ -1166,8 +1166,11 @@ test.describe('dashboard', () => {
     ).toBeVisible()
   })
 
-  test('signs out when the CTI API rejects the secret key', async ({ page, mockApi }) => {
-    mockApi.on('GET', '/api/astproxy/extensions', { status: 401 })
+  test('signs out when the live data route rejects the secret key', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/dashboard/live/extensions', {
+      status: 403,
+      json: { error: 'Forbidden: wrong secret key' },
+    })
 
     await page.goto('./dashboard')
 

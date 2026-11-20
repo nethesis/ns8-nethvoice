@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockPermissions, test } from '../fixtures/mockApi'
 import {
   ASSIGNED_MAC,
   DEFAULTS,
@@ -124,6 +124,38 @@ test.describe('physical phones: inventory', () => {
     await expect(unassigned).toContainText('Fanvil X4U')
     await expect(unassigned).toContainText('Unassigned')
     expect(await page.content()).not.toContain('invented-sip-secret')
+  })
+
+  test('shows the registration status to an administrator with only the phones section', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['phones'], 'operator')
+    mockPhonesApi(mockApi)
+    await page.goto('./phones/phones')
+
+    const assigned = page.getByRole('row', { name: /00:15:65:AB:CD:01/ })
+    await expect(assigned).toContainText('Registered')
+    await expect(assigned).toContainText('192.0.2.10 · Yealink SIP-T46U 108.86.0.45')
+    await expect(page.getByTestId('live-data-unavailable')).toHaveCount(0)
+  })
+
+  test('keeps the phones when the registration status cannot be loaded', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPhonesApi(mockApi)
+    mockApi.on('GET', `${REST}/dashboard/live/extensions`, {
+      status: 502,
+      json: { message: 'The CTI server answered with an error' },
+    })
+    await page.goto('./phones/phones')
+
+    await expect(page.getByTestId('live-data-unavailable')).toContainText('Live data not available')
+    await expect(page.getByRole('row', { name: /00:15:65:AB:CD:01/ })).toContainText('Anna Miller')
   })
 
   test('filters phones by text and user', async ({ page, mockApi }) => {

@@ -186,7 +186,7 @@ export const test = base.extend<Fixtures>({
       .on('GET', '/freepbx/rest/dashboard/phones', {
         json: { provisioned: 0, pending: 0, unassigned: 0, failed: 0, unknown: 0, total: 0 },
       })
-      .on('GET', '/api/astproxy/trunks', { json: {} })
+      .on('GET', '/freepbx/rest/dashboard/live/trunks', { json: {} })
     mockWizardState(mockApi, 13, false)
     mockPermissions(mockApi, ['superadmin'])
 

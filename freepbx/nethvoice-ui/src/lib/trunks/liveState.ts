@@ -2,15 +2,11 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
-import { ApiError } from '@/lib/api/errors'
-import type { Credentials } from '@/lib/api/client'
-import { CTI_API_URL } from '@/lib/config'
+import { api } from '@/lib/api/client'
 
 export const TRUNKS_LIVE_STATE_KEY = 'trunksLiveState'
 
 export const TRUNKS_LIVE_STATE_REFRESH_INTERVAL = 15000
-
-const LIVE_TRUNKS_PATH = `${CTI_API_URL}/astproxy/trunks`
 
 const REJECTED_REGISTRATIONS = ['rejected', 'noauth', 'failed', 'unregistered']
 
@@ -41,40 +37,13 @@ export type RegistrationStatus = 'pending' | 'registered' | 'rejected' | 'unmoni
 export const parseTrunksLiveState = (raw: unknown): TrunksLiveState =>
   v.parse(LiveTrunksResponseSchema, raw)
 
-const readBody = async (response: Response): Promise<unknown> => {
-  const text = await response.text()
-
-  if (!text) {
-    return null
-  }
-
-  try {
-    return JSON.parse(text)
-  } catch {
-    return text
-  }
+export const fetchLiveTrunks = async (signal?: AbortSignal): Promise<unknown> => {
+  const { data } = await api.GET('/dashboard/live/trunks', { signal })
+  return data
 }
 
-export const getTrunksLiveState = async (credentials: Credentials): Promise<TrunksLiveState> => {
-  const response = await fetch(LIVE_TRUNKS_PATH, {
-    headers: {
-      Accept: 'application/json',
-      User: credentials.user,
-      Secretkey: credentials.hash,
-    },
-  })
-  const body = await readBody(response)
-
-  if (!response.ok) {
-    throw new ApiError({
-      status: response.status,
-      method: 'GET',
-      url: LIVE_TRUNKS_PATH,
-      body,
-    })
-  }
-  return parseTrunksLiveState(body)
-}
+export const getTrunksLiveState = async (signal?: AbortSignal): Promise<TrunksLiveState> =>
+  parseTrunksLiveState(await fetchLiveTrunks(signal))
 
 export const getProviderStatus = (
   trunkName: string,

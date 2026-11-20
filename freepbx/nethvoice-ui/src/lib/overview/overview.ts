@@ -4,7 +4,7 @@
 import * as v from 'valibot'
 import type { AdminPhoneState } from '@/lib/adminPhone/adminPhone'
 import { compareNatural, matchesText } from '@/lib/common'
-import { ctiGet } from '@/lib/dashboard/ctiClient'
+import { api } from '@/lib/api/client'
 import type { Group } from '@/lib/groups/groups'
 import type { User } from '@/lib/users/users'
 
@@ -347,12 +347,12 @@ export const getInitials = (name: string): string =>
 
 export const getOverviewLiveState = async (): Promise<OverviewLiveState> => {
   const [extensions, users] = await Promise.all([
-    ctiGet('/astproxy/extensions', v.unknown()),
-    ctiGet('/user/endpoints/all', v.unknown()),
+    api.GET('/dashboard/live/extensions'),
+    api.GET('/dashboard/live/users'),
   ])
 
   return {
-    extensions: parseOverviewExtensions(extensions),
-    users: parseOverviewEndpointUsers(users),
+    extensions: parseOverviewExtensions(extensions.data),
+    users: parseOverviewEndpointUsers(users.data),
   }
 }

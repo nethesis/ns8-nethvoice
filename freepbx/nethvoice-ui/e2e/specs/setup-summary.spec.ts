@@ -61,9 +61,9 @@ const mockDashboard = (mockApi: MockApi) => {
     '/freepbx/rest/inboundroutes/count',
     '/freepbx/rest/outboundroutes/count',
     '/freepbx/rest/mainextensions/userlimits',
-    '/api/astproxy/extensions',
-    '/api/astproxy/trunks',
-    '/api/user/endpoints/all',
+    '/freepbx/rest/dashboard/live/extensions',
+    '/freepbx/rest/dashboard/live/trunks',
+    '/freepbx/rest/dashboard/live/users',
   ]) {
     mockApi.on('GET', path, { status: 503 })
   }

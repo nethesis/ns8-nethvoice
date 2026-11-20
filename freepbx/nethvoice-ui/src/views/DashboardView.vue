@@ -40,7 +40,6 @@ import {
   type CardRect,
   type DashboardCardId,
 } from '@/lib/dashboard/layout'
-import { canReadCtiLiveData, isCtiAccessDenied } from '@/lib/dashboard/ctiClient'
 import {
   DASHBOARD_COUNTERS_REFRESH_INTERVAL,
   type DashboardCounterId,
@@ -210,11 +209,6 @@ const liveQueries = [liveExtensionsQuery, liveTrunksQuery, liveUsersQuery]
 const activeLiveQueries = computed(() =>
   isEnterprise.value ? liveQueries : [liveExtensionsQuery, liveTrunksQuery],
 )
-const liveDataAvailable = computed(
-  () =>
-    canReadCtiLiveData(loginStore.username) &&
-    !liveQueries.some((query) => isCtiAccessDenied(query.state.value.error)),
-)
 
 const toCounterQuery = (card: CounterCard) => {
   const { state, refetch, refresh } = useDashboardCounter(card.id)
@@ -242,9 +236,7 @@ const devicesLoading = computed(() => usersLoading.value || extensionsLoading.va
 const callsLoading = computed(() => extensionsLoading.value || liveTrunksLoading.value)
 
 const failedLiveQueries = computed(() =>
-  liveDataAvailable.value
-    ? activeLiveQueries.value.filter((query) => query.state.value.status === 'error')
-    : [],
+  activeLiveQueries.value.filter((query) => query.state.value.status === 'error'),
 )
 
 const presence = computed(() => (liveUsers.value ? summarizePresence(liveUsers.value.data) : null))
@@ -330,20 +322,15 @@ const CARD_SPANS: Record<DashboardCardId, string> = {
 
 const cardGrid = useTemplateRef<HTMLUListElement>('cardGrid')
 
-const showTrunks = computed(() => can('trunks') && liveDataAvailable.value)
-const showInboundRoutes = computed(() => can('routes'))
-
 const cardVisibility = computed<Record<DashboardCardId, boolean>>(() => ({
-  presence: liveDataAvailable.value && (presenceLoading.value || presence.value !== null),
-  devices: liveDataAvailable.value && (devicesLoading.value || devices.value !== null),
+  presence: presenceLoading.value || presence.value !== null,
+  devices: devicesLoading.value || devices.value !== null,
   phoneStatus: !phonesState.value.error || phonesState.value.data !== undefined,
   callsSummary: !callsState.value.error || callsState.value.data !== undefined,
-  calls: liveDataAvailable.value && (callsLoading.value || liveCalls.value !== null),
+  calls: callsLoading.value || liveCalls.value !== null,
   hourlyCalls: true,
-  trunks: showTrunks.value && (!trunksState.value.error || trunksState.value.data !== undefined),
-  inboundRoutes:
-    showInboundRoutes.value &&
-    (!inboundRoutesState.value.error || inboundRoutesState.value.data !== undefined),
+  trunks: !trunksState.value.error || trunksState.value.data !== undefined,
+  inboundRoutes: !inboundRoutesState.value.error || inboundRoutesState.value.data !== undefined,
 }))
 
 const visibleCards = computed(() =>
@@ -533,7 +520,7 @@ const loadFailures = computed(() => {
       retry: () => failedLiveQueries.value.forEach((query) => query.refetch()),
     })
   }
-  if (isEnterprise.value && showTrunks.value && trunksState.value.error) {
+  if (isEnterprise.value && trunksState.value.error) {
     failures.push({
       part: 'dashboard.load_error.trunks',
       title: 'dashboard.cannot_load_trunks',
@@ -541,7 +528,7 @@ const loadFailures = computed(() => {
       retry: () => refetchTrunks(),
     })
   }
-  if (isEnterprise.value && showInboundRoutes.value && inboundRoutesState.value.error) {
+  if (isEnterprise.value && inboundRoutesState.value.error) {
     failures.push({
       part: 'dashboard.load_error.inbound_routes',
       title: 'dashboard.cannot_load_inbound_routes',
@@ -583,7 +570,7 @@ function retryFailedSources() {
 }
 
 usePolling(() => {
-  if (loginStore.isAuthenticated && liveDataAvailable.value) {
+  if (loginStore.isAuthenticated) {
     activeLiveQueries.value
       .filter((query) => query.asyncStatus.value === 'idle')
       .forEach((query) => query.refetch())
@@ -599,12 +586,8 @@ usePolling(() => {
       refreshCalls()
       refreshCallsHistory()
       refreshPhones()
-      if (showTrunks.value) {
-        refreshTrunks()
-      }
-      if (showInboundRoutes.value) {
-        refreshInboundRoutes()
-      }
+      refreshTrunks()
+      refreshInboundRoutes()
     }
   }
 }, DASHBOARD_COUNTERS_REFRESH_INTERVAL)
@@ -628,13 +611,6 @@ usePolling(() => {
         :primary-button-label="$t('common.retry')"
         @primary-click="retryFailedSources"
       />
-      <NeInlineNotification
-        v-if="!liveDataAvailable"
-        kind="info"
-        data-testid="dashboard-live-unavailable"
-        :title="$t('dashboard.live_unavailable.title')"
-        :description="$t('dashboard.live_unavailable.description')"
-      />
       <div class="grid grid-cols-1 gap-6 md:grid-cols-2 2xl:grid-cols-4">
         <DashboardSystemCard
           class="md:row-span-3"
@@ -654,7 +630,6 @@ usePolling(() => {
           :to="can(counter.section) ? counter.to : undefined"
         />
         <DashboardCounterCard
-          v-if="liveDataAvailable"
           counter-id="callsInProgress"
           :title="$t('dashboard.counters.calls_in_progress')"
           :icon="faPhone"

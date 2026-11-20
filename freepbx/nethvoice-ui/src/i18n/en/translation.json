@@ -220,7 +220,7 @@
     "cannot_load_phones": "Cannot load the phone status",
     "live_unavailable": {
       "title": "Live data not available",
-      "description": "Live data, such as calls in progress, user presence and trunk status, is available only to the main administrator account."
+      "description": "The live status is not available at the moment. Try again shortly."
     }
   },
   "users": {

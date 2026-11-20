@@ -7,8 +7,6 @@ export const APP_BASE_PATH = import.meta.env.BASE_URL
 
 export const REST_API_URL = '/freepbx/rest'
 
-export const CTI_API_URL = '/api'
-
 export const TANCREDI_API_URL = '/tancredi/api/v1'
 
 export const LEGACY_WIZARD_URL = '/'

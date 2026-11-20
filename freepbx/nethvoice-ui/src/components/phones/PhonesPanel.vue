@@ -50,7 +50,6 @@ import DeletePhoneModal from './DeletePhoneModal.vue'
 import PhonePasswordDrawer from './PhonePasswordDrawer.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
-import { useCtiLiveAccess } from '@/composables/useCtiLiveAccess'
 import { usePolling } from '@/composables/usePolling'
 import { PAGE_SIZES } from '@/lib/common'
 import { formatMac } from '@/lib/phones/mac'
@@ -68,6 +67,7 @@ import { PHONE_REGISTRATIONS_REFRESH_INTERVAL } from '@/lib/phones/registration'
 import { useMacVendors, usePhones } from '@/queries/phones/phones'
 import { usePhoneDefaults } from '@/queries/phones/defaults'
 import { usePhoneRegistrations } from '@/queries/phones/registration'
+import { usePermissions } from '@/queries/permissions/me'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const COPIED_FEEDBACK_MS = 2000
@@ -79,10 +79,10 @@ const { state: defaultsState, refetch: refetchDefaults } = usePhoneDefaults()
 const { state: macVendorsState } = useMacVendors()
 const { state: registrationsState, refetch: refetchRegistrations } = usePhoneRegistrations()
 
-const liveAvailable = useCtiLiveAccess()
+const { can } = usePermissions()
 
 usePolling(() => {
-  if (liveAvailable.value) {
+  if (can('phones')) {
     refetchRegistrations()
   }
 }, PHONE_REGISTRATIONS_REFRESH_INTERVAL)
@@ -363,7 +363,10 @@ function showDeletePhoneModal(phone: Phone) {
       :description="$t('phones.inventory.admin_password_missing_description')"
       class="mb-6"
     />
-    <LiveDataUnavailableNotice v-if="!liveAvailable && !isEmptyStateShown" class="mb-6" />
+    <LiveDataUnavailableNotice
+      v-if="registrationsState.status === 'error' && !isEmptyStateShown"
+      class="mb-6"
+    />
     <NeEmptyState
       v-if="isEmptyStateShown"
       :title="$t('phones.inventory.no_phones')"

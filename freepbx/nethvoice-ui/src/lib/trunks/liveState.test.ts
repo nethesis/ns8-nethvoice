@@ -1,16 +1,20 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import {
   getProviderStatus,
   getRegistrationStatus,
   getTrunkProviderStatus,
   getTrunkRegistrationStatus,
   markTrunkChanged,
+  getTrunksLiveState,
   parseTrunksLiveState,
   type TrunksLiveState,
 } from './liveState'
+
+vi.mock('@/lib/api/client', () => ({ api: { GET: vi.fn() } }))
 
 const liveState: TrunksLiveState = {
   online: { status: 'online', registration: 'registered' },
@@ -107,5 +111,28 @@ describe('getTrunkProviderStatus', () => {
     expect(getTrunkProviderStatus('online', liveState)).toBe('online')
     expect(getTrunkRegistrationStatus('sent', liveState)).toBe('pending')
     expect(getTrunkProviderStatus('online', undefined)).toBe('unknown')
+  })
+})
+
+describe('getTrunksLiveState', () => {
+  it('should read the trunks from the live trunks route', async () => {
+    vi.mocked(api.GET).mockResolvedValue({
+      data: {
+        Provider: {
+          name: 'Provider',
+          status: 'online',
+          registration: 'registered',
+          conversations: {},
+        },
+        Unmonitored: { name: 'Unmonitored', status: null, conversations: {} },
+      },
+      response: new Response(),
+    } as never)
+
+    await expect(getTrunksLiveState()).resolves.toEqual({
+      Provider: { status: 'online', registration: 'registered' },
+      Unmonitored: { status: 'unmonitored', registration: 'unmonitored' },
+    })
+    expect(api.GET).toHaveBeenCalledWith('/dashboard/live/trunks', { signal: undefined })
   })
 })

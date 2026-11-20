@@ -1,7 +1,8 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import {
   buildModelLabels,
   buildOverviewUsers,
@@ -10,6 +11,7 @@ import {
   formatPhoneModel,
   getInitials,
   getOverviewCallStatus,
+  getOverviewLiveState,
   getPhoneModelLabel,
   normalizeOverviewView,
   hasOnlineDevice,
@@ -23,6 +25,8 @@ import {
   type OverviewUser,
 } from './overview'
 import type { User } from '@/lib/users/users'
+
+vi.mock('@/lib/api/client', () => ({ api: { GET: vi.fn() } }))
 
 const extensionsResponse = {
   '300': { status: 'online', dnd: false, cf: '', codecs: ['opus', 'alaw'], name: 'Anna Miller' },
@@ -342,5 +346,58 @@ describe('normalizeOverviewView', () => {
     expect(normalizeOverviewView('compact')).toBe('compact')
     expect(normalizeOverviewView('table')).toBe('grid')
     expect(normalizeOverviewView(undefined)).toBe('grid')
+  })
+})
+
+describe('getOverviewLiveState', () => {
+  it('should combine the live extensions and users routes', async () => {
+    vi.mocked(api.GET).mockImplementation(((path: string) =>
+      Promise.resolve({
+        data:
+          path === '/dashboard/live/extensions'
+            ? {
+                '201': {
+                  exten: '201',
+                  name: 'Alice Example',
+                  status: 'online',
+                  conversations: {},
+                  dnd: true,
+                  cf: '0200000000',
+                  codecs: ['alaw'],
+                  ip: '192.0.2.10',
+                  port: '5060',
+                  sipuseragent: 'Yealink T46U',
+                },
+              }
+            : {
+                alice: {
+                  name: 'Alice Example',
+                  username: 'alice',
+                  mainPresence: 'online',
+                  endpoints: {
+                    mainextension: [{ id: '201' }],
+                    extension: [{ id: '201', type: 'physical' }],
+                  },
+                },
+              },
+        response: new Response(),
+      })) as never)
+
+    await expect(getOverviewLiveState()).resolves.toEqual({
+      extensions: {
+        '201': { status: 'dnd', doNotDisturb: true, callForward: '0200000000', codecs: ['alaw'] },
+      },
+      users: [
+        {
+          username: 'alice',
+          name: 'Alice Example',
+          presence: 'online',
+          mainExtension: '201',
+          endpoints: [{ extension: '201', type: 'physical' }],
+        },
+      ],
+    })
+    expect(api.GET).toHaveBeenCalledWith('/dashboard/live/extensions')
+    expect(api.GET).toHaveBeenCalledWith('/dashboard/live/users')
   })
 })
