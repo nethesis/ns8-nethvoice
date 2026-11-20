@@ -180,8 +180,8 @@ const usageValue = computed(() =>
               color="custom"
               :custom-color-classes="
                 limitReached
-                  ? 'bg-amber-500 dark:bg-amber-400'
-                  : 'bg-linear-to-r from-emerald-500 to-indigo-500'
+                  ? 'bg-accent-amber'
+                  : 'from-accent-green to-accent-indigo bg-linear-to-r'
               "
               role="progressbar"
               :aria-valuenow="usageValue"

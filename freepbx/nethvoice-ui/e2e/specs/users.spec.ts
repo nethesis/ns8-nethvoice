@@ -4,6 +4,8 @@
 import { expect, test } from '../fixtures/mockApi'
 import {
   csvImportMock,
+  GROUP_MEMBERS,
+  GROUPS,
   FREE_PHONE_MAC,
   mockUserPhonesApi,
   mockUsersApi,
@@ -259,6 +261,23 @@ test.describe('users', () => {
     await expect(drawer.getByTestId('user-phone-row')).toHaveCount(1)
   })
 
+  test('warns that a new extension recreates the devices and keeps the groups', async ({
+    page,
+  }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit c.davis' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
+
+    await drawer.getByRole('textbox', { name: 'Extension' }).fill('309')
+
+    await expect(drawer.getByText('The devices will be recreated')).toBeVisible()
+    await expect(drawer).toContainText('apps and physical phones get new credentials')
+    await expect(drawer).toContainText(
+      'Group memberships and the other settings of the user are kept',
+    )
+    await expect(drawer).not.toContainText('loses the group memberships')
+  })
+
   test('does not remove the extension when the field is emptied', async ({ page, mockApi }) => {
     mockWrites(mockApi)
     await page.goto('./users/users')
@@ -445,6 +464,23 @@ test.describe('users', () => {
       profile_id: 1,
     })
     expect(mockApi.callsTo('POST', `${REST}/webrtc`)[0].body).toEqual({ extension: '305' })
+  })
+
+  test('returns the focus to Create user after discarding the changes', async ({ page }) => {
+    await page.goto('./users/users')
+    const create = page.getByRole('button', { name: 'Create user' }).first()
+    await create.click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeFocused()
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    await page
+      .getByRole('dialog', { name: 'Unsaved changes' })
+      .getByRole('button', { name: 'Discard changes' })
+      .click()
+
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeHidden()
+    await expect(create).toBeFocused()
   })
 
   test('reports a failed creation inside the drawer', async ({ page, mockApi }) => {
@@ -679,6 +715,12 @@ test.describe('users', () => {
       'Advanced bulk actions',
     ])
     await expect(page.getByRole('menu').locator('hr')).toHaveCount(2)
+    await expect(
+      page.getByRole('menuitem', { name: 'Export users to CSV' }).locator('svg'),
+    ).toHaveAttribute('data-icon', 'file-csv')
+    await expect(
+      page.getByRole('menuitem', { name: 'Synchronize users' }).locator('svg'),
+    ).toHaveAttribute('data-icon', 'arrows-rotate')
   })
 
   test('sets the devices of several users', async ({ page, mockApi }) => {
@@ -848,6 +890,9 @@ test.describe('users', () => {
     await expect(modal).toContainText('Row 4 (b.boone): invalid extension')
     await expect(modal).toContainText('Row 5 (c.wolf): unrecognized value "maybe" in Voicemail')
     await expect(modal.getByRole('radio', { name: 'Skip existing users' })).toBeChecked()
+    await expect(
+      modal.getByRole('group', { name: /^Existing users/ }).getByRole('radio'),
+    ).toHaveCount(2)
     await expect(modal.getByTestId('import-summary')).toContainText(
       '1 existing user (will be skipped)',
     )
@@ -883,6 +928,64 @@ test.describe('users', () => {
     expect(Buffer.from(file.file, 'base64').toString()).toBe(
       '"k.lee","Kevin Lee","310","","","","","Sales|Marketing","Base"\r\n',
     )
+  })
+
+  test('shows the imported users with their groups and the import result', async ({
+    page,
+    mockApi,
+  }) => {
+    let imported = false
+    const kevin = { ...RAW_USERS[2], id: '14', username: 'k.lee', displayname: 'Kevin Lee' }
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    mockApi
+      .on('POST', `${REST}/csv/csvimport`, () => {
+        imported = true
+        return { status: 200 }
+      })
+      .on('GET', `${REST}/users/:all`, () => ({
+        json: imported ? [...RAW_USERS, kevin] : RAW_USERS,
+      }))
+      .on('GET', `${REST}/cti/groups`, () => ({
+        json: imported ? [...GROUPS, { id: 4, name: 'Marketing' }] : GROUPS,
+      }))
+      .on('GET', `${REST}/cti/users/groups/:id`, (request) => {
+        const id = request.path.split('/').pop() ?? ''
+        const members = imported
+          ? { ...GROUP_MEMBERS, '1': [...GROUP_MEMBERS['1'], 14], '4': [14] }
+          : GROUP_MEMBERS
+        return {
+          json: (members[id] ?? []).map((userId) => ({ user_id: userId, name: 'group' })),
+        }
+      })
+    await page.goto('./users/users')
+    await expect(page.getByTestId('user-a.miller')).toContainText('Sales')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'users.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        [
+          'username,name,surname,extension,group',
+          'a.miller,Anna,Miller,300,Sales',
+          'k.lee,Kevin,Lee,310,Sales|Marketing',
+          'b.boone,Bob,Boone,xxx,',
+        ].join('\n'),
+      ),
+    })
+    await drawer.getByRole('button', { name: 'Next' }).click()
+    await page
+      .getByRole('dialog', { name: 'Import users' })
+      .filter({ hasText: 'File preview' })
+      .getByRole('button', { name: 'Import 1 user' })
+      .click()
+
+    await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
+    await expect(page.getByText('Created: 1 · Updated: 0 · Skipped: 2')).toBeVisible()
+    await expect(page.getByText('Users imported')).toHaveCount(1)
+    await expect(page.getByTestId('user-k.lee')).toContainText('Marketing, Sales')
   })
 
   test('imports the Italian header and applies voicemail and devices to existing users', async ({

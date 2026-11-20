@@ -48,7 +48,10 @@ test.describe('physical phones: models', () => {
     await page.goto('./phones/models')
 
     await expect(page.getByText('Cannot load models')).toBeVisible()
-    await expect(page.getByText(/Broken storage/)).toBeVisible()
+    await expect(
+      page.getByText('The server could not complete the request (error 500). Try again later.'),
+    ).toBeVisible()
+    await expect(page.getByText(/Broken storage/)).toHaveCount(0)
   })
 
   test('adds a custom model copying the base model', async ({ page, mockApi }) => {
@@ -69,22 +72,22 @@ test.describe('physical phones: models', () => {
       })
     await page.goto('./phones/models')
 
-    await page.getByRole('button', { name: 'Add model' }).click()
+    await page.getByRole('button', { name: 'Create model' }).click()
     const drawer = page.getByRole('dialog')
-    await drawer.getByRole('button', { name: 'Add', exact: true }).click()
+    await drawer.getByRole('button', { name: 'Create', exact: true }).click()
     await expect(drawer.getByText('Enter a name')).toBeVisible()
 
     await drawer.getByRole('textbox', { name: 'Name' }).fill('Reception desk')
-    await drawer.getByRole('button', { name: 'Add', exact: true }).click()
+    await drawer.getByRole('button', { name: 'Create', exact: true }).click()
     await expect(drawer.getByText('A model with this name already exists')).toBeVisible()
 
     await drawer.getByRole('textbox', { name: 'Name' }).fill('Front office')
     await drawer.getByRole('combobox', { name: 'Base model' }).fill('T46')
     await page.getByRole('option', { name: /Yealink T46/ }).click()
-    await drawer.getByRole('button', { name: 'Add', exact: true }).click()
+    await drawer.getByRole('button', { name: 'Create', exact: true }).click()
 
-    await expect(page.getByText('Model added')).toBeVisible()
-    await expect(page.getByText('Front office has been created successfully')).toBeVisible()
+    await expect(page.getByText('Model created')).toBeVisible()
+    await expect(page.getByText('Model Front office has been created.')).toBeVisible()
     expect(mockApi.callsTo('POST', `${TANCREDI}/models`)[0].body).toEqual({
       name: 'yealink-T46-Front_office',
       display_name: 'Front office',
@@ -108,15 +111,15 @@ test.describe('physical phones: models', () => {
       .on('POST', `${TANCREDI}/models`, (request) => ({ status: 201, json: request.body }))
     await page.goto('./phones/models')
 
-    await page.getByRole('button', { name: 'Add model' }).click()
+    await page.getByRole('button', { name: 'Create model' }).click()
     const drawer = page.getByRole('dialog')
     await drawer.getByRole('textbox', { name: 'Name' }).fill('Front office')
     await drawer.getByRole('combobox', { name: 'Base model' }).fill('T46')
     await page.getByRole('option', { name: /Yealink T46/ }).click()
-    await drawer.getByRole('button', { name: 'Add', exact: true }).click()
+    await drawer.getByRole('button', { name: 'Create', exact: true }).click()
 
-    await expect(page.getByText('Cannot add model')).toBeVisible()
-    await expect(page.getByText('Model added')).toHaveCount(0)
+    await expect(page.getByText('Cannot create model')).toBeVisible()
+    await expect(page.getByText('Model created')).toHaveCount(0)
     await expect(page.getByText('Model not found')).toHaveCount(0)
     await expect(page).toHaveURL(/\/phones\/models$/)
   })
@@ -125,7 +128,7 @@ test.describe('physical phones: models', () => {
     mockPhonesApi(mockApi)
     await page.goto('./phones/models')
 
-    await page.getByRole('button', { name: 'Add model' }).click()
+    await page.getByRole('button', { name: 'Create model' }).click()
     await page.getByRole('dialog').getByRole('combobox', { name: 'Base model' }).click()
     await expect(page.getByRole('option')).toHaveCount(TANCREDI_MODELS.length)
   })
@@ -205,6 +208,7 @@ test.describe('physical phones: models', () => {
     await page.getByRole('combobox', { name: 'Ringtone' }).click()
     await page.getByRole('option', { name: '4', exact: true }).click()
     await page.getByRole('button', { name: 'Preferences' }).click()
+    await expect(page.getByText('Upload firmware', { exact: true })).toBeVisible()
     await page.getByRole('textbox', { name: 'NTP server address' }).fill('ntp.example.com')
     await page.getByRole('button', { name: 'Soft keys' }).click()
     await page.getByRole('textbox', { name: 'Label of Soft key 1' }).fill('Calls')

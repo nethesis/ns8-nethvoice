@@ -26,13 +26,14 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faAddressBook,
+  faArrowsRotate,
   faCircleCheck,
   faCirclePause,
   faCirclePlay,
   faCirclePlus,
+  faCircleXmark,
   faMagnifyingGlass,
   faPenToSquare,
-  faRotate,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
@@ -145,7 +146,7 @@ const { mutate: toggleMutate } = useMutation({
       title: source.enabled
         ? t('integrations.phonebook.source_disabled')
         : t('integrations.phonebook.source_enabled'),
-      description: t('common.object_saved_successfully', { name: source.name }),
+      description: t('integrations.phonebook.source_updated_description', { name: source.name }),
     })
   },
   onError(error, source) {
@@ -196,7 +197,7 @@ function getKebabMenuItems(source: PhonebookSource): NeDropdownItem[] {
     {
       id: 'sync',
       label: t('integrations.phonebook.sync_now'),
-      icon: faRotate,
+      icon: faArrowsRotate,
       disabled: busy || !source.enabled || source.kind === 'unknown',
       action: () => syncMutate(source),
     },
@@ -286,12 +287,12 @@ function deleteCurrentSource() {
       <NeEmptyState
         v-else-if="isNoMatchEmptyStateShown"
         :title="t('integrations.phonebook.no_sources_found')"
-        :description="t('common.try_changing_search_filters')"
+        :description="t('common.try_different_words')"
         :icon="faMagnifyingGlass"
         class="elevation-0"
       >
         <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('common.reset_filters') }}
+          {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
       <NeTable
@@ -357,14 +358,14 @@ function deleteCurrentSource() {
                 <template v-else-if="source.enabled">
                   <FontAwesomeIcon
                     :icon="faCircleCheck"
-                    class="size-4 text-green-700 dark:text-green-500"
+                    class="text-icon-enabled size-4"
                     aria-hidden="true"
                   />
                   <span>{{ t('common.enabled') }}</span>
                 </template>
                 <template v-else>
                   <FontAwesomeIcon
-                    :icon="faCirclePause"
+                    :icon="faCircleXmark"
                     class="text-tertiary-neutral size-4"
                     aria-hidden="true"
                   />
@@ -416,6 +417,7 @@ function deleteCurrentSource() {
         t('integrations.phonebook.delete_source_confirmation', { name: currentSource?.name ?? '' })
       "
       :success-title="t('integrations.phonebook.source_deleted')"
+      success-description-key="integrations.phonebook.source_deleted_description"
       :error-title="t('integrations.phonebook.cannot_delete_source')"
       :delete-object="deleteCurrentSource"
       :invalidate-keys="[PHONEBOOK_SOURCES_KEY]"

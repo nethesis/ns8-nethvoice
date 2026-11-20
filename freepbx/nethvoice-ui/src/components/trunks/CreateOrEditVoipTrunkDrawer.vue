@@ -19,7 +19,7 @@ import {
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faCircleQuestion } from '@fortawesome/free-solid-svg-icons'
+import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import {
   getAddedProviderCodecs,
@@ -165,7 +165,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('trunks.trunk_created'),
-        description: t('common.object_created_successfully', { name: values.name.trim() }),
+        description: t('trunks.trunk_created_description', { name: values.name.trim() }),
       })
     }, 500)
     emit('close')
@@ -459,14 +459,18 @@ function issue(field: VoipTrunkField): string {
           :disabled="saving"
         >
           <template #topTooltip>
-            <NeTooltip>
+            <NeTooltip trigger-event="mouseenter focus">
               <template #trigger>
                 <button
                   type="button"
-                  class="inline-flex text-indigo-800 dark:text-indigo-300"
+                  class="inline-flex"
                   :aria-label="t('trunks.voip.force_codec_info')"
                 >
-                  <FontAwesomeIcon :icon="faCircleQuestion" class="size-4" aria-hidden="true" />
+                  <FontAwesomeIcon
+                    :icon="faCircleInfo"
+                    class="size-4 text-indigo-500 dark:text-indigo-300"
+                    aria-hidden="true"
+                  />
                 </button>
               </template>
               <template #content>{{ t('trunks.voip.force_codec_tooltip') }}</template>
@@ -486,7 +490,7 @@ function issue(field: VoipTrunkField): string {
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
-          {{ isEditing ? t('common.save') : t('trunks.add_trunk') }}
+          {{ isEditing ? t('common.save') : t('common.create') }}
         </NeButton>
       </div>
     </form>

@@ -261,12 +261,12 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
     <NeEmptyState
       v-else-if="isNoMatchEmptyStateShown"
       :title="t('routes.no_routes_found')"
-      :description="t('common.try_changing_search_filters')"
+      :description="t('common.try_different_words')"
       :icon="faMagnifyingGlass"
       class="bg-elevation-0"
     >
-      <NeButton kind="tertiary" size="lg" @click="clearFilters">
-        {{ t('common.reset_filters') }}
+      <NeButton kind="tertiary" size="lg" @click="textFilter = ''">
+        {{ t('common.clear_filter') }}
       </NeButton>
     </NeEmptyState>
     <NeTable

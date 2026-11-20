@@ -35,6 +35,7 @@ const formattedCounter = computed(() =>
 
 const linkTag = computed(() => (to ? RouterLink : 'span'))
 const linkAttrs = computed(() => (to ? { to } : {}))
+const titleLinkAttrs = computed(() => (to ? { to, tabindex: -1, 'aria-hidden': 'true' } : {}))
 </script>
 
 <template>
@@ -48,12 +49,8 @@ const linkAttrs = computed(() => (to ? { to } : {}))
         />
         <component
           :is="linkTag"
-          v-bind="linkAttrs"
-          :class="[
-            'text-secondary-neutral min-w-0',
-            to &&
-              'focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 rounded-sm hover:underline focus:outline-hidden focus-visible:ring-2',
-          ]"
+          v-bind="titleLinkAttrs"
+          :class="['text-secondary-neutral min-w-0', to && 'hover:underline']"
           data-testid="counter-title"
         >
           <span class="text-sm font-normal uppercase">{{ title }}</span>
@@ -75,7 +72,7 @@ const linkAttrs = computed(() => (to ? { to } : {}))
         v-bind="linkAttrs"
         :aria-label="to ? `${title}: ${formattedCounter}` : undefined"
         :class="[
-          'text-5xl leading-none font-medium text-indigo-700 tabular-nums dark:text-indigo-500',
+          'text-secondary text-5xl leading-none font-medium tabular-nums',
           to &&
             'focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 rounded-sm focus:outline-hidden focus-visible:ring-2',
         ]"

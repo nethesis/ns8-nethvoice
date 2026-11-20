@@ -47,7 +47,7 @@ const STAR_SIZE: Record<OverviewAvatarSize, string> = {
 const dotClasses = computed(() =>
   variant === 'row'
     ? '-right-0.5 -bottom-0.5 size-3 ring-elevation-0'
-    : ['right-0 bottom-0 ring-white', DOT_SIZE[avatarSize.value]],
+    : ['right-0 bottom-0 ring-elevation-0', DOT_SIZE[avatarSize.value]],
 )
 
 const initials = computed(() => getInitials(name))
@@ -78,13 +78,11 @@ const avatarSize = computed<OverviewAvatarSize>(() =>
       />
       <FontAwesomeIcon
         :icon="faStar"
-        :class="[
-          'absolute -top-px -right-px text-indigo-700 dark:text-indigo-500',
-          STAR_SIZE[avatarSize],
-        ]"
+        :class="['text-secondary absolute -top-px -right-px', STAR_SIZE[avatarSize]]"
         data-testid="favorite-star"
-        :aria-label="t('user_overview.favorite')"
+        aria-hidden="true"
       />
+      <span class="sr-only">{{ t('user_overview.favorite') }}</span>
     </template>
   </span>
 </template>

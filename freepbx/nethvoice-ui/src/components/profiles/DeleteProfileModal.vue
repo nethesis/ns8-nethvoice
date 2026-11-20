@@ -50,7 +50,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('profiles.profile_deleted'),
-        description: t('common.object_deleted_successfully', { name: profileToDelete.name }),
+        description: t('profiles.profile_deleted_description', { name: profileToDelete.name }),
       })
     }, 500)
     emit('close')

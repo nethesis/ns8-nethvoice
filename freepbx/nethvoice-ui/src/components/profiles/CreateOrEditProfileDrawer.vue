@@ -175,8 +175,8 @@ const {
         kind: 'success',
         title: edited ? t('profiles.profile_saved') : t('profiles.profile_created'),
         description: edited
-          ? t('common.object_saved_successfully', { name: profileForm.name })
-          : t('common.object_created_successfully', { name: profileForm.name }),
+          ? t('profiles.profile_updated_description', { name: profileForm.name })
+          : t('profiles.profile_created_description', { name: profileForm.name }),
       })
     }, 500)
     emit('close')

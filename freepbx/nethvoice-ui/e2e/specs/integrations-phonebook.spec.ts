@@ -61,7 +61,21 @@ test.describe('integrations: phonebook sources', () => {
     await expect(rows.nth(2)).toContainText('Sales')
     await expect(rows.nth(2)).toContainText('Every hour')
     await expect(rows.nth(2)).toContainText('Disabled')
+    await expect(rows.nth(2).locator('svg[data-icon="circle-xmark"]')).toHaveCount(1)
     await expect(page.getByText('stored-password')).toHaveCount(0)
+  })
+
+  test('clears a filter that matches no source', async ({ page }) => {
+    await page.goto('./integrations/phonebook')
+
+    const rows = page.getByRole('grid', { name: 'Phonebook' }).getByRole('row')
+
+    await page.getByRole('textbox', { name: 'Filter sources' }).fill('nothing matches')
+    await expect(page.getByText('No sources found')).toBeVisible()
+    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await expect(page.getByRole('textbox', { name: 'Filter sources' })).toHaveValue('')
+    await expect(rows).toHaveCount(3)
   })
 
   test('shows an empty state when the API returns an empty list', async ({ page, mockApi }) => {
@@ -392,6 +406,10 @@ test.describe('integrations: phonebook sources', () => {
     await expect(page.getByRole('menuitem', { name: 'Sync now' })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Open the menu of CRM contacts' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Sync now' }).locator('svg')).toHaveAttribute(
+      'data-icon',
+      'arrows-rotate',
+    )
     await page.getByRole('menuitem', { name: 'Sync now' }).click()
 
     await expect(page.getByText('Synchronization completed')).toBeVisible()

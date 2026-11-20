@@ -110,7 +110,9 @@ const {
           ? t('integrations.cards.template_saved')
           : t('integrations.cards.template_created'),
         description: t(
-          edited ? 'common.object_saved_successfully' : 'common.object_created_successfully',
+          edited
+            ? 'integrations.cards.template_updated_description'
+            : 'integrations.cards.template_created_description',
           { name: buildCardTemplatePayload(templateForm).name },
         ),
       })

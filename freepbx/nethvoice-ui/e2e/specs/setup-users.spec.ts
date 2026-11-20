@@ -26,6 +26,14 @@ test.describe('setup: users and extensions', () => {
     await page.goto('./setup/users')
 
     await expect(page.getByText('Step 2 of 7')).toBeVisible()
+    const progressFill = page.getByRole('progressbar', { name: 'Setup progress' }).locator('div')
+    await expect(progressFill).not.toHaveAttribute('style')
+    expect(
+      await progressFill.evaluate(
+        (fill) =>
+          fill.getBoundingClientRect().width / fill.parentElement!.getBoundingClientRect().width,
+      ),
+    ).toBeCloseTo(2 / 7, 2)
     await expect(extensionInput(page, 'Anna Miller')).toHaveValue('300')
     await expect(extensionInput(page, 'Daniel Jones')).toHaveValue('')
     await expect(page.getByTestId('users-counter')).toHaveText(
@@ -35,6 +43,13 @@ test.describe('setup: users and extensions', () => {
 
     await page.getByPlaceholder('Filter users').fill('jones')
     await expect(page.locator('[data-testid^="setup-user-"]')).toHaveCount(1)
+
+    await page.getByPlaceholder('Filter users').fill('nothing matches')
+    await expect(page.getByText('No users found')).toBeVisible()
+    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await expect(page.getByPlaceholder('Filter users')).toHaveValue('')
+    await expect(page.locator('[data-testid^="setup-user-"]')).toHaveCount(3)
   })
 
   test('synchronizes the users once per session', async ({ page, mockApi }) => {
@@ -128,6 +143,46 @@ test.describe('setup: users and extensions', () => {
     })
   })
 
+  test('writes nothing when the setup was completed in another session', async ({
+    page,
+    mockApi,
+  }) => {
+    mockStep(mockApi)
+    mockWrites(mockApi)
+    await page.goto('./setup/users')
+
+    await expect(extensionInput(page, 'Anna Miller')).toHaveValue('300')
+    await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
+    mockApi.on('GET', `${REST}/configuration/wizard`, { json: [{ step: 13, status: 'false' }] })
+    mockApi.allowUnmockedCalls()
+    const writesBefore = mockApi.calls.filter((call) => call.method !== 'GET').length
+
+    await extensionInput(page, 'Daniel Jones').fill('302')
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(page.getByText('Setup already completed')).toBeVisible()
+    expect(mockApi.calls.filter((call) => call.method !== 'GET')).toHaveLength(writesBefore)
+  })
+
+  test('stops with an error when the Base profile is missing', async ({ page, mockApi }) => {
+    mockStep(mockApi)
+    mockWrites(mockApi)
+    mockApi.on('GET', `${REST}/cti/profiles`, { json: [] })
+    await page.goto('./setup/users')
+
+    await extensionInput(page, 'Daniel Jones').fill('302')
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await expect(page.getByText('Cannot configure the users')).toBeVisible()
+    await expect(
+      page.getByText('Configuration stopped at d.jones: The Base profile could not be found'),
+    ).toBeVisible()
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
+    expect(mockApi.callsTo('POST', `${REST}/cti/profiles/users/:id`)).toHaveLength(0)
+    expect(mockApi.callsTo('POST', `${REST}/configuration/wizard`)).toHaveLength(0)
+  })
+
   test('keeps the extension of a configured user and removes it only from the menu', async ({
     page,
     mockApi,
@@ -163,7 +218,7 @@ test.describe('setup: users and extensions', () => {
     ])
   })
 
-  test('warns that changing an extension recreates the devices', async ({ page, mockApi }) => {
+  test('warns that changing an extension deletes the devices', async ({ page, mockApi }) => {
     mockStep(mockApi)
     mockWrites(mockApi)
     await page.goto('./setup/users')
@@ -171,9 +226,10 @@ test.describe('setup: users and extensions', () => {
     await extensionInput(page, 'Anna Miller').fill('310')
     await page.getByRole('button', { name: 'Next' }).click()
 
-    const modal = page.getByRole('dialog', { name: 'The devices will be recreated' })
-    await expect(modal).toContainText('apps and physical phones get new credentials')
-    await expect(modal).toContainText('group memberships')
+    const modal = page.getByRole('dialog', { name: 'The devices will be deleted' })
+    await expect(modal).toContainText('removes the user from all the groups')
+    await expect(modal).toContainText('Only the Web phone is created again')
+    await expect(modal).not.toContainText('are kept')
     await expect(modal.getByTestId('changed-extensions')).toHaveText('Anna Miller: 300 → 310')
     await modal.getByRole('button', { name: 'Cancel' }).click()
 
@@ -187,6 +243,64 @@ test.describe('setup: users and extensions', () => {
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`).map((call) => call.body)).toEqual([
       { username: 'a.miller', extension: '310' },
     ])
+  })
+
+  test('returns the focus to Next when the devices dialog is closed with Esc', async ({
+    page,
+    mockApi,
+  }) => {
+    mockStep(mockApi)
+    await page.goto('./setup/users')
+
+    await extensionInput(page, 'Anna Miller').fill('310')
+    const next = page.getByRole('button', { name: 'Next' })
+    await next.click()
+
+    const modal = page.getByRole('dialog', { name: 'The devices will be deleted' })
+    await expect(modal.getByRole('heading', { name: 'The devices will be deleted' })).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    await expect(modal).toHaveCount(0)
+    await expect(next).toBeFocused()
+  })
+
+  test('blocks the help and sign out controls while the users are configured', async ({
+    page,
+    mockApi,
+  }) => {
+    let release: () => void = () => undefined
+    const pending = new Promise<void>((resolve) => (release = resolve))
+    mockStep(mockApi)
+    mockWrites(mockApi)
+    mockApi.on('POST', `${REST}/mainextensions`, async () => {
+      await pending
+      return { status: 201 }
+    })
+    await page.goto('./setup/users')
+
+    const signOut = page.locator('aside button', { hasText: 'Sign out' })
+    const help = page.locator('aside a', { hasText: 'Need help?' })
+    await expect(help).toHaveAttribute('target', '_blank')
+    await expect(help).toContainText('(opens in a new tab)')
+    await help.focus()
+    await page.keyboard.press('Tab')
+    await expect(signOut).toBeFocused()
+    expect(await signOut.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe(
+      'none',
+    )
+
+    await extensionInput(page, 'Daniel Jones').fill('302')
+    await page.getByRole('button', { name: 'Next' }).click()
+    await expect(page.getByText('Configuring users')).toBeVisible()
+    await expect
+      .poll(() => signOut.evaluate((element) => element.closest('[inert]') !== null))
+      .toBe(true)
+    await signOut.click({ force: true })
+    expect(mockApi.callsTo('GET', `${REST}/logout`)).toHaveLength(0)
+
+    release()
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/physical-trunks$/)
+    expect(mockApi.callsTo('GET', `${REST}/logout`)).toHaveLength(0)
   })
 
   test('reports a failed synchronization with the account provider', async ({ page, mockApi }) => {
@@ -297,5 +411,31 @@ test.describe('setup: users and extensions', () => {
     )
     await expect(extensionInput(page, 'Emma Johnson')).toHaveValue('305')
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+  })
+
+  test('does not create a user with an extension when the Base profile is missing', async ({
+    page,
+    mockApi,
+  }) => {
+    mockStep(mockApi)
+    mockWrites(mockApi)
+    mockApi
+      .on('GET', `${REST}/cti/profiles`, { json: [] })
+      .on('POST', `${REST}/csv/csvimport`, { status: 200 })
+    await page.goto('./setup/users')
+
+    await page.getByRole('button', { name: 'Create user' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
+    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
+    await drawer.getByLabel('Confirm password').fill('Secret,123')
+    await drawer.getByRole('textbox', { name: 'Extension' }).fill('305')
+    await drawer.getByRole('button', { name: 'Create' }).click()
+
+    await expect(drawer.getByText('The Base profile could not be found')).toBeVisible()
+    await expect(drawer.getByRole('textbox', { name: 'Extension' })).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
   })
 })

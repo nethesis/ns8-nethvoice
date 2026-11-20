@@ -35,7 +35,7 @@ import {
   faCirclePlus,
   faCopy,
   faKey,
-  faLock,
+  faLockOpen,
   faMagnifyingGlass,
   faPenToSquare,
   faTrash,
@@ -503,7 +503,7 @@ function showDeletePhoneModal(phone: Phone) {
           <NeTableRow v-for="phone in page" :key="phone.mac">
             <NeTableCell :data-label="$t('phones.mac_address')">
               <div class="flex items-center gap-1">
-                <span>{{ formatMac(phone.mac) }}</span>
+                <span class="whitespace-nowrap">{{ formatMac(phone.mac) }}</span>
                 <NeTooltip trigger-event="mouseenter focus" placement="top" :hide-on-click="false">
                   <template #trigger>
                     <NeButton kind="tertiary" size="sm" @click="copyMac(phone)">
@@ -526,7 +526,7 @@ function showDeletePhoneModal(phone: Phone) {
               </div>
             </NeTableCell>
             <NeTableCell :data-label="$t('phones.model')">
-              {{ phone.modelLabel || '-' }}
+              <span class="wrap-anywhere">{{ phone.modelLabel || '-' }}</span>
             </NeTableCell>
             <NeTableCell :data-label="$t('phones.user')">
               <div v-if="phone.user" class="flex items-center gap-2">
@@ -536,7 +536,7 @@ function showDeletePhoneModal(phone: Phone) {
                 >
                   <FontAwesomeIcon :icon="faUser" class="size-4" />
                 </span>
-                <div class="flex flex-col">
+                <div class="flex min-w-0 flex-col wrap-anywhere">
                   <span>{{ phone.user.displayName }}</span>
                   <span v-if="userDetails(phone)" class="text-tertiary-neutral">
                     {{ userDetails(phone) }}
@@ -580,13 +580,13 @@ function showDeletePhoneModal(phone: Phone) {
               <div v-else-if="phone.encrypted" class="flex items-center gap-2">
                 <FontAwesomeIcon
                   :icon="faCircleCheck"
-                  class="size-4 text-green-700 dark:text-green-500"
+                  class="text-icon-enabled size-4"
                   aria-hidden="true"
                 />
                 {{ $t('phones.inventory.encrypted') }}
               </div>
               <NeBadgeV2 v-else kind="amber" size="xs">
-                <FontAwesomeIcon :icon="faLock" class="size-3" aria-hidden="true" />
+                <FontAwesomeIcon :icon="faLockOpen" class="size-3" aria-hidden="true" />
                 {{ $t('phones.inventory.not_encrypted') }}
               </NeBadgeV2>
             </NeTableCell>

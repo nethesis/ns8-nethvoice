@@ -15,7 +15,7 @@ import { faCompass } from '@fortawesome/free-solid-svg-icons'
     :icon="faCompass"
   >
     <NeButton kind="primary" size="lg" @click="$router.push({ name: 'dashboard' })">
-      {{ $t('common.go_to_page', { page: $t('dashboard.title') }) }}
+      {{ $t('common.go_to_dashboard') }}
     </NeButton>
   </NeEmptyState>
 </template>

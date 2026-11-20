@@ -8,7 +8,6 @@ import { computed, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faChevronDown, faChevronUp, faStar, faUserGroup } from '@fortawesome/free-solid-svg-icons'
-import { faStar as faStarRegular } from '@fortawesome/free-regular-svg-icons'
 import { NeBadgeV2, NeButton, NeSideDrawer, NeTooltip } from '@nethesis/vue-components'
 import CallSplitButton from '@/components/overview/CallSplitButton.vue'
 import OverviewAvatar from '@/components/overview/OverviewAvatar.vue'
@@ -136,12 +135,12 @@ function getDeviceLabel(device: OverviewDevice) {
                       @click="favoritesStore.toggleFavorite(user.username)"
                     >
                       <FontAwesomeIcon
-                        :icon="isFavorite ? faStar : faStarRegular"
+                        :icon="faStar"
                         :class="[
                           'size-4',
                           isFavorite
-                            ? 'text-indigo-700 dark:text-indigo-500'
-                            : 'text-tertiary-neutral hover:text-indigo-700 dark:hover:text-indigo-500',
+                            ? 'text-secondary'
+                            : 'text-tertiary-neutral hover:text-secondary',
                         ]"
                         aria-hidden="true"
                       />

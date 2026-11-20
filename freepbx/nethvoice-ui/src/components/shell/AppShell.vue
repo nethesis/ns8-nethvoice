@@ -5,8 +5,9 @@
 
 <script setup lang="ts">
 import { RouterView, useRoute } from 'vue-router'
-import { ref, watch } from 'vue'
+import { nextTick, ref, useTemplateRef, watch } from 'vue'
 import { Dialog, DialogPanel, TransitionChild, TransitionRoot } from '@headlessui/vue'
+import { NeTooltip } from '@nethesis/vue-components'
 import SideMenu from './SideMenu.vue'
 import BrandLogo from './BrandLogo.vue'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
@@ -17,6 +18,21 @@ import PhoneIslandHost from '@/components/phone/PhoneIslandHost.vue'
 
 const route = useRoute()
 const sidebarOpen = ref(false)
+const topBarRef = useTemplateRef<InstanceType<typeof TopBar>>('topBarRef')
+let focusMenuButtonAfterClose = false
+
+function closeSidebar() {
+  focusMenuButtonAfterClose = true
+  sidebarOpen.value = false
+}
+
+async function returnFocusAfterClose() {
+  if (focusMenuButtonAfterClose) {
+    focusMenuButtonAfterClose = false
+    await nextTick()
+    topBarRef.value?.focusOpenSidebar()
+  }
+}
 
 watch(
   () => route.fullPath,
@@ -28,8 +44,8 @@ watch(
 
 <template>
   <div>
-    <TransitionRoot as="template" :show="sidebarOpen">
-      <Dialog as="div" class="relative z-50 lg:hidden" @close="sidebarOpen = false">
+    <TransitionRoot as="template" :show="sidebarOpen" @after-leave="returnFocusAfterClose">
+      <Dialog as="div" class="relative z-50 lg:hidden" @close="closeSidebar">
         <TransitionChild
           as="template"
           enter="transition-opacity ease-linear duration-(--duration-large-enter)"
@@ -63,14 +79,19 @@ watch(
                 leave-to="opacity-0"
               >
                 <div class="absolute top-0 left-full flex w-16 justify-center pt-5">
-                  <button type="button" class="-m-2.5 p-2.5" @click="sidebarOpen = false">
-                    <span class="sr-only">{{ $t('shell.close_sidebar') }}</span>
-                    <FontAwesomeIcon
-                      :icon="faXmark"
-                      class="h-6 w-6 text-white"
-                      aria-hidden="true"
-                    />
-                  </button>
+                  <NeTooltip trigger-event="mouseenter click" placement="bottom" class="flex">
+                    <template #trigger>
+                      <button type="button" class="-m-2.5 p-2.5" @click="closeSidebar">
+                        <span class="sr-only">{{ $t('shell.close_sidebar') }}</span>
+                        <FontAwesomeIcon
+                          :icon="faXmark"
+                          class="h-6 w-6 text-white"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </template>
+                    <template #content>{{ $t('shell.close_sidebar') }}</template>
+                  </NeTooltip>
                 </div>
               </TransitionChild>
               <div
@@ -115,7 +136,7 @@ watch(
     </div>
 
     <div class="lg:pl-75">
-      <TopBar @open-sidebar="sidebarOpen = true" />
+      <TopBar ref="topBarRef" @open-sidebar="sidebarOpen = true" />
       <main class="py-6">
         <div class="px-4 sm:px-6 lg:px-8">
           <RouterView />

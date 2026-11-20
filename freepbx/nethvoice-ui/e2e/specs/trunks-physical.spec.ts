@@ -56,7 +56,7 @@ test.describe('trunks: physical', () => {
 
     await expect(page.getByText('No physical trunks configured')).toBeVisible()
     await expect(
-      page.getByText('Add physical trunks to connect your PBX to traditional telephony lines.'),
+      page.getByText('Create physical trunks to connect your PBX to traditional telephony lines.'),
     ).toBeVisible()
     await expect(
       page.getByText(
@@ -83,7 +83,7 @@ test.describe('trunks: physical', () => {
     mockTrunksApi(mockApi)
     await page.goto('./trunks/physical')
 
-    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
     await expect(page.getByRole('textbox', { name: 'MAC address' })).toHaveAttribute(
       'placeholder',
       'e.g. 00:1A:2B:3C:4D:5E',
@@ -97,7 +97,7 @@ test.describe('trunks: physical', () => {
       'e.g. 192.168.1.2',
     )
     await page.getByRole('textbox', { name: 'PBX address' }).fill('')
-    await page.getByRole('button', { name: 'Add trunk' }).click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(page.getByText('Choose a manufacturer')).toBeVisible()
     await expect(page.getByText('Choose a model', { exact: true }).last()).toBeVisible()
@@ -113,7 +113,7 @@ test.describe('trunks: physical', () => {
     await page.getByRole('textbox', { name: 'MAC address' }).fill('00:a0:ba:0b:1c:dd')
     await page.getByRole('textbox', { name: 'Device IP address' }).fill('192.168.10.300')
     await page.getByRole('textbox', { name: 'Subnet mask' }).fill('255.0.255.0')
-    await page.getByRole('button', { name: 'Add trunk' }).click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(page.getByText('Another gateway already uses this MAC address')).toBeVisible()
     await expect(page.getByText('Enter a valid IPv4 address')).toBeVisible()
@@ -128,7 +128,7 @@ test.describe('trunks: physical', () => {
     })
     await page.goto('./trunks/physical')
 
-    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
     await expect(page.getByRole('textbox', { name: 'PBX address' })).toHaveValue(
       'voice.example.org',
     )
@@ -143,10 +143,10 @@ test.describe('trunks: physical', () => {
       .getByRole('group', { name: 'ISDN port 1 mode' })
       .getByText('Point-to-multipoint')
       .click()
-    await page.getByRole('button', { name: 'Add trunk' }).click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(
-      page.getByText('Patton TRINITY ISDN 2 Porte has been created successfully'),
+      page.getByText('Physical trunk Patton TRINITY ISDN 2 Porte has been created.'),
     ).toBeVisible()
     expect(mockApi.callsTo('POST', '/freepbx/rest/devices/gateways')[0].body).toEqual({
       name: 'Patton-TRINITY ISDN 2 Porte',
@@ -174,7 +174,7 @@ test.describe('trunks: physical', () => {
     mockApi.on('POST', '/freepbx/rest/devices/gateways', { json: { status: true, id: 9 } })
     await page.goto('./trunks/physical')
 
-    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
     await page.getByText('Grandstream', { exact: true }).last().click()
     await page.getByRole('combobox', { name: 'Device model' }).click()
     await page.getByRole('option', { name: /ht802/ }).click()
@@ -184,10 +184,10 @@ test.describe('trunks: physical', () => {
     await page.getByRole('textbox', { name: 'Network gateway' }).fill('192.168.10.1')
     await page.getByRole('combobox', { name: 'Port FXS 1' }).click()
     await page.getByRole('option', { name: /c\.davis \(301\)/ }).click()
-    await page.getByRole('button', { name: 'Add trunk' }).click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(
-      page.getByText(/HT802 SIP 2 Porte FXS has been created successfully/),
+      page.getByText(/Physical trunk .*HT802 SIP 2 Porte FXS has been created\./),
     ).toBeVisible()
     const { body } = mockApi.callsTo('POST', '/freepbx/rest/devices/gateways')[0]
     expect(body).toMatchObject({
@@ -212,7 +212,7 @@ test.describe('trunks: physical', () => {
     })
     await page.goto('./trunks/physical')
 
-    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
     await page.getByText('Patton', { exact: true }).last().click()
     await page.getByRole('combobox', { name: 'Device model' }).click()
     await page.getByRole('option', { name: /TRI_PRI_1/ }).click()
@@ -220,7 +220,7 @@ test.describe('trunks: physical', () => {
     await page.getByRole('textbox', { name: 'Device IP address' }).fill('192.168.10.21')
     await page.getByRole('textbox', { name: 'Subnet mask' }).fill('255.255.255.0')
     await page.getByRole('textbox', { name: 'Network gateway' }).fill('192.168.10.1')
-    await page.getByRole('button', { name: 'Add trunk' }).click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(page.getByText('Cannot create the trunk')).toBeVisible()
     await expect(
@@ -245,7 +245,7 @@ test.describe('trunks: physical', () => {
     )
     await expect(page.getByRole('textbox', { name: 'MAC address' })).toBeDisabled()
     await expect(page.getByRole('combobox', { name: 'Port FXS 1' })).toHaveValue(/c\.davis/)
-    await expect(page.getByRole('button', { name: 'Add trunk' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Create', exact: true })).toHaveCount(0)
     expect(mockApi.callsTo('POST', '/freepbx/rest/devices/gateways')).toHaveLength(0)
   })
 
@@ -290,7 +290,7 @@ test.describe('trunks: physical', () => {
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
 
     await expect(
-      page.getByText('Patton TRINITY ISDN 2 Porte has been deleted successfully'),
+      page.getByText('Physical trunk Patton TRINITY ISDN 2 Porte has been deleted.'),
     ).toBeVisible()
     expect(mockApi.callsTo('DELETE', '/freepbx/rest/devices/gateways/:id')[0].path).toBe(
       '/freepbx/rest/devices/gateways/3',
@@ -329,7 +329,7 @@ test.describe('trunks: physical', () => {
     })
     await page.goto('./trunks/physical')
 
-    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
     await page.getByText('Patton', { exact: true }).last().click()
     await page.getByRole('combobox', { name: 'Device model' }).click()
     await page.getByRole('option', { name: /TRI_PRI_1/ }).click()
@@ -337,7 +337,7 @@ test.describe('trunks: physical', () => {
     await page.getByRole('textbox', { name: 'Device IP address' }).fill('192.168.10.21')
     await page.getByRole('textbox', { name: 'Subnet mask' }).fill('255.255.255.0')
     await page.getByRole('textbox', { name: 'Network gateway' }).fill('192.168.10.1')
-    await page.getByRole('button', { name: 'Add trunk' }).click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(page.getByText('Cannot create the trunk')).toBeVisible()
     await expect(page.getByText('Error creating extension', { exact: true })).toBeVisible()
@@ -348,7 +348,7 @@ test.describe('trunks: physical', () => {
     mockTrunksApi(mockApi, { gateways: [] })
     await page.goto('./trunks/physical')
 
-    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
     await page.getByText('Patton', { exact: true }).last().click()
     await page.getByRole('combobox', { name: 'Device model' }).click()
     await page.getByRole('option', { name: /TRI_PRI_1/ }).click()
@@ -357,7 +357,7 @@ test.describe('trunks: physical', () => {
     await page.getByRole('textbox', { name: 'Subnet mask' }).fill('255.255.255.0')
     await page.getByRole('textbox', { name: 'Network gateway' }).fill('10.0.0.1')
     await page.getByRole('textbox', { name: 'PBX address' }).fill('999.1.1.1')
-    await page.getByRole('button', { name: 'Add trunk' }).click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(page.getByText('Enter the MAC address of a single device')).toBeVisible()
     await expect(
@@ -371,11 +371,11 @@ test.describe('trunks: physical', () => {
     mockTrunksApi(mockApi, { gateways: [] })
     await page.goto('./trunks/physical')
 
-    await page.getByRole('button', { name: 'Add physical trunk' }).click()
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
     await page.getByRole('textbox', { name: 'MAC address' }).fill('00:a0:ba:0b:1c:ee')
     await page.getByRole('button', { name: 'Cancel' }).click()
     await page.getByRole('button', { name: 'Discard changes' }).click()
 
-    await expect(page.getByRole('heading', { name: 'Add physical trunk' })).toBeHidden()
+    await expect(page.getByRole('heading', { name: 'Create physical trunk' })).toBeHidden()
   })
 })

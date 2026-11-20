@@ -147,7 +147,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('trunks.trunk_created'),
-        description: t('common.object_created_successfully', {
+        description: t('trunks.physical.trunk_created_description', {
           name: `${model.manufacturer} ${model.description}`,
         }),
       })
@@ -484,7 +484,7 @@ function discardChanges() {
             {{ t('common.cancel') }}
           </NeButton>
           <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
-            {{ t('trunks.add_trunk') }}
+            {{ t('common.create') }}
           </NeButton>
         </template>
       </div>

@@ -184,12 +184,12 @@ function reload() {
       <NeEmptyState
         v-if="isNoMatchEmptyStateShown"
         :title="t('groups.no_groups_found')"
-        :description="t('common.try_changing_search_filters')"
+        :description="t('common.try_different_words')"
         :icon="faMagnifyingGlass"
         class="bg-elevation-2"
       >
         <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('common.reset_filters') }}
+          {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
       <NeTable

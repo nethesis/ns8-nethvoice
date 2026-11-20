@@ -54,6 +54,13 @@ test.describe('integrations: parameterized URLs', () => {
     await page.getByRole('textbox', { name: 'Filter URLs' }).fill('advanced')
     await expect(rows).toHaveCount(2)
     await expect(rows.nth(1)).toContainText('support.example.com')
+
+    await page.getByRole('textbox', { name: 'Filter URLs' }).fill('nothing matches')
+    await expect(page.getByText('No URLs found')).toBeVisible()
+    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await expect(page.getByRole('textbox', { name: 'Filter URLs' })).toHaveValue('')
+    await expect(rows).toHaveCount(3)
   })
 
   test('shows an empty state', async ({ page, mockApi }) => {
@@ -203,7 +210,7 @@ test.describe('integrations: parameterized URLs', () => {
 
     const modal = page.getByRole('dialog')
     await expect(modal).toContainText(
-      'Delete https://support.example.com/ticket?caller=$CALLER_NAME?',
+      'URL https://support.example.com/ticket?caller=$CALLER_NAME will be permanently deleted.',
     )
     await modal.getByRole('button', { name: 'Delete' }).click()
 

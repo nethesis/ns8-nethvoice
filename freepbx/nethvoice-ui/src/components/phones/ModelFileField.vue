@@ -29,6 +29,13 @@ const {
 
 const model = defineModel<string>({ required: true })
 
+const UPLOAD_LABELS: Record<PhoneFileType, string> = {
+  backgrounds: 'phones.models.upload_background',
+  firmware: 'phones.models.upload_firmware',
+  ringtones: 'phones.models.upload_ringtone',
+  screensavers: 'phones.models.upload_screensaver',
+}
+
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const { state } = usePhoneFiles(fileType)
@@ -98,6 +105,7 @@ function onSelect(selected: File | File[] | null) {
     />
     <NeFileInput
       v-model="file"
+      :label="$t(UPLOAD_LABELS[fileType])"
       :dropzone-label="$t('ne_file_input.drag_and_drop_or_click_to_upload')"
       :helper-text="$t('phones.models.upload_helper')"
       :invalid-message="fileIssue"

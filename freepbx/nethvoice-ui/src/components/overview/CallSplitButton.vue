@@ -7,7 +7,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faAngleDown, faPhone } from '@fortawesome/free-solid-svg-icons'
+import { faChevronDown, faPhone } from '@fortawesome/free-solid-svg-icons'
 import { NeDropdown, NeSpinner, NeTooltip, type NeDropdownItem } from '@nethesis/vue-components'
 import { DEVICE_ICONS } from '@/components/overview/deviceIcons'
 import type { OverviewDevice } from '@/lib/overview/overview'
@@ -97,7 +97,7 @@ const segmentClasses =
       :class="[segmentClasses, disabledClasses, 'cursor-not-allowed rounded-r-md px-3']"
       data-testid="call-device-menu-disabled"
     >
-      <FontAwesomeIcon :icon="faAngleDown" class="size-4" aria-hidden="true" />
+      <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
       <span class="sr-only">
         {{ disabled || loading ? tooltip : t('user_overview.call_device_unavailable') }}
       </span>
@@ -118,7 +118,7 @@ const segmentClasses =
           ]"
           aria-hidden="true"
         >
-          <FontAwesomeIcon :icon="faAngleDown" class="size-4" />
+          <FontAwesomeIcon :icon="faChevronDown" class="size-4" />
         </span>
       </template>
     </NeDropdown>

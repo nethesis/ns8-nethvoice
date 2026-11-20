@@ -177,12 +177,12 @@ function deleteCurrentUrl() {
       <NeEmptyState
         v-else-if="isNoMatchEmptyStateShown"
         :title="t('integrations.param_urls.no_urls_found')"
-        :description="t('common.try_changing_search_filters')"
+        :description="t('common.try_different_words')"
         :icon="faMagnifyingGlass"
         class="elevation-0"
       >
         <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('common.reset_filters') }}
+          {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
       <NeInlineNotification
@@ -271,6 +271,7 @@ function deleteCurrentUrl() {
         t('integrations.param_urls.delete_url_confirmation', { url: currentUrl?.url ?? '' })
       "
       :success-title="t('integrations.param_urls.url_deleted')"
+      success-description-key="integrations.param_urls.url_deleted_description"
       :error-title="t('integrations.param_urls.cannot_delete_url')"
       :delete-object="deleteCurrentUrl"
       :invalidate-keys="[PARAMETERIZED_URLS_KEY]"

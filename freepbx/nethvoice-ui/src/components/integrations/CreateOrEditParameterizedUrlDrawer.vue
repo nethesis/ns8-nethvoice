@@ -97,7 +97,9 @@ const {
           ? t('integrations.param_urls.url_saved')
           : t('integrations.param_urls.url_created'),
         description: t(
-          edited ? 'common.object_saved_successfully' : 'common.object_created_successfully',
+          edited
+            ? 'integrations.param_urls.url_updated_description'
+            : 'integrations.param_urls.url_created_description',
           { name: urlForm.url.trim() },
         ),
       })

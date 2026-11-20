@@ -77,7 +77,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('groups.group_created'),
-        description: t('common.object_created_successfully', { name: group.name }),
+        description: t('groups.group_created_description', { name: group.name }),
       })
     }, 500)
     emit('close')
@@ -101,7 +101,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('groups.group_saved'),
-        description: t('common.object_saved_successfully', { name: group.name }),
+        description: t('groups.group_updated_description', { name: group.name }),
       })
     }, 500)
     emit('close')

@@ -29,8 +29,8 @@ test.describe('setup: trunks', () => {
     await expect(page.getByText('Step 3 of 7')).toBeVisible()
     await expect(page.getByText('No physical trunks configured')).toBeVisible()
 
-    await page.getByRole('button', { name: 'Add physical trunk' }).click()
-    await expect(page.getByRole('heading', { name: 'Add physical trunk' })).toBeVisible()
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
+    await expect(page.getByRole('heading', { name: 'Create physical trunk' })).toBeVisible()
     await page.getByRole('button', { name: 'Cancel' }).click()
 
     await page.getByRole('button', { name: 'Next' }).click()
@@ -51,8 +51,8 @@ test.describe('setup: trunks', () => {
     await expect(page.getByRole('row', { name: /main_trunk/ })).toContainText('Registered')
     await expect(page.getByText('Patton_0b1cdd_isdn_0')).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Add VoIP trunk' }).click()
-    await expect(page.getByRole('heading', { name: 'Add VoIP trunk' })).toBeVisible()
+    await page.getByRole('button', { name: 'Create VoIP trunk' }).click()
+    await expect(page.getByRole('heading', { name: 'Create VoIP trunk' })).toBeVisible()
     await page.getByRole('button', { name: 'Cancel' }).click()
 
     await page.getByRole('button', { name: 'Next' }).click()

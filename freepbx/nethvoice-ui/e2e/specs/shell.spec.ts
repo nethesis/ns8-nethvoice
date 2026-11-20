@@ -15,6 +15,53 @@ test.describe('shell', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   })
 
+  test('goes to the dashboard from a page that does not exist', async ({ page }) => {
+    await page.goto('./no-such-page')
+
+    await expect(page.getByText('Page not found')).toBeVisible()
+    await page.getByRole('button', { name: 'Go to Dashboard' }).click()
+    await expect(page).toHaveURL(/\/dashboard$/)
+  })
+
+  test.describe('in Italian', () => {
+    test.use({ locale: 'it-IT' })
+
+    test('names the dashboard after the preposition', async ({ page }) => {
+      await page.goto('./no-such-page')
+
+      await expect(page.getByRole('button', { name: 'Vai alla Dashboard' })).toBeVisible()
+    })
+  })
+
+  for (const closeWith of ['Escape', 'close button']) {
+    test(`returns the focus to the menu button after closing the mobile menu with ${closeWith}`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.goto('./dashboard')
+
+      const open = page.getByRole('button', { name: 'Open sidebar' })
+      await open.hover()
+      await expect(page.getByRole('tooltip')).toHaveText('Open sidebar')
+      await open.click()
+
+      const close = page.getByRole('button', { name: 'Close sidebar' })
+      await expect(close).toBeFocused()
+      await expect(page.getByRole('tooltip')).toHaveCount(0)
+
+      if (closeWith === 'Escape') {
+        await page.keyboard.press('Escape')
+      } else {
+        await close.hover()
+        await expect(page.getByRole('tooltip')).toHaveText('Close sidebar')
+        await close.click()
+      }
+
+      await expect(close).toHaveCount(0)
+      await expect(open).toBeFocused()
+    })
+  }
+
   test('marks the current page in the side menu', async ({ page }) => {
     await page.goto('./settings')
 

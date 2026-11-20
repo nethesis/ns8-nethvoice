@@ -22,10 +22,10 @@ const { status, emphasis = false } = defineProps<{ status: OverviewStatus; empha
 const { t } = useI18n()
 
 const STATUS_ICONS: Record<OverviewStatus, { icon: IconDefinition; color: string }> = {
-  online: { icon: faCircleCheck, color: 'text-green-700 dark:text-green-500' },
-  busy: { icon: faCircleMinus, color: 'text-rose-700 dark:text-rose-500' },
-  ringing: { icon: faCircle, color: 'text-rose-700 dark:text-rose-500' },
-  dnd: { icon: faCircleMinus, color: 'text-rose-700 dark:text-rose-500' },
+  online: { icon: faCircleCheck, color: 'text-icon-enabled' },
+  busy: { icon: faCircleMinus, color: 'text-danger' },
+  ringing: { icon: faCircle, color: 'text-danger' },
+  dnd: { icon: faCircleMinus, color: 'text-danger' },
   forward: { icon: faCircleArrowRight, color: 'text-amber-700 dark:text-amber-500' },
   offline: { icon: faCircleXmark, color: 'text-gray-500 dark:text-gray-400' },
 }

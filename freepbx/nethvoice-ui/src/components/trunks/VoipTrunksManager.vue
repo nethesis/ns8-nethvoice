@@ -301,7 +301,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
       <NeTable
         v-if="isTableShown"
         :aria-label="t('trunks.tab_voip')"
-        card-breakpoint="2xl"
+        card-breakpoint="xl"
         :loading="isLoading"
         :skeleton-columns="6"
         :skeleton-rows="3"
@@ -323,7 +323,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
           <NeTableRow v-for="item in page" :key="item.id">
             <NeTableCell :data-label="t('trunks.trunk')">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="break-words">{{ item.name }}</span>
+                <span class="wrap-anywhere">{{ item.name }}</span>
                 <NeBadgeV2 v-if="item.disabled" kind="gray" size="xs">
                   {{ t('common.disabled') }}
                 </NeBadgeV2>

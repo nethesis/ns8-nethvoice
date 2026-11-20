@@ -8,7 +8,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
-  faBars,
+  faListUl,
   faMagnifyingGlass,
   faStar,
   faUserGroup,
@@ -16,6 +16,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { faGrid2, faGridDividers } from '@nethesis/nethesis-solid-svg-icons'
 import {
+  getPreference,
   NeButton,
   NeDropdownFilterV2,
   NeEmptyState,
@@ -24,6 +25,7 @@ import {
   NeSortDropdown,
   NeTextInput,
   NeTooltip,
+  savePreference,
   type NeDropdownFilterV2Option,
 } from '@nethesis/vue-components'
 import LoadError from '@/components/common/LoadError.vue'
@@ -39,6 +41,7 @@ import {
   buildOverviewUsers,
   FAVORITES_FILTER_ID,
   filterOverviewUsers,
+  normalizeOverviewView,
   OVERVIEW_REFRESH_INTERVAL,
   OVERVIEW_SORT_KEYS,
   OVERVIEW_STATUSES,
@@ -52,6 +55,9 @@ import { useOverviewLiveState } from '@/queries/overview/overview'
 import { usePhoneModels } from '@/queries/phones/models'
 import { useUsers } from '@/queries/users/users'
 import { useFavoritesStore } from '@/stores/favorites'
+import { useLoginStore } from '@/stores/login'
+
+const VIEW_PREFERENCE = 'userOverviewView'
 
 const { t } = useI18n()
 const { state: liveState, refetch: refetchLive } = useOverviewLiveState()
@@ -74,13 +80,37 @@ const groupByFilter = ref<NeDropdownFilterV2Option[]>([])
 const favoritesStore = useFavoritesStore()
 const sortKey = ref<OverviewSortKey>('name')
 const sortDescending = ref(false)
-const view = ref<OverviewView>('grid')
+const loginStore = useLoginStore()
+
+const readView = (): OverviewView => {
+  try {
+    return normalizeOverviewView(
+      loginStore.username ? getPreference(VIEW_PREFERENCE, loginStore.username) : undefined,
+    )
+  } catch {
+    return normalizeOverviewView(undefined)
+  }
+}
+
+const view = ref<OverviewView>(readView())
+
+function selectView(selected: OverviewView) {
+  view.value = selected
+
+  if (loginStore.username) {
+    try {
+      savePreference(VIEW_PREFERENCE, selected, loginStore.username)
+    } catch {
+      return
+    }
+  }
+}
 const selectedUsername = ref('')
 const isShownDetails = ref(false)
 
 const VIEW_OPTIONS: { id: OverviewView; icon: IconDefinition }[] = [
   { id: 'grid', icon: faGrid2 },
-  { id: 'list', icon: faBars },
+  { id: 'list', icon: faListUl },
   { id: 'compact', icon: faGridDividers },
 ]
 
@@ -323,15 +353,11 @@ function reload() {
             <template #trigger>
               <NeButton
                 kind="tertiary"
-                size="lg"
+                :class="['p-2.5!', { 'bg-elevation-3': view === option.id }]"
                 :aria-pressed="view === option.id"
-                @click="view = option.id"
+                @click="selectView(option.id)"
               >
-                <FontAwesomeIcon
-                  :icon="option.icon"
-                  :class="['size-4', { 'text-tertiary-neutral': view !== option.id }]"
-                  aria-hidden="true"
-                />
+                <FontAwesomeIcon :icon="option.icon" class="size-4" aria-hidden="true" />
                 <span class="sr-only">{{ t(`user_overview.views.${option.id}`) }}</span>
               </NeButton>
             </template>
