@@ -81,6 +81,7 @@ export type ImportIssue =
   | 'invalid_group'
   | 'too_many_devices'
   | 'invalid_flag'
+  | 'control_characters'
 
 export type ImportRowIssue = {
   issue: ImportIssue
@@ -315,6 +316,9 @@ const FALSE_FLAGS = ['false', '0', 'no', 'n', 'falso', 'off']
 
 const FLAG_COLUMNS: ImportFlagColumn[] = ['voicemail', 'webrtc', 'nethlink', 'mobileApp']
 
+export const hasControlCharacters = (value: string): boolean =>
+  [...value].some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
+
 const isBlank = (value: string | undefined): value is undefined =>
   value === undefined || value.trim() === ''
 
@@ -441,6 +445,19 @@ const findRowIssues = (
 
   if (row.fullName.trim() === '') {
     issues.push('missing_name')
+  }
+
+  if (
+    [
+      row.name,
+      row.surname,
+      row.fullName,
+      row.password,
+      row.mobile ?? '',
+      ...(row.groups ?? []),
+    ].some(hasControlCharacters)
+  ) {
+    issues.push('control_characters')
   }
 
   if (row.extension !== '' && !validExtension) {

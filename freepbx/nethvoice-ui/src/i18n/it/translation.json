@@ -487,7 +487,8 @@
     "filtered_counter": "Mostrato {shown} di {total} utente | Mostrati {shown} di {total} utenti",
     "base_profile_missing": "Non è stato possibile trovare il profilo Base, quindi l'interno non si può configurare",
     "user_created_description": "L'utente {name} è stato creato.",
-    "user_updated_description": "L'utente {name} è stato aggiornato."
+    "user_updated_description": "L'utente {name} è stato aggiornato.",
+    "import_issue_control_characters": "tabulazioni, interruzioni di riga o altri caratteri invisibili in un campo"
   },
   "trunks": {
     "title": "Fasci",

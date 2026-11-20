@@ -930,6 +930,53 @@ test.describe('users', () => {
     )
   })
 
+  test('reports the CSV rows with control characters and does not import them', async ({
+    page,
+    mockApi,
+  }) => {
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'users.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        [
+          'username,name,surname,extension',
+          'k.lee,Kevin,Lee,310',
+          'n.ray,"Nora\tJane",Ray,311',
+          'o.dean,Omar,"De\nan",312',
+          'p.hill,"Zoë ""Q"" O\'Brien",R&D #2,313',
+        ].join('\n'),
+      ),
+    })
+    await drawer.getByRole('button', { name: 'Next' }).click()
+
+    const modal = page
+      .getByRole('dialog', { name: 'Import users' })
+      .filter({ hasText: 'File preview' })
+    await expect(modal).toContainText(
+      'Row 3 (n.ray): tabs, line breaks or other invisible characters in a field',
+    )
+    await expect(modal).toContainText(
+      'Row 4 (o.dean): tabs, line breaks or other invisible characters in a field',
+    )
+    await expect(modal.getByTestId('import-summary')).toContainText('2 valid')
+    await expect(modal.getByTestId('import-summary')).toContainText(
+      '2 with errors (will be skipped)',
+    )
+    await modal.getByRole('button', { name: 'Import 2 users' }).click()
+
+    await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
+    const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as { file: string }
+    expect(Buffer.from(file.file, 'base64').toString()).toBe(
+      '"k.lee","Kevin Lee","310"\r\n"p.hill","Zoë ""Q"" O\'Brien R&D #2","313"\r\n',
+    )
+  })
+
   test('shows the imported users with their groups and the import result', async ({
     page,
     mockApi,
