@@ -5,7 +5,7 @@ go 1.26.10
 require (
 	github.com/appleboy/gin-jwt/v2 v2.10.3
 	github.com/gin-contrib/cors v1.7.11
-	github.com/gin-contrib/gzip v0.0.6
+	github.com/gin-contrib/gzip v1.2.10
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/go-sql-driver/mysql v1.10.1
