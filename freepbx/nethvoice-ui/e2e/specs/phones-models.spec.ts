@@ -343,4 +343,143 @@ test.describe('physical phones: models', () => {
     await expect(page.getByRole('row', { name: /Yealink T46/ })).toBeVisible()
     expect(mockApi.callsTo('PATCH', `${TANCREDI}/models/:id`)).toHaveLength(0)
   })
+
+  test.describe('last update', () => {
+    test.use({ timezoneId: 'UTC' })
+
+    const NOW = new Date('2026-11-20T09:38:00Z')
+    const EDITED_AT = Date.UTC(2026, 10, 18, 9, 38) / 1000
+    const EDITED_LABEL = 'Nov 18, 2026, 09:38 AM (2 days ago)'
+    const UNKNOWN = /^(Last update)?\s*-$/
+
+    const modelsWithLastEdit = (lastEdit: Record<string, number>) =>
+      TANCREDI_MODELS.map((model) =>
+        model.name in lastEdit ? { ...model, last_edit_time: lastEdit[model.name] } : model,
+      )
+
+    test.beforeEach(async ({ page }) => {
+      await page.clock.setFixedTime(NOW)
+    })
+
+    for (const width of [1440, 390]) {
+      test(`shows when each model was last changed at ${width} px`, async ({ page, mockApi }) => {
+        mockPhonesApi(mockApi).on('GET', `${TANCREDI}/models`, {
+          json: modelsWithLastEdit({ 'fanvil-X4U-reception': EDITED_AT }),
+        })
+        await page.setViewportSize({ width, height: 900 })
+        await page.goto('./phones/models')
+
+        const edited = page
+          .getByRole('row', { name: /Reception desk/ })
+          .getByRole('gridcell')
+          .nth(4)
+        const neverEdited = page
+          .getByRole('row', { name: /Yealink T46/ })
+          .getByRole('gridcell')
+          .nth(4)
+
+        if (width === 1440) {
+          await expect(page.getByRole('columnheader')).toHaveText([
+            'Model',
+            'Brand',
+            'Phones',
+            'Type',
+            'Last update',
+            'Actions',
+          ])
+          await expect(edited).toContainText(EDITED_LABEL)
+          await expect(edited.getByText('Last update')).toBeHidden()
+          await expect(neverEdited).toHaveText(UNKNOWN)
+        } else {
+          await expect(edited).toContainText(EDITED_LABEL)
+          await expect(edited.getByText('Last update')).toBeVisible()
+          await expect(neverEdited).toHaveText(UNKNOWN)
+          expect(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+            ),
+          ).toBe(0)
+        }
+        await expect(edited.getByText(EDITED_LABEL)).toBeVisible()
+      })
+    }
+
+    test('sorts the models by last update', async ({ page, mockApi }) => {
+      mockPhonesApi(mockApi).on('GET', `${TANCREDI}/models`, {
+        json: modelsWithLastEdit({
+          'fanvil-X4U-reception': EDITED_AT,
+          'yealink-T54': EDITED_AT - 60,
+        }),
+      })
+      await page.goto('./phones/models')
+
+      await page.getByRole('button', { name: 'Sort by', exact: true }).click()
+      await page.getByRole('menuitem', { name: 'Last update' }).click()
+      await expect(page.getByRole('row').nth(-1)).toContainText('Reception desk')
+    })
+
+    test('refreshes the last update after a model is saved', async ({ page, mockApi }) => {
+      mockStoredModel(mockPhonesApi(mockApi), {
+        name: 'yealink-T46',
+        display_name: 'Yealink T46',
+        variables: MODEL_VARIABLES,
+      }).on('GET', `${TANCREDI}/models`, () => ({
+        json: modelsWithLastEdit(
+          mockApi.callsTo('PATCH', `${TANCREDI}/models/:id`).length > 0
+            ? { 'yealink-T46': EDITED_AT }
+            : {},
+        ),
+      }))
+      await page.goto('./phones/models')
+
+      const lastUpdate = page
+        .getByRole('row', { name: /Yealink T46/ })
+        .getByRole('gridcell')
+        .nth(4)
+      await expect(lastUpdate).toHaveText(UNKNOWN)
+      await page
+        .getByRole('row', { name: /Yealink T46/ })
+        .getByRole('button', { name: /Edit/ })
+        .click()
+      await page.getByRole('button', { name: 'Network' }).click()
+      await page.getByRole('textbox', { name: 'Phone VLAN ID' }).fill('30')
+      await page.getByRole('button', { name: 'Save', exact: true }).click()
+      await expect(page.getByText('Model saved')).toBeVisible()
+      await page.getByRole('button', { name: 'Models', exact: true }).first().click()
+
+      await expect(lastUpdate).toContainText(EDITED_LABEL)
+    })
+
+    test('shows the last update of a duplicated model', async ({ page, mockApi }) => {
+      mockPhonesApi(mockApi)
+        .on('GET', `${TANCREDI}/models/:id`, {
+          json: { name: 'fanvil-X4U', display_name: 'Fanvil X4U', variables: MODEL_VARIABLES },
+        })
+        .on('POST', `${TANCREDI}/models`, (request) => ({
+          status: 201,
+          json: { ...(request.body as object), last_edit_time: EDITED_AT },
+        }))
+        .on('GET', `${TANCREDI}/models`, () => ({
+          json: [
+            ...TANCREDI_MODELS,
+            ...mockApi.callsTo('POST', `${TANCREDI}/models`).map((call) => ({
+              ...(call.body as object),
+              last_edit_time: EDITED_AT,
+            })),
+          ],
+        }))
+      await page.goto('./phones/models')
+
+      await page.getByRole('button', { name: 'Open the menu of model Fanvil X4U' }).click()
+      await page.getByRole('menuitem', { name: 'Duplicate' }).click()
+      await page.getByRole('dialog').getByRole('button', { name: 'Duplicate' }).click()
+
+      await expect(
+        page
+          .getByRole('row', { name: /Fanvil X4U copy/ })
+          .getByRole('gridcell')
+          .nth(4),
+      ).toContainText(EDITED_LABEL)
+    })
+  })
 })

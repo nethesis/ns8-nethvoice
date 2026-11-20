@@ -1,13 +1,14 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   buildCustomModelName,
   buildModelRows,
   buildResetVariables,
   createPhoneModelFrom,
   filterModelsByVendor,
+  formatModelLastUpdate,
   getDuplicateDisplayName,
   getModelBrand,
   guessModelName,
@@ -73,6 +74,53 @@ describe('parsePhoneModelDetail', () => {
         variables: { contrast: 4, ringtone: '1', vlan_id_phone: null },
       }).variables,
     ).toEqual({ contrast: '4', ringtone: '1', vlan_id_phone: '' })
+  })
+})
+
+describe('last update', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('should read the last edit time in milliseconds', () => {
+    expect(
+      parsePhoneModels([
+        { name: 'fanvil-X4U-front', display_name: 'Front', last_edit_time: 1795000000 },
+        { name: 'fanvil-X4U-back', display_name: 'Back', last_edit_time: '1795000060' },
+      ]).map((model) => model.lastUpdate),
+    ).toEqual([1795000060000, 1795000000000])
+    expect(
+      parsePhoneModelDetail({
+        name: 'fanvil-X4U-front',
+        display_name: 'Front',
+        last_edit_time: 1795000000,
+        variables: [],
+      }).lastUpdate,
+    ).toBe(1795000000000)
+  })
+
+  it('should leave the last edit time unknown when Tancredi does not give it', () => {
+    expect(
+      parsePhoneModels([
+        { name: 'yealink-T46', display_name: 'Yealink T46' },
+        { name: 'yealink-T54', display_name: 'Yealink T54', last_edit_time: null },
+        { name: 'yealink-T57', display_name: 'Yealink T57', last_edit_time: 0 },
+        { name: 'yealink-T58', display_name: 'Yealink T58', last_edit_time: 'never' },
+        { name: 'yealink-T59', display_name: 'Yealink T59', last_edit_time: {} },
+      ]).map((model) => model.lastUpdate),
+    ).toEqual([null, null, null, null, null])
+  })
+
+  it('should format date, time and distance in the UI locale', () => {
+    vi.useFakeTimers({ now: new Date(2026, 10, 20, 9, 38) })
+    const lastUpdate = new Date(2026, 10, 18, 9, 38).getTime()
+
+    expect(formatModelLastUpdate(lastUpdate, 'en')).toBe('Nov 18, 2026, 09:38 AM (2 days ago)')
+    expect(formatModelLastUpdate(lastUpdate, 'it')).toBe('18 nov 2026, 09:38 (L’altro ieri)')
+  })
+
+  it('should show a dash when the last update is unknown', () => {
+    expect(formatModelLastUpdate(null, 'en')).toBe('-')
   })
 })
 
