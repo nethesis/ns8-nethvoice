@@ -69,6 +69,17 @@ func GetCallDetails(c *gin.Context) {
 		}
 	}
 
+	// return the call only if it involves numbers the user may see
+	allowed, errAllowed := callAllowed(user, linkedid)
+	if errAllowed != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "error executing SQL query", "status": errAllowed.Error()})
+		return
+	}
+	if !allowed {
+		c.JSON(http.StatusForbidden, gin.H{"message": "call not allowed"})
+		return
+	}
+
 	// build cache key including privacy settings
 	cacheKey := fmt.Sprintf("call_details_%s_%s_%v", linkedid, user, privacy)
 
@@ -128,6 +139,56 @@ func GetCallDetails(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json; charset=utf-8", []byte(callDetails))
 }
 
+// callAllowed tells if the user may see the details of a call
+func callAllowed(user string, linkedid string) (bool, error) {
+	if user == "admin" || user == "X" {
+		return true, nil
+	}
+	auths, err := GetUserAuthorizations(user)
+	if err != nil || len(auths.Users) == 0 || (auths.Cdr != "global" && auths.Cdr != "group" && auths.Cdr != "personal") {
+		return false, nil
+	}
+	if auths.Cdr == "global" {
+		return true, nil
+	}
+
+	// numbers of the user's profile and the user's own extensions
+	numbers := append(auths.Users, strings.FieldsFunc(utils.ExtractUserExtensions(user), func(r rune) bool { return r == ',' })...)
+	list := "(?" + strings.Repeat(",?", len(numbers)-1) + ")"
+	args := []interface{}{linkedid}
+	for i := 0; i < 2; i++ {
+		for _, n := range numbers {
+			args = append(args, n)
+		}
+	}
+	rows, err := source.CDRQueryInstance().Query("SELECT 1 FROM cdr WHERE linkedid = ? AND (IF(cnum IS NULL OR cnum = '', src, cnum) IN "+list+" OR dst IN "+list+") LIMIT 1", args...)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	return rows.Next(), rows.Err()
+}
+
+var graphNameRe = regexp.MustCompile("^[A-Za-z0-9_]+$")
+
+// sectionAllowed tells if a user with the given permissions may read a report section
+func sectionAllowed(m models.AuthMap, report, section string) bool {
+	switch report {
+	case "queue":
+		return m.Queues
+	case "cdr":
+		switch section {
+		case "dashboard":
+			return m.CdrGlobal || m.CdrPbx || m.CdrPersonal
+		case "pbx":
+			return m.CdrPbx
+		case "personal":
+			return m.CdrPersonal
+		}
+	}
+	return false
+}
+
 func GetGraphData(c *gin.Context) {
 	// extract report, section, view and graph
 	report := c.Param("report")
@@ -135,6 +196,12 @@ func GetGraphData(c *gin.Context) {
 	view := c.Param("view")
 	graph := c.Query("graph")
 	queryType := c.Query("type")
+
+	// report, section, view and graph are the path of the query file
+	if (report != "queue" && report != "cdr") || !graphNameRe.MatchString(section) || !graphNameRe.MatchString(view) || !graphNameRe.MatchString(graph) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid report parameters"})
+		return
+	}
 
 	// extract filter
 	filterParam := c.Query("filter")
@@ -154,6 +221,15 @@ func GetGraphData(c *gin.Context) {
 	// set current user inside filter
 	user := GetClaims(c)["id"].(string)
 	filter.CurrentUser = user
+
+	// check if the user's profile allows the section
+	if user != "admin" && user != "X" {
+		authMap, errAuth := ParseAuthMap(nil, user)
+		if errAuth != nil || !sectionAllowed(authMap, report, section) {
+			c.JSON(http.StatusForbidden, gin.H{"message": "section not allowed"})
+			return
+		}
+	}
 
 	// check authorizations for not admin users and set privacy settings
 	if user != "admin" && user != "X" {
@@ -266,21 +342,11 @@ func GetGraphData(c *gin.Context) {
 				} else if view == "local" {
 
 					// check which queried sources or destinations are in authorized users
-					// check authorized sources
-					mixedSrc := utils.Intersect(filter.Sources, auths.Users, "")
-					if len(mixedSrc) == 0 {
-
-						// check authorized destinations
-						mixedDest := utils.Intersect(filter.Destinations, auths.Users, "")
-						if len(mixedDest) == 0 {
-							c.Data(http.StatusOK, "application/json; charset=utf-8", []byte("[]"))
-							return
-						} else {
-							filter.Destinations = mixedDest
-						}
-
-					} else {
-						filter.Sources = mixedSrc
+					filter.Sources = utils.Intersect(filter.Sources, auths.Users, "")
+					filter.Destinations = utils.Intersect(filter.Destinations, auths.Users, "")
+					if len(filter.Sources) == 0 && len(filter.Destinations) == 0 {
+						c.Data(http.StatusOK, "application/json; charset=utf-8", []byte("[]"))
+						return
 					}
 
 				}
@@ -344,6 +410,9 @@ func executeSqlQuery(filter models.Filter, report string, section string, view s
 		if section == "personal" && user != "admin" && user != "X" {
 			// get user extensions
 			extensionsString := utils.ExtractUserExtensions(user)
+			if extensionsString == "" {
+				return "[]", nil
+			}
 			extensions := strings.Split(extensionsString, ",")
 
 			// get view
@@ -356,13 +425,8 @@ func executeSqlQuery(filter models.Filter, report string, section string, view s
 			}
 
 			if view == "local" {
-				if len(filter.Sources) == 0 {
-					filter.Sources = extensions
-				}
-
-				if len(filter.Destinations) == 0 {
-					filter.Destinations = extensions
-				}
+				filter.Sources = extensions
+				filter.Destinations = extensions
 			}
 		}
 

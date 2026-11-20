@@ -129,6 +129,15 @@ func SetSettings(c *gin.Context) {
 }
 
 func DeleteSettings(c *gin.Context) {
+	// get current user
+	user := GetClaims(c)["id"].(string)
+
+	// check if user admin or API key
+	if user != "admin" && user != "X" {
+		c.JSON(http.StatusNotFound, gin.H{"message": "no settings to delete found"})
+		return
+	}
+
 	// init cache connection
 	cacheConnection := cache.Instance()
 

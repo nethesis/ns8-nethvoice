@@ -82,7 +82,7 @@ func main() {
 	api.GET("/refresh_token", middleware.RefreshHandler(middleware.InstanceJWT()))
 
 	// define JWT middleware
-	api.Use(middleware.InstanceJWT().MiddlewareFunc(), middleware.SupportSession())
+	api.Use(middleware.InstanceJWT().MiddlewareFunc(), middleware.SupportSession(), middleware.ReportAccess())
 	{
 
 		filters := api.Group("/filters")
