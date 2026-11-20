@@ -12,7 +12,7 @@ COPY root/usr/lib/node/nethcti-server/package.json .
 COPY root/usr/lib/node/nethcti-server/package-lock.json .
 COPY root/usr/lib/node/nethcti-server/packages packages
 RUN --mount=type=cache,id=nethvoice-cti-server-npm,target=/root/.npm \
-    npm ci --cache /root/.npm && \
+    npm ci --production --cache /root/.npm && \
     npm ci --production --cache /root/.npm --prefix packages/astproxy
 # asterisk-ami@0.2.0-beta1 is published on npm with a parser that only
 # accepts single-digit AMI major versions. Asterisk 22 reports AMI 11.0.0.
@@ -21,8 +21,11 @@ RUN sed -i 's|^var versionRegexp = .*|var versionRegexp = /^Asterisk Call Manage
     grep -Fqx 'var versionRegexp = /^Asterisk Call Manager\/(\d+\.\d)/;' node_modules/asterisk-ami/lib/parse.js
 
 FROM base as production
-# install production packages, add astersik as user
-RUN apk add --no-cache \
+# install pending Alpine security updates and production packages,
+# drop npm (the server starts with node), add asterisk as user
+RUN apk upgrade --no-cache && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx && \
+    apk add --no-cache \
     openldap-clients \
     mpg123 \
     sox
@@ -33,7 +36,7 @@ RUN mkdir -p /etc/nethcti /var/lib/asterisk/sounds \
 COPY entrypoint.sh /entrypoint
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 ENTRYPOINT ["/entrypoint"]
-CMD ["npm", "start"]
+CMD ["node", "nethcti.js"]
 # copy application
 COPY root/var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
 COPY root/usr/lib/node/nethcti-server/packages packages

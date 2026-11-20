@@ -40,11 +40,11 @@ LABEL org.nethserver.images="${REPOBASE}/nethvoice-mariadb:${IMAGETAG} \
     ${REPOBASE}/nethvoice-tancredi:${IMAGETAG} \
     ${REPOBASE}/nethvoice-janus:${IMAGETAG} \
     ${REPOBASE}/nethvoice-phonebook:${IMAGETAG} \
-    docker.io/library/redis:7.0.10-alpine \
+    docker.io/library/redis:7.2.17-alpine \
     ${REPOBASE}/nethvoice-reports-ui:${IMAGETAG} \
     ${REPOBASE}/nethvoice-reports-api:${IMAGETAG} \
     ${REPOBASE}/nethvoice-sftp:${IMAGETAG} \
     docker.io/library/eclipse-mosquitto:2 \
     ${REPOBASE}/nethvoice-satellite:${IMAGETAG}\
-    docker.io/pgvector/pgvector:0.8.1-pg18-trixie \
+    docker.io/pgvector/pgvector:0.8.7-pg18-trixie \
     ${REPOBASE}/nethvoice-ejabberd:${IMAGETAG}"

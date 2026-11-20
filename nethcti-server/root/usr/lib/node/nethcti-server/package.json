@@ -23,7 +23,7 @@
     "pg": "8.12.0",
     "request": "2.88.0",
     "restify": "4.3.4",
-    "sequelize": "3.34.0",
+    "sequelize": "3.35.1",
     "socket.io": "^4.8.0",
     "sql-template-strings": "^2.2.2",
     "uuid": "^3.3.2",
