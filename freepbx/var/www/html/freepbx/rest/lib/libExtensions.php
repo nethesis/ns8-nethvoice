@@ -20,6 +20,8 @@
 # along with NethServer.  If not, see COPYING.
 #
 
+require_once __DIR__.'/libPhoneKeyLabels.php';
+
 define('NETHVOICE_CODECS_SOFTPHONE', 'opus,g722,ulaw,alaw,h264,vp8');
 define('NETHVOICE_CODECS_PHONE', 'g722,ulaw,alaw,h264,vp8');
 
@@ -838,7 +840,7 @@ function hasMainExtension($user) {
     return is_array($user) && !empty($user['default_extension']) && $user['default_extension'] !== 'none';
 }
 
-function reassignMainExtension($mainextension, $username) {
+function reassignMainExtension($mainextension, $username, &$keyLabels = null, $tancredi = null) {
     $fpbx = FreePBX::create();
     $dbh = FreePBX::Database();
     $mainextension = trim((string) $mainextension);
@@ -892,6 +894,13 @@ function reassignMainExtension($mainextension, $username) {
     }
 
     applyMainExtensionOwner($target, $mainextension);
+
+    $keyLabels = updateReassignedKeyLabels(
+        $mainextension,
+        !empty($source['displayname']) ? $source['displayname'] : $source['username'],
+        !empty($target['displayname']) ? $target['displayname'] : $target['username'],
+        $tancredi
+    );
 
     return true;
 }

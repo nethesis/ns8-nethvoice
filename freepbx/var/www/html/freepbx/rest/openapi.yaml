@@ -2218,8 +2218,12 @@ paths:
       tags:
       - Mainextensions
       responses:
-        '204':
+        '200':
           description: Extension reassigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MainExtensionReassignResult'
         '400':
           description: Missing username
           content:
@@ -2249,7 +2253,10 @@ paths:
         the new user, who must not have a main extension. The previous owner keeps
         the account without an extension. The new user keeps its CTI profile, or gets
         the one of the previous owner when it has none. Display names and the voicemail
-        owner are updated and a reload is triggered.
+        owner are updated and a reload is triggered. Line and expansion keys of phones
+        and custom models that point to the extension and whose label is the display
+        name of the previous owner get the display name of the new user; phones load
+        the new labels at their next provisioning.
       operationId: post_mainextensions_extension_reassign
       parameters:
       - name: extension
@@ -6900,6 +6907,18 @@ components:
         username:
           type: string
           description: User that receives the main extension.
+    MainExtensionReassignResult:
+      type: object
+      required:
+      - key_labels_updated
+      - key_labels_incomplete
+      properties:
+        key_labels_updated:
+          type: integer
+          description: Number of phone key labels changed to the name of the new user.
+        key_labels_incomplete:
+          type: boolean
+          description: True when some phone key labels could not be read or changed.
     MainExtensionOrphanDevice:
       type: object
       required:
