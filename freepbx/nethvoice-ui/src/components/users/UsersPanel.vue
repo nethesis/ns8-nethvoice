@@ -28,16 +28,16 @@ import {
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
-  faCircleArrowDown,
   faCircleArrowUp,
+  faArrowsRotate,
   faCirclePlus,
+  faFileCsv,
   faGears,
   faHeadset,
   faLinkSlash,
   faMagnifyingGlass,
   faPenToSquare,
   faRightLeft,
-  faRotate,
   faUserGroup,
   faUserGear,
   faVoicemail,
@@ -294,14 +294,14 @@ const actionItems = computed<NeDropdownItem[]>(() => [
   {
     id: 'export',
     label: t('users.export_users_to_csv'),
-    icon: faCircleArrowDown,
+    icon: faFileCsv,
     disabled: exporting.value || users.value.length === 0,
     action: exportUsers,
   },
   {
     id: 'sync',
     label: syncing.value ? t('users.synchronizing_users') : t('users.sync_users'),
-    icon: faRotate,
+    icon: faArrowsRotate,
     disabled: syncing.value,
     action: syncUsers,
   },
@@ -635,7 +635,7 @@ const filterLabels = computed(() => ({
                     </ul>
                     <RouterLink v-slot="{ href, navigate }" :to="{ name: 'phones' }" custom>
                       <NeLink inverted-theme :href="href" @click="navigate">
-                        {{ t('common.go_to_page', { page: t('phones.title') }) }}
+                        {{ t('common.go_to_physical_phones') }}
                       </NeLink>
                     </RouterLink>
                   </div>

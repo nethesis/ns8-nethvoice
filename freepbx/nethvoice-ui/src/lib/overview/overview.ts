@@ -28,6 +28,9 @@ export const OVERVIEW_VIEWS = ['grid', 'list', 'compact'] as const
 
 export type OverviewView = (typeof OVERVIEW_VIEWS)[number]
 
+export const normalizeOverviewView = (saved: unknown): OverviewView =>
+  OVERVIEW_VIEWS.find((view) => view === saved) ?? 'grid'
+
 const TextSchema = v.optional(
   v.pipe(
     v.nullable(v.union([v.string(), v.number()])),
@@ -296,6 +299,7 @@ export const filterOverviewUsers = (
         filters.text,
         user.name,
         user.username,
+        ...user.groups,
         ...user.devices.map((device) => device.extension),
       ) &&
       (filters.statuses.length === 0 || filters.statuses.includes(user.presence)) &&

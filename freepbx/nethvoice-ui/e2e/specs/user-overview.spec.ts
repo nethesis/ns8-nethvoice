@@ -175,6 +175,9 @@ test.describe('user overview', () => {
     await expect(page.getByRole('heading', { name: 'Operator details' })).toBeVisible()
     await expect(page.getByText('Fanvil X4U Pro', { exact: true }).first()).toBeVisible()
     await expect(page.getByRole('button', { name: 'Call', exact: true })).toBeEnabled()
+    await expect(
+      page.getByTestId('call-device-menu').locator('svg[data-icon="chevron-down"]'),
+    ).toHaveCount(1)
 
     const drawer = page.getByRole('dialog')
     const rows = drawer.getByTestId('device-row')
@@ -276,7 +279,13 @@ test.describe('user overview', () => {
     await expect(users.first()).toHaveAttribute('data-user', 'a.miller')
 
     await page.getByRole('button', { name: 'Show details of Carla Rossi' }).click()
-    await page.getByRole('button', { name: 'Add to favorites' }).click()
+    const favorite = page.getByRole('button', { name: 'Add to favorites' })
+    await expect(favorite.locator('svg')).toHaveAttribute('data-prefix', 'fas')
+    await expect(favorite.locator('svg')).toHaveAttribute('data-icon', 'star')
+    await favorite.click()
+    await expect(
+      page.getByRole('button', { name: 'Remove from favorites' }).locator('svg'),
+    ).toHaveAttribute('data-prefix', 'fas')
     await page.keyboard.press('Escape')
 
     await expect(users.first()).toHaveAttribute('data-user', 'c.rossi')
@@ -304,6 +313,10 @@ test.describe('user overview', () => {
       'true',
     )
 
+    await expect(views.getByRole('button', { name: 'List view' }).locator('svg')).toHaveAttribute(
+      'data-icon',
+      'list-ul',
+    )
     await views.getByRole('button', { name: 'List view' }).click()
     await expect(views.getByRole('button', { name: 'List view' })).toHaveAttribute(
       'aria-pressed',
@@ -360,7 +373,7 @@ test.describe('user overview', () => {
       { useInnerText: true },
     )
 
-    await anna.getByTestId('device-item').nth(1).locator('[tabindex="0"]').hover()
+    await anna.getByTestId('device-item').nth(1).getByText('92300').hover()
     await expect(page.getByRole('tooltip', { name: 'Mobile app · Ringing' })).toBeVisible()
 
     const details = anna.getByRole('button', { name: 'Details Anna Miller' })
@@ -389,6 +402,107 @@ test.describe('user overview', () => {
     await page.getByRole('textbox', { name: 'Filter users' }).fill('nobody')
     await expect(page.getByText('No users found')).toBeVisible()
     await expect(page.getByRole('grid')).toHaveCount(0)
+  })
+
+  test('marks the chosen view and remembers it in the browser', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    const views = page.getByRole('group', { name: 'View' })
+    const grid = views.getByRole('button', { name: 'Grid view' })
+    const list = views.getByRole('button', { name: 'List view' })
+    await expect(grid).toHaveClass(/bg-elevation-3/)
+    await expect(list).not.toHaveClass(/bg-elevation-3/)
+    await expect(list.locator('svg')).not.toHaveClass(/text-tertiary-neutral/)
+
+    await list.click()
+    await expect(list).toHaveClass(/bg-elevation-3/)
+    await expect(grid).not.toHaveClass(/bg-elevation-3/)
+
+    await page.reload()
+    await expect(views.getByRole('button', { name: 'List view' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await expect(page.locator('tr[data-user]')).toHaveCount(3)
+  })
+
+  test('reaches the details of a row without stopping on the device numbers', async ({
+    page,
+    mockApi,
+  }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+    await page
+      .getByRole('group', { name: 'View' })
+      .getByRole('button', { name: 'List view' })
+      .click()
+    await expect(page.locator('tr[data-user]')).toHaveCount(3)
+
+    await page.getByRole('button', { name: 'Grouped view' }).focus()
+    const firstDetails = page
+      .locator('tr[data-user]')
+      .first()
+      .getByRole('button', { name: /Details/ })
+    const deviceNumbers = page.getByTestId('device-item')
+    await expect(deviceNumbers.first()).toContainText('300')
+    await expect(deviceNumbers.locator('[tabindex]')).toHaveCount(0)
+
+    for (let step = 0; step < 6; step += 1) {
+      await page.keyboard.press('Tab')
+      const inDevices = await page.evaluate(
+        () => !!document.activeElement?.closest('[data-testid="device-item"]'),
+      )
+      expect(inDevices).toBe(false)
+      if (await firstDetails.evaluate((element) => element === document.activeElement)) {
+        break
+      }
+    }
+    await expect(firstDetails).toBeFocused()
+    await expect(deviceNumbers.first()).toContainText('Web phone')
+  })
+
+  test('announces a favorite once', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+    await page.getByRole('button', { name: 'Show details of Carla Rossi' }).click()
+    await page.getByRole('button', { name: 'Add to favorites' }).click()
+    await page.keyboard.press('Escape')
+    await page
+      .getByRole('group', { name: 'View' })
+      .getByRole('button', { name: 'List view' })
+      .click()
+
+    const row = page.locator('tr[data-user="c.rossi"]')
+    await expect(row.getByTestId('favorite-star')).toHaveAttribute('aria-hidden', 'true')
+    await expect(row.getByTestId('favorite-star')).not.toHaveAttribute('aria-label')
+    await expect(row.getByText('Favorite', { exact: true })).toHaveCount(1)
+    await expect(row.getByRole('gridcell').first()).toContainText('Favorite')
+  })
+
+  test('finds the users of a group by its name', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+
+    await page.getByRole('textbox', { name: 'Filter users' }).fill('support')
+    await expect(page.locator('[data-user]')).toHaveCount(1)
+    await expect(page.locator('[data-user]')).toHaveAttribute('data-user', 'c.rossi')
+  })
+
+  test('gives the compact cards of a row the same height', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    await page.goto('./users/overview')
+    await page
+      .getByRole('group', { name: 'View' })
+      .getByRole('button', { name: 'Grouped view' })
+      .click()
+
+    const cards = page.getByRole('region', { name: 'Sales' }).locator('li[data-user] > *')
+    await expect(cards).toHaveCount(2)
+    const heights = await cards.evaluateAll((elements) =>
+      elements.map((element) => element.getBoundingClientRect().height),
+    )
+    expect(heights[0]).toBe(heights[1])
   })
 
   test('shows a number that cannot be called as plain text', async ({ page, mockApi }) => {

@@ -38,7 +38,9 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('phones.inventory.phone_deleted'),
-        description: t('common.object_deleted_successfully', { name: formatMac(target.mac) }),
+        description: t('phones.inventory.phone_deleted_description', {
+          name: formatMac(target.mac),
+        }),
       })
     }, 500)
     emit('close')

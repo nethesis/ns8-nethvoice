@@ -267,7 +267,9 @@ const {
           ? t('integrations.phonebook.source_saved')
           : t('integrations.phonebook.source_created'),
         description: t(
-          edited ? 'common.object_saved_successfully' : 'common.object_created_successfully',
+          edited
+            ? 'integrations.phonebook.source_updated_description'
+            : 'integrations.phonebook.source_created_description',
           { name: sourceForm.name.trim() },
         ),
       })

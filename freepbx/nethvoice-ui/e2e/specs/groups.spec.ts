@@ -66,6 +66,10 @@ test.describe('groups', () => {
 
     await page.getByRole('textbox', { name: 'Filter groups' }).fill('nothing')
     await expect(page.getByText('No groups found')).toBeVisible()
+    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await expect(page.getByRole('textbox', { name: 'Filter groups' })).toHaveValue('')
+    await expect(rows(page)).toHaveCount(3)
   })
 
   test('shows the empty state', async ({ page, mockApi }) => {
@@ -195,10 +199,11 @@ test.describe('groups', () => {
 
     await rows(page).nth(1).getByRole('button', { name: 'Sales actions' }).click()
     await page.getByRole('menuitem', { name: 'Delete' }).click()
-    await expect(page.getByText('The Sales group will be permanently removed')).toBeVisible()
+    await expect(page.getByText('Group Sales will be permanently deleted.')).toBeVisible()
     await page.getByRole('button', { name: 'Delete' }).click()
 
-    await expect(page.getByText('The Sales group will be permanently removed')).toBeHidden()
+    await expect(page.getByText('Group Sales will be permanently deleted.')).toBeHidden()
+    await expect(page.getByText('Group Sales has been deleted.')).toBeVisible()
     expect(mockApi.callsTo('DELETE', '/freepbx/rest/cti/groups/:id').map((c) => c.path)).toEqual([
       '/freepbx/rest/cti/groups/2',
     ])

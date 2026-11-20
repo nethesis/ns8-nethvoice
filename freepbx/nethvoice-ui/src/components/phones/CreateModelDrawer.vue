@@ -104,7 +104,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: duplicateOf ? t('phones.models.model_duplicated') : t('phones.models.model_created'),
-        description: t('common.object_created_successfully', { name: newModel.name }),
+        description: t('phones.models.model_created_description', { name: newModel.name }),
       })
     }, 500)
     emit('created', created)
@@ -226,7 +226,7 @@ const issueMessage = (field: Field) => {
           {{ $t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
-          {{ duplicateOf ? $t('phones.models.duplicate') : $t('common.add') }}
+          {{ duplicateOf ? $t('phones.models.duplicate') : $t('common.create') }}
         </NeButton>
       </div>
     </form>

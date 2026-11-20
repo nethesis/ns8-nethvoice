@@ -117,7 +117,9 @@ const {
           ? t('integrations.cards.connection_saved')
           : t('integrations.cards.connection_created'),
         description: t(
-          edited ? 'common.object_saved_successfully' : 'common.object_created_successfully',
+          edited
+            ? 'integrations.cards.connection_updated_description'
+            : 'integrations.cards.connection_created_description',
           { name: connectionForm.name.trim() },
         ),
       })

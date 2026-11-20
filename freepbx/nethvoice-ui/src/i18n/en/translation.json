@@ -2,7 +2,6 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
-    "search": "Search",
     "optional": "Optional",
     "close": "Close",
     "edit": "Edit",
@@ -19,9 +18,7 @@
     "status": "Status",
     "actions": "Actions",
     "reset_filters": "Reset filters",
-    "try_changing_search_filters": "Try changing your search filters",
-    "go_to_page": "Go to {page}",
-    "loading": "Loading…",
+    "try_changing_search_filters": "Try changing your search filters.",
     "details": "Details",
     "need_help": "Need help?",
     "request_failed": "Request failed",
@@ -29,14 +26,9 @@
     "retry": "Retry",
     "plus_n_more": "+ {count} more",
     "none": "None",
-    "yes": "Yes",
-    "no": "No",
     "section_under_construction": "This section is not available here yet",
     "section_under_construction_description": "It is being moved to the new interface. In the meantime you can keep using it from the previous one.",
     "open_in_legacy_wizard": "Open in the previous interface",
-    "object_created_successfully": "{name} has been created successfully",
-    "object_saved_successfully": "{name} has been updated successfully",
-    "object_deleted_successfully": "{name} has been deleted successfully",
     "unsaved_changes": "Unsaved changes",
     "unsaved_changes_description": "You have unsaved changes. If you close now they will be lost.",
     "discard_changes": "Discard changes",
@@ -54,7 +46,10 @@
     "error_service_unavailable": "The service is not reachable at the moment. Try again shortly.",
     "clear_filter": "Clear filter",
     "try_different_words": "Try different or fewer words.",
-    "opens_in_new_tab": "(opens in a new tab)"
+    "opens_in_new_tab": "(opens in a new tab)",
+    "create": "Create",
+    "go_to_dashboard": "Go to Dashboard",
+    "go_to_physical_phones": "Go to Physical phones"
   },
   "shell": {
     "open_sidebar": "Open sidebar",
@@ -132,7 +127,7 @@
       "load_memory": "Load / memory"
     },
     "presence": {
-      "title": "Users presence",
+      "title": "User presence",
       "online": "Online",
       "busy": "Busy",
       "dnd": "Do not disturb",
@@ -303,11 +298,11 @@
     "step_failed_groups": "Cannot save the groups",
     "step_failed_enable_device": "Cannot enable a device",
     "step_failed_disable_device": "Cannot disable a device",
-    "extension_error_in_use": "The extension is already used by a user or by another PBX object (queue, ring group, feature code...).",
+    "extension_error_in_use": "The extension is already used by a user or by another PBX object (queue, ring group, feature code).",
     "extension_error_users_limit": "The community version allows up to 8 users with an extension.",
     "extension_error_user_not_found": "The user is not synchronized with the PBX yet. Try again in a few seconds.",
     "extension_change_warning_title": "The devices will be recreated",
-    "extension_change_warning_description": "Changing the extension deletes and recreates all the devices of the user: apps and physical phones get new credentials and must be configured again. The user also loses the group memberships.",
+    "extension_change_warning_description": "Changing the extension deletes and recreates all the devices of the user: apps and physical phones get new credentials and must be configured again. Group memberships and the other settings of the user are kept.",
     "username_required": "Enter the username",
     "username_invalid": "Use lowercase letters, numbers, dot, dash and underscore, starting with a letter",
     "username_already_exists": "This username already exists",
@@ -375,7 +370,7 @@
     "import_error_file_too_large": "The file is too large to be imported at once: split it into smaller files.",
     "import_error_import_failed": "The import ended with errors",
     "users_imported": "Users imported",
-    "users_imported_description": "{count} user has been imported | {count} users have been imported",
+    "users_imported_description": "Created: {created} · Updated: {updated} · Skipped: {skipped}",
     "set_voicemail": "Set voicemail",
     "assign_profile": "Assign profile",
     "assign": "Assign",
@@ -489,7 +484,10 @@
     "physical_phones_of": "Physical phones of {name}: {count}",
     "physical_phones_limit": "A user can have up to {max} devices, physical phones included",
     "mobile_number_helper": "Used for display and presence in {brand} CTI and in the operator panel.",
-    "filtered_counter": "Showing {shown} of {total} user | Showing {shown} of {total} users"
+    "filtered_counter": "Showing {shown} of {total} user | Showing {shown} of {total} users",
+    "base_profile_missing": "The Base profile could not be found, so the extension can't be configured",
+    "user_created_description": "User {name} has been created.",
+    "user_updated_description": "User {name} has been updated."
   },
   "trunks": {
     "title": "Trunks",
@@ -499,7 +497,6 @@
     "filter_trunks": "Filter trunks",
     "no_trunks_found": "No trunks found",
     "updating": "Updating…",
-    "add_trunk": "Add trunk",
     "delete_trunk": "Delete trunk",
     "open_trunk_menu": "Open the menu of {name}",
     "trunk_created": "Trunk created",
@@ -524,8 +521,8 @@
       "description_line_1": "Configure VoIP trunks to handle inbound and outbound calls over IP networks.",
       "description_line_2": "Set up provider connections and parameters required for call routing.",
       "no_trunks": "No VoIP trunks configured",
-      "no_trunks_setup_description": "Add a VoIP trunk to enable inbound and outbound calls.",
-      "add_voip_trunk": "Add VoIP trunk",
+      "no_trunks_setup_description": "Create a VoIP trunk to enable inbound and outbound calls.",
+      "add_voip_trunk": "Create VoIP trunk",
       "edit_trunk": "Edit trunk",
       "cannot_load_trunks": "Cannot load the VoIP trunks",
       "cannot_load_providers": "Cannot load the providers",
@@ -559,7 +556,7 @@
       "username_required": "Enter the username",
       "password_required": "Enter the password",
       "codecs_required_when_forced": "Choose at least one codec to force",
-      "empty_description_line_1": "Add VoIP trunks to handle inbound and outbound calls over IP networks.",
+      "empty_description_line_1": "Create VoIP trunks to handle inbound and outbound calls over IP networks.",
       "empty_description_line_2": "Set up provider connections and parameters required for call routing.",
       "trunk_name_username_helper": "A name to identify this trunk, also used as username: letters, digits, dot, dash and underscore",
       "provider_codecs_added": "The provider codecs are added too: {codecs}. Enable Force codec to use only the chosen ones.",
@@ -579,8 +576,8 @@
       "description_line_1": "Configure physical trunks to connect your PBX to traditional telephony lines.",
       "description_line_2": "Use a supported gateway to enable communication with analog or ISDN networks.",
       "no_trunks": "No physical trunks configured",
-      "no_trunks_setup_description": "Add physical trunks if your PBX is connected to analog or digital lines.",
-      "add_physical_trunk": "Add physical trunk",
+      "no_trunks_setup_description": "Create physical trunks if your PBX is connected to analog or digital lines.",
+      "add_physical_trunk": "Create physical trunk",
       "cannot_load_trunks": "Cannot load the physical trunks",
       "cannot_load_models": "Cannot load the gateway models",
       "cannot_load_users": "Cannot load the users",
@@ -591,7 +588,7 @@
       "download_configuration": "Download configuration",
       "show_configuration": "Show configuration",
       "read_only_title": "Configuration cannot be changed here",
-      "read_only_description": "Changing a configured gateway is not available yet. To change it, delete it and add it again.",
+      "read_only_description": "Changing a configured gateway is not available yet. To change it, delete it and create it again.",
       "manufacturer": "Device manufacturer",
       "model": "Device model",
       "choose_model": "Choose a model",
@@ -628,7 +625,7 @@
       "line_number_invalid": "Use only digits, optionally starting with +",
       "fxs_previous_port_required": "Assign the previous ports first",
       "fxs_user_already_assigned": "This user is already assigned to another port",
-      "empty_description_line_1": "Add physical trunks to connect your PBX to traditional telephony lines.",
+      "empty_description_line_1": "Create physical trunks to connect your PBX to traditional telephony lines.",
       "empty_description_line_2": "Use a supported gateway to enable communication with analog or ISDN networks.",
       "mac_address_not_unicast": "Enter the MAC address of a single device",
       "netmask_without_hosts": "This subnet mask leaves no address for the devices",
@@ -640,7 +637,9 @@
       "ip_address_placeholder": "e.g. 192.168.1.10",
       "netmask_placeholder": "e.g. 255.255.255.0",
       "network_gateway_placeholder": "e.g. 192.168.1.1",
-      "pbx_address_placeholder": "e.g. 192.168.1.2"
+      "pbx_address_placeholder": "e.g. 192.168.1.2",
+      "trunk_created_description": "Physical trunk {name} has been created.",
+      "trunk_deleted_description": "Physical trunk {name} has been deleted."
     },
     "cannot_check_outbound_routes": "Cannot check which outbound routes use this trunk",
     "routes_left_without_trunks": "Some outbound routes will have no trunk",
@@ -648,7 +647,9 @@
     "routes_without_trunks_description": "These outbound routes use only this trunk and will no longer be able to make calls: {routes}.",
     "routes_keep_trunks_description": "The trunk will be removed from these outbound routes, which will keep using their other trunks: {routes}.",
     "trunk_updated": "Trunk updated",
-    "trunk_updated_description": "The trunk {name} has been updated"
+    "trunk_updated_description": "Trunk {name} has been updated.",
+    "trunk_created_description": "Trunk {name} has been created.",
+    "trunk_deleted_description": "Trunk {name} has been deleted."
   },
   "routes": {
     "title": "Routes",
@@ -670,7 +671,7 @@
     "edit_route_in_visual_plan": "route {name} in the Visual Plan (opens in a new tab)",
     "open_route_menu": "Open the menu of route {name}",
     "delete_route": "Delete route",
-    "delete_route_confirmation": "This action will remove the route {name} configuration.",
+    "delete_route_confirmation": "Route {name} will be permanently deleted.",
     "route_deleted": "Route deleted",
     "cannot_delete_route": "Cannot delete route",
     "cannot_load_inbound_routes": "Cannot load inbound routes",
@@ -685,7 +686,7 @@
     "create_routes": "Create routes",
     "country_required": "Choose a country",
     "default_routes_created": "Outbound routes created",
-    "default_routes_created_description": "The default outbound routes have been created successfully",
+    "default_routes_created_description": "The default outbound routes have been created",
     "cannot_create_default_routes": "Cannot create default outbound routes",
     "advanced_settings": "Advanced settings",
     "route_advanced_settings": "Route advanced settings",
@@ -740,7 +741,7 @@
     },
     "any_did": "Any DID",
     "invalid_destination": "Invalid destination",
-    "route_deleted_description": "The route {name} has been deleted",
+    "route_deleted_description": "Route {name} has been deleted.",
     "route_already_deleted": "Route already deleted",
     "route_already_deleted_description": "The route {name} no longer exists. The list has been updated.",
     "route_not_found": "This route no longer exists. Close the panel to see the updated list.",
@@ -753,7 +754,7 @@
     "no_enabled_trunks": "All trunks are disabled: enable a trunk to add it to this route.",
     "no_enabled_trunks_warning": "No enabled trunks: calls cannot be placed",
     "route_updated": "Route updated",
-    "route_updated_description": "The route {name} has been updated",
+    "route_updated_description": "Route {name} has been updated.",
     "route_without_trunks_description": "Add a trunk to this route to enable outbound calls."
   },
   "phones": {
@@ -787,7 +788,7 @@
       "added_but_not_assigned": "The phone has been added but it could not be assigned to the user: {error}",
       "cannot_add_phones": "Cannot add phones",
       "phones_added": "Phone added | Phones added",
-      "phones_added_description": "{n} phone has been added successfully | {n} phones have been added successfully",
+      "phones_added_description": "{n} phone has been added | {n} phones have been added",
       "rps_failed": "Remote provisioning not configured for {n} phone | Remote provisioning not configured for {n} phones",
       "rps_failed_description": "Copy the provisioning URL from the phone menu and set it on the device manually.",
       "filter_phones": "Filter phones",
@@ -819,10 +820,10 @@
       "encryption_requires_user": "Encryption is set on the extension of the user: assign a user to change it.",
       "cannot_save_phone": "Cannot save phone",
       "phone_updated": "Phone updated",
-      "phone_updated_description": "The {name} phone has been updated",
+      "phone_updated_description": "Phone {name} has been updated.",
       "delete_phone": "Delete phone",
-      "delete_phone_confirmation": "Phone {mac} will be removed from the inventory and will no longer receive its configuration.",
-      "delete_assigned_phone_confirmation": "Phone {mac} will be removed from the inventory and its extension will be removed from {user}.",
+      "delete_phone_confirmation": "Phone {mac} will be permanently deleted. It will no longer receive its configuration.",
+      "delete_assigned_phone_confirmation": "Phone {mac} will be permanently deleted. Its extension will be removed from {user}.",
       "cannot_delete_phone": "Cannot delete phone",
       "phone_deleted": "Phone deleted",
       "status": "Status",
@@ -836,7 +837,7 @@
       "phones_not_assigned": "Phone not assigned | Phones not assigned",
       "phones_not_assigned_description": "{n} phone has been added but could not be assigned to the user. Assign it with Edit. | {n} phones have been added but could not be assigned to their users. Assign them with Edit.",
       "too_many_macs": "Enter up to {max} MAC addresses at a time ({n} entered)",
-      "invalid_macs": "Invalid MAC address: {macs} | Invalid MAC addresses: {macs}",
+      "invalid_macs": "Enter a valid MAC address: {macs} | Enter valid MAC addresses: {macs}",
       "mac_not_unicast": "Enter the MAC address of a device: multicast, broadcast and all-zero addresses are not allowed",
       "model_applied_to_some": "Model applied to {applied} of {total} phones",
       "model_applied_to_some_description": "The model is not available for the brand of the other phones: choose their model on each row.",
@@ -852,11 +853,12 @@
       "mac_addresses_placeholder": "e.g.\n00:04:13:11:22:31\n00-04-13-11-22-31\n000413112231",
       "select_model_for_each_phone": "Select a model for each phone",
       "cannot_complete_reassignment": "Cannot complete the phone assignment",
-      "reassignment_incomplete_description": "Phone {mac} has been assigned to the new user, but the change could not be completed: {error} Check the phone in the list before changing it again."
+      "reassignment_incomplete_description": "Phone {mac} has been assigned to the new user, but the change could not be completed: {error} Check the phone in the list before changing it again.",
+      "phone_deleted_description": "Phone {name} has been deleted."
     },
     "models": {
       "description": "Manage supported phone models and their provisioning settings.",
-      "add_model": "Add model",
+      "add_model": "Create model",
       "filter_models": "Filter models",
       "models_table": "Phone models",
       "brand": "Brand",
@@ -879,9 +881,9 @@
       "name_already_used": "A model with this name already exists",
       "base_model": "Base model",
       "base_model_required": "Choose a base model",
-      "cannot_create_model": "Cannot add model",
+      "cannot_create_model": "Cannot create model",
       "cannot_duplicate_model": "Cannot duplicate model",
-      "model_created": "Model added",
+      "model_created": "Model created",
       "model_duplicated": "Model duplicated",
       "reset_to_original_settings": "Reset to original settings",
       "reset": "Reset",
@@ -1003,7 +1005,13 @@
       "model_not_found_description": "This model no longer exists or the address is wrong.",
       "discard": "Discard",
       "discard_changes_description": "Unsaved changes to this model will be lost.",
-      "model_not_saved": "The PBX did not save the model. Try again."
+      "model_not_saved": "The PBX did not save the model. Try again.",
+      "model_created_description": "Model {name} has been created.",
+      "model_deleted_description": "Model {name} has been deleted.",
+      "upload_background": "Upload background image",
+      "upload_firmware": "Upload firmware",
+      "upload_ringtone": "Upload ringtone",
+      "upload_screensaver": "Upload screensaver"
     },
     "settings": {
       "default_configuration": "Default phone configuration",
@@ -1088,7 +1096,7 @@
       "filter_sources": "Filter sources",
       "cannot_load_sources": "Cannot load the phonebook sources",
       "no_sources": "No phonebook sources",
-      "no_sources_description": "Add a source to import contacts from an external database or file.",
+      "no_sources_description": "Create a source to import contacts from an external database or file.",
       "no_sources_found": "No sources found",
       "source_type": "Source type",
       "source_type_locked": "The source type cannot be changed after creation",
@@ -1118,7 +1126,7 @@
       "source_disabled": "Source disabled",
       "cannot_save_source_name": "Cannot save {name}",
       "delete_source": "Delete source",
-      "delete_source_confirmation": "Delete {name}? The contacts imported from this source are removed from the phonebook.",
+      "delete_source_confirmation": "Source {name} will be permanently deleted. The contacts imported from this source are removed from the phonebook.",
       "source_deleted": "Source deleted",
       "cannot_delete_source": "Cannot delete the source",
       "source_created": "Source created",
@@ -1166,7 +1174,10 @@
       "csv_file_empty": "The file is empty",
       "csv_file_too_large": "The file is larger than {size} MB",
       "csv_upload_rejected": "The PBX rejected the file: it may be empty or larger than the maximum size allowed (8 MB).",
-      "database_test_superadmin_only": "Only a superadministrator can test a database source."
+      "database_test_superadmin_only": "Only a superadministrator can test a database source.",
+      "source_created_description": "Source {name} has been created.",
+      "source_updated_description": "Source {name} has been updated.",
+      "source_deleted_description": "Source {name} has been deleted."
     },
     "video": {
       "description": "Show the images of IP cameras and door phones in NethVoice CTI and open the door from there.",
@@ -1175,7 +1186,7 @@
       "filter_sources": "Filter video sources",
       "cannot_load_sources": "Cannot load the video sources",
       "no_sources": "No video sources",
-      "no_sources_description": "Add a camera or a door phone to show its images in NethVoice CTI.",
+      "no_sources_description": "Create a video source from a camera or a door phone to show its images in NethVoice CTI.",
       "no_sources_found": "No video sources found",
       "extension": "Extension",
       "extension_helper": "Extension of the door phone: its calls show the images of this source",
@@ -1201,11 +1212,14 @@
       "cannot_create_source": "Cannot create the video source",
       "cannot_save_source": "Cannot save the video source",
       "delete_source": "Delete video source",
-      "delete_source_confirmation": "Delete {name}? Users will no longer see it in NethVoice CTI.",
+      "delete_source_confirmation": "Video source {name} will be permanently deleted. Users will no longer see it in NethVoice CTI.",
       "source_deleted": "Video source deleted",
       "cannot_delete_source": "Cannot delete the video source",
       "not_an_image": "The address does not return a JPEG, PNG or GIF image. Check that it points to a still image and does not require a login.",
-      "test_failed_description": "The image cannot be downloaded from this address. Check the URL and that the camera can be reached from the PBX."
+      "test_failed_description": "The image cannot be downloaded from this address. Check the URL and that the camera can be reached from the PBX.",
+      "source_created_description": "Video source {name} has been created.",
+      "source_updated_description": "Video source {name} has been updated.",
+      "source_deleted_description": "Video source {name} has been deleted."
     },
     "param_urls": {
       "description": "Open a web page, such as a CRM record, when a call reaches the users of a profile. The URL can contain the caller data.",
@@ -1214,7 +1228,7 @@
       "filter_urls": "Filter URLs",
       "cannot_load_urls": "Cannot load the parameterized URLs",
       "no_urls": "No parameterized URLs",
-      "no_urls_description": "Add a URL to open a page on the caller when a call arrives.",
+      "no_urls_description": "Create a URL to open a page on the caller when a call arrives.",
       "no_urls_found": "No URLs found",
       "calls": "Calls",
       "all_calls": "All calls",
@@ -1234,14 +1248,17 @@
       "cannot_create_url": "Cannot create the URL",
       "cannot_save_url": "Cannot save the URL",
       "delete_url": "Delete URL",
-      "delete_url_confirmation": "Delete {url}? It will no longer open for the users of its profiles.",
+      "delete_url_confirmation": "URL {url} will be permanently deleted. It will no longer open for the users of its profiles.",
       "url_deleted": "URL deleted",
-      "cannot_delete_url": "Cannot delete the URL"
+      "cannot_delete_url": "Cannot delete the URL",
+      "url_created_description": "URL {name} has been created.",
+      "url_updated_description": "URL {name} has been updated.",
+      "url_deleted_description": "URL {name} has been deleted."
     },
     "cards": {
       "description": "Customer cards show the caller data, read from a database, in NethVoice CTI during calls.",
       "nothing_configured": "No customer cards configured",
-      "nothing_configured_description": "Add a database connection, then a card that queries it with a template.",
+      "nothing_configured_description": "Create a database connection, then a card that queries it with a template.",
       "cards": "Cards",
       "cards_description": "Each card runs a query on a database connection and renders the result with a template.",
       "create_card": "Create card",
@@ -1266,7 +1283,7 @@
       "cannot_create_card": "Cannot create the card",
       "cannot_save_card": "Cannot save the card",
       "delete_card": "Delete card",
-      "delete_card_confirmation": "Delete {name}? Users will no longer see it in NethVoice CTI.",
+      "delete_card_confirmation": "Card {name} will be permanently deleted. Users will no longer see it in NethVoice CTI.",
       "card_deleted": "Card deleted",
       "cannot_delete_card": "Cannot delete the card",
       "templates": "Templates",
@@ -1297,7 +1314,7 @@
       "cannot_create_template": "Cannot create the template",
       "cannot_save_template": "Cannot save the template",
       "delete_template": "Delete template",
-      "delete_template_confirmation": "Delete the template {name}?",
+      "delete_template_confirmation": "Template {name} will be permanently deleted.",
       "template_deleted": "Template deleted",
       "cannot_delete_template": "Cannot delete the template",
       "template_in_use": "This template cannot be deleted because these cards use it:",
@@ -1321,7 +1338,7 @@
       "cannot_create_connection": "Cannot create the connection",
       "cannot_save_connection": "Cannot save the connection",
       "delete_connection": "Delete connection",
-      "delete_connection_confirmation": "Delete the connection to {name}?",
+      "delete_connection_confirmation": "Connection {name} will be permanently deleted.",
       "connection_deleted": "Connection deleted",
       "cannot_delete_connection": "Cannot delete the connection",
       "connection_in_use": "This connection cannot be deleted because these cards use it:",
@@ -1331,7 +1348,16 @@
       "test_number_invalid": "Use digits only, optionally preceded by +",
       "preview_failed_description": "The query cannot be run. Check the query and the database connection.",
       "connection_short": "Connection",
-      "preview_light_background": "Shown on a light background, the one templates are designed for."
+      "preview_light_background": "Shown on a light background, the one templates are designed for.",
+      "card_created_description": "Card {name} has been created.",
+      "card_updated_description": "Card {name} has been updated.",
+      "card_deleted_description": "Card {name} has been deleted.",
+      "template_created_description": "Template {name} has been created.",
+      "template_updated_description": "Template {name} has been updated.",
+      "template_deleted_description": "Template {name} has been deleted.",
+      "connection_created_description": "Connection {name} has been created.",
+      "connection_updated_description": "Connection {name} has been updated.",
+      "connection_deleted_description": "Connection {name} has been deleted."
     },
     "external": {
       "description": "Services provided by external providers, such as transcription and summary of calls and voicemail.",
@@ -1427,7 +1453,9 @@
       "cannot_sync_users_description": "The list may not include the latest changes of the account provider.",
       "change_extensions": "Change extensions",
       "changed_extension": "{name}: {from} → {to}",
-      "configuring_progress": "{done} of {total} changes applied"
+      "configuring_progress": "{done} of {total} changes applied",
+      "extension_change_warning_title": "The devices will be deleted",
+      "extension_change_warning_description": "Changing the extension deletes all the devices of the user and removes the user from all the groups. Only the Web phone is created again: the desktop and mobile apps must be enabled again and the physical phones must be assigned again."
     },
     "physical_trunks": {
       "title": "Physical trunks",
@@ -1436,7 +1464,7 @@
     "voip_trunks": {
       "title": "VoIP trunks",
       "description": "Configure VoIP trunks to enable inbound and outbound calls.",
-      "description_details": "You can add, edit or remove trunks later from the administration interface."
+      "description_details": "You can create, edit or delete trunks later from the administration interface."
     },
     "inbound_routes": {
       "title": "Inbound routes",
@@ -1482,7 +1510,6 @@
     "setup_already_completed_description": "The setup was completed in another session."
   },
   "ne_table": {
-    "no_items": "No items",
     "go_to_previous_page": "Go to previous page",
     "go_to_next_page": "Go to next page",
     "of": "of",
@@ -1523,7 +1550,6 @@
     "select_a_tab": "Select a tab"
   },
   "sort": {
-    "sort": "Sort",
     "sort_by": "Sort by",
     "direction": "Direction",
     "ascending": "Ascending",
@@ -1556,8 +1582,11 @@
     "cannot_create_group": "Cannot create group",
     "cannot_save_group": "Cannot save group",
     "cannot_delete_group": "Cannot delete group",
-    "delete_group_confirmation": "The {name} group will be permanently removed",
-    "group_actions": "{name} actions"
+    "delete_group_confirmation": "Group {name} will be permanently deleted.",
+    "group_actions": "{name} actions",
+    "group_created_description": "Group {name} has been created.",
+    "group_updated_description": "Group {name} has been updated.",
+    "group_deleted_description": "Group {name} has been deleted."
   },
   "profiles": {
     "description_line_1": "Configure permission profiles and default communication settings assigned to users.",
@@ -1602,7 +1631,7 @@
     "cannot_create_profile": "Cannot create profile",
     "cannot_save_profile": "Cannot save profile",
     "cannot_delete_profile": "Cannot delete profile",
-    "delete_profile_confirmation": "The {name} profile will be permanently removed.",
+    "delete_profile_confirmation": "Profile {name} will be permanently deleted.",
     "delete_profile_users_moved": "The assigned user will be moved to the Base profile. | The {n} assigned users will be moved to the Base profile.",
     "outbound": {
       "national": "National numbers",
@@ -1618,7 +1647,7 @@
       "additional": "Additional features"
     },
     "features": {
-      "dnd": "Do Not Disturb (DND)",
+      "dnd": "Do not disturb (DND)",
       "call_forward": "Forward calls",
       "recording": "Record calls",
       "conference": "Conference calls",
@@ -1669,12 +1698,14 @@
       "conference_tooltip": "Add other people to an ongoing call to talk all together"
     },
     "name_not_allowed": "This name cannot be used for this profile",
-    "profile_change_in_progress": "Another profile change is in progress: try again in a few seconds."
+    "profile_change_in_progress": "Another profile change is in progress: try again in a few seconds.",
+    "profile_created_description": "Profile {name} has been created.",
+    "profile_updated_description": "Profile {name} has been updated.",
+    "profile_deleted_description": "Profile {name} has been deleted."
   },
   "user_overview": {
     "filter_users": "Filter users",
     "groups": "Groups",
-    "name": "Name",
     "view": "View",
     "views": {
       "grid": "Grid view",

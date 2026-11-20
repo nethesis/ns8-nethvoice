@@ -18,6 +18,7 @@ const {
   objectName,
   confirmationMessage,
   successTitle,
+  successDescriptionKey,
   errorTitle,
   deleteObject,
   invalidateKeys,
@@ -29,6 +30,7 @@ const {
   objectName: string
   confirmationMessage: string
   successTitle: string
+  successDescriptionKey: string
   errorTitle: string
   deleteObject: () => Promise<void>
   invalidateKeys: string[]
@@ -57,7 +59,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: successTitle,
-        description: t('common.object_deleted_successfully', { name }),
+        description: t(successDescriptionKey, { name }),
       })
     }, 500)
     emit('close')

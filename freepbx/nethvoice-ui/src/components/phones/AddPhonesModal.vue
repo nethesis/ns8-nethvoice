@@ -52,6 +52,7 @@ import { PHONE_ENCRYPTION_KEY } from '@/lib/phones/encryption'
 import { PHONE_MODELS_KEY } from '@/lib/phones/models'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useFocusReturn } from '@/composables/useFocusReturn'
+import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 
 type Row = {
   key: number
@@ -98,6 +99,7 @@ const rows = ref<Row[]>([])
 const modelForAll = ref('')
 const appliedToAll = ref<{ applied: number; total: number } | null>(null)
 const progress = ref({ current: 0, total: 0 })
+const isShownDiscardModal = ref(false)
 const macsTextRef = useTemplateRef<InstanceType<typeof NeTextArea>>('macsTextRef')
 const macRefs: (InstanceType<typeof NeTextInput> | null)[] = []
 const isMediumScreen = useMediaQuery('(min-width: 768px)')
@@ -224,7 +226,12 @@ const {
 watch(
   () => isShown,
   (shown) => {
-    if (!shown || adding.value) {
+    if (!shown) {
+      isShownDiscardModal.value = false
+      return
+    }
+
+    if (adding.value) {
       return
     }
     addPhonesReset()
@@ -399,10 +406,24 @@ function submit() {
   addPhonesMutate(pendingRows.value.map((row) => ({ ...row })))
 }
 
+const hasUnsavedChanges = computed(() =>
+  step.value === 1 ? macsText.value.trim() !== '' : pendingRows.value.length > 0,
+)
+
 function requestClose() {
-  if (adding.value) {
+  if (adding.value || isShownDiscardModal.value) {
     return
   }
+
+  if (hasUnsavedChanges.value) {
+    isShownDiscardModal.value = true
+    return
+  }
+  emit('close')
+}
+
+function discardChanges() {
+  isShownDiscardModal.value = false
   emit('close')
 }
 
@@ -566,5 +587,10 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
       </template>
       <button type="submit" class="hidden" aria-hidden="true" tabindex="-1" />
     </form>
+    <DiscardChangesModal
+      :visible="isShownDiscardModal"
+      @close="isShownDiscardModal = false"
+      @discard="discardChanges"
+    />
   </NeModal>
 </template>

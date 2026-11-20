@@ -102,10 +102,7 @@ pageSize.value = DASHBOARD_LIST_PAGE_SIZE
             <span class="flex items-center gap-2.5 whitespace-nowrap">
               <FontAwesomeIcon
                 :icon="CALL_TYPE_ICONS[row.type].icon"
-                :class="[
-                  'size-4 shrink-0 text-green-700 dark:text-green-500',
-                  CALL_TYPE_ICONS[row.type].classes,
-                ]"
+                :class="['text-icon-enabled size-4 shrink-0', CALL_TYPE_ICONS[row.type].classes]"
                 aria-hidden="true"
               />
               {{ t(`dashboard.calls.${row.type}`) }}

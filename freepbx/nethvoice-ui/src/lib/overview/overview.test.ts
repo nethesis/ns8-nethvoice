@@ -11,6 +11,7 @@ import {
   getInitials,
   getOverviewCallStatus,
   getPhoneModelLabel,
+  normalizeOverviewView,
   hasOnlineDevice,
   isDeviceCallable,
   isOverviewCallBlocked,
@@ -190,6 +191,11 @@ describe('filterOverviewUsers', () => {
     expect(filter('92300', [])).toEqual(['a.miller'])
   })
 
+  it('should match the group names', () => {
+    expect(filter('sales', [])).toEqual(['a.miller'])
+    expect(filter('support', [])).toEqual([])
+  })
+
   it('should filter by presence and group', () => {
     expect(filter('', ['online'])).toEqual(['b.lee'])
     expect(filter('', [], ['Sales'])).toEqual(['a.miller'])
@@ -327,5 +333,14 @@ describe('isDeviceCallable', () => {
     for (const status of ['offline', 'busy', 'ringing', 'dnd', 'forward'] as const) {
       expect(isDeviceCallable({ status }, false)).toBe(false)
     }
+  })
+})
+
+describe('normalizeOverviewView', () => {
+  it('should keep a known view and fall back to the grid', () => {
+    expect(normalizeOverviewView('list')).toBe('list')
+    expect(normalizeOverviewView('compact')).toBe('compact')
+    expect(normalizeOverviewView('table')).toBe('grid')
+    expect(normalizeOverviewView(undefined)).toBe('grid')
   })
 })

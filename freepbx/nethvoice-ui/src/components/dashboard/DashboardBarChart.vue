@@ -25,9 +25,14 @@ const BAR_RADIUS = 4
 
 type Datum = { position: number; ratio: number; bar: ChartBar }
 
-const { bars, orientation } = defineProps<{
+const {
+  bars,
+  orientation,
+  outlined = false,
+} = defineProps<{
   bars: ChartBar[]
   orientation: ChartOrientation
+  outlined?: boolean
 }>()
 
 const { t } = useI18n()
@@ -99,6 +104,7 @@ const tooltipTriggers = {
     :class="[
       'dashboard-bar-chart w-full border-gray-200 dark:border-gray-700',
       isVertical ? 'border-b' : 'border-l',
+      { 'dashboard-bar-chart-outlined': outlined },
     ]"
     data-testid="bar-chart"
   >
@@ -129,5 +135,10 @@ const tooltipTriggers = {
   --vis-tooltip-background-color: var(--elevation-0);
   --vis-tooltip-border-color: var(--border-secondary);
   --vis-tooltip-text-color: var(--primary-neutral);
+}
+
+.dark .dashboard-bar-chart-outlined {
+  --vis-stacked-bar-stroke-color: var(--border-secondary);
+  --vis-stacked-bar-stroke-width: 1px;
 }
 </style>

@@ -56,6 +56,7 @@ import {
 import {
   getDrafts,
   planProvisioning,
+  MissingBaseProfileError,
   ProvisioningError,
   runProvisioning,
 } from '@/lib/users/provisioning'
@@ -97,6 +98,7 @@ const errorRef = useTemplateRef<HTMLElement>('errorRef')
 
 useFocusReturn(() => isShownUserDrawer.value)
 useFocusReturn(() => isShownImport.value)
+useFocusReturn(() => isShownChangeWarning.value)
 
 async function syncUsers() {
   if (await sync()) {
@@ -252,9 +254,11 @@ const provisioningErrorDescription = computed(() => {
   }
   const kind = error.phase === 'extension' ? getExtensionErrorKind(error.cause) : 'unknown'
   const detail =
-    kind === 'unknown'
-      ? describeError(error.cause, { serverDetail: false })
-      : t(`users.extension_error_${kind}`)
+    error.cause instanceof MissingBaseProfileError
+      ? t('users.base_profile_missing')
+      : kind === 'unknown'
+        ? describeError(error.cause, { serverDetail: false })
+        : t(`users.extension_error_${kind}`)
 
   return t('setup.users.provisioning_failed_for', {
     username: error.username,
@@ -474,11 +478,11 @@ function provisionAndContinue() {
       <NeEmptyState
         v-if="visibleUsers.length === 0"
         :title="t('users.no_users_found')"
-        :description="t('common.try_changing_search_filters')"
+        :description="t('common.try_different_words')"
         :icon="faMagnifyingGlass"
       >
         <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('common.reset_filters') }}
+          {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
       <ul v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -555,14 +559,14 @@ function provisionAndContinue() {
     <NeModal
       :visible="isShownChangeWarning"
       kind="warning"
-      :title="t('users.extension_change_warning_title')"
+      :title="t('setup.users.extension_change_warning_title')"
       :primary-label="t('setup.users.change_extensions')"
       :cancel-label="t('common.cancel')"
       :close-aria-label="t('common.close')"
       @close="isShownChangeWarning = false"
       @primary-click="confirmExtensionChanges"
     >
-      <p>{{ t('users.extension_change_warning_description') }}</p>
+      <p>{{ t('setup.users.extension_change_warning_description') }}</p>
       <ul class="mt-2 list-inside list-disc" data-testid="changed-extensions">
         <li v-for="change in changedExtensions" :key="change.user.username">
           {{

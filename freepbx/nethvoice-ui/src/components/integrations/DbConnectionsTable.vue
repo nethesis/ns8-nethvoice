@@ -208,6 +208,7 @@ defineExpose({ showDrawer })
         })
       "
       :success-title="t('integrations.cards.connection_deleted')"
+      success-description-key="integrations.cards.connection_deleted_description"
       :error-title="t('integrations.cards.cannot_delete_connection')"
       :delete-object="deleteCurrentConnection"
       :invalidate-keys="[DB_CONNECTIONS_KEY]"

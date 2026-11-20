@@ -23,7 +23,7 @@ const { status } = defineProps<{ status: TrunkStatus }>()
 
 const NEUTRAL = 'text-icon-neutral'
 const SUCCESS = 'text-icon-enabled'
-const DANGER = 'text-rose-700 dark:text-rose-500'
+const DANGER = 'text-danger'
 const DISABLED = 'text-gray-700 dark:text-gray-400'
 
 const STYLES: Record<TrunkStatus, { icon: IconDefinition; color: string }> = {

@@ -22,7 +22,7 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <div class="bg-elevation-0 flex min-w-0 flex-col gap-4 rounded-lg py-3 shadow-md">
+  <div class="bg-elevation-0 flex h-full min-w-0 flex-col gap-4 rounded-lg py-3 shadow-md">
     <div
       class="flex items-start justify-between gap-3 border-b border-gray-200 px-3 pb-2 dark:border-gray-700"
     >
@@ -57,7 +57,7 @@ const { t } = useI18n()
                 />
                 <span
                   :class="[
-                    'absolute right-0 bottom-0 size-2 rounded-full ring-2 ring-white',
+                    'ring-elevation-0 absolute right-0 bottom-0 size-2 rounded-full ring-2',
                     PRESENCE_DOT[device.status],
                   ]"
                 ></span>

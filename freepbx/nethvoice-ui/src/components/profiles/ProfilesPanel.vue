@@ -197,12 +197,12 @@ function reload() {
       <NeEmptyState
         v-else-if="filteredProfiles.length === 0"
         :title="t('profiles.no_profiles_found')"
-        :description="t('common.try_changing_search_filters')"
+        :description="t('common.try_different_words')"
         :icon="faMagnifyingGlass"
         class="bg-elevation-2"
       >
         <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('common.reset_filters') }}
+          {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
       <ul v-else :class="CARDS_GRID_CLASSES">

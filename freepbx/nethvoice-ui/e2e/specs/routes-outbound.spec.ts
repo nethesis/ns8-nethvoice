@@ -118,6 +118,19 @@ test.describe('routes: outbound', () => {
     ])
   })
 
+  test('clears a filter that matches no route', async ({ page }) => {
+    await page.goto('./routes/outbound')
+
+    const rows = page.getByRole('grid', { name: 'Outbound routes' }).getByRole('row')
+
+    await page.getByRole('textbox', { name: 'Filter routes' }).fill('nothing matches')
+    await expect(page.getByText('No routes found')).toBeVisible()
+    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await expect(page.getByRole('textbox', { name: 'Filter routes' })).toHaveValue('')
+    await expect(rows).toHaveCount(6)
+  })
+
   test('warns about the routes whose trunks are all disabled', async ({ page, mockApi }) => {
     mockApi
       .on('GET', '/freepbx/rest/outboundroutes', {
@@ -256,7 +269,7 @@ test.describe('routes: outbound', () => {
       ],
     })
     await expect(page.getByText('Route updated')).toBeVisible()
-    await expect(page.getByText('The route Cellphone has been updated')).toBeVisible()
+    await expect(page.getByText('Route Cellphone has been updated.')).toBeVisible()
   })
 
   test('asks before discarding the changes and keeps the drawer open while saving', async ({
@@ -370,6 +383,9 @@ test.describe('routes: outbound', () => {
     await drawer.getByRole('button', { name: 'Save' }).click()
 
     await expect(drawer.getByText('Cannot save route')).toBeVisible()
-    await expect(drawer.getByText('An error occurred')).toBeVisible()
+    await expect(
+      drawer.getByText('The server could not complete the request (error 500). Try again later.'),
+    ).toBeVisible()
+    await expect(drawer.getByText('An error occurred')).toHaveCount(0)
   })
 })

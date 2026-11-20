@@ -4,7 +4,7 @@
 import {
   faDesktop,
   faHeadset,
-  faMobileScreenButton,
+  faMobile,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
@@ -13,6 +13,6 @@ import type { OverviewDeviceType } from '@/lib/overview/overview'
 export const DEVICE_ICONS: Record<OverviewDeviceType, IconDefinition> = {
   webrtc: faHeadset,
   nethlink: faDesktop,
-  mobile: faMobileScreenButton,
+  mobile: faMobile,
   physical: faOfficePhone,
 }

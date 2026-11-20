@@ -77,10 +77,7 @@ const deviceLabel = (device: OverviewDevice) =>
             <li v-for="device in user.devices" :key="device.extension" data-testid="device-item">
               <NeTooltip trigger-event="mouseenter focus" placement="top">
                 <template #trigger>
-                  <span
-                    tabindex="0"
-                    class="focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 inline-flex items-center gap-1.5 rounded-sm focus:outline-hidden focus-visible:ring-2"
-                  >
+                  <span class="inline-flex items-center gap-1.5">
                     <FontAwesomeIcon
                       :icon="DEVICE_ICONS[device.type]"
                       class="text-tertiary-neutral size-4 shrink-0"

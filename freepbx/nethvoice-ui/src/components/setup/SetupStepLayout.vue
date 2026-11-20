@@ -12,13 +12,7 @@ import { faArrowLeft, faArrowRight, type IconDefinition } from '@fortawesome/fre
 import SymbolNethvoice from '@/assets/symbol_nethvoice.svg'
 import SetupHelpLinks from './SetupHelpLinks.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
-import {
-  getPreviousStep,
-  getStepIndex,
-  getStepProgress,
-  SETUP_STEPS,
-  type SetupStepId,
-} from '@/lib/setup/steps'
+import { getPreviousStep, getStepIndex, SETUP_STEPS, type SetupStepId } from '@/lib/setup/steps'
 
 const {
   stepId,
@@ -50,7 +44,16 @@ const runtimeConfigStore = useRuntimeConfigStore()
 const titleRef = useTemplateRef<HTMLElement>('titleRef')
 
 const stepNumber = computed(() => getStepIndex(stepId) + 1)
-const progress = computed(() => getStepProgress(stepId))
+
+const PROGRESS_WIDTHS: Record<SetupStepId, string> = {
+  system: 'w-1/7',
+  users: 'w-2/7',
+  'physical-trunks': 'w-3/7',
+  'voip-trunks': 'w-4/7',
+  'inbound-routes': 'w-5/7',
+  'outbound-routes': 'w-6/7',
+  summary: 'w-full',
+}
 
 onMounted(() => titleRef.value?.focus({ preventScroll: true }))
 
@@ -74,12 +77,12 @@ function goToPreviousStep() {
           class="size-8 invert dark:invert-0"
         />
       </div>
-      <div class="flex flex-col items-center gap-2">
+      <div class="flex flex-col items-center gap-2" :inert="nextLoading || undefined">
         <SetupHelpLinks />
       </div>
     </aside>
     <main class="flex min-w-0 flex-1 flex-col gap-6 p-6 sm:p-10">
-      <div class="-mt-2 -mr-2 flex justify-end gap-2 sm:hidden">
+      <div class="-mt-2 -mr-2 flex justify-end gap-2 sm:hidden" :inert="nextLoading || undefined">
         <SetupHelpLinks placement="bottom" />
       </div>
       <div class="flex flex-col items-center gap-2">
@@ -93,8 +96,10 @@ function goToPreviousStep() {
           :aria-label="$t('setup.progress')"
         >
           <div
-            class="h-2 rounded-full bg-linear-to-r from-emerald-500 to-indigo-500 transition-[width] duration-(--duration-large-enter) motion-reduce:transition-none"
-            :style="{ width: `${progress}%` }"
+            :class="[
+              'h-2 rounded-full bg-linear-to-r from-emerald-500 to-indigo-500 transition-[width] duration-(--duration-large-enter) motion-reduce:transition-none',
+              PROGRESS_WIDTHS[stepId],
+            ]"
           />
         </div>
         <p class="text-secondary-neutral text-xs">

@@ -35,7 +35,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('groups.group_deleted'),
-        description: t('common.object_deleted_successfully', { name: groupToDelete.name }),
+        description: t('groups.group_deleted_description', { name: groupToDelete.name }),
       })
     }, 500)
     emit('close')

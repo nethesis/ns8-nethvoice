@@ -28,6 +28,67 @@ test.describe('physical phones: inventory', () => {
     void signedIn
   })
 
+  for (const width of [1440, 390]) {
+    test(`keeps long phone details inside the page at ${width} px`, async ({ page, mockApi }) => {
+      const macs = Array.from(
+        { length: 12 },
+        (_, index) => `00-15-65-AB-CE-${String(index).padStart(2, '0')}`,
+      )
+      const longModel = 'yealink-T58W-Pro-with-camera-and-expansion-module-for-reception'
+      mockPhonesApi(mockApi, {
+        phones: macs.map((mac) => ({
+          mac,
+          model: longModel,
+          display_name: 'Yealink',
+          model_url: `${TANCREDI}/models/${longModel}`,
+          phone_url: `${TANCREDI}/phones/${mac}`,
+        })),
+      }).on('GET', `${REST}/users/:all`, {
+        json: macs.map((mac, index) => ({
+          id: String(index + 10),
+          username: `headquarters.reception.desk.operator.number.${index}`,
+          displayname: `Maria Alessandra Giovanna Bartholomew-Montgomery ${index}`,
+          default_extension: String(400 + index),
+          email: '',
+          profile: 3,
+          devices: [
+            {
+              id: index + 100,
+              type: 'physical',
+              extension: String(91400 + index),
+              mac: mac.replaceAll('-', ':'),
+              vendor: 'Yealink',
+              model: longModel,
+              line: 1,
+              srtp: 0,
+            },
+          ],
+        })),
+      })
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('./phones/phones')
+
+      await expect(
+        page.getByText('Maria Alessandra Giovanna Bartholomew-Montgomery 0'),
+      ).toBeVisible()
+      const overflow = await page.evaluate(() => ({
+        page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        scrolled: Array.from(document.querySelectorAll('main *')).filter(
+          (element) =>
+            element.scrollWidth > element.clientWidth + 1 &&
+            ['auto', 'scroll'].includes(getComputedStyle(element).overflowX),
+        ).length,
+      }))
+      expect(overflow).toEqual({ page: 0, scrolled: 0 })
+
+      const menu = page.getByRole('button', { name: 'Open the menu of phone 00:15:65:AB:CE:00' })
+      for (const control of [menu, page.getByRole('button', { name: 'Go to next page' })]) {
+        const box = await control.boundingBox()
+        expect(box && box.x + box.width).toBeLessThanOrEqual(width)
+      }
+    })
+  }
+
   test('copies the MAC address with its copy button', async ({ page, context, mockApi }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     mockPhonesApi(mockApi)
@@ -54,6 +115,8 @@ test.describe('physical phones: inventory', () => {
     await expect(assigned).toContainText('Anna Miller')
     await expect(assigned).toContainText('a.miller · 91300')
     await expect(assigned).toContainText('Not encrypted')
+    await expect(assigned.locator('svg[data-icon="lock-open"]')).toHaveCount(1)
+    await expect(assigned.locator('svg[data-icon="lock"]')).toHaveCount(0)
     await expect(assigned).toContainText('Registered')
     await expect(assigned).toContainText('192.0.2.10 · Yealink SIP-T46U 108.86.0.45')
 
@@ -290,7 +353,7 @@ test.describe('physical phones: inventory', () => {
     const macs = modal.getByRole('textbox', { name: 'MAC addresses' })
     await macs.fill('FF:FF:FF:FF:FF:FF\n0011.2233.4455\nxyz')
     await modal.getByRole('button', { name: 'Next' }).click()
-    await expect(modal.getByText('Invalid MAC addresses: FF:FF:FF:FF:FF:FF, xyz')).toBeVisible()
+    await expect(modal.getByText('Enter valid MAC addresses: FF:FF:FF:FF:FF:FF, xyz')).toBeVisible()
 
     await macs.fill('0011.2233.4455\n00 11 22 33 44 56')
     await modal.getByRole('button', { name: 'Next' }).click()
@@ -335,6 +398,44 @@ test.describe('physical phones: inventory', () => {
     await expect(page.getByText('Phone not assigned', { exact: true })).toBeVisible()
     await expect(modal).toHaveCount(0)
     expect(mockApi.callsTo('POST', `${TANCREDI}/phones`)).toHaveLength(1)
+  })
+
+  test('asks before discarding the typed MAC addresses', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+    await page.goto('./phones/phones')
+
+    const addPhones = page.getByRole('button', { name: 'Add phones' })
+    await addPhones.click()
+    const modal = page.getByRole('dialog', { name: 'Add phones' })
+    const macs = modal.getByRole('textbox', { name: 'MAC addresses' })
+    await macs.fill('00:15:65:00:00:08')
+    await page.keyboard.press('Escape')
+
+    const discard = page.getByRole('dialog', { name: 'Unsaved changes' })
+    await expect(discard.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await discard.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(discard).toHaveCount(0)
+    await expect(macs).toHaveValue('00:15:65:00:00:08')
+
+    await page.keyboard.press('Escape')
+    await discard.getByRole('button', { name: 'Discard changes' }).click()
+
+    await expect(modal).toHaveCount(0)
+    await expect(addPhones).toBeFocused()
+    expect(mockApi.callsTo('POST', `${TANCREDI}/phones`)).toHaveLength(0)
+  })
+
+  test('closes Add phones without asking when nothing was typed', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+    await page.goto('./phones/phones')
+
+    await page.getByRole('button', { name: 'Add phones' }).click()
+    const modal = page.getByRole('dialog', { name: 'Add phones' })
+    await expect(modal.getByRole('textbox', { name: 'MAC addresses' })).toBeFocused()
+    await page.keyboard.press('Escape')
+
+    await expect(modal).toHaveCount(0)
+    await expect(page.getByRole('dialog', { name: 'Unsaved changes' })).toHaveCount(0)
   })
 
   test('keeps the modal open while phones are being added', async ({ page, mockApi }) => {
@@ -620,7 +721,10 @@ test.describe('physical phones: inventory', () => {
     await drawer.getByRole('button', { name: 'Save' }).click()
 
     await expect(drawer.getByText('Cannot save phone')).toBeVisible()
-    await expect(drawer.getByText(/Storage failure/)).toBeVisible()
+    await expect(
+      drawer.getByText('The server could not complete the request (error 500). Try again later.'),
+    ).toBeVisible()
+    await expect(drawer.getByText(/Storage failure/)).toHaveCount(0)
   })
 
   test('deletes a phone from Tancredi and from the PBX', async ({ page, mockApi }) => {

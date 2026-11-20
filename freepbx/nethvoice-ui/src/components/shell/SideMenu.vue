@@ -65,9 +65,9 @@ function isCurrentRoute(itemPath: string) {
       :aria-current="isCurrentRoute(item.to) ? 'page' : undefined"
       :class="[
         isCurrentRoute(item.to)
-          ? 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-50'
-          : 'text-tertiary-neutral dark:text-tertiary-neutral hover:text-gray-900 dark:hover:text-gray-50',
-        'group relative flex h-12.5 cursor-pointer items-center gap-x-4 rounded-md px-3 text-base font-medium transition-colors duration-(--duration-small) hover:bg-gray-100 dark:hover:bg-gray-800',
+          ? 'bg-elevation-2 text-primary-neutral'
+          : 'text-tertiary-neutral hover:text-primary-neutral',
+        'group hover:bg-elevation-2 relative flex h-12.5 cursor-pointer items-center gap-x-4 rounded-md px-3 text-base font-medium transition-colors duration-(--duration-small)',
       ]"
     >
       <span

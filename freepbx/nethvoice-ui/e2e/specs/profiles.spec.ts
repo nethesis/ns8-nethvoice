@@ -65,6 +65,10 @@ test.describe('profiles', () => {
     await expect(page.locator('[data-profile]')).toHaveCount(1)
     await page.getByRole('textbox', { name: 'Filter profiles' }).fill('none')
     await expect(page.getByText('No profiles found')).toBeVisible()
+    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await expect(page.getByRole('textbox', { name: 'Filter profiles' })).toHaveValue('')
+    await expect(page.getByText('No profiles found')).toBeHidden()
   })
 
   test('shows the empty state', async ({ page, mockApi }) => {
@@ -149,6 +153,7 @@ test.describe('profiles', () => {
     await expect(drawerHeading(page, 'Edit Advanced profile')).toBeVisible()
     await page.getByRole('button', { name: 'Remove a.miller' }).click()
     await expect(page.getByText('Users will be moved to Base profile')).toBeVisible()
+    await expect(page.getByText('Do not disturb (DND)', { exact: true })).toBeVisible()
 
     await toggle(page, 'settings.call_forward').click()
     await page.getByRole('button', { name: 'Outbound calling' }).click()
@@ -291,15 +296,13 @@ test.describe('profiles', () => {
 
     await card(page, 4).getByRole('button', { name: 'Sales team actions' }).click()
     await page.getByRole('menuitem', { name: 'Delete' }).click()
-    await expect(
-      page.getByText('The Sales team profile will be permanently removed.'),
-    ).toBeVisible()
+    await expect(page.getByText('Profile Sales team will be permanently deleted.')).toBeVisible()
     await expect(
       page.getByText('The assigned user will be moved to the Base profile.'),
     ).toBeVisible()
     await page.getByRole('button', { name: 'Delete' }).click()
 
-    await expect(page.getByText('The Sales team profile will be permanently removed.')).toBeHidden()
+    await expect(page.getByText('Profile Sales team will be permanently deleted.')).toBeHidden()
     expect(
       mockApi.calls.filter((call) => call.method !== 'GET').map((c) => [c.method, c.path, c.body]),
     ).toEqual([

@@ -16,12 +16,14 @@ const {
   orientation,
   emptyText = '',
   loading = false,
+  outlined = false,
 } = defineProps<{
   title: string
   bars: ChartBar[]
   orientation: ChartOrientation
   emptyText?: string
   loading?: boolean
+  outlined?: boolean
 }>()
 
 const empty = computed(() => Boolean(emptyText) && bars.every((bar) => bar.value === 0))
@@ -44,7 +46,7 @@ const empty = computed(() => Boolean(emptyText) && bars.every((bar) => bar.value
       >
         {{ emptyText }}
       </p>
-      <DashboardBarChart v-else :bars="bars" :orientation="orientation" />
+      <DashboardBarChart v-else :bars="bars" :orientation="orientation" :outlined="outlined" />
       <dl>
         <div
           v-for="bar in bars"

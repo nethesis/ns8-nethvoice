@@ -175,20 +175,24 @@ const {
 } = useMutation({
   mutation: async () => {
     progress.value = 0
-    const valid = analysis.value.valid
+    const { valid, existing, errors } = analysis.value
+    const updated = valid.filter((row) => users.some((user) => user.username === row.username))
     await importUsers(valid, users, directory, (value) => {
       progress.value = value
     })
-    return valid.map((row) => row.username)
+    return {
+      usernames: valid.map((row) => row.username),
+      created: valid.length - updated.length,
+      updated: updated.length,
+      skipped: existing.length + errors.length,
+    }
   },
-  onSuccess(usernames) {
-    const count = usernames.length
-
+  onSuccess({ usernames, created, updated, skipped }) {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('users.users_imported'),
-        description: t('users.users_imported_description', { count }, count),
+        description: t('users.users_imported_description', { created, updated, skipped }),
       })
     }, 500)
     emit('imported', usernames)
@@ -392,26 +396,25 @@ const formatDevices = (row: ImportRow) => {
         </NeTable>
       </div>
       <div v-if="hasExistingUsers" class="flex flex-col gap-2">
-        <div class="flex items-center gap-2">
-          <span class="text-primary-neutral text-sm font-medium">{{
-            t('users.existing_users')
-          }}</span>
-          <NeTooltip trigger-event="mouseenter focus" placement="top">
-            <template #trigger>
-              <span tabindex="0" class="flex text-indigo-500 dark:text-indigo-300">
-                <FontAwesomeIcon :icon="faCircleInfo" class="size-4" aria-hidden="true" />
-                <span class="sr-only">{{ t('users.existing_users_tooltip') }}</span>
-              </span>
-            </template>
-            <template #content>{{ t('users.existing_users_tooltip') }}</template>
-          </NeTooltip>
-        </div>
         <NeRadioSelection
           v-model="existingUsersMode"
           name="existing-users"
+          :label="t('users.existing_users')"
           :options="existingModeOptions"
           :disabled="importing"
-        />
+        >
+          <template #tooltip>
+            <NeTooltip trigger-event="mouseenter focus" placement="top">
+              <template #trigger>
+                <span tabindex="0" class="flex text-indigo-500 dark:text-indigo-300">
+                  <FontAwesomeIcon :icon="faCircleInfo" class="size-4" aria-hidden="true" />
+                  <span class="sr-only">{{ t('users.existing_users_tooltip') }}</span>
+                </span>
+              </template>
+              <template #content>{{ t('users.existing_users_tooltip') }}</template>
+            </NeTooltip>
+          </template>
+        </NeRadioSelection>
         <p v-if="existingUsersMode === 'overwrite'" class="text-secondary-neutral text-sm">
           {{ t('users.import_overwrite_helper') }}
         </p>

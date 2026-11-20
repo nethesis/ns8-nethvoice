@@ -303,6 +303,13 @@ test.describe('dashboard', () => {
   test('opens the section of a counter', async ({ page }) => {
     await page.goto('./dashboard')
 
+    const card = page.getByTestId('counter-inboundRoutes')
+    await expect(card.getByRole('link')).toHaveCount(1)
+    await expect(card.getByTestId('counter-title')).toHaveAttribute('tabindex', '-1')
+    await card.getByTestId('counter-title').click()
+    await expect(page).toHaveURL(/\/nethvoice\/routes\/inbound$/)
+    await page.goBack()
+
     await page
       .getByTestId('counter-inboundRoutes')
       .getByRole('link', { name: 'Inbound routes: 6' })
@@ -514,7 +521,9 @@ test.describe('dashboard', () => {
     await expect(loadError).toHaveCount(1)
     await expect(loadError).toContainText('Cannot load some dashboard data')
     await expect(loadError).toContainText('Not available: trunks and inbound routes.')
-    await expect(loadError).toContainText('An error occurred')
+    await expect(loadError).toContainText(
+      'The server could not complete the request (error 500). Try again later.',
+    )
     await expect(trunkRows).toHaveCount(2)
     await expect(page.getByTestId('inbound-routes-card').getByTestId('list-row')).toHaveCount(1)
   })
@@ -823,14 +832,14 @@ test.describe('dashboard', () => {
     )
     await expect(page.getByRole('button', { name: 'Move Devices' })).toBeFocused()
 
-    await page.getByRole('button', { name: 'Move Users presence' }).focus()
+    await page.getByRole('button', { name: 'Move User presence' }).focus()
     await page.keyboard.press('ArrowDown')
 
     await expect(cards.nth(4)).toHaveAttribute('data-card', 'presence')
     await expect(page.getByTestId('card-move-status')).toHaveText(
-      'Users presence moved to position 5 of 8',
+      'User presence moved to position 5 of 8',
     )
-    await expect(page.getByRole('button', { name: 'Move Users presence' })).toBeFocused()
+    await expect(page.getByRole('button', { name: 'Move User presence' })).toBeFocused()
 
     await page.keyboard.press('ArrowUp')
 
@@ -881,7 +890,9 @@ test.describe('dashboard', () => {
     await page.goto('./dashboard')
 
     await expect(page.getByText('Cannot load live data')).toBeVisible()
-    await expect(page.getByText('astproxy not ready')).toBeVisible()
+    await expect(
+      page.getByText('The server could not complete the request (error 500). Try again later.'),
+    ).toBeVisible()
     await expect(page.getByTestId('calls-card')).toHaveCount(0)
     await expect(page.getByTestId('counter-callsInProgress')).toContainText('Not available')
     await expect(page.getByTestId('presence-card').getByTestId('breakdown-busy')).toHaveText('2')

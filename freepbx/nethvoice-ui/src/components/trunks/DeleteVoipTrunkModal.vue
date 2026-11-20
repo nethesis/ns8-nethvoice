@@ -42,7 +42,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('trunks.trunk_deleted'),
-        description: t('common.object_deleted_successfully', { name: item.name }),
+        description: t('trunks.trunk_deleted_description', { name: item.name }),
       })
     }, 500)
     emit('close')

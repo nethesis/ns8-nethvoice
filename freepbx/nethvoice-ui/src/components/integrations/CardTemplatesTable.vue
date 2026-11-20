@@ -226,6 +226,7 @@ function deleteCurrentTemplate() {
         t('integrations.cards.delete_template_confirmation', { name: currentTemplate?.name ?? '' })
       "
       :success-title="t('integrations.cards.template_deleted')"
+      success-description-key="integrations.cards.template_deleted_description"
       :error-title="t('integrations.cards.cannot_delete_template')"
       :delete-object="deleteCurrentTemplate"
       :invalidate-keys="[CARD_TEMPLATES_KEY]"

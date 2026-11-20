@@ -341,8 +341,8 @@ const {
         kind: 'success',
         title: user ? t('users.user_updated') : t('users.user_created'),
         description: user
-          ? t('common.object_saved_successfully', { name: displayName })
-          : t('common.object_created_successfully', { name: displayName }),
+          ? t('users.user_updated_description', { name: displayName })
+          : t('users.user_created_description', { name: displayName }),
       })
     }, 500)
     emit('close')
@@ -460,7 +460,10 @@ function validate(): boolean {
   const settings = v.safeParse(UserSettingsSchema, {
     ...nextSettings(),
     extension: isSetup.value ? extension.value : effectiveExtension.value,
-    profileId: isSetup.value && !isEdit.value ? 1 : nextSettings().profileId,
+    profileId:
+      isSetup.value && !isEdit.value
+        ? (findBaseProfile(directory.profiles)?.id ?? null)
+        : nextSettings().profileId,
   })
 
   if (!isEdit.value) {
@@ -501,6 +504,11 @@ function validate(): boolean {
 
   if (!settings.success) {
     collectIssues(settings.issues, issues)
+  }
+
+  if (isSetup.value && !isEdit.value && issues.profileId) {
+    issues.extension ??= 'users.base_profile_missing'
+    delete issues.profileId
   }
 
   const ordered: Field[] = [

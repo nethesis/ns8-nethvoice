@@ -26,6 +26,7 @@ import DashboardDragHandle from '@/components/dashboard/DashboardDragHandle.vue'
 import DashboardHourlyCard from '@/components/dashboard/DashboardHourlyCard.vue'
 import DashboardListCard from '@/components/dashboard/DashboardListCard.vue'
 import DashboardSystemCard from '@/components/dashboard/DashboardSystemCard.vue'
+import { PRESENCE_COLOR, PRESENCE_DOT } from '@/components/overview/presence'
 import TrunkStatusIndicator from '@/components/trunks/TrunkStatusIndicator.vue'
 import { usePolling } from '@/composables/usePolling'
 import { CALL_OUTCOMES, type CallOutcome } from '@/lib/dashboard/calls'
@@ -47,6 +48,7 @@ import {
 import {
   combineLiveCalls,
   DASHBOARD_LIVE_REFRESH_INTERVAL,
+  PRESENCE_STATUSES,
   summarizeDevices,
   summarizePresence,
   summarizeTrunks,
@@ -136,15 +138,10 @@ const COUNTER_CARDS_AFTER_CALLS: CounterCard[] = [
   },
 ]
 
-const PRESENCE_STYLES: Record<PresenceStatus, { color: string; dotClass: string }> = {
-  online: {
-    color: 'var(--accent-green)',
-    dotClass: 'size-3 border-2 border-white bg-accent-green',
-  },
-  busy: { color: 'var(--accent-rose)', dotClass: 'size-3 border-2 border-white bg-accent-rose' },
-  dnd: { color: 'var(--accent-blue)', dotClass: 'size-3 border-2 border-white bg-accent-blue' },
-  offline: { color: 'var(--accent-gray)', dotClass: 'size-3 border-2 border-white bg-accent-gray' },
-}
+const getPresenceStyle = (status: PresenceStatus) => ({
+  color: PRESENCE_COLOR[status],
+  dotClass: `size-3 ring-1 ring-border-secondary ${PRESENCE_DOT[status]}`,
+})
 
 const DEVICE_STYLES: Record<DeviceType, { label: string; color: string; dotClass: string }> = {
   webPhone: {
@@ -278,11 +275,11 @@ const updatedAt = computed(() => {
 })
 
 const presenceBars = computed<ChartBar[]>(() =>
-  (Object.keys(PRESENCE_STYLES) as PresenceStatus[]).map((status) => ({
+  PRESENCE_STATUSES.map((status) => ({
     id: status,
     label: t(`dashboard.presence.${status}`),
     value: presence.value?.[status] ?? 0,
-    ...PRESENCE_STYLES[status],
+    ...getPresenceStyle(status),
   })),
 )
 
@@ -710,6 +707,7 @@ usePolling(() => {
             :title="$t('dashboard.presence.title')"
             :bars="presenceBars"
             orientation="vertical"
+            outlined
             :loading="presenceLoading"
           >
             <template #handle>

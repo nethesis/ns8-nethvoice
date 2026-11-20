@@ -66,7 +66,10 @@ test.describe('physical phones: settings', () => {
     await page.getByText('Only at startup').click()
     await page.getByRole('button', { name: 'Save' }).click()
     await expect(page.getByText('Cannot save phone settings')).toBeVisible()
-    await expect(page.getByText(/Cannot write defaults/)).toBeVisible()
+    await expect(
+      page.getByText('The server could not complete the request (error 500). Try again later.'),
+    ).toBeVisible()
+    await expect(page.getByText(/Cannot write defaults/)).toHaveCount(0)
   })
 
   test('reports a save that the PBX did not store and keeps the changes', async ({

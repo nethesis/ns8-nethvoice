@@ -34,7 +34,7 @@ const {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('phones.models.model_deleted'),
-        description: t('common.object_deleted_successfully', { name: target.displayName }),
+        description: t('phones.models.model_deleted_description', { name: target.displayName }),
       })
     }, 500)
     emit('close')

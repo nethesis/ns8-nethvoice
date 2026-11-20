@@ -237,6 +237,7 @@ function deleteCurrentCard() {
         t('integrations.cards.delete_card_confirmation', { name: currentCard?.name ?? '' })
       "
       :success-title="t('integrations.cards.card_deleted')"
+      success-description-key="integrations.cards.card_deleted_description"
       :error-title="t('integrations.cards.cannot_delete_card')"
       :delete-object="deleteCurrentCard"
       :invalidate-keys="[CUSTOMER_CARDS_KEY, PROFILES_KEY]"
