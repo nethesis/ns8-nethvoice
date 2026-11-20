@@ -79,6 +79,11 @@ $expected = [
     'GET /adminphone' => 'lookup',
     'POST /adminphone/session' => 'lookup',
     'GET /users/sync' => 'users',
+    'GET /users/domain' => 'users',
+    'GET /users/domain/accounts' => 'users',
+    'PUT /users/{username}/account/password' => 'users',
+    'PATCH /users/{username}/account' => 'users',
+    'DELETE /users/{username}/account' => 'users',
     'POST /users' => 'users',
     'POST /mainextensions' => 'users',
     'GET /mainextensions/orphans' => 'users',
@@ -212,7 +217,7 @@ check($superadminOnly === $expectedSuperadminOnly, "superadmin-only routes chang
 $app = AppFactory::create();
 $app->setBasePath('/freepbx/rest');
 $ok = fn($req, $res) => $res->withStatus(200);
-foreach (['/trunks', '/trunks/{trunkid}', '/migration/report', '/settings/defaultlanguage', '/users/{all}', '/users/{username}/password', '/adminphone', '/adminphone/session', '/physicalextensions/{mac}', '/cti/customer_card/template', '/cti/customer_card/template/{name}'] as $pattern) {
+foreach (['/trunks', '/trunks/{trunkid}', '/migration/report', '/settings/defaultlanguage', '/users/domain', '/users/domain/accounts', '/users/{username}/account', '/users/{username}/account/password', '/users/{all}', '/users/{username}/password', '/adminphone', '/adminphone/session', '/physicalextensions/{mac}', '/cti/customer_card/template', '/cti/customer_card/template/{name}'] as $pattern) {
     $app->map(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], $pattern, $ok);
 }
 require $rest . '/modules/authentication.php';
@@ -264,6 +269,14 @@ foreach (['/users/setter/password', '/users/SETTER/password', '/users/admin/pass
 }
 check(status($app, $factory, 'setter', 'GET', '/users/setter/password') === 403, 'reading passwords is reserved to superadmin');
 check(status($app, $factory, 'mixed', 'POST', '/users/mixed/password') === 403, 'the own password needs superadmin');
+foreach ([['GET', '/users/domain'], ['GET', '/users/domain/accounts'], ['PUT', '/users/bob/account/password'], ['PATCH', '/users/bob/account'], ['DELETE', '/users/bob/account']] as [$method, $path]) {
+    check(status($app, $factory, 'mixed', $method, $path) === 200, "the users section must reach $method $path");
+    check(status($app, $factory, 'admin', $method, $path) === 200, "superadmin must reach $method $path");
+    foreach (['dash', 'setter', 'integrator'] as $user) {
+        check(status($app, $factory, $user, $method, $path) === 403, "$user must not reach $method $path");
+    }
+    check(status($app, $factory, null, $method, $path) === 403, "$method $path must need credentials");
+}
 
 check(status($app, $factory, 'integrator', 'GET', '/cti/customer_card/template') === 200, 'integrations must read the customer card templates');
 check(status($app, $factory, 'integrator', 'DELETE', '/cti/customer_card/template/base') === 403, 'deleting a customer card template is reserved to superadmin');

@@ -142,6 +142,12 @@ namespace {
                 case 'INSERT INTO rest_users (user_id, profile_id) VALUES (?, ?) ON DUPLICATE KEY UPDATE profile_id = VALUES(profile_id)':
                     Pbx::$profiles[$args[0]] = $args[1];
                     break;
+                case 'SELECT rest_cti_users_groups.user_id, rest_cti_users_groups.group_id FROM rest_cti_users_groups JOIN userman_users ON userman_users.id = rest_cti_users_groups.user_id WHERE userman_users.username = ?':
+                    foreach (Pbx::$groups as $g) {
+                        $user = Pbx::$users[$g[0]] ?? null;
+                        if ($user && $user['username'] === $args[0]) $this->result[] = ['user_id' => $g[0], 'group_id' => $g[1]];
+                    }
+                    break;
                 case 'SELECT group_id FROM rest_cti_users_groups WHERE user_id = ?':
                     foreach (Pbx::$groups as $g) {
                         if ($g[0] === $args[0]) $this->result[] = ['group_id' => $g[1]];
@@ -267,6 +273,9 @@ namespace {
 
     $astman = new FakeAstman();
     $amp_conf = ['AMPWEBROOT' => '/nonexistent'];
+    $pendingDirectory = sys_get_temp_dir().'/orphan-groups-'.bin2hex(random_bytes(6));
+    mkdir($pendingDirectory, 0700);
+    define('NETHVOICE_REMOVED_USER_GROUPS', $pendingDirectory.'/removed-user-groups.json');
     require __DIR__.'/../var/www/html/freepbx/rest/lib/libExtensions.php';
 
     $userDevices = fn($uid) => array_values(array_map(fn($d) => $d['extension'], array_filter(Pbx::$devices, fn($d) => $d['user_id'] === $uid)));
@@ -371,6 +380,43 @@ namespace {
     check(json_decode(Pbx::$orphans[0]['secrets'], true) === $aliceSecrets && Pbx::$secrets['10201'] === 'm10201', 'another user extension was locked');
     check(releaseOrphanExtensions(['201']) === true, 'release with similar extensions failed');
     check(Pbx::$extensions === ['202', '91202', '10201', '9201', '991201'], 'release deleted extensions of other users');
+
+    $removeWithCascade = function ($id) {
+        Pbx::$groups = array_values(array_filter(Pbx::$groups, fn($g) => $g[0] !== $id));
+        return Pbx::removeUser($id);
+    };
+
+    Pbx::reset();
+    orphanUserExtensions(1, $removeWithCascade(1));
+    check(json_decode(Pbx::$orphans[0]['cti_groups'], true) === [], 'the cascade is expected to drop the groups before the hook runs');
+
+    Pbx::reset();
+    Pbx::$groups[] = [3, 30];
+    check(getUserCtiGroups('alice') === [1 => [10, 20]] && getUserCtiGroups('nobody') === [], 'groups of the user not read');
+    keepRemovedUserGroups('alice', getUserCtiGroups('alice'));
+    keepRemovedUserGroups('carol', getUserCtiGroups('carol'));
+    check((fileperms(NETHVOICE_REMOVED_USER_GROUPS) & 0777) === 0600, 'the pending groups must be readable only by their owner');
+    orphanUserExtensions(1, $removeWithCascade(1));
+    check(json_decode(Pbx::$orphans[0]['cti_groups'], true) === [10, 20], 'kept groups not recorded on the orphan');
+    $pending = json_decode((string) file_get_contents(NETHVOICE_REMOVED_USER_GROUPS), true);
+    check(array_keys($pending) === [3], 'kept groups not consumed or another user consumed: '.json_encode($pending));
+    $alice = Pbx::addUser(7, 'alice', 'Alice Rossi');
+    check(reattachOrphanExtension($alice) === '201' && $userGroups(7) === [10, 20], 'groups not restored with the extension');
+    orphanUserExtensions(3, $removeWithCascade(3));
+    check(json_decode((string) file_get_contents(NETHVOICE_REMOVED_USER_GROUPS), true) === [], 'groups of a user without extension not discarded');
+
+    Pbx::reset();
+    keepRemovedUserGroups('alice', [1 => [20]]);
+    orphanUserExtensions(1, Pbx::removeUser(1));
+    check(json_decode(Pbx::$orphans[0]['cti_groups'], true) === [10, 20], 'groups still in the database must win');
+
+    Pbx::reset();
+    keepRemovedUserGroups('mallory', [1 => [99]]);
+    orphanUserExtensions(1, $removeWithCascade(1));
+    check(json_decode(Pbx::$orphans[0]['cti_groups'], true) === [], 'groups kept for another username used');
+
+    unlink(NETHVOICE_REMOVED_USER_GROUPS);
+    rmdir($pendingDirectory);
 
     echo "PASS: extensions of removed users kept, locked, restored and deleted on request\n";
 }

@@ -915,11 +915,71 @@ function applyMainExtensionOwner($target, $mainextension) {
     }
 }
 
+defined('NETHVOICE_REMOVED_USER_GROUPS') || define('NETHVOICE_REMOVED_USER_GROUPS', '/var/run/nethvoice/removed-user-groups.json');
+
+function getUserCtiGroups($username) {
+    $stmt = FreePBX::Database()->prepare('SELECT rest_cti_users_groups.user_id, rest_cti_users_groups.group_id FROM rest_cti_users_groups JOIN userman_users ON userman_users.id = rest_cti_users_groups.user_id WHERE userman_users.username = ?');
+    $stmt->execute(array($username));
+    $groups = array();
+    foreach ($stmt->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+        $groups[(int) $row['user_id']][] = (int) $row['group_id'];
+    }
+    return $groups;
+}
+
+function updateRemovedUserGroups(callable $change) {
+    $handle = @fopen(NETHVOICE_REMOVED_USER_GROUPS, 'c+');
+    if ($handle === false) {
+        return null;
+    }
+    try {
+        if (!flock($handle, LOCK_EX)) {
+            return null;
+        }
+        @chmod(NETHVOICE_REMOVED_USER_GROUPS, 0600);
+        $pending = json_decode((string) stream_get_contents($handle), true);
+        $pending = is_array($pending) ? $pending : array();
+        $result = $change($pending);
+        ftruncate($handle, 0);
+        rewind($handle);
+        fwrite($handle, json_encode((object) $pending));
+        fflush($handle);
+        flock($handle, LOCK_UN);
+        return $result;
+    } finally {
+        fclose($handle);
+    }
+}
+
+function keepRemovedUserGroups($username, $groups) {
+    updateRemovedUserGroups(function (&$pending) use ($username, $groups) {
+        foreach ($groups as $uid => $ids) {
+            $pending[(string) (int) $uid] = array('username' => (string) $username, 'groups' => array_values(array_map('intval', $ids)));
+        }
+    });
+}
+
+function takeRemovedUserGroups($uid, $username) {
+    if (!is_file(NETHVOICE_REMOVED_USER_GROUPS)) {
+        return array();
+    }
+    $groups = updateRemovedUserGroups(function (&$pending) use ($uid, $username) {
+        $entry = $pending[(string) (int) $uid] ?? null;
+        if (!is_array($entry) || ($entry['username'] ?? null) !== $username || !is_array($entry['groups'] ?? null)) {
+            return array();
+        }
+        unset($pending[(string) (int) $uid]);
+        return array_values(array_map('intval', $entry['groups']));
+    });
+    return is_array($groups) ? $groups : array();
+}
+
 function orphanUserExtensions($uid, $user) {
     $dbh = FreePBX::Database();
     $uid = (int) $uid;
     $username = is_array($user) && isset($user['username']) ? trim((string) $user['username']) : '';
     $mainextension = is_array($user) && isset($user['default_extension']) ? trim((string) $user['default_extension']) : '';
+    $removedGroups = takeRemovedUserGroups($uid, $username);
 
     if ($username === '' || $mainextension === '' || $mainextension === 'none') {
         releaseUserExtensions($uid, 'none');
@@ -958,6 +1018,9 @@ function orphanUserExtensions($uid, $user) {
         $stmt = $dbh->prepare('SELECT group_id FROM rest_cti_users_groups WHERE user_id = ?');
         $stmt->execute(array($uid));
         $groups = array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+        if ($groups === array()) {
+            $groups = $removedGroups;
+        }
 
         $stmt = $dbh->prepare('INSERT INTO rest_orphan_extensions (user_id, username, displayname, extension, devices, secrets, profile_id, cti_groups, removed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
         $recorded = $stmt->execute(array(

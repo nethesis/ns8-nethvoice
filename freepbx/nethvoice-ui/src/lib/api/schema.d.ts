@@ -2749,6 +2749,87 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/users/domain': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Tell whether the accounts of the user domain can be managed from NethVoice.
+     * @description The answer is cached for 30 seconds. It never contains the address, the credentials or the token of the users-admin service.
+     */
+    get: operations['get_users_domain']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/users/domain/accounts': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List the accounts of the user domain. */
+    get: operations['get_users_domain_accounts']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/users/{username}/account': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Delete a domain account.
+     * @description The account is removed from the user domain, then the users are synchronized. The extension of the user is kept as an extension of a removed user (see `/mainextensions/orphans`).
+     */
+    delete: operations['delete_users_username_account']
+    options?: never
+    head?: never
+    /**
+     * Change the display name, the email address or the lock state of a domain account.
+     * @description Locking only prevents the sign-in with the account; extension, devices, voicemail, profile and groups do not change. A change of name or email synchronizes the users before answering.
+     */
+    patch: operations['patch_users_username_account']
+    trace?: never
+  }
+  '/users/{username}/account/password': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Set the password of a domain account.
+     * @description The password is neither stored nor logged.
+     */
+    put: operations['put_users_username_account_password']
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/csv/csvimport': {
     parameters: {
       query?: never
@@ -3655,6 +3736,50 @@ export interface components {
       reloading: boolean
     }
     UsersMessage: {
+      message?: string
+    }
+    UsersDomainStatus: {
+      manageable: boolean
+      /** @enum {string|null} */
+      reason: 'external' | 'unavailable' | null
+    }
+    UsersDomainAccount: {
+      username: string
+      display_name: string
+      mail: string
+      /** @description Null when the user domain does not tell. */
+      locked: boolean | null
+      /** @description Member of the domain admins group of the user domain; null when the groups cannot be read. */
+      domain_admin: boolean | null
+    }
+    UsersAccountUpdate: {
+      display_name?: string
+      mail?: string
+      locked?: boolean
+    }
+    UsersAccountPassword: {
+      password: string
+    }
+    UsersAccountResult: {
+      synchronized: boolean | null
+    }
+    UsersAccountError: {
+      /** @enum {string} */
+      code:
+        | 'invalid_request'
+        | 'protected_account'
+        | 'own_account'
+        | 'domain_admin'
+        | 'domain_not_manageable'
+        | 'domain_unavailable'
+        | 'provider_error'
+        | 'password_complexity'
+        | 'password_history'
+        | 'password_same'
+        | 'password_rejected'
+        | 'invalid_mail'
+        | 'invalid_display_name'
+        | 'user_not_found'
       message?: string
     }
     UsersStatusMessage: {
@@ -9509,6 +9634,347 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['SettingsPasswordError']
+        }
+      }
+    }
+  }
+  get_users_domain: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersDomainStatus']
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+    }
+  }
+  get_users_domain_accounts: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersDomainAccount'][]
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description The user domain is external and cannot be managed */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain answered with an error */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain is not reachable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+    }
+  }
+  delete_users_username_account: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        username: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Account deleted. `synchronized` is false when the following user synchronization failed. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountResult']
+        }
+      }
+      /** @description Invalid username */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description Missing permission, or `protected_account`, `own_account` or `domain_admin` */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description `user_not_found`: the account does not exist in the user domain */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain is external and cannot be managed */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain answered with an error */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain is not reachable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+    }
+  }
+  patch_users_username_account: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        username: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UsersAccountUpdate']
+      }
+    }
+    responses: {
+      /** @description Account changed. `synchronized` is false when the following user synchronization failed, null when no synchronization was needed (lock state only). */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountResult']
+        }
+      }
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description Missing permission, or `protected_account`, `own_account` (locking the caller's account) or `domain_admin` (a limited administrator locking a domain administrator) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description `user_not_found`: the account does not exist in the user domain */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain is external and cannot be managed */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description `invalid_mail` or `invalid_display_name` (the display name contains control characters) */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain answered with an error */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain is not reachable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+    }
+  }
+  put_users_username_account_password: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        username: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UsersAccountPassword']
+      }
+    }
+    responses: {
+      /** @description Password changed */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Invalid request */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description Missing permission, or `protected_account`, `own_account` or `domain_admin` */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description `user_not_found`: the account does not exist in the user domain */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain is external and cannot be managed */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain refused the password (`password_complexity`, `password_history`, `password_same`, `password_rejected`) */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain answered with an error */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
+      /** @description The user domain is not reachable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
         }
       }
     }
