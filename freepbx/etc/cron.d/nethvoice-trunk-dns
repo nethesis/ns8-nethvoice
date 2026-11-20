@@ -1,0 +1,1 @@
+* * * * * asterisk /usr/local/bin/php -d error_log=syslog /var/lib/asterisk/bin/trunk_dns.php
