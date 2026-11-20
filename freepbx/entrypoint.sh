@@ -148,7 +148,6 @@ sed -i '/^; Hide Asterisk logfile$/N;/\n\[logfiles\]$/N;/\nremove=Yes$/d' /etc/a
 # packaged defaults are too permissive for both Asterisk and Apache logs.
 install -d -o asterisk -g asterisk -m 0755 /var/log/asterisk /var/log/apache2
 
-install -d -o asterisk -g asterisk -m 0750 /etc/asterisk/nethvoice-trunk-dns || exit $?
 chown -c asterisk:asterisk /etc/asterisk/*.conf
 
 # Configure ODBC for asteriskcdrdb

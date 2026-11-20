@@ -837,8 +837,45 @@ function nethcti3_get_config_late($engine) {
 function nethcti3_get_config_early($engine) {
     include_once('/var/www/html/freepbx/rest/lib/libCTI.php');
     global $amp_conf;
+    global $db;
 
     enableHotelServicesForCTIProfiles();
+
+    $pjsip = \FreePBX::Core()->getDriver('pjsip');
+    $trunks = FreePBX::Core()->listTrunks();
+    foreach ($trunks as $trunk) {
+        $pjsip_trunk_stmt = $pjsip
+            ? $db->prepare('SELECT keyword, data FROM pjsip WHERE id = ? AND keyword IN ("registration", "sip_server", "trunk_name", "outbound_proxy", "authentication")')
+            : null;
+        if ($pjsip_trunk_stmt && $trunk['tech'] === 'pjsip') {
+            $pjsip_trunk_stmt->execute([$trunk['trunkid']]);
+            $pjsip_trunk = array_column($pjsip_trunk_stmt->fetchAll(\PDO::FETCH_ASSOC), 'data', 'keyword');
+            if (($pjsip_trunk['registration'] ?? '') === 'none'
+                && !empty($pjsip_trunk['trunk_name'])
+                && !empty($pjsip_trunk['sip_server'])
+                && !empty($pjsip_trunk['outbound_proxy'])
+                && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound' || $pjsip_trunk['authentication'] === 'off')
+                && preg_match('/^sip:'. preg_quote($_ENV['PROXY_IP'], '/') .':'. preg_quote($_ENV['PROXY_PORT'], '/') .';lr$/', $pjsip_trunk['outbound_proxy'])) {
+                // Resolve the complete address set each time FreePBX generates the configuration.
+                $host = $pjsip_trunk['sip_server'];
+                $records = @socket_addrinfo_lookup($host, null, ['ai_socktype' => SOCK_DGRAM]);
+                if (!$records) {
+                    error_log("Cannot resolve SIP server $host for trunk " . $pjsip_trunk['trunk_name']);
+                    continue;
+                }
+
+                $addresses = [];
+                foreach ($records as $record) {
+                    $address = socket_addrinfo_explain($record)['ai_addr'];
+                    $addresses[] = $address['sin_addr'] ?? $address['sin6_addr'];
+                }
+                $addresses = array_unique($addresses);
+                sort($addresses, SORT_STRING);
+                $pattern = implode('|', array_map(static fn($ip) => preg_quote($ip, '/'), $addresses));
+                $pjsip->addIdentify($pjsip_trunk['trunk_name'], 'match_header', "X-Forwarded-For: /^($pattern)$/");
+            }
+        }
+    }
 
     // Call Tancredi API to set variables that needs to be set on FreePBX retrieve conf
     // get featurecodes

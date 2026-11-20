@@ -32,7 +32,6 @@ for module in ('core', 'framework', 'paging', 'iaxsettings'):
                 tar.extract(member, target, filter='data')
     patches = sorted((root / 'freepbx/patches').glob('freepbx-core-821*.patch')) + [
         root / 'freepbx/patches/freepbx-core-trunks-hook.patch',
-        root / 'freepbx/patches/freepbx-core-trunk-dns.patch',
         root / 'freepbx/patches/freepbx-core-bindaddress.patch',
         root / 'freepbx/patches/freepbx-core-disabled-trunk-return.patch',
     ] if module == 'core' else {

@@ -345,7 +345,6 @@ COPY --chown=asterisk:asterisk etc/asterisk /etc/asterisk
 COPY etc/odbc.ini /etc/odbc.ini
 COPY etc/odbcinst.ini /etc/odbcinst.ini
 COPY var/lib/asterisk /var/lib/asterisk
-COPY --chmod=0644 etc/cron.d/nethvoice-trunk-dns /etc/cron.d/nethvoice-trunk-dns
 COPY usr/bin/backup_astdb /usr/bin/backup_astdb
 COPY usr/bin/restore_astdb /usr/bin/restore_astdb
 COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
@@ -458,7 +457,6 @@ RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
         patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < "$core_patch" || exit 1; \
     done && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-trunks-hook.patch && \
-    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-trunk-dns.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-bindaddress.patch && \
     patch --batch --forward --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-disabled-trunk-return.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
