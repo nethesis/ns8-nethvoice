@@ -44,20 +44,22 @@ export const isNetworkError = (error: unknown): boolean =>
 
 export type DescribeErrorOptions = { serverDetail?: boolean }
 
-export const describeError = (
-  error: unknown,
-  { serverDetail = true }: DescribeErrorOptions = {},
-): string => {
+export const getClientErrorDetail = (error: unknown): string =>
+  isApiError(error) && error.status < 500 ? getApiErrorDetail(error) : ''
+
+export const describeError: (error: unknown, options?: DescribeErrorOptions) => string = (
+  error,
+) => {
   const { t } = i18n.global
 
   if (isApiError(error)) {
     if (isServiceUnavailable(error.status)) {
       return t('common.error_service_unavailable')
     }
-    if (!serverDetail && error.status >= 500) {
+    if (error.status >= 500) {
       return t('common.error_server', { status: error.status })
     }
-    const detail = getApiErrorDetail(error)
+    const detail = getClientErrorDetail(error)
     const statusMessage = STATUS_MESSAGES[error.status]
 
     if (statusMessage) {

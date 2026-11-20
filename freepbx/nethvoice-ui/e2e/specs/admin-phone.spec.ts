@@ -81,7 +81,7 @@ test.describe('administrator phone', () => {
 
     await expect(
       page.getByRole('tooltip', {
-        name: 'Cannot connect the phone: Cannot prepare the administrator phone. Call again to retry.',
+        name: 'Cannot connect the phone: The server could not complete the request (error 500). Try again later.. Call again to retry.',
       }),
     ).toBeVisible()
     await expect(island(page)).toHaveCount(0)

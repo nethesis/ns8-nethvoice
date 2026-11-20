@@ -272,7 +272,9 @@ describe('useAdminPhoneStore', () => {
 
     expect(store.state).toBe('error')
     expect(store.isEnabled).toBe(false)
-    expect(store.errorMessage).toBe('Cannot prepare the administrator phone')
+    expect(store.errorMessage).toBe(
+      'The server could not complete the request (error 500). Try again later.',
+    )
   })
 
   it('reports a lost connection and recovers when the extension registers again', async () => {

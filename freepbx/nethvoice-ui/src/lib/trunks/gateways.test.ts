@@ -708,6 +708,19 @@ describe('describeGatewayError', () => {
     ).toBe('')
   })
 
+  it('should not show the message of a server error', () => {
+    expect(
+      describeGatewayError(
+        new ApiError({
+          status: 500,
+          method: 'DELETE',
+          url: '/freepbx/rest/devices/gateways/5',
+          body: { status: 'Unable to delete gateway provisioning files' },
+        }),
+      ),
+    ).toBe('')
+  })
+
   it('should be empty for other errors', () => {
     expect(describeGatewayError(apiError(null))).toBe('')
     expect(describeGatewayError(new Error('network'))).toBe('')
