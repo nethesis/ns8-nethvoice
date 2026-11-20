@@ -8,6 +8,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import {
+  NeBadgeV2,
   NeButton,
   NeDropdown,
   NeDropdownFilterV2,
@@ -31,13 +32,16 @@ import {
   faCircleArrowUp,
   faArrowsRotate,
   faCirclePlus,
+  faCircleXmark,
   faFileCsv,
   faGears,
   faHeadset,
+  faKey,
   faLinkSlash,
   faMagnifyingGlass,
   faPenToSquare,
   faRightLeft,
+  faTrash,
   faUserGroup,
   faUserGear,
   faVoicemail,
@@ -47,7 +51,9 @@ import LoadError from '@/components/common/LoadError.vue'
 import TablePaginator from '@/components/common/TablePaginator.vue'
 import AdvancedBulkUsersDrawer from '@/components/users/AdvancedBulkUsersDrawer.vue'
 import BulkUsersDrawer, { type BulkUsersAction } from '@/components/users/BulkUsersDrawer.vue'
+import ChangePasswordDrawer from '@/components/users/ChangePasswordDrawer.vue'
 import CreateOrEditUserDrawer from '@/components/users/CreateOrEditUserDrawer.vue'
+import DeleteUserModal from '@/components/users/DeleteUserModal.vue'
 import ImportUsersFlow from '@/components/users/ImportUsersFlow.vue'
 import OrphanExtensionsDrawer from '@/components/users/OrphanExtensionsDrawer.vue'
 import ReassignExtensionModal from '@/components/users/ReassignExtensionModal.vue'
@@ -57,6 +63,7 @@ import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
 import { DEFAULT_PAGE_SIZE, paginate } from '@/lib/common'
 import { buildModelLabels, getPhoneModelLabel } from '@/lib/overview/overview'
 import { formatMac } from '@/lib/phones/mac'
+import { findAccount, getAccountRestriction } from '@/lib/users/accounts'
 import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
 import {
   buildUserRows,
@@ -69,6 +76,7 @@ import {
   filterUserRows,
   sortUsers,
   type PhysicalPhonesFilter,
+  type StatusFilter,
   type UserFilters,
   type UserSortKey,
   type VoicemailFilter,
@@ -79,11 +87,14 @@ import {
   type SoftwareDeviceType,
   type UserDevice,
 } from '@/lib/users/users'
+import { usePermissions } from '@/queries/permissions/me'
 import { usePhoneModels } from '@/queries/phones/models'
+import { useUserAccounts, useUsersDomain } from '@/queries/users/accounts'
 import { useOrphanExtensions } from '@/queries/users/orphanExtensions'
 import { useUsers } from '@/queries/users/users'
 import { useUsersDirectory } from '@/queries/users/usersDirectory'
 import { useUsersProviderSync } from '@/queries/users/usersSync'
+import { useLoginStore } from '@/stores/login'
 import { useNotificationsStore } from '@/stores/notifications'
 
 const MAX_GROUPS_SHOWN = 2
@@ -104,7 +115,39 @@ const loadError = computed(
 )
 const users = computed(() => usersQuery.state.value.data ?? [])
 const directory = computed(() => directoryQuery.state.value.data ?? EMPTY_USERS_DIRECTORY)
-const rows = computed(() => buildUserRows(users.value, directory.value))
+const loginStore = useLoginStore()
+const { isSuperadmin } = usePermissions()
+const domainQuery = useUsersDomain()
+const accountsQuery = useUserAccounts()
+const domain = computed(() => domainQuery.state.value.data)
+const accountsManageable = computed(() => domain.value?.manageable === true)
+const accounts = computed(() =>
+  accountsManageable.value ? (accountsQuery.state.value.data ?? []) : [],
+)
+const rows = computed(() =>
+  buildUserRows(users.value, directory.value).map((row) => {
+    const account = findAccount(accounts.value, row.username)
+    return { ...row, account, locked: account?.locked ?? null }
+  }),
+)
+type AccountUserRow = (typeof rows.value)[number]
+
+const restrictionOf = (row: UserRow) =>
+  getAccountRestriction({
+    username: row.username,
+    signedInUsername: loginStore.username,
+    isSuperadmin: isSuperadmin.value,
+    account: findAccount(accounts.value, row.username),
+  })
+
+const creationBlocked = computed(() => {
+  if (domain.value?.manageable !== false) {
+    return ''
+  }
+  return domain.value.reason === 'unavailable'
+    ? t('users.account_provider_unavailable')
+    : t('users.users_managed_externally')
+})
 const configuredCount = computed(() => countConfiguredUsers(users.value))
 const orphansQuery = useOrphanExtensions()
 const orphans = computed(() => orphansQuery.state.value.data ?? [])
@@ -124,6 +167,7 @@ const unavailableParts = computed(() =>
 const anyOption = (): NeDropdownFilterV2Option => ({ id: 'any', label: t('users.filter_any') })
 
 const textFilter = ref('')
+const statusFilter = ref<NeDropdownFilterV2Option[]>([anyOption()])
 const voicemailFilter = ref<NeDropdownFilterV2Option[]>([anyOption()])
 const groupsFilter = ref<NeDropdownFilterV2Option[]>([])
 const profilesFilter = ref<NeDropdownFilterV2Option[]>([])
@@ -133,6 +177,12 @@ const sortKey = ref<UserSortKey>('displayName')
 const sortDescending = ref(false)
 const pageNum = ref(1)
 const pageSize = ref(DEFAULT_PAGE_SIZE)
+
+const statusOptions = computed<NeDropdownFilterV2Option[]>(() => [
+  anyOption(),
+  { id: 'enabled', label: t('common.enabled') },
+  { id: 'disabled', label: t('common.disabled') },
+])
 
 const voicemailOptions = computed<NeDropdownFilterV2Option[]>(() => [
   anyOption(),
@@ -172,6 +222,7 @@ const firstId = (options: NeDropdownFilterV2Option[]) => options[0]?.id ?? 'any'
 
 const filters = computed<UserFilters>(() => ({
   text: textFilter.value,
+  status: firstId(statusFilter.value) as StatusFilter,
   voicemail: firstId(voicemailFilter.value) as VoicemailFilter,
   groupIds: groupsFilter.value.map((option) => Number(option.id)),
   profileIds: profilesFilter.value.map((option) => Number(option.id)),
@@ -204,6 +255,7 @@ watch(
 
 function resetFilters() {
   textFilter.value = ''
+  statusFilter.value = [anyOption()]
   voicemailFilter.value = [anyOption()]
   groupsFilter.value = []
   profilesFilter.value = []
@@ -222,7 +274,7 @@ function reload() {
 }
 
 const currentUsername = ref('')
-const currentUser = computed<UserRow | undefined>(() =>
+const currentUser = computed<AccountUserRow | undefined>(() =>
   currentUsername.value === ''
     ? undefined
     : rows.value.find((row) => row.username === currentUsername.value),
@@ -231,6 +283,8 @@ const isShownUserDrawer = ref(false)
 const isShownImport = ref(false)
 const isShownRemoveExtension = ref(false)
 const isShownReassignExtension = ref(false)
+const isShownChangePassword = ref(false)
+const isShownDeleteUser = ref(false)
 const bulkAction = ref<BulkUsersAction>('profile')
 const isShownBulkDrawer = ref(false)
 const isShownAdvancedBulk = ref(false)
@@ -337,7 +391,48 @@ const actionItems = computed<NeDropdownItem[]>(() => [
   },
 ])
 
+const openFromMenu = (open: () => void) => {
+  const buttonId = document.activeElement?.closest('[role="menu"]')?.getAttribute('aria-labelledby')
+  const button = buttonId ? document.getElementById(buttonId) : null
+
+  setTimeout(() => {
+    button?.focus()
+    open()
+  })
+}
+
+const accountMenuItem = (
+  row: UserRow,
+  id: string,
+  label: string,
+  icon: NeDropdownItem['icon'],
+  open: () => void,
+  danger = false,
+): NeDropdownItem[] =>
+  accountsManageable.value
+    ? [
+        {
+          id,
+          label,
+          icon,
+          danger,
+          disabled: restrictionOf(row) !== null,
+          action: () => {
+            currentUsername.value = row.username
+            openFromMenu(open)
+          },
+        },
+      ]
+    : []
+
 const rowMenuItems = (row: UserRow): NeDropdownItem[] => [
+  ...accountMenuItem(
+    row,
+    'change-password',
+    t('users.change_password'),
+    faKey,
+    () => (isShownChangePassword.value = true),
+  ),
   {
     id: 'reassign-extension',
     label: t('users.reassign_extension'),
@@ -348,6 +443,7 @@ const rowMenuItems = (row: UserRow): NeDropdownItem[] => [
       isShownReassignExtension.value = true
     },
   },
+  ...(accountsManageable.value ? [{ id: 'divider-account' }] : []),
   {
     id: 'remove-extension',
     label: t('users.remove_extension'),
@@ -359,6 +455,14 @@ const rowMenuItems = (row: UserRow): NeDropdownItem[] => [
       isShownRemoveExtension.value = true
     },
   },
+  ...accountMenuItem(
+    row,
+    'delete-user',
+    t('common.delete'),
+    faTrash,
+    () => (isShownDeleteUser.value = true),
+    true,
+  ),
 ]
 
 const filterLabels = computed(() => ({
@@ -387,6 +491,20 @@ const filterLabels = computed(() => ({
         </NeButton>
       </div>
     </div>
+    <NeInlineNotification
+      v-if="domain && !domain.manageable"
+      :kind="domain.reason === 'unavailable' ? 'warning' : 'info'"
+      class="mb-6"
+      :title="creationBlocked"
+      :description="
+        domain.reason === 'unavailable'
+          ? t('users.account_provider_unavailable_description')
+          : t('users.users_managed_externally_description')
+      "
+      :primary-button-label="domain.reason === 'unavailable' ? t('common.retry') : ''"
+      data-testid="users-domain-notice"
+      @primary-click="domainQuery.refetch()"
+    />
     <NeInlineNotification
       v-if="orphans.length > 0"
       kind="warning"
@@ -424,6 +542,15 @@ const filterLabels = computed(() => ({
           :clear-search-label="t('ne_text_input.clear_search')"
           :aria-label="t('users.filter_users')"
           class="w-full max-w-xs"
+        />
+        <NeDropdownFilterV2
+          v-if="accountsManageable"
+          v-model="statusFilter"
+          kind="radio"
+          :label="t('common.status')"
+          :options="statusOptions"
+          :show-clear-filter="false"
+          v-bind="filterLabels"
         />
         <NeDropdownFilterV2
           v-model="voicemailFilter"
@@ -549,12 +676,26 @@ const filterLabels = computed(() => ({
           <NeTableRow
             v-for="row in pagedRows"
             :key="row.username"
+            :class="{ 'text-tertiary-neutral': row.locked === true }"
             :data-testid="`user-${row.username}`"
           >
             <NeTableCell :data-label="t('users.user')">
               <div class="flex max-w-xs min-w-0 flex-col">
-                <span class="text-primary-neutral flex min-w-0 items-center gap-2">
+                <span
+                  class="flex min-w-0 items-center gap-2"
+                  :class="row.locked === true ? 'text-tertiary-neutral' : 'text-primary-neutral'"
+                >
                   <span class="truncate" :title="row.displayName">{{ row.displayName }}</span>
+                  <NeBadgeV2
+                    v-if="row.locked === true"
+                    kind="gray"
+                    size="xs"
+                    class="shrink-0"
+                    :data-testid="`disabled-badge-${row.username}`"
+                  >
+                    <FontAwesomeIcon :icon="faCircleXmark" class="size-3" aria-hidden="true" />
+                    {{ t('common.disabled') }}
+                  </NeBadgeV2>
                   <NeTooltip v-if="row.voicemail" trigger-event="mouseenter focus" placement="top">
                     <template #trigger>
                       <span tabindex="0" class="text-secondary flex">
@@ -565,7 +706,11 @@ const filterLabels = computed(() => ({
                     <template #content>{{ t('users.voicemail_enabled') }}</template>
                   </NeTooltip>
                 </span>
-                <span class="text-secondary-neutral truncate" :title="row.username">
+                <span
+                  class="truncate"
+                  :class="row.locked === true ? 'text-tertiary-neutral' : 'text-secondary-neutral'"
+                  :title="row.username"
+                >
                   {{ row.username }}
                 </span>
               </div>
@@ -655,7 +800,16 @@ const filterLabels = computed(() => ({
                   :items="rowMenuItems(row)"
                   :align-to-right="true"
                   :open-menu-aria-label="t('users.user_actions', { name: row.username })"
-                />
+                >
+                  <template v-if="accountsManageable && restrictionOf(row)" #menuHeader>
+                    <p
+                      class="text-secondary-neutral max-w-xs px-4 py-2 text-sm"
+                      :data-testid="`account-restriction-${row.username}`"
+                    >
+                      {{ t(`users.${restrictionOf(row)}_restricted`) }}
+                    </p>
+                  </template>
+                </NeDropdown>
               </div>
             </NeTableCell>
           </NeTableRow>
@@ -675,7 +829,21 @@ const filterLabels = computed(() => ({
       :user="currentUser"
       :users="users"
       :directory="directory"
+      :account="currentUser?.account"
+      :accounts-manageable="accountsManageable"
+      :account-restriction="currentUser ? restrictionOf(currentUser) : null"
+      :creation-blocked="creationBlocked"
       @close="isShownUserDrawer = false"
+    />
+    <ChangePasswordDrawer
+      :is-shown="isShownChangePassword"
+      :user="currentUser"
+      @close="isShownChangePassword = false"
+    />
+    <DeleteUserModal
+      :visible="isShownDeleteUser"
+      :user="currentUser"
+      @close="isShownDeleteUser = false"
     />
     <ImportUsersFlow
       :is-shown="isShownImport"

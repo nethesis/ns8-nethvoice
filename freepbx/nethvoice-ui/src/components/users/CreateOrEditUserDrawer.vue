@@ -25,7 +25,18 @@ import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import UserPhonesField from '@/components/users/UserPhonesField.vue'
 import { isApiError } from '@/lib/api/errors'
 import { focusUnlessFocusedWithin } from '@/lib/common'
-import { isCsvImportError } from '@/lib/users/csv'
+import {
+  EmailSchema,
+  getAccountChanges,
+  getAccountErrorCode,
+  isAccountMissing,
+  splitDisplayName,
+  updateAccount,
+  type AccountChanges,
+  type AccountRestriction,
+  type UserAccount,
+} from '@/lib/users/accounts'
+import { hasControlCharacters, isCsvImportError } from '@/lib/users/csv'
 import {
   createUser,
   CreatedUserNotFoundError,
@@ -62,12 +73,20 @@ import {
   type SoftwareDeviceType,
   type User,
 } from '@/lib/users/users'
+import { useInvalidateAccounts } from '@/queries/users/accounts'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 
-type Field = NewUserField | 'profileId'
+type Field = NewUserField | 'profileId' | 'email'
+
+class AccountSaveError extends Error {
+  constructor(readonly original: unknown) {
+    super('account')
+    this.name = 'AccountSaveError'
+  }
+}
 
 const {
   isShown = false,
@@ -76,6 +95,10 @@ const {
   directory,
   variant = 'admin',
   reservedExtensions = [],
+  account = undefined,
+  accountsManageable = false,
+  accountRestriction = null,
+  creationBlocked = '',
 } = defineProps<{
   isShown: boolean
   user?: UserRow
@@ -83,6 +106,10 @@ const {
   directory: UsersDirectory
   variant?: 'admin' | 'setup'
   reservedExtensions?: string[]
+  account?: UserAccount
+  accountsManageable?: boolean
+  accountRestriction?: AccountRestriction | null
+  creationBlocked?: string
 }>()
 
 const emit = defineEmits<{ close: []; created: [username: string, extension: string] }>()
@@ -93,10 +120,14 @@ const { t } = useI18n()
 const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
 const invalidateUsers = useInvalidateUsers()
+const invalidateAccounts = useInvalidateAccounts()
 
 const isEdit = computed(() => user !== undefined)
 const isSetup = computed(() => variant === 'setup')
 const showPhones = computed(() => isEdit.value && !isSetup.value)
+const showAccount = computed(() => !isSetup.value)
+const accountEditable = computed(() => showAccount.value && accountsManageable)
+const isCreationBlocked = computed(() => !isEdit.value && !isSetup.value && creationBlocked !== '')
 
 const phonesField = useTemplateRef<InstanceType<typeof UserPhonesField>>('phonesField')
 
@@ -105,6 +136,11 @@ const name = ref('')
 const surname = ref('')
 const password = ref('')
 const confirmPassword = ref('')
+const email = ref('')
+const accountEnabled = ref(true)
+const initialAccount = ref({ displayName: '', mail: '', locked: false })
+const accountSaved = ref(false)
+const accountSynchronized = ref<boolean | null>(null)
 const extension = ref('')
 const mobile = ref('')
 const voicemail = ref(false)
@@ -116,13 +152,15 @@ const validationIssues = ref<Partial<Record<Field, string>>>({})
 const showPasswordErrors = ref(false)
 const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
-const focusAfterSave = ref<'error' | 'extension' | null>(null)
+const focusAfterSave = ref<'error' | 'extension' | 'email' | 'name' | 'surname' | null>(null)
+const createdAccountError = ref<unknown>(null)
 const errorRef = useTemplateRef<HTMLElement>('errorRef')
 const formRef = useTemplateRef<HTMLFormElement>('formRef')
 
 const usernameRef = useTemplateRef<{ focus(): void }>('usernameRef')
 const nameRef = useTemplateRef<{ focus(): void }>('nameRef')
 const surnameRef = useTemplateRef<{ focus(): void }>('surnameRef')
+const emailRef = useTemplateRef<{ focus(): void }>('emailRef')
 const passwordRef = useTemplateRef<{ focus(): void }>('passwordRef')
 const confirmPasswordRef = useTemplateRef<{ focus(): void }>('confirmPasswordRef')
 const extensionRef = useTemplateRef<{ focus(): void }>('extensionRef')
@@ -133,6 +171,7 @@ const fieldRefs = computed<Partial<Record<Field, { focus(): void } | null>>>(() 
   username: usernameRef.value,
   name: nameRef.value,
   surname: surnameRef.value,
+  email: emailRef.value,
   password: passwordRef.value,
   confirmPassword: confirmPasswordRef.value,
   extension: extensionRef.value,
@@ -205,11 +244,45 @@ const nextSettings = (): UserSettings => ({
   devices: toDeviceTypes(devices.value),
 })
 
+const currentDisplayName = () => getFullName({ name: name.value, surname: surname.value })
+
+const NAME_CONTROL_CHARACTERS = 'users.name_control_characters'
+
+const nameFieldWithControlCharacters = (): 'name' | 'surname' | null =>
+  hasControlCharacters(name.value.trim())
+    ? 'name'
+    : hasControlCharacters(surname.value.trim())
+      ? 'surname'
+      : null
+
+const statusLocked = computed(() => accountRestriction !== null && isEdit.value)
+
+const accountChanges = (): AccountChanges =>
+  getAccountChanges(initialAccount.value, {
+    displayName: currentDisplayName(),
+    mail: email.value,
+    locked: statusLocked.value ? initialAccount.value.locked : !accountEnabled.value,
+  })
+
+const saveAccount = async (username: string, changes: AccountChanges) => {
+  if (Object.keys(changes).length === 0) {
+    return
+  }
+  try {
+    accountSynchronized.value = await updateAccount(username, changes)
+  } catch (error) {
+    throw new AccountSaveError(error)
+  }
+  accountSaved.value = true
+}
+
 const formSnapshot = () =>
   JSON.stringify([
     username.value,
     name.value,
     surname.value,
+    email.value.trim(),
+    accountEnabled.value,
     password.value,
     confirmPassword.value,
     extension.value.trim(),
@@ -235,8 +308,20 @@ watch(
     showPasswordErrors.value = false
     password.value = ''
     confirmPassword.value = ''
+    accountSaved.value = false
+    accountSynchronized.value = null
 
     if (user) {
+      const fullName = splitDisplayName(account?.displayName || user.displayName)
+      name.value = fullName.name
+      surname.value = fullName.surname
+      email.value = account ? account.mail : user.email
+      accountEnabled.value = account?.locked !== true
+      initialAccount.value = {
+        displayName: currentDisplayName(),
+        mail: email.value,
+        locked: !accountEnabled.value,
+      }
       const settings = getUserSettings(user)
       extension.value = settings.extension
       mobile.value = settings.mobile
@@ -253,6 +338,8 @@ watch(
       username.value = ''
       name.value = ''
       surname.value = ''
+      email.value = ''
+      accountEnabled.value = true
       extension.value = ''
       mobile.value = ''
       voicemail.value = false
@@ -268,7 +355,11 @@ watch(
       () =>
         focusUnlessFocusedWithin(
           formRef.value,
-          isEdit.value ? extensionRef.value : usernameRef.value,
+          isEdit.value
+            ? accountEditable.value
+              ? nameRef.value
+              : extensionRef.value
+            : usernameRef.value,
         ),
       300,
     )
@@ -286,6 +377,7 @@ const clearIssue = (...fields: Field[]) => {
 watch(username, () => clearIssue('username'))
 watch(name, () => clearIssue('name'))
 watch(surname, () => clearIssue('surname'))
+watch(email, () => clearIssue('email'))
 watch(password, () => clearIssue('password'))
 watch(confirmPassword, () => clearIssue('confirmPassword'))
 watch(extension, () => clearIssue('extension'))
@@ -300,6 +392,9 @@ const {
 } = useMutation({
   mutation: async () => {
     if (user) {
+      if (accountEditable.value) {
+        await saveAccount(user.username, accountChanges())
+      }
       const current = getUserSettings(user)
       const next = nextSettings()
       await applyUserSettingsSteps(user, planUserSettingsUpdate(current, next))
@@ -327,6 +422,22 @@ const {
       newUser,
       isSetup.value ? { ...settings, extension: '', voicemail: false, devices: [] } : settings,
     )
+
+    if (accountEditable.value) {
+      const changes: AccountChanges = {}
+
+      if (email.value.trim() !== '') {
+        changes.mail = email.value.trim()
+      }
+      if (!accountEnabled.value) {
+        changes.locked = true
+      }
+      try {
+        await saveAccount(newUser.username, changes)
+      } catch (error) {
+        createdAccountError.value = error
+      }
+    }
     return newUser.username
   },
   onSuccess(savedUsername) {
@@ -336,6 +447,9 @@ const {
     const displayName = user
       ? user.displayName
       : getFullName({ name: name.value, surname: surname.value })
+    const accountError = createdAccountError.value
+    createdAccountError.value = null
+    const notSynchronized = accountSynchronized.value === false
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
@@ -344,11 +458,43 @@ const {
           ? t('users.user_updated_description', { name: displayName })
           : t('users.user_created_description', { name: displayName }),
       })
+
+      if (accountError) {
+        notificationsStore.createNotification({
+          kind: 'error',
+          title: t('users.cannot_save_account'),
+          description: getErrorDescription(new AccountSaveError(accountError)),
+        })
+      }
+
+      if (notSynchronized) {
+        notificationsStore.createNotification({
+          kind: 'warning',
+          title: t('users.cannot_sync_users'),
+          description: t('users.users_list_not_updated', { action: t('users.sync_users') }),
+        })
+      }
     }, 500)
     emit('close')
   },
   onError(error) {
     const cause = error instanceof UserSettingsStepError ? error.cause : error
+
+    if (error instanceof AccountSaveError && isAccountMissing(error.original) && user) {
+      const name = user.username
+      setTimeout(() => {
+        notificationsStore.createNotification({
+          kind: 'error',
+          title: t('users.cannot_save_account'),
+          description: t('users.user_no_longer_exists_description', {
+            name,
+            action: t('users.sync_users'),
+          }),
+        })
+      }, 500)
+      emit('close')
+      return
+    }
 
     if (
       error instanceof UserSettingsStepError &&
@@ -357,6 +503,19 @@ const {
     ) {
       validationIssues.value = { extension: 'users.extension_in_use' }
       focusAfterSave.value = 'extension'
+    } else if (
+      error instanceof AccountSaveError &&
+      getAccountErrorCode(error.original) === 'invalid_mail'
+    ) {
+      validationIssues.value = { email: 'users.email_invalid' }
+      focusAfterSave.value = 'email'
+    } else if (
+      error instanceof AccountSaveError &&
+      getAccountErrorCode(error.original) === 'invalid_display_name'
+    ) {
+      const field = nameFieldWithControlCharacters() ?? 'name'
+      validationIssues.value = { [field]: NAME_CONTROL_CHARACTERS }
+      focusAfterSave.value = field
     } else {
       focusAfterSave.value = 'error'
     }
@@ -370,7 +529,7 @@ const {
     }
   },
   onSettled() {
-    return invalidateUsers()
+    return Promise.all([invalidateUsers(), invalidateAccounts()])
   },
 })
 
@@ -384,6 +543,10 @@ watch(saving, async (isSaving) => {
 
   if (target === 'extension') {
     extensionRef.value?.focus()
+  } else if (target === 'email') {
+    emailRef.value?.focus()
+  } else if (target === 'name' || target === 'surname') {
+    fieldRefs.value[target]?.focus()
   } else {
     errorRef.value?.focus()
   }
@@ -401,6 +564,9 @@ const describeStep = (step: UserSettingsStep): string => {
 }
 
 const getErrorTitle = (error: unknown): string => {
+  if (error instanceof AccountSaveError) {
+    return t('users.cannot_save_account')
+  }
   if (error instanceof UserSettingsStepError) {
     return t(`users.step_failed_${error.step.kind}`)
   }
@@ -421,14 +587,20 @@ const describeStepError = (error: UserSettingsStepError): string => {
 }
 
 const getErrorDescription = (error: unknown): string => {
+  if (error instanceof AccountSaveError) {
+    const code = getAccountErrorCode(error.original)
+    return code ? t(`users.account_error_${code}`) : describeError(error.original)
+  }
   if (error instanceof UserSettingsStepError) {
     const detail = describeStepError(error)
+    const applied =
+      error.completed.length > 0
+        ? `${detail} ${t('users.steps_already_applied', {
+            steps: error.completed.map(describeStep).join(', '),
+          })}`
+        : detail
 
-    return error.completed.length > 0
-      ? `${detail} ${t('users.steps_already_applied', {
-          steps: error.completed.map(describeStep).join(', '),
-        })}`
-      : detail
+    return accountSaved.value ? `${applied} ${t('users.account_already_saved')}` : applied
   }
 
   if (isCsvImportError(error)) {
@@ -493,6 +665,13 @@ function validate(): boolean {
       }
     }
   } else if (!isSetup.value) {
+    if (
+      accountEditable.value &&
+      accountChanges().display_name !== undefined &&
+      name.value.trim() === ''
+    ) {
+      issues.name = 'users.name_required'
+    }
     const owner = findUserByExtension(users, extension.value.trim())
 
     if (isRemovingExtension(savedExtension.value, extension.value)) {
@@ -502,8 +681,27 @@ function validate(): boolean {
     }
   }
 
+  if (!isEdit.value || (accountEditable.value && accountChanges().display_name !== undefined)) {
+    for (const [field, value] of [
+      ['name', name.value],
+      ['surname', surname.value],
+    ] as const) {
+      if (hasControlCharacters(value.trim())) {
+        issues[field] ??= NAME_CONTROL_CHARACTERS
+      }
+    }
+  }
+
   if (!settings.success) {
     collectIssues(settings.issues, issues)
+  }
+
+  if (accountEditable.value) {
+    const mail = v.safeParse(EmailSchema, email.value)
+
+    if (!mail.success) {
+      issues.email = mail.issues[0].message
+    }
   }
 
   if (isSetup.value && !isEdit.value && issues.profileId) {
@@ -517,6 +715,7 @@ function validate(): boolean {
     'surname',
     'password',
     'confirmPassword',
+    'email',
     'extension',
     'mobile',
     'profileId',
@@ -534,6 +733,9 @@ function validate(): boolean {
 }
 
 function save() {
+  if (isCreationBlocked.value) {
+    return
+  }
   reset()
 
   if (validate()) {
@@ -575,13 +777,64 @@ const extensionChangeWarning = computed(
     @close="requestClose"
   >
     <form ref="formRef" class="flex flex-col gap-6" novalidate @submit.prevent="save">
+      <NeInlineNotification
+        v-if="isCreationBlocked"
+        kind="info"
+        :title="creationBlocked"
+        :description="t('users.users_created_externally', { action: t('users.sync_users') })"
+        data-testid="user-creation-blocked"
+      />
+      <div v-if="accountEditable" class="flex flex-col gap-2">
+        <NeFormItemLabel class="!mb-0">{{ t('common.status') }}</NeFormItemLabel>
+        <NeToggle
+          v-model="accountEnabled"
+          :label="accountEnabled ? t('common.enabled') : t('common.disabled')"
+          :disabled="saving || statusLocked || isCreationBlocked"
+          data-testid="user-status-toggle"
+        />
+        <p class="text-secondary-neutral text-sm" data-testid="user-status-helper">
+          {{
+            statusLocked
+              ? t(`users.${accountRestriction}_restricted`)
+              : t('users.account_status_helper', { brand: runtimeConfigStore.config.brandName })
+          }}
+        </p>
+      </div>
+      <template v-if="isEdit && showAccount">
+        <NeTextInput
+          ref="nameRef"
+          v-model="name"
+          :label="t('users.name')"
+          :invalid-message="issue('name')"
+          :disabled="saving || !accountEditable"
+        />
+        <NeTextInput
+          ref="surnameRef"
+          v-model="surname"
+          :label="t('users.surname')"
+          :invalid-message="issue('surname')"
+          :disabled="saving || !accountEditable"
+        />
+        <NeTextInput
+          ref="emailRef"
+          v-model="email"
+          type="email"
+          :label="t('users.email')"
+          :placeholder="t('users.email_placeholder')"
+          :invalid-message="issue('email')"
+          optional
+          :optional-label="t('common.optional')"
+          :disabled="saving || !accountEditable"
+          autocomplete="off"
+        />
+      </template>
       <template v-if="!isEdit">
         <NeTextInput
           ref="usernameRef"
           v-model.trim="username"
           :label="t('users.username')"
           :invalid-message="issue('username')"
-          :disabled="saving"
+          :disabled="saving || isCreationBlocked"
           autocomplete="off"
         />
         <NeTextInput
@@ -627,6 +880,19 @@ const extensionChangeWarning = computed(
           :show-password-label="t('ne_text_input.show_password')"
           :hide-password-label="t('ne_text_input.hide_password')"
           autocomplete="new-password"
+        />
+        <NeTextInput
+          v-if="accountEditable"
+          ref="emailRef"
+          v-model="email"
+          type="email"
+          :label="t('users.email')"
+          :placeholder="t('users.email_placeholder')"
+          :invalid-message="issue('email')"
+          optional
+          :optional-label="t('common.optional')"
+          :disabled="saving || isCreationBlocked"
+          autocomplete="off"
         />
       </template>
       <div v-if="!(isEdit && isSetup)" class="flex flex-col gap-2">
@@ -748,7 +1014,12 @@ const extensionChangeWarning = computed(
         <NeButton kind="tertiary" :disabled="saving" @click="requestClose">
           {{ t('common.cancel') }}
         </NeButton>
-        <NeButton kind="primary" type="submit" :loading="saving" :disabled="saving">
+        <NeButton
+          kind="primary"
+          type="submit"
+          :loading="saving"
+          :disabled="saving || isCreationBlocked"
+        >
           {{ isEdit ? t('common.save') : t('users.create') }}
         </NeButton>
       </div>

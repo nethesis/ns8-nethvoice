@@ -102,10 +102,36 @@ export const TANCREDI_MODELS = [
   { name: 'fanvil-X4U', display_name: 'Fanvil X4U', model_url: '' },
 ]
 
+export const ACCOUNTS = [
+  {
+    username: 'a.miller',
+    display_name: 'Anna Miller',
+    mail: 'anna.miller@example.org',
+    locked: false,
+    domain_admin: false,
+  },
+  {
+    username: 'c.davis',
+    display_name: 'Christopher Davis',
+    mail: '',
+    locked: false,
+    domain_admin: false,
+  },
+  {
+    username: 'd.jones',
+    display_name: 'Daniel Jones',
+    mail: '',
+    locked: false,
+    domain_admin: false,
+  },
+]
+
 type UsersApiOptions = {
   users?: unknown
   usersStatus?: number
   orphans?: unknown
+  domain?: unknown
+  accounts?: unknown
 }
 
 export const mockUsersApi = (mockApi: MockApi, options: UsersApiOptions = {}) => {
@@ -121,6 +147,10 @@ export const mockUsersApi = (mockApi: MockApi, options: UsersApiOptions = {}) =>
       syncRunning = true
       return { status: 200 }
     })
+    .on('GET', `${REST}/users/domain`, {
+      json: options.domain ?? { manageable: true, reason: null },
+    })
+    .on('GET', `${REST}/users/domain/accounts`, { json: options.accounts ?? ACCOUNTS })
     .on('GET', `${REST}/users/:all`, {
       status: options.usersStatus ?? 200,
       json: options.users ?? RAW_USERS,
