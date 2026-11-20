@@ -357,9 +357,9 @@ RUN mkdir -p \
 	&& touch /etc/phonebook/sources.d/.nethvoice-volume-guard
 
 # Download framework module
-RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.33.2.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.34.tar.gz && \
-	tar xzf /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
-	rm -f /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz && \
+RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.34.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.34.tar.gz && \
+	tar xzf /tmp/freepbx-framework-bootstrap-release-17.0.34.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
+	rm -f /tmp/freepbx-framework-bootstrap-release-17.0.34.tar.gz && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/. /var/www/html/freepbx/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/enum.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/musiconhold.conf /etc/asterisk/ && \
