@@ -43,6 +43,16 @@ $stmt = $db->prepare($sql);
 $stmt->execute($exec);
 $stmt->closeCursor();
 
+// Set a random internal ARI password, once
+$stmt = $db->prepare("SELECT `value` FROM `asterisk`.`freepbx_settings` WHERE `keyword` = 'FPBX_ARI_PASSWORD'");
+$stmt->execute();
+$ari_password = (string) $stmt->fetchColumn();
+$stmt->closeCursor();
+if (in_array($ari_password, ['', '75d35b6da114ee89d62e090248cb7835'], true)) {
+	$stmt = $db->prepare("UPDATE `asterisk`.`freepbx_settings` SET `value` = ?, `defaultval` = '' WHERE `keyword` = 'FPBX_ARI_PASSWORD'");
+	$stmt->execute([bin2hex(random_bytes(16))]);
+}
+
 // Update /etc/amportal.conf
 $amportal = file_get_contents('/etc/amportal.conf');
 $sql = 'SELECT keyword,value FROM asterisk.freepbx_settings';
