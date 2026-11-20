@@ -303,7 +303,8 @@ $app->get('/models', function(Request $request, Response $response) use ($app) {
         $results[] = array(
             'name' => $scopeId,
             'display_name' => $scope->metadata['displayName'],
-            'model_url' => $config['api_url_path'] . "models/" . $scopeId
+            'model_url' => $config['api_url_path'] . "models/" . $scopeId,
+            'last_edit_time' => getScopeLastEditTime($scope)
         );
     }
     $response = withJson($response, $results, 200, JSON_FLAGS);
@@ -658,6 +659,7 @@ function getModelScope($id,$storage,$logger,$inherit = false, $original = false)
         'display_name' => $scope->metadata['displayName'],
         'variables' => $scope_data,
         'model_url' => $config['api_url_path'] . "models/" . $id,
+        'last_edit_time' => getScopeLastEditTime($scope),
     );
     return $results;
 }
@@ -740,6 +742,13 @@ function invalidVariableResponse(Response $response, $name) {
     $response = $response->withHeader('Content-Type', 'application/problem+json');
     $response = $response->withHeader('Content-Language', 'en');
     return $response;
+}
+
+function getScopeLastEditTime($scope) {
+    if (empty($scope->metadata['last_edit_time'])) {
+        return null;
+    }
+    return (int) $scope->metadata['last_edit_time'];
 }
 
 function withJson(Response $response, $data, $status = 200, $flags = 0) {

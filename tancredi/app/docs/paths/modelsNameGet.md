@@ -24,7 +24,8 @@ Success response:
     "variables": {
         "var1": "value1",
         "var2": "value2"
-    }
+    },
+    "last_edit_time": 1795167778
 }
 ```
 
