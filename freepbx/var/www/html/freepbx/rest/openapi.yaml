@@ -320,10 +320,9 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
-      description: 'Body: `{ "step": <int>, "status": <bool> }`. Step 13 restarts
-        Asterisk and signals the CTI service. Saving step 13 with status false completes
-        the wizard, restarts Asterisk and signals the CTI services to restart; other
-        steps and statuses never restart services.'
+      description: 'Body: `{ "step": <int>, "status": <bool> }`. Saving step 13 with
+        status false completes the wizard, restarts Asterisk and signals the CTI services
+        to restart; other steps and statuses never restart services.'
       operationId: post_configuration_wizard
       requestBody:
         required: true
@@ -1293,6 +1292,8 @@ paths:
   /cti/streaming:
     get:
       summary: List the video sources with the profiles allowed to see them.
+      description: The stored secret is never returned to administrators who are
+        not superadmin; `has_password` tells whether one is stored.
       tags:
       - CTI
       responses:
@@ -1334,8 +1335,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsVideoSourceInput'
-      description: For administrators who are not superadmin the URL must be a public
-        http or https address.
+      description: For administrators who are not superadmin the URL must use http
+        or https and its host must not resolve to a loopback, link-local or unspecified
+        address.
   /cti/paramurls:
     get:
       summary: List the parameterized URLs, one row per URL.
@@ -1377,8 +1379,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsVideoSourceInput'
-      description: For administrators who are not superadmin the URL must be a public
-        http or https address.
+      description: For administrators who are not superadmin the URL must use http
+        or https and its host must not resolve to a loopback, link-local or unspecified
+        address.
   /cti/sources/test:
     post:
       summary: Fetch one frame from a video source URL.
@@ -1393,10 +1396,15 @@ paths:
                 type: string
                 description: Base64 encoded image
         '400': *id002
+        '422':
+          description: The content is not a JPEG, PNG or GIF image (administrators
+            who are not superadmin only)
+          content: *id003
         '500':
           description: Internal server error
       description: 'Body: `{ "url": "http(s)://..." }`. Returns the content encoded
-        in Base64 or HTTP 500 on failure. The URL is fetched only over http or https,
+        in Base64 or HTTP 500 on failure; for administrators who are not superadmin
+        only a JPEG, PNG or GIF image is returned. The URL is fetched only over http or https,
         never from a loopback, link-local or unspecified address, and redirects are
         not followed.'
       operationId: post_cti_sources_test
@@ -3707,6 +3715,7 @@ paths:
         per hour are cached for 5 minutes per range; completed hours are kept
         and only the six hours before the hour of the previous read and the
         following ones are read again.
+        Once a day the whole period is counted again.
         Requires the dashboard section.
       tags:
       - Dashboard
@@ -4661,7 +4670,8 @@ components:
           type: integer
           minimum: 0
           maximum: 13
-          description: Saving step 13 restarts Asterisk, nethcti-server and nethcti-middleware.
+          description: Saving step 13 with status false restarts Asterisk, nethcti-server
+            and nethcti-middleware.
         status:
           type: string
           enum:
@@ -5635,6 +5645,11 @@ components:
         secret:
           type: string
           nullable: true
+          description: Returned only to the superadmin, for the legacy wizard
+        has_password:
+          type: boolean
+          description: Whether a secret is stored, returned only to administrators
+            who are not superadmin
         frame-rate:
           type: integer
           nullable: true
