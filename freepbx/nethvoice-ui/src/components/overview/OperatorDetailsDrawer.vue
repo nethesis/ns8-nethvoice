@@ -21,6 +21,7 @@ import {
   type OverviewDevice,
   type OverviewUser,
 } from '@/lib/overview/overview'
+import { stripTrailingPeriod } from '@/lib/common'
 import { useAdminPhoneStore } from '@/stores/adminPhone'
 import { useFavoritesStore } from '@/stores/favorites'
 import { useFocusReturn } from '@/composables/useFocusReturn'
@@ -87,7 +88,9 @@ const callTooltip = computed(() => {
     case 'no_online_device':
       return t('user_overview.call_device_unavailable')
     case 'phone_error':
-      return t('admin_phone.status_error', { error: adminPhoneStore.errorMessage })
+      return t('admin_phone.status_error', {
+        error: stripTrailingPeriod(adminPhoneStore.errorMessage),
+      })
     case 'elsewhere':
       return t('admin_phone.status_elsewhere')
     case 'ready':
