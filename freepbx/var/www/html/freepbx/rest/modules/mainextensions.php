@@ -85,13 +85,14 @@ $app->post('/mainextensions/{extension:[0-9]+}/reassign', function (Request $req
             return jsonResponse($response, array('message' => 'Missing username'), 400);
         }
         $extension = $request->getAttribute('route')->getArgument('extension');
-        $ret = reassignMainExtension($extension, $username);
+        $keyLabels = null;
+        $ret = reassignMainExtension($extension, $username, $keyLabels);
         if ($ret !== true) {
             return jsonResponse($response, $ret[0], $ret[1]);
         }
         triggerMiddlewareProfilesReloadAfterUserSync();
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-        return $response->withStatus(204);
+        return jsonResponse($response, $keyLabels, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array('message' => 'Cannot reassign the main extension'), 500);

@@ -1182,7 +1182,7 @@ export interface paths {
     put?: never
     /**
      * Move a main extension and all of its devices to another user.
-     * @description The extension numbers, the software devices, the physical phones with their credentials, the voicemail box and the group memberships move to the new user, who must not have a main extension. The previous owner keeps the account without an extension. The new user keeps its CTI profile, or gets the one of the previous owner when it has none. Display names and the voicemail owner are updated and a reload is triggered.
+     * @description The extension numbers, the software devices, the physical phones with their credentials, the voicemail box and the group memberships move to the new user, who must not have a main extension. The previous owner keeps the account without an extension. The new user keeps its CTI profile, or gets the one of the previous owner when it has none. Display names and the voicemail owner are updated and a reload is triggered. Line and expansion keys of phones and custom models that point to the extension and whose label is the display name of the previous owner get the display name of the new user; phones load the new labels at their next provisioning.
      */
     post: operations['post_mainextensions_extension_reassign']
     delete?: never
@@ -3686,6 +3686,12 @@ export interface components {
     MainExtensionReassignRequest: {
       /** @description User that receives the main extension. */
       username: string
+    }
+    MainExtensionReassignResult: {
+      /** @description Number of phone key labels changed to the name of the new user. */
+      key_labels_updated: number
+      /** @description True when some phone key labels could not be read or changed. */
+      key_labels_incomplete: boolean
     }
     MainExtensionOrphanDevice: {
       extension: string
@@ -6443,11 +6449,13 @@ export interface operations {
     }
     responses: {
       /** @description Extension reassigned */
-      204: {
+      200: {
         headers: {
           [name: string]: unknown
         }
-        content?: never
+        content: {
+          'application/json': components['schemas']['MainExtensionReassignResult']
+        }
       }
       /** @description Missing username */
       400: {

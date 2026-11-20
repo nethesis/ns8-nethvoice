@@ -240,5 +240,35 @@ namespace {
     releaseUserExtensions(3, 'none');
     check(count(Pbx::$extensions) === 6 && count(Pbx::$devices) === 5, 'release without extension changed data');
 
+    $keyLabelsTancredi = new class {
+        public array $writes = [];
+        public bool $fail = false;
+        public function get($path) {
+            if ($this->fail) throw new RuntimeException('HTTP 500');
+            return $path === 'phones' ? [['mac' => 'AA-BB-CC-00-00-01']] : [];
+        }
+        public function getMany(array $paths) {
+            return ['phones/AA-BB-CC-00-00-01' => ['variables' => ['linekey_value_1' => '201', 'linekey_label_1' => 'Alice Rossi']]];
+        }
+        public function patch($path, array $body) { $this->writes[] = [$path, $body]; }
+    };
+
+    Pbx::reset();
+    $keyLabels = null;
+    check(reassignMainExtension('201', 'bob', $keyLabels, $keyLabelsTancredi) === true, 'reassign with key labels failed');
+    check($keyLabels === ['key_labels_updated' => 1, 'key_labels_incomplete' => false], 'key labels result not returned');
+    check($keyLabelsTancredi->writes === [['phones/AA-BB-CC-00-00-01', ['variables' => ['linekey_label_1' => 'Bob Bianchi']]]], 'key label of the previous owner not updated');
+
+    Pbx::reset();
+    $keyLabelsTancredi->fail = true;
+    $keyLabels = null;
+    check(reassignMainExtension('201', 'carol', $keyLabels, $keyLabelsTancredi) === true, 'Tancredi failure failed the reassign');
+    check($keyLabels === ['key_labels_updated' => 0, 'key_labels_incomplete' => true], 'Tancredi failure not reported');
+    check(Pbx::$users[3]['default_extension'] === '201' && $userDevices(3) === ['92201', '91201', '93201'], 'Tancredi failure rolled back the reassign');
+
+    Pbx::reset();
+    $keyLabels = null;
+    check(reassignMainExtension('201', 'alice', $keyLabels, $keyLabelsTancredi)[1] === 422 && $keyLabels === null, 'key labels changed by a rejected reassign');
+
     echo "PASS: main extension reassign, rollback, validation and release of deleted users\n";
 }
