@@ -357,6 +357,21 @@
       "callers": ["ui:dashboard"],
       "reason": "Phone counters of the dashboard."
     },
+    "GET /dashboard/live/extensions": {
+      "intent": ["dashboard", "users", "phones"],
+      "callers": ["ui:dashboard", "ui:users", "ui:phones"],
+      "reason": "Live state of the extensions for the calls in progress and devices of the dashboard, the users overview and the phone registration status; only allow-listed fields, never credentials."
+    },
+    "GET /dashboard/live/trunks": {
+      "intent": ["dashboard", "trunks"],
+      "callers": ["ui:dashboard", "ui:trunks", "ui:shell"],
+      "reason": "Live state of the trunks for the dashboard, the trunks screen and the trunk alerts of the notifications drawer; only allow-listed fields."
+    },
+    "GET /dashboard/live/users": {
+      "intent": ["dashboard", "users"],
+      "callers": ["ui:dashboard", "ui:users"],
+      "reason": "Presence and endpoint types of the users for the dashboard and the users overview; never the WebRTC secret or the endpoint usernames."
+    },
     "POST /devices/scan": {
       "intent": "superadmin",
       "callers": ["legacy"],

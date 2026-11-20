@@ -614,3 +614,148 @@ $app->get('/dashboard/phones', function (Request $request, Response $response) {
         return jsonResponse($response, 'An error occurred', 500);
     }
 });
+
+const DASHBOARD_LIVE_SOURCES = [
+    'extensions' => '/astproxy/extensions',
+    'trunks' => '/astproxy/trunks',
+    'users' => '/user/endpoints/all',
+];
+const DASHBOARD_LIVE_TIMEOUT = 4;
+const DASHBOARD_LIVE_UNREACHABLE = 'The CTI server is not reachable';
+const DASHBOARD_LIVE_FAILED = 'The CTI server answered with an error';
+const DASHBOARD_LIVE_CHANNEL = ['nullable' => true, 'fields' => ['channelStatus' => 'scalar']];
+const DASHBOARD_LIVE_RULES = [
+    'extensions' => ['map' => ['fields' => [
+        'exten' => 'scalar',
+        'name' => 'scalar',
+        'status' => 'scalar',
+        'conversations' => ['map' => ['fields' => [
+            'id' => 'scalar',
+            'linkedId' => 'scalar',
+            'duration' => 'scalar',
+            'direction' => 'scalar',
+            'connected' => 'scalar',
+            'throughQueue' => 'scalar',
+            'throughTrunk' => 'scalar',
+            'counterpartNum' => 'scalar',
+            'counterpartName' => 'scalar',
+        ]]],
+        'dnd' => 'scalar',
+        'cf' => 'scalar',
+        'codecs' => ['list' => 'scalar'],
+        'ip' => 'scalar',
+        'port' => 'scalar',
+        'sipuseragent' => 'scalar',
+    ]]],
+    'trunks' => ['map' => ['fields' => [
+        'name' => 'scalar',
+        'status' => 'scalar',
+        'registration' => 'scalar',
+        'conversations' => ['map' => ['fields' => [
+            'id' => 'scalar',
+            'duration' => 'scalar',
+            'direction' => 'scalar',
+            'connected' => 'scalar',
+            'chSource' => DASHBOARD_LIVE_CHANNEL,
+            'chDest' => DASHBOARD_LIVE_CHANNEL,
+            'internalNum' => 'scalar',
+            'internalName' => 'scalar',
+            'externalNum' => 'scalar',
+            'externalName' => 'scalar',
+            'throughQueue' => 'scalar',
+        ]]],
+    ]]],
+    'users' => ['map' => ['fields' => [
+        'name' => 'scalar',
+        'username' => 'scalar',
+        'mainPresence' => 'scalar',
+        'endpoints' => ['fields' => [
+            'mainextension' => ['list' => ['fields' => ['id' => 'scalar']]],
+            'extension' => ['list' => ['fields' => ['id' => 'scalar', 'type' => 'scalar']]],
+        ]],
+    ]]],
+];
+
+function dashboardLiveKeep($value, $rule): array
+{
+    if ($rule === 'scalar') {
+        return $value === null || is_scalar($value) ? [$value] : [];
+    }
+    if ($value === null && !empty($rule['nullable'])) {
+        return [null];
+    }
+    if (isset($rule['list'])) {
+        if (!is_array($value)) {
+            return [];
+        }
+        $kept = [];
+        foreach ($value as $item) {
+            array_push($kept, ...dashboardLiveKeep($item, $rule['list']));
+        }
+        return [$kept];
+    }
+    if ($value === [] || $value instanceof stdClass) {
+        $value = (array) $value;
+    } else {
+        return [];
+    }
+    $kept = new stdClass();
+    if (isset($rule['map'])) {
+        foreach ($value as $key => $item) {
+            foreach (dashboardLiveKeep($item, $rule['map']) as $allowed) {
+                $kept->{$key} = $allowed;
+            }
+        }
+        return [$kept];
+    }
+    foreach ($rule['fields'] as $field => $fieldRule) {
+        if (array_key_exists($field, $value)) {
+            foreach (dashboardLiveKeep($value[$field], $fieldRule) as $allowed) {
+                $kept->{$field} = $allowed;
+            }
+        }
+    }
+    return [$kept];
+}
+
+function dashboardLiveResponse(string $source, callable $fetch): array
+{
+    $answer = $fetch(DASHBOARD_LIVE_SOURCES[$source]);
+    if ($answer === null) {
+        return [503, ['message' => DASHBOARD_LIVE_UNREACHABLE]];
+    }
+    $data = $answer['status'] === 200 ? json_decode((string) $answer['body']) : null;
+    if (!$data instanceof stdClass) {
+        error_log("live $source: unexpected answer from the CTI server, HTTP {$answer['status']}");
+        return [502, ['message' => DASHBOARD_LIVE_FAILED]];
+    }
+    return [200, dashboardLiveKeep($data, DASHBOARD_LIVE_RULES[$source])[0]];
+}
+
+function dashboardCtiGet(string $path): ?array
+{
+    return ctiServerRequest($path, null, DASHBOARD_LIVE_TIMEOUT);
+}
+
+function dashboardLiveJson(Response $response, string $source): Response
+{
+    try {
+        [$status, $body] = dashboardLiveResponse($source, 'dashboardCtiGet');
+        return jsonResponse($response, $body, $status);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, ['message' => 'An error occurred'], 500);
+    }
+}
+
+$app->get('/dashboard/live/extensions', function (Request $request, Response $response) {
+    return dashboardLiveJson($response, 'extensions');
+});
+
+$app->get('/dashboard/live/trunks', function (Request $request, Response $response) {
+    return dashboardLiveJson($response, 'trunks');
+});
+
+$app->get('/dashboard/live/users', function (Request $request, Response $response) {
+    return dashboardLiveJson($response, 'users');
+});
