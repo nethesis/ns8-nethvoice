@@ -2586,6 +2586,66 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/dashboard/live/extensions': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Return the live state of the extensions.
+     * @description Reads the extensions from the CTI server and returns only the fields shown by the dashboard, the users overview and the phones screen; any other field, credentials included, is removed. Requires the dashboard, users or phones section.
+     */
+    get: operations['get_dashboard_live_extensions']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/dashboard/live/trunks': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Return the live state of the trunks.
+     * @description Reads the trunks from the CTI server and returns only their status, registration and calls in progress. Requires the dashboard or trunks section.
+     */
+    get: operations['get_dashboard_live_trunks']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/dashboard/live/users': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Return the presence and the endpoints of the users.
+     * @description Reads the users from the CTI server and returns only name, username, presence and the identifier and type of their extensions. The WebRTC secret and the endpoint usernames are never returned. Requires the dashboard or users section.
+     */
+    get: operations['get_dashboard_live_users']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/trunks/count': {
     parameters: {
       query?: never
@@ -3032,6 +3092,77 @@ export interface components {
     Error: {
       error?: string
       message?: string
+    }
+    LiveScalar: (string | null) | number | boolean
+    /** @description Live state of the extensions, keyed by extension number. */
+    LiveExtensions: {
+      [key: string]: {
+        exten?: components['schemas']['LiveScalar']
+        name?: components['schemas']['LiveScalar']
+        status?: components['schemas']['LiveScalar']
+        conversations?: {
+          [key: string]: {
+            id?: components['schemas']['LiveScalar']
+            linkedId?: components['schemas']['LiveScalar']
+            duration?: components['schemas']['LiveScalar']
+            direction?: components['schemas']['LiveScalar']
+            connected?: components['schemas']['LiveScalar']
+            throughQueue?: components['schemas']['LiveScalar']
+            throughTrunk?: components['schemas']['LiveScalar']
+            counterpartNum?: components['schemas']['LiveScalar']
+            counterpartName?: components['schemas']['LiveScalar']
+          }
+        }
+        dnd?: components['schemas']['LiveScalar']
+        cf?: components['schemas']['LiveScalar']
+        codecs?: components['schemas']['LiveScalar'][]
+        ip?: components['schemas']['LiveScalar']
+        port?: components['schemas']['LiveScalar']
+        sipuseragent?: components['schemas']['LiveScalar']
+      }
+    }
+    LiveChannel: {
+      channelStatus?: components['schemas']['LiveScalar']
+    } | null
+    /** @description Live state of the trunks, keyed by trunk. */
+    LiveTrunks: {
+      [key: string]: {
+        name?: components['schemas']['LiveScalar']
+        status?: components['schemas']['LiveScalar']
+        registration?: components['schemas']['LiveScalar']
+        conversations?: {
+          [key: string]: {
+            id?: components['schemas']['LiveScalar']
+            duration?: components['schemas']['LiveScalar']
+            direction?: components['schemas']['LiveScalar']
+            connected?: components['schemas']['LiveScalar']
+            chSource?: components['schemas']['LiveChannel']
+            chDest?: components['schemas']['LiveChannel']
+            internalNum?: components['schemas']['LiveScalar']
+            internalName?: components['schemas']['LiveScalar']
+            externalNum?: components['schemas']['LiveScalar']
+            externalName?: components['schemas']['LiveScalar']
+            throughQueue?: components['schemas']['LiveScalar']
+          }
+        }
+      }
+    }
+    /** @description Presence and endpoints of the users, keyed by username. */
+    LiveUsers: {
+      [key: string]: {
+        name?: components['schemas']['LiveScalar']
+        username?: components['schemas']['LiveScalar']
+        mainPresence?: components['schemas']['LiveScalar']
+        endpoints?: {
+          mainextension?: {
+            id?: components['schemas']['LiveScalar']
+          }[]
+          extension?: {
+            id?: components['schemas']['LiveScalar']
+            type?: components['schemas']['LiveScalar']
+          }[]
+        }
+      }
     }
     /** @description Error body returned by the legacy handlers. */
     LegacyError: {
@@ -9409,6 +9540,230 @@ export interface operations {
         }
         content: {
           'application/json': string
+        }
+      }
+    }
+  }
+  get_dashboard_live_extensions: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          /**
+           * @example {
+           *       "201": {
+           *         "exten": "201",
+           *         "name": "Alice Example",
+           *         "status": "busy",
+           *         "conversations": {
+           *           "PJSIP/201-0001>PJSIP/202-0002": {
+           *             "id": "PJSIP/201-0001>PJSIP/202-0002",
+           *             "linkedId": "1700000000.1",
+           *             "duration": 42,
+           *             "direction": "out",
+           *             "connected": true,
+           *             "throughQueue": false,
+           *             "throughTrunk": false,
+           *             "counterpartNum": "202",
+           *             "counterpartName": "Bob Example"
+           *           }
+           *         },
+           *         "dnd": false,
+           *         "cf": "",
+           *         "codecs": [
+           *           "alaw"
+           *         ],
+           *         "ip": "192.0.2.10",
+           *         "port": "5060",
+           *         "sipuseragent": "Yealink T46U"
+           *       }
+           *     }
+           */
+          'application/json': components['schemas']['LiveExtensions']
+        }
+      }
+      /** @description Missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description The CTI server answered with an error or with an invalid body */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description The CTI server is not reachable or did not answer in time */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+    }
+  }
+  get_dashboard_live_trunks: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          /**
+           * @example {
+           *       "Provider": {
+           *         "name": "Provider",
+           *         "status": "online",
+           *         "registration": "registered",
+           *         "conversations": {
+           *           "c1": {
+           *             "id": "c1",
+           *             "duration": 7,
+           *             "direction": "in",
+           *             "chSource": {
+           *               "channelStatus": "up"
+           *             },
+           *             "chDest": {
+           *               "channelStatus": "up"
+           *             },
+           *             "internalNum": "201",
+           *             "internalName": "Alice Example",
+           *             "externalNum": "0200000000",
+           *             "externalName": "",
+           *             "throughQueue": false
+           *           }
+           *         }
+           *       }
+           *     }
+           */
+          'application/json': components['schemas']['LiveTrunks']
+        }
+      }
+      /** @description Missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description The CTI server answered with an error or with an invalid body */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description The CTI server is not reachable or did not answer in time */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+    }
+  }
+  get_dashboard_live_users: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          /**
+           * @example {
+           *       "alice": {
+           *         "name": "Alice Example",
+           *         "username": "alice",
+           *         "mainPresence": "online",
+           *         "endpoints": {
+           *           "mainextension": [
+           *             {
+           *               "id": "201"
+           *             }
+           *           ],
+           *           "extension": [
+           *             {
+           *               "id": "201",
+           *               "type": "physical"
+           *             },
+           *             {
+           *               "id": "91201",
+           *               "type": "webrtc"
+           *             }
+           *           ]
+           *         }
+           *       }
+           *     }
+           */
+          'application/json': components['schemas']['LiveUsers']
+        }
+      }
+      /** @description Missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description The CTI server answered with an error or with an invalid body */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description The CTI server is not reachable or did not answer in time */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
         }
       }
     }

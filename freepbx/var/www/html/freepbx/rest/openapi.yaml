@@ -4447,6 +4447,157 @@ paths:
               schema:
                 type: string
       operationId: get_dashboard_system
+  /dashboard/live/extensions:
+    get:
+      summary: Return the live state of the extensions.
+      description: Reads the extensions from the CTI server and returns only the fields shown by the dashboard, the users overview and the phones screen; any other field, credentials included, is removed. Requires the dashboard, users or phones section.
+      tags:
+      - Dashboard
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveExtensions'
+              example:
+                '201':
+                  exten: '201'
+                  name: Alice Example
+                  status: busy
+                  conversations:
+                    PJSIP/201-0001>PJSIP/202-0002:
+                      id: PJSIP/201-0001>PJSIP/202-0002
+                      linkedId: '1700000000.1'
+                      duration: 42
+                      direction: out
+                      connected: true
+                      throughQueue: false
+                      throughTrunk: false
+                      counterpartNum: '202'
+                      counterpartName: Bob Example
+                  dnd: false
+                  cf: ''
+                  codecs:
+                  - alaw
+                  ip: 192.0.2.10
+                  port: '5060'
+                  sipuseragent: Yealink T46U
+        '403':
+          description: Missing permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: The CTI server answered with an error or with an invalid body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: The CTI server is not reachable or did not answer in time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: get_dashboard_live_extensions
+  /dashboard/live/trunks:
+    get:
+      summary: Return the live state of the trunks.
+      description: Reads the trunks from the CTI server and returns only their status, registration and calls in progress. Requires the dashboard or trunks section.
+      tags:
+      - Dashboard
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveTrunks'
+              example:
+                Provider:
+                  name: Provider
+                  status: online
+                  registration: registered
+                  conversations:
+                    c1:
+                      id: c1
+                      duration: 7
+                      direction: in
+                      chSource:
+                        channelStatus: up
+                      chDest:
+                        channelStatus: up
+                      internalNum: '201'
+                      internalName: Alice Example
+                      externalNum: '0200000000'
+                      externalName: ''
+                      throughQueue: false
+        '403':
+          description: Missing permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: The CTI server answered with an error or with an invalid body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: The CTI server is not reachable or did not answer in time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: get_dashboard_live_trunks
+  /dashboard/live/users:
+    get:
+      summary: Return the presence and the endpoints of the users.
+      description: Reads the users from the CTI server and returns only name, username, presence and the identifier and type of their extensions. The WebRTC secret and the endpoint usernames are never returned. Requires the dashboard or users section.
+      tags:
+      - Dashboard
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LiveUsers'
+              example:
+                alice:
+                  name: Alice Example
+                  username: alice
+                  mainPresence: online
+                  endpoints:
+                    mainextension:
+                    - id: '201'
+                    extension:
+                    - id: '201'
+                      type: physical
+                    - id: '91201'
+                      type: webrtc
+        '403':
+          description: Missing permission
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: The CTI server answered with an error or with an invalid body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: The CTI server is not reachable or did not answer in time
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: get_dashboard_live_users
   /trunks/count:
     get:
       summary: Return the number of trunks defined in FreePBX.
@@ -5539,6 +5690,137 @@ components:
           type: string
         field:
           type: string
+    LiveScalar:
+      oneOf:
+      - type: string
+        nullable: true
+      - type: number
+      - type: boolean
+    LiveExtensions:
+      type: object
+      description: Live state of the extensions, keyed by extension number.
+      additionalProperties:
+        type: object
+        properties:
+          exten:
+            $ref: '#/components/schemas/LiveScalar'
+          name:
+            $ref: '#/components/schemas/LiveScalar'
+          status:
+            $ref: '#/components/schemas/LiveScalar'
+          conversations:
+            type: object
+            additionalProperties:
+              type: object
+              properties:
+                id:
+                  $ref: '#/components/schemas/LiveScalar'
+                linkedId:
+                  $ref: '#/components/schemas/LiveScalar'
+                duration:
+                  $ref: '#/components/schemas/LiveScalar'
+                direction:
+                  $ref: '#/components/schemas/LiveScalar'
+                connected:
+                  $ref: '#/components/schemas/LiveScalar'
+                throughQueue:
+                  $ref: '#/components/schemas/LiveScalar'
+                throughTrunk:
+                  $ref: '#/components/schemas/LiveScalar'
+                counterpartNum:
+                  $ref: '#/components/schemas/LiveScalar'
+                counterpartName:
+                  $ref: '#/components/schemas/LiveScalar'
+          dnd:
+            $ref: '#/components/schemas/LiveScalar'
+          cf:
+            $ref: '#/components/schemas/LiveScalar'
+          codecs:
+            type: array
+            items:
+              $ref: '#/components/schemas/LiveScalar'
+          ip:
+            $ref: '#/components/schemas/LiveScalar'
+          port:
+            $ref: '#/components/schemas/LiveScalar'
+          sipuseragent:
+            $ref: '#/components/schemas/LiveScalar'
+    LiveChannel:
+      type: object
+      nullable: true
+      properties:
+        channelStatus:
+          $ref: '#/components/schemas/LiveScalar'
+    LiveTrunks:
+      type: object
+      description: Live state of the trunks, keyed by trunk.
+      additionalProperties:
+        type: object
+        properties:
+          name:
+            $ref: '#/components/schemas/LiveScalar'
+          status:
+            $ref: '#/components/schemas/LiveScalar'
+          registration:
+            $ref: '#/components/schemas/LiveScalar'
+          conversations:
+            type: object
+            additionalProperties:
+              type: object
+              properties:
+                id:
+                  $ref: '#/components/schemas/LiveScalar'
+                duration:
+                  $ref: '#/components/schemas/LiveScalar'
+                direction:
+                  $ref: '#/components/schemas/LiveScalar'
+                connected:
+                  $ref: '#/components/schemas/LiveScalar'
+                chSource:
+                  $ref: '#/components/schemas/LiveChannel'
+                chDest:
+                  $ref: '#/components/schemas/LiveChannel'
+                internalNum:
+                  $ref: '#/components/schemas/LiveScalar'
+                internalName:
+                  $ref: '#/components/schemas/LiveScalar'
+                externalNum:
+                  $ref: '#/components/schemas/LiveScalar'
+                externalName:
+                  $ref: '#/components/schemas/LiveScalar'
+                throughQueue:
+                  $ref: '#/components/schemas/LiveScalar'
+    LiveUsers:
+      type: object
+      description: Presence and endpoints of the users, keyed by username.
+      additionalProperties:
+        type: object
+        properties:
+          name:
+            $ref: '#/components/schemas/LiveScalar'
+          username:
+            $ref: '#/components/schemas/LiveScalar'
+          mainPresence:
+            $ref: '#/components/schemas/LiveScalar'
+          endpoints:
+            type: object
+            properties:
+              mainextension:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/LiveScalar'
+              extension:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      $ref: '#/components/schemas/LiveScalar'
+                    type:
+                      $ref: '#/components/schemas/LiveScalar'
     LegacyError:
       type: object
       description: Error body returned by the legacy handlers.

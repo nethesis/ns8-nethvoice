@@ -145,6 +145,9 @@ $expected = [
     'DELETE /adminphone' => 'superadmin',
     'GET /unknown' => 'superadmin',
     'GET /dashboard/calls' => 'dashboard',
+    'GET /dashboard/live/extensions' => 'dashboard|users|phones',
+    'GET /dashboard/live/trunks' => 'dashboard|trunks',
+    'GET /dashboard/live/users' => 'dashboard|users',
     'GET /trunksx' => 'superadmin',
 ];
 foreach ($expected as $route => $want) {
