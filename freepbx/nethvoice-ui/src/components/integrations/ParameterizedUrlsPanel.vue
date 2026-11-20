@@ -7,7 +7,6 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  NeBadgeV2,
   NeButton,
   NeDropdown,
   NeEmptyState,
@@ -19,11 +18,13 @@ import {
   NeTableHeadCell,
   NeTableRow,
   NeTextInput,
+  NeTooltip,
   type NeDropdownItem,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faCirclePlus,
+  faClone,
   faLink,
   faMagnifyingGlass,
   faPenToSquare,
@@ -37,14 +38,18 @@ import IntegrationsPaginator from './IntegrationsPaginator.vue'
 import { describeError } from '@/stores/notifications'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { matchesText, PAGE_SIZES } from '@/lib/common'
-import { getProfileNames } from '@/lib/integrations/lookups'
 import {
+  areAllProfilesBound,
   deleteParameterizedUrl,
+  getProfileName,
   PARAMETERIZED_URLS_KEY,
   type ParameterizedUrl,
+  sortParameterizedUrls,
 } from '@/lib/integrations/parameterizedUrls'
 import { useProfileOptions } from '@/queries/integrations/lookups'
 import { useParameterizedUrls } from '@/queries/integrations/parameterizedUrls'
+
+type DrawerMode = 'create' | 'edit' | 'duplicate'
 
 const { t } = useI18n()
 const { state, refetch } = useParameterizedUrls()
@@ -52,15 +57,26 @@ const { state: profilesState } = useProfileOptions()
 
 const textFilter = ref('')
 const currentUrl = ref<ParameterizedUrl | undefined>()
+const drawerMode = ref<DrawerMode>('create')
 const isShownDrawer = ref(false)
 const isShownDeleteModal = ref(false)
 
-const urls = computed(() => state.value.data ?? [])
 const profiles = computed(() => profilesState.value.data ?? [])
+const urls = computed(() => sortParameterizedUrls(state.value.data ?? [], profiles.value))
+
+const allProfilesBound = computed(
+  () => profilesState.value.status === 'success' && areAllProfilesBound(profiles.value, urls.value),
+)
 
 const filteredUrls = computed(() =>
   urls.value.filter((item) =>
-    matchesText(textFilter.value, item.url, ...getProfileNames(item.profileIds, profiles.value)),
+    matchesText(
+      textFilter.value,
+      item.name,
+      item.url,
+      getProfileName(item.profileId, profiles.value),
+      describeCalls(item),
+    ),
   ),
 )
 
@@ -85,30 +101,42 @@ watch(textFilter, () => {
   pageNum.value = 1
 })
 
-function showCreateDrawer() {
-  currentUrl.value = undefined
-  isShownDrawer.value = true
+function describeCalls(item: ParameterizedUrl): string {
+  return item.onlyQueues
+    ? t('integrations.param_urls.queue_calls_only')
+    : t('integrations.param_urls.all_calls')
 }
 
-function showEditDrawer(item: ParameterizedUrl) {
+function showDrawer(mode: DrawerMode, item?: ParameterizedUrl) {
+  drawerMode.value = mode
   currentUrl.value = item
   isShownDrawer.value = true
-}
-
-function showDeleteModal(item: ParameterizedUrl) {
-  currentUrl.value = item
-  isShownDeleteModal.value = true
 }
 
 function getKebabMenuItems(item: ParameterizedUrl): NeDropdownItem[] {
+  const deleteItem: NeDropdownItem = {
+    id: 'delete',
+    label: t('common.delete'),
+    icon: faTrash,
+    danger: true,
+    action: () => {
+      currentUrl.value = item
+      isShownDeleteModal.value = true
+    },
+  }
+
+  if (allProfilesBound.value) {
+    return [deleteItem]
+  }
   return [
     {
-      id: 'delete',
-      label: t('common.delete'),
-      icon: faTrash,
-      danger: true,
-      action: () => showDeleteModal(item),
+      id: 'duplicate',
+      label: t('integrations.param_urls.duplicate'),
+      icon: faClone,
+      action: () => showDrawer('duplicate', item),
     },
+    { id: 'divider' },
+    deleteItem,
   ]
 }
 
@@ -118,20 +146,42 @@ function deleteCurrentUrl() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-      <p class="text-secondary-neutral max-w-2xl">
+  <div>
+    <div
+      v-if="!isNoDataEmptyStateShown"
+      class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center"
+    >
+      <p class="text-tertiary-neutral max-w-2xl">
         {{ t('integrations.param_urls.description') }}
       </p>
+      <NeTooltip
+        v-if="allProfilesBound && state.status === 'success'"
+        trigger-event="mouseenter focus"
+        placement="top"
+        tabindex="0"
+        data-testid="create-url-disabled"
+        class="focus:ring-primary-500 dark:focus:ring-primary-300 dark:focus:ring-offset-primary-950 mt-2 inline-flex justify-self-start rounded-md focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:outline-hidden sm:mt-0"
+      >
+        <template #trigger>
+          <NeButton kind="primary" size="lg" disabled>
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+            </template>
+            {{ t('integrations.param_urls.create_url') }}
+          </NeButton>
+        </template>
+        <template #content>{{ t('integrations.param_urls.all_profiles_used') }}</template>
+      </NeTooltip>
       <NeButton
-        v-if="!isNoDataEmptyStateShown"
+        v-else
         kind="primary"
         size="lg"
         :disabled="state.status !== 'success'"
-        @click="showCreateDrawer"
+        class="mt-2 justify-self-start sm:mt-0"
+        @click="showDrawer('create')"
       >
         <template #prefix>
-          <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+          <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
         </template>
         {{ t('integrations.param_urls.create_url') }}
       </NeButton>
@@ -163,13 +213,13 @@ function deleteCurrentUrl() {
       <NeEmptyState
         v-if="isNoDataEmptyStateShown"
         :title="t('integrations.param_urls.no_urls')"
-        :description="t('integrations.param_urls.no_urls_description')"
+        :description="t('integrations.param_urls.description')"
         :icon="faLink"
         class="elevation-0"
       >
-        <NeButton kind="primary" size="lg" @click="showCreateDrawer">
+        <NeButton kind="primary" size="lg" @click="showDrawer('create')">
           <template #prefix>
-            <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+            <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
           </template>
           {{ t('integrations.param_urls.create_url') }}
         </NeButton>
@@ -196,12 +246,13 @@ function deleteCurrentUrl() {
         :aria-label="t('integrations.tab_parameterized_urls')"
         card-breakpoint="lg"
         :loading="state.status === 'pending'"
-        :skeleton-columns="4"
+        :skeleton-columns="5"
         :skeleton-rows="5"
       >
         <NeTableHead>
+          <NeTableHeadCell>{{ t('integrations.name') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('integrations.url') }}</NeTableHeadCell>
-          <NeTableHeadCell>{{ t('integrations.profiles') }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ t('integrations.param_urls.profile') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('integrations.param_urls.calls') }}</NeTableHeadCell>
           <NeTableHeadCell>
             <span class="sr-only">{{ t('common.actions') }}</span>
@@ -209,40 +260,31 @@ function deleteCurrentUrl() {
         </NeTableHead>
         <NeTableBody>
           <NeTableRow v-for="item in urlsPage" :key="item.id">
+            <NeTableCell :data-label="t('integrations.name')">
+              <span class="wrap-anywhere">{{ item.name }}</span>
+            </NeTableCell>
             <NeTableCell :data-label="t('integrations.url')">
               <ClickToCopy class="wrap-anywhere" :text="item.url" />
             </NeTableCell>
-            <NeTableCell :data-label="t('integrations.profiles')">
-              <span class="wrap-anywhere">
-                {{ getProfileNames(item.profileIds, profiles).join(', ') || '-' }}
-              </span>
+            <NeTableCell :data-label="t('integrations.param_urls.profile')">
+              {{ getProfileName(item.profileId, profiles) }}
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.param_urls.calls')">
-              <NeBadgeV2
-                :kind="item.onlyQueues ? 'indigo' : 'gray'"
-                size="xs"
-                class="whitespace-nowrap"
-              >
-                {{
-                  item.onlyQueues
-                    ? t('integrations.param_urls.queue_calls_only')
-                    : t('integrations.param_urls.all_calls')
-                }}
-              </NeBadgeV2>
+              {{ describeCalls(item) }}
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
               <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
-                <NeButton kind="tertiary" @click="showEditDrawer(item)">
+                <NeButton kind="tertiary" @click="showDrawer('edit', item)">
                   <template #prefix>
-                    <FontAwesomeIcon :icon="faPenToSquare" class="h-4 w-4" aria-hidden="true" />
+                    <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
                   </template>
                   {{ t('common.edit') }}
-                  <span class="sr-only">{{ item.url }}</span>
+                  <span class="sr-only">{{ item.name }}</span>
                 </NeButton>
                 <NeDropdown
                   :items="getKebabMenuItems(item)"
                   :align-to-right="true"
-                  :open-menu-aria-label="t('integrations.open_menu_of', { name: item.url })"
+                  :open-menu-aria-label="t('integrations.open_menu_of', { name: item.name })"
                 />
               </div>
             </NeTableCell>
@@ -259,6 +301,7 @@ function deleteCurrentUrl() {
     </div>
     <CreateOrEditParameterizedUrlDrawer
       :is-shown="isShownDrawer"
+      :mode="drawerMode"
       :current-url="currentUrl"
       :urls="urls"
       @close="isShownDrawer = false"
@@ -266,9 +309,12 @@ function deleteCurrentUrl() {
     <DeleteIntegrationObjectModal
       :visible="isShownDeleteModal"
       :title="t('integrations.param_urls.delete_url')"
-      :object-name="currentUrl?.url ?? ''"
+      :object-name="currentUrl?.name ?? ''"
       :confirmation-message="
-        t('integrations.param_urls.delete_url_confirmation', { url: currentUrl?.url ?? '' })
+        t('integrations.param_urls.delete_url_confirmation', {
+          name: currentUrl?.name ?? '',
+          profile: currentUrl ? getProfileName(currentUrl.profileId, profiles) : '',
+        })
       "
       :success-title="t('integrations.param_urls.url_deleted')"
       success-description-key="integrations.param_urls.url_deleted_description"
