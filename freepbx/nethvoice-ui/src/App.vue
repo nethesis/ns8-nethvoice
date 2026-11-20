@@ -11,6 +11,7 @@ import { useI18n } from 'vue-i18n'
 import { PiniaColadaDevtools } from '@pinia/colada-devtools'
 import AppShell from '@/components/shell/AppShell.vue'
 import ToastNotificationsArea from '@/components/shell/ToastNotificationsArea.vue'
+import SignInSplash from '@/components/shell/SignInSplash.vue'
 import { useThemeStore } from '@/stores/theme'
 import { useDensityStore } from '@/stores/density'
 import { useLoginStore } from '@/stores/login'
@@ -84,6 +85,7 @@ onMounted(() => {
   <div class="h-full">
     <AppShell v-if="layout === 'app'" />
     <RouterView v-else-if="layout === 'blank'" />
+    <SignInSplash />
     <ToastNotificationsArea />
   </div>
   <PiniaColadaDevtools v-if="!IS_E2E" />
