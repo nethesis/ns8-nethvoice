@@ -3,6 +3,7 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
+import { isApiError } from '@/lib/api/errors'
 import type { components } from '@/lib/api/schema'
 import { compareNatural } from '@/lib/common'
 import { toProfileIdNumbers } from './lookups'
@@ -13,6 +14,8 @@ export const VIDEO_SOURCES_KEY = 'videoSources'
 export const VIDEO_SOURCE_NAME_MAX_LENGTH = 50
 
 export const VIDEO_SOURCE_OPEN_CODE_MAX_LENGTH = 10
+
+export const VIDEO_SOURCE_PASSWORD_MASK = '••••'
 
 type VideoSourceInput = components['schemas']['IntegrationsVideoSourceInput']
 
@@ -58,6 +61,39 @@ export const parseVideoSources = (raw: unknown): VideoSource[] =>
       profileIds: source.profiles,
     }))
     .sort((a, b) => compareNatural(a.name, b.name))
+
+const parseUrl = (text: string): URL | undefined => {
+  try {
+    return new URL(text)
+  } catch {
+    return undefined
+  }
+}
+
+export const maskVideoSourceUrl = (url: string): string => {
+  const slashes = url.indexOf('//')
+  const start = slashes < 0 ? 0 : slashes + 2
+  const parsed = parseUrl(url)
+
+  if (parsed && slashes >= 0) {
+    if (!parsed.password) {
+      return url
+    }
+    const authority = url.slice(start).split(/[/?#]/, 1)[0] ?? ''
+    const colon = authority.indexOf(':')
+    const at = authority.lastIndexOf('@')
+
+    if (colon >= 0 && at > colon) {
+      return `${url.slice(0, start + colon + 1)}${VIDEO_SOURCE_PASSWORD_MASK}${url.slice(start + at)}`
+    }
+  }
+  const end = url.slice(start).search(/[?#]/)
+  const at = url.slice(start, end < 0 ? undefined : start + end).lastIndexOf('@')
+
+  return at < 0
+    ? url
+    : `${url.slice(0, start)}${VIDEO_SOURCE_PASSWORD_MASK}${url.slice(start + at)}`
+}
 
 export const getVideoSourcePermissionName = (name: string): string =>
   `vs_${name
@@ -167,6 +203,13 @@ export const deleteVideoSource = async (name: string): Promise<void> => {
 }
 
 export const testVideoSource = async (url: string): Promise<string> => {
-  const { data } = await api.POST('/cti/sources/test', { body: { url: url.trim() } })
-  return buildSnapshotDataUrl(v.parse(v.string(), data))
+  try {
+    const { data } = await api.POST('/cti/sources/test', { body: { url: url.trim() } })
+    return buildSnapshotDataUrl(v.parse(v.string(), data))
+  } catch (error) {
+    if (isApiError(error) && error.status === 422) {
+      return ''
+    }
+    throw error
+  }
 }

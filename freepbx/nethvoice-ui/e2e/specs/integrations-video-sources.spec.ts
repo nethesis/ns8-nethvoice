@@ -58,6 +58,49 @@ test.describe('integrations: video sources', () => {
     await expect(rows.nth(2)).toContainText('Warehouse')
   })
 
+  test('hides the password of a source URL', async ({ page, context, mockApi }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    mockApi.on('GET', '/freepbx/rest/cti/streaming', {
+      json: [
+        {
+          descr: 'Gate',
+          url: 'http://viewer:Gate-2026@192.0.2.30/snap.jpg',
+          exten: null,
+          open: '',
+          profiles: ['1'],
+          has_password: false,
+        },
+      ],
+    })
+    const masked = 'http://viewer:••••@192.0.2.30/snap.jpg'
+
+    await page.goto('./integrations/video-sources')
+
+    const grid = page.getByRole('grid', { name: 'Video sources' })
+    await expect(grid.getByRole('row').nth(1)).toContainText(masked)
+    await expect(grid).not.toContainText('Gate-2026')
+
+    await grid.getByTestId('click-to-copy').click()
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(masked)
+
+    await page.getByRole('textbox', { name: 'Filter video sources' }).fill('Gate-2026')
+    await expect(page.getByText('No video sources found')).toBeVisible()
+    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
+    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await expect(page.getByRole('textbox', { name: 'Filter video sources' })).toHaveValue('')
+    await page.getByRole('textbox', { name: 'Filter video sources' }).fill('viewer')
+    await expect(grid.getByRole('row')).toHaveCount(2)
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(grid.getByTestId('click-to-copy')).toHaveText(masked)
+    await expect(grid).not.toContainText('Gate-2026')
+
+    await page.getByRole('button', { name: 'Edit Gate' }).click()
+    await expect(page.getByRole('dialog').getByRole('textbox', { name: 'Image URL' })).toHaveValue(
+      'http://viewer:Gate-2026@192.0.2.30/snap.jpg',
+    )
+  })
+
   test('shows an empty state', async ({ page, mockApi }) => {
     mockApi.on('GET', '/freepbx/rest/cti/streaming', { json: [] })
 
@@ -159,6 +202,26 @@ test.describe('integrations: video sources', () => {
     await expect(drawer.getByRole('img')).toHaveCount(0)
   })
 
+  test('fails the test when the server refuses a content that is not an image', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('POST', '/freepbx/rest/cti/sources/test', {
+      status: 422,
+      json: { status: 'The source did not return a JPEG, PNG or GIF image' },
+    })
+
+    await page.goto('./integrations/video-sources')
+    await page.getByRole('button', { name: 'Edit Warehouse' }).click()
+
+    const drawer = page.getByRole('dialog')
+    await drawer.getByRole('button', { name: 'Test source' }).click()
+
+    await expect(drawer.getByText(/does not return a JPEG, PNG or GIF image/)).toBeVisible()
+    await expect(drawer.getByText('The source did not return')).toHaveCount(0)
+    await expect(drawer.getByRole('img')).toHaveCount(0)
+  })
+
   test('finds a source by the name of its profiles', async ({ page }) => {
     await page.goto('./integrations/video-sources')
     await page.getByRole('textbox', { name: 'Filter video sources' }).fill('Standard')
@@ -216,9 +279,13 @@ test.describe('integrations: video sources', () => {
     await page.getByRole('menuitem', { name: 'Delete' }).click()
 
     const modal = page.getByRole('dialog')
+    await expect(modal).toContainText(
+      'Video source Warehouse will be permanently deleted. Users will no longer see it in NethVoice CTI.',
+    )
     await modal.getByRole('button', { name: 'Delete' }).click()
 
     await expect(modal).toBeHidden()
+    await expect(page.getByText('Video source Warehouse has been deleted.')).toBeVisible()
     expect(mockApi.callsTo('DELETE', '/freepbx/rest/cti/streaming/:name')[0].path).toBe(
       '/freepbx/rest/cti/streaming/Warehouse',
     )

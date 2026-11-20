@@ -1,16 +1,22 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
+import { ApiError } from '@/lib/api/errors'
 import {
   buildSnapshotDataUrl,
   buildVideoSourcePayload,
   getVideoSourcePermissionName,
+  maskVideoSourceUrl,
   parseVideoSources,
+  testVideoSource,
   toVideoSourceForm,
   validateVideoSourceForm,
   type VideoSourceForm,
 } from './videoSources'
+
+vi.mock('@/lib/api/client', () => ({ api: { POST: vi.fn() } }))
 
 const rawSources = [
   {
@@ -176,5 +182,102 @@ describe('buildSnapshotDataUrl', () => {
 
   it('should return nothing when the source does not return an image', () => {
     expect(buildSnapshotDataUrl(btoa('<html><body>login</body></html>'))).toBe('')
+  })
+})
+
+describe('maskVideoSourceUrl', () => {
+  it('should hide the password and keep the user name', () => {
+    expect(maskVideoSourceUrl('http://admin:Camera-2026@192.0.2.10/snapshot.jpg')).toBe(
+      'http://admin:••••@192.0.2.10/snapshot.jpg',
+    )
+    expect(maskVideoSourceUrl('https://admin:p:a@ss@cam.example.com:8443/img?ch=1#top')).toBe(
+      'https://admin:••••@cam.example.com:8443/img?ch=1#top',
+    )
+  })
+
+  it('should hide the password with an IPv6 host', () => {
+    expect(maskVideoSourceUrl('http://viewer:secret@[2001:db8::10]:8080/snap.jpg')).toBe(
+      'http://viewer:••••@[2001:db8::10]:8080/snap.jpg',
+    )
+    expect(maskVideoSourceUrl('http://[2001:db8::10]/snap.jpg')).toBe(
+      'http://[2001:db8::10]/snap.jpg',
+    )
+  })
+
+  it('should keep an @ of the path, the query or the fragment', () => {
+    expect(maskVideoSourceUrl('http://192.0.2.10/users/@door/snap.jpg?by=a@b#c@d')).toBe(
+      'http://192.0.2.10/users/@door/snap.jpg?by=a@b#c@d',
+    )
+    expect(maskVideoSourceUrl('http://admin:secret@192.0.2.10/users/@door/snap.jpg')).toBe(
+      'http://admin:••••@192.0.2.10/users/@door/snap.jpg',
+    )
+  })
+
+  it('should keep a URL without password', () => {
+    expect(maskVideoSourceUrl('http://192.0.2.10/snapshot.jpg')).toBe(
+      'http://192.0.2.10/snapshot.jpg',
+    )
+    expect(maskVideoSourceUrl('http://viewer@192.0.2.10/snapshot.jpg')).toBe(
+      'http://viewer@192.0.2.10/snapshot.jpg',
+    )
+    expect(maskVideoSourceUrl('')).toBe('')
+  })
+
+  it('should hide a percent-encoded password', () => {
+    expect(maskVideoSourceUrl('http://admin:p%40ss%3Aw0rd@192.0.2.10/snap.jpg')).toBe(
+      'http://admin:••••@192.0.2.10/snap.jpg',
+    )
+  })
+
+  it('should hide everything before the last @ of a malformed URL', () => {
+    expect(maskVideoSourceUrl('http://admin:pa/ss@192.0.2.10/snap.jpg')).toBe(
+      'http://••••@192.0.2.10/snap.jpg',
+    )
+    expect(maskVideoSourceUrl('http://admin:pa ss@192.0.2.10:99999/snap.jpg')).toBe(
+      'http://••••@192.0.2.10:99999/snap.jpg',
+    )
+    expect(maskVideoSourceUrl('admin:secret@192.0.2.10/snap.jpg')).toBe('••••@192.0.2.10/snap.jpg')
+  })
+
+  it('should keep a text that is not a URL', () => {
+    expect(maskVideoSourceUrl('front door camera')).toBe('front door camera')
+    expect(maskVideoSourceUrl('http://')).toBe('http://')
+  })
+})
+
+describe('testVideoSource', () => {
+  it('should return the image of the source', async () => {
+    vi.mocked(api.POST).mockResolvedValueOnce({ data: 'iVBORw0KGgo=', response: new Response() })
+
+    await expect(testVideoSource(' http://192.0.2.10/snap.png ')).resolves.toBe(
+      'data:image/png;base64,iVBORw0KGgo=',
+    )
+    expect(api.POST).toHaveBeenCalledWith('/cti/sources/test', {
+      body: { url: 'http://192.0.2.10/snap.png' },
+    })
+  })
+
+  it('should return nothing when the server refuses a content that is not an image', async () => {
+    const error = new ApiError({
+      status: 422,
+      method: 'POST',
+      url: '/freepbx/rest/cti/sources/test',
+      body: { status: 'The source did not return a JPEG, PNG or GIF image' },
+    })
+    vi.mocked(api.POST).mockRejectedValueOnce(error)
+
+    await expect(testVideoSource('http://192.0.2.10/login')).resolves.toBe('')
+  })
+
+  it('should fail on the other errors', async () => {
+    const error = new ApiError({
+      status: 500,
+      method: 'POST',
+      url: '/freepbx/rest/cti/sources/test',
+      body: null,
+    })
+    vi.mocked(api.POST).mockRejectedValueOnce(error)
+
+    await expect(testVideoSource('http://192.0.2.10/snap.jpg')).rejects.toBe(error)
   })
 })

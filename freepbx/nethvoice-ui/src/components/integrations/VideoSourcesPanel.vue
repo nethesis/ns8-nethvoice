@@ -39,6 +39,7 @@ import { matchesText, PAGE_SIZES } from '@/lib/common'
 import { getProfileNames } from '@/lib/integrations/lookups'
 import {
   deleteVideoSource,
+  maskVideoSourceUrl,
   VIDEO_SOURCES_KEY,
   type VideoSource,
 } from '@/lib/integrations/videoSources'
@@ -63,7 +64,7 @@ const filteredSources = computed(() =>
     matchesText(
       textFilter.value,
       source.name,
-      source.url,
+      maskVideoSourceUrl(source.url),
       describeExtension(source.extension),
       ...getProfileNames(source.profileIds, profiles.value),
     ),
@@ -191,12 +192,12 @@ function deleteCurrentSource() {
       <NeEmptyState
         v-else-if="isNoMatchEmptyStateShown"
         :title="t('integrations.video.no_sources_found')"
-        :description="t('common.try_changing_search_filters')"
+        :description="t('common.try_different_words')"
         :icon="faMagnifyingGlass"
         class="elevation-0"
       >
         <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('common.reset_filters') }}
+          {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
       <NeInlineNotification
@@ -233,7 +234,7 @@ function deleteCurrentSource() {
               </div>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.url')">
-              <ClickToCopy class="wrap-anywhere" :text="source.url" />
+              <ClickToCopy class="wrap-anywhere" :text="maskVideoSourceUrl(source.url)" />
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.video.extension')">
               {{ describeExtension(source.extension) }}
@@ -284,6 +285,7 @@ function deleteCurrentSource() {
         t('integrations.video.delete_source_confirmation', { name: currentSource?.name ?? '' })
       "
       :success-title="t('integrations.video.source_deleted')"
+      success-description-key="integrations.video.source_deleted_description"
       :error-title="t('integrations.video.cannot_delete_source')"
       :delete-object="deleteCurrentSource"
       :invalidate-keys="[VIDEO_SOURCES_KEY]"
