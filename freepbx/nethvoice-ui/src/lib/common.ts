@@ -52,3 +52,5 @@ export const needsPaginator = (
 
 export const compareNatural = (a: string, b: string) =>
   a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+
+export const stripTrailingPeriod = (value: string) => value.trim().replace(/\.+$/, '')

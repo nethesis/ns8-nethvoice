@@ -10,7 +10,22 @@ import {
   needsPaginator,
   normalize,
   paginate,
+  stripTrailingPeriod,
 } from './common'
+
+describe('stripTrailingPeriod', () => {
+  it('should remove the final period of a sentence', () => {
+    expect(stripTrailingPeriod('Try again later.')).toBe('Try again later')
+  })
+
+  it('should keep a text without a final period', () => {
+    expect(stripTrailingPeriod('Extension not found')).toBe('Extension not found')
+  })
+
+  it('should keep inner periods and ignore surrounding spaces', () => {
+    expect(stripTrailingPeriod(' Error 1.2 occurred. ')).toBe('Error 1.2 occurred')
+  })
+})
 
 describe('normalize', () => {
   it('should lowercase and replace spaces', () => {
