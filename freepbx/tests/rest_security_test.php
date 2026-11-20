@@ -42,6 +42,21 @@ check(nethvoicePhonebookUrlAllowed('infinity', '192.0.2.7/servlet', [], false), 
 check(!nethvoicePhonebookUrlAllowed('infinity', 'localhost', [], false), 'Infinity on loopback accepted');
 check(!nethvoicePhonebookUrlAllowed('infinity', 'ftp://192.0.2.7', [], false), 'Infinity over FTP accepted');
 
+$node = ['127.0.0.1', '::1', 'fe80::1%eth0', '198.51.100.7', '2001:DB8:0::7', 'not-an-ip'];
+foreach (['198.51.100.7', ' 198.51.100.7 ', '::ffff:198.51.100.7', '[2001:db8::7]', '2001:db8:0:0:0:0:0:7'] as $host) {
+    check(nethvoiceIsLocalHost($host, $node), "$host of the node not local");
+}
+check(nethvoiceIsLocalHost('198.51.100.7', ['::ffff:198.51.100.7']), 'IPv4 mapped node address not local');
+foreach (['198.51.100.8', '2001:db8::8', '192.0.2.9'] as $host) {
+    check(!nethvoiceIsLocalHost($host, $node), "$host outside the node local");
+}
+check(!nethvoiceIsLocalHost('198.51.100.7', []), 'address local without node addresses');
+check(nethvoiceIsLocalHost('127.0.0.1', []) && nethvoiceIsLocalHost('localhost', []), 'loopback not local without node addresses');
+check(in_array('127.0.0.1', nethvoiceNodeAddresses(), true), 'node addresses not read from the interfaces');
+foreach (nethvoiceNodeAddresses() as $address) {
+    check(nethvoiceIsLocalHost($address), "$address of this node not local");
+}
+
 $users = [
     ['id' => 1, 'username' => 'alice', 'password' => 'clear', 'devices' => [
         ['id' => 3, 'extension' => '91201', 'secret' => 's', 'web_user' => 'admin', 'web_password' => 'w', 'mac' => 'AA'],

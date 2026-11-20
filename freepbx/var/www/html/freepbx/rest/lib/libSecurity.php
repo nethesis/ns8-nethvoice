@@ -272,7 +272,35 @@ function nethvoiceDbConnectionId($id): ?int
     return null;
 }
 
-function nethvoiceIsLocalHost($host): bool
+function nethvoiceComparableAddress(string $ip): ?string
+{
+    $packed = @inet_pton(explode('%', $ip, 2)[0]);
+    if ($packed === false) {
+        return null;
+    }
+    if (strlen($packed) === 16 && substr($packed, 0, 12) === str_repeat("\0", 10) . "\xff\xff") {
+        return substr($packed, 12);
+    }
+
+    return $packed;
+}
+
+function nethvoiceNodeAddresses(): array
+{
+    $addresses = [];
+    $interfaces = function_exists('net_get_interfaces') ? net_get_interfaces() : false;
+    foreach (is_array($interfaces) ? $interfaces : [] as $interface) {
+        foreach (is_array($interface['unicast'] ?? null) ? $interface['unicast'] : [] as $unicast) {
+            if (is_string($unicast['address'] ?? null)) {
+                $addresses[] = $unicast['address'];
+            }
+        }
+    }
+
+    return $addresses;
+}
+
+function nethvoiceIsLocalHost($host, ?array $nodeAddresses = null): bool
 {
     if (!is_scalar($host)) {
         return false;
@@ -281,8 +309,14 @@ function nethvoiceIsLocalHost($host): bool
     if ($host === '' || $host === 'localhost' || str_ends_with($host, '.localhost')) {
         return true;
     }
+    $node = null;
     foreach (nethvoiceResolveHost($host) as $address) {
         if (nethvoiceIsForbiddenAddress($address)) {
+            return true;
+        }
+        $node ??= array_filter(array_map('nethvoiceComparableAddress', $nodeAddresses ?? nethvoiceNodeAddresses()), 'is_string');
+        $comparable = nethvoiceComparableAddress($address);
+        if ($comparable !== null && in_array($comparable, $node, true)) {
             return true;
         }
     }
