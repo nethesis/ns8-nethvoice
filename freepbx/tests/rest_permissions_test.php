@@ -124,10 +124,12 @@ $expected = [
     'GET /cti/dbconn/type' => 'integrations',
     'POST /cti/dbconn/test' => 'integrations',
     'PUT /cti/dbconn/{id}' => 'integrations',
-    'DELETE /cti/customer_card/template/{name}' => 'superadmin',
+    'DELETE /cti/customer_card/template/{name}' => 'integrations',
+    'POST /cti/customer_card/preview' => 'integrations',
+    'DELETE /cti/dbconn/{id}' => 'integrations',
     'GET /cti/customer_card/template' => 'integrations',
-    'POST /cti/customer_card/template' => 'superadmin',
-    'PUT /cti/customer_card/template/{name}' => 'superadmin',
+    'POST /cti/customer_card/template' => 'integrations',
+    'PUT /cti/customer_card/template/{name}' => 'integrations',
     'POST /phonebook/test' => 'integrations',
     'GET /phonebook/ldap' => 'phones',
     'POST /phonebook/config[/{id}]' => 'integrations',
@@ -162,7 +164,6 @@ foreach (glob($rest . '/modules/*.php') as $module) {
 sort($superadminOnly);
 $expectedSuperadminOnly = [
     'DELETE /adminphone',
-    'DELETE /cti/customer_card/template/{name}',
     'DELETE /outboundroutes/{route_id}/trunks/{id}',
     'GET /configuration/allowexternalsips',
     'GET /configuration/externalip',
@@ -185,7 +186,6 @@ $expectedSuperadminOnly = [
     'POST /configuration/externalip/{ip}',
     'POST /configuration/localnetworks',
     'POST /configuration/wizard',
-    'POST /cti/customer_card/template',
     'POST /devices/scan',
     'POST /migration/announcements',
     'POST /migration/cdr',
@@ -210,7 +210,6 @@ $expectedSuperadminOnly = [
     'POST /migration/trunksroutesassignements',
     'POST /testauth',
     'POST /users/{username}/password',
-    'PUT /cti/customer_card/template/{name}',
 ];
 check($superadminOnly === $expectedSuperadminOnly, "superadmin-only routes changed:\n" . implode("\n", array_diff($superadminOnly, $expectedSuperadminOnly)) . "\n--\n" . implode("\n", array_diff($expectedSuperadminOnly, $superadminOnly)));
 
@@ -279,10 +278,14 @@ foreach ([['GET', '/users/domain'], ['GET', '/users/domain/accounts'], ['PUT', '
 }
 
 check(status($app, $factory, 'integrator', 'GET', '/cti/customer_card/template') === 200, 'integrations must read the customer card templates');
-check(status($app, $factory, 'integrator', 'DELETE', '/cti/customer_card/template/base') === 403, 'deleting a customer card template is reserved to superadmin');
+check(status($app, $factory, 'integrator', 'DELETE', '/cti/customer_card/template/base') === 400, 'the integrations section reaches the template delete, and a missing template is refused');
+check(status($app, $factory, 'dash', 'DELETE', '/cti/customer_card/template/base') === 403, 'deleting a customer card template needs the integrations section');
 check(status($app, $factory, 'boss', 'DELETE', '/cti/customer_card/template/base') === 200, 'superadmin must delete the customer card templates');
-check(status($app, $factory, 'integrator', 'POST', '/cti/customer_card/template') === 403, 'writing a customer card template is reserved to superadmin');
-check(status($app, $factory, 'integrator', 'PUT', '/cti/customer_card/template/base') === 403, 'changing a customer card template is reserved to superadmin');
+check(status($app, $factory, 'integrator', 'POST', '/cti/customer_card/template') === 400, 'the integrations section reaches the template create, and an empty body is refused');
+check(status($app, $factory, 'integrator', 'PUT', '/cti/customer_card/template/base') === 400, 'the integrations section reaches the template change, and an empty body is refused');
+check(status($app, $factory, 'dash', 'POST', '/cti/customer_card/template') === 403, 'writing a customer card template needs the integrations section');
+check(status($app, $factory, 'dash', 'PUT', '/cti/customer_card/template/base') === 403, 'changing a customer card template needs the integrations section');
+check(status($app, $factory, 'boss', 'POST', '/cti/customer_card/template') === 200, 'superadmin must create the customer card templates');
 check(status($app, $factory, 'boss', 'PUT', '/cti/customer_card/template/base') === 200, 'superadmin must change the customer card templates');
 
 $request = (new ServerRequestFactory())->createServerRequest('GET', '/');

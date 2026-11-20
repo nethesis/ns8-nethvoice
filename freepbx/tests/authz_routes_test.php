@@ -72,6 +72,10 @@ class FixtureLookup implements NethvoiceLimitedAdminLookup
     public function phonebookSource(string $id): ?array {
         return $this->fixture['phonebook_sources'][$id] ?? null;
     }
+
+    public function cardTemplateExists(string $name): bool {
+        return in_array($name, $this->fixture['card_templates'] ?? [], true);
+    }
 }
 
 class TestTancrediAuth extends NethVoiceAuth

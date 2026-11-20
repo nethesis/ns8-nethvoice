@@ -31,6 +31,9 @@ include_once('lib/libParamUrls.php');
 
 const CTI_DBCONN_TARGET_FIELDS = ['host', 'port', 'type'];
 const CTI_DBCONN_PASSWORD_REQUIRED = 'Enter the password to connect to a different server';
+const CTI_PREVIEW_INVALID = 'Invalid customer card preview fields';
+const CTI_PREVIEW_UNREACHABLE = 'The CTI server is not reachable';
+const CTI_PREVIEW_FAILED = 'The CTI server cannot show the preview';
 
 function ctiStoredDbConnection($dbh, $id): ?array
 {
@@ -58,42 +61,84 @@ function ctiAdminSecretKey(): ?string
     return sha1('admin' . $passwordHash . $secret);
 }
 
-function ctiTestDbConnection(array $connection): ?bool
+function ctiServerRequest(string $path, ?array $body = null, int $timeout = 20): ?array
 {
     $port = $_ENV['NETHCTI_SERVER_API_PORT'] ?? getenv('NETHCTI_SERVER_API_PORT');
     $secretKey = is_scalar($port) && ctype_digit((string) $port) ? ctiAdminSecretKey() : null;
     if ($secretKey === null) {
-        error_log('database connection test skipped: missing NETHCTI_SERVER_API_PORT or admin secret key');
+        error_log("CTI server request $path skipped: missing NETHCTI_SERVER_API_PORT or admin secret key");
+        return null;
+    }
+    $headers = ['Accept: application/json', 'User: admin', 'Secretkey: ' . $secretKey];
+    $options = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => $timeout,
+    ];
+    if ($body !== null) {
+        $headers[] = 'Content-Type: application/json';
+        $options[CURLOPT_POST] = true;
+        $options[CURLOPT_POSTFIELDS] = json_encode($body);
+    }
+    $options[CURLOPT_HTTPHEADER] = $headers;
+
+    $ch = curl_init('http://127.0.0.1:' . (int) $port . $path);
+    curl_setopt_array($ch, $options);
+    $answer = curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $error = curl_error($ch);
+    curl_close($ch);
+    if ($answer === false) {
+        error_log("CTI server request $path failed: $error");
         return null;
     }
 
-    $ch = curl_init('http://127.0.0.1:' . (int) $port . '/dbconn/test');
-    curl_setopt_array($ch, [
-        CURLOPT_POST => true,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_CONNECTTIMEOUT => 2,
-        CURLOPT_TIMEOUT => 20,
-        CURLOPT_HTTPHEADER => [
-            'Content-Type: application/json',
-            'User: admin',
-            'Secretkey: ' . $secretKey,
-        ],
-        CURLOPT_POSTFIELDS => json_encode($connection),
-    ]);
-    curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $error = curl_error($ch);
-    curl_close($ch);
+    return ['status' => $status, 'body' => $answer];
+}
 
-    if ($httpCode === 200) {
+function ctiTestDbConnection(array $connection): ?bool
+{
+    $answer = ctiServerRequest('/dbconn/test', $connection);
+    if ($answer === null) {
+        return null;
+    }
+    if ($answer['status'] === 200) {
         return true;
     }
-    if ($httpCode === 503) {
+    if ($answer['status'] === 503) {
         return false;
     }
-    error_log('database connection test failed: HTTP ' . $httpCode . ' ' . $error);
+    error_log('database connection test failed: HTTP ' . $answer['status']);
 
     return null;
+}
+
+function ctiCustomerCardPreviewResponse($data, callable $send, callable $templateExists): array
+{
+    if (!is_array($data)) {
+        return [400, ['message' => CTI_PREVIEW_INVALID]];
+    }
+    $dbconn = nethvoiceDbConnectionId($data['dbconn_id'] ?? null);
+    $template = $data['template'] ?? null;
+    $query = $data['query'] ?? null;
+    if ($dbconn === null || !nethvoiceIsValidCardTemplate($template) || !is_string($query)
+        || $query === '' || base64_decode($query, true) === false) {
+        return [400, ['message' => CTI_PREVIEW_INVALID]];
+    }
+    if (!$templateExists($template)) {
+        return [400, ['message' => CTI_PREVIEW_INVALID]];
+    }
+    $answer = $send('/custcard/preview', ['dbconn_id' => (string) $dbconn, 'template' => $template, 'query' => $query]);
+    if ($answer === null) {
+        return [503, ['message' => CTI_PREVIEW_UNREACHABLE]];
+    }
+    $preview = $answer['status'] === 200 ? json_decode((string) $answer['body'], true) : null;
+    if (!is_array($preview) || !is_string($preview['html'] ?? null)) {
+        error_log('customer card preview: unexpected answer from the CTI server, HTTP ' . $answer['status']);
+        return [502, ['message' => CTI_PREVIEW_FAILED]];
+    }
+
+    return [200, ['html' => $preview['html']]];
 }
 
 /* GET /cti/profiles
@@ -885,6 +930,20 @@ $app->delete('/cti/customer_card/template/{name}', function (Request $request, R
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
+    }
+});
+
+$app->post('/cti/customer_card/preview', function (Request $request, Response $response, $args) {
+    try {
+        [$status, $body] = ctiCustomerCardPreviewResponse(
+            $request->getParsedBody(),
+            'ctiServerRequest',
+            [new NethvoiceDatabaseLookup(), 'cardTemplateExists']
+        );
+        return jsonResponse($response, $body, $status);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, ['message' => 'An error occurred'], 500);
     }
 });
 

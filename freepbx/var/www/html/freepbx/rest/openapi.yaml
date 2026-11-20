@@ -986,6 +986,9 @@ paths:
               $ref: '#/components/schemas/IntegrationsDbConnectionInput'
     delete:
       summary: Delete a database connection.
+      description: For administrators who are not superadmin, a non-numeric `id`
+        returns 400 and a built-in NethVoice database (see `POST /cti/dbconn`) returns
+        403.
       tags:
       - CTI
       responses:
@@ -997,6 +1000,8 @@ paths:
                 type: boolean
         '500':
           description: Internal server error
+        '400': *id004
+        '403': *id001
       operationId: delete_cti_dbconn_id
       parameters:
       - name: id
@@ -1049,7 +1054,9 @@ paths:
     post:
       summary: Test a database connection through nethcti-server.
       description: With `id` and an empty `pass`, the stored password of that connection
-        is used, only when `host`, `port` and `type` are the stored ones.
+        is used, only when `host`, `port` and `type` are the stored ones. For administrators
+        who are not superadmin, testing a built-in NethVoice database (see `POST /cti/dbconn`),
+        or a stored connection on one, returns 403.
       tags:
       - CTI
       responses:
@@ -1065,6 +1072,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+        '403': *id001
         '404':
           description: Database connection not found
           content:
@@ -1127,9 +1135,12 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
+        '400': *id004
         '403': *id001
-      description: 'Body contains `name`, `custom` flag and base64 `html` content.
-        Requires the superadmin permission: templates are rendered by the CTI server.'
+      description: Body contains `name`, `custom` flag and base64 `html` content.
+        Templates are rendered by the CTI server. For administrators who are not superadmin,
+        a `name` that does not match `^[a-z0-9]+$`, a `custom` that is not true or an
+        `html` that is not a string returns 400.
       operationId: post_cti_customer_card_template
       requestBody:
         required: true
@@ -1150,6 +1161,7 @@ paths:
           description: Not found
         '500':
           description: Internal server error
+        '400': *id004
         '403': *id001
       operationId: put_cti_customer_card_template_name
       parameters:
@@ -1164,8 +1176,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsCardTemplateInput'
-      description: 'Requires the superadmin permission: templates are rendered by
-        the CTI server.'
+      description: Templates are rendered by the CTI server. For administrators who
+        are not superadmin, the body must also pass the checks of `POST /cti/customer_card/template`
+        and its `name` must be the path `name`, or the answer is 400; `custom` may
+        be false only when the path `name` is an existing built-in template.
     delete:
       summary: Delete a customer card template.
       tags:
@@ -1175,9 +1189,12 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
+        '400': *id004
         '403': *id001
-      description: 'Requires the superadmin permission: templates are rendered by
-        the CTI server.'
+      description: Deletes `<name>_custom.ejs`, or `<name>.ejs` when there is no custom
+        template with that name. For administrators who are not superadmin, a `name`
+        that does not match `^[a-z0-9]+$` or that is not a template returns 400, and
+        a built-in template returns 403.
       operationId: delete_cti_customer_card_template_name
       parameters:
       - name: name
@@ -1185,6 +1202,51 @@ paths:
         required: true
         schema:
           type: string
+  /cti/customer_card/preview:
+    post:
+      summary: Show a customer card rendered by nethcti-server, without saving it.
+      description: nethcti-server runs the query on the connection and renders the
+        template. Only `html` is returned; an error of nethcti-server is never passed
+        to the client. For administrators who are not superadmin, a card on a built-in
+        NethVoice database (see `POST /cti/dbconn`) returns 403.
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: The rendered card
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsCustomerCardPreview'
+        '400':
+          description: Invalid connection id, template or query, or the template does
+            not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403': *id001
+        '500':
+          description: Internal server error
+        '502':
+          description: nethcti-server cannot show the preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: nethcti-server is not reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: post_cti_customer_card_preview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationsCustomerCardPreviewInput'
   /cti/customer_card:
     get:
       summary: List the customer cards.
@@ -3050,8 +3112,7 @@ paths:
       summary: Delete an external phonebook source and the contacts imported from
         it.
       description: The uploaded CSV file of the source is removed when no other source
-        uses it. Deleting a mysql or mssql source requires the superadmin permission.
-        For administrators who are not superadmin, an `id` that does not match
+        uses it. For administrators who are not superadmin, an `id` that does not match
         `^[A-Za-z0-9_-]+$` returns 400.
       tags:
       - Phonebook
@@ -3078,9 +3139,11 @@ paths:
       description: When the URL changes, the previously uploaded CSV file is removed
         if no other source uses it. An empty or omitted `password` keeps the stored
         one, unless the type, the host, the port or the Infinity URL change, which
-        requires the password again. Saving a mysql or mssql source, or replacing
-        a stored one, requires the superadmin permission. For administrators who are
-        not superadmin, an `id` that does not match `^[A-Za-z0-9_-]+$`, a body that
+        requires the password again. For administrators who are not superadmin, a mysql
+        or mssql source whose `host` is an address of the PBX (on any port), a stored
+        mysql or mssql source on an address of the PBX, and a change of `dbtype`,
+        `host`, `port`, `dbname`, `user` or `query` that keeps the stored password
+        return 403; an `id` that does not match `^[A-Za-z0-9_-]+$`, a body that
         is not a JSON or form object, a `dbtype` that is not a string or a `mapping`
         destination that is not one of `GET /phonebook/fields` returns 400.
       tags:
@@ -3153,7 +3216,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/IntegrationsPhonebookTestInput'
-      description: Testing a mysql or mssql source requires the superadmin permission.
+      description: For administrators who are not superadmin, testing a mysql or mssql
+        source follows the rules of `POST /phonebook/config/{id}` and returns 403 otherwise.
         CSV and Infinity URLs of administrators who are not superadmin must be public
         http or https addresses or uploaded files. With `id` and an empty `password`,
         the stored password of that source is used, only for the same server.
@@ -3179,7 +3243,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
         '403': *id001
-      description: Importing a mysql or mssql source requires the superadmin permission.
       operationId: post_phonebook_syncnow_id
       parameters:
       - name: id
@@ -6822,6 +6885,30 @@ components:
           type: array
           items:
             type: integer
+    IntegrationsCustomerCardPreviewInput:
+      type: object
+      required:
+      - dbconn_id
+      - template
+      - query
+      properties:
+        dbconn_id:
+          type: string
+        template:
+          type: string
+          description: Template file name, that is the template name followed by `_custom`
+            for custom templates
+        query:
+          type: string
+          description: Base64 encoded SQL query
+    IntegrationsCustomerCardPreview:
+      type: object
+      required:
+      - html
+      properties:
+        html:
+          type: string
+          description: Base64 encoded HTML of the card
     UsersDevice:
       type: object
       description: Device (extension) of a user, a row of rest_devices_phones.
