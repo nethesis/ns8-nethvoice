@@ -32,6 +32,10 @@ curl)
     if [[ "${TEST_TANCREDI_DOWN:-0}" == 1 ]]; then printf 000; exit 7; fi
     if ((count <= ${TEST_TANCREDI_FAILURES:-0})); then printf 503; else printf 403; fi;;
 php)
+    if [[ "$*" == *'SELECT id FROM devices WHERE tech = ?'* ]]; then
+        printf '%s' "${TEST_LEGACY_EXTENSIONS:-}"
+        exit 0
+    fi
     if [[ "$*" == *phonesRpsResetHelper* && -n "${TEST_RPS_GATE:-}" ]]; then
         touch "$TEST_RPS_GATE.entered"
         until test -f "$TEST_RPS_GATE"; do /bin/sleep 0.05; done
@@ -62,14 +66,23 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         return result, self.calls.read_text()
 
     def test_installs_modules_then_reloads_without_restarting_asterisk(self):
-        result, calls = self.run_init()
+        result, calls = self.run_init(TEST_LEGACY_EXTENSIONS='1201,1202')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertLess(calls.index('fwconsole moduleadmin --skipchown install core'), calls.index('su asterisk'))
-        conversion = calls.index('php /convert-legacy-sip-trunks.php')
-        self.assertLess(calls.index('fwconsole moduleadmin --skipchown install core'), conversion)
-        self.assertLess(conversion, calls.index('fwconsole userman --syncall'))
+        trunk_conversion = calls.index('php /convert-legacy-sip-trunks.php')
+        extension_conversion = calls.index('fwconsole convert2pjsip --range 1201,1202')
+        self.assertLess(calls.index('fwconsole moduleadmin --skipchown install core'), trunk_conversion)
+        self.assertLess(trunk_conversion, extension_conversion)
+        self.assertLess(extension_conversion, calls.index('fwconsole userman --syncall'))
+        self.assertLess(extension_conversion, calls.index('su asterisk'))
         self.assertNotIn('core restart', calls)
         self.assertNotIn('HTTPTLSBINDADDRESS', calls)
+        self.assertTrue(self.ready.exists())
+
+    def test_skips_extension_conversion_when_no_legacy_devices_remain(self):
+        result, calls = self.run_init()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('fwconsole convert2pjsip', calls)
         self.assertTrue(self.ready.exists())
 
     def test_failed_reload_stops_remaining_initialization(self):
@@ -95,11 +108,13 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
     def test_optional_step_failures_do_not_skip_final_initialization(self):
         for command in ['ionice -c2 -n7 nice -n 10 fwconsole chown --module=framework',
                         'php /convert-legacy-sip-trunks.php',
+                        'fwconsole convert2pjsip --range 1201',
                         'php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed']:
             with self.subTest(command=command):
                 self.calls.unlink(missing_ok=True)
-                result, calls = self.run_init(TEST_FAILURE=command)
+                result, calls = self.run_init(TEST_FAILURE=command, TEST_LEGACY_EXTENSIONS='1201')
                 self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn(command, calls)
                 self.assertIn('fwconsole userman --syncall --force --verbose', calls)
                 self.assertIn('su asterisk', calls)
                 self.assertIn('phonesRpsResetHelper', calls)
