@@ -10,7 +10,12 @@ import i18n, { loadLocaleMessages } from '@/i18n'
 import { ApiError } from '@/lib/api/errors'
 import { CREDENTIALS_STORAGE_KEY } from '@/lib/config'
 import { useLoginStore } from '@/stores/login'
-import { describeError, isNetworkError, useNotificationsStore } from './notifications'
+import {
+  describeError,
+  getClientErrorDetail,
+  isNetworkError,
+  useNotificationsStore,
+} from './notifications'
 
 vi.mock('@/lib/api/client', () => ({
   api: { GET: vi.fn(), POST: vi.fn(), PATCH: vi.fn(), DELETE: vi.fn(), use: vi.fn() },
@@ -26,20 +31,30 @@ describe('describeError', () => {
     i18n.global.locale.value = 'en'
   })
 
-  it('shows the server message without the request', () => {
-    expect(describeError(apiError(500, { message: 'users-admin is unavailable' }))).toBe(
-      'users-admin is unavailable',
+  it('never shows the message of a server error', () => {
+    const fixed = 'The server could not complete the request (error 500). Try again later.'
+
+    expect(describeError(apiError(500, { message: 'users-admin is unavailable' }))).toBe(fixed)
+    expect(
+      describeError(apiError(500, { message: 'users-admin is unavailable' }), {
+        serverDetail: false,
+      }),
+    ).toBe(fixed)
+    expect(describeError(apiError(500, '<html><body><h1>Internal error</h1></body></html>'))).toBe(
+      fixed,
+    )
+    expect(describeError(apiError(507, { status: 'Disk full on /var/lib/mysql' }))).toBe(
+      'The server could not complete the request (error 507). Try again later.',
     )
   })
 
-  it('can show a fixed text instead of the message of a server error', () => {
-    const options = { serverDetail: false }
-
-    expect(describeError(apiError(500, { message: 'users-admin is unavailable' }), options)).toBe(
-      'The server could not complete the request (error 500). Try again later.',
-    )
-    expect(describeError(apiError(400, { message: 'Bad extension' }), options)).toBe(
-      'Bad extension',
+  it('shows the message of a request error', () => {
+    expect(describeError(apiError(400, { message: 'Bad extension' }))).toBe('Bad extension')
+    expect(
+      describeError(apiError(400, { message: 'Bad extension' }), { serverDetail: false }),
+    ).toBe('Bad extension')
+    expect(describeError(apiError(422, { message: 'Extension 201 is already used' }))).toBe(
+      'Some values are not valid. Check them and try again. Server message: Extension 201 is already used',
     )
   })
 
@@ -126,6 +141,17 @@ const createStores = (): Stores => {
   }
   return stores
 }
+
+describe('getClientErrorDetail', () => {
+  it('reads the message of a client error only', () => {
+    expect(getClientErrorDetail(apiError(400, { message: 'Missing field: name' }))).toBe(
+      'Missing field: name',
+    )
+    expect(getClientErrorDetail(apiError(500, { message: 'users-admin is unavailable' }))).toBe('')
+    expect(getClientErrorDetail(apiError(503, { message: 'Try later' }))).toBe('')
+    expect(getClientErrorDetail(new Error('network'))).toBe('')
+  })
+})
 
 describe('notification history', () => {
   beforeEach(() => {

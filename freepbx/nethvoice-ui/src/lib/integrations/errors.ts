@@ -4,7 +4,12 @@
 import { isApiError } from '@/lib/api/errors'
 
 export const getLegacyStatusMessage = (error: unknown): string => {
-  if (!isApiError(error) || typeof error.body !== 'object' || error.body === null) {
+  if (
+    !isApiError(error) ||
+    error.status >= 500 ||
+    typeof error.body !== 'object' ||
+    error.body === null
+  ) {
     return ''
   }
   const status: unknown = 'status' in error.body ? error.body.status : undefined

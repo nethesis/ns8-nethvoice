@@ -15,6 +15,19 @@ describe('getLegacyStatusMessage', () => {
     )
   })
 
+  it('should not read the message of a server error', () => {
+    expect(
+      getLegacyStatusMessage(
+        new ApiError({
+          status: 500,
+          method: 'POST',
+          url: '/freepbx/rest/phonebook/config',
+          body: { status: 'Cannot write the phonebook configuration' },
+        }),
+      ),
+    ).toBe('')
+  })
+
   it('should ignore a boolean status', () => {
     expect(getLegacyStatusMessage(apiError({ status: false }))).toBe('')
   })

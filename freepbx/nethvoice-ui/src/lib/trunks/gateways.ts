@@ -3,9 +3,10 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
-import { ApiError, getApiErrorDetail, isApiError } from '@/lib/api/errors'
+import { ApiError } from '@/lib/api/errors'
 import type { components } from '@/lib/api/schema'
 import { compareNatural, matchesText } from '@/lib/common'
+import { getClientErrorDetail } from '@/stores/notifications'
 import type { Trunk } from './trunks'
 import type { TrunksLiveState } from './liveState'
 
@@ -608,5 +609,4 @@ export const getGatewayConfigFile = async (gateway: Gateway): Promise<Blob> => {
   })
 }
 
-export const describeGatewayError = (error: unknown): string =>
-  isApiError(error) ? getApiErrorDetail(error) : ''
+export const describeGatewayError = (error: unknown): string => getClientErrorDetail(error)
