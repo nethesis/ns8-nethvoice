@@ -542,7 +542,7 @@ export interface paths {
     put?: never
     /**
      * Create a database connection.
-     * @description Body includes host, port, type, credentials and database name; credentials are stored for later use by customer cards. For administrators who are not superadmin, a body that is not a JSON or form object returns 400, and a connection to the built-in NethVoice databases returns 403. Built-in means connection 1 or 2 on a local host, or any connection to a local host (empty, localhost, loopback, link-local or unspecified address) without a port or on the port of connection 1 or 2.
+     * @description Body includes host, port, type, credentials and database name; credentials are stored for later use by customer cards. For administrators who are not superadmin, a body that is not a JSON or form object returns 400, and a connection to the built-in NethVoice databases returns 403. Built-in means connection 1 or 2 on a local host, or any connection to a local host (empty, localhost, loopback, link-local or unspecified address, or an address of the PBX node) without a port or on the port of connection 1 or 2.
      */
     post: operations['post_cti_dbconn']
     delete?: never
