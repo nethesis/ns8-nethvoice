@@ -4,10 +4,12 @@
 import { describe, expect, it } from 'vitest'
 import { encodeBase64Utf8 } from './base64'
 import {
+  buildCardTemplateColorPayload,
   buildCardTemplatePayload,
   getCardTemplateId,
   normalizeTemplateName,
   parseCardTemplates,
+  setCardTemplateColor,
   toCardTemplateForm,
   toDuplicatedCardTemplateForm,
   validateCardTemplateForm,
@@ -29,13 +31,14 @@ const templates = () => parseCardTemplates(rawTemplates)
 describe('parseCardTemplates', () => {
   it('should decode the code and list built-in templates first', () => {
     expect(templates()).toEqual([
-      { id: 'identity', name: 'identity', custom: false, code: '<div></div>' },
-      { id: 'table', name: 'table', custom: false, code: '<!-- color: red -->' },
+      { id: 'identity', name: 'identity', custom: false, code: '<div></div>', color: '' },
+      { id: 'table', name: 'table', custom: false, code: '<!-- color: red -->', color: 'red' },
       {
         id: 'invoices_custom',
         name: 'invoices',
         custom: true,
         code: '<p><%= results[0].total %> €</p>',
+        color: '',
       },
     ])
   })
@@ -100,10 +103,45 @@ describe('forms and payload', () => {
     })
   })
 
-  it('should copy only the code when duplicating', () => {
+  it('should copy the code and suggest a valid name when duplicating', () => {
     expect(toDuplicatedCardTemplateForm(templates()[1])).toEqual({
-      name: '',
+      name: 'tablecopy',
       code: '<!-- color: red -->',
+    })
+    expect(
+      validateCardTemplateForm(toDuplicatedCardTemplateForm(templates()[1]), templates()),
+    ).toEqual({})
+  })
+})
+
+describe('built-in template color', () => {
+  const table = '<!-- color: red -->\n<thead class="bg-red-600 text-white"><td class="bg-red-6000">'
+
+  it('should change the color comment and the header color class', () => {
+    expect(setCardTemplateColor(table, 'blue')).toBe(
+      '<!-- color: blue -->\n<thead class="bg-blue-600 text-white"><td class="bg-red-6000">',
+    )
+  })
+
+  it('should add the color comment when the template has none', () => {
+    expect(setCardTemplateColor('<div class="bg-red-600"></div>', 'green')).toBe(
+      '<!-- color: green -->\n<div class="bg-red-600"></div>',
+    )
+  })
+
+  it('should keep the classes of a color it does not know', () => {
+    expect(setCardTemplateColor('<!-- color: indigo --><p class="bg-indigo-600">', 'red')).toBe(
+      '<!-- color: red --><p class="bg-indigo-600">',
+    )
+  })
+
+  it('should save a built-in template under its own name', () => {
+    const [, builtIn] = templates()
+
+    expect(buildCardTemplateColorPayload(builtIn!, 'teal')).toEqual({
+      name: 'table',
+      custom: false,
+      html: encodeBase64Utf8('<!-- color: teal -->'),
     })
   })
 })

@@ -1,7 +1,8 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import { encodeBase64Utf8 } from './base64'
 import {
   buildCustomerCardPayload,
@@ -12,9 +13,16 @@ import {
   getCustomerCardPermissionName,
   parseCustomerCardPreview,
   parseCustomerCards,
+  previewCustomerCard,
   toCustomerCardForm,
+  toDuplicatedCustomerCardForm,
   validateCustomerCardForm,
 } from './customerCards'
+
+vi.mock('@/lib/api/client', () => ({
+  api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn(), DELETE: vi.fn(), use: vi.fn() },
+  configureApiClient: vi.fn(),
+}))
 
 const identityQuery = "select * from phonebook where workphone like '%$NUMBER'"
 
@@ -106,12 +114,12 @@ describe('validateCustomerCardForm', () => {
 
   it('should reject a name whose permission collides with another card', () => {
     expect(validateCustomerCardForm(form({ name: 'identity!' }), cards())).toEqual({
-      name: 'integrations.cards.card_name_already_used',
+      name: 'integrations.cards.card_name_in_use',
     })
     expect(validateCustomerCardForm(form({ name: 'Identity card' }), cards())).toEqual({})
   })
 
-  it('should require every field except the profiles', () => {
+  it('should require every field, profiles included', () => {
     expect(
       validateCustomerCardForm(
         {
@@ -125,8 +133,9 @@ describe('validateCustomerCardForm', () => {
       ),
     ).toEqual({
       name: 'integrations.cards.card_name_required',
-      dbConnectionId: 'integrations.cards.card_connection_required',
+      dbConnectionId: 'integrations.cards.card_database_required',
       templateId: 'integrations.cards.card_template_required',
+      profileIds: 'integrations.profiles_required',
       query: 'integrations.query_required',
     })
   })
@@ -167,10 +176,28 @@ describe('payloads', () => {
     expect(toCustomerCardForm(cards()[1])).toEqual(form())
   })
 
+  it('should copy every field of a duplicated card with the new name', () => {
+    expect(toDuplicatedCustomerCardForm(cards()[1], 'Open invoices (copy)')).toEqual(
+      form({ name: 'Open invoices (copy)' }),
+    )
+  })
+
   it('should decode the rendered preview', () => {
     expect(parseCustomerCardPreview({ html: encodeBase64Utf8('<p>Anna Miller</p>') })).toBe(
       '<p>Anna Miller</p>',
     )
     expect(() => parseCustomerCardPreview({})).toThrow()
+  })
+
+  it('should ask the preview to the PBX REST API', async () => {
+    const payload = { dbconn_id: '5', template: 'invoices_custom', query: encodeBase64Utf8('x') }
+    vi.mocked(api.POST).mockResolvedValueOnce({
+      data: { html: encodeBase64Utf8('<p>Anna Miller</p>') },
+    } as never)
+
+    await expect(previewCustomerCard(payload)).resolves.toBe('<p>Anna Miller</p>')
+    expect(vi.mocked(api.POST)).toHaveBeenCalledWith('/cti/customer_card/preview', {
+      body: payload,
+    })
   })
 })

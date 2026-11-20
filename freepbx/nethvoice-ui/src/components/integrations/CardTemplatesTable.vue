@@ -25,7 +25,6 @@ import {
   faCirclePlus,
   faClone,
   faCode,
-  faEye,
   faPenToSquare,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
@@ -39,19 +38,16 @@ import {
   CARD_TEMPLATES_KEY,
   type CardTemplate,
   deleteCardTemplate,
+  TEMPLATE_COLORS,
 } from '@/lib/integrations/cardTemplates'
 import { getCardsUsingTemplate } from '@/lib/integrations/customerCards'
 import { useCardTemplates, useCustomerCards } from '@/queries/integrations/customerCards'
-import { usePermissions } from '@/queries/permissions/me'
 
-type DrawerMode = 'create' | 'edit' | 'duplicate' | 'view'
-
-const { hideEmptyState = false } = defineProps<{ hideEmptyState?: boolean }>()
+type DrawerMode = 'create' | 'edit' | 'duplicate'
 
 const { t } = useI18n()
 const { state, refetch } = useCardTemplates()
 const { state: cardsState } = useCustomerCards()
-const { isSuperadmin } = usePermissions()
 
 const currentTemplate = ref<CardTemplate | undefined>()
 const drawerMode = ref<DrawerMode>('create')
@@ -64,13 +60,21 @@ const { pageNum, pageSize, page: templatesPage } = useClientPagination(templates
 
 const isTableShown = computed(() => state.value.status === 'pending' || templates.value.length > 0)
 
-const blockingCards = computed(() =>
-  currentTemplate.value
-    ? getCardsUsingTemplate(cardsState.value.data ?? [], currentTemplate.value.id).map(
-        (card) => card.name,
-      )
-    : [],
-)
+function getUsers(template: CardTemplate): string[] {
+  return getCardsUsingTemplate(cardsState.value.data ?? [], template.id).map((card) => card.name)
+}
+
+function describeColor(template: CardTemplate): string {
+  if (template.custom) {
+    return t('integrations.cards.color_in_code')
+  }
+  if (!template.color) {
+    return t('integrations.cards.color_not_set')
+  }
+  return TEMPLATE_COLORS.includes(template.color)
+    ? t(`integrations.cards.colors.${template.color}`)
+    : template.color
+}
 
 function openDrawer(mode: DrawerMode, template?: CardTemplate) {
   drawerMode.value = mode
@@ -79,24 +83,22 @@ function openDrawer(mode: DrawerMode, template?: CardTemplate) {
 }
 
 function getKebabMenuItems(template: CardTemplate): NeDropdownItem[] {
-  const items: NeDropdownItem[] = isSuperadmin.value
-    ? [
-        {
-          id: 'duplicate',
-          label: t('integrations.cards.duplicate'),
-          icon: faClone,
-          action: () => openDrawer('duplicate', template),
-        },
-      ]
-    : []
+  const items: NeDropdownItem[] = [
+    {
+      id: 'duplicate',
+      label: t('integrations.cards.duplicate'),
+      icon: faClone,
+      action: () => openDrawer('duplicate', template),
+    },
+  ]
 
-  if (template.custom) {
+  if (template.custom && cardsState.value.status === 'success' && !getUsers(template).length) {
+    items.push({ id: 'divider' })
     items.push({
       id: 'delete',
       label: t('common.delete'),
       icon: faTrash,
       danger: true,
-      disabled: cardsState.value.status !== 'success',
       action: () => {
         currentTemplate.value = template
         isShownDeleteModal.value = true
@@ -112,110 +114,112 @@ function deleteCurrentTemplate() {
 </script>
 
 <template>
-  <section class="flex flex-col gap-4" aria-labelledby="card-templates-heading">
-    <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-      <div class="flex flex-col gap-1">
-        <NeHeading id="card-templates-heading" tag="h5">
-          {{ t('integrations.cards.templates') }}
-        </NeHeading>
-        <p class="text-secondary-neutral max-w-2xl text-sm">
-          {{ t('integrations.cards.templates_description') }}
-        </p>
-      </div>
+  <section aria-labelledby="card-templates-heading">
+    <NeHeading id="card-templates-heading" tag="h5" class="mb-2">
+      {{ t('integrations.cards.templates') }}
+    </NeHeading>
+    <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
+      <p class="text-tertiary-neutral max-w-2xl">
+        {{ t('integrations.cards.templates_description') }}
+      </p>
       <NeButton
-        v-if="isSuperadmin"
         kind="secondary"
+        size="lg"
         :disabled="state.status !== 'success'"
+        class="mt-2 justify-self-start sm:mt-0"
         @click="openDrawer('create')"
       >
         <template #prefix>
-          <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+          <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
         </template>
         {{ t('integrations.cards.create_template') }}
       </NeButton>
     </div>
-    <LoadError
-      v-if="state.status === 'error'"
-      :error="state.error"
-      :title="t('integrations.cards.cannot_load_templates')"
-      @retry="refetch()"
-    />
-    <NeEmptyState
-      v-else-if="state.status === 'success' && templates.length === 0 && !hideEmptyState"
-      :title="t('integrations.cards.no_templates')"
-      :icon="faCode"
-      class="elevation-0"
-    />
-    <NeTable
-      v-if="isTableShown"
-      :aria-label="t('integrations.cards.templates')"
-      card-breakpoint="lg"
-      :loading="state.status === 'pending'"
-      :skeleton-columns="3"
-      :skeleton-rows="3"
-    >
-      <NeTableHead>
-        <NeTableHeadCell>{{ t('integrations.name') }}</NeTableHeadCell>
-        <NeTableHeadCell>{{ t('integrations.cards.template_kind') }}</NeTableHeadCell>
-        <NeTableHeadCell>
-          <span class="sr-only">{{ t('common.actions') }}</span>
-        </NeTableHeadCell>
-      </NeTableHead>
-      <NeTableBody>
-        <NeTableRow v-for="template in templatesPage" :key="template.id">
-          <NeTableCell :data-label="t('integrations.name')">
-            <span class="wrap-anywhere">{{ template.name }}</span>
-          </NeTableCell>
-          <NeTableCell :data-label="t('integrations.cards.template_kind')">
-            <NeBadgeV2 :kind="template.custom ? 'indigo' : 'gray'" size="xs">
-              {{
-                template.custom
-                  ? t('integrations.cards.template_custom')
-                  : t('integrations.cards.template_built_in')
-              }}
-            </NeBadgeV2>
-          </NeTableCell>
-          <NeTableCell :data-label="t('common.actions')">
-            <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
-              <NeButton
-                kind="tertiary"
-                @click="openDrawer(template.custom && isSuperadmin ? 'edit' : 'view', template)"
-              >
-                <template #prefix>
-                  <FontAwesomeIcon
-                    :icon="template.custom && isSuperadmin ? faPenToSquare : faEye"
-                    class="h-4 w-4"
-                    aria-hidden="true"
-                  />
-                </template>
+    <div class="flex flex-col gap-6">
+      <LoadError
+        v-if="state.status === 'error'"
+        :error="state.error"
+        :title="t('integrations.cards.cannot_load_templates')"
+        @retry="refetch()"
+      />
+      <NeEmptyState
+        v-else-if="state.status === 'success' && templates.length === 0"
+        :title="t('integrations.cards.no_templates')"
+        :icon="faCode"
+        class="elevation-0"
+      />
+      <NeTable
+        v-if="isTableShown"
+        :aria-label="t('integrations.cards.templates')"
+        card-breakpoint="lg"
+        :loading="state.status === 'pending'"
+        :skeleton-columns="4"
+        :skeleton-rows="3"
+      >
+        <NeTableHead>
+          <NeTableHeadCell>{{ t('integrations.name') }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ t('integrations.cards.color') }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ t('integrations.cards.used_by') }}</NeTableHeadCell>
+          <NeTableHeadCell>
+            <span class="sr-only">{{ t('common.actions') }}</span>
+          </NeTableHeadCell>
+        </NeTableHead>
+        <NeTableBody>
+          <NeTableRow v-for="template in templatesPage" :key="template.id">
+            <NeTableCell :data-label="t('integrations.name')">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="wrap-anywhere">{{ template.name }}</span>
+                <NeBadgeV2 v-if="!template.custom" kind="gray" size="xs">
+                  {{ t('integrations.cards.built_in') }}
+                </NeBadgeV2>
+              </div>
+            </NeTableCell>
+            <NeTableCell :data-label="t('integrations.cards.color')">
+              {{ describeColor(template) }}
+            </NeTableCell>
+            <NeTableCell :data-label="t('integrations.cards.used_by')">
+              <span class="wrap-anywhere">
                 {{
-                  template.custom && isSuperadmin ? t('common.edit') : t('integrations.cards.view')
+                  cardsState.status === 'success'
+                    ? getUsers(template).join(', ') || t('integrations.cards.not_used')
+                    : '-'
                 }}
-                <span class="sr-only">{{ template.name }}</span>
-              </NeButton>
-              <NeDropdown
-                v-if="getKebabMenuItems(template).length"
-                :items="getKebabMenuItems(template)"
-                :align-to-right="true"
-                :open-menu-aria-label="t('integrations.open_menu_of', { name: template.name })"
-              />
-            </div>
-          </NeTableCell>
-        </NeTableRow>
-      </NeTableBody>
-      <template v-if="templates.length > PAGE_SIZES[0]" #paginator>
-        <IntegrationsPaginator
-          v-model:page-num="pageNum"
-          v-model:page-size="pageSize"
-          :total-rows="templates.length"
-        />
-      </template>
-    </NeTable>
+              </span>
+            </NeTableCell>
+            <NeTableCell :data-label="t('common.actions')">
+              <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+                <NeButton kind="tertiary" @click="openDrawer('edit', template)">
+                  <template #prefix>
+                    <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
+                  </template>
+                  {{ t('common.edit') }}
+                  <span class="sr-only">{{ template.name }}</span>
+                </NeButton>
+                <NeDropdown
+                  v-if="getKebabMenuItems(template).length"
+                  :items="getKebabMenuItems(template)"
+                  :align-to-right="true"
+                  :open-menu-aria-label="t('integrations.open_menu_of', { name: template.name })"
+                />
+              </div>
+            </NeTableCell>
+          </NeTableRow>
+        </NeTableBody>
+        <template v-if="templates.length > PAGE_SIZES[0]" #paginator>
+          <IntegrationsPaginator
+            v-model:page-num="pageNum"
+            v-model:page-size="pageSize"
+            :total-rows="templates.length"
+          />
+        </template>
+      </NeTable>
+    </div>
     <CreateOrEditCardTemplateDrawer
       :is-shown="isShownDrawer"
       :mode="drawerMode"
       :current-template="currentTemplate"
       :templates="templates"
+      :used-by="currentTemplate ? getUsers(currentTemplate) : []"
       @close="isShownDrawer = false"
     />
     <DeleteIntegrationObjectModal
@@ -230,8 +234,6 @@ function deleteCurrentTemplate() {
       :error-title="t('integrations.cards.cannot_delete_template')"
       :delete-object="deleteCurrentTemplate"
       :invalidate-keys="[CARD_TEMPLATES_KEY]"
-      :blocked-by="blockingCards"
-      :blocked-message="t('integrations.cards.template_in_use')"
       @close="isShownDeleteModal = false"
     />
   </section>

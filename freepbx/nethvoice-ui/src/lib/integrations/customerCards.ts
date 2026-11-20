@@ -7,7 +7,6 @@ import type { components } from '@/lib/api/schema'
 import { compareNatural } from '@/lib/common'
 import { decodeBase64Utf8, encodeBase64Utf8 } from './base64'
 import { getCardTemplateId } from './cardTemplates'
-import { postCtiApi } from './ctiApi'
 import { toProfileIdNumbers } from './lookups'
 import { type FieldIssues, requiredText, validateForm } from './validation'
 
@@ -51,11 +50,7 @@ export type CustomerCardForm = {
   query: string
 }
 
-export type CustomerCardPreviewInput = {
-  dbconn_id: string
-  template: string
-  query: string
-}
+export type CustomerCardPreviewInput = components['schemas']['IntegrationsCustomerCardPreviewInput']
 
 export const parseCustomerCards = (raw: unknown): CustomerCard[] =>
   v
@@ -93,11 +88,16 @@ export const toCustomerCardForm = (card: CustomerCard): CustomerCardForm => ({
   query: card.query,
 })
 
+export const toDuplicatedCustomerCardForm = (
+  card: CustomerCard,
+  name: string,
+): CustomerCardForm => ({ ...toCustomerCardForm(card), name })
+
 const CustomerCardFormSchema = v.object({
   name: requiredText('integrations.cards.card_name_required'),
-  dbConnectionId: requiredText('integrations.cards.card_connection_required'),
+  dbConnectionId: requiredText('integrations.cards.card_database_required'),
   templateId: requiredText('integrations.cards.card_template_required'),
-  profileIds: v.array(v.string()),
+  profileIds: v.pipe(v.array(v.string()), v.minLength(1, 'integrations.profiles_required')),
   query: requiredText('integrations.query_required'),
 })
 
@@ -118,7 +118,7 @@ export const validateCustomerCardForm = (
     !issues.name &&
     otherCards.some((card) => getCustomerCardPermissionName(card.name) === permissionName)
   ) {
-    issues.name = 'integrations.cards.card_name_already_used'
+    issues.name = 'integrations.cards.card_name_in_use'
   }
   return issues
 }
@@ -167,5 +167,7 @@ export const deleteCustomerCard = async (id: string): Promise<void> => {
   await api.DELETE('/cti/customer_card/{id}', { params: { path: { id } } })
 }
 
-export const previewCustomerCard = async (payload: CustomerCardPreviewInput): Promise<string> =>
-  parseCustomerCardPreview(await postCtiApi('/custcard/preview', payload))
+export const previewCustomerCard = async (payload: CustomerCardPreviewInput): Promise<string> => {
+  const { data } = await api.POST('/cti/customer_card/preview', { body: payload })
+  return parseCustomerCardPreview(data)
+}

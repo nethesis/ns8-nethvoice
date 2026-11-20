@@ -1,18 +1,26 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import {
   buildDbConnectionPayload,
   buildDbConnectionTestPayload,
   type DbConnectionForm,
   getDbConnectionDefaultPort,
+  getDbConnectionPort,
+  getDbConnectionStatuses,
   getDbConnectionTypeLabel,
   parseDbConnections,
   parseDbConnectionTypes,
   toDbConnectionForm,
   validateDbConnectionForm,
 } from './dbConnections'
+
+vi.mock('@/lib/api/client', () => ({
+  api: { GET: vi.fn(), POST: vi.fn(), PUT: vi.fn(), DELETE: vi.fn(), use: vi.fn() },
+  configureApiClient: vi.fn(),
+}))
 
 const rawConnections = [
   {
@@ -49,8 +57,8 @@ const rawConnections = [
 const connections = () => parseDbConnections(rawConnections)
 
 const form = (changes: Partial<DbConnectionForm> = {}): DbConnectionForm => ({
-  type: 'postgres',
   name: 'crm',
+  type: 'postgres',
   host: 'crm.example.com',
   port: '5432',
   user: 'reader',
@@ -142,17 +150,35 @@ describe('validateDbConnectionForm', () => {
     expect(validateDbConnectionForm(form())).toEqual({})
   })
 
-  it('should require every field of a new connection', () => {
+  it('should require every field of a new connection except the port', () => {
     expect(
-      validateDbConnectionForm({ type: '', name: '', host: '', port: '', user: '', password: '' }),
+      validateDbConnectionForm({ name: '', type: '', host: '', port: '', user: '', password: '' }),
     ).toEqual({
-      type: 'integrations.cards.connection_type_required',
-      name: 'integrations.database_required',
-      host: 'integrations.host_required',
-      port: 'integrations.port_required',
-      user: 'integrations.user_required',
+      name: 'integrations.cards.database_name_required',
+      type: 'integrations.cards.database_type_required',
+      host: 'integrations.cards.database_address_required',
+      user: 'integrations.cards.database_username_required',
       password: 'integrations.password_required',
     })
+  })
+
+  it('should accept an empty port and reject a port out of range', () => {
+    expect(validateDbConnectionForm(form({ port: ' ' }))).toEqual({})
+    expect(validateDbConnectionForm(form({ port: '65536' }))).toEqual({
+      port: 'integrations.port_invalid',
+    })
+    expect(validateDbConnectionForm(form({ port: '54a' }))).toEqual({
+      port: 'integrations.port_invalid',
+    })
+  })
+
+  it('should use the default port of the type when the port is empty', () => {
+    expect(getDbConnectionPort(form({ port: '' }))).toBe('5432')
+    expect(getDbConnectionPort(form({ port: ' 6432 ' }))).toBe('6432')
+  })
+
+  it('should keep the stored password when the empty port means the stored one', () => {
+    expect(validateDbConnectionForm(form({ password: '', port: '' }), connections()[0])).toEqual({})
   })
 
   it('should keep the stored password when editing', () => {
@@ -190,6 +216,11 @@ describe('payloads', () => {
     expect(toDbConnectionForm(connections()[0])).toEqual(form({ password: '' }))
   })
 
+  it('should save and test the default port when the port is empty', () => {
+    expect(buildDbConnectionPayload(form({ port: '' })).port).toBe('5432')
+    expect(buildDbConnectionTestPayload(form({ port: '' })).port).toBe('5432')
+  })
+
   it('should omit an unchanged password from the saved fields', () => {
     expect(buildDbConnectionPayload(form({ password: '', host: ' crm.example.com ' }))).toEqual({
       type: 'postgres',
@@ -223,5 +254,36 @@ describe('payloads', () => {
       pass: 'new-password',
     })
     expect(buildDbConnectionTestPayload(form()).id).toBeUndefined()
+  })
+})
+
+describe('getDbConnectionStatuses', () => {
+  it('should test each stored connection with its stored password', async () => {
+    vi.mocked(api.POST).mockImplementation((async (
+      _path: string,
+      options: { body: { id: string } },
+    ) => {
+      if (options.body.id === '7') {
+        throw new Error('Cannot reach the CTI server')
+      }
+      return { data: { status: options.body.id === '1' } }
+    }) as never)
+
+    expect(await getDbConnectionStatuses(connections())).toEqual({
+      '1': 'connected',
+      '5': 'notConnected',
+      '7': 'unknown',
+    })
+    expect(vi.mocked(api.POST)).toHaveBeenCalledWith('/cti/dbconn/test', {
+      body: {
+        type: 'mysql',
+        name: 'phonebook',
+        host: 'localhost',
+        port: '3306',
+        user: 'ctiuser',
+        pass: '',
+        id: '1',
+      },
+    })
   })
 })

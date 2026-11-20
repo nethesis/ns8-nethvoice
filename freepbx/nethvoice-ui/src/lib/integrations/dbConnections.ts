@@ -5,10 +5,11 @@ import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
 import { compareNatural } from '@/lib/common'
-import { type FieldIssues, PortSchema, requiredText, validateForm } from './validation'
+import { type FieldIssues, requiredText, validateForm } from './validation'
 
 export const DB_CONNECTIONS_KEY = 'customerCardDbConnections'
 export const DB_CONNECTION_TYPES_KEY = 'customerCardDbConnectionTypes'
+export const DB_CONNECTION_STATUSES_KEY = 'customerCardDbConnectionStatuses'
 
 export const BUILT_IN_DB_CONNECTIONS = ['phonebook', 'asteriskcdrdb']
 
@@ -60,6 +61,8 @@ export type DbConnection = {
 
 export type DbConnectionType = { id: string; label: string }
 
+export type DbConnectionStatus = 'connected' | 'notConnected' | 'unknown'
+
 export type DbConnectionForm = {
   type: string
   name: string
@@ -98,18 +101,21 @@ export const getDbConnectionDefaultPort = (type: string): string =>
 export const getDbConnectionTypeLabel = (type: string, types: DbConnectionType[]): string =>
   types.find((item) => item.id === type)?.label ?? type
 
+export const getDbConnectionPort = (form: Pick<DbConnectionForm, 'type' | 'port'>): string =>
+  form.port.trim() || getDbConnectionDefaultPort(form.type)
+
 export const emptyDbConnectionForm = (): DbConnectionForm => ({
-  type: 'mysql',
   name: '',
+  type: 'mysql',
   host: '',
-  port: getDbConnectionDefaultPort('mysql'),
+  port: '',
   user: '',
   password: '',
 })
 
 export const toDbConnectionForm = (connection: DbConnection): DbConnectionForm => ({
-  type: connection.type,
   name: connection.name,
+  type: connection.type,
   host: connection.host,
   port: connection.port,
   user: connection.user,
@@ -123,15 +129,24 @@ export const isDbConnectionPasswordKept = (
   !!existing?.hasPassword &&
   form.type === existing.type &&
   form.host.trim() === existing.host.trim() &&
-  form.port.trim() === existing.port.trim()
+  getDbConnectionPort(form) === existing.port.trim()
+
+const OptionalPortSchema = v.pipe(
+  v.string(),
+  v.trim(),
+  v.check(
+    (port) => port === '' || (/^\d{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535),
+    'integrations.port_invalid',
+  ),
+)
 
 const buildDbConnectionSchema = (passwordRequired: boolean) =>
   v.object({
-    type: requiredText('integrations.cards.connection_type_required'),
-    name: requiredText('integrations.database_required'),
-    host: requiredText('integrations.host_required'),
-    port: PortSchema,
-    user: requiredText('integrations.user_required'),
+    name: requiredText('integrations.cards.database_name_required'),
+    type: requiredText('integrations.cards.database_type_required'),
+    host: requiredText('integrations.cards.database_address_required'),
+    port: OptionalPortSchema,
+    user: requiredText('integrations.cards.database_username_required'),
     password: passwordRequired ? requiredText('integrations.password_required') : v.string(),
   })
 
@@ -145,7 +160,7 @@ export const buildDbConnectionPayload = (form: DbConnectionForm): DbConnectionIn
   type: form.type,
   name: form.name.trim(),
   host: form.host.trim(),
-  port: form.port.trim(),
+  port: getDbConnectionPort(form),
   user: form.user.trim(),
   ...(form.password ? { pass: form.password } : {}),
 })
@@ -157,7 +172,7 @@ export const buildDbConnectionTestPayload = (
   type: form.type,
   name: form.name.trim(),
   host: form.host.trim(),
-  port: form.port.trim(),
+  port: getDbConnectionPort(form),
   user: form.user.trim(),
   pass: form.password,
   ...(existing && !form.password ? { id: existing.id } : {}),
@@ -189,3 +204,31 @@ export const testDbConnection = async (payload: DbConnectionTestInput): Promise<
   const { data } = await api.POST('/cti/dbconn/test', { body: payload })
   return v.parse(DbConnectionTestResponseSchema, data).status
 }
+
+export const getDbConnectionSignature = (connection: DbConnection): string =>
+  [connection.id, connection.type, connection.host, connection.port, connection.user].join('|')
+
+export const getDbConnectionStatus = async (
+  connection: DbConnection,
+): Promise<DbConnectionStatus> => {
+  try {
+    const connected = await testDbConnection(
+      buildDbConnectionTestPayload(toDbConnectionForm(connection), connection),
+    )
+    return connected ? 'connected' : 'notConnected'
+  } catch {
+    return 'unknown'
+  }
+}
+
+export const getDbConnectionStatuses = async (
+  connections: DbConnection[],
+): Promise<Record<string, DbConnectionStatus>> =>
+  Object.fromEntries(
+    await Promise.all(
+      connections.map(async (connection) => [
+        connection.id,
+        await getDbConnectionStatus(connection),
+      ]),
+    ),
+  )
