@@ -310,7 +310,7 @@
     "GET /cti/streaming": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Lists video sources."
+      "reason": "Lists video sources; stored secrets are returned only to superadmin."
     },
     "GET /cti/paramurls": {
       "intent": "integrations",
@@ -330,7 +330,7 @@
     "POST /cti/sources/test": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Tests a video source URL from the video source form."
+      "reason": "Tests a video source URL from the video source form; limited administrators get only JPEG, PNG or GIF images."
     },
     "DELETE /cti/streaming/{name}": {
       "intent": "integrations",

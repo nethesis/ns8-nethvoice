@@ -28,6 +28,22 @@ include_once('lib/libSecurity.php');
 
 const CTI_DBCONN_TARGET_FIELDS = ['host', 'port', 'type'];
 const CTI_DBCONN_PASSWORD_REQUIRED = 'Enter the password to connect to a different server';
+const CTI_SOURCE_NOT_AN_IMAGE = 'The source did not return a JPEG, PNG or GIF image';
+const CTI_IMAGE_SIGNATURES = ["\xff\xd8\xff", "\x89PNG\r\n\x1a\n", 'GIF87a', 'GIF89a'];
+
+function ctiIsImage($data): bool
+{
+    if (!is_string($data)) {
+        return false;
+    }
+    foreach (CTI_IMAGE_SIGNATURES as $signature) {
+        if (str_starts_with($data, $signature)) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 function ctiStoredDbConnection($dbh, $id): ?array
 {
@@ -1206,7 +1222,7 @@ $app->get('/cti/streaming', function (Request $request, Response $response, $arg
                 }
             }
         }
-        return jsonResponse($response, $res);
+        return jsonResponse($response, nethvoiceRequestIsSuperadmin($request) ? $res : nethvoiceWithoutStoredPasswords($res, 'secret'));
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1420,6 +1436,9 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         }
         if ($ret_val === false) {
             return $response->withStatus(500);
+        }
+        if (!nethvoiceRequestIsSuperadmin($request) && !ctiIsImage($ret_val)) {
+            return jsonResponse($response, array('status' => CTI_SOURCE_NOT_AN_IMAGE), 422);
         }
 
         if (strpos($ret_val, '<!DOCTYPE html PUBLIC') !== false) {

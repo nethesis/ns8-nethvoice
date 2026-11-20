@@ -47,6 +47,36 @@ class ConnectionsStatement {
     public function fetchAll($mode = null) { return $this->result; }
 }
 
+class FreePBX {
+    public static ?StreamingTable $pdo = null;
+    public static function Database() { return self::$pdo; }
+}
+
+class StreamingTable {
+    public array $sources = [];
+    public array $permissions = [];
+    public array $profiles = [];
+    public function prepare($sql) { return new StreamingStatement($this, $sql); }
+}
+
+class StreamingStatement {
+    private array $result = [];
+    public function __construct(private StreamingTable $table, private string $sql) {}
+    public function execute($args = []) {
+        if ($this->sql === 'SELECT * FROM rest_cti_streaming') {
+            $this->result = $this->table->sources;
+        } elseif ($this->sql === 'SELECT id FROM rest_cti_permissions WHERE name=?') {
+            $this->result = isset($this->table->permissions[$args[0]]) ? [['id' => $this->table->permissions[$args[0]]]] : [];
+        } elseif ($this->sql === 'SELECT profile_id FROM rest_cti_profiles_permissions WHERE permission_id=?') {
+            $this->result = array_map(fn($id) => ['profile_id' => $id], $this->table->profiles[$args[0]] ?? []);
+        } else {
+            throw new RuntimeException("unexpected query: {$this->sql}");
+        }
+        return true;
+    }
+    public function fetchAll($mode = null) { return $this->result; }
+}
+
 class RouteCollector {
     public array $routes = [];
     public function __call($method, $arguments) { $this->routes[strtoupper($method) . ' ' . $arguments[0]] = $arguments[1]; }
@@ -148,5 +178,51 @@ check($status === 400, 'a test without body was accepted');
 
 check(ctiStoredDbConnection(NethCTI::$pdo, '5')['pass'] === 'stored-password', 'the stored connection is not read');
 check(ctiStoredDbConnection(NethCTI::$pdo, '5 OR 1=1') === null && ctiStoredDbConnection(NethCTI::$pdo, ['5']) === null, 'an invalid id was accepted');
+
+check(isset($app->routes['GET /cti/streaming']), 'GET /cti/streaming is not registered');
+FreePBX::$pdo = new StreamingTable();
+FreePBX::$pdo->sources = [
+    ['descr' => 'Front door', 'url' => 'http://camera:stream-password@192.0.2.10/snapshot.jpg', 'user' => 'camera', 'secret' => 'stored-secret', 'frame-rate' => 1000, 'exten' => 390, 'open' => '*9'],
+    ['descr' => 'Warehouse', 'url' => 'http://192.0.2.20/image.jpg', 'user' => '', 'secret' => '', 'frame-rate' => 1000, 'exten' => null, 'open' => ''],
+];
+FreePBX::$pdo->permissions = ['vs_front_door' => 7];
+FreePBX::$pdo->profiles = [7 => [1, 3]];
+$streaming = $app->routes['GET /cti/streaming'];
+$request = fn(array $permissions) => (new ServerRequestFactory())->createServerRequest('GET', '/freepbx/rest')
+    ->withAttribute(NETHVOICE_PERMISSIONS_ATTRIBUTE, $permissions);
+
+$superadmin = $streaming($request(['superadmin']), (new ResponseFactory())->createResponse(), []);
+$legacy = FreePBX::$pdo->sources;
+$legacy[0]['profiles'] = ['1', '3'];
+$legacy[1]['profiles'] = [];
+check($superadmin->getStatusCode() === 200 && (string) $superadmin->getBody() === json_encode($legacy), 'the video sources of the superadmin changed');
+
+$limited = $streaming($request(['integrations']), (new ResponseFactory())->createResponse(), []);
+$body = json_decode((string) $limited->getBody(), true);
+check($limited->getStatusCode() === 200 && count($body) === 2, 'the video sources are not listed');
+check(!str_contains((string) $limited->getBody(), 'stored-secret'), 'the stored secret of a video source is returned to a limited administrator');
+check(!array_key_exists('secret', $body[0]) && $body[0]['has_password'] === true && $body[1]['has_password'] === false, 'has_password of the video sources is wrong');
+check($body[0]['user'] === 'camera' && $body[0]['url'] === $legacy[0]['url'] && $body[0]['profiles'] === ['1', '3'], 'the other fields of the video sources are not returned');
+
+foreach ([
+    'jpeg' => "\xff\xd8\xff\xe0\x00\x10JFIF",
+    'png' => "\x89PNG\r\n\x1a\n\x00\x00\x00\x0dIHDR",
+    'gif87a' => "GIF87a\x01\x00\x01\x00",
+    'gif89a' => "GIF89a\x01\x00\x01\x00",
+] as $name => $image) {
+    check(ctiIsImage($image), "a $name image was refused");
+}
+foreach ([
+    'html' => '<!DOCTYPE html><html><body>login</body></html>',
+    'json' => '{"error":"unauthorized"}',
+    'empty' => '',
+    'truncated jpeg' => "\xff\xd8",
+    'png without its header' => 'PNG image',
+    'gif of another version' => 'GIF90a',
+    'image after text' => " \x89PNG\r\n\x1a\n",
+    'not a string' => false,
+] as $name => $content) {
+    check(!ctiIsImage($content), "a $name content was accepted as an image");
+}
 
 echo "PASS: database connection passwords are write-only for limited administrators and stay with their server\n";
