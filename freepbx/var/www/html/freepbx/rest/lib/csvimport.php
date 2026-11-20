@@ -35,6 +35,7 @@ $progress = 0;
 try {
     // prepare a file for saving results
     $base64csv = $argv[1] ?? '';
+    $restricted = ($argv[2] ?? '') === 'restricted';
     $str = base64_decode($base64csv, true);
     if ($str === false || trim($str) === '') {
         throw new InvalidArgumentException('Invalid or empty CSV input');
@@ -64,6 +65,13 @@ try {
         file_put_contents($statusfile,json_encode(array('progress'=>round($progress))));
         # Skip comments
         if (isset($row[0]) && substr($row[0],0,1) === '#') {
+            unset($csv[$k]);
+            continue;
+        }
+
+        if ($restricted && preg_grep('/[\x00-\x1F\x7F]/', $row)) {
+            $result += 1;
+            $err .= "Error creating user: control characters are not allowed at CSV line ".($k + 1)."\n";
             unset($csv[$k]);
             continue;
         }

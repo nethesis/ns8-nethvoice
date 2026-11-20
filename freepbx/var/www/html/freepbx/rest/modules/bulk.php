@@ -132,6 +132,17 @@ $app->post('/bulk/{mainextensions}', function (Request $request, Response $respo
         if (!is_array($params)) {
             return jsonResponse($response, array('status' => false, 'error' => 'Invalid request body'), 400);
         }
+        $ringtime = $params['ringtime'] ?? null;
+        if (!nethvoiceRequestIsSuperadmin($request) && $ringtime !== null && (!(is_int($ringtime) || is_string($ringtime)) || preg_match('/^[0-9]+$/D', (string) $ringtime) !== 1 || (int) $ringtime > 120)) {
+            return jsonResponse($response, array('status' => false, 'error' => 'Invalid ring time'), 400);
+        }
+        $controls = false;
+        array_walk_recursive($params, function ($value) use (&$controls) {
+            $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+        });
+        if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
+            return jsonResponse($response, array('status' => false, 'error' => 'Invalid control character'), 400);
+        }
         $err = '';
         foreach ($params as $action => $data) {
             if (in_array($action,$blkfunc,true)) {

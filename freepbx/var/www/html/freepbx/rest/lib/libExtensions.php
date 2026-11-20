@@ -37,6 +37,17 @@ function extensionExists($e, $extensions)
     return false;
 }
 
+function isExtensionNumber($extension) {
+    return (is_string($extension) || is_int($extension)) && preg_match('/^[0-9]+$/D', (string) $extension) === 1;
+}
+
+function getExtensionSecret($extension) {
+    $stmt = FreePBX::Database()->prepare('SELECT data FROM `sip` WHERE id = ? AND keyword="secret"');
+    $stmt->execute(array($extension));
+    $line = $stmt->fetchColumn();
+    return !empty($line) ? $line : false;
+}
+
 function createExtension($mainextensionnumber,$delete=false){
     try {
         global $astman;
@@ -203,7 +214,7 @@ function useExtensionAsWebRTC($extension) {
         setSipData($extension,'transport','0.0.0.0-udp');
 
         // insert WebRTC extension in password table
-        $extension_secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
+        $extension_secret = getExtensionSecret($extension);
         $sql = 'SELECT id FROM rest_devices_phones WHERE extension = ?';
         $stmt = $dbh->prepare($sql);
         $stmt->execute(array($extension));
@@ -259,7 +270,7 @@ function useExtensionAsNethLink($extension) {
         setSipData($extension,'transport','0.0.0.0-udp');
 
         // insert NethLink extension in password table
-        $extension_secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
+        $extension_secret = getExtensionSecret($extension);
         $sql = 'SELECT id FROM rest_devices_phones WHERE extension = ?';
         $stmt = $dbh->prepare($sql);
         $stmt->execute(array($extension));
@@ -302,7 +313,7 @@ function useExtensionAsCustomPhysical($extension, $secret = false, $type = 'phys
             $stmt = $dbh->prepare($sql);
             $stmt->execute(array($secret,$extension));
         } else {
-            $secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
+            $secret = getExtensionSecret($extension);
         }
 
         // insert created physical extension in password table
@@ -343,7 +354,7 @@ function useExtensionAsMobileApp($extension) {
         $astman->database_del("CW",$extension);
         $dbh = FreePBX::Database();
 
-        $secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
+        $secret = getExtensionSecret($extension);
 
         // insert created physical extension in password table
         $sql = 'INSERT INTO `rest_devices_phones` SET user_id = ( '.
@@ -603,7 +614,7 @@ function useExtensionAsGSWaveApp($extension,$mac,$model) {
         $astman->database_del("CW",$extension);
 
         // insert created physical extension in password table
-        $extension_secret = sql('SELECT data FROM `sip` WHERE id = "' . $extension . '" AND keyword="secret"', "getOne");
+        $extension_secret = getExtensionSecret($extension);
         $dbh = FreePBX::Database();
         $sql = 'UPDATE `rest_devices_phones` SET user_id = ( '.
                'SELECT userman_users.id FROM userman_users WHERE userman_users.default_extension = ? '.
@@ -1277,10 +1288,13 @@ function addPhone($mac, $vendor, $model)
     );
     $lines = 0;
     if (in_array(array($vendor => $model), $multiline_phones)){
-        $sql = 'SELECT max_lines from `endpointman_model_list` WHERE `model`="'.$model.'" AND `brand` = (SELECT `id` FROM `endpointman_brand_list` WHERE `name` = "'.$vendor.'")';
-        $lines = $dbh->sql($sql, 'getOne');
+        $stmt = $dbh->prepare('SELECT max_lines from `endpointman_model_list` WHERE `model`=? AND `brand` = (SELECT `id` FROM `endpointman_brand_list` WHERE `name` = ?)');
+        $stmt->execute(array($model, $vendor));
+        $line = $stmt->fetchColumn();
+        $lines = !empty($line) ? $line : false;
     }
-    $dbh->query('DELETE IGNORE FROM `rest_devices_phones` WHERE `mac` = "'.$mac.'"');
+    $stmt = $dbh->prepare('DELETE IGNORE FROM `rest_devices_phones` WHERE `mac` = ?');
+    $stmt->execute(array($mac));
     if ($lines === 0) {
         $sql = 'INSERT INTO `rest_devices_phones` (`mac`,`vendor`, `model`) VALUES (?,?,?)';
         $stmt = $dbh->prepare($sql);

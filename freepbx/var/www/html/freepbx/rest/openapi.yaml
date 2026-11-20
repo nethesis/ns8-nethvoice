@@ -168,7 +168,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/UsersBulkResult'
         '400':
-          description: Bad request
+          description: '`Invalid request body`; for administrators who are not superadmin
+            also `Invalid ring time` (not digits only or greater than 120) and `Invalid
+            control character` (a value contains C0 control characters or DEL)'
           content:
             application/json:
               schema:
@@ -1628,7 +1630,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/GatewaySaveResult'
         '400':
-          description: Bad request
+          description: Bad request; for administrators who are not superadmin also
+            `Invalid control character` (a value contains C0 control characters or DEL),
+            `Invalid gateway MAC address` and `Invalid linked extension` in `errors`
           content:
             application/json:
               schema:
@@ -1809,6 +1813,13 @@ paths:
                 $ref: '#/components/schemas/UsersMessage'
         '201':
           description: Extension assigned
+        '400':
+          description: For administrators who are not superadmin, the extension is
+            not made of digits only
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
         '403':
           description: Community version limited to 8 configured users. The community
             limit does not count the current extension of the user being changed.
@@ -2568,6 +2579,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsersDeviceExtension'
+        '400':
+          description: 'For administrators who are not superadmin, `Invalid extension`:
+            the extension is not made of digits only'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
         '500':
           description: Internal server error
           content:
@@ -2994,6 +3012,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PhonesPhysicalExtensionResponse'
+        '400':
+          description: 'For administrators who are not superadmin, `Invalid MAC address`
+            (not 12 hexadecimal digits) or `Invalid extension` (`mainextension` not made
+            of digits only)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhonesStatusError'
         '500':
           description: Internal server error
           content:
@@ -3107,6 +3133,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsersDeviceExtension'
+        '400':
+          description: 'For administrators who are not superadmin, `Invalid extension`:
+            the main extension is not made of digits only'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
         '500':
           description: Internal server error
           content:
@@ -3176,6 +3209,9 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: For administrators who are not superadmin, the display name
+            contains C0 control characters or DEL. The body is empty.
       description: 'Body: `{ "displayname": "John Doe" }`. Updates users table, SIP
         table and AstDB.'
       operationId: post_extension_mainextension
@@ -3452,6 +3488,13 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: 'For administrators who are not superadmin, `Invalid control
+            character`: a value contains C0 control characters or DEL'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '422':
           description: Missing extension or empty destination
           content:
@@ -3540,6 +3583,14 @@ paths:
       responses:
         '200':
           description: Routes saved, empty body
+        '400':
+          description: 'For administrators who are not superadmin, `Invalid control
+            character` (a value contains C0 control characters or DEL) or `Unsupported
+            locale` (an unknown locale containing a double quote or a backslash)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
           content:
@@ -3643,6 +3694,9 @@ paths:
       responses:
         '200':
           description: Successful response
+        '400':
+          description: For administrators who are not superadmin, the language contains
+            C0 control characters or DEL. The body is empty.
         '500':
           description: Internal server error
       operationId: post_settings_defaultlanguage
@@ -4021,8 +4075,9 @@ paths:
         '200':
           description: Trunk created. The body is empty.
         '400':
-          description: Missing or invalid parameter. The body is empty when a parameter
-            is missing.
+          description: Missing or invalid parameter, or, for administrators who are
+            not superadmin, `Invalid control character` when a value contains C0 control
+            characters or DEL. The body is empty when a parameter is missing.
           content:
             application/json:
               schema:
@@ -4089,7 +4144,9 @@ paths:
         '204':
           description: Trunk updated
         '400':
-          description: Bad request
+          description: Bad request, or, for administrators who are not superadmin,
+            `Invalid control character` when a value contains C0 control characters
+            or DEL
           content:
             application/json:
               schema:
@@ -4454,6 +4511,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsersDeviceExtension'
+        '400':
+          description: 'For administrators who are not superadmin, `Invalid extension`:
+            the extension is not made of digits only'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersStatusMessage'
         '500':
           description: Internal server error
           content:

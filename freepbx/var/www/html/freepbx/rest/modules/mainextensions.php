@@ -56,6 +56,10 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     $mainextension = $params['extension'];
     $outboundcid = $params['outboundcid'] ?? '';
 
+    if (!nethvoiceRequestIsSuperadmin($request) && !empty($mainextension) && $mainextension != 'none' && !isExtensionNumber($mainextension)) {
+        return jsonResponse($response, array('message' => 'Invalid extension'), 400);
+    }
+
     if (
         configuredUsersCountExcept(getAllUsers(), $username) >= communityUsersLimit() && // check if there are more configured users than the allowed limit
         (empty($_ENV['SUBSCRIPTION_SYSTEMID']) || empty($_ENV['SUBSCRIPTION_SECRET'])) && // it isn't registered as enterprise
@@ -115,7 +119,7 @@ $app->post('/mainextensions/orphans/release', function (Request $request, Respon
         $params = $request->getParsedBody();
         $extensions = is_array($params) && isset($params['extensions']) && is_array($params['extensions']) ? $params['extensions'] : array();
         foreach ($extensions as $extension) {
-            if (!is_string($extension) || !preg_match('/^[0-9]+$/', $extension)) {
+            if (!is_string($extension) || !isExtensionNumber($extension)) {
                 return jsonResponse($response, array('message' => 'Invalid extension'), 400);
             }
         }

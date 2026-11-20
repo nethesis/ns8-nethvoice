@@ -35,6 +35,9 @@ $app->post('/settings/defaultlanguage', function (Request $request, Response $re
         global $amp_conf;
         $data = $request->getParsedBody();
         $lang = $data['lang'];
+        if (!nethvoiceRequestIsSuperadmin($request) && is_string($lang) && preg_match('/[\x00-\x1F\x7F]/', $lang) === 1) {
+            return $response->withStatus(400);
+        }
         FreePBX::create()->Soundlang->setLanguage($lang);
         # Set tonescheme
         switch ($lang) {
