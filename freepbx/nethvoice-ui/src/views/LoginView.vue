@@ -16,6 +16,7 @@ import {
 } from '@nethesis/vue-components'
 import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
+import { useSignInSplashStore } from '@/stores/signInSplash'
 import { LoginSchema } from '@/lib/auth'
 import { isApiError } from '@/lib/api/errors'
 import type { Focusable } from '@/lib/common'
@@ -28,6 +29,7 @@ const route = useRoute()
 const router = useRouter()
 const loginStore = useLoginStore()
 const runtimeConfigStore = useRuntimeConfigStore()
+const splashStore = useSignInSplashStore()
 
 const username = ref(loginStore.rememberedUsername())
 const password = ref('')
@@ -101,7 +103,9 @@ async function signIn() {
   }
 
   try {
-    await router.push(getInternalRedirect(route.query.redirect) ?? { name: 'dashboard' })
+    await splashStore.navigateAfterSignIn(() =>
+      router.push(getInternalRedirect(route.query.redirect) ?? { name: 'dashboard' }),
+    )
   } finally {
     loading.value = false
   }
