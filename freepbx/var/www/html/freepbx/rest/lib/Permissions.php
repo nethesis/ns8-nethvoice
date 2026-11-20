@@ -48,9 +48,6 @@ const NETHVOICE_ROUTE_RULES = [
     'GET /phones/account/{mac}' => NETHVOICE_SUPERADMIN,
     'POST /users/{username}/password' => NETHVOICE_SUPERADMIN,
     'POST /physicalextensions/adminpw' => 'phones',
-    'POST /cti/customer_card/template' => NETHVOICE_SUPERADMIN,
-    'PUT /cti/customer_card/template/{name}' => NETHVOICE_SUPERADMIN,
-    'DELETE /cti/customer_card/template/{name}' => NETHVOICE_SUPERADMIN,
     'GET /phonebook/ldap' => 'phones',
     'POST /extensions/{extension}/srtp/{enabled}' => ['users', 'phones'],
     'DELETE /outboundroutes/{route_id}/trunks/{id}' => NETHVOICE_SUPERADMIN,
@@ -245,12 +242,16 @@ interface NethvoiceLimitedAdminLookup
     public function customerCard(int $id): ?array;
 
     public function phonebookSource(string $id): ?array;
+
+    public function cardTemplateExists(string $name): bool;
 }
 
 class NethvoiceDatabaseLookup implements NethvoiceLimitedAdminLookup
 {
-    public function __construct(private string $phonebookSourcesDir = '/etc/phonebook/sources.d')
-    {
+    public function __construct(
+        private string $phonebookSourcesDir = '/etc/phonebook/sources.d',
+        private string $cardTemplatesDir = '/var/lib/nethserver/nethcti/templates/customer_card'
+    ) {
     }
 
     public function builtinDbConnections(): array
@@ -291,6 +292,11 @@ class NethvoiceDatabaseLookup implements NethvoiceLimitedAdminLookup
         $config = json_decode((string) file_get_contents($file), true);
 
         return is_array($config) && is_array($config[$id] ?? null) ? $config[$id] : null;
+    }
+
+    public function cardTemplateExists(string $name): bool
+    {
+        return nethvoiceIsValidCardTemplate($name) && is_file($this->cardTemplatesDir . '/' . $name . '.ejs');
     }
 
     private function cti()
@@ -394,7 +400,7 @@ function nethvoicePhonebookSourceSaveStatus($id, $body, NethvoiceLimitedAdminLoo
     if (!is_array($body) || (array_key_exists('dbtype', $body) && !is_string($body['dbtype']))) {
         return 400;
     }
-    if (nethvoiceIsDatabasePhonebookSource($body) || ($id !== null && nethvoiceIsDatabasePhonebookSource($lookup->phonebookSource($id)))) {
+    if (nethvoicePhonebookDatabaseTargetStatus($body, $id === null ? null : $lookup->phonebookSource($id)) !== null) {
         return 403;
     }
     if (array_key_exists('mapping', $body) && !nethvoiceIsValidPhonebookMapping($body['mapping'])) {
@@ -404,13 +410,72 @@ function nethvoicePhonebookSourceSaveStatus($id, $body, NethvoiceLimitedAdminLoo
     return null;
 }
 
-function nethvoicePhonebookSourceStatus($id, NethvoiceLimitedAdminLookup $lookup): ?int
+function nethvoicePhonebookSourceStatus($id): ?int
 {
-    if (!nethvoiceIsValidPhonebookSourceId($id)) {
+    return nethvoiceIsValidPhonebookSourceId($id) ? null : 400;
+}
+
+function nethvoiceCardTemplateSaveStatus($name, $body, NethvoiceLimitedAdminLookup $lookup): ?int
+{
+    if (!is_array($body) || !is_string($body['name'] ?? null) || preg_match('/^[a-z0-9]+$/D', $body['name']) !== 1
+        || !is_bool($body['custom'] ?? null) || !is_string($body['html'] ?? null)) {
+        return 400;
+    }
+    if ($name !== null && $name !== $body['name']) {
+        return 400;
+    }
+    if ($body['custom'] === false && ($name === null || !$lookup->cardTemplateExists($name))) {
         return 400;
     }
 
-    return nethvoiceIsDatabasePhonebookSource($lookup->phonebookSource($id)) ? 403 : null;
+    return null;
+}
+
+function nethvoiceCardTemplateDeleteStatus($name, NethvoiceLimitedAdminLookup $lookup): ?int
+{
+    if (!is_string($name) || preg_match('/^[a-z0-9]+$/D', $name) !== 1) {
+        return 400;
+    }
+
+    if ($lookup->cardTemplateExists($name . '_custom')) {
+        return null;
+    }
+
+    return $lookup->cardTemplateExists($name) ? 403 : 400;
+}
+
+function nethvoiceCustomerCardPreviewStatus($body, NethvoiceLimitedAdminLookup $lookup): ?int
+{
+    if (!is_array($body)) {
+        return 400;
+    }
+    $dbconn = nethvoiceDbConnectionId($body['dbconn_id'] ?? null);
+    if ($dbconn === null) {
+        return 400;
+    }
+
+    return nethvoiceUsesBuiltinDbConnection($dbconn, $lookup) ? 403 : null;
+}
+
+function nethvoiceDbConnectionTestStatus($body, NethvoiceLimitedAdminLookup $lookup): ?int
+{
+    if (!is_array($body)) {
+        return 400;
+    }
+    $id = $body['id'] ?? null;
+
+    return nethvoiceDbConnectionSaveStatus($id === '' ? null : $id, $body, $lookup);
+}
+
+function nethvoiceDbConnectionDeleteStatus($id, NethvoiceLimitedAdminLookup $lookup): ?int
+{
+    $id = nethvoiceDbConnectionId($id);
+    if ($id === null) {
+        return 400;
+    }
+    $stored = $lookup->dbConnection($id);
+
+    return $stored !== null && nethvoiceTargetsBuiltinDbConnection($stored, $lookup->builtinDbConnections()) ? 403 : null;
 }
 
 function nethvoiceLimitedAdminRequestStatus(ServerRequestInterface $request, string $pattern, array $arguments, NethvoiceLimitedAdminLookup $lookup): ?int
@@ -428,11 +493,23 @@ function nethvoiceLimitedAdminRequestStatus(ServerRequestInterface $request, str
             return nethvoiceDbConnectionSaveStatus(null, nethvoiceRequestBody($request), $lookup);
         case 'PUT /cti/dbconn/{id}':
             return nethvoiceDbConnectionSaveStatus($arguments['id'] ?? '', nethvoiceRequestBody($request), $lookup);
+        case 'POST /cti/dbconn/test':
+            return nethvoiceDbConnectionTestStatus(nethvoiceRequestBody($request), $lookup);
+        case 'DELETE /cti/dbconn/{id}':
+            return nethvoiceDbConnectionDeleteStatus($arguments['id'] ?? null, $lookup);
+        case 'POST /cti/customer_card/template':
+            return nethvoiceCardTemplateSaveStatus(null, nethvoiceRequestBody($request), $lookup);
+        case 'PUT /cti/customer_card/template/{name}':
+            return nethvoiceCardTemplateSaveStatus($arguments['name'] ?? '', nethvoiceRequestBody($request), $lookup);
+        case 'DELETE /cti/customer_card/template/{name}':
+            return nethvoiceCardTemplateDeleteStatus($arguments['name'] ?? null, $lookup);
+        case 'POST /cti/customer_card/preview':
+            return nethvoiceCustomerCardPreviewStatus(nethvoiceRequestBody($request), $lookup);
         case 'POST /phonebook/config[/{id}]':
             return nethvoicePhonebookSourceSaveStatus($arguments['id'] ?? null, nethvoiceRequestBody($request), $lookup);
         case 'DELETE /phonebook/config/{id}':
         case 'POST /phonebook/syncnow/{id}':
-            return nethvoicePhonebookSourceStatus($arguments['id'] ?? null, $lookup);
+            return nethvoicePhonebookSourceStatus($arguments['id'] ?? null);
     }
 
     return null;

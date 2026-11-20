@@ -255,12 +255,12 @@
     "POST /cti/dbconn/test": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Tests a database connection from the connection form."
+      "reason": "Tests a database connection from the connection form; a target on the PBX own databases, or a stored built-in connection, is refused to limited administrators by a request check."
     },
     "DELETE /cti/dbconn/{id}": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Deletes a database connection."
+      "reason": "Deletes a database connection; the built-in connections are refused to limited administrators by a request check."
     },
     "GET /cti/dbconn/type": {
       "intent": "integrations",
@@ -273,19 +273,24 @@
       "reason": "Customer card templates are listed and viewed from Integrations."
     },
     "POST /cti/customer_card/template": {
-      "intent": "superadmin",
+      "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "A template is code rendered by every CTI client; writing one is reserved to superadmin and the UI hides the action otherwise."
+      "reason": "Creates a custom customer card template. A template is EJS code run by the CTI server: the product owner opened it to the Integrations section and accepted that risk. Limited administrators get form checks only (lowercase letters and digits in the name, custom template), no content check."
     },
     "PUT /cti/customer_card/template/{name}": {
-      "intent": "superadmin",
+      "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "A template is code rendered by every CTI client."
+      "reason": "Changes a custom customer card template, an EJS code run by the CTI server, opened to the Integrations section by the product owner. Limited administrators get form checks only: the body name must be the path name and the template custom, so the built-in templates stay with the superadmin."
     },
     "DELETE /cti/customer_card/template/{name}": {
-      "intent": "superadmin",
+      "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Deleting a template breaks every card that uses it; reserved with the other template writes."
+      "reason": "Deletes a custom template from the templates table; a built-in template, or a name that is not a template name, is refused to limited administrators by a request check."
+    },
+    "POST /cti/customer_card/preview": {
+      "intent": "integrations",
+      "callers": ["ui:integrations"],
+      "reason": "Shows the preview of a customer card through the CTI server; a card on the built-in connections is refused to limited administrators by a request check, and the CTI error text never reaches the client."
     },
     "GET /cti/customer_card": {
       "intent": "integrations",
@@ -820,22 +825,22 @@
     "POST /phonebook/config[/{id}]": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Creates or edits a phonebook source; database sources and invalid mappings are refused to limited administrators."
+      "reason": "Creates or edits a phonebook source; for limited administrators a database source on a local address of the PBX, a stored local database source, a query or target change that reuses the stored password, and invalid mappings are refused."
     },
     "DELETE /phonebook/config/{id}": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Deletes a phonebook source; database sources are refused to limited administrators."
+      "reason": "Deletes a phonebook source and the contacts imported from it."
     },
     "POST /phonebook/test": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Tests a phonebook source; database tests are reserved to superadmin by the handler."
+      "reason": "Tests a phonebook source; for limited administrators the handler refuses a database test on a local address of the PBX, on a stored local source, or with a changed query or target and the stored password."
     },
     "POST /phonebook/syncnow/{id}": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Synchronizes a phonebook source now; database sources are refused to limited administrators."
+      "reason": "Synchronizes a phonebook source now with its stored configuration."
     },
     "POST /phonebook/uploadfile": {
       "intent": "integrations",

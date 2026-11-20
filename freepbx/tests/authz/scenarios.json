@@ -11,8 +11,10 @@
     },
     "phonebook_sources": {
       "custom_1": { "dbtype": "csv", "type": "Shop" },
-      "custom_2": { "dbtype": "mysql", "type": "Crm" }
-    }
+      "custom_2": { "dbtype": "mysql", "type": "Crm", "host": "192.0.2.9", "port": "3306", "user": "u", "password": "stored", "dbname": "d", "query": "select 1" },
+      "custom_3": { "dbtype": "mysql", "type": "Local", "host": "127.0.0.1", "port": "20011", "user": "u", "password": "stored", "dbname": "d", "query": "select 1" }
+    },
+    "card_templates": ["identity", "table", "invoices_custom"]
   },
   "rest": [
     {
@@ -133,10 +135,244 @@
       "expect": 403
     },
     {
-      "name": "an integrations administrator cannot create a database phonebook source",
+      "name": "an integrations administrator tests a database connection to an external server",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/dbconn/test",
+      "body": { "host": "192.0.2.20", "port": "3306", "type": "mysql", "user": "crm", "pass": "x", "name": "crm" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator cannot test a database connection to the PBX database",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/dbconn/test",
+      "body": { "host": "localhost", "port": "20011", "type": "mysql", "user": "root", "pass": "x", "name": "asterisk" },
+      "expect": 403
+    },
+    {
+      "name": "an integrations administrator cannot test a built-in database connection with its stored password",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/dbconn/test",
+      "body": { "id": "1", "host": "127.0.0.1", "port": "20011", "type": "mysql", "user": "nethcti", "pass": "", "name": "phonebook" },
+      "expect": 403
+    },
+    {
+      "name": "superadmin tests a built-in database connection, as before",
+      "as": "admin",
+      "method": "POST",
+      "path": "/cti/dbconn/test",
+      "body": { "id": "1", "host": "127.0.0.1", "port": "20011", "type": "mysql", "user": "nethcti", "pass": "", "name": "phonebook" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator cannot delete a built-in database connection",
+      "as": "integrator",
+      "method": "DELETE",
+      "path": "/cti/dbconn/1",
+      "expect": 403
+    },
+    {
+      "name": "an integrations administrator deletes an external database connection",
+      "as": "integrator",
+      "method": "DELETE",
+      "path": "/cti/dbconn/5",
+      "expect": 200
+    },
+    {
+      "name": "superadmin deletes a built-in database connection, as before",
+      "as": "boss",
+      "method": "DELETE",
+      "path": "/cti/dbconn/2",
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator deletes a custom card template",
+      "as": "integrator",
+      "method": "DELETE",
+      "path": "/cti/customer_card/template/invoices",
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator cannot delete a built-in card template",
+      "as": "integrator",
+      "method": "DELETE",
+      "path": "/cti/customer_card/template/identity",
+      "expect": 403
+    },
+    {
+      "name": "superadmin deletes a built-in card template, as before",
+      "as": "admin",
+      "method": "DELETE",
+      "path": "/cti/customer_card/template/identity",
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator creates a custom card template",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/customer_card/template",
+      "body": { "name": "invoices", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator changes a custom card template",
+      "as": "integrator",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/invoices",
+      "body": { "name": "invoices", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator changes the color of a built-in card template",
+      "as": "integrator",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/identity",
+      "body": { "name": "identity", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator cannot change a built-in card template that does not exist",
+      "as": "integrator",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/missing",
+      "body": { "name": "missing", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
+      "expect": 400
+    },
+    {
+      "name": "an integrations administrator cannot change a template that exists only as custom as a built-in one",
+      "as": "integrator",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/invoices",
+      "body": { "name": "invoices", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
+      "expect": 400
+    },
+    {
+      "name": "an integrations administrator cannot change a built-in card template with custom not a boolean",
+      "as": "integrator",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/identity",
+      "body": { "name": "identity", "custom": "false", "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
+      "expect": 400
+    },
+    {
+      "name": "an integrations administrator cannot change a built-in card template without html",
+      "as": "integrator",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/identity",
+      "body": { "name": "identity", "custom": false },
+      "expect": 400
+    },
+    {
+      "name": "an integrations administrator cannot change a built-in card template under another name than the path",
+      "as": "integrator",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/identity",
+      "body": { "name": "table", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
+      "expect": 400
+    },
+    {
+      "name": "an integrations administrator cannot create a built-in card template",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/customer_card/template",
+      "body": { "name": "identity", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
+      "expect": 400
+    },
+    {
+      "name": "an integrations administrator cannot write a card template under another name than the path",
+      "as": "integrator",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/invoices",
+      "body": { "name": "table", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
+      "expect": 400
+    },
+    {
+      "name": "an integrations administrator cannot write a card template with a path in the name",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/customer_card/template",
+      "body": { "name": "../../secret/keep", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
+      "expect": 400
+    },
+    {
+      "name": "superadmin changes a built-in card template, as before",
+      "as": "admin",
+      "method": "PUT",
+      "path": "/cti/customer_card/template/identity",
+      "body": { "name": "identity", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator previews a customer card on an external database",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/customer_card/preview",
+      "body": { "dbconn_id": "5", "template": "invoices_custom", "query": "c2VsZWN0ICogZnJvbSBjcm0=" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator cannot preview a customer card on the PBX phonebook database",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/customer_card/preview",
+      "body": { "dbconn_id": "1", "template": "identity", "query": "c2VsZWN0ICogZnJvbSBhc3Rlcmlzay5hbXB1c2Vycw==" },
+      "expect": 403
+    },
+    {
+      "name": "superadmin previews a customer card on the PBX phonebook database",
+      "as": "admin",
+      "method": "POST",
+      "path": "/cti/customer_card/preview",
+      "body": { "dbconn_id": "1", "template": "identity", "query": "c2VsZWN0ICogZnJvbSBwaG9uZWJvb2s=" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator creates a database phonebook source on an external server",
       "as": "integrator",
       "method": "POST",
       "path": "/phonebook/config",
+      "body": { "dbtype": "mysql", "host": "192.0.2.9", "port": "3306", "user": "u", "password": "p", "dbname": "d", "query": "select 1", "mapping": { "n": "name" }, "type": "DB" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator cannot create a database phonebook source on the PBX, on any port",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/phonebook/config",
+      "body": { "dbtype": "mysql", "host": "127.0.0.1", "port": "3306", "user": "u", "password": "p", "dbname": "d", "query": "select 1", "mapping": { "n": "name" }, "type": "DB" },
+      "expect": 403
+    },
+    {
+      "name": "superadmin creates a database phonebook source on the PBX, as before",
+      "as": "boss",
+      "method": "POST",
+      "path": "/phonebook/config",
+      "body": { "dbtype": "mysql", "host": "127.0.0.1", "port": "3306", "user": "u", "password": "p", "dbname": "d", "query": "select 1", "mapping": { "n": "name" }, "type": "DB" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator edits a database phonebook source keeping the stored password",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/phonebook/config/custom_2",
+      "body": { "dbtype": "mysql", "host": "192.0.2.9", "port": "3306", "user": "u", "password": "", "dbname": "d", "query": "select 1", "mapping": { "n": "name" }, "type": "Renamed" },
+      "expect": 200
+    },
+    {
+      "name": "an integrations administrator cannot change the query of a database phonebook source with the stored password",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/phonebook/config/custom_2",
+      "body": { "dbtype": "mysql", "host": "192.0.2.9", "port": "3306", "user": "u", "password": "", "dbname": "d", "query": "select * from secrets", "mapping": { "n": "name" }, "type": "DB" },
+      "expect": 403
+    },
+    {
+      "name": "an integrations administrator cannot edit a database phonebook source stored on the PBX",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/phonebook/config/custom_3",
       "body": { "dbtype": "mysql", "host": "192.0.2.9", "port": "3306", "user": "u", "password": "p", "dbname": "d", "query": "select 1", "mapping": { "n": "name" }, "type": "DB" },
       "expect": 403
     },
@@ -157,18 +393,18 @@
       "expect": 200
     },
     {
-      "name": "an integrations administrator cannot delete a database phonebook source",
+      "name": "an integrations administrator deletes a database phonebook source",
       "as": "integrator",
       "method": "DELETE",
       "path": "/phonebook/config/custom_2",
-      "expect": 403
+      "expect": 200
     },
     {
-      "name": "an integrations administrator cannot synchronize a database phonebook source",
+      "name": "an integrations administrator synchronizes a database phonebook source stored on the PBX",
       "as": "integrator",
       "method": "POST",
-      "path": "/phonebook/syncnow/custom_2",
-      "expect": 403
+      "path": "/phonebook/syncnow/custom_3",
+      "expect": 200
     },
     {
       "name": "an integrations administrator deletes a CSV phonebook source",

@@ -268,6 +268,8 @@ $app->delete('/phonebook/config/{id}', function (Request $request, Response $res
 $app->post('/phonebook/test', function (Request $request, Response $response, $args) {
     try {
         $data = $request->getParsedBody();
+        $requested = $data;
+        $stored = null;
         if (is_array($data) && isset($data['id']) && $data['id'] !== '') {
             $stored = phonebookStoredSource($data['id']);
             if ($stored === null) {
@@ -285,7 +287,7 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
         if(!isset($data['dbtype'])) {
             return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
         } else if($data['dbtype'] == 'mysql' || $data['dbtype'] == 'mssql') {
-            if (!nethvoiceRequestIsSuperadmin($request)) {
+            if (!nethvoiceRequestIsSuperadmin($request) && nethvoicePhonebookDatabaseTargetStatus($requested, $stored) !== null) {
                 return nethvoiceForbidden($response);
             }
             $mandatory_params = array('host','port','user','password','dbname','query');

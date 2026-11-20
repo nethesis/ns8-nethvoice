@@ -82,11 +82,21 @@ mkdir($sourcesDir);
 foreach (['custom_1' => 'csv', 'custom_2' => 'mysql', 'custom_3' => 'mssql', 'custom_4' => 'infinity'] as $sid => $dbtype) {
     file_put_contents("$sourcesDir/$sid.json", json_encode([$sid => ['dbtype' => $dbtype, 'type' => $sid]]));
 }
-register_shutdown_function(function () use ($sourcesDir) {
-    array_map('unlink', glob("$sourcesDir/*.json"));
+$storedDatabase = ['dbtype' => 'mysql', 'host' => '192.0.2.9', 'port' => '3306', 'user' => 'u', 'password' => 'stored', 'dbname' => 'd', 'query' => 'select 1', 'mapping' => ['n' => 'name'], 'type' => 'DB'];
+file_put_contents("$sourcesDir/custom_5.json", json_encode(['custom_5' => $storedDatabase]));
+file_put_contents("$sourcesDir/custom_6.json", json_encode(['custom_6' => ['host' => '127.0.0.1', 'port' => '20011'] + $storedDatabase]));
+file_put_contents("$sourcesDir/custom_7.json", json_encode(['custom_7' => ['password' => ''] + $storedDatabase]));
+$templatesDir = sys_get_temp_dir() . '/nethvoice-templates-' . getmypid();
+mkdir($templatesDir);
+foreach (['identity', 'table', 'invoices_custom', 'notes_custom'] as $template) {
+    file_put_contents("$templatesDir/$template.ejs", '<p></p>');
+}
+register_shutdown_function(function () use ($sourcesDir, $templatesDir) {
+    array_map('unlink', [...glob("$sourcesDir/*.json"), ...glob("$templatesDir/*.ejs")]);
     rmdir($sourcesDir);
+    rmdir($templatesDir);
 });
-$lookup = new NethvoiceDatabaseLookup($sourcesDir);
+$lookup = new NethvoiceDatabaseLookup($sourcesDir, $templatesDir);
 
 $csvRows = [
     ['alice', 'Alice "Al" Smith', '201', 'Secret,1"x', '00391234', 'TRUE', 'FALSE', 'sales|support', 'Standard'],
@@ -115,7 +125,8 @@ $app->addBodyParsingMiddleware();
 $guarded = [
     'GET /mobiles/{username}', 'GET /cti/customer_card', 'POST /cti/customer_card', 'PUT /cti/customer_card/{id}',
     'POST /cti/dbconn', 'PUT /cti/dbconn/{id}', 'POST /phonebook/config[/{id}]', 'DELETE /phonebook/config/{id}',
-    'POST /phonebook/syncnow/{id}',
+    'POST /phonebook/syncnow/{id}', 'POST /cti/dbconn/test', 'DELETE /cti/dbconn/{id}', 'DELETE /cti/customer_card/template/{name}',
+    'POST /cti/customer_card/preview', 'POST /cti/customer_card/template', 'PUT /cti/customer_card/template/{name}',
 ];
 $registered = [];
 foreach (glob($rest . '/modules/*.php') as $module) {
@@ -246,6 +257,121 @@ expectStatus($app, 200, ['integrator'], 'PUT', '/cti/dbconn/8', ['name' => 'app2
 expectStatus($app, 403, ['integrator'], 'PUT', '/cti/dbconn/99', ['host' => '127.0.0.1', 'port' => '20011']);
 expectStatus($app, 400, ['integrator'], 'PUT', '/cti/dbconn/1x', ['name' => 'x']);
 
+$test = ['host' => '192.0.2.10', 'port' => '3306', 'type' => 'mysql', 'user' => 'crm', 'pass' => 'p', 'name' => 'crm'];
+expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn/test', $test);
+expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn/test', ['id' => '5', 'pass' => ''] + $test);
+expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn/test', ['id' => ''] + $test);
+expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn/test', ['host' => '127.0.0.1', 'port' => '5432'] + $test);
+foreach ([
+    ['host' => '127.0.0.1', 'port' => '20011'],
+    ['host' => 'localhost', 'port' => ''],
+    ['host' => '[::1]', 'port' => '20011'],
+    ['id' => '1', 'pass' => ''],
+    ['id' => 2, 'pass' => 'x'],
+    ['id' => '7', 'host' => '192.0.2.10'],
+] as $target) {
+    expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn/test', $target + $test);
+    expectStatus($app, 200, $superadmins, 'POST', '/cti/dbconn/test', $target + $test);
+}
+foreach (array_filter(nethvoiceNodeAddresses(), fn($address) => !nethvoiceIsForbiddenAddress($address)) as $address) {
+    $host = str_contains($address, ':') ? "[$address]" : $address;
+    expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', ['host' => $host, 'port' => '20011'] + $connection);
+    expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn/test', ['host' => $host, 'port' => '20011'] + $test);
+    expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn', ['host' => $host, 'port' => '5432'] + $connection);
+    expectStatus($app, 200, $superadmins, 'POST', '/cti/dbconn', ['host' => $host, 'port' => '20011'] + $connection);
+}
+expectStatus($app, 400, ['integrator'], 'POST', '/cti/dbconn/test', ['id' => '5 OR 1=1'] + $test);
+expectStatus($app, 400, ['integrator'], 'POST', '/cti/dbconn/test', 'not json');
+foreach (['1', '2', '01', '7'] as $id) {
+    expectStatus($app, 403, ['integrator'], 'DELETE', "/cti/dbconn/$id");
+    expectStatus($app, 200, $superadmins, 'DELETE', "/cti/dbconn/$id");
+}
+foreach (['5', '8', '99'] as $id) {
+    expectStatus($app, 200, ['integrator'], 'DELETE', "/cti/dbconn/$id");
+}
+expectStatus($app, 400, ['integrator'], 'DELETE', '/cti/dbconn/1x');
+
+foreach (['invoices', 'notes'] as $name) {
+    expectStatus($app, 200, ['integrator'], 'DELETE', "/cti/customer_card/template/$name");
+}
+foreach (['identity', 'table'] as $name) {
+    expectStatus($app, 403, ['integrator'], 'DELETE', "/cti/customer_card/template/$name");
+    expectStatus($app, 200, $superadmins, 'DELETE', "/cti/customer_card/template/$name");
+}
+foreach (['missing', 'invoices_custom', 'Invoices', 'x-y', 'a.b', 'a%20b', '%2E%2E'] as $name) {
+    expectStatus($app, 400, ['integrator'], 'DELETE', "/cti/customer_card/template/$name");
+}
+
+$template = ['name' => 'invoices2', 'custom' => true, 'html' => base64_encode('<p><%= results[0].name %></p>')];
+expectStatus($app, 200, ['integrator', ...$superadmins], 'POST', '/cti/customer_card/template', $template);
+expectStatus($app, 200, ['integrator', ...$superadmins], 'PUT', '/cti/customer_card/template/invoices2', $template);
+expectStatus($app, 403, ['userer', 'phoner'], 'POST', '/cti/customer_card/template', $template);
+foreach ([
+    'an uppercase name' => ['name' => 'Invoices2'] + $template,
+    'a name with an underscore' => ['name' => 'invoices_custom'] + $template,
+    'a path' => ['name' => '../invoices'] + $template,
+    'a name with a space' => ['name' => 'invoices 2'] + $template,
+    'an empty name' => ['name' => ''] + $template,
+    'a name that is not text' => ['name' => ['invoices']] + $template,
+    'no name' => array_diff_key($template, ['name' => 1]),
+    'a built-in template' => ['custom' => false] + $template,
+    'custom as text' => ['custom' => 'true'] + $template,
+    'no custom' => array_diff_key($template, ['custom' => 1]),
+    'no html' => array_diff_key($template, ['html' => 1]),
+    'html that is not text' => ['html' => ['PHA+']] + $template,
+] as $label => $body) {
+    $got = status($app, 'integrator', 'POST', '/cti/customer_card/template', $body);
+    check($got === 400, "integrator POST a template with $label answered $got, expected 400");
+    $got = status($app, 'integrator', 'PUT', '/cti/customer_card/template/invoices2', $body);
+    check($got === 400, "integrator PUT a template with $label answered $got, expected 400");
+    expectStatus($app, 200, $superadmins, 'POST', '/cti/customer_card/template', $body);
+    expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/invoices2', $body);
+}
+expectStatus($app, 400, ['integrator'], 'PUT', '/cti/customer_card/template/invoices', $template);
+expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/invoices', $template);
+
+$builtin = ['name' => 'identity', 'custom' => false, 'html' => base64_encode("<!-- color: blue -->\n<thead class=\"bg-blue-600\"></thead>")];
+$response = send($app, 'integrator', 'PUT', '/cti/customer_card/template/identity', $builtin);
+check($response->getStatusCode() === 200, 'an integrations administrator cannot change the color of a built-in template');
+check(json_decode((string) $response->getBody(), true)['body'] === $builtin, 'the handler did not receive the built-in template body');
+expectStatus($app, 200, ['integrator', ...$superadmins], 'PUT', '/cti/customer_card/template/table', ['name' => 'table'] + $builtin);
+expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/identity', $builtin);
+foreach (['invoices', 'notes', 'missing'] as $name) {
+    expectStatus($app, 400, ['integrator'], 'PUT', "/cti/customer_card/template/$name", ['name' => $name] + $builtin);
+    expectStatus($app, 200, $superadmins, 'PUT', "/cti/customer_card/template/$name", ['name' => $name] + $builtin);
+}
+foreach ([
+    'an uppercase name' => ['name' => 'Identity'] + $builtin,
+    'another name than the path' => ['name' => 'table'] + $builtin,
+    'custom as text' => ['custom' => 'false'] + $builtin,
+    'custom as a number' => ['custom' => 0] + $builtin,
+    'custom null' => ['custom' => null] + $builtin,
+    'no html' => array_diff_key($builtin, ['html' => 1]),
+    'html that is not text' => ['html' => ['PHA+']] + $builtin,
+] as $label => $body) {
+    $got = status($app, 'integrator', 'PUT', '/cti/customer_card/template/identity', $body);
+    check($got === 400, "integrator PUT the built-in template with $label answered $got, expected 400");
+    expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/identity', $body);
+}
+foreach (['identity', 'table', 'missing'] as $name) {
+    expectStatus($app, 400, ['integrator'], 'POST', '/cti/customer_card/template', ['name' => $name] + $builtin);
+    expectStatus($app, 200, $superadmins, 'POST', '/cti/customer_card/template', ['name' => $name] + $builtin);
+}
+expectStatus($app, 403, ['userer', 'phoner'], 'PUT', '/cti/customer_card/template/identity', $builtin);
+expectStatus($app, 400, ['integrator'], 'POST', '/cti/customer_card/template', 'not json');
+expectStatus($app, 400, ['integrator'], 'PUT', '/cti/customer_card/template/invoices2', 'not json');
+
+$preview = ['dbconn_id' => '5', 'template' => 'invoices_custom', 'query' => base64_encode('select * from crm')];
+expectStatus($app, 200, ['integrator'], 'POST', '/cti/customer_card/preview', $preview);
+expectStatus($app, 200, ['integrator'], 'POST', '/cti/customer_card/preview', ['dbconn_id' => 8] + $preview);
+foreach ([1, '1', '01', 2, '7'] as $dbconn) {
+    expectStatus($app, 403, ['integrator'], 'POST', '/cti/customer_card/preview', ['dbconn_id' => $dbconn] + $preview);
+    expectStatus($app, 200, $superadmins, 'POST', '/cti/customer_card/preview', ['dbconn_id' => $dbconn] + $preview);
+}
+foreach ([['dbconn_id' => 'x'] + $preview, ['dbconn_id' => '5 OR 1=1'] + $preview, array_diff_key($preview, ['dbconn_id' => 0]), 'not json'] as $body) {
+    expectStatus($app, 400, ['integrator'], 'POST', '/cti/customer_card/preview', $body);
+}
+
 $csvSource = ['dbtype' => 'csv', 'url' => 'https://192.0.2.5/a.csv', 'type' => 'Shop', 'mapping' => ['Name' => 'name', 'Phone' => 'workphone', 'Owner' => 'owner_id']];
 expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config', $csvSource);
 expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config/custom_1', $csvSource);
@@ -273,22 +399,47 @@ foreach ([
 expectStatus($app, 400, ['integrator'], 'POST', '/phonebook/config', ['dbtype' => true] + $csvSource);
 $mysqlSource = ['dbtype' => 'mysql', 'host' => '192.0.2.9', 'port' => '3306', 'user' => 'u', 'password' => 'p', 'dbname' => 'd', 'query' => 'select 1', 'mapping' => ['n' => 'name'], 'type' => 'DB'];
 foreach (['mysql', 'mssql'] as $dbtype) {
-    expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config', ['dbtype' => $dbtype] + $mysqlSource);
-    expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config/custom_1', ['dbtype' => $dbtype] + $mysqlSource);
-    expectStatus($app, 200, $superadmins, 'POST', '/phonebook/config', ['dbtype' => $dbtype] + $mysqlSource);
+    expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config', ['dbtype' => $dbtype] + $mysqlSource);
+    expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config/custom_1', ['dbtype' => $dbtype] + $mysqlSource);
+    expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config', ['dbtype' => $dbtype, 'host' => '192.0.2.77', 'port' => '1'] + $mysqlSource);
+    foreach (['127.0.0.1', 'localhost', 'LOCALHOST', '[::1]', '::1', '127.0.0.2', '0.0.0.0', '169.254.1.1', '', ' ', ['192.0.2.9']] as $host) {
+        foreach (['3306', '20011', '1'] as $port) {
+            expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config', ['dbtype' => $dbtype, 'host' => $host, 'port' => $port] + $mysqlSource);
+            expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config/custom_5', ['dbtype' => $dbtype, 'host' => $host, 'port' => $port] + $mysqlSource);
+        }
+        expectStatus($app, 200, $superadmins, 'POST', '/phonebook/config', ['dbtype' => $dbtype, 'host' => $host] + $mysqlSource);
+    }
+    expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config', ['dbtype' => $dbtype] + array_diff_key($mysqlSource, ['host' => 0]));
+    foreach (array_filter(nethvoiceNodeAddresses(), fn($address) => !nethvoiceIsForbiddenAddress($address)) as $address) {
+        expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config', ['dbtype' => $dbtype, 'host' => $address, 'port' => '1'] + $mysqlSource);
+        expectStatus($app, 200, $superadmins, 'POST', '/phonebook/config', ['dbtype' => $dbtype, 'host' => $address] + $mysqlSource);
+    }
 }
-foreach (['custom_2', 'custom_3'] as $sid) {
-    expectStatus($app, 403, ['integrator'], 'POST', "/phonebook/config/$sid", $csvSource);
-    expectStatus($app, 403, ['integrator'], 'DELETE', "/phonebook/config/$sid");
-    expectStatus($app, 403, ['integrator'], 'POST', "/phonebook/syncnow/$sid");
-    expectStatus($app, 200, $superadmins, 'POST', "/phonebook/config/$sid", $csvSource);
+expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config/custom_5', ['password' => ''] + $storedDatabase);
+expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config/custom_5', array_diff_key($storedDatabase, ['password' => 0]));
+expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config/custom_5', ['password' => '', 'type' => 'Renamed', 'interval' => 60] + $storedDatabase);
+expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config/custom_5', ['password' => 'typed', 'query' => 'select 2', 'host' => '192.0.2.99'] + $storedDatabase);
+expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config/custom_7', ['password' => '', 'query' => 'select 2'] + $storedDatabase);
+foreach (['query' => 'select * from other', 'host' => '192.0.2.99', 'port' => '3307', 'dbname' => 'other', 'user' => 'root', 'dbtype' => 'mssql'] as $field => $value) {
+    expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config/custom_5', [$field => $value, 'password' => ''] + $storedDatabase);
+    expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config/custom_5', [$field => $value] + array_diff_key($storedDatabase, ['password' => 0]));
+    expectStatus($app, 200, $superadmins, 'POST', '/phonebook/config/custom_5', [$field => $value, 'password' => ''] + $storedDatabase);
+}
+foreach ([['password' => ''] + $storedDatabase, $storedDatabase, ['password' => 'typed', 'host' => '192.0.2.99'] + $storedDatabase, $csvSource] as $body) {
+    expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config/custom_6', $body);
+    expectStatus($app, 200, $superadmins, 'POST', '/phonebook/config/custom_6', $body);
+}
+foreach (['custom_1', 'custom_2', 'custom_3', 'custom_4', 'custom_5', 'custom_6', 'custom_99'] as $sid) {
+    expectStatus($app, 200, ['integrator'], 'DELETE', "/phonebook/config/$sid");
+    expectStatus($app, 200, ['integrator'], 'POST', "/phonebook/syncnow/$sid");
     expectStatus($app, 200, $superadmins, 'DELETE', "/phonebook/config/$sid");
     expectStatus($app, 200, $superadmins, 'POST', "/phonebook/syncnow/$sid");
 }
-foreach (['custom_1', 'custom_4', 'custom_99'] as $sid) {
-    expectStatus($app, 200, ['integrator'], 'DELETE', "/phonebook/config/$sid");
-    expectStatus($app, 200, ['integrator'], 'POST', "/phonebook/syncnow/$sid");
-}
+expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config/custom_2', $csvSource);
+expectStatus($app, 403, ['integrator'], 'POST', '/phonebook/config/custom_5', $csvSource);
+expectStatus($app, 200, ['integrator'], 'POST', '/phonebook/config/custom_7', $csvSource);
+check(nethvoicePhonebookDatabaseTargetStatus(['dbtype' => 'mysql', 'host' => '192.0.2.9', 'query' => 'select 2'], ['password' => ''] + $storedDatabase) === null, 'a stored source without password must accept a new query');
+check(nethvoicePhonebookDatabaseTargetStatus(['dbtype' => 'csv', 'url' => 'https://192.0.2.5/a.csv'], null) === null, 'a CSV source is not a database target');
 
 $response = send($app, 'userer', 'GET', '/csv/csvexport');
 check($response->getStatusCode() === 200 && $response->getHeaderLine('Content-Type') === 'application/json;charset=utf-8', 'the export is not JSON');
@@ -339,8 +490,12 @@ check($fields[1] === NETHVOICE_PHONEBOOK_FIELDS, 'the phonebook mapping check an
 
 check($lookup->phonebookSource('custom_2') === ['dbtype' => 'mysql', 'type' => 'custom_2'], 'a stored phonebook source is not read');
 check($lookup->phonebookSource('../custom_2') === null && $lookup->phonebookSource('custom_99') === null, 'an invalid or missing source was read');
+check($lookup->cardTemplateExists('invoices_custom') && $lookup->cardTemplateExists('identity'), 'an existing template is not found');
+foreach (['invoices', 'missing_custom', '../identity', 'identity.ejs', 'Identity', ''] as $name) {
+    check(!$lookup->cardTemplateExists($name), "the template $name must not be found");
+}
 check(array_column($lookup->builtinDbConnections(), 'id') === [1, 2], 'the built-in connections are not found');
 NethCTI::$pdo->connections[2]['host'] = '192.0.2.50';
 check(array_column($lookup->builtinDbConnections(), 'id') === [1], 'a connection moved to another server is still built-in');
 
-echo "PASS: limited administrators: input checks on mobiles, customer cards, database connections and phonebook sources, secrets removed from exports, voicemails and LDAP\n";
+echo "PASS: limited administrators: input checks on mobiles, customer cards, card templates and previews, database connections and phonebook sources, secrets removed from exports, voicemails and LDAP\n";

@@ -585,7 +585,10 @@ export interface paths {
      */
     put: operations['put_cti_dbconn_id']
     post?: never
-    /** Delete a database connection. */
+    /**
+     * Delete a database connection.
+     * @description For administrators who are not superadmin, a non-numeric `id` returns 400 and a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
+     */
     delete: operations['delete_cti_dbconn_id']
     options?: never
     head?: never
@@ -637,7 +640,7 @@ export interface paths {
     put?: never
     /**
      * Test a database connection through nethcti-server.
-     * @description With `id` and an empty `pass`, the stored password of that connection is used, only when `host`, `port` and `type` are the stored ones.
+     * @description With `id` and an empty `pass`, the stored password of that connection is used, only when `host`, `port` and `type` are the stored ones. For administrators who are not superadmin, testing a built-in NethVoice database (see `POST /cti/dbconn`), or a stored connection on one, returns 403.
      */
     post: operations['post_cti_dbconn_test']
     delete?: never
@@ -675,7 +678,7 @@ export interface paths {
     put?: never
     /**
      * Create a customer card template.
-     * @description Body contains `name`, `custom` flag and base64 `html` content. Requires the superadmin permission: templates are rendered by the CTI server.
+     * @description Body contains `name`, `custom` flag and base64 `html` content. Templates are rendered by the CTI server. For administrators who are not superadmin, a `name` that does not match `^[a-z0-9]+$`, a `custom` that is not true or an `html` that is not a string returns 400.
      */
     post: operations['post_cti_customer_card_template']
     delete?: never
@@ -694,15 +697,35 @@ export interface paths {
     get?: never
     /**
      * Overwrite a customer card template (the file is found by `name` and `custom` in the body).
-     * @description Requires the superadmin permission: templates are rendered by the CTI server.
+     * @description Templates are rendered by the CTI server. For administrators who are not superadmin, the body must also pass the checks of `POST /cti/customer_card/template` and its `name` must be the path `name`, or the answer is 400; `custom` may be false only when the path `name` is an existing built-in template.
      */
     put: operations['put_cti_customer_card_template_name']
     post?: never
     /**
      * Delete a customer card template.
-     * @description Requires the superadmin permission: templates are rendered by the CTI server.
+     * @description Deletes `<name>_custom.ejs`, or `<name>.ejs` when there is no custom template with that name. For administrators who are not superadmin, a `name` that does not match `^[a-z0-9]+$` or that is not a template returns 400, and a built-in template returns 403.
      */
     delete: operations['delete_cti_customer_card_template_name']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/cti/customer_card/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Show a customer card rendered by nethcti-server, without saving it.
+     * @description nethcti-server runs the query on the connection and renders the template. Only `html` is returned; an error of nethcti-server is never passed to the client. For administrators who are not superadmin, a card on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
+     */
+    post: operations['post_cti_customer_card_preview']
+    delete?: never
     options?: never
     head?: never
     patch?: never
@@ -1823,12 +1846,12 @@ export interface paths {
     put?: never
     /**
      * Replace an external phonebook source.
-     * @description When the URL changes, the previously uploaded CSV file is removed if no other source uses it. An empty or omitted `password` keeps the stored one, unless the type, the host, the port or the Infinity URL change, which requires the password again. Saving a mysql or mssql source, or replacing a stored one, requires the superadmin permission. For administrators who are not superadmin, an `id` that does not match `^[A-Za-z0-9_-]+$`, a body that is not a JSON or form object, a `dbtype` that is not a string or a `mapping` destination that is not one of `GET /phonebook/fields` returns 400.
+     * @description When the URL changes, the previously uploaded CSV file is removed if no other source uses it. An empty or omitted `password` keeps the stored one, unless the type, the host, the port or the Infinity URL change, which requires the password again. For administrators who are not superadmin, a mysql or mssql source whose `host` is an address of the PBX (on any port), a stored mysql or mssql source on an address of the PBX, and a change of `dbtype`, `host`, `port`, `dbname`, `user` or `query` that keeps the stored password return 403; an `id` that does not match `^[A-Za-z0-9_-]+$`, a body that is not a JSON or form object, a `dbtype` that is not a string or a `mapping` destination that is not one of `GET /phonebook/fields` returns 400.
      */
     post: operations['post_phonebook_config_id']
     /**
      * Delete an external phonebook source and the contacts imported from it.
-     * @description The uploaded CSV file of the source is removed when no other source uses it. Deleting a mysql or mssql source requires the superadmin permission. For administrators who are not superadmin, an `id` that does not match `^[A-Za-z0-9_-]+$` returns 400.
+     * @description The uploaded CSV file of the source is removed when no other source uses it. For administrators who are not superadmin, an `id` that does not match `^[A-Za-z0-9_-]+$` returns 400.
      */
     delete: operations['delete_phonebook_config_id']
     options?: never
@@ -1847,7 +1870,7 @@ export interface paths {
     put?: never
     /**
      * Read the first rows of a phonebook source without saving it.
-     * @description Testing a mysql or mssql source requires the superadmin permission. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files. With `id` and an empty `password`, the stored password of that source is used, only for the same server.
+     * @description For administrators who are not superadmin, testing a mysql or mssql source follows the rules of `POST /phonebook/config/{id}` and returns 403 otherwise. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files. With `id` and an empty `password`, the stored password of that source is used, only for the same server.
      */
     post: operations['post_phonebook_test']
     delete?: never
@@ -1865,10 +1888,7 @@ export interface paths {
     }
     get?: never
     put?: never
-    /**
-     * Import a phonebook source now (synchronous).
-     * @description Importing a mysql or mssql source requires the superadmin permission.
-     */
+    /** Import a phonebook source now (synchronous). */
     post: operations['post_phonebook_syncnow_id']
     delete?: never
     options?: never
@@ -3650,6 +3670,17 @@ export interface components {
       dbconn_id: number
       profiles: number[]
     }
+    IntegrationsCustomerCardPreviewInput: {
+      dbconn_id: string
+      /** @description Template file name, that is the template name followed by `_custom` for custom templates */
+      template: string
+      /** @description Base64 encoded SQL query */
+      query: string
+    }
+    IntegrationsCustomerCardPreview: {
+      /** @description Base64 encoded HTML of the card */
+      html: string
+    }
     /** @description Device (extension) of a user, a row of rest_devices_phones. */
     UsersDevice: {
       id: number
@@ -5194,6 +5225,28 @@ export interface operations {
           'application/json': boolean
         }
       }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -5301,6 +5354,17 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Database connection not found */
       404: {
         headers: {
@@ -5402,6 +5466,17 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Forbidden: missing permission */
       403: {
         headers: {
@@ -5443,6 +5518,17 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
       }
       /** @description Forbidden: missing permission */
       403: {
@@ -5489,6 +5575,17 @@ export interface operations {
         }
         content?: never
       }
+      /** @description Bad request: invalid parameters */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
       /** @description Forbidden: missing permission */
       403: {
         headers: {
@@ -5506,6 +5603,75 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+    }
+  }
+  post_cti_customer_card_preview: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IntegrationsCustomerCardPreviewInput']
+      }
+    }
+    responses: {
+      /** @description The rendered card */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsCustomerCardPreview']
+        }
+      }
+      /** @description Invalid connection id, template or query, or the template does not exist */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description nethcti-server cannot show the preview */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description nethcti-server is not reachable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
       }
     }
   }

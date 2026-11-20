@@ -16,6 +16,8 @@ const NETHVOICE_DATABASE_PHONEBOOK_TYPES = ['mysql', 'mssql'];
 const NETHVOICE_BUILTIN_DBCONN_IDS = ['1', '2'];
 const NETHVOICE_USERNAME_PATTERN = '/^[A-Za-z0-9._@-]+$/D';
 const NETHVOICE_PHONEBOOK_SOURCE_ID_PATTERN = '/^[A-Za-z0-9_-]+$/D';
+const NETHVOICE_CARD_TEMPLATE_PATTERN = '/^[a-z0-9]+(_custom)?$/D';
+const NETHVOICE_PHONEBOOK_DATABASE_TARGET_FIELDS = ['dbtype', 'host', 'port', 'dbname', 'user', 'query'];
 
 function nethvoiceIsForbiddenAddress(string $ip): bool
 {
@@ -351,6 +353,36 @@ function nethvoiceTargetsBuiltinDbConnection(array $connection, array $builtins)
 function nethvoiceIsDatabasePhonebookSource($source): bool
 {
     return is_array($source) && in_array($source['dbtype'] ?? null, NETHVOICE_DATABASE_PHONEBOOK_TYPES, true);
+}
+
+function nethvoiceIsValidCardTemplate($name): bool
+{
+    return is_string($name) && preg_match(NETHVOICE_CARD_TEMPLATE_PATTERN, $name) === 1;
+}
+
+function nethvoiceIsLocalPhonebookHost($host): bool
+{
+    return !is_scalar($host) || nethvoiceIsLocalHost($host);
+}
+
+function nethvoicePhonebookDatabaseTargetStatus($source, ?array $stored): ?int
+{
+    if (nethvoiceIsDatabasePhonebookSource($stored)) {
+        if (nethvoiceIsLocalPhonebookHost($stored['host'] ?? null)) {
+            return 403;
+        }
+        $password = $source['password'] ?? null;
+        $reused = !is_scalar($password) || (string) $password === '';
+        if ($reused && (string) ($stored['password'] ?? '') !== ''
+            && nethvoiceStoredTargetChanged($source, $stored, NETHVOICE_PHONEBOOK_DATABASE_TARGET_FIELDS)) {
+            return 403;
+        }
+    }
+    if (nethvoiceIsDatabasePhonebookSource($source) && nethvoiceIsLocalPhonebookHost($source['host'] ?? null)) {
+        return 403;
+    }
+
+    return null;
 }
 
 function nethvoiceIsValidPhonebookMapping($mapping): bool
