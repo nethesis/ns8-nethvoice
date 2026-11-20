@@ -89,6 +89,22 @@ describe('filterUserRows', () => {
     expect(usernames({ devices: ['webrtc', 'mobile'] })).toEqual(['a.miller', 'c.davis'])
   })
 
+  it('filters by account status, with an unknown status counted as enabled', () => {
+    const rows = [
+      { ...ROWS[0]!, locked: true },
+      { ...ROWS[1]!, locked: false },
+      { ...ROWS[2]!, locked: null },
+    ]
+    const filter = (status: UserFilters['status']) =>
+      filterUserRows(rows, { ...DEFAULT_USER_FILTERS, status }).map((item) => item.username)
+
+    expect(filter('any')).toEqual(['a.miller', 'c.davis', 'd.jones'])
+    expect(filter('disabled')).toEqual(['a.miller'])
+    expect(filter('enabled')).toEqual(['c.davis', 'd.jones'])
+    expect(usernames({ status: 'enabled' })).toEqual(['a.miller', 'c.davis', 'd.jones'])
+    expect(areDefaultUserFilters({ ...DEFAULT_USER_FILTERS, status: 'disabled' })).toBe(false)
+  })
+
   it('filters by presence of physical phones', () => {
     expect(usernames({ physicalPhones: 'with' })).toEqual(['c.davis'])
     expect(usernames({ physicalPhones: 'without' })).toEqual(['a.miller', 'd.jones'])

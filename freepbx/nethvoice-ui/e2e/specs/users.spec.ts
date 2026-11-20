@@ -1,8 +1,9 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockPermissions, test, type MockApi } from '../fixtures/mockApi'
 import {
+  ACCOUNTS,
   csvImportMock,
   GROUP_MEMBERS,
   GROUPS,
@@ -175,7 +176,7 @@ test.describe('users', () => {
     const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
     await expect(drawer.getByRole('textbox', { name: 'Extension' })).toHaveValue('300')
     await drawer.getByRole('textbox', { name: 'Mobile number' }).fill('+39 333 7654321')
-    await drawer.getByText('Enabled', { exact: true }).click()
+    await drawer.getByText('Enabled', { exact: true }).last().click()
     await drawer.getByRole('combobox', { name: 'Profile' }).click()
     await drawer.getByRole('option', { name: 'Advanced' }).click()
     await drawer.getByRole('combobox', { name: 'Groups' }).click()
@@ -192,6 +193,7 @@ test.describe('users', () => {
 
     await expect(page.getByText('User updated')).toBeVisible()
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+    expect(mockApi.callsTo('PATCH', `${REST}/users/:username/account`)).toHaveLength(0)
     expect(mockApi.callsTo('POST', `${REST}/mobiles`)[0].body).toEqual({
       username: 'a.miller',
       mobile: '+39 333 7654321',
@@ -481,6 +483,26 @@ test.describe('users', () => {
 
     await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeHidden()
     await expect(create).toBeFocused()
+  })
+
+  test('refuses control characters in the name of a new user', async ({ page, mockApi }) => {
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Create user' }).first().click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
+    await name.fill('Emma\tJane')
+    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
+    await drawer.getByLabel('Confirm password').fill('Secret,123')
+    await drawer.getByRole('button', { name: 'Create' }).click()
+
+    await expect(
+      drawer.getByText('Remove tabs, line breaks and other invisible characters'),
+    ).toBeVisible()
+    await expect(name).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
   })
 
   test('reports a failed creation inside the drawer', async ({ page, mockApi }) => {
@@ -1141,5 +1163,786 @@ test.describe('users', () => {
     expect(text).toContain('"username","fullname","extension"')
     expect(text).toContain('"desktop_app","mobile_app"')
     expect(text).not.toContain('secret')
+  })
+})
+
+const signInAs = async (page: import('@playwright/test').Page, user: string) => {
+  await page.addInitScript((name) => {
+    localStorage.setItem('secretkey', JSON.stringify({ user: name, hash: 'e2e-secret-key' }))
+  }, user)
+}
+
+const mockAccountWrites = (mockApi: MockApi) => {
+  let accounts = ACCOUNTS.map((account) => ({ ...account }))
+  let users = [...RAW_USERS]
+  let orphans: unknown[] = []
+
+  mockApi
+    .on('GET', `${REST}/users/domain/accounts`, () => ({ json: accounts }))
+    .on('GET', `${REST}/users/:all`, () => ({ json: users }))
+    .on('GET', `${REST}/mainextensions/orphans`, () => ({ json: orphans }))
+    .on('PUT', `${REST}/users/:username/account/password`, { status: 204 })
+    .on('PATCH', `${REST}/users/:username/account`, (request) => {
+      const username = request.path.split('/').at(-2)
+      const changes = request.body as Record<string, unknown>
+      accounts = accounts.map((account) =>
+        account.username === username ? { ...account, ...changes } : account,
+      )
+      return {
+        json: { synchronized: 'display_name' in changes || 'mail' in changes ? true : null },
+      }
+    })
+    .on('DELETE', `${REST}/users/:username/account`, (request) => {
+      const username = request.path.split('/').at(-2)
+      const removed = RAW_USERS.find((user) => user.username === username)
+      accounts = accounts.filter((account) => account.username !== username)
+      users = users.filter((user) => user.username !== username)
+
+      if (removed && removed.default_extension !== 'none') {
+        orphans = [
+          {
+            username: removed.username,
+            displayname: removed.displayname,
+            extension: removed.default_extension,
+            devices: [],
+            removed_at: '2026-11-20T08:30:00Z',
+          },
+        ]
+      }
+      return { json: { synchronized: true } }
+    })
+  return mockApi
+}
+
+const openRowMenu = async (page: import('@playwright/test').Page, username: string) => {
+  await page.getByRole('button', { name: `Actions for ${username}` }).click()
+}
+
+test.describe('user accounts', () => {
+  test.beforeEach(({ signedIn, mockApi }) => {
+    void signedIn
+    mockUsersApi(mockApi)
+    mockUserPhonesApi(mockApi)
+    mockAccountWrites(mockApi)
+  })
+
+  test('changes the password of a user', async ({ page, mockApi }) => {
+    await page.goto('./users/users')
+    await openRowMenu(page, 'a.miller')
+    await page.getByRole('menuitem', { name: 'Change password' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Change password of a.miller' })
+    const password = drawer.getByLabel('New password')
+    await expect(password).toBeFocused()
+    for (const rule of [
+      'Minimum 8 characters',
+      'At least 1 uppercase letter (A-Z)',
+      'At least 1 lowercase letter (a-z)',
+      'At least 1 number (0-9)',
+      'At least 1 special character (!@#^&_?-)',
+    ]) {
+      await expect(drawer.getByText(rule)).toBeVisible()
+    }
+    await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+    await expect(drawer.getByText('Enter the password')).toBeVisible()
+    await expect(drawer.getByText('Confirm the password')).toBeVisible()
+    await expect(password).toBeFocused()
+
+    await password.fill('weak')
+    await drawer.getByLabel('Confirm password').fill('weak')
+    await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+    await expect(drawer.getByText('The password does not meet the requirements')).toBeVisible()
+
+    await password.fill('Invented-Pass1!')
+    await drawer.getByLabel('Confirm password').fill('Invented-Pass2!')
+    await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+    await expect(drawer.getByText('The passwords do not match')).toBeVisible()
+    expect(mockApi.callsTo('PUT', `${REST}/users/:username/account/password`)).toHaveLength(0)
+
+    await drawer.getByLabel('Confirm password').fill('Invented-Pass1!')
+    await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('Password updated')).toBeVisible()
+    await expect(toasts.getByText('The password of user a.miller has been updated.')).toBeVisible()
+    expect(mockApi.callsTo('PUT', `${REST}/users/a.miller/account/password`)[0].body).toEqual({
+      password: 'Invented-Pass1!',
+    })
+  })
+
+  test('shows why the account provider refused a password', async ({ page, mockApi }) => {
+    const replies = [
+      {
+        status: 422,
+        json: { code: 'password_history', message: 'The password was used recently' },
+      },
+      { status: 422, json: { code: 'password_rejected', message: 'rejected' } },
+      { status: 500, json: { message: 'samba-tool failed: invented internal detail' } },
+    ]
+    mockApi.on('PUT', `${REST}/users/:username/account/password`, () => replies.shift()!)
+    await page.goto('./users/users')
+    await openRowMenu(page, 'c.davis')
+    await page.getByRole('menuitem', { name: 'Change password' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Change password of c.davis' })
+    await drawer.getByLabel('New password').fill('Invented-Pass1!')
+    await drawer.getByLabel('Confirm password').fill('Invented-Pass1!')
+    await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+    await expect(
+      drawer.getByText('This password was used recently. Choose a different one.'),
+    ).toBeVisible()
+    await expect(drawer.getByLabel('New password')).toBeFocused()
+
+    await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+    await expect(
+      drawer.getByText('The password does not meet the rules of the account provider.'),
+    ).toBeVisible()
+
+    await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+    const failure = drawer.getByTestId('change-password-error')
+    await expect(failure).toContainText('Cannot change the password')
+    await expect(failure).toContainText(
+      'The server could not complete the request (error 500). Try again later.',
+    )
+    await expect(failure).not.toContainText('invented internal detail')
+    await expect(failure).toBeFocused()
+  })
+
+  test('disables a user from the edit drawer and shows it in the table', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit c.davis' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
+    await expect(drawer.getByRole('textbox', { name: 'Name', exact: true })).toBeFocused()
+    const status = drawer.getByTestId('user-status-toggle')
+    await expect(status).toContainText('Enabled')
+    await expect(drawer.getByTestId('user-status-helper')).toHaveText(
+      'A disabled user cannot sign in to NethVoice CTI and the apps. Phones and apps already connected keep working. The account is disabled in every application that uses the account provider.',
+    )
+    await status.getByText('Enabled').click()
+    await expect(status).toContainText('Disabled')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('User updated')).toBeVisible()
+    await expect(toasts.getByText('User Christopher Davis has been updated.')).toBeVisible()
+    expect(mockApi.callsTo('PATCH', `${REST}/users/c.davis/account`).map((c) => c.body)).toEqual([
+      { locked: true },
+    ])
+    for (const write of ['/mainextensions', '/voicemails', '/mobiles', '/webrtc', '/nethlink']) {
+      expect(mockApi.callsTo('POST', `${REST}${write}`)).toHaveLength(0)
+    }
+
+    const row = page.getByTestId('user-c.davis')
+    await expect(row.getByTestId('disabled-badge-c.davis')).toHaveText('Disabled')
+    await expect(row).toHaveClass(/text-tertiary-neutral/)
+    await expect(row).toContainText('301')
+
+    await page.getByRole('button', { name: 'Edit c.davis' }).click()
+    await expect(drawer.getByTestId('user-status-toggle')).toContainText('Disabled')
+    await drawer.getByTestId('user-status-toggle').getByText('Disabled').click()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(row.getByTestId('disabled-badge-c.davis')).toHaveCount(0)
+    expect(mockApi.callsTo('PATCH', `${REST}/users/c.davis/account`).at(-1)?.body).toEqual({
+      locked: false,
+    })
+  })
+
+  test('filters the users by status as the first filter', async ({ page, mockApi }) => {
+    mockApi.on('GET', `${REST}/users/domain/accounts`, {
+      json: ACCOUNTS.map((account) =>
+        account.username === 'c.davis' ? { ...account, locked: true } : account,
+      ),
+    })
+    await page.goto('./users/users')
+    const rows = page.locator('[data-testid^="user-"]')
+    await expect(page.getByTestId('disabled-badge-c.davis')).toBeVisible()
+    await expect(page.getByTestId('disabled-badge-a.miller')).toHaveCount(0)
+    await expect(
+      page.getByRole('button', { name: /^(Status|Voicemail|Groups|Profiles|Devices)$/ }).first(),
+    ).toHaveText('Status')
+
+    await page.getByRole('button', { name: 'Status', exact: true }).click()
+    for (const option of ['Any', 'Enabled', 'Disabled']) {
+      await expect(page.getByRole('radio', { name: option, exact: true })).toBeVisible()
+    }
+    await page.getByRole('radio', { name: 'Disabled', exact: true }).click()
+    await expect(rows).toHaveCount(1)
+    await expect(page.getByTestId('user-c.davis')).toBeVisible()
+    await page.keyboard.press('Escape')
+    await page.mouse.move(0, 0)
+    await page.getByRole('button', { name: 'Status', exact: true }).click()
+    await page.getByRole('radio', { name: 'Enabled', exact: true }).click()
+    await expect(rows).toHaveCount(2)
+    await expect(page.getByTestId('user-c.davis')).toHaveCount(0)
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Reset filters' }).click()
+    await expect(rows).toHaveCount(3)
+  })
+
+  test('edits name, surname and email of a user', async ({ page, mockApi }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
+    const surname = drawer.getByRole('textbox', { name: 'Surname' })
+    const email = drawer.getByRole('textbox', { name: 'Email' })
+    await expect(name).toHaveValue('Anna')
+    await expect(surname).toHaveValue('Miller')
+    await expect(email).toHaveValue('anna.miller@example.org')
+    await expect(email).toHaveAttribute('placeholder', 'e.g. jane.doe@example.com')
+
+    const labels = await drawer.locator('label').allTextContents()
+    const order = ['Status', 'Name', 'Surname', 'Email', 'Extension'].map((label) =>
+      labels.findIndex((text) => text.trim().startsWith(label)),
+    )
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+
+    await name.fill('')
+    await email.fill('anna.white')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(drawer.getByText('Enter the name')).toBeVisible()
+    await expect(drawer.getByText('Enter a valid email address')).toBeVisible()
+    await expect(name).toBeFocused()
+    expect(mockApi.callsTo('PATCH', `${REST}/users/:username/account`)).toHaveLength(0)
+
+    await name.fill('Anna Maria')
+    await surname.fill('White')
+    await email.fill('anna.white@example.org')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByTestId('toast-notifications').getByText('User updated')).toBeVisible()
+    expect(mockApi.callsTo('PATCH', `${REST}/users/a.miller/account`)[0].body).toEqual({
+      display_name: 'Anna Maria White',
+      mail: 'anna.white@example.org',
+    })
+  })
+
+  test('refuses control characters in name and surname before saving', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
+    const surname = drawer.getByRole('textbox', { name: 'Surname' })
+    const message = 'Remove tabs, line breaks and other invisible characters'
+
+    await name.fill('Anna\tMaria')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(drawer.getByText(message)).toHaveCount(1)
+    await expect(name).toBeFocused()
+
+    await name.fill('Anna Maria')
+    await surname.fill('Mil\u007fler')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(drawer.getByText(message)).toHaveCount(1)
+    await expect(surname).toBeFocused()
+    expect(mockApi.callsTo('PATCH', `${REST}/users/:username/account`)).toHaveLength(0)
+
+    await surname.fill('Müller-Ça')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByTestId('toast-notifications').getByText('User updated')).toBeVisible()
+    expect(mockApi.callsTo('PATCH', `${REST}/users/a.miller/account`)[0].body).toEqual({
+      display_name: 'Anna Maria Müller-Ça',
+    })
+  })
+
+  test('shows a display name refused by the server on the name field', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('PATCH', `${REST}/users/:username/account`, {
+      status: 422,
+      json: {
+        code: 'invalid_display_name',
+        message: 'The display name contains control characters',
+      },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
+    await name.fill('Anna Maria')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(
+      drawer.getByText('Remove tabs, line breaks and other invisible characters'),
+    ).toBeVisible()
+    await expect(name).toBeFocused()
+    await expect(drawer.getByTestId('user-save-error')).toContainText(
+      'The name contains tabs, line breaks or other invisible characters.',
+    )
+  })
+
+  test('reports a refused email and keeps the drawer open', async ({ page, mockApi }) => {
+    mockApi.on('PATCH', `${REST}/users/:username/account`, {
+      status: 422,
+      json: { code: 'invalid_mail', message: 'Invalid email address' },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    await drawer.getByRole('textbox', { name: 'Email' }).fill('anna@example.invalid')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(drawer.getByText('Enter a valid email address', { exact: true })).toBeVisible()
+    await expect(drawer.getByRole('textbox', { name: 'Email' })).toBeFocused()
+    await expect(drawer.getByTestId('user-save-error')).toContainText(
+      'Cannot save name, email and status',
+    )
+    expect(mockApi.callsTo('GET', `${REST}/users/domain/accounts`).length).toBeGreaterThan(1)
+  })
+
+  test('creates a user with an email address', async ({ page, mockApi }) => {
+    const created = {
+      ...RAW_USERS[2],
+      id: '14',
+      username: 'e.johnson',
+      displayname: 'Emma Johnson',
+      default_extension: 'none',
+      devices: [],
+    }
+    let imported = false
+    mockWrites(mockApi)
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    mockApi.on('GET', `${REST}/users/:all`, () => ({
+      json: imported ? [...RAW_USERS, created] : RAW_USERS,
+    }))
+    mockApi.on('POST', `${REST}/csv/csvimport`, () => {
+      imported = true
+      return { status: 200 }
+    })
+
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Create user' }).first().click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
+    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
+    await drawer.getByLabel('Confirm password').fill('Secret,123')
+    await drawer.getByRole('textbox', { name: 'Email' }).fill('emma.johnson@example.org')
+    await drawer.getByRole('button', { name: 'Create' }).click()
+
+    await expect(page.getByText('User created')).toBeVisible(IMPORT_TIMEOUT)
+    const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as { file: string }
+    expect(Buffer.from(file.file, 'base64').toString()).toBe(
+      '"e.johnson","Emma Johnson","","Secret,123"\r\n',
+    )
+    expect(mockApi.callsTo('PATCH', `${REST}/users/e.johnson/account`)[0].body).toEqual({
+      mail: 'emma.johnson@example.org',
+    })
+  })
+
+  test('deletes a user and keeps the extension among the removed users', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.goto('./users/users')
+    await expect(page.getByTestId('orphan-extensions-warning')).toHaveCount(0)
+    await openRowMenu(page, 'a.miller')
+    const items = page.getByRole('menuitem')
+    await expect(items).toHaveText([
+      'Change password',
+      'Reassign extension',
+      'Remove extension',
+      'Delete',
+    ])
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Delete user' })
+    await expect(modal.getByTestId('delete-user-confirmation')).toHaveText(
+      [
+        'User Anna Miller (a.miller) will be permanently deleted.',
+        'The account is deleted from the account provider and from every application that uses it.',
+        'Its devices stop working. Extension 300 is kept in Extensions of removed users: there you can delete it, or restore it by creating the user again.',
+      ].join(''),
+      { useInnerText: false },
+    )
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('User deleted')).toBeVisible()
+    await expect(toasts.getByText('User Anna Miller has been deleted.')).toBeVisible()
+    expect(mockApi.callsTo('DELETE', `${REST}/users/a.miller/account`)).toHaveLength(1)
+    await expect(page.getByTestId('user-a.miller')).toHaveCount(0)
+    await expect(page.getByTestId('orphan-extensions-warning')).toContainText(
+      '1 extension belongs to a removed user',
+    )
+    for (const [method, path] of [
+      ['POST', '/mainextensions'],
+      ['POST', '/mainextensions/orphans/release'],
+      ['DELETE', '/webrtc/:ext'],
+      ['DELETE', '/physicalextensions/:ext'],
+    ]) {
+      expect(mockApi.callsTo(method, `${REST}${path}`)).toHaveLength(0)
+    }
+  })
+
+  test('deletes a user without extension and reports a failure in the modal', async ({
+    page,
+    mockApi,
+  }) => {
+    let failing = true
+    mockApi.on('DELETE', `${REST}/users/:username/account`, () =>
+      failing
+        ? { status: 502, json: { code: 'provider_error', message: 'internal' } }
+        : { json: { synchronized: false } },
+    )
+    await page.goto('./users/users')
+    await openRowMenu(page, 'd.jones')
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Delete user' })
+    await expect(modal.getByTestId('delete-user-confirmation')).not.toContainText('Extension')
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(modal.getByText('Cannot delete the user')).toBeVisible()
+    await expect(modal.getByText('internal')).toHaveCount(0)
+
+    failing = false
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click()
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('User deleted')).toBeVisible()
+    await expect(
+      toasts.getByText(
+        'The list of users could not be updated. To update it, choose Synchronize users.',
+      ),
+    ).toBeVisible()
+  })
+
+  test('warns when the users could not be synchronized after a change of name', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('PATCH', `${REST}/users/:username/account`, (request) => ({
+      json: { synchronized: 'locked' in (request.body as object) ? null : false },
+    }))
+    await page.goto('./users/users')
+    const toasts = page.getByTestId('toast-notifications')
+    const warning = toasts.getByText(
+      'The list of users could not be updated. To update it, choose Synchronize users.',
+    )
+
+    await page.getByRole('button', { name: 'Edit c.davis' }).click()
+    const lockDrawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
+    await lockDrawer.getByTestId('user-status-toggle').getByText('Enabled').click()
+    await lockDrawer.getByRole('button', { name: 'Save' }).click()
+    await expect(toasts.getByText('User Christopher Davis has been updated.')).toBeVisible()
+    await expect(warning).toHaveCount(0)
+
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    await drawer.getByRole('textbox', { name: 'Surname' }).fill('White')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(toasts.getByText('User updated').first()).toBeVisible()
+    await expect(toasts.getByText('Cannot synchronize the users')).toBeVisible()
+    await expect(warning).toBeVisible()
+  })
+
+  test.describe('account removed from the account provider', () => {
+    const missing = { status: 404, json: { code: 'user_not_found', message: 'internal' } }
+    const description =
+      'User a.miller no longer exists in the account provider. To update the list of users, choose Synchronize users.'
+
+    const expectRefreshed = async (mockApi: MockApi, before: number) => {
+      await expect
+        .poll(() => mockApi.callsTo('GET', `${REST}/users/:all`).length)
+        .toBeGreaterThan(before)
+    }
+
+    test('closes the password drawer and refreshes the users', async ({ page, mockApi }) => {
+      mockApi.on('PUT', `${REST}/users/:username/account/password`, missing)
+      await page.goto('./users/users')
+      await openRowMenu(page, 'a.miller')
+      await page.getByRole('menuitem', { name: 'Change password' }).click()
+      const drawer = page.getByRole('dialog', { name: 'Change password of a.miller' })
+      await drawer.getByLabel('New password').fill('Invented-Pass1!')
+      await drawer.getByLabel('Confirm password').fill('Invented-Pass1!')
+      const before = mockApi.callsTo('GET', `${REST}/users/:all`).length
+      await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+
+      await expect(drawer).toBeHidden()
+      const toasts = page.getByTestId('toast-notifications')
+      await expect(toasts.getByText('Cannot change the password')).toBeVisible()
+      await expect(toasts.getByText(description)).toBeVisible()
+      await expect(toasts.getByText('internal')).toHaveCount(0)
+      await expectRefreshed(mockApi, before)
+    })
+
+    test('closes the edit drawer and refreshes the users', async ({ page, mockApi }) => {
+      mockApi.on('PATCH', `${REST}/users/:username/account`, missing)
+      await page.goto('./users/users')
+      await page.getByRole('button', { name: 'Edit a.miller' }).click()
+      const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+      await drawer.getByRole('textbox', { name: 'Surname' }).fill('White')
+      const before = mockApi.callsTo('GET', `${REST}/users/:all`).length
+      await drawer.getByRole('button', { name: 'Save' }).click()
+
+      await expect(drawer).toBeHidden()
+      const toasts = page.getByTestId('toast-notifications')
+      await expect(toasts.getByText('Cannot save name, email and status')).toBeVisible()
+      await expect(toasts.getByText(description)).toBeVisible()
+      await expectRefreshed(mockApi, before)
+      for (const write of ['/mainextensions', '/voicemails', '/mobiles', '/webrtc', '/nethlink']) {
+        expect(mockApi.callsTo('POST', `${REST}${write}`)).toHaveLength(0)
+      }
+    })
+
+    test('closes the delete modal and refreshes the users', async ({ page, mockApi }) => {
+      mockApi.on('DELETE', `${REST}/users/:username/account`, missing)
+      await page.goto('./users/users')
+      await openRowMenu(page, 'a.miller')
+      await page.getByRole('menuitem', { name: 'Delete' }).click()
+      const modal = page.getByRole('dialog', { name: 'Delete user' })
+      const before = mockApi.callsTo('GET', `${REST}/users/:all`).length
+      await modal.getByRole('button', { name: 'Delete', exact: true }).click()
+
+      await expect(modal).toBeHidden()
+      const toasts = page.getByTestId('toast-notifications')
+      await expect(toasts.getByText('Cannot delete the user')).toBeVisible()
+      await expect(toasts.getByText(description)).toBeVisible()
+      await expectRefreshed(mockApi, before)
+    })
+  })
+
+  test('opens the drawer and the modal with the keyboard and returns the focus', async ({
+    page,
+  }) => {
+    await page.goto('./users/users')
+    const menuButton = page.getByRole('button', { name: 'Actions for a.miller' })
+    await menuButton.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeVisible()
+    await page.keyboard.press('Enter')
+
+    const drawer = page.getByRole('dialog', { name: 'Change password of a.miller' })
+    await expect(drawer.getByLabel('New password')).toBeFocused()
+    await page.keyboard.type('Invented-Pass1!')
+    await page.keyboard.press('Tab')
+    await expect(drawer.getByRole('button', { name: 'Show password' }).first()).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(drawer.getByLabel('New password')).toBeHidden()
+    await expect(menuButton).toBeFocused()
+
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
+    await page.keyboard.press('End')
+    await page.keyboard.press('Enter')
+    const modal = page.getByRole('dialog', { name: 'Delete user' })
+    await expect(modal.getByRole('button', { name: 'Cancel' })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(modal.getByRole('button', { name: 'Cancel' })).toBeHidden()
+    await expect(menuButton).toBeFocused()
+  })
+
+  test('fits a phone screen', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions for a.miller' }).click()
+    await page.getByRole('menuitem', { name: 'Change password' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Change password of a.miller' })
+    await expect(drawer.getByRole('button', { name: 'Change', exact: true })).toBeInViewport()
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    )
+    expect(overflow).toBeLessThanOrEqual(0)
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+
+    await page.getByRole('button', { name: 'Actions for a.miller' }).click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
+    const modal = page.getByRole('dialog', { name: 'Delete user' })
+    await expect(modal.getByRole('button', { name: 'Delete', exact: true })).toBeInViewport()
+  })
+
+  test.describe('limited administrator with the Users section', () => {
+    test.beforeEach(async ({ page, mockApi }) => {
+      await signInAs(page, 'helpdesk')
+      mockPermissions(mockApi, ['users'], 'helpdesk')
+    })
+
+    test('changes passwords, status, names and deletes users', async ({ page, mockApi }) => {
+      await page.goto('./users/users')
+      await openRowMenu(page, 'a.miller')
+      await page.getByRole('menuitem', { name: 'Change password' }).click()
+      const password = page.getByRole('dialog', { name: 'Change password of a.miller' })
+      await password.getByLabel('New password').fill('Invented-Pass1!')
+      await password.getByLabel('Confirm password').fill('Invented-Pass1!')
+      await password.getByRole('button', { name: 'Change', exact: true }).click()
+      await expect(
+        page.getByTestId('toast-notifications').getByText('Password updated'),
+      ).toBeVisible()
+
+      await page.getByRole('button', { name: 'Edit c.davis' }).click()
+      const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
+      await drawer.getByTestId('user-status-toggle').getByText('Enabled').click()
+      await drawer.getByRole('textbox', { name: 'Surname' }).fill('Brown')
+      await drawer.getByRole('button', { name: 'Save' }).click()
+      await expect(page.getByTestId('disabled-badge-c.davis')).toBeVisible()
+
+      await openRowMenu(page, 'a.miller')
+      await page.getByRole('menuitem', { name: 'Delete' }).click()
+      await page
+        .getByRole('dialog', { name: 'Delete user' })
+        .getByRole('button', { name: 'Delete', exact: true })
+        .click()
+      await expect(page.getByTestId('user-a.miller')).toHaveCount(0)
+
+      expect(mockApi.callsTo('PUT', `${REST}/users/a.miller/account/password`)).toHaveLength(1)
+      expect(mockApi.callsTo('PATCH', `${REST}/users/c.davis/account`)[0].body).toEqual({
+        display_name: 'Christopher Brown',
+        locked: true,
+      })
+      expect(mockApi.callsTo('DELETE', `${REST}/users/a.miller/account`)).toHaveLength(1)
+    })
+
+    test('cannot act on domain administrators nor on the own account', async ({
+      page,
+      mockApi,
+    }) => {
+      mockApi.on('GET', `${REST}/users/domain/accounts`, {
+        json: [
+          ...ACCOUNTS.map((account) =>
+            account.username === 'd.jones' ? { ...account, domain_admin: true } : account,
+          ),
+        ],
+      })
+      mockApi.on('GET', `${REST}/users/:all`, {
+        json: [
+          ...RAW_USERS,
+          { ...RAW_USERS[2], id: '15', username: 'helpdesk', displayname: 'Help Desk' },
+        ],
+      })
+      await page.goto('./users/users')
+
+      for (const [username, reason] of [
+        [
+          'd.jones',
+          'Only the superadmin can change the password of a domain administrator, disable it or delete it.',
+        ],
+        [
+          'helpdesk',
+          "You can't change the password of, disable or delete the account you are signed in with.",
+        ],
+      ]) {
+        await openRowMenu(page, username)
+        await expect(page.getByTestId(`account-restriction-${username}`)).toHaveText(reason)
+        await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeDisabled()
+        await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
+        await page.keyboard.press('Escape')
+
+        await page.getByRole('button', { name: `Edit ${username}` }).click()
+        const drawer = page.getByRole('dialog', { name: `Edit user ${username}` })
+        await expect(drawer.getByTestId('user-status-toggle').getByRole('checkbox')).toBeDisabled()
+        await expect(drawer.getByTestId('user-status-helper')).toHaveText(reason)
+        await expect(drawer.getByRole('textbox', { name: 'Surname' })).toBeEnabled()
+        await drawer.getByRole('button', { name: 'Cancel' }).click()
+        await expect(drawer.getByRole('button', { name: 'Cancel' })).toBeHidden()
+      }
+
+      await openRowMenu(page, 'a.miller')
+      await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeEnabled()
+      await expect(page.getByTestId('account-restriction-a.miller')).toHaveCount(0)
+    })
+  })
+
+  test('a superadmin can act on domain administrators', async ({ page, mockApi }) => {
+    mockApi.on('GET', `${REST}/users/domain/accounts`, {
+      json: ACCOUNTS.map((account) => ({ ...account, domain_admin: true })),
+    })
+    await page.goto('./users/users')
+    await openRowMenu(page, 'd.jones')
+    await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeEnabled()
+    await expect(page.getByTestId('account-restriction-d.jones')).toHaveCount(0)
+  })
+
+  test('an administrator without the Users section gets no access', async ({ page, mockApi }) => {
+    await signInAs(page, 'operator')
+    mockPermissions(mockApi, ['phones'], 'operator')
+    mockApi.allowUnmockedCalls()
+    await page.goto('./users/users')
+
+    await expect(page).not.toHaveURL(/\/users\/users$/)
+    expect(mockApi.callsTo('GET', `${REST}/users/domain`)).toHaveLength(0)
+    expect(mockApi.callsTo('GET', `${REST}/users/domain/accounts`)).toHaveLength(0)
+  })
+
+  test.describe('external account provider', () => {
+    test.beforeEach(({ mockApi }) => {
+      mockUsersApi(mockApi, { domain: { manageable: false, reason: 'external' } })
+    })
+
+    test('hides the account controls and explains why', async ({ page, mockApi }) => {
+      await page.goto('./users/users')
+      const notice = page.getByTestId('users-domain-notice')
+      await expect(notice).toContainText('Users are managed in an external account provider')
+      await expect(notice).toContainText(
+        'Passwords, status, names and email addresses can be changed only there.',
+      )
+      await expect(page.getByRole('button', { name: 'Status', exact: true })).toHaveCount(0)
+
+      await openRowMenu(page, 'a.miller')
+      await expect(page.getByRole('menuitem')).toHaveText([
+        'Reassign extension',
+        'Remove extension',
+      ])
+      await page.keyboard.press('Escape')
+
+      await page.getByRole('button', { name: 'Edit a.miller' }).click()
+      const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+      await expect(drawer.getByRole('textbox', { name: 'Extension' })).toBeFocused()
+      await expect(drawer.getByTestId('user-status-toggle')).toHaveCount(0)
+      for (const field of ['Name', 'Surname', 'Email']) {
+        await expect(
+          drawer.getByRole('textbox', { name: field, exact: field === 'Name' }),
+        ).toBeDisabled()
+      }
+      await expect(drawer.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Anna')
+      await drawer.getByRole('button', { name: 'Cancel' }).click()
+      expect(mockApi.callsTo('GET', `${REST}/users/domain/accounts`)).toHaveLength(0)
+    })
+
+    test('says up front that users are created in the account provider', async ({
+      page,
+      mockApi,
+    }) => {
+      await page.goto('./users/users')
+      await page.getByRole('button', { name: 'Create user' }).first().click()
+      const drawer = page.getByRole('dialog', { name: 'Create user' })
+      const blocked = drawer.getByTestId('user-creation-blocked')
+      await expect(blocked).toContainText('Users are managed in an external account provider')
+      await expect(blocked).toContainText(
+        'Create new users in the account provider, then choose Synchronize users.',
+      )
+      await expect(drawer.getByRole('button', { name: 'Create', exact: true })).toBeDisabled()
+      await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeDisabled()
+      expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
+    })
+  })
+
+  test('warns when the account provider cannot be reached and retries', async ({
+    page,
+    mockApi,
+  }) => {
+    let domain: { manageable: boolean; reason: string | null } = {
+      manageable: false,
+      reason: 'unavailable',
+    }
+    mockApi.on('GET', `${REST}/users/domain`, () => ({ json: domain }))
+    await page.goto('./users/users')
+    const notice = page.getByTestId('users-domain-notice')
+    await expect(notice).toContainText('Cannot reach the account provider')
+    await expect(notice).toContainText(
+      "Passwords, status, names and email addresses can't be changed now.",
+    )
+    domain = { manageable: true, reason: null }
+    await notice.getByRole('button', { name: 'Retry' }).click()
+    await expect(notice).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Status', exact: true })).toBeVisible()
   })
 })

@@ -5,6 +5,8 @@ import { compareNatural, matchesText } from '@/lib/common'
 import type { UserRow } from '@/lib/users/directory'
 import type { SoftwareDeviceType } from '@/lib/users/users'
 
+export type StatusFilter = 'any' | 'enabled' | 'disabled'
+
 export type VoicemailFilter = 'any' | 'enabled' | 'disabled'
 
 export type PhysicalPhonesFilter = 'any' | 'with' | 'without'
@@ -13,6 +15,7 @@ export type UserSortKey = 'displayName' | 'username' | 'mainExtension'
 
 export type UserFilters = {
   text: string
+  status: StatusFilter
   voicemail: VoicemailFilter
   groupIds: number[]
   profileIds: number[]
@@ -22,6 +25,7 @@ export type UserFilters = {
 
 export const DEFAULT_USER_FILTERS: UserFilters = {
   text: '',
+  status: 'any',
   voicemail: 'any',
   groupIds: [],
   profileIds: [],
@@ -31,15 +35,23 @@ export const DEFAULT_USER_FILTERS: UserFilters = {
 
 export const areDefaultUserFilters = (filters: UserFilters): boolean =>
   filters.text.trim() === '' &&
+  filters.status === 'any' &&
   filters.voicemail === 'any' &&
   filters.groupIds.length === 0 &&
   filters.profileIds.length === 0 &&
   filters.devices.length === 0 &&
   filters.physicalPhones === 'any'
 
-export const filterUserRows = (rows: UserRow[], filters: UserFilters): UserRow[] =>
+export const filterUserRows = <T extends UserRow & { locked?: boolean | null }>(
+  rows: T[],
+  filters: UserFilters,
+): T[] =>
   rows.filter((row) => {
     if (!matchesText(filters.text, row.displayName, row.username, row.mainExtension)) {
+      return false
+    }
+
+    if (filters.status !== 'any' && (row.locked === true) !== (filters.status === 'disabled')) {
       return false
     }
 
