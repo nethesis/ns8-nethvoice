@@ -104,7 +104,7 @@ func GetCallDetails(c *gin.Context) {
 	ORDER BY calldate
 	`, srcExpr, dstExpr)
 
-	db := source.CDRInstance()
+	db := source.CDRQueryInstance()
 	results, errQuery := db.Query(query, linkedid)
 	if errQuery != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "error executing SQL query", "status": errQuery.Error()})
@@ -388,7 +388,7 @@ func executeSqlQuery(filter models.Filter, report string, section string, view s
 	}
 
 	// execute query
-	db := source.CDRInstance()
+	db := source.CDRQueryInstance()
 	results, errQuery := db.Query(queryString.String())
 	if errQuery != nil {
 		return "", errors.Wrap(errQuery, "invalid query execution")

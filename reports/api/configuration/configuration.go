@@ -39,6 +39,13 @@ type Configuration struct {
 		Name     string `json:"name"`
 		Password string `json:"password"`
 	} `json:"cdr_database"`
+	CDRQueryDatabase struct {
+		Host     string `json:"host"`
+		Port     string `json:"port"`
+		User     string `json:"user"`
+		Name     string `json:"name"`
+		Password string `json:"password"`
+	} `json:"cdr_query_database"`
 	PhonebookDatabase struct {
 		Host     string `json:"host"`
 		Port     string `json:"port"`

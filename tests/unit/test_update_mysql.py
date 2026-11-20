@@ -19,7 +19,7 @@ class DatabasePreparationTest(unittest.TestCase):
         mysql.write_text('#!/bin/sh\nprintf called >> "$TEST_CALLS"\nexit 91\n')
         mysql.chmod(0o755)
         self.env = dict(os.environ, PATH=str(self.root) + ':' + os.environ['PATH'],
-                        TEST_CALLS=str(self.root / 'calls'), MARIADB_ROOT_PASSWORD='test')
+                        TEST_CALLS=str(self.root / 'calls'), MARIADB_ROOT_PASSWORD='test', REPORTS_PASSWORD='test')
         self.script = self.root / 'init.sh'
         self.script.write_text(INIT.read_text().replace('/docker-entrypoint-initdb.d/', str(self.root) + '/'))
         (self.root / '00_roomsdb-schema-create.sql').write_text('CREATE DATABASE IF NOT EXISTS roomsdb;')

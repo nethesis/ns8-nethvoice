@@ -16,4 +16,3 @@ ORDER  BY total£num DESC,
 {{ else }}
 SELECT "queues field is required" AS "!message";
 {{ end }}
-~                    

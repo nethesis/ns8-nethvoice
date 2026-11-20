@@ -34,6 +34,7 @@ import (
 )
 
 var dbQ *sql.DB
+var dbR *sql.DB
 var dbMig *sql.DB
 var dbViews *sql.DB
 var dbP *sql.DB
@@ -44,6 +45,14 @@ func CDRInstance() *sql.DB {
 		dbQ = CDRInit()
 	}
 	return dbQ
+}
+
+// CDRQueryInstance returns the read-only DB pool used by the report queries
+func CDRQueryInstance() *sql.DB {
+	if dbR == nil {
+		dbR = CDRQueryInit()
+	}
+	return dbR
 }
 
 // CDRMigrationInstance returns a DB pool without read/write timeouts,
@@ -84,7 +93,7 @@ func FreePBXInstance() *sql.DB {
 // otherwise the server finds the sockets closed and logs an
 // "Aborted connection ... (Got an error reading communication packets)" warning for each one.
 func Close() {
-	for _, db := range []**sql.DB{&dbQ, &dbMig, &dbViews, &dbP, &dbF} {
+	for _, db := range []**sql.DB{&dbQ, &dbR, &dbMig, &dbViews, &dbP, &dbF} {
 		if *db != nil {
 			(*db).Close()
 			*db = nil
@@ -107,6 +116,32 @@ func CDRInit() *sql.DB {
 	// test the connection
 	if err := db.Ping(); err != nil {
 		utils.LogError(errors.Wrap(err, "error pinging database"))
+	}
+
+	// set connection pool settings
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(5 * time.Minute)
+
+	// return db object
+	return db
+}
+
+func CDRQueryInit() *sql.DB {
+	// define uri connection string
+	uri := configuration.Config.CDRQueryDatabase.User + ":" + configuration.Config.CDRQueryDatabase.Password + "@tcp(" + configuration.Config.CDRQueryDatabase.Host + ":" + configuration.Config.CDRQueryDatabase.Port + ")/" + configuration.Config.CDRQueryDatabase.Name
+
+	// connect to database with timeout and connection settings, one statement per query
+	db, err := sql.Open("mysql", uri+"?charset=utf8&parseTime=True&timeout=300s&readTimeout=300s&writeTimeout=300s")
+
+	// handle error
+	if err != nil {
+		utils.LogError(errors.Wrap(err, "error connecting to query database"))
+	}
+
+	// test the connection
+	if err := db.Ping(); err != nil {
+		utils.LogError(errors.Wrap(err, "error pinging query database"))
 	}
 
 	// set connection pool settings
