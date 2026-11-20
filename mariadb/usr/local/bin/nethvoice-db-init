@@ -235,7 +235,7 @@ WHEN 'HTTPENABLED' THEN '1' WHEN 'HTTPTLSENABLE' THEN '1'
 WHEN 'HTTPTLSCERTFILE' THEN '/etc/asterisk/keys/NethServer.crt'
 WHEN 'HTTPTLSPRIVATEKEY' THEN '/etc/asterisk/keys/NethServer.key'
 END WHERE keyword IN ('HTTPBINDADDRESS','HTTPBINDPORT','HTTPTLSBINDPORT','HTTPENABLED','HTTPTLSENABLE','HTTPTLSCERTFILE','HTTPTLSPRIVATEKEY');
-UPDATE freepbx_settings SET value='0.0.0.0' WHERE keyword='HTTPTLSBINDADDRESS' AND value IN ('::','127.0.0.1');
+UPDATE freepbx_settings SET value='127.0.0.1', defaultval='127.0.0.1' WHERE keyword='HTTPTLSBINDADDRESS';
 SQL
 
 if [[ -n "${PROXY_IP:-}" && -n "${PROXY_PORT:-}" ]]; then
