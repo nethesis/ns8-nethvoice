@@ -259,6 +259,28 @@ func CleanFilter(filter *models.Filter) bool {
 	return true
 }
 
+var settingNumber = regexp.MustCompile(`^[\d.:]*$`)
+
+// ValidSettings checks the settings used in queries: numbers and hours,
+// and no double quote or backslash in the other ones
+func ValidSettings(settings models.Settings) bool {
+	numbers := []string{settings.StartHour, settings.EndHour, settings.QueryLimit, settings.NullCallTime}
+	texts := append([]string{}, settings.Destinations...)
+	for _, p := range settings.CallPatterns {
+		texts = append(texts, p.Prefix, p.Destination)
+	}
+	for _, c := range settings.Costs {
+		numbers = append(numbers, c.Cost)
+		texts = append(texts, c.ChannelId, c.Destination)
+	}
+	for _, n := range numbers {
+		if !settingNumber.MatchString(n) {
+			return false
+		}
+	}
+	return !strings.ContainsAny(strings.Join(texts, ""), "\"\\")
+}
+
 func escapeStrings(v reflect.Value) {
 	switch v.Kind() {
 	case reflect.String:

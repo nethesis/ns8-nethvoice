@@ -31,6 +31,7 @@ import (
 	"github.com/nethesis/nethvoice-report/api/cache"
 	"github.com/nethesis/nethvoice-report/api/configuration"
 	"github.com/nethesis/nethvoice-report/api/models"
+	"github.com/nethesis/nethvoice-report/api/utils"
 )
 
 func GetSettings(c *gin.Context) {
@@ -93,6 +94,10 @@ func SetSettings(c *gin.Context) {
 	var jsonSettings models.Settings
 	if err := c.BindJSON(&jsonSettings); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "request fields malformed", "status": err.Error()})
+		return
+	}
+	if !utils.ValidSettings(jsonSettings) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "request fields malformed"})
 		return
 	}
 
