@@ -76,20 +76,7 @@ func ParseSqlResults(rows *sql.Rows) string {
 		// compose record
 		record := []string{}
 		for _, value := range fieldCount {
-			if value == nil {
-				value = []uint8{}
-			}
-			if fmt.Sprintf("%T", value) == "time.Time" {
-				t := value.(time.Time)
-				value, _ = t.MarshalText()
-			}
-			if fmt.Sprintf("%T", value) == "int64" {
-				s := fmt.Sprint(value)
-				value = []byte(s)
-			}
-
-			value := string(value.([]byte))
-			record = append(record, value)
+			record = append(record, sqlValueToString(value))
 		}
 
 		// add record to data array
@@ -102,6 +89,34 @@ func ParseSqlResults(rows *sql.Rows) string {
 
 	// return value
 	return string(dataJSON)
+}
+
+// sqlValueToString converts a value scanned into interface{} back to the
+// text MariaDB sends. go-sql-driver/mysql >= 1.8 parses numbers of the text
+// protocol, so they arrive as int64, uint64, float32 or float64 instead of
+// []byte. Floats are printed in plain decimal notation, as MariaDB does.
+func sqlValueToString(value interface{}) string {
+	switch v := value.(type) {
+	case nil:
+		return ""
+	case []byte:
+		return string(v)
+	case string:
+		return v
+	case time.Time:
+		b, _ := v.MarshalText()
+		return string(b)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case uint64:
+		return strconv.FormatUint(v, 10)
+	case float32:
+		return strconv.FormatFloat(float64(v), 'f', -1, 32)
+	case float64:
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	default:
+		return fmt.Sprint(v)
+	}
 }
 
 func ExcludedRoute(route string) bool {
@@ -179,7 +194,7 @@ func Intersect(a []string, b []string, objType string) []string {
 
 	case "agents":
 		// intersect arrays and return []interface{}
-		r := intersect.Simple(a, b).([]interface{})
+		r := intersect.Simple(a, b)
 
 		// iterate over []interface{}
 		result := make([]string, len(r))
@@ -217,7 +232,7 @@ func Intersect(a []string, b []string, objType string) []string {
 
 	default:
 		// intersect arrays and return []interface{}
-		r := intersect.Simple(a, b).([]interface{})
+		r := intersect.Simple(a, b)
 
 		// iterate over []interface{}
 		result := make([]string, len(r))
