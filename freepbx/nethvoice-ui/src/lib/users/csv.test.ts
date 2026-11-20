@@ -13,6 +13,7 @@ import {
   encodeBase64,
   exceedsImportSizeLimit,
   getCsvImportFailure,
+  hasControlCharacters,
   ImportFileError,
   isCsvImportNotRunning,
   MAX_CSV_IMPORT_BASE64_LENGTH,
@@ -159,6 +160,17 @@ describe('parseImportFile', () => {
   })
 })
 
+describe('hasControlCharacters', () => {
+  it('finds the C0 control characters and DEL only', () => {
+    for (const char of ['\r', '\n', '\t', '\u0000', '\u001b', '\u001f', '\u007f']) {
+      expect(hasControlCharacters(`Anna${char}Miller`)).toBe(true)
+    }
+    for (const value of ['', 'Anna Miller', 'Zoë "Q" O\'Brien', 'R&D #2 / 50%', '\u0080\u00a0é']) {
+      expect(hasControlCharacters(value)).toBe(false)
+    }
+  })
+})
+
 describe('analyzeImport', () => {
   const rows = parseImportFile(
     [
@@ -268,6 +280,48 @@ describe('analyzeImport', () => {
     expect(analysis.valid.map((row) => row.username)).toEqual(['m.cole'])
     expect(analysis.errors.map(({ row, issues }) => [row.line, issues])).toEqual([
       [2, [{ issue: 'invalid_flag', column: 'nethlink', value: 'abilitato' }]],
+    ])
+  })
+
+  it('reports the rows with control characters and keeps the other names as they are', () => {
+    const rows = parseImportFile(
+      [
+        'username,name,surname,extension,password,mobile,group',
+        'k.lee,"Kevin\tAnn",Lee,305',
+        'm.cole,Mia,"Co\u0000le",306',
+        'n.ray,"Nora\nJane",Ray,307',
+        'o.dean,Omar,Dean,308,"Pass\u007fword"',
+        'p.hill,Pia,Hill,309,,"333\u001b000"',
+        'r.west,Rita,West,310,,,"Sales|Sup\rport"',
+        's.moss,"Zoë ""Q"" O\'Brien",Müller-Ça,311,"p""a s#s&ö",+39 333 000,R&D #2',
+        't.ford,Tom\t,Ford,312',
+      ].join('\n'),
+    )
+    const analysis = analyzeImport(rows, USERS, DIRECTORY, 'overwrite')
+
+    expect(analysis.errors.map(({ row, issues }) => [row.username, issues])).toEqual(
+      ['k.lee', 'm.cole', 'n.ray', 'o.dean', 'p.hill', 'r.west'].map((username) => [
+        username,
+        [{ issue: 'control_characters' }],
+      ]),
+    )
+    expect(
+      analysis.valid.map(({ username, fullName, password, mobile, groups }) => ({
+        username,
+        fullName,
+        password,
+        mobile,
+        groups,
+      })),
+    ).toEqual([
+      {
+        username: 's.moss',
+        fullName: 'Zoë "Q" O\'Brien Müller-Ça',
+        password: 'p"a s#s&ö',
+        mobile: '+39 333 000',
+        groups: ['R&D #2'],
+      },
+      { username: 't.ford', fullName: 'Tom Ford', password: '', mobile: null, groups: null },
     ])
   })
 

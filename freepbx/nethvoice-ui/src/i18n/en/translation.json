@@ -487,7 +487,8 @@
     "filtered_counter": "Showing {shown} of {total} user | Showing {shown} of {total} users",
     "base_profile_missing": "The Base profile could not be found, so the extension can't be configured",
     "user_created_description": "User {name} has been created.",
-    "user_updated_description": "User {name} has been updated."
+    "user_updated_description": "User {name} has been updated.",
+    "import_issue_control_characters": "tabs, line breaks or other invisible characters in a field"
   },
   "trunks": {
     "title": "Trunks",
