@@ -146,6 +146,10 @@ func GetGraphData(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid filter params", "status": errJson.Error()})
 		return
 	}
+	if !utils.CleanFilter(&filter) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid filter params"})
+		return
+	}
 
 	// set current user inside filter
 	user := GetClaims(c)["id"].(string)

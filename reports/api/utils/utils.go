@@ -245,6 +245,35 @@ func Intersect(a []string, b []string, objType string) []string {
 	}
 }
 
+var filterWord = regexp.MustCompile(`^\w*$`)
+var filterEscape = strings.NewReplacer(`\`, `\\`, `'`, `\'`, `"`, `\"`)
+
+// CleanFilter checks the values used in names and numbers and escapes the other ones
+func CleanFilter(filter *models.Filter) bool {
+	for _, s := range []string{filter.Time.Group, filter.Time.Division, filter.Time.CdrDashboardRange, filter.GeoGroup, filter.Duration} {
+		if !filterWord.MatchString(s) {
+			return false
+		}
+	}
+	escapeStrings(reflect.ValueOf(filter).Elem())
+	return true
+}
+
+func escapeStrings(v reflect.Value) {
+	switch v.Kind() {
+	case reflect.String:
+		v.SetString(filterEscape.Replace(v.String()))
+	case reflect.Struct:
+		for i := 0; i < v.NumField(); i++ {
+			escapeStrings(v.Field(i))
+		}
+	case reflect.Slice:
+		for i := 0; i < v.Len(); i++ {
+			escapeStrings(v.Index(i))
+		}
+	}
+}
+
 func ExtractStrings(v []string) string {
 	result := strings.Join(v, `","`)
 
