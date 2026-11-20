@@ -40,7 +40,7 @@ async function signOut() {
     <template #trigger>
       <button
         type="button"
-        class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-300 flex rounded-full p-2"
+        class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-300 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex rounded-full p-2 focus:outline-hidden focus-visible:ring-2"
         :disabled="signingOut"
         @click="signOut"
       >

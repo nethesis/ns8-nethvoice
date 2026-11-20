@@ -14,6 +14,7 @@ import { faCircleInfo, faCheck } from '@fortawesome/free-solid-svg-icons'
 import SetupStepLayout from './SetupStepLayout.vue'
 import SetupSummarySection from './SetupSummarySection.vue'
 import BrandLogo from '@/components/shell/BrandLogo.vue'
+import { useFocusReturn } from '@/composables/useFocusReturn'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { usePbxLanguages } from '@/queries/settings/system'
 import { useUsers } from '@/queries/users/users'
@@ -57,6 +58,8 @@ const completionError = ref<unknown>(null)
 let completionStarted = false
 
 const { country } = usePbxCountry({ remember: false })
+
+useFocusReturn(() => isFinishModalShown.value)
 
 const configuredUsers = computed(() =>
   usersState.value.data ? countConfiguredUsers(usersState.value.data) : undefined,

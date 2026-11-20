@@ -3,7 +3,12 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
-import { getCurrentSetupRoute, getWizardRedirect, type NamedRoute } from '@/lib/setup/guard'
+import {
+  getCurrentSetupRoute,
+  getWizardRedirect,
+  isSetupRoute,
+  type NamedRoute,
+} from '@/lib/setup/guard'
 import type { WizardState } from '@/lib/setup/wizard'
 
 export const ME_KEY = 'me'
@@ -31,6 +36,8 @@ export const NO_ACCESS_ROUTE = 'no-access'
 export const SETUP_PENDING_ROUTE = 'setup-pending'
 
 const DASHBOARD_ROUTE: NamedRoute = { name: 'dashboard' }
+
+const SETUP_ROUTE: NamedRoute = { name: 'setup' }
 
 const PERMISSIONS: readonly string[] = [SUPERADMIN, ...SECTIONS]
 
@@ -67,10 +74,14 @@ export const getFirstAllowedRoute = (permissions: readonly Permission[]): NamedR
 }
 
 const getSuperadminRedirect = (routeName: unknown, wizardState?: WizardState) => {
-  if (routeName === NO_ACCESS_ROUTE || routeName === SETUP_PENDING_ROUTE) {
-    return wizardState?.inProgress ? getCurrentSetupRoute(wizardState) : DASHBOARD_ROUTE
+  if (!wizardState) {
+    return routeName !== SETUP_PENDING_ROUTE && isSetupRoute(routeName) ? null : SETUP_ROUTE
   }
-  return wizardState ? getWizardRedirect(routeName, wizardState) : null
+
+  if (routeName === NO_ACCESS_ROUTE || routeName === SETUP_PENDING_ROUTE) {
+    return wizardState.inProgress ? getCurrentSetupRoute(wizardState) : DASHBOARD_ROUTE
+  }
+  return getWizardRedirect(routeName, wizardState)
 }
 
 export const getAccessRedirect = (
@@ -87,7 +98,7 @@ export const getAccessRedirect = (
     return getSuperadminRedirect(routeName, wizardState)
   }
 
-  if (wizardState?.inProgress) {
+  if (!wizardState || wizardState.inProgress) {
     return routeName === SETUP_PENDING_ROUTE ? null : { name: SETUP_PENDING_ROUTE }
   }
   const firstAllowedRoute = getFirstAllowedRoute(permissions)
@@ -112,6 +123,7 @@ export const isDeniedSectionRedirect = (
   permission !== undefined &&
   permissions !== undefined &&
   !isSuperadmin(permissions) &&
-  !wizardState?.inProgress &&
+  wizardState !== undefined &&
+  !wizardState.inProgress &&
   !canAccess(permissions, permission) &&
   getAllowedSections(permissions).length > 0

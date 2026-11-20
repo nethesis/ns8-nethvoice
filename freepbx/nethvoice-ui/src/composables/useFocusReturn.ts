@@ -3,12 +3,14 @@
 
 import { watch } from 'vue'
 
+const findDialogs = () => Array.from(document.querySelectorAll('[role="dialog"]'))
+
 const findClosingDialog = () =>
-  document.activeElement?.closest('[role="dialog"]') ??
-  Array.from(document.querySelectorAll('[role="dialog"]')).at(-1)
+  document.activeElement?.closest('[role="dialog"]') ?? findDialogs().at(-1)
 
 export const useFocusReturn = (isShown: () => boolean) => {
   let opener: HTMLElement | null = null
+  let dialogsAtOpen: Element[] = []
   let cancelReturn: (() => void) | null = null
 
   watch(isShown, (shown) => {
@@ -18,6 +20,7 @@ export const useFocusReturn = (isShown: () => boolean) => {
     if (shown) {
       const active = document.activeElement
       opener = active instanceof HTMLElement && active !== document.body ? active : null
+      dialogsAtOpen = findDialogs()
       return
     }
     const target = opener
@@ -26,9 +29,14 @@ export const useFocusReturn = (isShown: () => boolean) => {
     if (!target) {
       return
     }
-    const dialog = findClosingDialog()
+    const closingDialog = findClosingDialog()
+    const dialogs = findDialogs().filter(
+      (dialog) =>
+        dialog === closingDialog || (!dialogsAtOpen.includes(dialog) && !dialog.contains(target)),
+    )
+    dialogsAtOpen = []
     const returnFocus = () => {
-      if (dialog?.isConnected) {
+      if (dialogs.some((dialog) => dialog.isConnected)) {
         return false
       }
       if (target.isConnected) {

@@ -17,12 +17,12 @@ export const derivePbxCountry = ({
   const isSupported = (pbxLocale: string) =>
     pbxLocale !== '' && (!countries || countries.includes(pbxLocale))
 
-  if (isSupported(cached)) {
-    return cached
-  }
-
   if (isSupported(routesLocale)) {
     return routesLocale
+  }
+
+  if (isSupported(cached)) {
+    return cached
   }
   return countries?.includes(defaultLanguage) ? defaultLanguage : ''
 }
