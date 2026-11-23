@@ -682,6 +682,72 @@ function getMainExtension($extension) {
     }
 }
 
+// Resolve only an exact, unambiguous main extension, never a secondary device.
+function getMainExtensionUser($extension) {
+    if (!preg_match('/\A[0-9]{1,20}\z/D', $extension)) {
+        return null;
+    }
+    $stmt = FreePBX::Database()->prepare('SELECT id, username, default_extension FROM userman_users WHERE default_extension = ? LIMIT 2');
+    $stmt->execute([$extension]);
+    $users = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    return count($users) === 1 ? $users[0] : null;
+}
+
+// Expose availability only; mailbox passwords and addresses stay in FreePBX.
+function getMainExtensionVoicemailEnabled($extension) {
+    global $astman;
+    if (!preg_match('/\A[0-9]{1,20}\z/D', $extension)) {
+        throw new InvalidArgumentException('invalid_main_extension');
+    }
+    $stmt = FreePBX::Database()->prepare('SELECT voicemail FROM users WHERE extension = ? LIMIT 2');
+    $stmt->execute([$extension]);
+    $contexts = $stmt->fetchAll(\PDO::FETCH_COLUMN);
+    $context = count($contexts) === 1 ? $contexts[0] : null;
+    if (!is_string($context) || in_array($context, ['', 'novm', 'disabled'], true)
+        || !preg_match('/\A[A-Za-z0-9_.-]{1,50}\z/D', $context)) return false;
+    try {
+        $mailbox = $astman->GetVar(null, 'VM_INFO('.$extension.'@'.$context.',exists)');
+        return ($mailbox['Response'] ?? '') === 'Success' && ($mailbox['Value'] ?? '') === '1';
+    } catch (Throwable $error) {
+        return false;
+    }
+}
+
+// Read live main-extension hints and forwarding flags without the AstDB cache.
+function getMainExtensionPresence($extension) {
+    global $astman;
+    if (!preg_match('/\A[0-9]{1,20}\z/D', $extension)) {
+        throw new InvalidArgumentException('invalid_main_extension');
+    }
+    $values = [];
+    foreach (['DND', 'CF'] as $family) {
+        // Channel-less AMI GetVar(DB(...)) can return empty despite a set key.
+        $result = $astman->Command('database get '.$family.' '.$extension);
+        if (($result['Response'] ?? '') !== 'Success' || !isset($result['data'])) {
+            throw new RuntimeException('extension_presence_unavailable');
+        }
+        if (preg_match('/^Value: (.*)$/m', $result['data'], $match)) {
+            $values[$family] = trim($match[1]);
+        } elseif (strpos($result['data'], 'Database entry not found.') !== false) {
+            $values[$family] = '';
+        } else {
+            throw new RuntimeException('extension_presence_unavailable');
+        }
+    }
+    $state = $astman->ExtensionState($extension, 'ext-local');
+    if (($state['Response'] ?? '') !== 'Success' || !isset($state['Status'])) {
+        throw new RuntimeException('extension_state_unavailable');
+    }
+    $presence = [0=>'online', 1=>'busy', 2=>'busy', 4=>'offline', 8=>'ringing', 9=>'busy', 16=>'busy', 17=>'busy'][(string)$state['Status']] ?? 'unknown';
+    if ($values['DND'] === 'YES') {
+        $presence = 'dnd';
+    } elseif ($values['CF'] !== '') {
+        // Native voicemail forwarding uses the same CF key with * or vmu.
+        $presence = preg_match('/\A(?:\*|vmu)/', $values['CF']) ? 'voicemail' : 'callforward';
+    }
+    return ['effective_presence'=>$presence, 'device_state'=>(string)$state['Status']];
+}
+
 
 function deleteExtension($extension,$wipemain=false) {
     try {
