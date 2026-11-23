@@ -53,13 +53,13 @@ import {
   NeTooltip,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faSidebarLeft } from '@nethesis/nethesis-solid-svg-icons'
 import {
   faArrowLeft,
   faArrowPointer,
   faCircleArrowDown,
   faCircleXmark,
   faCirclePlus,
-  faCircleQuestion,
   faExpand,
   faFloppyDisk,
   faHand,
@@ -70,7 +70,6 @@ import {
   faRotateLeft,
   faRotateRight,
   faSitemap,
-  faTableColumns,
   faTriangleExclamation,
 } from '@fortawesome/free-solid-svg-icons'
 import {
@@ -100,7 +99,6 @@ import NodeInspector from '@/components/visualplan/NodeInspector.vue'
 import NodePalette from '@/components/visualplan/NodePalette.vue'
 import FlowSearch from '@/components/visualplan/FlowSearch.vue'
 import QuickAddMenu from '@/components/visualplan/QuickAddMenu.vue'
-import ShortcutsModal from '@/components/visualplan/ShortcutsModal.vue'
 import SimulationPanel from '@/components/visualplan/SimulationPanel.vue'
 import SelectionPanel from '@/components/visualplan/SelectionPanel.vue'
 
@@ -153,7 +151,6 @@ const tool = ref<'pan' | 'select'>('pan')
 const selectMode = computed(() => tool.value === 'select' && !isTouch.value)
 const showMinimap = ref(true)
 const paletteOpen = ref(true)
-const shortcutsShown = ref(false)
 const paletteDrawerShown = ref(false)
 const selectedEdgeId = ref<string | null>(null)
 const animating = ref(false)
@@ -193,25 +190,6 @@ const issueItems = computed(() =>
   }),
 )
 
-const moreItems = computed(() => [
-  {
-    id: 'export',
-    label: t('visual_plan.export.download_image'),
-    icon: faCircleArrowDown,
-    disabled: exporting.value,
-    action: () => exportImage(),
-  },
-  ...(isTouch.value
-    ? []
-    : [
-        {
-          id: 'shortcuts',
-          label: t('visual_plan.shortcuts.show'),
-          icon: faCircleQuestion,
-          action: () => (shortcutsShown.value = true),
-        },
-      ]),
-])
 const warningCount = computed(
   () =>
     Object.values(store.issues)
@@ -988,10 +966,6 @@ function onKeydown(event: KeyboardEvent) {
   if (isEditable(event.target) || !isEditorTarget(event.target)) return
   const onCanvas = isCanvasTarget(event.target)
 
-  if (onCanvas && event.key === '?') {
-    shortcutsShown.value = true
-    return
-  }
   const letter = event.key.toLowerCase()
   if (onCanvas && !mod && !event.altKey && (letter === 'h' || letter === 'v')) {
     tool.value = letter === 'h' ? 'pan' : 'select'
@@ -1131,17 +1105,6 @@ const canvasControls = computed(() => [
         },
       ]
     : []),
-  ...(isTouch.value
-    ? []
-    : [
-        {
-          id: 'help',
-          icon: faCircleQuestion,
-          label: t('visual_plan.shortcuts.show'),
-          pressed: undefined,
-          action: () => (shortcutsShown.value = true),
-        },
-      ]),
 ])
 
 watch(canvasWidth, (width) => {
@@ -1209,7 +1172,7 @@ function goBack() {
             :aria-pressed="paletteOpen"
             @click="paletteOpen = !paletteOpen"
           >
-            <FontAwesomeIcon :icon="faTableColumns" aria-hidden="true" />
+            <FontAwesomeIcon :icon="faSidebarLeft" aria-hidden="true" />
             <span class="sr-only">{{ t('visual_plan.toggle_palette') }}</span>
           </NeButton>
         </template>
@@ -1311,11 +1274,15 @@ function goBack() {
             <template #content>{{ t('visual_plan.auto_layout') }}</template>
           </NeTooltip>
         </template>
-        <NeDropdown
-          :items="moreItems"
-          align-to-right
-          :open-menu-aria-label="t('visual_plan.more_actions')"
-        />
+        <NeTooltip trigger-event="mouseenter focus" placement="bottom">
+          <template #trigger>
+            <NeButton kind="tertiary" size="sm" :loading="exporting" @click="exportImage()">
+              <FontAwesomeIcon :icon="faCircleArrowDown" aria-hidden="true" />
+              <span class="sr-only">{{ t('visual_plan.export.download_image') }}</span>
+            </NeButton>
+          </template>
+          <template #content>{{ t('visual_plan.export.download_image') }}</template>
+        </NeTooltip>
         <NeButton
           v-if="!isLarge && !readOnly"
           kind="secondary"
@@ -1571,7 +1538,6 @@ function goBack() {
       <NodePalette @add="addFromPalette" />
     </NeSideDrawer>
 
-    <ShortcutsModal :visible="shortcutsShown" @close="shortcutsShown = false" />
     <NeModal
       :visible="unsavedModalShown"
       :title="t('common.unsaved_changes')"

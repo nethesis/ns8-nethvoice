@@ -293,21 +293,6 @@ test.describe('visual plan', () => {
     expect(after && after.y - before.y).toBeGreaterThan(50)
   })
 
-  test('shows the keyboard and mouse shortcuts', async ({ page }) => {
-    await page.goto('./routes/visual-plan?route=0721405516%2F')
-    await expect(page.locator('.vue-flow').getByText('Main menu')).toBeVisible()
-
-    await page.locator('.vue-flow__pane').click({ position: { x: 20, y: 20 } })
-    await page.keyboard.press('?')
-    await expect(page.getByRole('heading', { name: 'Keyboard and mouse' })).toBeVisible()
-    await expect(page.getByText('Add or remove an item from the selection')).toBeVisible()
-    await page.getByRole('button', { name: 'Close' }).first().click()
-    await expect(page.getByText('Add or remove an item from the selection')).toBeHidden()
-
-    await page.getByRole('button', { name: 'Show keyboard and mouse shortcuts' }).click()
-    await expect(page.getByText('Add or remove an item from the selection')).toBeVisible()
-  })
-
   test('collapses and expands a branch', async ({ page }) => {
     await page.goto('./routes/visual-plan?route=0721405516%2F')
     const canvas = page.locator('.vue-flow')
@@ -355,8 +340,7 @@ test.describe('visual plan', () => {
     await expect(page.locator('.vue-flow').getByText('Main menu')).toBeVisible()
 
     const download = page.waitForEvent('download')
-    await page.getByRole('button', { name: 'More actions' }).click()
-    await page.getByRole('menuitem', { name: 'Download image' }).click()
+    await page.getByRole('button', { name: 'Download image' }).click()
     expect((await download).suggestedFilename()).toBe('visual-plan-0721405516.png')
   })
 

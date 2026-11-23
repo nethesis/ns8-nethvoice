@@ -2205,54 +2205,6 @@
       "arrange": "Disponi",
       "items": "Elementi selezionati"
     },
-    "shortcuts": {
-      "title": "Tastiera e mouse",
-      "or": "o",
-      "sections": {
-        "canvas": "Area di lavoro",
-        "selection": "Selezione",
-        "editing": "Modifica"
-      },
-      "actions": {
-        "move_tool": "Strumento sposta",
-        "select_tool": "Strumento seleziona",
-        "pan": "Sposta l'area di lavoro",
-        "zoom": "Zoom",
-        "select_area": "Seleziona un'area",
-        "select_more": "Aggiungi o togli un elemento dalla selezione",
-        "select_all": "Seleziona tutto",
-        "clear_selection": "Azzera la selezione",
-        "connect": "Collega due elementi",
-        "quick_add": "Aggiungi un elemento collegato",
-        "delete": "Rimuovi dal flusso",
-        "undo": "Annulla modifica",
-        "redo": "Ripeti modifica",
-        "save": "Salva",
-        "help": "Mostra questo elenco",
-        "focus_item": "Sposta lo stato attivo all'elemento successivo",
-        "move_item": "Sposta l'elemento selezionato",
-        "select_item": "Seleziona l'elemento attivo"
-      },
-      "words": {
-        "drag": "Trascina",
-        "scroll": "Scorri",
-        "click": "Clic",
-        "drag_destination": "Trascina dal punto di una destinazione a un elemento",
-        "drag_to_empty": "Trascina dal punto di una destinazione in uno spazio vuoto"
-      },
-      "notes": {
-        "with_move_tool": "strumento sposta",
-        "with_select_tool": "strumento seleziona"
-      },
-      "keys": {
-        "space": "Spazio",
-        "delete": "Canc",
-        "arrows": "Frecce",
-        "tab": "Tab",
-        "enter": "Invio"
-      },
-      "show": "Mostra i comandi da tastiera e mouse"
-    },
     "simulation": {
       "start": "Simula chiamata",
       "title": "Simulazione chiamata",
@@ -2318,7 +2270,6 @@
     "layout_saved": "Disposizione salvata",
     "layout_saved_description": "La posizione degli elementi è stata salvata",
     "cannot_save_layout": "Impossibile salvare la disposizione",
-    "more_actions": "Altre azioni",
     "this_item": "Questo elemento",
     "in_flow": "In questo flusso",
     "not_in_flow_group": "Altri elementi esistenti",

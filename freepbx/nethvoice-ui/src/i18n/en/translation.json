@@ -2205,54 +2205,6 @@
       "arrange": "Arrange",
       "items": "Selected items"
     },
-    "shortcuts": {
-      "title": "Keyboard and mouse",
-      "or": "or",
-      "sections": {
-        "canvas": "Canvas",
-        "selection": "Selection",
-        "editing": "Editing"
-      },
-      "actions": {
-        "move_tool": "Move tool",
-        "select_tool": "Select tool",
-        "pan": "Move the canvas",
-        "zoom": "Zoom",
-        "select_area": "Select an area",
-        "select_more": "Add or remove an item from the selection",
-        "select_all": "Select all",
-        "clear_selection": "Clear the selection",
-        "connect": "Connect two items",
-        "quick_add": "Add a connected item",
-        "delete": "Remove from flow",
-        "undo": "Undo",
-        "redo": "Redo",
-        "save": "Save",
-        "help": "Show this list",
-        "focus_item": "Move the focus to the next item",
-        "move_item": "Move the selected item",
-        "select_item": "Select the focused item"
-      },
-      "words": {
-        "drag": "Drag",
-        "scroll": "Scroll",
-        "click": "Click",
-        "drag_destination": "Drag from a destination dot to an item",
-        "drag_to_empty": "Drag from a destination dot to an empty spot"
-      },
-      "notes": {
-        "with_move_tool": "move tool",
-        "with_select_tool": "select tool"
-      },
-      "keys": {
-        "space": "Space",
-        "delete": "Delete",
-        "arrows": "Arrows",
-        "tab": "Tab",
-        "enter": "Enter"
-      },
-      "show": "Show keyboard and mouse shortcuts"
-    },
     "simulation": {
       "start": "Simulate call",
       "title": "Call simulation",
@@ -2318,7 +2270,6 @@
     "layout_saved": "Layout saved",
     "layout_saved_description": "The position of the items has been saved",
     "cannot_save_layout": "Cannot save layout",
-    "more_actions": "More actions",
     "this_item": "This item",
     "in_flow": "In this flow",
     "not_in_flow_group": "Other existing items",
