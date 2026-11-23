@@ -188,11 +188,11 @@
       "expect": 200
     },
     {
-      "name": "an integrations administrator deletes a custom card template",
+      "name": "an integrations administrator cannot delete a custom card template",
       "as": "integrator",
       "method": "DELETE",
       "path": "/cti/customer_card/template/invoices",
-      "expect": 200
+      "expect": 403
     },
     {
       "name": "an integrations administrator cannot delete a built-in card template",
@@ -209,92 +209,52 @@
       "expect": 200
     },
     {
-      "name": "an integrations administrator creates a custom card template",
+      "name": "an integrations administrator cannot create a custom card template",
       "as": "integrator",
       "method": "POST",
       "path": "/cti/customer_card/template",
       "body": { "name": "invoices", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
-      "expect": 200
+      "expect": 403
     },
     {
-      "name": "an integrations administrator changes a custom card template",
+      "name": "an administrator of every section cannot create a custom card template",
+      "as": "allsections",
+      "method": "POST",
+      "path": "/cti/customer_card/template",
+      "body": { "name": "invoices", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
+      "expect": 403
+    },
+    {
+      "name": "an integrations administrator cannot change a custom card template",
       "as": "integrator",
       "method": "PUT",
       "path": "/cti/customer_card/template/invoices",
       "body": { "name": "invoices", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
-      "expect": 200
+      "expect": 403
     },
     {
-      "name": "an integrations administrator changes the color of a built-in card template",
+      "name": "an integrations administrator cannot change the color of a built-in card template",
       "as": "integrator",
       "method": "PUT",
       "path": "/cti/customer_card/template/identity",
       "body": { "name": "identity", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
-      "expect": 200
+      "expect": 403
     },
     {
-      "name": "an integrations administrator cannot change a built-in card template that does not exist",
-      "as": "integrator",
-      "method": "PUT",
-      "path": "/cti/customer_card/template/missing",
-      "body": { "name": "missing", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
-      "expect": 400
-    },
-    {
-      "name": "an integrations administrator cannot change a template that exists only as custom as a built-in one",
-      "as": "integrator",
-      "method": "PUT",
-      "path": "/cti/customer_card/template/invoices",
-      "body": { "name": "invoices", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
-      "expect": 400
-    },
-    {
-      "name": "an integrations administrator cannot change a built-in card template with custom not a boolean",
-      "as": "integrator",
+      "name": "an administrator of every section cannot change the color of a built-in card template",
+      "as": "allsections",
       "method": "PUT",
       "path": "/cti/customer_card/template/identity",
-      "body": { "name": "identity", "custom": "false", "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
-      "expect": 400
-    },
-    {
-      "name": "an integrations administrator cannot change a built-in card template without html",
-      "as": "integrator",
-      "method": "PUT",
-      "path": "/cti/customer_card/template/identity",
-      "body": { "name": "identity", "custom": false },
-      "expect": 400
-    },
-    {
-      "name": "an integrations administrator cannot change a built-in card template under another name than the path",
-      "as": "integrator",
-      "method": "PUT",
-      "path": "/cti/customer_card/template/identity",
-      "body": { "name": "table", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
-      "expect": 400
-    },
-    {
-      "name": "an integrations administrator cannot create a built-in card template",
-      "as": "integrator",
-      "method": "POST",
-      "path": "/cti/customer_card/template",
       "body": { "name": "identity", "custom": false, "html": "PCEtLSBjb2xvcjogcmVkIC0tPg==" },
-      "expect": 400
+      "expect": 403
     },
     {
-      "name": "an integrations administrator cannot write a card template under another name than the path",
-      "as": "integrator",
-      "method": "PUT",
-      "path": "/cti/customer_card/template/invoices",
-      "body": { "name": "table", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
-      "expect": 400
-    },
-    {
-      "name": "an integrations administrator cannot write a card template with a path in the name",
-      "as": "integrator",
+      "name": "superadmin creates a custom card template, as before",
+      "as": "boss",
       "method": "POST",
       "path": "/cti/customer_card/template",
-      "body": { "name": "../../secret/keep", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
-      "expect": 400
+      "body": { "name": "invoices", "custom": true, "html": "PCU9IHJlc3VsdHNbMF0ubmFtZSAlPg==" },
+      "expect": 200
     },
     {
       "name": "superadmin changes a built-in card template, as before",

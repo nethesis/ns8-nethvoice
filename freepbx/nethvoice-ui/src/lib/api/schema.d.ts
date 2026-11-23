@@ -678,7 +678,7 @@ export interface paths {
     put?: never
     /**
      * Create a customer card template.
-     * @description Body contains `name`, `custom` flag and base64 `html` content. Templates are rendered by the CTI server. For administrators who are not superadmin, a `name` that does not match `^[a-z0-9]+$`, a `custom` that is not true or an `html` that is not a string returns 400.
+     * @description Body contains `name`, `custom` flag and base64 `html` content. Requires the superadmin permission: templates are rendered by the CTI server.
      */
     post: operations['post_cti_customer_card_template']
     delete?: never
@@ -697,13 +697,13 @@ export interface paths {
     get?: never
     /**
      * Overwrite a customer card template (the file is found by `name` and `custom` in the body).
-     * @description Templates are rendered by the CTI server. For administrators who are not superadmin, the body must also pass the checks of `POST /cti/customer_card/template` and its `name` must be the path `name`, or the answer is 400; `custom` may be false only when the path `name` is an existing built-in template.
+     * @description Requires the superadmin permission: templates are rendered by the CTI server.
      */
     put: operations['put_cti_customer_card_template_name']
     post?: never
     /**
      * Delete a customer card template.
-     * @description Deletes `<name>_custom.ejs`, or `<name>.ejs` when there is no custom template with that name. For administrators who are not superadmin, a `name` that does not match `^[a-z0-9]+$` or that is not a template returns 400, and a built-in template returns 403.
+     * @description Deletes `<name>_custom.ejs`, or `<name>.ejs` when there is no custom template with that name. Requires the superadmin permission: templates are rendered by the CTI server.
      */
     delete: operations['delete_cti_customer_card_template_name']
     options?: never
@@ -5597,17 +5597,6 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request: invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            message?: string
-          }
-        }
-      }
       /** @description Forbidden: missing permission */
       403: {
         headers: {
@@ -5649,17 +5638,6 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
-      }
-      /** @description Bad request: invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            message?: string
-          }
-        }
       }
       /** @description Forbidden: missing permission */
       403: {
@@ -5705,17 +5683,6 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
-      }
-      /** @description Bad request: invalid parameters */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            message?: string
-          }
-        }
       }
       /** @description Forbidden: missing permission */
       403: {

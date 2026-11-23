@@ -16,6 +16,7 @@ const AMPUSERS = [
     'integrator' => 'nethvoice:integrations',
     'userer' => 'nethvoice:users',
     'phoner' => 'nethvoice:phones',
+    'allsections' => 'nethvoice:dashboard;nethvoice:users;nethvoice:trunks;nethvoice:routes;nethvoice:phones;nethvoice:integrations;nethvoice:settings',
 ];
 
 class FreePBX {
@@ -291,75 +292,56 @@ foreach (['5', '8', '99'] as $id) {
 }
 expectStatus($app, 400, ['integrator'], 'DELETE', '/cti/dbconn/1x');
 
-foreach (['invoices', 'notes'] as $name) {
-    expectStatus($app, 200, ['integrator'], 'DELETE', "/cti/customer_card/template/$name");
+foreach (['invoices', 'notes', 'identity', 'table', 'missing', 'invoices_custom', 'Invoices', '%2E%2E'] as $name) {
+    expectStatus($app, 403, ['integrator', 'allsections'], 'DELETE', "/cti/customer_card/template/$name");
 }
-foreach (['identity', 'table'] as $name) {
-    expectStatus($app, 403, ['integrator'], 'DELETE', "/cti/customer_card/template/$name");
+foreach (['invoices', 'notes', 'identity', 'table'] as $name) {
     expectStatus($app, 200, $superadmins, 'DELETE', "/cti/customer_card/template/$name");
-}
-foreach (['missing', 'invoices_custom', 'Invoices', 'x-y', 'a.b', 'a%20b', '%2E%2E'] as $name) {
-    expectStatus($app, 400, ['integrator'], 'DELETE', "/cti/customer_card/template/$name");
 }
 
 $template = ['name' => 'invoices2', 'custom' => true, 'html' => base64_encode('<p><%= results[0].name %></p>')];
-expectStatus($app, 200, ['integrator', ...$superadmins], 'POST', '/cti/customer_card/template', $template);
-expectStatus($app, 200, ['integrator', ...$superadmins], 'PUT', '/cti/customer_card/template/invoices2', $template);
-expectStatus($app, 403, ['userer', 'phoner'], 'POST', '/cti/customer_card/template', $template);
+$builtin = ['name' => 'identity', 'custom' => false, 'html' => base64_encode("<!-- color: blue -->\n<thead class=\"bg-blue-600\"></thead>")];
+foreach ([
+    'a custom template' => $template,
+    'a built-in template' => ['name' => 'identity'] + $builtin,
+    'a path' => ['name' => '../invoices'] + $template,
+    'no body' => null,
+    'not json' => 'not json',
+] as $label => $body) {
+    foreach (['integrator', 'allsections', 'userer', 'phoner'] as $user) {
+        $got = status($app, $user, 'POST', '/cti/customer_card/template', $body);
+        check($got === 403, "$user POST a template with $label answered $got, expected 403");
+    }
+}
+foreach ([
+    'invoices2' => $template,
+    'invoices' => ['name' => 'invoices'] + $template,
+    'identity' => $builtin,
+    'table' => ['name' => 'table'] + $builtin,
+] as $name => $body) {
+    foreach (['integrator', 'allsections', 'userer', 'phoner'] as $user) {
+        $got = status($app, $user, 'PUT', "/cti/customer_card/template/$name", $body);
+        check($got === 403, "$user PUT the template $name answered $got, expected 403");
+    }
+    $got = status($app, 'integrator', 'PUT', "/cti/customer_card/template/$name", 'not json');
+    check($got === 403, "integrator PUT the template $name without a body answered $got, expected 403");
+}
+expectStatus($app, 200, $superadmins, 'POST', '/cti/customer_card/template', $template);
+expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/invoices2', $template);
+expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/invoices', ['name' => 'invoices'] + $template);
+$response = send($app, 'admin', 'PUT', '/cti/customer_card/template/identity', $builtin);
+check($response->getStatusCode() === 200, 'superadmin cannot change the color of a built-in template');
+check(json_decode((string) $response->getBody(), true)['body'] === $builtin, 'the handler did not receive the built-in template body');
+expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/table', ['name' => 'table'] + $builtin);
 foreach ([
     'an uppercase name' => ['name' => 'Invoices2'] + $template,
     'a name with an underscore' => ['name' => 'invoices_custom'] + $template,
-    'a path' => ['name' => '../invoices'] + $template,
-    'a name with a space' => ['name' => 'invoices 2'] + $template,
-    'an empty name' => ['name' => ''] + $template,
-    'a name that is not text' => ['name' => ['invoices']] + $template,
-    'no name' => array_diff_key($template, ['name' => 1]),
-    'a built-in template' => ['custom' => false] + $template,
-    'custom as text' => ['custom' => 'true'] + $template,
     'no custom' => array_diff_key($template, ['custom' => 1]),
     'no html' => array_diff_key($template, ['html' => 1]),
-    'html that is not text' => ['html' => ['PHA+']] + $template,
 ] as $label => $body) {
-    $got = status($app, 'integrator', 'POST', '/cti/customer_card/template', $body);
-    check($got === 400, "integrator POST a template with $label answered $got, expected 400");
-    $got = status($app, 'integrator', 'PUT', '/cti/customer_card/template/invoices2', $body);
-    check($got === 400, "integrator PUT a template with $label answered $got, expected 400");
     expectStatus($app, 200, $superadmins, 'POST', '/cti/customer_card/template', $body);
     expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/invoices2', $body);
 }
-expectStatus($app, 400, ['integrator'], 'PUT', '/cti/customer_card/template/invoices', $template);
-expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/invoices', $template);
-
-$builtin = ['name' => 'identity', 'custom' => false, 'html' => base64_encode("<!-- color: blue -->\n<thead class=\"bg-blue-600\"></thead>")];
-$response = send($app, 'integrator', 'PUT', '/cti/customer_card/template/identity', $builtin);
-check($response->getStatusCode() === 200, 'an integrations administrator cannot change the color of a built-in template');
-check(json_decode((string) $response->getBody(), true)['body'] === $builtin, 'the handler did not receive the built-in template body');
-expectStatus($app, 200, ['integrator', ...$superadmins], 'PUT', '/cti/customer_card/template/table', ['name' => 'table'] + $builtin);
-expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/identity', $builtin);
-foreach (['invoices', 'notes', 'missing'] as $name) {
-    expectStatus($app, 400, ['integrator'], 'PUT', "/cti/customer_card/template/$name", ['name' => $name] + $builtin);
-    expectStatus($app, 200, $superadmins, 'PUT', "/cti/customer_card/template/$name", ['name' => $name] + $builtin);
-}
-foreach ([
-    'an uppercase name' => ['name' => 'Identity'] + $builtin,
-    'another name than the path' => ['name' => 'table'] + $builtin,
-    'custom as text' => ['custom' => 'false'] + $builtin,
-    'custom as a number' => ['custom' => 0] + $builtin,
-    'custom null' => ['custom' => null] + $builtin,
-    'no html' => array_diff_key($builtin, ['html' => 1]),
-    'html that is not text' => ['html' => ['PHA+']] + $builtin,
-] as $label => $body) {
-    $got = status($app, 'integrator', 'PUT', '/cti/customer_card/template/identity', $body);
-    check($got === 400, "integrator PUT the built-in template with $label answered $got, expected 400");
-    expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/template/identity', $body);
-}
-foreach (['identity', 'table', 'missing'] as $name) {
-    expectStatus($app, 400, ['integrator'], 'POST', '/cti/customer_card/template', ['name' => $name] + $builtin);
-    expectStatus($app, 200, $superadmins, 'POST', '/cti/customer_card/template', ['name' => $name] + $builtin);
-}
-expectStatus($app, 403, ['userer', 'phoner'], 'PUT', '/cti/customer_card/template/identity', $builtin);
-expectStatus($app, 400, ['integrator'], 'POST', '/cti/customer_card/template', 'not json');
-expectStatus($app, 400, ['integrator'], 'PUT', '/cti/customer_card/template/invoices2', 'not json');
 
 $preview = ['dbconn_id' => '5', 'template' => 'invoices_custom', 'query' => base64_encode('select * from crm')];
 expectStatus($app, 200, ['integrator'], 'POST', '/cti/customer_card/preview', $preview);

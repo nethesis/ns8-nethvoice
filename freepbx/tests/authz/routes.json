@@ -273,19 +273,19 @@
       "reason": "Customer card templates are listed and viewed from Integrations."
     },
     "POST /cti/customer_card/template": {
-      "intent": "integrations",
+      "intent": "superadmin",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Creates a custom customer card template. A template is EJS code run by the CTI server: the product owner opened it to the Integrations section and accepted that risk. Limited administrators get form checks only (lowercase letters and digits in the name, custom template), no content check."
+      "reason": "A template is EJS code run by the CTI server, whose environment holds the PBX secrets; writing one is reserved to superadmin and the UI shows the templates read only otherwise."
     },
     "PUT /cti/customer_card/template/{name}": {
-      "intent": "integrations",
+      "intent": "superadmin",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Changes a custom customer card template, an EJS code run by the CTI server, opened to the Integrations section by the product owner. Limited administrators get form checks only: the body name must be the path name and the template custom, so the built-in templates stay with the superadmin."
+      "reason": "A template is EJS code run by the CTI server; the color change of a built-in template rewrites the whole file, so every change is reserved to superadmin."
     },
     "DELETE /cti/customer_card/template/{name}": {
-      "intent": "integrations",
+      "intent": "superadmin",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Deletes a custom template from the templates table; a built-in template, or a name that is not a template name, is refused to limited administrators by a request check."
+      "reason": "Deleting a template breaks every card that uses it; reserved with the other template writes."
     },
     "POST /cti/customer_card/preview": {
       "intent": "integrations",
