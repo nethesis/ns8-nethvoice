@@ -14,6 +14,7 @@ ENTRYPOINT = (ROOT / 'freepbx/entrypoint.sh').read_text()
 VHOST = (ROOT / 'freepbx/etc/apache2/sites-enabled/000-default.conf').read_text()
 CONTAINERFILE = (ROOT / 'freepbx/Containerfile').read_text()
 UI_ROOT = '/var/www/html/freepbx/nethvoice-ui'
+INDEX = ROOT / 'freepbx/nethvoice-ui/index.html'
 
 
 def wizard_alias_pattern():
@@ -82,14 +83,17 @@ class RuntimeConfigTest(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         output = Path(directory.name) / 'config.json'
-        script = ENTRYPOINT[start:end].replace(f'{UI_ROOT}/config.json', str(output))
+        self.index = Path(directory.name) / 'index.html'
+        shutil.copy(INDEX, self.index)
+        script = ENTRYPOINT[start:end].replace(UI_ROOT, directory.name)
         clean = {key: value for key, value in os.environ.items()
-                 if not key.startswith(('WIZARD_', 'BRAND_')) and not key.endswith('_URL')
+                 if not key.startswith(('WIZARD_', 'BRAND_', 'NETHCTI_')) and not key.endswith('_URL')
                  and key not in ('NETHVOICE_HOST', 'NETHVOICE_UI_NAME')}
         result = subprocess.run(['bash', '-euo', 'pipefail', '-c', script],
                                 env=dict(clean, NETHVOICESECRETKEY='do-not-leak', **environment),
                                 capture_output=True, text=True, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stderr, '')
         return output.read_text()
 
     def test_defaults(self):
@@ -99,9 +103,11 @@ class RuntimeConfigTest(unittest.TestCase):
         self.assertTrue(config['BRAND_DOCS'].startswith('https://'))
         self.assertEqual(config['HOSTNAME'], '')
         self.assertEqual(config['INSTANCE_NAME'], '')
-        self.assertEqual(sorted(config), ['BRAND_DOCS', 'BRAND_NAME', 'BRAND_SITE', 'FAVICON_URL',
-                                          'HOSTNAME', 'INSTANCE_NAME', 'LOGIN_BACKGROUND_URL',
-                                          'LOGIN_LOGO_URL', 'NAVBAR_LOGO_URL'])
+        self.assertEqual(config['LOGO_LIGHT_URL'], '')
+        self.assertEqual(config['CTI_PRODUCT_NAME'], 'NethVoice CTI')
+        self.assertEqual(sorted(config), ['BRAND_DOCS', 'BRAND_NAME', 'BRAND_SITE', 'CTI_PRODUCT_NAME',
+                                          'FAVICON_URL', 'HOSTNAME', 'INSTANCE_NAME', 'LOGIN_BACKGROUND_URL',
+                                          'LOGIN_LOGO_URL', 'LOGO_LIGHT_URL', 'NAVBAR_LOGO_URL'])
 
     def test_hostname_comes_from_the_nethvoice_host(self):
         config = json.loads(self.render(NETHVOICE_HOST='voice.example.org'))
@@ -120,6 +126,37 @@ class RuntimeConfigTest(unittest.TestCase):
         self.assertEqual(config['LOGIN_LOGO_URL'], 'https://cdn.example.org/logo.svg')
         self.assertEqual(config['NAVBAR_LOGO_URL'], 'https://cdn.example.org/logo.svg')
         self.assertEqual(config['FAVICON_URL'], 'https://cdn.example.org/favicon.ico')
+
+    def test_light_background_logo_is_published_beside_the_single_logo(self):
+        config = json.loads(self.render(WIZARD_LOGIN_LOGO_URL='https://cdn.example.org/on-dark.svg',
+                                        WIZARD_LOGO_LIGHT_URL='https://cdn.example.org/on-light.svg'))
+        self.assertEqual(config['NAVBAR_LOGO_URL'], 'https://cdn.example.org/on-dark.svg')
+        self.assertEqual(config['LOGIN_LOGO_URL'], 'https://cdn.example.org/on-dark.svg')
+        self.assertEqual(config['LOGO_LIGHT_URL'], 'https://cdn.example.org/on-light.svg')
+
+    def test_cti_product_name_comes_from_the_cti_configuration(self):
+        name = "L'Azienda \"Voce\""
+        self.assertEqual(json.loads(self.render(NETHCTI_UI_PRODUCT_NAME=name))['CTI_PRODUCT_NAME'], name)
+        self.assertEqual(json.loads(self.render(NETHCTI_UI_PRODUCT_NAME=''))['CTI_PRODUCT_NAME'], 'NethVoice CTI')
+
+    def test_entry_page_is_left_as_built_without_rebranding(self):
+        self.render()
+        self.assertEqual(self.index.read_text(), INDEX.read_text())
+
+    def test_entry_page_shows_the_brand_before_the_runtime_configuration_loads(self):
+        self.render(WIZARD_BRAND_NAME='L\'Azienda "Voce" </title><script>',
+                    WIZARD_FAVICON_URL='https://cdn.example.org/favicon.ico?v=1&x=2')
+        html = self.index.read_text()
+        self.assertIn('<title>L&#039;Azienda &quot;Voce&quot; &lt;/title&gt;&lt;script&gt;</title>', html)
+        self.assertIn('<link rel="icon" href="https://cdn.example.org/favicon.ico?v=1&amp;x=2" sizes="32x32" />', html)
+        self.assertEqual(html.count('<script'), INDEX.read_text().count('<script'))
+
+    def test_entry_page_keeps_the_default_favicon_for_unsafe_urls(self):
+        for favicon in ('javascript:alert(1)', 'https://cdn.example.org/a"onload="x', '/local/favicon.ico'):
+            with self.subTest(favicon=favicon):
+                self.render(WIZARD_BRAND_NAME='Acme', WIZARD_FAVICON_URL=favicon)
+                self.assertIn('<link rel="icon" href="/nethvoice/favicon.ico" sizes="32x32" />',
+                              self.index.read_text())
 
     def test_shared_secret_is_never_published(self):
         self.assertNotIn('do-not-leak', self.render())

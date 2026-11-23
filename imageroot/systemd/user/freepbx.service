@@ -71,6 +71,7 @@ ExecStart=runagent /usr/bin/podman run \
     --env=FAVICON_URL \
     --env=LOGIN_BACKGROUND_URL \
     --env=WIZARD_LOGIN_LOGO_URL \
+    --env=WIZARD_LOGO_LIGHT_URL \
     --env=WIZARD_FAVICON_URL \
     --env=WIZARD_LOGIN_BACKGROUND_URL \
     --env=FREEPBX_ADMIN_LOGO_URL \

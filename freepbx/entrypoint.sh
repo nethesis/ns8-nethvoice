@@ -230,6 +230,7 @@ if [[ -z "${WIZARD_LOGIN_BACKGROUND_URL+x}" ]]; then
 fi
 
 wizard_navbar_logo_url="${wizard_login_logo_url}"
+wizard_logo_light_url="${WIZARD_LOGO_LIGHT_URL:-}"
 
 # Serialize configuration values as JavaScript strings instead of interpolating
 # them into quoted literals. Rebranding values are operator-controlled and may
@@ -247,9 +248,11 @@ BRAND_NAME_VALUE="${wizard_brand_name}" \
 BRAND_SITE_VALUE="${BRAND_SITE:-https://www.nethesis.it/soluzioni/nethvoice}" \
 BRAND_DOCS_VALUE="${BRAND_DOCS:-https://docs.nethvoice.com/it/}" \
 NAVBAR_LOGO_URL_VALUE="${wizard_navbar_logo_url}" \
+LOGO_LIGHT_URL_VALUE="${wizard_logo_light_url}" \
 LOGIN_LOGO_URL_VALUE="${wizard_login_logo_url}" \
 LOGIN_BACKGROUND_URL_VALUE="${wizard_login_background_url}" \
 FAVICON_URL_VALUE="${wizard_favicon_url}" \
+CTI_PRODUCT_NAME_VALUE="${NETHCTI_UI_PRODUCT_NAME:-NethVoice CTI}" \
 HOSTNAME_VALUE="${NETHVOICE_HOST:-}" \
 INSTANCE_NAME_VALUE="${NETHVOICE_UI_NAME:-}" \
 php -r 'echo json_encode([
@@ -257,12 +260,29 @@ php -r 'echo json_encode([
 	"BRAND_SITE" => getenv("BRAND_SITE_VALUE"),
 	"BRAND_DOCS" => getenv("BRAND_DOCS_VALUE"),
 	"NAVBAR_LOGO_URL" => getenv("NAVBAR_LOGO_URL_VALUE"),
+	"LOGO_LIGHT_URL" => getenv("LOGO_LIGHT_URL_VALUE"),
 	"LOGIN_LOGO_URL" => getenv("LOGIN_LOGO_URL_VALUE"),
 	"LOGIN_BACKGROUND_URL" => getenv("LOGIN_BACKGROUND_URL_VALUE"),
 	"FAVICON_URL" => getenv("FAVICON_URL_VALUE"),
+	"CTI_PRODUCT_NAME" => getenv("CTI_PRODUCT_NAME_VALUE"),
 	"HOSTNAME" => getenv("HOSTNAME_VALUE"),
 	"INSTANCE_NAME" => getenv("INSTANCE_NAME_VALUE"),
 ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), "\n";' > /var/www/html/freepbx/nethvoice-ui/config.json
+
+BRAND_NAME_VALUE="${wizard_brand_name}" \
+FAVICON_URL_VALUE="${wizard_favicon_url}" \
+php -r '$index = $argv[1];
+$html = file_get_contents($index);
+if ($html === false) {
+	exit(0);
+}
+$title = htmlspecialchars(trim(getenv("BRAND_NAME_VALUE")) ?: "NethVoice", ENT_QUOTES);
+$html = preg_replace("~<title>[^<]*</title>~", "<title>" . $title . "</title>", $html, 1);
+$favicon = getenv("FAVICON_URL_VALUE");
+if (preg_match("~^https?://[^\\s\"<>]+$~i", $favicon)) {
+	$html = preg_replace("~<link rel=\"icon\" href=\"[^\"]*\"~", "<link rel=\"icon\" href=\"" . htmlspecialchars($favicon, ENT_QUOTES) . "\"", $html, 1);
+}
+file_put_contents($index, $html);' /var/www/html/freepbx/nethvoice-ui/index.html
 
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
@@ -270,10 +290,10 @@ var customConfig = {
   BRAND_NAME: $(js_string "${wizard_brand_name}"),
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
   BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethvoice.com/it/}',
-  NAVBAR_LOGO_URL: '${wizard_navbar_logo_url}',
-  LOGIN_LOGO_URL: '${wizard_login_logo_url}',
-  FAVICON_URL: '${wizard_favicon_url}',
-  LOGIN_BACKGROUND_URL: '${wizard_login_background_url}',
+  NAVBAR_LOGO_URL: $(js_string "${wizard_navbar_logo_url}"),
+  LOGIN_LOGO_URL: $(js_string "${wizard_login_logo_url}"),
+  FAVICON_URL: $(js_string "${wizard_favicon_url}"),
+  LOGIN_BACKGROUND_URL: $(js_string "${wizard_login_background_url}"),
   BASE_API_URL: '/freepbx/rest',
   BASE_API_URL_CTI: '/api',
   VPLAN_URL: '/freepbx/visualplan',

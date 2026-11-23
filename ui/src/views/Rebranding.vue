@@ -41,7 +41,47 @@
           />
         </cv-column>
       </cv-row>
-      <cv-row v-if="!rebranding_active && !loading.getRebranding">
+      <cv-row
+        v-if="
+          rebranding_check_failed && rebranding_cached && !loading.getRebranding
+        "
+      >
+        <cv-column>
+          <NsInlineNotification
+            kind="warning"
+            :title="$t('rebranding.rebranding_check_failed')"
+            :description="
+              $t('rebranding.rebranding_cached_description', {
+                date: formatCheckedAt(rebranding_checked_at),
+              })
+            "
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row
+        v-if="
+          rebranding_check_failed &&
+          !rebranding_cached &&
+          !loading.getRebranding
+        "
+      >
+        <cv-column>
+          <NsInlineNotification
+            kind="error"
+            :title="$t('rebranding.rebranding_check_failed')"
+            :description="$t('rebranding.rebranding_check_failed_description')"
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row
+        v-if="
+          !rebranding_active &&
+          !rebranding_check_failed &&
+          !loading.getRebranding
+        "
+      >
         <cv-column>
           <NsInlineNotification
             kind="info"
@@ -432,6 +472,29 @@
                           "
                           :helper-text="
                             $t('rebranding.public_url_image_helper')
+                          "
+                        />
+                        <NsTextInput
+                          :label="
+                            $t(
+                              'rebranding.rebranding_wizard_logo_light_url_label'
+                            ) +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_wizard_logo_light_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="
+                            error.rebranding_wizard_logo_light_url
+                          "
+                          :helper-text="
+                            $t('rebranding.wizard_logo_light_url_helper')
                           "
                         />
                         <NsTextInput
@@ -935,6 +998,7 @@ import {
   TaskService,
   IconService,
   PageTitleService,
+  DateTimeService,
 } from "@nethserver/ns8-ui-lib";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 import Sun20 from "@carbon/icons-vue/es/sun/20";
@@ -957,6 +1021,7 @@ export default {
     UtilService,
     QueryParamService,
     PageTitleService,
+    DateTimeService,
   ],
   pageTitle() {
     return this.$t("rebranding.title") + " - " + this.appName;
@@ -970,6 +1035,9 @@ export default {
       Reset20,
       Save20,
       rebranding_active: false,
+      rebranding_cached: false,
+      rebranding_check_failed: false,
+      rebranding_checked_at: "",
       rebranding_brand_name: "",
       rebranding_navbar_logo_url: "",
       rebranding_navbar_logo_dark_url: "",
@@ -986,6 +1054,7 @@ export default {
       rebranding_wizard_login_background_url: "",
       rebranding_wizard_favicon_url: "",
       rebranding_wizard_login_logo_url: "",
+      rebranding_wizard_logo_light_url: "",
       rebranding_freepbx_admin_logo_url: "",
       rebranding_freepbx_admin_favicon_url: "",
       rebranding_nethlink_company_name: "",
@@ -1214,6 +1283,9 @@ export default {
     getRebrandingCompleted(taskContext, taskAction) {
       const config = taskAction.output;
       this.rebranding_active = config.rebranding_active;
+      this.rebranding_cached = !!config.rebranding_cached;
+      this.rebranding_check_failed = !!config.rebranding_check_failed;
+      this.rebranding_checked_at = config.rebranding_checked_at || "";
       const sharedBrandName =
         this.normalizeBrandName(config.rebranding_brand_name) ||
         this.normalizeBrandName(config.rebranding_wizard_brand_name) ||
@@ -1242,6 +1314,8 @@ export default {
       this.rebranding_wizard_favicon_url = config.rebranding_wizard_favicon_url;
       this.rebranding_wizard_login_logo_url =
         config.rebranding_wizard_login_logo_url;
+      this.rebranding_wizard_logo_light_url =
+        config.rebranding_wizard_logo_light_url || "";
       this.rebranding_freepbx_admin_logo_url =
         config.rebranding_freepbx_admin_logo_url;
       this.rebranding_freepbx_admin_favicon_url =
@@ -1268,6 +1342,8 @@ export default {
         rebranding_wizard_brand_name: sharedBrandName,
         rebranding_wizard_login_logo_url:
           config.rebranding_wizard_login_logo_url,
+        rebranding_wizard_logo_light_url:
+          config.rebranding_wizard_logo_light_url || "",
         rebranding_wizard_favicon_url: config.rebranding_wizard_favicon_url,
         rebranding_wizard_login_background_url:
           config.rebranding_wizard_login_background_url,
@@ -1321,6 +1397,7 @@ export default {
         rebranding_reports_login_background_url: "",
         rebranding_wizard_brand_name: "",
         rebranding_wizard_login_logo_url: "",
+        rebranding_wizard_logo_light_url: "",
         rebranding_wizard_favicon_url: "",
         rebranding_wizard_login_background_url: "",
         rebranding_freepbx_admin_logo_url: "",
@@ -1371,12 +1448,14 @@ export default {
           break;
         case "wizard":
           this.rebranding_wizard_login_logo_url = "";
+          this.rebranding_wizard_logo_light_url = "";
           this.rebranding_wizard_favicon_url = "";
           this.rebranding_wizard_login_background_url = "";
           this.rebranding_freepbx_admin_logo_url = "";
           this.rebranding_freepbx_admin_favicon_url = "";
           this.clearTabErrors([
             "rebranding_wizard_login_logo_url",
+            "rebranding_wizard_logo_light_url",
             "rebranding_wizard_favicon_url",
             "rebranding_wizard_login_background_url",
             "rebranding_freepbx_admin_logo_url",
@@ -1493,6 +1572,8 @@ export default {
             this.rebranding_reports_login_background_url,
           rebranding_wizard_login_logo_url:
             this.rebranding_wizard_login_logo_url,
+          rebranding_wizard_logo_light_url:
+            this.rebranding_wizard_logo_light_url,
           rebranding_wizard_favicon_url: this.rebranding_wizard_favicon_url,
           rebranding_wizard_login_background_url:
             this.rebranding_wizard_login_background_url,
@@ -1525,8 +1606,22 @@ export default {
       for (const validationError of validationErrors) {
         const param = validationError.parameter;
 
+        if (param === "rebranding_active") {
+          this.error[submissionKey] = this.$t(
+            "rebranding." + validationError.error
+          );
+          continue;
+        }
+
         // set i18n error message
-        this.error[param] = this.$t("settings." + validationError.error);
+        const errorKey = "settings." + validationError.error;
+        if (this.$te(errorKey)) {
+          this.error[param] = this.$t(errorKey);
+        } else if (param.endsWith("_url")) {
+          this.error[param] = this.$t("rebranding.invalid_image_url");
+        } else {
+          this.error[param] = this.$t("rebranding.invalid_name");
+        }
       }
     },
     setRebrandingCompleted(submissionKey = "setRebranding") {
@@ -1535,6 +1630,10 @@ export default {
           this.savedRebrandingConfig
       );
       this.loading[submissionKey] = false;
+    },
+    formatCheckedAt(checkedAt) {
+      const date = new Date(checkedAt);
+      return isNaN(date) ? checkedAt : this.formatDate(date, "Pp");
     },
     openMailtoLink() {
       const encodedSubject = encodeURIComponent(

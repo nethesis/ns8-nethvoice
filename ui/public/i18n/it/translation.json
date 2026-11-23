@@ -259,7 +259,15 @@
     "rebranding_not_activated_yet_description": "Questa funzione consente di personalizzare l'interfaccia di NethVoice con la tua brand identity aziendale — inclusi nome del prodotto, logo e immagini di sfondo. Per abilitarla, contatta il nostro team commerciale.",
     "contact_sales": "Contatta il team commerciale",
     "mailto_sales_subject": "Attivazione rebranding",
-    "mailto_sales_body": "Buongiorno,\n\nvorrei attivare la funzionalità di rebranding per la mia installazione NethVoice. Vi prego di fornirmi le informazioni necessarie e i passaggi per procedere.\n\nGrazie."
+    "mailto_sales_body": "Buongiorno,\n\nvorrei attivare la funzionalità di rebranding per la mia installazione NethVoice. Vi prego di fornirmi le informazioni necessarie e i passaggi per procedere.\n\nGrazie.",
+    "rebranding_wizard_logo_light_url_label": "Logo per il tema chiaro",
+    "wizard_logo_light_url_helper": "URL pubblico del logo mostrato sugli sfondi chiari dell'interfaccia di amministrazione. Se vuoto, il Logo sopra viene usato ovunque.",
+    "rebranding_check_failed": "Impossibile verificare la sottoscrizione",
+    "rebranding_cached_description": "Il server della sottoscrizione non è raggiungibile. Viene mostrato lo stato del rebranding verificato il {date}.",
+    "rebranding_check_failed_description": "Il server della sottoscrizione non è raggiungibile, quindi lo stato del rebranding non è noto. Riprova più tardi.",
+    "rebranding_not_active": "Il rebranding non è attivo per questa sottoscrizione.",
+    "invalid_image_url": "Deve essere un URL che inizia con http:// o https://, senza spazi né virgolette",
+    "invalid_name": "Troppo lungo, o contiene caratteri non consentiti"
   },
   "hotel": {
     "title": "Hotel",
