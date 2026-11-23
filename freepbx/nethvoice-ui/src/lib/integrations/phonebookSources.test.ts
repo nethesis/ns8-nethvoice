@@ -6,24 +6,41 @@ import {
   buildAccess,
   buildPhonebookSourcePayload,
   buildPhonebookTestPayload,
+  completeMapping,
   emptyPhonebookSourceForm,
   getAvailableFields,
+  getConnectionSignature,
+  getFormSnapshot,
+  getUploadedCsvName,
+  getInfinityPreviewColumns,
+  getLastSyncDisplay,
   getMappingColumns,
-  getSyncIntervals,
+  getReadErrorTexts,
+  hasAnyNameColumn,
+  hasNameColumn,
   isCsvUploadRejected,
   isLocalHostRefusal,
+  isNameTaken,
   isUploadedCsv,
+  NOT_IMPORTED,
+  orderPhonebookFields,
   parsePhonebookSources,
+  parsePhonebookSyncStatuses,
   parsePhonebookTestResult,
   parseSharingGroups,
+  PHONEBOOK_FIELD_ORDER,
   suggestMapping,
   type PhonebookSource,
   type PhonebookSourceForm,
+  type PhonebookSyncStatus,
   toPhonebookSourceForm,
   validateCsvFile,
-  validatePhonebookSourceForm,
+  validatePhonebookMapping,
+  validatePhonebookSourceFields,
+  validatePhonebookVisibility,
 } from './phonebookSources'
 import { ApiError } from '@/lib/api/errors'
+import en from '@/i18n/en/translation.json'
 
 const rawSources = {
   custom_2: {
@@ -62,7 +79,7 @@ const databaseForm = (changes: Partial<PhonebookSourceForm> = {}): PhonebookSour
   password: 'new-password',
   database: 'crm',
   query: 'SELECT * FROM contacts',
-  mapping: { full_name: 'name', unused: '' },
+  mapping: { full_name: 'name', unused: NOT_IMPORTED },
   ...changes,
 })
 
@@ -167,28 +184,167 @@ describe('parsePhonebookTestResult', () => {
     })
   })
 
+  it('should read the total of the rows when the server sends it', () => {
+    expect(parsePhonebookTestResult({ rows: [{ full_name: 'Anna Miller' }], total: 1248 })).toEqual(
+      { ok: true, columns: ['full_name'], rows: [{ full_name: 'Anna Miller' }], total: 1248 },
+    )
+  })
+
+  it('should keep the columns of a database source without rows', () => {
+    expect(parsePhonebookTestResult({ rows: [{ full_name: '', phone: '' }], total: 0 })).toEqual({
+      ok: true,
+      columns: ['full_name', 'phone'],
+      rows: [],
+      total: 0,
+    })
+  })
+
   it('should accept a source without rows', () => {
     expect(parsePhonebookTestResult([])).toEqual({ ok: true, rows: [], columns: [] })
   })
 
-  it('should report a failed test', () => {
-    expect(parsePhonebookTestResult({ status: false })).toEqual({ ok: false })
+  it('should report a failed read with its cause', () => {
+    expect(
+      parsePhonebookTestResult({
+        status: false,
+        error: { kind: 'auth', details: " Access denied for user 'reader' " },
+      }),
+    ).toEqual({ ok: false, kind: 'auth', details: "Access denied for user 'reader'" })
+  })
+
+  it('should report a failed read without a cause as unknown', () => {
+    expect(parsePhonebookTestResult({ status: false })).toEqual({
+      ok: false,
+      kind: 'unknown',
+      details: '',
+    })
+    expect(
+      parsePhonebookTestResult({ status: false, error: { kind: 'disk', details: 'x' } }),
+    ).toEqual({ ok: false, kind: 'unknown', details: 'x' })
+    expect(parsePhonebookTestResult('oops')).toEqual({ ok: false, kind: 'unknown', details: '' })
+  })
+})
+
+describe('getReadErrorTexts', () => {
+  const texts = (
+    kind: Parameters<typeof getReadErrorTexts>[0],
+    source: 'mysql' | 'csv' | 'infinity',
+  ) => Object.values(getReadErrorTexts(kind, source)).map((key) => key.split('.').at(-1))
+
+  it('should name the database for connection and credential errors', () => {
+    expect(texts('connection', 'mysql')).toEqual([
+      'cannot_connect_database',
+      'read_error_connection_database',
+    ])
+    expect(texts('auth', 'mysql')).toEqual(['cannot_connect_database', 'read_error_auth'])
+  })
+
+  it('should name Infinity Zucchetti for its connection errors', () => {
+    expect(texts('connection', 'infinity')).toEqual([
+      'cannot_connect_infinity',
+      'read_error_connection_infinity',
+    ])
+    expect(texts('auth', 'infinity')).toEqual(['cannot_connect_infinity', 'read_error_auth'])
+    expect(texts('http', 'infinity')).toEqual(['cannot_connect_infinity', 'read_error_http'])
+  })
+
+  it('should describe query, file and unknown errors', () => {
+    expect(texts('query', 'mysql')).toEqual(['cannot_run_query', 'read_error_query'])
+    expect(texts('file', 'csv')).toEqual(['cannot_read_file', 'read_error_file'])
+    expect(texts('format', 'csv')).toEqual(['cannot_read_file', 'read_error_file'])
+    expect(texts('http', 'csv')).toEqual(['cannot_download_file', 'read_error_http'])
+    expect(texts('connection', 'csv')).toEqual([
+      'cannot_download_file',
+      'read_error_csv_connection',
+    ])
+    expect(texts('format', 'mysql')).toEqual(['cannot_read_source', 'read_error_format'])
+    expect(texts('unknown', 'mysql')).toEqual(['cannot_read_source', 'read_error_unknown'])
+  })
+})
+
+describe('getUploadedCsvName', () => {
+  it('should return the name of an uploaded file only', () => {
+    expect(
+      getUploadedCsvName('file:///var/lib/nethvoice/phonebook/uploads/6b04076a92b81.csv'),
+    ).toBe('6b04076a92b81.csv')
+    expect(getUploadedCsvName('https://example.com/contacts.csv')).toBeUndefined()
+    expect(
+      getUploadedCsvName('file:///var/lib/nethvoice/phonebook/uploads/../a.csv'),
+    ).toBeUndefined()
+    expect(getUploadedCsvName('file:///etc/passwd')).toBeUndefined()
+  })
+})
+
+describe('getFormSnapshot', () => {
+  it('should ignore the columns that are not imported', () => {
+    const form = { ...emptyPhonebookSourceForm(), mapping: { full_name: 'name' } }
+
+    expect(
+      getFormSnapshot({ ...form, mapping: { full_name: 'name', vat: NOT_IMPORTED } }, ''),
+    ).toBe(getFormSnapshot(form, ''))
+    expect(getFormSnapshot({ ...form, mapping: { full_name: NOT_IMPORTED } }, '')).not.toBe(
+      getFormSnapshot(form, ''),
+    )
+    expect(getFormSnapshot(form, 'file-1')).not.toBe(getFormSnapshot(form, ''))
   })
 })
 
 describe('mapping helpers', () => {
-  it('should merge tested and already mapped columns, hiding the sharing column', () => {
-    expect(
-      getMappingColumns(['full_name', 'type', 'phone'], { phone: 'workphone', fax: 'fax' }),
-    ).toEqual(['full_name', 'phone', 'fax'])
+  it('should hide the sharing column', () => {
+    expect(getMappingColumns(['full_name', 'type', 'phone'])).toEqual(['full_name', 'phone'])
   })
 
-  it('should offer only the fields not used by other columns', () => {
-    const fields = ['name', 'workphone', 'owner_id']
+  it('should preview only the phonebook fields of Infinity Zucchetti, in the mapping order', () => {
+    expect(
+      getInfinityPreviewColumns([
+        {
+          name: 'Francesca Leone',
+          cellphone: '335 0000001',
+          type: 'Infinity contacts',
+          access: 'public',
+          sid_imported: 'phonebook_test_1',
+        },
+        { company: 'Acme Ltd', workphone: '0721 0000002', notes: 'Infinity ID: 7' },
+      ]),
+    ).toEqual(['name', 'company', 'cellphone', 'workphone', 'notes'])
+  })
+
+  it('should offer only the fields not used by other columns, in a readable order', () => {
+    const fields = ['workphone', 'owner_id', 'name']
     const mapping = { full_name: 'name', phone: 'workphone' }
 
-    expect(getAvailableFields(fields, mapping, 'phone', 'mysql')).toEqual(['workphone', 'owner_id'])
-    expect(getAvailableFields(fields, mapping, 'other', 'csv')).toEqual([])
+    expect(getAvailableFields(fields, mapping, 'phone', true)).toEqual(['workphone', 'owner_id'])
+    expect(getAvailableFields(fields, mapping, 'other', false)).toEqual([])
+  })
+
+  it('should order the 34 phonebook fields and keep unknown ones last', () => {
+    expect(PHONEBOOK_FIELD_ORDER).toHaveLength(34)
+    expect(orderPhonebookFields(['zeta', 'company', 'name', 'firstname'])).toEqual([
+      'name',
+      'firstname',
+      'company',
+      'zeta',
+    ])
+  })
+
+  it('should mark the columns without a choice as not imported', () => {
+    expect(completeMapping(['a', 'b', 'type'], { a: 'name' })).toEqual({
+      a: 'name',
+      b: NOT_IMPORTED,
+    })
+  })
+
+  it('should require a choice for every column', () => {
+    expect(
+      validatePhonebookMapping(['a', 'b', 'c', 'type'], { a: 'name', b: NOT_IMPORTED, c: '' }),
+    ).toEqual({ c: 'integrations.phonebook.field_required' })
+  })
+
+  it('should tell whether a column holds the names', () => {
+    expect(hasNameColumn({ a: 'name' })).toBe(true)
+    expect(hasNameColumn({ a: 'firstname' })).toBe(false)
+    expect(hasAnyNameColumn({ a: 'lastname', b: NOT_IMPORTED })).toBe(true)
+    expect(hasAnyNameColumn({ a: 'company' })).toBe(false)
   })
 
   it('should recognize an uploaded CSV file', () => {
@@ -197,30 +353,129 @@ describe('mapping helpers', () => {
   })
 })
 
+describe('suggestMapping', () => {
+  const fields = PHONEBOOK_FIELD_ORDER
+
+  it('should map the columns named like a phonebook field or a known synonym', () => {
+    expect(
+      suggestMapping(
+        [
+          'contact_name',
+          'company_name',
+          'phone',
+          'mobile',
+          'email',
+          'city',
+          'vat_number',
+          'notes',
+          'type',
+        ],
+        fields,
+        {},
+        true,
+      ),
+    ).toEqual({
+      contact_name: 'name',
+      company_name: 'company',
+      phone: 'workphone',
+      mobile: 'cellphone',
+      email: 'workemail',
+      city: 'workcity',
+      notes: 'notes',
+    })
+  })
+
+  it('should match Italian names regardless of case and accents', () => {
+    expect(
+      suggestMapping(
+        ['RagioneSociale', 'Referente', 'Telefono', 'Cellulare', 'Città', 'Azienda', 'Nome'],
+        fields,
+        {},
+        true,
+      ),
+    ).toEqual({
+      RagioneSociale: 'company',
+      Referente: 'name',
+      Telefono: 'workphone',
+      Cellulare: 'cellphone',
+      Città: 'workcity',
+    })
+  })
+
+  it('should give a field to the first matching column only', () => {
+    expect(suggestMapping(['name', 'nome', 'Name'], fields, {}, true)).toEqual({ name: 'name' })
+  })
+
+  it('should keep the choices already made and drop the columns that are gone', () => {
+    expect(
+      suggestMapping(
+        ['name', 'company'],
+        fields,
+        { name: NOT_IMPORTED, other: 'company', gone: 'fax' },
+        true,
+      ),
+    ).toEqual({ name: NOT_IMPORTED, company: 'company' })
+  })
+
+  it('should leave out the owner field when the source cannot fill it', () => {
+    expect(suggestMapping(['owner_id'], fields, {}, false)).toEqual({})
+    expect(suggestMapping(['owner_id'], fields, {}, true)).toEqual({ owner_id: 'owner_id' })
+  })
+})
+
 describe('toPhonebookSourceForm', () => {
   it('should never copy the stored password into the form', () => {
     const form = toPhonebookSourceForm(crmSource())
 
     expect(form.password).toBe('')
-    expect(form).toMatchObject({ kind: 'mysql', name: 'CRM contacts', sharing: 'public' })
+    expect(form).toMatchObject({
+      kind: 'mysql',
+      name: 'CRM contacts',
+      sharing: 'public',
+      interval: 1440,
+    })
   })
 
   it('should select group sharing for a restricted source', () => {
     expect(toPhonebookSourceForm(parsePhonebookSources(rawSources)[1])).toMatchObject({
       sharing: 'groups',
       groups: ['Sales', 'Marketing'],
+      csvFrom: 'url',
+      url: 'https://files.example.com/contacts.csv',
+    })
+  })
+
+  it('should open an uploaded CSV file as an upload', () => {
+    const [source] = parsePhonebookSources({
+      custom_7: { dbtype: 'csv', url: 'file:///var/lib/nethvoice/phonebook/uploads/abc.csv' },
+    })
+
+    expect(toPhonebookSourceForm(source!)).toMatchObject({
+      csvFrom: 'upload',
+      url: '',
+      uploadedUrl: 'file:///var/lib/nethvoice/phonebook/uploads/abc.csv',
     })
   })
 })
 
-describe('validatePhonebookSourceForm', () => {
-  it('should accept a complete database source', () => {
-    expect(validatePhonebookSourceForm(databaseForm())).toEqual({})
+describe('emptyPhonebookSourceForm', () => {
+  it('should prefill the query and leave the port and the interval out', () => {
+    const form = emptyPhonebookSourceForm()
+
+    expect(form.query).toBe('SELECT * FROM [table]')
+    expect(form.port).toBe('')
+    expect(form).not.toHaveProperty('interval')
+  })
+})
+
+describe('validatePhonebookSourceFields', () => {
+  it('should accept a complete database source with an empty port', () => {
+    expect(validatePhonebookSourceFields(databaseForm({ port: '' }))).toEqual({})
   })
 
   it('should require the connection fields of a database source', () => {
     expect(
-      validatePhonebookSourceForm(
+      validatePhonebookSourceFields(
         databaseForm({
           name: '',
           host: '',
@@ -229,29 +484,71 @@ describe('validatePhonebookSourceForm', () => {
           user: '',
           password: '',
           query: '',
-          mapping: {},
         }),
       ),
     ).toEqual({
       name: 'integrations.phonebook.name_required',
-      host: 'integrations.host_required',
+      database: 'integrations.cards.database_name_required',
+      host: 'integrations.cards.database_address_required',
       port: 'integrations.port_invalid',
-      database: 'integrations.database_required',
-      user: 'integrations.user_required',
+      user: 'integrations.cards.database_username_required',
       password: 'integrations.password_required',
       query: 'integrations.query_required',
-      mapping: 'integrations.phonebook.mapping_required',
     })
   })
 
+  it('should refuse ports out of range', () => {
+    expect(validatePhonebookSourceFields(databaseForm({ port: '0' }))).toEqual({
+      port: 'integrations.port_invalid',
+    })
+    expect(validatePhonebookSourceFields(databaseForm({ port: '65536' }))).toEqual({
+      port: 'integrations.port_invalid',
+    })
+    expect(validatePhonebookSourceFields(databaseForm({ port: '65535' }))).toEqual({})
+  })
+
+  it('should ask to replace the table placeholder of the query', () => {
+    expect(validatePhonebookSourceFields(databaseForm({ query: 'SELECT * FROM [table]' }))).toEqual(
+      { query: 'integrations.phonebook.query_table' },
+    )
+  })
+
+  it('should refuse the name of an MS SQL Server instance in the address', () => {
+    expect(
+      validatePhonebookSourceFields(databaseForm({ kind: 'mssql', host: 'erp-db\\SQLEXPRESS' })),
+    ).toEqual({ host: 'integrations.phonebook.mssql_instance' })
+    expect(
+      validatePhonebookSourceFields(databaseForm({ kind: 'mysql', host: 'erp-db\\SQLEXPRESS' })),
+    ).toEqual({})
+  })
+
+  it('should refuse a name already used by another source, ignoring case', () => {
+    expect(
+      validatePhonebookSourceFields(databaseForm({ name: ' crm CONTACTS ' }), {
+        otherNames: ['CRM contacts', 'Suppliers'],
+      }),
+    ).toEqual({ name: 'integrations.phonebook.name_taken' })
+    expect(isNameTaken('Partners', ['CRM contacts'])).toBe(false)
+    expect(isNameTaken('', [''])).toBe(false)
+  })
+
   it('should not require the password again when a stored one exists', () => {
-    expect(validatePhonebookSourceForm(databaseForm({ password: '' }), crmSource())).toEqual({})
+    expect(
+      validatePhonebookSourceFields(databaseForm({ password: '' }), { existing: crmSource() }),
+    ).toEqual({})
+    expect(
+      validatePhonebookSourceFields(databaseForm({ password: '', port: '' }), {
+        existing: crmSource(),
+      }),
+    ).toEqual({})
   })
 
   it('should require the password again for a different server', () => {
     const required = { password: 'integrations.password_required' }
     const edited = (changes: Partial<PhonebookSourceForm>) =>
-      validatePhonebookSourceForm(databaseForm({ password: '', ...changes }), crmSource())
+      validatePhonebookSourceFields(databaseForm({ password: '', ...changes }), {
+        existing: crmSource(),
+      })
 
     expect(edited({ host: 'other.example.com' })).toEqual(required)
     expect(edited({ port: '3307' })).toEqual(required)
@@ -262,19 +559,21 @@ describe('validatePhonebookSourceForm', () => {
   it('should require the password again for another query when the query must stay with it', () => {
     const required = { password: 'integrations.password_required' }
     const edited = (changes: Partial<PhonebookSourceForm>) =>
-      validatePhonebookSourceForm(databaseForm({ password: '', ...changes }), crmSource(), true)
+      validatePhonebookSourceFields(databaseForm({ password: '', ...changes }), {
+        existing: crmSource(),
+        sameQuery: true,
+      })
 
     expect(edited({})).toEqual({})
-    expect(edited({ name: 'Renamed', interval: 60 })).toEqual({})
+    expect(edited({ name: 'Renamed', enabled: false })).toEqual({})
     expect(edited({ query: 'SELECT * FROM other' })).toEqual(required)
     expect(edited({ database: 'crm2' })).toEqual(required)
     expect(edited({ user: 'writer' })).toEqual(required)
     expect(edited({ host: 'other.example.com' })).toEqual(required)
     expect(
-      validatePhonebookSourceForm(
+      validatePhonebookSourceFields(
         databaseForm({ password: 'typed', query: 'SELECT * FROM other' }),
-        crmSource(),
-        true,
+        { existing: crmSource(), sameQuery: true },
       ),
     ).toEqual({})
   })
@@ -306,51 +605,107 @@ describe('validatePhonebookSourceForm', () => {
     })
     const form = { ...toPhonebookSourceForm(infinity!), name: 'Infinity' }
 
-    expect(validatePhonebookSourceForm(form, infinity)).toEqual({})
+    expect(validatePhonebookSourceFields(form, { existing: infinity })).toEqual({})
     expect(
-      validatePhonebookSourceForm({ ...form, url: 'https://other.example.com/api' }, infinity),
+      validatePhonebookSourceFields(
+        { ...form, url: 'https://other.example.com/api' },
+        { existing: infinity },
+      ),
     ).toEqual({ password: 'integrations.password_required' })
   })
 
-  it('should validate the address of a CSV source', () => {
-    const csv = (url: string) =>
-      validatePhonebookSourceForm(databaseForm({ kind: 'csv', url, mapping: { Name: 'name' } }))
+  it('should validate the Infinity fields', () => {
+    expect(
+      validatePhonebookSourceFields(
+        databaseForm({ kind: 'infinity', url: 'infinity.example.com', username: '' }),
+      ),
+    ).toEqual({
+      url: 'integrations.url_invalid',
+      username: 'integrations.phonebook.username_required',
+    })
+  })
+
+  it('should accept only http and https addresses for a CSV file to download', () => {
+    const csv = (url: string) => validatePhonebookSourceFields(databaseForm({ kind: 'csv', url }))
 
     expect(csv('https://files.example.com/contacts.csv')).toEqual({})
-    expect(csv('file:///var/lib/nethvoice/phonebook/uploads/abc.csv')).toEqual({})
-    expect(csv('contacts.csv')).toEqual({ url: 'integrations.phonebook.csv_url_invalid' })
+    expect(csv('http://files.example.com/contacts.csv')).toEqual({})
+    expect(csv('file:///srv/contacts.csv')).toEqual({ url: 'integrations.url_invalid' })
+    expect(csv('contacts.csv')).toEqual({ url: 'integrations.url_invalid' })
     expect(csv('')).toEqual({ url: 'integrations.url_required' })
   })
 
-  it('should not ask a mapping for Infinity sources', () => {
+  it('should keep the stored local address of an existing CSV source', () => {
+    const [source] = parsePhonebookSources({
+      custom_8: { dbtype: 'csv', url: 'file:///srv/contacts.csv', type: 'Local' },
+    })
+    const form = toPhonebookSourceForm(source!)
+
+    expect(validatePhonebookSourceFields(form, { existing: source })).toEqual({})
     expect(
-      validatePhonebookSourceForm(
-        databaseForm({
-          kind: 'infinity',
-          url: 'https://infinity.example.com/api',
-          username: 'api',
-          mapping: {},
-        }),
+      validatePhonebookSourceFields(
+        { ...form, url: 'file:///srv/other.csv' },
+        { existing: source },
       ),
-    ).toEqual({})
+    ).toEqual({ url: 'integrations.url_invalid' })
   })
 
-  it('should require a group when the source is shared with groups', () => {
-    expect(validatePhonebookSourceForm(databaseForm({ sharing: 'groups', groups: [] }))).toEqual({
+  it('should ask a file to upload unless one is already stored', () => {
+    const upload = databaseForm({ kind: 'csv', csvFrom: 'upload' })
+
+    expect(validatePhonebookSourceFields(upload)).toEqual({
+      file: 'integrations.phonebook.file_required',
+    })
+    expect(validatePhonebookSourceFields(upload, { hasFile: true })).toEqual({})
+    expect(
+      validatePhonebookSourceFields({
+        ...upload,
+        uploadedUrl: 'file:///var/lib/nethvoice/phonebook/uploads/abc.csv',
+      }),
+    ).toEqual({})
+  })
+})
+
+describe('validatePhonebookVisibility', () => {
+  it('should require a group when the source is visible to selected groups', () => {
+    expect(validatePhonebookVisibility({ sharing: 'groups', groups: [] })).toEqual({
       groups: 'integrations.phonebook.groups_required',
     })
+    expect(validatePhonebookVisibility({ sharing: 'groups', groups: ['Sales'] })).toEqual({})
+    expect(validatePhonebookVisibility({ sharing: 'public', groups: [] })).toEqual({})
+  })
+})
+
+describe('getConnectionSignature', () => {
+  it('should change only with the connection fields', () => {
+    const base = getConnectionSignature(databaseForm())
+
+    expect(getConnectionSignature(databaseForm({ name: 'Other', enabled: false }))).toBe(base)
+    expect(getConnectionSignature(databaseForm({ password: 'other' }))).not.toBe(base)
+    expect(getConnectionSignature(databaseForm({ query: 'SELECT 1' }))).not.toBe(base)
+  })
+
+  it('should follow the chosen file of an upload', () => {
+    const upload = databaseForm({ kind: 'csv', csvFrom: 'upload' })
+
+    expect(getConnectionSignature(upload, 'a.csv|1|1')).not.toBe(
+      getConnectionSignature(upload, 'b.csv|1|1'),
+    )
+    expect(getConnectionSignature({ ...upload, url: 'https://x' }, 'a')).toBe(
+      getConnectionSignature(upload, 'a'),
+    )
   })
 })
 
 describe('payloads', () => {
-  it('should build the body of a database source', () => {
+  it('should build the body of a new database source with the default port and no interval', () => {
     expect(
       buildPhonebookSourcePayload(
         databaseForm({
           name: ' CRM contacts ',
+          port: '',
           sharing: 'groups',
           groups: ['Sales'],
-          interval: 60,
         }),
       ),
     ).toEqual({
@@ -364,9 +719,16 @@ describe('payloads', () => {
       mapping: { full_name: 'name' },
       type: 'CRM contacts',
       access: 'group:Sales',
-      interval: 60,
       enabled: true,
     })
+    expect(buildPhonebookSourcePayload(databaseForm({ kind: 'mssql' })).port).toBe('1433')
+  })
+
+  it('should send back the stored interval of an edited source', () => {
+    expect(
+      buildPhonebookSourcePayload({ ...toPhonebookSourceForm(crmSource()), password: '' }),
+    ).toMatchObject({ interval: 1440, port: '3306' })
+    expect(buildPhonebookSourcePayload(databaseForm({ interval: 60 })).interval).toBe(60)
   })
 
   it('should omit an unchanged password so the server keeps the stored one', () => {
@@ -375,17 +737,17 @@ describe('payloads', () => {
     )
   })
 
-  it('should ignore selected groups when the source is public', () => {
+  it('should ignore selected groups when the source is visible to everyone', () => {
     expect(buildPhonebookSourcePayload(databaseForm({ groups: ['Sales'] })).access).toBe('public')
   })
 
-  it('should build the body of a CSV source', () => {
+  it('should build the body of a CSV source to download', () => {
     expect(
       buildPhonebookSourcePayload(
         databaseForm({
           kind: 'csv',
-          url: 'https://files.example.com/contacts.csv',
-          mapping: { Name: 'name' },
+          url: ' https://files.example.com/contacts.csv ',
+          mapping: { Name: 'name', Phone: NOT_IMPORTED },
           enabled: false,
         }),
       ),
@@ -395,9 +757,21 @@ describe('payloads', () => {
       mapping: { Name: 'name' },
       type: 'CRM contacts',
       access: 'public',
-      interval: 1440,
       enabled: false,
     })
+  })
+
+  it('should send the address of the uploaded file', () => {
+    expect(
+      buildPhonebookSourcePayload(
+        databaseForm({
+          kind: 'csv',
+          csvFrom: 'upload',
+          url: 'https://ignored.example.com/c.csv',
+          uploadedUrl: 'file:///var/lib/nethvoice/phonebook/uploads/abc.csv',
+        }),
+      ).url,
+    ).toBe('file:///var/lib/nethvoice/phonebook/uploads/abc.csv')
   })
 
   it('should build the body of an Infinity source without mapping', () => {
@@ -416,13 +790,12 @@ describe('payloads', () => {
       password: 'new-password',
       type: 'CRM contacts',
       access: 'public',
-      interval: 1440,
       enabled: true,
     })
   })
 
-  it('should send only the connection fields to the test endpoint', () => {
-    expect(buildPhonebookTestPayload(databaseForm())).toEqual({
+  it('should send the connection fields and ask the total to the read endpoint', () => {
+    expect(buildPhonebookTestPayload(databaseForm({ port: '' }))).toEqual({
       dbtype: 'mysql',
       host: 'crm.example.com',
       port: '3306',
@@ -430,15 +803,16 @@ describe('payloads', () => {
       password: 'new-password',
       dbname: 'crm',
       query: 'SELECT * FROM contacts',
+      with_total: true,
     })
     expect(
       buildPhonebookTestPayload(
         databaseForm({ kind: 'csv', url: 'https://files.example.com/c.csv' }),
       ),
-    ).toEqual({ dbtype: 'csv', url: 'https://files.example.com/c.csv' })
+    ).toEqual({ dbtype: 'csv', url: 'https://files.example.com/c.csv', with_total: true })
   })
 
-  it('should test an edited source with its stored password', () => {
+  it('should read an edited source with its stored password', () => {
     expect(buildPhonebookTestPayload(databaseForm({ password: '' }), crmSource())).toEqual({
       dbtype: 'mysql',
       host: 'crm.example.com',
@@ -447,6 +821,7 @@ describe('payloads', () => {
       dbname: 'crm',
       query: 'SELECT * FROM contacts',
       id: 'custom_1',
+      with_total: true,
     })
     expect(buildPhonebookTestPayload(databaseForm(), crmSource())).not.toHaveProperty('id')
   })
@@ -482,36 +857,107 @@ describe('CSV files', () => {
   })
 })
 
-describe('getSyncIntervals', () => {
-  it('should add an interval missing from the list, in order', () => {
-    expect(getSyncIntervals(60)).toEqual([15, 30, 60, 360, 1440])
-    expect(getSyncIntervals(120)).toEqual([15, 30, 60, 120, 360, 1440])
-  })
-})
-
-describe('emptyPhonebookSourceForm', () => {
-  it('should leave the query empty', () => {
-    expect(emptyPhonebookSourceForm().query).toBe('')
-  })
-})
-
-describe('suggestMapping', () => {
-  const fields = ['name', 'company', 'workphone', 'owner_id']
-
-  it('should map the columns named like a phonebook field', () => {
-    expect(suggestMapping(['Name', 'company', 'phone', 'type'], fields, {}, 'mysql')).toEqual({
-      Name: 'name',
-      company: 'company',
-    })
+describe('sync status', () => {
+  const now = new Date(2026, 10, 23, 12, 0)
+  const status = (changes: Partial<PhonebookSyncStatus>): PhonebookSyncStatus => ({
+    id: 'custom_1',
+    status: 'ok',
+    startedAt: new Date(2026, 10, 23, 9, 59),
+    finishedAt: new Date(2026, 10, 23, 10, 0),
+    imported: 10,
+    message: null,
+    ...changes,
   })
 
-  it('should keep the mapping chosen by the user', () => {
+  it('should parse the statuses with their dates', () => {
     expect(
-      suggestMapping(['name', 'company'], fields, { name: '', other: 'company' }, 'mysql'),
-    ).toEqual({ name: '', other: 'company' })
+      parsePhonebookSyncStatuses([
+        {
+          id: 'custom_1',
+          status: 'failed',
+          started_at: '2026-11-23T02:00:00Z',
+          finished_at: '2026-11-23T02:00:05Z',
+          imported: null,
+          message: 'The database server does not answer',
+        },
+        {
+          id: 'custom_2',
+          status: 'running',
+          started_at: '2026-11-23T03:00:00Z',
+          finished_at: null,
+          imported: null,
+          message: null,
+        },
+      ]),
+    ).toEqual([
+      {
+        id: 'custom_1',
+        status: 'failed',
+        startedAt: new Date('2026-11-23T02:00:00Z'),
+        finishedAt: new Date('2026-11-23T02:00:05Z'),
+        imported: null,
+        message: 'The database server does not answer',
+      },
+      {
+        id: 'custom_2',
+        status: 'running',
+        startedAt: new Date('2026-11-23T03:00:00Z'),
+        finishedAt: null,
+        imported: null,
+        message: null,
+      },
+    ])
+    expect(() => parsePhonebookSyncStatuses([{ id: 'x', status: 'done' }])).toThrow()
   })
 
-  it('should leave out the fields a CSV cannot fill', () => {
-    expect(suggestMapping(['owner_id'], fields, {}, 'csv')).toEqual({})
+  it('should show a source being synced', () => {
+    expect(getLastSyncDisplay(status({ status: 'running' }), false, now)).toEqual({
+      state: 'syncing',
+    })
+    expect(getLastSyncDisplay(status({}), true, now)).toEqual({ state: 'syncing' })
+    expect(getLastSyncDisplay(undefined, true, now)).toEqual({ state: 'syncing' })
+  })
+
+  it('should show a source never synced', () => {
+    expect(getLastSyncDisplay(undefined, false, now)).toEqual({ state: 'never' })
+  })
+
+  it('should tell today, yesterday and older syncs apart', () => {
+    expect(getLastSyncDisplay(status({}), false, now)).toEqual({
+      state: 'ok',
+      day: 'today',
+      at: new Date(2026, 10, 23, 10, 0),
+    })
+    expect(
+      getLastSyncDisplay(
+        status({ status: 'failed', finishedAt: new Date(2026, 10, 22, 23, 59) }),
+        false,
+        now,
+      ),
+    ).toMatchObject({ state: 'failed', day: 'yesterday' })
+    expect(
+      getLastSyncDisplay(status({ finishedAt: new Date(2026, 10, 20, 8, 0) }), false, now),
+    ).toMatchObject({ state: 'ok', day: 'date' })
+    expect(
+      getLastSyncDisplay(status({ finishedAt: null, status: 'failed' }), false, now),
+    ).toMatchObject({ state: 'failed', at: new Date(2026, 10, 23, 9, 59) })
+  })
+})
+
+describe('translations', () => {
+  it('should have an English text for every read error and phonebook field', () => {
+    const kinds = ['connection', 'auth', 'query', 'file', 'http', 'format', 'unknown'] as const
+    const sources = ['mysql', 'mssql', 'csv', 'infinity'] as const
+    const keys = [
+      ...kinds.flatMap((kind) =>
+        sources.flatMap((source) => Object.values(getReadErrorTexts(kind, source))),
+      ),
+      ...PHONEBOOK_FIELD_ORDER.map((field) => `integrations.phonebook.fields.${field}`),
+      ...sources.map((source) => `integrations.phonebook.kind_${source}`),
+    ]
+    const lookup = (key: string): unknown =>
+      key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], en)
+
+    expect(keys.filter((key) => typeof lookup(key) !== 'string')).toEqual([])
   })
 })
