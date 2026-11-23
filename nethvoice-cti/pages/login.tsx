@@ -14,6 +14,7 @@ import {
   faArrowLeft,
 } from '@fortawesome/free-solid-svg-icons'
 import { checkDarkTheme } from '../lib/darkTheme'
+import { checkDensity } from '../lib/density'
 import { useTranslation } from 'react-i18next'
 import { store } from '../store'
 import { useSelector } from 'react-redux'
@@ -448,6 +449,7 @@ export default function Login() {
     }
     setLoading(false)
     checkDarkTheme()
+    checkDensity()
   }
 
   const verifyOTP = async (e: React.FormEvent) => {

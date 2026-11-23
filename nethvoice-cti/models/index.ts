@@ -8,6 +8,7 @@ import { sideDrawer } from './sideDrawer'
 import { phonebook } from './phonebook'
 import { speedDial } from './speedDial'
 import { darkTheme } from './darkTheme'
+import { density } from './density'
 import { operators } from './operators'
 import { notifications } from './notifications'
 import { globalSearch } from './globalSearch'
@@ -38,6 +39,7 @@ export interface RootModel extends Models<RootModel> {
   phonebook: typeof phonebook
   speedDial: typeof speedDial
   darkTheme: typeof darkTheme
+  density: typeof density
   operators: typeof operators
   notifications: typeof notifications
   globalSearch: typeof globalSearch
@@ -69,6 +71,7 @@ export const models: RootModel = {
   phonebook,
   speedDial,
   darkTheme,
+  density,
   operators,
   notifications,
   globalSearch,
