@@ -1,6 +1,11 @@
 # Satellite
 
-Satellite is a Python application that creates a bridge between Asterisk PBX and Deepgram speech recognition services. It connects to Asterisk ARI (Asterisk REST Interface) and waits for channels to enter stasis. When a channel enters stasis with the application name "satellite", it creates a snoop channel and sends external media to its RTP server address. The RTP server distinguishes various channels from the UDP source port, captures the audio, and forwards it to Deepgram for real-time speech-to-text transcription. Transcription results are then published to an MQTT broker for further processing.
+Satellite runs voice agents and optional transcription in one Python application.
+`main.py` owns startup, signals and shutdown; `voice_agent/` and `transcription.py`
+keep their logic separate. Transcription connection failures retry without
+restarting agent calls; shutdown reaps request workers and closes their resources.
+
+The transcription component creates a bridge between Asterisk PBX and Deepgram speech recognition services. It connects to Asterisk ARI (Asterisk REST Interface) and waits for channels to enter stasis. When a channel enters stasis with the application name "satellite", it creates a snoop channel and sends external media to its RTP server address. The RTP server distinguishes various channels from the UDP source port, captures the audio, and forwards it to Deepgram for real-time speech-to-text transcription. Transcription results are then published to an MQTT broker for further processing.
 If OpenAI API key is provided, it will be used to generate a summary of the transcriptions.
 
 ## Features
@@ -25,13 +30,20 @@ If OpenAI API key is provided, it will be used to generate a summary of the tran
 1. Clone this repository
 2. Create a virtual environment: `python3 -m venv .venv`
 3. Activate the virtual environment: `source .venv/bin/activate`
-4. Install dependencies: `pip install -r requirements.txt`
+4. Install dependencies: `pip install -r requirements.txt -r requirements-agent.lock`
 
 ## Configuration
 
 Create a `.env` file in the root directory with the following configuration parameters:
 
 ```
+# Shared application (voice-agent configuration is documented in docs/voice-agents.md)
+VOICE_AGENT_RUNTIME_TOKEN=your_private_runtime_token
+VOICE_AGENT_HTTP_HOST=127.0.0.1
+VOICE_AGENT_HTTP_PORT=8001
+SATELLITE_CALL_TRANSCRIPTION_ENABLED=true
+SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED=false
+
 # Asterisk Configuration
 ASTERISK_URL=http://127.0.0.1:8088
 ARI_APP=satellite
@@ -52,7 +64,8 @@ MQTT_TOPIC_PREFIX=satellite
 # Deepgram API Key
 DEEPGRAM_API_KEY=your_deepgram_api_key
 
-# REST API (optional)
+# Transcription REST API
+HTTP_HOST=127.0.0.1
 HTTP_PORT=8000
 
 # REST API Authentication (optional)
@@ -118,7 +131,13 @@ This requires the `vector` extension (pgvector) in your Postgres instance.
 
 1. Ensure Asterisk is configured with the appropriate ARI settings
 2. Make sure your MQTT broker is running
-3. Run the application: `python main.py`
+3. Run the application with `python main.py`. Set `VOICE_AGENT_ENABLED=true`
+   and `VOICE_AGENT_RUNTIME_TOKEN` with the MariaDB and ARI configuration to
+   start the private voice-agent listener and admit calls. Transcription and
+   its HTTP API start when both transcription flags are absent, or when either
+   `SATELLITE_CALL_TRANSCRIPTION_ENABLED` or `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED`
+   is true. Both HTTP bind addresses must be loopback. Set `ARI_APP` to the
+   transcription service's own Stasis application.
 4. Configure Asterisk dialplan to direct calls to the Stasis application named "satellite"
 5. Send an MQTT message to the topic `transcription/control` with payload `{"action":"start", "uniqueid":"[CALL_UNIQUEID]"}` or `{"action":"start", "linkedid":"[CALL_UNIQUEID]"}`
 6. Stop the trascription with MQTT message to the topic `transcription/control` with payload `{"action":"stop", "uniqueid":"[CALL_UNIQUEID]"}` or `{"action":"stop", "linkedid":"[CALL_UNIQUEID]"}`
@@ -352,3 +371,27 @@ podman run -e ASTERISK_URL -e MQTT_URL -e DEEPGRAM_API_KEY ... satellite
 
 ## License
 This project is licensed under the GNU General Public License v3.0. See the [LICENSE](LICENSE) file for details.
+
+## Voice agents alpha
+
+Voice agents support fresh v8 installations with matching NethVoice/Satellite
+images. Configuration is PHP/MariaDB-owned and activation happens on publication.
+See [architecture, installation and operations](docs/voice-agents.md) and
+[validation and acceptance gaps](docs/voice-agents-validation.md).
+
+### Attended transfers
+
+Publication v9 adds opt-in consultations for people; v8/tools-v5 remain immutable.
+The caller and selected internal assistant versions are pinned at admission.
+Phone consultations use an isolated provider/media session; chat uses the selected
+text model and a scoped loopback gateway. One 60-second budget covers phone, chat,
+one clarification and connection. Success requires an exact native basic bridge
+and both Stasis releases; uncertain release never starts competing fallback.
+
+Provision `VOICE_AGENT_RECIPIENT_URL`, `VOICE_AGENT_RECIPIENT_TOKEN`,
+`VOICE_AGENT_CHAT_URL` and `VOICE_AGENT_CHAT_TOKEN` through the companion NS8 module.
+Both URLs must be bare `http://127.0.0.1:<port>` addresses. No staff JWT or broad
+chat component key is accepted. Missing services make consultations unavailable
+while preserving the caller's working conversation. See the companion
+[NethVoice guide](https://github.com/nethesis/ns8-nethvoice/blob/voice_agents_attended_transfer/docs/voice-agents-attended-transfer.md)
+for setup and live acceptance gates.

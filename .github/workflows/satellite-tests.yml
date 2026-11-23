@@ -25,9 +25,17 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.15'
+          python-version: '3.12.13'
           cache: pip
-          cache-dependency-path: satellite/requirements*.txt
+          cache-dependency-path: |
+            satellite/requirements.txt
+            satellite/requirements-agent.lock
+            satellite/requirements-dev.txt
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, sodium
+          coverage: none
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -35,6 +43,6 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
+          pip install -r requirements.txt -r requirements-agent.lock -r requirements-dev.txt
       - name: Run tests
         run: pytest

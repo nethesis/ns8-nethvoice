@@ -498,7 +498,6 @@ path with `BUILD_TIMING_FILE` when comparing repeated runs.
 | `REPOBASE` | `ghcr.io/nethesis` | Registry/repository prefix used for the built images. Use a local prefix such as `localhost/ns8-nethvoice` when testing locally. |
 | `IMAGETAG` | `latest` locally, current ref name in workflows | Tag applied to the built images. Slashes are normalized to dashes. |
 | `BUILD_IMAGES` | empty | Comma-separated list of image names to build. Both full names (`nethvoice-freepbx`) and short names (`freepbx`) are accepted. Empty means build everything. |
-| `SATELLITE_IMAGE` | Digest-pinned Satellite PR #56 image | Optional Satellite base override for development. Replace the PR default with a versioned release before merging; see [packaging](satellite/README.md). |
 | `BUILD_TIMING_FILE` | `build-timings.tsv` | Output file written at the end of the run with one timing row per image. |
 | `REUSE_IMAGES` | empty, `1` in workflows | Reuse a published image when its sources did not change, instead of building it again (see below). Requires `skopeo`. |
 
@@ -588,7 +587,7 @@ no longer updated.
 | `nethcti-middleware` | [nethesis/nethcti-middleware](https://github.com/nethesis/nethcti-middleware) | `main` | [de4bff0](https://github.com/nethesis/nethcti-middleware/commit/de4bff0e2ae79f4b41a57603dcdd38c503048ee6) |
 | `nethvoice-cti` | [nethesis/nethvoice-cti](https://github.com/nethesis/nethvoice-cti) | `main` | [9dd9486](https://github.com/nethesis/nethvoice-cti/commit/9dd948698f3b6c5bc9cc54513b66d50d0d37bf86) |
 | `reports` | [nethesis/nethvoice-report](https://github.com/nethesis/nethvoice-report) | `ns8` | [b2a14d8](https://github.com/nethesis/nethvoice-report/commit/b2a14d8998e46fe19455497463e96b8db0f73591) |
-| `satellite` | [nethesis/satellite](https://github.com/nethesis/satellite) | `main` | [4969fd5](https://github.com/nethesis/satellite/commit/4969fd5558a0426660c601cd2c76aa3887a63c7d) |
+| `satellite` | [nethesis/satellite](https://github.com/nethesis/satellite) | `voice_agents` | [b8acbcc](https://github.com/nethesis/satellite/commit/b8acbccd80b363bfe6f42dac17bdb53b854ee28f) |
 | `tancredi/app` | [nethesis/tancredi](https://github.com/nethesis/tancredi) | `master` | [a27892d](https://github.com/nethesis/tancredi/commit/a27892de5e004fd310400c47939ed6f083ba84da) |
 
 When a component directory already had a `README.md` for the module image, the

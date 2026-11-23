@@ -2,7 +2,7 @@
 # Disposable fresh-install and cross-repository checks; no PBX database access.
 set -euo pipefail
 freepbx_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-satellite_dir=${M0_SATELLITE_DIR:-"${freepbx_dir}/../../satellite"}
+satellite_dir=${M0_SATELLITE_DIR:-"${freepbx_dir}/../satellite"}
 test_python=${M0_PYTHON:-python3}
 agent_php() { php -d zend.assertions=1 -d assert.exception=1 -d session.save_path="$test_tmp" "$@"; }
 python3 "$freepbx_dir/tests/agents/ns8.py"

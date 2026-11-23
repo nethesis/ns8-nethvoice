@@ -262,7 +262,7 @@ Its filename must be the name of the module .tar.gz. For instance, for installin
 
 ## Call transcription
 
-Call transcriptio uses https://github.com/nethesis/satellite to transcribe and summarize calls in real time using Deepgram and OpenAI APIs.
+Call transcription uses the [bundled Satellite component](../satellite/README.md) to transcribe and summarize calls in real time using Deepgram and OpenAI APIs.
 
 To enable call transcription, you need to set the following settings on nethserver UI:
 

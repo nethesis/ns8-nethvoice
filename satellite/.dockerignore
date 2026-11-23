@@ -47,4 +47,15 @@ Thumbs.db
 !README.md
 
 # Ignore configuration files that shouldn't be in container
-extensions_additional.conf.satellite 
+extensions_additional.conf.satellite
+
+# M0 runtime build exclusions
+.env*
+**/__pycache__
+.pytest_cache
+.coverage*
+
+# Source-only diagnostics and tests are never production inputs.
+diagnostics/
+tests/
+docs/

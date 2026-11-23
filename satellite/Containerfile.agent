@@ -1,0 +1,10 @@
+# Standalone voice runner; never starts main.py or transcription dependencies.
+FROM docker.io/library/python:3.12.13-slim
+WORKDIR /app
+COPY requirements-agent.lock ./requirements-agent.lock
+RUN pip install --no-cache-dir -r requirements-agent.lock
+COPY voice_agent ./voice_agent
+ENV VOICE_AGENT_HTTP_HOST=127.0.0.1 VOICE_AGENT_HTTP_PORT=8001 PYTHONUNBUFFERED=1
+RUN mkdir -p /var/lib/voice-agent && chown 65532:65532 /var/lib/voice-agent
+USER 65532:65532
+CMD ["python", "-m", "voice_agent.runner"]

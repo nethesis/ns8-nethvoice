@@ -2,17 +2,19 @@
 
 Satellite is a Python application that creates a bridge between Asterisk PBX and Deepgram speech recognition services. It connects to Asterisk ARI (Asterisk REST Interface) and waits for channels to enter stasis. When a channel enters stasis with the application name "satellite", it creates a snoop channel and sends external media to its RTP server address. The RTP server distinguishes various channels from the UDP source port, captures the audio, and forwards it to Deepgram for real-time speech-to-text transcription. Transcription results are then published to an MQTT broker for further processing. If OpenAI API key is provided, it will be used to generate a summary of the transcriptions.
 
-https://github.com/nethesis/satellite
+The original project documentation is in [README.upstream.md](README.upstream.md).
 
 ## Shared voice-agent runtime
 
-The published Satellite image runs `python /app/main.py` in the existing
+The NethVoice Satellite image runs `python main.py` in the existing
 `satellite.service` container. One event loop owns startup, signals and shutdown.
+The unit enables the voice-agent listener with `VOICE_AGENT_ENABLED=true`.
 Voice-agent routing stays in `voice_agent/`; optional transcription stays in
 `transcription.py`, `asterisk_bridge.py`, `mqtt_client.py` and `api.py`.
-Transcription and its HTTP API start only when
+Transcription and its HTTP API start when
 `SATELLITE_CALL_TRANSCRIPTION_ENABLED` or
 `SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` is `True` (case insensitive).
+Standalone deployments that omit both flags also start transcription and its API.
 
 The two HTTP apps keep their existing loopback ports and authentication. Only
 exact signed webhook paths on the voice-agent listener are forwarded publicly;
@@ -25,16 +27,11 @@ transcription workers. PostgreSQL startup work runs outside the shared event loo
 The process no longer supervises or restarts component subprocesses. A fatal
 process failure still affects both components; systemd restarts the application.
 
-The build consumes the published Satellite PR #56 image pinned in `build-images.sh`
-to `sha256:ef50b10b07135e0a730587b1f7ab9779113b0f6536d793f591fbe08425bb73e4`.
-Its source revision is `52b178eb28ffecc81f8dc5d4d724bb8730020097`; NethVoice CI
-checks out that exact revision for paired tests. The import check requires the
-shared application lifecycle. `SATELLITE_IMAGE` remains a development base override.
-**Replace the PR image with a versioned Satellite release before merging, updating
-the digest and matching CI source revision together.**
-No source download/build fallback or local source overlay is used by NethVoice.
-The application runs as UID/GID 65532; configuration, credentials and volumes keep
-their existing ownership and locations.
+From the module root, run `BUILD_IMAGES=satellite bash build-images.sh` to build
+`nethvoice-satellite` from this directory. The module build and CI use the same
+checkout for Satellite and the FreePBX contracts. The published image follows the
+NethVoice module tag. The application runs as UID/GID 65532 with the existing
+service credentials and event volume.
 
 Satellite stays enabled for agent webhooks and readiness even when no agent is
 enabled. An inactive built-in agent never admits a call. Keeping the listener
@@ -174,5 +171,5 @@ export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELL
 
 Use the matching v8 runtime and fresh database baseline. See the maintained
 [voice agents guide](../docs/voice-agents.md). Configuration and tool permissions
-belong to each agent; publication activates it. The base image is pinned by
-digest in `build-images.sh`; CI tests its matching source revision.
+belong to each agent. Publishing activates the saved configuration. CI tests
+Satellite and the FreePBX contracts from the same checkout.

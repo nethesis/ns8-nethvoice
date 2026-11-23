@@ -33,24 +33,12 @@ jobs:
   foundation:
     name: Agent backend and runtime regressions
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ns8-nethvoice
     steps:
       - uses: actions/checkout@v6
-        with:
-          path: ns8-nethvoice
-      - name: Checkout Satellite source matching the build image
-        uses: actions/checkout@v6
-        with:
-          repository: nethesis/satellite
-          # Attended-transfer source; update together with the build image pin.
-          ref: 14fac4d00c76cfa67fb2e839aa507c640ac6611d
-          path: satellite
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.12"
-      - uses: shivammathur/setup-php@v2
+          python-version: "3.12.13"
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: "8.2"
           extensions: pdo_mysql, mbstring, sodium
@@ -66,7 +54,7 @@ jobs:
           echo "VOICE_AGENT_EXTENSIONS_FILE=${RUNNER_TEMP}/framework/amp_conf/htdocs/admin/libraries/extensions.class.php" >> "$GITHUB_ENV"
       - name: Install test dependencies
         run: |
-          python -m pip install -r "${GITHUB_WORKSPACE}/satellite/requirements-agent.lock" -r "${GITHUB_WORKSPACE}/satellite/requirements-dev.txt"
+          python -m pip install -r satellite/requirements-agent.lock -r satellite/requirements-dev.txt
           composer install --working-dir=freepbx/var/www/html/freepbx/rest --no-interaction --no-progress --prefer-dist
       - name: Run disposable database and runtime tests
         run: |
@@ -74,5 +62,4 @@ jobs:
           freepbx/tests/agents/run-foundation.sh
           php freepbx/var/www/html/freepbx/admin/modules/satellite/tests/run_transcription_tests.php
         env:
-          M0_SATELLITE_DIR: ${{ github.workspace }}/satellite
-          M0_REST_AUTOLOAD: ${{ github.workspace }}/ns8-nethvoice/freepbx/var/www/html/freepbx/rest/vendor/autoload.php
+          M0_REST_AUTOLOAD: ${{ github.workspace }}/freepbx/var/www/html/freepbx/rest/vendor/autoload.php

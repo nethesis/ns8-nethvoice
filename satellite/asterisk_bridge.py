@@ -6,6 +6,7 @@ import os
 from deepgram_connector import DeepgramConnector
 
 logger = logging.getLogger("asterisk_bridge")
+ARI_CLEANUP_TIMEOUT = 3
 
 class AsteriskBridge:
     """
@@ -38,6 +39,9 @@ class AsteriskBridge:
         self.is_shutting_down = False
         self.max_reconnect_delay = 30  # Maximum seconds between reconnection attempts
         self.pending_transcription_requests = set()
+        self._event_task = None
+        self._connector_tasks = set()
+        self._closing_channels = {}
 
     def _build_connector(self, channel_id):
         """Create a new Deepgram connector instance for a channel."""
@@ -143,18 +147,34 @@ class AsteriskBridge:
         ws_url = f"{self.url.replace('http', 'ws')}/ari/events?app={self.app}&api_key={self.auth.login}:{self.auth.password}"
         self.ws = await self.session.ws_connect(ws_url)
         # Start event loop
-        asyncio.create_task(self._process_ari_events())
+        self._event_task = asyncio.create_task(self._process_ari_events())
 
     async def disconnect(self):
-        """Disconnect from Asterisk ARI"""
+        """Drain owned resources before the supervisor closes RTP and MQTT."""
+        task = asyncio.create_task(self._disconnect())
+        try:
+            await asyncio.shield(task)
+        finally:
+            await task
+
+    async def _disconnect(self):
         logger.debug(f"Disconnect from Asterisk ARI")
         self.is_shutting_down = True
-        for channel_id in list(self.channels.keys()):
-            await self.close_channel(channel_id)
-        if self.ws:
-            await self.ws.close()
-        if self.session:
-            await self.session.close()
+        tasks = [task for task in (self._event_task, *self._connector_tasks) if task]
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        self._event_task = None
+        await asyncio.gather(*(self.close_channel(channel_id)
+                               for channel_id in self.channels.keys() | self._closing_channels.keys()),
+                             return_exceptions=True)
+        try:
+            if self.ws:
+                async with asyncio.timeout(ARI_CLEANUP_TIMEOUT):
+                    await self.ws.close()
+        finally:
+            if self.session:
+                await self.session.close()
 
     async def _process_ari_events(self):
         """Process events from Asterisk ARI WebSocket"""
@@ -366,7 +386,7 @@ class AsteriskBridge:
 
                     # Start the connector only if a realtime transcription was requested.
                     if self.channels[original_channel_id].get('transcription_requested'):
-                        asyncio.create_task(self._start_connector(original_channel_id))
+                        self._schedule_connector(original_channel_id)
                 except Exception as e:
                     logger.error(f"Failed to start connector for channel {original_channel_id}: {e}")
                     await self.close_channel(original_channel_id)
@@ -377,6 +397,13 @@ class AsteriskBridge:
                     params={}
                 )
                 logger.info(f"Channel {original_channel_id} returned to dialplan")
+
+    def _schedule_connector(self, channel_id):
+        if self.is_shutting_down:
+            return
+        task = asyncio.create_task(self._start_connector(channel_id))
+        self._connector_tasks.add(task)
+        task.add_done_callback(self._connector_tasks.discard)
 
     async def _start_connector(self, channel_id):
         """Start the Deepgram connector in background"""
@@ -415,6 +442,8 @@ class AsteriskBridge:
 
     async def start_transcription(self, call_id):
         """Enable realtime transcription for a specific active call."""
+        if self.is_shutting_down:
+            return
         self.pending_transcription_requests.add(call_id)
         channel_ids = self._find_channels_for_callid(call_id)
         if not channel_ids:
@@ -429,7 +458,7 @@ class AsteriskBridge:
             else:
                 self.channels[channel_id]['call_elapsed_at_start'] = None
             if not self.channels[channel_id].get('connector_started'):
-                asyncio.create_task(self._start_connector(channel_id))
+                self._schedule_connector(channel_id)
 
     async def stop_transcription(self, call_id):
         """Disable realtime transcription for a specific active call."""
@@ -444,14 +473,28 @@ class AsteriskBridge:
             if channel is None:
                 continue
             channel['transcription_requested'] = False
+            await self._stop_connector(channel_id, channel)
+
+    async def _stop_connector(self, channel_id, channel):
+        task = channel.get('closing_connector')
+        if task is None:
             connector = channel.pop('connector', None)
-            if connector is not None:
+            if connector is None:
+                return
+
+            async def close():
                 try:
                     await connector.close()
                 except Exception as e:
                     logger.debug(f"Failed to close connector for channel {channel_id}: {e}")
-                channel['connector_started'] = False
-                channel['connector_starting'] = False
+                finally:
+                    channel['connector_started'] = False
+                    channel['connector_starting'] = False
+                    channel.pop('closing_connector')
+
+            task = asyncio.create_task(close())
+            channel['closing_connector'] = task
+        await asyncio.shield(task)
 
     async def _handle_stasis_end(self, event):
         """Handle channel hangup event"""
@@ -484,46 +527,40 @@ class AsteriskBridge:
     async def close_channel(self, channel_id):
         """Close a channel"""
         logger.debug(f"close_channel(channel_id={channel_id})")
-        channel = self.channels.get(channel_id)
-        if channel is not None:
-            # Close the deepgram connector
-            connector = channel.pop('connector', None)
-            if connector is not None:
-                try:
-                    await connector.close()
-                except Exception as e:
-                    logger.debug(f"Failed to close connector for channel {channel_id}: {e}")
-            for direction in ['in', 'out']:
-                # Remove the bridge
-                if f'bridge_{direction}' in channel:
-                    try:
-                        await self._ari_request(
-                            'DELETE',
-                            f"/bridges/{channel[f'bridge_{direction}']}"
-                        )
-                    except Exception as e:
-                        logger.debug(f"Failed to delete bridge {channel[f'bridge_{direction}']}: {e}")
-                    del channel[f'bridge_{direction}']
-            for direction in ['in', 'out']:
-                # Remove the external media channel
-                if f'external_media_channel_{direction}' in channel:
-                    try:
-                        await self._ari_request(
-                            'DELETE',
-                            f"/channels/{channel[f'external_media_channel_{direction}']}"
-                        )
-                    except Exception as e:
-                        logger.debug(f"Failed to delete external media channel {channel[f'external_media_channel_{direction}']}: {e}")
-                    del channel[f'external_media_channel_{direction}']
-            for direction in ['in', 'out']:
-                # Remove the RTP stream
-                if f'rtp_source_port_{direction}' in channel:
-                    self.rtp_server.end_stream(channel[f'rtp_source_port_{direction}'])
-                    del channel[f'rtp_source_port_{direction}']
-                if f'rtp_stream_{direction}' in channel:
-                    del channel[f'rtp_stream_{direction}']
-            del self.channels[channel_id]
-        self.pending_transcription_requests.discard(channel_id)
+        task = self._closing_channels.get(channel_id)
+        if task is None:
+            self.pending_transcription_requests.discard(channel_id)
+            channel = self.channels.pop(channel_id, None)
+            if channel is None:
+                return
+            task = asyncio.create_task(self._close_channel_resources(channel_id, channel))
+            self._closing_channels[channel_id] = task
+            task.add_done_callback(lambda _: self._closing_channels.pop(channel_id))
+        await asyncio.shield(task)
+
+    async def _close_channel_resources(self, channel_id, channel):
+        await self._stop_connector(channel_id, channel)
+        for resource, keys in (
+            ('bridges', ('bridge_in', 'bridge_out')),
+            ('channels', ('external_media_channel_in', 'external_media_channel_out',
+                          'snoop_channel_in', 'snoop_channel_out')),
+        ):
+            await asyncio.gather(*(self._delete_resource(f"/{resource}/{channel[key]}")
+                                   for key in keys if key in channel))
+        for direction in ['in', 'out']:
+            # Remove the RTP stream
+            if f'rtp_source_port_{direction}' in channel:
+                self.rtp_server.end_stream(channel[f'rtp_source_port_{direction}'])
+                del channel[f'rtp_source_port_{direction}']
+            if f'rtp_stream_{direction}' in channel:
+                del channel[f'rtp_stream_{direction}']
+
+    async def _delete_resource(self, path):
+        try:
+            async with asyncio.timeout(ARI_CLEANUP_TIMEOUT):
+                await self._ari_request('DELETE', path)
+        except Exception as e:
+            logger.warning("Failed to delete transcription resource %s: %s", path, e)
 
     async def _handle_channel_hangup(self, event):
         """Handle channel hangup event"""

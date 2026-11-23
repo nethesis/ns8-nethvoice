@@ -7,10 +7,9 @@ before Agents schema or seed changes. There is no automatic conversion or erase.
 Take a protected backup and use an explicitly reviewed test-instance reset, or install
 on a new instance. Never use the alpha installer to upgrade a development database.
 
-NethVoice currently wraps the published Satellite PR #56 image, pinned by digest
-in `build-images.sh`, and checks out its matching source revision in CI.
-**Before merging, replace that PR image with a versioned Satellite release and
-update the digest and CI revision together.**
+NethVoice builds `nethvoice-satellite` from the bundled `satellite/` directory.
+The runtime and FreePBX contracts use the same source revision in CI. Use images
+from the same NethVoice build when deploying the feature.
 
 ## Architecture and ownership
 

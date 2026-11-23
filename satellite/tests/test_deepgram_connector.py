@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 
@@ -87,7 +87,7 @@ async def test_close_prefers_final_segments(monkeypatch):
 @pytest.mark.asyncio
 async def test_on_error_is_awaitable_and_schedules_close():
     connector = _make_connector()
-    connector.loop = AsyncMock()
+    connector.loop = MagicMock()
     connector.loop.is_running.return_value = True
 
     await connector.on_error(None, {"message": "boom"})
@@ -157,3 +157,30 @@ async def test_start_exception_is_counted_and_raised(monkeypatch):
         await connector.start()
 
     assert _realtime_metric("failure") == "1"
+
+
+@pytest.mark.asyncio
+async def test_concurrent_close_joins_audio_tasks_and_waits_for_final_publication():
+    import asyncio
+
+    connector = _make_connector()
+    entered, release = asyncio.Event(), asyncio.Event()
+
+    async def finalize():
+        entered.set()
+        await release.wait()
+
+    connector.dg_connection = SimpleNamespace(finalize=AsyncMock(side_effect=finalize))
+    connector.complete_call = [{'speaker_name': 'Alice', 'transcription': 'final words'}]
+    sender = asyncio.create_task(asyncio.Event().wait())
+    connector.send_audio_to_deepgram_task = sender
+    first = asyncio.create_task(connector.close())
+    connector.read_audio_from_rtp_task = first
+    await asyncio.wait_for(entered.wait(), 1)
+    second = asyncio.create_task(connector.close())
+    await asyncio.sleep(0)
+    assert not second.done()
+    release.set()
+    await asyncio.wait_for(asyncio.gather(first, second), 2)
+    assert sender.cancelled()
+    connector.mqtt_client.publish.assert_awaited_once()

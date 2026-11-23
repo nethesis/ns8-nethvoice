@@ -6,14 +6,14 @@ channel probe](voice-agents-attended-transfer.md) before running staging tests.
 
 Use Python **3.12** (images pin 3.12.13), PHP with pdo_mysql/mbstring/sodium,
 Docker and the supported Node version from the UI lockfile. No vendor credentials
-are needed for local tests. Keep both feature repositories side by side.
+are needed for local tests. Run the commands from the NethVoice repository root.
 
 ```sh
-# In satellite, inside an isolated Python 3.12 environment:
-python -m pip install -r requirements.txt -r requirements-agent.lock -r requirements-dev.txt
-python -m pytest -o addopts='' tests -q --ignore=tests/foundation
+# With an isolated Python 3.12 environment active:
+(cd satellite && python -m pip install -r requirements.txt -r requirements-agent.lock -r requirements-dev.txt)
+(cd satellite && python -m pytest -o addopts='' tests -q)
 
-# In ns8-nethvoice (M0_PYTHON can select the isolated interpreter):
+# M0_PYTHON can select the same isolated interpreter:
 M0_PYTHON=/path/to/venv/bin/python freepbx/tests/agents/run-foundation.sh
 php freepbx/var/www/html/freepbx/admin/modules/satellite/tests/run_transcription_tests.php
 
@@ -42,16 +42,10 @@ Verify the application with both transcription flags off, each flag separately
 on, both on, and SIGTERM/SIGINT shutdown. Tests also cover transcription startup
 retry, endpoint isolation and cancellation/reaping of per-request workers.
 
-Build the NethVoice Satellite wrapper with `BUILD_IMAGES=satellite bash build-images.sh`.
-It consumes the published Satellite PR #56 image pinned by digest in
-`build-images.sh`; no upstream source build is needed. CI checks out its source
-revision `52b178eb28ffecc81f8dc5d4d724bb8730020097` directly for the paired tests.
-When changing the base, verify its registry digest and source-revision label,
-then update the image pin and CI checkout together. **Replace the PR image with
-a versioned Satellite release before merging.** `SATELLITE_IMAGE` can override
-the base for local development; the shared-lifecycle import check still applies.
-The pinned PR image includes the shared lifecycle. Older images fail the import
-check; refresh the published digest and matching CI revision together.
+Run `BUILD_IMAGES=satellite bash build-images.sh` to build `nethvoice-satellite`
+from the checked-out `satellite/` directory. Use the Satellite and FreePBX images
+from the same NethVoice build. The source tag tracks changes to `satellite/` and
+`build-images.sh`.
 Build the FreePBX image with its isolated UI build stage. Inspect final images
 for source maps, development helpers, tests, environment files and dependencies.
 
