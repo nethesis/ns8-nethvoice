@@ -3048,6 +3048,10 @@ paths:
       responses:
         '200':
           description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsPhonebookSourceId'
         '400':
           description: Invalid request, invalid source URL or invalid mapping
           content: &id005
@@ -3143,6 +3147,10 @@ paths:
       responses:
         '200':
           description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsPhonebookSourceId'
         '400':
           description: Invalid request, invalid source URL, invalid mapping or missing
             password for a different server
@@ -3212,7 +3220,10 @@ paths:
         source follows the rules of `POST /phonebook/config/{id}` and returns 403 otherwise.
         CSV and Infinity URLs of administrators who are not superadmin must be public
         http or https addresses or uploaded files. With `id` and an empty `password`,
-        the stored password of that source is used, only for the same server.
+        the stored password of that source is used, only for the same server. A source
+        that cannot be read returns 200 with `status` false and, when known, the `error`
+        cause; a failed read of an uploaded CSV file deletes it unless a saved source
+        uses it.
   /phonebook/syncnow/{id}:
     post:
       summary: Import a phonebook source now (synchronous).
@@ -3235,6 +3246,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/IntegrationsStatusError'
         '403': *id001
+      description: A source with automatic sync disabled is not imported and returns
+        `status` true, unless `force` is true. A source that does not exist or cannot
+        be imported returns 500 with `status` false.
       operationId: post_phonebook_syncnow_id
       parameters:
       - name: id
@@ -3243,6 +3257,39 @@ paths:
         schema:
           type: string
           pattern: ^[A-Za-z0-9_-]+$
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                force:
+                  type: boolean
+                  description: Import the source even when its automatic sync is
+                    disabled
+  /phonebook/status:
+    get:
+      summary: Return the last synchronization of each phonebook source.
+      description: Sources never synchronized are not listed.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationsPhonebookSyncStatus'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '403': *id001
+      operationId: get_phonebook_status
   /phonebook/uploadfile:
     post:
       summary: Upload a CSV file to be used as a phonebook source.
@@ -3282,6 +3329,131 @@ paths:
                 file:
                   type: string
                   format: binary
+  /phonebook/uploadfile/{name}:
+    delete:
+      summary: Delete an uploaded CSV file that no phonebook source uses.
+      description: Only a file in the uploads directory, named as `POST /phonebook/uploadfile`
+        names it, can be deleted.
+      tags:
+      - Phonebook
+      operationId: delete_phonebook_uploadfile_name
+      parameters:
+      - name: name
+        in: path
+        required: true
+        description: File name of the uploaded file, the last part of its `file://` URI.
+        schema:
+          type: string
+          pattern: ^[0-9a-f]{13}\.csv$
+      responses:
+        '200':
+          description: The file has been deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiStatusFlag'
+        '400':
+          description: Invalid file name
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '404':
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '409':
+          description: A phonebook source uses the file
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+  /phonebook/import-cti:
+    post:
+      summary: Import an uploaded CSV file once into the CTI phonebook of a user.
+      description: The rows are sent to the NethVoice CTI middleware, which imports
+        at most 20000 rows. The response body and status of the middleware are returned
+        as they are; a body that is not JSON is returned as `status`. A 200 adds an
+        entry to `GET /phonebook/imports` and deletes the uploaded file when no phonebook
+        source uses it.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsPhonebookImportResult'
+        '400':
+          description: Invalid owner, groups, mapping or CSV file, or no row could
+            be imported
+          content:
+            application/json:
+              schema:
+                anyOf:
+                - $ref: '#/components/schemas/IntegrationsStatusError'
+                - $ref: '#/components/schemas/IntegrationsPhonebookImportResult'
+                - $ref: '#/components/schemas/Error'
+        '401':
+          description: The middleware refused the credentials of the PBX
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '403': *id001
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '502':
+          description: Middleware not reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+      operationId: post_phonebook_import_cti
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationsPhonebookImportInput'
+  /phonebook/imports:
+    get:
+      summary: List the contact imports, newest first.
+      tags:
+      - Phonebook
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/IntegrationsPhonebookImport'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsStatusError'
+        '403': *id001
+      operationId: get_phonebook_imports
   /phonebook/ldap:
     get:
       summary: Return system LDAP phonebook connection details for clients.
@@ -6829,15 +7001,203 @@ components:
         id:
           type: string
           description: Stored source whose password is used when `password` is empty
+        with_total:
+          type: boolean
+          description: Return the rows read as `{rows, total}` instead of an array
     IntegrationsPhonebookTestResult:
-      description: 'The first three rows read from the source, or a `status: false`
-        object when the source cannot be read.'
+      description: 'The first three rows read from the source, as `{rows, total}`
+        with `with_total`, or a `status: false` object when the source cannot be read.
+        A database source without rows returns one row with empty values, keyed by
+        the column names.'
       oneOf:
       - type: array
         items:
           type: object
           additionalProperties: true
-      - $ref: '#/components/schemas/IntegrationsStatusError'
+      - type: object
+        required:
+        - rows
+        - total
+        properties:
+          rows:
+            type: array
+            items:
+              type: object
+              additionalProperties: true
+          total:
+            type: integer
+            minimum: 0
+            description: Rows the source returns
+      - $ref: '#/components/schemas/IntegrationsPhonebookTestFailure'
+    IntegrationsPhonebookTestFailure:
+      type: object
+      required:
+      - status
+      properties:
+        status:
+          type: boolean
+          enum:
+          - false
+        error:
+          type: object
+          description: Cause of the failure; a missing `error` means `unknown`
+          required:
+          - kind
+          - details
+          properties:
+            kind:
+              type: string
+              enum:
+              - connection
+              - auth
+              - query
+              - file
+              - http
+              - format
+              - unknown
+              description: '`connection`: the server cannot be reached; `auth`: the
+                credentials are refused; `query`: the query fails; `file`: the CSV
+                file cannot be read; `http`: the URL returns an HTTP error; `format`:
+                the data read cannot be parsed'
+            details:
+              type: string
+              maxLength: 500
+              description: First line of the message of the driver or server
+    IntegrationsPhonebookSourceId:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+          description: Identifier of the source (`custom_<n>`)
+    IntegrationsPhonebookSyncStatus:
+      type: object
+      required:
+      - id
+      - status
+      - started_at
+      - finished_at
+      - imported
+      - message
+      properties:
+        id:
+          type: string
+          description: Identifier of the source
+        status:
+          type: string
+          enum:
+          - running
+          - ok
+          - failed
+        started_at:
+          type: string
+          format: date-time
+        finished_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Null while running
+        imported:
+          type: integer
+          nullable: true
+          minimum: 0
+          description: Contacts imported, null while running or when the sync failed
+            before importing
+        message:
+          type: string
+          nullable: true
+          description: First line of the error of a failed sync
+    IntegrationsPhonebookImportInput:
+      type: object
+      required:
+      - url
+      - owner
+      - mapping
+      properties:
+        url:
+          type: string
+          description: '`file://` URI returned by `POST /phonebook/uploadfile`'
+        owner:
+          type: string
+          description: Username of the user who owns the contacts
+        type:
+          type: string
+          description: '`public` or `group:<comma separated CTI group names>`, `public`
+            when omitted'
+        mapping:
+          type: object
+          description: Source column name to phonebook field name; it must include
+            `name`, `firstname` or `lastname`
+          additionalProperties:
+            type: string
+        filename:
+          type: string
+          description: Name of the file chosen by the administrator, shown in `GET
+            /phonebook/imports`
+    IntegrationsPhonebookImportResult:
+      type: object
+      required:
+      - message
+      - total_rows
+      - imported_rows
+      - failed_rows
+      - skipped_rows
+      properties:
+        message:
+          type: string
+        total_rows:
+          type: integer
+        imported_rows:
+          type: integer
+        failed_rows:
+          type: integer
+        skipped_rows:
+          type: integer
+        error_messages:
+          type: array
+          items:
+            type: string
+    IntegrationsPhonebookImport:
+      type: object
+      required:
+      - id
+      - created_at
+      - owner
+      - filename
+      - type
+      - total
+      - imported
+      - skipped
+      - failed
+      properties:
+        id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        owner:
+          type: string
+          description: Username of the user who owns the contacts
+        filename:
+          type: string
+          nullable: true
+          description: Null when the import did not send `filename`
+        type:
+          type: string
+          description: '`public` or `group:<comma separated CTI group names>`'
+        total:
+          type: integer
+          minimum: 0
+        imported:
+          type: integer
+          minimum: 0
+        skipped:
+          type: integer
+          minimum: 0
+        failed:
+          type: integer
+          minimum: 0
     IntegrationsPhonebookUploadResult:
       type: object
       required:

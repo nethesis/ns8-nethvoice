@@ -857,16 +857,30 @@
       "callers": ["ui:integrations", "legacy"],
       "reason": "Synchronizes a phonebook source now with its stored configuration."
     },
+    "GET /phonebook/status": {
+      "intent": "integrations",
+      "callers": ["ui:integrations"],
+      "reason": "Last synchronization of each phonebook source, shown in the sources table."
+    },
     "POST /phonebook/uploadfile": {
       "intent": "integrations",
       "callers": ["ui:integrations"],
       "reason": "Uploads the CSV file of a phonebook source."
     },
+    "DELETE /phonebook/uploadfile/{name}": {
+      "intent": "integrations",
+      "callers": ["ui:integrations"],
+      "reason": "Deletes an uploaded CSV file that no phonebook source uses, when its drawer is closed without saving it."
+    },
     "POST /phonebook/import-cti": {
-      "intent": "superadmin",
-      "callers": ["legacy"],
-      "reason": "One-shot import into the CTI phonebook, offered only by the previous wizard; it becomes integrations when the new UI adopts it.",
-      "known_finding": "Open to the integrations section through the /phonebook prefix rule although only the previous wizard uses it."
+      "intent": "integrations",
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "One-time import of an uploaded CSV file into the CTI phonebook of a user, from the Import contacts section."
+    },
+    "GET /phonebook/imports": {
+      "intent": "integrations",
+      "callers": ["ui:integrations"],
+      "reason": "History of the contact imports, shown in the Import contacts section."
     },
     "GET /phonebook/ldap": {
       "intent": "superadmin",

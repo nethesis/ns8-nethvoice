@@ -25,6 +25,7 @@ use \Psr\Http\Message\ResponseInterface as Response;
 include_once('lib/libMiddleware.php');
 include_once('lib/libUsers.php');
 include_once('lib/libSecurity.php');
+require_once(__DIR__ . '/../lib/libPhonebook.php');
 
 /**
  * Validate a sharing value ('public' or 'group:<g1,g2>'). Group names are checked
@@ -225,7 +226,7 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             unlink_local_csv($oldsource);
         }
 
-        return $response->withStatus(200);
+        return jsonResponse($response, array("id"=>$id), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);
@@ -246,6 +247,7 @@ $app->delete('/phonebook/config/{id}', function (Request $request, Response $res
 
         $sth = $phonebookdb->prepare('DELETE FROM phonebook WHERE sid_imported = ?');
         $sth->execute([$id]);
+        phonebookDeleteSyncStatus($phonebookdb, $id);
 
         // Erase related local CSV file, if necessary:
         $config = json_decode(file_get_contents($file), true);
@@ -322,21 +324,16 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
            throw new Exception("Error writing $file");
         }
 
-        $cmd = "/usr/share/phonebooks/phonebook-import --check ".escapeshellarg($file);
-        exec($cmd,$output,$return);
+        $withTotal = is_array($requested) && ($requested['with_total'] ?? false) === true;
+        exec(phonebookTestCommand($file, $withTotal),$output,$return);
 
         // remove temporary file
         unlink($file);
 
         if ($return!=0) {
             unlink_local_csv($newsource[$id]);
-            return jsonResponse($response, array("status"=>false),200);
         }
-        $res = isset($output[0]) ? json_decode($output[0]) : null;
-        if (!is_array($res)) {
-            return jsonResponse($response, array("status"=>false),200);
-        }
-        return jsonResponse($response, array_slice($res, 0, 3),200);
+        return jsonResponse($response, phonebookTestResult($return, $output, $withTotal),200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);
@@ -352,13 +349,23 @@ $app->post('/phonebook/syncnow/{id}', function (Request $request, Response $resp
             return jsonResponse($response, array("status"=>"Invalid source id"), 400);
         }
 
-        # launch import of the source now
-        exec("/usr/share/phonebooks/phonebook-import ".escapeshellarg("/etc/phonebook/sources.d/$id.json"),$output,$return);
+        $data = $request->getParsedBody();
+        $force = is_array($data) && ($data['force'] ?? false) === true;
+        exec(phonebookSyncCommand($id, $force),$output,$return);
 
         if ($return!=0) {
             return jsonResponse($response, array("status"=>false),500);
         }
         return jsonResponse($response, array("status"=>true),200);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
+    }
+});
+
+$app->get('/phonebook/status', function (Request $request, Response $response, $args) {
+    try {
+        return jsonResponse($response, phonebookSyncStatuses(phonebookDatabase()), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);
@@ -391,6 +398,26 @@ $app->post('/phonebook/uploadfile', function (Request $request, Response $respon
     }
 });
 
+$app->delete('/phonebook/uploadfile/{name}', function (Request $request, Response $response, $args) {
+    try {
+        switch (phonebookDeleteUpload((string) $args['name'], fn($path) => localCsvInUse($path))) {
+            case 'deleted':
+                return jsonResponse($response, array("status"=>true), 200);
+            case 'invalid':
+                return jsonResponse($response, array("status"=>"Invalid file name"), 400);
+            case 'missing':
+                return jsonResponse($response, array("status"=>"File not found"), 404);
+            case 'in_use':
+                return jsonResponse($response, array("status"=>"File used by a phonebook source"), 409);
+            default:
+                return jsonResponse($response, array("status"=>"Cannot delete the file"), 500);
+        }
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
+    }
+});
+
 /*
 * POST /phonebook/import-cti
 * One-shot import of an uploaded CSV into the personal CTI phonebook (cti_phonebook)
@@ -407,6 +434,7 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
         if ($owner === '' || !userHasExtension($owner)) {
             return jsonResponse($response, array("status"=>"Invalid or missing owner"), 400);
         }
+        $filename = phonebookImportFilename($data['filename'] ?? null);
 
         // Sharing value applied to every imported contact.
         try {
@@ -485,7 +513,20 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
         }
         $decoded = json_decode($res['body'], true);
         $status = $res['httpCode'] ? $res['httpCode'] : 500;
+        if ($status >= 200 && $status < 300) {
+            phonebookRecordImport(FreePBX::Database(), $owner, $filename, $sharing, $decoded, time());
+        }
+        phonebookDeleteImportedUpload($status, $url, fn($path) => localCsvInUse($path));
         return jsonResponse($response, $decoded !== null ? $decoded : array("status"=>$res['body']), $status);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, array("status"=>$e->getMessage()), 500);
+    }
+});
+
+$app->get('/phonebook/imports', function (Request $request, Response $response, $args) {
+    try {
+        return jsonResponse($response, phonebookImports(FreePBX::Database()), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);

@@ -83,6 +83,7 @@ fi
                                  "UPDATE pjsip SET data = '90'"]:
                     self.assertEqual(mutation in calls, '--migrate' in options, mutation)
                 self.assertIn('INSERT INTO sipsettings', calls)
+                self.assertIn('CREATE TABLE IF NOT EXISTS `sync_status`', calls)
 
     def test_first_sql_failure_stops_preparation(self):
         result = self.run_init()

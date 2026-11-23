@@ -120,6 +120,20 @@ if ((int)$db->query($sql)->fetchColumn() === 0) {
 require_once '/var/www/html/freepbx/rest/lib/libParamUrls.php';
 nethvoiceFillParamUrlNames($db);
 
+$db->exec("CREATE TABLE IF NOT EXISTS `asterisk`.`rest_phonebook_imports` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` int(10) unsigned NOT NULL,
+  `owner` varchar(255) NOT NULL,
+  `filename` varchar(255) DEFAULT NULL,
+  `type` varchar(1024) NOT NULL,
+  `total` int(10) unsigned NOT NULL DEFAULT '0',
+  `imported` int(10) unsigned NOT NULL DEFAULT '0',
+  `skipped` int(10) unsigned NOT NULL DEFAULT '0',
+  `failed` int(10) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `created_at_key` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
 $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';

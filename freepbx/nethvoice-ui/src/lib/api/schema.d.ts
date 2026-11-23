@@ -1870,7 +1870,7 @@ export interface paths {
     put?: never
     /**
      * Read the first rows of a phonebook source without saving it.
-     * @description For administrators who are not superadmin, testing a mysql or mssql source follows the rules of `POST /phonebook/config/{id}` and returns 403 otherwise. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files. With `id` and an empty `password`, the stored password of that source is used, only for the same server.
+     * @description For administrators who are not superadmin, testing a mysql or mssql source follows the rules of `POST /phonebook/config/{id}` and returns 403 otherwise. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files. With `id` and an empty `password`, the stored password of that source is used, only for the same server. A source that cannot be read returns 200 with `status` false and, when known, the `error` cause; a failed read of an uploaded CSV file deletes it unless a saved source uses it.
      */
     post: operations['post_phonebook_test']
     delete?: never
@@ -1888,8 +1888,31 @@ export interface paths {
     }
     get?: never
     put?: never
-    /** Import a phonebook source now (synchronous). */
+    /**
+     * Import a phonebook source now (synchronous).
+     * @description A source with automatic sync disabled is not imported and returns `status` true, unless `force` is true. A source that does not exist or cannot be imported returns 500 with `status` false.
+     */
     post: operations['post_phonebook_syncnow_id']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/phonebook/status': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Return the last synchronization of each phonebook source.
+     * @description Sources never synchronized are not listed.
+     */
+    get: operations['get_phonebook_status']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -1910,6 +1933,63 @@ export interface paths {
      * @description Returns the `file://` URI to reference in subsequent configuration calls.
      */
     post: operations['post_phonebook_uploadfile']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/phonebook/uploadfile/{name}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /**
+     * Delete an uploaded CSV file that no phonebook source uses.
+     * @description Only a file in the uploads directory, named as `POST /phonebook/uploadfile` names it, can be deleted.
+     */
+    delete: operations['delete_phonebook_uploadfile_name']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/phonebook/import-cti': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Import an uploaded CSV file once into the CTI phonebook of a user.
+     * @description The rows are sent to the NethVoice CTI middleware, which imports at most 20000 rows. The response body and status of the middleware are returned as they are; a body that is not JSON is returned as `status`. A 200 adds an entry to `GET /phonebook/imports` and deletes the uploaded file when no phonebook source uses it.
+     */
+    post: operations['post_phonebook_import_cti']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/phonebook/imports': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List the contact imports, newest first. */
+    get: operations['get_phonebook_imports']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -3659,13 +3739,94 @@ export interface components {
       cti_import?: boolean
       /** @description Stored source whose password is used when `password` is empty */
       id?: string
+      /** @description Return the rows read as `{rows, total}` instead of an array */
+      with_total?: boolean
     }
-    /** @description The first three rows read from the source, or a `status: false` object when the source cannot be read. */
+    /** @description The first three rows read from the source, as `{rows, total}` with `with_total`, or a `status: false` object when the source cannot be read. A database source without rows returns one row with empty values, keyed by the column names. */
     IntegrationsPhonebookTestResult:
       | {
           [key: string]: unknown
         }[]
-      | components['schemas']['IntegrationsStatusError']
+      | {
+          rows: {
+            [key: string]: unknown
+          }[]
+          /** @description Rows the source returns */
+          total: number
+        }
+      | components['schemas']['IntegrationsPhonebookTestFailure']
+    IntegrationsPhonebookTestFailure: {
+      /** @enum {boolean} */
+      status: false
+      /** @description Cause of the failure; a missing `error` means `unknown` */
+      error?: {
+        /**
+         * @description `connection`: the server cannot be reached; `auth`: the credentials are refused; `query`: the query fails; `file`: the CSV file cannot be read; `http`: the URL returns an HTTP error; `format`: the data read cannot be parsed
+         * @enum {string}
+         */
+        kind: 'connection' | 'auth' | 'query' | 'file' | 'http' | 'format' | 'unknown'
+        /** @description First line of the message of the driver or server */
+        details: string
+      }
+    }
+    IntegrationsPhonebookSourceId: {
+      /** @description Identifier of the source (`custom_<n>`) */
+      id: string
+    }
+    IntegrationsPhonebookSyncStatus: {
+      /** @description Identifier of the source */
+      id: string
+      /** @enum {string} */
+      status: 'running' | 'ok' | 'failed'
+      /** Format: date-time */
+      started_at: string
+      /**
+       * Format: date-time
+       * @description Null while running
+       */
+      finished_at: string | null
+      /** @description Contacts imported, null while running or when the sync failed before importing */
+      imported: number | null
+      /** @description First line of the error of a failed sync */
+      message: string | null
+    }
+    IntegrationsPhonebookImportInput: {
+      /** @description `file://` URI returned by `POST /phonebook/uploadfile` */
+      url: string
+      /** @description Username of the user who owns the contacts */
+      owner: string
+      /** @description `public` or `group:<comma separated CTI group names>`, `public` when omitted */
+      type?: string
+      /** @description Source column name to phonebook field name; it must include `name`, `firstname` or `lastname` */
+      mapping: {
+        [key: string]: string
+      }
+      /** @description Name of the file chosen by the administrator, shown in `GET /phonebook/imports` */
+      filename?: string
+    }
+    IntegrationsPhonebookImportResult: {
+      message: string
+      total_rows: number
+      imported_rows: number
+      failed_rows: number
+      skipped_rows: number
+      error_messages?: string[]
+    }
+    IntegrationsPhonebookImport: {
+      id: number
+      /** Format: date-time */
+      created_at: string
+      /** @description Username of the user who owns the contacts */
+      owner: string
+      /** @description Null when the import did not send `filename` */
+      filename: string | null
+      /** @description `public` or `group:<comma separated CTI group names>` */
+      type: string
+      total: number
+      imported: number
+      skipped: number
+      failed: number
+    }
     IntegrationsPhonebookUploadResult: {
       status: boolean
       /** @description `file://` URL of the stored CSV file, to be used as the source `url` */
@@ -7776,7 +7937,9 @@ export interface operations {
         headers: {
           [name: string]: unknown
         }
-        content?: never
+        content: {
+          'application/json': components['schemas']['IntegrationsPhonebookSourceId']
+        }
       }
       /** @description Invalid request, invalid source URL or invalid mapping */
       400: {
@@ -7856,7 +8019,9 @@ export interface operations {
         headers: {
           [name: string]: unknown
         }
-        content?: never
+        content: {
+          'application/json': components['schemas']['IntegrationsPhonebookSourceId']
+        }
       }
       /** @description Invalid request, invalid source URL, invalid mapping or missing password for a different server */
       400: {
@@ -8014,7 +8179,14 @@ export interface operations {
       }
       cookie?: never
     }
-    requestBody?: never
+    requestBody?: {
+      content: {
+        'application/json': {
+          /** @description Import the source even when its automatic sync is disabled */
+          force?: boolean
+        }
+      }
+    }
     responses: {
       /** @description Successful response */
       200: {
@@ -8033,6 +8205,46 @@ export interface operations {
         content: {
           'application/json':
             components['schemas']['IntegrationsStatusError'] | components['schemas']['Error']
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+    }
+  }
+  get_phonebook_status: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsPhonebookSyncStatus'][]
         }
       }
       /** @description Forbidden: missing permission */
@@ -8089,6 +8301,181 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+    }
+  }
+  delete_phonebook_uploadfile_name: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description File name of the uploaded file, the last part of its `file://` URI. */
+        name: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description The file has been deleted */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiStatusFlag']
+        }
+      }
+      /** @description Invalid file name */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+      /** @description File not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+      /** @description A phonebook source uses the file */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+    }
+  }
+  post_phonebook_import_cti: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IntegrationsPhonebookImportInput']
+      }
+    }
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsPhonebookImportResult']
+        }
+      }
+      /** @description Invalid owner, groups, mapping or CSV file, or no row could be imported */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json':
+            | components['schemas']['IntegrationsStatusError']
+            | components['schemas']['IntegrationsPhonebookImportResult']
+            | components['schemas']['Error']
+        }
+      }
+      /** @description The middleware refused the credentials of the PBX */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+      /** @description Middleware not reachable */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsStatusError']
+        }
+      }
+    }
+  }
+  get_phonebook_imports: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsPhonebookImport'][]
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
         }
       }
       /** @description Internal server error */
