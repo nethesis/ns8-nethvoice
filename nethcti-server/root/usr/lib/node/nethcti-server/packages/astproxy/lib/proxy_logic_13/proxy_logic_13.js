@@ -2261,6 +2261,9 @@ function addQueueMemberLoggedIn(data, queueId) {
       member.setType(data.type);
       member.setCallsTakenCount(data.callsTakenCount);
       member.setLastCallTimestamp(data.lastCallTimestamp);
+      if (data.paused === true && typeof data.pausedReason === 'string') {
+        member.setLastPausedInData(data.lastPausedInTimestamp || 0, data.pausedReason);
+      }
       // add the member to the queue
       queues[queueId].addMember(member);
       logger.info(IDLOG, 'added member ' + member.getMember() + ' to the queue ' + queueId);
