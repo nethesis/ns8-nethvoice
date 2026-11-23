@@ -1,11 +1,22 @@
 // Copyright (C) 2024 Nethesis S.r.l.
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { FC, ComponentProps, useState, useEffect } from 'react'
+import { FC, ComponentProps, useState, useEffect, useId } from 'react'
 import classNames from 'classnames'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCircleCheck, faCircleXmark, faClock, faUserClock } from '@fortawesome/free-solid-svg-icons'
+import {
+  faCircleCheck,
+  faCircleExclamation,
+  faCircleXmark,
+  faClock,
+  faMugSaucer,
+  faThumbTack,
+  faUserClock,
+  IconDefinition,
+} from '@fortawesome/free-solid-svg-icons'
 import { useTranslation } from 'react-i18next'
+import { useIsTruncated } from '../../lib/hooks/useIsTruncated'
+import { CustomThemedTooltip } from '../common/CustomThemedTooltip'
 
 export interface LoggedStatusProps extends ComponentProps<'div'> {
   loggedIn: boolean
@@ -13,10 +24,10 @@ export interface LoggedStatusProps extends ComponentProps<'div'> {
   pauseReason?: string
 }
 
-const PAUSE_REASON_LABELS: Record<string, string> = {
-  'Lunch break': 'Queues.Lunch break',
-  Emergency: 'Queues.Emergency',
-  Backend: 'Queues.Backend',
+const PAUSE_REASONS: Record<string, { label: string; icon: IconDefinition }> = {
+  'Lunch break': { label: 'Queues.Lunch break', icon: faMugSaucer },
+  Emergency: { label: 'Queues.Emergency', icon: faCircleExclamation },
+  Backend: { label: 'Queues.Backend', icon: faThumbTack },
 }
 
 export const LoggedStatus: FC<LoggedStatusProps> = ({
@@ -46,11 +57,22 @@ export const LoggedStatus: FC<LoggedStatusProps> = ({
     }
   }, [firstRender, loggedIn, paused])
 
+  const pauseReasonData = PAUSE_REASONS[pauseReason ?? '']
+  const label = t(
+    status === 'loggedIn'
+      ? 'Queues.Logged in'
+      : status === 'paused'
+      ? pauseReasonData?.label ?? 'Queues.On a break'
+      : 'Queues.Logged out',
+  )
+  const tooltipId = `logged-status-${useId()}`
+  const { ref, isTruncated } = useIsTruncated<HTMLSpanElement>(label)
+
   return (
     <>
       <div
         className={classNames(
-          'flex items-center gap-2 text-sm shrink-0',
+          'flex items-center gap-2 text-sm min-w-0',
           status === 'loggedIn'
             ? 'text-green-700 dark:text-green-600'
             : status === 'paused'
@@ -58,22 +80,24 @@ export const LoggedStatus: FC<LoggedStatusProps> = ({
             : 'text-gray-500 dark:text-gray-400',
           className,
         )}
+        data-tooltip-id={isTruncated ? tooltipId : undefined}
+        data-tooltip-content={isTruncated ? label : undefined}
       >
         <FontAwesomeIcon
           icon={
-            status === 'loggedIn' ? faCircleCheck : status === 'paused' ? faClock : faCircleXmark
-          }
-          className='h-4 w-4'
-        />
-        <span>
-          {t(
             status === 'loggedIn'
-              ? 'Queues.Logged in'
+              ? faCircleCheck
               : status === 'paused'
-              ? PAUSE_REASON_LABELS[pauseReason ?? ''] ?? 'Queues.On a break'
-              : 'Queues.Logged out',
-          )}
+              ? pauseReasonData?.icon ?? faClock
+              : faCircleXmark
+          }
+          className='h-4 w-4 shrink-0'
+          aria-hidden='true'
+        />
+        <span ref={ref} className='truncate'>
+          {label}
         </span>
+        {isTruncated && <CustomThemedTooltip id={tooltipId} place='top' positionStrategy='fixed' />}
       </div>
     </>
   )
