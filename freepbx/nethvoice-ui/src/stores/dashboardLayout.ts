@@ -4,13 +4,10 @@
 import { ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { getPreference, savePreference } from '@nethesis/vue-components'
-import { normalizeCallsRange, type CallsRange } from '@/lib/dashboard/calls'
 import { normalizeCardOrder, type DashboardCardId } from '@/lib/dashboard/layout'
 import { useLoginStore } from '@/stores/login'
 
 const CARD_ORDER_PREFERENCE = 'dashboardCardOrder'
-
-const CALLS_RANGE_PREFERENCE = 'dashboardCallsRange'
 
 const readCardOrder = (username: string): DashboardCardId[] => {
   if (!username) {
@@ -23,27 +20,14 @@ const readCardOrder = (username: string): DashboardCardId[] => {
   }
 }
 
-const readCallsRange = (username: string): CallsRange => {
-  if (!username) {
-    return normalizeCallsRange(undefined)
-  }
-  try {
-    return normalizeCallsRange(getPreference(CALLS_RANGE_PREFERENCE, username))
-  } catch {
-    return normalizeCallsRange(undefined)
-  }
-}
-
 export const useDashboardLayoutStore = defineStore('dashboardLayout', () => {
   const loginStore = useLoginStore()
   const cardOrder = ref<DashboardCardId[]>(readCardOrder(loginStore.username))
-  const callsRange = ref<CallsRange>(readCallsRange(loginStore.username))
 
   watch(
     () => loginStore.username,
     (username) => {
       cardOrder.value = readCardOrder(username)
-      callsRange.value = readCallsRange(username)
     },
   )
 
@@ -59,17 +43,5 @@ export const useDashboardLayoutStore = defineStore('dashboardLayout', () => {
     }
   }
 
-  const setCallsRange = (range: CallsRange) => {
-    callsRange.value = range
-
-    if (loginStore.username) {
-      try {
-        savePreference(CALLS_RANGE_PREFERENCE, range, loginStore.username)
-      } catch {
-        return
-      }
-    }
-  }
-
-  return { cardOrder, setCardOrder, callsRange, setCallsRange }
+  return { cardOrder, setCardOrder }
 })

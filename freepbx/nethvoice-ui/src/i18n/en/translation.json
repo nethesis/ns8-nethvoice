@@ -193,19 +193,15 @@
     "hourly_calls": {
       "title": "Calls per hour",
       "legend": "Calls",
-      "period": "Period",
-      "range": {
-        "last_24_hours": "Last 24 hours",
-        "last_7_days": "Last 7 days",
-        "last_15_days": "Last 15 days"
-      },
       "summary": "{period}: {total} calls, busiest hour {time} with {calls}",
       "no_calls": "No calls in this period",
       "no_data": "No calls yet",
       "no_data_description": "Calls will appear here after the first one.",
       "available_from": "Data available from {time}",
       "tooltip_calls": "Calls: {calls}",
-      "tooltip_no_data": "No data"
+      "tooltip_no_data": "No data",
+      "reset_zoom": "Reset zoom",
+      "zoom_hint": "Drag across the chart to zoom in, double-click to reset. With the keyboard, press + or - to zoom, the left and right arrows to move, Esc to reset."
     },
     "cannot_load_calls": "Cannot load today's calls",
     "cannot_load_calls_per_hour": "Cannot load calls per hour",

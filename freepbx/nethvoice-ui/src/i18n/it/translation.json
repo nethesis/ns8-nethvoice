@@ -193,19 +193,15 @@
     "hourly_calls": {
       "title": "Chiamate per ora",
       "legend": "Chiamate",
-      "period": "Periodo",
-      "range": {
-        "last_24_hours": "Ultime 24 ore",
-        "last_7_days": "Ultimi 7 giorni",
-        "last_15_days": "Ultimi 15 giorni"
-      },
       "summary": "{period}: {total} chiamate, ora di picco {time} con {calls}",
       "no_calls": "Nessuna chiamata nel periodo",
       "no_data": "Ancora nessuna chiamata",
       "no_data_description": "Le chiamate compariranno qui dopo la prima.",
       "available_from": "Dati disponibili dal {time}",
       "tooltip_calls": "Chiamate: {calls}",
-      "tooltip_no_data": "Nessun dato"
+      "tooltip_no_data": "Nessun dato",
+      "reset_zoom": "Reimposta zoom",
+      "zoom_hint": "Trascina sul grafico per ingrandire, fai doppio clic per reimpostare. Con la tastiera, premi + o - per lo zoom, le frecce sinistra e destra per spostarti, Esc per reimpostare."
     },
     "cannot_load_calls": "Impossibile caricare le chiamate di oggi",
     "cannot_load_calls_per_hour": "Impossibile caricare le chiamate per ora",

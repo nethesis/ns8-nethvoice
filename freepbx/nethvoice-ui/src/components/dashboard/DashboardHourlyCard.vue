@@ -4,90 +4,83 @@
 -->
 
 <script setup lang="ts">
-import { computed, useTemplateRef } from 'vue'
-import { useElementSize } from '@vueuse/core'
+import { computed, ref, useId, useTemplateRef, watch } from 'vue'
+import { useElementSize, useEventListener } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
-import {
-  NeBadgeV2,
-  NeCard,
-  NeDropdownFilterV2,
-  NeEmptyState,
-  NeSkeleton,
-  type NeDropdownFilterV2Option,
-} from '@nethesis/vue-components'
-import { faChevronDown, faPhoneSlash } from '@fortawesome/free-solid-svg-icons'
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { NeButton, NeCard, NeEmptyState, NeSkeleton } from '@nethesis/vue-components'
+import { faPhoneSlash } from '@fortawesome/free-solid-svg-icons'
 import { faEmptySet } from '@nethesis/nethesis-solid-svg-icons'
-import { VisArea, VisAxis, VisCrosshair, VisTooltip, VisXYContainer } from '@unovis/vue'
-import { CurveType } from '@unovis/ts'
 import {
-  CALLS_RANGES,
-  isCallsRange,
-  isHistoryPartial,
-  type CallsHistory,
-  type CallsPoint,
-  type CallsRange,
-} from '@/lib/dashboard/calls'
+  VisArea,
+  VisAxis,
+  VisCrosshair,
+  VisPlotband,
+  VisTooltip,
+  VisXYContainer,
+} from '@unovis/vue'
+import { AxisType, CurveType, type XYContainer } from '@unovis/ts'
+import { isHistoryPartial, type CallsHistory, type CallsPoint } from '@/lib/dashboard/calls'
 import {
   formatCallCount,
   formatDateTime,
+  formatPeriod,
   formatPointTime,
   formatTimeTick,
   getIntegerTicks,
   getMaxTicks,
   getTimeTicks,
+  getVisiblePoints,
+  getZoomDomain,
+  keepZoom,
+  MIN_DRAG_DISTANCE,
+  panZoom,
+  scaleZoom,
   splitIntoSegments,
   summarizeSeries,
+  type TimeDomain,
 } from '@/lib/dashboard/chart'
 
 const CHART_HEIGHT = 304
 const AREA_OPACITY = 0.6
+const ZOOM_IN_FACTOR = 0.5
+const ZOOM_OUT_FACTOR = 2
+const PAN_RATIO = 0.25
 
-const RANGE_LABELS: Record<CallsRange, string> = {
-  '24h': 'dashboard.hourly_calls.range.last_24_hours',
-  '7d': 'dashboard.hourly_calls.range.last_7_days',
-  '15d': 'dashboard.hourly_calls.range.last_15_days',
-}
+type Drag = { pointerId: number; startX: number; from: number; to: number; moved: boolean }
 
 const { history, loading = false } = defineProps<{
   history?: CallsHistory
   loading?: boolean
 }>()
 
-const range = defineModel<CallsRange>('range', { required: true })
-
 const { t, locale } = useI18n()
 
-const rangeOptions = computed<NeDropdownFilterV2Option[]>(() =>
-  CALLS_RANGES.map((id) => ({ id, label: t(RANGE_LABELS[id]) })),
-)
-
-const selectedRange = computed<NeDropdownFilterV2Option[]>({
-  get: () => rangeOptions.value.filter((option) => option.id === range.value),
-  set: (selection) => {
-    const id = selection[0]?.id
-
-    if (isCallsRange(id)) {
-      range.value = id
-    }
-  },
-})
-
-const selectedRangeLabel = computed(() => t(RANGE_LABELS[range.value]))
-
-const filterLabels = computed(() => ({
-  clearFilterLabel: t('ne_dropdown_filter.reset_selection'),
-  openMenuAriaLabel: t('ne_dropdown_filter.open_filter'),
-  noOptionsLabel: t('ne_dropdown_filter.no_options'),
-  moreOptionsHiddenLabel: t('ne_dropdown_filter.more_options_hidden'),
-  clearSearchLabel: t('ne_dropdown_filter.clear_search'),
-}))
+const hintId = useId()
 
 const series = computed<CallsPoint[]>(() => history?.series ?? [])
 
-const segments = computed(() => splitIntoSegments(series.value))
+const dataDomain = computed<TimeDomain>(() => [
+  series.value[0]?.time ?? 0,
+  series.value.at(-1)?.time ?? 1,
+])
 
-const summary = computed(() => summarizeSeries(series.value))
+const zoom = ref<TimeDomain | null>(null)
+
+watch(dataDomain, (data) => {
+  zoom.value = keepZoom(zoom.value, data)
+})
+
+const visibleDomain = computed(() => zoom.value ?? dataDomain.value)
+
+const visibleSeries = computed(() => getVisiblePoints(series.value, visibleDomain.value))
+
+const segments = computed(() => splitIntoSegments(visibleSeries.value))
+
+const total = computed(() => summarizeSeries(series.value).total)
+
+const summary = computed(() => summarizeSeries(visibleSeries.value))
+
+const period = computed(() => formatPeriod(visibleDomain.value, locale.value))
 
 const availableFrom = computed(() =>
   history && history.historyStart !== null && isHistoryPartial(history)
@@ -96,17 +89,12 @@ const availableFrom = computed(() =>
 )
 
 const chartElement = useTemplateRef<HTMLElement>('chart')
+const container = useTemplateRef<{ component?: XYContainer<CallsPoint> }>('container')
 const { width: chartWidth } = useElementSize(chartElement)
-
-const xDomain = computed<[number, number]>(() => [
-  series.value[0]?.time ?? 0,
-  series.value.at(-1)?.time ?? 1,
-])
 
 const xTicks = computed(() =>
   getTimeTicks(
-    series.value.map((point) => point.time),
-    range.value,
+    visibleSeries.value.map((point) => point.time),
     getMaxTicks(chartWidth.value),
   ),
 )
@@ -115,7 +103,7 @@ const yTicks = computed(() => getIntegerTicks(summary.value.peak?.calls ?? 0))
 
 const yDomain = computed<[number, number]>(() => [0, yTicks.value.at(-1) ?? 1])
 
-const formatTick = (time: number | Date) => formatTimeTick(Number(time), range.value, locale.value)
+const formatTick = (time: number | Date) => formatTimeTick(Number(time), locale.value)
 
 const formatAxisCalls = (calls: number | Date) =>
   new Intl.NumberFormat(locale.value).format(Number(calls))
@@ -125,13 +113,122 @@ const summaryText = computed(() => {
 
   return peak
     ? t('dashboard.hourly_calls.summary', {
-        period: selectedRangeLabel.value,
+        period: period.value,
         total: formatCallCount(total, locale.value),
         time: formatPointTime(peak.time, locale.value),
         calls: formatCallCount(peak.calls, locale.value),
       })
     : t('dashboard.hourly_calls.no_calls')
 })
+
+const announcement = ref('')
+
+watch(zoom, () => {
+  announcement.value = summaryText.value
+})
+
+const drag = ref<Drag | null>(null)
+
+const selection = computed(() =>
+  drag.value?.moved
+    ? {
+        from: Math.min(drag.value.from, drag.value.to),
+        to: Math.max(drag.value.from, drag.value.to),
+      }
+    : null,
+)
+
+const timeAt = (clientX: number, clamp: boolean): number | null => {
+  const plot = container.value?.component?.components[0]
+  const matrix = plot?.g.node()?.getScreenCTM()
+
+  if (!plot || !matrix) {
+    return null
+  }
+  const [left, right] = plot.xScale.range()
+  const x = (clientX - matrix.e) / matrix.a
+
+  if (!clamp && (x < left || x > right)) {
+    return null
+  }
+  return Number(plot.xScale.invert(Math.min(Math.max(x, left), right)))
+}
+
+function onPointerDown(event: PointerEvent) {
+  const time = event.button === 0 ? timeAt(event.clientX, false) : null
+
+  if (time !== null) {
+    drag.value = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      from: time,
+      to: time,
+      moved: false,
+    }
+  }
+}
+
+function onPointerMove(event: PointerEvent) {
+  if (drag.value?.pointerId !== event.pointerId) {
+    return
+  }
+  drag.value.to = timeAt(event.clientX, true) ?? drag.value.to
+  drag.value.moved ||= Math.abs(event.clientX - drag.value.startX) >= MIN_DRAG_DISTANCE
+}
+
+function onPointerUp(event: PointerEvent) {
+  if (drag.value?.pointerId !== event.pointerId) {
+    return
+  }
+  if (selection.value) {
+    zoom.value = getZoomDomain(selection.value.from, selection.value.to, dataDomain.value)
+  }
+  drag.value = null
+}
+
+function cancelDrag(event: PointerEvent) {
+  if (drag.value?.pointerId === event.pointerId) {
+    drag.value = null
+  }
+}
+
+useEventListener(window, 'pointermove', onPointerMove)
+useEventListener(window, 'pointerup', onPointerUp)
+useEventListener(window, 'pointercancel', cancelDrag)
+
+function resetZoom() {
+  zoom.value = null
+}
+
+function resetZoomFromButton() {
+  resetZoom()
+  chartElement.value?.focus()
+}
+
+const KEY_ZOOMS: Record<string, (domain: TimeDomain) => TimeDomain | null | undefined> = {
+  '+': (domain) => scaleZoom(domain, ZOOM_IN_FACTOR, dataDomain.value),
+  '=': (domain) => scaleZoom(domain, ZOOM_IN_FACTOR, dataDomain.value),
+  '-': (domain) => scaleZoom(domain, ZOOM_OUT_FACTOR, dataDomain.value),
+  _: (domain) => scaleZoom(domain, ZOOM_OUT_FACTOR, dataDomain.value),
+  ArrowLeft: (domain) => (zoom.value ? panZoom(domain, -PAN_RATIO, dataDomain.value) : undefined),
+  ArrowRight: (domain) => (zoom.value ? panZoom(domain, PAN_RATIO, dataDomain.value) : undefined),
+  Escape: () => (zoom.value && !drag.value ? null : undefined),
+}
+
+function onKeydown(event: KeyboardEvent) {
+  const next =
+    event.ctrlKey || event.metaKey || event.altKey
+      ? undefined
+      : KEY_ZOOMS[event.key]?.(visibleDomain.value)
+
+  if (event.key === 'Escape' && drag.value) {
+    event.preventDefault()
+    drag.value = null
+  } else if (next !== undefined) {
+    event.preventDefault()
+    zoom.value = next
+  }
+}
 
 const getTime = (point: CallsPoint) => point.time
 const getCalls = (point: CallsPoint) => point.calls
@@ -159,28 +256,19 @@ const describePoint = (point: CallsPoint) => {
       </span>
     </template>
     <template #topRight>
-      <NeDropdownFilterV2
-        v-model="selectedRange"
-        kind="radio"
-        size="sm"
-        :label="$t('dashboard.hourly_calls.period')"
-        :options="rangeOptions"
-        :show-clear-filter="false"
-        align-to-right
-        v-bind="filterLabels"
-        class="*:focus-visible:outline-hidden"
-        data-testid="hourly-calls-range"
-      >
-        <template #button>
-          <span
-            class="in-focus-visible:ring-primary-500 dark:in-focus-visible:ring-primary-300 dark:in-focus-visible:ring-offset-primary-950 flex items-center rounded px-2 py-1 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 transition-colors duration-200 hover:bg-gray-200/70 hover:text-gray-800 in-focus-visible:ring-2 in-focus-visible:ring-offset-2 in-focus-visible:ring-offset-white dark:text-gray-100 dark:ring-gray-500 dark:hover:bg-gray-600/30 dark:hover:text-gray-50"
-          >
-            {{ $t('dashboard.hourly_calls.period') }}
-            <NeBadgeV2 size="xs" kind="indigo" class="ml-2">{{ selectedRangeLabel }}</NeBadgeV2>
-            <FontAwesomeIcon :icon="faChevronDown" class="ml-2 h-3 w-3" aria-hidden="true" />
-          </span>
-        </template>
-      </NeDropdownFilterV2>
+      <div v-if="zoom" class="flex flex-wrap items-center justify-end gap-x-4 gap-y-1">
+        <span class="text-secondary-neutral text-sm" data-testid="hourly-calls-period">
+          {{ period }}
+        </span>
+        <NeButton
+          kind="tertiary"
+          size="sm"
+          data-testid="hourly-calls-reset-zoom"
+          @click="resetZoomFromButton"
+        >
+          {{ $t('dashboard.hourly_calls.reset_zoom') }}
+        </NeButton>
+      </div>
     </template>
     <div class="flex flex-col gap-4">
       <p
@@ -206,58 +294,83 @@ const describePoint = (point: CallsPoint) => {
         :icon="faEmptySet"
       />
       <NeEmptyState
-        v-else-if="summary.total === 0"
+        v-else-if="total === 0"
         data-testid="hourly-calls-empty"
         :title="$t('dashboard.hourly_calls.no_calls')"
         :icon="faPhoneSlash"
       />
       <div v-else class="flex flex-col gap-6">
-        <div
-          ref="chart"
-          role="img"
-          :aria-label="summaryText"
-          class="dashboard-hourly-chart w-full"
-          data-testid="hourly-chart"
-        >
-          <VisXYContainer
-            :height="CHART_HEIGHT"
-            :x-domain="xDomain"
-            :y-domain="yDomain"
-            aria-hidden="true"
+        <div class="flex flex-col gap-2">
+          <div
+            ref="chart"
+            role="img"
+            tabindex="0"
+            :aria-label="summaryText"
+            :aria-describedby="hintId"
+            class="dashboard-hourly-chart peer focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 dark:focus-visible:ring-offset-primary-950 w-full cursor-crosshair touch-pan-y touch-pinch-zoom rounded-sm select-none focus:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2"
+            data-testid="hourly-chart"
+            @pointerdown="onPointerDown"
+            @dblclick="resetZoom"
+            @keydown="onKeydown"
           >
-            <VisArea
-              v-for="segment in segments"
-              :key="segment[0].time"
-              :data="segment"
-              :x="getTime"
-              :y="getCalls"
-              color="var(--accent-indigo)"
-              :opacity="AREA_OPACITY"
-              :curve-type="CurveType.MonotoneX"
-            />
-            <VisAxis
-              type="x"
-              :tick-values="xTicks"
-              :tick-format="formatTick"
-              :grid-line="false"
-              :tick-line="false"
-            />
-            <VisAxis
-              type="y"
-              :tick-values="yTicks"
-              :tick-format="formatAxisCalls"
-              :domain-line="false"
-              :tick-line="false"
-            />
-            <VisCrosshair
-              :data="series"
-              :x="getTime"
-              :y="getCalls"
-              :template="describePoint"
-              color="var(--accent-indigo)"
-            />
-            <VisTooltip />
-          </VisXYContainer>
+            <VisXYContainer
+              ref="container"
+              :height="CHART_HEIGHT"
+              :x-domain="visibleDomain"
+              :y-domain="yDomain"
+              aria-hidden="true"
+            >
+              <VisArea
+                v-for="segment in segments"
+                :key="segment[0].time"
+                :data="segment"
+                :x="getTime"
+                :y="getCalls"
+                color="var(--accent-indigo)"
+                :opacity="AREA_OPACITY"
+                :curve-type="CurveType.MonotoneX"
+              />
+              <VisAxis
+                type="x"
+                :tick-values="xTicks"
+                :tick-format="formatTick"
+                :grid-line="false"
+                :tick-line="false"
+              />
+              <VisAxis
+                type="y"
+                :tick-values="yTicks"
+                :tick-format="formatAxisCalls"
+                :domain-line="false"
+                :tick-line="false"
+              />
+              <VisCrosshair
+                :data="visibleSeries"
+                :x="getTime"
+                :y="getCalls"
+                :template="describePoint"
+                color="var(--accent-indigo)"
+              />
+              <VisTooltip />
+              <VisPlotband
+                v-if="selection"
+                :axis="AxisType.X"
+                :from="selection.from"
+                :to="selection.to"
+                :duration="0"
+              />
+            </VisXYContainer>
+          </div>
+          <p
+            :id="hintId"
+            class="text-tertiary-neutral sr-only text-sm peer-focus-visible:not-sr-only"
+            data-testid="hourly-chart-hint"
+          >
+            {{ $t('dashboard.hourly_calls.zoom_hint') }}
+          </p>
+          <p class="sr-only" aria-live="polite" data-testid="hourly-chart-announcement">
+            {{ announcement }}
+          </p>
         </div>
         <p class="text-primary-neutral flex items-center justify-center gap-2.5 py-3 font-medium">
           <span class="bg-accent-indigo/60 h-4 w-6 shrink-0 rounded-sm" aria-hidden="true" />
@@ -282,5 +395,6 @@ const describePoint = (point: CallsPoint) => {
   --vis-tooltip-text-color: var(--primary-neutral);
   --vis-crosshair-line-stroke-color: var(--border-secondary);
   --vis-crosshair-circle-stroke-color: var(--elevation-0);
+  --vis-plotband-color: color-mix(in oklab, var(--accent-indigo) 20%, transparent);
 }
 </style>

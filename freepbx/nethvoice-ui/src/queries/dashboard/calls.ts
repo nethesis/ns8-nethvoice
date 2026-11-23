@@ -8,7 +8,6 @@ import {
   DASHBOARD_CALLS_KEY,
   getDashboardCalls,
   getDashboardCallsHistory,
-  type CallsRange,
 } from '@/lib/dashboard/calls'
 import { DASHBOARD_COUNTERS_STALE_TIME } from '@/lib/dashboard/counters'
 import { useLoginStore } from '@/stores/login'
@@ -25,14 +24,14 @@ export const useDashboardCalls = (enabled: () => boolean) => {
   })
 }
 
-export const useDashboardCallsHistory = (range: () => CallsRange, enabled: () => boolean) => {
+export const useDashboardCallsHistory = (enabled: () => boolean) => {
   const loginStore = useLoginStore()
 
   return useQuery({
-    key: () => [DASHBOARD_CALLS_HISTORY_KEY, range()],
+    key: () => [DASHBOARD_CALLS_HISTORY_KEY],
     enabled: () => loginStore.isAuthenticated && enabled(),
     staleTime: DASHBOARD_CALLS_HISTORY_STALE_TIME,
     refetchOnWindowFocus: false,
-    query: ({ signal }) => getDashboardCallsHistory(range(), signal),
+    query: ({ signal }) => getDashboardCallsHistory(signal),
   })
 }

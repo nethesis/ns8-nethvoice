@@ -193,10 +193,7 @@ const {
   state: callsHistoryState,
   refetch: refetchCallsHistory,
   refresh: refreshCallsHistory,
-} = useDashboardCallsHistory(
-  () => dashboardLayoutStore.callsRange,
-  () => isEnterprise.value,
-)
+} = useDashboardCallsHistory(() => isEnterprise.value)
 const {
   state: phonesState,
   refetch: refetchPhones,
@@ -750,10 +747,8 @@ usePolling(() => {
           <DashboardHourlyCard
             v-else-if="card === 'hourlyCalls'"
             class="h-full"
-            :range="dashboardLayoutStore.callsRange"
             :history="callsHistoryState.data"
             :loading="callsHistoryState.status === 'pending'"
-            @update:range="dashboardLayoutStore.setCallsRange"
           >
             <template #handle>
               <DashboardDragHandle

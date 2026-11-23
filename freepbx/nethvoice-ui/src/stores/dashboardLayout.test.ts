@@ -8,9 +8,6 @@ import { PiniaColada } from '@pinia/colada'
 import { CREDENTIALS_STORAGE_KEY } from '@/lib/config'
 import { useDashboardLayoutStore } from './dashboardLayout'
 
-const preferencesOf = (username: string) =>
-  JSON.parse(localStorage.getItem(`preferences-${username}`) || '{}')
-
 const signIn = (user: string) =>
   localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify({ user, hash: 'secret' }))
 
@@ -21,46 +18,21 @@ const createStore = () => {
   return useDashboardLayoutStore()
 }
 
-describe('useDashboardLayoutStore calls range', () => {
+describe('useDashboardLayoutStore', () => {
   beforeEach(() => {
     localStorage.clear()
   })
 
-  it('should start with the last 24 hours', () => {
+  it('should ignore the period of the calls per hour saved by an older version', () => {
+    localStorage.setItem(
+      'preferences-admin',
+      JSON.stringify({ dashboardCallsRange: '7d', dashboardCardOrder: ['hourlyCalls'] }),
+    )
     signIn('admin')
 
-    expect(createStore().callsRange).toBe('24h')
-  })
-
-  it('should save the range for the user and read it back', () => {
-    signIn('admin')
-    createStore().setCallsRange('7d')
-
-    expect(preferencesOf('admin').dashboardCallsRange).toBe('7d')
-    expect(createStore().callsRange).toBe('7d')
-  })
-
-  it('should ignore an unknown saved range', () => {
-    localStorage.setItem('preferences-admin', JSON.stringify({ dashboardCallsRange: '1y' }))
-    signIn('admin')
-
-    expect(createStore().callsRange).toBe('24h')
-  })
-
-  it('should keep the chosen range when the storage cannot be written', () => {
-    signIn('admin')
     const store = createStore()
-    const setItem = Storage.prototype.setItem
-    Storage.prototype.setItem = () => {
-      throw new Error('quota exceeded')
-    }
 
-    try {
-      store.setCallsRange('15d')
-    } finally {
-      Storage.prototype.setItem = setItem
-    }
-
-    expect(store.callsRange).toBe('15d')
+    expect(store.cardOrder[0]).toBe('hourlyCalls')
+    expect(store).not.toHaveProperty('callsRange')
   })
 })

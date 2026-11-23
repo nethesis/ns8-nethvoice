@@ -1,13 +1,16 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import {
+  getDashboardCallsHistory,
   isHistoryPartial,
-  normalizeCallsRange,
   parseCallsHistory,
   parseCallsSummary,
 } from './calls'
+
+vi.mock('@/lib/api/client', () => ({ api: { GET: vi.fn() } }))
 
 describe('parseCallsSummary', () => {
   it('should read the outcomes and the incoming calls by hour', () => {
@@ -76,13 +79,16 @@ describe('parseCallsHistory', () => {
   })
 })
 
-describe('normalizeCallsRange', () => {
-  it('should keep a known range and fall back to the last 24 hours', () => {
-    expect(normalizeCallsRange('7d')).toBe('7d')
-    expect(normalizeCallsRange('15d')).toBe('15d')
-    expect(normalizeCallsRange('30d')).toBe('24h')
-    expect(normalizeCallsRange(undefined)).toBe('24h')
-    expect(normalizeCallsRange(['7d'])).toBe('24h')
+describe('getDashboardCallsHistory', () => {
+  it('should always request the last 15 days', async () => {
+    vi.mocked(api.GET).mockResolvedValue({ data: HISTORY } as never)
+
+    await getDashboardCallsHistory()
+
+    expect(api.GET).toHaveBeenCalledWith('/dashboard/calls', {
+      params: { query: { range: '15d' } },
+      signal: undefined,
+    })
   })
 })
 

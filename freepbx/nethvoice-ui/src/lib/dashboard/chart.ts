@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
-import type { CallsPoint, CallsRange } from '@/lib/dashboard/calls'
+import type { CallsPoint } from '@/lib/dashboard/calls'
 
 export const MIN_VISIBLE_BAR_RATIO = 0.03
 
@@ -62,29 +62,31 @@ const HOUR_TICK_STEPS = [1, 2, 3, 4, 6, 12]
 const DAY_TICK_STEPS = [1, 2, 3, 5, 7]
 
 const pickStep = (steps: number[], count: number, maxTicks: number) =>
-  steps.find((step) => Math.ceil(count / step) <= maxTicks) ?? steps[steps.length - 1]
+  steps.find((step) => Math.ceil(count / step) <= maxTicks)
 
 export const getMaxTicks = (width: number): number =>
   Math.max(2, Math.floor(width / MIN_TICK_SPACING))
 
-export const getTimeTicks = (times: number[], range: CallsRange, maxTicks: number): number[] => {
-  if (range === '24h') {
-    const step = pickStep(HOUR_TICK_STEPS, times.length, maxTicks)
+export const getTimeTicks = (times: number[], maxTicks: number): number[] => {
+  const hourStep = pickStep(HOUR_TICK_STEPS, times.length, maxTicks)
 
-    return times.filter((time) => new Date(time).getHours() % step === 0)
+  if (hourStep !== undefined) {
+    return times.filter((time) => new Date(time).getHours() % hourStep === 0)
   }
   const midnights = times.filter((time) => new Date(time).getHours() === 0)
-  const step = pickStep(DAY_TICK_STEPS, midnights.length, maxTicks)
+  const step =
+    pickStep(DAY_TICK_STEPS, midnights.length, maxTicks) ??
+    DAY_TICK_STEPS[DAY_TICK_STEPS.length - 1]
 
   return midnights.filter((_, index) => (midnights.length - 1 - index) % step === 0)
 }
 
-export const formatTimeTick = (time: number, range: CallsRange, locale: string): string =>
+export const formatTimeTick = (time: number, locale: string): string =>
   new Intl.DateTimeFormat(
     locale,
-    range === '24h'
-      ? { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }
-      : { day: 'numeric', month: 'short' },
+    new Date(time).getHours() === 0
+      ? { day: 'numeric', month: 'short' }
+      : { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' },
   ).format(time)
 
 export const formatPointTime = (time: number, locale: string): string =>
@@ -141,3 +143,89 @@ export const summarizeSeries = (series: CallsPoint[]): SeriesSummary =>
     }),
     { total: 0, peak: null, hasData: false },
   )
+
+export type TimeDomain = [number, number]
+
+export const HOUR_MS = 3600 * 1000
+
+export const MIN_ZOOM_SPAN = 3 * HOUR_MS
+
+export const MIN_DRAG_DISTANCE = 6
+
+export const getVisiblePoints = (series: CallsPoint[], [start, end]: TimeDomain): CallsPoint[] =>
+  series.filter((point) => point.time >= start && point.time <= end)
+
+const snapToHour = (time: number) => Math.round(time / HOUR_MS) * HOUR_MS
+
+const fitDomain = (start: number, span: number, [dataStart, dataEnd]: TimeDomain): TimeDomain => {
+  const fitted = Math.min(Math.max(start, dataStart), dataEnd - span)
+
+  return [fitted, fitted + span]
+}
+
+const resizeDomain = (
+  lower: number,
+  upper: number,
+  data: TimeDomain,
+  minSpan: number,
+): TimeDomain | null => {
+  const span = Math.max(minSpan, upper - lower)
+
+  if (span >= data[1] - data[0]) {
+    return null
+  }
+  return fitDomain(
+    upper - lower >= minSpan ? lower : snapToHour((lower + upper - minSpan) / 2),
+    span,
+    data,
+  )
+}
+
+export const getZoomDomain = (
+  from: number,
+  to: number,
+  data: TimeDomain,
+  minSpan = MIN_ZOOM_SPAN,
+): TimeDomain | null =>
+  resizeDomain(
+    Math.max(snapToHour(Math.min(from, to)), data[0]),
+    Math.min(snapToHour(Math.max(from, to)), data[1]),
+    data,
+    minSpan,
+  )
+
+export const scaleZoom = (
+  [start, end]: TimeDomain,
+  factor: number,
+  data: TimeDomain,
+): TimeDomain | null => {
+  const center = (start + end) / 2
+  const halfSpan = ((end - start) * factor) / 2
+
+  return resizeDomain(
+    snapToHour(center - halfSpan),
+    snapToHour(center + halfSpan),
+    data,
+    MIN_ZOOM_SPAN,
+  )
+}
+
+export const panZoom = ([start, end]: TimeDomain, ratio: number, data: TimeDomain): TimeDomain => {
+  const shift = Math.sign(ratio) * Math.max(HOUR_MS, snapToHour(Math.abs((end - start) * ratio)))
+
+  return fitDomain(start + shift, end - start, data)
+}
+
+export const keepZoom = (zoom: TimeDomain | null, [dataStart, dataEnd]: TimeDomain) =>
+  zoom && zoom[0] >= dataStart && zoom[1] <= dataEnd && zoom[1] - zoom[0] < dataEnd - dataStart
+    ? zoom
+    : null
+
+export const formatPeriod = ([start, end]: TimeDomain, locale: string): string =>
+  new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatRange(start, end)

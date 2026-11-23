@@ -40,13 +40,7 @@ export const CALLS_RANGES = ['24h', '7d', '15d'] as const
 
 export type CallsRange = (typeof CALLS_RANGES)[number]
 
-export const DEFAULT_CALLS_RANGE: CallsRange = '24h'
-
-export const isCallsRange = (value: unknown): value is CallsRange =>
-  typeof value === 'string' && (CALLS_RANGES as readonly string[]).includes(value)
-
-export const normalizeCallsRange = (saved: unknown): CallsRange =>
-  isCallsRange(saved) ? saved : DEFAULT_CALLS_RANGE
+export const CALLS_HISTORY_RANGE: CallsRange = '15d'
 
 const UnixTimeSchema = v.pipe(v.number(), v.integer(), v.minValue(0))
 
@@ -79,11 +73,11 @@ export const parseCallsHistory = (raw: unknown): CallsHistory => {
   }
 }
 
-export const getDashboardCallsHistory = async (
-  range: CallsRange,
-  signal?: AbortSignal,
-): Promise<CallsHistory> => {
-  const { data } = await api.GET('/dashboard/calls', { params: { query: { range } }, signal })
+export const getDashboardCallsHistory = async (signal?: AbortSignal): Promise<CallsHistory> => {
+  const { data } = await api.GET('/dashboard/calls', {
+    params: { query: { range: CALLS_HISTORY_RANGE } },
+    signal,
+  })
   return parseCallsHistory(data)
 }
 

@@ -1,6 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
+import type { Locator, Page } from '@playwright/test'
 import { expect, mockPermissions, test, type MockApi, type MockRequest } from '../fixtures/mockApi'
 
 const extension = (exten: string, name: string, status: string, conversations = {}) => ({
@@ -201,6 +202,45 @@ const LIVE_PATHS = [
 const counterValue = (page: import('@playwright/test').Page, id: string) =>
   page.getByTestId(`counter-${id}`).getByTestId('counter-value')
 
+const FULL_PERIOD = 'Nov 3, 12:00\u2009–\u2009Nov 18, 11:00'
+
+const period = (start: string, end: string) => `${start}\u2009–\u2009${end}`
+
+const startingWith = (text: string) => new RegExp(`^${text.replaceAll('\u2009', '\\s')}`)
+
+const utc = (day: number, hour: number) => Date.UTC(2026, 10, day, hour)
+
+const plotX = async (chart: Locator, [start, end]: [number, number], time: number) => {
+  const plot = await chart.evaluate((element) => {
+    const boxes = Array.from(element.querySelectorAll('path'))
+      .filter((path) => /-area$/.test(path.getAttribute('class') ?? ''))
+      .map((path) => path.getBoundingClientRect())
+    const left = Math.min(...boxes.map((box) => box.left))
+
+    return { left, width: Math.max(...boxes.map((box) => box.right)) - left }
+  })
+
+  return plot.left + ((time - start) / (end - start)) * plot.width
+}
+
+const dragOnChart = async (
+  page: Page,
+  chart: Locator,
+  domain: [number, number],
+  from: number,
+  to: number,
+) => {
+  await chart.scrollIntoViewIfNeeded()
+  const box = await chart.boundingBox()
+  if (!box) {
+    throw new Error('missing chart')
+  }
+  const y = box.y + box.height / 2
+  await page.mouse.move(await plotX(chart, domain, from), y)
+  await page.mouse.down()
+  await page.mouse.move(await plotX(chart, domain, to), y, { steps: 5 })
+}
+
 test.describe('dashboard', () => {
   test.use({ timezoneId: 'UTC' })
 
@@ -266,18 +306,22 @@ test.describe('dashboard', () => {
     await expect(callsToday.getByTestId('breakdown-missed')).toHaveText('2')
     await expect(callsToday.getByTestId('breakdown-invalid')).toHaveText('1')
 
-    await expect(page.getByTestId('hourly-calls-card')).toContainText('Calls per hour')
+    const hourlyCard = page.getByTestId('hourly-calls-card')
+    await expect(hourlyCard).toContainText('Calls per hour')
     await expect(
       page.getByRole('img', {
-        name: 'Last 24 hours: 7.5 calls, busiest hour Wed, Nov 18, 09:00 with 4',
+        name: `${FULL_PERIOD}: 112.5 calls, busiest hour Wed, Nov 4, 09:00 with 4`,
       }),
     ).toBeVisible()
     const hourlyChart = page.getByTestId('hourly-chart')
-    for (const hour of ['00:00', '03:00', '12:00', '21:00']) {
-      await expect(hourlyChart.locator('svg text', { hasText: hour })).toHaveCount(1)
+    for (const day of ['Nov 4', 'Nov 10', 'Nov 18']) {
+      await expect(hourlyChart.locator('svg text', { hasText: day })).toHaveCount(1)
     }
+    await expect(hourlyChart.locator('svg text', { hasText: /^\d\d:\d\d$/ })).toHaveCount(0)
     await expect(hourlyChart.locator('svg text', { hasText: /^4$/ })).toHaveCount(1)
     await expect(page.getByTestId('hourly-calls-available-from')).toHaveCount(0)
+    await expect(hourlyCard.getByRole('button')).toHaveCount(1)
+    await expect(hourlyCard.getByTestId('hourly-calls-period')).toHaveCount(0)
 
     const rows = page.getByTestId('call-row')
     await expect(rows).toHaveCount(2)
@@ -637,7 +681,6 @@ test.describe('dashboard', () => {
     await expect(notification).not.toContainText('Prometheus')
     const card = page.getByTestId('hourly-calls-card')
     await expect(card.getByTestId('hourly-calls-unavailable')).toHaveText('Not available')
-    await expect(card.getByRole('button', { name: 'Open filter Period' })).toBeVisible()
     await expect(page.getByTestId('calls-summary-card')).toBeVisible()
 
     fail = false
@@ -742,52 +785,206 @@ test.describe('dashboard', () => {
     await expect(page.getByTestId('hourly-chart')).toHaveCount(0)
   })
 
-  test('requests the last 24 hours and remembers another period', async ({ page, mockApi }) => {
+  test('always requests the last 15 days and ignores a saved period', async ({ page, mockApi }) => {
     const ranges: string[] = []
     mockApi.on('GET', '/freepbx/rest/dashboard/calls', callsResponse(callsHistory, ranges))
+    await page.addInitScript(() =>
+      localStorage.setItem('preferences-admin', JSON.stringify({ dashboardCallsRange: '24h' })),
+    )
 
     await page.goto('./dashboard')
 
     const card = page.getByTestId('hourly-calls-card')
-    await expect(card.getByTestId('hourly-chart')).toBeVisible()
-    expect(ranges).toEqual(['24h'])
-
-    await card.getByRole('button', { name: 'Open filter Period' }).click()
-    await page.getByRole('radio', { name: 'Last 7 days' }).check()
-
-    await expect(
-      card.getByRole('img', {
-        name: 'Last 7 days: 52.5 calls, busiest hour Thu, Nov 12, 09:00 with 4',
-      }),
-    ).toBeVisible()
-    expect(ranges).toEqual(['24h', '7d'])
-    await expect(card.locator('svg text', { hasText: 'Nov 18' })).toHaveCount(1)
-    await expect(card.locator('svg text', { hasText: '00:00' })).toHaveCount(0)
-
-    await page.reload()
-
-    await expect(card.getByRole('button', { name: 'Open filter Period' })).toContainText(
-      'Last 7 days',
-    )
-    await expect(card.getByTestId('hourly-chart')).toBeVisible()
-    expect(ranges).toEqual(['24h', '7d', '7d'])
+    await expect(card.getByRole('img', { name: startingWith(`${FULL_PERIOD}:`) })).toBeVisible()
+    expect(ranges).toEqual(['15d'])
+    await expect(card.getByRole('button', { name: /Period/ })).toHaveCount(0)
+    await expect(card.getByRole('radio')).toHaveCount(0)
   })
 
-  test('shows the value of an hour in the tooltip', async ({ page }) => {
+  test('zooms into the dragged period and back', async ({ page }) => {
     await page.goto('./dashboard')
 
-    const chart = page.getByTestId('hourly-chart')
+    const card = page.getByTestId('hourly-calls-card')
+    const chart = card.getByTestId('hourly-chart')
+    const full: [number, number] = [utc(3, 12), utc(18, 11)]
     await expect(chart).toBeVisible()
+
+    await dragOnChart(page, chart, full, utc(10, 0), utc(12, 0))
+    await expect(chart.locator('[class*="plotband-area"]')).toHaveCount(1)
+    await page.mouse.up()
+
+    await expect(chart.locator('[class*="plotband-area"]')).toHaveCount(0)
+    await expect(card.getByTestId('hourly-calls-period')).toHaveText(
+      period('Nov 10, 00:00', 'Nov 12, 00:00'),
+    )
+    await expect(
+      chart.and(
+        page.getByRole('img', {
+          name: `${period('Nov 10, 00:00', 'Nov 12, 00:00')}: 15 calls, busiest hour Tue, Nov 10, 09:00 with 4`,
+        }),
+      ),
+    ).toBeVisible()
+    await expect(chart.locator('svg text', { hasText: 'Nov 11' })).toHaveCount(1)
+    await expect(chart.locator('svg text', { hasText: '12:00' })).toHaveCount(2)
+
+    await dragOnChart(page, chart, [utc(10, 0), utc(12, 0)], utc(11, 6), utc(11, 12))
+    await page.mouse.up()
+    await expect(card.getByTestId('hourly-calls-period')).toHaveText(
+      period('Nov 11, 06:00', '12:00'),
+    )
+
+    await card.getByRole('button', { name: 'Reset zoom' }).click()
+
+    await expect(card.getByTestId('hourly-calls-period')).toHaveCount(0)
+    await expect(card.getByRole('button', { name: 'Reset zoom' })).toHaveCount(0)
+    await expect(chart).toBeFocused()
+    await expect(chart).toHaveAccessibleName(startingWith(`${FULL_PERIOD}:`))
+  })
+
+  test('ignores a click and resets the zoom with a double-click', async ({ page }) => {
+    await page.goto('./dashboard')
+
+    const card = page.getByTestId('hourly-calls-card')
+    const chart = card.getByTestId('hourly-chart')
+    const full: [number, number] = [utc(3, 12), utc(18, 11)]
+    await expect(chart).toBeVisible()
+
+    await dragOnChart(page, chart, full, utc(10, 0), utc(10, 0))
+    await page.mouse.up()
+    await expect(card.getByTestId('hourly-calls-period')).toHaveCount(0)
+
+    await dragOnChart(page, chart, full, utc(10, 0), utc(10, 2))
+    await page.mouse.up()
+    await expect(card.getByTestId('hourly-calls-period')).toHaveCount(0)
+
+    await dragOnChart(page, chart, full, utc(10, 0), utc(11, 0))
+    await page.mouse.up()
+    await expect(card.getByTestId('hourly-calls-period')).toHaveText(
+      period('Nov 10, 00:00', 'Nov 11, 00:00'),
+    )
+
+    await chart.dblclick()
+
+    await expect(card.getByTestId('hourly-calls-period')).toHaveCount(0)
+    await expect(chart).toHaveAccessibleName(startingWith(`${FULL_PERIOD}:`))
+  })
+
+  test('zooms and moves with the keyboard', async ({ page }) => {
+    await page.goto('./dashboard')
+
+    const card = page.getByTestId('hourly-calls-card')
+    const chart = card.getByTestId('hourly-chart')
+    const visiblePeriod = card.getByTestId('hourly-calls-period')
+    await expect(chart).toBeVisible()
+    const hint = card.getByTestId('hourly-chart-hint')
+    expect((await hint.boundingBox())?.width).toBeLessThanOrEqual(1)
+
+    await chart.focus()
+    expect((await hint.boundingBox())?.width).toBeGreaterThan(1)
+    await expect(chart).toHaveAccessibleDescription(
+      'Drag across the chart to zoom in, double-click to reset. With the keyboard, press + or - to zoom, the left and right arrows to move, Esc to reset.',
+    )
+    await page.keyboard.press('ArrowRight')
+    await expect(visiblePeriod).toHaveCount(0)
+
+    await page.keyboard.press('+')
+    await expect(visiblePeriod).toHaveText(period('Nov 7, 06:00', 'Nov 14, 17:00'))
+    await page.keyboard.press('+')
+    await page.keyboard.press('+')
+    await expect(visiblePeriod).toHaveText(period('Nov 10, 01:00', 'Nov 11, 22:00'))
+    await expect(card.getByTestId('hourly-chart-announcement')).toHaveText(
+      startingWith(`${period('Nov 10, 01:00', 'Nov 11, 22:00')}: 15 calls`),
+    )
+
+    await page.keyboard.press('ArrowRight')
+    await expect(visiblePeriod).toHaveText(period('Nov 10, 12:00', 'Nov 12, 09:00'))
+    await page.keyboard.press('ArrowLeft')
+    await expect(visiblePeriod).toHaveText(period('Nov 10, 01:00', 'Nov 11, 22:00'))
+
+    await page.keyboard.press('-')
+    await expect(visiblePeriod).toHaveText(period('Nov 9, 03:00', 'Nov 12, 21:00'))
+
+    await page.keyboard.press('Escape')
+    await expect(visiblePeriod).toHaveCount(0)
+    await expect(chart).toBeFocused()
+  })
+
+  test('keeps the zoom on a refresh only while the data still covers it', async ({
+    page,
+    mockApi,
+  }) => {
+    const ranges: string[] = []
+    const shiftedBy = (hours: number) => (range: string) => {
+      const history = callsHistory(range)
+
+      return {
+        ...history,
+        series: history.series.map((point) => ({ ...point, time: point.time + hours * HOUR })),
+      }
+    }
+    await page.clock.install()
+    await page.goto('./dashboard')
+
+    const card = page.getByTestId('hourly-calls-card')
+    const chart = card.getByTestId('hourly-chart')
+    const visiblePeriod = card.getByTestId('hourly-calls-period')
+    await expect(chart).toBeVisible()
+    await chart.focus()
+    for (let zoom = 0; zoom < 3; zoom++) {
+      await page.keyboard.press('+')
+    }
+    await expect(visiblePeriod).toHaveText(period('Nov 10, 01:00', 'Nov 11, 22:00'))
+
+    mockApi.on('GET', '/freepbx/rest/dashboard/calls', callsResponse(shiftedBy(1), ranges))
+    await page.clock.runFor(6 * 60 * 1000)
+
+    await expect.poll(() => ranges).toEqual(['15d'])
+    await expect(visiblePeriod).toHaveText(period('Nov 10, 01:00', 'Nov 11, 22:00'))
+    await page.keyboard.press('Escape')
+    await expect(chart).toHaveAccessibleName(
+      startingWith(`${period('Nov 3, 13:00', 'Nov 18, 12:00')}:`),
+    )
+
+    for (let zoom = 0; zoom < 3; zoom++) {
+      await page.keyboard.press('+')
+    }
+    await expect(visiblePeriod).toHaveCount(1)
+    mockApi.on('GET', '/freepbx/rest/dashboard/calls', callsResponse(shiftedBy(193), ranges))
+    await page.clock.runFor(6 * 60 * 1000)
+
+    await expect.poll(() => ranges).toEqual(['15d', '15d'])
+    await expect(visiblePeriod).toHaveCount(0)
+    await expect(chart).toHaveAccessibleName(
+      startingWith(`${period('Nov 11, 13:00', 'Nov 26, 12:00')}:`),
+    )
+  })
+
+  test('shows the value of an hour in the tooltip of a zoomed period', async ({ page }) => {
+    await page.goto('./dashboard')
+
+    const card = page.getByTestId('hourly-calls-card')
+    const chart = card.getByTestId('hourly-chart')
+    await expect(chart).toBeVisible()
+    await chart.focus()
+    for (let zoom = 0; zoom < 3; zoom++) {
+      await page.keyboard.press('+')
+    }
+    await expect(card.getByTestId('hourly-calls-period')).toHaveText(
+      period('Nov 10, 01:00', 'Nov 11, 22:00'),
+    )
+    await chart.scrollIntoViewIfNeeded()
     const box = await chart.boundingBox()
     if (!box) {
       throw new Error('missing chart')
     }
-    const axisWidth = 20
-    const x = axisWidth + ((box.width - axisWidth) * 22) / 23
-    await chart.hover({ position: { x, y: box.height / 2 } })
 
-    await expect(page.getByText('Wed, Nov 18, 10:00')).toBeVisible()
-    await expect(page.getByText('Calls: 2.5', { exact: true })).toBeVisible()
+    await page.mouse.move(
+      await plotX(chart, [utc(10, 1), utc(11, 22)], utc(11, 9)),
+      box.y + box.height / 2,
+    )
+
+    await expect(page.getByText('Wed, Nov 11, 09:00')).toBeVisible()
+    await expect(page.getByText('Calls: 4', { exact: true })).toBeVisible()
   })
 
   test('explains that no calls have been recorded yet', async ({ page, mockApi }) => {
