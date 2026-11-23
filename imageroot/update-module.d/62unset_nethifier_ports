@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Nethifier is retired: drop the variables of its TCP/TLS ports. The ports
+# stay inside the TCP range allocated to the module, at the same positions.
+
+import agent
+
+env = agent.read_envfile('environment')
+for var in ('NETHCTI_TCP_PORT', 'NETHCTI_TLS_PORT'):
+    if var in env:
+        agent.unset_env(var)

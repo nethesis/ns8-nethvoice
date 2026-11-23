@@ -76,12 +76,9 @@ agent.set_env('NETHCTI_INTERNAL_REST_PORT10', port_list[18])
 agent.set_env('NETHCTI_INTERNAL_REST_PORT11', port_list[19])
 agent.set_env('NETHCTI_INTERNAL_REST_PORT12', port_list[20])
 agent.set_env('NETHCTI_INTERNAL_REST_PORT13', port_list[21])
-# Unused since Nethifier was retired: the slots stay reserved so that the
-# positions of the following ports do not change. A new service that needs a
-# TCP port can take them instead of raising org.nethserver.tcp-ports-demand
-# (on existing instances, reuse the value of these variables on update).
-agent.set_env('NETHCTI_TCP_PORT', port_list[22])
-agent.set_env('NETHCTI_TLS_PORT', port_list[23])
+# port_list[22] and port_list[23] are free: they were the Nethifier TCP/TLS
+# ports. The following positions do not change, so a new service that needs
+# a TCP port can take them instead of raising org.nethserver.tcp-ports-demand.
 agent.set_env('ASTERISK_SIP_PORT', port_list[24])
 agent.set_env('ASTERISK_SIPS_PORT', port_list[25])
 
