@@ -202,6 +202,8 @@ for offset, var in enumerate(video_gateway.TCP_PORT_VARS):
     agent.set_env(var, port_list[video_gateway.TCP_RANGE_OFFSET + offset])
 # The provider webhook listener follows the video gateway TCP slots.
 agent.set_env('VOICE_AGENT_HTTP_PORT', port_list[video_gateway.TCP_RANGE_OFFSET + len(video_gateway.TCP_PORT_VARS)])
+agent.set_env('NETHVOICE_RECIPIENT_SERVICE_PORT', port_list[47])
+agent.set_env('VOICE_AGENT_CHAT_PORT', port_list[48])
 # ICE over UDP: a separate single-port allocation, after the UDP block has
 # been shrunk above. It must never be part of UDP_PORTS_RANGE (see
 # update-module.d/20allocate_ports).

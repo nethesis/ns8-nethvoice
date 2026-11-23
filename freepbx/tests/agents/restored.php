@@ -3,7 +3,7 @@ require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Service.php';
 $db=new PDO('mysql:host=127.0.0.1;port='.getenv('VOICE_AGENT_RESTORE_PORT'),'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 \NethVoice\Agents\Schema::install($db);
 assert($db->query('SELECT format FROM asterisk.voice_agent_installation')->fetchColumn()==='alpha-v8');
-assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_agents WHERE kind='builtin' AND removed=0")->fetchColumn()===1);
+assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_agents WHERE kind='builtin' AND removed=0")->fetchColumn()===2);
 assert($db->query("SELECT name FROM asterisk.voice_agent_agents WHERE agent_id='receptionist'")->fetchColumn()==='Test Receptionist');
 assert((int)$db->query("SELECT COUNT(*) FROM asterisk.voice_agent_versions WHERE agent_id='receptionist'")->fetchColumn()===5);
 assert($db->query("SELECT JSON_UNQUOTE(JSON_EXTRACT(definition_json,'$.fallback_destination_id')) FROM asterisk.voice_agent_versions WHERE agent_id='receptionist' AND workflow_version=5")->fetchColumn()==='native:ivr-7,s,1');

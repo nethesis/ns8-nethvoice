@@ -26,14 +26,26 @@ if '--secrets-only' not in sys.argv and (
         port = agent.allocate_ports(1, 'tcp', keep_existing=True)[0]
     agent.set_env('VOICE_AGENT_HTTP_PORT', str(port))
 passwords = agent.read_envfile('passwords.env')
-for name in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD'):
+for name in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD', 'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN'):
     if not passwords.get(name):
         passwords[name] = secrets.token_urlsafe(32)
 agent.write_envfile('passwords.env', passwords)
 os.chmod('passwords.env', 0o600)
+if '--secrets-only' not in sys.argv:
+    for name, slot in (('NETHVOICE_RECIPIENT_SERVICE_PORT', 43), ('VOICE_AGENT_CHAT_PORT', 44)):
+        collision = any(key != name and re.search(r'PORT\d*$', key) and str(value) == str(env.get(name)) for key, value in env.items())
+        if not env.get(name) or collision:
+            port_range = (env.get('TCP_PORTS_RANGE') or os.getenv('TCP_PORTS_RANGE', '')).split('-')
+            free = {str(value) for key, value in env.items() if key != name and re.search(r'PORT\d*$', key)}
+            if len(port_range)==2 and int(port_range[1])-int(port_range[0])>=slot and str(int(port_range[0])+slot) not in free:
+                port = str(int(port_range[0])+slot)
+            else:
+                port = str(agent.allocate_ports(1, 'tcp', keep_existing=True)[0])
+            agent.set_env(name, port)
+            env[name] = port
 runtime_keys = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
                 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
-                'SATELLITE_ARI_PASSWORD')
+                'SATELLITE_ARI_PASSWORD', 'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN')
 runtime_env = {name: passwords[name] for name in runtime_keys}
 for name in ('OPENAI_API_KEY', 'XAI_API_KEY', 'GROK_API_KEY',
              'DEEPGRAM_API_KEY', 'SATELLITE_MQTT_PASSWORD'):
@@ -44,6 +56,9 @@ runtime_env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = env.get('VOICE_AGENT_MONI
 runtime_env['VOICE_AGENT_LIVE_WS_MAX_CALLS'] = env.get('VOICE_AGENT_LIVE_WS_MAX_CALLS', '4')
 runtime_env['API_TOKEN'] = passwords['SATELLITE_API_TOKEN']
 runtime_env['PGVECTOR_PASSWORD'] = passwords['SATELLITE_PGSQL_PASSWORD']
+for name, port in (('RECIPIENT', 'NETHVOICE_RECIPIENT_SERVICE_PORT'), ('CHAT', 'VOICE_AGENT_CHAT_PORT')):
+    if env.get(port):
+        runtime_env['VOICE_AGENT_' + name + '_URL'] = 'http://127.0.0.1:' + str(env[port])
 agent.write_envfile('satellite.env', runtime_env)
 os.chmod('satellite.env', 0o600)
 # Forward exactly the public provider prefix to a loopback-only listener.
