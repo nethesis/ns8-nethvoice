@@ -52,10 +52,12 @@ import {
   useDbConnectionStatuses,
 } from '@/queries/integrations/customerCards'
 import { describeError } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 type DrawerMode = 'create' | 'edit' | 'duplicate'
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const { state, refetch } = useCustomerCards()
 const { state: connectionsState } = useDbConnections()
 const { getStatus } = useDbConnectionStatuses()
@@ -127,7 +129,11 @@ function deleteCurrentCard() {
     </NeHeading>
     <div v-if="!isEmpty" class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
       <p class="text-tertiary-neutral max-w-2xl">
-        {{ t('integrations.cards.cards_description') }}
+        {{
+          t('integrations.cards.cards_description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        }}
       </p>
       <NeButton
         kind="primary"
@@ -152,7 +158,11 @@ function deleteCurrentCard() {
       <NeEmptyState
         v-else-if="isEmpty"
         :title="t('integrations.cards.no_cards')"
-        :description="t('integrations.cards.cards_description')"
+        :description="
+          t('integrations.cards.cards_description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        "
         :icon="faAddressCard"
         class="elevation-0"
       >
@@ -295,7 +305,10 @@ function deleteCurrentCard() {
       :title="t('integrations.cards.delete_card')"
       :object-name="currentCard?.name ?? ''"
       :confirmation-message="
-        t('integrations.cards.delete_card_confirmation', { name: currentCard?.name ?? '' })
+        t('integrations.cards.delete_card_confirmation', {
+          cti: runtimeConfigStore.config.ctiProductName,
+          name: currentCard?.name ?? '',
+        })
       "
       :success-title="t('integrations.cards.card_deleted')"
       success-description-key="integrations.cards.card_deleted_description"

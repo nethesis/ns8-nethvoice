@@ -54,6 +54,7 @@ import {
 import type { FieldIssues } from '@/lib/integrations/validation'
 import { useImportOwners, usePhonebookFields } from '@/queries/integrations/phonebookSources'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 type ReadError = { title: string; description: string; details: string }
 
@@ -68,6 +69,7 @@ const { isShown = false } = defineProps<{ isShown: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: fieldsState } = usePhonebookFields(() => isShown)
@@ -517,7 +519,11 @@ function discardChanges() {
             :label="t('integrations.phonebook.owner')"
             :options="ownerOptions"
             :placeholder="t('integrations.phonebook.owner_placeholder')"
-            :helper-text="t('integrations.phonebook.owner_helper')"
+            :helper-text="
+              t('integrations.phonebook.owner_helper', {
+                cti: runtimeConfigStore.config.ctiProductName,
+              })
+            "
             :invalid-message="issues.owner ? t(issues.owner) : ''"
             :disabled="busy"
             :loading-options="ownersState.status === 'pending'"

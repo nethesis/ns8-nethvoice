@@ -32,8 +32,10 @@ import { PAGE_SIZES } from '@/lib/common'
 import { describeOwner, type PhonebookImport } from '@/lib/integrations/phonebookImports'
 import { useImportOwners, usePhonebookImports } from '@/queries/integrations/phonebookSources'
 import { describeError } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const { t, locale } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const { state, asyncStatus, refetch } = usePhonebookImports()
 const { state: ownersState } = useImportOwners()
 
@@ -68,7 +70,11 @@ function describeVisibility(item: PhonebookImport): string {
     </div>
     <div v-if="!isEmpty" class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
       <p class="text-tertiary-neutral max-w-2xl">
-        {{ t('integrations.phonebook.imports_description') }}
+        {{
+          t('integrations.phonebook.imports_description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        }}
       </p>
       <NeButton
         kind="secondary"
@@ -93,7 +99,11 @@ function describeVisibility(item: PhonebookImport): string {
       <NeEmptyState
         v-else-if="isEmpty"
         :title="t('integrations.phonebook.no_imports')"
-        :description="t('integrations.phonebook.imports_description')"
+        :description="
+          t('integrations.phonebook.imports_description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        "
         :icon="faClockRotateLeft"
         class="elevation-0"
       >

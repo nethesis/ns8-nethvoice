@@ -39,6 +39,7 @@ import {
 } from '@/lib/integrations/videoSources'
 import { useExtensionOptions, useProfileOptions } from '@/queries/integrations/lookups'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const {
   isShown = false,
@@ -53,6 +54,7 @@ const {
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: profilesState } = useProfileOptions()
@@ -316,7 +318,11 @@ function save() {
           ref="profilesRef"
           v-model="form.profileIds"
           :profiles="profiles"
-          :helper-text="t('integrations.video.profiles_helper')"
+          :helper-text="
+            t('integrations.video.profiles_helper', {
+              cti: runtimeConfigStore.config.ctiProductName,
+            })
+          "
           :invalid-message="validationIssues.profileIds ? t(validationIssues.profileIds) : ''"
           :disabled="saving"
           :loading="profilesState.status === 'pending'"

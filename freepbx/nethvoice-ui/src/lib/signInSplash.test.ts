@@ -30,19 +30,23 @@ describe('isRebranded', () => {
     expect(isRebranded(parseRuntimeConfig({ BRAND_NAME: 'Acme Voice' }))).toBe(true)
   })
 
-  it.each(['NAVBAR_LOGO_URL', 'LOGIN_LOGO_URL', 'LOGIN_BACKGROUND_URL', 'FAVICON_URL'])(
-    'should consider a custom %s rebranded',
-    (key) => {
-      expect(isRebranded(parseRuntimeConfig({ [key]: 'https://cdn.acme.example/brand.svg' }))).toBe(
-        true,
-      )
-    },
-  )
+  it.each([
+    'NAVBAR_LOGO_URL',
+    'LOGO_LIGHT_URL',
+    'LOGIN_LOGO_URL',
+    'LOGIN_BACKGROUND_URL',
+    'FAVICON_URL',
+  ])('should consider a custom %s rebranded', (key) => {
+    expect(isRebranded(parseRuntimeConfig({ [key]: 'https://cdn.acme.example/brand.svg' }))).toBe(
+      true,
+    )
+  })
 
   it('should not consider a custom documentation or site link rebranded', () => {
     const config = parseRuntimeConfig({
       BRAND_SITE: 'https://www.acme.example/',
       BRAND_DOCS: 'https://docs.acme.example/',
+      CTI_PRODUCT_NAME: 'NethVoice',
     })
 
     expect(isRebranded(config)).toBe(false)

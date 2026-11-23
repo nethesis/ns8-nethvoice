@@ -48,10 +48,12 @@ import {
 } from '@/lib/integrations/parameterizedUrls'
 import { useProfileOptions } from '@/queries/integrations/lookups'
 import { useParameterizedUrls } from '@/queries/integrations/parameterizedUrls'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 type DrawerMode = 'create' | 'edit' | 'duplicate'
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const { state, refetch } = useParameterizedUrls()
 const { state: profilesState } = useProfileOptions()
 
@@ -152,7 +154,11 @@ function deleteCurrentUrl() {
       class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center"
     >
       <p class="text-tertiary-neutral max-w-2xl">
-        {{ t('integrations.param_urls.description') }}
+        {{
+          t('integrations.param_urls.description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        }}
       </p>
       <NeTooltip
         v-if="allProfilesBound && state.status === 'success'"
@@ -213,7 +219,11 @@ function deleteCurrentUrl() {
       <NeEmptyState
         v-if="isNoDataEmptyStateShown"
         :title="t('integrations.param_urls.no_urls')"
-        :description="t('integrations.param_urls.description')"
+        :description="
+          t('integrations.param_urls.description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        "
         :icon="faLink"
         class="elevation-0"
       >
@@ -312,6 +322,7 @@ function deleteCurrentUrl() {
       :object-name="currentUrl?.name ?? ''"
       :confirmation-message="
         t('integrations.param_urls.delete_url_confirmation', {
+          cti: runtimeConfigStore.config.ctiProductName,
           name: currentUrl?.name ?? '',
           profile: currentUrl ? getProfileName(currentUrl.profileId, profiles) : '',
         })

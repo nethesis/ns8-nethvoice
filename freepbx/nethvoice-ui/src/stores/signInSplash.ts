@@ -14,7 +14,7 @@ export const useSignInSplashStore = defineStore('signInSplash', () => {
 
   const navigateAfterSignIn = async <T>(navigate: () => Promise<T>): Promise<T> => {
     const show = shouldShowSignInSplash({
-      configLoaded: runtimeConfigStore.loaded,
+      configLoaded: runtimeConfigStore.loaded && !runtimeConfigStore.failed,
       rebranded: isRebranded(runtimeConfigStore.config),
       reducedMotion: reducedMotion.value === 'reduce',
     })

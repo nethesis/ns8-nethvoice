@@ -8,13 +8,14 @@ import { SIGN_IN_SPLASH_MS } from '@/lib/signInSplash'
 import { parseRuntimeConfig, useRuntimeConfigStore } from './runtimeConfig'
 import { useSignInSplashStore } from './signInSplash'
 
-const createStores = (rawConfig: unknown = {}) => {
+const createStores = (rawConfig: unknown = {}, failed = false) => {
   const pinia = createPinia()
   createApp({}).use(pinia)
   setActivePinia(pinia)
   const runtimeConfigStore = useRuntimeConfigStore()
   runtimeConfigStore.config = parseRuntimeConfig(rawConfig)
   runtimeConfigStore.loaded = true
+  runtimeConfigStore.failed = failed
   return useSignInSplashStore()
 }
 
@@ -88,6 +89,15 @@ describe('useSignInSplashStore', () => {
     const navigate = vi.fn(async () => 'dashboard')
 
     const navigation = store.navigateAfterSignIn(navigate)
+    expect(store.visible).toBe(false)
+    expect(await navigation).toBe('dashboard')
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('should navigate at once without the splash when the runtime configuration failed to load', async () => {
+    const store = createStores({}, true)
+
+    const navigation = store.navigateAfterSignIn(async () => 'dashboard')
     expect(store.visible).toBe(false)
     expect(await navigation).toBe('dashboard')
     expect(vi.getTimerCount()).toBe(0)

@@ -162,6 +162,20 @@ test.describe('sign-in splash', () => {
     expect(await splashSeen(page)).toBe(false)
   })
 
+  test('lands directly on the dashboard when the configuration cannot be loaded', async ({
+    page,
+  }) => {
+    await page.route('**/nethvoice/config.json', (route) => route.fulfill({ status: 500 }))
+    const configLoaded = page.waitForResponse('**/nethvoice/config.json')
+    await page.goto('./login')
+    await configLoaded
+    await signIn(page)
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
+    expect(await splashSeen(page)).toBe(false)
+  })
+
   test('lands directly on the dashboard with reduced motion', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await openLogin(page, DEFAULT_CONFIG)

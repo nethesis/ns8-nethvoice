@@ -5,7 +5,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import * as v from 'valibot'
 import i18n from '@/i18n'
-import { PRODUCT_NAME, RUNTIME_CONFIG_URL } from '@/lib/config'
+import { CTI_PRODUCT_NAME, PRODUCT_NAME, RUNTIME_CONFIG_URL } from '@/lib/config'
 
 const OptionalText = v.optional(v.fallback(v.string(), ''), '')
 
@@ -14,9 +14,11 @@ export const RuntimeConfigSchema = v.object({
   BRAND_SITE: OptionalText,
   BRAND_DOCS: OptionalText,
   NAVBAR_LOGO_URL: OptionalText,
+  LOGO_LIGHT_URL: OptionalText,
   LOGIN_LOGO_URL: OptionalText,
   LOGIN_BACKGROUND_URL: OptionalText,
   FAVICON_URL: OptionalText,
+  CTI_PRODUCT_NAME: OptionalText,
   HOSTNAME: OptionalText,
   INSTANCE_NAME: OptionalText,
 })
@@ -26,9 +28,11 @@ export type RuntimeConfig = {
   brandSite: string
   docsUrl: string
   navbarLogoUrl: string
+  logoLightUrl: string
   loginLogoUrl: string
   loginBackgroundUrl: string
   faviconUrl: string
+  ctiProductName: string
   hostname: string
   instanceName: string
 }
@@ -65,9 +69,11 @@ export const DEFAULT_RUNTIME_CONFIG: RuntimeConfig = {
   brandSite: '',
   docsUrl: DEFAULT_DOCS_URL,
   navbarLogoUrl: '',
+  logoLightUrl: '',
   loginLogoUrl: '',
   loginBackgroundUrl: '',
   faviconUrl: '',
+  ctiProductName: CTI_PRODUCT_NAME,
   hostname: '',
   instanceName: '',
 }
@@ -98,9 +104,11 @@ export const parseRuntimeConfig = (raw: unknown): RuntimeConfig => {
     brandSite: safeUrl(config.BRAND_SITE),
     docsUrl: safeUrl(config.BRAND_DOCS) || DEFAULT_DOCS_URL,
     navbarLogoUrl: safeUrl(config.NAVBAR_LOGO_URL),
+    logoLightUrl: safeUrl(config.LOGO_LIGHT_URL),
     loginLogoUrl: safeUrl(config.LOGIN_LOGO_URL),
     loginBackgroundUrl: safeUrl(config.LOGIN_BACKGROUND_URL),
     faviconUrl: safeUrl(config.FAVICON_URL),
+    ctiProductName: config.CTI_PRODUCT_NAME.trim() || CTI_PRODUCT_NAME,
     hostname: config.HOSTNAME.trim(),
     instanceName: config.INSTANCE_NAME.trim(),
   }
@@ -109,6 +117,7 @@ export const parseRuntimeConfig = (raw: unknown): RuntimeConfig => {
 export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
   const config = ref<RuntimeConfig>({ ...DEFAULT_RUNTIME_CONFIG })
   const loaded = ref(false)
+  const failed = ref(false)
 
   const applyFavicon = (faviconUrl: string) => {
     if (!faviconUrl) {
@@ -127,6 +136,8 @@ export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
   }
 
   const load = async () => {
+    failed.value = false
+
     try {
       const response = await fetch(RUNTIME_CONFIG_URL, {
         cache: 'no-store',
@@ -136,9 +147,12 @@ export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
 
       if (response.ok) {
         config.value = parseRuntimeConfig(await response.json())
+      } else {
+        failed.value = true
       }
     } catch {
       config.value = { ...DEFAULT_RUNTIME_CONFIG }
+      failed.value = true
     } finally {
       loaded.value = true
       applyFavicon(config.value.faviconUrl)
@@ -151,5 +165,5 @@ export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
 
   const docsUrl = computed(() => localizeDocsUrl(config.value.docsUrl, i18n.global.locale.value))
 
-  return { config, loaded, hostname, instanceLabel, docsUrl, load }
+  return { config, loaded, failed, hostname, instanceLabel, docsUrl, load }
 })

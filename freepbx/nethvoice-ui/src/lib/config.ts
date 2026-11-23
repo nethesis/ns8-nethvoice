@@ -3,6 +3,8 @@
 
 export const PRODUCT_NAME = 'NethVoice'
 
+export const CTI_PRODUCT_NAME = 'NethVoice CTI'
+
 export const APP_BASE_PATH = import.meta.env.BASE_URL
 
 export const REST_API_URL = '/freepbx/rest'

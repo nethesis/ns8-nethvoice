@@ -1,12 +1,15 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { createApp } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 import {
   DEFAULT_DOCS_URL,
   DEFAULT_RUNTIME_CONFIG,
   localizeDocsUrl,
   parseRuntimeConfig,
+  useRuntimeConfigStore,
 } from './runtimeConfig'
 
 describe('parseRuntimeConfig', () => {
@@ -29,6 +32,22 @@ describe('parseRuntimeConfig', () => {
     expect(config.brandName).toBe('Acme Voice')
     expect(config.docsUrl).toBe('https://docs.acme.example/')
     expect(config.loginLogoUrl).toBe('https://cdn.acme.example/logo.svg')
+  })
+
+  it('should read the logo for light backgrounds', () => {
+    expect(
+      parseRuntimeConfig({ LOGO_LIGHT_URL: 'https://cdn.acme.example/light.svg' }).logoLightUrl,
+    ).toBe('https://cdn.acme.example/light.svg')
+    expect(parseRuntimeConfig({ LOGO_LIGHT_URL: 'javascript:alert(1)' }).logoLightUrl).toBe('')
+    expect(parseRuntimeConfig({}).logoLightUrl).toBe('')
+  })
+
+  it('should read the CTI product name', () => {
+    expect(parseRuntimeConfig({ CTI_PRODUCT_NAME: " L'Azienda Voce " }).ctiProductName).toBe(
+      "L'Azienda Voce",
+    )
+    expect(parseRuntimeConfig({ CTI_PRODUCT_NAME: ' ' }).ctiProductName).toBe('NethVoice CTI')
+    expect(parseRuntimeConfig({}).ctiProductName).toBe('NethVoice CTI')
   })
 
   it('should read the configured host name', () => {
@@ -75,5 +94,71 @@ describe('localizeDocsUrl', () => {
     expect(localizeDocsUrl('https://docs.acme.example/it/', 'en')).toBe(
       'https://docs.acme.example/it/',
     )
+  })
+})
+
+describe('useRuntimeConfigStore', () => {
+  const createStore = () => {
+    const pinia = createPinia()
+    createApp({}).use(pinia)
+    setActivePinia(pinia)
+    return useRuntimeConfigStore()
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('should start not loaded', () => {
+    const store = createStore()
+
+    expect(store.loaded).toBe(false)
+    expect(store.failed).toBe(false)
+  })
+
+  it('should load the configuration', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ BRAND_NAME: 'Acme Voice' }))),
+    )
+    const store = createStore()
+
+    await store.load()
+
+    expect(store.loaded).toBe(true)
+    expect(store.failed).toBe(false)
+    expect(store.config.brandName).toBe('Acme Voice')
+  })
+
+  it('should mark the configuration as failed on an error answer', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 404 })),
+    )
+    const store = createStore()
+
+    await store.load()
+
+    expect(store.loaded).toBe(true)
+    expect(store.failed).toBe(true)
+    expect(store.config).toEqual(DEFAULT_RUNTIME_CONFIG)
+  })
+
+  it('should mark the configuration as failed when it cannot be read', async () => {
+    for (const fetch of [
+      vi.fn(async () => new Response('<html></html>')),
+      vi.fn(async () => {
+        throw new TypeError('network error')
+      }),
+    ]) {
+      vi.stubGlobal('fetch', fetch)
+      const store = createStore()
+
+      await store.load()
+
+      expect(store.loaded).toBe(true)
+      expect(store.failed).toBe(true)
+      expect(store.config).toEqual(DEFAULT_RUNTIME_CONFIG)
+    }
   })
 })

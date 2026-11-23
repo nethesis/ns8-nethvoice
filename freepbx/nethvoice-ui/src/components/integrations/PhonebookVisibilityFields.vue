@@ -15,6 +15,7 @@ import {
 import type { Focusable } from '@/lib/common'
 import { useGroupNames } from '@/queries/integrations/lookups'
 import { describeError } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const { invalidMessage = '', disabled = false } = defineProps<{
   invalidMessage?: string
@@ -25,6 +26,7 @@ const sharing = defineModel<'public' | 'groups'>('sharing', { required: true })
 const groups = defineModel<string[]>('groups', { required: true })
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const { state: groupsState } = useGroupNames()
 
 const radioRef = useTemplateRef<Focusable>('radioRef')
@@ -75,7 +77,11 @@ defineExpose({
         :label="t('integrations.phonebook.groups')"
         :options="groupOptions"
         :placeholder="t('integrations.phonebook.groups_placeholder')"
-        :helper-text="t('integrations.phonebook.groups_helper')"
+        :helper-text="
+          t('integrations.phonebook.groups_helper', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        "
         :invalid-message="invalidMessage"
         :disabled="disabled"
         :loading-options="groupsState.status === 'pending'"

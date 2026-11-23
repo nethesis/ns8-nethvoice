@@ -12,6 +12,7 @@ import { faArrowLeft, faArrowRight, type IconDefinition } from '@fortawesome/fre
 import SymbolNethvoice from '@/assets/symbol_nethvoice.svg'
 import SetupHelpLinks from './SetupHelpLinks.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
+import { isRebranded } from '@/lib/signInSplash'
 import { getPreviousStep, getStepIndex, SETUP_STEPS, type SetupStepId } from '@/lib/setup/steps'
 
 const {
@@ -43,6 +44,13 @@ const runtimeConfigStore = useRuntimeConfigStore()
 
 const titleRef = useTemplateRef<HTMLElement>('titleRef')
 
+const showProductSymbol = computed(
+  () =>
+    runtimeConfigStore.loaded &&
+    !runtimeConfigStore.failed &&
+    !isRebranded(runtimeConfigStore.config),
+)
+
 const stepNumber = computed(() => getStepIndex(stepId) + 1)
 
 const PROGRESS_WIDTHS: Record<SetupStepId, string> = {
@@ -69,6 +77,7 @@ function goToPreviousStep() {
       class="elevation-0 hidden w-20 shrink-0 flex-col items-center justify-between border-r border-gray-200 py-10 sm:flex dark:border-gray-700"
     >
       <div
+        v-if="showProductSymbol"
         class="bg-primary-700 dark:bg-primary-500 flex size-12.5 items-center justify-center rounded-md p-1.25"
       >
         <img
@@ -77,6 +86,7 @@ function goToPreviousStep() {
           class="size-8 invert dark:invert-0"
         />
       </div>
+      <div v-else class="size-12.5" />
       <div class="flex flex-col items-center gap-2" :inert="nextLoading || undefined">
         <SetupHelpLinks />
       </div>

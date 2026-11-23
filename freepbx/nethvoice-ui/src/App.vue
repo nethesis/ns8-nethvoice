@@ -30,11 +30,15 @@ const loginStore = useLoginStore()
 const notificationsStore = useNotificationsStore()
 const { state: wizardState } = useWizardState()
 const { t, te } = useI18n()
+const initialTitle = document.title
 
 const layout = computed(() => (route.matched.length > 0 ? (route.meta.layout ?? 'app') : null))
 
 const pageTitle = computed(() => {
-  const brandName = runtimeConfigStore.config.brandName
+  if (!runtimeConfigStore.loaded) {
+    return initialTitle
+  }
+  const brandName = runtimeConfigStore.failed ? initialTitle : runtimeConfigStore.config.brandName
   const titleKey = route.meta.titleKey
 
   if (!titleKey || !te(titleKey)) {

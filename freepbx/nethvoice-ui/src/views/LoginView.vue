@@ -21,6 +21,7 @@ import { LoginSchema } from '@/lib/auth'
 import { isApiError } from '@/lib/api/errors'
 import type { Focusable } from '@/lib/common'
 import { getInternalRedirect } from '@/lib/setup/guard'
+import { customLoginLogoUrl } from '@/lib/brandLogo'
 import LogoDark from '@/assets/logo_dark.svg'
 
 type LoginError = '' | 'invalid_credentials' | 'generic'
@@ -48,13 +49,13 @@ const backgroundStyle = computed(() => {
 const customLogoFailed = ref(false)
 
 const customLogoUrl = computed(() =>
-  customLogoFailed.value ? '' : runtimeConfigStore.config.loginLogoUrl,
+  customLogoFailed.value ? '' : customLoginLogoUrl(runtimeConfigStore.config),
 )
 
 const rightPanelLogo = computed(() => customLogoUrl.value || LogoDark)
 
 watch(
-  () => runtimeConfigStore.config.loginLogoUrl,
+  () => customLoginLogoUrl(runtimeConfigStore.config),
   () => {
     customLogoFailed.value = false
   },
@@ -194,7 +195,10 @@ async function signIn() {
       aria-hidden="true"
     >
       <img
-        v-if="!runtimeConfigStore.config.loginBackgroundUrl || customLogoUrl"
+        v-if="
+          runtimeConfigStore.loaded &&
+          (!runtimeConfigStore.config.loginBackgroundUrl || customLogoUrl)
+        "
         :src="rightPanelLogo"
         alt=""
         :class="['h-9 w-auto max-w-3/5', { 'brightness-0 invert': !customLogoUrl }]"

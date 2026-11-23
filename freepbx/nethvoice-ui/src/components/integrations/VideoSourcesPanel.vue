@@ -45,8 +45,10 @@ import {
 } from '@/lib/integrations/videoSources'
 import { useExtensionOptions, useProfileOptions } from '@/queries/integrations/lookups'
 import { useVideoSources } from '@/queries/integrations/videoSources'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const { state, refetch } = useVideoSources()
 const { state: profilesState } = useProfileOptions()
 const { state: extensionsState } = useExtensionOptions()
@@ -136,7 +138,7 @@ function deleteCurrentSource() {
   <div class="flex flex-col gap-4">
     <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
       <p class="text-secondary-neutral max-w-2xl">
-        {{ t('integrations.video.description') }}
+        {{ t('integrations.video.description', { cti: runtimeConfigStore.config.ctiProductName }) }}
       </p>
       <NeButton
         v-if="!isNoDataEmptyStateShown"
@@ -178,7 +180,11 @@ function deleteCurrentSource() {
       <NeEmptyState
         v-if="isNoDataEmptyStateShown"
         :title="t('integrations.video.no_sources')"
-        :description="t('integrations.video.no_sources_description')"
+        :description="
+          t('integrations.video.no_sources_description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        "
         :icon="faVideo"
         class="elevation-0"
       >
@@ -282,7 +288,10 @@ function deleteCurrentSource() {
       :title="t('integrations.video.delete_source')"
       :object-name="currentSource?.name ?? ''"
       :confirmation-message="
-        t('integrations.video.delete_source_confirmation', { name: currentSource?.name ?? '' })
+        t('integrations.video.delete_source_confirmation', {
+          cti: runtimeConfigStore.config.ctiProductName,
+          name: currentSource?.name ?? '',
+        })
       "
       :success-title="t('integrations.video.source_deleted')"
       success-description-key="integrations.video.source_deleted_description"

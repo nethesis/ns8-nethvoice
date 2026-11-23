@@ -8,9 +8,13 @@ export const SIGN_IN_SPLASH_MS = 1000
 
 export const isRebranded = (config: RuntimeConfig): boolean =>
   config.brandName !== PRODUCT_NAME ||
-  [config.navbarLogoUrl, config.loginLogoUrl, config.loginBackgroundUrl, config.faviconUrl].some(
-    (url) => url !== '',
-  )
+  [
+    config.navbarLogoUrl,
+    config.logoLightUrl,
+    config.loginLogoUrl,
+    config.loginBackgroundUrl,
+    config.faviconUrl,
+  ].some((url) => url !== '')
 
 export type SignInSplashContext = {
   configLoaded: boolean

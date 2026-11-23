@@ -63,10 +63,12 @@ import {
   usePhonebookSyncStatuses,
 } from '@/queries/integrations/phonebookSources'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 type SyncTarget = { id: string; name: string }
 
 const { t, locale } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state, asyncStatus, refetch } = usePhonebookSources()
@@ -235,7 +237,11 @@ function deleteCurrentSource() {
     </div>
     <div v-if="!isEmpty" class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
       <p class="text-tertiary-neutral max-w-2xl">
-        {{ t('integrations.phonebook.sources_description') }}
+        {{
+          t('integrations.phonebook.sources_description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        }}
       </p>
       <NeButton
         kind="primary"
@@ -260,7 +266,11 @@ function deleteCurrentSource() {
       <NeEmptyState
         v-else-if="isEmpty"
         :title="t('integrations.phonebook.no_sources')"
-        :description="t('integrations.phonebook.sources_description')"
+        :description="
+          t('integrations.phonebook.sources_description', {
+            cti: runtimeConfigStore.config.ctiProductName,
+          })
+        "
         :icon="faAddressBook"
         class="elevation-0"
       >
@@ -402,7 +412,10 @@ function deleteCurrentSource() {
       :title="t('integrations.phonebook.delete_source')"
       :object-name="currentSource?.name ?? ''"
       :confirmation-message="
-        t('integrations.phonebook.delete_source_confirmation', { name: currentSource?.name ?? '' })
+        t('integrations.phonebook.delete_source_confirmation', {
+          cti: runtimeConfigStore.config.ctiProductName,
+          name: currentSource?.name ?? '',
+        })
       "
       :success-title="t('integrations.phonebook.source_deleted')"
       success-description-key="integrations.phonebook.source_deleted_description"

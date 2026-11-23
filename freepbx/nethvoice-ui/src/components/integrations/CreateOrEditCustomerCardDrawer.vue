@@ -51,6 +51,7 @@ import {
 import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useThemeStore } from '@/stores/theme'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const PREVIEW_STYLESHEET =
   'https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css'
@@ -68,6 +69,7 @@ const {
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const { isSuperadmin } = usePermissions()
 const themeStore = useThemeStore()
 const queryCache = useQueryCache()
@@ -334,7 +336,11 @@ function save() {
           v-model="form.name"
           :label="t('integrations.name')"
           :placeholder="t('integrations.cards.card_name_placeholder')"
-          :helper-text="t('integrations.cards.card_name_helper')"
+          :helper-text="
+            t('integrations.cards.card_name_helper', {
+              cti: runtimeConfigStore.config.ctiProductName,
+            })
+          "
           :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
           :disabled="busy"
           @blur="form.name = form.name.trim()"
@@ -375,7 +381,11 @@ function save() {
           ref="profilesRef"
           v-model="form.profileIds"
           :profiles="profiles"
-          :helper-text="t('integrations.cards.profiles_helper')"
+          :helper-text="
+            t('integrations.cards.profiles_helper', {
+              cti: runtimeConfigStore.config.ctiProductName,
+            })
+          "
           :invalid-message="validationIssues.profileIds ? t(validationIssues.profileIds) : ''"
           :disabled="busy"
           :loading="profilesState.status === 'pending'"
@@ -448,7 +458,11 @@ function save() {
                 { name: 'card', label: form.name.trim() || t('integrations.cards.customer_card') },
               ]"
               selected="card"
-              :sr-tabs-label="t('integrations.cards.preview_tabs')"
+              :sr-tabs-label="
+                t('integrations.cards.preview_tabs', {
+                  cti: runtimeConfigStore.config.ctiProductName,
+                })
+              "
               :sr-select-tab-label="t('ne_tabs.select_a_tab')"
               class="mb-4"
             />

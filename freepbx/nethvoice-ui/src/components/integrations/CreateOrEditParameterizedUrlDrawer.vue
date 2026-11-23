@@ -42,6 +42,7 @@ import {
 import type { FieldIssues } from '@/lib/integrations/validation'
 import { useProfileOptions } from '@/queries/integrations/lookups'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const {
   isShown = false,
@@ -58,6 +59,7 @@ const {
 const emit = defineEmits<{ close: [] }>()
 
 const { t, locale } = useI18n()
+const runtimeConfigStore = useRuntimeConfigStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: profilesState } = useProfileOptions()
@@ -258,7 +260,11 @@ function save() {
           :label="t('integrations.param_urls.profile')"
           :options="profileOptions"
           :placeholder="t('ne_combobox.choose')"
-          :helper-text="t('integrations.param_urls.profile_helper')"
+          :helper-text="
+            t('integrations.param_urls.profile_helper', {
+              cti: runtimeConfigStore.config.ctiProductName,
+            })
+          "
           :invalid-message="validationIssues.profileId ? t(validationIssues.profileId) : ''"
           :disabled="saving || profilesState.status === 'pending'"
           :no-results-label="t('ne_combobox.no_results')"

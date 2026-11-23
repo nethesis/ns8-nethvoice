@@ -7,6 +7,7 @@
 import { computed, ref, watch } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
+import { customLoginLogoUrl, customLogoUrl } from '@/lib/brandLogo'
 import LogoLight from '@/assets/logo_light.svg'
 import LogoDark from '@/assets/logo_dark.svg'
 
@@ -21,8 +22,8 @@ const customLogoFailed = ref(false)
 
 const customLogo = computed(() =>
   variant === 'login'
-    ? runtimeConfigStore.config.loginLogoUrl
-    : runtimeConfigStore.config.navbarLogoUrl,
+    ? customLoginLogoUrl(runtimeConfigStore.config)
+    : customLogoUrl(runtimeConfigStore.config, themeStore.isLight ? 'light' : 'dark'),
 )
 
 const logoUrl = computed(() => {
@@ -39,6 +40,7 @@ watch(customLogo, () => {
 
 <template>
   <img
+    v-if="runtimeConfigStore.loaded"
     :src="logoUrl"
     :alt="$t('shell.brand_logo', { brand: runtimeConfigStore.config.brandName })"
     @error="customLogoFailed = true"
