@@ -18,6 +18,11 @@ on:
         required: false
         type: string
         default: ""
+      reuse-images:
+        description: "Reuse the published images whose sources did not change. Set false to rebuild them, e.g. for base image security updates."
+        required: false
+        type: boolean
+        default: true
     outputs:
       images:
         description: "Built image names without tags"
@@ -40,6 +45,7 @@ jobs:
     env:
       IMAGETAG: ${{ inputs.imagetag }}
       BUILD_IMAGES: ${{ inputs.build-images }}
+      REUSE_IMAGES: ${{ inputs.reuse-images && '1' || '0' }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -79,7 +85,7 @@ jobs:
       - name: Check FreePBX runtime
         run: |
           if [[ " ${{ steps.build.outputs.images }} " == *"/nethvoice-freepbx "* ]]; then
-            for test in runtime_compatibility_test.sh prometheus_test.sh agents/recipients-http.sh; do
+            for test in runtime_compatibility_test.sh prometheus_test.sh outbound_trunk_test.sh agents/recipients-http.sh; do
               podman run --rm --network=none \
                 --volume "${GITHUB_WORKSPACE}/freepbx/tests:/tests:ro" \
                 --entrypoint=bash "${REPOBASE}/nethvoice-freepbx:${IMAGETAG}" "/tests/${test}"
@@ -97,5 +103,18 @@ jobs:
               buildah push "${image}" "docker://${image}:latest"
             fi
             urls="${image}:${IMAGETAG} "$'\n'"${urls}"
+          done
+          # Source tags let the next builds reuse images whose sources did not change
+          for source in ${{ steps.build.outputs.source_tags }} ; do
+            buildah push "${source%:*}" "docker://${source}"
+          done
+          # Images whose sources did not change: copy them to the new tag
+          for source in ${{ steps.build.outputs.reused_images }} ; do
+            image="${source%:*}"
+            skopeo copy --all "docker://${source}" "docker://${image}:${IMAGETAG}"
+            if [[ "${IMAGETAG}" == "main" || "${IMAGETAG}" == "master" ]]; then
+              skopeo copy --all "docker://${source}" "docker://${image}:latest"
+            fi
+            urls="${image}:${IMAGETAG} (reused ${source##*:})"$'\n'"${urls}"
           done
           echo "::notice title=Image URLs::${urls}"

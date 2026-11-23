@@ -902,6 +902,7 @@
   "IP address": "Indirizzo IP",
   "PBX address": "Indirizzo centralino",
   "NTP server address": "Indirizzo server NTP",
+  "auto_headset_label": "Rispondi con la cuffia se collegata",
   "dss_transfer_label": "Modalità di trasferimento per i line key",
   "dss_transfer_verify_label": "Nuova chiamata",
   "dss_transfer_attended_label": "Consultativo",

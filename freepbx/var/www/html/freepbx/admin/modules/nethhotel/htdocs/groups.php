@@ -10,7 +10,7 @@
 <style type="text/css">@import "css/jquery.timeentry.css";</style>
 <script type="text/javascript" src="js/jquery.timeentry.js"></script>
 <script type="text/javascript" src="js/jquery.timeentry-it.js"></script>
-<script type="text/javascript" src="js/groups.js"></script>
+<script type="text/javascript" src="js/groups.js?v=<?php echo filemtime(__DIR__.'/js/groups.js'); ?>"></script>
 
 <?php
   printTitle(_("Groups of Rooms"), _("Rates")); ?>

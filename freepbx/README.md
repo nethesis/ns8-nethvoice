@@ -2,6 +2,25 @@
 
 FreePBX container for NethServer 8
 
+## Upstream updates
+
+Renovate tracks stable Asterisk 22 releases from the `asterisk/asterisk` GitHub
+releases and reads the checksum from each release's `asterisk-<version>.sha256`
+asset. It updates `ASTERISK_VERSION` and `ASTERISK_SHA256` in the Containerfile
+together; the existing PR image workflow builds the updated source and checks
+its SHA-256 before extraction. A package rule keeps Renovate on the 22 LTS
+series.
+
+FreePBX 17 module updates are grouped in the Dependency Dashboard and require
+approval before Renovate opens a PR. They do not automerge. Before building an
+approved update, refresh the changed archive checksums in
+`remote-artifacts.sha256`; for framework, also update the bootstrap archive
+filenames and checksum. Review the compatibility patches. From the repository
+root, run `sources=$(mktemp -d)`, then
+`python3 tools/prepare-freepbx-test-sources.py "$sources"` followed by
+`sh tools/test-freepbx.sh "$sources"`. GitHub release tags can precede
+promotion to FreePBX's stable module repository, so review release suitability.
+
 ## Vendored FreePBX modules
 
 Boss Secretary and QueueMetrics are stored in `var/www/html/freepbx/admin/modules/`
@@ -101,6 +120,8 @@ Note: when disabling, remove old imported extensions from phonebook table `mysql
 
 - `PROXY_IP` sip proxy host or ip to be used in extensions. Default is host
 - `PROXY_PORT` sip proxy port. Default is 5060
+- `NETHVOICE_PROXY_SIP_PORT` SIP port of the proxy that phones and gateways connect to. Default is 5060
+- `NETHVOICE_PROXY_SIPS_PORT` SIPS (TLS) port of the proxy that phones and gateways connect to. Default is 5061
 - `APACHE_PORT` Port used for httpd
 - `TANCREDIPORT` Port used bt Tancredi
 - `BRAND_NAME` Name for branding (default: NethVoice)
@@ -137,7 +158,9 @@ The Agents UI reuses the Wizard navbar branding through `/freepbx/wizard/brandin
 - `--all` resets every physical phone with a MAC address in the `rest_devices_phones` table.
 - `--host-changed` checks the `NETHVOICE_HOST` marker in the `asterisk.admin` table. If the stored hostname differs from the current environment value, it behaves like `--all`. If the marker is missing or unchanged, no phones are reset. The current hostname is stored before a reset attempt, so the operation is performed at most once for each hostname change.
 
-The container automatically runs the helper with `--host-changed` after FreePBX modules have been initialized and `fwconsole reload` has completed. Individual phone failures are logged and do not stop the helper from processing the remaining phones.
+After FreePBX modules have been initialized and `fwconsole reload` has completed, the container signals readiness and runs phone RPS maintenance in the background. It probes the local Tancredi API up to 30 times, with a 2-second connection timeout, a 5-second total timeout and a 2-second delay between probes, before running the helper with `--host-changed`. If Tancredi remains unavailable, the reset is skipped and a warning is logged without changing the hostname marker. Phone RPS maintenance does not block FreePBX startup.
+
+The helper calls Tancredi directly at `127.0.0.1:${TANCREDIPORT}`, avoiding the public hostname and HTTP ingress. Tancredi and Falconieri requests have a 5-second connection timeout and a 15-second total timeout. Individual phone failures are logged and do not stop the helper from processing the remaining phones. Once the helper starts a hostname-change reset, its existing one-shot marker behavior still applies, including when individual phones fail.
 
 Examples from inside the FreePBX container:
 

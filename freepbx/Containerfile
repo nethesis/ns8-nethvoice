@@ -11,7 +11,8 @@ RUN npm run build
 FROM docker.io/debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6 as builder
 
 # Set fixed Asterisk version
-ARG ASTERISK_VERSION=22.10.0
+ARG ASTERISK_VERSION=22.10.1
+ARG ASTERISK_SHA256=0953564c44fa49827f3c9d70ca6e80db83828c9848440852c6be44c961855353
 ARG PJSIP_VERSION=2.17
 ARG JANSSON_VERSION=2.15.0
 ARG LIBJWT_VERSION=1.15.3
@@ -78,8 +79,7 @@ RUN apt-get update && \
 
 RUN cd /usr/src/asterisk && \
 	wget -O asterisk-${ASTERISK_VERSION}.tar.gz https://downloads.asterisk.org/pub/telephony/asterisk/old-releases/asterisk-${ASTERISK_VERSION}.tar.gz && \
-	artifact_checksum=$(grep "  asterisk-${ASTERISK_VERSION}.tar.gz$" remote-artifacts.sha256) && \
-	printf "%s\n" "${artifact_checksum}" | sha256sum -c - && \
+	printf "%s  asterisk-%s.tar.gz\n" "${ASTERISK_SHA256}" "${ASTERISK_VERSION}" | sha256sum -c - && \
 	tar xzf asterisk-${ASTERISK_VERSION}.tar.gz && \
 	cd asterisk-${ASTERISK_VERSION} && \
 	patch --batch --fuzz=0 -p1 < ../asterisk-22-lazymembers.patch && \
@@ -222,6 +222,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN groupadd -g 991 -r asterisk && \
     useradd -u 990 -r -s /bin/false -d /var/lib/asterisk -M -c 'Asterisk User' -g asterisk asterisk && \
 	apt-get update && \
+	apt-get -y upgrade && \
 	apt-get install -y --no-install-recommends \
         ca-certificates \
         libcrypt1 \
@@ -372,10 +373,10 @@ RUN mkdir -p \
 	&& touch /etc/phonebook/sources.d/.nethvoice-volume-guard
 
 # Download framework module
-RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.33.2.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.33.2.tar.gz && \
-	tar xzf /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
-	rm -f /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz && \
-	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/* /var/www/html/freepbx/ && \
+RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.34.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.34.tar.gz && \
+	tar xzf /tmp/freepbx-framework-bootstrap-release-17.0.34.tar.gz --strip-components=1 -C /var/www/html/freepbx/admin/modules/framework && \
+	rm -f /tmp/freepbx-framework-bootstrap-release-17.0.34.tar.gz && \
+	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/. /var/www/html/freepbx/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/enum.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/musiconhold.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/phpagi.conf /etc/asterisk/ && \
@@ -383,7 +384,10 @@ RUN sh /usr/local/bin/fetch-remote-artifact freepbx-framework-bootstrap-release-
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/queues.conf /etc/asterisk/ && \
 	cp /var/www/html/freepbx/admin/modules/framework/amp_conf/astetc/ucc_restrict.conf /etc/asterisk/ && \
 	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin /var/lib/asterisk/ && \
-	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/
+	cp -a /var/www/html/freepbx/admin/modules/framework/amp_conf/bin /var/lib/asterisk/ && \
+	chown -R asterisk:asterisk /var/www/html/freepbx && \
+	find /var/www/html/freepbx -type d -exec chmod 0755 {} + && \
+	find /var/www/html/freepbx -type f ! -perm /111 -exec chmod 0644 {} +
 
 # Download other modules
 RUN install_module() { \
@@ -393,13 +397,16 @@ RUN install_module() { \
 		mkdir -p "${module_dir}" && \
 		sh /usr/local/bin/fetch-remote-artifact "${module_archive}" "${module_url}" && \
 		tar xzf "/tmp/${module_archive}" --strip-components=1 -C "${module_dir}" && \
-		rm -f "/tmp/${module_archive}"; \
+		rm -f "/tmp/${module_archive}" && \
+		chown -R asterisk:asterisk "${module_dir}" && \
+		find "${module_dir}" -type d -exec chmod 0755 {} + && \
+		find "${module_dir}" -type f ! -perm /111 -exec chmod 0644 {} +; \
 	}; \
 	install_module announcement https://github.com/FreePBX/announcement/archive/refs/tags/release/17.0.2.1.tar.gz && \
 	install_module arimanager https://github.com/FreePBX/arimanager/archive/refs/tags/release/17.0.1.1.tar.gz && \
 	install_module asterisk-cli https://github.com/FreePBX/asterisk-cli/archive/refs/tags/release/17.0.2.tar.gz && \
 	install_module asteriskinfo https://github.com/FreePBX/asteriskinfo/archive/refs/tags/release/17.0.2.tar.gz && \
-	install_module backup https://github.com/FreePBX/backup/archive/refs/tags/release/17.0.14.tar.gz && \
+	install_module backup https://github.com/FreePBX/backup/archive/refs/tags/release/17.0.15.tar.gz && \
 	install_module blacklist https://github.com/FreePBX/blacklist/archive/refs/tags/release/17.0.1.2.tar.gz && \
 	install_module bulkhandler https://github.com/FreePBX/bulkhandler/archive/refs/tags/release/17.0.7.1.tar.gz && \
 	install_module calendar https://github.com/FreePBX/calendar/archive/refs/tags/release/17.0.4.24.tar.gz && \
@@ -416,11 +423,11 @@ RUN install_module() { \
 	install_module dashboard https://github.com/FreePBX/dashboard/archive/refs/tags/release/17.0.5.tar.gz && \
 	install_module disa https://github.com/FreePBX/disa/archive/refs/tags/release/17.0.6.tar.gz && \
 	install_module donotdisturb https://github.com/FreePBX/donotdisturb/archive/refs/tags/release/17.0.2.3.tar.gz && \
-	install_module fax https://github.com/FreePBX/fax/archive/refs/tags/release/17.0.3.5.tar.gz && \
+	install_module fax https://github.com/FreePBX/fax/archive/refs/tags/release/17.0.3.6.tar.gz && \
 	install_module featurecodeadmin https://github.com/FreePBX/featurecodeadmin/archive/refs/tags/release/17.0.2.tar.gz && \
-	install_module filestore https://github.com/FreePBX/filestore/archive/refs/tags/release/17.0.3.2.tar.gz && \
+	install_module filestore https://github.com/FreePBX/filestore/archive/refs/tags/release/17.0.3.3.tar.gz && \
 	install_module findmefollow https://github.com/FreePBX/findmefollow/archive/refs/tags/release/17.0.4.15.tar.gz && \
-	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.33.2.tar.gz && \
+	install_module framework https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.34.tar.gz && \
 	install_module iaxsettings https://github.com/FreePBX/iaxsettings/archive/refs/tags/release/17.0.2.tar.gz && \
 	install_module infoservices https://github.com/FreePBX/infoservices/archive/refs/tags/release/17.0.1.1.tar.gz && \
 	install_module ivr https://github.com/FreePBX/ivr/archive/refs/tags/release/17.0.9.tar.gz && \
@@ -430,19 +437,19 @@ RUN install_module() { \
 	install_module miscapps https://github.com/FreePBX/miscapps/archive/refs/tags/release/17.0.3.tar.gz && \
 	install_module music https://github.com/FreePBX/music/archive/refs/tags/release/17.0.7.tar.gz && \
 	install_module outroutemsg https://github.com/FreePBX/outroutemsg/archive/refs/tags/release/17.0.1.tar.gz && \
-	install_module parking https://github.com/FreePBX/parking/archive/refs/tags/release/17.0.2.9.tar.gz && \
+	install_module parking https://github.com/FreePBX/parking/archive/refs/tags/release/17.0.2.11.tar.gz && \
 	install_module pm2 https://github.com/FreePBX/pm2/archive/refs/tags/release/17.0.3.4.tar.gz && \
 	install_module queueprio https://github.com/FreePBX/queueprio/archive/refs/tags/release/17.0.1.4.tar.gz && \
 	install_module ringgroups https://github.com/FreePBX/ringgroups/archive/refs/tags/release/17.0.2.8.tar.gz && \
 	install_module setcid https://github.com/FreePBX/setcid/archive/refs/tags/release/17.0.1.2.tar.gz && \
 	install_module sipsettings https://github.com/FreePBX/sipsettings/archive/refs/tags/release/17.0.6.10.tar.gz && \
 	install_module soundlang https://github.com/FreePBX/soundlang/archive/refs/tags/release/17.0.5.tar.gz && \
-	install_module timeconditions https://github.com/FreePBX/timeconditions/archive/refs/tags/release/17.0.1.18.tar.gz && \
-	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/17.0.8.tar.gz && \
+	install_module timeconditions https://github.com/FreePBX/timeconditions/archive/refs/tags/release/17.0.1.19.tar.gz && \
+	install_module userman https://github.com/FreePBX/userman/archive/refs/tags/release/17.0.8.1.tar.gz && \
 	install_module vmblast https://github.com/FreePBX/vmblast/archive/refs/tags/release/17.0.2.tar.gz && \
 	mkdir -p /var/www/html/freepbx/admin/modules/core && \
 	rm -fr /var/www/html/freepbx/admin/modules/core/* && \
-	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.54.tar.gz && \
+	install_module core https://github.com/FreePBX/core/archive/refs/tags/release/17.0.18.56.tar.gz && \
 	install_module customcontexts https://github.com/FreePBX-ContributedModules/customcontexts/archive/refs/tags/release/17.0.1.3.tar.gz && \
 	install_module paging https://github.com/FreePBX/paging/archive/refs/tags/release/17.0.4.tar.gz && \
 	install_module queues https://github.com/FreePBX/queues/archive/refs/tags/release/17.0.4.tar.gz && \
@@ -454,6 +461,9 @@ COPY pm2/package-lock.json /var/www/html/freepbx/admin/modules/pm2/node/package-
 RUN cd /var/www/html/freepbx/admin/modules/pm2/node && \
 	npm_cache=$(mktemp -d) && \
 	npm ci --omit=dev --no-audit --no-fund --cache "${npm_cache}" && \
+	chown -R asterisk:asterisk . && \
+	find . -type d -exec chmod 0755 {} + && \
+	find . -type f ! -perm /111 -exec chmod 0644 {} + && \
 	rm -rf "${npm_cache}"
 
 # Apply NethVoice compatibility fixes to pinned FreePBX modules.
@@ -461,7 +471,9 @@ COPY patches /tmp/nethvoice-core-patches
 RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
         patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < "$core_patch" || exit 1; \
     done && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-trunks-hook.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-bindaddress.patch && \
+    patch --batch --forward --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-disabled-trunk-return.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
     rm -rf /tmp/nethvoice-core-patches
@@ -654,8 +666,41 @@ RUN --mount=type=cache,id=nethvoice-freepbx-composer,target=/var/cache/composer 
 	rm -fr /tmp/wizard
 
 # Compile FreePBX module translation files (.po to .mo)
-# Only compile files in proper i18n/LC_MESSAGES directories, skip vendor/test directories
-RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \;
+# Only compile files in proper i18n/LC_MESSAGES directories, skip vendor/test directories.
+# Match moduleadmin permissions so installation does not undo the image defaults.
+# Shared asset and PM2 log directories inherit the asterisk group for root writers.
+# REST and Wizard code, including root-generated config, retain root ownership.
+# Strip upstream execute bits, then apply FreePBX's executable-directory and module-hook rules.
+RUN find /var/www/html/freepbx/admin -path "*/i18n/*/LC_MESSAGES/*.po" -exec sh -c 'msgfmt -o "${1%.po}.mo" "$1" 2>/dev/null || true' _ {} \; && \
+    install -d -o asterisk -g asterisk -m 0755 /var/www/html/freepbx/admin/libraries/BMO/signatures && \
+    install -o asterisk -g asterisk -m 0644 /dev/null /var/lib/asterisk/.npmrc && \
+    touch /var/www/html/freepbx/rest/config.inc.php /var/www/html/freepbx/wizard/scripts/custom.js && \
+    find /var/www/html/freepbx \( -path /var/www/html/freepbx/rest -o -path /var/www/html/freepbx/wizard \) -prune -o \
+        \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
+    find /var/www/html/freepbx -type d ! -perm 0755 -exec chmod 0755 {} + && \
+    find /var/www/html/freepbx \( -path /var/www/html/freepbx/rest -o -path /var/www/html/freepbx/wizard \) -prune -o \
+        -type f ! -perm 0644 -exec chmod 0644 {} + && \
+    for executable_dir in /var/www/html/freepbx/admin/modules/*/bin \
+        /var/www/html/freepbx/admin/modules/*/hooks /var/www/html/freepbx/admin/modules/*/agi-bin \
+        /var/www/html/freepbx/admin/modules/framework/amp_conf/bin \
+        /var/www/html/freepbx/admin/modules/framework/amp_conf/agi-bin \
+        /var/www/html/freepbx/admin/modules/pm2/node/node_modules/pm2/bin; do \
+        if test -d "$executable_dir"; then find "$executable_dir" -type f -exec chmod 0755 {} + || exit 1; fi; \
+    done && \
+    chmod 0755 /var/www/html/freepbx/admin/modules/dashboard/scheduler.php \
+        /var/www/html/freepbx/admin/modules/dashboard/netmon.php && \
+    find /var/www/html/freepbx/admin/assets -type d -exec chmod 2775 {} + && \
+    find /var/www/html/freepbx/admin/assets -type f -exec chmod 0664 {} + && \
+    find /var/www/html/freepbx/admin/modules/*/assets /var/www/html/freepbx/admin/modules/*/ucp/assets \
+        /var/www/html/freepbx/admin/modules/pm2/node/logs -type d -exec chmod 2775 {} + && \
+    find /var/lib/asterisk \( -type f -o -type d \) \( ! -user asterisk -o ! -group asterisk \) -exec chown asterisk:asterisk {} + && \
+    find /var/lib/asterisk -type d ! -perm 0755 -exec chmod 0755 {} + && \
+    find /var/lib/asterisk -type f ! -perm 0644 -exec chmod 0644 {} + && \
+    find /var/lib/asterisk/bin /var/lib/asterisk/agi-bin \( -type f -o -type d \) -exec chmod 0775 {} + && \
+    find /var/lib/asterisk/.gnupg -type d -exec chmod 0775 {} + && \
+    find /var/lib/asterisk/.gnupg -type f -exec chmod 0664 {} + && \
+    chown root:root /var/lib/asterisk/bin/fwconsole && \
+    chmod 0755 /var/lib/asterisk/bin/fwconsole
 
 # enable apache rewrite module
 RUN a2enmod rewrite proxy* headers
@@ -666,8 +711,16 @@ RUN a2dismod status
 # Update CA certificates
 RUN update-ca-certificates --fresh
 
-# Upgrade Apache to latest version to get security fixes
-RUN apt-get update && apt-get install -y --no-install-recommends --only-upgrade apache2 && rm -rf /var/lib/apt/lists/*
+# Track a minimum so newer Debian security packages remain installable.
+ARG APACHE_MIN_VERSION=2.4.71-1~deb13u1
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        apache2 \
+        apache2-bin \
+        apache2-data \
+        apache2-utils && \
+    dpkg --compare-versions "$(dpkg-query -W -f='${Version}' apache2)" ge "${APACHE_MIN_VERSION}" && \
+    rm -rf /var/lib/apt/lists/*
 
 # Clean apt files
 RUN apt-get clean autoclean && apt-get autoremove --yes && rm -rf /var/lib/{apt,dpkg,cache,log}/* && touch /var/lib/dpkg/status
@@ -691,6 +744,8 @@ COPY etc/apache2/sites-enabled/000-default.conf /etc/apache2/sites-enabled/000-d
 COPY etc/supervisor/conf.d/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY freepbx_init.sh /freepbx_init.sh
 COPY apply-instance-bindings.php /apply-instance-bindings.php
+COPY convert-legacy-sip-trunks.php /convert-legacy-sip-trunks.php
+COPY initdb.d/legacy-sip-trunks.php /initdb.d/legacy-sip-trunks.php
 COPY etc/amportal.conf /etc
 COPY initdb.d/initdb.php /initdb.d/
 COPY initdb.d/migration.php /initdb.d/

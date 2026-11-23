@@ -3,7 +3,7 @@
  require_once("session.inc.php");
  require("translations.php");
 
-$ntabs = $_REQUEST['ntab'];
+$ntabs = $_REQUEST['ntab'] ?? 0;
 $action = $_REQUEST['action'] ?? '';
 
 switch($action)
@@ -116,7 +116,7 @@ switch($action)
   break;
 
   case "getGroupsDialog":
-   echo getGroupsDialog($_REQUEST['group_id']);
+   echo getGroupsDialog($_REQUEST['group_id'] ?? false);
   break;
 
   case "saveGroupsDialog":

@@ -1,0 +1,19 @@
+{
+  "name": "com_nethcti_ws",
+  "main": "arch_com_nethcti_ws.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "user",
+      "logger",
+      "astProxy",
+      "authorization",
+      "authentication",
+      "voicemail",
+      "streaming"
+    ],
+    "provides": [
+      "com_nethcti_ws"
+    ]
+  }
+}

@@ -161,7 +161,7 @@ function gateway_test_assert_common(string $output): void
     }
     gateway_test_assert_tag($output, 'P30', '192.0.2.10');
     gateway_test_assert(
-        preg_match('/MAC|UTIME|(?:IP|MASK|DNS|GATE)[0-3]|ASTERISKIP|GATEWAYIP|DEFGATEWAY|NETMASK|PROXY|TRUNK(?:NUMBER|USERNAME|SECRET)[0-9]+|LINENUMBER[0-9]+|FXS(?:EXTENSION|PASS)[0-9]+/', $output) === 0,
+        preg_match('/MAC|UTIME|(?:IP|MASK|DNS|GATE)[0-3]|ASTERISKIP|GATEWAYIP|DEFGATEWAY|NETMASK|PROXY|PXSIPS?PORT|TRUNK(?:NUMBER|USERNAME|SECRET)[0-9]+|LINENUMBER[0-9]+|FXS(?:EXTENSION|PASS)[0-9]+/', $output) === 0,
         'configuration contains unresolved placeholders'
     );
 }
@@ -197,6 +197,17 @@ $tests['HT814 TLS FXS identity, time, network and credentials'] = static functio
         }
         gateway_test_assert_tag($output, 'P' . (4120 + $i), 'fxs-secret-' . ($i + 1));
     }
+};
+
+$tests['HT814 TLS FXS proxy SIPS port from the environment'] = static function (): void {
+    $_ENV['NETHVOICE_PROXY_SIPS_PORT'] = '5071';
+    try {
+        $output = gateway_test_render(gateway_test_fixture('ht814TLS'), false);
+    } finally {
+        unset($_ENV['NETHVOICE_PROXY_SIPS_PORT']);
+    }
+    gateway_test_assert_common($output);
+    gateway_test_assert_tag($output, 'P48', 'voice.example.test:5071');
 };
 
 set_error_handler(static function (int $severity, string $message, string $file, int $line): void {

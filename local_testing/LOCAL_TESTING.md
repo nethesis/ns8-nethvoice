@@ -18,7 +18,15 @@ php local_testing/tests/nethcti_gui_hooks_test.php
 ```
 
 It checks the Core page loading scope, proxy controls and saved selections,
-and the outbound-route GUI hook.
+the normal, popover and quiet response buffers, and the outbound-route GUI hook.
+To also execute the pinned Core trunk page inside the framework's real
+page-capture method, pass the prepared sources:
+
+```bash
+php local_testing/tests/nethcti_gui_hooks_test.php \
+  .test-sources/core/page.trunks.php \
+  .test-sources/framework/amp_conf/htdocs/admin/libraries/BMO/GuiHooks.class.php
+```
 
 The Boss/Secretary form regression also runs without containers or a database:
 
@@ -41,6 +49,21 @@ php local_testing/mailbox_migration_test.php 'mysql:host=127.0.0.1;port=3306'
 The test refuses an existing `asterisk` database, creates and removes its own
 synthetic fixture, and checks migration versions 1 and 2, repeated execution,
 valid and empty mailbox settings, and preservation of unrelated settings.
+
+Check automatic hotel-service access against the same kind of disposable MariaDB,
+using the Custom Contexts and framework sources pinned in `freepbx/Containerfile`:
+
+```bash
+php local_testing/hotel_contexts_test.php 'mysql:host=127.0.0.1;port=3306' \
+  .test-sources/customcontexts \
+  .test-sources/framework/amp_conf/htdocs/admin/libraries/extensions.class.php
+```
+
+The test refuses an existing `asterisk` database and removes its synthetic fixture.
+It runs the actual Custom Contexts dialplan generator to verify existing and new
+CTI profiles, repeated backfills, saves before context discovery, internal-context
+precedence, preserved outbound restrictions, disable/re-enable cleanup and reloads,
+and room/trunk exclusion.
 
 Build the FreePBX image and run the focused regressions against its installed
 Slim 4 dependencies, patched Paging module, Core and framework:

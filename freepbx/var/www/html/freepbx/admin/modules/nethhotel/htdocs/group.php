@@ -4,16 +4,15 @@ require_once("session.inc.php");
 require("translations.php");
 
 $ext = $_REQUEST['ext'];
-$group = $_REQUEST['group'];
-$ntabs = $_REQUEST['ntab'];
+$ntabs = $_REQUEST['ntab'] ?? 0;
 
 switch($_REQUEST['action'] ?? '') 
 {
     case "set":
-        if (setGroup($ext,$group))
+        if (setGroup($ext,$_REQUEST['group']))
             return loadRooms($ntabs);
         break;
-    case "detail";
+    case "detail":
         header('Content-type: text/xml');
         echo "<response>";
         echo getGroup($ext);

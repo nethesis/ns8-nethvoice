@@ -17,11 +17,12 @@ if (( NETHVOICE_MIDDLEWARE_PORT < 1 || NETHVOICE_MIDDLEWARE_PORT > 65535 )); the
     exit 0
 fi
 
-curl -fsS \
+# the token is passed to curl on stdin (-K -), never on a command line
+printf 'header = "Authorization: Bearer %s"\n' "${NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN}" | curl -fsS \
     --connect-timeout 1 \
     --max-time 2 \
     -X POST \
-    -H "Authorization: Bearer ${NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN}" \
+    -K - \
     -H "Content-Type: application/json" \
     "http://127.0.0.1:${NETHVOICE_MIDDLEWARE_PORT}/admin/reload/profiles" \
     >/dev/null

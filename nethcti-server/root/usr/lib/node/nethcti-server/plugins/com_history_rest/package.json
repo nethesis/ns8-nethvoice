@@ -1,0 +1,19 @@
+{
+  "name": "com_history_rest",
+  "main": "arch_com_history_rest.js",
+  "private": true,
+  "plugin": {
+    "consumes": [
+      "cel",
+      "util",
+      "user",
+      "astProxy",
+      "staticHttp",
+      "logger",
+      "history",
+      "operator",
+      "authorization"
+    ],
+    "provides": []
+  }
+}

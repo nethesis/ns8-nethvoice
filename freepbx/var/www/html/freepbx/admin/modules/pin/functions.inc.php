@@ -46,7 +46,7 @@ function pin_hook_core($viewing_itemid, $target_menuid) {
                         <span class="radioset">
                         <input type="radio" name="EnablePIN" id="EnablePINyes" value="1" '.($enabled ? "CHECKED" : "").'>
                         <label for="EnablePINyes">'._("Yes").'</label>
-                        <input type="radio" name="EnablePIN" id="EnablePINno" value="" '.($enabled ? "" : "CHECKED").'>
+                        <input type="radio" name="EnablePIN" id="EnablePINno" value="0" '.($enabled ? "" : "CHECKED").'>
                         <label for="EnablePINno">'._("No").'</label>
                         </span>
                     </div>

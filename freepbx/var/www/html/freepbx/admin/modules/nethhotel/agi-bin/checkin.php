@@ -116,7 +116,7 @@ if(count($res))
 		$tot = getTotalCost($target);
 		if ($tot!= 0) { # se ci sono extra chiedo conferma del checkout
 
-			$num = explode('.', $tot);
+			$num = explode('.', number_format($tot, 2, '.', ''));
 			$i= true;
 
 			while ($i == true)

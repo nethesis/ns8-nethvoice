@@ -1,0 +1,687 @@
+#
+# linekey_type_map -- translate "linekey_type_"
+#
+{% macro linekey_type_map(linekey_type, linekey_value, linekey_label, dndtoggle, pickup_group, number, queuetoggle, pickup_direct) %}
+{% if linekey_type == "blf" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">blf {{ linekey_value }}|{{ pickup_direct }}</fkey>
+{% elseif linekey_type == "conference" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">conference {{ linekey_value }}</fkey>
+{% elseif linekey_type == "dtmf" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">dtmf {{ linekey_value }}</fkey>
+{% elseif linekey_type == "forward" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">redirect {{ linekey_value }}</fkey>
+{% elseif linekey_type == "line" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">line {{ linekey_value }}</fkey>
+{% elseif linekey_type == "multicast_paging" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">multicast {{ linekey_value }}</fkey>
+{% elseif linekey_type == "record" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">record {{ linekey_value }}</fkey>
+{% elseif linekey_type == "speed_dial" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">speed {{ linekey_value }}</fkey>
+{% elseif linekey_type == "transfer" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">transfer {{ linekey_value }}</fkey>
+{% elseif linekey_type == "url" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">url {{ linekey_value }}</fkey>
+{% elseif linekey_type == "dnd" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">speed {{ dndtoggle }}</fkey>
+{% elseif linekey_type == "queuetoggle" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">speed {{ queuetoggle }}</fkey>
+{% elseif linekey_type == "ldap" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">keyevent F_DIRECTORY_SEARCH</fkey>
+{% elseif linekey_type == "mute" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">keyevent F_MUTE</fkey>
+{% elseif linekey_type == "voice_mail" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">keyevent F_VOICEMAIL_INFO</fkey>
+{% elseif linekey_type == "recall" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">keyevent F_REDIAL</fkey>
+{% elseif linekey_type == "hold" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">keyevent F_HOLD</fkey>
+{% elseif linekey_type == "dnd" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">keyevent F_DND</fkey>
+{% elseif linekey_type == "group_pickup" %}
+    <fkey idx="{{ (number-1) }}" context="1" label="{{ linekey_label }}" lp="on" perm="">speed {{ pickup_group }}</fkey>
+{% else %}
+    <fkey idx="{{ (number-1) }}" context="active" label="" lp="on" perm="">line</fkey>
+{% endif %}
+{% endmacro linekey_type_map %}
+
+
+#
+# softkey_type_map -- translate "softkey_type_"
+#
+{% macro softkey_type_map(softkey_type) %}
+{% if softkey_type == "" %}
+    {{- 'keyevent F_NONE' }}
+{% elseif softkey_type == "forward" %}
+    {{- 'keyevent F_REDIRECT' }}
+{% elseif softkey_type == "dnd" %}
+    {{- 'keyevent F_DND' }}
+{% elseif softkey_type == "recall" %}
+    {{- 'keyevent F_REDIAL' }}
+{% elseif softkey_type == "history" %}
+    {{- 'keyevent F_CALL_LIST' }}
+{% elseif softkey_type == "menu" %}
+    {{- 'keyevent F_SETTINGS' }}
+{% elseif softkey_type == "status" %}
+    {{- 'keyevent F_STATUS' }}
+{% elseif softkey_type == "ldap" %}
+    {{- 'keyevent F_DIRECTORY_SEARCH' }}
+{% else %}
+    {{- softkey_type }}
+{% endif %}
+{% endmacro softkey_type_map %}
+
+
+#
+# ringtone_map
+#
+{% macro ringtone_map(ringtone, cap_ringtone_count) %}
+{% if ringtone == 0 %}
+    {{- 'Silent' -}}
+{% elseif ringtone == -1 %}
+    {{- 'Custom' -}}
+{% elseif ringtone <= cap_ringtone_count %}
+    {{- 'Ringer' ~ ringtone -}}
+{% else %}
+    {{- 'Ringer1' -}}
+{% endif %}
+{% endmacro ringtone_map %}
+
+#
+# Map ISO 639-1 codes to localized languages used by Snom
+#
+{% macro language(language)%}
+{% set language_map = {
+    "bs" : "Bosanski",
+    "da" : "Dansk",
+    "de" : "Deutsch",
+    "cs" : "Čeština",
+    "en" : "English",
+    "es" : "Español",
+    "fi" : "Suomi",
+    "fr" : "Français",
+    "zh" : "Traditional Chinese",
+    "hu" : "Magyar",
+    "it" : "Italiano",
+    "lt" : "Lietuvių",
+    "nl" : "Nederlands",
+    "no" : "Norsk",
+    "pt" : "Português",
+    "sl" : "Slovenščina",
+    "ru" : "Русский",
+    "sv" : "Svenska",
+    "tr" : "Türkçe"
+} %}
+    {{- language_map[language] ?: language_map['en'] -}}
+{% endmacro %}
+
+#
+# Map timezones to Snom format
+#
+{% macro timezone(timezone) %}
+{% set timezone_map = {
+    "Africa/Abidjan" : "GBR-0",
+    "Africa/Accra" : "GBR-0",
+    "Africa/Addis_Ababa" : "EAT+3",
+    "Africa/Algiers" : "CHA+1",
+    "Africa/Asmara" : "EAT+3",
+    "Africa/Bamako" : "GBR-0",
+    "Africa/Bangui" : "CHA+1",
+    "Africa/Banjul" : "GBR-0",
+    "Africa/Bissau" : "PRT-0",
+    "Africa/Blantyre" : "JOR+2",
+    "Africa/Brazzaville" : "CHA+1",
+    "Africa/Bujumbura" : "EGY+2",
+    "Africa/Cairo" : "JOR+2",
+    "Africa/Casablanca" : "GBR-0",
+    "Africa/Ceuta" : "ESP+1",
+    "Africa/Conakry" : "GBR-0",
+    "Africa/Dakar" : "GBR-0",
+    "Africa/Dar_es_Salaam" : "EAT+3",
+    "Africa/Djibouti" : "EAT+3",
+    "Africa/Douala" : "CHA+1",
+    "Africa/El_Aaiun" : "ESP-0",
+    "Africa/Freetown" : "GBR-0",
+    "Africa/Gaborone" : "JOR+2",
+    "Africa/Harare" : "JOR+2",
+    "Africa/Johannesburg" : "JOR+2",
+    "Africa/Juba" : "EAT+3",
+    "Africa/Kampala" : "EAT+3",
+    "Africa/Khartoum" : "EAT+3",
+    "Africa/Kigali" : "JOR+2",
+    "Africa/Kinshasa" : "CHA+1",
+    "Africa/Lagos" : "NAM+1",
+    "Africa/Libreville" : "CHA+1",
+    "Africa/Lome" : "GBR-0",
+    "Africa/Luanda" : "NAM+1",
+    "Africa/Lubumbashi" : "EGY+2",
+    "Africa/Lusaka" : "JOR+2",
+    "Africa/Malabo" : "ESP+1",
+    "Africa/Maputo" : "EGY+2",
+    "Africa/Maseru" : "JOR+2",
+    "Africa/Mbabane" : "JOR+2",
+    "Africa/Mogadishu" : "EAT+3",
+    "Africa/Monrovia" : "GBR-0",
+    "Africa/Nairobi" : "EAT+3",
+    "Africa/Ndjamena" : "CHA+1",
+    "Africa/Niamey" : "CHA+1",
+    "Africa/Nouakchott" : "GBR-0",
+    "Africa/Ouagadougou" : "GBR-0",
+    "Africa/Porto-Novo" : "CHA+1",
+    "Africa/Sao_Tome" : "PRT-0",
+    "Africa/Tripoli" : "JOR+2",
+    "Africa/Tunis" : "CHA+1",
+    "Africa/Windhoek" : "NAM+1",
+    "America/Adak" : "USA-10",
+    "America/Anchorage" : "USA-9",
+    "America/Anguilla" : "BMU-4",
+    "America/Antigua" : "BMU-4",
+    "America/Araguaina" : "BRA1-3",
+    "America/Argentina/Buenos_Aires" : "ARG-3",
+    "America/Argentina/Catamarca" : "ARG-3",
+    "America/Argentina/Cordoba" : "ARG-3",
+    "America/Argentina/Jujuy" : "ARG-3",
+    "America/Argentina/La_Rioja" : "ARG-3",
+    "America/Argentina/Mendoza" : "ARG-3",
+    "America/Argentina/Rio_Gallegos" : "ARG-3",
+    "America/Argentina/Salta" : "ARG-3",
+    "America/Argentina/San_Juan" : "ARG-3",
+    "America/Argentina/San_Luis" : "ARG-3",
+    "America/Argentina/Tucuman" : "ARG-3",
+    "America/Argentina/Ushuaia" : "ARG-3",
+    "America/Aruba" : "BMU-4",
+    "America/Asuncion" : "PRY-4",
+    "America/Atikokan" : "CAN-5",
+    "America/Bahia_Banderas" : "MEX-6",
+    "America/Bahia" : "BRA1-3",
+    "America/Barbados" : "BMU-4",
+    "America/Belem" : "BRA1-3",
+    "America/Belize" : "USA-6",
+    "America/Blanc-Sablon" : "CAN-4",
+    "America/Boa_Vista" : "PRY-4",
+    "America/Bogota" : "USA-5",
+    "America/Boise" : "USA-7",
+    "America/Cambridge_Bay" : "CAN-7",
+    "America/Campo_Grande" : "BRA1-3",
+    "America/Cancun" : "USA-5",
+    "America/Caracas" : "PRY-4",
+    "America/Cayenne" : "BRA1-3",
+    "America/Cayman" : "BHS-5",
+    "America/Chicago" : "USA-6",
+    "America/Chihuahua" : "MEX-7",
+    "America/Costa_Rica" : "MEX-6",
+    "America/Creston" : "CAN-7",
+    "America/Cuiaba" : "BRA1-3",
+    "America/Curacao" : "BMU-4",
+    "America/Danmarkshavn" : "GBR-0",
+    "America/Dawson_Creek" : "CAN-7",
+    "America/Dawson" : "USA-8",
+    "America/Denver" : "USA-7",
+    "America/Detroit" : "USA-5",
+    "America/Dominica" : "PRY-4",
+    "America/Edmonton" : "CAN-7",
+    "America/Eirunepe" : "USA-5",
+    "America/El_Salvador" : "MEX-6",
+    "America/Fortaleza" : "BRA1-3",
+    "America/Fort_Nelson" : "CAN-7",
+    "America/Glace_Bay" : "CAN-4",
+    "America/Godthab" : "GRL-3",
+    "America/Goose_Bay" : "CAN-4",
+    "America/Grand_Turk" : "BMU-4",
+    "America/Grenada" : "BMU-4",
+    "America/Guadeloupe" : "BMU-4",
+    "America/Guatemala" : "MEX-6",
+    "America/Guayaquil" : "USA-5",
+    "America/Guyana" : "BMU-4",
+    "America/Halifax" : "CAN-4",
+    "America/Havana" : "CUB-5",
+    "America/Hermosillo" : "MEX-7",
+    "America/Indiana/Indianapolis" : "USA-5",
+    "America/Indiana/Knox" : "USA-6",
+    "America/Indiana/Marengo" : "USA-5",
+    "America/Indiana/Petersburg" : "USA-5",
+    "America/Indiana/Tell_City" : "USA-6",
+    "America/Indiana/Vevay" : "USA-5",
+    "America/Indiana/Vincennes" : "USA-5",
+    "America/Indiana/Winamac" : "USA-5",
+    "America/Inuvik" : "CAN-7",
+    "America/Iqaluit" : "CAN-5",
+    "America/Jamaica" : "BHS-5",
+    "America/Juneau" : "USA-9",
+    "America/Kentucky/Louisville" : "USA-5",
+    "America/Kentucky/Monticello" : "USA-5",
+    "America/Kralendijk" : "BMU-4",
+    "America/La_Paz" : "PRY-4",
+    "America/Lima" : "USA-5",
+    "America/Los_Angeles" : "USA-8",
+    "America/Lower_Princes" : "BMU-4",
+    "America/Maceio" : "BRA1-3",
+    "America/Managua" : "MEX-6",
+    "America/Manaus" : "PRY-4",
+    "America/Marigot" : "BMU-4",
+    "America/Martinique" : "BMU-4",
+    "America/Matamoros" : "MEX-6",
+    "America/Mazatlan" : "MEX-7",
+    "America/Menominee" : "USA-6",
+    "America/Merida" : "MEX-6",
+    "America/Metlakatla" : "USA-9",
+    "America/Mexico_City" : "MEX-6",
+    "America/Miquelon" : "BRA1-3",
+    "America/Moncton" : "CAN-4",
+    "America/Monterrey" : "MEX-6",
+    "America/Montevideo" : "ARG-3",
+    "America/Montserrat" : "BMU-4",
+    "America/Nassau" : "BHS-5",
+    "America/New_York" : "USA-5",
+    "America/Nipigon" : "BHS-5",
+    "America/Nome" : "USA-9",
+    "America/North_Dakota/Beulah" : "USA-6",
+    "America/North_Dakota/Center" : "USA-6",
+    "America/North_Dakota/New_Salem" : "USA-6",
+    "America/Ojinaga" : "MEX-7",
+    "America/Panama" : "USA-5",
+    "America/Pangnirtung" : "CAN-5",
+    "America/Paramaribo" : "ARG-3",
+    "America/Phoenix" : "USA-7",
+    "America/Port-au-Prince" : "USA-5",
+    "America/Port_of_Spain" : "BMU-4",
+    "America/Porto_Velho" : "PRY-4",
+    "America/Puerto_Rico" : "PRY-4",
+    "America/Punta_Arenas" : "CHL-4",
+    "America/Rainy_River" : "CAN-6",
+    "America/Rankin_Inlet" : "CAN-6",
+    "America/Recife" : "BRA1-3",
+    "America/Regina" : "CAN-6",
+    "America/Resolute" : "CAN-6",
+    "America/Rio_Branco" : "USA-5",
+    "America/Santarem" : "BRA1-3",
+    "America/Santiago" : "CHL-4",
+    "America/Santo_Domingo" : "PRY-4",
+    "America/Scoresbysund" : "PRT-1",
+    "America/Sitka" : "USA-9",
+    "America/St_Barthelemy" : "BMU-4",
+    "America/St_Johns" : "CAN-3.5",
+    "America/St_Kitts" : "BMU-4",
+    "America/St_Lucia" : "BMU-4",
+    "America/St_Thomas" : "BMU-4",
+    "America/St_Vincent" : "BMU-4",
+    "America/Swift_Current" : "CAN-6",
+    "America/Tegucigalpa" : "MEX-6",
+    "America/Thule" : "BMU-4",
+    "America/Thunder_Bay" : "CAN-5",
+    "America/Tijuana" : "MEX-8",
+    "America/Toronto" : "CAN-5",
+    "America/Tortola" : "BMU-4",
+    "America/Vancouver" : "USA-8",
+    "America/Whitehorse" : "USA-8",
+    "America/Winnipeg" : "CAN-6",
+    "America/Yakutat" : "USA-9",
+    "America/Yellowknife" : "CAN-7",
+    "Antarctica/Casey" : "NCL+11",
+    "Antarctica/Davis" : "RUS+7",
+    "Antarctica/DumontDUrville" : "AUS+10",
+    "Antarctica/Macquarie" : "NCL+11",
+    "Antarctica/Mawson" : "RUS+5",
+    "Antarctica/McMurdo" : "TON+13",
+    "Antarctica/Palmer" : "ARG-3",
+    "Antarctica/Rothera" : "ARG-3",
+    "Antarctica/Syowa" : "EAT+3",
+    "Antarctica/Troll" : "GBR-0",
+    "Antarctica/Vostok" : "KAZ+6",
+    "Arctic/Longyearbyen" : "NOR+1",
+    "Asia/Aden" : "IRQ+3",
+    "Asia/Almaty" : "KAZ+6",
+    "Asia/Amman" : "JOR+2",
+    "Asia/Anadyr" : "NZL+12",
+    "Asia/Aqtau" : "RUS+5",
+    "Asia/Aqtobe" : "RUS+5",
+    "Asia/Ashgabat" : "RUS+5",
+    "Asia/Atyrau" : "RUS+5",
+    "Asia/Baghdad" : "IRQ+3",
+    "Asia/Bahrain" : "KAZ+4",
+    "Asia/Baku" : "AZE+4",
+    "Asia/Bangkok" : "RUS+7",
+    "Asia/Barnaul" : "RUS+7",
+    "Asia/Beirut" : "LBN+2",
+    "Asia/Bishkek" : "KAZ+6",
+    "Asia/Brunei" : "KOR+8",
+    "Asia/Chita" : "",
+    "Asia/Choibalsan" : "KOR+8",
+    "Asia/Colombo" : "IND+5.5",
+    "Asia/Damascus" : "SYR+2",
+    "Asia/Dhaka" : "KAZ+6",
+    "Asia/Dili" : "",
+    "Asia/Dubai" : "KAZ+4",
+    "Asia/Dushanbe" : "RUS+5",
+    "Asia/Famagusta" : "TUR+2",
+    "Asia/Gaza" : "GAZ+2",
+    "Asia/Hebron" : "GAZ+2",
+    "Asia/Ho_Chi_Minh" : "RUS+7",
+    "Asia/Hong_Kong" : "KOR+8",
+    "Asia/Hovd" : "RUS+7",
+    "Asia/Irkutsk" : "KOR+8",
+    "Asia/Jakarta" : "RUS+7",
+    "Asia/Jayapura" : "",
+    "Asia/Jerusalem" : "ISR+2",
+    "Asia/Kabul" : "PAK+5",
+    "Asia/Kamchatka" : "NZL+12",
+    "Asia/Karachi" : "RUS+5",
+    "Asia/Kathmandu" : "RUS+6",
+    "Asia/Khandyga" : "",
+    "Asia/Kolkata" : "IND+5.5",
+    "Asia/Krasnoyarsk" : "RUS+7",
+    "Asia/Kuala_Lumpur" : "KOR+8",
+    "Asia/Kuching" : "KOR+8",
+    "Asia/Kuwait" : "IRQ+3",
+    "Asia/Macau" : "KOR+8",
+    "Asia/Magadan" : "NCL+11",
+    "Asia/Makassar" : "KOR+8",
+    "Asia/Manila" : "KOR+8",
+    "Asia/Muscat" : "KAZ+4",
+    "Asia/Nicosia" : "CYP+2",
+    "Asia/Novokuznetsk" : "RUS+7",
+    "Asia/Novosibirsk" : "RUS+7",
+    "Asia/Omsk" : "KAZ+6",
+    "Asia/Oral" : "RUS+5",
+    "Asia/Phnom_Penh" : "RUS+7",
+    "Asia/Pontianak" : "RUS+7",
+    "Asia/Pyongyang" : "",
+    "Asia/Qatar" : "KAZ+4",
+    "Asia/Qyzylorda" : "KAZ+6",
+    "Asia/Riyadh" : "IRQ+3",
+    "Asia/Sakhalin" : "NCL+11",
+    "Asia/Samarkand" : "RUS+5",
+    "Asia/Seoul" : "",
+    "Asia/Shanghai" : "KOR+8",
+    "Asia/Singapore" : "SGP+8",
+    "Asia/Srednekolymsk" : "NCL+11",
+    "Asia/Taipei" : "KOR+8",
+    "Asia/Tashkent" : "RUS+5",
+    "Asia/Tbilisi" : "GEO+4",
+    "Asia/Tehran" : "IRN+3.5",
+    "Asia/Thimphu" : "KAZ+6",
+    "Asia/Tokyo" : "",
+    "Asia/Tomsk" : "RUS+7",
+    "Asia/Ulaanbaatar" : "KOR+8",
+    "Asia/Urumqi" : "KAZ+6",
+    "Asia/Ust-Nera" : "RUS+10",
+    "Asia/Vientiane" : "RUS+7",
+    "Asia/Vladivostok" : "RUS+10",
+    "Asia/Yakutsk" : "",
+    "Asia/Yangon" : "CHN+7",
+    "Asia/Yekaterinburg" : "RUS+5",
+    "Asia/Yerevan" : "ARM+4",
+    "Atlantic/Azores" : "PRT-1",
+    "Atlantic/Bermuda" : "BMU-4",
+    "Atlantic/Canary" : "ESP-0",
+    "Atlantic/Cape_Verde" : "PRT-1",
+    "Atlantic/Faroe" : "GBR-0",
+    "Atlantic/Madeira" : "PRT-0",
+    "Atlantic/Reykjavik" : "GBR-0",
+    "Atlantic/Stanley" : "ARG-3",
+    "Atlantic/St_Helena" : "GBR-0",
+    "Australia/Adelaide" : "AUS+9.5",
+    "Australia/Brisbane" : "AUS+10",
+    "Australia/Broken_Hill" : "AUS+10.5",
+    "Australia/Currie" : "AUS+10",
+    "Australia/Darwin" : "AUS+9.5",
+    "Australia/Eucla" : "",
+    "Australia/Hobart" : "AUS+10",
+    "Australia/Lindeman" : "AUS+10",
+    "Australia/Lord_Howe" : "AUS+10",
+    "Australia/Melbourne" : "AUS+10",
+    "Australia/Perth" : "AUS+8",
+    "Australia/Sydney" : "AUS+10",
+    "Europe/Amsterdam" : "NLD+1",
+    "Europe/Andorra" : "ESP+1",
+    "Europe/Astrakhan" : "RUS+4",
+    "Europe/Athens" : "GRC+2",
+    "Europe/Belgrade" : "GER+1",
+    "Europe/Berlin" : "GER+1",
+    "Europe/Bratislava" : "SVK+1",
+    "Europe/Brussels" : "BEL+1",
+    "Europe/Bucharest" : "ROU+2",
+    "Europe/Budapest" : "HUN+1",
+    "Europe/Busingen" : "GER+1",
+    "Europe/Chisinau" : "MDA+2",
+    "Europe/Copenhagen" : "DNK+1",
+    "Europe/Dublin" : "GBR-0",
+    "Europe/Gibraltar" : "NAM+1",
+    "Europe/Guernsey" : "GBR-0",
+    "Europe/Helsinki" : "FIN+2",
+    "Europe/Isle_of_Man" : "GBR-0",
+    "Europe/Istanbul" : "TUR+2",
+    "Europe/Jersey" : "GBR-0",
+    "Europe/Kaliningrad" : "RUS+2",
+    "Europe/Kiev" : "UKR+2",
+    "Europe/Kirov" : "RUS+3",
+    "Europe/Lisbon" : "PRT-0",
+    "Europe/Ljubljana" : "SVK+1",
+    "Europe/London" : "GBR-0",
+    "Europe/Luxembourg" : "LUX+1",
+    "Europe/Madrid" : "ESP+1",
+    "Europe/Malta" : "NAM+1",
+    "Europe/Mariehamn" : "FIN+2",
+    "Europe/Minsk" : "RUS+3",
+    "Europe/Monaco" : "FRA+1",
+    "Europe/Moscow" : "RUS+3",
+    "Europe/Oslo" : "NOR+1",
+    "Europe/Paris" : "FRA+1",
+    "Europe/Podgorica" : "SVK+1",
+    "Europe/Prague" : "CZE+1",
+    "Europe/Riga" : "63",
+    "Europe/Rome" : "ITA+1",
+    "Europe/Samara" : "RUS+4",
+    "Europe/San_Marino" : "ITA+1",
+    "Europe/Sarajevo" : "SVK+1",
+    "Europe/Saratov" : "RUS+4",
+    "Europe/Simferopol" : "RUS+3",
+    "Europe/Skopje" : "MAK+1",
+    "Europe/Sofia" : "BLR+2",
+    "Europe/Stockholm" : "SWE+1",
+    "Europe/Tallinn" : "EST+2",
+    "Europe/Tirane" : "ALB+1",
+    "Europe/Ulyanovsk" : "RUS+4",
+    "Europe/Uzhgorod" : "UKR+2",
+    "Europe/Vaduz" : "GER+1",
+    "Europe/Vatican" : "ITA+1",
+    "Europe/Vienna" : "GER+1",
+    "Europe/Vilnius" : "EST+2",
+    "Europe/Volgograd" : "RUS+3",
+    "Europe/Warsaw" : "POL+1",
+    "Europe/Zagreb" : "HRV+1",
+    "Europe/Zaporozhye" : "UKR+2",
+    "Europe/Zurich" : "GER+1",
+    "Indian/Antananarivo" : "IRQ+3",
+    "Indian/Chagos" : "KAZ+6",
+    "Indian/Christmas" : "RUS+7",
+    "Indian/Cocos" : "CHN+7",
+    "Indian/Comoro" : "IRQ+3",
+    "Indian/Kerguelen" : "RUS+5",
+    "Indian/Mahe" : "KAZ+4",
+    "Indian/Maldives" : "RUS+5",
+    "Indian/Mauritius" : "KAZ+4",
+    "Indian/Mayotte" : "IRQ+3",
+    "Indian/Reunion" : "KAZ+4",
+    "Pacific/Apia" : "TON+13",
+    "Pacific/Auckland" : "NZL+12",
+    "Pacific/Bougainville" : "NCL+11",
+    "Pacific/Chatham" : "NZL+12.75",
+    "Pacific/Chuuk" : "AUS+10",
+    "Pacific/Easter" : "MEX-6",
+    "Pacific/Efate" : "NCL+11",
+    "Pacific/Enderbury" : "TON+13",
+    "Pacific/Fakaofo" : "TON+13",
+    "Pacific/Fiji" : "TON+13",
+    "Pacific/Funafuti" : "NZL+12",
+    "Pacific/Galapagos" : "MEX-6",
+    "Pacific/Gambier" : "USA-9",
+    "Pacific/Guadalcanal" : "NCL+11",
+    "Pacific/Guam" : "AUS+10",
+    "Pacific/Honolulu" : "USA-10",
+    "Pacific/Kiritimati" : "TON+13",
+    "Pacific/Kosrae" : "NCL+11",
+    "Pacific/Kwajalein" : "NZL+12",
+    "Pacific/Majuro" : "NZL+12",
+    "Pacific/Marquesas" : "USA-9",
+    "Pacific/Midway" : "USA2-10",
+    "Pacific/Nauru" : "NZL+12",
+    "Pacific/Niue" : "USA2-10",
+    "Pacific/Norfolk" : "NCL+11",
+    "Pacific/Noumea" : "NCL+11",
+    "Pacific/Pago_Pago" : "USA2-10",
+    "Pacific/Palau" : "",
+    "Pacific/Pitcairn" : "USA-8",
+    "Pacific/Pohnpei" : "NCL+11",
+    "Pacific/Port_Moresby" : "AUS+10",
+    "Pacific/Rarotonga" : "USA-10",
+    "Pacific/Saipan" : "AUS+10",
+    "Pacific/Tahiti" : "USA-10",
+    "Pacific/Tarawa" : "NZL+12",
+    "Pacific/Tongatapu" : "TON+13",
+    "Pacific/Wake" : "NZL+12",
+    "Pacific/Wallis" : "NZL+12",
+    "UTC" : "GBR-0"
+} %}
+    {{- timezone_map[timezone] ?: timezone_map['UTC'] -}}
+{% endmacro %}
+
+#
+# Map tonezone to Snom format
+#
+{% macro tonezone(tonezone) %}
+{% set tonezone_map = {
+    "ao" : "ESP",
+    "ar" : "ESP",
+    "au" : "AUS",
+    "at" : "AUT",
+    "be" : "FRA",
+    "br" : "ESP",
+    "bg" : "GBR",
+    "cl" : "ESP",
+    "cn" : "CHN",
+    "co" : "ESP",
+    "cr" : "ESP",
+    "cz" : "AUT",
+    "dk" : "DNK",
+    "ee" : "GER",
+    "fi" : "SWE",
+    "fr" : "FRA",
+    "de" : "GER",
+    "gr" : "GRE",
+    "hk" : "GBR",
+    "hu" : "AUT",
+    "in" : "IND",
+    "ir" : "GBR",
+    "ie" : "GBR",
+    "il" : "USA",
+    "it" : "ITA",
+    "jp" : "JPN",
+    "ke" : "GBR",
+    "lt" : "GER",
+    "mo" : "ESP",
+    "my" : "GBR",
+    "mx" : "MEX",
+    "nl" : "NLD",
+    "nz" : "NZL",
+    "no" : "NOR",
+    "pk" : "GBR",
+    "pa" : "USA",
+    "phl" : "ESP",
+    "pl" : "GER",
+    "pt" : "ESP",
+    "ro" : "GER",
+    "ru" : "GER",
+    "sg" : "GBR",
+    "za" : "GBR",
+    "es" : "ESP",
+    "se" : "SWE",
+    "ch" : "SWI",
+    "tw" : "CHN",
+    "tz" : "GBR",
+    "th" : "GBR",
+    "tr" : "GBR",
+    "ug" : "GBR",
+    "uk" : "GBR",
+    "us" : "USA",
+    "us-old" : "USA",
+    "ve" : "ESP"
+} %}
+    {{- tonezone_map[tonezone] ?: tonezone_map['us'] -}}
+{% endmacro %}
+
+#
+# Set date format
+#
+{% macro date_format(date_format) %}
+{% if date_format in ["WWW MMM DD", "MM DD YY", "MM DD YYYY", "MMM DD WW"] %}
+    {{- 'on' -}}
+{% else %}
+    {{- 'off' -}}
+{% endif %}
+{% endmacro date_format %}
+
+#   
+#  The locale used to display dates and numbers on the D8xx phone UI
+#   
+{% macro locale(tonezone) %}
+{% set locale_map = {
+    "ao" : "pt_AO",
+    "ar" : "es_AR",
+    "au" : "en_AU",
+    "at" : "de_AT",
+    "be" : "fr_BE",
+    "br" : "pt_BR",
+    "bg" : "bg_BG",
+    "cl" : "es_CL",
+    "cn" : "zh_CN",
+    "co" : "es_CO",
+    "cr" : "es_CR",
+    "cz" : "cs_CZ",
+    "dk" : "da_DK",
+    "ee" : "et_EE",
+    "fi" : "fi_FI",
+    "fr" : "fr_FR",
+    "de" : "de_DE",
+    "gr" : "el_GR",
+    "hk" : "zh_HK",
+    "hu" : "hu_HU",
+    "in" : "en_IN",
+    "ir" : "en_GB",
+    "ie" : "en_IE",
+    "il" : "en_IL",
+    "it" : "it_IT",
+    "jp" : "ja_JP",
+    "ke" : "en_KE",
+    "lt" : "lt_LT",
+    "mo" : "pt_MO",
+    "my" : "en_MY",
+    "mx" : "es_MX",
+    "nl" : "nl_NL",
+    "nz" : "en_NZ",
+    "no" : "nb_NO",
+    "pk" : "en_PK",
+    "pa" : "es_PA",
+    "phl" : "es_PH",
+    "pl" : "pl_PL",
+    "pt" : "pt_PT",
+    "ro" : "ro_RO",
+    "ru" : "ru_RU",
+    "sg" : "en_SG",
+    "za" : "en_ZA",
+    "es" : "es_ES",
+    "se" : "se_SE",
+    "ch" : "de_CH",
+    "tw" : "zh_TW",
+    "tz" : "en_TZ",
+    "th" : "th_TH",
+    "tr" : "tr_TR",
+    "ug" : "en_UG",
+    "uk" : "en_GB",
+    "us" : "en_US",
+    "us-old" : "en_US",
+    "ve" : "es_ES"
+} %}
+    {{- locale_map[tonezone] ?: locale_map['us'] -}}
+{% endmacro locale %}
+

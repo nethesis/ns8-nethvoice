@@ -319,7 +319,13 @@ function nethcti3_configure_transfer_profile($ext) {
     $ext->add($sub, 's', '', new ext_gotoif('$["${owner}" = "" | "${DB(DEVICE/${owner}/user)}" = ""]', 'done'));
     $ext->add($sub, 's', '', new ext_gosub(1, 's', 'func-nethvoice-forward-context', '${owner}'));
     $ext->add($sub, 's', '', new ext_execif('$["${NETHVOICE_FORWARD_CONTEXT}" != "" & "${NETHVOICE_FORWARD_CONTEXT}" != "from-internal"]', 'Set', 'NETHVOICE_TRANSFER_CONTEXT=${NETHVOICE_FORWARD_CONTEXT}'));
-    $ext->add($sub, 's', 'done', new ext_return());
+    // Core 17 owns TRANSFER_CONTEXT, so blind transfers reach the Return On Transfer callback from here.
+    // The callback context dials NETHVOICE_RINGBACK_CONTEXT and needs BLINDTRANSFER on its Local channel.
+    $ext->add($sub, 's', 'done', new ext_gotoif('$["${BLINDTRANSFER}" = "" | "${ATTENDEDTRANSFER}" != "" | ${DIALPLAN_EXISTS(blindxfer_ringback,${ARG1},1)} = 0]', 'return'));
+    $ext->add($sub, 's', '', new ext_set('_NETHVOICE_RINGBACK_CONTEXT', '${NETHVOICE_TRANSFER_CONTEXT}'));
+    $ext->add($sub, 's', '', new ext_set('_BLINDTRANSFER', '${BLINDTRANSFER}'));
+    $ext->add($sub, 's', '', new ext_set('NETHVOICE_TRANSFER_CONTEXT', 'blindxfer_ringback'));
+    $ext->add($sub, 's', 'return', new ext_return());
 }
 
 function nethcti3_get_config_late($engine) {
@@ -401,6 +407,9 @@ function nethcti3_get_config_late($engine) {
             // Only apply the extension SRTP guardrails to extension legs, never to outbound trunk legs.
             $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x1x]', 'func-set-sipheader,s,1', false, 'isTrunk,1'), '',2);
             $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1" & x${REGEX("^(' . implode('|', $no_srtp_extensions) . ')$" ${CALLERID(num)})}x = x0x]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',3);
+        } else {
+            // Clear inherited trunk headers even when every extension uses SRTP.
+            $ext->splice('func-apply-sipheaders', 's', '', new ext_gosubif('$["${FROMMACRODIALONE}" = "1" & "${FROMMACRODIALOUTTRUNK}" != "1"]', 'func-set-sipheader,s,1', false, 'isTrunk,unset'), '',2);
         }
 
         /* Add inboundlookup agi for each inbound routes*/
@@ -493,6 +502,8 @@ function nethcti3_get_config_late($engine) {
             $ext->splice($context, $exten, "dial", new ext_agi(join(',',$agi_cmd)),'nethcti-cdr-script-extension-ring',0);
         }
         /*Off-Hour*/
+        $ext->add('nethvoice-offhour-voicemail', 's', '', new ext_gosub(1, 's', 'macro-vm', '${NETHVOICE_OFFHOUR_MAILBOX},NOMESSAGE'));
+        $ext->add('nethvoice-offhour-voicemail', 's', '', new ext_hangup());
         $routes = FreePBX::Core()->getAllDIDs();
         foreach ($routes as $did) {
             /*add off-hour agi for each inbound routes*/
@@ -828,6 +839,8 @@ function nethcti3_get_config_early($engine) {
     global $amp_conf;
     global $db;
 
+    enableHotelServicesForCTIProfiles();
+
     $pjsip = \FreePBX::Core()->getDriver('pjsip');
     $trunks = FreePBX::Core()->listTrunks();
     foreach ($trunks as $trunk) {
@@ -843,9 +856,23 @@ function nethcti3_get_config_early($engine) {
                 && !empty($pjsip_trunk['outbound_proxy'])
                 && ($pjsip_trunk['authentication'] === 'none' || $pjsip_trunk['authentication'] === 'outbound' || $pjsip_trunk['authentication'] === 'off')
                 && preg_match('/^sip:'. preg_quote($_ENV['PROXY_IP'], '/') .':'. preg_quote($_ENV['PROXY_PORT'], '/') .';lr$/', $pjsip_trunk['outbound_proxy'])) {
-                // if sip_server is a hostname, resolve it to an IP address
-                $sip_server_ip = gethostbyname($pjsip_trunk['sip_server']);
-                $pjsip->addIdentify($pjsip_trunk['trunk_name'], 'match_header', 'X-Forwarded-For: /' . preg_quote($sip_server_ip, '/') . '$/');
+                // Resolve the complete address set each time FreePBX generates the configuration.
+                $host = $pjsip_trunk['sip_server'];
+                $records = @socket_addrinfo_lookup($host, null, ['ai_socktype' => SOCK_DGRAM]);
+                if (!$records) {
+                    error_log("Cannot resolve SIP server $host for trunk " . $pjsip_trunk['trunk_name']);
+                    continue;
+                }
+
+                $addresses = [];
+                foreach ($records as $record) {
+                    $address = socket_addrinfo_explain($record)['ai_addr'];
+                    $addresses[] = $address['sin_addr'] ?? $address['sin6_addr'];
+                }
+                $addresses = array_unique($addresses);
+                sort($addresses, SORT_STRING);
+                $pattern = implode('|', array_map(static fn($ip) => preg_quote($ip, '/'), $addresses));
+                $pjsip->addIdentify($pjsip_trunk['trunk_name'], 'match_header', "X-Forwarded-For: /^($pattern)$/");
             }
         }
     }

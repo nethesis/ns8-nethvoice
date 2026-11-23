@@ -1,0 +1,11 @@
+{
+  "name": "logger",
+  "main": "arch_logger.js",
+  "private": true,
+  "plugin": {
+    "consumes": [],
+    "provides": [
+      "logger"
+    ]
+  }
+}

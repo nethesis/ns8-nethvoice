@@ -3,6 +3,11 @@ name: "Publish images"
 on:
   push:
   workflow_dispatch:
+    inputs:
+      rebuild:
+        description: "Rebuild all images, also when their sources did not change (base image security updates)"
+        type: boolean
+        default: false
 
 permissions:
   packages: write
@@ -25,12 +30,12 @@ jobs:
         include:
           - group: freepbx
             images: freepbx
-          - group: app-support
-            images: tancredi,cti-server,phonebook,sftp,saml2-proxy,oauth2-proxy,ejabberd
+          - group: cti
+            images: cti-server,cti-middleware,cti-ui
+          - group: services
+            images: mariadb,tancredi,phonebook,satellite,sftp,saml2-proxy,oauth2-proxy,ejabberd
           - group: reports
             images: reports-api,reports-ui
-          - group: wrappers
-            images: mariadb,cti-middleware,cti-ui,satellite
           - group: janus
             images: janus
           - group: module
@@ -39,6 +44,7 @@ jobs:
     with:
       imagetag: ${{ github.ref_name }}
       build-images: ${{ matrix.images }}
+      reuse-images: ${{ !inputs.rebuild }}
     secrets: inherit
   module:
     needs: publish-images

@@ -107,33 +107,54 @@ fwconsole ma list | grep '^| ' | grep -v '^| Module'| awk '{print $2,$6}' > "$mo
 
 php /apply-instance-bindings.php --save-transports || exit $?
 
-# Install required modules
-for module in "${modules_to_install[@]}"; do
-    if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
-        echo Installing module "$module"
+# Root installers create group-writable files in the image's setgid asset directories.
+(
+    umask 0002
+
+    for module in "${modules_to_install[@]}"; do
+        if ! test -s "$module_status" || grep -q "$module " "$module_status" && ! grep -q "$module Enabled" "$module_status" ; then
+            echo Installing module "$module"
+            fwconsole moduleadmin --skipchown install "$module" || exit $?
+        fi
+    done
+
+    # Custom archives need the normal permission pass after installation.
+    for module_file in $(ls /freepbx_custom_modules); do
+        module=$(echo "${module_file}" | sed 's/.tar.gz//')
+        mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
+        tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
+        echo Installing custom module "$module"
         fwconsole moduleadmin install "$module" || exit $?
+    done
+
+    # Remove obsolete modules if required
+    for module in "${obsolete_modules[@]}"; do
+        if grep -q "$module" "$module_status" ; then
+            echo Removing obsolete module "$module"
+            fwconsole moduleadmin uninstall "$module" &>/dev/null || true # ignore errors, we know module files are missing
+        fi
+    done
+) || exit $?
+
+# Convert legacy SIP configurations before user sync or reload.
+php /convert-legacy-sip-trunks.php
+if legacy_extensions=$(php -r '
+    require "/etc/freepbx_db.conf";
+    $query = $db->prepare("SELECT id FROM devices WHERE tech = ?");
+    $query->execute(["sip"]);
+    echo implode(",", preg_grep("/^[0-9]+$/D", $query->fetchAll(PDO::FETCH_COLUMN)));
+' 2>/dev/null); then
+    if [[ -n "$legacy_extensions" ]]; then
+        # FreePBX may print credentials in its conversion errors.
+        fwconsole convert2pjsip --range "$legacy_extensions" >/dev/null 2>&1 ||
+            echo 'Legacy SIP extension conversion command failed' >&2
     fi
-done
+else
+    echo 'Could not list legacy SIP extensions for conversion' >&2
+fi
 
-# Add custom freepbx modules
-for module_file in $(ls /freepbx_custom_modules); do
-	module=$(echo "${module_file}" | sed 's/.tar.gz//')
-	mkdir -p /var/www/html/freepbx/admin/modules/"${module}"
-	tar xzpf /freepbx_custom_modules/"${module_file}" --strip-component=1 -C /var/www/html/freepbx/admin/modules/${module}
-	echo Installing custom module "$module"
-    fwconsole moduleadmin install "$module" || exit $?
-done
-
-# Remove obsolete modules if required
-for module in "${obsolete_modules[@]}"; do
-    if grep -q "$module" "$module_status" ; then
-        echo Removing obsolete module "$module"
-        fwconsole moduleadmin uninstall "$module" &>/dev/null || true # ignore errors, we know module files are missing
-    fi
-done
-
-# Fix permissions
-ionice -c2 -n7 nice -n 10 fwconsole chown
+# Apply registered runtime rules without scanning the entire web tree.
+ionice -c2 -n7 nice -n 10 fwconsole chown --module=framework
 
 # Disable signature check
 php -r 'include_once "/etc/freepbx_db.conf"; $db->query("UPDATE freepbx_settings SET value = 0 WHERE keyword = \"SIGNATURECHECK\"");'
@@ -200,11 +221,26 @@ for ((reload_attempt=1; reload_attempt<=60; reload_attempt++)); do
     sleep 5
 done
 
-# Reset phones RPS after FreePBX modules have been initialized
-php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
-
 # Required modules, user synchronization and reload have all completed.
 touch "$ready" || exit $?
+
+# Tancredi starts after FreePBX is ready; RPS maintenance must not block startup.
+(
+    trap - EXIT
+    for ((rps_attempt=1; rps_attempt<=30; rps_attempt++)); do
+        tancredi_status=$(curl --silent --output /dev/null --write-out '%{http_code}' \
+            --connect-timeout 2 --max-time 5 \
+            "http://127.0.0.1:${TANCREDIPORT}/tancredi/api/v1/phones")
+        # An unauthenticated API request returns 403 once Tancredi is available.
+        if [[ "$tancredi_status" == 200 || "$tancredi_status" == 403 ]]; then
+            php /var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php --host-changed
+            exit $?
+        fi
+        sleep 2
+    done
+    echo "Phone RPS reset skipped: timed out waiting for Tancredi" >&2
+    exit 1
+) &
 
 # Apply low-priority background DB updates
 ionice -c3 nice -n 19 php /initdb.d/slow_database_updates.php >/dev/null 2>&1 &

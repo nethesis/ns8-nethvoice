@@ -39,13 +39,15 @@ if (count($res) === 0) {
 $sql = 'SELECT value FROM roomsdb.options WHERE variable = ?';
 $sth = $dbh->prepare($sql);
 $sth->execute(array("reception"));
-$reception = $sth->fetchColumn();
-if ($reception === false || $reception === '') {
-    error_log('Unable to create hotel alarms: reception is not configured');
-    exit(1);
-}
+$reception = trim((string)$sth->fetchColumn());
 
 foreach ($res as $alarm){
+    if ($alarm['alarmtype'] != 0 && $reception === '') {
+        // A queued reception alert has no destination; keep room wake-up calls independent.
+        $sth = $dbh->prepare('UPDATE roomsdb.alarmcalls SET enabled = 0 WHERE id = ?');
+        $sth->execute(array($alarm['id']));
+        continue;
+    }
     //create call file
     $file = '';
     if ($alarm['alarmtype'] == 0) {
@@ -53,7 +55,8 @@ foreach ($res as $alarm){
         $file .= "MaxRetries: 2\n";
         $file .= "RetryTime: 60\n";
         $file .= "WaitTime: 30\n";
-        $file .= "CallerID: \"Sveglia\" <$reception>\n";
+        $callerid = $reception !== '' ? $reception : $alarm['extension'];
+        $file .= "CallerID: \"Sveglia\" <$callerid>\n";
         $file .= "Set: CAMERA={$alarm['extension']}\n";
         $file .= "Set: RECEPTION=$reception\n";
         $file .= "Set: ALARM={$alarm['timestamp']}\n";
@@ -101,7 +104,7 @@ foreach ($res as $alarm){
     }
 
     // mark enabled = 0 to avoid more ringing
-    $sql = 'UPDATE roomsdb.alarmcalls SET enabled = 0 WHERE enabled = 1 AND extension = ? AND timestamp > ? AND timestamp < ?';
+    $sql = 'UPDATE roomsdb.alarmcalls SET enabled = 0 WHERE id = ?';
     $sth = $dbh->prepare($sql);
-    $sth->execute(array($alarm['extension'],$tslow,$tshigh));
+    $sth->execute(array($alarm['id']));
 }
