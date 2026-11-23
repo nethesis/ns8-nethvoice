@@ -54,7 +54,7 @@ const SliderCarousel: React.FC<SliderCarouselProps> = ({ cards, numberOfParkingN
   )
 
   const settings = {
-    className: 'w-[27.5rem] sm:w-[37rem] md:w-[40rem] lg:w-[38rem] xl:w-[50rem] 2xl:w-[86rem]',
+    className: 'w-[calc(27.5rem*var(--density))] sm:w-[calc(37rem*var(--density))] md:w-[calc(40rem*var(--density))] lg:w-[calc(38rem*var(--density))] xl:w-[calc(50rem*var(--density))] 2xl:w-[calc(86rem*var(--density))]',
     centerMode: false,
     centerPadding: '10px',
     slidesToShow: numToShow,

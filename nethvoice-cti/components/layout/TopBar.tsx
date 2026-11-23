@@ -298,7 +298,7 @@ export const TopBar: FC<TopBarProps> = ({ openMobileCb }) => {
             )}
 
             {/* Profile dropdown */}
-            <Dropdown items={userMenuItems} position='left' className='pl-3'>
+            <Dropdown items={userMenuItems} position='leftAuto' className='pl-3'>
               <span className='sr-only'>{t('TopBar.Open user menu')}</span>
               <Avatar
                 size='small'

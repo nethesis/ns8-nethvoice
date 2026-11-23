@@ -20,7 +20,8 @@
   }
 }
 :root {
-  --spacing: 0.25rem;
+  --density: 1;
+  --spacing: calc(0.25rem * var(--density));
 
   /* react tooltip opacity */
   --rt-opacity: 1;
@@ -463,7 +464,7 @@
 }
 
 html.compact {
-  --spacing: 0.2rem;
+  --density: 0.8;
 }
 
 @media (prefers-color-scheme: dark) {

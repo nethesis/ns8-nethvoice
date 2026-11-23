@@ -53,7 +53,7 @@ export const KeyPositionInput: FC<KeyPositionInputProps> = ({
         aria-label={t('Devices.Move key up') || ''}
         onClick={() => commit(value - 1)}
         disabled={value <= min}
-        className='flex h-[11px] w-5 items-end justify-center text-inputIcon dark:text-inputIconDark disabled:opacity-50 disabled:cursor-not-allowed'
+        className='flex h-[calc(11px*var(--density))] w-5 items-end justify-center text-inputIcon dark:text-inputIconDark disabled:opacity-50 disabled:cursor-not-allowed'
       >
         <FontAwesomeIcon icon={faCaretUp} className='h-3.5 w-3.5' />
       </button>
@@ -62,7 +62,7 @@ export const KeyPositionInput: FC<KeyPositionInputProps> = ({
         aria-label={t('Devices.Move key down') || ''}
         onClick={() => commit(value + 1)}
         disabled={value >= max}
-        className='flex h-[11px] w-5 items-start justify-center text-inputIcon dark:text-inputIconDark disabled:opacity-50 disabled:cursor-not-allowed'
+        className='flex h-[calc(11px*var(--density))] w-5 items-start justify-center text-inputIcon dark:text-inputIconDark disabled:opacity-50 disabled:cursor-not-allowed'
       >
         <FontAwesomeIcon icon={faCaretDown} className='h-3.5 w-3.5' />
       </button>

@@ -1298,7 +1298,7 @@ export const Calls: FC<CallsProps> = ({ className }): JSX.Element => {
                         ),
                       }}
                       rowKey={(record, index) => generateUniqueKey(record, index)}
-                      trClassName='h-[84px]'
+                      trClassName='h-[calc(84px*var(--density))]'
                       scrollable={true}
                       footer={
                         totalPages > 1 ? (

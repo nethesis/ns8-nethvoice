@@ -55,7 +55,7 @@ export const DeviceMenu: React.FC<DeviceMenuProps> = ({
           >
             <FontAwesomeIcon
               icon={getDeviceIcon(mainDeviceType)}
-              className='ml-[-0.2rem] h-4 w-4 flex justify-center'
+              className='ml-[calc(-0.2rem*var(--density))] h-4 w-4 flex justify-center'
             />
             <span className='text-sm font-normal'>{t('TopBar.Main device')}</span>
             <FontAwesomeIcon icon={faAngleRight} className='ml-auto h-4 w-4 flex justify-center' />
@@ -71,7 +71,7 @@ export const DeviceMenu: React.FC<DeviceMenuProps> = ({
             leaveTo='opacity-0 translate-y-1'
           >
             <PopoverPanel
-              className='absolute sm:mr-[4.788rem] sm:-mt-10 right-0 z-10 w-screen max-w-xs sm:-translate-x-1/2 transform px-0.5 sm:px-1 xs:mr-[6rem]'
+              className='absolute sm:-mt-10 right-0 sm:right-full sm:-mr-1 z-10 w-screen max-w-xs transform px-0.5 sm:px-1 xs:mr-[calc(6rem*var(--density))] whitespace-normal'
               onMouseEnter={() => setDeviceMenuOpen(true)}
               onMouseLeave={() => setDeviceMenuOpen(false)}
             >

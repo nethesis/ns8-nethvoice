@@ -23,10 +23,10 @@ import { CustomThemedTooltip } from '../common/CustomThemedTooltip'
 import { ChatPanel, ChatRail } from '../chat/ChatPanel'
 import { useChatAllowed, useChatInNethlink } from '../chat/ChatIslandMount'
 const activeStyles = {
-  width: '.1875rem',
-  height: '1.25rem',
+  width: 'calc(.1875rem * var(--density))',
+  height: 'calc(1.25rem * var(--density))',
   right: '0',
-  top: '.375rem',
+  top: 'calc(.375rem * var(--density))',
   borderRadius: '0rem .375rem .375rem 0rem',
   transform: 'rotate(180deg)',
   position: 'absolute',
@@ -260,7 +260,7 @@ export const UserNavBar: FC = () => {
       {chatRail && rightSideStatus?.isShown && rightSideStatus?.actualTab === 'chat' && <ChatPanel />}
       {/* The side menu */}
       <div
-        style={{ width: '3.125rem' }}
+        style={{ width: 'calc(3.125rem * var(--density))' }}
         className='border-gray-200 dark:border-gray-700 border-l bg-sidebar dark:bg-sidebarDark py-6 flex flex-col items-center gap-6 relative z-20'
       >
         {tabs.map((tab, i) => (

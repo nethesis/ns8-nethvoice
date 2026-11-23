@@ -384,7 +384,7 @@ const Phonebook: NextPage = () => {
                       }
                       onRowClick={(contact) => openShowContactDrawer(contact)}
                       rowKey={(contact) => contact?.id || contact?.displayName}
-                      trClassName='h-[84px]'
+                      trClassName='h-[calc(84px*var(--density))]'
                       scrollable={true}
                       footer={
                         phonebook?.rows?.length > 0 ? (

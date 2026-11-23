@@ -167,7 +167,7 @@ export const CallInformationSection: FC<CallInformationSectionProps> = ({ callIn
   return (
     <div className='mt-6 flex flex-col gap-4'>
       <div className='flex items-start gap-8 w-full'>
-        <div className='text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark w-[90px] shrink-0'>
+        <div className='text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark w-[calc(90px*var(--density))] shrink-0'>
           {t('History.Source')}
         </div>
         {isLoading ? (
@@ -188,7 +188,7 @@ export const CallInformationSection: FC<CallInformationSectionProps> = ({ callIn
       </div>
 
       <div className='flex items-start gap-8 w-full'>
-        <div className='text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark w-[90px] shrink-0'>
+        <div className='text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark w-[calc(90px*var(--density))] shrink-0'>
           {t('History.Destination')}
         </div>
         {isLoading ? (
@@ -209,7 +209,7 @@ export const CallInformationSection: FC<CallInformationSectionProps> = ({ callIn
       </div>
 
       <div className='flex items-start gap-8 w-full'>
-        <div className='text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark w-[90px] shrink-0'>
+        <div className='text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark w-[calc(90px*var(--density))] shrink-0'>
           {t('History.Date')}
         </div>
         {isLoading ? (
@@ -235,7 +235,7 @@ export const CallInformationSection: FC<CallInformationSectionProps> = ({ callIn
       {/* Sentiment */}
       {!isLoading && sentiment && (
         <div className='flex items-center gap-8 w-full'>
-          <div className='text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark w-[90px] shrink-0'>
+          <div className='text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark w-[calc(90px*var(--density))] shrink-0'>
             {t('Summary.Sentiment')}
           </div>
           <span

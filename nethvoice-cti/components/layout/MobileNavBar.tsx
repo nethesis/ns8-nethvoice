@@ -87,7 +87,7 @@ export const MobileNavBar: FC<MobileNavBarProps> = ({ closeMobileMenu, show, ite
                 <div className='flex flex-shrink-0 items-center px-4'>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    className='h-8 max-w-[3.5rem] w-auto cursor-pointer object-contain object-center'
+                    className='h-8 max-w-[calc(3.5rem*var(--density))] w-auto cursor-pointer object-contain object-center'
                     src={getConfiguredNavbarLogoUrl()}
                     alt='logo'
                   />

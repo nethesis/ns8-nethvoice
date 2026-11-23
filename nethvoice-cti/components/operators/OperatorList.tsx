@@ -38,7 +38,7 @@ const OperatorList = ({ operators, hasMore, showMore, isLoading = false }: Opera
     'mx-auto gap-x-8 gap-y-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-7 4xl:grid-cols-8 5xl:grid-cols-9 6xl:grid-cols-10'
   // The chat panel is wider than the other tabs: columns follow the space left, not the window.
   const classNameChatOpen =
-    'mx-auto gap-x-8 gap-y-8 grid grid-cols-[repeat(auto-fill,minmax(12rem,1fr))]'
+    'mx-auto gap-x-8 gap-y-8 grid grid-cols-[repeat(auto-fill,minmax(calc(12rem*var(--density)),1fr))]'
 
   const [currentCols, setCurrentCols] = useState(2)
   const gridRef = useRef<HTMLUListElement>(null)
@@ -76,19 +76,19 @@ const OperatorList = ({ operators, hasMore, showMore, isLoading = false }: Opera
         >
           {Array.from(Array(skeletonItemsCount)).map((e, index) => (
             <li key={index}>
-              <div className='space-y-2 w-[200px]'>
+              <div className='space-y-2 w-[calc(200px*var(--density))]'>
                 {/* avatar skeleton */}
                 <div className='animate-pulse rounded-full h-24 w-24 mx-auto bg-gray-300 dark:bg-gray-600 border-2 border-gray-200 dark:border-gray-500'></div>
 
                 <div className='space-y-1'>
                   {/* name skeleton */}
                   <div className='text-center'>
-                    <div className='animate-pulse h-5 rounded bg-gray-300 dark:bg-gray-600 max-w-[150px] mx-auto'></div>
+                    <div className='animate-pulse h-5 rounded bg-gray-300 dark:bg-gray-600 max-w-[calc(150px*var(--density))] mx-auto'></div>
                   </div>
 
                   {/* extension skeleton */}
                   <div className='text-center'>
-                    <div className='animate-pulse h-5 rounded bg-gray-300 dark:bg-gray-600 max-w-[80px] mx-auto'></div>
+                    <div className='animate-pulse h-5 rounded bg-gray-300 dark:bg-gray-600 max-w-[calc(80px*var(--density))] mx-auto'></div>
                   </div>
                 </div>
 
@@ -97,8 +97,8 @@ const OperatorList = ({ operators, hasMore, showMore, isLoading = false }: Opera
                   <div className='animate-pulse h-9 w-28 rounded bg-gray-300 dark:bg-gray-600'></div>
                 </div>
 
-                {/* min-h-[24px] area (counterpart/status text) */}
-                <div className='min-h-[24px] flex justify-center items-center'>
+                {/* min-h-[calc(24px*var(--density))] area (counterpart/status text) */}
+                <div className='min-h-[calc(24px*var(--density))] flex justify-center items-center'>
                   <div className='animate-pulse h-4 w-36 rounded bg-gray-300 dark:bg-gray-600'></div>
                 </div>
               </div>

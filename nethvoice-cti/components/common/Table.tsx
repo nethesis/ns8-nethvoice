@@ -103,7 +103,7 @@ export const Table: React.FC<TableProps> = ({
                 <tr
                   key={`loading-row-${rowIndex}`}
                   className={`${trClassName} ${rowIndex === 0 ? '' : 'border-t border-gray-300 dark:border-gray-700'}`}
-                  style={trClassName.includes('h-[') ? {} : { height: '84px' }}
+                  style={trClassName.includes('h-[') ? {} : { height: 'calc(84px * var(--density))' }}
                 >
                   {columns.map((column, colIndex) => (
                     <td key={`td-${rowIndex}-${colIndex}`} className={tdClassName}>
@@ -202,10 +202,10 @@ export const Table: React.FC<TableProps> = ({
                       ? row[column.accessor]
                       : null}
                     {rowIndex !== 0 && colIndex === 0 ? (
-                      <div className='absolute -top-[0.03rem] left-6 right-0 h-px bg-gray-300 dark:bg-gray-600' />
+                      <div className='absolute -top-[calc(0.03rem*var(--density))] left-6 right-0 h-px bg-gray-300 dark:bg-gray-600' />
                     ) : null}
                     {rowIndex !== 0 && colIndex === columns.length - 1 ? (
-                      <div className='absolute -top-[0.03rem] left-0 right-6 h-px bg-gray-300 dark:bg-gray-600' />
+                      <div className='absolute -top-[calc(0.03rem*var(--density))] left-0 right-6 h-px bg-gray-300 dark:bg-gray-600' />
                     ) : null}
                   </td>
                 ))}

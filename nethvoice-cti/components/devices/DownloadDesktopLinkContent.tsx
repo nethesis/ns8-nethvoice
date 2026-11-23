@@ -88,7 +88,7 @@ export const DownloadDesktopLinkContent = forwardRef<
                 selectedOS === osCard.id
                   ? 'border-primary dark:border-primaryDark'
                   : 'border-gray-300 dark:border-gray-700'
-              } rounded-md border bg-bgInput dark:bg-bgInputDark px-3 py-2 min-h-[55px] relative flex items-center justify-between gap-2 cursor-pointer`}
+              } rounded-md border bg-bgInput dark:bg-bgInputDark px-3 py-2 min-h-[calc(55px*var(--density))] relative flex items-center justify-between gap-2 cursor-pointer`}
               onClick={() => handleSelectedOS(osCard.id)}
             >
               <div className='flex items-center gap-2'>

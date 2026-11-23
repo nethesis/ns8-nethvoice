@@ -126,7 +126,7 @@ export const Notifications = () => {
   return (
     <div className='pb-8'>
       <div className='flex flex-col gap-8'>
-        <div className='flex max-w-[672px] flex-col gap-2'>
+        <div className='flex max-w-[calc(672px*var(--density))] flex-col gap-2'>
           <h2 className='text-base font-medium leading-6 text-secondaryNeutral dark:text-secondaryNeutralDark'>
             {t('Settings.Notifications')}
           </h2>
@@ -137,7 +137,7 @@ export const Notifications = () => {
         </div>
 
         {saveError ? (
-          <div className='max-w-[672px]'>
+          <div className='max-w-[calc(672px*var(--density))]'>
             <InlineNotification type='error' title={saveError} />
           </div>
         ) : null}

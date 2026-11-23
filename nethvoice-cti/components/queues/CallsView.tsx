@@ -312,7 +312,7 @@ export const CallsView: FC<CallsViewProps> = ({ className }): JSX.Element => {
                     ),
                   }}
                   rowKey={(call) => call.id || call.uniqueid || call.cid + call.time}
-                  trClassName='h-[84px]'
+                  trClassName='h-[calc(84px*var(--density))]'
                   scrollable={true}
                   theadClassName='sticky top-0 bg-gray-100 dark:bg-gray-800 z-[1]'
                   tbodyClassName='text-sm bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-200'

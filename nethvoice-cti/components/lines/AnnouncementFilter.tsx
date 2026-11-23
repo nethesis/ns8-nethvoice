@@ -252,7 +252,7 @@ export const AnnouncementFilter = forwardRef<HTMLButtonElement, AnnouncementFilt
                   <div className='items-center'>
                     <TextInput
                       placeholder={t('Lines.Filter announcement') || ''}
-                      className='max-w-xs sm:min-w-[20rem]'
+                      className='max-w-xs sm:min-w-[calc(20rem*var(--density))]'
                       value={textFilter}
                       onChange={changeTextFilter}
                       ref={textFilterRef}

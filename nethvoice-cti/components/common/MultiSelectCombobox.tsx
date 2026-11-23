@@ -104,7 +104,7 @@ export const MultiSelectCombobox: FC<MultiSelectComboboxProps> = ({
     <div className={classNames('relative', className)} ref={containerRef}>
       <div
         className={classNames(
-          'relative flex min-h-[42px] w-full flex-wrap items-center gap-1.5 rounded-md border bg-bgInput px-3 py-1.5 pr-10 shadow-sm transition dark:bg-bgInputDark',
+          'relative flex min-h-[calc(42px*var(--density))] w-full flex-wrap items-center gap-1.5 rounded-md border bg-bgInput px-3 py-1.5 pr-10 shadow-sm transition dark:bg-bgInputDark',
           disabled ? 'cursor-not-allowed opacity-50' : 'cursor-text',
           error
             ? 'border-rose-500 focus-within:border-rose-500 focus-within:ring-1 focus-within:ring-rose-500'
@@ -139,7 +139,7 @@ export const MultiSelectCombobox: FC<MultiSelectComboboxProps> = ({
             id={id}
             type='text'
             disabled={disabled}
-            className='min-w-[6rem] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-placeHolderInputText focus:outline-none focus:ring-0 disabled:cursor-not-allowed dark:text-gray-100 dark:placeholder:text-placeHolderInputTextDark'
+            className='min-w-[calc(6rem*var(--density))] flex-1 border-0 bg-transparent p-0 text-sm text-gray-900 placeholder:text-placeHolderInputText focus:outline-none focus:ring-0 disabled:cursor-not-allowed dark:text-gray-100 dark:placeholder:text-placeHolderInputTextDark'
             placeholder={selected.length === 0 ? placeholder : ''}
             value={search}
             onChange={(e) => {
