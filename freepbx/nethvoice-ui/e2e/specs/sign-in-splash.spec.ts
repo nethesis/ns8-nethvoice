@@ -4,7 +4,7 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '../fixtures/mockApi'
 
-const SPLASH_MS = 900
+const SPLASH_MS = 1000
 
 const DEFAULT_CONFIG = {
   BRAND_NAME: 'NethVoice',

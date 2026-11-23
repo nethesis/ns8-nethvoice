@@ -4,7 +4,7 @@
 import { PRODUCT_NAME } from '@/lib/config'
 import type { RuntimeConfig } from '@/stores/runtimeConfig'
 
-export const SIGN_IN_SPLASH_MS = 900
+export const SIGN_IN_SPLASH_MS = 1000
 
 export const isRebranded = (config: RuntimeConfig): boolean =>
   config.brandName !== PRODUCT_NAME ||
