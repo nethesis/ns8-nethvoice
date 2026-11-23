@@ -371,6 +371,25 @@ cat > $FILE <<EOF
 }
 EOF
 
+# Not served to the wizard (the FreePBX container writes that one): the
+# authentication plugin reads SECRET_KEY from here to check the wizard
+# admin requests.
+FILE=/var/www/html/freepbx/wizard/scripts/custom.js
+mkdir -p $(dirname $FILE)
+cat > $FILE <<EOF
+var customConfig = {
+  BRAND_NAME: '${BRAND_NAME:=NethVoice}',
+  BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
+  BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethvoice.com/it/}',
+  BASE_API_URL: '/freepbx/rest',
+  BASE_API_URL_CTI: '/api',
+  VPLAN_URL: '/freepbx/visualplan',
+  OUTBOUNDS_URL: '/freepbx/admin/config.php?display=routing&view=form&id=',
+  SECRET_KEY: '${NETHVOICESECRETKEY}'
+};
+
+EOF
+
 # Prepare socket dir for reload
 mkdir -p /run/nethvoice/
 
