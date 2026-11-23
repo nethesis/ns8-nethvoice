@@ -23,6 +23,7 @@ use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
 require_once(__DIR__. '/../../admin/modules/core/functions.inc.php');
+include_once(__DIR__. '/../lib/libVisualPlan.php');
 
 /**
  * @api {get} /inboundroutes/count  Retrieve inbound routes (incoming) count
@@ -105,6 +106,12 @@ $app->post('/inboundroutes/delete', function (Request $request, Response $respon
   } catch (Exception $e) {
     error_log($e->getMessage());
     return jsonResponse($response, 'An error occurred', 500);
+  }
+
+  try {
+    visualplan_move_layout($extension . '/' . $cidnum, null);
+  } catch (Throwable $e) {
+    error_log('Visualplan: cannot remove the layout (' . get_class($e) . ')');
   }
 
   system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');

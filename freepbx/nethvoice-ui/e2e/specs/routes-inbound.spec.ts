@@ -1,8 +1,8 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import type { Page } from '@playwright/test'
 import { expect, test } from '../fixtures/mockApi'
+import { EMPTY_VISUAL_PLAN } from './visual-plan-data'
 
 const INBOUND_ROUTES = {
   destinations: {
@@ -47,27 +47,10 @@ const ANY_DID_ROUTES = {
   ],
 }
 
-type OpenedWindows = { __openedUrls?: string[] }
-
-const recordWindowOpen = (page: Page) =>
-  page.addInitScript(() => {
-    const target = window as unknown as OpenedWindows
-
-    target.__openedUrls = []
-    window.open = (url?: string | URL) => {
-      target.__openedUrls?.push(String(url))
-      return null
-    }
-  })
-
-const openedUrls = (page: Page) =>
-  page.evaluate(() => (window as unknown as OpenedWindows).__openedUrls ?? [])
-
 test.describe('routes: inbound', () => {
-  test.beforeEach(async ({ page, signedIn, mockApi }) => {
+  test.beforeEach(async ({ signedIn, mockApi }) => {
     void signedIn
     mockApi.on('GET', '/freepbx/rest/inboundroutes', { json: INBOUND_ROUTES })
-    await recordWindowOpen(page)
   })
 
   test('lists routes with their resolved destination', async ({ page }) => {
@@ -162,16 +145,16 @@ test.describe('routes: inbound', () => {
     await expect(page.getByRole('grid', { name: 'Inbound routes' }).getByRole('row')).toHaveCount(3)
   })
 
-  test('opens the Visual Plan to create and to edit a route', async ({ page }) => {
+  test('opens the Visual Plan to create and to edit a route', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/visualplan', { json: EMPTY_VISUAL_PLAN })
     await page.goto('./routes/inbound')
 
     await page.getByRole('button', { name: /Create route/ }).click()
-    await page.getByRole('button', { name: /route 123 \/ 345 in the Visual Plan/ }).click()
+    await expect(page).toHaveURL(/\/routes\/visual-plan$/)
 
-    expect(await openedUrls(page)).toEqual([
-      '/freepbx/visualplan/?did=new_route',
-      '/freepbx/visualplan/?did=123%20%2F%20345',
-    ])
+    await page.goto('./routes/inbound')
+    await page.getByRole('button', { name: /route 123 \/ 345 in the Visual Plan/ }).click()
+    await expect(page).toHaveURL(/\/routes\/visual-plan\?route=123(%2F|\/)345$/)
   })
 
   test('deletes a route after confirmation', async ({ page, mockApi }) => {

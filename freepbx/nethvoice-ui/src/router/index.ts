@@ -22,6 +22,7 @@ import { loadPermissions } from '@/queries/permissions/me'
 declare module 'vue-router' {
   interface RouteMeta {
     layout?: 'app' | 'blank'
+    fullBleed?: boolean
     titleKey?: string
     public?: boolean
     section?: Permission
@@ -80,6 +81,12 @@ const routes: RouteRecordRaw[] = [
     name: 'routes',
     component: () => import('@/views/RoutesView.vue'),
     meta: { titleKey: 'routes.title', section: 'routes' },
+  },
+  {
+    path: '/routes/visual-plan',
+    name: 'visual-plan',
+    component: () => import('@/views/VisualPlanView.vue'),
+    meta: { titleKey: 'visual_plan.title', section: 'routes', fullBleed: true },
   },
   {
     path: '/phones/:tab(phones|models|settings)?',

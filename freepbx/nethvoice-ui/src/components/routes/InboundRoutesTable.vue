@@ -5,6 +5,7 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   NeButton,
@@ -37,7 +38,7 @@ import { useInboundRoutes } from '@/queries/routes/inbound'
 import { usePermissions } from '@/queries/permissions/me'
 import {
   filterInboundRoutes,
-  getVisualPlanRouteUrl,
+  getVisualPlanLocation,
   INBOUND_ROUTE_SORT_KEYS,
   sortInboundRoutes,
   type InboundRoute,
@@ -48,6 +49,7 @@ import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginate } from '@/lib/common'
 const DEFAULT_SORT_KEY: InboundRouteSortKey = 'number'
 
 const { t } = useI18n()
+const router = useRouter()
 const { state, asyncStatus, refetch } = useInboundRoutes()
 const { isSuperadmin } = usePermissions()
 const { getRouteName, describeDestination, isInvalidDestination } = useInboundRouteLabels()
@@ -127,7 +129,7 @@ function clearFilters() {
 }
 
 function editRoute(route: InboundRoute) {
-  window.open(getVisualPlanRouteUrl(route), '_blank', 'noopener')
+  router.push(getVisualPlanLocation(route))
 }
 
 function showDeleteRouteModal(route: InboundRoute) {

@@ -13,8 +13,6 @@ export const LEGACY_WIZARD_URL = '/'
 
 export const FREEPBX_ADMIN_URL = '/freepbx/admin/'
 
-export const VISUAL_PLAN_URL = '/freepbx/visualplan'
-
 export const OUTBOUND_ROUTE_ADVANCED_URL = '/freepbx/admin/config.php?display=routing&view=form&id='
 
 export const OUTBOUND_ROUTES_ADVANCED_URL = '/freepbx/admin/config.php?display=routing'
