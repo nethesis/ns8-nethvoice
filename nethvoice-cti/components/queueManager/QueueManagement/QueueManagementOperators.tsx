@@ -273,6 +273,11 @@ export const QueueManagementOperators: FC<QueueManagementOperatorsProps> = ({
                                           operator?.member
                                         ]?.paused
                                       }
+                                      pauseReason={
+                                        queueManagerStore?.queues[selectedValue?.queue]?.members[
+                                          operator?.member
+                                        ]?.lastPausedInReason
+                                      }
                                     />
                                   </span>
                                 </span>

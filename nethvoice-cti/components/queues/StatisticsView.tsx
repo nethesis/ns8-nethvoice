@@ -332,6 +332,7 @@ export const StatisticsView: FC<StatisticsViewProps> = ({ className }): JSX.Elem
                           <LoggedStatus
                             loggedIn={currentQueueMember?.loggedIn}
                             paused={currentQueueMember?.paused}
+                            pauseReason={currentQueueMember?.lastPausedInReason}
                           />
                         </div>
                         {/* card body */}

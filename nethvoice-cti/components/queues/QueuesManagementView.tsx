@@ -341,7 +341,11 @@ export const QueuesManagementView: FC<QueuesManagementViewProps> = ({ className 
           </div>
         </div>
         <div className='shrink-0'>
-          <LoggedStatus loggedIn={queueOperator?.loggedIn} paused={queueOperator?.paused} />
+          <LoggedStatus
+            loggedIn={queueOperator?.loggedIn}
+            paused={queueOperator?.paused}
+            pauseReason={queueOperator?.lastPausedInReason}
+          />
         </div>
       </div>
     )
@@ -630,6 +634,7 @@ export const QueuesManagementView: FC<QueuesManagementViewProps> = ({ className 
                           <LoggedStatus
                               loggedIn={currentQueueMember?.loggedIn}
                               paused={currentQueueMember?.paused}
+                              pauseReason={currentQueueMember?.lastPausedInReason}
                             />
                           </div>
                         </div>
