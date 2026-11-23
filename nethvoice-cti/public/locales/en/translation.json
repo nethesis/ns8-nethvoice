@@ -1,5 +1,6 @@
 {
   "Common": {
+    "Brand logo": "{{brand}} logo",
     "None": "None",
     "Select all": "Select all",
     "Deselect all": "Deselect all",

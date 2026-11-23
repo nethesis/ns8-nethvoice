@@ -1,5 +1,6 @@
 {
   "Common": {
+    "Brand logo": "Logo di {{brand}}",
     "None": "Nessuna",
     "Select all": "Seleziona tutte",
     "Deselect all": "Deseleziona tutte",
