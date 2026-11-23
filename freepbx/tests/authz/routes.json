@@ -59,6 +59,26 @@
       "callers": ["ui:shell", "legacy"],
       "reason": "The login endpoint: it is the authenticator, so it is reachable without credentials."
     },
+    "POST /signin": {
+      "intent": "public",
+      "callers": ["ui:shell"],
+      "reason": "The sign-in endpoint of the new UI, for local and domain administrators: it is the authenticator, so it is reachable without credentials."
+    },
+    "GET /admins": {
+      "intent": "superadmin",
+      "callers": ["ui:admin-control"],
+      "reason": "Lists the administrators and the user domain groups that grant their permissions; it decides who manages the PBX."
+    },
+    "PUT /admins/{username}": {
+      "intent": "superadmin",
+      "callers": ["ui:admin-control"],
+      "reason": "Grants permissions by changing the NethVoice groups of the user domain: only a superadmin may grant them."
+    },
+    "DELETE /admins/{username}": {
+      "intent": "superadmin",
+      "callers": ["ui:admin-control"],
+      "reason": "Removes the permissions of an administrator, or deletes a local administrator."
+    },
     "GET /me": {
       "intent": "lookup",
       "callers": ["ui:shell"],

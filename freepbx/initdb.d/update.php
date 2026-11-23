@@ -134,6 +134,14 @@ $db->exec("CREATE TABLE IF NOT EXISTS `asterisk`.`rest_phonebook_imports` (
   KEY `created_at_key` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
+$db->exec("CREATE TABLE IF NOT EXISTS `asterisk`.`rest_domain_admins` (
+  `username` varchar(190) NOT NULL,
+  `domain` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `synced_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
 $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';

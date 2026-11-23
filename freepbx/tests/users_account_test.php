@@ -26,6 +26,7 @@ class FakeProvider {
             fn($user) => ['user' => $user, 'display_name' => ucfirst($user), 'locked' => false],
             ['alice', 'Bob', 'carol', 'helpdesk']
         )]);
+        $this->responses['list-groups'] = groups([]);
     }
 
     public function client(string $url = 'https://users-admin.example.org/api', ?UsersAdminTokenCache $cache = null): UsersAdminClient {
@@ -102,7 +103,7 @@ $tests['the domain status is cached briefly and holds no secret'] = function () 
 $tests['changes the password with must_change_password false'] = function () {
     $provider = new FakeProvider();
     check(usersAdminChangePassword($provider->client(), 'alice', ['password' => PASSWORD], SUPERADMIN) === [204, null], 'password change must succeed');
-    check($provider->calls === [['list-users', [], 'invented-token'], ['alter-user', ['user' => 'alice', 'password' => PASSWORD, 'must_change_password' => false], 'invented-token']], 'unexpected calls: ' . json_encode($provider->handlers()));
+    check($provider->calls === [['list-users', [], 'invented-token'], ['list-groups', [], 'invented-token'], ['alter-user', ['user' => 'alice', 'password' => PASSWORD, 'must_change_password' => false], 'invented-token']], 'unexpected calls: ' . json_encode($provider->handlers()));
 };
 
 $tests['maps the password policy failures'] = function () {
@@ -165,37 +166,104 @@ $tests['refuses protected accounts, the own account and bad requests'] = functio
     check($provider->calls === [], 'nothing must reach the provider');
 };
 
-$tests['protects the domain administrators from limited administrators'] = function () {
+$tests['protects domain administrators, superadmins and administrators of other instances'] = function () {
+    $_ENV['NETHVOICE_ADMIN_GROUP_PREFIX'] = 'nethvoice3';
+    $users = reply(200, ['status' => 'success', 'message' => 'users_listed', 'users' => array_map(
+        fn($user) => ['user' => $user, 'display_name' => ucfirst($user), 'locked' => false],
+        ['alice', 'Bob', 'carol', 'dave', 'erin', 'frank', 'helpdesk']
+    )]);
     $adminGroups = groups([
         ['group' => 'Domain Admins', 'description' => '', 'users' => ['Bob']],
+        ['group' => 'nethvoice3-admins', 'description' => '', 'users' => ['Carol']],
+        ['group' => 'nethvoice3-trunks', 'description' => '', 'users' => ['dave']],
+        ['group' => 'nethvoice3-users', 'description' => '', 'users' => ['helpdesk']],
+        ['group' => 'nethvoice-users', 'description' => '', 'users' => ['erin']],
+        ['group' => 'nethvoice-sales-admins', 'description' => '', 'users' => ['frank']],
         ['group' => 'sales', 'description' => '', 'users' => ['alice']],
     ]);
     $actions = [
-        'password' => fn($client, $caller) => usersAdminChangePassword($client, 'bob', ['password' => PASSWORD], $caller),
-        'disable' => fn($client, $caller) => usersAdminUpdateAccount($client, 'bob', ['locked' => true], $caller, fn() => true),
-        'enable' => fn($client, $caller) => usersAdminUpdateAccount($client, 'bob', ['locked' => false], $caller, fn() => true),
-        'delete' => fn($client, $caller) => usersAdminDeleteAccount($client, 'bob', $caller, fn() => true),
+        'password' => fn($client, $caller, $user) => usersAdminChangePassword($client, $user, ['password' => PASSWORD], $caller),
+        'disable' => fn($client, $caller, $user) => usersAdminUpdateAccount($client, $user, ['locked' => true], $caller, fn() => true),
+        'enable' => fn($client, $caller, $user) => usersAdminUpdateAccount($client, $user, ['locked' => false], $caller, fn() => true),
+        'rename' => fn($client, $caller, $user) => usersAdminUpdateAccount($client, $user, ['display_name' => 'Invented Name'], $caller, fn() => true),
+        'mail' => fn($client, $caller, $user) => usersAdminUpdateAccount($client, $user, ['mail' => 'someone@example.org'], $caller, fn() => true),
+        'delete' => fn($client, $caller, $user) => usersAdminDeleteAccount($client, $user, $caller, fn() => true),
     ];
-    foreach ($actions as $name => $action) {
+    $expected = [
+        'bob' => ['superadmin' => 'domain_admin', 'limited' => 'domain_admin'],
+        'carol' => ['superadmin' => 'superadmin_account', 'limited' => 'superadmin_account'],
+        'erin' => ['superadmin' => 'superadmin_account', 'limited' => 'superadmin_account'],
+        'frank' => ['superadmin' => 'superadmin_account', 'limited' => 'superadmin_account'],
+        'dave' => ['superadmin' => null, 'limited' => 'nethvoice_admin'],
+        'alice' => ['superadmin' => null, 'limited' => null],
+    ];
+    try {
+        foreach ($actions as $name => $action) {
+            foreach ($expected as $user => $codes) {
+                foreach (['superadmin' => SUPERADMIN, 'limited' => LIMITED] as $kind => $caller) {
+                    $provider = new FakeProvider();
+                    $provider->responses['list-users'] = $users;
+                    $provider->responses['list-groups'] = $adminGroups;
+                    $result = $action($provider->client(), $caller, $user);
+                    if ($codes[$kind] === null) {
+                        check(in_array($result[0], [200, 204], true), "$name $user by $kind must be allowed: " . json_encode($result));
+                    } else {
+                        check($result === usersAdminError(403, $codes[$kind]), "$name $user by $kind must be refused with {$codes[$kind]}: " . json_encode($result));
+                        check($provider->writes() === [], "$name $user by $kind: nothing may change, got " . json_encode($provider->handlers()));
+                    }
+                }
+            }
+            foreach (['superadmin' => SUPERADMIN, 'limited' => LIMITED] as $kind => $caller) {
+                $provider = new FakeProvider();
+                $provider->responses['list-users'] = $users;
+                $provider->responses['list-groups'] = reply(500, ['code' => 500]);
+                check($action($provider->client(), $caller, 'alice') === usersAdminError(502, 'provider_error'), "$name by $kind: an unknown membership must refuse");
+                check($provider->writes() === [], "$name by $kind: nothing may change when the membership is unknown");
+            }
+        }
         $provider = new FakeProvider();
+        $provider->responses['list-users'] = $users;
         $provider->responses['list-groups'] = $adminGroups;
-        check($action($provider->client(), LIMITED) === usersAdminError(403, 'domain_admin'), "$name: a limited administrator must be refused");
-        check($provider->handlers() === ['list-users', 'list-groups'], "$name: only the listings may run, got " . json_encode($provider->handlers()));
+        check(usersAdminUpdateAccount($provider->client(), 'helpdesk', ['display_name' => 'Help Desk'], LIMITED, fn() => true)[0] === 200, 'an administrator may rename the own account');
 
+        unset($_ENV['NETHVOICE_ADMIN_GROUP_PREFIX']);
+        foreach (['carol', 'dave'] as $user) {
+            $provider = new FakeProvider();
+            $provider->responses['list-users'] = $users;
+            $provider->responses['list-groups'] = $adminGroups;
+            check(usersAdminChangePassword($provider->client(), $user, ['password' => PASSWORD], SUPERADMIN) === usersAdminError(403, 'superadmin_account'), "without a prefix every NethVoice group must protect its members ($user)");
+        }
+        $_ENV['NETHVOICE_ADMIN_GROUP_PREFIX'] = 'Nethvoice3';
         $provider = new FakeProvider();
+        $provider->responses['list-users'] = $users;
         $provider->responses['list-groups'] = $adminGroups;
-        check(in_array($action($provider->client(), SUPERADMIN)[0], [200, 204], true), "$name: the superadmin must be allowed");
-        check(!in_array('list-groups', $provider->handlers(), true), "$name: the superadmin needs no group check");
-
-        $provider = new FakeProvider();
-        $provider->responses['list-groups'] = reply(500, ['code' => 500]);
-        check($action($provider->client(), LIMITED) === usersAdminError(502, 'provider_error'), "$name: an unknown membership must refuse");
-        check($provider->handlers() === ['list-users', 'list-groups'], "$name: nothing may change when the membership is unknown");
+        check(usersAdminChangePassword($provider->client(), 'dave', ['password' => PASSWORD], SUPERADMIN) === usersAdminError(403, 'superadmin_account'), 'an invalid prefix must be ignored');
+    } finally {
+        unset($_ENV['NETHVOICE_ADMIN_GROUP_PREFIX']);
     }
-    $provider = new FakeProvider();
-    $provider->responses['list-groups'] = $adminGroups;
-    check(usersAdminChangePassword($provider->client(), 'alice', ['password' => PASSWORD], LIMITED) === [204, null], 'a regular user must be allowed');
-    check(usersAdminUpdateAccount($provider->client(), 'bob', ['display_name' => 'Bob White'], LIMITED, fn() => true)[0] === 200, 'renaming a domain administrator stays allowed');
+};
+
+$tests['tells the administrator access of each account'] = function () {
+    $_ENV['NETHVOICE_ADMIN_GROUP_PREFIX'] = 'nethvoice3';
+    try {
+        $provider = new FakeProvider();
+        $provider->responses['list-users'] = reply(200, ['status' => 'success', 'users' => array_map(fn($user) => ['user' => $user], ['alice', 'bob', 'carol', 'dave', 'erin', 'frank', 'gina'])]);
+        $provider->responses['list-groups'] = groups([
+            ['group' => 'domain admins', 'users' => ['bob']],
+            ['group' => 'nethvoice3-admins', 'users' => ['carol']],
+            ['group' => 'nethvoice3-phones', 'users' => ['dave', 'gina']],
+            ['group' => 'nethvoice-admins', 'users' => ['erin', 'gina']],
+            ['group' => 'nethvoice3-unknown', 'users' => ['frank']],
+            ['group' => 'nethvoicefans', 'users' => ['frank']],
+        ]);
+        [$status, $accounts] = usersAdminListAccounts($provider->client());
+        check($status === 200, 'list must succeed');
+        $access = array_column($accounts, 'admin_access', 'username');
+        check($access === ['alice' => null, 'bob' => 'superadmin', 'carol' => 'superadmin', 'dave' => 'sections', 'erin' => 'other_instance', 'frank' => null, 'gina' => 'sections'], 'unexpected access: ' . json_encode($access));
+        check(array_column($accounts, 'domain_admin', 'username')['carol'] === false, 'a NethVoice superadmin is not a domain administrator');
+    } finally {
+        unset($_ENV['NETHVOICE_ADMIN_GROUP_PREFIX']);
+    }
 };
 
 $tests['locks and unlocks without synchronizing'] = function () {
@@ -204,7 +272,7 @@ $tests['locks and unlocks without synchronizing'] = function () {
         $synced = 0;
         $result = usersAdminUpdateAccount($provider->client(), 'alice', ['locked' => $locked], SUPERADMIN, function () use (&$synced) { $synced++; return true; });
         check($result === [200, ['synchronized' => null]], 'a lock change must not claim a synchronization: ' . json_encode($result));
-        check($provider->calls === [['list-users', [], 'invented-token'], ['alter-user', ['user' => 'alice', 'locked' => $locked], 'invented-token']], 'unexpected calls: ' . json_encode($provider->calls));
+        check($provider->calls === [['list-users', [], 'invented-token'], ['list-groups', [], 'invented-token'], ['alter-user', ['user' => 'alice', 'locked' => $locked], 'invented-token']], 'unexpected calls: ' . json_encode($provider->calls));
         check($synced === 0, 'a lock change needs no synchronization');
     }
     $provider = new FakeProvider();
@@ -217,7 +285,7 @@ $tests['changes display name and email, then synchronizes'] = function () {
     $synced = 0;
     $result = usersAdminUpdateAccount($provider->client(), 'alice', ['display_name' => '  Alice White ', 'mail' => 'alice@example.org'], LIMITED, function () use (&$synced) { $synced++; return false; });
     check($result === [200, ['synchronized' => false]], 'the response must report the failed synchronization: ' . json_encode($result));
-    check($provider->writes() === ['alter-user'] && $provider->calls[1] === ['alter-user', ['user' => 'alice', 'display_name' => 'Alice White', 'mail' => 'alice@example.org'], 'invented-token'], 'unexpected calls: ' . json_encode($provider->calls));
+    check($provider->writes() === ['alter-user'] && $provider->calls[2] === ['alter-user', ['user' => 'alice', 'display_name' => 'Alice White', 'mail' => 'alice@example.org'], 'invented-token'], 'unexpected calls: ' . json_encode($provider->calls));
     check($synced === 1, 'a name change must synchronize once');
 
     $provider = new FakeProvider();
@@ -253,7 +321,7 @@ $tests['refuses control characters in the display name before the provider and t
         $events = [];
         $result = usersAdminUpdateAccount($provider->client(), 'alice', ['display_name' => $name], SUPERADMIN, function () use (&$events) { $events[] = 'sync'; return true; }, function (...$args) use (&$events) { $events[] = $args; });
         check($result === [200, ['synchronized' => true]], 'the display name ' . json_encode($name) . ' was refused: ' . json_encode($result));
-        check($provider->calls[1] === ['alter-user', ['user' => 'alice', 'display_name' => trim($name)], 'invented-token'] && $events === ['sync', ['alice', trim($name)]], 'the display name ' . json_encode($name) . ' did not reach the provider and the extensions unchanged: ' . json_encode([$provider->calls, $events]));
+        check($provider->calls[2] === ['alter-user', ['user' => 'alice', 'display_name' => trim($name)], 'invented-token'] && $events === ['sync', ['alice', trim($name)]], 'the display name ' . json_encode($name) . ' did not reach the provider and the extensions unchanged: ' . json_encode([$provider->calls, $events]));
     }
 };
 
@@ -291,15 +359,16 @@ $tests['lists the accounts defensively'] = function () {
     [$status, $accounts] = usersAdminListAccounts($provider->client());
     check($status === 200, 'list must succeed');
     check($accounts === [
-        ['username' => 'alice', 'display_name' => 'Alice White', 'mail' => 'alice@example.org', 'locked' => false, 'domain_admin' => false],
-        ['username' => 'bob', 'display_name' => 'Bob Black', 'mail' => '', 'locked' => true, 'domain_admin' => true],
-        ['username' => 'carol', 'display_name' => '', 'mail' => '', 'locked' => null, 'domain_admin' => false],
+        ['username' => 'alice', 'display_name' => 'Alice White', 'mail' => 'alice@example.org', 'locked' => false, 'domain_admin' => false, 'admin_access' => null],
+        ['username' => 'bob', 'display_name' => 'Bob Black', 'mail' => '', 'locked' => true, 'domain_admin' => true, 'admin_access' => 'superadmin'],
+        ['username' => 'carol', 'display_name' => '', 'mail' => '', 'locked' => null, 'domain_admin' => false, 'admin_access' => null],
     ], 'unexpected accounts: ' . json_encode($accounts));
 
     $provider = new FakeProvider();
     $provider->responses['list-users'] = reply(200, ['status' => 'success', 'users' => [['user' => 'alice']]]);
     $provider->responses['list-groups'] = reply(200, 'not json');
     check(usersAdminListAccounts($provider->client())[1][0]['domain_admin'] === null, 'an unknown membership must be null');
+    check(usersAdminListAccounts($provider->client())[1][0]['admin_access'] === null, 'an unknown administrator access must be null');
 
     foreach ([reply(200, ['status' => 'success']), reply(200, ['status' => 'failure', 'users' => []]), reply(500, ''), ['status' => 0, 'body' => '']] as $response) {
         $provider = new FakeProvider();
@@ -430,13 +499,13 @@ $tests['logs in again once when the provider refuses the reused token'] = functi
         $result = usersAdminUpdateAccount($provider->client('https://users-admin.example.org/api', $cache()), 'alice', ['locked' => true], SUPERADMIN, fn() => true);
         check($result === [200, ['synchronized' => null]], "$status: the change must succeed after a new login: " . json_encode($result));
         check($provider->logins === 2, "$status: one new login expected, got " . $provider->logins);
-        check(array_map(fn($call) => [$call[0], $call[2]], $provider->calls) === [['list-users', 'invented-token'], ['alter-user', 'invented-token'], ['alter-user', 'renewed-token']], "$status: unexpected calls " . json_encode($provider->calls));
+        check(array_map(fn($call) => [$call[0], $call[2]], $provider->calls) === [['list-users', 'invented-token'], ['list-groups', 'invented-token'], ['alter-user', 'invented-token'], ['alter-user', 'renewed-token']], "$status: unexpected calls " . json_encode($provider->calls));
         check(str_contains((string) file_get_contents($file), 'renewed-token'), "$status: the new token must replace the refused one");
 
         $provider->calls = [];
         $provider->responses['alter-user'] = reply($status, ['code' => $status]);
         check(usersAdminUpdateAccount($provider->client('https://users-admin.example.org/api', $cache()), 'alice', ['locked' => true], SUPERADMIN, fn() => true) === usersAdminError(502, 'provider_error'), "$status: a refused new token must be a provider error");
-        check($provider->logins === 3 && count($provider->calls) === 3, "$status: only one retry is allowed, got " . json_encode($provider->handlers()));
+        check($provider->logins === 3 && count($provider->calls) === 4, "$status: only one retry is allowed, got " . json_encode($provider->handlers()));
         removeDirectory($directory);
     }
     $provider = new FakeProvider();

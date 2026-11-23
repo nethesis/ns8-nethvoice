@@ -104,6 +104,7 @@ const NETHVOICE_PREFIX_RULES = [
     '/cti/dbconn' => 'integrations',
     '/cti/customer_card' => 'integrations',
     '/settings' => 'settings',
+    '/admins' => NETHVOICE_SUPERADMIN,
 ];
 
 function nethvoiceParseSections($sections): array
@@ -498,7 +499,7 @@ function nethvoiceLimitedAdminResponseFilter(string $method, string $pattern): ?
 
 class PermissionMiddleware implements MiddlewareInterface
 {
-    private const PUBLIC_ROUTES = ['POST /testauth'];
+    private const PUBLIC_ROUTES = ['POST /testauth', 'POST /signin'];
 
     private NethvoiceLimitedAdminLookup $lookup;
 

@@ -48,7 +48,7 @@ class AuthMiddleware implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $isTestAuthPath = $request->getUri()->getPath() === '/freepbx/rest/testauth';
+        $isTestAuthPath = in_array($request->getUri()->getPath(), ['/freepbx/rest/testauth', '/freepbx/rest/signin'], true);
         if (strtoupper($request->getMethod()) === 'OPTIONS') {
             return $this->responseFactory->createResponse(204);
         }

@@ -17,6 +17,9 @@ const USERS_ADMIN_SYNC_LOCK = '/var/run/nethvoice/users-sync.lock';
 const USERS_ADMIN_SYNC_WAIT_MICROSECONDS = 6000000;
 const USERS_ADMIN_SYNC_STEP_MICROSECONDS = 250000;
 const USERS_ADMIN_DISPLAY_NAME_MAX_LENGTH = 50;
+const USERS_ADMIN_SECTIONS = ['dashboard', 'users', 'trunks', 'routes', 'phones', 'integrations', 'settings'];
+const USERS_ADMIN_GROUP_PREFIX_PATTERN = '/^nethvoice([a-z0-9-]{0,22}[a-z0-9])?$/D';
+const USERS_ADMIN_NETHVOICE_GROUP_PATTERN = '/^nethvoice(?:[a-z0-9-]*[a-z0-9])?-(?:admins|dashboard|users|trunks|routes|phones|integrations|settings)$/D';
 const USERS_ADMIN_POLICY_ERRORS = [
     'error_password_complexity' => 'password_complexity',
     'error_password_history' => 'password_history',
@@ -26,7 +29,9 @@ const USERS_ADMIN_MESSAGES = [
     'invalid_request' => 'Invalid request',
     'protected_account' => 'This account cannot be managed here',
     'own_account' => 'You cannot change the account you are signed in with',
-    'domain_admin' => 'Only the superadmin can change this domain administrator account',
+    'domain_admin' => 'Domain administrator accounts are managed in the user domain',
+    'superadmin_account' => 'The account of another superadmin cannot be changed here',
+    'nethvoice_admin' => 'Only the superadmin can change the account of an administrator',
     'domain_not_manageable' => 'The user domain cannot be managed from NethVoice',
     'domain_unavailable' => 'The user domain is not reachable',
     'provider_error' => 'The user domain did not complete the request',
@@ -295,24 +300,75 @@ function usersAdminAvailabilityError(UsersAdminClient $client): ?array
     return null;
 }
 
-function usersAdminDomainAdmins(UsersAdminClient $client): ?array
+function usersAdminGroupPrefix(): ?string
+{
+    $prefix = $_ENV['NETHVOICE_ADMIN_GROUP_PREFIX'] ?? getenv('NETHVOICE_ADMIN_GROUP_PREFIX');
+    return is_string($prefix) && preg_match(USERS_ADMIN_GROUP_PREFIX_PATTERN, $prefix) === 1 ? $prefix : null;
+}
+
+function usersAdminOwnGroups(?string $prefix): array
+{
+    if ($prefix === null) {
+        return [];
+    }
+    $groups = ['superadmin' => $prefix . '-admins'];
+    foreach (USERS_ADMIN_SECTIONS as $section) {
+        $groups[$section] = $prefix . '-' . $section;
+    }
+    return $groups;
+}
+
+function usersAdminGroups(UsersAdminClient $client): ?array
 {
     $result = $client->call('list-groups');
     if (!usersAdminSucceeded($result) || !is_array($result['data']['groups'] ?? null)) {
         return null;
     }
-    $admins = [];
+    $groups = [];
     foreach ($result['data']['groups'] as $group) {
-        if (!is_array($group) || !is_string($group['group'] ?? null) || strtolower($group['group']) !== USERS_ADMIN_DOMAIN_ADMINS_GROUP) {
+        if (!is_array($group) || !is_string($group['group'] ?? null)) {
             continue;
         }
-        foreach (is_array($group['users'] ?? null) ? $group['users'] : [] as $member) {
-            if (is_string($member)) {
-                $admins[] = strtolower($member);
-            }
+        $members = array_values(array_filter(is_array($group['users'] ?? null) ? $group['users'] : [], fn($member) => is_string($member) && $member !== ''));
+        $groups[] = ['group' => $group['group'], 'users' => $members];
+    }
+    return $groups;
+}
+
+function usersAdminRoles(array $groups, ?string $prefix): array
+{
+    $own = array_flip(array_map('strtolower', usersAdminOwnGroups($prefix)));
+    $roles = ['domain' => [], 'superadmin' => [], 'sections' => [], 'other' => []];
+    foreach ($groups as $group) {
+        $name = strtolower($group['group']);
+        if ($name === USERS_ADMIN_DOMAIN_ADMINS_GROUP) {
+            $role = 'domain';
+        } elseif ($name === $prefix . '-admins') {
+            $role = 'superadmin';
+        } elseif (isset($own[$name])) {
+            $role = 'sections';
+        } elseif (preg_match(USERS_ADMIN_NETHVOICE_GROUP_PATTERN, $name) === 1) {
+            $role = 'other';
+        } else {
+            continue;
+        }
+        foreach ($group['users'] as $member) {
+            $roles[$role][strtolower($member)] = true;
         }
     }
-    return $admins;
+    return $roles;
+}
+
+function usersAdminAccess(array $roles, string $username): ?string
+{
+    $username = strtolower($username);
+    if (isset($roles['domain'][$username]) || isset($roles['superadmin'][$username])) {
+        return 'superadmin';
+    }
+    if (isset($roles['sections'][$username])) {
+        return 'sections';
+    }
+    return isset($roles['other'][$username]) ? 'other_instance' : null;
 }
 
 function usersAdminListAccounts(UsersAdminClient $client): array
@@ -325,7 +381,8 @@ function usersAdminListAccounts(UsersAdminClient $client): array
     if (!usersAdminSucceeded($result) || !is_array($result['data']['users'] ?? null)) {
         return usersAdminError(502, 'provider_error');
     }
-    $admins = usersAdminDomainAdmins($client);
+    $groups = usersAdminGroups($client);
+    $roles = $groups === null ? null : usersAdminRoles($groups, usersAdminGroupPrefix());
     $accounts = [];
     foreach ($result['data']['users'] as $user) {
         if (!is_array($user) || !is_string($user['user'] ?? null) || $user['user'] === '') {
@@ -336,7 +393,8 @@ function usersAdminListAccounts(UsersAdminClient $client): array
             'display_name' => is_string($user['display_name'] ?? null) ? $user['display_name'] : '',
             'mail' => is_string($user['mail'] ?? null) ? $user['mail'] : '',
             'locked' => is_bool($user['locked'] ?? null) ? $user['locked'] : null,
-            'domain_admin' => $admins === null ? null : in_array(strtolower($user['user']), $admins, true),
+            'domain_admin' => $roles === null ? null : isset($roles['domain'][strtolower($user['user'])]),
+            'admin_access' => $roles === null ? null : usersAdminAccess($roles, $user['user']),
         ];
     }
     return [200, $accounts];
@@ -370,16 +428,27 @@ function usersAdminTargetError(string $username, array $caller, bool $selfAllowe
     return null;
 }
 
-function usersAdminDomainAdminError(UsersAdminClient $client, string $username, array $caller): ?array
+function usersAdminProtectedTargetError(UsersAdminClient $client, string $username, array $caller): ?array
 {
-    if (!empty($caller['superadmin'])) {
+    if (strcasecmp($username, (string) ($caller['username'] ?? '')) === 0) {
         return null;
     }
-    $admins = usersAdminDomainAdmins($client);
-    if ($admins === null) {
+    $groups = usersAdminGroups($client);
+    if ($groups === null) {
         return usersAdminError(502, 'provider_error');
     }
-    return in_array(strtolower($username), $admins, true) ? usersAdminError(403, 'domain_admin') : null;
+    $roles = usersAdminRoles($groups, usersAdminGroupPrefix());
+    $username = strtolower($username);
+    if (isset($roles['domain'][$username])) {
+        return usersAdminError(403, 'domain_admin');
+    }
+    if (isset($roles['superadmin'][$username]) || isset($roles['other'][$username])) {
+        return usersAdminError(403, 'superadmin_account');
+    }
+    if (isset($roles['sections'][$username]) && empty($caller['superadmin'])) {
+        return usersAdminError(403, 'nethvoice_admin');
+    }
+    return null;
 }
 
 function usersAdminChangePassword(UsersAdminClient $client, string $username, $body, array $caller): array
@@ -391,7 +460,7 @@ function usersAdminChangePassword(UsersAdminClient $client, string $username, $b
     $error = usersAdminTargetError($username, $caller, false)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
-        ?? usersAdminDomainAdminError($client, $username, $caller);
+        ?? usersAdminProtectedTargetError($client, $username, $caller);
     if ($error !== null) {
         return $error;
     }
@@ -453,7 +522,7 @@ function usersAdminUpdateAccount(UsersAdminClient $client, string $username, $bo
     $error = usersAdminTargetError($username, $caller, !$locking)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
-        ?? ($locking ? usersAdminDomainAdminError($client, $username, $caller) : null);
+        ?? usersAdminProtectedTargetError($client, $username, $caller);
     if ($error !== null) {
         return $error;
     }
@@ -480,7 +549,7 @@ function usersAdminDeleteAccount(UsersAdminClient $client, string $username, arr
     $error = usersAdminTargetError($username, $caller, false)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
-        ?? usersAdminDomainAdminError($client, $username, $caller);
+        ?? usersAdminProtectedTargetError($client, $username, $caller);
     if ($error !== null) {
         return $error;
     }

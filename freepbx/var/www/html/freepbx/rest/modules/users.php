@@ -24,6 +24,7 @@ include_once('lib/libExtensions.php');
 include_once('lib/libMiddleware.php');
 include_once('lib/libSecurity.php');
 include_once('lib/libUsersAdmin.php');
+include_once('lib/libDomainAdmins.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -53,11 +54,20 @@ $app->put('/users/{username}/account/password', function (Request $request, Resp
 });
 
 $app->patch('/users/{username}/account', function (Request $request, Response $response, $args) {
-    return usersAdminResponse($response, usersAdminUpdateAccount(usersAdminDefaultClient(), (string) $args['username'], nethvoiceRequestBody($request), usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminApplyDisplayName'));
+    $body = nethvoiceRequestBody($request);
+    $result = usersAdminUpdateAccount(usersAdminDefaultClient(), (string) $args['username'], $body, usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminApplyDisplayName');
+    if ($result[0] === 200 && is_array($body) && ($body['locked'] ?? null) === true) {
+        domainAdminsDefault()->sync();
+    }
+    return usersAdminResponse($response, $result);
 });
 
 $app->delete('/users/{username}/account', function (Request $request, Response $response, $args) {
-    return usersAdminResponse($response, usersAdminDeleteAccount(usersAdminDefaultClient(), (string) $args['username'], usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminDeleteNethvoiceData'));
+    $result = usersAdminDeleteAccount(usersAdminDefaultClient(), (string) $args['username'], usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminDeleteNethvoiceData');
+    if ($result[0] === 200) {
+        domainAdminsDefault()->sync();
+    }
+    return usersAdminResponse($response, $result);
 });
 
 # Get final wizard report for created users

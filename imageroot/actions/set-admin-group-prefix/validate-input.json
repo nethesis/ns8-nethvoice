@@ -1,0 +1,22 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Set the prefix of the NethVoice administrator groups",
+    "$id": "http://nethserver.org/json-schema/task/input/nethvoice/set-admin-group-prefix",
+    "description": "The user domain groups <prefix>-admins and <prefix>-<section> grant the NethVoice administrator permissions. Changing the prefix does not move the members of the previous groups.",
+    "examples": [
+        {
+            "prefix": "nethvoice-sales"
+        }
+    ],
+    "type": "object",
+    "required": [
+        "prefix"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "prefix": {
+            "type": "string",
+            "pattern": "^nethvoice([a-z0-9-]{0,22}[a-z0-9])?$"
+        }
+    }
+}

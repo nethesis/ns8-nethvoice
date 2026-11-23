@@ -143,6 +143,9 @@ $expected = [
     'GET /final' => 'superadmin',
     'GET /login' => 'superadmin',
     'DELETE /adminphone' => 'superadmin',
+    'GET /admins' => 'superadmin',
+    'PUT /admins/{username}' => 'superadmin',
+    'DELETE /admins/{username}' => 'superadmin',
     'GET /unknown' => 'superadmin',
     'GET /dashboard/calls' => 'dashboard',
     'GET /dashboard/live/extensions' => 'dashboard|users|phones',
@@ -167,8 +170,10 @@ foreach (glob($rest . '/modules/*.php') as $module) {
 sort($superadminOnly);
 $expectedSuperadminOnly = [
     'DELETE /adminphone',
+    'DELETE /admins/{username}',
     'DELETE /cti/customer_card/template/{name}',
     'DELETE /outboundroutes/{route_id}/trunks/{id}',
+    'GET /admins',
     'GET /configuration/allowexternalsips',
     'GET /configuration/externalip',
     'GET /configuration/localnetworks',
@@ -213,8 +218,10 @@ $expectedSuperadminOnly = [
     'POST /migration/timeconditions',
     'POST /migration/timegroups',
     'POST /migration/trunksroutesassignements',
+    'POST /signin',
     'POST /testauth',
     'POST /users/{username}/password',
+    'PUT /admins/{username}',
     'PUT /cti/customer_card/template/{name}',
 ];
 check($superadminOnly === $expectedSuperadminOnly, "superadmin-only routes changed:\n" . implode("\n", array_diff($superadminOnly, $expectedSuperadminOnly)) . "\n--\n" . implode("\n", array_diff($expectedSuperadminOnly, $superadminOnly)));

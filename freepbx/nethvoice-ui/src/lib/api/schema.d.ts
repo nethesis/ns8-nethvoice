@@ -84,6 +84,67 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/signin': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Sign in an administrator and return the Secretkey to send from then on.
+     * @description Body: `{ "username": "", "password": "" }`. Local administrators (`ampusers`, e.g. `admin`) are checked first. Otherwise the credentials are checked by the user domain: the groups `<prefix>-admins` (full access), `<prefix>-<section>` and the domain admins group of the user domain give the permissions. The shared secret is never returned.
+     */
+    post: operations['post_signin']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/admins': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List the administrators of NethVoice and the user domain groups that grant the permissions. */
+    get: operations['get_admins']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/admins/{username}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    /**
+     * Set the permissions of a domain account.
+     * @description The account becomes a member of exactly the groups of the given permissions (`superadmin` alone, or one or more sections) and is removed from the other `<prefix>-*` groups. Missing groups are created. A signed-in administrator gets the new permissions with the next request.
+     */
+    put: operations['put_admins_username']
+    post?: never
+    /**
+     * Remove the administrator permissions of an account.
+     * @description A domain account is removed from every `<prefix>-*` group; the account itself is not changed. A local administrator other than `admin` is deleted. In both cases the administrator is signed out at once.
+     */
+    delete: operations['delete_admins_username']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/contexts': {
     parameters: {
       query?: never
@@ -3257,6 +3318,89 @@ export interface components {
       /** @description Shared secret used to compute the Secretkey header. */
       result: string
     }
+    SignInResponse: {
+      /** @description Username as stored, which can differ in case from the one typed. */
+      user: string
+      secretkey: string
+      permissions: components['schemas']['AdminSection'][]
+      /** @enum {string} */
+      source: 'local' | 'domain'
+    }
+    SignInError: {
+      /** @enum {string} */
+      code:
+        | 'invalid_request'
+        | 'invalid_credentials'
+        | 'password_expired'
+        | 'account_conflict'
+        | 'too_many_attempts'
+        | 'domain_unavailable'
+      message?: string
+    }
+    /** @description Name of the user domain group of each permission. */
+    AdminGroups: {
+      superadmin: string
+      dashboard: string
+      users: string
+      trunks: string
+      routes: string
+      phones: string
+      integrations: string
+      settings: string
+    }
+    AdminAccount: {
+      username: string
+      display_name: string | null
+      /**
+       * @description `local`: an `ampusers` administrator; `domain`: a member of the `<prefix>-*` groups; `domain_admin`: a member of the domain admins group, always with full access.
+       * @enum {string}
+       */
+      source: 'local' | 'domain' | 'domain_admin'
+      permissions: components['schemas']['AdminSection'][]
+      /** @description The `<prefix>-*` groups the account belongs to. */
+      groups: string[]
+      locked: boolean | null
+      editable: boolean
+      removable: boolean
+      /**
+       * @description Why the account is not editable or not removable.
+       * @enum {string|null}
+       */
+      reason:
+        | 'builtin'
+        | 'own_account'
+        | 'domain_admin'
+        | 'local_account'
+        | 'domain_not_manageable'
+        | null
+    }
+    AdminControl: {
+      prefix: string
+      groups: components['schemas']['AdminGroups']
+      /** @description Whether the groups of the user domain can be read and changed. */
+      manageable: boolean
+      /** @enum {string|null} */
+      reason: 'external' | 'unavailable' | null
+      admins: components['schemas']['AdminAccount'][]
+    }
+    AdminPermissionsUpdate: {
+      /** @description `superadmin` alone, or one or more sections. */
+      permissions: components['schemas']['AdminSection'][]
+    }
+    AdminError: {
+      /** @enum {string} */
+      code:
+        | 'invalid_request'
+        | 'own_account'
+        | 'protected_account'
+        | 'domain_admin'
+        | 'local_account'
+        | 'user_not_found'
+        | 'domain_not_manageable'
+        | 'domain_unavailable'
+        | 'provider_error'
+      message?: string
+    }
     SuccessFlag: {
       success: boolean
     }
@@ -4088,6 +4232,11 @@ export interface components {
       locked: boolean | null
       /** @description Member of the domain admins group of the user domain; null when the groups cannot be read. */
       domain_admin: boolean | null
+      /**
+       * @description Administrator permissions of the account: `superadmin` (domain admin or member of `<prefix>-admins`), `sections` (member of `<prefix>-<section>` groups only), `other_instance` (member of the groups of another NethVoice on the same user domain); null when none or when the groups cannot be read.
+       * @enum {string|null}
+       */
+      admin_access?: 'superadmin' | 'sections' | 'other_instance' | null
     }
     UsersAccountUpdate: {
       display_name?: string
@@ -4118,6 +4267,8 @@ export interface components {
         | 'invalid_mail'
         | 'invalid_display_name'
         | 'user_not_found'
+        | 'superadmin_account'
+        | 'nethvoice_admin'
       message?: string
     }
     UsersStatusMessage: {
@@ -4356,6 +4507,260 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+    }
+  }
+  post_signin: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['TestAuthRequest']
+      }
+    }
+    responses: {
+      /** @description Signed in. `user` is the name to send in the `User` header, `secretkey` the value of the `Secretkey` header. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignInResponse']
+        }
+      }
+      /** @description `invalid_request` */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignInError']
+        }
+      }
+      /** @description `invalid_credentials`, also for valid domain credentials of an account without NethVoice permissions */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignInError']
+        }
+      }
+      /** @description `password_expired` (the domain password must be changed first) or `account_conflict` (a local administrator or a reserved name has the same username) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignInError']
+        }
+      }
+      /** @description `too_many_attempts`: too many failed attempts for this username from this address */
+      429: {
+        headers: {
+          /** @description Seconds to wait before the next attempt. */
+          'Retry-After'?: number
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignInError']
+        }
+      }
+      /** @description `domain_unavailable`: the credentials match no local administrator and the user domain is not reachable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignInError']
+        }
+      }
+    }
+  }
+  get_admins: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response. When the user domain is not manageable, `admins` holds only what NethVoice knows locally and every domain entry is read-only. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminControl']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+    }
+  }
+  put_admins_username: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        username: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminPermissionsUpdate']
+      }
+    }
+    responses: {
+      /** @description Permissions set */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminAccount']
+        }
+      }
+      /** @description `invalid_request` */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description Missing permission, or `own_account`, `protected_account` (`admin` or a reserved name), `domain_admin` or `local_account` */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `user_not_found`: the account does not exist in the user domain */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `domain_not_manageable`: the user domain is external */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `provider_error` */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `domain_unavailable` */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+    }
+  }
+  delete_admins_username: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        username: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Permissions removed */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description `invalid_request` */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description Missing permission, or `own_account`, `protected_account` or `domain_admin` */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `user_not_found`: neither a local administrator nor a member of the `<prefix>-*` groups */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `domain_not_manageable` */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `provider_error` */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `domain_unavailable` */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
       }
     }
   }
@@ -10657,7 +11062,7 @@ export interface operations {
           'application/json': components['schemas']['UsersAccountError']
         }
       }
-      /** @description Missing permission, or `protected_account`, `own_account` or `domain_admin` */
+      /** @description Missing permission, or `protected_account`, `own_account`, `domain_admin`, `superadmin_account` or `nethvoice_admin` */
       403: {
         headers: {
           [name: string]: unknown
@@ -10737,7 +11142,7 @@ export interface operations {
           'application/json': components['schemas']['UsersAccountError']
         }
       }
-      /** @description Missing permission, or `protected_account`, `own_account` (locking the caller's account) or `domain_admin` (a limited administrator locking a domain administrator) */
+      /** @description Missing permission, or `protected_account`, `own_account` (locking the caller's account), `domain_admin` (a limited administrator locking a domain administrator), `superadmin_account` (locking another superadmin or an administrator of another NethVoice) or `nethvoice_admin` (a limited administrator locking an administrator) */
       403: {
         headers: {
           [name: string]: unknown
@@ -10824,7 +11229,7 @@ export interface operations {
           'application/json': components['schemas']['UsersAccountError']
         }
       }
-      /** @description Missing permission, or `protected_account`, `own_account` or `domain_admin` */
+      /** @description Missing permission, or `protected_account`, `own_account`, `domain_admin`, `superadmin_account` or `nethvoice_admin` */
       403: {
         headers: {
           [name: string]: unknown
