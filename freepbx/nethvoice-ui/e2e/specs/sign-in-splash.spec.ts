@@ -107,6 +107,19 @@ test.describe('sign-in splash', () => {
     )
   })
 
+  test('covers the phone island while the logo is shown', async ({ page }) => {
+    await freezeClock(page)
+    await openLogin(page, DEFAULT_CONFIG)
+    await signIn(page)
+
+    const splash = page.getByTestId('sign-in-splash')
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
+    await expect(splash).toBeVisible()
+    const zIndex = (testId: string) =>
+      page.getByTestId(testId).evaluate((element) => Number(getComputedStyle(element).zIndex))
+    expect(await zIndex('sign-in-splash')).toBeGreaterThan(await zIndex('phone-island-host'))
+  })
+
   test('keeps the splash until a slower navigation to the deep link ends', async ({
     page,
     mockApi,

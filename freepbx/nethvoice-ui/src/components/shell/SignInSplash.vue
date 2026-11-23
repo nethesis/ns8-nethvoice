@@ -36,7 +36,7 @@ const splashStore = useSignInSplashStore()
   >
     <div
       v-if="splashStore.visible"
-      class="bg-elevation-1 fixed inset-0 z-50 flex items-center justify-center"
+      class="bg-elevation-1 fixed inset-0 z-115 flex items-center justify-center"
       aria-busy="true"
       data-testid="sign-in-splash"
     >
