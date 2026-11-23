@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# The legacy NethCTI server is reachable only through the middleware (/api):
+# remove the routes that published it directly on /webrest and /socket.io.
+# configure-module no longer creates them, but instances installed before
+# still have them. delete-route is idempotent, so this runs on every update.
+
+import os
+import sys
+
+import agent
+import agent.tasks
+
+LEGACY_ROUTES = ('server-api', 'cti-server-api', 'server-websocket')
+
+traefik_id = agent.resolve_agent_id('traefik@node')
+if traefik_id is None:
+    print("remove legacy CTI routes: traefik@node not found, skipped", file=sys.stderr)
+    sys.exit(0)
+
+for route in LEGACY_ROUTES:
+    instance = os.environ['MODULE_ID'] + '-' + route
+    result = agent.tasks.run(
+        agent_id=traefik_id,
+        action='delete-route',
+        data={'instance': instance},
+        extra={'isNotificationHidden': True},
+    )
+    if result['exit_code'] != 0:
+        print(f"remove legacy CTI routes: delete-route {instance} failed: {result}", file=sys.stderr)
