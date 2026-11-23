@@ -99,6 +99,9 @@ cat >> /app/public/config/config.production.js<<EOF
   FAVICON_URL: '$(js_quote "${FAVICON_URL:-}")',
   NAVBAR_LOGO_URL: '$(js_quote "${NAVBAR_LOGO_URL:-}")',
   NAVBAR_LOGO_DARK_URL: '$(js_quote "${NAVBAR_LOGO_DARK_URL:-}")',
+  LOGIN_LOGO_URL: '$(js_quote "${LOGIN_LOGO_URL:-}")',
+  LOGIN_LOGO_DARK_URL: '$(js_quote "${LOGIN_LOGO_DARK_URL:-}")',
+  LOGIN_BACKGROUND_URL: '$(js_quote "${LOGIN_BACKGROUND_URL:-}")',
 EOF
 
 

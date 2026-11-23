@@ -1,0 +1,56 @@
+.mark {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  fill-opacity: 0;
+  animation: sign-in-splash-trace 500ms cubic-bezier(0.65, 0, 0.35, 1) forwards,
+    sign-in-splash-fill 300ms ease-out 300ms forwards;
+}
+
+.letter {
+  opacity: 0;
+  transform: translateY(4px);
+  animation: sign-in-splash-letter 250ms ease-out forwards;
+}
+
+.subname {
+  opacity: 0;
+  animation: sign-in-splash-fade 250ms ease-out forwards;
+}
+
+@keyframes sign-in-splash-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes sign-in-splash-fill {
+  to {
+    fill-opacity: 1;
+    stroke-opacity: 0;
+  }
+}
+
+@keyframes sign-in-splash-letter {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sign-in-splash-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mark,
+  .letter,
+  .subname {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    fill-opacity: 1;
+    stroke-opacity: 0;
+  }
+}
