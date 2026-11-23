@@ -11,7 +11,6 @@
       {"name": "Asterisk WSS (WebRTC)",    "port": "8089",        "protocol": "tcp"},
       {"name": "Asterisk recordings SFTP", "port": "2022",        "protocol": "tcp"},
       {"name": "Asterisk RTP (WSS)",       "port": "20000-20100", "protocol": "udp"},
-      {"name": "NethCTI TLS (Nethifier)",  "port": "9001",        "protocol": "tcp"},
       {"name": "Phonebook LDAPS",          "port": "636",         "protocol": "tcp"},
       {"name": "Janus WebRTC RTP",         "port": "10000-10200", "protocol": "udp"}
     ]

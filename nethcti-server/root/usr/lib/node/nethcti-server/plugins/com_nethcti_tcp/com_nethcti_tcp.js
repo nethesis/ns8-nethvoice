@@ -363,6 +363,16 @@ var notifSupportedCommands = {};
 var streamingNotifTemplatePath;
 
 /**
+ * True when the configuration file has no tcp and tls sections: the servers
+ * are not started.
+ *
+ * @property disabled
+ * @type boolean
+ * @private
+ */
+var disabled = false;
+
+/**
  * The TCP server port. It is customized by the configuration file.
  *
  * @property tcpPort
@@ -1165,6 +1175,14 @@ function config(path) {
     // read configuration file
     var json = JSON.parse(fs.readFileSync(path, 'utf8'));
 
+    // the tcp and tls servers were used only by the retired Nethifier client:
+    // without their configuration they stay off
+    if (!json || (!json.tcp && !json.tls)) {
+      disabled = true;
+      logger.log.info(IDLOG, 'tcp and tls servers are disabled: no configuration in ' + path);
+      return;
+    }
+
     // initialize the port of the tcp server
     if (json && json.tcp && json.tcp.port) {
       tcpPort = json.tcp.port;
@@ -1295,6 +1313,9 @@ function configWinPopup(path) {
  */
 function start() {
   try {
+    if (disabled) {
+      return;
+    }
     // check the configuration. The server starts only if the configuration has been done
     // correctly, that is if the /etc/nethcti/services.json file exists and contains
     // the tcp and tls json object
