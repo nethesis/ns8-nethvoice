@@ -1452,7 +1452,11 @@
       "status_unknown": "Unknown",
       "test_before_save": "Changes to the connection are saved only if the test succeeds.",
       "color_required": "Select a color",
-      "query_built_in_helper": "Only the superadmin can change the query and show the preview of a card on a database of the PBX."
+      "query_built_in_helper": "Only the superadmin can change the query and show the preview of a card on a database of the PBX.",
+      "view": "Show",
+      "view_template": "Template {name}",
+      "templates_description_read_only": "Layouts of the customer cards, written in HTML and EJS. Only the superadmin can create, change or delete them.",
+      "template_read_only_info": "Only the superadmin can change the templates."
     },
     "external": {
       "description": "Services provided by external providers, such as transcription and summary of calls and voicemail.",

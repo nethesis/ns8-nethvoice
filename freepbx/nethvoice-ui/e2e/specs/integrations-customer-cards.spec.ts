@@ -989,126 +989,69 @@ test.describe('integrations: customer cards', () => {
     await page.goto('./integrations/customer-cards')
 
     await expect(cardsGrid(page).getByRole('row')).toHaveCount(3)
-    await expect(page.getByRole('button', { name: 'Create template' })).toBeEnabled()
-    await expect(page.getByRole('button', { name: 'Edit table' })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Show table' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Create template' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Show table' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Edit table' })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Open the menu of Open invoices' }).click()
     await page.getByRole('menuitem', { name: 'Duplicate' }).click()
+    await drawer(page).getByRole('combobox', { name: 'Template' }).click()
+    await expect(page.getByRole('option')).toHaveCount(3)
+    await page.getByRole('option', { name: /^table/ }).click()
     await createButton(page).click()
     await expect(drawer(page)).toBeHidden()
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/customer_card')).toHaveLength(1)
   })
 
-  test('creates, duplicates and edits templates as an administrator with only Integrations', async ({
+  test('shows the templates read only to an administrator with only Integrations', async ({
     page,
     mockApi,
   }) => {
     mockPermissions(mockApi, ['integrations'], 'integrator')
-    mockApi
-      .on('POST', '/freepbx/rest/cti/customer_card/template', { status: 200 })
-      .on('PUT', '/freepbx/rest/cti/customer_card/template/:name', { status: 200 })
 
     await page.goto('./integrations/customer-cards')
 
     await expect(
       page.getByText(
-        'Layouts of the customer cards, written in HTML and EJS. Duplicate a built-in template to start from it.',
+        'Layouts of the customer cards, written in HTML and EJS. Only the superadmin can create, change or delete them.',
       ),
     ).toBeVisible()
-    await expect(page.getByText(/Only the superadmin can create/)).toHaveCount(0)
+    await expect(page.getByText(/Duplicate a built-in template/)).toHaveCount(0)
+    await expect(templatesGrid(page).getByRole('row')).toHaveCount(4)
+    await expect(page.getByRole('button', { name: 'Create template' })).toHaveCount(0)
+    for (const name of ['table', 'invoices', 'notes']) {
+      await expect(templatesGrid(page).getByRole('button', { name: `Show ${name}` })).toBeVisible()
+      await expect(templatesGrid(page).getByRole('button', { name: `Edit ${name}` })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: `Open the menu of ${name}` })).toHaveCount(0)
+    }
 
-    await page.getByRole('button', { name: 'Create template' }).click()
-    await drawer(page).getByRole('textbox', { name: 'Name', exact: true }).fill('Orders')
-    await drawer(page).getByRole('textbox', { name: 'Code' }).fill('<p><%= results[0].name %></p>')
-    await createButton(page).click()
-    await expect(drawer(page)).toBeHidden()
-    await expect(toasts(page).getByText('Template orders has been created.')).toBeVisible()
-
-    await page.getByRole('button', { name: 'Open the menu of table' }).click()
-    await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText(['Duplicate'])
-    await page.getByRole('menuitem', { name: 'Duplicate' }).click()
-    await expect(drawer(page).getByRole('textbox', { name: 'Name', exact: true })).toHaveValue(
-      'tablecopy',
-    )
-    await createButton(page).click()
-    await expect(drawer(page)).toBeHidden()
-
-    expect(
-      mockApi.callsTo('POST', '/freepbx/rest/cti/customer_card/template').map((call) => call.body),
-    ).toEqual([
-      { name: 'orders', custom: true, html: b64('<p><%= results[0].name %></p>') },
-      { name: 'tablecopy', custom: true, html: b64(TABLE_CODE) },
-    ])
-
-    await page.getByRole('button', { name: 'Edit invoices' }).click()
-    await expect(drawer(page).getByRole('heading', { name: 'Edit template' })).toBeVisible()
-    await drawer(page).getByRole('textbox', { name: 'Code' }).fill('<p>new invoices</p>')
-    await drawer(page).getByRole('button', { name: 'Save' }).click()
-    await expect(drawer(page)).toBeHidden()
-
-    const put = mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/template/:name')
-    expect(put).toHaveLength(1)
-    expect(put[0].path).toBe('/freepbx/rest/cti/customer_card/template/invoices')
-    expect(put[0].body).toEqual({
-      name: 'invoices',
-      custom: true,
-      html: b64('<p>new invoices</p>'),
-    })
-  })
-
-  test('changes the color of a built-in template as an administrator with only Integrations', async ({
-    page,
-    mockApi,
-  }) => {
-    mockPermissions(mockApi, ['integrations'], 'integrator')
-    mockApi.on('PUT', '/freepbx/rest/cti/customer_card/template/:name', { status: 200 })
-
-    await page.goto('./integrations/customer-cards')
-    await expect(page.getByRole('button', { name: 'Show table' })).toHaveCount(0)
-    await page.getByRole('button', { name: 'Edit table' }).click()
-
-    await expect(drawer(page).getByRole('heading', { name: 'Edit template' })).toBeVisible()
-    await expect(drawer(page).getByRole('textbox')).toHaveCount(0)
+    await templatesGrid(page).getByRole('button', { name: 'Show invoices' }).click()
+    await expect(drawer(page).getByRole('heading', { name: 'Template invoices' })).toBeVisible()
     await expect(
-      drawer(page).getByText('Built-in templates cannot be changed: duplicate it to customize it.'),
-    ).toHaveCount(0)
-    const color = drawer(page).getByRole('combobox', { name: 'Color' })
-    await expect(color).toHaveValue('Red')
-    await color.click()
-    await page.getByRole('option', { name: 'Green' }).click()
-    await drawer(page).getByRole('button', { name: 'Save' }).click()
-
+      drawer(page).getByText('Only the superadmin can change the templates.'),
+    ).toBeVisible()
+    await expect(drawer(page).getByRole('textbox', { name: 'Name', exact: true })).toHaveCount(0)
+    const code = drawer(page).getByRole('textbox', { name: 'Code' })
+    await expect(code).toHaveValue('<p><%= results[0].total %></p>')
+    await expect(code).not.toBeEditable()
+    await expect(drawer(page).getByRole('button', { name: 'Save' })).toHaveCount(0)
+    await expect(drawer(page).getByRole('button', { name: 'Create', exact: true })).toHaveCount(0)
+    await drawer(page).getByRole('button', { name: 'Close', exact: true }).click()
     await expect(drawer(page)).toBeHidden()
-    const put = mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/template/:name')
-    expect(put).toHaveLength(1)
-    expect(put[0].path).toBe('/freepbx/rest/cti/customer_card/template/table')
-    expect(put[0].body).toEqual({
-      name: 'table',
-      custom: false,
-      html: b64('<!-- color: green -->\n<thead class="bg-emerald-600"></thead>'),
-    })
+
+    await templatesGrid(page).getByRole('button', { name: 'Show table' }).click()
+    await expect(drawer(page).getByRole('heading', { name: 'Template table' })).toBeVisible()
+    await expect(drawer(page).getByRole('combobox', { name: 'Color' })).toHaveCount(0)
+    await expect(drawer(page).getByRole('textbox', { name: 'Code' })).toHaveValue(TABLE_CODE)
+    await expect(drawer(page).getByRole('textbox', { name: 'Code' })).not.toBeEditable()
+    await page.keyboard.press('Escape')
+    await expect(drawer(page)).toBeHidden()
+
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/customer_card/template')).toHaveLength(0)
-    await expect(toasts(page).getByText('Template updated')).toBeVisible()
-  })
-
-  test('deletes a custom template as an administrator with only Integrations', async ({
-    page,
-    mockApi,
-  }) => {
-    mockPermissions(mockApi, ['integrations'], 'integrator')
-    mockApi.on('DELETE', '/freepbx/rest/cti/customer_card/template/:name', { status: 200 })
-
-    await page.goto('./integrations/customer-cards')
-    await page.getByRole('button', { name: 'Open the menu of notes' }).click()
-    await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText(['Duplicate', 'Delete'])
-    await page.getByRole('menuitem', { name: 'Delete' }).click()
-    await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
-
-    await expect(toasts(page).getByText('Template notes has been deleted.')).toBeVisible()
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/template/:name')).toHaveLength(0)
     expect(
-      mockApi.callsTo('DELETE', '/freepbx/rest/cti/customer_card/template/:name')[0].path,
-    ).toBe('/freepbx/rest/cti/customer_card/template/notes')
+      mockApi.callsTo('DELETE', '/freepbx/rest/cti/customer_card/template/:name'),
+    ).toHaveLength(0)
   })
 
   test('previews a card for an administrator with only Integrations', async ({ page, mockApi }) => {

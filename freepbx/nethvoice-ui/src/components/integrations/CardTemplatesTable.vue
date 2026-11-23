@@ -25,6 +25,7 @@ import {
   faCirclePlus,
   faClone,
   faCode,
+  faEye,
   faPenToSquare,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
@@ -42,12 +43,14 @@ import {
 } from '@/lib/integrations/cardTemplates'
 import { getCardsUsingTemplate } from '@/lib/integrations/customerCards'
 import { useCardTemplates, useCustomerCards } from '@/queries/integrations/customerCards'
+import { usePermissions } from '@/queries/permissions/me'
 
-type DrawerMode = 'create' | 'edit' | 'duplicate'
+type DrawerMode = 'create' | 'edit' | 'duplicate' | 'view'
 
 const { t } = useI18n()
 const { state, refetch } = useCardTemplates()
 const { state: cardsState } = useCustomerCards()
+const { isSuperadmin } = usePermissions()
 
 const currentTemplate = ref<CardTemplate | undefined>()
 const drawerMode = ref<DrawerMode>('create')
@@ -83,6 +86,9 @@ function openDrawer(mode: DrawerMode, template?: CardTemplate) {
 }
 
 function getKebabMenuItems(template: CardTemplate): NeDropdownItem[] {
+  if (!isSuperadmin.value) {
+    return []
+  }
   const items: NeDropdownItem[] = [
     {
       id: 'duplicate',
@@ -120,9 +126,14 @@ function deleteCurrentTemplate() {
     </NeHeading>
     <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
       <p class="text-tertiary-neutral max-w-2xl">
-        {{ t('integrations.cards.templates_description') }}
+        {{
+          isSuperadmin
+            ? t('integrations.cards.templates_description')
+            : t('integrations.cards.templates_description_read_only')
+        }}
       </p>
       <NeButton
+        v-if="isSuperadmin"
         kind="secondary"
         size="lg"
         :disabled="state.status !== 'success'"
@@ -188,11 +199,18 @@ function deleteCurrentTemplate() {
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
               <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
-                <NeButton kind="tertiary" @click="openDrawer('edit', template)">
+                <NeButton v-if="isSuperadmin" kind="tertiary" @click="openDrawer('edit', template)">
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
                   </template>
                   {{ t('common.edit') }}
+                  <span class="sr-only">{{ template.name }}</span>
+                </NeButton>
+                <NeButton v-else kind="tertiary" @click="openDrawer('view', template)">
+                  <template #prefix>
+                    <FontAwesomeIcon :icon="faEye" class="size-4" aria-hidden="true" />
+                  </template>
+                  {{ t('integrations.cards.view') }}
                   <span class="sr-only">{{ template.name }}</span>
                 </NeButton>
                 <NeDropdown

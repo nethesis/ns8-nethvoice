@@ -48,7 +48,7 @@ const {
   usedBy = [],
 } = defineProps<{
   isShown: boolean
-  mode: 'create' | 'edit' | 'duplicate'
+  mode: 'create' | 'edit' | 'duplicate' | 'view'
   currentTemplate: CardTemplate | undefined
   templates: CardTemplate[]
   usedBy?: string[]
@@ -79,13 +79,16 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
 
 const editing = computed(() => mode === 'edit' && !!currentTemplate)
 const editingColor = computed(() => editing.value && !currentTemplate?.custom)
+const readOnly = computed(() => mode === 'view')
 
-const isDirty = computed(() => snapshot() !== initialSnapshot.value)
+const isDirty = computed(() => !readOnly.value && snapshot() !== initialSnapshot.value)
 
 const title = computed(() => {
   switch (mode) {
     case 'edit':
       return t('integrations.cards.edit_template')
+    case 'view':
+      return t('integrations.cards.view_template', { name: currentTemplate?.name ?? '' })
     default:
       return t('integrations.cards.create_template')
   }
@@ -175,7 +178,9 @@ watch(
     }
     color.value = currentTemplate?.color ?? ''
     initialSnapshot.value = snapshot()
-    focusElement(editingColor.value ? colorRef : mode === 'edit' ? codeRef : nameRef)
+    if (!readOnly.value) {
+      focusElement(editingColor.value ? colorRef : mode === 'edit' ? codeRef : nameRef)
+    }
   },
 )
 
@@ -197,6 +202,9 @@ function discardChanges() {
 }
 
 function save() {
+  if (readOnly.value) {
+    return
+  }
   saveReset()
 
   if (editingColor.value) {
@@ -249,7 +257,13 @@ function save() {
           :optional-label="t('common.optional')"
         />
         <template v-else>
+          <NeInlineNotification
+            v-if="readOnly"
+            kind="info"
+            :description="t('integrations.cards.template_read_only_info')"
+          />
           <NeTextInput
+            v-else
             ref="nameRef"
             v-model="form.name"
             :label="t('integrations.name')"
@@ -275,6 +289,7 @@ function save() {
               class="[&_textarea]:font-mono"
               :helper-text="t('integrations.cards.template_code_helper')"
               :invalid-message="validationIssues.code ? t(validationIssues.code) : ''"
+              :readonly="readOnly"
               :disabled="saving"
             />
             <div>
@@ -297,12 +312,23 @@ function save() {
       </div>
       <hr class="my-8" />
       <div class="flex justify-end gap-3">
-        <NeButton type="button" kind="tertiary" size="lg" :disabled="saving" @click="requestClose">
-          {{ t('common.cancel') }}
+        <NeButton v-if="readOnly" type="button" kind="primary" size="lg" @click="requestClose">
+          {{ t('common.close') }}
         </NeButton>
-        <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
-          {{ editing ? t('common.save') : t('common.create') }}
-        </NeButton>
+        <template v-else>
+          <NeButton
+            type="button"
+            kind="tertiary"
+            size="lg"
+            :disabled="saving"
+            @click="requestClose"
+          >
+            {{ t('common.cancel') }}
+          </NeButton>
+          <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
+            {{ editing ? t('common.save') : t('common.create') }}
+          </NeButton>
+        </template>
       </div>
     </form>
   </NeSideDrawer>

@@ -1452,7 +1452,11 @@
       "status_unknown": "Sconosciuto",
       "test_before_save": "Le modifiche alla connessione vengono salvate solo se la verifica riesce.",
       "color_required": "Seleziona un colore",
-      "query_built_in_helper": "Solo il superadmin può modificare la query e mostrare l'anteprima di una scheda su un database del centralino."
+      "query_built_in_helper": "Solo il superadmin può modificare la query e mostrare l'anteprima di una scheda su un database del centralino.",
+      "view": "Mostra",
+      "view_template": "Template {name}",
+      "templates_description_read_only": "Layout delle schede cliente, scritti in HTML ed EJS. Solo il superadmin può crearli, modificarli o eliminarli.",
+      "template_read_only_info": "Solo il superadmin può modificare i template."
     },
     "external": {
       "description": "Servizi forniti da provider esterni, come trascrizione e riassunto di chiamate e segreteria.",
