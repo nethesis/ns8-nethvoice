@@ -4,12 +4,12 @@ FreePBX container for NethServer 8
 
 ## Upstream updates
 
-Renovate tracks stable Asterisk 22 releases using the official
-`asterisk-22-current.sha256` file. It updates `ASTERISK_VERSION` and
-`ASTERISK_SHA256` in the Containerfile together; the existing PR image workflow
-builds the updated source and checks its SHA-256 before extraction.
-The feed lists only the latest release, so Renovate can warn that it cannot
-refresh an older pin's digest; the version update still includes the new hash.
+Renovate tracks stable Asterisk 22 releases from the `asterisk/asterisk` GitHub
+releases and reads the checksum from each release's `asterisk-<version>.sha256`
+asset. It updates `ASTERISK_VERSION` and `ASTERISK_SHA256` in the Containerfile
+together; the existing PR image workflow builds the updated source and checks
+its SHA-256 before extraction. A package rule keeps Renovate on the 22 LTS
+series.
 
 FreePBX 17 module updates are grouped in the Dependency Dashboard and require
 approval before Renovate opens a PR. They do not automerge. Before building an
