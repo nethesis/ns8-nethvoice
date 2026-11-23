@@ -212,7 +212,7 @@ const Settings: NextPage = () => {
 
   return (
     <>
-      <div className='flex flex-col lg:h-[calc(100dvh-8rem)]'>
+      <div className='flex flex-col lg:h-[calc(100dvh_-_var(--spacing)*32)]'>
         <div className='mx-auto flex w-full flex-1 flex-col min-h-0'>
           <h1 className='text-2xl font-medium mb-6 text-primaryNeutral dark:text-primaryNeutralDark'>
             {t('Settings.Settings')}

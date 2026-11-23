@@ -293,7 +293,7 @@ export const GlobalSearch: FC<GlobalSearchProps> = () => {
                   aria-hidden='true'
                 />
                 <ComboboxInput
-                  className='h-[63px] w-full border-0 bg-transparent pl-12 pr-4 focus:ring-0 sm:text-sm text-gray-800 dark:text-gray-100 placeholder-topBarText  dark:placeholder-topBarTextDark'
+                  className='h-[calc(var(--spacing)*16_-_1px)] w-full border-0 bg-transparent pl-12 pr-4 focus:ring-0 sm:text-sm text-gray-800 dark:text-gray-100 placeholder-topBarText  dark:placeholder-topBarTextDark'
                   placeholder={t('Devices.Search or compose') + '...' || ''}
                   onChange={handleInputChange}
                   onKeyDown={(e: any) => {

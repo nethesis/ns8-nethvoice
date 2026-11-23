@@ -623,6 +623,8 @@
     "Activate voicemail": "Activate voicemail",
     "Cellphone": "Cellphone",
     "Forward incoming calls to cellphone": "Forward incoming calls to cellphone",
+    "Switch to compact view": "Switch to compact view",
+    "Switch to standard view": "Switch to standard view",
     "Sign out": "Sign out"
   },
   "OperatorDrawer": {

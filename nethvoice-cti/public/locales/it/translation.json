@@ -617,6 +617,8 @@
     "Activate voicemail": "Attiva voicemail",
     "Cellphone": "Cellulare",
     "Forward incoming calls to cellphone": "Inoltra le chiamate in entrata al cellulare",
+    "Switch to compact view": "Passa alla vista compatta",
+    "Switch to standard view": "Passa alla vista standard",
     "Sign out": "Esci"
   },
   "OperatorDrawer": {

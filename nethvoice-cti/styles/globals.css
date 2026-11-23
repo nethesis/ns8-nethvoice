@@ -20,6 +20,8 @@
   }
 }
 :root {
+  --spacing: 0.25rem;
+
   /* react tooltip opacity */
   --rt-opacity: 1;
   --autofill-bg: white;
@@ -458,6 +460,10 @@
   --color-text-inline-notification-information-title-dark: #E0E7FF;
   --color-text-inline-notification-information-description: #4338CA;
   --color-text-inline-notification-information-description-dark: #C7D2FE;
+}
+
+html.compact {
+  --spacing: 0.2rem;
 }
 
 @media (prefers-color-scheme: dark) {

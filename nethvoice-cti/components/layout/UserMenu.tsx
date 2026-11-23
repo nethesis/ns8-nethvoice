@@ -1,8 +1,16 @@
 import React from 'react'
 import { Dropdown } from '../common'
-import { faArrowRightFromBracket, faGear } from '@fortawesome/free-solid-svg-icons'
+import {
+  faArrowRightFromBracket,
+  faGear,
+  faTableCells,
+  faTableCellsLarge,
+} from '@fortawesome/free-solid-svg-icons'
 import { useTranslation } from 'react-i18next'
 import { useRouter } from 'next/router'
+import { useSelector } from 'react-redux'
+import { RootState } from '../../store'
+import { setDensity } from '../../lib/density'
 import { Divider } from '../common/Divider'
 import { PresenceMenu } from './PresenceMenu'
 import { DeviceMenu } from './DeviceMenu'
@@ -39,6 +47,8 @@ export const UserMenu: React.FC<UserMenuProps> = ({
 }) => {
   const { t } = useTranslation()
   const router = useRouter()
+  const { isCompact } = useSelector((state: RootState) => state.density)
+  const { username } = useSelector((state: RootState) => state.authentication)
 
   return (
     <>
@@ -81,6 +91,15 @@ export const UserMenu: React.FC<UserMenuProps> = ({
         onClick={() => router.push({ pathname: '/settings', query: { section: 'Devices' } })}
       >
         <span>{t('Settings.Settings')}</span>
+      </Dropdown.Item>
+
+      <Dropdown.Item
+        icon={isCompact ? faTableCellsLarge : faTableCells}
+        onClick={() => setDensity(isCompact ? 'standard' : 'compact', username)}
+      >
+        <span>
+          {isCompact ? t('TopBar.Switch to standard view') : t('TopBar.Switch to compact view')}
+        </span>
       </Dropdown.Item>
 
       {/* Divider */}
