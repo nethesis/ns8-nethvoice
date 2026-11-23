@@ -89,6 +89,12 @@ class MQTTClient:
 
     async def _connect_with_retry(self):
         """Connect to the MQTT broker with retry until successful"""
+        if self.client and not self.connected:
+            try:
+                await self.client.__aexit__(None, None, None)
+            except Exception:
+                pass
+            self.client = None
         while not self.connected and not self._stopping:
             try:
                 # Parse URL
@@ -114,6 +120,7 @@ class MQTTClient:
                 logger.info(f"Connected to MQTT broker at {self.url}")
                 return True
             except Exception as e:
+                self.connected = False
                 logger.warning(f"Failed to connect to MQTT broker: {e}, retrying in {self.reconnect_delay} seconds")
                 if hasattr(self, 'client') and self.client:
                     try:
@@ -192,8 +199,13 @@ class MQTTClient:
         except Exception as e:
             logger.error(f"Failed to publish message to {full_topic}: {e}")
             self.connected = False
-            # Try to reconnect
-            asyncio.create_task(self._connect_with_retry())
+            # Closing the failed connection wakes the message task to reconnect.
+            client, self.client = self.client, None
+            if client:
+                try:
+                    await client.__aexit__(None, None, None)
+                except Exception:
+                    pass
             return False
 
     def set_callback(self, callback):
@@ -234,6 +246,8 @@ class MQTTClient:
                                     logger.error(f"Error in message callback: {e}")
                         except Exception as e:
                             logger.error(f"Error processing MQTT message: {e}")
+                elif not self.connected:
+                    await self._connect_with_retry()
                 else:
                     # Wait a bit before checking again
                     await asyncio.sleep(1)

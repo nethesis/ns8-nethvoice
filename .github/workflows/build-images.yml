@@ -92,6 +92,20 @@ jobs:
             done
           fi
 
+      - name: Check Satellite runtime
+        env:
+          BUILT_IMAGES: ${{ steps.build.outputs.images }}
+        run: |
+          if [[ " ${BUILT_IMAGES} " == *"/nethvoice-satellite "* ]]; then
+            podman run --rm --network=none --entrypoint=python "${REPOBASE}/nethvoice-satellite:${IMAGETAG}" -c '
+          import os
+          from main import run
+          from transcription import run as transcribe
+          from voice_agent.runner import app_from_env
+          from voice_agent.consultation import Consultations
+          assert os.getuid() == os.getgid() == 65532'
+          fi
+
       - name: Publish module images
         run: |
           trap 'buildah logout ghcr.io' EXIT

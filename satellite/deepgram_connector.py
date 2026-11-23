@@ -18,6 +18,7 @@ import metrics
 
 logger = logging.getLogger("deepgram_connector")
 logging.getLogger('websockets').setLevel(logging.INFO)
+CLOSE_IO_TIMEOUT = 3
 
 class DeepgramConnector:
     """
@@ -286,60 +287,69 @@ class DeepgramConnector:
             self.connected = False
 
             # Cancel background tasks
-            if self.read_audio_from_rtp_task is not None:
-                self.read_audio_from_rtp_task.cancel()
-            if self.send_audio_to_deepgram_task is not None:
-                self.send_audio_to_deepgram_task.cancel()
+            tasks = [task for task in (self.read_audio_from_rtp_task, self.send_audio_to_deepgram_task)
+                     if task is not None and task is not asyncio.current_task()]
+            for task in tasks:
+                task.cancel()
+            await asyncio.gather(*tasks, return_exceptions=True)
 
             # Close Deepgram connection/socket
             if self.dg_connection is not None:
                 try:
-                    await self.dg_connection.finalize()
+                    async with asyncio.timeout(CLOSE_IO_TIMEOUT):
+                        await self.dg_connection.finalize()
                 except Exception as e:
-                    logger.debug(f"Deepgram finalize failed for {self.uniqueid}: {e}")
+                    logger.warning("Deepgram finalization failed for %s: %s", self.uniqueid, type(e).__name__)
 
                 # Best-effort close of the underlying socket if finalize doesn't do it
-                try:
-                    if self.dg_connection is not None:
-                        socket = getattr(self.dg_connection, "_socket", None)
-                        if socket is not None:
+                socket = getattr(self.dg_connection, "_socket", None)
+                if socket is not None:
+                    try:
+                        async with asyncio.timeout(CLOSE_IO_TIMEOUT):
                             await socket.close()
-                except Exception as e:
-                    logger.debug(f"Deepgram socket close failed for {self.uniqueid}: {e}")
+                    except Exception as e:
+                        logger.warning("Deepgram socket close failed for %s: %s", self.uniqueid, type(e).__name__)
+                        transport = getattr(socket, "transport", None)
+                        if transport is not None:
+                            transport.abort()
 
-        # Give the SDK a short window to emit final transcript callbacks after finalize().
-        await asyncio.sleep(0.5)
+            # Give the SDK a short window to emit final transcript callbacks after finalize().
+            await asyncio.sleep(0.5)
 
-        # publish full conversation to mqtt
-        messages = list(self.complete_call)
-        if not messages and self.latest_interim_by_channel:
-            messages = sorted(
-                self.latest_interim_by_channel.values(),
-                key=lambda item: item.get("timestamp", 0),
-            )
-            logger.info(
-                "Publishing fallback final transcript for %s using %d interim segment(s)",
-                self.uniqueid,
-                len(messages),
-            )
+            # publish full conversation to mqtt
+            messages = list(self.complete_call)
+            if not messages and self.latest_interim_by_channel:
+                messages = sorted(
+                    self.latest_interim_by_channel.values(),
+                    key=lambda item: item.get("timestamp", 0),
+                )
+                logger.info(
+                    "Publishing fallback final transcript for %s using %d interim segment(s)",
+                    self.uniqueid,
+                    len(messages),
+                )
 
-        text = ""
-        last_speaker = None
-        for message in messages:
-            if last_speaker != message["speaker_name"]:
-                text += f'\n{message["speaker_name"]}: '
-            text += f'{message["transcription"]}\n'
-            last_speaker = message["speaker_name"]
+            text = ""
+            last_speaker = None
+            for message in messages:
+                if last_speaker != message["speaker_name"]:
+                    text += f'\n{message["speaker_name"]}: '
+                text += f'{message["transcription"]}\n'
+                last_speaker = message["speaker_name"]
 
-        if not text.strip():
-            logger.warning("No transcript content available to publish for %s", self.uniqueid)
-            return
+            if not text.strip():
+                logger.warning("No transcript content available to publish for %s", self.uniqueid)
+                return
 
-        # publish the full conversation to mqtt
-        await self.mqtt_client.publish(
-            topic='final',
-            payload=json.dumps({
-                "uniqueid": self.uniqueid,
-                "raw_transcription": text
-            })
-        )
+            # publish the full conversation to mqtt
+            try:
+                async with asyncio.timeout(CLOSE_IO_TIMEOUT):
+                    await self.mqtt_client.publish(
+                        topic='final',
+                        payload=json.dumps({
+                            "uniqueid": self.uniqueid,
+                            "raw_transcription": text
+                        })
+                    )
+            except TimeoutError:
+                logger.warning("Final transcript publication timed out for %s", self.uniqueid)

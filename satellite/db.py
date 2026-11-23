@@ -54,7 +54,7 @@ def _conninfo() -> str:
 
 
 def _connect() -> psycopg.Connection:
-    conn = psycopg.connect(_conninfo())
+    conn = psycopg.connect(_conninfo(), connect_timeout=10)
     try:
         register_vector(conn)
     except psycopg.ProgrammingError as e:
@@ -71,7 +71,7 @@ def _connect() -> psycopg.Connection:
 
 
 def _connect_without_pgvector() -> psycopg.Connection:
-    return psycopg.connect(_conninfo())
+    return psycopg.connect(_conninfo(), connect_timeout=10)
 
 
 def ensure_schema() -> None:

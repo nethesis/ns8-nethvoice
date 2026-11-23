@@ -93,7 +93,7 @@ there is no current `satellite-recordcheck`, `stoprec`, or broader
 - Response JSON: `{"transcript": <text>, "detected_language": <lang-or-null>}`.
 
 If request fields, auth, or persistence semantics change here, check the
-upstream `nethesis/satellite` API implementation too.
+module repository’s `satellite/api.py` implementation too.
 
 ## Tests
 

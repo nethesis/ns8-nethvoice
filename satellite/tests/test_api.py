@@ -1,6 +1,12 @@
 """
 Unit tests for the FastAPI application endpoints.
 """
+import asyncio
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+
 import pytest
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock, Mock
@@ -249,6 +255,35 @@ class TestGetTranscription:
             raw_transcription="SPEAKER 1: Hello world",
         )
         state_mock.assert_any_call(transcript_id=123, state="done")
+
+    @pytest.mark.asyncio
+    async def test_cancelled_enrichment_marks_transcript_failed(self, valid_wav_content, mock_deepgram_response):
+        import api
+
+        async def wait_for_shutdown(**_):
+            await api._run_worker([sys.executable, "-c", "import time; time.sleep(60)"])
+
+        transport = httpx.ASGITransport(app=api.app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            with patch.dict(os.environ, {"OPENAI_API_KEY": "test"}), \
+                 patch("api.db.is_configured", return_value=True), patch("api.db.ensure_schema"), \
+                 patch("api.db.create_transcript_progress", return_value=123), \
+                 patch("api.db.upsert_transcript_raw", return_value=123), \
+                 patch("api.db.set_transcript_state") as state, \
+                 patch("api._run_call_processor", new=wait_for_shutdown), \
+                 patch("api.httpx.AsyncClient") as provider:
+                provider.return_value.__aenter__.return_value.post.return_value = httpx.Response(
+                    200, json=mock_deepgram_response, request=httpx.Request("POST", "http://provider"))
+                async with api.lifespan(api.app):
+                    task = asyncio.create_task(client.post(
+                        "/api/get_transcription", data={"uniqueid": "1234567890.1234", "persist": "true"},
+                        files={"file": ("test.wav", valid_wav_content, "audio/wav")}))
+                    async with asyncio.timeout(2):
+                        while task not in api._worker_tasks:
+                            await asyncio.sleep(0.01)
+                assert task.cancelled()
+        assert [call.kwargs for call in state.call_args_list] == [
+            {"transcript_id": 123, "state": "summarizing"}, {"transcript_id": 123, "state": "failed"}]
 
     @patch('httpx.AsyncClient')
     def test_persists_duration_when_provided(self, mock_client_class, client, valid_wav_content):
@@ -668,6 +703,32 @@ class TestGetSpeech:
         assert response.content == b"AAABBB"
         assert mock_tts.call_count == 2
 
+    def test_tts_file_io_runs_off_media_loop(self, client, monkeypatch):
+        def off_loop(func):
+            def checked(*args, **kwargs):
+                with pytest.raises(RuntimeError, match="no running event loop"):
+                    asyncio.get_running_loop()
+                return func(*args, **kwargs)
+            return checked
+
+        def concatenate(directory):
+            manifest = (directory / "inputs.txt").read_text()
+            assert manifest.splitlines() == ["file 'chunk_0001.mp3'", "file 'chunk_0002.mp3'"]
+            (directory / "output.mp3").write_bytes(b"".join(
+                (directory / filename).read_bytes() for filename in ("chunk_0001.mp3", "chunk_0002.mp3")))
+
+        async def worker(command, *, cwd):
+            await asyncio.to_thread(concatenate, cwd)
+            return subprocess.CompletedProcess(command, 0, b"", b"")
+
+        monkeypatch.setattr(Path, "open", off_loop(Path.open))
+        monkeypatch.setattr(tempfile.TemporaryDirectory, "cleanup", off_loop(tempfile.TemporaryDirectory.cleanup))
+        with patch("api._tts_chunk_to_bytes_sync", side_effect=[b"AAA", b"BBB"]), \
+             patch("api.shutil.which", return_value="/ffmpeg"), patch("api._run_worker", new=worker):
+            response = client.post("/api/get_speech", data={"text": "a" * 2001})
+        assert response.status_code == 200
+        assert response.content == b"AAABBB"
+
     @patch("api._concat_and_boost_mp3_ffmpeg", new_callable=AsyncMock, return_value=b"MP3DATA")
     @patch("api._tts_chunk_to_bytes_sync", return_value=b"MP3DATA")
     def test_get_speech_ignores_unknown_params(self, mock_tts, mock_ffmpeg, client):
@@ -863,8 +924,9 @@ class TestMetricsEndpoint:
         assert _metric(text, "satellite_ai_calls_total", provider="deepgram", operation="tts", result="failure") == "1"
         assert _metric(text, "satellite_ai_credit_exhausted", provider="deepgram") == "1"
 
-    @patch("api.subprocess.run")
-    def test_call_processor_metrics_are_merged(self, mock_run, client):
+    @pytest.mark.asyncio
+    @patch("api._run_worker", new_callable=AsyncMock)
+    async def test_call_processor_metrics_are_merged(self, mock_run, client):
         import api
         child = {
             "ok": False,
@@ -876,7 +938,7 @@ class TestMetricsEndpoint:
         mock_run.return_value = Mock(returncode=1, stdout=json.dumps(child).encode(), stderr=b"")
 
         with pytest.raises(RuntimeError):
-            api._run_call_processor(transcript_id=1, raw_transcription="hi", summary=True)
+            await api._run_call_processor(transcript_id=1, raw_transcription="hi", summary=True)
 
         text = client.get("/metrics").text
         assert _metric(text, "satellite_ai_calls_total", provider="openai", operation="clean", result="failure") == "1"

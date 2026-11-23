@@ -4,8 +4,8 @@ This feature adds an opt-in consultation before transferring a caller to a perso
 Queues retain direct transfer. Existing v8 publications and tools-v5 remain
 unchanged; new settings use publication v9 and transfer tool v3 in tools-v6.
 Deploy matching NethVoice, Satellite, CTI server and chat gateway images before
-enabling it. The development Satellite image must become a versioned release
-before merge. Live acceptance gaps are listed below.
+enabling it. Build the bundled Satellite image from the same NethVoice revision
+as FreePBX. Live acceptance gaps are listed below.
 
 ## Enable it for Receptionist
 
@@ -173,8 +173,6 @@ instance at inspection. Updating the module/services and enabling chat requires
 a separately approved maintenance window; existing Receptionist publication
 remains unchanged. Live provider, browser/mobile chat, recording/transcription
 continuity, actual Satellite-stop and human listening acceptance remain pending.
-Replace the Satellite development image with a versioned release before merging
-the paired feature.
 
 ### Announcement and monitoring repair
 

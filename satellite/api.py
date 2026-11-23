@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, UploadFile, File, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import PlainTextResponse, StreamingResponse
+import asyncio
+from contextlib import asynccontextmanager
+from pathlib import Path
 import re
 import uuid
 import json
@@ -19,11 +22,49 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 import db
 import metrics
 
-app = FastAPI()
 logger = logging.getLogger("api")
+_worker_tasks = set()
 
 
-@app.on_event("startup")
+@asynccontextmanager
+async def lifespan(app):
+    await run_in_threadpool(_init_satellite_db_schema)
+    try:
+        yield
+    finally:
+        tasks = list(_worker_tasks)
+        for task in tasks:
+            if not task.cancelling():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+
+
+app = FastAPI(lifespan=lifespan)
+
+
+async def _run_worker(command, *, input=None, timeout=None, cwd=None):
+    """Reap per-request workers on timeout, request cancellation or shutdown."""
+    proc = await asyncio.create_subprocess_exec(
+        *command, stdin=asyncio.subprocess.PIPE if input is not None else None,
+        stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, cwd=cwd)
+    task = asyncio.current_task()
+    _worker_tasks.add(task)
+    try:
+        stdout, stderr = await asyncio.wait_for(proc.communicate(input), timeout=timeout)
+        return subprocess.CompletedProcess(command, proc.returncode, stdout, stderr)
+    finally:
+        try:
+            if proc.returncode is None:
+                # Requests drain before lifespan shutdown; expired workers cannot linger.
+                try:
+                    proc.kill()
+                except ProcessLookupError:
+                    pass
+                await proc.communicate()
+        finally:
+            _worker_tasks.discard(task)
+
+
 def _init_satellite_db_schema() -> None:
     # Create the Postgres schema as soon as the service starts, instead of
     # waiting for the first successfully persisted transcript. Otherwise an
@@ -149,24 +190,34 @@ def _iter_bytes(data: bytes, *, chunk_size: int):
         yield data[i : i + chunk_size]
 
 
-def _concat_and_boost_mp3_ffmpeg_sync(chunks: list[bytes], gain: float) -> bytes:
-    ffmpeg_path = shutil.which("ffmpeg")
+async def _finish_thread_call(func, *args, **kwargs):
+    # Cleanup must wait for in-flight file or database operations even on cancellation.
+    task = asyncio.create_task(run_in_threadpool(func, *args, **kwargs))
+    try:
+        return await asyncio.shield(task)
+    except asyncio.CancelledError:
+        await asyncio.gather(task, return_exceptions=True)
+        raise
+
+
+def _stage_tts_chunks(directory, chunks):
+    with (directory / "inputs.txt").open("w", encoding="utf-8") as manifest:
+        for index, chunk in enumerate(chunks, start=1):
+            filename = f"chunk_{index:04d}.mp3"
+            (directory / filename).write_bytes(chunk)
+            manifest.write(f"file '{filename}'\n")
+
+
+async def _concat_and_boost_mp3_ffmpeg(chunks: list[bytes], gain: float = 8.0) -> bytes:
+    ffmpeg_path = await run_in_threadpool(shutil.which, "ffmpeg")
     if not ffmpeg_path:
         raise RuntimeError("ffmpeg is not installed or not available in PATH")
 
-    with tempfile.TemporaryDirectory(prefix="satellite-tts-", delete=False) as temp_dir:
-        concat_file_path = os.path.join(temp_dir, "inputs.txt")
-        output_path = os.path.join(temp_dir, "output.mp3")
-
-        with open(concat_file_path, "w", encoding="utf-8") as concat_file:
-            for index, chunk in enumerate(chunks, start=1):
-                chunk_filename = f"chunk_{index:04d}.mp3"
-                chunk_path = os.path.join(temp_dir, chunk_filename)
-                with open(chunk_path, "wb") as chunk_file:
-                    chunk_file.write(chunk)
-                concat_file.write(f"file '{chunk_filename}'\n")
-
-        proc = subprocess.run(
+    temp_dir = await run_in_threadpool(tempfile.TemporaryDirectory, prefix="satellite-tts-")
+    directory = Path(temp_dir.name)
+    try:
+        await _finish_thread_call(_stage_tts_chunks, directory, chunks)
+        proc = await _run_worker(
             [
                 ffmpeg_path,
                 "-hide_banner",
@@ -183,22 +234,16 @@ def _concat_and_boost_mp3_ffmpeg_sync(chunks: list[bytes], gain: float) -> bytes
                 "-y",
                 "output.mp3",
             ],
-            cwd=temp_dir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
+            cwd=directory,
         )
 
         if proc.returncode != 0:
             stderr_preview = (proc.stderr or b"")[:2000].decode("utf-8", errors="replace")
             raise RuntimeError(f"ffmpeg failed rc={proc.returncode} stderr={stderr_preview!r}")
 
-        with open(output_path, "rb") as output_file:
-            return output_file.read()
-
-
-async def _concat_and_boost_mp3_ffmpeg(chunks: list[bytes], gain: float = 8.0) -> bytes:
-    return await run_in_threadpool(_concat_and_boost_mp3_ffmpeg_sync, chunks, gain)
+        return await _finish_thread_call((directory / "output.mp3").read_bytes)
+    finally:
+        await _finish_thread_call(temp_dir.cleanup)
 
 
 def _tts_chunk_to_bytes_sync(text: str, options: SpeakOptions) -> bytes:
@@ -238,18 +283,16 @@ api_router = APIRouter(
     dependencies=[Depends(_require_api_token_if_configured)],
 )
 
-def _run_call_processor(
+async def _run_call_processor(
     *,
     transcript_id: int,
     raw_transcription: str,
     summary: bool = False,
 ) -> None:
     payload = {"transcript_id": transcript_id, "raw_transcription": raw_transcription, "summary": summary}
-    proc = subprocess.run(
+    proc = await _run_worker(
         [sys.executable, os.path.join(os.path.dirname(__file__), "call_processor.py")],
         input=json.dumps(payload).encode("utf-8"),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
         timeout=float(os.getenv("CALL_PROCESSOR_TIMEOUT_SECONDS", "600")),
     )
 
@@ -706,20 +749,21 @@ async def get_transcription(
     if os.getenv("OPENAI_API_KEY") and transcript_id is not None and raw_transcription:
         try:
             did_enrichment = True
-            await run_in_threadpool(db.set_transcript_state, transcript_id=transcript_id, state="summarizing")
-            await run_in_threadpool(
-                _run_call_processor,
+            await _finish_thread_call(db.set_transcript_state, transcript_id=transcript_id, state="summarizing")
+            await _run_call_processor(
                 transcript_id=transcript_id,
                 raw_transcription=raw_transcription,
                 summary=summary,
             )
-            await run_in_threadpool(db.set_transcript_state, transcript_id=transcript_id, state="done")
-        except Exception:
+            await _finish_thread_call(db.set_transcript_state, transcript_id=transcript_id, state="done")
+        except (asyncio.CancelledError, Exception) as exc:
             logger.exception("Failed to process call transcript")
             try:
                 await run_in_threadpool(db.set_transcript_state, transcript_id=transcript_id, state="failed")
             except Exception:
                 logger.exception("Failed to update transcript state=failed")
+            if isinstance(exc, asyncio.CancelledError):
+                raise
 
     # If we persisted but didn't run enrichment, the pipeline is complete after raw transcript is stored.
     if transcript_id is not None and not did_enrichment:
