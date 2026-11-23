@@ -11,6 +11,7 @@ import {
   getAccountErrorCode,
   getAccountRestriction,
   isAccountMissing,
+  parseDeleteResult,
   parseSyncResult,
   parseUserAccounts,
   parseUsersDomain,
@@ -97,6 +98,27 @@ describe('parseSyncResult', () => {
     expect(parseSyncResult({})).toBe(false)
     expect(parseSyncResult({ synchronized: 'yes' })).toBe(false)
     expect(parseSyncResult(undefined)).toBe(false)
+  })
+})
+
+describe('parseDeleteResult', () => {
+  it('reads the synchronization and the deletion of the data', () => {
+    expect(parseDeleteResult({ synchronized: true, cleaned: true })).toEqual({
+      synchronized: true,
+      cleaned: true,
+    })
+    expect(parseDeleteResult({ synchronized: false, cleaned: false })).toEqual({
+      synchronized: false,
+      cleaned: false,
+    })
+  })
+
+  it('treats an unexpected answer as data left behind', () => {
+    expect(parseDeleteResult({ synchronized: true })).toEqual({
+      synchronized: false,
+      cleaned: false,
+    })
+    expect(parseDeleteResult(undefined)).toEqual({ synchronized: false, cleaned: false })
   })
 })
 

@@ -51,6 +51,11 @@ export type AccountErrorCode = (typeof ACCOUNT_ERROR_CODES)[number]
 
 export type AccountRestriction = 'own_account' | 'domain_admin'
 
+export type DeleteAccountResult = {
+  synchronized: boolean
+  cleaned: boolean
+}
+
 const UsersDomainSchema = v.object({
   manageable: v.boolean(),
   reason: v.optional(v.nullable(v.picklist(['external', 'unavailable'])), null),
@@ -67,6 +72,8 @@ const AccountsSchema = v.array(
 )
 
 const SyncResultSchema = v.object({ synchronized: v.nullable(v.boolean()) })
+
+const DeleteResultSchema = v.object({ synchronized: v.boolean(), cleaned: v.boolean() })
 
 export const parseUsersDomain = (raw: unknown): UsersDomain => {
   const domain = v.parse(UsersDomainSchema, raw)
@@ -85,6 +92,11 @@ export const parseUserAccounts = (raw: unknown): UserAccount[] =>
 export const parseSyncResult = (raw: unknown): boolean | null => {
   const result = v.safeParse(SyncResultSchema, raw)
   return result.success ? result.output.synchronized : false
+}
+
+export const parseDeleteResult = (raw: unknown): DeleteAccountResult => {
+  const result = v.safeParse(DeleteResultSchema, raw)
+  return result.success ? result.output : { synchronized: false, cleaned: false }
 }
 
 export const getUsersDomain = async (): Promise<UsersDomain> => {
@@ -116,11 +128,11 @@ export const updateAccount = async (
   return parseSyncResult(data)
 }
 
-export const deleteAccount = async (username: string): Promise<boolean | null> => {
+export const deleteAccount = async (username: string): Promise<DeleteAccountResult> => {
   const { data } = await api.DELETE('/users/{username}/account', {
     params: { path: { username } },
   })
-  return parseSyncResult(data)
+  return parseDeleteResult(data)
 }
 
 export const findAccount = (accounts: UserAccount[], username: string): UserAccount | undefined =>

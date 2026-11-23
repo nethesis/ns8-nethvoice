@@ -503,8 +503,6 @@
     "cannot_change_password": "Cannot change the password",
     "delete_user": "Delete user",
     "delete_user_confirmation": "User {name} will be permanently deleted.",
-    "delete_user_account": "The account is deleted from the account provider and from every application that uses it.",
-    "delete_user_extension": "Its devices stop working. Extension {extension} is kept in {orphans}: there you can delete it, or restore it by creating the user again.",
     "user_deleted": "User deleted",
     "user_deleted_description": "User {name} has been deleted.",
     "users_list_not_updated": "The list of users could not be updated. To update it, choose {action}.",
@@ -531,7 +529,12 @@
     "user_no_longer_exists_description": "User {name} no longer exists in the account provider. To update the list of users, choose {action}.",
     "name_control_characters": "Remove tabs, line breaks and other invisible characters",
     "account_error_invalid_display_name": "The name contains tabs, line breaks or other invisible characters.",
-    "import_issue_control_characters": "tabs, line breaks or other invisible characters in a field"
+    "import_issue_control_characters": "tabs, line breaks or other invisible characters in a field",
+    "delete_user_domain": "The account is deleted from the account provider: the user can no longer sign in to any application that uses it, such as Mail, Nextcloud or WebTop.",
+    "delete_user_phone_data": "Extension {extension}, its voicemail and its devices are deleted too. The physical phones are freed and can be assigned to other users.",
+    "delete_user_cannot_be_undone": "Creating the user again won't restore anything. This cannot be undone.",
+    "cannot_delete_user_data": "Cannot delete all the user data",
+    "cannot_delete_user_data_description": "User {name} has been deleted from the account provider, but some of its {brand} data could not be deleted. Choose {action}, then delete what remains in {orphans}."
   },
   "trunks": {
     "title": "Trunks",

@@ -1243,22 +1243,10 @@ const mockAccountWrites = (mockApi: MockApi) => {
     })
     .on('DELETE', `${REST}/users/:username/account`, (request) => {
       const username = request.path.split('/').at(-2)
-      const removed = RAW_USERS.find((user) => user.username === username)
       accounts = accounts.filter((account) => account.username !== username)
       users = users.filter((user) => user.username !== username)
-
-      if (removed && removed.default_extension !== 'none') {
-        orphans = [
-          {
-            username: removed.username,
-            displayname: removed.displayname,
-            extension: removed.default_extension,
-            devices: [],
-            removed_at: '2026-11-20T08:30:00Z',
-          },
-        ]
-      }
-      return { json: { synchronized: true } }
+      orphans = orphans.filter((orphan) => (orphan as { username: string }).username !== username)
+      return { json: { synchronized: true, cleaned: true } }
     })
   return mockApi
 }
@@ -1589,10 +1577,7 @@ test.describe('user accounts', () => {
     })
   })
 
-  test('deletes a user and keeps the extension among the removed users', async ({
-    page,
-    mockApi,
-  }) => {
+  test('deletes a user with its extension, voicemail and devices', async ({ page, mockApi }) => {
     await page.goto('./users/users')
     await expect(page.getByTestId('orphan-extensions-warning')).toHaveCount(0)
     await openRowMenu(page, 'a.miller')
@@ -1609,8 +1594,9 @@ test.describe('user accounts', () => {
     await expect(modal.getByTestId('delete-user-confirmation')).toHaveText(
       [
         'User Anna Miller (a.miller) will be permanently deleted.',
-        'The account is deleted from the account provider and from every application that uses it.',
-        'Its devices stop working. Extension 300 is kept in Extensions of removed users: there you can delete it, or restore it by creating the user again.',
+        'The account is deleted from the account provider: the user can no longer sign in to any application that uses it, such as Mail, Nextcloud or WebTop.',
+        'Extension 300, its voicemail and its devices are deleted too. The physical phones are freed and can be assigned to other users.',
+        "Creating the user again won't restore anything. This cannot be undone.",
       ].join(''),
       { useInnerText: false },
     )
@@ -1621,9 +1607,8 @@ test.describe('user accounts', () => {
     await expect(toasts.getByText('User Anna Miller has been deleted.')).toBeVisible()
     expect(mockApi.callsTo('DELETE', `${REST}/users/a.miller/account`)).toHaveLength(1)
     await expect(page.getByTestId('user-a.miller')).toHaveCount(0)
-    await expect(page.getByTestId('orphan-extensions-warning')).toContainText(
-      '1 extension belongs to a removed user',
-    )
+    await expect(toasts.getByText('Cannot delete all the user data')).toHaveCount(0)
+    await expect(page.getByTestId('orphan-extensions-warning')).toHaveCount(0)
     for (const [method, path] of [
       ['POST', '/mainextensions'],
       ['POST', '/mainextensions/orphans/release'],
@@ -1642,7 +1627,7 @@ test.describe('user accounts', () => {
     mockApi.on('DELETE', `${REST}/users/:username/account`, () =>
       failing
         ? { status: 502, json: { code: 'provider_error', message: 'internal' } }
-        : { json: { synchronized: false } },
+        : { json: { synchronized: false, cleaned: true } },
     )
     await page.goto('./users/users')
     await openRowMenu(page, 'd.jones')
@@ -1650,6 +1635,9 @@ test.describe('user accounts', () => {
 
     const modal = page.getByRole('dialog', { name: 'Delete user' })
     await expect(modal.getByTestId('delete-user-confirmation')).not.toContainText('Extension')
+    await expect(modal.getByTestId('delete-user-confirmation')).toContainText(
+      'such as Mail, Nextcloud or WebTop',
+    )
     await modal.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(modal.getByText('Cannot delete the user')).toBeVisible()
     await expect(modal.getByText('internal')).toHaveCount(0)
@@ -1663,6 +1651,33 @@ test.describe('user accounts', () => {
         'The list of users could not be updated. To update it, choose Synchronize users.',
       ),
     ).toBeVisible()
+  })
+
+  test('warns when the data of a deleted user could not be deleted', async ({ page, mockApi }) => {
+    mockApi.on('DELETE', `${REST}/users/:username/account`, {
+      json: { synchronized: false, cleaned: false },
+    })
+    await page.goto('./users/users')
+    await openRowMenu(page, 'a.miller')
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
+    await page
+      .getByRole('dialog', { name: 'Delete user' })
+      .getByRole('button', { name: 'Delete', exact: true })
+      .click()
+
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('User deleted')).toBeVisible()
+    await expect(toasts.getByText('Cannot delete all the user data')).toBeVisible()
+    await expect(
+      toasts.getByText(
+        'User Anna Miller has been deleted from the account provider, but some of its NethVoice data could not be deleted. Choose Synchronize users, then delete what remains in Extensions of removed users.',
+      ),
+    ).toBeVisible()
+    await expect(
+      toasts.getByText(
+        'The list of users could not be updated. To update it, choose Synchronize users.',
+      ),
+    ).toHaveCount(0)
   })
 
   test('warns when the users could not be synchronized after a change of name', async ({

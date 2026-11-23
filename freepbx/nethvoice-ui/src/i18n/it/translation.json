@@ -503,8 +503,6 @@
     "cannot_change_password": "Impossibile cambiare la password",
     "delete_user": "Elimina utente",
     "delete_user_confirmation": "L'utente {name} verrà eliminato definitivamente.",
-    "delete_user_account": "L'account viene eliminato dal provider di account e da tutte le applicazioni che lo usano.",
-    "delete_user_extension": "I suoi dispositivi smettono di funzionare. L'interno {extension} viene mantenuto in {orphans}: lì puoi eliminarlo, oppure ripristinarlo creando di nuovo l'utente.",
     "user_deleted": "Utente eliminato",
     "user_deleted_description": "L'utente {name} è stato eliminato.",
     "users_list_not_updated": "Non è stato possibile aggiornare l'elenco degli utenti. Per aggiornarlo, scegli {action}.",
@@ -531,7 +529,12 @@
     "user_no_longer_exists_description": "L'utente {name} non esiste più nel provider di account. Per aggiornare l'elenco degli utenti, scegli {action}.",
     "name_control_characters": "Rimuovi tabulazioni, interruzioni di riga e altri caratteri invisibili",
     "account_error_invalid_display_name": "Il nome contiene tabulazioni, interruzioni di riga o altri caratteri invisibili.",
-    "import_issue_control_characters": "tabulazioni, interruzioni di riga o altri caratteri invisibili in un campo"
+    "import_issue_control_characters": "tabulazioni, interruzioni di riga o altri caratteri invisibili in un campo",
+    "delete_user_domain": "L'account viene eliminato dal provider di account: l'utente non potrà più accedere a nessuna applicazione che lo usa, come Mail, Nextcloud o WebTop.",
+    "delete_user_phone_data": "Vengono eliminati anche l'interno {extension}, la sua casella vocale e i suoi dispositivi. I telefoni fisici vengono liberati e possono essere assegnati ad altri utenti.",
+    "delete_user_cannot_be_undone": "Creare di nuovo l'utente non ripristinerà nulla. L'operazione non può essere annullata.",
+    "cannot_delete_user_data": "Impossibile eliminare tutti i dati dell'utente",
+    "cannot_delete_user_data_description": "L'utente {name} è stato eliminato dal provider di account, ma non è stato possibile eliminare alcuni suoi dati di {brand}. Scegli {action}, poi elimina ciò che rimane in {orphans}."
   },
   "trunks": {
     "title": "Fasci",

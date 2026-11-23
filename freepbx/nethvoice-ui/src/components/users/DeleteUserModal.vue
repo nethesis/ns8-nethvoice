@@ -6,13 +6,15 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useMutation } from '@pinia/colada'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import DeleteObjectModal from '@/components/common/DeleteObjectModal.vue'
+import { PHONES_KEY } from '@/lib/phones/phones'
 import { deleteAccount, getAccountErrorCode, isAccountMissing } from '@/lib/users/accounts'
 import type { User } from '@/lib/users/users'
 import { useInvalidateAccounts } from '@/queries/users/accounts'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 
 const { visible = false, user = undefined } = defineProps<{
@@ -26,6 +28,8 @@ useFocusReturn(() => visible)
 
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
+const runtimeConfigStore = useRuntimeConfigStore()
+const queryCache = useQueryCache()
 const invalidateUsers = useInvalidateUsers()
 const invalidateAccounts = useInvalidateAccounts()
 
@@ -40,7 +44,7 @@ watch(
 
 const { mutate, isLoading, error, reset } = useMutation({
   mutation: (target: User) => deleteAccount(target.username),
-  onSuccess(synchronized, target) {
+  onSuccess(result, target) {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
@@ -48,7 +52,18 @@ const { mutate, isLoading, error, reset } = useMutation({
         description: t('users.user_deleted_description', { name: target.displayName }),
       })
 
-      if (synchronized === false) {
+      if (!result.cleaned) {
+        notificationsStore.createNotification({
+          kind: 'warning',
+          title: t('users.cannot_delete_user_data'),
+          description: t('users.cannot_delete_user_data_description', {
+            name: target.displayName,
+            brand: runtimeConfigStore.config.brandName,
+            action: t('users.sync_users'),
+            orphans: t('users.orphan_extensions'),
+          }),
+        })
+      } else if (!result.synchronized) {
         notificationsStore.createNotification({
           kind: 'warning',
           title: t('users.cannot_sync_users'),
@@ -75,6 +90,7 @@ const { mutate, isLoading, error, reset } = useMutation({
     emit('close')
   },
   onSettled() {
+    queryCache.invalidateQueries({ key: [PHONES_KEY] }).catch(() => undefined)
     return Promise.all([invalidateUsers(), invalidateAccounts()])
   },
 })
@@ -104,15 +120,11 @@ const errorDescription = computed(() => {
           })
         }}
       </p>
-      <p>{{ t('users.delete_user_account') }}</p>
+      <p>{{ t('users.delete_user_domain') }}</p>
       <p v-if="user?.mainExtension">
-        {{
-          t('users.delete_user_extension', {
-            extension: user.mainExtension,
-            orphans: t('users.orphan_extensions'),
-          })
-        }}
+        {{ t('users.delete_user_phone_data', { extension: user.mainExtension }) }}
       </p>
+      <p>{{ t('users.delete_user_cannot_be_undone') }}</p>
     </div>
   </DeleteObjectModal>
 </template>
