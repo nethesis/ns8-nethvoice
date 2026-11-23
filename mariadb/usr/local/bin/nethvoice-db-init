@@ -100,6 +100,12 @@ SET s.data = 'g722,ulaw,alaw,h264,vp8'
 WHERE s.keyword = 'allow' AND (d.type IS NULL OR d.type NOT IN ('webrtc','nethlink','mobile'));
 SQL
 fi
+# Trunk registrations: retry after a fatal answer (for example 478 from the
+# proxy during a short DNS outage) instead of stopping until the trunk is
+# saved again. Values changed by hand are kept.
+if $migrate; then
+    db asterisk -e "UPDATE pjsip SET data = '90' WHERE keyword = 'fatal_retry_interval' AND data IN ('', '0')"
+fi
 # Global codec defaults of Asterisk SIP Settings (kvstore_Sipsettings), the
 # allow lists FreePBX uses where no per-device list applies: same codecs and
 # order as the device lists (G.722 first, no GSM/G.726, H.264 before VP8).
