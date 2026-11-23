@@ -3,7 +3,9 @@
   "extends": [
     "local>NethServer/.github:ns8-automerge"
   ],
-  "dependencyDashboard": true,
+  "dependencyDashboard": {
+    "enabled": true
+  },
   "postUpdateOptions": ["gomodTidy"],
   "ignorePaths": [
     "**/node_modules/**",
@@ -19,7 +21,7 @@
   "customManagers": [
     {
       "customType": "regex",
-      "description": "Update Asterisk 22 and its source archive checksum together",
+      "description": "Update Asterisk and its source archive checksum together, reading the checksum from the asterisk-<version>.sha256 asset of the GitHub release",
       "managerFilePatterns": [
         "/^freepbx\\/Containerfile$/"
       ],
@@ -27,7 +29,8 @@
         "ARG ASTERISK_VERSION=(?<currentValue>\\S+)\\nARG ASTERISK_SHA256=(?<currentDigest>[a-f0-9]{64})"
       ],
       "depNameTemplate": "asterisk",
-      "datasourceTemplate": "custom.asterisk-22",
+      "packageNameTemplate": "asterisk/asterisk",
+      "datasourceTemplate": "github-release-attachments",
       "versioningTemplate": "semver"
     },
     {
@@ -61,13 +64,6 @@
     }
   ],
   "customDatasources": {
-    "asterisk-22": {
-      "defaultRegistryUrlTemplate": "https://downloads.asterisk.org/pub/telephony/asterisk/asterisk-22-current.sha256",
-      "format": "plain",
-      "transformTemplates": [
-        "($release := $match(releases[0].version, /^([a-f0-9]{64})\\s+asterisk-(22\\.[0-9]+\\.[0-9]+)\\.tar\\.gz$/); {\"releases\": [{\"version\": $release.groups[1], \"digest\": $release.groups[0]}], \"sourceUrl\": \"https://github.com/asterisk/asterisk\"})"
-      ]
-    },
     "debian-bookworm": {
       "defaultRegistryUrlTemplate": "https://packages.debian.org/bookworm/amd64/{{{packageName}}}/download",
       "format": "html"
@@ -78,6 +74,12 @@
     }
   },
   "packageRules": [
+    {
+      "description": "Asterisk stays on the 22 LTS series: newer majors need a FreePBX compatibility check",
+      "matchDepNames": ["asterisk"],
+      "matchDatasources": ["github-release-attachments"],
+      "allowedVersions": "<23"
+    },
     {
       "description": "Module updates need archive checksums and local patches reviewed before building",
       "matchManagers": [
