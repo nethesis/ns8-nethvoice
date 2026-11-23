@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { saveCredentials } from '../lib/login'
+import { navigateAfterSignIn } from '../lib/signInSplash'
 import { useState, useRef, useEffect } from 'react'
 import { TextInput, InlineNotification, Button, OTPInput } from '../components/common'
 import { useRouter } from 'next/router'
@@ -428,7 +429,7 @@ export default function Login() {
       ) {
         setUserNotAuthorized(false)
         await showTwoFactorToastIfNeeded(username)
-        router.push('/')
+        navigateAfterSignIn(() => router.push('/'))
       } else {
         setUserNotAuthorized(true)
         setOnError(true)
