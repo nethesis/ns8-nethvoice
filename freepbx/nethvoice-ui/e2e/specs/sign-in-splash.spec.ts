@@ -72,6 +72,41 @@ test.describe('sign-in splash', () => {
     await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
   })
 
+  test('covers the dashboard with an opaque logo when signing in again', async ({ page }) => {
+    await page.addInitScript(() => {
+      const opacities: string[] = []
+      Reflect.set(window, 'e2eSplashOpacityOverDashboard', opacities)
+      new MutationObserver(() => {
+        const splash = document.querySelector('[data-testid="sign-in-splash"]')
+        const dashboard = Array.from(document.querySelectorAll('[aria-level="1"]')).some(
+          (element) => element.textContent?.trim() === 'Dashboard',
+        )
+        if (splash && dashboard && opacities.length === 0) {
+          opacities.push(getComputedStyle(splash).opacity)
+        }
+      }).observe(document, { childList: true, subtree: true })
+    })
+    await openLogin(page, DEFAULT_CONFIG)
+    await signIn(page)
+    const splash = page.getByTestId('sign-in-splash')
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
+    await expect(splash).toBeHidden()
+
+    await page.getByTestId('account-menu').click()
+    await page.getByRole('menuitem', { name: 'Sign out' }).click()
+    await expect(page).toHaveURL(/\/nethvoice\/login$/)
+    await page.evaluate(() => {
+      ;(Reflect.get(window, 'e2eSplashOpacityOverDashboard') as string[]).length = 0
+    })
+    await signIn(page)
+
+    await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()
+    await expect(splash).toBeHidden()
+    expect(await page.evaluate(() => Reflect.get(window, 'e2eSplashOpacityOverDashboard'))).toEqual(
+      ['1'],
+    )
+  })
+
   test('keeps the splash until a slower navigation to the deep link ends', async ({
     page,
     mockApi,

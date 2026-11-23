@@ -16,8 +16,6 @@ const splashStore = useSignInSplashStore()
 
 <template>
   <Transition
-    enter-active-class="transition-opacity duration-150 ease-out"
-    enter-from-class="opacity-0"
     leave-active-class="transition-opacity duration-200 ease-out"
     leave-to-class="opacity-0"
   >
