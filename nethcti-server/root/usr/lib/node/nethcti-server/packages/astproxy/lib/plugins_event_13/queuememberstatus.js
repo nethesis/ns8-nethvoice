@@ -72,6 +72,8 @@ var astProxy;
               name: data.membername,
               type: data.membership,
               paused: (data.paused === '1' ? true : false),
+              pausedReason: data.pausedreason || '',
+              lastPausedInTimestamp: (parseInt(data.lastpause) || 0) * 1000,
               member: member,
               queueId: data.queue,
               busyAgent: isBusy, // true if the agent is busy in at least one queue

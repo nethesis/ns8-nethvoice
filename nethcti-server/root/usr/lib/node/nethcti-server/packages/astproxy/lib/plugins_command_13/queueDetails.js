@@ -144,6 +144,8 @@ var IDLOG = '[queueDetails]';
               type: data.membership, // it can be 'static', 'dynamic' or 'realtime'
               member: member,
               paused: data.paused === '1' ? true : false, // if the extension is paused on queue
+              pausedReason: data.pausedreason || '',
+              lastPausedInTimestamp: (parseInt(data.lastpause) || 0) * 1000,
               busyAgent: isBusy, // true if the agent is busy in at least one queue
               callsTakenCount: parseInt(data.callstaken), // the number of the taken calls
               lastCallTimestamp: parseInt(data.lastcall) // timestamp of the last call received by the member
