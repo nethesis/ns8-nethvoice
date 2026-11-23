@@ -18,6 +18,7 @@ import {
   getDbConnectionTypes,
 } from '@/lib/integrations/dbConnections'
 import { LOOKUP_STALE_TIME } from '@/lib/integrations/lookups'
+import { useMe, usePermissions } from '@/queries/permissions/me'
 import { useLoginStore } from '@/stores/login'
 
 export const useCustomerCards = defineQuery(() => {
@@ -72,14 +73,36 @@ export const useCardTemplates = defineQuery(() => {
 export const useDbConnectionStatuses = defineQuery(() => {
   const loginStore = useLoginStore()
   const { state: connectionsState } = useDbConnections()
+  const { state: meState } = useMe()
+  const { isSuperadmin } = usePermissions()
   const connections = computed(() => connectionsState.value.data ?? [])
   const testingIds = ref<string[]>([])
   const retested = ref<Record<string, DbConnectionStatus>>({})
 
   const { state, asyncStatus, ...rest } = useQuery({
-    key: () => [DB_CONNECTION_STATUSES_KEY, ...connections.value.map(getDbConnectionSignature)],
-    enabled: () => loginStore.isAuthenticated && connectionsState.value.status === 'success',
-    query: () => getDbConnectionStatuses(connections.value),
+    key: () => [
+      DB_CONNECTION_STATUSES_KEY,
+      ...connections.value.map(getDbConnectionSignature),
+      isSuperadmin.value,
+    ],
+    enabled: () =>
+      loginStore.isAuthenticated &&
+      connectionsState.value.status === 'success' &&
+      meState.value.status === 'success',
+    query: async () => {
+      const skipped = isSuperadmin.value
+        ? []
+        : connections.value.filter((connection) => connection.builtIn)
+
+      return {
+        ...Object.fromEntries(
+          skipped.map((connection): [string, DbConnectionStatus] => [connection.id, 'unknown']),
+        ),
+        ...(await getDbConnectionStatuses(
+          connections.value.filter((connection) => !skipped.includes(connection)),
+        )),
+      }
+    },
   })
 
   watch(

@@ -1003,6 +1003,33 @@ test.describe('integrations: customer cards', () => {
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/customer_card')).toHaveLength(1)
   })
 
+  test('does not test the built-in databases for an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi.on('POST', '/freepbx/rest/cti/dbconn/test', (request: MockRequest) =>
+      (request.body as { id?: string }).id === '1'
+        ? { status: 403, json: { status: 'Forbidden' } }
+        : connectionTest(request),
+    )
+
+    await page.goto('./integrations/customer-cards')
+
+    const phonebook = databasesGrid(page).getByRole('row').filter({ hasText: 'phonebook' })
+    await expect(phonebook).toContainText('Unknown')
+    await expect(databasesGrid(page).getByRole('row').filter({ hasText: 'crm' })).toContainText(
+      'Connected',
+    )
+    await expect.poll(() => mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test').length).toBe(2)
+    expect(
+      mockApi
+        .callsTo('POST', '/freepbx/rest/cti/dbconn/test')
+        .map((call) => (call.body as { id?: string }).id)
+        .sort(),
+    ).toEqual(['5', '6'])
+  })
+
   test('shows the templates read only to an administrator with only Integrations', async ({
     page,
     mockApi,
