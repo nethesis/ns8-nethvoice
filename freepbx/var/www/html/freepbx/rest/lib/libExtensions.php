@@ -1162,6 +1162,20 @@ function releaseOrphanExtensions($extensions) {
     return true;
 }
 
+function deleteRemovedUserExtensions($username) {
+    $user = FreePBX::create()->Userman->getUserByUsername($username);
+    if (is_array($user) && isset($user['id'])) {
+        return false;
+    }
+    if (!checkTableExists('rest_orphan_extensions')) {
+        return true;
+    }
+    $stmt = FreePBX::Database()->prepare('SELECT extension FROM rest_orphan_extensions WHERE username = ?');
+    $stmt->execute(array($username));
+    $extensions = array_map('strval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    return $extensions === array() || releaseOrphanExtensions($extensions) === true;
+}
+
 function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
     $fpbx = FreePBX::create();
     $dbh = FreePBX::Database();

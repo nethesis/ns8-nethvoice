@@ -2958,7 +2958,7 @@ export interface paths {
     post?: never
     /**
      * Delete a domain account.
-     * @description The account is removed from the user domain, then the users are synchronized. The extension of the user is kept as an extension of a removed user (see `/mainextensions/orphans`).
+     * @description The account is removed from the user domain, then the users are synchronized, then the NethVoice data of the user is deleted. If the removal fails, nothing is deleted. Extensions that could not be deleted remain among the extensions of removed users (see `/mainextensions/orphans`).
      */
     delete: operations['delete_users_username_account']
     options?: never
@@ -4099,6 +4099,7 @@ export interface components {
     }
     UsersAccountResult: {
       synchronized: boolean | null
+      cleaned?: boolean
     }
     UsersAccountError: {
       /** @enum {string} */
@@ -10638,7 +10639,7 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Account deleted. `synchronized` is false when the following user synchronization failed. */
+      /** @description Account deleted. `synchronized` is false when the following user synchronization failed; `cleaned` is false when some NethVoice data of the user could not be deleted. */
       200: {
         headers: {
           [name: string]: unknown

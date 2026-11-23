@@ -117,3 +117,58 @@ function importCtiPhonebookCsv($owner, $csvPath) {
     }
     return array('httpCode' => $httpCode, 'body' => $body);
 }
+
+function revokeMiddlewareUser($username) {
+    $username = strtolower((string) $username);
+    if (preg_match('/^[a-z0-9][a-z0-9._-]*$/D', $username) !== 1 || strpos($username, '..') !== false) {
+        return true;
+    }
+    $token = null;
+    $base = middlewareSuperAdminBaseUrl($token);
+    if ($base === null) {
+        error_log('CTI user revocation skipped: missing/invalid NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN or NETHVOICE_MIDDLEWARE_PORT');
+        return false;
+    }
+    $ch = curl_init($base . '/admin/2fa/' . rawurlencode($username));
+    if ($ch === false) {
+        return false;
+    }
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Authorization: Bearer ' . $token));
+    curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlErr = curl_error($ch);
+    curl_close($ch);
+    if ($httpCode !== 204) {
+        error_log('CTI user revocation failed: HTTP ' . $httpCode . ' ' . $curlErr);
+        return false;
+    }
+    return true;
+}
+
+function deleteCtiUserData($username, $db = null, $revoke = 'revokeMiddlewareUser') {
+    $deleted = (bool) $revoke($username);
+    try {
+        $db = $db ?? new \PDO(
+            'mysql:host=' . getenv('NETHCTI_DB_HOST') . ';port=' . getenv('NETHCTI_DB_PORT') . ';dbname=nethcti3;charset=utf8',
+            getenv('NETHCTI_DB_USER'),
+            getenv('NETHCTI_DB_PASSWORD'),
+            array(\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION)
+        );
+        $statements = array(
+            'DELETE FROM user_settings WHERE username = ?' => array($username),
+            'DELETE FROM user_nethlink WHERE user = ?' => array($username),
+            'DELETE FROM auth WHERE user = ? OR user LIKE ?' => array($username, addcslashes((string) $username, '\\%_') . '\_phone-island\_%'),
+        );
+        foreach ($statements as $sql => $args) {
+            $db->prepare($sql)->execute($args);
+        }
+    } catch (\Throwable $e) {
+        error_log('Cannot delete the CTI data of ' . $username . ': ' . $e->getMessage());
+        return false;
+    }
+    return $deleted;
+}

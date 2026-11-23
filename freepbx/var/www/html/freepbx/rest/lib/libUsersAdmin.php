@@ -475,7 +475,7 @@ function usersAdminUpdateAccount(UsersAdminClient $client, string $username, $bo
     return [200, ['synchronized' => $synchronized]];
 }
 
-function usersAdminDeleteAccount(UsersAdminClient $client, string $username, array $caller, callable $synchronize, ?callable $captureGroups = null, ?callable $keepGroups = null): array
+function usersAdminDeleteAccount(UsersAdminClient $client, string $username, array $caller, callable $synchronize, ?callable $cleanup = null): array
 {
     $error = usersAdminTargetError($username, $caller, false)
         ?? usersAdminAvailabilityError($client)
@@ -484,21 +484,33 @@ function usersAdminDeleteAccount(UsersAdminClient $client, string $username, arr
     if ($error !== null) {
         return $error;
     }
-    $groups = [];
-    try {
-        $groups = $captureGroups !== null ? $captureGroups($username) : [];
-    } catch (\Throwable $e) {
-        error_log('users-admin: cannot read the CTI groups of ' . $username);
-    }
     if (!usersAdminSucceeded($client->call('remove-user', ['user' => $username]))) {
         return usersAdminError(502, 'provider_error');
     }
-    if ($groups !== [] && $keepGroups !== null) {
+    $synchronized = (bool) $synchronize();
+    if ($cleanup === null) {
+        return [200, ['synchronized' => $synchronized]];
+    }
+    try {
+        $cleaned = (bool) $cleanup($username);
+    } catch (\Throwable $e) {
+        error_log('users-admin: cannot delete the NethVoice data of ' . $username);
+        $cleaned = false;
+    }
+    return [200, ['synchronized' => $synchronized, 'cleaned' => $cleaned]];
+}
+
+function usersAdminDeleteNethvoiceData(string $username, array $steps = ['deleteRemovedUserExtensions', 'deleteCtiUserData'], ?callable $reload = null): bool
+{
+    $deleted = true;
+    foreach ($steps as $step) {
         try {
-            $keepGroups($username, $groups);
+            $deleted = (bool) $step($username) && $deleted;
         } catch (\Throwable $e) {
-            error_log('users-admin: cannot keep the CTI groups of ' . $username);
+            error_log('users-admin: cannot delete part of the NethVoice data of ' . $username . ': ' . $e->getMessage());
+            $deleted = false;
         }
     }
-    return [200, ['synchronized' => (bool) $synchronize()]];
+    ($reload ?? 'usersAdminScheduleReload')();
+    return $deleted;
 }

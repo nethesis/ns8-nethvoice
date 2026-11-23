@@ -57,7 +57,7 @@ $app->patch('/users/{username}/account', function (Request $request, Response $r
 });
 
 $app->delete('/users/{username}/account', function (Request $request, Response $response, $args) {
-    return usersAdminResponse($response, usersAdminDeleteAccount(usersAdminDefaultClient(), (string) $args['username'], usersAdminCaller($request), 'usersAdminSynchronize', 'getUserCtiGroups', 'keepRemovedUserGroups'));
+    return usersAdminResponse($response, usersAdminDeleteAccount(usersAdminDefaultClient(), (string) $args['username'], usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminDeleteNethvoiceData'));
 });
 
 # Get final wizard report for created users

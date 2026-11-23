@@ -203,6 +203,11 @@ namespace {
                     $orphan = Pbx::orphanBy('extension', $args[0]);
                     $this->result = $orphan ? [['user_id' => $orphan['user_id'], 'extension' => $orphan['extension']]] : [];
                     break;
+                case 'SELECT extension FROM rest_orphan_extensions WHERE username = ?':
+                    foreach (Pbx::$orphans as $o) {
+                        if ($o['username'] === $args[0]) $this->result[] = ['extension' => $o['extension']];
+                    }
+                    break;
                 case 'DELETE FROM rest_orphan_extensions WHERE extension = ?':
                     Pbx::$orphans = array_values(array_filter(Pbx::$orphans, fn($o) => $o['extension'] !== $args[0]));
                     break;
@@ -414,6 +419,33 @@ namespace {
     keepRemovedUserGroups('mallory', [1 => [99]]);
     orphanUserExtensions(1, $removeWithCascade(1));
     check(json_decode(Pbx::$orphans[0]['cti_groups'], true) === [], 'groups kept for another username used');
+
+    Pbx::reset();
+    check(deleteRemovedUserExtensions('alice') === false, 'a user still in the PBX must not be deleted');
+    check(count(Pbx::$extensions) === 6 && $userDevices(1) === ['92201', '91201', '93201'] && Pbx::$orphans === [], 'a user still in the PBX was changed');
+    orphanUserExtensions(1, $removeWithCascade(1));
+    check(deleteRemovedUserExtensions('alice') === true, 'the extensions of a removed user were not deleted');
+    check(Pbx::$extensions === ['202', '91202'] && !isset(Pbx::$mailboxes['201']) && Pbx::$orphans === [], 'extensions, voicemail or orphan kept');
+    $freed = array_values(array_filter(Pbx::$devices, fn($d) => $d['mac'] === 'AA:BB:CC:00:00:01'));
+    check(count($freed) === 1 && $freed[0]['user_id'] === null && $freed[0]['extension'] === null, 'physical phone not kept unassigned');
+    check($userDevices(4) === ['91202'] && $userGroups(4) === [10] && Pbx::$profiles[4] === 3, 'another user was changed');
+    $alice = Pbx::addUser(7, 'alice', 'Alice Rossi');
+    check(reattachOrphanExtension($alice) === false && Pbx::$users[7]['default_extension'] === 'none' && $userDevices(7) === [] && $userGroups(7) === [] && !isset(Pbx::$profiles[7]), 'a user created again with the same username did not start empty');
+
+    Pbx::reset();
+    Pbx::$users[3]['default_extension'] = '203';
+    Pbx::$extensions[] = '203';
+    orphanUserExtensions(1, Pbx::removeUser(1));
+    $carol = Pbx::removeUser(3);
+    $carol['username'] = 'alice';
+    orphanUserExtensions(3, $carol);
+    check(count(Pbx::$orphans) === 2 && deleteRemovedUserExtensions('alice') === true && Pbx::$orphans === [] && Pbx::$extensions === ['202', '91202'], 'every extension kept for the username must be deleted');
+    check(deleteRemovedUserExtensions('nobody') === true && Pbx::$extensions === ['202', '91202'], 'a user without extensions must succeed without changes');
+
+    Pbx::reset();
+    orphanUserExtensions(1, Pbx::removeUser(1));
+    Pbx::$orphanTable = false;
+    check(deleteRemovedUserExtensions('alice') === true && count(Pbx::$extensions) === 6, 'a missing table must not delete anything');
 
     unlink(NETHVOICE_REMOVED_USER_GROUPS);
     rmdir($pendingDirectory);

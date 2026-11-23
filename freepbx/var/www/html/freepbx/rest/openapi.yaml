@@ -5194,7 +5194,8 @@ paths:
       responses:
         '200':
           description: Account deleted. `synchronized` is false when the following
-            user synchronization failed.
+            user synchronization failed; `cleaned` is false when some NethVoice
+            data of the user could not be deleted.
           content:
             application/json:
               schema:
@@ -5238,8 +5239,9 @@ paths:
                 $ref: '#/components/schemas/UsersAccountError'
       operationId: delete_users_username_account
       description: The account is removed from the user domain, then the users are
-        synchronized. The extension of the user is kept as an extension of a removed
-        user (see `/mainextensions/orphans`).
+        synchronized, then the NethVoice data of the user is deleted. If the removal
+        fails, nothing is deleted. Extensions that could not be deleted remain among
+        the extensions of removed users (see `/mainextensions/orphans`).
       parameters:
       - name: username
         in: path
@@ -7846,6 +7848,8 @@ components:
         synchronized:
           type: boolean
           nullable: true
+        cleaned:
+          type: boolean
     UsersAccountError:
       type: object
       required:

@@ -356,7 +356,7 @@ $tests['refuses every write on an account missing from the domain'] = function (
         'unlock' => fn($client, $caller, $sync) => usersAdminUpdateAccount($client, 'ghost', ['locked' => false], $caller, $sync),
         'clear mail' => fn($client, $caller, $sync) => usersAdminUpdateAccount($client, 'ghost', ['mail' => ''], $caller, $sync),
         'rename' => fn($client, $caller, $sync) => usersAdminUpdateAccount($client, 'ghost', ['display_name' => 'Ghost White'], $caller, $sync, function () { throw new LogicException('renamed a missing account'); }),
-        'delete' => fn($client, $caller, $sync) => usersAdminDeleteAccount($client, 'ghost', $caller, $sync, function () { throw new LogicException('read the groups of a missing account'); }),
+        'delete' => fn($client, $caller, $sync) => usersAdminDeleteAccount($client, 'ghost', $caller, $sync, function () { throw new LogicException('deleted the data of a missing account'); }),
     ];
     foreach ($actions as $name => $action) {
         foreach ([SUPERADMIN, LIMITED] as $caller) {
@@ -574,30 +574,53 @@ $tests['applies a new display name to voicemail and devices'] = function () {
     check(usersAdminApplyDisplayName('carol', 'Carol', $db, $voicemail, $reload) === false && usersAdminApplyDisplayName('ghost', 'Ghost', $db, $voicemail, $reload) === false, 'users without extension must be skipped');
 };
 
-$tests['keeps the CTI groups of a deleted user for its extension'] = function () {
+$tests['deletes the NethVoice data only after the removal and the synchronization'] = function () {
     $events = [];
     $provider = new FakeProvider();
     $result = usersAdminDeleteAccount($provider->client(), 'alice', SUPERADMIN,
-        function () use (&$events) { $events[] = 'sync'; return true; },
-        function ($username) use (&$events, $provider) { $events[] = ['capture', $username, $provider->writes()]; return [1 => [10, 20]]; },
-        function ($username, $groups) use (&$events) { $events[] = ['keep', $username, $groups]; }
+        function () use (&$events, $provider) { $events[] = ['sync', $provider->writes()]; return true; },
+        function ($username) use (&$events) { $events[] = ['cleanup', $username]; return true; }
     );
-    check($result === [200, ['synchronized' => true]], 'delete must succeed');
-    check($events === [['capture', 'alice', []], ['keep', 'alice', [1 => [10, 20]]], 'sync'], 'groups must be read before the removal and kept before the synchronization: ' . json_encode($events));
+    check($result === [200, ['synchronized' => true, 'cleaned' => true]], 'delete must succeed: ' . json_encode($result));
+    check($events === [['sync', ['remove-user']], ['cleanup', 'alice']], 'the data must be deleted after the removal and the synchronization: ' . json_encode($events));
 
     $events = [];
     $provider = new FakeProvider();
     $provider->responses['remove-user'] = reply(500, ['code' => 500]);
-    usersAdminDeleteAccount($provider->client(), 'alice', SUPERADMIN, fn() => true, fn() => [1 => [10]], function () use (&$events) { $events[] = 'keep'; });
-    check($events === [], 'a failed removal must not keep the groups');
+    $result = usersAdminDeleteAccount($provider->client(), 'alice', SUPERADMIN,
+        function () use (&$events) { $events[] = 'sync'; return true; },
+        function () use (&$events) { $events[] = 'cleanup'; return true; }
+    );
+    check($result === usersAdminError(502, 'provider_error') && $events === [], 'a failed removal must leave NethVoice untouched: ' . json_encode([$result, $events]));
 
     $provider = new FakeProvider();
-    usersAdminDeleteAccount($provider->client(), 'alice', SUPERADMIN, fn() => true, fn() => [], function () use (&$events) { $events[] = 'keep'; });
-    check($events === [], 'no groups, nothing to keep');
+    $result = usersAdminDeleteAccount($provider->client(), 'alice', SUPERADMIN, fn() => false, fn() => false);
+    check($result === [200, ['synchronized' => false, 'cleaned' => false]], 'a failed cleanup must be reported: ' . json_encode($result));
 
     $provider = new FakeProvider();
-    $result = usersAdminDeleteAccount($provider->client(), 'alice', SUPERADMIN, fn() => true, function () { throw new RuntimeException('database gone'); }, function () use (&$events) { $events[] = 'keep'; });
-    check($result === [200, ['synchronized' => true]] && $provider->writes() === ['remove-user'] && $events === [], 'unreadable groups must not block the removal');
+    $result = usersAdminDeleteAccount($provider->client(), 'alice', SUPERADMIN, fn() => true, function () { throw new RuntimeException('database gone'); });
+    check($result === [200, ['synchronized' => true, 'cleaned' => false]] && $provider->writes() === ['remove-user'], 'a cleanup error must be reported after the removal: ' . json_encode($result));
+};
+
+$tests['runs every NethVoice cleanup step and reloads once'] = function () {
+    $events = [];
+    $step = function ($name, $result) use (&$events) {
+        return function ($username) use (&$events, $name, $result) {
+            $events[] = [$name, $username];
+            if ($result instanceof Throwable) { throw $result; }
+            return $result;
+        };
+    };
+    $reload = function () use (&$events) { $events[] = 'reload'; };
+    check(usersAdminDeleteNethvoiceData('alice', [$step('pbx', true), $step('cti', true)], $reload) === true, 'all steps done must succeed');
+    check($events === [['pbx', 'alice'], ['cti', 'alice'], 'reload'], 'unexpected steps: ' . json_encode($events));
+
+    $events = [];
+    check(usersAdminDeleteNethvoiceData('alice', [$step('pbx', new RuntimeException('database gone')), $step('cti', true)], $reload) === false, 'a failed step must fail the cleanup');
+    check($events === [['pbx', 'alice'], ['cti', 'alice'], 'reload'], 'a failed step must not stop the others: ' . json_encode($events));
+
+    $events = [];
+    check(usersAdminDeleteNethvoiceData('alice', [$step('pbx', true), $step('cti', false)], $reload) === false && end($events) === 'reload', 'a step that reports a failure must fail the cleanup');
 };
 
 $failures = 0;
