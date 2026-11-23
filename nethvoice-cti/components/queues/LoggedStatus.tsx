@@ -10,11 +10,19 @@ import { useTranslation } from 'react-i18next'
 export interface LoggedStatusProps extends ComponentProps<'div'> {
   loggedIn: boolean
   paused: boolean
+  pauseReason?: string
+}
+
+const PAUSE_REASON_LABELS: Record<string, string> = {
+  'Lunch break': 'Queues.Lunch break',
+  Emergency: 'Queues.Emergency',
+  Backend: 'Queues.Backend',
 }
 
 export const LoggedStatus: FC<LoggedStatusProps> = ({
   loggedIn,
   paused,
+  pauseReason,
   className,
 }): JSX.Element => {
   const [firstRender, setFirstRender]: any = useState(true)
@@ -62,7 +70,7 @@ export const LoggedStatus: FC<LoggedStatusProps> = ({
             status === 'loggedIn'
               ? 'Queues.Logged in'
               : status === 'paused'
-              ? 'Queues.On a break'
+              ? PAUSE_REASON_LABELS[pauseReason ?? ''] ?? 'Queues.On a break'
               : 'Queues.Logged out',
           )}
         </span>
