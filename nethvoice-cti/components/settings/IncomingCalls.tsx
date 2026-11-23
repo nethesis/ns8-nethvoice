@@ -449,7 +449,7 @@ export const IncomingCalls = () => {
                     : selectedRingtone && playRingtonePreview(selectedRingtone)
                 }
                 disabled={!selectedRingtone}
-                className='h-[38px]'
+                className='h-[calc(38px*var(--density))]'
               >
                 <FontAwesomeIcon
                   icon={playingRingtone === selectedRingtone?.name ? faStop : faPlay}

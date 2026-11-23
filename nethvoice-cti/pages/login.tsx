@@ -557,7 +557,7 @@ export default function Login() {
       {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        className='mx-auto w-auto max-h-[70px] items-center object-contain object-bottom fill-current text-primary dark:text-primaryDark'
+        className='mx-auto w-auto max-h-[calc(70px*var(--density))] items-center object-contain object-bottom fill-current text-primary dark:text-primaryDark'
         src={!isDarkTheme ? '/login_logo.svg' : '/login_logo_dark.svg'}
         alt='logo'
       />
@@ -585,7 +585,7 @@ export default function Login() {
   const passwordChangeTemplate = () => {
     if (isPasswordUpdated) {
       return (
-        <div className='max-w-sm sm:w-[26.25rem] flex flex-col gap-8'>
+        <div className='max-w-sm sm:w-[calc(26.25rem*var(--density))] flex flex-col gap-8'>
           {productHeader()}
           <div className='flex flex-col items-center gap-3 text-center'>
             <div className='flex h-12 w-12 items-center justify-center rounded-full bg-surfaceToastSuccess dark:bg-surfaceToastSuccessDark'>
@@ -619,7 +619,7 @@ export default function Login() {
     }
 
     return (
-      <div className='max-w-sm sm:w-[26.25rem] flex flex-col gap-8'>
+      <div className='max-w-sm sm:w-[calc(26.25rem*var(--density))] flex flex-col gap-8'>
         {productHeader()}
         <div className='flex flex-col gap-1'>
           <h3 className='text-xl font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
@@ -772,7 +772,7 @@ export default function Login() {
               {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                className='w-full h-full object-contain transform -translate-x-[-20rem] xl:-translate-x-[-16rem] lg:scale-[40%] xl:scale-[60%] 2xl:scale-75'
+                className='w-full h-full object-contain transform -translate-x-[calc(-20rem*var(--density))] xl:-translate-x-[calc(-16rem*var(--density))] lg:scale-[40%] xl:scale-[60%] 2xl:scale-75'
                 src='/action_voice-cti.svg'
                 alt='image'
               />

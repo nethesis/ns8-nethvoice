@@ -116,7 +116,7 @@ export const FilterDisclosure: React.FC<FilterDisclosureProps> = ({
                         icon={search.length ? faCircleXmark : undefined}
                         onIconClick={clearSearch}
                         trailingIcon={true}
-                        className='min-w-[8rem]'
+                        className='min-w-[calc(8rem*var(--density))]'
                       />
                     )}
                     {!filteredOptions.length && (

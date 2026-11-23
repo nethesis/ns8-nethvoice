@@ -175,7 +175,7 @@ export const ParkCards: FC<ParkCardsProps> = ({ className }): JSX.Element => {
           <div className='w-full border-t border-layoutDivider dark:border-layoutDividerDark' />
         </div>
       </div>
-      <div className='relative container z-0 w-[200rem] pl-2 flex h-16 border-b shadow-sm border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800'>
+      <div className='relative container z-0 w-[calc(200rem*var(--density))] pl-2 flex h-16 border-b shadow-sm border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800'>
         <SlideCarousel
           cards={parkCardsData.map((card: any) => card?.content)}
           numberOfParkingNotEmpty={parkingInfo.notEmptyParking}

@@ -69,7 +69,7 @@ const OperatorCard = ({
     operatorsStore?.operators[authUsername]?.mainPresence != 'online'
 
   return (
-    <div className='space-y-2 w-[200px]'>
+    <div className='space-y-2 w-[calc(200px*var(--density))]'>
       {/* Operator avatar */}
       <Avatar
         src={liveOperatorData?.avatarBase64}
@@ -86,7 +86,7 @@ const OperatorCard = ({
       <div className='space-y-1'>
         <div className='text-xs font-medium lg:text-sm'>
           <h3
-            className='cursor-pointer hover:underline text-center text-sm not-italic font-medium leading-5 text-gray-900 dark:text-gray-100 truncate mx-[6px]'
+            className='cursor-pointer hover:underline text-center text-sm not-italic font-medium leading-5 text-gray-900 dark:text-gray-100 truncate mx-[calc(6px*var(--density))]'
             onClick={handleOpenDrawer}
             title={liveOperatorData?.name}
           >
@@ -262,7 +262,7 @@ const OperatorCard = ({
       </div>
 
       <div
-        className={`tooltip-operator-information-${index} flex justify-center min-h-[24px]`}
+        className={`tooltip-operator-information-${index} flex justify-center min-h-[calc(24px*var(--density))]`}
         data-tooltip-id={`tooltip-operator-information-${index}`}
         data-tooltip-content={
           isInConversation

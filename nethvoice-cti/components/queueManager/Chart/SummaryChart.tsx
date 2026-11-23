@@ -103,7 +103,7 @@ const SummaryChartCard: FC<SummaryChartCardProps> = ({
           <CustomThemedTooltip id={tooltipId} place={tooltipPlace} />
         </div>
       </div>
-      <div className='mt-3 mx-auto h-80 w-full overflow-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-thumb-opacity-50 scrollbar-track-gray-200 dark:scrollbar-track-gray-900 scrollbar-track-rounded-full scrollbar-track-opacity-25'>
+      <div className='mt-3 mx-auto h-[20rem] w-full overflow-auto scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-thumb-opacity-50 scrollbar-track-gray-200 dark:scrollbar-track-gray-900 scrollbar-track-rounded-full scrollbar-track-opacity-25'>
         {children}
       </div>
     </div>

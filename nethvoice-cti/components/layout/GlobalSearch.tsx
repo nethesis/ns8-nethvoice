@@ -279,7 +279,7 @@ export const GlobalSearch: FC<GlobalSearchProps> = () => {
       <div
         id='globalSearch'
         className={classNames(
-          'absolute left-[53px] md:left-0 sm:w-[70%] md:w-[75%] 2xl:w-[50vw] transform divide-y overflow-hidden transition-all rounded-lg z-[60] bg-topbar dark:bg-topbarDark divide-gray-200  dark:divide-gray-700',
+          'absolute left-[calc(53px*var(--density))] md:left-0 sm:w-[70%] md:w-[75%] 2xl:w-[50vw] transform divide-y overflow-hidden transition-all rounded-lg z-[60] bg-topbar dark:bg-topbarDark divide-gray-200  dark:divide-gray-700',
           globalSearchStore?.isFocused ? 'w-[calc(100vw - 52px)]' : 'w-[50%]',
         )}
       >

@@ -538,7 +538,7 @@ export const VoicemailInbox: FC<VoicemailInboxProps> = ({ className }): JSX.Elem
                           }
                     }
                     rowKey='id'
-                    trClassName='h-[84px]'
+                    trClassName='h-[calc(84px*var(--density))]'
                     scrollable={true}
                     footer={
                       totalPages > 1 ? (

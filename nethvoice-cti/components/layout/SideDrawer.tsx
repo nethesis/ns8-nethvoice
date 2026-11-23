@@ -114,7 +114,7 @@ export const SideDrawer: FC<SideDrawerProps> = ({ isShown, contentType, config, 
               leaveFrom='translate-x-0'
               leaveTo='translate-x-full'
             >
-              <DialogPanel className='relative flex w-[80vw] md:w-[60vw] lg:w-[40vw] 2xl:w-[33vw] 3xl:w-[36rem] flex-1 flex-col shadow-[0px_20px_40px_0_rgba(0,0,0,0.2)] bg-elevationL1 dark:bg-elevationL1Dark dark:shadow-[0px_20px_40px_0_rgba(0,0,0,0.6)]'>
+              <DialogPanel className='relative flex w-[80vw] md:w-[60vw] lg:w-[40vw] 2xl:w-[33vw] 3xl:w-[calc(36rem*var(--density))] flex-1 flex-col shadow-[0px_20px_40px_0_rgba(0,0,0,0.2)] bg-elevationL1 dark:bg-elevationL1Dark dark:shadow-[0px_20px_40px_0_rgba(0,0,0,0.6)]'>
                 <div className={`h-0 flex-1 ${customScrollbarClass}`}>
                   <nav className='flex h-full flex-col'>
                     <div className='relative'>

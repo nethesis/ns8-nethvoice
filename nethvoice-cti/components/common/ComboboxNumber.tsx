@@ -74,7 +74,7 @@ export default function ComboboxNumber({
         />
         <ComboboxButton
           className={classNames(
-            missingkeyError ? 'inset-y-2 mb-[1.5rem]' : 'inset-y-0',
+            missingkeyError ? 'inset-y-2 mb-[calc(1.5rem*var(--density))]' : 'inset-y-0',
             'absolute right-0 flex items-center rounded-r-md px-2 focus:outline-none',
           )}
         >

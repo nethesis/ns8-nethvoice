@@ -14,8 +14,8 @@ interface AccountSectionProps {
  * content on the right
  */
 export const AccountSection: FC<AccountSectionProps> = ({ title, description, children }) => (
-  <section className='flex flex-col gap-6 pb-8 md:flex-row max-w-[48.375rem] border-b border-layoutDivider dark:border-layoutDividerDark'>
-    <div className='flex flex-col gap-1 md:w-[18.75rem] md:shrink-0'>
+  <section className='flex flex-col gap-6 pb-8 md:flex-row max-w-[calc(48.375rem*var(--density))] border-b border-layoutDivider dark:border-layoutDividerDark'>
+    <div className='flex flex-col gap-1 md:w-[calc(18.75rem*var(--density))] md:shrink-0'>
       <h2 className='text-base font-medium text-primaryNeutral dark:text-primaryNeutralDark'>
         {title}
       </h2>

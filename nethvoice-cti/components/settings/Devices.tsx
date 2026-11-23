@@ -49,7 +49,7 @@ interface NavigatorWithUserAgentData extends Navigator {
 
 const STYLES = {
   tableCell:
-    'px-6 py-4 gap-6 text-sm font-normal font-poppins text-gray-700 dark:text-gray-200 h-[52px]',
+    'px-6 py-4 gap-6 text-sm font-normal font-poppins text-gray-700 dark:text-gray-200 h-[calc(52px*var(--density))]',
   tableHeader:
     'text-left relative px-6 py-3 gap-2 bg-gray-100 dark:bg-gray-800 font-poppins font-medium text-sm text-gray-900 dark:text-gray-50 first:rounded-tl-lg last:rounded-tr-lg',
   iconButton: 'text-emerald-700 dark:text-emerald-500 h-4 w-4',
@@ -315,7 +315,7 @@ const Devices: NextPage = () => {
 
   const settingsIconClasses = isRightSideMenuOpen ? 'mr-0 h-4 w-4' : 'xl:mr-3 mr-0 h-4 w-4'
   const settingsLabelClasses = isRightSideMenuOpen ? 'hidden' : 'hidden xl:inline'
-  const actionsColumnWidth = isRightSideMenuOpen ? 'w-[8.5rem]' : 'w-[8.5rem] xl:w-[14rem]'
+  const actionsColumnWidth = isRightSideMenuOpen ? 'w-[calc(8.5rem*var(--density))]' : 'w-[calc(8.5rem*var(--density))] xl:w-[calc(14rem*var(--density))]'
 
   const settingsButtonPlaceholder = (
     <span className='invisible' aria-hidden='true'>

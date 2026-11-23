@@ -77,7 +77,7 @@ export const ExpandedVideoView: React.FC<ExpandedVideoViewProps> = ({
         </div>
 
         {/* Image or Fallback */}
-        <div className='flex-1 flex items-center justify-center bg-elevationL2Invert dark:bg-elevationL2InvertDark rounded-3xl overflow-hidden relative group min-h-[600px]'>
+        <div className='flex-1 flex items-center justify-center bg-elevationL2Invert dark:bg-elevationL2InvertDark rounded-3xl overflow-hidden relative group min-h-[calc(600px*var(--density))]'>
           {hasFailedImage ? (
             <div className='w-full h-full flex flex-col items-center justify-center text-secondaryNeutral dark:text-secondaryNeutralDark'>
               <FontAwesomeIcon icon={faVideo} className='w-16 h-16 mb-4' />

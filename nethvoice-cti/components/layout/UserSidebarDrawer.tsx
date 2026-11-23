@@ -26,7 +26,7 @@ export const UserSidebarDrawer: FC<UserSidebarDrawerProps> = ({ isShown }) => {
           className={`${rightSideStatus.isShown ? 'relative z-20 lg:hidden' : 'hidden'}`}
           onClose={() => {}}
         >
-          <div className='fixed top-16 right-[3.2rem] bottom-0 z-40 flex'>
+          <div className='fixed top-16 right-[calc(3.2rem*var(--density))] bottom-0 z-40 flex'>
             <TransitionChild
               as={Fragment}
               enter='transition ease-in-out duration-300 transform'

@@ -73,7 +73,7 @@ const SourceCard: FC<{
     aria-checked={selected}
     onClick={onClick}
     className={classNames(
-      'flex flex-1 h-[3.4375rem] items-center justify-between gap-2 rounded-md border px-3 py-2',
+      'flex flex-1 h-[calc(3.4375rem*var(--density))] items-center justify-between gap-2 rounded-md border px-3 py-2',
       'border-borderRingInput dark:border-borderRingInputDark',
       selected
         ? classNames('bg-elevation0 dark:bg-elevation0Dark', selectedRing)

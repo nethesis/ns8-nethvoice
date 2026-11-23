@@ -201,7 +201,7 @@ export const CheckboxPreferencesQueues: FC<CheckboxPreferencesQueuesProps> = ({
         </div>
         {userSettingsInformation?.queue_auto_pause_onpresence && (
           <>
-            <div className='ml-7 grid grid-cols-[8rem,8rem] gap-2 whitespace-nowrap'>
+            <div className='ml-7 grid grid-cols-[calc(8rem*var(--density)),calc(8rem*var(--density))] gap-2 whitespace-nowrap'>
               {qPauseAvailPresence.options.map((option: any) => (
                 <div key={option.value} className='flex items-center'>
                   <input

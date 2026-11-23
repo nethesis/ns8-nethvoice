@@ -13,6 +13,7 @@ export interface DropdownProps extends ComponentProps<'div'> {
   divider?: boolean
   position?:
     | 'left'
+    | 'leftAuto'
     | 'right'
     | 'topLeft'
     | 'top'
@@ -53,7 +54,7 @@ const DropdownComponent: FC<DropdownProps> = ({
           theme.items.base,
           divider && theme.items.divider,
           anchor
-            ? 'w-60 z-50 [--anchor-gap:0.5rem]'
+            ? 'w-60 z-50 [--anchor-gap:calc(0.5rem*var(--density))]'
             : position
             ? theme.items.position[position]
             : theme.items.position.right,
