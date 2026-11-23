@@ -841,7 +841,9 @@ test.describe('dashboard', () => {
     await expect(chart).toHaveAccessibleName(startingWith(`${FULL_PERIOD}:`))
   })
 
-  test('ignores a click and resets the zoom with a double-click', async ({ page }) => {
+  test('ignores a click, widens a short selection and resets with a double-click', async ({
+    page,
+  }) => {
     await page.goto('./dashboard')
 
     const card = page.getByTestId('hourly-calls-card')
@@ -861,6 +863,12 @@ test.describe('dashboard', () => {
     await page.mouse.up()
     await expect(card.getByTestId('hourly-calls-period')).toHaveText(
       period('Nov 10, 00:00', 'Nov 11, 00:00'),
+    )
+
+    await dragOnChart(page, chart, [utc(10, 0), utc(11, 0)], utc(10, 12), utc(10, 13))
+    await page.mouse.up()
+    await expect(card.getByTestId('hourly-calls-period')).toHaveText(
+      period('Nov 10, 11:00', '14:00'),
     )
 
     await chart.dblclick()
