@@ -57,9 +57,12 @@ jobs:
           coverage: none
       - name: Fetch native dialplan library
         run: |
-          REMOTE_ARTIFACTS_MANIFEST="$PWD/freepbx/remote-artifacts.sha256" sh freepbx/fetch-remote-artifact freepbx-framework-bootstrap-release-17.0.33.2.tar.gz https://github.com/FreePBX/framework/archive/refs/tags/release/17.0.33.2.tar.gz
+          manifest="$PWD/freepbx/remote-artifacts.sha256"
+          artifact=$(awk '$2 ~ /^freepbx-framework-bootstrap-release-/ {print $2}' "$manifest")
+          version=${artifact#freepbx-framework-bootstrap-release-}
+          REMOTE_ARTIFACTS_MANIFEST="$manifest" sh freepbx/fetch-remote-artifact "$artifact" "https://github.com/FreePBX/framework/archive/refs/tags/release/${version%.tar.gz}.tar.gz"
           mkdir -p "${RUNNER_TEMP}/framework"
-          tar -xzf /tmp/freepbx-framework-bootstrap-release-17.0.33.2.tar.gz --strip-components=1 -C "${RUNNER_TEMP}/framework"
+          tar -xzf "/tmp/$artifact" --strip-components=1 -C "${RUNNER_TEMP}/framework"
           echo "VOICE_AGENT_EXTENSIONS_FILE=${RUNNER_TEMP}/framework/amp_conf/htdocs/admin/libraries/extensions.class.php" >> "$GITHUB_ENV"
       - name: Install test dependencies
         run: |
