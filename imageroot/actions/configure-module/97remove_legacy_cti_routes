@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Make sure the routes that published the legacy CTI server on /webrest and
+# /socket.io are gone (see update-module.d/61remove_legacy_cti_routes): the
+# configuration fails while any of them is still published.
+
+import os
+import sys
+
+import agent
+import legacy_cti_routes
+
+remaining = legacy_cti_routes.remove(os.environ['MODULE_ID'])
+if remaining:
+    print(agent.SD_ERR + "Legacy CTI routes still published, the CTI server is reachable without the middleware: " + ", ".join(remaining), file=sys.stderr)
+    sys.exit(1)
