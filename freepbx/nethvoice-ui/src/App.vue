@@ -18,7 +18,9 @@ import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useWizardState } from '@/queries/setup/wizardState'
+import { useMe } from '@/queries/permissions/me'
 import { IS_E2E } from '@/lib/config'
+import { canAccess } from '@/lib/permissions/permissions'
 import { areSystemAlertsAllowed, useSystemAlerts } from '@/composables/useSystemAlerts'
 
 const themeStore = useThemeStore()
@@ -29,6 +31,7 @@ const router = useRouter()
 const loginStore = useLoginStore()
 const notificationsStore = useNotificationsStore()
 const { state: wizardState } = useWizardState()
+const { state: meState } = useMe()
 const { t, te } = useI18n()
 const initialTitle = document.title
 
@@ -61,6 +64,17 @@ watch(
         name: 'login',
         query: route.fullPath === '/' ? {} : { redirect: route.fullPath },
       })
+    }
+  },
+)
+
+watch(
+  () => meState.value.data?.permissions,
+  (permissions) => {
+    const section = route.meta.section
+
+    if (permissions && section && !canAccess(permissions, section)) {
+      router.replace({ path: route.path, query: route.query, hash: route.hash, force: true })
     }
   },
 )

@@ -29,6 +29,7 @@ export const SIGN_IN_FAILURES = [
   'account_conflict',
   'too_many_attempts',
   'domain_unavailable',
+  'storage_unavailable',
   'generic',
 ] as const
 

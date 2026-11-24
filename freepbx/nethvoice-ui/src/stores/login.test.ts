@@ -1,12 +1,13 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createApp } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
-import { PiniaColada } from '@pinia/colada'
-import { api } from '@/lib/api/client'
+import { PiniaColada, useQueryCache } from '@pinia/colada'
+import { api, configureApiClient } from '@/lib/api/client'
 import { postSignIn, SignInError, type SignInResult } from '@/lib/auth'
+import { ME_KEY } from '@/lib/permissions/permissions'
 import { useLoginStore } from './login'
 
 vi.mock('@/lib/api/client', () => ({
@@ -36,6 +37,11 @@ const signIn = (overrides: Partial<SignInResult> = {}): SignInResult => ({
 
 const sessionCalls = () =>
   (vi.mocked(api.GET).mock.calls as unknown[][]).filter(([path]) => path === '/login')
+
+const logoutCalls = () =>
+  (vi.mocked(api.GET).mock.calls as unknown[][]).filter(([path]) => path === '/logout')
+
+const clientHooks = () => vi.mocked(configureApiClient).mock.calls.at(-1)?.[0]
 
 describe('useLoginStore login', () => {
   beforeEach(() => {
@@ -103,5 +109,117 @@ describe('useLoginStore login', () => {
     expect(localStorage.getItem('secretkey')).toBeNull()
     expect(store.rememberedUsername()).toBe('')
     expect(sessionCalls()).toHaveLength(0)
+  })
+})
+
+describe('useLoginStore storage', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.mocked(api.GET).mockReset().mockResolvedValue({ data: {}, response: new Response() })
+    vi.mocked(postSignIn).mockReset().mockResolvedValue(signIn())
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should refuse the sign in with a clear failure when the browser blocks the storage', async () => {
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError')
+    })
+    const store = createStore()
+
+    await expect(store.login('admin', 'Password,1', true)).rejects.toMatchObject({
+      failure: 'storage_unavailable',
+    })
+
+    expect(store.isAuthenticated).toBe(false)
+    expect(store.credentials).toBeNull()
+    expect(localStorage.getItem('secretkey')).toBeNull()
+    expect(sessionCalls()).toHaveLength(0)
+  })
+
+  it('should not store half of the credentials when the storage fills up', async () => {
+    const setItem = Storage.prototype.setItem
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string,
+    ) {
+      if (key === 'lastUser') {
+        throw new DOMException('full', 'QuotaExceededError')
+      }
+      setItem.call(this, key, value)
+    })
+    const store = createStore()
+
+    await expect(store.login('admin', 'Password,1', false)).rejects.toBeInstanceOf(SignInError)
+
+    expect(store.isAuthenticated).toBe(false)
+    expect(localStorage.getItem('secretkey')).toBeNull()
+  })
+
+  it('should show the sign in page when the remembered username cannot be read', () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError')
+    })
+    const store = createStore()
+
+    expect(store.rememberedUsername()).toBe('')
+    expect(store.isAuthenticated).toBe(false)
+  })
+})
+
+describe('useLoginStore session', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.mocked(api.GET).mockReset().mockResolvedValue({ data: {}, response: new Response() })
+    vi.mocked(postSignIn).mockReset().mockResolvedValue(signIn())
+  })
+
+  it('should end the FreePBX session with the expired credentials when the session expires', async () => {
+    const store = createStore()
+    await store.login('admin', 'Password,1', false)
+    vi.mocked(api.GET).mockClear().mockRejectedValue(new Error('forbidden'))
+
+    store.handleAuthenticationFailure()
+    await Promise.resolve()
+
+    expect(store.isAuthenticated).toBe(false)
+    expect(store.sessionExpired).toBe(true)
+    expect(localStorage.getItem('secretkey')).toBeNull()
+    expect(logoutCalls()).toEqual([
+      ['/logout', { headers: { User: 'admin', Secretkey: 'a'.repeat(40) } }],
+    ])
+  })
+
+  it('should end the FreePBX session once, even when more calls fail together', async () => {
+    const store = createStore()
+    await store.login('admin', 'Password,1', false)
+    vi.mocked(api.GET).mockClear()
+
+    store.handleAuthenticationFailure()
+    store.handleAuthenticationFailure()
+
+    expect(logoutCalls()).toHaveLength(1)
+  })
+
+  it('should ask the permissions again when a section call is refused', async () => {
+    const store = createStore()
+    await store.login('admin', 'Password,1', false)
+    const invalidate = vi.spyOn(useQueryCache(), 'invalidateQueries').mockResolvedValue([])
+
+    clientHooks()?.onPermissionDenied?.()
+
+    expect(invalidate).toHaveBeenCalledWith({ key: [ME_KEY] })
+  })
+
+  it('should not ask the permissions after the sign out', () => {
+    createStore()
+    const invalidate = vi.spyOn(useQueryCache(), 'invalidateQueries').mockResolvedValue([])
+
+    clientHooks()?.onPermissionDenied?.()
+
+    expect(invalidate).not.toHaveBeenCalled()
   })
 })

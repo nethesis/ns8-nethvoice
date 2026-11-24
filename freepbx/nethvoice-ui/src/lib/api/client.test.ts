@@ -19,12 +19,14 @@ const jsonResponse = (body: unknown, status = 200) =>
 describe('api client', () => {
   const fetchMock = vi.fn<(request: Request) => Promise<Response>>()
   const onAuthenticationFailure = vi.fn()
+  const onPermissionDenied = vi.fn()
 
   beforeEach(() => {
     vi.stubGlobal('fetch', fetchMock)
     configureApiClient({
       getCredentials: () => ({ user: 'admin', hash: 'secret-key' }),
       onAuthenticationFailure,
+      onPermissionDenied,
     })
   })
 
@@ -32,6 +34,7 @@ describe('api client', () => {
     vi.unstubAllGlobals()
     fetchMock.mockReset()
     onAuthenticationFailure.mockReset()
+    onPermissionDenied.mockReset()
   })
 
   it('should send the credentials headers on authenticated calls', async () => {
@@ -86,6 +89,25 @@ describe('api client', () => {
 
     await expect(api.GET('/configuration/wizard')).rejects.toBeInstanceOf(ApiError)
     expect(onAuthenticationFailure).toHaveBeenCalledOnce()
+  })
+
+  it('should report a refused section call without ending the session', async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ message: 'Forbidden: missing permission' }, 403))
+
+    await expect(api.GET('/configuration/wizard')).rejects.toMatchObject({ status: 403 })
+    expect(onPermissionDenied).toHaveBeenCalledOnce()
+    expect(onAuthenticationFailure).not.toHaveBeenCalled()
+  })
+
+  it('should not report the rejected credentials nor the permissions call as a refused section', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'Forbidden: wrong secret key' }, 403))
+    fetchMock.mockResolvedValueOnce(jsonResponse({ message: 'Forbidden' }, 403))
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: 'boom' }, 500))
+
+    await expect(api.GET('/configuration/wizard')).rejects.toBeInstanceOf(ApiError)
+    await expect(api.GET('/me')).rejects.toBeInstanceOf(ApiError)
+    await expect(api.GET('/configuration/wizard')).rejects.toBeInstanceOf(ApiError)
+    expect(onPermissionDenied).not.toHaveBeenCalled()
   })
 
   it('should not end the session on a failed login', async () => {

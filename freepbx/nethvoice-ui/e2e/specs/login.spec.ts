@@ -49,6 +49,33 @@ test.describe('login', () => {
     expect(stored).toEqual({ user: 'admin', hash: E2E_SIGN_IN_KEY })
   })
 
+  test('explains that the browser does not let the site keep the session', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      const setItem = Storage.prototype.setItem
+      Storage.prototype.setItem = function (key: string, value: string) {
+        if (key === 'secretkey') {
+          throw new DOMException('blocked', 'QuotaExceededError')
+        }
+        setItem.call(this, key, value)
+      }
+    })
+    await page.goto('./login')
+    await page.getByRole('textbox', { name: 'Username' }).fill('admin')
+    await page.getByRole('textbox', { name: 'Password' }).fill('correct-password')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+
+    await expect(
+      page.getByText(
+        'The browser does not let this site save data. Allow cookies and site data for this site, then sign in again.',
+      ),
+    ).toBeVisible()
+    await expect(page).toHaveURL(/\/nethvoice\/login$/)
+    expect(mockApi.callsTo('GET', '/freepbx/rest/login')).toHaveLength(0)
+  })
+
   test('opens the FreePBX session only for a superadmin', async ({ page, mockApi }) => {
     mockApi.allowUnmockedCalls()
     mockSignIn(mockApi, ['dashboard'], 'domain')
@@ -270,6 +297,7 @@ test.describe('login', () => {
 
     await expect(page).toHaveURL(/\/nethvoice\/login/)
     await expect(page.getByText('Session expired')).toBeVisible()
+    await expect.poll(() => mockApi.callsTo('GET', '/freepbx/rest/logout').length).toBe(1)
   })
 
   test('signs out the admin user when Tancredi rejects the stored secret key', async ({

@@ -6,8 +6,8 @@ import { defineStore } from 'pinia'
 import { useQueryCache } from '@pinia/colada'
 import { api, configureApiClient, type Credentials } from '@/lib/api/client'
 import { CREDENTIALS_STORAGE_KEY } from '@/lib/config'
-import { postSignIn } from '@/lib/auth'
-import { isSuperadmin } from '@/lib/permissions/permissions'
+import { postSignIn, SignInError } from '@/lib/auth'
+import { isSuperadmin, ME_KEY } from '@/lib/permissions/permissions'
 
 const LAST_USER_STORAGE_KEY = 'lastUser'
 const REMEMBERED_USERNAME_STORAGE_KEY = 'nethvoiceRememberedUsername'
@@ -24,6 +24,15 @@ const isCredentials = (value: unknown): value is Credentials => {
     candidate.user !== '' &&
     candidate.hash !== ''
   )
+}
+
+const tryStorage = (action: () => void): boolean => {
+  try {
+    action()
+    return true
+  } catch {
+    return false
+  }
 }
 
 export const readStoredCredentials = (): Credentials | null => {
@@ -43,17 +52,30 @@ export const useLoginStore = defineStore('login', () => {
   const isAuthenticated = computed(() => credentials.value !== null)
   const username = computed(() => credentials.value?.user ?? '')
 
-  const rememberedUsername = () => localStorage.getItem(REMEMBERED_USERNAME_STORAGE_KEY) ?? ''
+  const rememberedUsername = () => {
+    let username = ''
+    tryStorage(() => {
+      username = localStorage.getItem(REMEMBERED_USERNAME_STORAGE_KEY) ?? ''
+    })
+    return username
+  }
 
   const storeCredentials = (newCredentials: Credentials | null) => {
-    credentials.value = newCredentials
-
-    if (newCredentials) {
+    if (!newCredentials) {
+      credentials.value = null
+      tryStorage(() => localStorage.removeItem(CREDENTIALS_STORAGE_KEY))
+      return
+    }
+    const stored = tryStorage(() => {
       localStorage.setItem(CREDENTIALS_STORAGE_KEY, JSON.stringify(newCredentials))
       localStorage.setItem(LAST_USER_STORAGE_KEY, newCredentials.user)
-    } else {
-      localStorage.removeItem(CREDENTIALS_STORAGE_KEY)
+    })
+
+    if (!stored) {
+      tryStorage(() => localStorage.removeItem(CREDENTIALS_STORAGE_KEY))
+      throw new SignInError('storage_unavailable')
     }
+    credentials.value = newCredentials
   }
 
   const clearSession = () => {
@@ -68,32 +90,56 @@ export const useLoginStore = defineStore('login', () => {
     storeCredentials({ user: signIn.user, hash: signIn.secretkey })
     sessionExpired.value = false
 
-    if (rememberUsername) {
-      localStorage.setItem(REMEMBERED_USERNAME_STORAGE_KEY, signIn.user)
-    } else {
-      localStorage.removeItem(REMEMBERED_USERNAME_STORAGE_KEY)
-    }
+    tryStorage(() =>
+      rememberUsername
+        ? localStorage.setItem(REMEMBERED_USERNAME_STORAGE_KEY, signIn.user)
+        : localStorage.removeItem(REMEMBERED_USERNAME_STORAGE_KEY),
+    )
 
     if (isSuperadmin(signIn.permissions)) {
       await api.GET('/login').catch(() => undefined)
     }
   }
 
+  const endServerSession = async (sessionCredentials: Credentials | null): Promise<boolean> => {
+    try {
+      await api.GET(
+        '/logout',
+        sessionCredentials
+          ? { headers: { User: sessionCredentials.user, Secretkey: sessionCredentials.hash } }
+          : {},
+      )
+      return true
+    } catch {
+      return false
+    }
+  }
+
   const logout = async () => {
-    await api.GET('/logout').catch(() => undefined)
+    await endServerSession(credentials.value)
     clearSession()
   }
 
   const handleAuthenticationFailure = () => {
-    if (credentials.value) {
+    const expired = credentials.value
+
+    if (expired) {
       sessionExpired.value = true
       clearSession()
+      void endServerSession(expired)
+    }
+  }
+
+  const handlePermissionDenied = () => {
+    if (credentials.value) {
+      queryCache.invalidateQueries({ key: [ME_KEY] }).catch(() => undefined)
     }
   }
 
   configureApiClient({
     getCredentials: () => credentials.value,
     onAuthenticationFailure: handleAuthenticationFailure,
+    onPermissionDenied: handlePermissionDenied,
   })
 
   return {

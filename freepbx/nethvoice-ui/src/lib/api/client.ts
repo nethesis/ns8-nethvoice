@@ -11,6 +11,7 @@ export type Credentials = { user: string; hash: string }
 type ClientHooks = {
   getCredentials: () => Credentials | null
   onAuthenticationFailure: () => void
+  onPermissionDenied?: () => void
 }
 
 let hooks: ClientHooks = {
@@ -23,6 +24,8 @@ export const configureApiClient = (clientHooks: ClientHooks) => {
 }
 
 const UNAUTHENTICATED_PATHS = ['/testauth']
+
+const PERMISSIONS_PATH = '/me'
 
 const readBody = async (response: Response): Promise<unknown> => {
   const text = await response.text()
@@ -71,11 +74,12 @@ const authMiddleware: Middleware = {
 
     const body = await readBody(response.clone())
 
-    if (
-      !UNAUTHENTICATED_PATHS.includes(schemaPath) &&
-      isAuthenticationFailure(response.status, body)
-    ) {
-      hooks.onAuthenticationFailure()
+    if (!UNAUTHENTICATED_PATHS.includes(schemaPath)) {
+      if (isAuthenticationFailure(response.status, body)) {
+        hooks.onAuthenticationFailure()
+      } else if (response.status === 403 && schemaPath !== PERMISSIONS_PATH) {
+        hooks.onPermissionDenied?.()
+      }
     }
 
     throw new ApiError({

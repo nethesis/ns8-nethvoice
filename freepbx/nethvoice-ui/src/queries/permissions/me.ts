@@ -12,6 +12,8 @@ import {
 } from '@/lib/permissions/permissions'
 import { useLoginStore } from '@/stores/login'
 
+export const ME_STALE_TIME = 60_000
+
 export const useMe = defineQuery(() => {
   const loginStore = useLoginStore()
 
@@ -19,8 +21,8 @@ export const useMe = defineQuery(() => {
     key: () => [ME_KEY, loginStore.username],
     enabled: () => loginStore.isAuthenticated,
     query: ({ signal }) => getMe(signal),
-    staleTime: Number.POSITIVE_INFINITY,
-    refetchOnWindowFocus: false,
+    staleTime: ME_STALE_TIME,
+    refetchOnWindowFocus: true,
   })
 
   return { state, asyncStatus, ...rest }

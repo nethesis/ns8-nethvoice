@@ -3,6 +3,7 @@
 
 import { expect, mockPermissions, mockWizardState, test } from '../fixtures/mockApi'
 import { mockPhonesApi, TANCREDI } from './phones-data'
+import { mockUsersApi, REST } from './users-data'
 
 const MENU_SECTIONS = [
   'Dashboard',
@@ -154,6 +155,54 @@ test.describe('section permissions', () => {
 
       await page.getByRole('button', { name: 'Sign out' }).click()
       await expect(page).toHaveURL(/\/nethvoice\/login/)
+    })
+  })
+
+  test.describe('permissions changed while signed in', () => {
+    let permissions: string[] = []
+
+    test.beforeEach(({ mockApi }) => {
+      permissions = ['dashboard', 'users', 'trunks']
+      mockUsersApi(mockApi).on('GET', '/freepbx/rest/me', () => ({
+        json: { username: 'operator', permissions },
+      }))
+    })
+
+    test('leaves a section that the server refuses and updates the menu', async ({
+      page,
+      mockApi,
+    }) => {
+      await page.goto('./users/users')
+      await expect(page.getByTestId('user-a.miller')).toBeVisible()
+
+      permissions = ['dashboard', 'trunks']
+      mockApi.on('POST', `${REST}/users/sync`, {
+        status: 403,
+        json: { message: 'Forbidden: missing permission' },
+      })
+      await page.getByRole('button', { name: 'Actions', exact: true }).click()
+      await page.getByRole('menuitem', { name: 'Synchronize users' }).click()
+
+      await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+      await expect(page.getByRole('link', { name: 'Users and groups', exact: true })).toHaveCount(0)
+      await expect(page.getByRole('link', { name: 'Trunks', exact: true })).toBeVisible()
+      await expect(
+        page.getByTestId('toast-notifications').getByText('Section not available'),
+      ).toBeVisible()
+    })
+
+    test('reads the permissions again when the window is shown again', async ({ page }) => {
+      await page.clock.install()
+      await page.goto('./users/users')
+      await expect(page.getByTestId('user-a.miller')).toBeVisible()
+      await expect(page.getByRole('link', { name: 'Trunks', exact: true })).toBeVisible()
+
+      permissions = ['dashboard', 'users']
+      await page.clock.fastForward(61_000)
+      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+      await expect(page.getByRole('link', { name: 'Trunks', exact: true })).toHaveCount(0)
+      await expect(page).toHaveURL(/\/nethvoice\/users\/users$/)
     })
   })
 
