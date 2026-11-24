@@ -69,6 +69,9 @@ $app->post('/phones/rps/{mac}', function (Request $request, Response $response, 
     if (!is_array($body) || empty($body['url'])) {
         return $response->withStatus(400);
     }
+    if (preg_match('/^[0-9A-Fa-f]{2}([:-]?[0-9A-Fa-f]{2}){5}$/D', (string) $args['mac']) !== 1) {
+        return $response->withStatus(400);
+    }
     $result = setFalconieriRPS($args['mac'], $body['url']);
     return $response->withStatus($result['httpCode']);
 });

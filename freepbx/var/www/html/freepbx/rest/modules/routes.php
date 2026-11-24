@@ -60,20 +60,22 @@ $app->get('/inboundroutes', function (Request $request, Response $response, $arg
 $app->post('/inboundroutes', function (Request $request, Response $response, $args) {
     $params = $request->getParsedBody();
 
-    if (!is_array($params)
-        || !isset($params['extension'])
-        || !is_scalar($params['extension'])
-        || !isset($params['destination'])
-        || !is_string($params['destination'])
-        || trim($params['destination']) === '') {
-      return jsonResponse($response, array('message' => 'Inbound route extension and destination are required'), 422);
-    }
-    $controls = false;
-    array_walk_recursive($params, function ($value) use (&$controls) {
-      $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
-    });
-    if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
-      return jsonResponse($response, array('message' => 'Invalid control character'), 400);
+    if (!nethvoiceRequestIsSuperadmin($request)) {
+      if (!is_array($params)
+          || !isset($params['extension'])
+          || !is_scalar($params['extension'])
+          || !isset($params['destination'])
+          || !is_string($params['destination'])
+          || trim($params['destination']) === '') {
+        return jsonResponse($response, array('message' => 'Inbound route extension and destination are required'), 422);
+      }
+      $controls = false;
+      array_walk_recursive($params, function ($value) use (&$controls) {
+        $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+      });
+      if ($controls) {
+        return jsonResponse($response, array('message' => 'Invalid control character'), 400);
+      }
     }
 
     try {

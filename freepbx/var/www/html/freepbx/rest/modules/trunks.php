@@ -63,7 +63,7 @@ $app->get('/trunks', function (Request $request, Response $response, $args) {
             // Get trunk username
             $details = FreePBX::Core()->getTrunkDetails($trunk['trunkid']);
             $trunk['username'] = $details['username'];
-            $trunk['details'] = redactTrunkDetails($details);
+            $trunk['details'] = nethvoiceRequestIsSuperadmin($request) ? $details : redactTrunkDetails($details);
             array_push($result, $trunk);
         }
         return jsonResponse($response, $result,200);
@@ -282,7 +282,7 @@ $app->post('/trunks', function (Request $request, Response $response, $args) {
         return jsonResponse($response, ['error'=>'Invalid control character'],400);
     }
     $trunkName = (empty($params['name'])) ? $params['provider'] : $params['name'];
-    if (!is_scalar($trunkName) || mb_strlen((string) $trunkName, 'UTF-8') > 50) {
+    if (!nethvoiceRequestIsSuperadmin($request) && (!is_scalar($trunkName) || mb_strlen((string) $trunkName, 'UTF-8') > 50)) {
         return jsonResponse($response, ['message'=>'Trunk name must be a string of at most 50 characters'],422);
     }
 
