@@ -25,14 +25,16 @@ ERRORS = frozenset(('other', 'timeout', 'cancelled', 'transport', 'provider_erro
     'recent_lookup_overflow', 'voicemail_unavailable', 'transfer_unavailable', 'transfer_unconfirmed',
     'transfer_cancelled', 'transfer_failed', 'transfer_uncertain', 'provider_disconnected',
     'provider_event_error', 'provider_sideband_error', 'provider_unavailable', 'provider_sideband_failed', 'provider_accept_failed', 'provider_stream_failed',
-    'provider_answer_failed', 'media_bridge_failed', 'setup_timeout', 'duration_exceeded',
+    'provider_answer_failed', 'media_bridge_failed', 'media_prepare_failed', 'setup_timeout', 'duration_exceeded',
     'runtime_restarted', 'runtime_stopped', 'ari_disconnected', 'caller_cancelled_before_connect',
     'setup_cancelled', 'tool_execution_failed', 'provider_live_error', 'provider_live_backend_failed',
     'debug_transcription_unavailable', 'media_eof', 'media_identity_invalid', 'media_backpressure', 'media_transport_failed', 'media_capacity_exceeded', 'cleanup_failed', 'fallback_failed', 'trace_limit', 'observation_gap', 'shutdown', 'setup_expired', 'test_finished'))
 ERRORS = ERRORS | frozenset('consultation_' + stage + '_' + result
     for stage in ('announcement','moh','presence','origination','provider','chat') for result in ('failed','timeout')) | frozenset((
     'consultation_recovery_failed','consultation_update_failed','consultation_handoff_failed','consultation_no_answer',
-    'consultation_busy','consultation_recipient_closed','consultation_recipient_unavailable'))
+    'consultation_busy','consultation_recipient_closed','consultation_recipient_unavailable',
+    'private_service_unavailable','private_service_invalid','chat_provider_unavailable',
+    'chat_denied','chat_capacity','invalid_chat_reply','invalid_chat_decision','invalid_chat_opening'))
 TOOLS = frozenset(('pbx.find_destinations',
                    'pbx.find_recent_callers', 'pbx.transfer', 'telephony.hangup'))
 USAGE_KEYS = ('response_input_tokens', 'response_output_tokens', 'response_total_tokens',

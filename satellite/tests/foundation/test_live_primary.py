@@ -199,3 +199,59 @@ async def test_consultation_rejected_append_fails_without_waiting_for_speech():
     with pytest.raises(ProviderError, match='command rejected'):
         await asyncio.wait_for(task, .5)
     assert not any(event.get('type') == 'error' for event in session._queue._queue)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('played, expected', [(False, 'timeout'), (True, 'completed')])
+async def test_primary_greeting_ack_timeout_requires_voiced_audio_written_to_asterisk(
+        monkeypatch, played, expected):
+    from unittest.mock import AsyncMock
+
+    from voice_agent.providers import live
+    from voice_agent.media import FRAME_BYTES
+
+    monkeypatch.setattr(live, 'COMMAND_ACK_TIMEOUT', .02)
+    session = OpenAILiveWebSocketSession({'api_key': 'synthetic'})
+    session._send = AsyncMock()
+    greeting = asyncio.create_task(session.respond())
+    await asyncio.sleep(0)
+    command = session._send.await_args.args[0]
+    if played:
+        for _ in range(1600 // FRAME_BYTES):
+            session.audio_played(b'\x80' * FRAME_BYTES)
+    else:
+        # Buffered provider output and written silence do not prove playback.
+        await session._handle({'type': 'session.output_audio.delta',
+                               'delta': base64.b64encode(b'\x80' * 1600).decode()})
+        session.audio_played(b'\xff' * FRAME_BYTES)
+    if expected == 'timeout':
+        with pytest.raises(live.LiveAcknowledgmentTimeout):
+            await greeting
+    else:
+        await greeting
+    session._send.assert_awaited_once()
+    await session._handle({'type': 'session.commentary.appended',
+                           'client_event_id': command['event_id']})
+    assert session._acks == {}
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_primary_ari_media_error_retains_pbx_failure_stage(caplog):
+    from unittest.mock import AsyncMock
+
+    from test_provider_emulators import eventually
+    from test_runtime import admit, fixtures
+    from voice_agent.ari import AriHTTPError
+    from voice_agent.tools import DEFINITIONS
+
+    runtime, storage, controller, _ = fixtures()
+    storage.snapshot.return_value = snapshot('gpt-live-1')
+    storage.tools.return_value = DEFINITIONS
+    controller.create_media_channel.side_effect = AriHTTPError('POST', '/channels/externalMedia', 409)
+    runtime.finish = AsyncMock(wraps=runtime.finish)
+    call = await admit(runtime)
+    await eventually(lambda: call.terminal)
+    runtime.finish.assert_awaited_once_with(call, 'fallback', 'media_prepare_failed', fallback=True)
+    assert 'phase=media_prepare step=create_channel http_status=409' in caplog.text
+    assert 'provider_http_409' not in caplog.text

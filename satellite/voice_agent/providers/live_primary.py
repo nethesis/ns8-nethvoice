@@ -6,9 +6,9 @@ import time
 
 import aiohttp
 
-from .live import OpenAILiveAdapter
+from .live import LOG, LiveAcknowledgmentTimeout, OpenAILiveAdapter
 from .realtime import ProviderError
-from ..media import AudioBuffer, MAX_AUDIO_BYTES
+from ..media import AudioBuffer, FRAME_BYTES, MAX_AUDIO_BYTES
 
 
 def _pcmu_power(value):
@@ -99,6 +99,20 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
                 # Wake startup immediately on failure, rather than charging for
                 # a session until its readiness deadline expires.
                 self._ready.set()
+
+    async def respond(self, instructions=None, *, response_id=None):
+        try:
+            await super().respond(instructions, response_id=response_id)
+        except LiveAcknowledgmentTimeout:
+            # Startup can deliver the seeded opening without a timely commentary
+            # acknowledgment. Require at least 200 ms of voiced audio written to
+            # Asterisk before continuing. Replaying the command can greet twice.
+            minimum_frames = 1600 // FRAME_BYTES
+            if (response_id is not None or self._closed_event.is_set()
+                    or not self._audio_enabled
+                    or getattr(self, '_played_speech_sequence', 0) < minimum_frames):
+                raise
+            LOG.warning("OpenAI Live greeting continued after voiced audio reached Asterisk")
 
     async def send_audio(self, frame):
         if self._audio_enabled:
