@@ -237,15 +237,20 @@ function requestBack() {
   emit('back')
 }
 
-function confirmLeave() {
+async function confirmLeave() {
   isShownUnsavedModal.value = false
   discardChanges()
+
+  if (!pendingLocation.value) {
+    emit('back')
+    return
+  }
   leaveConfirmed = true
 
-  if (pendingLocation.value) {
-    router.push(pendingLocation.value)
-  } else {
-    emit('back')
+  try {
+    await router.push(pendingLocation.value)
+  } finally {
+    leaveConfirmed = false
   }
 }
 

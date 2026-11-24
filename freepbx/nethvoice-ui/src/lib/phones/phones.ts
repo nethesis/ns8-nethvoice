@@ -30,6 +30,10 @@ export type PhoneStatus = (typeof PHONE_STATUSES)[number] | 'unknown'
 
 const WEB_USER = 'admin'
 
+export const PROVISIONING_CONCURRENCY = 4
+
+export const REMOTE_PROVISIONING_VENDORS = ['fanvil', 'gigaset', 'nethesis', 'snom', 'yealink']
+
 export type TancrediPhone = {
   mac: string
   model: string
@@ -405,7 +409,10 @@ export const addPhone = async (
       throw new PhoneAssignmentError(error)
     }
   }
-  return { mac, rpsFailed: !registered }
+  return {
+    mac,
+    rpsFailed: !registered && REMOTE_PROVISIONING_VENDORS.includes(vendor.toLowerCase()),
+  }
 }
 
 const reassignPhone = async (
@@ -490,12 +497,20 @@ export const deletePhone = async (phone: Phone): Promise<void> => {
 }
 
 export const runProvisioning = async (phones: Phone[]): Promise<ProvisioningResult> => {
-  const results = await Promise.allSettled(
-    phones
-      .filter((phone) => phone.extension !== '')
-      .map((phone) => api.POST('/phones/reconfigure', { body: { extension: phone.extension } })),
-  )
-  const started = results.filter((result) => result.status === 'fulfilled').length
+  const queue = phones.filter((phone) => phone.extension !== '')
+  const result: ProvisioningResult = { started: 0, failed: 0 }
 
-  return { started, failed: results.length - started }
+  const reconfigureNext = async (): Promise<void> => {
+    for (let phone = queue.shift(); phone; phone = queue.shift()) {
+      try {
+        await api.POST('/phones/reconfigure', { body: { extension: phone.extension } })
+        result.started += 1
+      } catch {
+        result.failed += 1
+      }
+    }
+  }
+
+  await Promise.all(Array.from({ length: PROVISIONING_CONCURRENCY }, reconfigureNext))
+  return result
 }

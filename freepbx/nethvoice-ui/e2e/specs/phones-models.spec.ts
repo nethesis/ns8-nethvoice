@@ -344,6 +344,50 @@ test.describe('physical phones: models', () => {
     expect(mockApi.callsTo('PATCH', `${TANCREDI}/models/:id`)).toHaveLength(0)
   })
 
+  test('asks again before leaving another model opened from the browser history', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPhonesApi(mockApi).on('GET', `${TANCREDI}/models/:id`, (request) => {
+      const name = request.path.split('/').pop() ?? ''
+      const model = TANCREDI_MODELS.find((item) => item.name === name)
+
+      return {
+        json: { name, display_name: model?.display_name ?? name, variables: MODEL_VARIABLES },
+      }
+    })
+    await page.goto('./phones/models')
+    const vlan = page.getByRole('textbox', { name: 'Phone VLAN ID' })
+    const unsaved = page.getByRole('dialog', { name: 'Unsaved changes' })
+
+    for (const name of ['Fanvil X4U', 'Yealink T46']) {
+      await page
+        .getByRole('row', { name: new RegExp(name) })
+        .getByRole('button', { name: /Edit/ })
+        .click()
+      await expect(page.getByRole('heading', { name })).toBeVisible()
+      if (name === 'Fanvil X4U') {
+        await page.getByRole('button', { name: 'Models', exact: true }).first().click()
+      }
+    }
+    await page.getByRole('button', { name: 'Network' }).click()
+    await vlan.fill('30')
+
+    await page.evaluate(() => history.go(-2))
+    await expect(unsaved.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await unsaved.getByRole('button', { name: 'Discard changes' }).click()
+    await expect(page.getByRole('heading', { name: 'Fanvil X4U' })).toBeVisible()
+    await expect(page).toHaveURL(/\?model=fanvil-X4U$/)
+
+    await expect(vlan).toHaveValue('')
+    await vlan.fill('40')
+    await page.evaluate(() => history.back())
+    await expect(unsaved.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await unsaved.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(vlan).toHaveValue('40')
+    await expect(page).toHaveURL(/\?model=fanvil-X4U$/)
+  })
+
   test.describe('last update', () => {
     test.use({ timezoneId: 'UTC' })
 

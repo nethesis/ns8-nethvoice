@@ -20,6 +20,8 @@ import {
   parseProvisioningUrls,
   parseTancrediPhones,
   PhoneReassignmentError,
+  PROVISIONING_CONCURRENCY,
+  runProvisioning,
   UNASSIGNED_FILTER_ID,
   updatePhone,
   validateNewPhoneRows,
@@ -347,6 +349,54 @@ describe('phone writes', () => {
   it('should delete a phone from the PBX before Tancredi', async () => {
     await deletePhone(assigned)
     expect(calls).toEqual(['DELETE /physicalextensions/{id}', 'tancredi DELETE'])
+  })
+
+  it('should warn about remote provisioning only for the vendors that support it', async () => {
+    vi.mocked(tancredi.get).mockRejectedValue(serverError('/phones/mac'))
+    const options = { webPassword: 'Secret-1x', encrypted: true }
+
+    await expect(
+      addPhone(
+        { mac: '00:15:65:00:00:09', model: 'yealink-T46', mainExtension: '' },
+        'Yealink',
+        options,
+      ),
+    ).resolves.toEqual({ mac: '00-15-65-00-00-09', rpsFailed: true })
+    await expect(
+      addPhone(
+        { mac: '00:0B:82:00:00:09', model: 'grandstream-GXP2170', mainExtension: '' },
+        'Grandstream',
+        options,
+      ),
+    ).resolves.toEqual({ mac: '00-0B-82-00-00-09', rpsFailed: false })
+  })
+
+  it('should run the provisioning of a few phones at a time and count the results', async () => {
+    const targets = Array.from({ length: 10 }, (_, index) => ({
+      ...assigned,
+      extension: String(91300 + index),
+    }))
+    let running = 0
+    let maxRunning = 0
+
+    vi.mocked(api.POST).mockImplementation(async (_path, init) => {
+      running += 1
+      maxRunning = Math.max(maxRunning, running)
+      await Promise.resolve()
+      running -= 1
+      const extension = (init as { body: { extension: string } }).body.extension
+
+      if (extension.endsWith('3') || extension.endsWith('7')) {
+        throw serverError('/phones/reconfigure')
+      }
+      return { data: undefined, response: new Response() }
+    })
+
+    const result = runProvisioning([...targets, { ...assigned, extension: '' }])
+
+    await expect(result).resolves.toEqual({ started: 8, failed: 2 })
+    expect(maxRunning).toBe(PROVISIONING_CONCURRENCY)
+    expect(api.POST).toHaveBeenCalledTimes(10)
   })
 
   it('should keep the phone in Tancredi when the PBX deletion fails', async () => {
