@@ -47,9 +47,9 @@ class PrivateTools:
         return ''
 
     def opening_instructions(self, greeting, language, caller_name=''):
-        return ('Speak immediately in the configured language. Greet the colleague by name, then in your first sentence '
-                'say who is waiting on the phone and briefly why they are calling, using only the available data below. '
-                'For example: "Hi Alice, I have Bob on the phone about his open tickets." '
+        return ('Speak immediately in the configured language (' + json.dumps(language) + '). '
+                'In the first sentence, greet the colleague by name and say who is waiting and why they are calling. '
+                'Use only the information below and include the stated reason before asking for consent. '
                 'If no specific reason is available, simply say the caller wants to speak with the colleague. '
                 'Never invent a missing caller name or reason. Ask whether to connect and wait for explicit consent; '
                 'do not add a separate self-introduction, generic welcome or ask how you can help. Never interpret voicemail as acceptance. '

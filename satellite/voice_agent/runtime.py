@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from .monitoring import Monitoring, MAX_PENDING, RESERVED
-from .ari import new_channel_id
+from .ari import AriHTTPError, new_channel_id
 from .telemetry import CallTrace, ACTIVE_SPAN, error_info, safe_error
 from .transcripts import Transcripts
 from .providers import create_adapter
@@ -731,6 +731,7 @@ class Runtime:
             if call.binding.get('adapter') == 'live_ws':
                 from .media import AudioBridge
                 stage = 'media_prepare'
+                media_step = 'create_channel'
                 async with trace.measure(stage):
                     await self.owned_resource(call,
                         self.controller.create_media_channel(call.session_id, call.leg_id, call.snapshot['agent_id']),
@@ -738,6 +739,7 @@ class Runtime:
                     if call.terminal:
                         await self.controller.hangup(call.leg_id)
                         return
+                    media_step = 'connect_channel'
                     media = await self.controller.connect_media_channel(call.leg_id)
                     call.media = media
                     if call.terminal:
@@ -745,9 +747,11 @@ class Runtime:
                         await self.controller.hangup(call.leg_id)
                         return
                     self.spawn(self.watch_media(call), call)
+                    media_step = 'create_bridge'
                     call.bridge_id = 'livews-' + call.session_id
                     await self.owned_resource(call, self.controller.create_bridge(call.bridge_id),
                                               lambda: self.controller.destroy_bridge(call.bridge_id))
+                    media_step = 'add_to_bridge'
                     await self.controller.add_to_bridge(call.bridge_id, [call.caller_id, call.leg_id])
                     media.enable_input()
                 stage = 'provider_start'
@@ -782,6 +786,7 @@ class Runtime:
             self.monitoring.emit(call.run_id,'provider_connected',elapsed_ms=self.trace(call).elapsed())
             # The runtime owns the deadline and must route fallback while the caller
             # is still alive. Asterisk is only a bounded failure watchdog.
+            stage = 'media_bridge'
             await self.controller.set_variable(call.caller_id,'TIMEOUT(absolute)',max(1,math.ceil(call.deadline-time.monotonic())+5))
             call.media_connected = True
             self.monitoring.emit(call.run_id,'media_connected',elapsed_ms=trace.elapsed())
@@ -828,7 +833,10 @@ class Runtime:
             trace.end(stream_span, 'failed', **error_info(error))
             status=getattr(error,'http_status',None)
             code=stage+'_failed'
-            if isinstance(status,int) and 400<=status<600: code='provider_http_'+str(status)
+            if not isinstance(error, AriHTTPError) and isinstance(status, int) and 400 <= status < 600:
+                code = 'provider_http_' + str(status)
+            if stage == 'media_prepare':
+                LOG.warning('Voice agent phase=media_prepare step=%s http_status=%s', media_step, status)
             LOG.warning('Voice agent phase=%s error_code=%s error_class=%s provider_code=%s provider_param=%s',stage,code,type(error).__name__,getattr(error,'provider_code','none'),getattr(error,'provider_param','none'))
             await self.finish(call,'fallback',code,fallback=True)
 

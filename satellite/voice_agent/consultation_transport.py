@@ -30,6 +30,12 @@ async def bounded_json(response):
     return json.loads(data)
 
 
+class ConsultationHTTPError(ValueError):
+    def __init__(self, code, status):
+        super().__init__(code)
+        self.http_status = status
+
+
 class ConsultationClient:
     async def request(self, service, method, path, body=None):
         base = private_url(os.getenv('VOICE_AGENT_' + service + '_URL', ''))
@@ -42,7 +48,7 @@ class ConsultationClient:
                 if response.status == 204:
                     return None
                 if response.status != 200:
-                    raise ValueError('private_service_unavailable')
+                    raise ConsultationHTTPError('private_service_unavailable', response.status)
                 return await bounded_json(response)
 
     async def recipient(self, extension):
@@ -134,8 +140,8 @@ class ChatConversation:
             payload.pop('parallel_tool_calls')
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=min(10,max(.1,c.deadline-time.monotonic())))) as session:
             async with session.post(base,json=payload,headers={'Authorization':'Bearer '+self.binding['api_key']}) as response:
-                if response.status!=200:
-                    raise ValueError('chat_provider_unavailable')
+                if response.status != 200:
+                    raise ConsultationHTTPError('chat_provider_unavailable', response.status)
                 result = await bounded_json(response)
         usage = result.get('usage',{})
         for source,target in [('prompt_tokens','response_input_tokens'),('completion_tokens','response_output_tokens'),('total_tokens','response_total_tokens')]:

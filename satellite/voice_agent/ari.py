@@ -17,6 +17,12 @@ import aiohttp
 LOG = logging.getLogger(__name__)
 
 
+class AriHTTPError(RuntimeError):
+    def __init__(self, method, path, status):
+        super().__init__(f"Agent ARI {method} {path}: HTTP {status}")
+        self.http_status = status
+
+
 def new_channel_id():
     """112 random bits, with room for Asterisk's Local-channel ``;2`` suffix.
 
@@ -152,7 +158,7 @@ class AriController:
                                          params=params, json=json_body,
                                          timeout=aiohttp.ClientTimeout(total=10)) as response:
             if response.status >= 400:
-                raise RuntimeError(f"Agent ARI {method} {path}: HTTP {response.status}")
+                raise AriHTTPError(method, path, response.status)
             if response.status == 204:
                 return None
             return await response.json()

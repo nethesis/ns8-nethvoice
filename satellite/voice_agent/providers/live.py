@@ -6,13 +6,23 @@ readiness is a semantic tool result; it makes no playback-completion claim.
 
 import asyncio
 import json
+import logging
 import secrets
+import time
 from urllib.parse import quote
 
 import aiohttp
 
 from ..telemetry import PROVIDER_CODES
 from .realtime import ProviderError, _RealtimeAdapter, _call_id, _instructions, _profile_value, _tools
+
+
+LOG = logging.getLogger(__name__)
+COMMAND_ACK_TIMEOUT = 10
+
+
+class LiveAcknowledgmentTimeout(TimeoutError):
+    pass
 
 
 MAX_EVENTS = 4096
@@ -154,7 +164,14 @@ class OpenAILiveAdapter(_RealtimeAdapter):
         self._acks[event_id] = (expected, future)
         try:
             await self._send({"type": kind, "event_id": event_id, **fields})
-            await asyncio.wait_for(future, 10)
+            sent = time.monotonic()
+            try:
+                await asyncio.wait_for(future, COMMAND_ACK_TIMEOUT)
+            except TimeoutError:
+                LOG.warning("OpenAI Live command=%s acknowledgment=timeout", kind)
+                raise LiveAcknowledgmentTimeout() from None
+            LOG.debug("OpenAI Live command=%s acknowledgment_ms=%d",
+                      kind, (time.monotonic() - sent) * 1000)
         finally:
             self._acks.pop(event_id, None)
 
