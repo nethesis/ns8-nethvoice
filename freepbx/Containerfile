@@ -84,6 +84,7 @@ RUN cd /usr/src/asterisk && \
 	cd asterisk-${ASTERISK_VERSION} && \
 	patch --batch --fuzz=0 -p1 < ../asterisk-22-lazymembers.patch && \
 	patch --batch --fuzz=0 -p1 < ../asterisk-22-mp3.patch && \
+	patch --batch --fuzz=0 -p1 < ../asterisk-22-ari-inhibit-state.patch && \
 	sed -i '/#include "asterisk.h"/i#define ASTMM_LIBC ASTMM_REDIRECT' addons/mp3/interface.c && \
 	cd .. && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
