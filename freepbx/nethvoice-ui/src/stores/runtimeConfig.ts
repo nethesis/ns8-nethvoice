@@ -6,6 +6,7 @@ import { defineStore } from 'pinia'
 import * as v from 'valibot'
 import i18n from '@/i18n'
 import { CTI_PRODUCT_NAME, PRODUCT_NAME, RUNTIME_CONFIG_URL } from '@/lib/config'
+import { isRebranded } from '@/lib/signInSplash'
 
 const OptionalText = v.optional(v.fallback(v.string(), ''), '')
 
@@ -165,5 +166,7 @@ export const useRuntimeConfigStore = defineStore('runtimeConfig', () => {
 
   const docsUrl = computed(() => localizeDocsUrl(config.value.docsUrl, i18n.global.locale.value))
 
-  return { config, loaded, failed, hostname, instanceLabel, docsUrl, load }
+  const showDocs = computed(() => loaded.value && !failed.value && !isRebranded(config.value))
+
+  return { config, loaded, failed, hostname, instanceLabel, docsUrl, showDocs, load }
 })

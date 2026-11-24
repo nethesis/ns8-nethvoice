@@ -165,3 +165,30 @@ test.describe('rebranding: CTI product name', () => {
     ).toBeVisible()
   })
 })
+
+test.describe('rebranding: documentation links', () => {
+  test('hides the help links on a rebranded instance', async ({ page, mockApi }) => {
+    mockApi.allowUnmockedCalls()
+    await serveConfig(page, { BRAND_NAME: 'Acme Voice' })
+    await page.goto('./login')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Need help?' })).toHaveCount(0)
+  })
+
+  test('hides the help button of the top bar on a rebranded instance', async ({
+    page,
+    signedIn,
+  }) => {
+    void signedIn
+    await serveConfig(page, { BRAND_NAME: 'Acme Voice' })
+    await page.goto('./dashboard')
+    await expect(page.getByRole('button', { name: 'Show notifications' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Documentation' })).toHaveCount(0)
+  })
+
+  test('shows the help links without rebranding', async ({ page, signedIn }) => {
+    void signedIn
+    await page.goto('./dashboard')
+    await expect(page.getByRole('link', { name: 'Documentation' })).toBeVisible()
+  })
+})

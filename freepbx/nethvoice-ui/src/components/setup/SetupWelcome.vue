@@ -110,6 +110,7 @@ async function startSetup() {
       </p>
       <div class="flex flex-wrap items-center justify-center gap-4">
         <NeLink
+          v-if="runtimeConfigStore.showDocs"
           :href="runtimeConfigStore.docsUrl"
           target="_blank"
           rel="noopener noreferrer"

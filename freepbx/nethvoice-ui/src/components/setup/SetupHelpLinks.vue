@@ -16,7 +16,11 @@ const runtimeConfigStore = useRuntimeConfigStore()
 </script>
 
 <template>
-  <NeTooltip trigger-event="mouseenter focus" :placement="placement">
+  <NeTooltip
+    v-if="runtimeConfigStore.showDocs"
+    trigger-event="mouseenter focus"
+    :placement="placement"
+  >
     <template #trigger>
       <a
         :href="runtimeConfigStore.docsUrl"

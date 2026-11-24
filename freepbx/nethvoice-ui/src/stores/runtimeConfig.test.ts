@@ -130,6 +130,34 @@ describe('useRuntimeConfigStore', () => {
     expect(store.config.brandName).toBe('Acme Voice')
   })
 
+  it('should show the documentation only when the configuration is loaded and not rebranded', async () => {
+    const store = createStore()
+    expect(store.showDocs).toBe(false)
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ BRAND_NAME: 'NethVoice' }))),
+    )
+    await store.load()
+    expect(store.showDocs).toBe(true)
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify({ BRAND_NAME: 'Acme Voice' }))),
+    )
+    const rebranded = createStore()
+    await rebranded.load()
+    expect(rebranded.showDocs).toBe(false)
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('', { status: 404 })),
+    )
+    const failed = createStore()
+    await failed.load()
+    expect(failed.showDocs).toBe(false)
+  })
+
   it('should mark the configuration as failed on an error answer', async () => {
     vi.stubGlobal(
       'fetch',

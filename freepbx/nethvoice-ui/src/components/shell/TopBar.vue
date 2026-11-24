@@ -178,7 +178,12 @@ function openNotificationsDrawer() {
         />
 
         <div class="-mr-2.5 flex items-center gap-x-1">
-          <NeTooltip trigger-event="mouseenter focus" placement="bottom" class="flex">
+          <NeTooltip
+            v-if="runtimeConfigStore.showDocs"
+            trigger-event="mouseenter focus"
+            placement="bottom"
+            class="flex"
+          >
             <template #trigger>
               <a
                 :href="runtimeConfigStore.docsUrl"

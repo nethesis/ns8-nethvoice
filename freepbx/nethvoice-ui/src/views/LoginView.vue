@@ -185,6 +185,7 @@ async function signIn() {
                 :disabled="loading"
               />
               <NeLink
+                v-if="runtimeConfigStore.showDocs"
                 :href="runtimeConfigStore.docsUrl"
                 target="_blank"
                 rel="noreferrer"
