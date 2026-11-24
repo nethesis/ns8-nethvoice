@@ -1,0 +1,70 @@
+--- a/Console/Userman.class.php
++++ b/Console/Userman.class.php
+@@ -39,4 +39,5 @@
+ 
+ 		$status = [];
++		$exitCode = Command::SUCCESS;
+   		$force = $input->getOption('force');
+ 		$sync = $input->getOption('sync');
+@@ -61,5 +62,7 @@
+ 			$directories = $userman->getAllDirectories();
+ 			foreach($directories as $directory) {
+-				$this->syncDirectory($directory,$output,$force);
++				if (!$this->syncDirectory($directory,$output,$force)) {
++					$exitCode = Command::FAILURE;
++				}
+ 			}
+ 			$this->removeLock();
+@@ -81,5 +84,5 @@
+ 			$id = $input->getOption('sync');
+ 			$directory = $userman->getDirectoryByID($id);
+-			$this->syncDirectory($directory,$output,$force);
++			$exitCode = $this->syncDirectory($directory,$output,$force) ? Command::SUCCESS : Command::FAILURE;
+ 			$this->removeLock();
+ 		}
+@@ -88,4 +91,5 @@
+ 			exit(4);
+ 		}
++		return $exitCode;
+ 	}
+ 
+@@ -159,10 +163,10 @@
+ 	}
+ 
+-	private function syncDirectory($directory,$output,$force=false) {
++	private function syncDirectory($directory,$output,$force=false): bool {
+ 		if(isset($directory)) {
+ 			$userman = FreePBX::create()->Userman;
+ 			if(!$directory['active']) {
+ 				$output->writeln("Directory '".$directory['name']."' is not active. Skipping");
+-				return;
++				return true;
+ 			}
+ 			$dir = $userman->getDirectoryObjectByID($directory['id']);
+@@ -170,5 +174,5 @@
+ 				if(!$force && empty($directory['config']['sync'])) {
+ 					$output->writeln("Directory '".$directory['name']."' sync is None. Skipping (Unless --force flag is set)");
+-					return;
++					return true;
+ 				}
+ 				$timeSince = $userman->getConfig("directory-last-sync-time");
+@@ -201,6 +205,8 @@
+ 					} catch(Exception $e) {
+ 						$output->writeln("\t<error>".$e->getMessage()."</error>");
++						return false;
++					} finally {
++						$userman->unlockDirectory($directory['id']);
+ 					}
+-					$userman->unlockDirectory($directory['id']);
+ 					if(\FreePBX::Config()->get("USERMAN_ACCOUNT_CODE")) {
+                 	                        $output->writeln("Updating account codes...");
+@@ -226,6 +232,8 @@
+ 		} else {
+ 			$output->writeln("Directory not found");
+-		}
++			return false;
++		}
++		return true;
+ 	}
+ 
+ 	private function setLock() {
