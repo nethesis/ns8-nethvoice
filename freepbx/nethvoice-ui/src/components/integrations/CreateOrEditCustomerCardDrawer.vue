@@ -174,7 +174,7 @@ const {
   error: saveError,
 } = useMutation({
   mutation: (cardForm: CustomerCardForm) =>
-    saveCustomerCard(buildCustomerCardPayload(cardForm), editing.value?.id),
+    saveCustomerCard(buildCustomerCardPayload(cardForm, queryLocked.value), editing.value?.id),
   onSuccess(_data, cardForm) {
     const edited = !!editing.value
 

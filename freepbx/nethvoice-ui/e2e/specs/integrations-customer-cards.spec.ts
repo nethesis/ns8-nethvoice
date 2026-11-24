@@ -264,6 +264,22 @@ test.describe('integrations: customer cards', () => {
     await expect(rows.nth(1).getByRole('gridcell').nth(5)).toHaveText(cell('Connected'))
   })
 
+  test('does not test the databases again when the window gets the focus back', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.clock.install()
+    await page.goto('./integrations/customer-cards')
+    await expect(databasesGrid(page).getByRole('row').nth(1)).toContainText('Connected')
+    await expect.poll(() => mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test').length).toBe(3)
+
+    await page.clock.runFor(60_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect.poll(() => mockApi.callsTo('GET', '/freepbx/rest/cti/dbconn').length).toBe(2)
+    await expect(databasesGrid(page).getByRole('row').nth(1)).toContainText('Connected')
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test')).toHaveLength(3)
+  })
+
   test('shows the connection test in progress', async ({ page, mockApi }) => {
     mockApi.on('POST', '/freepbx/rest/cti/dbconn/test', () => new Promise(() => {}))
 
@@ -1138,6 +1154,43 @@ test.describe('integrations: customer cards', () => {
       dbconn_id: '5',
       template: 'invoices_custom',
       query: b64('SELECT * FROM invoices'),
+    })
+  })
+
+  test('keeps the stored query of a card on a PBX database for an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    const query = "  SELECT * FROM phonebook WHERE workphone = '$NUMBER'\n"
+
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi
+      .on('GET', '/freepbx/rest/cti/customer_card', {
+        json: [
+          {
+            id: 1,
+            name: 'Identity',
+            creation: '2026-01-10 09:00:00',
+            query: b64(query),
+            template: { name: 'table', custom: false },
+            dbconn_id: 1,
+            permission_id: 30,
+            profiles: [1],
+          },
+        ],
+      })
+      .on('PUT', '/freepbx/rest/cti/customer_card/:id', { status: 200 })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit Identity' }).click()
+    await drawer(page).getByRole('textbox', { name: 'Name', exact: true }).fill('Caller identity')
+    await drawer(page).getByRole('button', { name: 'Save' }).click()
+
+    await expect(drawer(page)).toBeHidden()
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/:id')[0].body).toMatchObject({
+      name: 'Caller identity',
+      query: b64(query),
+      dbconn_id: 1,
     })
   })
 

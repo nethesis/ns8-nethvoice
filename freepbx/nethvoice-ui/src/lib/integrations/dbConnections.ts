@@ -11,7 +11,9 @@ export const DB_CONNECTIONS_KEY = 'customerCardDbConnections'
 export const DB_CONNECTION_TYPES_KEY = 'customerCardDbConnectionTypes'
 export const DB_CONNECTION_STATUSES_KEY = 'customerCardDbConnectionStatuses'
 
-export const BUILT_IN_DB_CONNECTIONS = ['phonebook', 'asteriskcdrdb']
+export const DB_CONNECTION_STATUS_STALE_TIME = 5 * 60_000
+
+export const BUILT_IN_DB_CONNECTION_IDS = ['1', '2']
 
 const LOCAL_HOSTS = ['', 'localhost', '127.0.0.1', '::1']
 
@@ -75,7 +77,7 @@ export type DbConnectionForm = {
   password: string
 }
 
-const isLocalHost = (host: string): boolean => {
+export const isLocalHost = (host: string): boolean => {
   const name = host
     .trim()
     .toLowerCase()
@@ -93,10 +95,10 @@ export const parseDbConnections = (raw: unknown): DbConnection[] => {
     port: connection.port,
     user: connection.user,
     hasPassword: connection.has_password ?? connection.pass !== '',
-    builtIn: BUILT_IN_DB_CONNECTIONS.includes(connection.name),
+    builtIn: BUILT_IN_DB_CONNECTION_IDS.includes(connection.id) && isLocalHost(connection.host),
   }))
   const pbxPorts = connections
-    .filter((connection) => connection.builtIn && isLocalHost(connection.host))
+    .filter((connection) => connection.builtIn)
     .map((connection) => connection.port.trim())
 
   return connections

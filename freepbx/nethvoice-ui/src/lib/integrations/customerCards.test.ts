@@ -152,6 +152,15 @@ describe('payloads', () => {
     })
   })
 
+  it('should send a locked query exactly as stored', () => {
+    const stored = form({ query: '  select * from invoices\n' })
+
+    expect(buildCustomerCardPayload(stored, true).query).toBe(
+      encodeBase64Utf8('  select * from invoices\n'),
+    )
+    expect(buildCustomerCardPayload(stored).query).toBe(encodeBase64Utf8('select * from invoices'))
+  })
+
   it('should send the connection id as a string to the preview endpoint', () => {
     expect(buildCustomerCardPreviewPayload(form())).toEqual({
       dbconn_id: '5',

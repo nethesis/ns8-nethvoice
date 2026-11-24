@@ -124,6 +124,22 @@ describe('parseDbConnections', () => {
     ])
   })
 
+  it('should flag as built-in only the first two connections on the PBX server, by id', () => {
+    const parsed = parseDbConnections([
+      { id: 1, name: 'contacts', type: 'mysql', host: '127.0.0.1', port: '20093' },
+      { id: 2, name: 'asteriskcdrdb', type: 'mysql', host: 'crm.example.com', port: '20093' },
+      { id: 7, name: 'phonebook', type: 'mysql', host: 'crm.example.com', port: '3306' },
+      { id: 8, name: 'asteriskcdrdb', type: 'mysql', host: 'localhost', port: '20093' },
+    ])
+
+    expect(parsed.map(({ id, builtIn, pbxServer }) => ({ id, builtIn, pbxServer }))).toEqual([
+      { id: '2', builtIn: false, pbxServer: false },
+      { id: '8', builtIn: false, pbxServer: true },
+      { id: '1', builtIn: true, pbxServer: true },
+      { id: '7', builtIn: false, pbxServer: false },
+    ])
+  })
+
   it('should not flag a local connection when there is no built-in connection', () => {
     expect(
       parseDbConnections([{ id: 3, name: 'orders', type: 'mysql', host: 'localhost', port: '' }])[0]

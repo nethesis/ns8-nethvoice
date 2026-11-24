@@ -123,9 +123,12 @@ export const validateCustomerCardForm = (
   return issues
 }
 
-export const buildCustomerCardPayload = (form: CustomerCardForm): CustomerCardInput => ({
+export const buildCustomerCardPayload = (
+  form: CustomerCardForm,
+  keepQuery = false,
+): CustomerCardInput => ({
   name: form.name.trim(),
-  query: encodeBase64Utf8(form.query.trim()),
+  query: encodeBase64Utf8(keepQuery ? form.query : form.query.trim()),
   template: form.templateId,
   dbconn_id: Number(form.dbConnectionId),
   profiles: toProfileIdNumbers(form.profileIds),

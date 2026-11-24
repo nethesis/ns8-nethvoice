@@ -6,6 +6,7 @@ import { defineQuery, useQuery } from '@pinia/colada'
 import { CARD_TEMPLATES_KEY, getCardTemplates } from '@/lib/integrations/cardTemplates'
 import { CUSTOMER_CARDS_KEY, getCustomerCards } from '@/lib/integrations/customerCards'
 import {
+  DB_CONNECTION_STATUS_STALE_TIME,
   DB_CONNECTION_STATUSES_KEY,
   DB_CONNECTION_TYPES_KEY,
   DB_CONNECTIONS_KEY,
@@ -89,6 +90,8 @@ export const useDbConnectionStatuses = defineQuery(() => {
       loginStore.isAuthenticated &&
       connectionsState.value.status === 'success' &&
       meState.value.status === 'success',
+    staleTime: DB_CONNECTION_STATUS_STALE_TIME,
+    refetchOnWindowFocus: false,
     query: async () => {
       const skipped = isSuperadmin.value
         ? []
