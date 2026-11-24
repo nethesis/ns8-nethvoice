@@ -92,7 +92,7 @@ foreach (['admin', 'boss'] as $user) {
 }
 
 foreach (['phoner', 'userer'] as $user) {
-    $response = $auth->process(request($factory, $user, 'GET', '/phones/AC-CD-EF-01-02-03'), new FixedHandler($phone));
+    $response = $auth->process(request($factory, $user, 'GET', $user === 'phoner' ? '/phones/AC-CD-EF-01-02-03' : '/phones'), new FixedHandler($phone));
     check($response->getStatusCode() === 200, "$user must read the phone");
     $data = json_decode((string) $response->getBody(), true);
     check(!preg_match('/account_password|sip-/', (string) $response->getBody()), "$user received a SIP line password");
@@ -107,14 +107,18 @@ foreach (['phoner', 'userer'] as $user) {
     $response = $auth->process(request($factory, $user, 'GET', '/defaults'), new FixedHandler('{"account_password_1":"d","adminpw":"a","userpw":"u","ldap_password":"l","ldap_user":"cn=x"}'));
     check((string) $response->getBody() === ($user === 'phoner' ? '{"adminpw":"a","userpw":"u","ldap_user":"cn=x"}' : '{"ldap_user":"cn=x"}'), "$user received a secret of another section in the defaults: " . $response->getBody());
 
-    $response = $auth->process(request($factory, $user, 'GET', '/firmware/x.bin'), new FixedHandler('binary account_password_1', 'application/octet-stream'));
-    check((string) $response->getBody() === 'binary account_password_1', 'a non JSON response must not change');
 }
+$response = $auth->process(request($factory, 'phoner', 'GET', '/firmware/x.bin'), new FixedHandler('binary account_password_1', 'application/octet-stream'));
+check((string) $response->getBody() === 'binary account_password_1', 'a non JSON response must not change');
 
 $data = json_decode((string) $auth->process(request($factory, 'phoner', 'GET', '/phones/AC-CD-EF-01-02-03'), new FixedHandler($phone))->getBody(), true);
 check($data['variables']['adminpw'] === 'web-admin' && $data['variables']['userpw'] === 'web-user', 'the phones section lost the phone web passwords');
-check($data['tok1'] === 't1' && $data['provisioning_url1'] === 'https://pbx/provisioning/t1/x.cfg' && $data['provisioning_url2'] === 'https://pbx/provisioning/t2/x.cfg', 'the phones section lost the provisioning URLs');
-$body = (string) $auth->process(request($factory, 'userer', 'GET', '/phones/AC-CD-EF-01-02-03'), new FixedHandler($phone))->getBody();
+check(!array_intersect(['tok1', 'tok2', 'provisioning_url1', 'provisioning_url2'], array_keys($data)), 'the phones section received the provisioning tokens or URLs');
+foreach (['/phones/AC-CD-EF-01-02-03?inherit=1', '/phones', '/phones/AC-CD-EF-01-02-03'] as $path) {
+    $body = (string) $auth->process(request($factory, 'phoner', 'GET', $path), new FixedHandler(str_starts_with($path, '/phones/') ? $phone : '[' . $phone . ']'))->getBody();
+    check(!preg_match('/tok1|tok2|provisioning_url|"t1"|"t2"|\/provisioning\//', $body), "the phones section received a provisioning token or URL from $path: $body");
+}
+$body = (string) $auth->process(request($factory, 'userer', 'GET', '/phones'), new FixedHandler($phone))->getBody();
 check(!preg_match('/adminpw|userpw|web-admin|web-user|tok1|tok2|provisioning_url|"t1"|"t2"/', $body), "the users section received the phone web passwords or provisioning tokens: $body");
 $body = (string) $auth->process(request($factory, 'userer', 'GET', '/phones'), new FixedHandler('[' . $phone . ']'))->getBody();
 check(!str_contains($body, 'web-admin') && !str_contains($body, '/provisioning/'), 'the users section received a secret in a list');
@@ -124,7 +128,22 @@ foreach ([
     ['phoner', 'PATCH', '/defaults', ['ldap_password' => 'stolen'], 403],
     ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_server' => '192.0.2.5', 'ldap_password' => 'x']], 403],
     ['phoner', 'POST', '/phones', ['mac' => 'AC-CD-EF-01-02-04', 'model' => 'fanvil-X5', 'variables' => ['adminpw' => 'Phone-Admin-1!']], 200],
-    ['userer', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['model' => 'fanvil-X5'], 200],
+    ['userer', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['model' => 'fanvil-X5'], 403],
+    ['phoner', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['model' => 'fanvil-X5'], 200],
+    ['phoner', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['tok1' => 'chosen'], 403],
+    ['phoner', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['provisioning_url1' => 'https://evil.example.org/x.cfg'], 403],
+    ['phoner', 'PATCH', '/defaults', ['hostname' => 'evil.example.org'], 403],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['outbound_proxy_1' => 'evil.example.org']], 403],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['outbound_proxy2_3' => 'evil.example.org']], 403],
+    ['phoner', 'POST', '/phones', ['mac' => 'AC-CD-EF-01-02-04', 'model' => 'fanvil-X5', 'variables' => ['hostname' => 'evil.example.org']], 403],
+    ['phoner', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['variables' => ['lcd_logo_url' => 'https://evil.example.org/logo.png']], 403],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_server' => '192.0.2.5', 'ntp_server' => 'ntp.example.org', 'firmware_file' => 'x.bin', 'outbound_proxy_port_1' => '5061']], 200],
+    ['phoner', 'POST', '/models', ['name' => 'fanvil-X5-custom', 'variables' => ['provisioning_url_filename' => '{mac}.cfg', 'language' => 'it']], 200],
+    ['phoner', 'POST', '/phones/AC-CD-EF-01-02-03/tok1', null, 403],
+    ['phoner', 'POST', '/firmware', null, 200],
+    ['phoner', 'DELETE', '/models/fanvil-X5-custom', null, 200],
+    ['admin', 'PATCH', '/defaults', ['hostname' => 'pbx.example.org', 'outbound_proxy_1' => 'proxy.example.org', 'lcd_logo_url' => 'https://pbx.example.org/logo.png'], 200],
+    ['boss', 'POST', '/phones/AC-CD-EF-01-02-03/tok1', null, 200],
     ['userer', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['variables' => ['adminpw' => 'x']], 403],
     ['userer', 'POST', '/phones', ['mac' => 'AC-CD-EF-01-02-04', 'model' => 'fanvil-X5', 'variables' => ['userpw' => 'x']], 403],
     ['userer', 'PATCH', '/models/fanvil-X5', ['variables' => ['nested' => ['ldap_password' => 'x']]], 403],
@@ -151,9 +170,19 @@ foreach (['/defaults', '/defaults/', '/%64efaults', '/phones/defaults', '/models
         check($response->getStatusCode() === 403 && $handler->calls === 0, "the users section must not $method $path");
     }
 }
-foreach ([['PATCH', '/phones/AC-CD-EF-01-02-03'], ['POST', '/phones'], ['DELETE', '/phones/AC-CD-EF-01-02-03'], ['GET', '/defaults']] as [$method, $path]) {
+foreach ([['GET', '/phones'], ['GET', '/phones/'], ['HEAD', '/phones'], ['GET', '/models'], ['GET', '/defaults'], ['GET', '/macvendors'], ['GET', '/phones?inherit=1']] as [$method, $path]) {
     $handler = new FixedHandler('{}');
     check($auth->process(request($factory, 'userer', $method, $path), $handler)->getStatusCode() === 200 && $handler->calls === 1, "the users section must $method $path");
+}
+foreach ([
+    ['PATCH', '/phones/AC-CD-EF-01-02-03'], ['POST', '/phones'], ['DELETE', '/phones/AC-CD-EF-01-02-03'], ['PATCH', '/phones'],
+    ['POST', '/models'], ['PATCH', '/models/fanvil-X5'], ['DELETE', '/models/fanvil-X5'], ['POST', '/phones/AC-CD-EF-01-02-03/tok1'],
+    ['POST', '/firmware'], ['DELETE', '/firmware/x.bin'], ['POST', '/backgrounds'], ['DELETE', '/ringtones/x.wav'], ['POST', '/screensavers'],
+    ['GET', '/phones/AC-CD-EF-01-02-03'], ['GET', '/phones/AC-CD-EF-01-02-03?inherit=1'], ['GET', '/models/fanvil-X5'], ['GET', '/firmware'],
+    ['GET', '/phones/../defaults/x'], ['GET', '/models/../phones/AC-CD-EF-01-02-03'], ['POST', '/%70hones'],
+] as [$method, $path]) {
+    $handler = new FixedHandler('{}');
+    check($auth->process(request($factory, 'userer', $method, $path), $handler)->getStatusCode() === 403 && $handler->calls === 0, "the users section must not $method $path");
 }
 
 foreach ([['dash', null], ['ghost', null], ['phoner', 'wrong']] as [$user, $secret]) {
@@ -166,4 +195,4 @@ $static = $factory->createServerRequest('GET', 'http://localhost/tancredi/api/v1
     ->withHeader('Authentication', 'static static-token')->withHeader('HTTP_HOST', '127.0.0.1');
 check((string) $auth->process($static, $handler)->getBody() === $phone, 'the static token must read the phone unchanged');
 
-echo "PASS: Tancredi access, SIP line passwords hidden from sections, LDAP password only for the superadmin, phone web passwords and provisioning URLs only for the phones section, defaults written only by the phones section\n";
+echo "PASS: Tancredi access, SIP line passwords hidden from sections, LDAP password, provisioning tokens and URLs and phone redirection variables only for the superadmin, phone web passwords only for the phones section, the users section only reads the phones, models and defaults\n";

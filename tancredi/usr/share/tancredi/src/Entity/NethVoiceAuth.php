@@ -29,8 +29,11 @@ use Slim\Psr7\Response;
 
 class NethVoiceAuth implements MiddlewareInterface
 {
-    private const SUPERADMIN_FIELDS = ['ldap_password'];
-    private const PHONES_FIELDS = ['adminpw', 'userpw', 'tok1', 'tok2', 'provisioning_url1', 'provisioning_url2'];
+    private const SUPERADMIN_FIELDS = ['ldap_password', 'tok1', 'tok2', 'provisioning_url1', 'provisioning_url2'];
+    private const PHONES_FIELDS = ['adminpw', 'userpw'];
+    private const SUPERADMIN_WRITE_FIELDS = ['hostname', 'lcd_logo_url'];
+    private const SUPERADMIN_WRITE_PATTERN = '/^outbound_proxy2?_\d+$/D';
+    private const USERS_READABLE_PATHS = ['/phones', '/models', '/defaults', '/macvendors'];
 
     private $config;
 
@@ -77,7 +80,7 @@ class NethVoiceAuth implements MiddlewareInterface
                         return $this->createForbiddenResponse('Missing permission for this resource');
                     }
                     $hidden = self::hiddenFields($sections);
-                    if (array_intersect(self::requestFields($request), $hidden)) {
+                    if (self::refusedFields(self::requestFields($request), $hidden)) {
                         return $this->createForbiddenResponse('Missing permission for this field');
                     }
 
@@ -123,14 +126,27 @@ class NethVoiceAuth implements MiddlewareInterface
 
     public static function sectionMayRequest($sections, string $method, string $path): bool
     {
-        if (in_array(strtoupper($method), ['GET', 'HEAD', 'OPTIONS'], true)) {
-            return true;
-        }
-        if (preg_match('#/defaults/*$#', rawurldecode($path))) {
-            return in_array('nethvoice:phones', self::sectionEntries($sections), true);
+        $method = strtoupper($method);
+        $resource = self::resourcePath($path);
+        if (in_array('nethvoice:phones', self::sectionEntries($sections), true)) {
+            return in_array($method, ['GET', 'HEAD', 'OPTIONS'], true) || !preg_match('#^/phones/[^/]+/tok1$#', $resource);
         }
 
-        return true;
+        return in_array($method, ['GET', 'HEAD', 'OPTIONS'], true) && in_array($resource, self::USERS_READABLE_PATHS, true);
+    }
+
+    private static function resourcePath(string $path): string
+    {
+        $path = rtrim(preg_replace('#/+#', '/', rawurldecode($path)), '/');
+
+        return preg_match('#^.*?/api/v1(/.*)?$#D', $path, $matches) ? ($matches[1] ?? '') : $path;
+    }
+
+    public static function refusedFields(array $fields, array $hidden): array
+    {
+        return array_values(array_filter($fields, fn($field) => in_array($field, $hidden, true)
+            || in_array($field, self::SUPERADMIN_WRITE_FIELDS, true)
+            || preg_match(self::SUPERADMIN_WRITE_PATTERN, $field) === 1));
     }
 
     public static function hiddenFields($sections): array
