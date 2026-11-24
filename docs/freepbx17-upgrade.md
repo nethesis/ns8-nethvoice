@@ -20,6 +20,15 @@ The update additionally retains a private recovery snapshot under the module sta
 
 Inspect failures with `systemctl --user status freepbx` and `journalctl --user -u freepbx`. In the container, `/var/run/nethvoice/freepbx-failed` indicates a required startup step failed; `/var/run/nethvoice/freepbx-ready` exists only after successful initialization. Background imports use `nethvoice-restore-background.service` and retain failed SQL files.
 
+### Recover PJSIP NAT settings after an earlier upgrade
+
+Kamailio and RTPengine handle signaling and media on proxied calls. A trunk connected directly to Asterisk may need an explicit external address or local networks. The patched sipsettings installer keeps these FreePBX settings independent of the old chan_sip values.
+
+1. Locate the completed snapshot taken immediately before the FreePBX 16 to 17 transition. Check its `freepbx-image` to identify the old release. On a private copy, compare `asterisk/pjsip.transports.conf` in `configuration.tar.gz` with the current file. Compare the settings from the old database in `databases.sql.gz` with their current values. Check general `externip` and `localnets` in `kvstore_Sipsettings` (id `noid`), any per-transport overrides, and the separate `externip_val` row in `sipsettings`. A matching legacy and general IP alone cannot establish who set it.
+2. In **Settings → Asterisk SIP Settings → General SIP Settings**, review **External Address** and **Local Networks** independently. Clear a confirmed copied address if the field should be empty. Remove only confirmed obsolete network entries. Preserve intentional addresses and networks, including changes made for direct trunks since the snapshot. If the snapshot is unavailable, confirm the intended value of each field with the administrator before changing it.
+3. In a maintenance window, let active calls drain, then submit the settings and select **Apply Config**. Check that `/etc/asterisk/pjsip.transports.conf` contains the intended addresses and networks before upgrading to the fixed image. If the fixed image is already installed, restart the FreePBX service in the same window. PJSIP transport changes can require a full Asterisk restart.
+4. Compare the regenerated `/etc/asterisk/pjsip.transports.conf` and the running `pjsip show transport <name>` output for each enabled transport. Verify two-way audio between local and remote extensions and exercise inbound and outbound calls on both direct and proxied trunks.
+
 ## Acceptance test on a disposable NS8 cluster
 
 These checks require a real version-16 instance, an old backup and test SIP trunks/phones. They are not replaced by mocked lifecycle tests or image smoke tests. Record image identifiers, timestamps, action results and redacted logs. Do not deploy until the following checks pass.
