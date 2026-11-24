@@ -452,7 +452,7 @@ const theme = {
       position: {
         right: 'left-0 w-60 mt-2',
         left: 'right-0 w-60 mt-2',
-        leftAuto: 'right-0 min-w-60 w-max mt-2 whitespace-nowrap',
+        leftAuto: 'right-0 min-w-60 w-max max-w-xs mt-2 whitespace-nowrap',
         topLeft: 'left-0 w-60 bottom-full mb-2 origin-bottom-left',
         top: 'right-[calc(3rem*var(--density))] top-0',
         bottom: 'bottom-0',

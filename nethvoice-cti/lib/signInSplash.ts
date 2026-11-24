@@ -3,7 +3,7 @@
 
 import { store } from '../store'
 
-export const SIGN_IN_SPLASH_MS = 1000
+export const SIGN_IN_SPLASH_MS = 1100
 
 const DEFAULT_BRAND_NAME = 'NethVoice'
 const DEFAULT_PRODUCT_NAME = 'NethVoice CTI'
