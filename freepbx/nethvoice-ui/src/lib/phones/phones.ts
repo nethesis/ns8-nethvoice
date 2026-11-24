@@ -325,11 +325,16 @@ const postPhysicalExtension = async (body: {
   model: string
   mainextension?: string
   clear_temporary?: boolean
-  webPassword: string
+  webPassword: string | null
 }): Promise<string> => {
   const { webPassword, ...payload } = body
   const { data } = await api.POST('/physicalextensions', {
-    body: { ...payload, line: null, web_user: WEB_USER, web_password: webPassword },
+    body: {
+      ...payload,
+      line: null,
+      web_user: WEB_USER,
+      ...(webPassword === null ? {} : { web_password: webPassword }),
+    },
   })
 
   if (data === undefined || data === null) {
@@ -338,8 +343,8 @@ const postPhysicalExtension = async (body: {
   return v.parse(PhysicalExtensionResponseSchema, data).extension
 }
 
-const assertWebPassword = (webPassword: string) => {
-  if (!webPassword) {
+const assertWebPassword = (webPassword: string | null) => {
+  if (webPassword === '') {
     throw new MissingWebPasswordError()
   }
 }
@@ -418,7 +423,7 @@ export const addPhone = async (
 const reassignPhone = async (
   phone: Phone,
   changes: PhoneChanges,
-  webPassword: string,
+  webPassword: string | null,
 ): Promise<void> => {
   const extension = changes.mainExtension
     ? await postPhysicalExtension({
@@ -451,7 +456,7 @@ const reassignPhone = async (
 export const updatePhone = async (
   phone: Phone,
   changes: PhoneChanges,
-  webPassword: string,
+  webPassword: string | null,
 ): Promise<void> => {
   const userChanged = changes.mainExtension !== (phone.user?.mainExtension ?? '')
 

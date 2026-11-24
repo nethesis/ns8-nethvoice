@@ -22,6 +22,7 @@ import { getPhoneWebPassword } from '@/lib/phones/defaults'
 import { formatMac } from '@/lib/phones/mac'
 import { applyPhoneChanges, planPhoneChanges } from '@/lib/users/userPhones'
 import { MAX_DEVICES_PER_USER, type UserDevice } from '@/lib/users/users'
+import { usePermissions } from '@/queries/permissions/me'
 import { usePhoneDefaults } from '@/queries/phones/defaults'
 import { usePhones } from '@/queries/phones/phones'
 import { describeError } from '@/stores/notifications'
@@ -45,6 +46,7 @@ const selectedMacs = defineModel<string[]>({ required: true })
 const { t } = useI18n()
 const { phones: phonesList, loading, error } = usePhones()
 const { state: phoneDefaultsState } = usePhoneDefaults()
+const { can } = usePermissions()
 
 const phones = computed(() => phonesList.value)
 
@@ -71,7 +73,7 @@ const save = async (currentMacs: string[], mainExtension: string, extensionChang
   await applyPhoneChanges(
     plan,
     mainExtension,
-    getPhoneWebPassword(phoneDefaultsState.value.data),
+    can('phones') ? getPhoneWebPassword(phoneDefaultsState.value.data) : null,
     phoneDefaultsState.value.data?.encryptionByDefault ?? false,
   )
 }

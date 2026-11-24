@@ -4338,7 +4338,7 @@ export interface components {
       mainextension?: string
       line?: number | null
       web_user?: string
-      /** @description Password of the phone web interface. */
+      /** @description Password of the phone web interface. Ignored for administrators without the phones section, who get the default `adminpw` of the phones. */
       web_password?: string
       /** @description Deletes the temporary physical extensions of the user first. */
       clear_temporary?: boolean
@@ -5345,7 +5345,7 @@ export interface operations {
           'application/json': components['schemas']['CtiStatusFlag']
         }
       }
-      /** @description Profile not found */
+      /** @description Profile not found (administrators who are not superadmin only) */
       404: {
         headers: {
           [name: string]: unknown
@@ -5354,7 +5354,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Another profile already has this name */
+      /** @description Another profile already has this name (administrators who are not superadmin only) */
       409: {
         headers: {
           [name: string]: unknown
@@ -5363,7 +5363,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Empty name, or a rename from or to the reserved Hotel profile */
+      /** @description Empty name, or a rename from or to the reserved Hotel profile (administrators who are not superadmin only) */
       422: {
         headers: {
           [name: string]: unknown
@@ -9099,7 +9099,7 @@ export interface operations {
           'application/json': components['schemas']['PhonesStatusError']
         }
       }
-      /** @description Internal server error */
+      /** @description Internal server error, or `Default phone web password not available` when an administrator without the phones section assigns a phone and the default `adminpw` of the phones cannot be read */
       500: {
         headers: {
           [name: string]: unknown

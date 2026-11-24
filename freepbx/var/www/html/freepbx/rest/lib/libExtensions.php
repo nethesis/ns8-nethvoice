@@ -1413,6 +1413,16 @@ function getProvisioningEngine() {
     return 'tancredi';
 }
 
+function getDefaultPhoneWebPassword() {
+    try {
+        $defaults = (new TancrediKeyLabelsClient())->get('defaults');
+    } catch (Throwable $e) {
+        error_log('Cannot read the default phone web password from Tancredi: '.$e->getMessage());
+        return '';
+    }
+    return isset($defaults['adminpw']) && is_scalar($defaults['adminpw']) ? (string) $defaults['adminpw'] : '';
+}
+
 function updateUsermanUser($username, $mainextension = 'none') {
     global $amp_conf;
     $fpbx = FreePBX::create();

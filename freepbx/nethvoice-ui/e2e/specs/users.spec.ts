@@ -2093,6 +2093,35 @@ test.describe('user accounts', () => {
       expect(mockApi.callsTo('DELETE', `${REST}/users/a.miller/account`)).toHaveLength(1)
     })
 
+    test('assigns a phone without reading the admin password of the phones', async ({
+      page,
+      mockApi,
+    }) => {
+      mockWrites(mockApi)
+        .on('GET', '/tancredi/api/v1/defaults', { json: { language: 'it' } })
+        .on('POST', `${REST}/physicalextensions`, { json: { extension: '301' } })
+        .on('POST', `${REST}/extensions/:ext/srtp/:value`, { status: 200 })
+      await page.goto('./users/users')
+      await page.getByRole('button', { name: 'Edit c.davis' }).click()
+
+      const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
+      await drawer.getByRole('button', { name: 'Add phone' }).click()
+      await drawer.getByPlaceholder('Choose phone').click()
+      await drawer.getByRole('option', { name: /0C:38:3E:00:00:02/ }).click()
+      await drawer.getByRole('button', { name: 'Save' }).click()
+
+      await expect(page.getByText('User updated')).toBeVisible()
+      const assignments = mockApi.callsTo('POST', `${REST}/physicalextensions`)
+      expect(assignments).toHaveLength(1)
+      expect(assignments[0].body).toMatchObject({
+        mainextension: '301',
+        mac: FREE_PHONE_MAC,
+        model: 'fanvil-X4U',
+        web_user: 'admin',
+      })
+      expect(assignments[0].body).not.toHaveProperty('web_password')
+    })
+
     test('cannot act on domain administrators nor on the own account', async ({
       page,
       mockApi,

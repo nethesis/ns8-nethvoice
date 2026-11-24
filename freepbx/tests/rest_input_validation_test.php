@@ -103,6 +103,16 @@ class FreePBX {
     public static function __callStatic($name, $args) { return new StaticCalls($name); }
 }
 
+class FakeTancrediDefaults {
+    public static $defaults = [];
+    public static int $reads = 0;
+    public function get($path) {
+        self::$reads++;
+        if ($path !== 'defaults' || !is_array(self::$defaults)) { throw new RuntimeException('Tancredi unavailable'); }
+        return self::$defaults;
+    }
+}
+
 function resetFakes() {
     global $astman;
     FreePBX::$db = new RecordingDatabase();
@@ -142,6 +152,7 @@ $patch = function ($file, $from, $to, $count) {
     check($found === $count, basename($file) . ": expected $count occurrences of $from, found $found");
     file_put_contents($file, $source);
 };
+$patch("$sandbox/rest/lib/libExtensions.php", 'new TancrediKeyLabelsClient()', 'new FakeTancrediDefaults()', 1);
 $patch("$sandbox/rest/lib/libBulk.php", "include_once '/var/www/html/freepbx/rest/lib/libCTI.php';", '', 1);
 $patch("$sandbox/rest/lib/libCTI.php", "include_once '/etc/freepbx.conf';", '', 1);
 $patch("$sandbox/rest/lib/libCTI.php", "include_once '/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php';", '', 1);
@@ -223,6 +234,49 @@ foreach ($extensionRoutes as [$path, $field, $extra]) {
         check(FreePBX::$db->log[0] === ['prepare', 'SELECT * FROM `rest_devices_phones` WHERE `extension` = ?', [$value]], "$path did not pass the extension " . json_encode($value) . ' unchanged');
     }
 }
+error_reporting(E_ALL);
+
+$assignment = ['mainextension' => '201', 'mac' => 'AC:CD:EF:01:02:03', 'model' => 'yealink-T46', 'web_user' => 'admin', 'line' => null, 'clear_temporary' => true];
+$storedWebPassword = function () {
+    foreach (FreePBX::$db->log as [, $sql, $params]) {
+        if (str_starts_with($sql, 'UPDATE `rest_devices_phones` SET user_id')) { return $params[4]; }
+    }
+    return 'not stored';
+};
+error_reporting(E_ALL & ~E_WARNING & ~E_DEPRECATED);
+foreach ([
+    [['users'], ['web_password' => 'Chosen-Web-1!'], 'Stored-Default-1!', 1],
+    [['users'], [], 'Stored-Default-1!', 1],
+    [['users', 'trunks'], ['web_password' => ''], 'Stored-Default-1!', 1],
+    [['phones'], ['web_password' => 'Chosen-Web-1!'], 'Chosen-Web-1!', 0],
+    [['users', 'phones'], ['web_password' => 'Chosen-Web-1!'], 'Chosen-Web-1!', 0],
+    [['superadmin'], ['web_password' => 'Chosen-Web-1!'], 'Chosen-Web-1!', 0],
+    [['superadmin'], [], null, 0],
+] as [$permissions, $extra, $expected, $reads]) {
+    resetFakes();
+    FreePBX::$db->rows = fn($sql, $params) => str_contains($sql, 'FROM `sip` WHERE id = ? AND keyword = "secret"') ? [['data' => 'invented-secret']] : [];
+    FakeTancrediDefaults::$defaults = ['adminpw' => 'Stored-Default-1!', 'language' => 'it'];
+    FakeTancrediDefaults::$reads = 0;
+    $caller = $permissions;
+    $answer = call($app, 'POST', '/physicalextensions', $assignment + $extra);
+    check($answer === [200, '{"extension":"201"}'], json_encode([$permissions, $extra]) . ' could not assign the phone: ' . json_encode($answer));
+    check($storedWebPassword() === $expected, json_encode([$permissions, $extra]) . ' stored the web password ' . json_encode($storedWebPassword()) . ' instead of ' . json_encode($expected));
+    check(FakeTancrediDefaults::$reads === $reads, json_encode($permissions) . ' read the Tancredi defaults ' . FakeTancrediDefaults::$reads . ' times');
+}
+foreach ([null, [], ['adminpw' => ''], ['adminpw' => ['x']], ['language' => 'it']] as $defaults) {
+    resetFakes();
+    FakeTancrediDefaults::$defaults = $defaults;
+    $caller = ['users'];
+    $answer = call($app, 'POST', '/physicalextensions', $assignment + ['web_password' => 'Chosen-Web-1!']);
+    check($answer === [500, '{"status":"Default phone web password not available"}'], 'a phone was assigned without the default web password ' . json_encode($defaults) . ': ' . json_encode($answer));
+    check(FreePBX::$db->log === [] && $astman->log === [], 'an assignment without the default web password reached the database or the manager');
+}
+$caller = ['users'];
+resetFakes();
+FakeTancrediDefaults::$defaults = null;
+FakeTancrediDefaults::$reads = 0;
+check(call($app, 'POST', '/physicalextensions', ['mac' => 'AC:CD:EF:01:02:03', 'model' => 'yealink-T46'])[0] === 200 && FakeTancrediDefaults::$reads === 0, 'adding a phone without a user must not read the Tancredi defaults');
+$caller = ['users', 'trunks', 'routes', 'phones', 'integrations', 'settings'];
 error_reporting(E_ALL);
 
 $source = file_get_contents("$rest/lib/libExtensions.php");

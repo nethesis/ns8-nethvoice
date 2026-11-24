@@ -50,7 +50,7 @@ export const planPhoneChanges = (
 export const applyPhoneChanges = async (
   plan: PhoneChangesPlan,
   mainExtension: string,
-  webPassword: string,
+  webPassword: string | null,
   encryptionByDefault: boolean,
 ): Promise<void> => {
   for (const phone of plan.unassign) {

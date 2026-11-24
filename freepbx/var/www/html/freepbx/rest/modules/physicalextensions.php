@@ -71,6 +71,12 @@ $app->post('/physicalextensions', function (Request $request, Response $response
         if (!nethvoiceRequestIsSuperadmin($request) && !isExtensionNumber($params['mainextension'])) {
             return jsonResponse($response, array("status"=>"Invalid extension"), 400);
         }
+        if (!nethvoiceRequestHasSection($request, 'phones')) {
+            $web_password = getDefaultPhoneWebPassword();
+            if ($web_password === '') {
+                return jsonResponse($response, array("status"=>"Default phone web password not available"), 500);
+            }
+        }
         $extension = createExtension($params['mainextension'],$delete);
         if ($extension === false ) {
             return jsonResponse($response, array("status"=>"Error creating extension"), 500);

@@ -776,19 +776,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/CtiStatusFlag'
         '404':
-          description: Profile not found
+          description: Profile not found (administrators who are not superadmin only)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '409':
-          description: Another profile already has this name
+          description: Another profile already has this name (administrators who
+            are not superadmin only)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
           description: Empty name, or a rename from or to the reserved Hotel profile
+            (administrators who are not superadmin only)
           content:
             application/json:
               schema:
@@ -3833,7 +3835,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/PhonesStatusError'
         '500':
-          description: Internal server error
+          description: Internal server error, or `Default phone web password not available`
+            when an administrator without the phones section assigns a phone and the
+            default `adminpw` of the phones cannot be read
           content:
             application/json:
               schema:
@@ -8451,7 +8455,8 @@ components:
           type: string
         web_password:
           type: string
-          description: Password of the phone web interface.
+          description: Password of the phone web interface. Ignored for administrators
+            without the phones section, who get the default `adminpw` of the phones.
         clear_temporary:
           type: boolean
           description: Deletes the temporary physical extensions of the user first.

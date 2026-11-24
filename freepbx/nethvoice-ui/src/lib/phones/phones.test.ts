@@ -306,6 +306,26 @@ describe('phone writes', () => {
     expect(calls).toEqual([])
   })
 
+  it('should let the PBX choose the admin password when the caller cannot read it', async () => {
+    await updatePhone(
+      phones[1],
+      { model: phones[1].model, mainExtension: '301', encrypted: false },
+      null,
+    )
+
+    expect(calls).toEqual(['POST /physicalextensions'])
+    expect(api.POST).toHaveBeenCalledWith('/physicalextensions', {
+      body: {
+        mainextension: '301',
+        mac: phones[1].mac,
+        model: phones[1].model,
+        clear_temporary: true,
+        line: null,
+        web_user: 'admin',
+      },
+    })
+  })
+
   it('should restore the Tancredi model when the PBX rejects it', async () => {
     vi.mocked(api.PATCH).mockRejectedValueOnce(serverError('/physicalextensions/mac'))
 
