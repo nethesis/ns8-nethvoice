@@ -37,12 +37,12 @@ CALLBACK_SELECTION = (
 COLLEAGUE_NAME = r"\b(?:giulia|julia|ferri|ferry)\b"
 
 # Every name here is dispatched below. The second transport repeats its riskiest handoffs.
-BOTH = ("conversation", "name", "callback", "attended-accept", "chat-dnd")
+BOTH = ("conversation", "name", "callback", "attended-accept", "chat-dnd", "voicemail-yes", "voicemail-no")
 FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "silence", "queue",
         "denied", "denied-queue", "unknown", "ambiguous", "callback-empty",
         "callback-excluded", "callback-multiple", "callback-inbound", "callback-other-caller",
         "attended-decline", "attended-question", "chat-busy", "chat-no-answer",
-        "chat-expired", "voicemail-yes", "voicemail-no", "publication", "deadline", "fallback")
+        "chat-expired", "publication", "deadline", "fallback")
 RECOVERY = ("restart-during-call", "restart-after-transfer")
 
 
