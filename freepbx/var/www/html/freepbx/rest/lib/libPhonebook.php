@@ -20,9 +20,35 @@ function phonebookDatabase(): PDO
         $_ENV['PHONEBOOK_DB_PASS']);
 }
 
-function phonebookTestCommand(string $file, bool $withTotal): string
+function phonebookTestCommand(string $file, bool $withTotal, bool $guardAddresses = false): string
 {
-    return PHONEBOOK_IMPORTER . ' --check --error-json' . ($withTotal ? ' --with-total' : '') . ' ' . escapeshellarg($file);
+    return PHONEBOOK_IMPORTER . ' --check --error-json' . ($withTotal ? ' --with-total' : '') . ($guardAddresses ? ' --guard-addresses' : '') . ' ' . escapeshellarg($file);
+}
+
+function phonebookGuardedSource(array $source, ?array $stored, bool $superadmin): array
+{
+    unset($source['guard_addresses']);
+    if ($superadmin) {
+        return $source;
+    }
+    $sameTarget = is_array($stored)
+        && ($stored['dbtype'] ?? null) === ($source['dbtype'] ?? null)
+        && ($stored['url'] ?? null) === ($source['url'] ?? null);
+    if (!$sameTarget || ($stored['guard_addresses'] ?? false) === true) {
+        $source['guard_addresses'] = true;
+    }
+    return $source;
+}
+
+function phonebookPublicSource($source)
+{
+    if (is_object($source)) {
+        $source = clone $source;
+        unset($source->guard_addresses);
+    } elseif (is_array($source)) {
+        unset($source['guard_addresses']);
+    }
+    return $source;
 }
 
 function phonebookSyncCommand(string $id, bool $force): string

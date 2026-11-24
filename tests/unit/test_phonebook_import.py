@@ -442,6 +442,9 @@ class ImporterCase(unittest.TestCase):
     def csv_check(self, url, **http):
         return self.run_import(self.source(dbtype='csv', url=url), '--check', '--error-json', http=http)
 
+    def guarded_check(self, url, **http):
+        return self.run_import(self.source(dbtype='csv', url=url), '--check', '--error-json', '--guard-addresses', http=http)
+
     def interrupt(self, signum, *options):
         ready = self.root / 'ready'
         os.mkfifo(ready)
@@ -621,7 +624,7 @@ class PhonebookImportTest(ImporterCase):
 
     def test_csv_download_has_timeouts_a_size_limit_and_http_redirects_only(self):
         url = 'https://csv.example.org/qa.csv'
-        result = self.csv_check(url, **{url: {'body': BODY}})
+        result = self.guarded_check(url, **{url: {'body': BODY}})
         self.assertEqual(result.returncode, 0, result.stderr)
         options = self.curl_runs()[0]['options']
         self.assertEqual((options['CONNECTTIMEOUT'], options['TIMEOUT'], options['MAXFILESIZE_LARGE']), (10, 120, 100 * 1024 * 1024))
@@ -664,14 +667,14 @@ class PhonebookImportTest(ImporterCase):
     def test_public_sources_never_connect_to_local_addresses(self):
         public = 'https://csv.example.org/qa.csv'
         local = 'http://127.0.0.1:8080/secret.csv'
-        result = self.csv_check(public, **{public: {'redirect': local}, local: {'address': '127.0.0.1', 'body': BODY}})
+        result = self.guarded_check(public, **{public: {'redirect': local}, local: {'address': '127.0.0.1', 'body': BODY}})
         error = self.error_of(result)
         self.assertEqual(error['kind'], 'connection')
         self.assertEqual(error['details'], REFUSED)
         self.assertEqual(self.curl_runs()[0]['served'], [public])
         for address in ['127.0.0.1', '127.8.9.10', '0.0.0.0', '169.254.169.254', '::1', '::', '::ffff:127.0.0.1', 'fe80::1']:
             with self.subTest(address=address):
-                result = self.csv_check(public, **{public: {'address': address, 'body': BODY}})
+                result = self.guarded_check(public, **{public: {'address': address, 'body': BODY}})
                 self.assertEqual(self.error_of(result), {'kind': 'connection', 'details': REFUSED})
                 self.assertEqual(self.curl_runs()[0]['served'], [])
 
@@ -687,12 +690,12 @@ class PhonebookImportTest(ImporterCase):
         ]
         for url, address in cases:
             with self.subTest(url=url, address=address):
-                result = self.csv_check(url, **{url: {'address': address, 'body': BODY}})
+                result = self.guarded_check(url, **{url: {'address': address, 'body': BODY}})
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual(len(json.loads(result.stdout)), 2)
         local = 'http://127.0.0.1:8080/qa.csv'
         moved = 'http://127.0.0.1:8080/moved.csv'
-        result = self.csv_check(local, **{local: {'address': '127.0.0.1', 'redirect': moved}, moved: {'address': '127.0.0.1', 'body': BODY}})
+        result = self.guarded_check(local, **{local: {'address': '127.0.0.1', 'redirect': moved}, moved: {'address': '127.0.0.1', 'body': BODY}})
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertNotIn('OPENSOCKETFUNCTION', self.curl_runs()[0]['options'])
 
@@ -701,23 +704,23 @@ class PhonebookImportTest(ImporterCase):
         public = 'https://csv.example.org/qa.csv'
         for address in ['192.0.2.77', '::ffff:192.0.2.77', '2001:db8::77']:
             with self.subTest(address=address):
-                result = self.csv_check(public, **{public: {'address': address, 'body': BODY}})
+                result = self.guarded_check(public, **{public: {'address': address, 'body': BODY}})
                 self.assertEqual(self.error_of(result), {'kind': 'connection', 'details': REFUSED})
                 self.assertEqual(self.curl_runs()[0]['served'], [])
         for address in ['192.0.2.0', '192.0.2.78', '192.0.2.255', '2001:db8::78']:
             with self.subTest(address=address):
-                result = self.csv_check(public, **{public: {'address': address, 'body': BODY}})
+                result = self.guarded_check(public, **{public: {'address': address, 'body': BODY}})
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_sources_on_an_address_of_the_node_keep_working(self):
         self.node('192.0.2.0', '192.0.2.77', '192.0.2.255')
         for url, address in [('http://192.0.2.77:8080/qa.csv', '192.0.2.77'), ('http://[2001:db8::77]:8080/qa.csv', '2001:db8::77')]:
             with self.subTest(url=url):
-                result = self.csv_check(url, **{url: {'address': address, 'body': BODY}})
+                result = self.guarded_check(url, **{url: {'address': address, 'body': BODY}})
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertNotIn('OPENSOCKETFUNCTION', self.curl_runs()[0]['options'])
         base = 'http://192.0.2.77:8080'
-        self.run_import(self.source(dbtype='infinity', url=base, username='qa', password='Qa-Erp-Pass'), '--check', requests={
+        self.run_import(self.source(dbtype='infinity', url=base, username='qa', password='Qa-Erp-Pass'), '--check', '--guard-addresses', requests={
             base + '/servlet/oauth/token': {'status': 200, 'json': {'access_token': 'qa-token'}},
             base + '/servlet/api/gsfr_fgetaddress_wsapi': {'status': 200, 'json': {'data': []}},
         })
@@ -726,12 +729,52 @@ class PhonebookImportTest(ImporterCase):
     def test_infinity_guards_connections_only_for_non_local_hosts(self):
         for base, guarded in [('https://erp.example.org', True), ('http://127.0.0.1:8080', False), ('http://localhost:8080', False)]:
             with self.subTest(base=base):
-                self.run_import(self.source(dbtype='infinity', url=base, username='qa', password='Qa-Erp-Pass'), '--check', requests={
+                self.run_import(self.source(dbtype='infinity', url=base, username='qa', password='Qa-Erp-Pass'), '--check', '--guard-addresses', requests={
                     base + '/servlet/oauth/token': {'status': 200, 'json': {'access_token': 'qa-token'}},
                     base + '/servlet/api/gsfr_fgetaddress_wsapi': {'status': 200, 'json': {'data': []}},
                 })
                 mounts = self.mounts_log.read_text().splitlines() if self.mounts_log.exists() else []
                 self.assertEqual(mounts, ['http:// http,https', 'https:// http,https'] if guarded else [])
+
+    def test_sources_of_the_superadmin_reach_the_node_as_before(self):
+        self.node('192.0.2.0', '192.0.2.77', '192.0.2.255')
+        url = 'https://node.example.org/qa.csv'
+        for address in ['127.0.1.1', '192.0.2.77']:
+            with self.subTest(address=address):
+                result = self.run_import(self.source(dbtype='csv', url=url), '--skip-sync-metadata-update',
+                                         http={url: {'address': address, 'body': BODY}})
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(self.statuses(), [['custom_7', 'running'], ['custom_7', 'ok', 2, None]])
+                self.assertNotIn('OPENSOCKETFUNCTION', self.curl_runs()[0]['options'])
+                result = self.csv_check(url, **{url: {'address': address, 'body': BODY}})
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual(len(json.loads(result.stdout)), 2)
+        base = 'https://erp.example.org'
+        self.run_import(self.source(dbtype='infinity', url=base, username='qa', password='Qa-Erp-Pass'), '--check', requests={
+            base + '/servlet/oauth/token': {'status': 200, 'json': {'access_token': 'qa-token'}},
+            base + '/servlet/api/gsfr_fgetaddress_wsapi': {'status': 200, 'json': {'data': []}},
+        })
+        self.assertFalse(self.mounts_log.exists())
+
+    def test_sources_saved_by_a_limited_admin_never_reach_the_node(self):
+        self.node('192.0.2.0', '192.0.2.77', '192.0.2.255')
+        url = 'https://node.example.org/qa.csv'
+        for address in ['127.0.1.1', '192.0.2.77']:
+            with self.subTest(address=address):
+                result = self.run_import(self.source(dbtype='csv', url=url, guard_addresses=True), '--skip-sync-metadata-update', '--error-json',
+                                         http={url: {'address': address, 'body': BODY}})
+                self.assertEqual(self.error_of(result), {'kind': 'connection', 'details': REFUSED})
+                self.assertEqual(self.statuses(), [['custom_7', 'running'], ['custom_7', 'failed', None, REFUSED]])
+                self.assertEqual(self.curl_runs()[0]['served'], [])
+                result = self.guarded_check(url, **{url: {'address': address, 'body': BODY}})
+                self.assertEqual(self.error_of(result), {'kind': 'connection', 'details': REFUSED})
+                self.assertEqual(self.curl_runs()[0]['served'], [])
+        base = 'https://erp.example.org'
+        self.run_import(self.source(dbtype='infinity', url=base, username='qa', password='Qa-Erp-Pass', guard_addresses=True), '--check', requests={
+            base + '/servlet/oauth/token': {'status': 200, 'json': {'access_token': 'qa-token'}},
+            base + '/servlet/api/gsfr_fgetaddress_wsapi': {'status': 200, 'json': {'data': []}},
+        })
+        self.assertEqual(self.mounts_log.read_text().splitlines(), ['http:// http,https', 'https:// http,https'])
 
     def test_interrupted_sync_is_reported_as_failed(self):
         for signum, name in [(signal.SIGTERM, 'SIGTERM'), (signal.SIGINT, 'SIGINT')]:
@@ -801,15 +844,15 @@ class InfinityNetworkTest(ImporterCase):
             'routes': {'203.0.113.10': port, '192.168.10.20': port, '198.51.100.7': self.closed_port, '198.51.100.20': port},
         })
 
-    def infinity(self, base):
+    def infinity(self, base, *options):
         self.server.paths.clear()
         url = base.replace('PORT', str(self.server.server_port))
-        return self.run_import(self.source(dbtype='infinity', url=url, username='qa', password='Qa-Erp-Pass'), '--check', '--error-json')
+        return self.run_import(self.source(dbtype='infinity', url=url, username='qa', password='Qa-Erp-Pass'), '--check', '--error-json', *options)
 
     def test_public_lan_and_local_hosts_are_read(self):
         for base in ['http://erp.example.org:PORT', 'http://lan.example.org:PORT', 'http://multi.example.org:PORT', 'http://127.0.0.1:PORT', 'http://localhost:PORT']:
             with self.subTest(base=base):
-                result = self.infinity(base)
+                result = self.infinity(base, '--guard-addresses')
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
                 self.assertEqual([row['name'] for row in json.loads(result.stdout)], ['QA One', 'QA Two'])
                 self.assertEqual(self.server.paths, ['/servlet/oauth/token', '/servlet/api/gsfr_fgetaddress_wsapi'])
@@ -822,18 +865,26 @@ class InfinityNetworkTest(ImporterCase):
         ]
         for base, paths in cases:
             with self.subTest(base=base):
-                error = self.error_of(self.infinity(base))
+                error = self.error_of(self.infinity(base, '--guard-addresses'))
                 self.assertEqual(error, {'kind': 'connection', 'details': REFUSED})
                 self.assertEqual(self.server.paths, paths)
 
     def test_hosts_that_resolve_to_the_node_are_refused(self):
         self.node('198.51.100.0', '198.51.100.20', '198.51.100.255')
-        error = self.error_of(self.infinity('http://node.example.org:PORT'))
+        error = self.error_of(self.infinity('http://node.example.org:PORT', '--guard-addresses'))
         self.assertEqual(error, {'kind': 'connection', 'details': REFUSED})
         self.assertEqual(self.server.paths, [])
 
+    def test_superadmin_sources_resolving_to_the_node_are_read(self):
+        self.node('198.51.100.0', '198.51.100.20', '198.51.100.255')
+        for base in ['http://node.example.org:PORT', 'http://rebind.example.org:PORT', 'http://erp.example.org:PORT/hop']:
+            with self.subTest(base=base):
+                result = self.infinity(base)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual([row['name'] for row in json.loads(result.stdout)], ['QA One', 'QA Two'])
+
     def test_local_sources_may_redirect_locally(self):
-        result = self.infinity('http://127.0.0.1:PORT/hop')
+        result = self.infinity('http://127.0.0.1:PORT/hop', '--guard-addresses')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertEqual(self.server.paths, ['/hop/servlet/oauth/token', '/servlet/oauth/token', '/hop/servlet/api/gsfr_fgetaddress_wsapi'])
 

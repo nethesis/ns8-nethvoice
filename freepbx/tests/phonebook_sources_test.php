@@ -29,6 +29,24 @@ function database(): PDO {
 
 check(phonebookTestCommand('/tmp/a b.json', false) === "/usr/share/phonebooks/phonebook-import --check --error-json '/tmp/a b.json'", 'test command changed');
 check(phonebookTestCommand('/tmp/a.json', true) === "/usr/share/phonebooks/phonebook-import --check --error-json --with-total '/tmp/a.json'", 'total not requested');
+check(phonebookTestCommand('/tmp/a.json', false, true) === "/usr/share/phonebooks/phonebook-import --check --error-json --guard-addresses '/tmp/a.json'", 'test of a limited admin not guarded');
+check(phonebookTestCommand('/tmp/a.json', true, false) === "/usr/share/phonebooks/phonebook-import --check --error-json --with-total '/tmp/a.json'", 'test of the superadmin guarded');
+
+$csvSource = ['url' => 'https://node.example.org/qa.csv', 'mapping' => ['name' => 'name'], 'dbtype' => 'csv', 'type' => 'QA'];
+check(phonebookGuardedSource($csvSource, null, true) === $csvSource, 'new source of the superadmin marked');
+check(phonebookGuardedSource($csvSource, null, false) === $csvSource + ['guard_addresses' => true], 'new source of a limited admin not marked');
+check(phonebookGuardedSource($csvSource + ['guard_addresses' => true], null, true) === $csvSource, 'marker taken from the request');
+check(phonebookGuardedSource($csvSource, $csvSource + ['guard_addresses' => true], true) === $csvSource, 'save of the superadmin does not clear the marker');
+check(phonebookGuardedSource($csvSource, $csvSource, false) === $csvSource, 'limited admin edit of a superadmin source with the same URL marked');
+check(phonebookGuardedSource($csvSource, $csvSource + ['guard_addresses' => true], false) === $csvSource + ['guard_addresses' => true], 'limited admin edit cleared the marker');
+check(phonebookGuardedSource(['url' => 'https://other.example.org/qa.csv'] + $csvSource, $csvSource, false)['guard_addresses'] === true, 'limited admin URL change not marked');
+check(phonebookGuardedSource(['dbtype' => 'infinity'] + $csvSource, $csvSource, false)['guard_addresses'] === true, 'limited admin type change not marked');
+check(phonebookPublicSource((object) ($csvSource + ['guard_addresses' => true])) == (object) $csvSource, 'marker listed');
+check(phonebookPublicSource($csvSource + ['guard_addresses' => true]) === $csvSource, 'marker listed from an array');
+$stored = (object) ($csvSource + ['guard_addresses' => true]);
+phonebookPublicSource($stored);
+check($stored->guard_addresses === true, 'listing changed the stored source');
+
 check(phonebookSyncCommand('custom_1', false) === "/usr/share/phonebooks/phonebook-import '/etc/phonebook/sources.d/custom_1.json'", 'sync command of the previous wizard changed');
 check(phonebookSyncCommand('custom_1', true) === "/usr/share/phonebooks/phonebook-import --force '/etc/phonebook/sources.d/custom_1.json'", 'force not passed');
 

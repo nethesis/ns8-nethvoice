@@ -126,7 +126,7 @@ $app->get('/phonebook/config', function (Request $request, Response $response, $
             if (strpos($entry,'.json') !== false) {
                 $c = (array) json_decode(file_get_contents($config_dir.'/'.$entry));
                 foreach ($c as $sid => $conf) {
-                    $config[$sid] = $conf;
+                    $config[$sid] = phonebookPublicSource($conf);
                 }
             }
         }
@@ -216,6 +216,7 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         if (!nethvoiceRequestIsSuperadmin($request) && !phonebookSourceUrlAllowed($newsource['dbtype'], $newsource['url'] ?? null, $knownUrls)) {
             return jsonResponse($response, array("status"=>"Invalid source URL"), 400);
         }
+        $newsource = phonebookGuardedSource($newsource, $oldsource, nethvoiceRequestIsSuperadmin($request));
         $res = file_put_contents($file, json_encode(array($id => $newsource)));
         if ($res === false) {
            throw new Exception("Error writing $file"); 
@@ -325,7 +326,7 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
         }
 
         $withTotal = is_array($requested) && ($requested['with_total'] ?? false) === true;
-        exec(phonebookTestCommand($file, $withTotal),$output,$return);
+        exec(phonebookTestCommand($file, $withTotal, !nethvoiceRequestIsSuperadmin($request)),$output,$return);
 
         // remove temporary file
         unlink($file);

@@ -21,6 +21,7 @@ DOWNLOAD_MAX_BYTES = 100 * 1024 * 1024
 NODE_ADDRESS_FILES = ('/proc/net/fib_trie', '/proc/net/if_inet6')
 lastError = None
 previewTotal = False
+guardAddresses = False
 
 
 class SourceError(Exception):
@@ -470,7 +471,7 @@ def syncSourceCsv(path, output, deleteonly):
   crl.setopt(pycurl.TIMEOUT, DOWNLOAD_TIMEOUT)
   crl.setopt(pycurl.MAXFILESIZE_LARGE, DOWNLOAD_MAX_BYTES)
   blocked = []
-  if not isLocalHost(urlHost(url)):
+  if guardAddresses and not isLocalHost(urlHost(url)):
     crl.setopt(pycurl.OPENSOCKETFUNCTION, curlOpenSocket(blocked))
 
   try:
@@ -698,7 +699,7 @@ def syncSourceInfinity(path, output, deleteonly):
   try:
     if not base_url or not username or not password:
       raise Exception('Infinity source requires a url, username and password')
-    session = infinitySession(not isLocalHost(urlHost(base_url)))
+    session = infinitySession(guardAddresses and not isLocalHost(urlHost(base_url)))
     token_url = base_url + '/servlet/oauth/token'
     token_response = session.post(token_url, auth=(username, password), data={'scope': 'logintoken'}, timeout=(CONNECT_TIMEOUT, 30))
     if token_response.status_code != 200:
@@ -772,6 +773,7 @@ if __name__ == '__main__':
   parser.add_argument('--with-total', action='store_true', help='with --check, write {"rows": [...], "total": <rows read>} instead of the rows')
   parser.add_argument('--error-json', action='store_true', help='on failure, write {"kind": ..., "details": ...} to standard output')
   parser.add_argument('--force', action='store_true', help='import the source even when it is disabled')
+  parser.add_argument('--guard-addresses', action='store_true', help='refuse connections of CSV and Infinity sources to local addresses and to the addresses of the node, as for sources saved with "guard_addresses": true')
   args = parser.parse_args()
   logger = logging.getLogger(__name__)
   logger.setLevel(logging.DEBUG)
@@ -802,6 +804,7 @@ if __name__ == '__main__':
         sys.exit(1)
       sid = next(iter(sConfig))
       logger.debug(args.source_path + ' has "' + sid + '" source')
+      guardAddresses = args.guard_addresses or sConfig[sid].get('guard_addresses') is True
       if not sConfig[sid]['enabled'] and not args.force:
         logger.info(sid + ' is disabled')
         sys.exit(0)
