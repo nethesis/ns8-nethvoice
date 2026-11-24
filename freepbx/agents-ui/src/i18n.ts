@@ -6,6 +6,26 @@ const en = {
   details: "Details",
   agentColumn: "Agent",
   agentFilter: "Agent",
+  webhook: {
+    label: "Webhook",
+    configure: "Configure webhook",
+    setupTitle: "OpenAI SIP webhook setup",
+    failedTitle: "Cannot configure webhook",
+    projectHelp:
+      "Setup uses the API key’s project. Check that the project ID you enter belongs to that project; NethVoice does not verify it.",
+    manualHelp:
+      "Leave empty, save the trunk, then select Configure webhook in the trunk list, or enter a signing secret for manual setup.",
+    notApplicable: "Not required",
+    manualSetup: "Manual setup",
+    externalSetup: "External setup",
+    status: {
+      configured: "Configured automatically",
+      manual: "Manual secret stored",
+      not_configured: "Not configured",
+      needs_setup: "Configuration changed: check setup",
+      recovery_required: "Recovery required",
+    },
+  },
   trunkForm: {
     providerLocked:
       "The provider cannot be changed after the trunk is created.",
@@ -23,7 +43,7 @@ const en = {
     endpointCopied: "Endpoint copied",
     endpointCopiedHelp: "The webhook endpoint has been copied to the clipboard",
     openaiEndpointHelp:
-      "Add this endpoint to the webhooks of your OpenAI project before placing calls.",
+      "Use Configure webhook after saving for OpenAI Realtime SIP, or register this endpoint manually for incoming calls. GPT-Live does not use this webhook.",
     grokEndpointHelp:
       "Register this endpoint and the signing secret with Grok before placing calls.",
     enterName: "Enter a name",
@@ -384,6 +404,32 @@ const en = {
     internal_agent_not_public:
       "Internal consultation assistants cannot be public destinations.",
 
+    webhook_not_configured:
+      "Configure the trunk webhook automatically or save a manual signing secret before publishing a SIP agent.",
+    webhook_url_unavailable:
+      "Configure a valid public NethVoice hostname before setting up the webhook.",
+    webhook_permission_denied:
+      "The API key cannot manage webhooks. Grant webhook permissions in its OpenAI project and retry.",
+    webhook_provider_rejected:
+      "OpenAI rejected the request. Check webhook permissions and project limits, then retry.",
+    webhook_provider_unavailable:
+      "OpenAI did not confirm the result. Retry Configure webhook to inspect existing endpoints before any further creation.",
+    webhook_provider_response_invalid:
+      "OpenAI returned an incomplete response. Retry Configure webhook to reconcile the result; manual recovery may be required.",
+    webhook_discovery_incomplete:
+      "The endpoint list could not be fully checked. No webhook was created; check the project in OpenAI and retry.",
+    webhook_endpoint_conflict:
+      "An existing endpoint conflicts with this setup. Review its URL and incoming-call events in OpenAI; no endpoint was changed.",
+    webhook_secret_recovery_required:
+      "The endpoint already exists, but its signing secret is unavailable. Enter its saved secret manually or explicitly rotate it in OpenAI and save the new secret here.",
+    webhook_creation_uncertain:
+      "A previous creation is unresolved. Check the API key’s project in OpenAI and recover or explicitly rotate the endpoint secret manually; automatic creation is blocked.",
+    webhook_persistence_failed:
+      "Webhook settings could not be saved. Check the database and encryption key, then retry Configure webhook; manual secret recovery may be required.",
+    webhook_unsupported:
+      "Automatic setup is available only for local OpenAI Realtime SIP trunks.",
+    provider_credentials_unavailable:
+      "Save a project API key on the trunk or configure the OpenAI integration key, then retry.",
     model_required: "Select a conversation model on the agent page.",
     invalid_model_options: "Check the options supported by the selected model.",
     backend_model_unavailable:
@@ -740,6 +786,26 @@ const it: typeof en = {
   details: "Dettagli",
   agentColumn: "Agente",
   agentFilter: "Agente",
+  webhook: {
+    label: "Webhook",
+    configure: "Configura webhook",
+    setupTitle: "Configurazione webhook SIP OpenAI",
+    failedTitle: "Impossibile configurare il webhook",
+    projectHelp:
+      "La configurazione usa il progetto della chiave API. Verifica che l’ID progetto inserito appartenga a quel progetto; NethVoice non lo verifica.",
+    manualHelp:
+      "Lascia vuoto, salva il trunk e seleziona Configura webhook nell’elenco dei trunk, oppure inserisci un segreto di firma per la configurazione manuale.",
+    notApplicable: "Non richiesto",
+    manualSetup: "Configurazione manuale",
+    externalSetup: "Configurazione esterna",
+    status: {
+      configured: "Configurato automaticamente",
+      manual: "Segreto manuale salvato",
+      not_configured: "Non configurato",
+      needs_setup: "Configurazione modificata: verifica il webhook",
+      recovery_required: "Recupero richiesto",
+    },
+  },
   trunkForm: {
     providerLocked:
       "Il provider non può essere modificato dopo la creazione del trunk.",
@@ -757,7 +823,7 @@ const it: typeof en = {
     endpointCopied: "Endpoint copiato",
     endpointCopiedHelp: "L'endpoint del webhook è stato copiato negli appunti",
     openaiEndpointHelp:
-      "Aggiungi questo endpoint ai webhook del tuo progetto OpenAI prima di effettuare chiamate.",
+      "Usa Configura webhook dopo il salvataggio per OpenAI Realtime SIP, oppure registra manualmente questo endpoint per le chiamate in arrivo. GPT-Live non usa questo webhook.",
     grokEndpointHelp:
       "Registra questo endpoint e il segreto di firma su Grok prima di effettuare chiamate.",
     enterName: "Inserisci un nome",
@@ -1123,6 +1189,32 @@ const it: typeof en = {
     internal_agent_not_public:
       "Gli assistenti interni non possono essere destinazioni pubbliche.",
 
+    webhook_not_configured:
+      "Configura automaticamente il webhook del trunk o salva un segreto di firma manuale prima di pubblicare un agente SIP.",
+    webhook_url_unavailable:
+      "Configura un nome host pubblico valido per NethVoice prima di configurare il webhook.",
+    webhook_permission_denied:
+      "La chiave API non può gestire i webhook. Concedi i permessi per i webhook nel progetto OpenAI e riprova.",
+    webhook_provider_rejected:
+      "OpenAI ha rifiutato la richiesta. Verifica i permessi per i webhook e i limiti del progetto, poi riprova.",
+    webhook_provider_unavailable:
+      "OpenAI non ha confermato il risultato. Seleziona di nuovo Configura webhook per controllare gli endpoint esistenti prima di altre creazioni.",
+    webhook_provider_response_invalid:
+      "OpenAI ha restituito una risposta incompleta. Seleziona di nuovo Configura webhook per verificare il risultato; potrebbe servire il recupero manuale.",
+    webhook_discovery_incomplete:
+      "Non è stato possibile controllare tutti gli endpoint. Nessun webhook è stato creato; verifica il progetto in OpenAI e riprova.",
+    webhook_endpoint_conflict:
+      "Un endpoint esistente è in conflitto con questa configurazione. Verifica URL ed eventi delle chiamate in arrivo in OpenAI; nessun endpoint è stato modificato.",
+    webhook_secret_recovery_required:
+      "L’endpoint esiste già, ma il segreto di firma non è disponibile. Inserisci manualmente il segreto conservato oppure ruotalo esplicitamente in OpenAI e salva qui il nuovo segreto.",
+    webhook_creation_uncertain:
+      "Una creazione precedente non è risolta. Verifica il progetto della chiave API in OpenAI e recupera o ruota esplicitamente il segreto dell’endpoint; la creazione automatica è bloccata.",
+    webhook_persistence_failed:
+      "Impossibile salvare le impostazioni del webhook. Verifica il database e la chiave di cifratura, poi riprova Configura webhook; potrebbe servire il recupero manuale del segreto.",
+    webhook_unsupported:
+      "La configurazione automatica è disponibile solo per i trunk SIP OpenAI Realtime locali.",
+    provider_credentials_unavailable:
+      "Salva una chiave API di progetto nel trunk o configura la chiave dell’integrazione OpenAI, poi riprova.",
     model_required:
       "Seleziona un modello di conversazione nella pagina agente.",
     invalid_model_options:

@@ -24,7 +24,8 @@ import { menuIcon } from "../menuIcon";
 import StatusBadge from "../components/StatusBadge.vue";
 import type { Agent, Trunk } from "../types";
 const { t } = useI18n(),
-  task = useTask();
+  task = useTask(),
+  webhookTask = useTask();
 const query = useQuery({
   queryKey: ["trunks"],
   queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
@@ -44,6 +45,49 @@ const providers: Record<string, string> = {
   grok: "Grok",
   cleverai: "CleverAI",
 };
+function supportsWebhook(trunk: Trunk) {
+  if (trunk.provider !== "openai") return false;
+  const snapshots = (agents.data.value?.items || [])
+    .flatMap((agent) => [agent.draft, agent.published])
+    .filter(
+      (snapshot) =>
+        snapshot?.provider_binding_id === trunk.binding_id &&
+        "conversation" in snapshot &&
+        snapshot.conversation.model !== null,
+    );
+  return (
+    agents.isSuccess.value &&
+    (!snapshots.length ||
+      snapshots.some(
+        (snapshot) =>
+          snapshot &&
+          "conversation" in snapshot &&
+          snapshot.conversation.model !== "gpt-live-1",
+      ))
+  );
+}
+function webhookStatus(trunk: Trunk) {
+  return t(
+    "webhook.status." +
+      (trunk.webhook_status ||
+        (trunk.webhook_secret_configured ? "manual" : "not_configured")),
+  );
+}
+async function configureWebhook(trunk: Trunk) {
+  await webhookTask.run(async () => {
+    try {
+      await request(
+        "POST",
+        "/trunks/" + trunk.binding_id + "/configure-webhook",
+        {
+          expected_revision: trunk.revision,
+        },
+      );
+    } finally {
+      await queryClient.invalidateQueries({ queryKey: ["trunks"] });
+    }
+  }, false);
+}
 function usage(trunk: Trunk) {
   return (agents.data.value?.items || []).filter(
     (agent) => agent.draft.provider_binding_id === trunk.binding_id,
@@ -110,6 +154,20 @@ async function synchronize() {
     :title="task.error.value || t('error.request_failed')"
     class="mb-6"
   />
+  <NeInlineNotification
+    v-if="webhookTask.error.value"
+    kind="error"
+    :title="t('webhook.failedTitle')"
+    :description="webhookTask.error.value"
+    class="mb-6"
+  />
+  <NeInlineNotification
+    v-if="query.data.value?.items.some(supportsWebhook)"
+    kind="info"
+    :title="t('webhook.setupTitle')"
+    :description="t('webhook.projectHelp')"
+    class="mb-6"
+  />
   <AppEmptyState
     v-if="query.isSuccess.value && !query.data.value?.items.length"
     :title="t('noTrunks')"
@@ -125,7 +183,7 @@ async function synchronize() {
     v-else-if="!query.isError.value"
     :aria-label="t('trunks')"
     :loading="query.isLoading.value"
-    :skeleton-columns="6"
+    :skeleton-columns="7"
     :skeleton-rows="3"
     card-breakpoint="xl"
   >
@@ -134,6 +192,7 @@ async function synchronize() {
       <NeTableHeadCell>{{ t("provider") }}</NeTableHeadCell>
       <NeTableHeadCell>{{ t("state") }}</NeTableHeadCell>
       <NeTableHeadCell>{{ t("credentials") }}</NeTableHeadCell>
+      <NeTableHeadCell>{{ t("webhook.label") }}</NeTableHeadCell>
       <NeTableHeadCell>{{ t("agents") }}</NeTableHeadCell>
       <NeTableHeadCell />
     </NeTableHead>
@@ -187,6 +246,32 @@ async function synchronize() {
             />{{ credentials(trunk) }}</span
           ><template v-else>{{ credentials(trunk) }}</template></NeTableCell
         >
+        <NeTableCell :data-label="t('webhook.label')">
+          <div
+            v-if="supportsWebhook(trunk)"
+            class="flex flex-col items-start gap-1"
+          >
+            <span>{{ webhookStatus(trunk) }}</span>
+            <NeButton
+              kind="tertiary"
+              size="sm"
+              :loading="webhookTask.pending.value"
+              :disabled="webhookTask.pending.value"
+              @click="configureWebhook(trunk)"
+            >
+              {{ t("webhook.configure") }}
+            </NeButton>
+          </div>
+          <span v-else>{{
+            t(
+              trunk.provider === "grok"
+                ? "webhook.manualSetup"
+                : trunk.provider === "cleverai"
+                  ? "webhook.externalSetup"
+                  : "webhook.notApplicable",
+            )
+          }}</span>
+        </NeTableCell>
         <NeTableCell :data-label="t('agents')">{{ usage(trunk) }}</NeTableCell>
         <NeTableCell :data-label="t('actions')"
           ><div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
