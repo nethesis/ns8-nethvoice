@@ -398,11 +398,11 @@ $tests['HT814 TLS FXS proxy SIPS port from the environment'] = static function (
     gateway_test_assert_tag($output, 'P48', 'voice.example.test:5071');
 };
 
-function gateway_edit_run(GatewayEditState $state, array $params): array
+function gateway_edit_run(GatewayEditState $state, array $params, bool $restricted = false): array
 {
     FreePBX::$database = new GatewayEditDatabase($state);
     FreePBX::$core = new GatewayEditCore($state);
-    return addEditGateway($params);
+    return addEditGateway($params, $restricted);
 }
 
 function gateway_edit_params(int $fxo, array $fxs): array
@@ -500,10 +500,57 @@ $tests['addEditGateway rolls back the configuration and removes trunks when a po
 $tests['addEditGateway rejects a MAC address used by another gateway before creating trunks'] = static function (): void {
     $state = gateway_edit_state(true);
     $state->sameMac = [['id' => '8']];
-    $result = gateway_edit_run($state, gateway_edit_params(2, ['201']));
+    $result = gateway_edit_run($state, gateway_edit_params(2, ['201']), true);
     gateway_test_assert($result['status'] === false && ($result['http_status'] ?? null) === 409, 'duplicate MAC must answer 409');
     gateway_test_assert(gateway_edit_calls($state, 'core_trunks_add') === [], 'no trunk must be created for a duplicate MAC');
     gateway_test_assert($state->extensions === [], 'no extension must be created for a duplicate MAC');
+};
+
+$tests['addEditGateway saves a second gateway with the same MAC address for the superadmin'] = static function (): void {
+    $state = gateway_edit_state(true);
+    $state->sameMac = [['id' => '8']];
+    $result = gateway_edit_run($state, gateway_edit_params(2, ['201']));
+    gateway_test_assert($result['status'] === true && !isset($result['http_status']), 'the superadmin duplicate MAC was refused: ' . json_encode($result));
+    gateway_test_assert(count(gateway_edit_calls($state, 'INSERT INTO `gateway_config`')) === 1, 'the superadmin gateway was not inserted');
+};
+
+$tests['addEditGateway accepts IP addresses and an empty current address'] = static function (): void {
+    foreach ([true, false] as $restricted) {
+        foreach ([['ipv4' => ''], ['ipv4' => '198.51.100.7'], ['ipv4_new' => '2001:db8::42', 'ipv4_green' => '2001:db8::10']] as $addresses) {
+            $state = gateway_edit_state(true);
+            $result = gateway_edit_run($state, $addresses + gateway_edit_params(1, []), $restricted);
+            gateway_test_assert($result['status'] === true, 'valid gateway addresses were refused: ' . json_encode([$addresses, $result]));
+        }
+    }
+};
+
+$tests['addEditGateway refuses addresses that are not IP addresses for limited administrators'] = static function (): void {
+    foreach ([true] as $restricted) {
+        foreach (['ipv4', 'ipv4_new', 'ipv4_green'] as $field) {
+            foreach (['-n/var/www/html/freepbx/x.php', '198.51.100.42 -l root', 'gateway.example.test', ['198.51.100.42']] as $value) {
+                $state = gateway_edit_state(true);
+                $result = gateway_edit_run($state, [$field => $value] + gateway_edit_params(1, ['201']), $restricted);
+                gateway_test_assert($result['status'] === false && ($result['http_status'] ?? null) === 400 && $result['errors'] === ['Invalid gateway field ' . $field], "the $field " . json_encode($value) . ' was accepted: ' . json_encode($result));
+                gateway_test_assert($state->log === [] && $state->trunks === [] && $state->extensions === [], "the $field " . json_encode($value) . ' reached the PBX');
+            }
+        }
+    }
+};
+
+$tests['addEditGateway keeps the addresses of the superadmin as main did'] = static function (): void {
+    $state = gateway_edit_state(true);
+    $result = gateway_edit_run($state, ['ipv4' => 'gateway.example.test'] + gateway_edit_params(1, ['201']), false);
+    gateway_test_assert(!in_array('Invalid gateway field ipv4', $result['errors'] ?? [], true), 'the superadmin gateway host name was refused: ' . json_encode($result));
+};
+
+$tests['gateway push scripts end the options before the gateway address'] = static function (): void {
+    $scripts = glob(__DIR__ . '/../var/www/html/freepbx/rest/lib/gateway/pushtftp/*');
+    gateway_test_assert(count($scripts) === 4, 'unexpected push scripts');
+    foreach ($scripts as $script) {
+        $spawns = preg_grep('/^\s*spawn\b/', file($script));
+        gateway_test_assert(count($spawns) === 1, basename($script) . ' must spawn one client');
+        gateway_test_assert(preg_match('/^\s*spawn\s+\/usr\/bin\/(telnet|ssh)\s+(-o "[^"]*"\s+)?--\s+(\$username@)?\$gatewayip\s*$/', reset($spawns)) === 1, basename($script) . ' passes the gateway address where it can be read as an option');
+    }
 };
 
 set_error_handler(static function (int $severity, string $message, string $file, int $line): void {

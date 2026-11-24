@@ -28,7 +28,7 @@ set filename [lindex $argv 2]
 set username [lindex $argv 3]
 set password [lindex $argv 4]
 
-spawn  /usr/bin/ssh -o "StrictHostKeyChecking=no" $username@$gatewayip
+spawn  /usr/bin/ssh -o "StrictHostKeyChecking=no" -- $username@$gatewayip
 expect "password:"
 send "$password\r"
 expect "Global>"

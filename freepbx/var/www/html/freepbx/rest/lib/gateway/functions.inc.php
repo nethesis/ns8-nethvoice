@@ -313,6 +313,11 @@ function addEditGateway($params, $restricted = false){
         if (!empty($errors)) {
             return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos, 'http_status' => 400);
         }
+        foreach (array('ipv4', 'ipv4_new', 'ipv4_green') as $field) {
+            if ($restricted && isset($params[$field]) && $params[$field] !== '' && (!is_string($params[$field]) || filter_var($params[$field], FILTER_VALIDATE_IP) === false)) {
+                $errors[] = 'Invalid gateway field '.$field;
+            }
+        }
         if ($restricted && (!is_string($params['mac']) || preg_match('/^[0-9A-Fa-f]{12}$/', str_replace(array(':', '-', '.'), '', $params['mac'])) !== 1)) {
             $errors[] = 'Invalid gateway MAC address';
         }
@@ -354,13 +359,15 @@ function addEditGateway($params, $restricted = false){
         $res = $sth->fetch(\PDO::FETCH_ASSOC);
         $existingId = ($res === false) ? null : $res['id'];
 
-        $sql = "SELECT `id` FROM `gateway_config` WHERE `mac` = ?";
-        $sth = $dbh->prepare($sql);
-        $sth->execute(array(strtoupper($params['mac'])));
-        while (($row = $sth->fetch(\PDO::FETCH_ASSOC)) !== false) {
-            if ($existingId === null || (string) $row['id'] !== (string) $existingId) {
-                $errors[] = 'Another gateway already uses this MAC address';
-                return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos, 'http_status' => 409);
+        if ($restricted) {
+            $sql = "SELECT `id` FROM `gateway_config` WHERE `mac` = ?";
+            $sth = $dbh->prepare($sql);
+            $sth->execute(array(strtoupper($params['mac'])));
+            while (($row = $sth->fetch(\PDO::FETCH_ASSOC)) !== false) {
+                if ($existingId === null || (string) $row['id'] !== (string) $existingId) {
+                    $errors[] = 'Another gateway already uses this MAC address';
+                    return array('status' => false, 'errors' => $errors, 'warnings' => $warnings, 'infos' => $infos, 'http_status' => 409);
+                }
             }
         }
 
