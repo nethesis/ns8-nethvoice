@@ -548,9 +548,10 @@ class Call:
                 require(count == self.mail_count + 1, "Expected exactly one new message in fixture mailbox")
                 self.evidence.append("one new message saved in the colleague's mailbox")
             else:
-                self.turn(self.caller, "remember", "girasole", "returned to agent")
+                self.hear_until(self.caller, cursor, r"\bgirasole\b", "returned to agent", timeout=25)
                 self.finish()
                 require(self.lab.mailbox_count() == self.mail_count, "Message left despite refusal")
+                self.evidence.append("mailbox unchanged after explicit refusal")
         else:
             ref = self.wait_for_recipient(partial(self.cti.receive, 55), held)
             self.evidence.append("received fresh consultation reference from assistant over XMPP")
