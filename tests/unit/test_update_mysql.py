@@ -74,6 +74,7 @@ fi
                 for mutation in ['INSERT INTO `rest_cti_profiles_permissions`',
                                  'TRUNCATE TABLE', '50_asterisk.rest_pjsip_providers.sql',
                                  '50_asterisk.gateway_models.sql',
+                                 '85_asterisk.clean_legacy_sip_nat.sql',
                                  'UPDATE sip s JOIN rest_devices_phones',
                                  "WHEN 'voicecodecs' THEN",
                                  "UPDATE pjsip SET data = '90'"]:

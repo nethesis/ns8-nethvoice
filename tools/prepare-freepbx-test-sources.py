@@ -37,7 +37,6 @@ for module in ('core', 'framework', 'paging', 'iaxsettings', 'sipsettings'):
     ] if module == 'core' else {
         'paging': [root / 'freepbx/patches/freepbx-paging-transfers.patch'],
         'iaxsettings': [root / 'freepbx/patches/freepbx-iaxsettings-preserve.patch'],
-        'sipsettings': [root / 'freepbx/patches/freepbx-sipsettings-preserve-nat.patch'],
     }.get(module, [])
     for patch in patches:
         subprocess.run(['patch', '--batch', '--forward', '--fuzz=0', '-p1', '-d', str(target), '-i', str(patch)], check=True)
