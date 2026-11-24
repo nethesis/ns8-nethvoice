@@ -19,6 +19,16 @@ def getFromRequest(request, var_name, env_name, default = ""):
     else:
         agent.set_env(env_name, default)
 
+DEFAULT_NAMES = ('NethVoice', 'NethVoice CTI', 'NethVoice Reports')
+
+def setName(request, var_name, env_name, default, current = None):
+    if var_name not in request:
+        agent.set_env(env_name, default if current is None else current)
+    elif request[var_name].strip() in ('',) + DEFAULT_NAMES:
+        agent.set_env(env_name, default)
+    else:
+        agent.set_env(env_name, request[var_name])
+
 rdb = agent.redis_connect(privileged=False)
 status = rebranding_status.check(rdb.hgetall('cluster/subscription'))
 
@@ -28,8 +38,8 @@ if not status['active']:
     json.dump([{'field': 'rebranding_active', 'parameter': 'rebranding_active', 'value': False, 'error': error}], fp=sys.stdout)
     sys.exit(2)
 
-getFromRequest(request, 'rebranding_brand_name', 'BRAND_NAME', '')
-getFromRequest(request, 'rebranding_brand_name', 'NETHCTI_UI_PRODUCT_NAME', '')
+setName(request, 'rebranding_brand_name', 'BRAND_NAME', 'NethVoice')
+setName(request, 'rebranding_brand_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
 
 getFromRequest(request, 'rebranding_login_people', 'LOGIN_PEOPLE', '')
 
@@ -42,7 +52,7 @@ getFromRequest(request, 'rebranding_favicon_url', 'FAVICON_URL', '')
 
 getFromRequest(request, 'rebranding_login_background_url', 'LOGIN_BACKGROUND_URL', '')
 
-getFromRequest(request, 'rebranding_wizard_brand_name', 'WIZARD_BRAND_NAME', os.getenv('WIZARD_BRAND_NAME', ''))
+setName(request, 'rebranding_wizard_brand_name', 'WIZARD_BRAND_NAME', 'NethVoice', os.getenv('WIZARD_BRAND_NAME', ''))
 getFromRequest(request, 'rebranding_wizard_login_logo_url', 'WIZARD_LOGIN_LOGO_URL', os.getenv('WIZARD_LOGIN_LOGO_URL', ''))
 getFromRequest(request, 'rebranding_wizard_logo_light_url', 'WIZARD_LOGO_LIGHT_URL', os.getenv('WIZARD_LOGO_LIGHT_URL', ''))
 getFromRequest(request, 'rebranding_wizard_favicon_url', 'WIZARD_FAVICON_URL', os.getenv('WIZARD_FAVICON_URL', ''))
@@ -51,8 +61,8 @@ getFromRequest(request, 'rebranding_wizard_login_background_url', 'WIZARD_LOGIN_
 getFromRequest(request, 'rebranding_freepbx_admin_logo_url', 'FREEPBX_ADMIN_LOGO_URL', os.getenv('FREEPBX_ADMIN_LOGO_URL', ''))
 getFromRequest(request, 'rebranding_freepbx_admin_favicon_url', 'FREEPBX_ADMIN_FAVICON_URL', os.getenv('FREEPBX_ADMIN_FAVICON_URL', ''))
 
-getFromRequest(request, 'rebranding_reports_brand_name', 'REPORTS_UI_APP_NAME', 'NethVoice Reports')
-getFromRequest(request, 'rebranding_reports_brand_name', 'REPORTS_UI_BRAND_NAME', 'NethVoice')
+setName(request, 'rebranding_reports_brand_name', 'REPORTS_UI_APP_NAME', 'NethVoice Reports')
+setName(request, 'rebranding_reports_brand_name', 'REPORTS_UI_BRAND_NAME', 'NethVoice')
 getFromRequest(request, 'rebranding_reports_login_logo_url', 'REPORTS_UI_LOGIN_LOGO_URL', '')
 getFromRequest(request, 'rebranding_reports_favicon_url', 'REPORTS_UI_FAVICON_URL', '')
 getFromRequest(request, 'rebranding_reports_login_background_url', 'REPORTS_UI_LOGIN_BACKGROUND_URL', '')

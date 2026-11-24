@@ -157,6 +157,47 @@ class SetRebrandingTest(unittest.TestCase):
                                          'systemctl --user try-restart reports-ui.service',
                                          'systemctl --user try-restart freepbx.service'])
 
+    def test_saving_the_values_read_restores_the_default_names(self):
+        defaults = {'BRAND_NAME': 'NethVoice', 'WIZARD_BRAND_NAME': 'NethVoice',
+                    'NETHCTI_UI_PRODUCT_NAME': 'NethVoice CTI', 'REPORTS_UI_APP_NAME': 'NethVoice Reports',
+                    'REPORTS_UI_BRAND_NAME': 'NethVoice'}
+        _, _, output, _ = run_action(GetRebrandingTest.path, {'active': True}, environment=defaults)
+        request = {key: value for key, value in json.loads(output).items()
+                   if not key.startswith(('rebranding_active', 'rebranding_cached', 'rebranding_check'))}
+
+        agent, _, _, code = run_action(self.path, {'active': True}, request, environment=defaults)
+
+        self.assertEqual(code, 0)
+        self.assertEqual({key: agent.env[key] for key in defaults}, defaults)
+
+    def test_blank_or_default_names_restore_the_default_of_each_variable(self):
+        for name in ('', ' ', 'NethVoice', 'NethVoice CTI', 'NethVoice Reports'):
+            with self.subTest(name=name):
+                agent, _, _, _ = run_action(self.path, {'active': True}, dict(
+                    REQUEST, rebranding_brand_name=name, rebranding_wizard_brand_name=name,
+                    rebranding_reports_brand_name=name))
+                self.assertEqual(agent.env['BRAND_NAME'], 'NethVoice')
+                self.assertEqual(agent.env['WIZARD_BRAND_NAME'], 'NethVoice')
+                self.assertEqual(agent.env['NETHCTI_UI_PRODUCT_NAME'], 'NethVoice CTI')
+                self.assertEqual(agent.env['REPORTS_UI_APP_NAME'], 'NethVoice Reports')
+                self.assertEqual(agent.env['REPORTS_UI_BRAND_NAME'], 'NethVoice')
+
+    def test_a_custom_name_is_written_to_every_variable(self):
+        agent, _, _, _ = run_action(self.path, {'active': True}, dict(
+            REQUEST, rebranding_wizard_brand_name='Acme Voice', rebranding_reports_brand_name='Acme Voice'))
+        self.assertEqual(agent.env['WIZARD_BRAND_NAME'], 'Acme Voice')
+        self.assertEqual(agent.env['REPORTS_UI_APP_NAME'], 'Acme Voice')
+        self.assertEqual(agent.env['REPORTS_UI_BRAND_NAME'], 'Acme Voice')
+
+    def test_missing_names_keep_the_wizard_name_and_use_the_defaults(self):
+        request = {key: value for key, value in REQUEST.items() if key != 'rebranding_brand_name'}
+        agent, _, _, _ = run_action(self.path, {'active': True}, request,
+                                    environment={'WIZARD_BRAND_NAME': 'Acme Voice'})
+        self.assertEqual(agent.env['BRAND_NAME'], 'NethVoice')
+        self.assertEqual(agent.env['NETHCTI_UI_PRODUCT_NAME'], 'NethVoice CTI')
+        self.assertEqual(agent.env['WIZARD_BRAND_NAME'], 'Acme Voice')
+        self.assertEqual(agent.env['REPORTS_UI_APP_NAME'], 'NethVoice Reports')
+
     def test_missing_light_background_logo_keeps_the_current_value(self):
         request = {key: value for key, value in REQUEST.items() if key != 'rebranding_wizard_logo_light_url'}
         agent, _, _, _ = run_action(self.path, {'active': True}, request,
