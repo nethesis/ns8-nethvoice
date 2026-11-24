@@ -32,6 +32,7 @@ su)
     if test -f "$TEST_READY"; then exit "${TEST_POST_SYNC_RELOAD_EXIT:-0}"; fi
     exit "${TEST_RELOAD_EXIT:-0}";;
 curl)
+    if [[ "$*" == *'/admin/reload/profiles' ]]; then exit "${TEST_MIDDLEWARE_EXIT:-0}"; fi
     count_file="$TEST_CALLS.curl-count"
     count=0
     if test -f "$count_file"; then read -r count < "$count_file"; fi
@@ -57,6 +58,10 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         script = (ROOT / 'freepbx/freepbx_init.sh').read_text()
         script = script.replace('/usr/sbin/asterisk', str(self.root / 'asterisk'))
         script = script.replace('/freepbx_custom_modules', str(self.root / 'custom'))
+        helper = '/var/www/html/freepbx/rest/lib/middlewareProfilesReloadHelper.sh'
+        script = script.replace(helper, str(ROOT / 'freepbx' / helper.lstrip('/')))
+        self.middleware_env = {'NETHVOICE_MIDDLEWARE_PORT': '20038',
+                               'NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN': 'test-token'}
         self.ready = self.root / 'freepbx-ready'
         script = script.replace('/var/run/nethvoice/freepbx-ready', str(self.ready))
         script = script.replace('/var/run/nethvoice/freepbx-failed', str(self.root / 'freepbx-failed'))
@@ -68,7 +73,7 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         result = subprocess.run(['bash', str(self.script)],
                                 env=dict(os.environ, PATH=str(self.root) + ':' + os.environ['PATH'],
                                          TEST_CALLS=str(self.calls), TEST_READY=str(self.ready),
-                                         TANCREDIPORT='20001', **extra),
+                                         TANCREDIPORT='20001', **self.middleware_env, **extra),
                                 capture_output=True, text=True, timeout=20)
         return result, self.calls.read_text()
 
@@ -116,6 +121,7 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('FreePBX user sync failed (exit 1)', result.stderr)
         self.assertEqual(calls.count('su asterisk'), 1)
+        self.assertNotIn('/admin/reload/profiles', calls)
         self.assertTrue(self.ready.exists())
         self.assertFalse((self.root / 'freepbx-failed').exists())
 
@@ -124,6 +130,15 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('FreePBX post-sync reload failed (exit 7)', result.stderr)
         self.assertEqual(calls.count('su asterisk'), 2)
+        self.assertNotIn('/admin/reload/profiles', calls)
+        self.assertTrue(self.ready.exists())
+        self.assertFalse((self.root / 'freepbx-failed').exists())
+
+    def test_failed_middleware_refresh_preserves_readiness(self):
+        result, calls = self.run_init(TEST_MIDDLEWARE_EXIT='22')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('FreePBX post-sync middleware refresh failed (exit 22)', result.stderr)
+        self.assertIn('/admin/reload/profiles', calls)
         self.assertTrue(self.ready.exists())
         self.assertFalse((self.root / 'freepbx-failed').exists())
 
@@ -146,15 +161,15 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
     def test_rps_waits_for_tancredi(self):
         result, calls = self.run_init(TEST_TANCREDI_FAILURES='2')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(calls.count('curl '), 3)
+        self.assertEqual(calls.count('/tancredi/api/v1/phones'), 3)
         self.assertIn('http://127.0.0.1:20001/tancredi/api/v1/phones', calls)
-        self.assertLess(calls.rindex('curl '), calls.index('phonesRpsResetHelper'))
+        self.assertLess(calls.rindex('/tancredi/api/v1/phones'), calls.index('phonesRpsResetHelper'))
         self.assertTrue(self.ready.exists())
 
     def test_tancredi_timeout_preserves_freepbx_readiness(self):
         result, calls = self.run_init(TEST_TANCREDI_DOWN='1')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(calls.count('curl '), 30)
+        self.assertEqual(calls.count('/tancredi/api/v1/phones'), 30)
         self.assertNotIn('phonesRpsResetHelper', calls)
         self.assertIn('timed out waiting for Tancredi', result.stderr)
         self.assertTrue(self.ready.exists())
@@ -169,7 +184,7 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 env=dict(os.environ, PATH=str(self.root) + ':' + os.environ['PATH'],
                          TEST_CALLS=str(self.calls), TEST_READY=str(self.ready),
-                         TANCREDIPORT='20001', **{gate_variable: str(gate)})) as process:
+                         TANCREDIPORT='20001', **self.middleware_env, **{gate_variable: str(gate)})) as process:
             try:
                 self.assertEqual(process.wait(timeout=10), 0)
                 deadline = time.monotonic() + 5
@@ -193,10 +208,12 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
     def test_blocked_sync_reloads_after_initialization(self):
         blocked_calls = self.check_background_job('TEST_SYNC_GATE')
         self.assertEqual(blocked_calls.count('su asterisk'), 1)
+        self.assertNotIn('/admin/reload/profiles', blocked_calls)
         self.assertLess(blocked_calls.index('su asterisk'), blocked_calls.index('fwconsole userman'))
         calls = self.calls.read_text()
         self.assertEqual(calls.count('fwconsole userman'), 1)
         self.assertEqual(calls.count('su asterisk'), 2)
+        self.assertLess(calls.rindex('su asterisk'), calls.index('/admin/reload/profiles'))
 
 
 if __name__ == '__main__':

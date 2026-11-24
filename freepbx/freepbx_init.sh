@@ -237,6 +237,11 @@ touch "$ready" || exit $?
         echo "FreePBX post-sync reload failed (exit $status)" >&2
         exit "$status"
     }
+    /bin/bash /var/www/html/freepbx/rest/lib/middlewareProfilesReloadHelper.sh --after-reload || {
+        status=$?
+        echo "FreePBX post-sync middleware refresh failed (exit $status)" >&2
+        exit "$status"
+    }
 ) &
 
 # Tancredi starts after FreePBX is ready; RPS maintenance must not block startup.
