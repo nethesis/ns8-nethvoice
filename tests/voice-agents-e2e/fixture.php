@@ -296,7 +296,18 @@ try {
             foreach (['recording_in_internal','recording_out_internal','recording_in_external','recording_out_external'] as $key) $user[$key]='never';
             $user['ringtimer']=10;
             $user['noanswer_dest']=$user['busy_dest']='app-blackhole,hangup,1';
+            if ($role==='colleague') {
+                // Core records the voicemail context from the mailbox when adding the extension.
+                FreePBX::Voicemail()->addMailbox($ext,['vm'=>'enabled',
+                    'vmpwd'=>(string)random_int(10000000,99999999),'name'=>$owner]);
+                $mailbox=FreePBX::Voicemail()->getMailbox($ext);
+                demand($mailbox && $mailbox['name']===$owner,'fixture_mailbox_creation_failed');
+            }
             $core->addUser($ext,$user);
+            if ($role==='colleague') {
+                demand(($core->getUser($ext)['voicemail']??null)===$mailbox['vmcontext'],
+                    'fixture_voicemail_context_missing');
+            }
             $device=$core->generateDefaultDeviceSettings('pjsip',$ext,$owner);
             $secret=bin2hex(random_bytes(24));
             foreach (['secret'=>$secret,'transport'=>'0.0.0.0-udp','outbound_proxy'=>$r['endpoint_proxy'],
@@ -360,19 +371,14 @@ try {
         $uid=ensureCtiProfile($r);
         $permission=getCTIUserPermission($uid,'nethvoice_cti','chat');
         demand($permission && $permission['allowed'],'cti_chat_permission_missing');
-        $ext=$exts['colleague'];
-        $box=FreePBX::Voicemail()->getMailbox($ext);
-        if (!$box) {
-            FreePBX::Voicemail()->addMailbox($ext,['vm'=>'enabled','vmpwd'=>(string)random_int(10000000,99999999),'name'=>$owner]);
-            $astman->database_put('AMPUSER',$ext.'/voicemail','default');
-            needreload();
-        } else demand($box['name']===$owner,'mailbox_owner_mismatch');
     } elseif ($op === 'retire_cti' || $op === 'retire_cti_settings') {
         retireCtiProjection($r,$op==='retire_cti_settings');
     } elseif ($op === 'mailbox_count') {
         $ext=$exts['colleague'];
         $box=FreePBX::Voicemail()->getMailbox($ext);
         demand($box && $box['name']===$owner, 'mailbox_owner_mismatch');
+        require_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
+        demand(getMainExtensionVoicemailEnabled($ext),'fixture_voicemail_not_enabled');
         $info=$astman->GetVar(null,'VM_INFO('.$ext.'@default,count,INBOX)');
         demand(ctype_digit((string)($info['Value']??'')),'mailbox_count_unavailable');
         $result=['count'=>(int)$info['Value']];
