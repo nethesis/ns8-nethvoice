@@ -160,8 +160,25 @@ export const saveGroupMembers = async (
   }
 }
 
+export class GroupMembersError extends Error {
+  readonly groupId: number
+  readonly cause: unknown
+
+  constructor(groupId: number, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause))
+    this.name = 'GroupMembersError'
+    this.groupId = groupId
+    this.cause = cause
+  }
+}
+
 export const createGroup = async (group: GroupForm): Promise<number> => {
   const groupId = await postGroup(group.name)
-  await saveGroupMembers(groupId, [], group.userIds)
+
+  try {
+    await saveGroupMembers(groupId, [], group.userIds)
+  } catch (error) {
+    throw new GroupMembersError(groupId, error)
+  }
   return groupId
 }

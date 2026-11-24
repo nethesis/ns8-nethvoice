@@ -432,9 +432,26 @@ export const saveProfileUsers = async (
   }
 }
 
+export class ProfileUsersError extends Error {
+  readonly profileId: number
+  readonly cause: unknown
+
+  constructor(profileId: number, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause))
+    this.name = 'ProfileUsersError'
+    this.profileId = profileId
+    this.cause = cause
+  }
+}
+
 export const createProfile = async (form: ProfileForm, userIds: number[]): Promise<number> => {
   const profileId = await postProfile(form)
-  await saveProfileUsers(profileId, [], userIds)
+
+  try {
+    await saveProfileUsers(profileId, [], userIds)
+  } catch (error) {
+    throw new ProfileUsersError(profileId, error)
+  }
   return profileId
 }
 

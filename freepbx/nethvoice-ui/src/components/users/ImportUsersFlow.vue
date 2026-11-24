@@ -44,10 +44,16 @@ import {
   type ImportRowError,
   type ImportRowIssue,
 } from '@/lib/users/csv'
-import type { UsersDirectory } from '@/lib/users/directory'
+import {
+  DIRECTORY_PART_LABELS,
+  DIRECTORY_PARTS,
+  type DirectoryPart,
+  type UsersDirectory,
+} from '@/lib/users/directory'
 import { UserSettingsStepError } from '@/lib/users/userSettings'
-import { MAX_DEVICES_PER_USER, type User } from '@/lib/users/users'
+import { findUserByUsername, MAX_DEVICES_PER_USER, type User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
+import { useUsersDirectory } from '@/queries/users/usersDirectory'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 
@@ -68,6 +74,7 @@ useFocusReturn(() => isShown)
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const invalidateUsers = useInvalidateUsers()
+const directoryQuery = useUsersDirectory()
 
 type ImportStep = 'file' | 'preview'
 
@@ -111,7 +118,20 @@ const existingModeOptions = computed(() => [
 ])
 
 const hasExistingUsers = computed(() =>
-  rows.value.some((row) => users.some((user) => user.username === row.username)),
+  rows.value.some((row) => findUserByUsername(users, row.username) !== undefined),
+)
+
+const unavailableDirectoryParts = computed<readonly DirectoryPart[]>(() =>
+  directoryQuery.state.value.status === 'error' ? DIRECTORY_PARTS : (directory.unavailable ?? []),
+)
+
+const directoryIncomplete = computed(
+  () =>
+    directoryQuery.state.value.status === 'pending' || unavailableDirectoryParts.value.length > 0,
+)
+
+const unavailableDirectoryLabels = computed(() =>
+  unavailableDirectoryParts.value.map((part) => t(DIRECTORY_PART_LABELS[part])).join(', '),
 )
 
 watch(
@@ -176,7 +196,7 @@ const {
   mutation: async () => {
     progress.value = 0
     const { valid, existing, errors } = analysis.value
-    const updated = valid.filter((row) => users.some((user) => user.username === row.username))
+    const updated = valid.filter((row) => findUserByUsername(users, row.username) !== undefined)
     await importUsers(valid, users, directory, (value) => {
       progress.value = value
     })
@@ -337,7 +357,9 @@ const formatDevices = (row: ImportRow) => {
     :primary-label="
       t('users.import_n_users', { count: analysis.valid.length }, analysis.valid.length)
     "
-    :primary-button-disabled="importing || analysis.valid.length === 0 || fileTooLarge"
+    :primary-button-disabled="
+      importing || analysis.valid.length === 0 || fileTooLarge || directoryIncomplete
+    "
     :primary-button-loading="importing"
     :secondary-label="t('common.previous')"
     secondary-button-kind="tertiary"
@@ -471,6 +493,19 @@ const formatDevices = (row: ImportRow) => {
           }}
         </span>
       </div>
+      <NeInlineNotification
+        v-if="unavailableDirectoryLabels"
+        kind="warning"
+        :title="t('users.directory_partially_loaded')"
+        :description="
+          t('users.import_directory_partially_loaded_description', {
+            parts: unavailableDirectoryLabels,
+          })
+        "
+        :primary-button-label="t('common.retry')"
+        data-testid="import-directory-warning"
+        @primary-click="directoryQuery.refetch()"
+      />
       <NeInlineNotification
         v-if="fileTooLarge"
         kind="error"

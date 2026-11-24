@@ -92,7 +92,9 @@
     "too_many_attempts_description": "Attendi qualche minuto e riprova.",
     "too_many_attempts_retry": "Riprova tra {count} minuto. | Riprova tra {count} minuti.",
     "domain_unavailable": "Impossibile raggiungere il provider di account",
-    "domain_unavailable_description": "Ora gli utenti del dominio non possono accedere. Riprova tra qualche minuto."
+    "domain_unavailable_description": "Ora gli utenti del dominio non possono accedere. Riprova tra qualche minuto.",
+    "storage_unavailable": "Impossibile accedere",
+    "storage_unavailable_description": "Il browser non consente a questo sito di salvare dati. Consenti cookie e dati dei siti per questo sito, poi accedi di nuovo."
   },
   "notifications": {
     "title": "Notifiche",
@@ -550,7 +552,15 @@
     "account_error_nethvoice_admin": "Solo il superadmin può cambiare la password di un amministratore, disabilitarlo o eliminarlo.",
     "admin_access_superadmin": "Superadmin",
     "admin_access_sections": "Amministratore",
-    "admin_access_other_instance": "Amministratore di un altro centralino"
+    "admin_access_other_instance": "Amministratore di un altro centralino",
+    "password_surrounding_spaces": "Rimuovi gli spazi all'inizio e alla fine della password",
+    "import_issue_password_whitespace": "spazi all'inizio o alla fine della password",
+    "import_directory_partially_loaded_description": "Impossibile caricare: {parts}. Non è possibile importare gli utenti finché queste informazioni non sono caricate. Riprova.",
+    "cannot_load_accounts": "Impossibile caricare gli account degli utenti",
+    "cannot_load_accounts_description": "Lo stato e i badge degli amministratori non sono visibili, e ora non si possono modificare password, stato, nomi e indirizzi email. Riprova.",
+    "accounts_unavailable_restricted": "Gli account degli utenti non sono caricati: ora non si possono modificare password, stato, nomi e indirizzi email.",
+    "sync_not_completed": "Sincronizzazione non completata",
+    "sync_not_completed_description": "Il provider di account sta impiegando più tempo del previsto. Per aggiornare l'elenco degli utenti, scegli @:{'users.sync_users'} di nuovo tra qualche minuto."
   },
   "trunks": {
     "title": "Fasci",
@@ -1332,7 +1342,10 @@
         "owner_id": "ID del proprietario"
       },
       "updating": "Aggiornamento…",
-      "show_sync_error": "Mostra l'errore di sincronizzazione di {name}"
+      "show_sync_error": "Mostra l'errore di sincronizzazione di {name}",
+      "cannot_read_columns": "Impossibile leggere le colonne",
+      "read_error_no_rows_query": "La query non ha restituito righe, quindi non ci sono colonne da associare. Modifica la query o aggiungi un contatto, poi riprova.",
+      "read_error_no_rows_file": "Il file non contiene contatti, quindi non ci sono colonne da associare. Aggiungi almeno una riga sotto i nomi delle colonne, poi riprova."
     },
     "video": {
       "description": "Mostra in {cti} le immagini di telecamere IP e citofoni e apri la porta da lì.",
@@ -1790,7 +1803,9 @@
     "group_actions": "Azioni di {name}",
     "group_created_description": "Il gruppo {name} è stato creato.",
     "group_updated_description": "Il gruppo {name} è stato aggiornato.",
-    "group_deleted_description": "Il gruppo {name} è stato eliminato."
+    "group_deleted_description": "Il gruppo {name} è stato eliminato.",
+    "cannot_add_group_users": "Impossibile aggiungere gli utenti al gruppo",
+    "group_created_without_users_description": "Il gruppo {name} è stato creato, ma non tutti i suoi utenti sono stati aggiunti. Modifica il gruppo per aggiungerli. {error}"
   },
   "profiles": {
     "description_line_1": "Configura i profili di permessi e le impostazioni di comunicazione predefinite assegnate agli utenti.",
@@ -1905,7 +1920,9 @@
     "profile_change_in_progress": "È in corso un'altra modifica dei profili: riprova tra qualche secondo.",
     "profile_created_description": "Il profilo {name} è stato creato.",
     "profile_updated_description": "Il profilo {name} è stato aggiornato.",
-    "profile_deleted_description": "Il profilo {name} è stato eliminato."
+    "profile_deleted_description": "Il profilo {name} è stato eliminato.",
+    "cannot_assign_profile_users": "Impossibile assegnare il profilo agli utenti",
+    "profile_created_without_users_description": "Il profilo {name} è stato creato, ma non è stato assegnato a tutti gli utenti scelti. Modifica il profilo per assegnarlo. {error}"
   },
   "user_overview": {
     "filter_users": "Filtra utenti",

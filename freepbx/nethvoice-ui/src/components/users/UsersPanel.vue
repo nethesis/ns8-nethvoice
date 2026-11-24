@@ -67,8 +67,8 @@ import { findAccount, getAccountRestriction } from '@/lib/users/accounts'
 import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
 import {
   buildUserRows,
+  DIRECTORY_PART_LABELS,
   EMPTY_USERS_DIRECTORY,
-  type DirectoryPart,
   type UserRow,
 } from '@/lib/users/directory'
 import {
@@ -124,6 +124,10 @@ const accountsManageable = computed(() => domain.value?.manageable === true)
 const accounts = computed(() =>
   accountsManageable.value ? (accountsQuery.state.value.data ?? []) : [],
 )
+const accountsLoaded = computed(() => accountsQuery.state.value.status === 'success')
+const accountsLoadFailed = computed(
+  () => accountsManageable.value && accountsQuery.state.value.status === 'error',
+)
 const rows = computed(() =>
   buildUserRows(users.value, directory.value).map((row) => {
     const account = findAccount(accounts.value, row.username)
@@ -138,6 +142,7 @@ const restrictionOf = (row: UserRow) =>
     signedInUsername: loginStore.username,
     isSuperadmin: isSuperadmin.value,
     account: findAccount(accounts.value, row.username),
+    accountsLoaded: accountsLoaded.value,
   })
 
 const creationBlocked = computed(() => {
@@ -152,13 +157,6 @@ const configuredCount = computed(() => countConfiguredUsers(users.value))
 const orphansQuery = useOrphanExtensions()
 const orphans = computed(() => orphansQuery.state.value.data ?? [])
 const isShownOrphans = ref(false)
-
-const DIRECTORY_PART_LABELS: Record<DirectoryPart, string> = {
-  groups: 'users.groups',
-  profiles: 'users.profiles',
-  voicemails: 'users.voicemail',
-  mobiles: 'users.mobile_number',
-}
 
 const unavailableParts = computed(() =>
   (directory.value.unavailable ?? []).map((part) => t(DIRECTORY_PART_LABELS[part])).join(', '),
@@ -312,13 +310,22 @@ function showBulk(action: BulkUsersAction) {
 const { syncing, syncError, sync } = useUsersProviderSync()
 
 async function syncUsers() {
-  await sync()
+  const completed = await sync()
 
   if (syncError.value) {
     notificationsStore.createNotificationFromError(syncError.value, t('users.cannot_sync_users'))
     return
   }
   directoryQuery.refetch()
+
+  if (!completed) {
+    notificationsStore.createNotification({
+      kind: 'warning',
+      title: t('users.sync_not_completed'),
+      description: t('users.sync_not_completed_description'),
+    })
+    return
+  }
   notificationsStore.createNotification({
     kind: 'success',
     title: t('users.users_synchronized'),
@@ -514,6 +521,16 @@ const filterLabels = computed(() => ({
       :primary-button-label="t('users.show_orphan_extensions')"
       data-testid="orphan-extensions-warning"
       @primary-click="isShownOrphans = true"
+    />
+    <NeInlineNotification
+      v-if="accountsLoadFailed"
+      kind="warning"
+      class="mb-6"
+      :title="t('users.cannot_load_accounts')"
+      :description="t('users.cannot_load_accounts_description')"
+      :primary-button-label="t('common.retry')"
+      data-testid="users-accounts-warning"
+      @primary-click="accountsQuery.refetch()"
     />
     <LoadError
       v-if="loadError"

@@ -150,6 +150,27 @@ test.describe('groups', () => {
     await expect(page.getByRole('heading', { name: 'Create group', exact: true })).toBeVisible()
   })
 
+  test('closes the drawer and tells when the users of a new group cannot be added', async ({
+    page,
+    mockApi,
+  }) => {
+    mockGroups(mockApi)
+      .on('POST', '/freepbx/rest/cti/groups', { json: '5' })
+      .on('POST', '/freepbx/rest/cti/groups/users/:id', { status: 500, json: { error: 'boom' } })
+    await page.goto('./users/groups')
+
+    await page.getByRole('button', { name: 'Create group' }).click()
+    await page.getByRole('textbox', { name: 'Name' }).fill('Marketing')
+    await pickUser(page, 'a.miller')
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
+
+    await expect(page.getByRole('heading', { name: 'Create group', exact: true })).toBeHidden()
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('Cannot add the users to the group')).toBeVisible()
+    await expect(toasts.getByText(/Group Marketing has been created, but not all/)).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/groups')).toHaveLength(1)
+  })
+
   test('edits the members of a group', async ({ page, mockApi }) => {
     mockGroups(mockApi).on('POST', '/freepbx/rest/cti/groups/users/:id', { status: 200 })
     await page.goto('./users/groups')

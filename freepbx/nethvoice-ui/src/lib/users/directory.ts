@@ -24,6 +24,13 @@ export const DIRECTORY_PARTS = ['groups', 'profiles', 'voicemails', 'mobiles'] a
 
 export type DirectoryPart = (typeof DIRECTORY_PARTS)[number]
 
+export const DIRECTORY_PART_LABELS: Record<DirectoryPart, string> = {
+  groups: 'users.groups',
+  profiles: 'users.profiles',
+  voicemails: 'users.voicemail',
+  mobiles: 'users.mobile_number',
+}
+
 export type UsersDirectory = {
   groups: Group[]
   profiles: NamedItem[]

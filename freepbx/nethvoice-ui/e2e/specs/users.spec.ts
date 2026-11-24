@@ -458,10 +458,14 @@ test.describe('users', () => {
     await drawer.getByRole('button', { name: 'Create' }).click()
 
     await expect(page.getByText('User created')).toBeVisible(IMPORT_TIMEOUT)
-    const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as { file: string }
+    const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as {
+      file: string
+      rfc4180: boolean
+    }
     expect(Buffer.from(file.file, 'base64').toString()).toBe(
       '"e.johnson","Emma Johnson","305","Secret,123"\r\n',
     )
+    expect(file.rfc4180).toBe(true)
     expect(mockApi.callsTo('POST', `${REST}/cti/profiles/users/14`)[0].body).toEqual({
       profile_id: 1,
     })
@@ -502,6 +506,24 @@ test.describe('users', () => {
       drawer.getByText('Remove tabs, line breaks and other invisible characters'),
     ).toBeVisible()
     await expect(name).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
+  })
+
+  test('refuses a password with spaces at the start or the end', async ({ page, mockApi }) => {
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Create user' }).first().click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
+    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByLabel('Password', { exact: true }).fill('Secret,123 ')
+    await drawer.getByLabel('Confirm password').fill('Secret,123 ')
+    await drawer.getByRole('button', { name: 'Create' }).click()
+
+    await expect(
+      drawer.getByText('Remove the spaces at the start and end of the password'),
+    ).toBeVisible()
     expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
   })
 
@@ -641,6 +663,23 @@ test.describe('users', () => {
 
     await expect(page.getByText('Users synchronized')).toBeVisible()
     expect(mockApi.callsTo('POST', `${REST}/users/sync`)).toHaveLength(1)
+  })
+
+  test('says when the synchronization has not ended in time', async ({ page, mockApi }) => {
+    mockApi.on('GET', `${REST}/users/sync`, { json: true })
+    await page.clock.install()
+    await page.goto('./users/users')
+    await expect(page.getByTestId('user-a.miller')).toBeVisible()
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Synchronize users' }).click()
+
+    for (let poll = 1; poll <= 60; poll += 1) {
+      await expect.poll(() => mockApi.callsTo('GET', `${REST}/users/sync`).length).toBe(poll)
+      await page.clock.runFor(2000)
+    }
+
+    await expect(page.getByText('Synchronization not completed')).toBeVisible()
+    await expect(page.getByText('Users synchronized')).toHaveCount(0)
   })
 
   test('does not warn when no extension belongs to removed users', async ({ page }) => {
@@ -1194,6 +1233,159 @@ test.describe('users', () => {
       .filter({ hasText: 'File preview' })
     await expect(modal.getByText('File too large')).toBeVisible()
     await expect(modal.getByRole('button', { name: 'Import 5000 users' })).toBeDisabled()
+  })
+
+  test('keeps backslashes and refuses spaces around the passwords of the CSV', async ({
+    page,
+    mockApi,
+  }) => {
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'users.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        [
+          'username,name,surname,extension,password',
+          'k.lee,Kevin,Lee\\,310,Secret\\1!\\',
+          'm.cole,Mia,Cole,311," Secret,123"',
+          'n.ray,Nora,Ray,312,"Secret,123 "',
+        ].join('\n'),
+      ),
+    })
+    await drawer.getByRole('button', { name: 'Next' }).click()
+    const modal = page
+      .getByRole('dialog', { name: 'Import users' })
+      .filter({ hasText: 'File preview' })
+    await expect(
+      modal.getByText('Row 3 (m.cole): spaces at the start or end of the password'),
+    ).toBeVisible()
+    await expect(
+      modal.getByText('Row 4 (n.ray): spaces at the start or end of the password'),
+    ).toBeVisible()
+    await modal.getByRole('button', { name: 'Import 1 user' }).click()
+
+    await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
+    const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as {
+      file: string
+      rfc4180: boolean
+    }
+    expect(Buffer.from(file.file, 'base64').toString()).toBe(
+      '"k.lee","Kevin Lee\\","310","Secret\\1!\\"\r\n',
+    )
+    expect(file.rfc4180).toBe(true)
+  })
+
+  test('blocks the import until every detail of the users is loaded', async ({ page, mockApi }) => {
+    let mobilesLoaded = false
+    mockApi.on('GET', `${REST}/mobiles`, () =>
+      mobilesLoaded ? { json: [] } : { status: 500, json: { error: 'boom' } },
+    )
+    await page.goto('./users/users')
+    await expect(page.getByTestId('users-directory-warning')).toBeVisible()
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'users.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        ['username,name,surname,extension', 'a.miller,Anna,Miller,300', 'k.lee,Kevin,Lee,310'].join(
+          '\n',
+        ),
+      ),
+    })
+    await drawer.getByRole('button', { name: 'Next' }).click()
+    const modal = page
+      .getByRole('dialog', { name: 'Import users' })
+      .filter({ hasText: 'File preview' })
+    const warning = modal.getByTestId('import-directory-warning')
+    await expect(warning).toContainText('Cannot load: Mobile number')
+    await expect(modal.getByRole('button', { name: 'Import 1 user' })).toBeDisabled()
+    await modal.getByText('Overwrite existing users').click()
+    await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeDisabled()
+
+    mobilesLoaded = true
+    await warning.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(warning).toBeHidden()
+    await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeEnabled()
+    expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
+  })
+
+  test('recognizes existing users whatever the case of their username', async ({
+    page,
+    mockApi,
+  }) => {
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    mockApi.on('GET', `${REST}/users/:all`, {
+      json: RAW_USERS.map((user) =>
+        user.username === 'a.miller' ? { ...user, username: 'A.Miller' } : user,
+      ),
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'users.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(['username,name,surname', 'a.miller,Anna,Miller'].join('\n')),
+    })
+    await drawer.getByRole('button', { name: 'Next' }).click()
+    const modal = page
+      .getByRole('dialog', { name: 'Import users' })
+      .filter({ hasText: 'File preview' })
+    await modal.getByText('Overwrite existing users').click()
+    await modal.getByRole('button', { name: 'Import 1 user' }).click()
+
+    await expect(page.getByText('Created: 0 · Updated: 1 · Skipped: 0')).toBeVisible(IMPORT_TIMEOUT)
+  })
+
+  test('shows the users of a group created in the groups tab', async ({ page, mockApi }) => {
+    let created = false
+    mockApi
+      .on('POST', `${REST}/cti/groups`, () => {
+        created = true
+        return { json: '4' }
+      })
+      .on('POST', `${REST}/cti/groups/users/:id`, { status: 200 })
+      .on('GET', `${REST}/cti/groups/users/:id`, { json: [1] })
+      .on('GET', `${REST}/cti/groups`, () => ({
+        json: created ? [...GROUPS, { id: 4, name: 'Marketing' }] : GROUPS,
+      }))
+      .on('GET', `${REST}/cti/users/groups/:id`, (request) => {
+        const id = request.path.split('/').pop() ?? ''
+        const members = created ? { ...GROUP_MEMBERS, '4': [11] } : GROUP_MEMBERS
+        return {
+          json: (members[id] ?? []).map((userId) => ({ user_id: userId, name: 'group' })),
+        }
+      })
+    await page.goto('./users/users')
+    await expect(page.getByTestId('user-a.miller')).toContainText('Sales')
+    await page
+      .getByRole('navigation', { name: 'Tabs' })
+      .getByRole('link', { name: 'Groups' })
+      .click()
+    await page.getByRole('button', { name: 'Create group' }).click()
+    await page.getByRole('textbox', { name: 'Name' }).fill('Marketing')
+    await page.getByRole('combobox', { name: 'Users' }).fill('a.miller')
+    await page.getByRole('option', { name: /a\.miller/ }).click()
+    await page.getByRole('dialog').getByRole('heading').click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Create group', exact: true })).toBeHidden()
+
+    await page
+      .getByRole('navigation', { name: 'Tabs' })
+      .getByRole('link', { name: 'Users' })
+      .click()
+    await expect(page.getByTestId('user-a.miller')).toContainText('Marketing')
   })
 
   test('exports the users without passwords', async ({ page, mockApi }) => {
@@ -1825,6 +2017,39 @@ test.describe('user accounts', () => {
     await page.getByRole('menuitem', { name: 'Delete' }).click()
     const modal = page.getByRole('dialog', { name: 'Delete user' })
     await expect(modal.getByRole('button', { name: 'Delete', exact: true })).toBeInViewport()
+  })
+
+  test('locks the account actions until the accounts are loaded', async ({ page, mockApi }) => {
+    let accountsLoaded = false
+    mockApi.on('GET', `${REST}/users/domain/accounts`, () =>
+      accountsLoaded ? { json: ACCOUNTS } : { status: 500, json: { error: 'boom' } },
+    )
+    await page.goto('./users/users')
+
+    const warning = page.getByTestId('users-accounts-warning')
+    await expect(warning).toContainText('Cannot load the user accounts')
+    await openRowMenu(page, 'a.miller')
+    await expect(page.getByTestId('account-restriction-a.miller')).toHaveText(
+      "The user accounts are not loaded: passwords, status, names and email addresses can't be changed now.",
+    )
+    await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeDisabled()
+    await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    await expect(drawer.getByTestId('user-status-toggle').getByRole('checkbox')).toBeDisabled()
+    for (const field of [/^Name$/, /^Surname$/, /^Email/]) {
+      await expect(drawer.getByRole('textbox', { name: field })).toBeDisabled()
+    }
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    await expect(drawer.getByRole('button', { name: 'Cancel' })).toBeHidden()
+
+    accountsLoaded = true
+    await warning.getByRole('button', { name: 'Retry' }).click()
+
+    await expect(warning).toBeHidden()
+    await openRowMenu(page, 'a.miller')
+    await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeEnabled()
   })
 
   test.describe('limited administrator with the Users section', () => {

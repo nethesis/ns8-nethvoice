@@ -98,7 +98,13 @@ const ACCOUNTS = [
   ...account,
 }))
 
-type ControlOptions = { manageable?: boolean; reason?: string | null; admins?: Admin[] }
+type ControlOptions = {
+  manageable?: boolean
+  reason?: string | null
+  admins?: Admin[]
+  prefix?: string
+  groups?: Record<string, string>
+}
 
 const mockAdminsApi = (mockApi: MockApi, options: ControlOptions = {}) => {
   let admins = (options.admins ?? ADMINS).map((admin) => ({ ...admin }))
@@ -108,8 +114,8 @@ const mockAdminsApi = (mockApi: MockApi, options: ControlOptions = {}) => {
     .on('GET', `${REST}/users/domain/accounts`, { json: ACCOUNTS })
     .on('GET', `${REST}/admins`, () => ({
       json: {
-        prefix: 'nethvoice3',
-        groups: GROUPS,
+        prefix: options.prefix ?? 'nethvoice3',
+        groups: options.groups ?? GROUPS,
         manageable: options.manageable ?? true,
         reason: options.reason ?? null,
         admins,
@@ -452,8 +458,36 @@ test.describe('admin control without a manageable account provider', () => {
     const notice = page.getByTestId('admin-control-not-manageable')
     await expect(notice).toContainText("Domain users can't be administrators")
     await expect(page.getByRole('button', { name: 'Add administrator' })).toBeDisabled()
-    await expect(page.getByRole('button', { name: 'Actions for operator' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Actions for operator' })).toBeVisible()
     await expect(page.getByTestId('admin-read-only-operator')).toBeVisible()
+    await expect(page.getByTestId('admin-control-groups')).toHaveCount(0)
+  })
+
+  test('removes a local administrator while the account provider cannot be reached', async ({
+    page,
+    mockApi,
+  }) => {
+    mockAdminsApi(mockApi, { manageable: false, reason: 'unavailable' })
+    await page.goto('./admin-control')
+
+    await expect(page.getByRole('button', { name: 'Actions for a.miller' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Actions for operator' }).click()
+    await page.getByRole('menuitem', { name: 'Remove' }).click()
+    const modal = page.getByRole('dialog', { name: 'Remove administrator' })
+    await modal.getByRole('button', { name: 'Remove', exact: true }).click()
+
+    await expect(row(page, 'operator')).toHaveCount(0)
+    expect(mockApi.callsTo('DELETE', `${REST}/admins/operator`)).toHaveLength(1)
+  })
+
+  test('hides the domain groups when the PBX has no group prefix', async ({ page, mockApi }) => {
+    mockAdminsApi(mockApi, {
+      prefix: '',
+      groups: Object.fromEntries(Object.keys(GROUPS).map((permission) => [permission, ''])),
+    })
+    await page.goto('./admin-control')
+
+    await expect(row(page, 'a.miller')).toBeVisible()
     await expect(page.getByTestId('admin-control-groups')).toHaveCount(0)
   })
 

@@ -46,7 +46,8 @@ const { t } = useI18n()
 
 const isEditable = (admin: AdminAccount) => admin.editable && !disabledReason
 
-const isRemovable = (admin: AdminAccount) => admin.removable && !disabledReason
+const isRemovable = (admin: AdminAccount) =>
+  admin.removable && (admin.source === 'local' || !disabledReason)
 
 const readOnlyReason = (admin: AdminAccount) => {
   if (admin.reason) {

@@ -92,7 +92,9 @@
     "too_many_attempts_description": "Wait a few minutes and try again.",
     "too_many_attempts_retry": "Try again in {count} minute. | Try again in {count} minutes.",
     "domain_unavailable": "Cannot reach the account provider",
-    "domain_unavailable_description": "Users of the domain can't sign in now. Try again in a few minutes."
+    "domain_unavailable_description": "Users of the domain can't sign in now. Try again in a few minutes.",
+    "storage_unavailable": "Cannot sign in",
+    "storage_unavailable_description": "The browser does not let this site save data. Allow cookies and site data for this site, then sign in again."
   },
   "notifications": {
     "title": "Notifications",
@@ -550,7 +552,15 @@
     "account_error_nethvoice_admin": "Only the superadmin can change the password of an administrator, disable it or delete it.",
     "admin_access_superadmin": "Superadmin",
     "admin_access_sections": "Administrator",
-    "admin_access_other_instance": "Administrator of another PBX"
+    "admin_access_other_instance": "Administrator of another PBX",
+    "password_surrounding_spaces": "Remove the spaces at the start and end of the password",
+    "import_issue_password_whitespace": "spaces at the start or end of the password",
+    "import_directory_partially_loaded_description": "Cannot load: {parts}. Users can't be imported until this information is loaded. Try again.",
+    "cannot_load_accounts": "Cannot load the user accounts",
+    "cannot_load_accounts_description": "Status and administrator badges are not shown, and passwords, status, names and email addresses can't be changed now. Try again.",
+    "accounts_unavailable_restricted": "The user accounts are not loaded: passwords, status, names and email addresses can't be changed now.",
+    "sync_not_completed": "Synchronization not completed",
+    "sync_not_completed_description": "The account provider is taking longer than expected. To update the list of users, choose @:{'users.sync_users'} again in a few minutes."
   },
   "trunks": {
     "title": "Trunks",
@@ -1332,7 +1342,10 @@
         "owner_id": "Owner ID"
       },
       "updating": "Updating…",
-      "show_sync_error": "Show the sync error of {name}"
+      "show_sync_error": "Show the sync error of {name}",
+      "cannot_read_columns": "Cannot read the columns",
+      "read_error_no_rows_query": "The query returned no rows, so there are no columns to map. Change the query or add a contact, then try again.",
+      "read_error_no_rows_file": "The file has no contacts, so there are no columns to map. Add at least one row below the column names, then try again."
     },
     "video": {
       "description": "Show the images of IP cameras and door phones in {cti} and open the door from there.",
@@ -1790,7 +1803,9 @@
     "group_actions": "{name} actions",
     "group_created_description": "Group {name} has been created.",
     "group_updated_description": "Group {name} has been updated.",
-    "group_deleted_description": "Group {name} has been deleted."
+    "group_deleted_description": "Group {name} has been deleted.",
+    "cannot_add_group_users": "Cannot add the users to the group",
+    "group_created_without_users_description": "Group {name} has been created, but not all its users have been added. Edit the group to add them. {error}"
   },
   "profiles": {
     "description_line_1": "Configure permission profiles and default communication settings assigned to users.",
@@ -1905,7 +1920,9 @@
     "profile_change_in_progress": "Another profile change is in progress: try again in a few seconds.",
     "profile_created_description": "Profile {name} has been created.",
     "profile_updated_description": "Profile {name} has been updated.",
-    "profile_deleted_description": "Profile {name} has been deleted."
+    "profile_deleted_description": "Profile {name} has been deleted.",
+    "cannot_assign_profile_users": "Cannot assign the profile to the users",
+    "profile_created_without_users_description": "Profile {name} has been created, but it has not been assigned to all the chosen users. Edit the profile to assign it. {error}"
   },
   "user_overview": {
     "filter_users": "Filter users",

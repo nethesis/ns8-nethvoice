@@ -7,7 +7,7 @@
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
-import { useMutation, useQueryCache } from '@pinia/colada'
+import { useMutation } from '@pinia/colada'
 import {
   focusElement,
   NeButton,
@@ -21,13 +21,13 @@ import {
 import {
   buildGroupFormSchema,
   createGroup,
-  GROUPS_KEY,
+  GroupMembersError,
   saveGroupMembers,
   type Group,
   type GroupForm,
 } from '@/lib/groups/groups'
-import { PROFILES_KEY } from '@/lib/profiles/profiles'
 import { hasMainExtension, type User } from '@/lib/users/users'
+import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const {
@@ -45,7 +45,7 @@ const {
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
-const queryCache = useQueryCache()
+const invalidateUsers = useInvalidateUsers()
 const notificationsStore = useNotificationsStore()
 
 const name = ref('')
@@ -82,9 +82,24 @@ const {
     }, 500)
     emit('close')
   },
+  onError(error, group) {
+    if (!(error instanceof GroupMembersError)) {
+      return
+    }
+    setTimeout(() => {
+      notificationsStore.createNotification({
+        kind: 'error',
+        title: t('groups.cannot_add_group_users'),
+        description: t('groups.group_created_without_users_description', {
+          name: group.name,
+          error: describeError(error.cause),
+        }),
+      })
+    }, 500)
+    emit('close')
+  },
   onSettled: () => {
-    queryCache.invalidateQueries({ key: [GROUPS_KEY] })
-    queryCache.invalidateQueries({ key: [PROFILES_KEY] })
+    invalidateUsers()
   },
 })
 
@@ -107,7 +122,7 @@ const {
     emit('close')
   },
   onSettled: () => {
-    queryCache.invalidateQueries({ key: [GROUPS_KEY] })
+    invalidateUsers()
   },
 })
 
@@ -219,7 +234,7 @@ function discardChanges() {
           :remove-label="t('common.remove')"
         />
         <NeInlineNotification
-          v-if="createGroupError"
+          v-if="createGroupError && !(createGroupError instanceof GroupMembersError)"
           kind="error"
           :title="t('groups.cannot_create_group')"
           :description="describeError(createGroupError)"

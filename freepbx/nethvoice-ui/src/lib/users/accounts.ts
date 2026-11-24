@@ -55,7 +55,7 @@ export const ACCOUNT_ERROR_CODES = [
 export type AccountErrorCode = (typeof ACCOUNT_ERROR_CODES)[number]
 
 export type AccountRestriction =
-  'own_account' | 'domain_admin' | 'superadmin_account' | 'nethvoice_admin'
+  'own_account' | 'accounts_unavailable' | 'domain_admin' | 'superadmin_account' | 'nethvoice_admin'
 
 export type DeleteAccountResult = {
   synchronized: boolean
@@ -169,14 +169,19 @@ export const getAccountRestriction = ({
   signedInUsername,
   isSuperadmin,
   account,
+  accountsLoaded = true,
 }: {
   username: string
   signedInUsername: string
   isSuperadmin: boolean
   account?: UserAccount
+  accountsLoaded?: boolean
 }): AccountRestriction | null => {
   if (username.toLowerCase() === signedInUsername.toLowerCase()) {
     return 'own_account'
+  }
+  if (!accountsLoaded) {
+    return 'accounts_unavailable'
   }
   if (account?.domainAdmin === true) {
     return 'domain_admin'

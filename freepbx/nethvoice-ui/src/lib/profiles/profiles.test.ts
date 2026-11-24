@@ -1,12 +1,14 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as v from 'valibot'
+import { api } from '@/lib/api/client'
 import { rawProfile } from './fixtures'
 import {
   buildProfileNameSchema,
   canRenameProfile,
+  createProfile,
   diffProfileUsers,
   filterProfiles,
   getCopyName,
@@ -20,6 +22,7 @@ import {
   parseProfile,
   parseProfiles,
   parseSubscriptionActive,
+  ProfileUsersError,
   setFeatureValue,
   sortProfiles,
   toProfileForm,
@@ -305,5 +308,32 @@ describe('getNewlyEnabledPrivacyPermissions', () => {
 describe('diffProfileUsers', () => {
   it('should list assigned and unassigned users', () => {
     expect(diffProfileUsers([1, 2], [2, 3])).toEqual({ assigned: [3], unassigned: [1] })
+  })
+})
+
+describe('createProfile', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('tells which profile was created when it cannot be assigned to the users', async () => {
+    const failure = new ApiError({
+      status: 500,
+      method: 'POST',
+      url: '/cti/profiles/users/2',
+      body: null,
+    })
+    const post = vi
+      .spyOn(api, 'POST')
+      .mockResolvedValueOnce({ data: { id: 12 }, response: new Response() })
+      .mockRejectedValueOnce(failure)
+
+    const error = await createProfile(toProfileForm(advanced, 'Sales'), [2]).catch(
+      (caught) => caught,
+    )
+
+    expect(error).toBeInstanceOf(ProfileUsersError)
+    expect(error).toMatchObject({ profileId: 12, cause: failure })
+    expect(post).toHaveBeenCalledTimes(2)
   })
 })

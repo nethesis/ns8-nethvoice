@@ -6,15 +6,11 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useMutation, useQueryCache } from '@pinia/colada'
+import { useMutation } from '@pinia/colada'
 import DeleteObjectModal from '@/components/common/DeleteObjectModal.vue'
-import {
-  deleteProfileAndMoveUsers,
-  getProfileUsers,
-  PROFILES_KEY,
-  type Profile,
-} from '@/lib/profiles/profiles'
-import { USERS_KEY, type User } from '@/lib/users/users'
+import { deleteProfileAndMoveUsers, getProfileUsers, type Profile } from '@/lib/profiles/profiles'
+import type { User } from '@/lib/users/users'
+import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const {
@@ -30,7 +26,7 @@ const {
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
-const queryCache = useQueryCache()
+const invalidateUsers = useInvalidateUsers()
 const notificationsStore = useNotificationsStore()
 
 const assignedUserIds = computed(() =>
@@ -56,8 +52,7 @@ const {
     emit('close')
   },
   onSettled: () => {
-    queryCache.invalidateQueries({ key: [PROFILES_KEY] })
-    queryCache.invalidateQueries({ key: [USERS_KEY] })
+    invalidateUsers()
   },
 })
 

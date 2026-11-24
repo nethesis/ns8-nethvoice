@@ -128,6 +128,29 @@ test.describe('profiles', () => {
     ).toEqual([['/freepbx/rest/cti/profiles/users/3', { profile_id: 5 }]])
   })
 
+  test('closes the drawer and tells when a new profile cannot be assigned', async ({
+    page,
+    mockApi,
+  }) => {
+    mockProfiles(mockApi)
+      .on('POST', '/freepbx/rest/cti/profiles', { json: { id: '5' } })
+      .on('POST', '/freepbx/rest/cti/profiles/users/:id', { status: 500, json: { error: 'boom' } })
+    await page.goto('./users/profiles')
+
+    await card(page, 1).getByRole('button', { name: 'Duplicate Base' }).click()
+    await page.getByRole('textbox', { name: 'Name' }).fill('Marketing')
+    await page.getByRole('combobox', { name: 'Assign users' }).click()
+    await page.getByRole('option', { name: /b\.smith/ }).click()
+    await drawerHeading(page, 'Create profile').click()
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
+
+    await expect(drawerHeading(page, 'Create profile')).toBeHidden()
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('Cannot assign the profile to the users')).toBeVisible()
+    await expect(toasts.getByText(/Profile Marketing has been created, but/)).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/profiles')).toHaveLength(1)
+  })
+
   test('validates the name of a new profile', async ({ page, mockApi }) => {
     mockProfiles(mockApi)
     await page.goto('./users/profiles')

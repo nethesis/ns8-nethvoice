@@ -7,7 +7,7 @@
 import { computed, reactive, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
-import { useMutation, useQueryCache } from '@pinia/colada'
+import { useMutation } from '@pinia/colada'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons'
 import {
@@ -37,7 +37,7 @@ import {
   getProfileSaveErrorKey,
   getProfileUsers,
   isDefaultProfile,
-  PROFILES_KEY,
+  ProfileUsersError,
   RESERVED_PROFILE_NAME,
   toProfileForm,
   updateProfile,
@@ -46,7 +46,8 @@ import {
   type ProfileForm,
   type ProfileOutboundRoute,
 } from '@/lib/profiles/profiles'
-import { hasMainExtension, USERS_KEY, type User } from '@/lib/users/users'
+import { hasMainExtension, type User } from '@/lib/users/users'
+import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useFocusReturn } from '@/composables/useFocusReturn'
@@ -71,7 +72,7 @@ useFocusReturn(() => isShown)
 
 const { t } = useI18n()
 const runtimeConfigStore = useRuntimeConfigStore()
-const queryCache = useQueryCache()
+const invalidateUsers = useInvalidateUsers()
 const notificationsStore = useNotificationsStore()
 
 const emptyForm = (): ProfileForm => ({
@@ -162,7 +163,21 @@ const {
     }
     await createProfile(profileForm, userIds)
   },
-  onError(error) {
+  onError(error, { profileForm }) {
+    if (error instanceof ProfileUsersError) {
+      setTimeout(() => {
+        notificationsStore.createNotification({
+          kind: 'error',
+          title: t('profiles.cannot_assign_profile_users'),
+          description: t('profiles.profile_created_without_users_description', {
+            name: profileForm.name,
+            error: describeError(error.cause),
+          }),
+        })
+      }, 500)
+      emit('close')
+      return
+    }
     if (getProfileNameIssue(error)) {
       focusElement(nameRef)
     }
@@ -182,8 +197,7 @@ const {
     emit('close')
   },
   onSettled: () => {
-    queryCache.invalidateQueries({ key: [PROFILES_KEY] })
-    queryCache.invalidateQueries({ key: [USERS_KEY] })
+    invalidateUsers()
   },
 })
 
@@ -435,7 +449,11 @@ function discardChanges() {
           :description="t('profiles.privacy_warning_description')"
         />
         <NeInlineNotification
-          v-if="saveProfileError && !saveErrorNameIssue"
+          v-if="
+            saveProfileError &&
+            !saveErrorNameIssue &&
+            !(saveProfileError instanceof ProfileUsersError)
+          "
           kind="error"
           :title="
             editedProfile ? t('profiles.cannot_save_profile') : t('profiles.cannot_create_profile')

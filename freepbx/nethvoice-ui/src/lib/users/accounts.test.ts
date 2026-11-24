@@ -175,6 +175,17 @@ describe('getAccountRestriction', () => {
     ).toBe('own_account')
   })
 
+  it('protects every account while the accounts are not loaded', () => {
+    const base = { signedInUsername: 'helpdesk', isSuperadmin: true, accountsLoaded: false }
+
+    expect(getAccountRestriction({ ...base, username: 'c.davis' })).toBe('accounts_unavailable')
+    expect(getAccountRestriction({ ...base, username: 'd.jones', account })).toBe(
+      'accounts_unavailable',
+    )
+    expect(getAccountRestriction({ ...base, username: 'helpdesk' })).toBe('own_account')
+    expect(getAccountRestriction({ ...base, username: 'c.davis', accountsLoaded: true })).toBeNull()
+  })
+
   it('protects domain administrators from every administrator', () => {
     const base = { username: 'd.jones', signedInUsername: 'helpdesk', account }
 

@@ -60,11 +60,13 @@ const groupRows = computed(() => {
   }
   const permissions: Permission[] = [SUPERADMIN, ...SECTIONS]
 
-  return permissions.map((permission) => ({
-    permission,
-    label: permission === SUPERADMIN ? t('admin_control.full_access') : t(`${permission}.title`),
-    group: groups[permission],
-  }))
+  return permissions
+    .filter((permission) => groups[permission])
+    .map((permission) => ({
+      permission,
+      label: permission === SUPERADMIN ? t('admin_control.full_access') : t(`${permission}.title`),
+      group: groups[permission],
+    }))
 })
 
 function showAddDrawer() {
@@ -143,7 +145,7 @@ function showRemoveModal(admin: AdminAccount) {
         />
       </div>
       <NeCard
-        v-if="control && control.reason !== 'external'"
+        v-if="control && control.reason !== 'external' && groupRows.length > 0"
         :title="t('admin_control.domain_groups')"
         :description="t('admin_control.domain_groups_description')"
         data-testid="admin-control-groups"

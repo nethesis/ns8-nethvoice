@@ -6,10 +6,10 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useMutation, useQueryCache } from '@pinia/colada'
+import { useMutation } from '@pinia/colada'
 import DeleteObjectModal from '@/components/common/DeleteObjectModal.vue'
-import { deleteGroup, GROUPS_KEY, type Group } from '@/lib/groups/groups'
-import { PROFILES_KEY } from '@/lib/profiles/profiles'
+import { deleteGroup, type Group } from '@/lib/groups/groups'
+import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { visible = false, group = undefined } = defineProps<{
@@ -20,7 +20,7 @@ const { visible = false, group = undefined } = defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
-const queryCache = useQueryCache()
+const invalidateUsers = useInvalidateUsers()
 const notificationsStore = useNotificationsStore()
 
 const {
@@ -41,8 +41,7 @@ const {
     emit('close')
   },
   onSettled: () => {
-    queryCache.invalidateQueries({ key: [GROUPS_KEY] })
-    queryCache.invalidateQueries({ key: [PROFILES_KEY] })
+    invalidateUsers()
   },
 })
 

@@ -1,10 +1,14 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as v from 'valibot'
+import { api } from '@/lib/api/client'
+import { ApiError } from '@/lib/api/errors'
 import {
   buildGroupFormSchema,
+  createGroup,
+  GroupMembersError,
   diffGroupMembers,
   filterGroups,
   getGroupUsernames,
@@ -141,5 +145,38 @@ describe('filterGroups', () => {
 
   it('should return all groups without a filter', () => {
     expect(filterGroups([sales, support], users, '')).toHaveLength(2)
+  })
+})
+
+describe('createGroup', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('tells which group was created when its users cannot be added', async () => {
+    const failure = new ApiError({
+      status: 500,
+      method: 'POST',
+      url: '/cti/groups/users/2',
+      body: null,
+    })
+    vi.spyOn(api, 'GET').mockResolvedValue({ data: [], response: new Response() })
+    const post = vi
+      .spyOn(api, 'POST')
+      .mockResolvedValueOnce({ data: 9, response: new Response() })
+      .mockRejectedValueOnce(failure)
+
+    const error = await createGroup({ name: 'Marketing', userIds: [2] }).catch((caught) => caught)
+
+    expect(error).toBeInstanceOf(GroupMembersError)
+    expect(error).toMatchObject({ groupId: 9, cause: failure })
+    expect(post).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not wrap the failure of the group creation', async () => {
+    const failure = new ApiError({ status: 409, method: 'POST', url: '/cti/groups', body: null })
+    vi.spyOn(api, 'POST').mockRejectedValueOnce(failure)
+
+    await expect(createGroup({ name: 'Marketing', userIds: [2] })).rejects.toBe(failure)
   })
 })
