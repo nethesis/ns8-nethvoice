@@ -1488,6 +1488,70 @@ function streamingPinCertificate(array $source): array
     return $source;
 }
 
+function ctiStreamingDestinations(array $source): array
+{
+    $destinations = ['url' => (string) $source['url']];
+    foreach (array_values($source['gates'] ?? []) as $index => $gate) {
+        if (($gate['type'] ?? '') === 'url') {
+            $destinations["gates[$index].url"] = (string) $gate['url'];
+        }
+    }
+
+    return $destinations;
+}
+
+function ctiStreamingNodeAddress(array $addresses, ?array $networks = null): bool
+{
+    $networks ??= streaming_node_networks();
+    foreach ($addresses as $address) {
+        if (streaming_ip_in_networks((string) $address, $networks)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function ctiStreamingCheckNodeDestinations(array $source, ?callable $resolve = null, ?array $networks = null): void
+{
+    $resolve ??= 'streaming_resolve_host';
+    $networks ??= streaming_node_networks();
+    foreach (ctiStreamingDestinations($source) as $field => $url) {
+        $parsed = streaming_parse_url($url);
+        if ($parsed !== null && ctiStreamingNodeAddress($resolve($parsed['host']), $networks)) {
+            throw new StreamingValidationException($field, 'the device address is not allowed: the addresses of the PBX node are refused');
+        }
+    }
+}
+
+function ctiStreamingGuardAddresses(bool $superadmin, array $source, ?array $current = null): int
+{
+    if ($superadmin) {
+        return 0;
+    }
+    if ($current !== null && empty($current['guard_addresses'])
+        && ctiStreamingDestinations($source) === ctiStreamingDestinations($current)) {
+        return 0;
+    }
+
+    return 1;
+}
+
+function ctiStoreStreamingSource(\PDO $db, array $source, array $profiles, int $guardAddresses, ?string $currentDescr = null): void
+{
+    $db->beginTransaction();
+    try {
+        streaming_store_source($db, $source, $profiles, $currentDescr);
+        $db->prepare('UPDATE `rest_cti_streaming` SET `guard_addresses` = ? WHERE `descr` = ?')->execute([$guardAddresses, $source['descr']]);
+        $db->commit();
+    } catch (\Throwable $e) {
+        if ($db->inTransaction()) {
+            $db->rollBack();
+        }
+        throw $e;
+    }
+}
+
 /*
  * PUT /cti/streaming/:descr
  * { currentDescr, descr, url, user, secret, exten, frame-rate, open, gates: [{ id, name, type, code | url, method, username, password }], tls_skip_verify, profiles }
@@ -1514,6 +1578,10 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
             $data['secret'] = $doorSecret;
         }
         $source = streaming_normalize_source($data, $sources[$currentDescr]);
+        $superadmin = nethvoiceRequestIsSuperadmin($request);
+        if (!$superadmin) {
+            ctiStreamingCheckNodeDestinations($source);
+        }
         // The link to the door phone stays while its password is kept for
         // the same device: a linked source takes the door phone password at
         // every reload, it must never follow the URL to another device
@@ -1527,7 +1595,7 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
         $source = streamingPinCertificate($source);
         // A stored password is never kept for a device with a new certificate
         streaming_check_pin_changes($data, $source, $sources[$currentDescr]);
-        streaming_store_source($dbh, $source, $profiles, $currentDescr);
+        ctiStoreStreamingSource($dbh, $source, $profiles, ctiStreamingGuardAddresses($superadmin, $source, $sources[$currentDescr]), $currentDescr);
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
     } catch (Throwable $e) {
@@ -1564,11 +1632,15 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
             $data['secret'] = $doorSecret;
         }
         $source = streaming_normalize_source($data);
+        $superadmin = nethvoiceRequestIsSuperadmin($request);
+        if (!$superadmin) {
+            ctiStreamingCheckNodeDestinations($source);
+        }
         $source['door_phone'] = $doorSecret !== null ? streaming_door_phone_mac((string) $data['door_phone']) : null;
         streaming_check_door_phone_gates($source);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
         $source = streamingPinCertificate($source);
-        streaming_store_source(FreePBX::Database(), $source, $profiles);
+        ctiStoreStreamingSource(FreePBX::Database(), $source, $profiles, ctiStreamingGuardAddresses($superadmin, $source));
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return $response->withStatus(200);
     } catch (Throwable $e) {
@@ -1657,6 +1729,8 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         $guard = null;
         if (streaming_host_blocked($parsed['host'], function () use ($addresses) { return $addresses; })) {
             $result = streaming_probe_result($parsed['type'], false, 'address_not_allowed', 'loopback and link-local addresses are refused');
+        } elseif (!nethvoiceRequestIsSuperadmin($request) && ctiStreamingNodeAddress($addresses)) {
+            $result = streaming_probe_result($parsed['type'], false, 'address_not_allowed', 'the addresses of the PBX node are refused');
         } elseif (($guard = streaming_stored_secret_guard($stored, $parsed['url'], $usesStoredSecret, $tlsSkipVerify)) !== null) {
             $result = $guard;
         } elseif ($parsed['type'] === 'rtsp') {

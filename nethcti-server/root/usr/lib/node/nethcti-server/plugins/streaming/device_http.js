@@ -21,6 +21,7 @@
  */
 var dns = require('dns');
 var net = require('net');
+var os = require('os');
 var tls = require('tls');
 var http = require('http');
 var https = require('https');
@@ -140,6 +141,53 @@ function isBlockedAddress(address) {
   return true;
 }
 
+function comparableAddress(address) {
+  if (typeof address !== 'string') {
+    return null;
+  }
+  var a = address.toLowerCase();
+  var zone = a.indexOf('%');
+  if (zone >= 0) {
+    a = a.substring(0, zone);
+  }
+  var mapped = /^(?:0{0,4}:){0,4}:?(?:0{0,4}:)?ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(a);
+  if (mapped) {
+    a = mapped[1];
+  }
+  var family = net.isIP(a);
+  if (family === 4) {
+    return a.split('.').map(function(x) { return parseInt(x, 10); }).join('.');
+  }
+  if (family !== 6) {
+    return null;
+  }
+  var canonical = new URL('http://[' + a + ']').hostname.slice(1, -1);
+  var hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(canonical);
+  if (hex) {
+    var high = parseInt(hex[1], 16);
+    var low = parseInt(hex[2], 16);
+    return [high >> 8, high & 0xff, low >> 8, low & 0xff].join('.');
+  }
+  return canonical;
+}
+
+function isNodeAddress(address) {
+  var comparable = comparableAddress(address);
+  if (comparable === null) {
+    return false;
+  }
+  var ifaces = os.networkInterfaces();
+  var n, i;
+  for (n in ifaces) {
+    for (i = 0; i < (ifaces[n] || []).length; i++) {
+      if (comparableAddress(ifaces[n][i].address) === comparable) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 /**
  * Resolves the host name of a device and returns the first allowed address.
  * The connection is refused when any of the addresses of the name is not
@@ -151,19 +199,23 @@ function isBlockedAddress(address) {
  * @param {function} cb The callback function (err, address, family)
  * @private
  */
-function resolveDevice(host, cb) {
+function resolveDevice(host, cb, guardAddresses) {
   var h = typeof host === 'string' ? host.replace(/^\[|\]$/g, '') : '';
   var notAllowed = function() {
-    var e = new Error('the device address ' + h + ' is not allowed (loopback, link-local or unspecified)');
+    var e = new Error('the device address ' + h + ' is not allowed (loopback, link-local or unspecified' +
+      (guardAddresses ? ', or an address of the PBX node' : '') + ')');
     e.code = ERR_ADDRESS_NOT_ALLOWED;
     return e;
+  };
+  var blocked = function(address) {
+    return isBlockedAddress(address) || (guardAddresses === true && isNodeAddress(address));
   };
   if (h === '' || h.toLowerCase() === 'localhost' || /\.localhost\.?$/i.test(h)) {
     cb(notAllowed());
     return;
   }
   if (net.isIP(h)) {
-    if (isBlockedAddress(h)) {
+    if (blocked(h)) {
       cb(notAllowed());
     } else {
       cb(null, h, net.isIP(h));
@@ -183,7 +235,7 @@ function resolveDevice(host, cb) {
     }
     var i;
     for (i = 0; i < addresses.length; i++) {
-      if (isBlockedAddress(addresses[i].address)) {
+      if (blocked(addresses[i].address)) {
         cb(notAllowed());
         return;
       }
@@ -204,7 +256,7 @@ function resolveDevice(host, cb) {
  * @return {object} The agent.
  * @private
  */
-function createDeviceAgent(protocol, tlsPolicy) {
+function createDeviceAgent(protocol, tlsPolicy, guardAddresses) {
   var isHttps = protocol === 'https:';
   var agent = isHttps ? new https.Agent({ keepAlive: false, maxCachedSessions: 0 }) : new http.Agent({ keepAlive: false });
   agent.createConnection = function(options, oncreate) {
@@ -269,7 +321,7 @@ function createDeviceAgent(protocol, tlsPolicy) {
         }
         ready(null, socket);
       });
-    });
+    }, guardAddresses);
   };
   return agent;
 }
@@ -331,6 +383,7 @@ function deviceRequest(opts, auth, memo, cb) {
     skipVerify: opts.tlsSkipVerify === true,
     fingerprint: opts.tlsSkipVerify === true ? normalizeFingerprint(opts.tlsFingerprint) : null
   };
+  var guardAddresses = opts.guardAddresses === true;
   var current = null;
   var done = false;
   var timer = setTimeout(function() {
@@ -360,7 +413,7 @@ function deviceRequest(opts, auth, memo, cb) {
     var o = {};
     var k;
     for (k in opts) {
-      if (k !== 'maxBytes' && k !== 'tlsSkipVerify' && k !== 'tlsFingerprint' && k !== 'strictSSL') {
+      if (k !== 'maxBytes' && k !== 'tlsSkipVerify' && k !== 'tlsFingerprint' && k !== 'strictSSL' && k !== 'guardAddresses') {
         o[k] = opts[k];
       }
     }
@@ -368,7 +421,7 @@ function deviceRequest(opts, auth, memo, cb) {
     o.followRedirect = false;
     o.followAllRedirects = false;
     // every connection is opened and checked by createDeviceAgent
-    o.agent = createDeviceAgent(protocol, tlsPolicy);
+    o.agent = createDeviceAgent(protocol, tlsPolicy, guardAddresses);
     delete o.pool;
     delete o.forever;
     if (withAuth) {
@@ -547,7 +600,7 @@ function describeError(err) {
       '): it does not match the one pinned when the source was saved, save the source again to trust the new certificate';
   }
   if (err && err.code === ERR_ADDRESS_NOT_ALLOWED) {
-    return 'device address not allowed (' + err.code + '): loopback and link-local addresses are refused';
+    return 'device address not allowed (' + err.code + '): loopback and link-local addresses, and the addresses of the PBX node for the sources of limited administrators, are refused';
   }
   if (err && err.code === ERR_AUTH_DOWNGRADE) {
     return 'the device asked for Basic authentication after using Digest (' + err.code +
@@ -568,6 +621,7 @@ function describeError(err) {
 
 exports.isSuccess = isSuccess;
 exports.isBlockedAddress = isBlockedAddress;
+exports.isNodeAddress = isNodeAddress;
 exports.normalizeFingerprint = normalizeFingerprint;
 exports.ERR_ADDRESS_NOT_ALLOWED = ERR_ADDRESS_NOT_ALLOWED;
 exports.ERR_FINGERPRINT_MISMATCH = ERR_FINGERPRINT_MISMATCH;

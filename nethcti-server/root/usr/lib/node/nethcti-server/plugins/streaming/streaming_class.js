@@ -256,6 +256,8 @@ exports.Streaming = function(data) {
    */
   var tlsSkipVerify = data.tls_skip_verify === true;
 
+  var guardAddresses = data.guard_addresses === true;
+
   /**
    * The SHA-256 fingerprint of the certificate of the https:// snapshot URL,
    * pinned when the source was saved. Used only with _tlsSkipVerify_: without
@@ -389,6 +391,10 @@ exports.Streaming = function(data) {
     return tlsFingerprint;
   }
 
+  function getGuardAddresses() {
+    return guardAddresses;
+  }
+
   /**
    * Return the readable string of the streaming source.
    *
@@ -473,7 +479,8 @@ exports.Streaming = function(data) {
           followRedirect: false,
           maxBytes: MAX_SNAPSHOT_BYTES,
           tlsSkipVerify: tlsSkipVerify,
-          tlsFingerprint: tlsFingerprint
+          tlsFingerprint: tlsFingerprint,
+          guardAddresses: guardAddresses
         }, imageAuth, sampleAuthMemo, function(err, res, body) {
           if (!err && res.statusCode === 200) {
             var data = "data:" + res.headers["content-type"] + ";base64," + Buffer.from(body).toString('base64');
@@ -499,6 +506,7 @@ exports.Streaming = function(data) {
     getType: getType,
     getGates: getGates,
     getTlsSkipVerify: getTlsSkipVerify,
+    getGuardAddresses: getGuardAddresses,
     getTlsFingerprint: getTlsFingerprint,
     getWhepUrl: getWhepUrl,
     getExtension: getExtension,

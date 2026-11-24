@@ -1081,6 +1081,7 @@ function streaming_cti_config(array $sources): array
             // With tls_skip_verify, the certificate the https:// image device must present
             'tls_fingerprint' => (!$isRtsp && streaming_needs_fingerprint($source)) ? streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null) : null,
             'gates' => $gates,
+            'guard_addresses' => !empty($source['guard_addresses']),
         ];
     }
     return $out;

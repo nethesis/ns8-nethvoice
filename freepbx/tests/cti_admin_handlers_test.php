@@ -1,12 +1,14 @@
 <?php
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Run the customer card and CTI profile handlers of cti.php against SQLite, as the superadmin and as limited administrators.
+// Run the customer card, CTI profile and video source handlers of cti.php against SQLite, as the superadmin and as limited administrators.
 
 $rest = __DIR__ . '/../var/www/html/freepbx/rest';
 require $rest . '/vendor/autoload.php';
 require $rest . '/lib/JsonResponse.php';
 require $rest . '/lib/Permissions.php';
 require $rest . '/lib/libParamUrls.php';
+require $rest . '/lib/libStreaming.php';
+require $rest . '/lib/libDoorPhones.php';
 
 use Slim\Psr7\Factory\ResponseFactory;
 use Slim\Psr7\Factory\ServerRequestFactory;
@@ -202,6 +204,91 @@ $tests['POST /cti/profiles/{id} checks the profile only for limited administrato
     } finally {
         unlink($lock);
     }
+};
+
+$tests['video sources of limited administrators never reach the PBX node'] = function () use ($app, $superadmin, $integrator) {
+    $node = ['192.0.2.5', '2001:db8::5', '10.5.4.0/24'];
+    $resolve = fn(string $host) => ['camera.example.test' => ['192.0.2.5'], 'yard.example.test' => ['198.51.100.7'], 'vpn.example.test' => ['198.51.100.8', '10.5.4.2']][$host] ?? [$host];
+    $source = fn(string $url, array $gates = []) => ['url' => $url, 'gates' => $gates];
+    $refused = function (array $source) use ($resolve, $node) {
+        try {
+            ctiStreamingCheckNodeDestinations($source, $resolve, $node);
+            return null;
+        } catch (StreamingValidationException $e) {
+            return $e->getField();
+        }
+    };
+    check($refused($source('http://198.51.100.7/snap.jpg')) === null, 'a LAN device was refused');
+    check($refused($source('rtsp://yard.example.test/live')) === null, 'a device name was refused');
+    check($refused($source('http://192.0.2.5/snap.jpg')) === 'url', 'a node address was accepted');
+    check($refused($source('rtsp://camera.example.test:8554/live')) === 'url', 'a name of the node was accepted');
+    check($refused($source('rtsps://[2001:db8::5]/live')) === 'url', 'an IPv6 node address was accepted');
+    check($refused($source('http://[::ffff:192.0.2.5]/snap.jpg')) === 'url', 'an IPv4-mapped node address was accepted');
+    check($refused($source('http://vpn.example.test/snap.jpg')) === 'url', 'a name with a cluster VPN address was accepted');
+    $gates = [['type' => 'dtmf', 'code' => '*1', 'url' => null], ['type' => 'url', 'url' => 'http://198.51.100.7/open'], ['type' => 'url', 'url' => 'https://camera.example.test/relay']];
+    check($refused($source('rtsp://198.51.100.7/live', $gates)) === 'gates[2].url', 'a gate of the node was accepted');
+
+    $nodeAddress = null;
+    foreach (streaming_node_networks() as $network) {
+        if (!str_contains($network, '/') && !streaming_ip_blocked($network)) {
+            $nodeAddress = $network;
+            break;
+        }
+    }
+    if ($nodeAddress !== null) {
+        $host = str_contains($nodeAddress, ':') ? "[$nodeAddress]" : $nodeAddress;
+        [$status, $body] = call($app, 'POST /cti/streaming', $integrator, ['descr' => 'Door', 'url' => "http://$host:9/door.jpg", 'profiles' => []]);
+        check($status === 400 && json_decode($body, true) === ['status' => 'the device address is not allowed: the addresses of the PBX node are refused', 'field' => 'url'], "a limited administrator saved a source of the node: $status $body");
+        [$status, $body] = call($app, 'POST /cti/streaming', $integrator, ['descr' => 'Door', 'url' => 'rtsp://198.51.100.7/live', 'gates' => [['type' => 'url', 'url' => "http://$host:9/open"]], 'profiles' => []]);
+        check($status === 400 && json_decode($body, true)['field'] === 'gates[0].url', "a limited administrator saved a gate of the node: $status $body");
+        [$status, $body] = call($app, 'PUT /cti/streaming/{descr}', $integrator, ['descr' => 'Door', 'url' => "http://$host:9/door.jpg"], ['descr' => 'Door']);
+        check($status !== 200, "a limited administrator updated a source of the node: $status $body");
+        [$status, $body] = call($app, 'POST /cti/sources/test', $integrator, ['url' => "http://$host:9/door.jpg", 'details' => true]);
+        $result = json_decode($body, true);
+        check($status === 200 && $result['success'] === false && $result['reason'] === 'address_not_allowed', "a limited administrator tested a source of the node: $status $body");
+        [$status, $body] = call($app, 'POST /cti/sources/test', $superadmin, ['url' => "http://$host:9/door.jpg", 'details' => true]);
+        $result = json_decode($body, true);
+        check($status === 200 && $result['reason'] !== 'address_not_allowed', "the superadmin cannot test a source of the node as on main: $status $body");
+    }
+};
+
+$tests['video sources saved by limited administrators are marked for the address guard'] = function () {
+    $current = ['url' => 'http://192.0.2.30/door.jpg', 'gates' => [['type' => 'url', 'url' => 'http://192.0.2.31/open']], 'guard_addresses' => '0'];
+    check(ctiStreamingGuardAddresses(true, ['url' => 'http://192.0.2.32/door.jpg', 'gates' => []]) === 0, 'a source of the superadmin is guarded');
+    check(ctiStreamingGuardAddresses(true, ['url' => 'http://192.0.2.32/door.jpg', 'gates' => []], array_merge($current, ['guard_addresses' => '1'])) === 0, 'a save of the superadmin kept the guard');
+    check(ctiStreamingGuardAddresses(false, ['url' => 'http://192.0.2.32/door.jpg', 'gates' => []]) === 1, 'a source of a limited administrator is not guarded');
+    check(ctiStreamingGuardAddresses(false, ['url' => $current['url'], 'gates' => $current['gates']], $current) === 0, 'a limited administrator who kept the addresses guarded a source of the superadmin');
+    check(ctiStreamingGuardAddresses(false, ['url' => 'http://192.0.2.32/door.jpg', 'gates' => $current['gates']], $current) === 1, 'a URL changed by a limited administrator is not guarded');
+    check(ctiStreamingGuardAddresses(false, ['url' => $current['url'], 'gates' => [['type' => 'url', 'url' => 'http://192.0.2.33/open']]], $current) === 1, 'a gate changed by a limited administrator is not guarded');
+    check(ctiStreamingGuardAddresses(false, ['url' => $current['url'], 'gates' => $current['gates']], array_merge($current, ['guard_addresses' => '1'])) === 1, 'a limited administrator removed the guard');
+
+    $db = sqlite([
+        "CREATE TABLE rest_cti_permissions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '' UNIQUE, displayname TEXT NOT NULL DEFAULT '', description TEXT NOT NULL DEFAULT '')",
+        'CREATE TABLE rest_cti_profiles_permissions (profile_id INTEGER NOT NULL, permission_id INTEGER NOT NULL)',
+        "CREATE TABLE rest_cti_streaming (descr TEXT PRIMARY KEY, type TEXT, url TEXT, user TEXT, secret TEXT, `frame-rate` INTEGER, exten INTEGER, open TEXT, guard_addresses INTEGER NOT NULL DEFAULT 0, tls_skip_verify INTEGER NOT NULL DEFAULT 0, tls_fingerprint TEXT, door_phone TEXT)",
+        'CREATE TABLE rest_cti_streaming_gates (id INTEGER PRIMARY KEY AUTOINCREMENT, source TEXT, position INTEGER, name TEXT, type TEXT, code TEXT, url TEXT, method TEXT, username TEXT, password TEXT, tls_fingerprint TEXT)',
+        "INSERT INTO rest_cti_permissions (id, name, displayname) VALUES (4003, 'vs_gate', 'Gate')",
+        "INSERT INTO rest_cti_streaming (descr, type, url, user, secret, `frame-rate`, open) VALUES ('Gate', 'image', 'http://192.0.2.20/gate.jpg', '', '', 1000, '')",
+    ]);
+    $source = streaming_normalize_source(['descr' => 'Gate 2', 'url' => 'http://198.51.100.20/gate.jpg', 'gates' => []], ['descr' => 'Gate', 'url' => 'http://192.0.2.20/gate.jpg', 'user' => '', 'secret' => '', 'gates' => []], fn() => ['198.51.100.20']);
+    ctiStoreStreamingSource($db, $source, [1], 1, 'Gate');
+    check($db->query("SELECT descr || ' ' || guard_addresses FROM rest_cti_streaming")->fetchColumn() === 'Gate 2 1', 'the guard of a renamed source was not stored');
+    ctiStoreStreamingSource($db, $source, [1], 0, 'Gate 2');
+    check($db->query('SELECT guard_addresses FROM rest_cti_streaming')->fetchColumn() == 0, 'the guard was not removed by the superadmin');
+    try {
+        ctiStoreStreamingSource($db, array_merge($source, ['descr' => 'Gate 3']), [1], 1, 'Missing');
+        check(false, 'a missing source was stored');
+    } catch (StreamingNotFoundException $e) {
+        check(!$db->inTransaction(), 'the transaction is still open');
+    }
+
+    $cti = streaming_cti_config([
+        'Guarded' => ['descr' => 'Guarded', 'type' => 'image', 'url' => 'http://198.51.100.20/a.jpg', 'user' => '', 'secret' => '', 'gates' => [], 'guard_addresses' => '1'],
+        'Open' => ['descr' => 'Open', 'type' => 'image', 'url' => 'http://198.51.100.21/b.jpg', 'user' => '', 'secret' => '', 'gates' => [], 'guard_addresses' => '0'],
+        'Legacy' => ['descr' => 'Legacy', 'type' => 'image', 'url' => 'http://198.51.100.22/c.jpg', 'user' => '', 'secret' => '', 'gates' => []],
+    ]);
+    check($cti['vs_guarded']['guard_addresses'] === true && $cti['vs_open']['guard_addresses'] === false && $cti['vs_legacy']['guard_addresses'] === false, 'the guard is not written for nethcti-server: ' . json_encode($cti));
+    check(!array_key_exists('guard_addresses', streaming_public_source(['descr' => 'Guarded', 'type' => 'image', 'url' => 'http://198.51.100.20/a.jpg', 'user' => '', 'secret' => '', 'gates' => [], 'guard_addresses' => '1'])), 'the guard is listed by the REST API');
 };
 
 $failures = 0;

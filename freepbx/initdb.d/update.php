@@ -120,6 +120,14 @@ if ((int)$db->query($sql)->fetchColumn() === 0) {
 require_once '/var/www/html/freepbx/rest/lib/libParamUrls.php';
 nethvoiceFillParamUrlNames($db);
 
+$sql = "SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_cti_streaming'
+          AND COLUMN_NAME = 'guard_addresses'";
+if ((int)$db->query($sql)->fetchColumn() === 0) {
+	$db->exec("ALTER TABLE `asterisk`.`rest_cti_streaming` ADD COLUMN `guard_addresses` tinyint(1) NOT NULL DEFAULT '0' AFTER `open`");
+}
+
 $db->exec("CREATE TABLE IF NOT EXISTS `asterisk`.`rest_phonebook_imports` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` int(10) unsigned NOT NULL,

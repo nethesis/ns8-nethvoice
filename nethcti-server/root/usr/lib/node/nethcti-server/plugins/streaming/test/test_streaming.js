@@ -956,6 +956,49 @@ async function main() {
   assert.strictEqual(r[0].code, 'EINVALIDURL');
   ok('loopback, link-local and unspecified device addresses refused, LAN allowed');
 
+  assert.strictEqual(deviceHttp.isNodeAddress(DEV_HOST), true, 'the address of the fake devices is an address of the node');
+  assert.strictEqual(deviceHttp.isNodeAddress('::ffff:' + DEV_HOST), true, 'IPv4-mapped address of the node');
+  assert.strictEqual(deviceHttp.isNodeAddress('192.0.2.77'), false, 'an address of another host');
+  assert.strictEqual(deviceHttp.isNodeAddress('not an address'), false);
+  deviceCalls = [];
+  r = await p(function(cb) { deviceHttp.deviceRequest({ uri: 'http://' + DEV_HOST + ':' + lp + '/open', timeout: 2000, guardAddresses: true }, null, {}, cb); });
+  assert.strictEqual(r[0] && r[0].code, 'DEVICE_ADDRESS_NOT_ALLOWED', 'guarded request to the node: ' + (r[0] && r[0].code));
+  r = await p(function(cb) { deviceHttp.deviceRequest({ uri: 'http://[::ffff:' + DEV_HOST + ']:' + lp + '/open', timeout: 2000, guardAddresses: true }, null, {}, cb); });
+  assert.strictEqual(r[0] && r[0].code, 'DEVICE_ADDRESS_NOT_ALLOWED', 'guarded request to the IPv4-mapped node address');
+  assert.strictEqual(deviceCalls.length, 0, 'no guarded request reached the node');
+  r = await p(function(cb) { deviceHttp.deviceRequest({ uri: 'http://' + DEV_HOST + ':' + lp + '/open', timeout: 2000, guardAddresses: 'yes' }, null, {}, cb); });
+  assert.strictEqual(r[0], null, 'only the boolean true guards a request');
+  assert.strictEqual(r[1].statusCode, 204);
+  var guardedCfg = path.join(tmp, 'streaming-guarded.json');
+  var nodeSource = function(guard) {
+    return {
+      descr: 'Node', url: 'http://' + DEV_HOST + ':' + lp + '/basic.jpg', type: 'image', exten: null, open: '',
+      image_auth: { username: 'cam', password: 'Img-Secret-9' }, guard_addresses: guard,
+      gates: [{ id: '1', name: 'Relay', type: 'url', url: 'http://' + DEV_HOST + ':' + lp + '/open', method: 'GET', username: '', password: '' }]
+    };
+  };
+  fs.writeFileSync(guardedCfg, JSON.stringify({ vs_guarded: nodeSource(true), vs_trusted: nodeSource(false), vs_legacy: nodeSource(undefined) }));
+  streaming.config(guardedCfg);
+  deviceCalls = [];
+  r = await p(function(cb) { streaming.getVideoSample('vs_guarded', cb); });
+  assert.strictEqual(r[0] && r[0].code, 'DEVICE_ADDRESS_NOT_ALLOWED', 'snapshot of a guarded source on the node refused');
+  r = await open('vs_guarded', '1');
+  assert.strictEqual(r[0].code, 'gate_address_not_allowed', 'gate of a guarded source on the node refused');
+  assert.strictEqual(deviceCalls.length, 0, 'a guarded source reached the node');
+  r = await p(function(cb) { streaming.getVideoSample('vs_trusted', cb); });
+  assert.strictEqual(r[0], null, 'snapshot of a source of the superadmin on the node');
+  r = await open('vs_trusted', '1');
+  assert.strictEqual(r[0], null, 'gate of a source of the superadmin on the node');
+  r = await p(function(cb) { streaming.getVideoSample('vs_legacy', cb); });
+  assert.strictEqual(r[0], null, 'snapshot of a source without the guard field');
+  r = await open('vs_legacy', '1');
+  assert.strictEqual(r[0], null, 'gate of a source without the guard field');
+  var guardedSample = new Streaming({ id: 'g', url: 'http://' + DEV_HOST + ':' + lp + '/basic.jpg', type: 'image', guard_addresses: true });
+  assert.strictEqual(guardedSample.getGuardAddresses(), true);
+  assert.strictEqual(new Streaming({ id: 'u', url: '', guard_addresses: '1' }).getGuardAddresses(), false, 'only the boolean true guards a source');
+  assert.strictEqual(JSON.stringify(guardedSample.toJSON()).indexOf('guard') < 0, true, 'the guard is not sent to the clients');
+  ok('sources saved by limited administrators never reach the node, the other sources as before');
+
   // --- response limits and redirects ------------------------------------------
   var big = new Streaming({ id: 'b', url: 'http://' + DEV_HOST + ':' + lp + '/big.jpg', type: 'image' });
   r = await p(function(cb) { big.getSample(function(e, id, img) { cb(e, img); }); });
