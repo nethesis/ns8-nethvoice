@@ -244,6 +244,7 @@ $app->post('/csv/csvimport', function (Request $request, Response $response, $ar
         if (file_exists($statusfile)) {
             unlink($statusfile);
         }
+        file_put_contents($statusfile, json_encode(array('progress' => 0)));
         system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ".escapeshellarg($base64csv).(nethvoiceRequestIsSuperadmin($request) ? '' : ' restricted').(($params['rfc4180'] ?? false) === true ? ' rfc4180' : '')." > /dev/null 2>&1 &");
         return $response->withStatus(200);
     } catch (Exception $e) {

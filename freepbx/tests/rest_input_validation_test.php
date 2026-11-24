@@ -166,6 +166,8 @@ copy("$rest/modules/users.php", "$sandbox/rest/modules/users.php");
 $patch("$sandbox/rest/modules/users.php", 'exec("/usr/bin/sudo', 'recordExec("/usr/bin/sudo', 3);
 $patch("$sandbox/rest/modules/users.php", "system('fwconsole userman --syncall --force > /dev/null &');", 'null;', 3);
 $patch("$sandbox/rest/modules/users.php", 'system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ', 'recordSystem("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ', 1);
+$routeImportStatus = "$sandbox/csvimport-route.code";
+$patch("$sandbox/rest/modules/users.php", "'/var/run/nethvoice/csvimport.code'", var_export($routeImportStatus, true), 2);
 $patch("$sandbox/rest/lib/libUsers.php", "require_once('/etc/freepbx.conf');", '', 1);
 $patch("$sandbox/rest/modules/cti.php", "include_once('lib/libCTI.php');", '', 1);
 $cardTemplatesPath = "'/var/lib/nethserver/nethcti/templates/customer_card'";
@@ -755,8 +757,10 @@ foreach ([true, false] as $restricted) {
 check($addedUsers($events)[0]['password'] === 'Invented-Pass-1!\\"' && !in_array(['createMainExtensionForUser', 'bob', '202'], $events, true), 'the CSV import without the RFC 4180 option no longer parses backslashes as before: ' . json_encode($events));
 
 $systemCalls = [];
+$importStatusAtLaunch = [];
 function recordSystem($command, &$status = null) {
     $GLOBALS['systemCalls'][] = $command;
+    $GLOBALS['importStatusAtLaunch'][] = is_file($GLOBALS['routeImportStatus']) ? file_get_contents($GLOBALS['routeImportStatus']) : null;
     $status = 0;
 }
 foreach ([
@@ -768,6 +772,16 @@ foreach ([
 ] as [$caller, $body, $suffix]) {
     $systemCalls = [];
     check(call($app, 'POST', '/csv/csvimport', $body)[0] === 200 && count($systemCalls) === 1 && str_ends_with($systemCalls[0], "/csvimport.php$suffix"), 'the CSV import route did not pass the options ' . json_encode([$caller, $body]) . ': ' . json_encode($systemCalls));
+}
+foreach ([['superadmin'], ['users']] as $caller) {
+    file_put_contents($routeImportStatus, json_encode(['exitcode' => 1, 'errors' => 'previous import', 'progress' => -1]));
+    $importStatusAtLaunch = [];
+    check(call($app, 'POST', '/csv/csvimport', ['file' => 'ZmFrZQ=='])[0] === 200, 'the CSV import did not start');
+    check($importStatusAtLaunch === ['{"progress":0}'], 'the CSV import started without an initial status: ' . json_encode($importStatusAtLaunch));
+    check(call($app, 'GET', '/csv/csvimport') === [200, '{"result":0}'], 'a CSV import that has not read its first row is not reported as running');
+    file_put_contents($routeImportStatus, json_encode(['exitcode' => 0, 'errors' => '', 'progress' => 100]));
+    check(call($app, 'GET', '/csv/csvimport') === [200, '{"result":100}'], 'a finished CSV import is not reported as finished');
+    check(call($app, 'GET', '/csv/csvimport') === [422, '{"status":"No csv import active"}'], 'a reported CSV import is still active');
 }
 $caller = ['users', 'trunks', 'routes', 'phones', 'integrations', 'settings'];
 
