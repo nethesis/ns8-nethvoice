@@ -70,11 +70,12 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
         session_start();
         $_SESSION['AMP_user'] = new ampuser($username);
         if ($_SESSION['AMP_user']->checkPassword($password) && ($_SESSION['AMP_user']->checkSection('*') || nethvoiceParseSections($_SESSION['AMP_user']->getSections()))) {
+            $throttle->succeed($address, $account);
             if (!$_SESSION['AMP_user']->checkSection('*') && !nethvoiceKeepsFreepbxSession($_SESSION['AMP_user']->getSections())) {
                 unset($_SESSION['AMP_user']);
+                return $response->withStatus(401);
             }
             unset($no_auth);
-            $throttle->succeed($address, $account);
             require(__DIR__.'/../config.inc.php');
             $secret = $config['settings']['secretkey'];
             return jsonResponse($response, ['result' => $secret], 200);

@@ -14,6 +14,7 @@ const SECRET = 'invented-shared-secret';
 const ACCOUNTS = [
     'admin' => ['Admin-Password-1', '*'],
     'qa_users' => ['Users-Password-1', 'nethvoice:users'],
+    'qa_boss' => ['Boss-Password-1', 'nethvoice:superadmin'],
 ];
 
 function check($condition, $message) {
@@ -120,7 +121,13 @@ foreach (['admin', 'ADMIN', 'admin  '] as $username) {
     check(json_decode((string) $throttled->getBody(), true)['code'] === 'too_many_attempts', 'unexpected throttle body: ' . $throttled->getBody());
 }
 check(testauth($app, 'admin', 'Admin-Password-1', '192.0.2.11')->getStatusCode() === 200, 'another address must not be throttled');
-check(testauth($app, 'qa_users', 'Users-Password-1')->getStatusCode() === 200, 'another account from the same address must not be throttled');
+$boss = testauth($app, 'qa_boss', 'Boss-Password-1');
+check($boss->getStatusCode() === 200 && json_decode((string) $boss->getBody(), true) === ['result' => SECRET], 'a NethVoice superadmin must receive the secret: ' . $boss->getStatusCode());
+for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_PER_ACCOUNT + 1; $i++) {
+    $limited = testauth($app, 'qa_users', 'Users-Password-1');
+    check($limited->getStatusCode() === 401 && !str_contains((string) $limited->getBody(), SECRET), 'an administrator who is not superadmin received the secret: ' . $limited->getStatusCode() . ' ' . $limited->getBody());
+}
+check(testauth($app, 'qa_users', 'wrong')->getStatusCode() === 401, 'the correct password of a limited administrator must not be counted as a failure');
 
 for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_PER_ADDRESS; $i++) {
     testauth($app, 'sprayed' . $i, 'Common-Password-1', '198.51.100.7');
@@ -129,4 +136,4 @@ check(testauth($app, 'qa_users', 'Users-Password-1', '198.51.100.7')->getStatusC
 check(testauth($app, ['admin'], 'Admin-Password-1', '198.51.100.9')->getStatusCode() === 401, 'a username that is not a string must be refused');
 check(testauth($app, '', 'x', '198.51.100.9')->getStatusCode() === 401, 'an empty username must be refused');
 
-echo "PASS: POST /testauth throttles failures per address and account and per address, keeps successful sign-ins\n";
+echo "PASS: POST /testauth throttles failures per address and account and per address, keeps successful sign-ins, gives the secret only to superadmins\n";
