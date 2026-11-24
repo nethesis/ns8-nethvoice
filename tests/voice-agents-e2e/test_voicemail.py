@@ -60,3 +60,23 @@ class VoicemailBeepTests(unittest.TestCase):
         self.assertEqual([op.args[1] for op in call.play.call_args_list], ["vm_yes", "vm_message", "vm_message"])
         call.caller.hangup.assert_called_once_with()
         self.assertIn("one new message saved in the colleague's mailbox", call.evidence)
+
+    def test_refusal_and_follow_up_use_one_caller_turn(self):
+        call = object.__new__(Call)
+        call.case = "voicemail-no"
+        call.evidence = []
+        call.mail_count = 3
+        call.caller = Mock()
+        call.caller.mark.return_value = 100
+        call.hear_until = Mock()
+        call.play = Mock()
+        call.finish = Mock()
+        call.lab = Mock()
+        call.lab.mailbox_count.return_value = 3
+
+        call.recipient_alternative(0)
+
+        call.play.assert_called_once_with(call.caller, "vm_no")
+        call.hear_until.assert_called_with(call.caller, 100, r"\bgirasole\b", "returned to agent", timeout=25)
+        call.finish.assert_called_once_with()
+        self.assertIn("mailbox unchanged after explicit refusal", call.evidence)
