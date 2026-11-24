@@ -13,6 +13,8 @@ export const DB_CONNECTION_STATUSES_KEY = 'customerCardDbConnectionStatuses'
 
 export const BUILT_IN_DB_CONNECTIONS = ['phonebook', 'asteriskcdrdb']
 
+const LOCAL_HOSTS = ['', 'localhost', '127.0.0.1', '::1']
+
 type DbConnectionInput = components['schemas']['IntegrationsDbConnectionInput']
 
 type DbConnectionTestInput = components['schemas']['IntegrationsDbConnectionTestInput']
@@ -57,6 +59,7 @@ export type DbConnection = {
   user: string
   hasPassword: boolean
   builtIn: boolean
+  pbxServer: boolean
 }
 
 export type DbConnectionType = { id: string; label: string }
@@ -72,20 +75,41 @@ export type DbConnectionForm = {
   password: string
 }
 
-export const parseDbConnections = (raw: unknown): DbConnection[] =>
-  v
-    .parse(DbConnectionsResponseSchema, raw)
+const isLocalHost = (host: string): boolean => {
+  const name = host
+    .trim()
+    .toLowerCase()
+    .replace(/^\[(.*)\]$/, '$1')
+
+  return LOCAL_HOSTS.includes(name) || name.endsWith('.localhost')
+}
+
+export const parseDbConnections = (raw: unknown): DbConnection[] => {
+  const connections = v.parse(DbConnectionsResponseSchema, raw).map((connection) => ({
+    id: connection.id,
+    name: connection.name,
+    type: connection.type,
+    host: connection.host,
+    port: connection.port,
+    user: connection.user,
+    hasPassword: connection.has_password ?? connection.pass !== '',
+    builtIn: BUILT_IN_DB_CONNECTIONS.includes(connection.name),
+  }))
+  const pbxPorts = connections
+    .filter((connection) => connection.builtIn && isLocalHost(connection.host))
+    .map((connection) => connection.port.trim())
+
+  return connections
     .map((connection) => ({
-      id: connection.id,
-      name: connection.name,
-      type: connection.type,
-      host: connection.host,
-      port: connection.port,
-      user: connection.user,
-      hasPassword: connection.has_password ?? connection.pass !== '',
-      builtIn: BUILT_IN_DB_CONNECTIONS.includes(connection.name),
+      ...connection,
+      pbxServer:
+        connection.builtIn ||
+        (pbxPorts.length > 0 &&
+          isLocalHost(connection.host) &&
+          (connection.port.trim() === '' || pbxPorts.includes(connection.port.trim()))),
     }))
     .sort((a, b) => compareNatural(a.name, b.name))
+}
 
 export const parseDbConnectionTypes = (raw: unknown): DbConnectionType[] => {
   const response = v.parse(DbConnectionTypesResponseSchema, raw)

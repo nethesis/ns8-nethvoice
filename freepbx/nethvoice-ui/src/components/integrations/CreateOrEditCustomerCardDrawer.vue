@@ -120,7 +120,8 @@ const connections = computed(() => connectionsState.value.data ?? [])
 const queryLocked = computed(
   () =>
     !isSuperadmin.value &&
-    !!connections.value.find((connection) => connection.id === form.value.dbConnectionId)?.builtIn,
+    !!connections.value.find((connection) => connection.id === form.value.dbConnectionId)
+      ?.pbxServer,
 )
 
 const connectionOptions = computed(() =>
@@ -128,7 +129,7 @@ const connectionOptions = computed(() =>
     .filter(
       (connection) =>
         isSuperadmin.value ||
-        !connection.builtIn ||
+        !connection.pbxServer ||
         (mode === 'edit' && connection.id === currentCard?.dbConnectionId),
     )
     .map((connection) => ({
@@ -248,7 +249,7 @@ function initialForm(): CustomerCardForm {
     t('integrations.cards.copy_name', { name: currentCard.name }),
   )
   const builtIn = connections.value.some(
-    (connection) => connection.id === duplicated.dbConnectionId && connection.builtIn,
+    (connection) => connection.id === duplicated.dbConnectionId && connection.pbxServer,
   )
 
   return !isSuperadmin.value && builtIn ? { ...duplicated, dbConnectionId: '' } : duplicated

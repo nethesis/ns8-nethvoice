@@ -92,7 +92,7 @@ export const useDbConnectionStatuses = defineQuery(() => {
     query: async () => {
       const skipped = isSuperadmin.value
         ? []
-        : connections.value.filter((connection) => connection.builtIn)
+        : connections.value.filter((connection) => connection.pbxServer)
 
       return {
         ...Object.fromEntries(

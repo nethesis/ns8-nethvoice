@@ -51,12 +51,17 @@ import {
   useDbConnectionStatuses,
   useDbConnectionTypes,
 } from '@/queries/integrations/customerCards'
+import { usePermissions } from '@/queries/permissions/me'
 
 const { t } = useI18n()
 const { state, refetch } = useDbConnections()
 const { state: typesState } = useDbConnectionTypes()
 const { state: cardsState } = useCustomerCards()
 const { getStatus, retest } = useDbConnectionStatuses()
+const { isSuperadmin } = usePermissions()
+
+const isReadOnly = (connection: DbConnection) =>
+  connection.builtIn || (!isSuperadmin.value && connection.pbxServer)
 
 const currentConnection = ref<DbConnection | undefined>()
 const isShownDrawer = ref(false)
@@ -244,9 +249,9 @@ function deleteCurrentConnection() {
             </NeTableCell>
             <NeTableCell
               :data-label="t('common.actions')"
-              :class="{ 'max-lg:hidden': connection.builtIn }"
+              :class="{ 'max-lg:hidden': isReadOnly(connection) }"
             >
-              <div v-if="!connection.builtIn" class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+              <div v-if="!isReadOnly(connection)" class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
                 <NeButton kind="tertiary" @click="showDrawer(connection)">
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />

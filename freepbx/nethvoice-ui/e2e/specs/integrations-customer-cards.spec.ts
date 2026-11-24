@@ -1003,6 +1003,44 @@ test.describe('integrations: customer cards', () => {
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/customer_card')).toHaveLength(1)
   })
 
+  test('treats another database on the PBX server as built-in for an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi.on('GET', '/freepbx/rest/cti/dbconn', {
+      json: [
+        ...CONNECTIONS,
+        {
+          id: 8,
+          host: '127.0.0.1',
+          port: '3306',
+          type: 'mysql',
+          user: 'orders_reader',
+          has_password: true,
+          name: 'orders',
+          creation: '2026-02-03 10:00:00',
+        },
+      ],
+    })
+
+    await page.goto('./integrations/customer-cards')
+
+    const orders = databasesGrid(page).getByRole('row').filter({ hasText: 'orders' })
+    await expect(orders).toContainText('Unknown')
+    await expect(orders.getByRole('button', { name: /^Edit/ })).toHaveCount(0)
+    await expect(orders).not.toContainText('Built-in')
+    expect(
+      mockApi
+        .callsTo('POST', '/freepbx/rest/cti/dbconn/test')
+        .map((call) => (call.body as { id?: string }).id),
+    ).not.toContain('8')
+
+    await page.getByRole('button', { name: 'Create customer card' }).click()
+    await drawer(page).getByRole('combobox', { name: 'Database' }).click()
+    await expect(page.getByRole('option')).toHaveText([/crmPostgreSQL/, /erpNot connected/])
+  })
+
   test('does not test the built-in databases for an administrator with only Integrations', async ({
     page,
     mockApi,
