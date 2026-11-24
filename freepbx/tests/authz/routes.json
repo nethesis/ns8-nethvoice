@@ -439,8 +439,7 @@
     "POST /devices/phones/model": {
       "intent": "superadmin",
       "callers": ["legacy"],
-      "reason": "Previous wizard provisioning: deletes and recreates the phone row of a MAC address.",
-      "known_finding": "Open to the phones section through the /devices/phones prefix rule although only the previous wizard uses it."
+      "reason": "Previous wizard provisioning: deletes and recreates the phone row of a MAC address."
     },
     "POST /devices/gateways": {
       "intent": "trunks",
@@ -450,8 +449,7 @@
     "POST /devices/gateways/push": {
       "intent": "superadmin",
       "callers": ["legacy"],
-      "reason": "Runs the TFTP push command of the previous wizard; the new UI downloads the configuration instead.",
-      "known_finding": "Open to the trunks section through the /devices/gateways prefix rule although only the previous wizard uses it; it runs a command."
+      "reason": "Runs the TFTP push command of the previous wizard; the new UI downloads the configuration instead."
     },
     "DELETE /devices/gateways/{id}": {
       "intent": "trunks",
@@ -466,8 +464,7 @@
     "POST /devices/phones/provision": {
       "intent": "superadmin",
       "callers": ["legacy"],
-      "reason": "FreePBX provisioning of the previous wizard; it runs a command through sudo.",
-      "known_finding": "Open to the phones section through the /devices/phones prefix rule although only the previous wizard uses it; it runs a command."
+      "reason": "FreePBX provisioning of the previous wizard; it runs a command through sudo."
     },
     "POST /devices/phones/reboot": {
       "intent": "superadmin",
@@ -564,8 +561,7 @@
     "POST /extension/{mainextension}": {
       "intent": "superadmin",
       "callers": ["none"],
-      "reason": "No client calls it; it renames every extension whose number ends with the given one.",
-      "known_finding": "Open to the users section through the /extension prefix rule although no client uses it."
+      "reason": "No client calls it; it renames every extension whose number ends with the given one."
     },
     "GET /extension/{extension}/displayname": {
       "intent": "superadmin",
@@ -582,8 +578,7 @@
     "POST /phones/rps/{mac}": {
       "intent": "phones",
       "callers": ["ui:phones", "ui:setup", "legacy"],
-      "reason": "Registers a new phone to the vendor redirect service; only the phones screen adds phones.",
-      "known_finding": "Also open to the users section (an explicit users and phones prefix rule) although the users screen never adds phones."
+      "reason": "Registers a new phone to the vendor redirect service; only the phones screen adds phones. Only the superadmin may send the URL: for the others the server sends the first access URL that Tancredi has for the phone."
     },
     "GET /phones/account/{mac}": {
       "intent": "superadmin",
@@ -1002,8 +997,7 @@
     "POST /users": {
       "intent": "superadmin",
       "callers": ["legacy"],
-      "reason": "Creates a system account through sudo for the NethServer 7 legacy mode of the previous wizard.",
-      "known_finding": "Open to the users section through the /users prefix rule although only the previous wizard uses it; it runs a command through sudo."
+      "reason": "Creates a system account through sudo for the NethServer 7 legacy mode of the previous wizard."
     },
     "POST /users/{username}/password": {
       "intent": "superadmin",

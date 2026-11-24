@@ -41,4 +41,13 @@ check($macs === ['AA:BB:CC:00:00:04', 'AA:BB:CC:00:00:05', 'AA:BB:CC:00:00:06'],
 $db->exec("INSERT INTO rest_devices_phones (user_id, mac, extension, type) VALUES (NULL, 'AA:BB:CC:00:00:04', '91202', 'physical')");
 check(!in_array('AA:BB:CC:00:00:04', nethcti3_unassigned_phone_macs($db), true), 'a phone with one line still in use was released');
 
-echo "PASS: only phones without an existing extension are released\n";
+$db->exec('DELETE FROM rest_devices_phones');
+foreach ([
+    [1, 'aa-bb-cc-00-00-07', '91201'],
+    [null, 'AA:BB:CC:00:00:07', null],
+    [null, 'AA-BB-CC-00-00-08', ''],
+    [null, 'aa:bb:cc:00:00:08', ''],
+] as $row) { $insert->execute($row); }
+check(nethcti3_unassigned_phone_macs($db) === ['AA:BB:CC:00:00:08'], 'the MAC address format changed which phones are released: ' . json_encode(nethcti3_unassigned_phone_macs($db)));
+
+echo "PASS: only phones without an existing extension are released, whatever the MAC address format\n";

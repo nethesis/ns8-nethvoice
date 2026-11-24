@@ -57,6 +57,11 @@ const NETHVOICE_ROUTE_RULES = [
     'GET /phonebook/ldap' => 'phones',
     'POST /extensions/{extension}/srtp/{enabled}' => ['users', 'phones'],
     'DELETE /outboundroutes/{route_id}/trunks/{id}' => NETHVOICE_SUPERADMIN,
+    'POST /devices/phones/model' => NETHVOICE_SUPERADMIN,
+    'POST /devices/phones/provision' => NETHVOICE_SUPERADMIN,
+    'POST /devices/gateways/push' => NETHVOICE_SUPERADMIN,
+    'POST /extension/{mainextension}' => NETHVOICE_SUPERADMIN,
+    'POST /users' => NETHVOICE_SUPERADMIN,
 ];
 
 const NETHVOICE_CUSTOMER_CARD_FILTERS = ['id', 'name', 'dbconn_id', 'template'];
@@ -84,7 +89,6 @@ const NETHVOICE_PREFIX_RULES = [
     '/cti/permissions' => 'users',
     '/physicalextensions' => ['users', 'phones'],
     '/phones/reconfigure' => ['users', 'phones'],
-    '/phones/rps' => ['users', 'phones'],
     '/phones' => 'phones',
     '/extensions' => 'phones',
     '/provisioning' => 'phones',
@@ -330,7 +334,7 @@ function nethvoiceUsesBuiltinDbConnection(?int $id, NethvoiceLimitedAdminLookup 
     }
     $connection = $lookup->dbConnection($id);
 
-    return $connection !== null && nethvoiceTargetsBuiltinDbConnection($connection, $lookup->builtinDbConnections());
+    return $connection !== null && nethvoiceTargetsBuiltinDbConnection($connection);
 }
 
 function nethvoiceCustomerCardCreateStatus($body, NethvoiceLimitedAdminLookup $lookup): ?int
@@ -389,7 +393,6 @@ function nethvoiceDbConnectionSaveStatus($id, $body, NethvoiceLimitedAdminLookup
     if (!is_array($body)) {
         return 400;
     }
-    $builtins = $lookup->builtinDbConnections();
     $target = $body;
     if ($id !== null) {
         $id = nethvoiceDbConnectionId($id);
@@ -397,13 +400,13 @@ function nethvoiceDbConnectionSaveStatus($id, $body, NethvoiceLimitedAdminLookup
             return 400;
         }
         $stored = $lookup->dbConnection($id);
-        if ($stored !== null && nethvoiceTargetsBuiltinDbConnection($stored, $builtins)) {
+        if ($stored !== null && nethvoiceTargetsBuiltinDbConnection($stored)) {
             return 403;
         }
         $target = array_merge($stored ?? [], $body, ['id' => $id]);
     }
 
-    return nethvoiceTargetsBuiltinDbConnection($target, $builtins) ? 403 : null;
+    return nethvoiceTargetsBuiltinDbConnection($target) ? 403 : null;
 }
 
 function nethvoicePhonebookSourceSaveStatus($id, $body, NethvoiceLimitedAdminLookup $lookup): ?int
@@ -460,7 +463,7 @@ function nethvoiceDbConnectionDeleteStatus($id, NethvoiceLimitedAdminLookup $loo
     }
     $stored = $lookup->dbConnection($id);
 
-    return $stored !== null && nethvoiceTargetsBuiltinDbConnection($stored, $lookup->builtinDbConnections()) ? 403 : null;
+    return $stored !== null && nethvoiceTargetsBuiltinDbConnection($stored) ? 403 : null;
 }
 
 function nethvoiceLimitedAdminRequestStatus(ServerRequestInterface $request, string $pattern, array $arguments, NethvoiceLimitedAdminLookup $lookup): ?int

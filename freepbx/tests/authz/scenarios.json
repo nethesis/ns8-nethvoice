@@ -153,6 +153,22 @@
       "expect": 403
     },
     {
+      "name": "an integrations administrator cannot point a database connection at the PBX with a zero-padded port",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/dbconn",
+      "body": { "host": "127.0.0.1", "port": "020011", "type": "mysql", "user": "root", "pass": "x", "name": "asterisk" },
+      "expect": 403
+    },
+    {
+      "name": "an integrations administrator cannot point a database connection at another service of the PBX",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/dbconn",
+      "body": { "host": "localhost", "port": "5432", "type": "postgres", "user": "app", "pass": "x", "name": "app" },
+      "expect": 403
+    },
+    {
       "name": "an integrations administrator creates a database connection to an external server",
       "as": "integrator",
       "method": "POST",
@@ -491,17 +507,17 @@
       "expect": 200
     },
     {
-      "name": "a users administrator assigns a phone model through Tancredi",
+      "name": "a users administrator cannot change a phone through Tancredi",
       "as": "userer",
       "method": "PATCH",
       "path": "/phones/AC-CD-EF-01-02-03",
-      "expect": 200
+      "expect": 403
     },
     {
-      "name": "a users administrator reads a phone without its line passwords",
+      "name": "a users administrator reads the phones without their line passwords",
       "as": "userer",
       "method": "GET",
-      "path": "/phones/AC-CD-EF-01-02-03",
+      "path": "/phones",
       "handler_json": { "mac": "AC-CD-EF-01-02-03", "variables": { "account_username_1": "201", "account_password_1": "sip-secret-1" } },
       "expect": 200,
       "json_equals": { "mac": "AC-CD-EF-01-02-03", "variables": { "account_username_1": "201" } }
@@ -543,17 +559,35 @@
       "json_equals": { "adminpw": "admin-secret", "userpw": "user-secret", "ldap_password": "ldap-secret", "language": "it" }
     },
     {
-      "name": "a users administrator reads a phone without its provisioning tokens and URLs",
+      "name": "a users administrator reads the phones without their provisioning tokens and URLs",
       "as": "userer",
       "method": "GET",
-      "path": "/phones/AC-CD-EF-01-02-03",
+      "path": "/phones",
       "handler_json": { "mac": "AC-CD-EF-01-02-03", "tok1": "first-token", "tok2": "token", "variables": { "adminpw": "phone-admin" }, "provisioning_url1": "https://pbx.example.org/provisioning/first-token/x.cfg", "provisioning_url2": "https://pbx.example.org/provisioning/token/x.cfg" },
       "expect": 200,
       "json_equals": { "mac": "AC-CD-EF-01-02-03", "variables": [] }
     },
     {
-      "name": "a phones administrator reads the provisioning URLs of a phone",
+      "name": "a phones administrator reads a phone without its provisioning tokens and URLs",
       "as": "phoner",
+      "method": "GET",
+      "path": "/phones/AC-CD-EF-01-02-03",
+      "handler_json": { "mac": "AC-CD-EF-01-02-03", "tok1": "first-token", "tok2": "token", "variables": { "adminpw": "phone-admin" }, "provisioning_url1": "https://pbx.example.org/provisioning/first-token/x.cfg", "provisioning_url2": "https://pbx.example.org/provisioning/token/x.cfg" },
+      "expect": 200,
+      "json_equals": { "mac": "AC-CD-EF-01-02-03", "variables": { "adminpw": "phone-admin" } }
+    },
+    {
+      "name": "a phones administrator reads the inherited variables of a phone without its provisioning tokens and URLs",
+      "as": "phoner",
+      "method": "GET",
+      "path": "/phones/AC-CD-EF-01-02-03?inherit=1",
+      "handler_json": { "mac": "AC-CD-EF-01-02-03", "tok1": "first-token", "tok2": "token", "variables": { "adminpw": "phone-admin" }, "provisioning_url1": "https://pbx.example.org/provisioning/first-token/x.cfg", "provisioning_url2": "https://pbx.example.org/provisioning/token/x.cfg" },
+      "expect": 200,
+      "json_equals": { "mac": "AC-CD-EF-01-02-03", "variables": { "adminpw": "phone-admin" } }
+    },
+    {
+      "name": "superadmin reads the provisioning tokens and URLs of a phone, as before",
+      "as": "boss",
       "method": "GET",
       "path": "/phones/AC-CD-EF-01-02-03",
       "handler_json": { "mac": "AC-CD-EF-01-02-03", "tok1": "first-token", "tok2": "token", "variables": { "adminpw": "phone-admin" }, "provisioning_url1": "https://pbx.example.org/provisioning/first-token/x.cfg", "provisioning_url2": "https://pbx.example.org/provisioning/token/x.cfg" },
@@ -583,6 +617,67 @@
       "path": "/phones/AC-CD-EF-01-02-03",
       "body": { "variables": { "adminpw": "New-Admin-Pw-1!" } },
       "expect": 403
+    },
+    {
+      "name": "a users administrator cannot read a single phone",
+      "as": "userer",
+      "method": "GET",
+      "path": "/phones/AC-CD-EF-01-02-03",
+      "expect": 403
+    },
+    {
+      "name": "a users administrator cannot create a phone",
+      "as": "userer",
+      "method": "POST",
+      "path": "/phones",
+      "body": { "mac": "AC-CD-EF-01-02-04", "model": "fanvil-X5", "variables": { "ldap_server": "192.0.2.5" } },
+      "expect": 403
+    },
+    {
+      "name": "a users administrator cannot upload a firmware",
+      "as": "userer",
+      "method": "POST",
+      "path": "/firmware",
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator cannot point the phones at another server",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/defaults",
+      "body": { "hostname": "pbx.example.org" },
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator cannot change the SIP proxy of a model",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/models/fanvil-X5",
+      "body": { "variables": { "outbound_proxy_1": "proxy.example.org" } },
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator changes the phonebook, time and firmware settings of a model",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/models/fanvil-X5",
+      "body": { "variables": { "ldap_server": "192.0.2.5", "ntp_server": "ntp.example.org", "firmware_file": "x.bin" } },
+      "expect": 200
+    },
+    {
+      "name": "a phones administrator cannot regenerate the first access token of a phone",
+      "as": "phoner",
+      "method": "POST",
+      "path": "/phones/AC-CD-EF-01-02-03/tok1",
+      "expect": 403
+    },
+    {
+      "name": "superadmin points the phones at another server, as before",
+      "as": "admin",
+      "method": "PATCH",
+      "path": "/defaults",
+      "body": { "hostname": "pbx.example.org" },
+      "expect": 200
     },
     {
       "name": "a dashboard administrator cannot reach Tancredi",

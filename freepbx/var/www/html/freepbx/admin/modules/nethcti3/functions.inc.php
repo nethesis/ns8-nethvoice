@@ -1069,10 +1069,10 @@ function nethcti3_get_config_early($engine) {
 }
 
 function nethcti3_unassigned_phone_macs($dbh) {
-    $sql = "SELECT DISTINCT p.mac FROM rest_devices_phones p".
+    $sql = "SELECT DISTINCT UPPER(REPLACE(p.mac, '-', ':')) FROM rest_devices_phones p".
         " WHERE p.mac IS NOT NULL AND p.mac != ''".
         " AND NOT EXISTS (SELECT 1 FROM rest_devices_phones q JOIN devices d ON d.id = q.extension".
-        " WHERE q.mac = p.mac AND q.extension IS NOT NULL AND q.extension != '')";
+        " WHERE UPPER(REPLACE(q.mac, '-', ':')) = UPPER(REPLACE(p.mac, '-', ':')) AND q.extension IS NOT NULL AND q.extension != '')";
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array());
     return $stmt->fetchAll(\PDO::FETCH_COLUMN);
