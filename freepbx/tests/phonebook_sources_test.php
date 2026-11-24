@@ -61,6 +61,15 @@ check(phonebookSyncStatuses($db) === [
     ['id' => 'custom_2', 'status' => 'running', 'started_at' => '2026-11-23T08:00:00Z', 'finished_at' => null, 'imported' => null, 'message' => null],
     ['id' => 'custom_3', 'status' => 'ok', 'started_at' => '2026-11-23T06:00:00Z', 'finished_at' => '2026-11-23T06:01:00Z', 'imported' => 42, 'message' => null],
 ], 'sync statuses not listed');
+$restarted = phonebookSyncStatuses($db, strtotime('2026-11-23 08:30:00 UTC'));
+check($restarted[1]['status'] === 'failed' && $restarted[1]['message'] === 'The sync was interrupted', 'sync running before the container start still running');
+check($restarted[0]['status'] === 'failed' && $restarted[0]['message'] === 'Could not resolve host: csv.example.org' && $restarted[2]['status'] === 'ok', 'finished syncs changed by the container start');
+check(phonebookSyncStatuses($db, strtotime('2026-11-23 07:30:00 UTC'))[1]['status'] === 'running', 'sync started after the container start not running');
+$marker = tempnam(sys_get_temp_dir(), 'qa_started_');
+touch($marker, 1795400000);
+check(phonebookContainerStartedAt($marker) === 1795400000, 'container start time not read');
+unlink($marker);
+check(phonebookContainerStartedAt($marker) === null, 'missing container start time not null');
 phonebookDeleteSyncStatus($db, 'custom_2');
 check(array_column(phonebookSyncStatuses($db), 'id') === ['custom_1', 'custom_3'], 'sync status not deleted');
 check(phonebookSyncStatuses(new MissingTableDatabase()) === [], 'missing status table not empty');

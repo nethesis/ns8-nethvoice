@@ -365,7 +365,7 @@ $app->post('/phonebook/syncnow/{id}', function (Request $request, Response $resp
 
 $app->get('/phonebook/status', function (Request $request, Response $response, $args) {
     try {
-        return jsonResponse($response, phonebookSyncStatuses(phonebookDatabase()), 200);
+        return jsonResponse($response, phonebookSyncStatuses(phonebookDatabase(), phonebookContainerStartedAt()), 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);

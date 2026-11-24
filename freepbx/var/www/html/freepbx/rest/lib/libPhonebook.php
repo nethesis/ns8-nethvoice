@@ -10,6 +10,7 @@ const PHONEBOOK_ERROR_KINDS = ['connection', 'auth', 'query', 'file', 'http', 'f
 const PHONEBOOK_ERROR_DETAILS_MAX_LENGTH = 500;
 const PHONEBOOK_IMPORT_FILENAME_MAX_LENGTH = 255;
 const PHONEBOOK_UPLOADS_DIR = '/var/lib/nethvoice/phonebook/uploads/';
+const PHONEBOOK_CONTAINER_STARTED = '/var/run/nethvoice/freepbx-started';
 
 function phonebookDatabase(): PDO
 {
@@ -72,7 +73,13 @@ function phonebookIsMissingTable(PDOException $e): bool
     return ($e->errorInfo[0] ?? null) === '42S02';
 }
 
-function phonebookSyncStatuses(PDO $db): array
+function phonebookContainerStartedAt(string $marker = PHONEBOOK_CONTAINER_STARTED): ?int
+{
+    $time = @filemtime($marker);
+    return $time === false ? null : $time;
+}
+
+function phonebookSyncStatuses(PDO $db, ?int $startedAt = null): array
 {
     try {
         $rows = $db->query('SELECT sid, status, started_at, finished_at, imported, message FROM sync_status ORDER BY sid')->fetchAll(PDO::FETCH_ASSOC);
@@ -82,14 +89,18 @@ function phonebookSyncStatuses(PDO $db): array
         }
         throw $e;
     }
-    return array_map(fn($row) => [
-        'id' => (string) $row['sid'],
-        'status' => (string) $row['status'],
-        'started_at' => phonebookIsoTime($row['started_at']),
-        'finished_at' => phonebookIsoTime($row['finished_at']),
-        'imported' => $row['imported'] === null ? null : (int) $row['imported'],
-        'message' => $row['message'] === null ? null : (string) $row['message'],
-    ], $rows);
+    return array_map(function ($row) use ($startedAt) {
+        $interrupted = $startedAt !== null && $row['status'] === 'running'
+            && strtotime($row['started_at'] . ' UTC') < $startedAt;
+        return [
+            'id' => (string) $row['sid'],
+            'status' => $interrupted ? 'failed' : (string) $row['status'],
+            'started_at' => phonebookIsoTime($row['started_at']),
+            'finished_at' => phonebookIsoTime($row['finished_at']),
+            'imported' => $row['imported'] === null ? null : (int) $row['imported'],
+            'message' => $interrupted ? 'The sync was interrupted' : ($row['message'] === null ? null : (string) $row['message']),
+        ];
+    }, $rows);
 }
 
 function phonebookDeleteSyncStatus(PDO $db, string $id): void

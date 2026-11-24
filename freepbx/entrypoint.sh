@@ -7,6 +7,7 @@
 
 # A restarted container must not advertise readiness from a previous start.
 rm -f /var/run/nethvoice/freepbx-ready /var/run/nethvoice/freepbx-failed || exit $?
+touch /var/run/nethvoice/freepbx-started || exit $?
 
 # Migration can turn the image's absolute dialplan link into a relative link.
 extensions_link=/etc/asterisk/extensions.conf
