@@ -34,7 +34,7 @@ describe('object notifications', () => {
   it('agree in gender with the object type in Italian', () => {
     const wrong = [...italian].filter(([, text]) => {
       const feminine = /^La /.test(text)
-      const masculine = /^(Il|L') /.test(text) || /^L'(utente|URL) /.test(text)
+      const masculine = /^(Il|L') /.test(text) || /^L'(utente|URL|amministratore) /.test(text)
 
       return (
         /correttamente/.test(text) ||

@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { E2E_SIGN_IN_KEY, expect, SIGN_IN_PATH, test } from '../fixtures/mockApi'
 
 const CURRENT_PASSWORD = 'Current,pass1'
 const NEW_PASSWORD = 'Brand,new2026'
@@ -177,15 +177,15 @@ test.describe('settings', () => {
       })
       expect(mockApi.callsTo('POST', '/freepbx/rest/testauth').map((call) => call.body)).toEqual([
         { username: 'admin', password: CURRENT_PASSWORD },
+      ])
+      expect(mockApi.callsTo('POST', SIGN_IN_PATH).map((call) => call.body)).toEqual([
         { username: 'admin', password: NEW_PASSWORD },
       ])
 
       const stored = await page.evaluate(() =>
         JSON.parse(localStorage.getItem('secretkey') ?? '{}'),
       )
-      expect(stored.user).toBe('admin')
-      expect(stored.hash).toMatch(/^[0-9a-f]{40}$/)
-      expect(stored.hash).not.toBe('e2e-secret-key')
+      expect(stored).toEqual({ user: 'admin', hash: E2E_SIGN_IN_KEY })
     })
 
     test('reports a failure inside the drawer', async ({ page, mockApi }) => {

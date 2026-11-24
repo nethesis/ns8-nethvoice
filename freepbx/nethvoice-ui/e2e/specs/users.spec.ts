@@ -1887,7 +1887,7 @@ test.describe('user accounts', () => {
       for (const [username, reason] of [
         [
           'd.jones',
-          'Only the superadmin can change the password of a domain administrator, disable it or delete it.',
+          "You can't change the password of, disable or delete a domain administrator here. Use the Domains and users page of NethServer 8.",
         ],
         [
           'helpdesk',
@@ -1913,16 +1913,124 @@ test.describe('user accounts', () => {
       await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeEnabled()
       await expect(page.getByTestId('account-restriction-a.miller')).toHaveCount(0)
     })
+
+    test('cannot act on any administrator of the PBX', async ({ page, mockApi }) => {
+      mockApi.on('GET', `${REST}/users/domain/accounts`, {
+        json: ACCOUNTS.map((account) => ({
+          ...account,
+          admin_access: ({ 'a.miller': 'sections', 'c.davis': 'superadmin' } as const)[
+            account.username as 'a.miller' | 'c.davis'
+          ],
+        })),
+      })
+      await page.goto('./users/users')
+
+      for (const [username, reason] of [
+        [
+          'a.miller',
+          'Only the superadmin can change the password of an administrator, disable it or delete it.',
+        ],
+        [
+          'c.davis',
+          "You can't change the password of, disable or delete a superadmin or an administrator of another PBX.",
+        ],
+      ]) {
+        await openRowMenu(page, username)
+        await expect(page.getByTestId(`account-restriction-${username}`)).toHaveText(reason)
+        await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeDisabled()
+        await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
+        await page.keyboard.press('Escape')
+      }
+
+      await openRowMenu(page, 'd.jones')
+      await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeEnabled()
+    })
+
+    test('shows why the server refused to change an administrator', async ({ page, mockApi }) => {
+      mockApi.on('PUT', `${REST}/users/:username/account/password`, {
+        status: 403,
+        json: { code: 'nethvoice_admin', message: 'Only a superadmin can change this account' },
+      })
+      await page.goto('./users/users')
+      await openRowMenu(page, 'a.miller')
+      await page.getByRole('menuitem', { name: 'Change password' }).click()
+
+      const drawer = page.getByRole('dialog', { name: 'Change password of a.miller' })
+      await drawer.getByLabel('New password').fill('Invented-Pass1!')
+      await drawer.getByLabel('Confirm password').fill('Invented-Pass1!')
+      await drawer.getByRole('button', { name: 'Change', exact: true }).click()
+      await expect(drawer.getByTestId('change-password-error')).toContainText(
+        'Only the superadmin can change the password of an administrator, disable it or delete it.',
+      )
+    })
   })
 
-  test('a superadmin can act on domain administrators', async ({ page, mockApi }) => {
+  test('shows the administrators of the PBX with a badge', async ({ page, mockApi }) => {
+    mockApi.on('GET', `${REST}/users/domain/accounts`, {
+      json: ACCOUNTS.map((account) => ({
+        ...account,
+        admin_access: (
+          { 'a.miller': 'sections', 'c.davis': 'superadmin', 'd.jones': 'other_instance' } as const
+        )[account.username as 'a.miller' | 'c.davis' | 'd.jones'],
+      })),
+    })
+    await page.goto('./users/users')
+
+    await expect(page.getByTestId('admin-badge-a.miller')).toHaveText('Administrator')
+    await expect(page.getByTestId('admin-badge-c.davis')).toHaveText('Superadmin')
+    await expect(page.getByTestId('admin-badge-d.jones')).toHaveText('Administrator of another PBX')
+  })
+
+  test('a superadmin cannot act on domain administrators', async ({ page, mockApi }) => {
     mockApi.on('GET', `${REST}/users/domain/accounts`, {
       json: ACCOUNTS.map((account) => ({ ...account, domain_admin: true })),
     })
     await page.goto('./users/users')
     await openRowMenu(page, 'd.jones')
+    await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
+    await expect(page.getByTestId('account-restriction-d.jones')).toHaveText(
+      "You can't change the password of, disable or delete a domain administrator here. Use the Domains and users page of NethServer 8.",
+    )
+  })
+
+  test('a superadmin cannot act on superadmins and administrators of another PBX', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('GET', `${REST}/users/domain/accounts`, {
+      json: ACCOUNTS.map((account) => ({
+        ...account,
+        admin_access: ({ 'c.davis': 'superadmin', 'd.jones': 'other_instance' } as const)[
+          account.username as 'c.davis' | 'd.jones'
+        ],
+      })),
+    })
+    await page.goto('./users/users')
+
+    for (const username of ['c.davis', 'd.jones']) {
+      await openRowMenu(page, username)
+      await expect(page.getByTestId(`account-restriction-${username}`)).toHaveText(
+        "You can't change the password of, disable or delete a superadmin or an administrator of another PBX.",
+      )
+      await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeDisabled()
+      await page.keyboard.press('Escape')
+
+      await page.getByRole('button', { name: `Edit ${username}` }).click()
+      const drawer = page.getByRole('dialog', { name: `Edit user ${username}` })
+      await expect(drawer.getByTestId('user-status-toggle').getByRole('checkbox')).toBeDisabled()
+      await drawer.getByRole('button', { name: 'Cancel' }).click()
+      await expect(drawer.getByRole('button', { name: 'Cancel' })).toBeHidden()
+    }
+  })
+
+  test('a superadmin can act on section administrators', async ({ page, mockApi }) => {
+    mockApi.on('GET', `${REST}/users/domain/accounts`, {
+      json: ACCOUNTS.map((account) => ({ ...account, admin_access: 'sections' })),
+    })
+    await page.goto('./users/users')
+    await openRowMenu(page, 'a.miller')
     await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeEnabled()
-    await expect(page.getByTestId('account-restriction-d.jones')).toHaveCount(0)
+    await expect(page.getByTestId('account-restriction-a.miller')).toHaveCount(0)
   })
 
   test('an administrator without the Users section gets no access', async ({ page, mockApi }) => {

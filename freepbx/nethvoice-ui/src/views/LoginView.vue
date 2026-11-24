@@ -5,6 +5,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import * as v from 'valibot'
 import {
@@ -17,15 +18,15 @@ import {
 import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useSignInSplashStore } from '@/stores/signInSplash'
-import { LoginSchema } from '@/lib/auth'
-import { isApiError } from '@/lib/api/errors'
+import { LoginSchema, SignInError, type SignInFailure } from '@/lib/auth'
 import type { Focusable } from '@/lib/common'
 import { getInternalRedirect } from '@/lib/setup/guard'
 import { customLoginLogoUrl } from '@/lib/brandLogo'
 import LogoDark from '@/assets/logo_dark.svg'
 
-type LoginError = '' | 'invalid_credentials' | 'generic'
+type LoginError = '' | SignInFailure
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const loginStore = useLoginStore()
@@ -37,6 +38,7 @@ const password = ref('')
 const rememberUsername = ref(loginStore.rememberedUsername() !== '')
 const loading = ref(false)
 const loginError = ref<LoginError>('')
+const retryAfter = ref<number | null>(null)
 const validationIssues = ref<Partial<Record<'username' | 'password', string>>>({})
 const usernameRef = useTemplateRef<Focusable>('usernameRef')
 const passwordRef = useTemplateRef<Focusable>('passwordRef')
@@ -53,6 +55,14 @@ const customLogoUrl = computed(() =>
 )
 
 const rightPanelLogo = computed(() => customLogoUrl.value || LogoDark)
+
+const loginErrorDescription = computed(() => {
+  if (loginError.value === 'too_many_attempts' && retryAfter.value !== null) {
+    const minutes = Math.max(1, Math.ceil(retryAfter.value / 60))
+    return t('login.too_many_attempts_retry', minutes)
+  }
+  return t(`login.${loginError.value}_description`)
+})
 
 watch(
   () => customLoginLogoUrl(runtimeConfigStore.config),
@@ -96,7 +106,8 @@ async function signIn() {
   try {
     await loginStore.login(username.value.trim(), password.value, rememberUsername.value)
   } catch (error) {
-    loginError.value = isApiError(error) && error.status === 401 ? 'invalid_credentials' : 'generic'
+    loginError.value = error instanceof SignInError ? error.failure : 'generic'
+    retryAfter.value = error instanceof SignInError ? error.retryAfter : null
     loading.value = false
     await nextTick()
     passwordRef.value?.focus()
@@ -140,7 +151,7 @@ async function signIn() {
             v-if="loginError"
             kind="error"
             :title="$t(`login.${loginError}`)"
-            :description="$t(`login.${loginError}_description`)"
+            :description="loginErrorDescription"
           />
           <NeTextInput
             id="username"

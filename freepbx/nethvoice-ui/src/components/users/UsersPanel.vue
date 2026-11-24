@@ -696,6 +696,15 @@ const filterLabels = computed(() => ({
                     <FontAwesomeIcon :icon="faCircleXmark" class="size-3" aria-hidden="true" />
                     {{ t('common.disabled') }}
                   </NeBadgeV2>
+                  <NeBadgeV2
+                    v-if="row.account?.adminAccess"
+                    :kind="row.account.adminAccess === 'other_instance' ? 'gray' : 'indigo'"
+                    size="xs"
+                    class="shrink-0"
+                    :data-testid="`admin-badge-${row.username}`"
+                  >
+                    {{ t(`users.admin_access_${row.account.adminAccess}`) }}
+                  </NeBadgeV2>
                   <NeTooltip v-if="row.voicemail" trigger-event="mouseenter focus" placement="top">
                     <template #trigger>
                       <span tabindex="0" class="text-secondary flex">

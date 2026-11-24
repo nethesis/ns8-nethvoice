@@ -100,6 +100,12 @@ const routes: RouteRecordRaw[] = [
     meta: { titleKey: 'settings.title', section: 'settings' },
   },
   {
+    path: '/admin-control',
+    name: 'admin-control',
+    component: () => import('@/views/AdminControlView.vue'),
+    meta: { titleKey: 'admin_control.title', section: SUPERADMIN },
+  },
+  {
     path: '/setup-pending',
     name: SETUP_PENDING_ROUTE,
     component: () => import('@/views/SetupPendingView.vue'),

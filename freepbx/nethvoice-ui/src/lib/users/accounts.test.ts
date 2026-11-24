@@ -61,9 +61,29 @@ describe('parseUserAccounts', () => {
         mail: 'anna@example.org',
         locked: true,
         domainAdmin: false,
+        adminAccess: null,
       },
-      { username: 'c.davis', displayName: '', mail: '', locked: null, domainAdmin: null },
+      {
+        username: 'c.davis',
+        displayName: '',
+        mail: '',
+        locked: null,
+        domainAdmin: null,
+        adminAccess: null,
+      },
     ])
+  })
+
+  it('reads the administrator access and ignores an unknown one', () => {
+    const accesses = parseUserAccounts([
+      { username: 'a.miller', admin_access: 'superadmin' },
+      { username: 'b.smith', admin_access: 'sections' },
+      { username: 'c.davis', admin_access: 'other_instance' },
+      { username: 'd.jones', admin_access: null },
+      { username: 'e.brown', admin_access: 'something_new' },
+    ]).map((account) => account.adminAccess)
+
+    expect(accesses).toEqual(['superadmin', 'sections', 'other_instance', null, null])
   })
 
   it('rejects accounts without username', () => {
@@ -80,6 +100,10 @@ describe('getAccountErrorCode', () => {
     expect(getAccountErrorCode(apiError(422, { code: 'invalid_display_name' }))).toBe(
       'invalid_display_name',
     )
+    expect(getAccountErrorCode(apiError(403, { code: 'superadmin_account' }))).toBe(
+      'superadmin_account',
+    )
+    expect(getAccountErrorCode(apiError(403, { code: 'nethvoice_admin' }))).toBe('nethvoice_admin')
     expect(getAccountErrorCode(apiError(422, { code: 'something_new' }))).toBeNull()
     expect(getAccountErrorCode(apiError(502, { code: 'provider_error' }))).toBeNull()
     expect(getAccountErrorCode(apiError(403, 'Forbidden'))).toBeNull()
@@ -138,6 +162,7 @@ describe('getAccountRestriction', () => {
     mail: '',
     locked: false,
     domainAdmin: true,
+    adminAccess: 'superadmin' as const,
   }
 
   it('protects the own account from everyone', () => {
@@ -150,16 +175,49 @@ describe('getAccountRestriction', () => {
     ).toBe('own_account')
   })
 
-  it('protects domain administrators from limited administrators only', () => {
+  it('protects domain administrators from every administrator', () => {
     const base = { username: 'd.jones', signedInUsername: 'helpdesk', account }
 
     expect(getAccountRestriction({ ...base, isSuperadmin: false })).toBe('domain_admin')
+    expect(getAccountRestriction({ ...base, isSuperadmin: true })).toBe('domain_admin')
+    expect(
+      getAccountRestriction({
+        ...base,
+        isSuperadmin: false,
+        account: { ...account, domainAdmin: null, adminAccess: null },
+      }),
+    ).toBeNull()
+  })
+
+  it('protects full access administrators and those of another instance from everyone', () => {
+    for (const adminAccess of ['superadmin', 'other_instance'] as const) {
+      for (const isSuperadmin of [true, false]) {
+        expect(
+          getAccountRestriction({
+            username: 'd.jones',
+            signedInUsername: 'helpdesk',
+            isSuperadmin,
+            account: { ...account, domainAdmin: false, adminAccess },
+          }),
+        ).toBe('superadmin_account')
+      }
+    }
+  })
+
+  it('protects section administrators from limited administrators only', () => {
+    const base = {
+      username: 'd.jones',
+      signedInUsername: 'helpdesk',
+      account: { ...account, domainAdmin: false, adminAccess: 'sections' as const },
+    }
+
+    expect(getAccountRestriction({ ...base, isSuperadmin: false })).toBe('nethvoice_admin')
     expect(getAccountRestriction({ ...base, isSuperadmin: true })).toBeNull()
     expect(
       getAccountRestriction({
         ...base,
         isSuperadmin: false,
-        account: { ...account, domainAdmin: null },
+        account: { ...base.account, adminAccess: null },
       }),
     ).toBeNull()
   })

@@ -17,12 +17,15 @@ export type UsersDomain = {
   reason: UsersDomainReason | null
 }
 
+export type AdminAccess = 'superadmin' | 'sections' | 'other_instance'
+
 export type UserAccount = {
   username: string
   displayName: string
   mail: string
   locked: boolean | null
   domainAdmin: boolean | null
+  adminAccess: AdminAccess | null
 }
 
 export type AccountChanges = {
@@ -45,11 +48,14 @@ export const ACCOUNT_ERROR_CODES = [
   'invalid_mail',
   'invalid_display_name',
   'user_not_found',
+  'superadmin_account',
+  'nethvoice_admin',
 ] as const
 
 export type AccountErrorCode = (typeof ACCOUNT_ERROR_CODES)[number]
 
-export type AccountRestriction = 'own_account' | 'domain_admin'
+export type AccountRestriction =
+  'own_account' | 'domain_admin' | 'superadmin_account' | 'nethvoice_admin'
 
 export type DeleteAccountResult = {
   synchronized: boolean
@@ -68,6 +74,10 @@ const AccountsSchema = v.array(
     mail: v.optional(v.nullable(v.string()), ''),
     locked: v.optional(v.nullable(v.boolean()), null),
     domain_admin: v.optional(v.nullable(v.boolean()), null),
+    admin_access: v.optional(
+      v.fallback(v.nullable(v.picklist(['superadmin', 'sections', 'other_instance'])), null),
+      null,
+    ),
   }),
 )
 
@@ -87,6 +97,7 @@ export const parseUserAccounts = (raw: unknown): UserAccount[] =>
     mail: account.mail ?? '',
     locked: account.locked,
     domainAdmin: account.domain_admin,
+    adminAccess: account.admin_access,
   }))
 
 export const parseSyncResult = (raw: unknown): boolean | null => {
@@ -167,8 +178,14 @@ export const getAccountRestriction = ({
   if (username.toLowerCase() === signedInUsername.toLowerCase()) {
     return 'own_account'
   }
-  if (!isSuperadmin && account?.domainAdmin === true) {
+  if (account?.domainAdmin === true) {
     return 'domain_admin'
+  }
+  if (account?.adminAccess === 'superadmin' || account?.adminAccess === 'other_instance') {
+    return 'superadmin_account'
+  }
+  if (!isSuperadmin && account?.adminAccess === 'sections') {
+    return 'nethvoice_admin'
   }
   return null
 }

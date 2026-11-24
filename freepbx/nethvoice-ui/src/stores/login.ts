@@ -6,10 +6,8 @@ import { defineStore } from 'pinia'
 import { useQueryCache } from '@pinia/colada'
 import { api, configureApiClient, type Credentials } from '@/lib/api/client'
 import { CREDENTIALS_STORAGE_KEY } from '@/lib/config'
-import { buildSecretKey } from '@/lib/sha1'
-import { postTestAuth } from '@/lib/auth'
+import { postSignIn } from '@/lib/auth'
 import { isSuperadmin } from '@/lib/permissions/permissions'
-import { loadPermissions } from '@/queries/permissions/me'
 
 const LAST_USER_STORAGE_KEY = 'lastUser'
 const REMEMBERED_USERNAME_STORAGE_KEY = 'nethvoiceRememberedUsername'
@@ -65,21 +63,18 @@ export const useLoginStore = defineStore('login', () => {
   }
 
   const login = async (user: string, password: string, rememberUsername: boolean) => {
-    const sharedSecret = await postTestAuth(user, password)
-    const hash = await buildSecretKey(user, password, sharedSecret)
+    const signIn = await postSignIn(user, password)
 
-    storeCredentials({ user, hash })
+    storeCredentials({ user: signIn.user, hash: signIn.secretkey })
     sessionExpired.value = false
 
     if (rememberUsername) {
-      localStorage.setItem(REMEMBERED_USERNAME_STORAGE_KEY, user)
+      localStorage.setItem(REMEMBERED_USERNAME_STORAGE_KEY, signIn.user)
     } else {
       localStorage.removeItem(REMEMBERED_USERNAME_STORAGE_KEY)
     }
 
-    const permissions = await loadPermissions().catch(() => undefined)
-
-    if (permissions && isSuperadmin(permissions)) {
+    if (isSuperadmin(signIn.permissions)) {
       await api.GET('/login').catch(() => undefined)
     }
   }

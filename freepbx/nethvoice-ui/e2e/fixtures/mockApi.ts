@@ -16,6 +16,7 @@ export type MockResponse = {
   json?: unknown
   body?: string
   contentType?: string
+  headers?: Record<string, string>
 }
 
 export type MockHandler = (request: MockRequest) => MockResponse | Promise<MockResponse>
@@ -25,6 +26,10 @@ export type RecordedCall = { method: string; path: string; body: unknown }
 const API_PREFIXES = ['/freepbx/rest', '/api', '/tancredi/api/v1']
 
 export const E2E_CREDENTIALS = { user: 'admin', hash: 'e2e-secret-key' }
+
+export const SIGN_IN_PATH = '/freepbx/rest/signin'
+
+export const E2E_SIGN_IN_KEY = '0123456789abcdef0123456789abcdef01234567'
 
 const routeKey = (method: string, path: string) => `${method.toUpperCase()} ${path}`
 
@@ -107,6 +112,7 @@ export class MockApi {
     await route.fulfill({
       status: response.status ?? 200,
       contentType: response.contentType ?? 'application/json',
+      headers: response.headers,
       body: response.body ?? (response.json === undefined ? '' : JSON.stringify(response.json)),
     })
   }
@@ -142,6 +148,21 @@ export const mockPermissions = (
   permissions: string[],
   username = E2E_CREDENTIALS.user,
 ) => mockApi.on('GET', '/freepbx/rest/me', { json: { username, permissions } })
+
+export const mockSignIn = (
+  mockApi: MockApi,
+  permissions: string[] = ['superadmin'],
+  source: 'local' | 'domain' = 'local',
+  user?: string,
+) =>
+  mockApi.on('POST', SIGN_IN_PATH, (request) => ({
+    json: {
+      user: user ?? (request.body as { username: string }).username,
+      secretkey: E2E_SIGN_IN_KEY,
+      permissions,
+      source,
+    },
+  }))
 
 type Fixtures = {
   mockApi: MockApi
@@ -189,6 +210,7 @@ export const test = base.extend<Fixtures>({
       .on('GET', '/freepbx/rest/dashboard/live/trunks', { json: {} })
     mockWizardState(mockApi, 13, false)
     mockPermissions(mockApi, ['superadmin'])
+    mockSignIn(mockApi)
 
     await mockApi.install(page)
     await use(mockApi)

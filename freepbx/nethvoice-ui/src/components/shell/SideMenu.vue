@@ -15,6 +15,7 @@ import {
   faRoute as fasRoute,
   faCubes as fasCubes,
   faGear as fasGear,
+  faShieldHalved as fasShieldHalved,
   type IconDefinition,
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone as fasOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
@@ -26,13 +27,15 @@ import {
   faCubes as falCubes,
   faGear as falGear,
   faOfficePhone as falOfficePhone,
+  faShieldHalved as falShieldHalved,
 } from '@nethesis/nethesis-light-svg-icons'
-import type { Section } from '@/lib/permissions/permissions'
+import { SUPERADMIN, type Permission } from '@/lib/permissions/permissions'
 import { usePermissions } from '@/queries/permissions/me'
 
 type MenuItem = {
   name: string
-  to: Section
+  to: string
+  permission: Permission
   solidIcon: IconDefinition
   lightIcon: IconDefinition
 }
@@ -42,16 +45,65 @@ const route = useRoute()
 const { can } = usePermissions()
 
 const navigation: MenuItem[] = [
-  { name: 'dashboard.title', to: 'dashboard', solidIcon: fasHouse, lightIcon: falHouse },
-  { name: 'users.title', to: 'users', solidIcon: fasUserGroup, lightIcon: falUserGroup },
-  { name: 'trunks.title', to: 'trunks', solidIcon: fasNetworkWired, lightIcon: falNetworkWired },
-  { name: 'routes.title', to: 'routes', solidIcon: fasRoute, lightIcon: falRoute },
-  { name: 'phones.title', to: 'phones', solidIcon: fasOfficePhone, lightIcon: falOfficePhone },
-  { name: 'integrations.title', to: 'integrations', solidIcon: fasCubes, lightIcon: falCubes },
-  { name: 'settings.title', to: 'settings', solidIcon: fasGear, lightIcon: falGear },
+  {
+    name: 'dashboard.title',
+    to: 'dashboard',
+    permission: 'dashboard',
+    solidIcon: fasHouse,
+    lightIcon: falHouse,
+  },
+  {
+    name: 'users.title',
+    to: 'users',
+    permission: 'users',
+    solidIcon: fasUserGroup,
+    lightIcon: falUserGroup,
+  },
+  {
+    name: 'trunks.title',
+    to: 'trunks',
+    permission: 'trunks',
+    solidIcon: fasNetworkWired,
+    lightIcon: falNetworkWired,
+  },
+  {
+    name: 'routes.title',
+    to: 'routes',
+    permission: 'routes',
+    solidIcon: fasRoute,
+    lightIcon: falRoute,
+  },
+  {
+    name: 'phones.title',
+    to: 'phones',
+    permission: 'phones',
+    solidIcon: fasOfficePhone,
+    lightIcon: falOfficePhone,
+  },
+  {
+    name: 'integrations.title',
+    to: 'integrations',
+    permission: 'integrations',
+    solidIcon: fasCubes,
+    lightIcon: falCubes,
+  },
+  {
+    name: 'settings.title',
+    to: 'settings',
+    permission: 'settings',
+    solidIcon: fasGear,
+    lightIcon: falGear,
+  },
+  {
+    name: 'admin_control.title',
+    to: 'admin-control',
+    permission: SUPERADMIN,
+    solidIcon: fasShieldHalved,
+    lightIcon: falShieldHalved,
+  },
 ]
 
-const allowedNavigation = computed(() => navigation.filter((item) => can(item.to)))
+const allowedNavigation = computed(() => navigation.filter((item) => can(item.permission)))
 
 function isCurrentRoute(itemPath: string) {
   return route.path === `/${itemPath}` || route.path.startsWith(`/${itemPath}/`)
