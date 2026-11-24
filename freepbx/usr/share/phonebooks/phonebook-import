@@ -5,6 +5,9 @@ import pycurl
 import csv
 import io
 import re
+import socket
+import ipaddress
+import urllib.parse
 import requests
 
 SYNC_METADATA_SCOPE = 'centralized_phonebook'
@@ -12,6 +15,9 @@ PREVIEW_ROWS = 3
 ERROR_DETAILS_MAX_LENGTH = 500
 AUTH_MYSQL_ERRORS = (1044, 1045, 1698)
 AUTH_HTTP_STATUSES = (401, 403)
+CONNECT_TIMEOUT = 10
+DOWNLOAD_TIMEOUT = 120
+DOWNLOAD_MAX_BYTES = 100 * 1024 * 1024
 lastError = None
 previewTotal = False
 
@@ -67,6 +73,96 @@ def infinityErrorKind(err):
     return 'connection'
   return 'unknown'
 
+def isForbiddenAddress(address):
+  try:
+    ip = ipaddress.ip_address(str(address).split('%')[0])
+  except ValueError:
+    return True
+  packed = ip.packed
+  if ip.version == 6:
+    if packed[:12] in (bytes(10) + b'\xff\xff', bytes(12)):
+      packed = packed[12:]
+    else:
+      return packed[0] == 0xfe and (packed[1] & 0xc0) == 0x80
+  return packed[0] in (0, 127) or (packed[0] == 169 and packed[1] == 254)
+
+def isLocalHost(host):
+  host = (host or '').strip('[]').rstrip('.').lower()
+  if host == 'localhost' or host.endswith('.localhost'):
+    return True
+  try:
+    ipaddress.ip_address(host.split('%')[0])
+  except ValueError:
+    return False
+  return isForbiddenAddress(host)
+
+def urlHost(url):
+  try:
+    return urllib.parse.urlsplit(url).hostname
+  except ValueError:
+    return None
+
+def forbiddenConnection():
+  return SourceError('connection', 'Connections to local addresses are not allowed for this source')
+
+def curlOpenSocket(blocked):
+  def openSocket(purpose, address):
+    family, socktype, protocol, sockaddr = address
+    if isForbiddenAddress(sockaddr[0]):
+      blocked.append(True)
+      return pycurl.SOCKET_BAD
+    return socket.socket(family, socktype, protocol)
+  return openSocket
+
+def limitedWriter(buffer, limit, exceeded):
+  def write(data):
+    if buffer.tell() + len(data) > limit:
+      exceeded.append(True)
+      return 0
+    buffer.write(data)
+  return write
+
+def infinitySession(guarded):
+  session = requests.Session()
+  if guarded:
+    from urllib3 import connection, connectionpool, exceptions
+
+    def guardedConnection(base):
+      class GuardedConnection(base):
+        def _new_conn(self):
+          host = self._dns_host
+          resolved = [info[4][0] for info in socket.getaddrinfo(host, self.port, 0, socket.SOCK_STREAM)]
+          allowed = [address for address in dict.fromkeys(resolved) if not isForbiddenAddress(address)]
+          if not allowed:
+            raise forbiddenConnection()
+          try:
+            for index, address in enumerate(allowed):
+              self._dns_host = address
+              try:
+                return super()._new_conn()
+              except (OSError, exceptions.HTTPError):
+                if index == len(allowed) - 1:
+                  raise
+          finally:
+            self._dns_host = host
+      GuardedConnection.__name__ = GuardedConnection.__qualname__ = base.__name__
+      return GuardedConnection
+
+    class HTTPConnectionPool(connectionpool.HTTPConnectionPool):
+      ConnectionCls = guardedConnection(connection.HTTPConnection)
+
+    class HTTPSConnectionPool(connectionpool.HTTPSConnectionPool):
+      ConnectionCls = guardedConnection(connection.HTTPSConnection)
+
+    class GuardedAdapter(requests.adapters.HTTPAdapter):
+      def init_poolmanager(self, *args, **kwargs):
+        super().init_poolmanager(*args, **kwargs)
+        self.poolmanager.pool_classes_by_scheme = {'http': HTTPConnectionPool, 'https': HTTPSConnectionPool}
+
+    session.mount('http://', GuardedAdapter())
+    session.mount('https://', GuardedAdapter())
+  return session
+
 def httpErrorKind(status):
   return 'auth' if status in AUTH_HTTP_STATUSES else 'http'
 
@@ -102,10 +198,13 @@ def reportFailure(sid, errorJson):
 
 
 def signalHandler(sig, frame):
-  logger.critical('interrupted by SIGINT')
-  sys.exit(0)
+  name = signal.Signals(sig).name
+  logger.critical('interrupted by ' + name)
+  recordError('unknown', Exception('Interrupted by ' + name), None)
+  sys.exit(1)
 
 signal.signal(signal.SIGINT, signalHandler)
+signal.signal(signal.SIGTERM, signalHandler)
 
 def getDbConn(config):
   if config['dbtype'] == 'mysql':
@@ -116,7 +215,7 @@ def getDbConn(config):
       port = None
       unixSocket = config['port']
     try:
-      return mysql.connector.connect(host=config['host'], port=port, user=config['user'], password=config['password'], database=config['dbname'],charset='utf8')
+      return mysql.connector.connect(host=config['host'], port=port, user=config['user'], password=config['password'], database=config['dbname'],charset='utf8', connection_timeout=CONNECT_TIMEOUT)
     except Exception as err:
       logger.error(str(err))
       recordError(dbErrorKind(err), err, config)
@@ -125,7 +224,7 @@ def getDbConn(config):
     try:
       port = int(config['port'])
       driver = config.get('driver') or 'FreeTDS'
-      return pyodbc.connect('', driver=driver, server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'])
+      return pyodbc.connect('', driver=driver, server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'], timeout=CONNECT_TIMEOUT)
     except Exception as err:
       logger.error(str(err))
       recordError(dbErrorKind(err), err, config)
@@ -221,6 +320,18 @@ def syncSourceDB(path, output, deleteonly):
     logger.error('destination db connection ("phonebook"): failed')
     sys.exit(1)
   curDest = dbDest.cursor()
+  sourceRows = []
+  columns = []
+  if deleteonly != True:
+    try:
+      curSource.execute(sConfig[sid]['query'])
+      sourceRows = curSource.fetchall()
+      columns = [col[0] for col in curSource.description]
+    except Exception as err:
+      logger.error('source "' + sid + '" query failed')
+      logger.error(str(err))
+      recordError('query', err, sConfig[sid])
+      sys.exit(1)
   try:
     delcount = curDest.execute('DELETE FROM ' + dConfig['dbtable'] + ' WHERE sid_imported="{}"'.format(sid))
     logger.info('clean destination: removed ' + str(delcount) + ' entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
@@ -229,15 +340,7 @@ def syncSourceDB(path, output, deleteonly):
   except Exception as err:
     logger.error('cleaning destination: removing entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
     logger.error(str(err))
-  try:
-    curSource.execute(sConfig[sid]['query'])
-  except Exception as err:
-    logger.error('source "' + sid + '" query failed')
-    logger.error(str(err))
-    recordError('query', err, sConfig[sid])
-    sys.exit(1)
-  toTransfer = curSource.rowcount
-  curSource.fetchall()
+  toTransfer = len(sourceRows)
 
   curSource.close()
   logger.debug('synchronizing source "' + sid + '" (' + str(toTransfer) + ' entries)...')
@@ -246,9 +349,6 @@ def syncSourceDB(path, output, deleteonly):
   destCols = list(sConfig[sid]['mapping'].values())
   destCols.append('sid_imported')
 
-  curSource = dbSource.cursor()
-  curSource.execute(sConfig[sid]['query'])
-  row=curSource.fetchone()
   importedCount=0
   errCount=0
 
@@ -262,9 +362,7 @@ def syncSourceDB(path, output, deleteonly):
   destCols.append('access')
   percents = ('%s, ' * len(destCols))[:-2]
 
-  columns = [col[0] for col in curSource.description]
-
-  while row is not None:
+  for row in sourceRows:
     values = []
     row = {columns[i]: row[i] for i in range(len(columns))}
 
@@ -293,11 +391,9 @@ def syncSourceDB(path, output, deleteonly):
       logger.error('copying entry "' + str(row) + '"')
       logger.error(str(err))
     dbDest.commit()
-    row = curSource.fetchone()
   end = datetime.datetime.now().replace(microsecond=0)
   percent = str(importedCount*100/toTransfer) if toTransfer > 0 else '0'
   logger.info('source "' + sid + '" imported ' + percent + '%: ' + str(importedCount) + ' imported - ' + str(errCount) + ' errors - ' + str(toTransfer) + ' tot - duration ' + str(end-start))
-  curSource.close()
   curDest.close()
   dbSource.close()
   dbDest.close()
@@ -317,16 +413,23 @@ def syncSourceCsv(path, output, deleteonly):
   sid = next(iter(sConfig))
   crl = pycurl.Curl()
 
-  crl.setopt(crl.URL, str(sConfig[sid]['url']))
+  url = str(sConfig[sid]['url'])
+  crl.setopt(crl.URL, url)
 
   b_obj = io.BytesIO()
-  crl.setopt(crl.WRITEFUNCTION, b_obj.write)
+  exceeded = []
+  crl.setopt(crl.WRITEFUNCTION, limitedWriter(b_obj, DOWNLOAD_MAX_BYTES, exceeded))
 
   crl.setopt(crl.FAILONERROR, 1)
   crl.setopt(crl.FOLLOWLOCATION, 1)
   crl.setopt(crl.MAXREDIRS, 5)
-  crl.setopt(crl.PROTOCOLS, pycurl.PROTO_HTTP | pycurl.PROTO_HTTPS | pycurl.PROTO_FILE)
   crl.setopt(crl.REDIR_PROTOCOLS, pycurl.PROTO_HTTP | pycurl.PROTO_HTTPS)
+  crl.setopt(pycurl.CONNECTTIMEOUT, CONNECT_TIMEOUT)
+  crl.setopt(pycurl.TIMEOUT, DOWNLOAD_TIMEOUT)
+  crl.setopt(pycurl.MAXFILESIZE_LARGE, DOWNLOAD_MAX_BYTES)
+  blocked = []
+  if not isLocalHost(urlHost(url)):
+    crl.setopt(pycurl.OPENSOCKETFUNCTION, curlOpenSocket(blocked))
 
   try:
     crl.perform()
@@ -335,7 +438,15 @@ def syncSourceCsv(path, output, deleteonly):
   except Exception as err:
     logger.error('source "' + sid + '" connection (' + sConfig[sid]['url'] + '): failed')
     logger.error(str(err))
-    recordError('format' if isinstance(err, UnicodeDecodeError) else curlErrorKind(err, crl), err, sConfig[sid])
+    if isinstance(err, pycurl.error) and blocked:
+      err = forbiddenConnection()
+      kind = 'connection'
+    elif isinstance(err, pycurl.error) and (exceeded or err.args[0] == pycurl.E_FILESIZE_EXCEEDED):
+      err = Exception('The file exceeds the maximum size of ' + str(DOWNLOAD_MAX_BYTES // (1024 * 1024)) + ' MB')
+      kind = 'format'
+    else:
+      kind = 'format' if isinstance(err, UnicodeDecodeError) else curlErrorKind(err, crl)
+    recordError(kind, err, sConfig[sid])
     sys.exit(1)
   finally:
     crl.close()
@@ -545,8 +656,9 @@ def syncSourceInfinity(path, output, deleteonly):
   try:
     if not base_url or not username or not password:
       raise Exception('Infinity source requires a url, username and password')
+    session = infinitySession(not isLocalHost(urlHost(base_url)))
     token_url = base_url + '/servlet/oauth/token'
-    token_response = requests.post(token_url, auth=(username, password), data={'scope': 'logintoken'}, timeout=30)
+    token_response = session.post(token_url, auth=(username, password), data={'scope': 'logintoken'}, timeout=(CONNECT_TIMEOUT, 30))
     if token_response.status_code != 200:
       raise SourceError(httpErrorKind(token_response.status_code), 'Failed to get token from ' + token_url + ' with status code ' + str(token_response.status_code))
     token = token_response.json().get('access_token')
@@ -554,7 +666,7 @@ def syncSourceInfinity(path, output, deleteonly):
       raise SourceError('format', 'No token found in response from ' + token_url)
     logger.debug('Got bearer token from ' + base_url)
     contact_url = base_url + '/servlet/api/gsfr_fgetaddress_wsapi'
-    contact_response = requests.get(contact_url, headers={'Authorization': 'Bearer ' + token}, timeout=120)
+    contact_response = session.get(contact_url, headers={'Authorization': 'Bearer ' + token}, timeout=(CONNECT_TIMEOUT, DOWNLOAD_TIMEOUT))
     if contact_response.status_code != 200:
       raise SourceError(httpErrorKind(contact_response.status_code), 'Failed to get contacts from ' + contact_url + ' with status code ' + str(contact_response.status_code))
     contacts = contact_response.json().get('data', [])
