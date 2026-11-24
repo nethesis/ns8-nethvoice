@@ -152,6 +152,35 @@ class LegacyWizardConfigTest(GeneratorTest):
                 self.assertEqual(config[key], NAME)
         self.assertEqual(config['SECRET_KEY'], 'wizard-secret')
 
+    def test_names_starting_with_a_dash_are_values_not_options(self):
+        self.assertEqual(self.render(WIZARD_BRAND_NAME='-h')['BRAND_NAME'], '-h')
+
+
+class VoicemailBrandingTest(GeneratorTest):
+    def render(self, **environment):
+        entrypoint = (ROOT / 'freepbx/entrypoint.sh').read_text()
+        start = entrypoint.index('# customize voicemail branding')
+        end = entrypoint.index('# translate FREEPBX_LOG_LEVEL')
+        conf = self.dir / 'voicemail.conf'
+        conf.write_text('fromstring=FreePBX Voicemail\nemailbody=see http://AMPWEBADDRESS/ucp\n')
+        script = 'cd ' + str(self.dir) + '\n' + entrypoint[start:end].replace('/etc/asterisk/voicemail.conf*', str(conf))
+        self.run_script('bash', script, **environment)
+        return conf.read_text()
+
+    def test_normal_values_are_written_as_before(self):
+        self.assertEqual(self.render(BRAND_NAME='Acme', NETHCTI_UI_HOST='cti.example.org'),
+                         'fromstring=Acme Voicemail\nemailbody=see https://cti.example.org/history\n')
+
+    def test_special_characters_are_written_literally(self):
+        name = "L'Azienda & Co / R&D \\ \\1"
+        self.assertIn(f'fromstring={name} Voicemail\n', self.render(BRAND_NAME=name, NETHCTI_UI_HOST='cti.example.org'))
+
+    def test_a_brand_name_cannot_run_commands(self):
+        for name in ('x/;e touch pwned;#', 'x/\ne touch pwned\n#', 'x/e'):
+            with self.subTest(name=name):
+                self.render(BRAND_NAME=name, NETHCTI_UI_HOST='cti.example.org/;e touch pwned;#')
+                self.assertFalse((self.dir / 'pwned').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

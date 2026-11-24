@@ -236,7 +236,7 @@ wizard_logo_light_url="${WIZARD_LOGO_LIGHT_URL:-}"
 # them into quoted literals. Rebranding values are operator-controlled and may
 # contain quotes or other characters with special meaning in JavaScript.
 js_string() {
-	php -r 'echo json_encode($argv[1], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);' "$1"
+	php -r 'echo json_encode($argv[1], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);' -- "$1"
 }
 
 # Serialize a value as a PHP string literal for config.inc.php
@@ -277,10 +277,10 @@ if ($html === false) {
 	exit(0);
 }
 $title = htmlspecialchars(trim(getenv("BRAND_NAME_VALUE")) ?: "NethVoice", ENT_QUOTES);
-$html = preg_replace("~<title>[^<]*</title>~", "<title>" . $title . "</title>", $html, 1);
+$html = preg_replace_callback("~<title>[^<]*</title>~", fn() => "<title>" . $title . "</title>", $html, 1);
 $favicon = getenv("FAVICON_URL_VALUE");
 if (preg_match("~^https?://[^\\s\"<>]+$~i", $favicon)) {
-	$html = preg_replace("~<link rel=\"icon\" href=\"[^\"]*\"~", "<link rel=\"icon\" href=\"" . htmlspecialchars($favicon, ENT_QUOTES) . "\"", $html, 1);
+	$html = preg_replace_callback("~<link rel=\"icon\" href=\"[^\"]*\"~", fn() => "<link rel=\"icon\" href=\"" . htmlspecialchars($favicon, ENT_QUOTES) . "\"", $html, 1);
 }
 file_put_contents($index, $html);' /var/www/html/freepbx/nethvoice-ui/index.html
 
@@ -656,8 +656,11 @@ url_encode() {
 }
 
 # customize voicemail branding
-sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
-sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'\/history/' -i /etc/asterisk/voicemail.conf*
+sed_replacement() {
+	printf '%s' "$1" | tr -d '\r\n' | sed -e 's/[\/&\\]/\\&/g'
+}
+sed 's/FreePBX/'"$(sed_replacement "${BRAND_NAME}")"'/' -i /etc/asterisk/voicemail.conf*
+sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"$(sed_replacement "${NETHCTI_UI_HOST}")"'\/history/' -i /etc/asterisk/voicemail.conf*
 
 # translate FREEPBX_LOG_LEVEL into the supervisord level
 case "${FREEPBX_LOG_LEVEL:-warn}" in

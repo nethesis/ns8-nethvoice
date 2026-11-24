@@ -158,6 +158,12 @@ class RuntimeConfigTest(unittest.TestCase):
                 self.assertIn('<link rel="icon" href="/nethvoice/favicon.ico" sizes="32x32" />',
                               self.index.read_text())
 
+    def test_entry_page_writes_dollar_and_backslash_sequences_literally(self):
+        self.render(WIZARD_BRAND_NAME='Acme $0 \\1 ${1}', WIZARD_FAVICON_URL='https://cdn.example.org/f$0.ico')
+        html = self.index.read_text()
+        self.assertIn('<title>Acme $0 \\1 ${1}</title>', html)
+        self.assertIn('<link rel="icon" href="https://cdn.example.org/f$0.ico" sizes="32x32" />', html)
+
     def test_shared_secret_is_never_published(self):
         self.assertNotIn('do-not-leak', self.render())
 
