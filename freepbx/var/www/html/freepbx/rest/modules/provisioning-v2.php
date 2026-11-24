@@ -66,13 +66,25 @@ $app->post('/phones/reconfigure', function (Request $request, Response $response
 
 $app->post('/phones/rps/{mac}', function (Request $request, Response $response, $args) {
     $body = $request->getParsedBody();
-    if (!is_array($body) || empty($body['url'])) {
-        return $response->withStatus(400);
+    $url = is_array($body) ? ($body['url'] ?? null) : null;
+    if (!empty($url) && !nethvoiceRequestIsSuperadmin($request)) {
+        return $response->withStatus(403);
     }
     if (preg_match('/^[0-9A-Fa-f]{2}([:-]?[0-9A-Fa-f]{2}){5}$/D', (string) $args['mac']) !== 1) {
         return $response->withStatus(400);
     }
-    $result = setFalconieriRPS($args['mac'], $body['url']);
+    if (empty($url)) {
+        try {
+            $url = tancrediFirstAccessUrl($args['mac'], new TancrediKeyLabelsClient());
+        } catch (Throwable $e) {
+            error_log($e->getMessage());
+            return $response->withStatus(500);
+        }
+        if ($url === null) {
+            return $response->withStatus(409);
+        }
+    }
+    $result = setFalconieriRPS($args['mac'], $url);
     return $response->withStatus($result['httpCode']);
 });
 

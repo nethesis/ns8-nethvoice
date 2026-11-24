@@ -371,8 +371,26 @@ describe('phone writes', () => {
     expect(calls).toEqual(['DELETE /physicalextensions/{id}', 'tancredi DELETE'])
   })
 
+  it('should let the server send the first access URL of a new phone to the redirect service', async () => {
+    await expect(
+      addPhone({ mac: '00:15:65:00:00:09', model: 'yealink-T46', mainExtension: '' }, 'Yealink', {
+        webPassword: 'Secret-1x',
+        encrypted: true,
+      }),
+    ).resolves.toEqual({ mac: '00-15-65-00-00-09', rpsFailed: false })
+    expect(api.POST).toHaveBeenCalledWith('/phones/rps/{mac}', {
+      params: { path: { mac: '00-15-65-00-00-09' } },
+    })
+    expect(tancredi.get).not.toHaveBeenCalled()
+  })
+
   it('should warn about remote provisioning only for the vendors that support it', async () => {
-    vi.mocked(tancredi.get).mockRejectedValue(serverError('/phones/mac'))
+    vi.mocked(api.POST).mockImplementation(async (path) => {
+      if (path === '/phones/rps/{mac}') {
+        throw serverError('/phones/rps/mac')
+      }
+      return { data: undefined, response: new Response() }
+    })
     const options = { webPassword: 'Secret-1x', encrypted: true }
 
     await expect(

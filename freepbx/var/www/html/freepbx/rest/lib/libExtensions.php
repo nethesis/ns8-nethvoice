@@ -609,6 +609,17 @@ function setFalconieriRPS($mac, $provisioningUrl, $lk = null, $secret = null) {
     return $result;
 }
 
+function tancrediFirstAccessUrl($mac, $client) {
+    $compactMac = str_replace(array(':', '-'), '', strtoupper(trim((string) $mac)));
+    if (!preg_match('/^[0-9A-F]{12}$/D', $compactMac)) {
+        return null;
+    }
+    $path = 'phones/'.implode('-', str_split($compactMac, 2));
+    $phone = $client->getMany(array($path))[$path] ?? null;
+    $url = is_array($phone) ? ($phone['provisioning_url1'] ?? null) : null;
+    return is_string($url) && $url !== '' ? $url : null;
+}
+
 function useExtensionAsGSWaveApp($extension,$mac,$model) {
     try {
         //disable call waiting

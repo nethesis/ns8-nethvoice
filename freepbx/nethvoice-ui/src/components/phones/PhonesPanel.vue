@@ -79,7 +79,7 @@ const { state: defaultsState, refetch: refetchDefaults } = usePhoneDefaults()
 const { state: macVendorsState } = useMacVendors()
 const { state: registrationsState, refetch: refetchRegistrations } = usePhoneRegistrations()
 
-const { can } = usePermissions()
+const { can, isSuperadmin } = usePermissions()
 
 usePolling(() => {
   if (can('phones')) {
@@ -245,12 +245,16 @@ function getRowMenuItems(phone: Phone): NeDropdownItem[] {
       disabled: provisioning.value || !phone.extension,
       action: () => provisioningMutate([phone]),
     },
-    {
-      id: 'copyProvisioningUrl',
-      label: t('phones.inventory.copy_provisioning_url'),
-      icon: faCopy,
-      action: () => copyProvisioningUrl(phone),
-    },
+    ...(isSuperadmin.value
+      ? [
+          {
+            id: 'copyProvisioningUrl',
+            label: t('phones.inventory.copy_provisioning_url'),
+            icon: faCopy,
+            action: () => copyProvisioningUrl(phone),
+          },
+        ]
+      : []),
     { id: 'divider' },
     {
       id: 'delete',

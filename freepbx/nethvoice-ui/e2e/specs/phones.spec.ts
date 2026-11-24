@@ -290,13 +290,6 @@ test.describe('physical phones: inventory', () => {
         status: 201,
         json: { mac: (request.body as { mac: string }).mac },
       }))
-      .on('GET', `${TANCREDI}/phones/:mac`, (request) => ({
-        json: {
-          mac: request.path.split('/').pop(),
-          provisioning_url1: 'https://pbx.example.com/provisioning/first/phone.cfg',
-          provisioning_url2: 'https://pbx.example.com/provisioning/token/phone.cfg',
-        },
-      }))
       .on('POST', `${REST}/physicalextensions`, (request) => ({
         json: (request.body as { mainextension?: string }).mainextension
           ? { extension: '91301' }
@@ -367,10 +360,15 @@ test.describe('physical phones: inventory', () => {
         web_password: 'invented-admin',
       },
     ])
-    expect(mockApi.callsTo('POST', `${REST}/phones/rps/:mac`)[0]).toMatchObject({
-      path: `${REST}/phones/rps/00-15-65-AB-CD-02`,
-      body: { url: 'https://pbx.example.com/provisioning/first/phone.cfg' },
-    })
+    expect(mockApi.callsTo('POST', `${REST}/phones/rps/:mac`).map((call) => call.path)).toEqual([
+      `${REST}/phones/rps/00-15-65-AB-CD-02`,
+      `${REST}/phones/rps/0C-38-3E-00-00-09`,
+    ])
+    expect(mockApi.callsTo('POST', `${REST}/phones/rps/:mac`).map((call) => call.body)).toEqual([
+      null,
+      null,
+    ])
+    expect(mockApi.callsTo('GET', `${TANCREDI}/phones/:mac`)).toHaveLength(0)
     expect(mockApi.callsTo('POST', `${REST}/extensions/:extension/srtp/:enabled`)[0].path).toBe(
       `${REST}/extensions/91301/srtp/true`,
     )
@@ -407,7 +405,7 @@ test.describe('physical phones: inventory', () => {
         status: 201,
         json: { mac: (request.body as { mac: string }).mac },
       }))
-      .on('GET', `${TANCREDI}/phones/:mac`, { json: { mac: 'x', provisioning_url1: '' } })
+      .on('POST', `${REST}/phones/rps/:mac`, { status: 200 })
       .on('POST', `${REST}/physicalextensions`, (request) =>
         (request.body as { mainextension?: string }).mainextension
           ? { status: 500, json: { status: "There aren't available extension numbers" } }
@@ -480,7 +478,7 @@ test.describe('physical phones: inventory', () => {
         await pending
         return { status: 201, json: { mac: (request.body as { mac: string }).mac } }
       })
-      .on('GET', `${TANCREDI}/phones/:mac`, { json: { mac: 'x', provisioning_url1: '' } })
+      .on('POST', `${REST}/phones/rps/:mac`, { status: 200 })
       .on('POST', `${REST}/physicalextensions`, { json: undefined })
     await page.goto('./phones/phones')
 
@@ -828,5 +826,22 @@ test.describe('physical phones: inventory', () => {
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
       'https://pbx.example.com/provisioning/token/0c383e000002.cfg',
     )
+  })
+
+  test('does not offer the provisioning URL to an administrator with only the phones section', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['phones'], 'operator')
+    mockPhonesApi(mockApi)
+    await page.goto('./phones/phones')
+
+    await page.getByRole('button', { name: 'Open the menu of phone 0C:38:3E:00:00:02' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Run provisioning' })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: 'Copy provisioning URL' })).toHaveCount(0)
+    expect(mockApi.callsTo('GET', `${TANCREDI}/phones/:mac`)).toEqual([])
   })
 })

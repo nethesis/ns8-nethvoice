@@ -75,7 +75,7 @@ export interface paths {
     put?: never
     /**
      * Validate FreePBX credentials and disclose the shared secret.
-     * @description Body: `{ "username": "", "password": "" }`. On success returns `{ "result": "<secret>" }` with status 200; otherwise 401. The FreePBX session (`AMP_user`) stays open only for superadmin: for administrators who are not superadmin it is cleared after the credentials are checked. Failed attempts share the limits of `/signin`; successful attempts are not limited.
+     * @description Body: `{ "username": "", "password": "" }`. For a superadmin returns `{ "result": "<secret>" }` with status 200; otherwise 401, also for the correct password of an administrator who is not superadmin (use `/signin`). The FreePBX session (`AMP_user`) stays open only for superadmin. Failed attempts share the limits of `/signin`; correct passwords are not limited.
      */
     post: operations['post_testauth']
     delete?: never
@@ -909,7 +909,7 @@ export interface paths {
     put?: never
     /**
      * Fetch one frame from a video source URL.
-     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure. For administrators who are not superadmin only a JPEG, PNG or GIF image is returned, the URL is fetched only over http or https, never from a loopback, link-local or unspecified address, and redirects are not followed. For the superadmin the URL is fetched as given. The fetch stops after 10 seconds.
+     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure. For administrators who are not superadmin only a JPEG, PNG or GIF image is returned, the URL is fetched only over http or https, never from a loopback, link-local or unspecified address or from an address of the PBX node, and redirects are not followed; a refused, closed or unreachable address answers the same 400. For the superadmin the URL is fetched as given. The fetch stops after 10 seconds.
      */
     post: operations['post_cti_sources_test']
     delete?: never
@@ -2333,7 +2333,7 @@ export interface paths {
     put?: never
     /**
      * Register a phone MAC against the Falconieri remote provisioning service.
-     * @description Body: `{ "url": "https://.../{mac}.cfg" }`.
+     * @description Body: `{ "url": "https://.../{mac}.cfg" }`, or no URL: the server then sends the first access URL that Tancredi has for the phone (`provisioning_url1`). Only the superadmin may send a URL.
      */
     post: operations['post_phones_rps_mac']
     delete?: never
@@ -4365,8 +4365,8 @@ export interface components {
       error?: string
     }
     PhonesRpsRequest: {
-      /** @description Provisioning URL the phone must download its configuration from. */
-      url: string
+      /** @description Provisioning URL the phone must download its configuration from. Superadmin only; without it the server uses the first access URL of the phone. */
+      url?: string
     }
     SettingsAdminPasswordRequest: {
       /** @description New clear-text password. For `admin` it is stored as `ampusers.password_sha1`, which also changes the `Secretkey` the client must send from then on. */
@@ -9461,7 +9461,7 @@ export interface operations {
       }
       cookie?: never
     }
-    requestBody: {
+    requestBody?: {
       content: {
         'application/json': components['schemas']['PhonesRpsRequest']
       }
@@ -9474,8 +9474,29 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Missing URL, MAC address that is not six hexadecimal pairs (optionally separated by `:` or `-`), or vendor not supported by the remote provisioning service. */
+      /** @description MAC address that is not six hexadecimal pairs (optionally separated by `:` or `-`), or vendor not supported by the remote provisioning service. */
       400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description A URL was sent by an administrator who is not superadmin. */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description No URL was sent and Tancredi has no first access URL for the phone. */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Tancredi cannot be read. */
+      500: {
         headers: {
           [name: string]: unknown
         }

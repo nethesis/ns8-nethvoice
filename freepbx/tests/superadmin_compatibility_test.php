@@ -85,6 +85,14 @@ function recordRps($mac, $url) {
     return ['httpCode' => 200];
 }
 
+class FakeTancredi {
+    public static array $phones = [];
+    public function getMany(array $paths) {
+        Recorder::$log[] = ['tancredi', $paths];
+        return array_combine($paths, array_map(fn($path) => self::$phones[$path] ?? null, $paths));
+    }
+}
+
 function resetFakes() {
     global $astman;
     Recorder::$log = [];
@@ -128,6 +136,7 @@ $patch("$sandbox/rest/modules/configuration.php", 'system("/usr/sbin/asterisk -r
 $patch("$sandbox/rest/modules/configuration.php", "'/notify/'.\$notification", var_export("$notify/", true) . '.$notification', 1);
 $patch("$sandbox/rest/modules/provisioning-v2.php", "require_once '/var/www/html/freepbx/rest/vendor/autoload.php';", '', 1);
 $patch("$sandbox/rest/modules/provisioning-v2.php", 'setFalconieriRPS(', 'recordRps(', 1);
+$patch("$sandbox/rest/modules/provisioning-v2.php", 'new TancrediKeyLabelsClient()', 'new FakeTancredi()', 1);
 register_shutdown_function(function () use ($sandbox) {
     $remove = function ($path) use (&$remove) {
         if (is_dir($path) && !is_link($path)) {
@@ -230,14 +239,27 @@ foreach ($cases as [$wizard, $restart]) {
     check(logged('prepare')[0][2] === [$wizard['step'], $wizard['status']], 'the wizard step was not stored: ' . json_encode($wizard));
 }
 
+FakeTancredi::$phones = ['phones/00-15-65-AA-BB-CC' => ['mac' => '00-15-65-AA-BB-CC', 'provisioning_url1' => 'https://pbx.example.test/provisioning/first/{mac}.cfg'], 'phones/00-15-65-AA-BB-CD' => ['mac' => '00-15-65-AA-BB-CD', 'provisioning_url1' => null]];
+foreach (['00:15:65:AA:BB:CC', '00-15-65-aa-bb-cc', '001565AABBCC', '00:15:65:aa:bb:cc'] as $mac) {
+    resetFakes();
+    check(call($app, $superadmin, 'POST', '/phones/rps/' . rawurlencode($mac), ['url' => 'https://provisioning.example.test/abc/{mac}.cfg']) === [200, ''] && logged('rps') === [['rps', $mac, 'https://provisioning.example.test/abc/{mac}.cfg']] && logged('tancredi') === [], "the MAC $mac did not reach the redirection service unchanged");
+    resetFakes();
+    check(call($app, $limited, 'POST', '/phones/rps/' . rawurlencode($mac), ['url' => 'https://provisioning.example.test/abc/{mac}.cfg']) === [403, ''] && logged('rps') === [] && logged('tancredi') === [], "a limited administrator sent the provisioning URL of $mac to the redirection service");
+    foreach ([$superadmin, $limited] as $caller) {
+        foreach ([null, [], ['url' => '']] as $body) {
+            resetFakes();
+            check(call($app, $caller, 'POST', '/phones/rps/' . rawurlencode($mac), $body) === [200, ''] && logged('rps') === [['rps', $mac, 'https://pbx.example.test/provisioning/first/{mac}.cfg']] && logged('tancredi') === [['tancredi', ['phones/00-15-65-AA-BB-CC']]], "the first access URL of $mac did not reach the redirection service: " . json_encode(Recorder::$log));
+        }
+    }
+}
 foreach ([$superadmin, $limited] as $caller) {
-    foreach (['00:15:65:AA:BB:CC', '00-15-65-aa-bb-cc', '001565AABBCC', '00:15:65:aa:bb:cc'] as $mac) {
+    foreach (['00:15:65:AA:BB:CD', '00:15:65:AA:BB:CE'] as $mac) {
         resetFakes();
-        check(call($app, $caller, 'POST', '/phones/rps/' . rawurlencode($mac), ['url' => 'https://provisioning.example.test/abc/{mac}.cfg']) === [200, ''] && logged('rps') === [['rps', $mac, 'https://provisioning.example.test/abc/{mac}.cfg']], "the MAC $mac did not reach the redirection service unchanged");
+        check(call($app, $caller, 'POST', '/phones/rps/' . rawurlencode($mac)) === [409, ''] && logged('rps') === [], "a phone without a first access URL reached the redirection service: $mac");
     }
     foreach (['00:15:65:AA:BB:CC..', '..', '00:15:65:AA:BB:CC?x=1', '00:15:65:AA:BB:CC#x', '00:15:65:AA:BB', '00:15:65:AA:BB:CC:DD', 'zz:15:65:AA:BB:CC', '00:15:65:AA:BB:CCx', ' 00:15:65:AA:BB:CC', "00:15:65:AA:BB:CC\n"] as $mac) {
         resetFakes();
-        check(call($app, $caller, 'POST', '/phones/rps/' . rawurlencode($mac), ['url' => 'https://provisioning.example.test/abc/{mac}.cfg']) === [400, ''] && logged('rps') === [], 'the MAC ' . json_encode($mac) . ' reached the redirection service');
+        check(call($app, $caller, 'POST', '/phones/rps/' . rawurlencode($mac), $caller === $superadmin ? ['url' => 'https://provisioning.example.test/abc/{mac}.cfg'] : null) === [400, ''] && logged('rps') === [] && logged('tancredi') === [], 'the MAC ' . json_encode($mac) . ' reached the redirection service');
     }
 }
 

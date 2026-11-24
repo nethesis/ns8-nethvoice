@@ -355,14 +355,7 @@ const deletePhysicalExtension = async (id: string): Promise<void> => {
 
 const registerToRemoteProvisioning = async (mac: string): Promise<boolean> => {
   try {
-    const { firstAccess } = await getProvisioningUrls(mac)
-
-    if (firstAccess) {
-      await api.POST('/phones/rps/{mac}', {
-        params: { path: { mac } },
-        body: { url: firstAccess },
-      })
-    }
+    await api.POST('/phones/rps/{mac}', { params: { path: { mac } } })
     return true
   } catch {
     return false

@@ -118,11 +118,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignInError'
-      description: 'Body: `{ "username": "", "password": "" }`. On success returns
-        `{ "result": "<secret>" }` with status 200; otherwise 401. The FreePBX session
-        (`AMP_user`) stays open only for superadmin: for administrators who are not
-        superadmin it is cleared after the credentials are checked. Failed attempts
-        share the limits of `/signin`; successful attempts are not limited.'
+      description: 'Body: `{ "username": "", "password": "" }`. For a superadmin
+        returns `{ "result": "<secret>" }` with status 200; otherwise 401, also for
+        the correct password of an administrator who is not superadmin (use `/signin`).
+        The FreePBX session (`AMP_user`) stays open only for superadmin. Failed attempts
+        share the limits of `/signin`; correct passwords are not limited.'
       operationId: post_testauth
       security: []
       requestBody:
@@ -4117,10 +4117,19 @@ paths:
         '200':
           description: Successful response
         '400':
-          description: Missing URL, MAC address that is not six hexadecimal pairs
-            (optionally separated by `:` or `-`), or vendor not supported by the remote
-            provisioning service.
-      description: 'Body: `{ "url": "https://.../{mac}.cfg" }`.'
+          description: MAC address that is not six hexadecimal pairs (optionally
+            separated by `:` or `-`), or vendor not supported by the remote provisioning
+            service.
+        '403':
+          description: A URL was sent by an administrator who is not superadmin.
+        '409':
+          description: No URL was sent and Tancredi has no first access URL for the
+            phone.
+        '500':
+          description: Tancredi cannot be read.
+      description: 'Body: `{ "url": "https://.../{mac}.cfg" }`, or no URL: the server
+        then sends the first access URL that Tancredi has for the phone (`provisioning_url1`).
+        Only the superadmin may send a URL.'
       operationId: post_phones_rps_mac
       parameters:
       - name: mac
@@ -4129,7 +4138,7 @@ paths:
         schema:
           type: string
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -8504,13 +8513,12 @@ components:
           type: string
     PhonesRpsRequest:
       type: object
-      required:
-      - url
       properties:
         url:
           type: string
           description: Provisioning URL the phone must download its configuration
-            from.
+            from. Superadmin only; without it the server uses the first access URL
+            of the phone.
     SettingsAdminPasswordRequest:
       type: object
       required:
