@@ -231,19 +231,21 @@ foreach ([1, '1', '01', 2, 7] as $dbconn) {
     expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/10', ['dbconn_id' => $dbconn] + $card);
     expectStatus($app, 200, $superadmins, 'POST', '/cti/customer_card', ['dbconn_id' => $dbconn] + $card);
 }
-expectStatus($app, 200, ['integrator'], 'PUT', '/cti/customer_card/10', ['dbconn_id' => 8] + $card);
+expectStatus($app, 403, ['integrator'], 'PUT', '/cti/customer_card/10', ['dbconn_id' => 8] + $card);
+expectStatus($app, 200, $superadmins, 'PUT', '/cti/customer_card/10', ['dbconn_id' => 8] + $card);
 expectStatus($app, 200, ['integrator'], 'POST', '/cti/customer_card', $card);
-expectStatus($app, 200, ['integrator'], 'POST', '/cti/customer_card', ['dbconn_id' => '8'] + $card);
+expectStatus($app, 403, ['integrator'], 'POST', '/cti/customer_card', ['dbconn_id' => '8'] + $card);
 expectStatus($app, 400, ['integrator'], 'POST', '/cti/customer_card', ['dbconn_id' => 'x'] + $card);
 expectStatus($app, 400, ['integrator'], 'POST', '/cti/customer_card', array_diff_key($card, ['dbconn_id' => 0]));
 
 $connection = ['host' => '192.0.2.10', 'port' => '3306', 'type' => 'mysql', 'user' => 'crm', 'pass' => 'p', 'name' => 'crm'];
 expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn', $connection);
-expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn', ['host' => '127.0.0.1', 'port' => '5432'] + $connection);
-foreach ([['127.0.0.1', '20011'], ['localhost', '20011'], ['LOCALHOST', ''], ['[::1]', '20011'], ['127.0.0.2', '20011'], ['0.0.0.0', '20011'], ['', '20011']] as [$host, $port]) {
+foreach ([['127.0.0.1', '20011'], ['127.0.0.1', '020011'], ['127.0.0.1', ' 20011'], ['127.0.0.1', '5432'], ['localhost', '3306'], ['localhost', '20011'], ['LOCALHOST', ''], ['[::1]', '20011'], ['127.0.0.2', '20011'], ['0.0.0.0', '20011'], ['', '20011']] as [$host, $port]) {
     expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', ['host' => $host, 'port' => $port] + $connection);
     expectStatus($app, 200, $superadmins, 'POST', '/cti/dbconn', ['host' => $host, 'port' => $port] + $connection);
 }
+expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', array_diff_key($connection, ['host' => 1]));
+expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', ['host' => ['192.0.2.10']] + $connection);
 expectStatus($app, 400, ['integrator'], 'POST', '/cti/dbconn', 'not json');
 foreach (['1', '2', '01', '7'] as $id) {
     expectStatus($app, 403, ['integrator'], 'PUT', "/cti/dbconn/$id", ['name' => 'asterisk']);
@@ -251,10 +253,11 @@ foreach (['1', '2', '01', '7'] as $id) {
 }
 expectStatus($app, 403, ['integrator'], 'PUT', '/cti/dbconn/5', ['host' => '127.0.0.1', 'port' => '20011']);
 expectStatus($app, 403, ['integrator'], 'PUT', '/cti/dbconn/5', ['host' => 'localhost', 'port' => '20011']);
-expectStatus($app, 200, ['integrator'], 'PUT', '/cti/dbconn/5', ['host' => 'localhost']);
+expectStatus($app, 403, ['integrator'], 'PUT', '/cti/dbconn/5', ['host' => 'localhost']);
 expectStatus($app, 403, ['integrator'], 'PUT', '/cti/dbconn/8', ['port' => '20011']);
 expectStatus($app, 200, ['integrator'], 'PUT', '/cti/dbconn/5', ['port' => '20011', 'name' => 'crm2']);
-expectStatus($app, 200, ['integrator'], 'PUT', '/cti/dbconn/8', ['name' => 'app2']);
+expectStatus($app, 403, ['integrator'], 'PUT', '/cti/dbconn/8', ['name' => 'app2']);
+expectStatus($app, 200, $superadmins, 'PUT', '/cti/dbconn/8', ['name' => 'app2']);
 expectStatus($app, 403, ['integrator'], 'PUT', '/cti/dbconn/99', ['host' => '127.0.0.1', 'port' => '20011']);
 expectStatus($app, 400, ['integrator'], 'PUT', '/cti/dbconn/1x', ['name' => 'x']);
 
@@ -262,8 +265,9 @@ $test = ['host' => '192.0.2.10', 'port' => '3306', 'type' => 'mysql', 'user' => 
 expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn/test', $test);
 expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn/test', ['id' => '5', 'pass' => ''] + $test);
 expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn/test', ['id' => ''] + $test);
-expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn/test', ['host' => '127.0.0.1', 'port' => '5432'] + $test);
 foreach ([
+    ['host' => '127.0.0.1', 'port' => '5432'],
+    ['host' => '127.0.0.1', 'port' => '020011'],
     ['host' => '127.0.0.1', 'port' => '20011'],
     ['host' => 'localhost', 'port' => ''],
     ['host' => '[::1]', 'port' => '20011'],
@@ -278,7 +282,7 @@ foreach (array_filter(nethvoiceNodeAddresses(), fn($address) => !nethvoiceIsForb
     $host = str_contains($address, ':') ? "[$address]" : $address;
     expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', ['host' => $host, 'port' => '20011'] + $connection);
     expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn/test', ['host' => $host, 'port' => '20011'] + $test);
-    expectStatus($app, 200, ['integrator'], 'POST', '/cti/dbconn', ['host' => $host, 'port' => '5432'] + $connection);
+    expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', ['host' => $host, 'port' => '5432'] + $connection);
     expectStatus($app, 200, $superadmins, 'POST', '/cti/dbconn', ['host' => $host, 'port' => '20011'] + $connection);
 }
 expectStatus($app, 400, ['integrator'], 'POST', '/cti/dbconn/test', ['id' => '5 OR 1=1'] + $test);
@@ -287,9 +291,11 @@ foreach (['1', '2', '01', '7'] as $id) {
     expectStatus($app, 403, ['integrator'], 'DELETE', "/cti/dbconn/$id");
     expectStatus($app, 200, $superadmins, 'DELETE', "/cti/dbconn/$id");
 }
-foreach (['5', '8', '99'] as $id) {
+foreach (['5', '99'] as $id) {
     expectStatus($app, 200, ['integrator'], 'DELETE', "/cti/dbconn/$id");
 }
+expectStatus($app, 403, ['integrator'], 'DELETE', '/cti/dbconn/8');
+expectStatus($app, 200, $superadmins, 'DELETE', '/cti/dbconn/8');
 expectStatus($app, 400, ['integrator'], 'DELETE', '/cti/dbconn/1x');
 
 foreach (['invoices', 'notes', 'identity', 'table', 'missing', 'invoices_custom', 'Invoices', '%2E%2E'] as $name) {
@@ -345,8 +351,7 @@ foreach ([
 
 $preview = ['dbconn_id' => '5', 'template' => 'invoices_custom', 'query' => base64_encode('select * from crm')];
 expectStatus($app, 200, ['integrator'], 'POST', '/cti/customer_card/preview', $preview);
-expectStatus($app, 200, ['integrator'], 'POST', '/cti/customer_card/preview', ['dbconn_id' => 8] + $preview);
-foreach ([1, '1', '01', 2, '7'] as $dbconn) {
+foreach ([1, '1', '01', 2, '7', 8] as $dbconn) {
     expectStatus($app, 403, ['integrator'], 'POST', '/cti/customer_card/preview', ['dbconn_id' => $dbconn] + $preview);
     expectStatus($app, 200, $superadmins, 'POST', '/cti/customer_card/preview', ['dbconn_id' => $dbconn] + $preview);
 }

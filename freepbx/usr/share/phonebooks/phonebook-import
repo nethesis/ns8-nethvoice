@@ -18,6 +18,7 @@ AUTH_HTTP_STATUSES = (401, 403)
 CONNECT_TIMEOUT = 10
 DOWNLOAD_TIMEOUT = 120
 DOWNLOAD_MAX_BYTES = 100 * 1024 * 1024
+NODE_ADDRESS_FILES = ('/proc/net/fib_trie', '/proc/net/if_inet6')
 lastError = None
 previewTotal = False
 
@@ -86,6 +87,47 @@ def isForbiddenAddress(address):
       return packed[0] == 0xfe and (packed[1] & 0xc0) == 0x80
   return packed[0] in (0, 127) or (packed[0] == 169 and packed[1] == 254)
 
+def comparableAddress(address):
+  try:
+    ip = ipaddress.ip_address(str(address).split('%')[0])
+  except ValueError:
+    return None
+  return ip.ipv4_mapped if ip.version == 6 and ip.ipv4_mapped else ip
+
+def readNodeAddresses(fibTrie, ifInet6):
+  addresses = set()
+  try:
+    with open(fibTrie) as trie:
+      last = None
+      for line in trie:
+        fields = line.split()
+        if fields[:1] == ['|--'] and len(fields) > 1:
+          last = comparableAddress(fields[1])
+        elif fields[:3] == ['/32', 'host', 'LOCAL'] and last is not None:
+          addresses.add(last)
+  except OSError:
+    pass
+  try:
+    with open(ifInet6) as inet6:
+      for line in inet6:
+        fields = line.split()
+        if fields and re.fullmatch(r'[0-9a-fA-F]{32}', fields[0]):
+          addresses.add(comparableAddress(ipaddress.ip_address(bytes.fromhex(fields[0]))))
+  except OSError:
+    pass
+  return addresses
+
+nodeAddressesCache = None
+
+def nodeAddresses():
+  global nodeAddressesCache
+  if nodeAddressesCache is None:
+    nodeAddressesCache = readNodeAddresses(*NODE_ADDRESS_FILES)
+  return nodeAddressesCache
+
+def isBlockedAddress(address):
+  return isForbiddenAddress(address) or comparableAddress(address) in nodeAddresses()
+
 def isLocalHost(host):
   host = (host or '').strip('[]').rstrip('.').lower()
   if host == 'localhost' or host.endswith('.localhost'):
@@ -94,7 +136,7 @@ def isLocalHost(host):
     ipaddress.ip_address(host.split('%')[0])
   except ValueError:
     return False
-  return isForbiddenAddress(host)
+  return isBlockedAddress(host)
 
 def urlHost(url):
   try:
@@ -108,7 +150,7 @@ def forbiddenConnection():
 def curlOpenSocket(blocked):
   def openSocket(purpose, address):
     family, socktype, protocol, sockaddr = address
-    if isForbiddenAddress(sockaddr[0]):
+    if isBlockedAddress(sockaddr[0]):
       blocked.append(True)
       return pycurl.SOCKET_BAD
     return socket.socket(family, socktype, protocol)
@@ -132,7 +174,7 @@ def infinitySession(guarded):
         def _new_conn(self):
           host = self._dns_host
           resolved = [info[4][0] for info in socket.getaddrinfo(host, self.port, 0, socket.SOCK_STREAM)]
-          allowed = [address for address in dict.fromkeys(resolved) if not isForbiddenAddress(address)]
+          allowed = [address for address in dict.fromkeys(resolved) if not isBlockedAddress(address)]
           if not allowed:
             raise forbiddenConnection()
           try:

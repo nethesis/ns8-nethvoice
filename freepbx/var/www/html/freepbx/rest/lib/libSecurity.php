@@ -84,7 +84,14 @@ function nethvoiceParseFetchUrl($url, array $schemes = ['http', 'https']): ?arra
     ];
 }
 
-function nethvoiceCheckFetchUrl($url, array $schemes = ['http', 'https']): ?array
+function nethvoiceIsNodeAddress(string $ip, array $nodeAddresses): bool
+{
+    $comparable = nethvoiceComparableAddress($ip);
+
+    return $comparable !== null && in_array($comparable, array_map('nethvoiceComparableAddress', $nodeAddresses), true);
+}
+
+function nethvoiceCheckFetchUrl($url, array $schemes = ['http', 'https'], ?array $nodeAddresses = null): ?array
 {
     $target = nethvoiceParseFetchUrl($url, $schemes);
     if ($target === null) {
@@ -94,8 +101,9 @@ function nethvoiceCheckFetchUrl($url, array $schemes = ['http', 'https']): ?arra
     if (!$addresses) {
         return null;
     }
+    $nodeAddresses ??= nethvoiceNodeAddresses();
     foreach ($addresses as $address) {
-        if (nethvoiceIsForbiddenAddress($address)) {
+        if (nethvoiceIsForbiddenAddress($address) || nethvoiceIsNodeAddress($address, $nodeAddresses)) {
             return null;
         }
     }
@@ -135,7 +143,7 @@ function nethvoiceFetchUrl($url, int $connectTimeout = 5, int $timeout = 10)
         error_log(__FILE__ . ':' . __LINE__ . ' curl error: ' . $error);
         return false;
     }
-    if ($primaryIp === '' || nethvoiceIsForbiddenAddress($primaryIp)) {
+    if ($primaryIp === '' || nethvoiceIsForbiddenAddress($primaryIp) || nethvoiceIsNodeAddress($primaryIp, nethvoiceNodeAddresses())) {
         return false;
     }
 
@@ -332,22 +340,11 @@ function nethvoiceIsBuiltinDbConnection(array $connection): bool
         && nethvoiceIsLocalHost($connection['host'] ?? '');
 }
 
-function nethvoiceTargetsBuiltinDbConnection(array $connection, array $builtins): bool
+function nethvoiceTargetsBuiltinDbConnection(array $connection): bool
 {
-    if (nethvoiceIsBuiltinDbConnection($connection)) {
-        return true;
-    }
-    if (!array_key_exists('host', $connection) || !nethvoiceIsLocalHost($connection['host'])) {
-        return false;
-    }
-    $port = is_scalar($connection['port'] ?? null) ? trim((string) $connection['port']) : '';
-    foreach ($builtins as $builtin) {
-        if ($port === '' || $port === trim((string) ($builtin['port'] ?? ''))) {
-            return true;
-        }
-    }
+    $host = $connection['host'] ?? '';
 
-    return false;
+    return nethvoiceIsBuiltinDbConnection($connection) || !is_scalar($host) || nethvoiceIsLocalHost($host);
 }
 
 function nethvoiceIsDatabasePhonebookSource($source): bool

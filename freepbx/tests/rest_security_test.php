@@ -30,6 +30,15 @@ foreach (['http://127.0.0.1/', 'http://localhost:8080/', 'http://[::1]/', 'http:
 }
 check(nethvoiceCheckFetchUrl('http://192.0.2.10/snapshot.jpg')['addresses'] === ['192.0.2.10'], 'public address refused');
 check(nethvoiceCheckFetchUrl('https://192.168.5.20:8443/csv')['addresses'] === ['192.168.5.20'], 'LAN address refused');
+check(nethvoiceCheckFetchUrl('http://192.0.2.10/snapshot.jpg', ['http', 'https'], ['192.0.2.10']) === null, 'an address of the node was fetched');
+check(nethvoiceCheckFetchUrl('http://192.0.2.10/snapshot.jpg', ['http', 'https'], ['::ffff:192.0.2.10']) === null, 'an IPv4 mapped address of the node was fetched');
+check(nethvoiceCheckFetchUrl('http://[2001:db8::10]:20094/', ['http', 'https'], ['2001:db8::10']) === null, 'an IPv6 address of the node was fetched');
+check(nethvoiceCheckFetchUrl('http://192.0.2.11/snapshot.jpg', ['http', 'https'], ['192.0.2.10'])['addresses'] === ['192.0.2.11'], 'an address outside the node refused');
+foreach (nethvoiceNodeAddresses() as $address) {
+    $url = 'http://' . (str_contains($address, ':') ? "[$address]" : $address) . ':20094/';
+    check(nethvoiceCheckFetchUrl($url) === null, "$url of this node must not be fetched");
+    check(nethvoiceFetchUrl($url) === null, "$url of this node must not be fetched");
+}
 
 check(nethvoicePhonebookUrlAllowed('mysql', null, [], false), 'database sources have no URL');
 check(nethvoicePhonebookUrlAllowed('csv', 'file:///var/lib/nethvoice/phonebook/uploads/a.csv', [], true), 'uploaded CSV refused');

@@ -30,6 +30,20 @@ STUBS = {
                 pass
 
         logging.handlers.SysLogHandler = SysLogHandler
+
+        import builtins
+        import os
+
+        procNet = os.environ.get('TEST_PROC_NET')
+        if procNet:
+            realOpen = builtins.open
+
+            def procOpen(file, *args, **kwargs):
+                if file in ('/proc/net/fib_trie', '/proc/net/if_inet6'):
+                    file = os.path.join(procNet, os.path.basename(file))
+                return realOpen(file, *args, **kwargs)
+
+            builtins.open = procOpen
     ''',
     'stubfixture.py': '''
         import json
@@ -352,6 +366,24 @@ QUERY = 'SELECT name, workphone FROM qa_contacts'
 MYSQL = dict(dbtype='mysql', host='crm.example.org', port='3306', user='qa_reader', password='Qa-Source-Pass', dbname='crm', query=QUERY)
 REFUSED = 'Connections to local addresses are not allowed for this source'
 BODY = 'name,workphone\nQA One,01\nQA Two,02\n'
+FIB_TRIE = '''Main:
+  +-- 0.0.0.0/0 3 0 5
+     |-- 0.0.0.0
+        /0 universe UNICAST
+     +-- 127.0.0.0/8 2 0 2
+        |-- 127.0.0.1
+           /32 host LOCAL
+     +-- %s/24 2 0 2
+        |-- %s
+           /24 link UNICAST
+        |-- %s
+           /32 host LOCAL
+        |-- %s
+           /32 link BROADCAST
+'''
+IF_INET6 = '''00000000000000000000000000000001 01 80 10 80       lo
+20010db8000000000000000000000077 02 40 00 00     eth0
+'''
 MISSING_TABLE = {'msg': "Table 'phonebook.sync_status' doesn't exist", 'errno': 1146, 'sqlstate': '42S02'}
 
 
@@ -373,6 +405,13 @@ class ImporterCase(unittest.TestCase):
                         PHONEBOOK_DB_HOST='phonebook.test', PHONEBOOK_DB_PORT='3306', PHONEBOOK_DB_USER='pbookuser',
                         PHONEBOOK_DB_PASS='pbook-db-secret', PHONEBOOK_DB_NAME='phonebook')
         self.env.pop('PYTHONHOME', None)
+
+    def node(self, network, address, broadcast):
+        proc = self.root / 'proc'
+        proc.mkdir(exist_ok=True)
+        (proc / 'fib_trie').write_text(FIB_TRIE % (network, network, address, broadcast))
+        (proc / 'if_inet6').write_text(IF_INET6)
+        self.env['TEST_PROC_NET'] = str(proc)
 
     def source(self, enabled=True, **fields):
         path = self.root / 'source.json'
@@ -657,6 +696,33 @@ class PhonebookImportTest(ImporterCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertNotIn('OPENSOCKETFUNCTION', self.curl_runs()[0]['options'])
 
+    def test_sources_never_connect_to_the_addresses_of_the_node(self):
+        self.node('192.0.2.0', '192.0.2.77', '192.0.2.255')
+        public = 'https://csv.example.org/qa.csv'
+        for address in ['192.0.2.77', '::ffff:192.0.2.77', '2001:db8::77']:
+            with self.subTest(address=address):
+                result = self.csv_check(public, **{public: {'address': address, 'body': BODY}})
+                self.assertEqual(self.error_of(result), {'kind': 'connection', 'details': REFUSED})
+                self.assertEqual(self.curl_runs()[0]['served'], [])
+        for address in ['192.0.2.0', '192.0.2.78', '192.0.2.255', '2001:db8::78']:
+            with self.subTest(address=address):
+                result = self.csv_check(public, **{public: {'address': address, 'body': BODY}})
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_sources_on_an_address_of_the_node_keep_working(self):
+        self.node('192.0.2.0', '192.0.2.77', '192.0.2.255')
+        for url, address in [('http://192.0.2.77:8080/qa.csv', '192.0.2.77'), ('http://[2001:db8::77]:8080/qa.csv', '2001:db8::77')]:
+            with self.subTest(url=url):
+                result = self.csv_check(url, **{url: {'address': address, 'body': BODY}})
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertNotIn('OPENSOCKETFUNCTION', self.curl_runs()[0]['options'])
+        base = 'http://192.0.2.77:8080'
+        self.run_import(self.source(dbtype='infinity', url=base, username='qa', password='Qa-Erp-Pass'), '--check', requests={
+            base + '/servlet/oauth/token': {'status': 200, 'json': {'access_token': 'qa-token'}},
+            base + '/servlet/api/gsfr_fgetaddress_wsapi': {'status': 200, 'json': {'data': []}},
+        })
+        self.assertFalse(self.mounts_log.exists())
+
     def test_infinity_guards_connections_only_for_non_local_hosts(self):
         for base, guarded in [('https://erp.example.org', True), ('http://127.0.0.1:8080', False), ('http://localhost:8080', False)]:
             with self.subTest(base=base):
@@ -730,8 +796,9 @@ class InfinityNetworkTest(ImporterCase):
         self.env['NO_PROXY'] = '*'
         self.env['TEST_NETWORK'] = json.dumps({
             'names': {'erp.example.org': '203.0.113.10', 'lan.example.org': '192.168.10.20', 'rebind.example.org': '127.0.0.1',
+                      'node.example.org': '198.51.100.20',
                       'multi.example.org': ['198.51.100.7', '203.0.113.10']},
-            'routes': {'203.0.113.10': port, '192.168.10.20': port, '198.51.100.7': self.closed_port},
+            'routes': {'203.0.113.10': port, '192.168.10.20': port, '198.51.100.7': self.closed_port, '198.51.100.20': port},
         })
 
     def infinity(self, base):
@@ -758,6 +825,12 @@ class InfinityNetworkTest(ImporterCase):
                 error = self.error_of(self.infinity(base))
                 self.assertEqual(error, {'kind': 'connection', 'details': REFUSED})
                 self.assertEqual(self.server.paths, paths)
+
+    def test_hosts_that_resolve_to_the_node_are_refused(self):
+        self.node('198.51.100.0', '198.51.100.20', '198.51.100.255')
+        error = self.error_of(self.infinity('http://node.example.org:PORT'))
+        self.assertEqual(error, {'kind': 'connection', 'details': REFUSED})
+        self.assertEqual(self.server.paths, [])
 
     def test_local_sources_may_redirect_locally(self):
         result = self.infinity('http://127.0.0.1:PORT/hop')
