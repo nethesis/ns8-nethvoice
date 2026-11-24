@@ -92,8 +92,9 @@ VM_CALLERID_LENGTH=$(db -N -B -e "SELECT CHARACTER_MAXIMUM_LENGTH FROM informati
 if [ -n "${VM_CALLERID_LENGTH}" ] && [ "${VM_CALLERID_LENGTH}" -lt 255 ]; then
     db -e "ALTER TABLE \`asteriskcdrdb\`.\`voicemessages\` MODIFY \`callerid\` varchar(255) DEFAULT ''"
 fi
-# Refresh bundled catalogs only on initialization, update or import.
+# Run database migrations and refresh bundled catalogs on initialization, update or import.
 if $migrate; then
+    db < /docker-entrypoint-initdb.d/85_asterisk.clean_legacy_sip_nat.sql
     # VoIP Providers
     db < /docker-entrypoint-initdb.d/10_asterisk.rest_pjsip_trunks_custom_flags.sql
     db asterisk -e 'DROP TABLE IF EXISTS `providers`'

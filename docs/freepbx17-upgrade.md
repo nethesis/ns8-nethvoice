@@ -4,6 +4,8 @@
 
 This upgrade replaces FreePBX 16 and Asterisk 18. Schedule a maintenance window: existing calls drain before services stop, and new calls are unavailable while the FreePBX modules install. CTI, provisioning and other database consumers can resume after module installation and the initial dialplan reload, using the users already in the database. FreePBX synchronizes users in the background on every start. After the directories sync successfully, it reloads the dialplan and asks the running CTI middleware to refresh its user cache. Asterisk starts without the old generated Macro dialplan. Failure of a required installation step or the initial reload fails startup and the update action. FreePBX stays ready and logs errors if a directory sync, the subsequent reload, or the middleware refresh fails.
 
+**Missing audio or failed outbound calls after a 1.7.x → 1.8.0–1.8.6 upgrade.** FreePBX may have copied an old external address into **Asterisk SIP Settings → General SIP Settings**. The fix prevents future copies. On a previously upgraded PBX, compare the current address with the pre-upgrade snapshot and confirm whether any direct trunk needs it before clearing it. [Check and recover an affected PBX](#recover-pjsip-nat-settings-after-an-earlier-upgrade).
+
 Call forwarding now uses the forwarding owner's routing context, including CTI profile and hotel restrictions. A user whose profile cannot call a mobile number cannot bypass that restriction by forwarding to that number. PJSIP, IAX2 and legacy SIP peers resolve their own context; a virtual, custom, missing or unsupported device without a resolvable context rejects forwarding with cause 21. There is no fallback to unrestricted `from-internal`. Explicit external ring-group destinations retain their configured routing. Check CF, CFU, CFB, follow-me, ring groups and hotel extensions before deployment. TIM forwarding retains Answer/Ringing before the forwarding return (#7321).
 
 QueueExit and QueueMetrics retain the queue-log format of the previously pinned releases (0.0.1 and release/2.11.0.3). IVR names and the additional master-branch IVR events are not introduced. Existing MP3 files remain supported by `format_mp3`.
@@ -19,6 +21,29 @@ Take an NS8 backup before upgrading and verify it can be restored to an isolated
 The update additionally retains a private recovery snapshot under the module state directory, `upgrade-backups/pre-freepbx-*`: all MariaDB databases (compressed SQL), generated Asterisk configuration, AGI scripts, AstDB and CTI configuration, plus running image identities and active services. `complete` means the snapshot finished before migration; `succeeded` means initialization and consumer startup completed. These snapshots contain credentials and are mode 0700/0600. They are supplementary recovery data, not full NS8 backups, and are not automatically removed or restored. Review disk usage and remove successful snapshots after acceptance. On failure keep consumers stopped and use the pre-upgrade NS8 backup to restore the old instance, or repair the failed initialization before retrying. Do not retry an update as a substitute for restoring the old schema.
 
 Inspect failures with `systemctl --user status freepbx` and `journalctl --user -u freepbx`. In the container, `/var/run/nethvoice/freepbx-failed` indicates a required startup step failed; `/var/run/nethvoice/freepbx-ready` exists only after successful initialization. Background imports use `nethvoice-restore-background.service` and retain failed SQL files.
+
+### Recover PJSIP NAT settings after an earlier upgrade
+
+Kamailio and RTPengine handle signaling and media on proxied calls. A trunk connected directly to Asterisk may need an explicit external address or local networks. Before FreePBX installs its modules, NethVoice removes `externip_val`, `localnet_*`, and `netmask_*` rows from the legacy chan_sip table `sipsettings`. General and per-transport NAT settings are stored separately in `kvstore_Sipsettings`.
+
+On a PBX already upgraded to 1.8.0–1.8.6, run this read-only check before the legacy rows are cleaned. Replace `nethvoice1` with the module ID.
+
+```bash
+runagent -m nethvoice1 mysql asterisk -e "
+SELECT DISTINCT g.val AS address_to_review
+FROM kvstore_Sipsettings AS g
+JOIN sipsettings AS s ON s.data = g.val
+WHERE g.id = 'noid' AND g.key = 'externip' AND g.val <> ''
+  AND s.keyword = 'externip_val';
+"
+```
+
+A result flags a PBX for review. An administrator may have selected the same address for a direct trunk after the snapshot was taken. If the legacy row has already been removed, use the snapshot comparison below.
+
+1. Locate the completed snapshot taken immediately before the FreePBX 16 to 17 transition. Check its `freepbx-image` to identify the old release. On a private copy, compare `asterisk/pjsip.transports.conf` in `configuration.tar.gz` with the current file. Compare the settings from the old database in `databases.sql.gz` with their current values. Check general `externip` and `localnets` in `kvstore_Sipsettings` (id `noid`), any per-transport overrides, and the separate `externip_val` row in `sipsettings`. A matching legacy and general IP alone cannot establish who set it.
+2. In **Settings → Asterisk SIP Settings → General SIP Settings**, review **External Address** and **Local Networks** independently. Clear a confirmed copied address if the field should be empty. Remove only confirmed obsolete network entries. Preserve intentional addresses and networks, including changes made for direct trunks since the snapshot. If the snapshot is unavailable, confirm the intended value of each field with the administrator before changing it.
+3. In a maintenance window, let active calls drain, then submit the settings and select **Apply Config**. Check that `/etc/asterisk/pjsip.transports.conf` contains the intended addresses and networks before upgrading to the fixed image. If the fixed image is already installed, restart the FreePBX service in the same window. PJSIP transport changes can require a full Asterisk restart.
+4. Compare the regenerated `/etc/asterisk/pjsip.transports.conf` and the running `pjsip show transport <name>` output for each enabled transport. Verify two-way audio between local and remote extensions and exercise inbound and outbound calls on both direct and proxied trunks.
 
 ## Acceptance test on a disposable NS8 cluster
 

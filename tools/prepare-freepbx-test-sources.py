@@ -13,7 +13,7 @@ dest = Path(sys.argv[1]).resolve()
 dest.mkdir(parents=True, exist_ok=True)
 containerfile = (root / 'freepbx/Containerfile').read_text()
 checksums = dict(line.split()[::-1] for line in (root / 'freepbx/remote-artifacts.sha256').read_text().splitlines())
-for module in ('core', 'framework', 'paging', 'iaxsettings', 'userman'):
+for module in ('core', 'framework', 'paging', 'iaxsettings', 'sipsettings', 'userman'):
     url = re.search(r'install_module ' + module + r' (\S+)', containerfile)[1]
     version = url.removesuffix('.tar.gz').rsplit('/', 1)[1]
     archive = dest / f'{module}-{version}.tar.gz'
