@@ -50,6 +50,7 @@ import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import {
   deletePhonebookSource,
   getLastSyncDisplay,
+  isPbxDatabaseSource,
   type LastSyncDisplay,
   PHONEBOOK_SOURCES_KEY,
   PHONEBOOK_STATUS_KEY,
@@ -62,6 +63,7 @@ import {
   usePhonebookSources,
   usePhonebookSyncStatuses,
 } from '@/queries/integrations/phonebookSources'
+import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
@@ -71,6 +73,7 @@ const { t, locale } = useI18n()
 const runtimeConfigStore = useRuntimeConfigStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
+const { isSuperadmin } = usePermissions()
 const { state, asyncStatus, refetch } = usePhonebookSources()
 const {
   state: statusState,
@@ -136,10 +139,14 @@ const { mutate: syncMutate } = useMutation({
     })
   },
   async onSettled(_data, _error, source) {
-    await queryCache.invalidateQueries({ key: [PHONEBOOK_STATUS_KEY] })
+    await queryCache.invalidateQueries({ key: [PHONEBOOK_STATUS_KEY] }).catch(() => undefined)
     syncingIds.value = syncingIds.value.filter((id) => id !== source.id)
   },
 })
+
+function isReadOnly(source: PhonebookSource): boolean {
+  return !isSuperadmin.value && isPbxDatabaseSource(source)
+}
 
 function describeKind(source: PhonebookSource): string {
   return t(`integrations.phonebook.kind_${source.kind}`)
@@ -372,6 +379,7 @@ function deleteCurrentSource() {
             <NeTableCell :data-label="t('common.actions')">
               <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
                 <NeButton
+                  v-if="!isReadOnly(source)"
                   kind="tertiary"
                   :disabled="source.kind === 'unknown'"
                   @click="showEditDrawer(source)"

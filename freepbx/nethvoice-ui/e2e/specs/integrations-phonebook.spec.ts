@@ -647,6 +647,36 @@ test.describe('integrations: phonebook', () => {
     await expect(drawer(page).getByText('Cannot read phonebook source')).toHaveCount(0)
   })
 
+  test('stays in the first step when the source has no rows to read the columns from', async ({
+    page,
+    mockApi,
+  }) => {
+    let rows: Record<string, string>[] = []
+
+    mockApi.on('POST', '/freepbx/rest/phonebook/test', () => ({
+      json: { rows, total: rows.length },
+    }))
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Create phonebook source' }).click()
+    await fillDatabaseStep(page)
+    await button(page, 'Next').click()
+
+    await expect(drawer(page).getByText('Cannot read the columns')).toBeVisible()
+    await expect(
+      drawer(page).getByText(
+        'The query returned no rows, so there are no columns to map. Change the query or add a contact, then try again.',
+      ),
+    ).toBeVisible()
+    await expect(drawer(page).getByText('Step 1/3')).toBeVisible()
+
+    rows = DB_ROWS.slice(0, 1)
+    await button(page, 'Next').click()
+    await expect(drawer(page).getByText('Step 2/3')).toBeVisible()
+    await expect(drawer(page).getByText('Cannot read the columns')).toHaveCount(0)
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/config')).toHaveLength(0)
+  })
+
   test('validates the name, the port, the query and the MS SQL Server address', async ({
     page,
     mockApi,
@@ -1191,6 +1221,30 @@ test.describe('integrations: phonebook', () => {
     await expect(toasts(page).getByText('Invalid source id')).toBeVisible()
   })
 
+  test('ends the syncing state when the sync status cannot be read again', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('POST', '/freepbx/rest/phonebook/syncnow/:id', () => {
+      mockApi.on('GET', '/freepbx/rest/phonebook/status', { status: 500, json: { status: false } })
+      return { json: { status: true } }
+    })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Open the menu of CRM contacts' }).click()
+    await page.getByRole('menuitem', { name: 'Sync now' }).click()
+
+    await expect(page.getByText('Cannot retrieve the sync status')).toBeVisible()
+    await expect(syncing(page, 'CRM contacts')).toHaveCount(0)
+    await expect(sourceRow(page, 'CRM contacts')).toContainText('Today at 10:00 AM')
+    await page.getByRole('button', { name: 'Open the menu of CRM contacts' }).click()
+    await expect(
+      page
+        .getByRole('menu', { name: 'Open the menu of CRM contacts' })
+        .getByRole('menuitem', { name: 'Sync now' }),
+    ).toBeEnabled()
+  })
+
   test('polls the sync status while a sync is running', async ({ page }) => {
     state.statuses = [
       {
@@ -1677,6 +1731,36 @@ test.describe('integrations: phonebook', () => {
     await page.getByRole('menuitem', { name: 'Switch to light theme' }).click()
     await expect(page.locator('html')).not.toHaveClass(/\bdark\b/)
     await expect(description).toHaveCSS('color', 'oklch(0.446 0.03 256.802)')
+  })
+
+  test('does not offer to edit a database source on the PBX to an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    state.sources.custom_6 = {
+      dbtype: 'mysql',
+      host: '127.0.0.1',
+      port: '3306',
+      user: 'pbx_reader',
+      has_password: true,
+      dbname: 'contacts',
+      query: 'SELECT * FROM contacts',
+      mapping: { name: 'name' },
+      interval: 60,
+      type: 'PBX contacts',
+      access: 'public',
+      enabled: true,
+    }
+    await page.goto('./integrations/phonebook')
+    await expect(page.getByRole('button', { name: 'Edit PBX contacts' })).toBeVisible()
+
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    await page.reload()
+    await expect(sourceRow(page, 'PBX contacts')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Edit PBX contacts' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Edit CRM contacts' })).toBeVisible()
+    await page.getByRole('button', { name: 'Open the menu of PBX contacts' }).click()
+    await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText(['Sync now', 'Delete'])
   })
 
   test('works for an administrator with only the Integrations section', async ({

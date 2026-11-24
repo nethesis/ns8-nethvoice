@@ -6,6 +6,7 @@ import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
 import { isApiError } from '@/lib/api/errors'
 import { compareNatural, foldText } from '@/lib/common'
+import { isLocalHost } from './dbConnections'
 import { type FieldIssues, requiredText, validateForm } from './validation'
 
 export const PHONEBOOK_SOURCES_KEY = 'phonebookSources'
@@ -263,6 +264,9 @@ export const isPhonebookSourceKind = (kind: string): kind is PhonebookSourceKind
 
 export const isDatabaseKind = (kind: string): kind is 'mysql' | 'mssql' =>
   kind === 'mysql' || kind === 'mssql'
+
+export const isPbxDatabaseSource = (source: Pick<PhonebookSource, 'kind' | 'host'>): boolean =>
+  isDatabaseKind(source.kind) && isLocalHost(source.host)
 
 export const isUploadedCsv = (url: string) => url.startsWith(UPLOADED_CSV_PREFIX)
 

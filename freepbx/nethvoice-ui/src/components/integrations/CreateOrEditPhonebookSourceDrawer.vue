@@ -120,6 +120,7 @@ const csvFileIssue = ref('')
 const uploadedFileKey = ref('')
 const lastRead = ref<LastRead | undefined>()
 const isHostRefused = ref(false)
+const hasNoColumns = ref(false)
 const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
 let pendingUploads: string[] = []
@@ -347,6 +348,18 @@ const readError = computed<ReadError | undefined>(() => {
         }
   }
 
+  if (hasNoColumns.value) {
+    return {
+      title: t('integrations.phonebook.cannot_read_columns'),
+      description: t(
+        form.value.kind === 'csv'
+          ? 'integrations.phonebook.read_error_no_rows_file'
+          : 'integrations.phonebook.read_error_no_rows_query',
+      ),
+      details: '',
+    }
+  }
+
   if (testResult.value && !testResult.value.ok) {
     const texts = getReadErrorTexts(testResult.value.kind, form.value.kind)
     return {
@@ -440,6 +453,7 @@ watch(fields, (available) => {
 function resetRead() {
   uploadReset()
   testReset()
+  hasNoColumns.value = false
 }
 
 function showLocalHostRefusal(error: unknown, sourceForm: PhonebookSourceForm): boolean {
@@ -608,6 +622,11 @@ async function readSource(): Promise<boolean> {
       uploadedFileKey.value = ''
       pendingUploads = pendingUploads.filter((url) => url !== form.value.uploadedUrl)
     }
+    return false
+  }
+
+  if (form.value.kind !== 'infinity' && getMappingColumns(result.columns).length === 0) {
+    hasNoColumns.value = true
     return false
   }
   const localTotal = await countUploadedRows()

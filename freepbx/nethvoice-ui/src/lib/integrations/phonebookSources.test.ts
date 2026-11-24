@@ -21,6 +21,7 @@ import {
   isCsvUploadRejected,
   isLocalHostRefusal,
   isNameTaken,
+  isPbxDatabaseSource,
   isUploadedCsv,
   NOT_IMPORTED,
   orderPhonebookFields,
@@ -164,6 +165,17 @@ describe('sharing', () => {
   it('should build the access value', () => {
     expect(buildAccess(['Sales', 'Marketing'])).toBe('group:Sales,Marketing')
     expect(buildAccess([])).toBe('public')
+  })
+})
+
+describe('isPbxDatabaseSource', () => {
+  it('should flag only the database sources on the PBX server', () => {
+    expect(isPbxDatabaseSource({ kind: 'mysql', host: 'localhost' })).toBe(true)
+    expect(isPbxDatabaseSource({ kind: 'mssql', host: ' 127.0.0.1 ' })).toBe(true)
+    expect(isPbxDatabaseSource({ kind: 'mysql', host: '' })).toBe(true)
+    expect(isPbxDatabaseSource({ kind: 'mysql', host: 'crm-db.example.com' })).toBe(false)
+    expect(isPbxDatabaseSource({ kind: 'csv', host: '' })).toBe(false)
+    expect(isPbxDatabaseSource({ kind: 'infinity', host: '' })).toBe(false)
   })
 })
 
