@@ -27,6 +27,13 @@ if [ "$1" = "api" ]; then
         "password": "${REPORTS_PASSWORD}",
         "name": "asteriskcdrdb"
     },
+    "cdr_query_database": {
+        "host": "127.0.0.1",
+        "port": "${NETHVOICE_MARIADB_PORT}",
+        "user": "nethvoice_report_ro",
+        "password": "${REPORTS_PASSWORD}",
+        "name": "asteriskcdrdb"
+    },
     "phonebook_database": {
         "host": "127.0.0.1",
         "port": "${NETHVOICE_MARIADB_PORT}",

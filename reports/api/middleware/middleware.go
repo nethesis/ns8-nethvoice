@@ -168,6 +168,7 @@ func InitJWT() *jwt.GinJWTMiddleware {
 				// create claims map
 				return jwt.MapClaims{
 					identityKey: user.Username,
+					"login_iat": time.Now().Unix(),
 				}
 			}
 
