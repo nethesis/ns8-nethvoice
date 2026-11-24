@@ -141,9 +141,16 @@ function nethvoiceNormalizeAccess($rule): array
     return ['sections' => is_string($rule) ? [$rule] : $rule];
 }
 
+function nethvoiceRuleMethod(string $method): string
+{
+    $method = strtoupper($method);
+
+    return $method === 'HEAD' ? 'GET' : $method;
+}
+
 function nethvoiceRouteAccess(string $method, string $pattern): array
 {
-    $key = strtoupper($method) . ' ' . $pattern;
+    $key = nethvoiceRuleMethod($method) . ' ' . $pattern;
     if (array_key_exists($key, NETHVOICE_ROUTE_RULES)) {
         return nethvoiceNormalizeAccess(NETHVOICE_ROUTE_RULES[$key]);
     }
@@ -458,7 +465,7 @@ function nethvoiceDbConnectionDeleteStatus($id, NethvoiceLimitedAdminLookup $loo
 
 function nethvoiceLimitedAdminRequestStatus(ServerRequestInterface $request, string $pattern, array $arguments, NethvoiceLimitedAdminLookup $lookup): ?int
 {
-    switch (strtoupper($request->getMethod()) . ' ' . $pattern) {
+    switch (nethvoiceRuleMethod($request->getMethod()) . ' ' . $pattern) {
         case 'GET /mobiles/{username}':
             return nethvoiceIsValidUsername($arguments['username'] ?? null) ? null : 400;
         case 'GET /cti/customer_card':
@@ -489,7 +496,7 @@ function nethvoiceLimitedAdminRequestStatus(ServerRequestInterface $request, str
 
 function nethvoiceLimitedAdminResponseFilter(string $method, string $pattern): ?callable
 {
-    return match (strtoupper($method) . ' ' . $pattern) {
+    return match (nethvoiceRuleMethod($method) . ' ' . $pattern) {
         'GET /csv/csvexport' => fn($data) => nethvoiceBase64CsvWithoutColumn($data, NETHVOICE_CSV_PASSWORD_COLUMN),
         'GET /voicemails', 'GET /phonebook/ldap' => fn($data) => nethvoiceWithoutFieldInEach($data, NETHVOICE_SECRET_FIELDS[$pattern]),
         'GET /voicemails/{extension}' => fn($data) => nethvoiceWithoutField($data, NETHVOICE_SECRET_FIELDS['/voicemails']),
@@ -555,7 +562,7 @@ class PermissionMiddleware implements MiddlewareInterface
 
     private function isPublic(ServerRequestInterface $request, RouteInterface $route): bool
     {
-        return in_array(strtoupper($request->getMethod()) . ' ' . $route->getPattern(), self::PUBLIC_ROUTES, true);
+        return in_array(nethvoiceRuleMethod($request->getMethod()) . ' ' . $route->getPattern(), self::PUBLIC_ROUTES, true);
     }
 
     private function isAllowed(ServerRequestInterface $request, RouteInterface $route): bool

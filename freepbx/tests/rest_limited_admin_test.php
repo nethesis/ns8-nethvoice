@@ -459,6 +459,13 @@ $response = send($app, 'phoner', 'GET', '/phonebook/ldap');
 check($response->getStatusCode() === 200, 'the phones section must read the LDAP phonebook');
 check((string) $response->getBody() === '{"ldaps":{"enabled":true,"port":"20014","user":"cn=ldapuser,dc=phonebook,dc=nh","tls":"ldaps","base":"dc=phonebook,dc=nh"}}', 'the LDAP phonebook password is left');
 
+foreach (['/csv/csvexport', '/voicemails', '/voicemails/{extension}', '/phonebook/ldap'] as $pattern) {
+    check(nethvoiceLimitedAdminResponseFilter('HEAD', $pattern) !== null, "HEAD $pattern must remove the same secrets as GET");
+}
+$head = (new ServerRequestFactory())->createServerRequest('HEAD', '/cti/customer_card?permission_id=1');
+check(nethvoiceLimitedAdminRequestStatus($head, '/cti/customer_card', [], $lookup) === 400, 'HEAD /cti/customer_card must pass the request check of GET');
+check(nethvoiceRouteAccess('HEAD', '/users/{username}/password')['sections'] === [NETHVOICE_SUPERADMIN], 'HEAD must follow the explicit rule of GET');
+
 foreach (['*', 'cdr;*', ['*'], 'nethvoice:superadmin', 'nethvoice:users;nethvoice:superadmin'] as $sections) {
     check(nethvoiceKeepsFreepbxSession($sections), json_encode($sections) . ' must keep the FreePBX session');
 }

@@ -46,6 +46,48 @@
       "expect": 200
     },
     {
+      "name": "a users administrator cannot pass SQL through the username of HEAD /mobiles/{username}",
+      "as": "userer",
+      "method": "HEAD",
+      "path": "/mobiles/zz%27%20OR%20SLEEP(3)%20OR%20%27",
+      "expect": 400
+    },
+    {
+      "name": "an integrations administrator cannot filter customer cards on undocumented columns with HEAD",
+      "as": "integrator",
+      "method": "HEAD",
+      "path": "/cti/customer_card?id%3D0%09OR%09SLEEP(2)%09OR%09id=1",
+      "expect": 400
+    },
+    {
+      "name": "HEAD follows the superadmin rule of GET /users/{username}/password",
+      "as": "userer",
+      "method": "HEAD",
+      "path": "/users/alice/password",
+      "expect": 403
+    },
+    {
+      "name": "HEAD follows the superadmin rule of GET /phones/account/{mac}",
+      "as": "phoner",
+      "method": "HEAD",
+      "path": "/phones/account/AC-CD-EF-01-02-03",
+      "expect": 403
+    },
+    {
+      "name": "HEAD follows the lookup rule of GET /me",
+      "as": "dash",
+      "method": "HEAD",
+      "path": "/me",
+      "expect": 200
+    },
+    {
+      "name": "superadmin reaches HEAD /mobiles/{username} with any username, as before",
+      "as": "admin",
+      "method": "HEAD",
+      "path": "/mobiles/a%27b",
+      "expect": 200
+    },
+    {
       "name": "an integrations administrator cannot create a customer card on the PBX phonebook database",
       "as": "integrator",
       "method": "POST",
@@ -472,6 +514,75 @@
       "handler_json": { "mac": "AC-CD-EF-01-02-03", "variables": { "account_username_1": "201", "account_password_1": "sip-secret-1" } },
       "expect": 200,
       "json_equals": { "mac": "AC-CD-EF-01-02-03", "variables": { "account_username_1": "201", "account_password_1": "sip-secret-1" } }
+    },
+    {
+      "name": "a users administrator reads the phone defaults without the phone and LDAP passwords",
+      "as": "userer",
+      "method": "GET",
+      "path": "/defaults",
+      "handler_json": { "adminpw": "admin-secret", "userpw": "user-secret", "ldap_password": "ldap-secret", "language": "it" },
+      "expect": 200,
+      "json_equals": { "language": "it" }
+    },
+    {
+      "name": "a phones administrator reads the phone passwords in the defaults but not the LDAP password",
+      "as": "phoner",
+      "method": "GET",
+      "path": "/defaults",
+      "handler_json": { "adminpw": "admin-secret", "userpw": "user-secret", "ldap_password": "ldap-secret", "language": "it" },
+      "expect": 200,
+      "json_equals": { "adminpw": "admin-secret", "userpw": "user-secret", "language": "it" }
+    },
+    {
+      "name": "superadmin reads every phone default, as before",
+      "as": "admin",
+      "method": "GET",
+      "path": "/defaults",
+      "handler_json": { "adminpw": "admin-secret", "userpw": "user-secret", "ldap_password": "ldap-secret", "language": "it" },
+      "expect": 200,
+      "json_equals": { "adminpw": "admin-secret", "userpw": "user-secret", "ldap_password": "ldap-secret", "language": "it" }
+    },
+    {
+      "name": "a users administrator reads a phone without its provisioning tokens and URLs",
+      "as": "userer",
+      "method": "GET",
+      "path": "/phones/AC-CD-EF-01-02-03",
+      "handler_json": { "mac": "AC-CD-EF-01-02-03", "tok1": "first-token", "tok2": "token", "variables": { "adminpw": "phone-admin" }, "provisioning_url1": "https://pbx.example.org/provisioning/first-token/x.cfg", "provisioning_url2": "https://pbx.example.org/provisioning/token/x.cfg" },
+      "expect": 200,
+      "json_equals": { "mac": "AC-CD-EF-01-02-03", "variables": [] }
+    },
+    {
+      "name": "a phones administrator reads the provisioning URLs of a phone",
+      "as": "phoner",
+      "method": "GET",
+      "path": "/phones/AC-CD-EF-01-02-03",
+      "handler_json": { "mac": "AC-CD-EF-01-02-03", "tok1": "first-token", "tok2": "token", "variables": { "adminpw": "phone-admin" }, "provisioning_url1": "https://pbx.example.org/provisioning/first-token/x.cfg", "provisioning_url2": "https://pbx.example.org/provisioning/token/x.cfg" },
+      "expect": 200,
+      "json_equals": { "mac": "AC-CD-EF-01-02-03", "tok1": "first-token", "tok2": "token", "variables": { "adminpw": "phone-admin" }, "provisioning_url1": "https://pbx.example.org/provisioning/first-token/x.cfg", "provisioning_url2": "https://pbx.example.org/provisioning/token/x.cfg" }
+    },
+    {
+      "name": "a phones administrator cannot write the LDAP phonebook password",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/defaults",
+      "body": { "ldap_password": "new-secret" },
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator changes the phone admin password",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/defaults",
+      "body": { "adminpw": "New-Admin-Pw-1!" },
+      "expect": 200
+    },
+    {
+      "name": "a users administrator cannot set the admin password of a phone",
+      "as": "userer",
+      "method": "PATCH",
+      "path": "/phones/AC-CD-EF-01-02-03",
+      "body": { "variables": { "adminpw": "New-Admin-Pw-1!" } },
+      "expect": 403
     },
     {
       "name": "a dashboard administrator cannot reach Tancredi",

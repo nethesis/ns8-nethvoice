@@ -34,6 +34,18 @@ const CTI_DBCONN_PASSWORD_REQUIRED = 'Enter the password to connect to a differe
 const CTI_PREVIEW_INVALID = 'Invalid customer card preview fields';
 const CTI_PREVIEW_UNREACHABLE = 'The CTI server is not reachable';
 const CTI_PREVIEW_FAILED = 'The CTI server cannot show the preview';
+const CTI_CUSTOMER_CARD_COLUMNS = ['id', 'name', 'creation', 'query', 'template', 'dbconn_id', 'permission_id'];
+
+function ctiCustomerCardFilters(array $params): ?array
+{
+    foreach ($params as $name => $value) {
+        if (!in_array($name, CTI_CUSTOMER_CARD_COLUMNS, true) || !is_scalar($value)) {
+            return null;
+        }
+    }
+
+    return $params;
+}
 
 function ctiStoredDbConnection($dbh, $id): ?array
 {
@@ -255,17 +267,19 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
 $app->post('/cti/profiles', function (Request $request, Response $response, $args) {
     try {
         $profile = $request->getParsedBody();
-        $name = isset($profile['name']) && is_string($profile['name']) ? trim($profile['name']) : '';
-        if ($name === '') {
-            return jsonResponse($response, array('message' => 'Profile name cannot be empty'), 422);
+        if (!nethvoiceRequestIsSuperadmin($request)) {
+            $name = isset($profile['name']) && is_string($profile['name']) ? trim($profile['name']) : '';
+            if ($name === '') {
+                return jsonResponse($response, array('message' => 'Profile name cannot be empty'), 422);
+            }
+            $dbh = FreePBX::Database();
+            $sth = $dbh->prepare('SELECT COUNT(*) FROM `rest_cti_profiles` WHERE `name` = ?');
+            $sth->execute(array($name));
+            if ($sth->fetchColumn() > 0) {
+                return jsonResponse($response, array('message' => 'A profile with this name already exists'), 409);
+            }
+            $profile['name'] = $name;
         }
-        $dbh = FreePBX::Database();
-        $sth = $dbh->prepare('SELECT COUNT(*) FROM `rest_cti_profiles` WHERE `name` = ?');
-        $sth->execute(array($name));
-        if ($sth->fetchColumn() > 0) {
-            return jsonResponse($response, array('message' => 'A profile with this name already exists'), 409);
-        }
-        $profile['name'] = $name;
         $id = postCTIProfile($profile);
         if ($id) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -954,18 +968,22 @@ $app->get('/cti/customer_card', function (Request $request, Response $response, 
     try {
         $route = $request->getAttribute('route');
         $data = $request->getParsedBody();
-        $params = $request->getQueryParams();
+        $params = ctiCustomerCardFilters($request->getQueryParams());
+        if ($params === null) {
+            return jsonResponse($response, array('message' => 'Invalid customer card filter'), 400);
+        }
         $args = array();
+        $filters = array();
 
         $dbh = NethCTI::Database();
         $sql = 'SELECT * FROM customer_card';
 
-        if (count($params) > 0) {
-            $sql .= ' WHERE';
-            foreach ($params as $name => $val) {
-                $sql .= ' '. $name. ' = ?';
-                $args[] = $val;
-            }
+        foreach ($params as $name => $val) {
+            $filters[] = $name. ' = ?';
+            $args[] = $val;
+        }
+        if ($filters) {
+            $sql .= ' WHERE '. implode(' AND ', $filters);
         }
 
         $sth = $dbh->prepare($sql);
@@ -1142,9 +1160,15 @@ $app->put('/cti/customer_card/{id}', function (Request $request, Response $respo
         if (isset($data['name']) && $data['name'] !== $name) {
             $dbi = FreePBX::Database();
             $permname = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$data['name'])));
-            $sql = 'UPDATE rest_cti_permissions SET name = ?, displayname = ? WHERE id = ?';
-            $sth = $dbi->prepare($sql);
-            $res = $sth->execute(array($permname, $data['name'], $permission_id));
+            $sth = $dbi->prepare('SELECT COUNT(*) FROM rest_cti_permissions WHERE name = ? AND id != ?');
+            $sth->execute(array($permname, $permission_id));
+            if ($sth->fetchColumn() > 0) {
+                $sth = $dbi->prepare('UPDATE rest_cti_permissions SET displayname = ? WHERE id = ?');
+                $res = $sth->execute(array($data['name'], $permission_id));
+            } else {
+                $sth = $dbi->prepare('UPDATE rest_cti_permissions SET name = ?, displayname = ? WHERE id = ?');
+                $res = $sth->execute(array($permname, $data['name'], $permission_id));
+            }
 
             if ($res === FALSE) {
                 throw new Exception($sth->errorInfo()[2]);

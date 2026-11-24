@@ -57,7 +57,7 @@
     "POST /testauth": {
       "intent": "public",
       "callers": ["ui:shell", "legacy"],
-      "reason": "The login endpoint: it is the authenticator, so it is reachable without credentials."
+      "reason": "The login endpoint: it is the authenticator, so it is reachable without credentials; failed attempts share the limits of POST /signin."
     },
     "POST /signin": {
       "intent": "public",
@@ -315,7 +315,7 @@
     "GET /cti/customer_card": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Lists customer cards; only the documented filters are accepted from limited administrators."
+      "reason": "Lists customer cards; filters must be customer card columns for every caller, and only the documented ones for limited administrators."
     },
     "POST /cti/customer_card": {
       "intent": "integrations",
@@ -345,7 +345,7 @@
     "PUT /cti/streaming/{descr}": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Edits a video source."
+      "reason": "Edits a video source; only video source permissions are renamed."
     },
     "POST /cti/streaming": {
       "intent": "integrations",
@@ -483,7 +483,7 @@
     "GET /mobiles/{username}": {
       "intent": "superadmin",
       "callers": ["legacy"],
-      "reason": "Mobile number of one user, read only by the previous wizard; the handler builds its SQL from the path.",
+      "reason": "Mobile number of one user, read only by the previous wizard; the handler binds the username from the path.",
       "known_finding": "Open to the users section through the /mobiles prefix rule although only the previous wizard uses it; a request check limits the username for limited administrators."
     },
     "POST /mobiles": {

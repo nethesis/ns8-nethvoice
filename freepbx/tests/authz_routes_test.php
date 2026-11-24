@@ -272,6 +272,9 @@ foreach ($scenarios['tancredi'] as $scenario) {
     $request = (new ServerRequestFactory())->createServerRequest($scenario['method'], 'http://localhost/tancredi/api/v1' . $scenario['path'])
         ->withHeader('User', $scenario['as'])
         ->withHeader('Secretkey', sha1($scenario['as'] . sha1($scenario['as']) . TANCREDI_SECRET));
+    if (array_key_exists('body', $scenario)) {
+        $request = $request->withHeader('Content-Type', 'application/json')->withBody((new StreamFactory())->createStream(json_encode($scenario['body'])));
+    }
     $handler = new FixedHandler(array_key_exists('handler_json', $scenario) ? json_encode($scenario['handler_json']) : null);
     try {
         checkResponse($scenario, $tancredi->process($request, $handler), $label);
