@@ -139,7 +139,7 @@ function saveAndContinue() {
         })
         return false
       }
-      await queryCache.invalidateQueries({ key: [PBX_LANGUAGES_KEY] })
+      await queryCache.invalidateQueries({ key: [PBX_LANGUAGES_KEY] }).catch(() => undefined)
     }
     setupStore.country = country.value
   })

@@ -1,16 +1,43 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, mockWizardState, test } from '../fixtures/mockApi'
+import { expect, type MockApi, mockWizardState, test } from '../fixtures/mockApi'
+
+const WIZARD_PATH = '/freepbx/rest/configuration/wizard'
+
+const LANGUAGES = { it: { default: false }, en: { default: true } }
+
+const failFirstReadAfterSave = (
+  mockApi: MockApi,
+  readPath: string,
+  savePath: string,
+  read: () => unknown,
+) => {
+  let saves = 0
+
+  return mockApi.on('GET', readPath, () => {
+    const current = mockApi.callsTo('POST', savePath).length
+
+    if (current > saves) {
+      saves = current
+      return { status: 500, json: { message: 'busy' } }
+    }
+    return { json: read() }
+  })
+}
+
+const failFirstWizardReadAfterSave = (mockApi: MockApi) =>
+  failFirstReadAfterSave(mockApi, WIZARD_PATH, WIZARD_PATH, () => {
+    const saved = mockApi.callsTo('POST', WIZARD_PATH).at(-1)
+    return saved ? [saved.body] : []
+  })
 
 test.describe('setup wizard: welcome and system settings', () => {
   test.beforeEach(({ signedIn, mockApi }) => {
     void signedIn
     mockWizardState(mockApi, null)
     mockApi
-      .on('GET', '/freepbx/rest/settings/languages', {
-        json: { it: { default: false }, en: { default: true } },
-      })
+      .on('GET', '/freepbx/rest/settings/languages', { json: LANGUAGES })
       .on('GET', '/freepbx/rest/outboundroutes/supportedLocales', {
         json: ['it', 'en', 'de', 'es', 'fr'],
       })
@@ -40,6 +67,19 @@ test.describe('setup wizard: welcome and system settings', () => {
       step: 0,
       status: 'true',
     })
+  })
+
+  test('welcome page starts the wizard when only reading the progress again fails', async ({
+    page,
+    mockApi,
+  }) => {
+    failFirstWizardReadAfterSave(mockApi)
+
+    await page.goto('./setup')
+    await page.getByRole('button', { name: 'Start setup' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/system$/)
+    await expect(page.getByText('Cannot save the setup progress')).toHaveCount(0)
   })
 
   test('welcome page links the documentation in a new tab', async ({ page }) => {
@@ -99,6 +139,29 @@ test.describe('setup wizard: welcome and system settings', () => {
       status: 'true',
     })
     expect(await page.evaluate(() => localStorage.getItem('nethvoiceSetupCountry'))).toBe('it')
+  })
+
+  test('moves to the users step when only reading the saved data again fails', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.allowUnmockedCalls()
+    failFirstWizardReadAfterSave(mockApi)
+    failFirstReadAfterSave(
+      mockApi,
+      '/freepbx/rest/settings/languages',
+      '/freepbx/rest/settings/defaultlanguage',
+      () => LANGUAGES,
+    )
+
+    await page.goto('./setup/system')
+    await page.getByRole('combobox', { name: 'PBX language' }).click()
+    await page.getByRole('option', { name: 'Italiano' }).click()
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
+    await expect(page.getByText('Cannot save the setup progress')).toHaveCount(0)
+    expect(mockApi.callsTo('POST', WIZARD_PATH).at(-1)?.body).toEqual({ step: 1, status: 'true' })
   })
 
   test('does not write the language when it did not change', async ({ page, mockApi }) => {

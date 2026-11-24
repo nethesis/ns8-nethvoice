@@ -140,7 +140,7 @@ async function completeSetup() {
     }
     await postWizardState(LEGACY_FINAL_STEP, false)
     setupStore.reset()
-    await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] })
+    await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] }).catch(() => undefined)
     await router.replace({ name: 'dashboard' })
   } catch (error) {
     completionStarted = false

@@ -43,7 +43,7 @@ export function useSetupNavigation(stepId: SetupStepId) {
         return
       }
       await postWizardState(getLegacyStepToSave(nextStep.legacyStep, savedState), true)
-      await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] })
+      await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] }).catch(() => undefined)
       await router.push({ name: `setup-${nextStep.id}` })
     } catch (error) {
       notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'), {

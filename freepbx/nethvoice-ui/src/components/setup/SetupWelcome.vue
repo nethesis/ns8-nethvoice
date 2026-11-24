@@ -82,7 +82,7 @@ async function startSetup() {
       return
     }
     await postWizardState(firstStep.legacyStep, true)
-    await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] })
+    await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] }).catch(() => undefined)
     await router.push({ name: `setup-${firstStep.id}` })
   } catch (error) {
     notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'), {

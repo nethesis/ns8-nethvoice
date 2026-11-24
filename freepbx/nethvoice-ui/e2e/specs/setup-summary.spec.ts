@@ -299,6 +299,35 @@ test.describe('setup wizard: summary', () => {
     expect(await page.evaluate(() => localStorage.getItem('nethvoiceSetupCountry'))).toBe('')
   })
 
+  test('opens the dashboard when only reading the completed setup again fails', async ({
+    page,
+    mockApi,
+  }) => {
+    let reads = 0
+
+    mockDashboard(mockApi)
+    mockApi.on('GET', '/freepbx/rest/configuration/wizard', () => {
+      const saved = mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard').at(-1)
+
+      if (!saved) {
+        return { json: [{ step: 12, status: 'true' }] }
+      }
+      reads += 1
+      return reads === 1 ? { status: 500, json: { message: 'busy' } } : { json: [saved.body] }
+    })
+
+    await page.goto('./setup/summary')
+    await expect(section(page, '6. Outbound routes')).toContainText('National')
+    await page.getByRole('button', { name: 'Finish setup' }).click()
+    await page
+      .getByRole('dialog', { name: 'Finish setup' })
+      .getByRole('button', { name: 'Finish', exact: true })
+      .click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(page.getByText('Cannot complete the setup')).toHaveCount(0)
+  })
+
   test('does not restart a setup completed in another session', async ({ page, mockApi }) => {
     mockDashboard(mockApi)
 
