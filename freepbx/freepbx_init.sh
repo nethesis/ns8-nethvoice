@@ -202,27 +202,47 @@ php /apply-instance-bindings.php || exit $?
 # fwconsole chown broadens config permissions; restore the metrics secret mode.
 chmod 0640 /etc/asterisk/prometheus.conf || exit $?
 
-# Sync users
-fwconsole userman --syncall --force --verbose || exit $?
+reload_freepbx() {
+    local reload_attempt reload_status reload_output
+    # NethCTI can trigger a concurrent reload. Retry only a reload-lock rejection.
+    for ((reload_attempt=1; reload_attempt<=60; reload_attempt++)); do
+        reload_status=0
+        reload_output=$(su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload" 2>&1) || reload_status=$?
+        printf '%s\n' "$reload_output"
+        if [[ $reload_status -eq 0 ]]; then
+            return 0
+        fi
+        if [[ $reload_status -ne 255 || "$reload_output" != *'Process is already running.'* || $reload_attempt -eq 60 ]]; then
+            return "$reload_status"
+        fi
+        echo "FreePBX reload is busy, retrying in five seconds" >&2
+        sleep 5
+    done
+}
 
-# Userman sync can launch a background reload through NethCTI. Retry only the
-# explicit FreePBX reload-lock rejection, allowing up to five minutes to drain.
-for ((reload_attempt=1; reload_attempt<=60; reload_attempt++)); do
-    reload_status=0
-    reload_output=$(su asterisk -s /bin/sh -c "/var/lib/asterisk/bin/fwconsole reload" 2>&1) || reload_status=$?
-    printf '%s\n' "$reload_output"
-    if [[ $reload_status -eq 0 ]]; then
-        break
-    fi
-    if [[ $reload_status -ne 255 || "$reload_output" != *'Process is already running.'* || $reload_attempt -eq 60 ]]; then
-        exit "$reload_status"
-    fi
-    echo "FreePBX reload is busy, retrying in five seconds" >&2
-    sleep 5
-done
-
-# Required modules, user synchronization and reload have all completed.
+# Start serving with the users already in the database.
+reload_freepbx || exit $?
 touch "$ready" || exit $?
+
+# Refresh the directory and regenerate CTI configuration after startup.
+(
+    trap - EXIT
+    fwconsole userman --syncall --force --verbose || {
+        status=$?
+        echo "FreePBX user sync failed (exit $status)" >&2
+        exit "$status"
+    }
+    reload_freepbx || {
+        status=$?
+        echo "FreePBX post-sync reload failed (exit $status)" >&2
+        exit "$status"
+    }
+    /bin/bash /var/www/html/freepbx/rest/lib/middlewareProfilesReloadHelper.sh --after-reload || {
+        status=$?
+        echo "FreePBX post-sync middleware refresh failed (exit $status)" >&2
+        exit "$status"
+    }
+) &
 
 # Tancredi starts after FreePBX is ready; RPS maintenance must not block startup.
 (
