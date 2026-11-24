@@ -22,8 +22,15 @@ class FreepbxInitTest(unittest.TestCase):
 echo "$(basename "$0") $*" >> "$TEST_CALLS"
 case "$(basename "$0")" in
 asterisk) echo 'Asterisk 22';;
-fwconsole) if [[ "$*" == 'ma list' ]]; then echo '| core | 17.0 | Disabled |'; fi;;
-su) exit "${TEST_RELOAD_EXIT:-0}";;
+fwconsole)
+    if [[ "$*" == 'ma list' ]]; then echo '| core | 17.0 | Disabled |'; fi
+    if [[ "$*" == 'userman --syncall --force --verbose' && -n "${TEST_SYNC_GATE:-}" ]]; then
+        touch "$TEST_SYNC_GATE.entered"
+        until test -f "$TEST_SYNC_GATE"; do /bin/sleep 0.05; done
+    fi;;
+su)
+    if test -f "$TEST_READY"; then exit "${TEST_POST_SYNC_RELOAD_EXIT:-0}"; fi
+    exit "${TEST_RELOAD_EXIT:-0}";;
 curl)
     count_file="$TEST_CALLS.curl-count"
     count=0
@@ -39,7 +46,6 @@ php)
     if [[ "$*" == *phonesRpsResetHelper* && -n "${TEST_RPS_GATE:-}" ]]; then
         touch "$TEST_RPS_GATE.entered"
         until test -f "$TEST_RPS_GATE"; do /bin/sleep 0.05; done
-        touch "$TEST_RPS_GATE.done"
     fi
     cat >/dev/null;;
 esac
@@ -61,7 +67,8 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
     def run_init(self, **extra):
         result = subprocess.run(['bash', str(self.script)],
                                 env=dict(os.environ, PATH=str(self.root) + ':' + os.environ['PATH'],
-                                         TEST_CALLS=str(self.calls), TANCREDIPORT='20001', **extra),
+                                         TEST_CALLS=str(self.calls), TEST_READY=str(self.ready),
+                                         TANCREDIPORT='20001', **extra),
                                 capture_output=True, text=True, timeout=20)
         return result, self.calls.read_text()
 
@@ -88,22 +95,37 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
     def test_failed_reload_stops_remaining_initialization(self):
         result, calls = self.run_init(TEST_RELOAD_EXIT='1')
         self.assertEqual(result.returncode, 1)
+        self.assertNotIn('fwconsole userman --syncall', calls)
         self.assertNotIn('phonesRpsResetHelper', calls)
         self.assertNotIn('core restart', calls)
         self.assertFalse(self.ready.exists())
         self.assertTrue((self.root / "freepbx-failed").exists())
 
-    def test_required_step_failures_stop_initialization(self):
-        for command in ['fwconsole moduleadmin --skipchown install core',
-                        'fwconsole userman --syncall --force --verbose']:
-            with self.subTest(command=command):
-                self.calls.unlink(missing_ok=True)
-                result, calls = self.run_init(TEST_FAILURE=command)
-                self.assertEqual(result.returncode, 1, result.stderr)
-                self.assertNotIn('su asterisk', calls)
-                self.assertNotIn('phonesRpsResetHelper', calls)
-                self.assertNotIn('slow_database_updates.php', calls)
-                self.assertFalse(self.ready.exists())
+    def test_module_install_failure_stops_initialization(self):
+        result, calls = self.run_init(TEST_FAILURE='fwconsole moduleadmin --skipchown install core')
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertNotIn('su asterisk', calls)
+        self.assertNotIn('fwconsole userman --syncall', calls)
+        self.assertNotIn('phonesRpsResetHelper', calls)
+        self.assertNotIn('slow_database_updates.php', calls)
+        self.assertFalse(self.ready.exists())
+        self.assertTrue((self.root / 'freepbx-failed').exists())
+
+    def test_failed_sync_preserves_readiness_and_skips_second_reload(self):
+        result, calls = self.run_init(TEST_FAILURE='fwconsole userman --syncall --force --verbose')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('FreePBX user sync failed (exit 1)', result.stderr)
+        self.assertEqual(calls.count('su asterisk'), 1)
+        self.assertTrue(self.ready.exists())
+        self.assertFalse((self.root / 'freepbx-failed').exists())
+
+    def test_failed_post_sync_reload_preserves_readiness(self):
+        result, calls = self.run_init(TEST_POST_SYNC_RELOAD_EXIT='7')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('FreePBX post-sync reload failed (exit 7)', result.stderr)
+        self.assertEqual(calls.count('su asterisk'), 2)
+        self.assertTrue(self.ready.exists())
+        self.assertFalse((self.root / 'freepbx-failed').exists())
 
     def test_optional_step_failures_do_not_skip_final_initialization(self):
         for command in ['ionice -c2 -n7 nice -n 10 fwconsole chown --module=framework',
@@ -138,33 +160,43 @@ if [[ "$(basename "$0") $*" == "${TEST_FAILURE:-}" ]]; then exit 1; fi
         self.assertTrue(self.ready.exists())
         self.assertFalse((self.root / 'freepbx-failed').exists())
 
-    def test_blocked_rps_does_not_hold_up_initialization(self):
+    def check_background_job(self, gate_variable):
         # Run the production script without the test harness's final wait.
         self.script.write_text(self.script.read_text().removesuffix('\nwait\n'))
-        gate = self.root / 'rps-release'
-        with (self.root / 'output').open('w') as output:
-            process = subprocess.Popen(
+        gate = self.root / 'release'
+        with subprocess.Popen(
                 ['bash', str(self.script)], stdin=subprocess.DEVNULL,
-                stdout=output, stderr=output,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 env=dict(os.environ, PATH=str(self.root) + ':' + os.environ['PATH'],
-                         TEST_CALLS=str(self.calls), TANCREDIPORT='20001', TEST_RPS_GATE=str(gate)))
+                         TEST_CALLS=str(self.calls), TEST_READY=str(self.ready),
+                         TANCREDIPORT='20001', **{gate_variable: str(gate)})) as process:
             try:
                 self.assertEqual(process.wait(timeout=10), 0)
                 deadline = time.monotonic() + 5
                 while not gate.with_suffix('.entered').exists() and time.monotonic() < deadline:
                     time.sleep(0.05)
                 self.assertTrue(gate.with_suffix('.entered').exists())
-                self.assertFalse(gate.with_suffix('.done').exists())
                 self.assertTrue(self.ready.exists())
                 self.assertFalse((self.root / 'freepbx-failed').exists())
+                blocked_calls = self.calls.read_text()
             finally:
                 gate.touch()
                 if process.poll() is None:
                     process.kill()
-                    process.wait()
-                deadline = time.monotonic() + 5
-                while not gate.with_suffix('.done').exists() and time.monotonic() < deadline:
-                    time.sleep(0.05)
+                # Background jobs inherit stdout. EOF means they have finished.
+                process.communicate(timeout=5)
+        return blocked_calls
+
+    def test_blocked_rps_does_not_hold_up_initialization(self):
+        self.check_background_job('TEST_RPS_GATE')
+
+    def test_blocked_sync_reloads_after_initialization(self):
+        blocked_calls = self.check_background_job('TEST_SYNC_GATE')
+        self.assertEqual(blocked_calls.count('su asterisk'), 1)
+        self.assertLess(blocked_calls.index('su asterisk'), blocked_calls.index('fwconsole userman'))
+        calls = self.calls.read_text()
+        self.assertEqual(calls.count('fwconsole userman'), 1)
+        self.assertEqual(calls.count('su asterisk'), 2)
 
 
 if __name__ == '__main__':

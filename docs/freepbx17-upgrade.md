@@ -2,7 +2,7 @@
 
 ## Release notes
 
-This upgrade replaces FreePBX 16 and Asterisk 18. Schedule a maintenance window: existing calls drain before services stop, and new calls are unavailable while the FreePBX modules install. CTI, provisioning and other database consumers resume only after FreePBX finishes installation, user synchronization and its final reload. Asterisk starts without the old generated Macro dialplan. A failed required installation, sync or reload fails service startup and the update action.
+This upgrade replaces FreePBX 16 and Asterisk 18. Schedule a maintenance window: existing calls drain before services stop, and new calls are unavailable while the FreePBX modules install. CTI, provisioning and other database consumers can resume after module installation and the initial dialplan reload, using the users already in the database. FreePBX synchronizes users in the background on every start and reloads again after a successful sync to apply directory changes to CTI. Asterisk starts without the old generated Macro dialplan. Failure of a required installation step or the initial reload fails startup and the update action. A background sync or post-sync reload failure is logged and FreePBX stays ready.
 
 Call forwarding now uses the forwarding owner's routing context, including CTI profile and hotel restrictions. A user whose profile cannot call a mobile number cannot bypass that restriction by forwarding to that number. PJSIP, IAX2 and legacy SIP peers resolve their own context; a virtual, custom, missing or unsupported device without a resolvable context rejects forwarding with cause 21. There is no fallback to unrestricted `from-internal`. Explicit external ring-group destinations retain their configured routing. Check CF, CFU, CFB, follow-me, ring groups and hotel extensions before deployment. TIM forwarding retains Answer/Ringing before the forwarding return (#7321).
 
@@ -31,6 +31,8 @@ These checks require a real version-16 instance, an old backup and test SIP trun
 5. Inject a required module installation failure and then a reload failure in separate disposable restores. Verify startup/update fail, downstream services remain stopped and recovery files remain. Restore the pre-upgrade NS8 backup to the old release and verify calls, credentials, files and database contents; never just switch the image tag back.
 6. Restore the old backup directly into the new release. Verify provider/gateway catalogs, `rest_pjsip_trunks_custom_flags`, phonebook permissions 10/14 and bindings. Run configure a second time and confirm it neither re-enables transports nor re-grants administrator-revoked permissions. Verify historic CDR import does not block the action.
 7. Complete the wizard and exercise gateway create/edit/push failure, notification write failure, CSV sync failure, users without extensions, and physical-device line selection. Test REST without headers on `/users/testauth`, `/trunks/testauth` and PUT `/cti/customer_card/template/testauth`: all must return 403. Test valid auth, invalid auth, JSON errors and OPTIONS. Check Boss Secretary POST/CSRF, malicious labels and group IDs, queue reports, MP3 playback and authenticated HTTPS metrics.
+
+8. With a large directory, change the email address of a CTI test user at the provider and restart FreePBX. Verify that `freepbx.service` becomes active while Userman is still syncing. After the background reload, confirm that CTI shows the new email address.
 
 ## Automated checks
 
