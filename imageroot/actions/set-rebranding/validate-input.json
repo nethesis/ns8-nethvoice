@@ -48,7 +48,8 @@
         },
         "rebranding_login_people": {
             "description": "NethVoice rebranding show/hide people on login",
-            "type": "string"
+            "type": "string",
+            "enum": ["show", "hide", ""]
         },
         "rebranding_navbar_logo_url": {
             "description": "NethVoice rebranding link to navbar logo",

@@ -229,6 +229,13 @@ class SetRebrandingSchemaTest(unittest.TestCase):
         self.assertEqual(self.errors(rebranding_reports_brand_name='A' * 65), ['rebranding_reports_brand_name'])
         self.assertEqual(self.errors(rebranding_brand_name='A' * 64), [])
 
+    def test_login_people_accepts_only_its_values(self):
+        for value in ('show', 'hide', ''):
+            self.assertEqual(self.errors(rebranding_login_people=value), [])
+        for value in ('show\nNETHVOICE_X=y', 'yes', 'Show'):
+            with self.subTest(value=value):
+                self.assertEqual(self.errors(rebranding_login_people=value), ['rebranding_login_people'])
+
     def test_every_url_field_accepts_only_plain_http_urls(self):
         url_fields = sorted(key for key in self.validator.schema['properties'] if key.endswith('_url'))
         self.assertIn('rebranding_wizard_logo_light_url', url_fields)
