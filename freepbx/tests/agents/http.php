@@ -8,6 +8,7 @@ $db=new PDO(getenv('M0_TEST_DSN').';dbname=asterisk','root','',[PDO::ATTR_ERRMOD
 $db->exec('CREATE TABLE IF NOT EXISTS ampusers (username VARCHAR(100) PRIMARY KEY,password_sha1 VARCHAR(100),sections VARCHAR(100))');
 $q=$db->prepare('INSERT INTO ampusers VALUES (?,?,?) ON DUPLICATE KEY UPDATE password_sha1=VALUES(password_sha1),sections=VALUES(sections)');
 $q->execute(['http-admin','synthetic-password-hash','*']);
+$q->execute(['http-viewer','synthetic-viewer-hash','devices']);
 class FreePBX {
     public static function Database() { return $GLOBALS['db']; }
     public static function Satellite() { return new class {
@@ -43,6 +44,17 @@ $csrf=['X-Agents-CSRF'=>$access['csrf']];
 [$status]=api('POST','/trunks/models',['provider'=>'grok','unexpected'=>true],$csrf); assert($status===422);
 [$status,$models]=api('POST','/trunks/models',['provider'=>'grok'],$csrf); assert($status===200 && $models['source']==='provider_managed');
 assert(!str_contains(json_encode($models),'api_key'));
+// The configuration action uses the same administrator, CSRF and envelope protections.
+$webhookPath='/trunks/trunk_unknown/configure-webhook';
+foreach ([[],['Secretkey'=>'wrong'],['Origin'=>'https://cross-site.example']] as $headers) {
+    [$status]=api('POST',$webhookPath,['expected_revision'=>1],$headers ? $headers+$csrf : []);assert($status===403);
+}
+[$status]=api('POST',$webhookPath,['expected_revision'=>1],$csrf+['User'=>'http-viewer','Secretkey'=>sha1('http-viewer'.'synthetic-viewer-hash'.'synthetic-http-secret')]);assert($status===403);
+foreach (['api_key','url','openai_project_id','signing_secret'] as $field) {
+    [$status]=api('POST',$webhookPath,['expected_revision'=>1,$field=>'must-not-be-accepted'],$csrf);assert($status===422);
+}
+[$status]=api('POST',$webhookPath,['expected_revision'=>false],$csrf);assert($status===422);
+[$status]=api('POST',$webhookPath,['expected_revision'=>1],$csrf);assert($status===404);
 [$status]=api('GET','/profiles',null,['Secretkey'=>'wrong']); assert($status===403);
 [$status]=api('GET','/catalog',null,['Origin'=>'https://cross-site.example']); assert($status===403);
 [$status]=api('POST','/profiles',['expected_revision'=>0,'profile'=>['name'=>'HTTP agent','draft'=>[]]]); assert($status===403);

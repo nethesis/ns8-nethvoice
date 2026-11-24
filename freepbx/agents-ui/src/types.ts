@@ -56,8 +56,10 @@ export interface Trunk extends JsonObject {
   api_key_configured: boolean;
   api_key_source: "stored" | "environment" | "missing";
   webhook_secret_configured: boolean;
+  webhook_status?: string;
 }
 export interface Catalog {
+  openai_webhook_url?: string | null;
   tools: ToolDefinition[];
   draft_defaults: Draft;
   consultation_defaults: Draft;

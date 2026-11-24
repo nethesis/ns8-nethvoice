@@ -88,6 +88,33 @@ owned channel, destination and one-use token. A tool acknowledgement alone is no
 success. Optional call ending rechecks ownership and has a hard playback deadline;
 a failed or uncertain hangup never claims success or falls back into another route.
 
+## OpenAI SIP webhook administration
+
+`POST /freepbx/rest/agents/trunks/{id}/configure-webhook` accepts only
+`expected_revision` through the existing administrator, same-origin and CSRF
+boundary. Saving credentials never calls this API. Project ID remains explicit;
+setup uses the project API key's authenticated project without asserting that the
+entered ID was verified. The callback is derived from `NETHVOICE_HOST`, using the
+existing `/satellite-webhooks/openai` receiver. No Admin API key is required.
+
+`OpenAiWebhook` lists all endpoints with bounded pagination before creation and
+sanitizes failures. Under the existing configuration lock, Service persists an
+encrypted pending association before POST, then atomically stores the endpoint ID,
+URL, entered project ID, key fingerprint, secret hint and signing secret using
+SecretStore. No schema change is needed. A matching stored association permits
+reuse, including another trunk with the same key/project. Existing manual endpoints
+without an association require manual recovery or an explicit dashboard rotation;
+no provider rotation, update or deletion is performed. A manually entered recovery
+secret can be associated by the next explicit action. Ambiguous, timed-out,
+malformed or locally failed creations are reconciled by discovery on retries;
+an absent result remains blocked rather than risking duplicate creation.
+
+OpenAI secrets may be omitted while saving a trunk for automatic setup; SIP
+publication still requires the signing secret. Grok keeps manual setup, GPT-Live
+needs no SIP webhook, and CleverAI keeps external ownership. The administrator
+manual covers both setup paths and recovery. Setup status reflects local stored
+configuration; it does not establish public reachability, delivery or call quality.
+
 ## Transport and monitoring
 
 OpenAI Realtime and Grok use SIP plus their separate provider sidebands. GPT-Live

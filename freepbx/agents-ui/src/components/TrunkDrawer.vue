@@ -90,8 +90,10 @@ const apiKeyHelper = computed(() =>
       ? t("trunkForm.environmentApiKey")
       : "",
 );
-const endpoint = computed(
-  () => window.location.origin + "/satellite-webhooks/" + form.value.provider,
+const endpoint = computed(() =>
+  form.value.provider === "openai"
+    ? catalog.data.value?.openai_webhook_url || ""
+    : window.location.origin + "/satellite-webhooks/" + form.value.provider,
 );
 async function copyEndpoint() {
   try {
@@ -123,7 +125,7 @@ function validate() {
     !environmentKey.value
   )
     next.api_key = t("trunkForm.enterApiKey");
-  if (f.provider !== "cleverai" && create && !f.webhook_secret)
+  if (f.provider === "grok" && create && !f.webhook_secret)
     next.webhook_secret = t("trunkForm.enterSecret");
   errors.value = next;
   return !Object.keys(next).length;
@@ -200,6 +202,9 @@ function close() {
         v-if="form.provider !== 'grok'"
         v-model="form.openai_project_id"
         :label="t('openaiProject')"
+        :helper-text="
+          form.provider === 'openai' ? t('webhook.projectHelp') : ''
+        "
         placeholder="proj_A1b2C3d4"
         maxlength="128"
         :invalid-message="errors.openai_project_id"
@@ -263,11 +268,19 @@ function close() {
         <NeTextInput
           v-model="form.webhook_secret"
           :label="t('webhookSigningSecret')"
+          :optional="form.provider === 'openai' || editing"
+          :optional-label="t('optional')"
           is-password
           :show-password-label="t('showSecret')"
           :hide-password-label="t('hideSecret')"
           :helper-text="
-            t(editing ? 'trunkForm.keepSecret' : 'trunkForm.secretEncrypted')
+            form.provider === 'openai'
+              ? t('webhook.manualHelp')
+              : t(
+                  editing
+                    ? 'trunkForm.keepSecret'
+                    : 'trunkForm.secretEncrypted',
+                )
           "
           maxlength="4096"
           autocomplete="new-password"

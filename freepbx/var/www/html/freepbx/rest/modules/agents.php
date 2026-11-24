@@ -50,7 +50,7 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
                 $allowed=['expected_revision'];
                 if ($modelDiscovery) $allowed=['provider','binding_id','api_key'];
                 elseif (str_ends_with($path,'/synchronize')) $allowed=['retry'];
-                elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish'))) {
+                elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish') && !str_ends_with($path,'/configure-webhook'))) {
                     $field=str_contains($path,'/trunks')?'trunk':'profile';
                     $allowed[]=$field;
                     if (!is_array($input[$field]??null) || array_is_list($input[$field])) throw new RuntimeException('invalid_envelope',422);
@@ -86,6 +86,7 @@ $agentsRoute('DELETE','/profiles/{id}',fn($s,$a,$i,$q,$u)=>$s->remove($a['id'],$
 $agentsRoute('GET','/trunks',fn($s)=>['items'=>$s->trunks()]);
 $agentsRoute('POST','/trunks/models',fn($s,$a,$i)=>$s->models($i));
 $agentsRoute('GET','/trunks/{id}/voices',fn($s,$a)=>$s->voices($a['id']));
+$agentsRoute('POST','/trunks/{id}/configure-webhook',fn($s,$a,$i,$q,$u)=>$s->configureWebhook($a['id'],$i['expected_revision'],$u));
 $agentsRoute('POST','/trunks',fn($s,$a,$i,$q,$u)=>$s->saveTrunk(null,$i['trunk']??[],$i['expected_revision'],$u));
 $agentsRoute('PUT','/trunks/{id}',fn($s,$a,$i,$q,$u)=>$s->saveTrunk($a['id'],$i['trunk']??[],$i['expected_revision'],$u));
 $agentsRoute('DELETE','/trunks/{id}',fn($s,$a,$i,$q,$u)=>$s->removeTrunk($a['id'],$i['expected_revision'],$u));
