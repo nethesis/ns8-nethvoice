@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import Mock, call, patch
 import wave
 
-from media import MediaPhone, pcm_window
+from media import MediaError, MediaPhone, pcm_window
 from run import claim_run, cleanup
 from scenarios import CALLBACK_SELECTION, CORALLO, REFUSAL, Call, matches, matrix
 from speech import prepare, valid_wav
@@ -170,7 +170,7 @@ class HarnessTests(unittest.TestCase):
         with patch("scenarios.ThreadPoolExecutor") as pool:
             executor = pool.return_value.__enter__.return_value
             executor.submit.return_value = signal
-            self.assertEqual(case.wait_for_consultation(wait, 10), "ringing")
+            self.assertEqual(case.wait_for_recipient(wait, 10), "ringing")
             executor.submit.assert_called_once_with(wait)
         self.assertEqual(phones["caller"].listen.call_args_list, [call(10, 5), call(2410, 5)])
         phones["caller"].play.assert_called_once_with("synthetic.wav")
@@ -182,3 +182,15 @@ class HarnessTests(unittest.TestCase):
         peer.mark.return_value = 123
         self.assertEqual(case.answer_ringing_peer(peer), 123)
         self.assertEqual(peer.method_calls, [call.mark(), call.answer(), call.wait("CONFIRMED", 12)])
+
+    def test_complete_utterance_can_be_scored_when_tone_masks_end_of_turn(self):
+        phones = {role: Mock() for role in ("caller", "colleague", "denied")}
+        speech = Mock()
+        speech.transcribe.return_value = "Chiamata per la consegna del pianoforte."
+        case = Call(Mock(), phones, {}, {}, speech, "realtime", "attended-accept", [])
+        peer = phones["colleague"]
+        peer.listen.side_effect = MediaError("timed out waiting for end of received turn")
+        peer.received.return_value = sample()
+        case.hear_until(peer, 42, r"pianoforte", "private reason")
+        peer.received.assert_called_once_with(42)
+        self.assertIn("private reason", case.evidence)

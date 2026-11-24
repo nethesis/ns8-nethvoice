@@ -168,10 +168,15 @@ class Call:
         while time.monotonic() < deadline:
             try:
                 chunk = phone.listen(cursor, max(1, int(deadline - time.monotonic())))
-            except RuntimeError as exc:
-                if observed:
+            except MediaError as exc:
+                if "timed out waiting for end of received turn" in str(exc):
+                    # Media can contain a sustained tone after intelligible speech.
+                    # Score the captured window without requiring a silent tail.
+                    chunk = phone.received(cursor)
+                elif observed:
                     raise AssertionError(f"Expected {label}; last heard {observed[-160:]!r}") from exc
-                raise
+                else:
+                    raise
             cursor = self.audio_end(cursor, chunk)
             observed += " " + self.speech.transcribe(chunk, self.language)
             if matches(observed, pattern):
@@ -181,7 +186,7 @@ class Call:
                 self.confirm_colleague(observed)
         raise AssertionError(f"Expected {label}; last heard {observed[-160:]!r}")
 
-    def wait_for_consultation(self, wait, cursor):
+    def wait_for_recipient(self, wait, cursor):
         """Answer a caller-side confirmation while waiting on the other leg."""
         observed = ""
         with ThreadPoolExecutor(max_workers=1) as pool:
@@ -365,7 +370,11 @@ class Call:
         start = self.caller.mark()
         self.play(self.caller, case.replace("-", "_"))
         if case in ("name", "queue"):
-            self.accept(self.peer)
+            if case == "name":
+                self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), start)
+                self.answer_ringing_peer(self.peer)
+            else:
+                self.accept(self.peer)
             if case == "queue":
                 deadline = time.monotonic() + 10
                 while not self.lab.queue_connected(self.number("colleague"), cursor):
@@ -450,7 +459,7 @@ class Call:
         if chat or voicemail:
             self.recipient_alternative(held)
             return
-        self.wait_for_consultation(partial(self.peer.wait, "RINGING", 40), held)
+        self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), held)
         mark = self.answer_ringing_peer(self.peer)
         self.hear_until(self.peer, mark, r"\bpianoforte\b",
                         "private call reason reached colleague", timeout=20)
@@ -538,7 +547,7 @@ class Call:
                 self.finish()
                 require(self.lab.mailbox_count() == self.mail_count, "Message left despite refusal")
         else:
-            ref = self.wait_for_consultation(partial(self.cti.receive, 55), held)
+            ref = self.wait_for_recipient(partial(self.cti.receive, 55), held)
             self.evidence.append("received fresh consultation reference from assistant over XMPP")
             if case in ("chat-dnd", "chat-expired"):
                 require(self.peer.incoming == self.recipient_invites, "DND colleague rang")
