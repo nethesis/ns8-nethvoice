@@ -99,18 +99,28 @@ existing `/satellite-webhooks/openai` receiver. No Admin API key is required.
 
 `OpenAiWebhook` lists all endpoints with bounded pagination before creation and
 sanitizes failures. Under the existing configuration lock, Service persists an
-encrypted pending association before POST, then atomically stores the endpoint ID,
-URL, entered project ID, key fingerprint, secret hint and signing secret using
-SecretStore. No schema change is needed. A matching stored association permits
-reuse, including another trunk with the same key/project. Existing manual endpoints
-without an association require manual recovery or an explicit dashboard rotation;
-no provider rotation, update or deletion is performed. A manually entered recovery
-secret can be associated by the next explicit action. Ambiguous, timed-out,
-malformed or locally failed creations are reconciled by discovery on retries;
-an absent result remains blocked rather than risking duplicate creation.
+encrypted pending attempt before POST, then atomically stores the endpoint ID,
+URL, entered project ID, key fingerprint, secret hint, endpoint update timestamp,
+and signing secret using SecretStore. A secret obtained through automatic setup
+can be reused by another active trunk with the same key and project ID when the
+endpoint and secret hint match. If both hints are absent, reuse requires a
+matching update timestamp. A manually entered recovery secret stays on the
+trunk where it was entered. Older associations with no recorded secret
+source can be reused on their own trunk when the provider metadata matches.
+Existing endpoints without a usable association require manual recovery or
+explicit rotation in the OpenAI dashboard.
+
+An unresolved attempt or a recorded endpoint missing from discovery blocks
+another POST for the same callback when either the entered project ID or the
+key fingerprint matches. The check covers other trunks and preserves unresolved
+attempts when the originating trunk's credentials change. On that trunk,
+discovery reconciles the attempt when it finds the endpoint under the expected
+name and callback. A completed setup allows creation for a new project or
+callback when discovery finds no matching endpoint.
 
 OpenAI secrets may be omitted while saving a trunk for automatic setup; SIP
-publication still requires the signing secret. Grok keeps manual setup, GPT-Live
+publication requires a signing secret and is blocked during secret recovery.
+Grok keeps manual setup, GPT-Live
 needs no SIP webhook, and CleverAI keeps external ownership. The administrator
 manual covers both setup paths and recovery. Setup status reflects local stored
 configuration; it does not establish public reachability, delivery or call quality.

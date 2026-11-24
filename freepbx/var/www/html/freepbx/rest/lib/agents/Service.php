@@ -282,6 +282,7 @@ PROMPT;
             $binding=$this->binding($draft['provider_binding_id']);
             if ($binding['provider']==='openai' && ($draft['conversation']['model']??null)!=='gpt-live-1') {
                 $secrets=json_decode($this->crypto->decryptSecret($binding['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
+                if (($secrets['openai_webhook']['state']??null)==='recovery') self::fail('webhook_secret_recovery_required',409);
                 if (empty($secrets['webhook_secret'])) self::fail('webhook_not_configured');
             }
             if ($binding['sync_status']!=='synced' || !$this->native->trunkReady($binding)) self::fail('trunk_not_ready',409);
@@ -387,13 +388,32 @@ PROMPT;
     private function webhookStatus(array $row,array $settings,array $secrets): string
     {
         $setup=$secrets['openai_webhook']??null;
-        if ($row['provider']!=='openai' || !$setup) return empty($secrets['webhook_secret'])?'not_configured':'manual';
+        $attempts=self::webhookAttempts($secrets);
+        if ($row['provider']!=='openai' || (!$setup && !$attempts)) return empty($secrets['webhook_secret'])?'not_configured':'manual';
         $key=$secrets['api_key']??ProviderCatalog::environmentKey('openai');
         try { $url=OpenAiWebhook::callbackUrl(); } catch (\Throwable $error) { return 'needs_setup'; }
-        if (($setup['key_hash']??null)!==hash('sha256',$key) || ($setup['project_id']??null)!==$settings['openai_project_id'] || ($setup['url']??null)!==$url) return 'needs_setup';
-        if ($setup['state']==='configured' && !empty($secrets['webhook_secret'])) return 'configured';
-        if ($setup['state']==='manual' && !empty($secrets['webhook_secret'])) return 'manual';
-        return 'recovery_required';
+        $scope=['url'=>$url,'project_id'=>$settings['openai_project_id'],'key_hash'=>hash('sha256',$key)];
+        if (isset($setup['endpoint_id']) && $setup['key_hash']===$scope['key_hash'] && $setup['project_id']===$scope['project_id'] && $setup['url']===$url) {
+            if (in_array($setup['state'],['configured','manual'],true) && !empty($secrets['webhook_secret'])) return $setup['state'];
+            return 'recovery_required';
+        }
+        foreach ($attempts as $attempt) {
+            if (self::sameWebhookScope($attempt,$scope)) return 'recovery_required';
+        }
+        return $setup?'needs_setup':(empty($secrets['webhook_secret'])?'not_configured':'manual');
+    }
+    private static function webhookAttempts(array $secrets): array
+    {
+        $attempts=$secrets['openai_webhook_pending']??[];
+        $setup=$secrets['openai_webhook']??null;
+        // Older saves could mark a pending creation as manual before discovery assigned its endpoint ID.
+        if ($setup && !isset($setup['endpoint_id'])) $attempts[]=$setup;
+        return $attempts;
+    }
+    private static function sameWebhookScope(array $record,array $scope): bool
+    {
+        return $record['url']===$scope['url']
+            && ($record['project_id']===$scope['project_id'] || $record['key_hash']===$scope['key_hash']);
     }
     private function storeWebhookSecrets(array $row,array $secrets,string $actor,string $action,bool $complete=false): void
     {
@@ -427,22 +447,39 @@ PROMPT;
             $name=substr('NethVoice '.$id.' '.parse_url($url,PHP_URL_HOST),0,256);
             $association=['url'=>$url,'name'=>$name,'project_id'=>$settings['openai_project_id'],'key_hash'=>hash('sha256',$key)];
             $previous=$secrets['openai_webhook']??null;
+            $attempts=self::webhookAttempts($secrets);
             $endpoints=$this->openAiWebhook->endpoints($key);
-            $storedBindings=$this->query("SELECT * FROM asterisk.voice_agent_bindings WHERE provider='openai' AND secrets_encrypted<>''")->fetchAll(\PDO::FETCH_ASSOC);
-            $matches=array_values(array_filter($endpoints,fn($endpoint)=>$endpoint['url']===$url || $endpoint['name']===$name || ($previous['endpoint_id']??null)===$endpoint['id']));
+            $storedBindings=$this->query("SELECT * FROM asterisk.voice_agent_bindings WHERE provider='openai' AND secrets_encrypted<>'' ORDER BY (binding_id=?) DESC",[$id])->fetchAll(\PDO::FETCH_ASSOC);
+            $matches=array_values(array_filter($endpoints,fn($endpoint)=>$endpoint['url']===$url || $endpoint['name']===$name
+                || (($previous['url']??null)===$url && ($previous['endpoint_id']??null)===$endpoint['id'])));
             if (count($matches)>1) self::fail('webhook_endpoint_conflict',409);
             if ($matches) {
                 $endpoint=$matches[0];
                 if ($endpoint['url']!==$url || !in_array('realtime.call.incoming',$endpoint['event_types'],true)) self::fail('webhook_endpoint_conflict',409);
-                // Shared-project trunks can reuse a secret only with a persisted endpoint association.
+                $remaining=array_values(array_filter($attempts,fn($attempt)=>$attempt['name']!==$endpoint['name'] || !self::sameWebhookScope($attempt,$association)));
+                $secrets['openai_webhook_pending']=$remaining;
+                $hint=$endpoint['signing_secret_hint']??null;
+                $updated=$endpoint['updated_at']??null;
                 foreach ($storedBindings as $candidate) {
+                    if ($candidate['removed']) continue;
                     $stored=json_decode($this->crypto->decryptSecret($candidate['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
                     $setup=$stored['openai_webhook']??[];
-                    if (($setup['endpoint_id']??null)!==$endpoint['id'] || ($setup['url']??null)!==$url || ($setup['key_hash']??null)!==$association['key_hash'] || ($setup['project_id']??null)!==$association['project_id'] || !in_array($setup['state']??null,['configured','manual'],true) || !OpenAiWebhook::validSecret($stored['webhook_secret']??null)) continue;
-                    if ($setup['state']==='configured' && ($setup['secret_hint']??null)!==($endpoint['signing_secret_hint']??null)) continue;
-                    if ($candidate['binding_id']===$id && $setup['state']==='configured') return $this->safeBinding($row);
+                    $sameTrunk=$candidate['binding_id']===$id;
+                    $state=$setup['state']??null;
+                    if ($state!=='configured' && !($sameTrunk && $state==='manual')) continue;
+                    // Older configured rows did not distinguish provider-issued secrets from manual ones.
+                    $automatic=($setup['automatic']??false)===true;
+                    if (!$sameTrunk && !$automatic) continue;
+                    if (($setup['endpoint_id']??null)!==$endpoint['id'] || ($setup['url']??null)!==$url || ($setup['key_hash']??null)!==$association['key_hash'] || ($setup['project_id']??null)!==$association['project_id'] || !OpenAiWebhook::validSecret($stored['webhook_secret']??null)) continue;
+                    $manualEntry=$state==='manual' && !array_key_exists('endpoint_updated_at',$setup);
+                    $storedHint=$setup['secret_hint']??null;
+                    // Some endpoints omit the hint. Require a matching update timestamp in that case.
+                    $matchesSecret=$storedHint===$hint && ($hint!==null || ($updated!==null && ($setup['endpoint_updated_at']??null)===$updated));
+                    if (!$manualEntry && !$matchesSecret) continue;
+                    if ($sameTrunk && !$manualEntry && $attempts===$remaining) return $this->safeBinding($row);
                     $secrets['webhook_secret']=$stored['webhook_secret'];
-                    $secrets['openai_webhook']=$association+['state'=>'configured','endpoint_id'=>$endpoint['id'],'secret_hint'=>$endpoint['signing_secret_hint']??null];
+                    $secrets['openai_webhook']=$association+['state'=>$state,'endpoint_id'=>$endpoint['id'],
+                        'automatic'=>$automatic,'secret_hint'=>$hint,'endpoint_updated_at'=>$updated];
                     $this->storeWebhookSecrets($row,$secrets,$actor,'webhook_reused',true);
                     return $this->safeBinding($this->binding($id));
                 }
@@ -450,25 +487,30 @@ PROMPT;
                 $this->storeWebhookSecrets($row,$secrets,$actor,'webhook_recovery_required');
                 self::fail('webhook_secret_recovery_required',409);
             }
-            // A timed-out POST may still complete upstream. Never issue another POST for an unresolved attempt.
-            if ($previous) self::fail('webhook_creation_uncertain',409);
+            // Discovery can lag a prior POST even when the POST reported success.
             foreach ($storedBindings as $candidate) {
                 $stored=json_decode($this->crypto->decryptSecret($candidate['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
-                $setup=$stored['openai_webhook']??[];
-                if (($setup['url']??null)===$url && ($setup['key_hash']??null)===$association['key_hash']) self::fail('webhook_creation_uncertain',409);
+                $records=self::webhookAttempts($stored);
+                if (isset($stored['openai_webhook']['endpoint_id'])) $records[]=$stored['openai_webhook'];
+                foreach ($records as $record) {
+                    if (self::sameWebhookScope($record,$association)) self::fail('webhook_creation_uncertain',409);
+                }
             }
-            $secrets['openai_webhook']=$association+['state'=>'pending'];
+            if ($previous && !isset($previous['endpoint_id'])) unset($secrets['openai_webhook']);
+            $secrets['openai_webhook_pending']=[...$attempts,$association];
             $this->storeWebhookSecrets($row,$secrets,$actor,'webhook_creation_started');
             try { $endpoint=$this->openAiWebhook->create($key,$name,$url); }
             catch (\RuntimeException $error) {
                 if (in_array($error->getMessage(),['provider_credentials_rejected','webhook_permission_denied','webhook_provider_rejected'],true)) {
-                    unset($secrets['openai_webhook']);
+                    $secrets['openai_webhook_pending']=$attempts;
                     $this->storeWebhookSecrets($row,$secrets,$actor,'webhook_creation_rejected');
                 }
                 throw $error;
             }
             $secrets['webhook_secret']=$endpoint['signing_secret'];
-            $secrets['openai_webhook']=$association+['state'=>'configured','endpoint_id'=>$endpoint['id'],'secret_hint'=>$endpoint['signing_secret_hint']??null];
+            $secrets['openai_webhook_pending']=$attempts;
+            $secrets['openai_webhook']=$association+['state'=>'configured','endpoint_id'=>$endpoint['id'],
+                'automatic'=>true,'secret_hint'=>$endpoint['signing_secret_hint']??null,'endpoint_updated_at'=>$endpoint['updated_at']??null];
             $this->storeWebhookSecrets($row,$secrets,$actor,'webhook_configured',true);
             return $this->safeBinding($this->binding($id));
         });
@@ -611,7 +653,10 @@ PROMPT;
             }
             if (!$external && ((empty($secrets['api_key']) && ProviderCatalog::environmentKey($provider)==='') || ($provider==='grok' && empty($secrets['webhook_secret'])) || ($settings['sip_auth_mode']==='digest' && empty($secrets['sip_password'])))) self::fail('credentials_required');
             if (!$external && isset($secrets['webhook_secret']) && !OpenAiWebhook::validSecret($secrets['webhook_secret'])) self::fail('invalid_secret');
-            if (!$external && !empty($input['webhook_secret']) && isset($secrets['openai_webhook'])) $secrets['openai_webhook']['state']='manual';
+            if (!$external && !empty($input['webhook_secret']) && isset($secrets['openai_webhook']['endpoint_id'])) {
+                $secrets['openai_webhook']['state']='manual';
+                unset($secrets['openai_webhook']['automatic'],$secrets['openai_webhook']['secret_hint'],$secrets['openai_webhook']['endpoint_updated_at']);
+            }
             $encrypted=$external?'':$this->crypto->encryptSecret(json_encode($secrets,JSON_THROW_ON_ERROR));
             $id=$id??'trunk_'.bin2hex(random_bytes(8));
             $nativeSettings=$settings;$previousNativeSettings=$previousSettings;
