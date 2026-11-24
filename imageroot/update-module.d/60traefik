@@ -59,3 +59,15 @@ if (env.get('NETHVOICE_MIDDLEWARE_PORT') and
     print("Middleware routes configured successfully", file=sys.stderr)
 else:
     print("Middleware environment variables not set, skipping route configuration", file=sys.stderr)
+
+# SIP over WebSocket clients
+if env.get('NETHVOICE_HOST') and env.get('ASTERISK_WS_PORT'):
+    agent.set_route({
+        'instance': env['MODULE_ID'] + '-asterisk-ws',
+        'url':  'http://127.0.0.1:' + env["ASTERISK_WS_PORT"],
+        'http2https':  env["TRAEFIK_HTTP2HTTPS"] == "true",
+        'host': env["NETHVOICE_HOST"],
+        'path': '/ws',
+    },
+    error_passthrough=False
+    )

@@ -48,6 +48,15 @@ agent.set_route({
     }
 })
 
+# SIP over WebSocket clients
+agent.set_route({
+    'instance': os.environ['MODULE_ID'] + '-asterisk-ws',
+    'url':  'http://127.0.0.1:' + os.environ["ASTERISK_WS_PORT"],
+    'http2https':  os.environ["TRAEFIK_HTTP2HTTPS"] == "true",
+    'host': os.environ["NETHVOICE_HOST"],
+    'path': '/ws',
+})
+
 # CTI Wizard
 # Configure middleware API route on NETHVOICE_HOST
 agent.set_route({

@@ -167,6 +167,16 @@ func RefreshHandler(mw *jwt.GinJWTMiddleware) gin.HandlerFunc {
 				mw.RefreshResponse(c, http.StatusOK, jwt.GetToken(c), expire)
 				return
 			}
+			// refuse users without a report permission and logins older than 30 days
+			status := reportAccessStatus(claims)
+			loginIat, _ := claims["login_iat"].(float64)
+			if status == http.StatusOK && time.Since(time.Unix(int64(loginIat), 0)) > 30*24*time.Hour {
+				status = http.StatusUnauthorized
+			}
+			if status != http.StatusOK {
+				reportAccessDenied(c, status)
+				return
+			}
 		}
 		mw.RefreshHandler(c)
 	}

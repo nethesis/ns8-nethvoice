@@ -1,8 +1,4 @@
-/* 
-   ensure we have the same collation (on rest_devices_phones the collation
-   is not defined, and the UNION exit with error).
-*/
-ALTER TABLE asterisk.rest_devices_phones convert TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- rest_devices_phones collation is set by nethvoice-db-init
 
 SELECT Concat(Coalesce(vendor, ""), ",", Coalesce(model, ""), ",", 
               Coalesce(extension, ""), ",", Coalesce(type, "")) 

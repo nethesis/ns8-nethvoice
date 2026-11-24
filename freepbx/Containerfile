@@ -2,8 +2,8 @@
 FROM docker.io/debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6 as builder
 
 # Set fixed Asterisk version
-ARG ASTERISK_VERSION=22.10.0
-ARG ASTERISK_SHA256=27e49d483efb0739faf7d0a17a9e55f88439347ed9668f24eea909440473c32e
+ARG ASTERISK_VERSION=22.10.1
+ARG ASTERISK_SHA256=0953564c44fa49827f3c9d70ca6e80db83828c9848440852c6be44c961855353
 ARG PJSIP_VERSION=2.17
 ARG JANSSON_VERSION=2.15.0
 ARG LIBJWT_VERSION=1.15.3
@@ -461,6 +461,7 @@ RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
     patch --batch --forward --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-disabled-trunk-return.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/userman < /tmp/nethvoice-core-patches/freepbx-userman-sync-status.patch && \
     rm -rf /tmp/nethvoice-core-patches
 
 # PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries

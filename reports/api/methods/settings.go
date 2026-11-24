@@ -31,6 +31,7 @@ import (
 	"github.com/nethesis/nethvoice-report/api/cache"
 	"github.com/nethesis/nethvoice-report/api/configuration"
 	"github.com/nethesis/nethvoice-report/api/models"
+	"github.com/nethesis/nethvoice-report/api/utils"
 )
 
 func GetSettings(c *gin.Context) {
@@ -95,6 +96,10 @@ func SetSettings(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "request fields malformed", "status": err.Error()})
 		return
 	}
+	if !utils.ValidSettings(jsonSettings) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "request fields malformed"})
+		return
+	}
 
 	// create admin settings struct
 	settingsCache := gin.H{"settings": jsonSettings}
@@ -124,6 +129,15 @@ func SetSettings(c *gin.Context) {
 }
 
 func DeleteSettings(c *gin.Context) {
+	// get current user
+	user := GetClaims(c)["id"].(string)
+
+	// check if user admin or API key
+	if user != "admin" && user != "X" {
+		c.JSON(http.StatusNotFound, gin.H{"message": "no settings to delete found"})
+		return
+	}
+
 	// init cache connection
 	cacheConnection := cache.Instance()
 

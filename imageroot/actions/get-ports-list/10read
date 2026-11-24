@@ -17,7 +17,6 @@ SERVICES = [
     ("Asterisk SIP UDP",          "ASTERISK_SIP_UDP_PORT",                      "udp"),
     ("Asterisk SIPS (TLS)",       "ASTERISK_SIPS_PORT",                         "tcp"),
     ("Asterisk IAX",              "ASTERISK_IAX_PORT",                           "udp"),
-    ("Asterisk WSS (WebRTC)",     "ASTERISK_WSS_PORT",                           "tcp"),
     ("Asterisk recordings SFTP",  "ASTERISK_RECORDING_SFTP_PORT",                "tcp"),
     ("Asterisk RTP (WSS)",        ("ASTERISK_RTPSTART", "ASTERISK_RTPEND"),      "udp"),
     ("Satellite RTP",             "SATELLITE_RTP_PORT",                          "udp"),
