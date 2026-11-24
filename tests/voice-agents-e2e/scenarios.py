@@ -28,6 +28,8 @@ REFUSAL = (r"\bnessun|\bnon\b.{0,55}(?:trov|posso|riesco|risult|dispon|consent|"
 
 # Deepgram also hears the synthetic lab name as “Corello” on narrowband SIP audio.
 CORALLO = r"\bcorallo\b|\blaboratorio corello\b"
+# The voicemail follow-up marker can be transcribed as “Girazone”.
+VOICEMAIL_RETURN_MARKER = r"\bgira(?:sole|zone)\b"
 CALLBACK_SELECTION = (
     r"(?:\b(?:chi|quale|vuoi|vuole|posso|desider[ai]|preferisc[ei]|conferm[ai]|"
     r"intende(?:vi)?|intendi|procedo|collego|passo)\b[^.!?]{0,100}\?"
@@ -548,7 +550,7 @@ class Call:
                 require(count == self.mail_count + 1, "Expected exactly one new message in fixture mailbox")
                 self.evidence.append("one new message saved in the colleague's mailbox")
             else:
-                self.hear_until(self.caller, cursor, r"\bgirasole\b", "returned to agent", timeout=25)
+                self.hear_until(self.caller, cursor, VOICEMAIL_RETURN_MARKER, "returned to agent", timeout=25)
                 self.finish()
                 require(self.lab.mailbox_count() == self.mail_count, "Message left despite refusal")
                 self.evidence.append("mailbox unchanged after explicit refusal")
