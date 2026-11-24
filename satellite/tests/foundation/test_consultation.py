@@ -881,3 +881,37 @@ async def test_final_refusal_report_can_finish_after_colleague_decision_deadline
         assert c.state=='declined' and not call.terminal
         assert any(e['event_type']=='consultation_declined' for e in runtime.monitoring.queue._queue)
     finally:await runtime.finish(call,'completed')
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('provider,model,wants_effort', [
+    ('openai', 'gpt-6-luna', True),
+    ('openai', 'gpt-6-sol', True),
+    ('openai', 'gpt-4.1-mini', False),
+    ('grok', 'grok-test', False),
+])
+async def test_chat_decision_sends_supported_reasoning_effort(monkeypatch, provider, model, wants_effort):
+    from voice_agent.consultation_transport import ChatConversation
+
+    output = {'choices': [{'message': {'tool_calls': [{'function': {
+        'name': 'nv_consultation_decide_v1', 'arguments': '{"decision": "accept", "text": ""}'
+    }}]}}]}
+    response = SimpleNamespace(status=200, content=SimpleNamespace(
+        readexactly=AsyncMock(side_effect=asyncio.IncompleteReadError(json.dumps(output).encode(), 65537))))
+    request = AsyncMock()
+    request.__aenter__.return_value = response
+    session = AsyncMock()
+    session.post = MagicMock(return_value=request)
+    connection = AsyncMock()
+    connection.__aenter__.return_value = session
+    monkeypatch.setattr('voice_agent.consultation_transport.aiohttp.ClientSession',
+                        MagicMock(return_value=connection))
+    context = SimpleNamespace(caller=SimpleNamespace(caller_name='Synthetic caller'),
+                              reason='Requested information', clarified=False, deadline=time.monotonic() + 5)
+    profile = publication('consultation')
+    profile['chat_model'] = model
+    conversation = ChatConversation(profile, {'provider': provider, 'api_key': 'synthetic'}, context)
+    assert await conversation.reply('I accept this call.') == {'decision': 'accept', 'text': ''}
+    payload = session.post.call_args.kwargs['json']
+    assert payload.get('reasoning_effort') == ('none' if wants_effort else None)
+    assert payload['store'] is False and payload['parallel_tool_calls'] is False
