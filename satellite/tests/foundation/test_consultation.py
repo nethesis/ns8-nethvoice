@@ -737,11 +737,15 @@ async def test_voicemail_offer_requires_native_mailbox_and_eligible_presence(pre
         await runtime.consultations.start(call,'extension:203','Open ticket')
         c=call.consultation;await runtime.consultations.begin(call);await c.task
         assert bool(call.voicemail_offer)==offered
-        data=call.adapter.consultation_say.await_args.args[1]
+        instructions,data=call.adapter.consultation_say.await_args.args
         assert bool(data['voicemail_offer'])==offered
         if offered:
             assert data['voicemail_offer']=={'offer_ref':c.id}
             assert call.voicemail_offer['destination']=='extension:203'
+            assert 'Ask only that question' in instructions
+            assert 'After explicit agreement' in instructions
+        else:
+            assert 'Do not suggest voicemail' in instructions
         controller.originate_consult.assert_not_awaited()
         controller.continue_channel.assert_not_awaited()
         assert not call.terminal and call.consultation is None
