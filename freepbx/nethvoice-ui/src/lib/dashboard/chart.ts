@@ -155,7 +155,8 @@ export const MIN_DRAG_DISTANCE = 6
 export const getVisiblePoints = (series: CallsPoint[], [start, end]: TimeDomain): CallsPoint[] =>
   series.filter((point) => point.time >= start && point.time <= end)
 
-const snapToHour = (time: number) => Math.round(time / HOUR_MS) * HOUR_MS
+const snapToHour = (time: number, origin: number) =>
+  origin + Math.round((time - origin) / HOUR_MS) * HOUR_MS
 
 const fitDomain = (start: number, span: number, [dataStart, dataEnd]: TimeDomain): TimeDomain => {
   const fitted = Math.min(Math.max(start, dataStart), dataEnd - span)
@@ -175,7 +176,7 @@ const resizeDomain = (
     return null
   }
   return fitDomain(
-    upper - lower >= minSpan ? lower : snapToHour((lower + upper - minSpan) / 2),
+    upper - lower >= minSpan ? lower : snapToHour((lower + upper - minSpan) / 2, data[0]),
     span,
     data,
   )
@@ -188,8 +189,8 @@ export const getZoomDomain = (
   minSpan = MIN_ZOOM_SPAN,
 ): TimeDomain | null =>
   resizeDomain(
-    Math.max(snapToHour(Math.min(from, to)), data[0]),
-    Math.min(snapToHour(Math.max(from, to)), data[1]),
+    Math.max(snapToHour(Math.min(from, to), data[0]), data[0]),
+    Math.min(snapToHour(Math.max(from, to), data[0]), data[1]),
     data,
     minSpan,
   )
@@ -203,22 +204,22 @@ export const scaleZoom = (
   const halfSpan = ((end - start) * factor) / 2
 
   return resizeDomain(
-    snapToHour(center - halfSpan),
-    snapToHour(center + halfSpan),
+    snapToHour(center - halfSpan, data[0]),
+    snapToHour(center + halfSpan, data[0]),
     data,
     MIN_ZOOM_SPAN,
   )
 }
 
 export const panZoom = ([start, end]: TimeDomain, ratio: number, data: TimeDomain): TimeDomain => {
-  const shift = Math.sign(ratio) * Math.max(HOUR_MS, snapToHour(Math.abs((end - start) * ratio)))
+  const shift = Math.sign(ratio) * Math.max(HOUR_MS, snapToHour(Math.abs((end - start) * ratio), 0))
 
   return fitDomain(start + shift, end - start, data)
 }
 
-export const keepZoom = (zoom: TimeDomain | null, [dataStart, dataEnd]: TimeDomain) =>
-  zoom && zoom[0] >= dataStart && zoom[1] <= dataEnd && zoom[1] - zoom[0] < dataEnd - dataStart
-    ? zoom
+export const keepZoom = (zoom: TimeDomain | null, data: TimeDomain): TimeDomain | null =>
+  zoom && zoom[1] > data[0] && zoom[0] < data[1] && zoom[1] - zoom[0] < data[1] - data[0]
+    ? fitDomain(zoom[0], zoom[1] - zoom[0], data)
     : null
 
 export const formatPeriod = ([start, end]: TimeDomain, locale: string): string =>

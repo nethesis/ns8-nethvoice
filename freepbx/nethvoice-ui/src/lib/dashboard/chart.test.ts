@@ -199,6 +199,19 @@ describe('getZoomDomain', () => {
     expect(getZoomDomain(at(14, 23), at(15, 0) + HOUR_MS, data)).toEqual([at(14, 21), at(15, 0)])
   })
 
+  it('should round to the hours of the data when they do not start on the hour', () => {
+    const half = 30 * 60 * 1000
+    const shifted: [number, number] = [at(1, 0) + half, at(15, 0) + half]
+
+    expect(
+      getZoomDomain(at(5, 10) + half + 20 * 60 * 1000, at(6, 4) + half - 10 * 60 * 1000, shifted),
+    ).toEqual([at(5, 10) + half, at(6, 4) + half])
+    expect(scaleZoom([at(5, 0) + half, at(7, 0) + half], 0.5, shifted)).toEqual([
+      at(5, 12) + half,
+      at(6, 12) + half,
+    ])
+  })
+
   it('should not zoom to the whole data or to data shorter than the minimum span', () => {
     expect(getZoomDomain(at(1, 0) - HOUR_MS, at(15, 0) + HOUR_MS, data)).toBeNull()
     expect(getZoomDomain(at(1, 0), at(1, 1), [at(1, 0), at(1, 2)])).toBeNull()
@@ -239,8 +252,12 @@ describe('keepZoom', () => {
     expect(keepZoom([at(5, 0), at(6, 0)], [at(1, 1), at(15, 1)])).toEqual([at(5, 0), at(6, 0)])
   })
 
-  it('should drop a period that left the data or a missing zoom', () => {
-    expect(keepZoom([at(1, 0), at(2, 0)], [at(1, 1), at(15, 1)])).toBeNull()
+  it('should move a period that partly left the data inside it', () => {
+    expect(keepZoom([at(1, 0), at(2, 0)], [at(1, 1), at(15, 1)])).toEqual([at(1, 1), at(2, 1)])
+  })
+
+  it('should drop a period that left the data, the whole data or a missing zoom', () => {
+    expect(keepZoom([at(1, 0), at(1, 3)], [at(2, 0), at(16, 0)])).toBeNull()
     expect(keepZoom([at(1, 0), at(15, 0)], [at(1, 0), at(15, 0)])).toBeNull()
     expect(keepZoom(null, [at(1, 0), at(15, 0)])).toBeNull()
   })

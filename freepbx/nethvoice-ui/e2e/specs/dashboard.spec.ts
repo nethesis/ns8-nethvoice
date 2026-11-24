@@ -917,7 +917,7 @@ test.describe('dashboard', () => {
     await expect(chart).toBeFocused()
   })
 
-  test('keeps the zoom on a refresh only while the data still covers it', async ({
+  test('keeps the zoom on a refresh while the data still covers part of it', async ({
     page,
     mockApi,
   }) => {
@@ -957,13 +957,13 @@ test.describe('dashboard', () => {
       await page.keyboard.press('+')
     }
     await expect(visiblePeriod).toHaveCount(1)
-    mockApi.on('GET', '/freepbx/rest/dashboard/calls', callsResponse(shiftedBy(193), ranges))
+    mockApi.on('GET', '/freepbx/rest/dashboard/calls', callsResponse(shiftedBy(216), ranges))
     await page.clock.runFor(6 * 60 * 1000)
 
     await expect.poll(() => ranges).toEqual(['15d', '15d'])
     await expect(visiblePeriod).toHaveCount(0)
     await expect(chart).toHaveAccessibleName(
-      startingWith(`${period('Nov 11, 13:00', 'Nov 26, 12:00')}:`),
+      startingWith(`${period('Nov 12, 12:00', 'Nov 27, 11:00')}:`),
     )
   })
 
