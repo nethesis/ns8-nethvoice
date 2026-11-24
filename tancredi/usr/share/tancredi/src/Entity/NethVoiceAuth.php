@@ -29,6 +29,9 @@ use Slim\Psr7\Response;
 
 class NethVoiceAuth implements MiddlewareInterface
 {
+    private const SUPERADMIN_FIELDS = ['ldap_password'];
+    private const PHONES_FIELDS = ['adminpw', 'userpw', 'tok1', 'tok2', 'provisioning_url1', 'provisioning_url2'];
+
     private $config;
 
     /**
@@ -73,8 +76,12 @@ class NethVoiceAuth implements MiddlewareInterface
                     if (!self::sectionMayRequest($sections, $request->getMethod(), $request->getUri()->getPath())) {
                         return $this->createForbiddenResponse('Missing permission for this resource');
                     }
+                    $hidden = self::hiddenFields($sections);
+                    if (array_intersect(self::requestFields($request), $hidden)) {
+                        return $this->createForbiddenResponse('Missing permission for this field');
+                    }
 
-                    return self::withoutLinePasswords($handler->handle($request));
+                    return self::withoutFields($handler->handle($request), $hidden);
                 }
             }
 
@@ -126,7 +133,53 @@ class NethVoiceAuth implements MiddlewareInterface
         return true;
     }
 
-    public static function withoutLinePasswords(ResponseInterface $response): ResponseInterface
+    public static function hiddenFields($sections): array
+    {
+        if (in_array('nethvoice:phones', self::sectionEntries($sections), true)) {
+            return self::SUPERADMIN_FIELDS;
+        }
+
+        return array_merge(self::SUPERADMIN_FIELDS, self::PHONES_FIELDS);
+    }
+
+    public static function requestFields(ServerRequestInterface $request): array
+    {
+        $bodies = [$request->getParsedBody()];
+        $stream = $request->getBody();
+        $contents = (string) $stream;
+        if ($stream->isSeekable()) {
+            $stream->rewind();
+        }
+        $type = strtolower(trim(explode(';', $request->getHeaderLine('Content-Type'))[0]));
+        if ($type === 'application/x-www-form-urlencoded') {
+            parse_str($contents, $form);
+            $bodies[] = $form;
+        } else {
+            $bodies[] = json_decode($contents, true);
+        }
+        $fields = [];
+        foreach ($bodies as $body) {
+            self::collectFields($body, $fields);
+        }
+
+        return array_keys($fields);
+    }
+
+    private static function collectFields($data, array &$fields): void
+    {
+        if (is_object($data)) {
+            $data = get_object_vars($data);
+        }
+        if (!is_array($data)) {
+            return;
+        }
+        foreach ($data as $key => $value) {
+            $fields[(string) $key] = true;
+            self::collectFields($value, $fields);
+        }
+    }
+
+    public static function withoutFields(ResponseInterface $response, array $hidden): ResponseInterface
     {
         $contents = (string) $response->getBody();
         if ($contents === '') {
@@ -140,21 +193,21 @@ class NethVoiceAuth implements MiddlewareInterface
 
         return $response
             ->withoutHeader('Content-Length')
-            ->withBody((new StreamFactory())->createStream(json_encode(self::stripLinePasswords($data), $flags)));
+            ->withBody((new StreamFactory())->createStream(json_encode(self::stripFields($data, $hidden), $flags)));
     }
 
-    private static function stripLinePasswords($data)
+    private static function stripFields($data, array $hidden)
     {
         if (is_array($data)) {
             foreach ($data as $key => $value) {
-                $data[$key] = self::stripLinePasswords($value);
+                $data[$key] = self::stripFields($value, $hidden);
             }
         } elseif (is_object($data)) {
             foreach (get_object_vars($data) as $key => $value) {
-                if (str_starts_with((string) $key, 'account_password_')) {
+                if (str_starts_with((string) $key, 'account_password_') || in_array((string) $key, $hidden, true)) {
                     unset($data->$key);
                 } else {
-                    $data->$key = self::stripLinePasswords($value);
+                    $data->$key = self::stripFields($value, $hidden);
                 }
             }
         }

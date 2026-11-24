@@ -9,6 +9,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Slim\Psr7\Factory\ServerRequestFactory;
+use Slim\Psr7\Factory\StreamFactory;
 use Slim\Psr7\Response;
 use Tancredi\Entity\NethVoiceAuth;
 
@@ -66,15 +67,18 @@ class FixedHandler implements RequestHandlerInterface
 $auth = new TestAuth(['secret' => 'tancredi-secret', 'static_token' => 'static-token']);
 $factory = new ServerRequestFactory();
 
-function request($factory, $user, $method, $path, $secret = null) {
+function request($factory, $user, $method, $path, $secret = null, $body = null, $type = 'application/json') {
     $request = $factory->createServerRequest($method, 'http://localhost/tancredi/api/v1' . $path);
     if ($user !== null) {
         $request = $request->withHeader('User', $user)->withHeader('Secretkey', $secret ?? sha1($user . sha1($user) . 'tancredi-secret'));
     }
+    if ($body !== null) {
+        $request = $request->withHeader('Content-Type', $type)->withBody((new StreamFactory())->createStream(is_string($body) ? $body : json_encode($body)));
+    }
     return $request;
 }
 
-$phone = '{"mac":"AC-CD-EF-01-02-03","tok1":"t1","variables":{"account_password_1":"sip-1","account_password_12":"sip-12","account_username_1":"201","adminpw":"web-admin","userpw":"web-user","nested":{"account_password_3":"sip-3"},"url":"https://pbx/a"},"model_url":"/tancredi/api/v1/models/fanvil-X5"}';
+$phone = '{"mac":"AC-CD-EF-01-02-03","tok1":"t1","tok2":"t2","variables":{"account_password_1":"sip-1","account_password_12":"sip-12","account_username_1":"201","adminpw":"web-admin","userpw":"web-user","ldap_password":"ldap-secret","nested":{"account_password_3":"sip-3"},"url":"https://pbx/a"},"model_url":"/tancredi/api/v1/models/fanvil-X5","provisioning_url1":"https://pbx/provisioning/t1/x.cfg","provisioning_url2":"https://pbx/provisioning/t2/x.cfg"}';
 $list = '[{"name":"fanvil-X5","variables":{"account_password_1":"m","ldap_server":"x"}},{"name":"empty","variables":{}}]';
 
 foreach (['admin', 'boss'] as $user) {
@@ -92,20 +96,51 @@ foreach (['phoner', 'userer'] as $user) {
     check($response->getStatusCode() === 200, "$user must read the phone");
     $data = json_decode((string) $response->getBody(), true);
     check(!preg_match('/account_password|sip-/', (string) $response->getBody()), "$user received a SIP line password");
-    check($data['variables']['adminpw'] === 'web-admin' && $data['variables']['userpw'] === 'web-user', "$user lost the phone web passwords");
-    check($data['variables']['account_username_1'] === '201' && $data['tok1'] === 't1', "$user lost other phone fields");
+    check(!preg_match('/ldap_password|ldap-secret/', (string) $response->getBody()), "$user received the LDAP phonebook password");
+    check($data['variables']['account_username_1'] === '201' && $data['model_url'] === '/tancredi/api/v1/models/fanvil-X5', "$user lost other phone fields");
     check(str_contains((string) $response->getBody(), '"nested":{}'), 'an emptied object must stay an object');
     check(str_contains((string) $response->getBody(), '"url":"https://pbx/a"'), 'the response must keep the Tancredi JSON flags');
 
     $response = $auth->process(request($factory, $user, 'GET', '/models'), new FixedHandler($list));
     check((string) $response->getBody() === '[{"name":"fanvil-X5","variables":{"ldap_server":"x"}},{"name":"empty","variables":{}}]', "$user received a SIP line password in a list");
 
-    $response = $auth->process(request($factory, $user, 'GET', '/defaults'), new FixedHandler('{"account_password_1":"d","adminpw":"a"}'));
-    check((string) $response->getBody() === '{"adminpw":"a"}', "$user received a SIP line password in the defaults");
+    $response = $auth->process(request($factory, $user, 'GET', '/defaults'), new FixedHandler('{"account_password_1":"d","adminpw":"a","userpw":"u","ldap_password":"l","ldap_user":"cn=x"}'));
+    check((string) $response->getBody() === ($user === 'phoner' ? '{"adminpw":"a","userpw":"u","ldap_user":"cn=x"}' : '{"ldap_user":"cn=x"}'), "$user received a secret of another section in the defaults: " . $response->getBody());
 
     $response = $auth->process(request($factory, $user, 'GET', '/firmware/x.bin'), new FixedHandler('binary account_password_1', 'application/octet-stream'));
     check((string) $response->getBody() === 'binary account_password_1', 'a non JSON response must not change');
 }
+
+$data = json_decode((string) $auth->process(request($factory, 'phoner', 'GET', '/phones/AC-CD-EF-01-02-03'), new FixedHandler($phone))->getBody(), true);
+check($data['variables']['adminpw'] === 'web-admin' && $data['variables']['userpw'] === 'web-user', 'the phones section lost the phone web passwords');
+check($data['tok1'] === 't1' && $data['provisioning_url1'] === 'https://pbx/provisioning/t1/x.cfg' && $data['provisioning_url2'] === 'https://pbx/provisioning/t2/x.cfg', 'the phones section lost the provisioning URLs');
+$body = (string) $auth->process(request($factory, 'userer', 'GET', '/phones/AC-CD-EF-01-02-03'), new FixedHandler($phone))->getBody();
+check(!preg_match('/adminpw|userpw|web-admin|web-user|tok1|tok2|provisioning_url|"t1"|"t2"/', $body), "the users section received the phone web passwords or provisioning tokens: $body");
+$body = (string) $auth->process(request($factory, 'userer', 'GET', '/phones'), new FixedHandler('[' . $phone . ']'))->getBody();
+check(!str_contains($body, 'web-admin') && !str_contains($body, '/provisioning/'), 'the users section received a secret in a list');
+
+foreach ([
+    ['phoner', 'PATCH', '/defaults', ['adminpw' => 'New-Admin-1!', 'userpw' => 'New-User-1!', 'language' => 'it'], 200],
+    ['phoner', 'PATCH', '/defaults', ['ldap_password' => 'stolen'], 403],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_server' => '192.0.2.5', 'ldap_password' => 'x']], 403],
+    ['phoner', 'POST', '/phones', ['mac' => 'AC-CD-EF-01-02-04', 'model' => 'fanvil-X5', 'variables' => ['adminpw' => 'Phone-Admin-1!']], 200],
+    ['userer', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['model' => 'fanvil-X5'], 200],
+    ['userer', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['variables' => ['adminpw' => 'x']], 403],
+    ['userer', 'POST', '/phones', ['mac' => 'AC-CD-EF-01-02-04', 'model' => 'fanvil-X5', 'variables' => ['userpw' => 'x']], 403],
+    ['userer', 'PATCH', '/models/fanvil-X5', ['variables' => ['nested' => ['ldap_password' => 'x']]], 403],
+    ['userer', 'POST', '/phones', 'mac=AC-CD-EF-01-02-04&variables%5Badminpw%5D=x', 403, 'application/x-www-form-urlencoded'],
+    ['userer', 'POST', '/phones', '{"mac":"AC-CD-EF-01-02-04","variables":{"userpw":"x"}}', 403, 'application/vnd.example+json'],
+    ['admin', 'PATCH', '/defaults', ['ldap_password' => 'new', 'adminpw' => 'new'], 200],
+    ['boss', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_password' => 'new']], 200],
+] as $case) {
+    [$user, $method, $path, $body, $expected] = $case;
+    $handler = new FixedHandler('{}');
+    $status = $auth->process(request($factory, $user, $method, $path, null, $body, $case[5] ?? 'application/json'), $handler)->getStatusCode();
+    check($status === $expected && $handler->calls === ($expected === 200 ? 1 : 0), "$user $method $path " . json_encode($body) . ": expected $expected, got $status");
+}
+$handler = new FixedHandler('{}');
+$parsed = request($factory, 'userer', 'POST', '/phones')->withParsedBody(['mac' => 'AC-CD-EF-01-02-04', 'variables' => ['adminpw' => 'x']]);
+check($auth->process($parsed, $handler)->getStatusCode() === 403 && $handler->calls === 0, 'a secret in a parsed form body must be refused');
 
 $handler = new FixedHandler('');
 check($auth->process(request($factory, 'phoner', 'PATCH', '/defaults'), $handler)->getStatusCode() === 200 && $handler->calls === 1, 'the phones section must change the defaults');
@@ -131,4 +166,4 @@ $static = $factory->createServerRequest('GET', 'http://localhost/tancredi/api/v1
     ->withHeader('Authentication', 'static static-token')->withHeader('HTTP_HOST', '127.0.0.1');
 check((string) $auth->process($static, $handler)->getBody() === $phone, 'the static token must read the phone unchanged');
 
-echo "PASS: Tancredi access, SIP line passwords hidden from sections, defaults written only by the phones section\n";
+echo "PASS: Tancredi access, SIP line passwords hidden from sections, LDAP password only for the superadmin, phone web passwords and provisioning URLs only for the phones section, defaults written only by the phones section\n";
