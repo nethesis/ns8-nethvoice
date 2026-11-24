@@ -4,6 +4,11 @@ AGENTS.md
 NS8-MODULE.md
 .github/agents/
 .agents/
+!/.agents/
+/.agents/*
+!/.agents/skills/
+/.agents/skills/*
+!/.agents/skills/nethvoice-agent-e2e/
 local_testing/fixtures/
 local_testing/artifacts/
 COMPONENTS.md
@@ -15,3 +20,7 @@ __pycache__/
 
 /freepbx/var/www/html/freepbx/rest/vendor/
 /.test-sources/
+
+# Generated agent end-to-end stimuli and private run state
+nvagent-e2e-*.wav
+.nvagent-e2e-*/

@@ -60,3 +60,11 @@ The foundation harness isolates its fixtures from transcription and needs only
 the agent runtime/test requirements. Transcription and its Prometheus metrics
 remain covered separately with their own dependencies. Set `TMPDIR` to a private
 writable directory when the host temporary filesystem has a quota.
+
+## Live agent call suite
+
+Use the repository [NethVoice agent E2E skill](../.agents/skills/nethvoice-agent-e2e/SKILL.md)
+for real OpenAI calls and Italian and English Deepgram fixtures on the authorized lab.
+Run the [Python entry point](../tests/voice-agents-e2e/run.py) from the directory where
+you want the generated WAV files. The default profile is the full functional suite.
+Use `list` to see the cases or `smoke` for the two-transport conversation check.

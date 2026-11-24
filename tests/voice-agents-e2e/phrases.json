@@ -1,0 +1,122 @@
+{
+  "hello": {
+    "text": "Buongiorno, mi sente?",
+    "model": "aura-2-cesare-it"
+  },
+  "name": {
+    "text": "Mi passa Giulia Ferri, per favore?",
+    "model": "aura-2-cesare-it"
+  },
+  "alternate": {
+    "text": "Mi passa Luca Riva?",
+    "model": "aura-2-cesare-it"
+  },
+  "denied": {
+    "text": "Vorrei parlare con Paolo Neri.",
+    "model": "aura-2-cesare-it"
+  },
+  "queue": {
+    "text": "Mi passa la coda Assistenza Collaudo?",
+    "model": "aura-2-cesare-it"
+  },
+  "denied_queue": {
+    "text": "Mi passa la coda Amministrazione Riservata?",
+    "model": "aura-2-cesare-it"
+  },
+  "ambiguous": {
+    "text": "Mi passa la persona del collaudo? Non ricordo il nome.",
+    "model": "aura-2-cesare-it"
+  },
+  "unknown": {
+    "text": "Vorrei parlare con Zeno Fantasia, per favore.",
+    "model": "aura-2-cesare-it"
+  },
+  "recent": {
+    "text": "Vorrei richiamare chi mi ha telefonato di recente. Chi mi ha cercato?",
+    "model": "aura-2-cesare-it"
+  },
+  "confirm": {
+    "text": "Sì, confermo. Mi metta in contatto con Giulia Ferri.",
+    "model": "aura-2-cesare-it"
+  },
+  "reason": {
+    "text": "Chiamo per la consegna di un pianoforte.",
+    "model": "aura-2-cesare-it"
+  },
+  "accept": {
+    "text": "Sì, accetto. Passami la chiamata.",
+    "model": "aura-2-cinzia-it"
+  },
+  "decline": {
+    "text": "No, rifiuto la chiamata. Dica al cliente di richiamare venerdì.",
+    "model": "aura-2-cinzia-it"
+  },
+  "question": {
+    "text": "Prima di accettare vorrei sapere il colore del pianoforte. Puoi chiederglielo?",
+    "model": "aura-2-cinzia-it"
+  },
+  "answer": {
+    "text": "Il pianoforte è verde.",
+    "model": "aura-2-cesare-it"
+  },
+  "vm_yes": {
+    "text": "Sì, voglio lasciare un messaggio in segreteria.",
+    "model": "aura-2-cesare-it"
+  },
+  "vm_no": {
+    "text": "No, non voglio lasciare un messaggio in segreteria.",
+    "model": "aura-2-cesare-it"
+  },
+  "vm_message": {
+    "text": "Il pacco contiene una bussola.",
+    "model": "aura-2-cesare-it"
+  },
+  "private": {
+    "text": "La parola privata è zafferano.",
+    "model": "aura-2-cinzia-it"
+  },
+  "caller_marker": {
+    "text": "La mia parola è tulipano.",
+    "model": "aura-2-cesare-it"
+  },
+  "colleague_marker": {
+    "text": "La mia parola è castagna.",
+    "model": "aura-2-cinzia-it"
+  },
+  "remember": {
+    "text": "Ricorda la parola girasole. Ripeti la parola per confermare.",
+    "model": "aura-2-cesare-it"
+  },
+  "recall": {
+    "text": "Qual era la parola che ti ho chiesto di ricordare?",
+    "model": "aura-2-cesare-it"
+  },
+  "long": {
+    "text": "Conta ad alta voce da uno a cinquanta, lentamente.",
+    "model": "aura-2-cesare-it"
+  },
+  "interrupt": {
+    "text": "Interrompi il conteggio e ripeti la parola limone.",
+    "model": "aura-2-cesare-it"
+  },
+  "bye": {
+    "text": "Grazie, arrivederci. Può chiudere la chiamata.",
+    "model": "aura-2-cesare-it"
+  },
+  "hello_en": {
+    "text": "Please repeat the word sunflower.",
+    "model": "aura-2-thalia-en"
+  },
+  "bye_en": {
+    "text": "Thank you. Goodbye, please end the call.",
+    "model": "aura-2-thalia-en"
+  },
+  "consult_request": {
+    "text": "Mi passa Giulia Ferri? Chiamo per la consegna di un pianoforte.",
+    "model": "aura-2-cesare-it"
+  },
+  "recall_greeting": {
+    "text": "Come si chiama il laboratorio dove ho chiamato?",
+    "model": "aura-2-cesare-it"
+  }
+}
