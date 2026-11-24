@@ -350,7 +350,7 @@
     "existing_users_tooltip": "Gli utenti sono confrontati per nome utente. Gli utenti esistenti possono essere aggiornati o saltati.",
     "import_skip_existing": "Salta gli utenti esistenti",
     "import_overwrite_existing": "Sovrascrivi gli utenti esistenti",
-    "import_overwrite_helper": "Nome, cellulare, gruppi e profilo degli utenti esistenti vengono aggiornati, insieme a casella vocale e dispositivi indicati nel file. Un interno diverso ricrea tutti i loro dispositivi.",
+    "import_overwrite_helper": "Cellulare, gruppi e profilo degli utenti esistenti vengono aggiornati, insieme a casella vocale e dispositivi indicati nel file. I loro nomi restano invariati. Un interno diverso ricrea tutti i loro dispositivi.",
     "import_summary": "Riepilogo dell'importazione",
     "import_summary_detected": "Rilevati {users} e {groups}",
     "import_users_detected": "{count} utente rilevato nel file selezionato: | {count} utenti rilevati nel file selezionato:",

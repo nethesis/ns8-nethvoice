@@ -350,7 +350,7 @@
     "existing_users_tooltip": "Users are matched by username. Existing users can be updated or skipped.",
     "import_skip_existing": "Skip existing users",
     "import_overwrite_existing": "Overwrite existing users",
-    "import_overwrite_helper": "Name, mobile number, groups and profile of the existing users are updated, together with the voicemail and the devices set in the file. A different extension recreates all their devices.",
+    "import_overwrite_helper": "Mobile number, groups and profile of the existing users are updated, together with the voicemail and the devices set in the file. Their names are kept. A different extension recreates all their devices.",
     "import_summary": "Import summary",
     "import_summary_detected": "{users} and {groups} detected",
     "import_users_detected": "{count} user detected in the selected file: | {count} users detected in the selected file:",
