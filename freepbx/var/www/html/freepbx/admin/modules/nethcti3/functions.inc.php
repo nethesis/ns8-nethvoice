@@ -1068,13 +1068,17 @@ function nethcti3_get_config_early($engine) {
     $res = nethcti_tancredi_patch($tancrediUrl . 'defaults', $username, $secretkey, $variables);
 }
 
-function nethcti3_release_unassigned_phones($dbh, $tancrediUrl, $username, $secretkey) {
-    $sql = 'SELECT DISTINCT p.mac FROM rest_devices_phones p'.
-        ' WHERE p.mac IS NOT NULL AND p.mac != ""'.
-        ' AND NOT EXISTS (SELECT 1 FROM rest_devices_phones q JOIN userman_users u ON q.user_id = u.id'.
-        ' WHERE q.mac = p.mac AND q.extension IS NOT NULL AND q.extension != "")';
+function nethcti3_unassigned_phone_macs($dbh) {
+    $sql = "SELECT DISTINCT p.mac FROM rest_devices_phones p".
+        " WHERE p.mac IS NOT NULL AND p.mac != ''".
+        " AND NOT EXISTS (SELECT 1 FROM rest_devices_phones q JOIN devices d ON d.id = q.extension".
+        " WHERE q.mac = p.mac AND q.extension IS NOT NULL AND q.extension != '')";
     $stmt = $dbh->prepare($sql);
     $stmt->execute(array());
+    return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+}
+
+function nethcti3_release_unassigned_phones($dbh, $tancrediUrl, $username, $secretkey) {
     $accountVariables = array(
         'account_extension_1',
         'account_username_1',
@@ -1086,7 +1090,7 @@ function nethcti3_release_unassigned_phones($dbh, $tancrediUrl, $username, $secr
         'account_dtmf_type_1',
         'account_voicemail_1',
     );
-    foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $mac) {
+    foreach (nethcti3_unassigned_phone_macs($dbh) as $mac) {
         $url = $tancrediUrl.'phones/'.str_replace(':', '-', strtoupper($mac));
         $phone = nethcti_tancredi_request('GET', $url, $username, $secretkey);
         if ($phone['code'] !== 200) {
