@@ -77,6 +77,8 @@ class HarnessTests(unittest.TestCase):
         pattern = r"(?s)(?=.*\bgiulia\b).*" + CALLBACK_SELECTION
         call.hear_until(phones["caller"], 0, pattern, "selection question")
         self.assertEqual(phones["caller"].listen.call_count, 2)
+        self.assertTrue(matches("Giulia Ferri ha chiamato. Voi que tinetta en contato con lai.", pattern))
+        self.assertFalse(matches("Giulia Ferri ha chiamato. La metto in contatto con lei.", pattern))
 
     def test_denied_and_unconfirmed_alternative_queue_rings_fail_independently(self):
         phones = {role: Mock(incoming=0) for role in ("caller", "colleague", "denied")}

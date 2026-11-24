@@ -28,8 +28,13 @@ REFUSAL = (r"\bnessun|\bnon\b.{0,55}(?:trov|posso|riesco|risult|dispon|consent|"
 
 # Deepgram also hears the synthetic lab name as “Corello” on narrowband SIP audio.
 CORALLO = r"\bcorallo\b|\blaboratorio corello\b"
-CALLBACK_SELECTION = (r"\b(?:chi|quale|vuoi|vuole|posso|desider[ai]|preferisc[ei]|conferm[ai]|"
-                      r"intende(?:vi)?|intendi|procedo|collego|passo)\b[^.!?]{0,100}\?")
+CALLBACK_SELECTION = (
+    r"(?:\b(?:chi|quale|vuoi|vuole|posso|desider[ai]|preferisc[ei]|conferm[ai]|"
+    r"intende(?:vi)?|intendi|procedo|collego|passo)\b[^.!?]{0,100}\?"
+    # Deepgram can omit the question mark or hear “vuoi che” as “voi que”.
+    r"|\b(?:vuoi che|vuole che|volete che|voi que)\b[^.!?]{0,60}\b(?:contat{1,2}o|richiam\w*)\b)"
+)
+COLLEAGUE_NAME = r"\b(?:giulia|julia|ferri|ferry)\b"
 
 # Every name here is dispatched below. The second transport repeats its riskiest handoffs.
 BOTH = ("conversation", "name", "callback", "attended-accept", "chat-dnd")
@@ -149,7 +154,7 @@ class Call:
     def confirm_colleague(self, text):
         # Answer an explicit question about the requested person once. A voicemail
         # offer, a choice between people, or a progress announcement needs a different turn.
-        if (not self.confirmed_colleague and matches(text, r"\b(?:giulia|ferri)\b")
+        if (not self.confirmed_colleague and matches(text, COLLEAGUE_NAME)
                 and matches(text, r"(?:intendev[ai]|intendi|intende|conferm[ai]|si riferisce|e lei)\b.{0,90}\?")
                 and not matches(text, r"segreteria|messaggio|oppure|\bluca\b|\briva\b")):
             self.play(self.caller, "confirm")
@@ -427,7 +432,7 @@ class Call:
             require(all(phone.incoming == recipient_counts[role] for role, phone in self.phones.items()),
                     "Negative callback rang a recipient")
             return
-        choices = r"(?s)(?=.*\b(?:giulia|ferri)\b)"
+        choices = rf"(?s)(?=.*{COLLEAGUE_NAME})"
         if case == "callback-multiple":
             choices += r"(?=.*\b(?:luca|riva)\b)"
         self.hear_until(self.caller, start, choices + ".*" + CALLBACK_SELECTION, "eligible contacts offered with a selection question")
