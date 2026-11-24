@@ -106,10 +106,23 @@ paths:
                 $ref: '#/components/schemas/TestAuthResponse'
         '401':
           description: Invalid credentials
+        '429':
+          description: '`too_many_attempts`: too many failed attempts for this account
+            from this address, or for any account from this address'
+          headers:
+            Retry-After:
+              description: Seconds to wait before the next attempt.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInError'
       description: 'Body: `{ "username": "", "password": "" }`. On success returns
         `{ "result": "<secret>" }` with status 200; otherwise 401. The FreePBX session
         (`AMP_user`) stays open only for superadmin: for administrators who are not
-        superadmin it is cleared after the credentials are checked.'
+        superadmin it is cleared after the credentials are checked. Failed attempts
+        share the limits of `/signin`; successful attempts are not limited.'
       operationId: post_testauth
       security: []
       requestBody:
@@ -133,7 +146,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/SignInResponse'
         '400':
-          description: '`invalid_request`'
+          description: '`invalid_request`, also for a username with characters other
+            than letters, digits, `.`, `_`, `@` and `-`'
           content:
             application/json:
               schema:
@@ -154,8 +168,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/SignInError'
         '429':
-          description: '`too_many_attempts`: too many failed attempts for this username
-            from this address'
+          description: '`too_many_attempts`: too many failed attempts for this account
+            from this address, or for any account from this address'
           headers:
             Retry-After:
               description: Seconds to wait before the next attempt.
@@ -533,9 +547,9 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
-      description: 'Body: `{ "step": <int>, "status": <bool> }`. Saving step 13 with
-        status false completes the wizard, restarts Asterisk and signals the CTI services
-        to restart; other steps and statuses never restart services.'
+      description: 'Body: `{ "step": <int>, "status": <bool> }`. Saving step 13 restarts
+        Asterisk and signals the CTI services to restart, whatever the status; status
+        false completes the wizard. Other steps never restart services.'
       operationId: post_configuration_wizard
       requestBody:
         required: true
@@ -705,13 +719,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/CtiProfileCreated'
         '409':
-          description: Another profile already has this name
+          description: Another profile already has this name (administrators who
+            are not superadmin only)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: Empty name
+          description: Empty name (administrators who are not superadmin only)
           content:
             application/json:
               schema:
@@ -719,7 +734,8 @@ paths:
         '500':
           description: Internal server error
       description: Body mirrors the profile schema used by the UI. Response returns
-        the generated profile id, or 409 when the name is already used.
+        the generated profile id. For administrators who are not superadmin the name
+        is trimmed and must be neither empty (422) nor already used (409).
       operationId: post_cti_profiles
       requestBody:
         required: true
@@ -1468,8 +1484,10 @@ paths:
           description: Internal server error
         '400': *id004
       description: Every query parameter filters the cards by the column with the
-        same name. Administrators who are not superadmin can filter only by `id`,
-        `name`, `dbconn_id` and `template`; any other parameter returns 400.
+        same name, and a card must match all of them. Only the columns `id`, `name`,
+        `creation`, `query`, `template`, `dbconn_id` and `permission_id` are accepted,
+        each with a single value; any other parameter returns 400. Administrators
+        who are not superadmin can filter only by `id`, `name`, `dbconn_id` and `template`.
       operationId: get_cti_customer_card
       parameters:
       - name: id
@@ -2240,15 +2258,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/GatewaySaveResult'
         '400':
-          description: Bad request; for administrators who are not superadmin also
-            `Invalid control character` (a value contains C0 control characters or DEL),
-            `Invalid gateway MAC address` and `Invalid linked extension` in `errors`
+          description: Bad request, `Invalid gateway field <field>` when `ipv4`,
+            `ipv4_new` or `ipv4_green` is not empty and not an IP address; for administrators
+            who are not superadmin also `Invalid control character` (a value contains
+            C0 control characters or DEL), `Invalid gateway MAC address` and `Invalid
+            linked extension` in `errors`
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GatewaySaveResult'
         '409':
-          description: Another gateway already uses this MAC address. Nothing is created.
+          description: For administrators who are not superadmin, another gateway
+            already uses this MAC address. Nothing is created.
           content:
             application/json:
               schema:
@@ -3164,13 +3185,8 @@ paths:
       - Nethlink
       responses:
         '200':
-          description: Successful response
-        '404':
-          description: The user has no desktop app extension
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UsersStatusMessage'
+          description: Successful response, also when the user has no desktop app
+            extension
         '500':
           description: Internal server error
           content:
@@ -4097,8 +4113,9 @@ paths:
         '200':
           description: Successful response
         '400':
-          description: Missing URL or vendor not supported by the remote provisioning
-            service.
+          description: Missing URL, MAC address that is not six hexadecimal pairs
+            (optionally separated by `:` or `-`), or vendor not supported by the remote
+            provisioning service.
       description: 'Body: `{ "url": "https://.../{mac}.cfg" }`.'
       operationId: post_phones_rps_mac
       parameters:
@@ -4292,7 +4309,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '422':
-          description: Missing extension or empty destination
+          description: For administrators who are not superadmin, missing extension
+            or empty destination
           content:
             application/json:
               schema:
@@ -5030,7 +5048,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/LegacyError'
         '422':
-          description: Trunk name longer than 50 characters
+          description: For administrators who are not superadmin, trunk name longer
+            than 50 characters
           content:
             application/json:
               schema:
@@ -6489,7 +6508,7 @@ components:
       type: object
       description: Technology parameters of the trunk (`pjsip` table for PJSIP trunks).
         Every value is a string. Credentials (`secret`, `md5_cred` and every `auth_*`
-        keyword) are never returned.
+        keyword) are returned to the superadmin only.
       properties:
         codecs:
           type: string
@@ -8297,6 +8316,11 @@ components:
           description: 'Base64 of a CSV without header: username, full name, extension,
             password, mobile, voicemail, webrtc, groups separated by |, profile name,
             nethlink. A data URL prefix is accepted.'
+        rfc4180:
+          type: boolean
+          description: When true the rows are parsed as RFC 4180, where a backslash
+            has no special meaning. Otherwise a backslash before a double quote escapes
+            it, as in the previous interface.
     UsersCsvImportProgress:
       type: object
       required:

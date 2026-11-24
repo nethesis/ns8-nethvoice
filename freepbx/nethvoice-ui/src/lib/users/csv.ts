@@ -82,6 +82,7 @@ export type ImportIssue =
   | 'too_many_devices'
   | 'invalid_flag'
   | 'control_characters'
+  | 'password_whitespace'
 
 export type ImportRowIssue = {
   issue: ImportIssue
@@ -237,7 +238,7 @@ const detectDelimiter = (text: string): string => {
   return firstLine.split(';').length > firstLine.split(',').length ? ';' : ','
 }
 
-export const parseCsv = (text: string): string[][] => {
+export const parseCsv = (text: string, trimCells = true): string[][] => {
   const source = text.replace(/^﻿/, '')
   const delimiter = detectDelimiter(source)
   const rows: string[][] = []
@@ -250,7 +251,7 @@ export const parseCsv = (text: string): string[][] => {
     field = ''
 
     if (row.some((cell) => cell.trim() !== '')) {
-      rows.push(row.map((cell) => cell.trim()))
+      rows.push(trimCells ? row.map((cell) => cell.trim()) : row)
     }
     row = []
   }
@@ -319,6 +320,11 @@ const FLAG_COLUMNS: ImportFlagColumn[] = ['voicemail', 'webrtc', 'nethlink', 'mo
 export const hasControlCharacters = (value: string): boolean =>
   [...value].some((char) => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)
 
+const SERVER_TRIMMED_CHARACTERS = /^[ \t\n\r\0\v]|[ \t\n\r\0\v]$/
+
+export const hasSurroundingWhitespace = (value: string): boolean =>
+  SERVER_TRIMMED_CHARACTERS.test(value)
+
 const isBlank = (value: string | undefined): value is undefined =>
   value === undefined || value.trim() === ''
 
@@ -346,7 +352,7 @@ const parseGroups = (value: string | undefined): string[] | null =>
         .filter((group) => group !== '')
 
 export const parseImportFile = (text: string): ImportRow[] => {
-  const table = parseCsv(text).filter((cells) => !cells[0]?.startsWith('#'))
+  const table = parseCsv(text, false).filter((cells) => !cells[0]?.trim().startsWith('#'))
 
   if (table.length === 0) {
     return []
@@ -366,7 +372,8 @@ export const parseImportFile = (text: string): ImportRow[] => {
   return body.map((cells, index) => {
     const value = (column: ImportColumn): string | undefined => {
       const position = columns.indexOf(column)
-      return position >= 0 && position < cells.length ? cells[position] : undefined
+      const cell = position >= 0 && position < cells.length ? cells[position] : undefined
+      return column === 'password' ? cell : cell?.trim()
     }
     const name = value('name') ?? value('fullname') ?? ''
     const surname = value('surname') ?? ''
@@ -458,6 +465,10 @@ const findRowIssues = (
     ].some(hasControlCharacters)
   ) {
     issues.push('control_characters')
+  }
+
+  if (hasSurroundingWhitespace(row.password)) {
+    issues.push('password_whitespace')
   }
 
   if (row.extension !== '' && !validExtension) {
@@ -727,7 +738,10 @@ export const postCsvImport = async (csv: string): Promise<void> => {
   if (exceedsImportSizeLimit(csv)) {
     throw new CsvImportError('file_too_large')
   }
-  await api.POST('/csv/csvimport', { body: { file: encodeBase64(csv) }, parseAs: 'text' })
+  await api.POST('/csv/csvimport', {
+    body: { file: encodeBase64(csv), rfc4180: true },
+    parseAs: 'text',
+  })
 }
 
 export const getCsvImportProgress = async (): Promise<number> => {

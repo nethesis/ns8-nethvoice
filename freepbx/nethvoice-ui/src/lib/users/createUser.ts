@@ -2,7 +2,12 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import * as v from 'valibot'
-import { runCsvImport, serializeCsv, USERNAME_REGEX } from '@/lib/users/csv'
+import {
+  hasSurroundingWhitespace,
+  runCsvImport,
+  serializeCsv,
+  USERNAME_REGEX,
+} from '@/lib/users/csv'
 import { isValidExtension } from '@/lib/users/extensions'
 import {
   applyUserSettingsSteps,
@@ -48,6 +53,7 @@ export const NewUserSchema = v.pipe(
     password: v.pipe(
       v.string(),
       v.nonEmpty('users.password_required'),
+      v.check((value) => !hasSurroundingWhitespace(value), 'users.password_surrounding_spaces'),
       v.check(isValidPassword, 'users.password_invalid'),
     ),
     confirmPassword: v.pipe(v.string(), v.nonEmpty('users.confirm_password_required')),

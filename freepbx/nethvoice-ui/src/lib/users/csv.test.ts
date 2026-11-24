@@ -1,7 +1,8 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/errors'
 import {
   analyzeImport,
@@ -22,6 +23,7 @@ import {
   parseCsvImportProgress,
   parseImportFile,
   planImportFollowUps,
+  postCsvImport,
   serializeCsv,
   toLegacyCsvRow,
 } from './csv'
@@ -325,6 +327,28 @@ describe('analyzeImport', () => {
     ])
   })
 
+  it('reports the passwords with spaces at the start or the end', () => {
+    const rows = parseImportFile(
+      [
+        'username,name,surname,extension,password',
+        'k.lee,Kevin,Lee,305," Secret,123"',
+        'm.cole,Mia,Cole,306,"Secret,123 "',
+        'n.ray,Nora,Ray,307,"Sec ret,123\\"',
+        'o.dean,Omar,Dean,308,',
+      ].join('\n'),
+    )
+    const analysis = analyzeImport(rows, USERS, DIRECTORY, 'skip')
+
+    expect(analysis.errors.map(({ row, issues }) => [row.username, issues])).toEqual([
+      ['k.lee', [{ issue: 'password_whitespace' }]],
+      ['m.cole', [{ issue: 'password_whitespace' }]],
+    ])
+    expect(analysis.valid.map(({ username, password }) => [username, password])).toEqual([
+      ['n.ray', 'Sec ret,123\\'],
+      ['o.dean', ''],
+    ])
+  })
+
   it('imports the existing users in overwrite mode', () => {
     const analysis = analyzeImport(rows, USERS, DIRECTORY, 'overwrite')
 
@@ -512,6 +536,22 @@ describe('templates and export', () => {
   it('detects a file too large to be imported at once', () => {
     expect(exceedsImportSizeLimit('a'.repeat(MAX_CSV_IMPORT_BASE64_LENGTH))).toBe(true)
     expect(exceedsImportSizeLimit('a.miller,Anna')).toBe(false)
+  })
+})
+
+describe('postCsvImport', () => {
+  it('asks the server to parse the rows as RFC 4180, keeping backslashes', async () => {
+    const post = vi.spyOn(api, 'POST').mockResolvedValue({ data: '', response: new Response() })
+    const csv = serializeCsv([['k.lee', 'Kevin Lee\\', '305', 'Secret,123\\']])
+
+    await postCsvImport(csv)
+
+    expect(post).toHaveBeenCalledWith('/csv/csvimport', {
+      body: { file: encodeBase64(csv), rfc4180: true },
+      parseAs: 'text',
+    })
+    expect(csv).toBe('"k.lee","Kevin Lee\\","305","Secret,123\\"\r\n')
+    post.mockRestore()
   })
 })
 

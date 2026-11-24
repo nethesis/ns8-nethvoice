@@ -154,6 +154,7 @@ foreach (['webrtc.php' => 2, 'nethlink.php' => 2, 'physicalextensions.php' => 7,
 copy("$rest/modules/users.php", "$sandbox/rest/modules/users.php");
 $patch("$sandbox/rest/modules/users.php", 'exec("/usr/bin/sudo', 'recordExec("/usr/bin/sudo', 3);
 $patch("$sandbox/rest/modules/users.php", "system('fwconsole userman --syncall --force > /dev/null &');", 'null;', 3);
+$patch("$sandbox/rest/modules/users.php", 'system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ', 'recordSystem("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ', 1);
 $patch("$sandbox/rest/lib/libUsers.php", "require_once('/etc/freepbx.conf');", '', 1);
 $patch("$sandbox/rest/modules/cti.php", "include_once('lib/libCTI.php');", '', 1);
 $cardTemplatesPath = "'/var/lib/nethserver/nethcti/templates/customer_card'";
@@ -636,10 +637,10 @@ function fake_curl_close($ch) {}
 class FakeImportStatement { public function execute($params) { $GLOBALS["events"][] = ["sql", $params]; return true; } }
 class FreePBX { public static function Database() { return new class { public function prepare($sql) { return new FakeImportStatement(); } }; } }
 ');
-$import = function ($csv, $restricted = true) use ($importer, $importLog, $importStatus) {
+$import = function ($csv, $restricted = true, $rfc4180 = false) use ($importer, $importLog, $importStatus) {
     @unlink($importLog);
     @unlink($importStatus);
-    exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($importer) . ' ' . escapeshellarg(base64_encode($csv)) . ($restricted ? ' restricted' : ''), $output, $exitCode);
+    exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($importer) . ' ' . escapeshellarg(base64_encode($csv)) . ($restricted ? ' restricted' : '') . ($rfc4180 ? ' rfc4180' : ''), $output, $exitCode);
     return [$exitCode, json_decode((string) file_get_contents($importStatus), true), json_decode((string) file_get_contents($importLog), true)];
 };
 function serializeRows(array $rows): string {
@@ -679,5 +680,41 @@ foreach ($controlCharacters as $character) {
 check($exitCode === 1 && $status['errors'] === "Error creating user: control characters are not allowed at CSV line 1\nError creating user: control characters are not allowed at CSV line 2\n" && $events === [['sync']], 'CSV rows with control characters were not all reported: ' . json_encode([$status, $events]));
 [$exitCode, $status, $events] = $import(serializeRows([['erin', "Erin\tExample"]]), false);
 check($exitCode === 0 && $events[1] === ['post', 'add-user', ['user' => 'erin', 'display_name' => "Erin\tExample", 'password' => 'Generated-42!', 'locked' => false, 'groups' => []]], 'the superadmin CSV import refused a control character: ' . json_encode([$status, $events]));
+
+$addedUsers = fn($events) => array_values(array_map(fn($event) => $event[2], array_filter($events, fn($event) => $event[0] === 'post')));
+$backslashRows = [
+    ['alice', 'Alice Example', '201', 'Invented-Pass-1!\\'],
+    ['bob', 'Bob Example\\', '202', 'Invented-Pass-2!'],
+    ['carol', 'Carol \\"Example\\"', '', 'p\\\\a"s\\s'],
+];
+foreach ([true, false] as $restricted) {
+    [$exitCode, $status, $events] = $import(serializeRows($backslashRows), $restricted, true);
+    check($exitCode === 0 && $addedUsers($events) === [
+        ['user' => 'alice', 'display_name' => 'Alice Example', 'password' => 'Invented-Pass-1!\\', 'locked' => false, 'groups' => []],
+        ['user' => 'bob', 'display_name' => 'Bob Example\\', 'password' => 'Invented-Pass-2!', 'locked' => false, 'groups' => []],
+        ['user' => 'carol', 'display_name' => 'Carol \\"Example\\"', 'password' => 'p\\\\a"s\\s', 'locked' => false, 'groups' => []],
+    ] && in_array(['createMainExtensionForUser', 'bob', '202'], $events, true), 'an RFC 4180 CSV import changed values with backslashes: ' . json_encode([$status, $events]));
+    [$exitCode, $status, $events] = $import($validCsv, $restricted, true);
+    check($exitCode === 0 && $status === ['exitcode' => 0, 'errors' => '', 'progress' => 100] && $addedUsers($events) === array_map(fn($row) => ['user' => $row[0], 'display_name' => $row[1], 'password' => $row[3] !== '' ? $row[3] : 'Generated-42!', 'locked' => false, 'groups' => []], $validRows), 'an RFC 4180 CSV import changed a valid CSV: ' . json_encode([$status, $events]));
+}
+[$exitCode, $status, $events] = $import(serializeRows($backslashRows));
+check($addedUsers($events)[0]['password'] === 'Invented-Pass-1!\\"' && !in_array(['createMainExtensionForUser', 'bob', '202'], $events, true), 'the CSV import without the RFC 4180 option no longer parses backslashes as before: ' . json_encode($events));
+
+$systemCalls = [];
+function recordSystem($command, &$status = null) {
+    $GLOBALS['systemCalls'][] = $command;
+    $status = 0;
+}
+foreach ([
+    [['users'], ['file' => 'ZmFrZQ=='], " 'ZmFrZQ==' restricted > /dev/null 2>&1 &"],
+    [['users'], ['file' => 'ZmFrZQ==', 'rfc4180' => true], " 'ZmFrZQ==' restricted rfc4180 > /dev/null 2>&1 &"],
+    [['users'], ['file' => 'ZmFrZQ==', 'rfc4180' => 'true'], " 'ZmFrZQ==' restricted > /dev/null 2>&1 &"],
+    [['superadmin'], ['file' => 'ZmFrZQ=='], " 'ZmFrZQ==' > /dev/null 2>&1 &"],
+    [['superadmin'], ['file' => 'ZmFrZQ==', 'rfc4180' => true], " 'ZmFrZQ==' rfc4180 > /dev/null 2>&1 &"],
+] as [$caller, $body, $suffix]) {
+    $systemCalls = [];
+    check(call($app, 'POST', '/csv/csvimport', $body)[0] === 200 && count($systemCalls) === 1 && str_ends_with($systemCalls[0], "/csvimport.php$suffix"), 'the CSV import route did not pass the options ' . json_encode([$caller, $body]) . ': ' . json_encode($systemCalls));
+}
+$caller = ['users', 'trunks', 'routes', 'phones', 'integrations', 'settings'];
 
 echo "PASS: invalid extensions, MACs, ring times, template names, CTI profile names and control characters in bulk, trunk, route, language, display name and gateway values never reach SQL, AMI or FreePBX; valid values reach them unchanged\n";

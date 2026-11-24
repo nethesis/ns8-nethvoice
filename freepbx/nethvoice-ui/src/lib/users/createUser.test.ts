@@ -79,6 +79,15 @@ describe('NewUserSchema', () => {
     })
   })
 
+  it('refuses a password with spaces at the start or the end', () => {
+    for (const password of [' Secret,123', 'Secret,123 ', '  Secret,123  ']) {
+      expect(issues({ password, confirmPassword: password })).toEqual({
+        password: 'users.password_surrounding_spaces',
+      })
+    }
+    expect(issues({ password: 'Sec ret,123\\', confirmPassword: 'Sec ret,123\\' })).toEqual({})
+  })
+
   it('accepts a user without extension and mobile', () => {
     expect(issues({ extension: '', mobile: '' })).toEqual({})
   })

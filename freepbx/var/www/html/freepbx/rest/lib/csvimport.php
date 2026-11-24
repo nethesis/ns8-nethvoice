@@ -35,7 +35,9 @@ $progress = 0;
 try {
     // prepare a file for saving results
     $base64csv = $argv[1] ?? '';
-    $restricted = ($argv[2] ?? '') === 'restricted';
+    $options = array_slice($argv, 2);
+    $restricted = in_array('restricted', $options, true);
+    $rfc4180 = in_array('rfc4180', $options, true);
     $str = base64_decode($base64csv, true);
     if ($str === false || trim($str) === '') {
         throw new InvalidArgumentException('Invalid or empty CSV input');
@@ -45,7 +47,7 @@ try {
 
     foreach ($rowarr as $r) {
         if (trim($r) !== '') {
-            $csv[] = str_getcsv($r);
+            $csv[] = $rfc4180 ? str_getcsv($r, ',', '"', '') : str_getcsv($r);
         }
     }
 

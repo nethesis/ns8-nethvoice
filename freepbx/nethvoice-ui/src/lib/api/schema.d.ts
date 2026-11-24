@@ -75,7 +75,7 @@ export interface paths {
     put?: never
     /**
      * Validate FreePBX credentials and disclose the shared secret.
-     * @description Body: `{ "username": "", "password": "" }`. On success returns `{ "result": "<secret>" }` with status 200; otherwise 401. The FreePBX session (`AMP_user`) stays open only for superadmin: for administrators who are not superadmin it is cleared after the credentials are checked.
+     * @description Body: `{ "username": "", "password": "" }`. On success returns `{ "result": "<secret>" }` with status 200; otherwise 401. The FreePBX session (`AMP_user`) stays open only for superadmin: for administrators who are not superadmin it is cleared after the credentials are checked. Failed attempts share the limits of `/signin`; successful attempts are not limited.
      */
     post: operations['post_testauth']
     delete?: never
@@ -304,7 +304,7 @@ export interface paths {
     put?: never
     /**
      * Persist the current wizard step and optionally trigger service restarts.
-     * @description Body: `{ "step": <int>, "status": <bool> }`. Saving step 13 with status false completes the wizard, restarts Asterisk and signals the CTI services to restart; other steps and statuses never restart services.
+     * @description Body: `{ "step": <int>, "status": <bool> }`. Saving step 13 restarts Asterisk and signals the CTI services to restart, whatever the status; status false completes the wizard. Other steps never restart services.
      */
     post: operations['post_configuration_wizard']
     delete?: never
@@ -443,7 +443,7 @@ export interface paths {
     put?: never
     /**
      * Create a new CTI profile.
-     * @description Body mirrors the profile schema used by the UI. Response returns the generated profile id, or 409 when the name is already used.
+     * @description Body mirrors the profile schema used by the UI. Response returns the generated profile id. For administrators who are not superadmin the name is trimmed and must be neither empty (422) nor already used (409).
      */
     post: operations['post_cti_profiles']
     delete?: never
@@ -801,7 +801,7 @@ export interface paths {
     }
     /**
      * List the customer cards.
-     * @description Every query parameter filters the cards by the column with the same name. Administrators who are not superadmin can filter only by `id`, `name`, `dbconn_id` and `template`; any other parameter returns 400.
+     * @description Every query parameter filters the cards by the column with the same name, and a card must match all of them. Only the columns `id`, `name`, `creation`, `query`, `template`, `dbconn_id` and `permission_id` are accepted, each with a single value; any other parameter returns 400. Administrators who are not superadmin can filter only by `id`, `name`, `dbconn_id` and `template`.
      */
     get: operations['get_cti_customer_card']
     put?: never
@@ -888,7 +888,7 @@ export interface paths {
     get?: never
     /**
      * Update a video source (found by `currentDescr` in the body).
-     * @description For administrators who are not superadmin the URL must use http or https and its host must not resolve to a loopback, link-local or unspecified address.
+     * @description For administrators who are not superadmin the URL must use http or https and its host must not resolve to a loopback, link-local or unspecified address. Only the permission of the video source is renamed.
      */
     put: operations['put_cti_streaming_descr']
     post?: never
@@ -909,7 +909,7 @@ export interface paths {
     put?: never
     /**
      * Fetch one frame from a video source URL.
-     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure; for administrators who are not superadmin only a JPEG, PNG or GIF image is returned. The URL is fetched only over http or https, never from a loopback, link-local or unspecified address, and redirects are not followed.
+     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure. For administrators who are not superadmin only a JPEG, PNG or GIF image is returned, the URL is fetched only over http or https, never from a loopback, link-local or unspecified address, and redirects are not followed. For the superadmin the URL is fetched as given. The fetch stops after 10 seconds.
      */
     post: operations['post_cti_sources_test']
     delete?: never
@@ -3440,7 +3440,7 @@ export interface components {
       /** @description Language code, as returned by GET /settings/languages. */
       lang: string
     }
-    /** @description Technology parameters of the trunk (`pjsip` table for PJSIP trunks). Every value is a string. Credentials (`secret`, `md5_cred` and every `auth_*` keyword) are never returned. */
+    /** @description Technology parameters of the trunk (`pjsip` table for PJSIP trunks). Every value is a string. Credentials (`secret`, `md5_cred` and every `auth_*` keyword) are returned to the superadmin only. */
     TrunkDetails: {
       /**
        * @description Comma separated list of allowed codecs
@@ -4277,6 +4277,8 @@ export interface components {
     UsersCsvImportRequest: {
       /** @description Base64 of a CSV without header: username, full name, extension, password, mobile, voicemail, webrtc, groups separated by |, profile name, nethlink. A data URL prefix is accepted. */
       file: string
+      /** @description When true the rows are parsed as RFC 4180, where a backslash has no special meaning. Otherwise a backslash before a double quote escapes it, as in the previous interface. */
+      rfc4180?: boolean
     }
     UsersCsvImportProgress: {
       /** @description Progress percentage, 100 when the import is over. */
@@ -4508,6 +4510,17 @@ export interface operations {
         }
         content?: never
       }
+      /** @description `too_many_attempts`: too many failed attempts for this account from this address, or for any account from this address */
+      429: {
+        headers: {
+          /** @description Seconds to wait before the next attempt. */
+          'Retry-After'?: number
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignInError']
+        }
+      }
     }
   }
   post_signin: {
@@ -4532,7 +4545,7 @@ export interface operations {
           'application/json': components['schemas']['SignInResponse']
         }
       }
-      /** @description `invalid_request` */
+      /** @description `invalid_request`, also for a username with characters other than letters, digits, `.`, `_`, `@` and `-` */
       400: {
         headers: {
           [name: string]: unknown
@@ -4559,7 +4572,7 @@ export interface operations {
           'application/json': components['schemas']['SignInError']
         }
       }
-      /** @description `too_many_attempts`: too many failed attempts for this username from this address */
+      /** @description `too_many_attempts`: too many failed attempts for this account from this address, or for any account from this address */
       429: {
         headers: {
           /** @description Seconds to wait before the next attempt. */
@@ -5252,7 +5265,7 @@ export interface operations {
           'application/json': components['schemas']['CtiProfileCreated']
         }
       }
-      /** @description Another profile already has this name */
+      /** @description Another profile already has this name (administrators who are not superadmin only) */
       409: {
         headers: {
           [name: string]: unknown
@@ -5261,7 +5274,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Empty name */
+      /** @description Empty name (administrators who are not superadmin only) */
       422: {
         headers: {
           [name: string]: unknown
@@ -6648,6 +6661,13 @@ export interface operations {
           }
         }
       }
+      /** @description No video source has `currentDescr` as description */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -6980,7 +7000,7 @@ export interface operations {
           'application/json': components['schemas']['GatewaySaveResult']
         }
       }
-      /** @description Bad request; for administrators who are not superadmin also `Invalid control character` (a value contains C0 control characters or DEL), `Invalid gateway MAC address` and `Invalid linked extension` in `errors` */
+      /** @description Bad request, `Invalid gateway field <field>` when `ipv4`, `ipv4_new` or `ipv4_green` is not empty and not an IP address; for administrators who are not superadmin also `Invalid control character` (a value contains C0 control characters or DEL), `Invalid gateway MAC address` and `Invalid linked extension` in `errors` */
       400: {
         headers: {
           [name: string]: unknown
@@ -6989,7 +7009,7 @@ export interface operations {
           'application/json': components['schemas']['GatewaySaveResult']
         }
       }
-      /** @description Another gateway already uses this MAC address. Nothing is created. */
+      /** @description For administrators who are not superadmin, another gateway already uses this MAC address. Nothing is created. */
       409: {
         headers: {
           [name: string]: unknown
@@ -8207,21 +8227,12 @@ export interface operations {
     }
     requestBody?: never
     responses: {
-      /** @description Successful response */
+      /** @description Successful response, also when the user has no desktop app extension */
       200: {
         headers: {
           [name: string]: unknown
         }
         content?: never
-      }
-      /** @description The user has no desktop app extension */
-      404: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': components['schemas']['UsersStatusMessage']
-        }
       }
       /** @description Internal server error */
       500: {
@@ -9463,7 +9474,7 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Missing URL or vendor not supported by the remote provisioning service. */
+      /** @description Missing URL, MAC address that is not six hexadecimal pairs (optionally separated by `:` or `-`), or vendor not supported by the remote provisioning service. */
       400: {
         headers: {
           [name: string]: unknown
@@ -9716,7 +9727,7 @@ export interface operations {
           'application/json': components['schemas']['Error']
         }
       }
-      /** @description Missing extension or empty destination */
+      /** @description For administrators who are not superadmin, missing extension or empty destination */
       422: {
         headers: {
           [name: string]: unknown
@@ -10616,7 +10627,7 @@ export interface operations {
           'application/json': components['schemas']['LegacyError']
         }
       }
-      /** @description Trunk name longer than 50 characters */
+      /** @description For administrators who are not superadmin, trunk name longer than 50 characters */
       422: {
         headers: {
           [name: string]: unknown
