@@ -168,12 +168,35 @@ class SetAdminGroupPrefixActionTest(unittest.TestCase):
 
 class AdminGroupPrefixWiringTest(unittest.TestCase):
     def test_the_prefix_is_chosen_on_configure_update_and_clone(self):
-        for step in ["actions/configure-module/51admin_group_prefix", "update-module.d/13admin_group_prefix", "actions/clone-module/31admin_group_prefix"]:
+        for step in ["actions/configure-module/51admin_group_prefix", "update-module.d/13admin_group_prefix"]:
             path = ROOT / step
             self.assertTrue(os.access(path, os.X_OK), step)
             self.assertIn("configure-admin-group-prefix", path.read_text())
+        self.assertTrue(os.access(ROOT / "actions/clone-module/31admin_group_prefix", os.X_OK))
         self.assertIn("agent.unset_env('NETHVOICE_ADMIN_GROUP_PREFIX')", (ROOT / "actions" / "clone-module" / "30clean_env").read_text())
         self.assertIn("    'NETHVOICE_ADMIN_GROUP_PREFIX',\n", (ROOT / "actions" / "restore-module" / "20copyenv").read_text())
+
+    def run_clone_steps(self, request):
+        agent = types.ModuleType("agent")
+        agent.unset = []
+        agent.unset_env = agent.unset.append
+        agent.mset_env = lambda values: None
+        agent.read_envfile = lambda name: {}
+        agent.write_envfile = lambda name, values: None
+        prefix = types.ModuleType("admin_group_prefix")
+        prefix.calls = []
+        prefix.configure = lambda: prefix.calls.append("configure")
+        for step in ("30clean_env", "31admin_group_prefix"):
+            with mock.patch("sys.stdin", io.StringIO(json.dumps(request))):
+                load_script(step, ROOT / "actions" / "clone-module" / step,
+                            {"agent": agent, "admin_group_prefix": prefix})
+        return "NETHVOICE_ADMIN_GROUP_PREFIX" in agent.unset, prefix.calls
+
+    def test_a_copy_gets_a_new_prefix(self):
+        self.assertEqual(self.run_clone_steps({"replace": False}), (True, ["configure"]))
+
+    def test_a_move_keeps_the_prefix_of_the_instance_it_replaces(self):
+        self.assertEqual(self.run_clone_steps({"replace": True}), (False, []))
 
     def test_the_re_read_timer_is_enabled_and_runs_the_job(self):
         for step in ["actions/configure-module/80start_services", "update-module.d/70enable"]:

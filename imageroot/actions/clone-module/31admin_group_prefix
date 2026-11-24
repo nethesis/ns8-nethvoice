@@ -1,11 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
 #
 # Copyright (C) 2026 Nethesis S.r.l.
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
-set -e
-exec 1>&2
+import json
+import sys
 
-configure-admin-group-prefix
+import admin_group_prefix
+
+if not json.loads(sys.stdin.read() or '{}').get('replace'):
+    admin_group_prefix.configure()
