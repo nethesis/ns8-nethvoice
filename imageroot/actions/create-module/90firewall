@@ -6,6 +6,7 @@
 #
 
 import os
+import sys
 
 import agent
 
@@ -20,12 +21,19 @@ import agent
 # RTP port is internal as well. The NethCTI TLS port of the retired Nethifier
 # client is no longer opened. IAX is kept for backward compatibility (matches
 # the pre-existing behaviour).
-agent.add_public_service(os.environ['MODULE_ID'], [
+PORTS = [
     os.environ['JANUS_RTPSTART']+"-"+os.environ['JANUS_RTPEND']+"/udp", # Janus
     os.environ['ASTERISK_IAX_PORT']+"/udp", # Asterisk IAX
     os.environ['PHONEBOOK_LDAP_PORT']+"/tcp", # Phonebook LDAPS
     os.environ['ASTERISK_RECORDING_SFTP_PORT']+"/tcp", # Asterisk recordings SFTP
     os.environ['ASTERISK_RTPSTART']+"-"+os.environ['ASTERISK_RTPEND']+"/udp", # Asterisk RTP for WSS
-], replace_ports=True)
+]
 
-# Ignore exit code
+# Do not ignore a failure: the node action fails also when the permanent
+# configuration was saved but firewalld could not reload it. A retry would
+# not help, since the action skips the reload when the permanent ports
+# already match, and a removed port (e.g. the Nethifier one on update) would
+# stay open at runtime until the next firewalld reload.
+if not agent.add_public_service(os.environ['MODULE_ID'], PORTS, replace_ports=True):
+    print(agent.SD_ERR + "The public firewall ports of the module could not be applied: check firewalld and run firewall-cmd --reload on the node", file=sys.stderr)
+    sys.exit(1)
