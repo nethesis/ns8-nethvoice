@@ -138,6 +138,9 @@ class ChatConversation:
         if opening:
             payload.pop('tools')
             payload.pop('parallel_tool_calls')
+        elif self.binding['provider'] == 'openai' and model in ('gpt-6-luna', 'gpt-6-sol'):
+            # These Chat Completions models require no reasoning for custom tool calls.
+            payload['reasoning_effort'] = 'none'
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=min(10,max(.1,c.deadline-time.monotonic())))) as session:
             async with session.post(base,json=payload,headers={'Authorization':'Bearer '+self.binding['api_key']}) as response:
                 if response.status != 200:
