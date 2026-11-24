@@ -44,6 +44,12 @@ function postCTIProfile($profile, $id = false) {
 
 function triggerMiddlewareProfilesReload() {}
 
+function getCTIPermissionProfiles($id) {
+    $sth = FreePBX::$pdo->prepare('SELECT id, name FROM rest_cti_profiles WHERE id = ?');
+    $sth->execute([$id]);
+    return $sth->fetch(PDO::FETCH_ASSOC);
+}
+
 function sqlite(array $statements): PDO {
     $db = new PDO('sqlite::memory:');
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -90,10 +96,21 @@ function permissions(): array {
 }
 
 $app = new RouteCollector();
+$sandbox = sys_get_temp_dir() . '/cti-admin-handlers-test-' . getmypid();
+mkdir($sandbox);
+$lock = "$sandbox/contextLock";
+$module = str_replace("'/var/run/nethvoice/contextLock'", var_export($lock, true), file_get_contents($rest . '/modules/cti.php'), $found);
+check($found === 1, "expected one profile lock path in cti.php, found $found");
+file_put_contents("$sandbox/cti.php", $module);
+register_shutdown_function(function () use ($sandbox, $lock) {
+    @unlink($lock);
+    unlink("$sandbox/cti.php");
+    rmdir($sandbox);
+});
 $cwd = getcwd();
 chdir(sys_get_temp_dir());
 $level = error_reporting(E_ALL & ~E_WARNING);
-require $rest . '/modules/cti.php';
+require "$sandbox/cti.php";
 error_reporting($level);
 chdir($cwd);
 ini_set('error_log', '/dev/null');
@@ -154,6 +171,37 @@ $tests['POST /cti/profiles checks the name only for limited administrators'] = f
     $created = [];
     [$status] = call($app, 'POST /cti/profiles', $userer, ['name' => ' Sales ']);
     check($status === 200 && $created === [['name' => 'Sales']], 'a limited administrator must create a profile with a trimmed name');
+};
+
+$tests['POST /cti/profiles/{id} checks the profile only for limited administrators and answers 423 to everyone while locked'] = function () use ($app, $superadmin, $userer, $lock) {
+    global $created;
+    resetDatabases();
+    FreePBX::$pdo->exec("INSERT INTO rest_cti_profiles (id, name) VALUES (5, 'Hotel')");
+    foreach ([['9', ['name' => 'Ghost']], ['1', ['name' => '']], ['1', ['name' => '  ']], ['1', ['name' => 'Advanced']], ['5', ['name' => 'Reception']], ['1', ['name' => 'Hotel']], ['1', ['macro_permissions' => []]]] as [$id, $profile]) {
+        $created = [];
+        [$status, $body] = call($app, 'POST /cti/profiles/{id}', $superadmin, $profile, ['id' => $id]);
+        check($status === 200 && $body === '{"status":true}' && $created === [$profile], 'the superadmin must edit the profile as before: ' . json_encode([$id, $profile, $status, $body, $created]));
+    }
+    foreach ([['9', ['name' => 'Ghost'], 404], ['1', ['name' => ''], 422], ['1', ['name' => '  '], 422], ['1', ['name' => 'Advanced'], 409], ['1', ['name' => ' Advanced '], 409], ['5', ['name' => 'Reception'], 422], ['1', ['name' => 'Hotel'], 422]] as [$id, $profile, $expected]) {
+        $created = [];
+        [$status] = call($app, 'POST /cti/profiles/{id}', $userer, $profile, ['id' => $id]);
+        check($status === $expected && $created === [], json_encode([$id, $profile]) . " from a limited administrator: expected $expected, got $status");
+    }
+    foreach ([[['macro_permissions' => []], ['macro_permissions' => [], 'name' => 'Base']], [['name' => ' Sales '], ['name' => 'Sales']]] as [$profile, $expected]) {
+        $created = [];
+        [$status] = call($app, 'POST /cti/profiles/{id}', $userer, $profile, ['id' => '1']);
+        check($status === 200 && $created === [$expected], 'a limited administrator must edit the profile with a checked name: ' . json_encode([$status, $created]));
+    }
+    touch($lock);
+    try {
+        foreach ([$superadmin, $userer] as $permissions) {
+            $created = [];
+            [$status, $body] = call($app, 'POST /cti/profiles/{id}', $permissions, ['name' => 'Base'], ['id' => '1']);
+            check($status === 423 && $created === [], 'a locked profile change must answer 423 to ' . json_encode($permissions) . ": $status $body");
+        }
+    } finally {
+        unlink($lock);
+    }
 };
 
 $failures = 0;
