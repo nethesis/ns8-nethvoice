@@ -88,7 +88,7 @@ function checkUpgrade($scenario, $udpAddress = null, $tcpAddress = null, $udpNet
 
 // Check the cleanup's scope before FreePBX performs its own legacy row migrations.
 $db->beginTransaction();
-$db->exec("INSERT INTO sipsettings VALUES ('localnet_label', 'keep', 0, 0), ('netmask_0_suffix', 'keep', 0, 0)");
+$db->exec("INSERT INTO sipsettings VALUES ('localnetwork', 'keep', 0, 0), ('my_netmask_0', 'keep', 0, 0)");
 $untouched = sql('SELECT * FROM sipsettings ORDER BY rowid', 'getAll');
 $db->exec($legacyAddress);
 $db->exec($legacyNetworks);
@@ -107,6 +107,8 @@ checkUpgrade('legacy address and empty local networks');
 $db->exec($legacyAddress);
 $db->exec($legacyNetworks);
 checkUpgrade('legacy address and subnet');
+$db->exec("INSERT INTO sipsettings VALUES ('localnet_office', '10.7.0.0', 42, 0), ('netmask_office', '24', 0, 0)");
+checkUpgrade('named legacy subnet');
 
 $db->exec($legacyAddress);
 $db->exec($legacyNetworks);
