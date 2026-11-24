@@ -44,7 +44,7 @@
             "description": "NethVoice brand name",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^[^\\x00-\\x1f\\x7f]*$"
+            "pattern": "^(?![\"'])[^\\x00-\\x1f\\x7f\\\\]*$"
         },
         "rebranding_login_people": {
             "description": "NethVoice rebranding show/hide people on login",
@@ -55,115 +55,115 @@
             "description": "NethVoice rebranding link to navbar logo",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_navbar_logo_dark_url": {
             "description": "NethVoice rebranding link to navbar dark logo",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_login_logo_url": {
             "description": "NethVoice rebranding link to login logo",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_login_logo_dark_url": {
             "description": "NethVoice rebranding link to login dark logo",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_favicon_url": {
             "description": "NethVoice rebranding link to favicon",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_login_background_url": {
             "description": "NethVoice rebranding link to backround image",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_wizard_brand_name": {
             "description": "NethVoice Wizard brand name",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^[^\\x00-\\x1f\\x7f]*$"
+            "pattern": "^(?![\"'])[^\\x00-\\x1f\\x7f\\\\]*$"
         },
         "rebranding_wizard_login_logo_url": {
             "description": "NethVoice Wizard rebranding link to login logo",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_wizard_logo_light_url": {
             "description": "NethVoice Wizard rebranding link to the logo for light backgrounds",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_wizard_favicon_url": {
             "description": "NethVoice Wizard rebranding link to favicon",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_wizard_login_background_url": {
             "description": "NethVoice Wizard rebranding link to background image",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_freepbx_admin_logo_url": {
             "description": "FreePBX admin GUI rebranding link to top-left logo",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_freepbx_admin_favicon_url": {
             "description": "FreePBX admin GUI rebranding link to favicon",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_reports_brand_name": {
             "description": "NethVoice Reports brand name",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^[^\\x00-\\x1f\\x7f]*$"
+            "pattern": "^(?![\"'])[^\\x00-\\x1f\\x7f\\\\]*$"
         },
         "rebranding_reports_login_logo_url": {
             "description": "NethVoice Reports rebranding link to login logo",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_reports_favicon_url": {
             "description": "NethVoice Reports rebranding link to favicon",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_reports_login_background_url": {
             "description": "NethVoice Reports rebranding link to background image",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         },
         "rebranding_nethlink_company_name": {
             "description": "NethLink About company name",
             "type": "string",
             "maxLength": 128,
-            "pattern": "^[^\\x00-\\x1f\\x7f]*$"
+            "pattern": "^(?![\"'])[^\\x00-\\x1f\\x7f\\\\]*$"
         },
         "rebranding_nethlink_company_url": {
             "description": "NethLink About company URL",
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^(https?://[^\\s'\"<>\\\\`]+)?$"
+            "pattern": "^(https?://[^\\s'\"<>\\\\`$]+)?$"
         }
     }
 }

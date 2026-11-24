@@ -33,7 +33,7 @@ if len(sys.argv) > 1:
 else:
     rdb = agent.redis_connect(use_replica=True)
     name = (rdb.get(f"module/{os.environ['MODULE_ID']}/ui_name") or "").strip()
-name = "".join(char for char in name if char.isprintable()).strip()
+name = "".join(char for char in name if char.isprintable() and char != "\\").strip().lstrip("\"'").strip()
 name = name or os.environ["MODULE_ID"]
 
 agent.set_env("NETHVOICE_UI_NAME", name)

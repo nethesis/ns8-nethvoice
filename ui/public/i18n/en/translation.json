@@ -320,8 +320,8 @@
     "rebranding_cached_description": "The subscription server cannot be reached. The rebranding status verified on {date} is shown.",
     "rebranding_check_failed_description": "The subscription server cannot be reached, so the rebranding status is unknown. Try again later.",
     "rebranding_not_active": "Rebranding is not active for this subscription.",
-    "invalid_image_url": "Must be a URL starting with http:// or https://, without spaces or quotes",
-    "invalid_name": "Too long, or contains characters that are not allowed"
+    "invalid_image_url": "Must be a URL starting with http:// or https://, without spaces, quotes or the $ sign",
+    "invalid_name": "Too long, starts with a quote or contains backslashes or control characters"
   },
   "hotel": {
     "title": "Hotel",

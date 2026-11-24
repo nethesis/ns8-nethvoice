@@ -219,9 +219,16 @@ class SetRebrandingSchemaTest(unittest.TestCase):
         self.assertEqual(self.errors(), [])
         self.assertEqual(self.errors(rebranding_navbar_logo_url='', rebranding_brand_name=''), [])
 
-    def test_names_accept_quotes_and_apostrophes(self):
-        self.assertEqual(self.errors(rebranding_brand_name="L'Azienda \"Voce\" & Co.",
-                                     rebranding_nethlink_company_name="O'Brien \"Telecom\""), [])
+    def test_names_accept_quotes_and_symbols_inside(self):
+        self.assertEqual(self.errors(rebranding_brand_name="L'Azienda \"Voce\" & Co. $1",
+                                     rebranding_nethlink_company_name='O\u2019Brien Telecom (R&D) 100%'), [])
+
+    def test_names_reject_what_breaks_the_environment_file(self):
+        names = ['rebranding_brand_name', 'rebranding_nethlink_company_name', 'rebranding_reports_brand_name',
+                 'rebranding_wizard_brand_name']
+        for value in ('"Voice', "'Acme", 'Acme \\ Voice'):
+            with self.subTest(value=value):
+                self.assertEqual(self.errors(**{name: value for name in names}), names)
 
     def test_names_reject_control_characters_and_long_values(self):
         self.assertEqual(self.errors(rebranding_brand_name='Acme\tVoice'), ['rebranding_brand_name'])
@@ -240,6 +247,7 @@ class SetRebrandingSchemaTest(unittest.TestCase):
         url_fields = sorted(key for key in self.validator.schema['properties'] if key.endswith('_url'))
         self.assertIn('rebranding_wizard_logo_light_url', url_fields)
         for value in ('javascript:alert(1)', 'ftp://cdn.example.org/logo.svg', "https://cdn.example.org/a'b.svg",
+                      'https://cdn.example.org/$HOME.svg', 'https://cdn.example.org/a\\b.svg',
                       'https://cdn.example.org/a"b.svg', 'https://cdn.example.org/a b.svg',
                       'https://cdn.example.org/<b>.svg', '//cdn.example.org/logo.svg',
                       'https://' + 'a' * 2048):
