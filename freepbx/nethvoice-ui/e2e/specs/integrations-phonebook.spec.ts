@@ -110,6 +110,14 @@ const sourcesFixture = (): Record<string, Record<string, unknown>> => ({
 
 const TODAY = new Date().toISOString().slice(0, 10)
 const YESTERDAY = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+const TODAY_AT_11_59 = new Intl.DateTimeFormat('en-US', {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: 'UTC',
+}).format(new Date(`${TODAY}T11:59:00Z`))
 
 const statusesFixture = () => [
   {
@@ -1455,7 +1463,7 @@ test.describe('integrations: phonebook', () => {
     ).toBeVisible()
     const first = importsGrid(page).getByRole('row').nth(1)
     await expect(first.locator('td')).toContainText([
-      'Nov 23, 2026, 11:59 AM',
+      TODAY_AT_11_59,
       'Mario Rossi (201)',
       'contacts.csv',
       '4 imported',
