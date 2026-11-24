@@ -127,6 +127,11 @@ const isSetup = computed(() => variant === 'setup')
 const showPhones = computed(() => isEdit.value && !isSetup.value)
 const showAccount = computed(() => !isSetup.value)
 const accountEditable = computed(() => showAccount.value && accountsManageable)
+const identityLocked = computed(
+  () =>
+    !accountEditable.value ||
+    (isEdit.value && accountRestriction !== null && accountRestriction !== 'own_account'),
+)
 const isCreationBlocked = computed(() => !isEdit.value && !isSetup.value && creationBlocked !== '')
 
 const phonesField = useTemplateRef<InstanceType<typeof UserPhonesField>>('phonesField')
@@ -356,7 +361,7 @@ watch(
         focusUnlessFocusedWithin(
           formRef.value,
           isEdit.value
-            ? accountEditable.value
+            ? !identityLocked.value
               ? nameRef.value
               : extensionRef.value
             : usernameRef.value,
@@ -806,14 +811,14 @@ const extensionChangeWarning = computed(
           v-model="name"
           :label="t('users.name')"
           :invalid-message="issue('name')"
-          :disabled="saving || !accountEditable"
+          :disabled="saving || identityLocked"
         />
         <NeTextInput
           ref="surnameRef"
           v-model="surname"
           :label="t('users.surname')"
           :invalid-message="issue('surname')"
-          :disabled="saving || !accountEditable"
+          :disabled="saving || identityLocked"
         />
         <NeTextInput
           ref="emailRef"
@@ -824,7 +829,7 @@ const extensionChangeWarning = computed(
           :invalid-message="issue('email')"
           optional
           :optional-label="t('common.optional')"
-          :disabled="saving || !accountEditable"
+          :disabled="saving || identityLocked"
           autocomplete="off"
         />
       </template>

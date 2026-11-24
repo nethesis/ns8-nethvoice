@@ -987,6 +987,9 @@ test.describe('users', () => {
     expect(overwriteBox?.y ?? 0).toBeLessThan(summaryBox?.y ?? 0)
 
     await modal.getByRole('radio', { name: 'Overwrite existing users' }).check()
+    await expect(modal).toContainText(
+      'Mobile number, groups and profile of the existing users are updated, together with the voicemail and the devices set in the file. Their names are kept. A different extension recreates all their devices.',
+    )
     await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeVisible()
     await expect(modal).not.toContainText('This user already exists:')
 
@@ -1904,7 +1907,14 @@ test.describe('user accounts', () => {
         const drawer = page.getByRole('dialog', { name: `Edit user ${username}` })
         await expect(drawer.getByTestId('user-status-toggle').getByRole('checkbox')).toBeDisabled()
         await expect(drawer.getByTestId('user-status-helper')).toHaveText(reason)
-        await expect(drawer.getByRole('textbox', { name: 'Surname' })).toBeEnabled()
+        for (const field of [/^Name$/, /^Surname$/, /^Email/]) {
+          const textbox = drawer.getByRole('textbox', { name: field })
+          if (username === 'helpdesk') {
+            await expect(textbox).toBeEnabled()
+          } else {
+            await expect(textbox).toBeDisabled()
+          }
+        }
         await drawer.getByRole('button', { name: 'Cancel' }).click()
         await expect(drawer.getByRole('button', { name: 'Cancel' })).toBeHidden()
       }
@@ -1940,6 +1950,16 @@ test.describe('user accounts', () => {
         await expect(page.getByRole('menuitem', { name: 'Change password' })).toBeDisabled()
         await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
         await page.keyboard.press('Escape')
+
+        await page.getByRole('button', { name: `Edit ${username}` }).click()
+        const drawer = page.getByRole('dialog', { name: `Edit user ${username}` })
+        await expect(drawer.getByTestId('user-status-helper')).toHaveText(reason)
+        for (const field of [/^Name$/, /^Surname$/, /^Email/]) {
+          await expect(drawer.getByRole('textbox', { name: field })).toBeDisabled()
+        }
+        await expect(drawer.getByRole('textbox', { name: /^Extension/ })).toBeFocused()
+        await drawer.getByRole('button', { name: 'Cancel' }).click()
+        await expect(drawer).toBeHidden()
       }
 
       await openRowMenu(page, 'd.jones')
