@@ -227,7 +227,7 @@ $tests['the domain is not asked without a prefix or a users-admin service'] = fu
 
 $tests['repeated failures are throttled'] = function () {
     $f = new Fixture();
-    for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_PER_ADDRESS; $i++) {
+    for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_PER_ACCOUNT; $i++) {
         check(signIn($f, 'alice', 'wrong')[0] === 401, 'a wrong password must be refused');
     }
     $f->now += 10;
@@ -238,14 +238,75 @@ $tests['repeated failures are throttled'] = function () {
     $f->now += DOMAIN_ADMINS_FAILURE_WINDOW;
     check(signIn($f, 'alice', PASSWORD)[0] === 200, 'the throttle must end after the window');
     check(signIn($f, 'alice', 'wrong')[0] === 401 && signIn($f, 'alice', PASSWORD)[0] === 200, 'a success must reset the failures of the address');
+    $f->cleanup();
+};
 
+$tests['usernames outside the valid pattern are refused before the throttle and the lookup'] = function () {
     $f = new Fixture();
-    for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_PER_USER; $i++) {
-        signIn($f, 'qa_trunks', 'wrong', '198.51.100.' . $i);
+    for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_PER_ACCOUNT; $i++) {
+        signIn($f, 'admin', 'wrong');
     }
-    check(signIn($f, 'qa_trunks', 'Trunks-Password-1', '203.0.113.1')[0] === 429, 'too many failures from many addresses must throttle the username');
+    foreach (['admin  ', ' admin', "admin\t", 'àdmin', 'ädmin', "admin\0", 'ad min'] as $username) {
+        $answer = signIn($f, $username, 'Admin-Password-1');
+        check($answer[0] === 400 && $answer[1]['code'] === 'invalid_request', json_encode($username) . ' must be refused, got ' . json_encode($answer));
+    }
+    check(signIn($f, 'ADMIN', 'Admin-Password-1')[0] === 429, 'another case of the same account must share its failures');
+    check($f->portalCalls === [], 'refused usernames must not reach the domain');
+    $f->cleanup();
+};
+
+$tests['failures are counted on the account found, whatever the spelling'] = function () {
+    $f = new Fixture();
+    if (method_exists($f->db, 'sqliteCreateCollation')) {
+        $f->db->sqliteCreateCollation('PADCI', fn($a, $b) => strcmp(strtolower(rtrim($a)), strtolower(rtrim($b))));
+        $f->db->exec('CREATE TABLE padded (username TEXT NOT NULL COLLATE PADCI PRIMARY KEY)');
+        $f->db->exec("INSERT INTO padded VALUES ('Admin')");
+        $f->db->exec('ALTER TABLE ampusers RENAME TO ampusers_nocase');
+        $f->db->exec('CREATE TABLE ampusers (username TEXT NOT NULL COLLATE PADCI PRIMARY KEY, password_sha1 TEXT NOT NULL, sections BLOB NOT NULL)');
+        $f->db->exec('INSERT INTO ampusers SELECT username, password_sha1, sections FROM ampusers_nocase');
+        check(domainAdminsAccountKey($f->db, 'admin  ') === 'admin' && domainAdminsAccountKey($f->db, 'ADMIN') === 'admin', 'a padded or differently cased name must give the stored account');
+    }
+    check(domainAdminsAccountKey($f->db, 'Nobody') === 'nobody', 'an unknown name must give its lowercase spelling');
+    $f->cleanup();
+};
+
+$tests['failures from one address are limited across usernames'] = function () {
+    $f = new Fixture();
+    for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_PER_ADDRESS; $i++) {
+        check(signIn($f, 'sprayed' . $i, 'Common-Password-1', '198.51.100.7')[0] === 401, 'a wrong password must be refused');
+    }
+    $throttled = signIn($f, 'admin', 'Admin-Password-1', '198.51.100.7');
+    check($throttled[0] === 429 && $throttled[2] === ['Retry-After' => '300'], 'too many failures from one address must throttle every username: ' . json_encode($throttled));
+    check(signIn($f, 'admin', 'Admin-Password-1', '198.51.100.8')[0] === 200, 'another address must not be throttled');
+    $f->now += DOMAIN_ADMINS_FAILURE_WINDOW;
+    check(signIn($f, 'admin', 'Admin-Password-1', '198.51.100.7')[0] === 200, 'the address throttle must end after the window');
+    $f->cleanup();
+};
+
+$tests['failures from many addresses do not lock an account out'] = function () {
+    $f = new Fixture();
+    for ($i = 0; $i < 50; $i++) {
+        signIn($f, 'admin', 'wrong', '198.51.100.' . $i);
+    }
+    check(signIn($f, 'admin', 'Admin-Password-1', '203.0.113.1')[0] === 200, 'failures from other addresses must not lock admin out');
     $stored = (string) file_get_contents($f->directory . '/signin-failures.json');
-    check(!str_contains($stored, 'qa_trunks') && !str_contains($stored, '198.51.100'), 'the failure file must not hold usernames or addresses');
+    check(!str_contains($stored, 'admin') && !str_contains($stored, '198.51.100'), 'the failure file must not hold usernames or addresses');
+    $f->cleanup();
+};
+
+$tests['a full failure table drops the oldest entries instead of new failures'] = function () {
+    $f = new Fixture();
+    $old = [];
+    for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_TRACKED; $i++) {
+        $old['x' . $i] = [1, $f->now - 100 + intdiv($i, 1000)];
+    }
+    file_put_contents($f->directory . '/signin-failures.json', json_encode($old));
+    for ($i = 0; $i < DOMAIN_ADMINS_FAILURES_PER_ACCOUNT; $i++) {
+        signIn($f, 'qa_trunks', 'wrong');
+    }
+    check(signIn($f, 'qa_trunks', 'Trunks-Password-1')[0] === 429, 'new failures must be counted when the table is full');
+    $stored = json_decode((string) file_get_contents($f->directory . '/signin-failures.json'), true);
+    check(count($stored) === DOMAIN_ADMINS_FAILURES_TRACKED && !isset($stored['x0']) && isset($stored['x' . (DOMAIN_ADMINS_FAILURES_TRACKED - 1)]), 'the oldest entries must be dropped first: ' . count($stored));
     $f->cleanup();
 };
 

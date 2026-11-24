@@ -11,8 +11,8 @@ require_once __DIR__ . '/libUsersAdmin.php';
 const DOMAIN_ADMINS_LOCK = '/var/run/nethvoice/domain-admins.lock';
 const DOMAIN_ADMINS_FAILURES = '/var/run/nethvoice/signin-failures.json';
 const DOMAIN_ADMINS_FAILURE_WINDOW = 300;
-const DOMAIN_ADMINS_FAILURES_PER_ADDRESS = 5;
-const DOMAIN_ADMINS_FAILURES_PER_USER = 20;
+const DOMAIN_ADMINS_FAILURES_PER_ACCOUNT = 5;
+const DOMAIN_ADMINS_FAILURES_PER_ADDRESS = 20;
 const DOMAIN_ADMINS_FAILURES_TRACKED = 10000;
 const DOMAIN_ADMINS_SIGNIN_MESSAGES = [
     'invalid_request' => 'Invalid request',
@@ -49,6 +49,104 @@ function domainAdminsSections(array $permissions): string
     return implode(';', array_map(fn($permission) => NETHVOICE_SECTION_PREFIX . $permission, $permissions));
 }
 
+function domainAdminsAccountKey($dbh, string $username): string
+{
+    $stmt = $dbh->prepare('SELECT username FROM ampusers WHERE username = ?');
+    $stmt->execute([$username]);
+    $stored = $stmt->fetchColumn();
+
+    return strtolower(is_string($stored) ? $stored : $username);
+}
+
+function domainAdminsSignInThrottle(string $failuresFile = DOMAIN_ADMINS_FAILURES): SignInThrottle
+{
+    return new SignInThrottle($failuresFile);
+}
+
+class SignInThrottle
+{
+    private $clock;
+
+    public function __construct(private string $failuresFile = DOMAIN_ADMINS_FAILURES, ?callable $clock = null)
+    {
+        $this->clock = $clock ?? 'time';
+    }
+
+    public function retryAfter(string $address, string $account): ?int
+    {
+        $now = ($this->clock)();
+        $failures = $this->update(fn($failures) => $failures);
+        $retry = null;
+        foreach ($this->keys($address, $account) as $key => $limit) {
+            [$count, $first] = $failures[$key] ?? [0, $now];
+            if ($count >= $limit && $now - $first < DOMAIN_ADMINS_FAILURE_WINDOW) {
+                $retry = max($retry ?? 0, DOMAIN_ADMINS_FAILURE_WINDOW - ($now - $first));
+            }
+        }
+        return $retry;
+    }
+
+    public function fail(string $address, string $account): void
+    {
+        $now = ($this->clock)();
+        $this->update(function ($failures) use ($address, $account, $now) {
+            foreach ($this->keys($address, $account) as $key => $limit) {
+                if (!isset($failures[$key]) && count($failures) >= DOMAIN_ADMINS_FAILURES_TRACKED) {
+                    uasort($failures, fn($a, $b) => $a[1] <=> $b[1]);
+                    $failures = array_slice($failures, count($failures) - DOMAIN_ADMINS_FAILURES_TRACKED + 1, null, true);
+                }
+                [$count, $first] = $failures[$key] ?? [0, $now];
+                $failures[$key] = $now - $first < DOMAIN_ADMINS_FAILURE_WINDOW ? [$count + 1, $first] : [1, $now];
+            }
+            return $failures;
+        });
+    }
+
+    public function succeed(string $address, string $account): void
+    {
+        $keys = $this->keys($address, $account);
+        $this->update(fn($failures) => array_diff_key($failures, [array_key_first($keys) => true]));
+    }
+
+    private function keys(string $address, string $account): array
+    {
+        return [
+            'a' . hash('sha256', $address . "\n" . $account) => DOMAIN_ADMINS_FAILURES_PER_ACCOUNT,
+            's' . hash('sha256', $address) => DOMAIN_ADMINS_FAILURES_PER_ADDRESS,
+        ];
+    }
+
+    private function update(callable $change): array
+    {
+        $now = ($this->clock)();
+        $handle = @fopen($this->failuresFile, 'c+');
+        if ($handle === false) {
+            return [];
+        }
+        try {
+            flock($handle, LOCK_EX);
+            $data = json_decode((string) stream_get_contents($handle), true);
+            $failures = [];
+            foreach (is_array($data) ? $data : [] as $key => $value) {
+                if (is_string($key) && is_array($value) && count($value) === 2 && is_int($value[0]) && is_int($value[1])
+                    && $value[1] <= $now && $now - $value[1] < DOMAIN_ADMINS_FAILURE_WINDOW) {
+                    $failures[$key] = $value;
+                }
+            }
+            $changed = $change($failures);
+            if ($changed !== $failures || $data !== $failures) {
+                ftruncate($handle, 0);
+                rewind($handle);
+                fwrite($handle, json_encode((object) $changed));
+            }
+            return $changed;
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+}
+
 function domainAdminsPortalCall(string $url, string $handler, array $payload, string $token): array
 {
     try {
@@ -65,6 +163,7 @@ class DomainAdmins
     private $portal;
     private $clock;
     private $random;
+    private SignInThrottle $throttle;
 
     public function __construct(
         private $dbh,
@@ -82,6 +181,7 @@ class DomainAdmins
         $this->portal = $portal;
         $this->clock = $clock ?? 'time';
         $this->random = $random ?? fn() => bin2hex(random_bytes(20));
+        $this->throttle = new SignInThrottle($failuresFile, $this->clock);
     }
 
     public function groupNames(): array
@@ -112,18 +212,22 @@ class DomainAdmins
         }
         $username = $body['username'];
         $password = $body['password'];
-        $retry = $this->throttled($address, $username);
+        if (preg_match(USERS_ADMIN_USERNAME_PATTERN, $username) !== 1) {
+            return domainAdminsSignInError(400, 'invalid_request');
+        }
+        $local = $this->ampuser($username);
+        $account = strtolower($local['username'] ?? $username);
+        $retry = $this->throttle->retryAfter($address, $account);
         if ($retry !== null) {
             return domainAdminsSignInError(429, 'too_many_attempts', ['Retry-After' => (string) $retry]);
         }
 
-        $local = $this->ampuser($username);
         if ($local !== null && !$this->isManaged($local['username'])) {
             $permissions = nethvoiceParseSections($local['sections']);
             if (!$permissions || !hash_equals((string) $local['password_sha1'], sha1($password))) {
-                return $this->failed($address, $username);
+                return $this->failed($address, $account);
             }
-            $this->clearFailures($address, $username);
+            $this->throttle->succeed($address, $account);
             return [200, [
                 'user' => $local['username'],
                 'secretkey' => sha1($local['username'] . $local['password_sha1'] . $this->secret),
@@ -132,12 +236,12 @@ class DomainAdmins
             ], []];
         }
         if ($this->isReserved($username) || !$this->client->isConfigured() || $this->portal === null || $this->prefix === null) {
-            return $this->failed($address, $username);
+            return $this->failed($address, $account);
         }
 
         $login = ($this->portal)('login', ['username' => $username, 'password' => $password], '');
         if ($login['status'] === 401) {
-            return $this->failed($address, $username);
+            return $this->failed($address, $account);
         }
         $claims = $login['data']['claims'] ?? null;
         $token = $login['data']['token'] ?? null;
@@ -147,7 +251,7 @@ class DomainAdmins
         }
         $permissions = $this->permissionsOf($claims['groups']);
         if (!$permissions) {
-            return $this->failed($address, $username);
+            return $this->failed($address, $account);
         }
         $expiration = ($this->portal)('get-password-expiration', [], $token);
         if ($expiration['status'] !== 200 || !is_array($expiration['data'])) {
@@ -174,7 +278,7 @@ class DomainAdmins
         if ($hash === null) {
             return domainAdminsSignInError(403, 'account_conflict');
         }
-        $this->clearFailures($address, $username);
+        $this->throttle->succeed($address, $account);
         return [200, [
             'user' => $uid,
             'secretkey' => sha1($uid . $hash . $this->secret),
@@ -609,79 +713,10 @@ class DomainAdmins
         }
     }
 
-    private function failureKeys(string $address, string $username): array
+    private function failed(string $address, string $account): array
     {
-        $user = strtolower($username);
-        return [
-            'a' . hash('sha256', $address . "\n" . $user) => DOMAIN_ADMINS_FAILURES_PER_ADDRESS,
-            'u' . hash('sha256', $user) => DOMAIN_ADMINS_FAILURES_PER_USER,
-        ];
-    }
-
-    private function throttled(string $address, string $username): ?int
-    {
-        $now = ($this->clock)();
-        $failures = $this->updateFailures(fn($failures) => $failures);
-        $retry = null;
-        foreach ($this->failureKeys($address, $username) as $key => $limit) {
-            [$count, $first] = $failures[$key] ?? [0, $now];
-            if ($count >= $limit && $now - $first < DOMAIN_ADMINS_FAILURE_WINDOW) {
-                $retry = max($retry ?? 0, DOMAIN_ADMINS_FAILURE_WINDOW - ($now - $first));
-            }
-        }
-        return $retry;
-    }
-
-    private function failed(string $address, string $username): array
-    {
-        $now = ($this->clock)();
-        $this->updateFailures(function ($failures) use ($address, $username, $now) {
-            foreach ($this->failureKeys($address, $username) as $key => $limit) {
-                if (!isset($failures[$key]) && count($failures) >= DOMAIN_ADMINS_FAILURES_TRACKED) {
-                    continue;
-                }
-                [$count, $first] = $failures[$key] ?? [0, $now];
-                $failures[$key] = $now - $first < DOMAIN_ADMINS_FAILURE_WINDOW ? [$count + 1, $first] : [1, $now];
-            }
-            return $failures;
-        });
+        $this->throttle->fail($address, $account);
         return domainAdminsSignInError(401, 'invalid_credentials');
-    }
-
-    private function clearFailures(string $address, string $username): void
-    {
-        $keys = $this->failureKeys($address, $username);
-        $this->updateFailures(fn($failures) => array_diff_key($failures, [array_key_first($keys) => true]));
-    }
-
-    private function updateFailures(callable $change): array
-    {
-        $now = ($this->clock)();
-        $handle = @fopen($this->failuresFile, 'c+');
-        if ($handle === false) {
-            return [];
-        }
-        try {
-            flock($handle, LOCK_EX);
-            $data = json_decode((string) stream_get_contents($handle), true);
-            $failures = [];
-            foreach (is_array($data) ? $data : [] as $key => $value) {
-                if (is_string($key) && is_array($value) && count($value) === 2 && is_int($value[0]) && is_int($value[1])
-                    && $value[1] <= $now && $now - $value[1] < DOMAIN_ADMINS_FAILURE_WINDOW) {
-                    $failures[$key] = $value;
-                }
-            }
-            $changed = $change($failures);
-            if ($changed !== $failures || $data !== $failures) {
-                ftruncate($handle, 0);
-                rewind($handle);
-                fwrite($handle, json_encode((object) $changed));
-            }
-            return $changed;
-        } finally {
-            flock($handle, LOCK_UN);
-            fclose($handle);
-        }
     }
 }
 

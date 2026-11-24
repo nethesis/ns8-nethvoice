@@ -22,6 +22,8 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+require_once __DIR__ . '/../lib/libDomainAdmins.php';
+
 /*
 * /login - POST
 *
@@ -53,6 +55,16 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
     $password = $params['password'];
 
     if(!empty($username)) {
+        if (!is_string($username)) {
+            return $response->withStatus(401);
+        }
+        $throttle = domainAdminsSignInThrottle();
+        $address = domainAdminsClientAddress($request);
+        $account = domainAdminsAccountKey(FreePBX::Database(), $username);
+        $retry = $throttle->retryAfter($address, $account);
+        if ($retry !== null) {
+            return jsonResponse($response->withHeader('Retry-After', (string) $retry), ['code' => 'too_many_attempts', 'message' => DOMAIN_ADMINS_SIGNIN_MESSAGES['too_many_attempts']], 429);
+        }
         // not logged in, and have provided a user/pass
         include_once(__DIR__.'/../../admin/libraries/ampuser.class.php');
         session_start();
@@ -62,10 +74,12 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
                 unset($_SESSION['AMP_user']);
             }
             unset($no_auth);
+            $throttle->succeed($address, $account);
             require(__DIR__.'/../config.inc.php');
             $secret = $config['settings']['secretkey'];
             return jsonResponse($response, ['result' => $secret], 200);
         }
+        $throttle->fail($address, $account);
     }
     unset($_SESSION['AMP_user']);
     $no_auth = true;
