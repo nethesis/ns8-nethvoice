@@ -1,0 +1,44 @@
+Restore the thread's privilege-inhibition state after an ARI variable write.
+The Stasis command may be running on the channel's native dialplan thread.
+Keep the write restricted, including failure paths, and restore the prior state
+before that thread resumes FreePBX routing.
+
+--- a/res/stasis/control.c
++++ b/res/stasis/control.c
+@@ -746,23 +746,20 @@
+ {
+ 	struct chanvar *var = data;
+-	/*
+-	 * Save the current inhibit state then enable it.
+-	 */
++	int result = -1;
++	/* Restrict the external write without changing the caller's dialplan state. */
+ 	int inhibited = ast_thread_inhibit_escalations_swap(1);
+ 
+-	if (ast_channel_set_ari_var_reportable(control->channel, var->name, var->report_events)) {
+-		return -1;
+-	}
+-
+-	pbx_builtin_setvar_helper(control->channel, var->name, var->value);
+-	/*
+-	 * Re-enable it if it was originally enabled.
+-	 */
+-	if (inhibited > 0) {
+-		ast_thread_inhibit_escalations();
+-	}
+-
+-	return 0;
++	if (inhibited < 0) {
++		return -1;
++	}
++
++	if (!ast_channel_set_ari_var_reportable(control->channel, var->name, var->report_events)) {
++		pbx_builtin_setvar_helper(control->channel, var->name, var->value);
++		result = 0;
++	}
++
++	ast_thread_inhibit_escalations_swap(inhibited);
++	return result;
+ }
+ 
+ int stasis_app_control_set_channel_var(struct stasis_app_control *control, const char *variable, const char *value)
