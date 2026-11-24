@@ -1,7 +1,7 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { expect, test } from '../fixtures/mockApi'
+import { expect, mockPermissions, test } from '../fixtures/mockApi'
 import {
   MODEL_VARIABLES,
   mockPhonesApi,
@@ -222,6 +222,45 @@ test.describe('physical phones: models', () => {
         variables: { ringtone: '4', ntp_server: 'ntp.example.com', softkey_label_1: 'Calls' },
       },
     })
+  })
+
+  test('shows the LDAP password of a model to the superadmin', async ({ page, mockApi }) => {
+    mockStoredModel(mockPhonesApi(mockApi), {
+      name: 'yealink-T46',
+      display_name: 'Yealink T46',
+      variables: MODEL_VARIABLES,
+    })
+    await page.goto('./phones/models?model=yealink-T46')
+
+    await page.getByRole('button', { name: 'LDAP phonebook' }).click()
+    await expect(page.getByLabel('Password', { exact: true })).toBeVisible()
+  })
+
+  test('saves a model without the LDAP password for an administrator with the phones section', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['phones'], 'operator')
+    mockStoredModel(mockPhonesApi(mockApi), {
+      name: 'yealink-T46',
+      display_name: 'Yealink T46',
+      variables: MODEL_VARIABLES,
+    })
+    await page.goto('./phones/models?model=yealink-T46')
+
+    await page.getByRole('button', { name: 'LDAP phonebook' }).click()
+    await expect(page.getByRole('textbox', { name: 'Username' })).toBeVisible()
+    await expect(page.getByLabel('Password', { exact: true })).toHaveCount(0)
+    await page.getByRole('textbox', { name: 'Username' }).fill('cn=phones,dc=example,dc=org')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    await expect(page.getByText('Model saved')).toBeVisible()
+    expect(mockApi.callsTo('PATCH', `${TANCREDI}/models/:id`).map((call) => call.body)).toEqual([
+      { variables: { ldap_user: 'cn=phones,dc=example,dc=org' } },
+    ])
   })
 
   test('keeps the changes of a model that the PBX did not store', async ({ page, mockApi }) => {

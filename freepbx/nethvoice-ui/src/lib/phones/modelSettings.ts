@@ -355,11 +355,17 @@ const getPreferencesFields = (variables: ModelVariables): ModelField[] => [
   },
 ]
 
-const getLdapFields = (variables: ModelVariables): ModelField[] => [
+const LDAP_PASSWORD_FIELD: ModelField = {
+  variable: 'ldap_password',
+  labelKey: 'phones.models.ldap.ldap_password',
+  type: 'password',
+}
+
+const getLdapFields = (variables: ModelVariables, isSuperadmin: boolean): ModelField[] => [
   { variable: 'ldap_server', labelKey: 'phones.models.ldap.ldap_server', type: 'text' },
   { variable: 'ldap_port', labelKey: 'phones.models.ldap.ldap_port', type: 'text' },
   { variable: 'ldap_user', labelKey: 'phones.models.ldap.ldap_user', type: 'text' },
-  { variable: 'ldap_password', labelKey: 'phones.models.ldap.ldap_password', type: 'password' },
+  ...(isSuperadmin ? [LDAP_PASSWORD_FIELD] : []),
   {
     variable: 'ldap_tls',
     labelKey: 'phones.models.ldap.ldap_tls',
@@ -399,7 +405,10 @@ const getNetworkFields = (variables: ModelVariables): ModelField[] => {
   ]
 }
 
-export const getModelSections = (variables: ModelVariables): ModelSection[] => {
+export const getModelSections = (
+  variables: ModelVariables,
+  isSuperadmin: boolean,
+): ModelSection[] => {
   const sections: ModelSection[] = []
   const softKeys = getKeys(variables, 'softkey')
   const lineKeys = getKeys(variables, 'linekey')
@@ -416,7 +425,7 @@ export const getModelSections = (variables: ModelVariables): ModelSection[] => {
     ...sections,
     { id: 'display', fields: getDisplayFields(variables) },
     { id: 'preferences', fields: getPreferencesFields(variables) },
-    { id: 'ldap', fields: getLdapFields(variables) },
+    { id: 'ldap', fields: getLdapFields(variables, isSuperadmin) },
     { id: 'network', fields: getNetworkFields(variables) },
   ]
 }

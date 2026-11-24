@@ -27,7 +27,7 @@ const variables = {
 }
 
 describe('getModelSections', () => {
-  const sections = getModelSections(variables)
+  const sections = getModelSections(variables, true)
 
   it('should include only the sections the model supports', () => {
     expect(sections.map((section) => section.id)).toEqual([
@@ -61,12 +61,23 @@ describe('getModelSections', () => {
 
   it('should show LLDP only for templates that support it', () => {
     const network = (vars: Record<string, string>) =>
-      getModelSections(vars)
+      getModelSections(vars, true)
         .find((section) => section.id === 'network')
         ?.fields.map((field) => field.variable)
 
     expect(network(variables)).toContain('lldp_enable')
     expect(network({ tmpl_phone: 'other.tmpl' })).not.toContain('lldp_enable')
+  })
+
+  it('should show the LDAP password only to the superadmin', () => {
+    const ldap = (superadmin: boolean) =>
+      getModelSections(variables, superadmin)
+        .find((section) => section.id === 'ldap')
+        ?.fields.map((field) => field.variable)
+
+    expect(ldap(true)).toContain('ldap_password')
+    expect(ldap(false)).not.toContain('ldap_password')
+    expect(ldap(false)).toContain('ldap_user')
   })
 })
 
@@ -93,7 +104,7 @@ describe('getTimeoutOption', () => {
 })
 
 describe('model form', () => {
-  const sections = getModelSections(variables)
+  const sections = getModelSections(variables, true)
   const effective = getEffectiveVariables(variables, { ringtone: '2', ntp_server: 'pool.ntp.org' })
   const form = buildModelForm(sections, effective)
 
@@ -119,5 +130,14 @@ describe('model form', () => {
       'softkey_value_2',
       'softkey_label_2',
     ])
+  })
+
+  it('should never send the LDAP password for an administrator who is not superadmin', () => {
+    const limitedSections = getModelSections(variables, false)
+    const limited = buildModelForm(limitedSections, { ...effective, ldap_password: 'invented' })
+    const changed = { ...limited, ldap_user: 'cn=phones' }
+
+    expect(limited).not.toHaveProperty('ldap_password')
+    expect(buildVariablesPatch(limited, changed)).toEqual({ ldap_user: 'cn=phones' })
   })
 })

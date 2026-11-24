@@ -59,6 +59,7 @@ import {
 } from '@/lib/phones/modelSettings'
 import { usePhoneDefaults } from '@/queries/phones/defaults'
 import { usePhoneModel } from '@/queries/phones/modelDetail'
+import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { modelName } = defineProps<{ modelName: string }>()
@@ -71,6 +72,7 @@ const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: modelState, refetch: refetchModel } = usePhoneModel(() => modelName)
 const { state: defaultsState, refetch: refetchDefaults } = usePhoneDefaults()
+const { isSuperadmin } = usePermissions()
 
 const initialForm = ref<ModelVariables>({})
 const form = ref<ModelVariables>({})
@@ -101,6 +103,7 @@ const sections = computed(() =>
   model.value
     ? getModelSections(
         getEffectiveVariables(model.value.variables, defaultsState.value.data?.variables ?? {}),
+        isSuperadmin.value,
       )
     : [],
 )
@@ -143,13 +146,13 @@ const {
 })
 
 watch(
-  () => [model.value, defaultsState.value.data] as const,
-  ([current, defaults]) => {
+  () => [model.value, defaultsState.value.data, isSuperadmin.value] as const,
+  ([current, defaults, superadmin]) => {
     if (!current || !defaults || isDirty.value) {
       return
     }
     const effective = getEffectiveVariables(current.variables, defaults.variables)
-    initialForm.value = buildModelForm(getModelSections(effective), effective)
+    initialForm.value = buildModelForm(getModelSections(effective, superadmin), effective)
     form.value = { ...initialForm.value }
   },
   { immediate: true },
