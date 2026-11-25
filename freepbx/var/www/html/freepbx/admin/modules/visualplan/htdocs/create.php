@@ -85,7 +85,7 @@ try {
 } catch (Throwable $error) {
     http_response_code(in_array($error->getCode(), [403,404,409,422], true) ? $error->getCode() : 422);
     header('Content-Type: application/json');
-    echo json_encode(['error' => 'agent_reference_unavailable']); exit;
+    echo json_encode(['error' => in_array($error->getMessage(),['agent_preview_disabled','revision_conflict','agent_not_found','agent_not_ready','fallback_cycle','forbidden'],true)?$error->getMessage():'agent_reference_unavailable']); exit;
 }
 
 $currentCreated = array();
@@ -108,7 +108,7 @@ try {
 } catch (Throwable $error) {
     http_response_code(in_array($error->getCode(),[403,404,409,422],true)?$error->getCode():503);
     header('Content-Type: application/json');
-    echo json_encode(['error'=>'agent_fallback_unavailable']);
+    echo json_encode(['error'=>in_array($error->getMessage(),['fallback_cycle','destination_unavailable','revision_conflict','agent_not_ready'],true)?$error->getMessage():'agent_fallback_unavailable']);
     exit;
 }
 

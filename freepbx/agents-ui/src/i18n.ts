@@ -373,7 +373,7 @@ const en = {
   categoryHelp: {
     extensions_enabled: "Transfer callers to the extensions you allow.",
     queues_enabled:
-      "Transfer callers to queues. All queues are allowed unless excluded.",
+      "Transfer callers to the selected queues.",
   },
   status: {
     published: "Published",
@@ -401,6 +401,7 @@ const en = {
     enabled: "Enabled",
     pending: "Pending",
     synced: "Synchronized",
+    sync_failed: "Synchronization failed",
     error: "Synchronization failed",
     transferred: "Transferred",
     ended_by_agent: "Ended by agent",
@@ -587,6 +588,7 @@ const en = {
   },
   sync: {
     pending: "Synchronization pending",
+    sync_failed: "Synchronization failed",
     error: "Synchronization failed",
     synced: "Synchronized",
   },
@@ -1172,7 +1174,7 @@ const it: typeof en = {
   categoryHelp: {
     extensions_enabled: "Trasferisci le chiamate agli interni che consenti.",
     queues_enabled:
-      "Trasferisci le chiamate alle code. Tutte le code sono consentite salvo esclusioni.",
+      "Trasferisci le chiamate alle code selezionate.",
   },
   status: {
     published: "Pubblicato",
@@ -1387,6 +1389,7 @@ const it: typeof en = {
   },
   sync: {
     pending: "Sincronizzazione in attesa",
+    sync_failed: "Sincronizzazione fallita",
     error: "Sincronizzazione fallita",
     synced: "Sincronizzato",
   },

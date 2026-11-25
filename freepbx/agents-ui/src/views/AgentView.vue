@@ -482,7 +482,7 @@ async function synchronize() {
           record.sync_status !== 'synced' &&
           (record.workflow_version || external)
         "
-        kind="warning"
+:kind="record.sync_status === 'error' ? 'error' : 'warning'"
         :title="t('sync.' + record.sync_status)"
         ><template #description
           ><NeButton

@@ -271,9 +271,11 @@ example.Toolbar = Class.extend({
 							}, 5000);
 						}
 					}).fail(function (err) {
+                        var code = err.responseJSON && err.responseJSON.error;
+                        var detail = languages[browserLang]['agent_error_' + code] || languages[browserLang]["toolbar_not_save_log_string"];
 						$('#loader').hide();
 						$('#errorer').children().eq(0).html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_not_save_string"]);
-						$('#errorer').children().eq(1).html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_not_save_log_string"]);
+						$('#errorer').children().eq(1).text(detail);
 						$('#errorer').fadeIn("slow");
 						setTimeout(function () {
 							$('#errorer').fadeOut("slow");

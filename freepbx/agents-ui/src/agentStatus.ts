@@ -1,6 +1,7 @@
 import type { Agent } from "./types";
 
 export function agentStatus(agent: Agent): string {
+  if (agent.sync_status === "error") return "sync_failed";
   if (agent.agent_type === "cleverai")
     return agent.routable ? "ready" : "pending";
   if (!agent.workflow_version) return "draft";
