@@ -81,16 +81,22 @@ class History:
             raise HistoryError("inbound trunk destination outside fixture")
         self._extension("-in", number, app)
 
-    def _peer(self, identity):
+    def _peer(self, identity, latency_mode=None):
         if self.phone is not None:
             self.phone.close()
         ip, port = self.address()
-        config = dict(username=identity, domain=f"127.0.0.1:{self.asterisk_port}", trunk_ip=ip, sip_port=port,
+        config = dict(latency_mode=latency_mode, username=identity, domain=f"127.0.0.1:{self.asterisk_port}", trunk_ip=ip, sip_port=port,
                       rtp_port=40000 + port % 2000 * 4, duration=300,
                       allowed_destinations=[*self.lab.state["routes"].values(), self.lab.state["extensions"]["colleague"]])
         self.phone = CarrierPhone(self.lab.host, self.lab.module, config, self.lab.workdir, self.lab.state["owner"] + "-carrier", self.sip_helper)
         self.phone.history = self
         self.phone.start()
+        return self.phone
+
+    def latency_phone(self, mode):
+        self._ensure_trunk()
+        if self.phone is None or self.phone.config.get("latency_mode") != mode:
+            self._peer("889" + str(int(self.name[-7:], 16)).zfill(9), mode)
         return self.phone
 
     def _confirm_history(self, number, extension, direction):

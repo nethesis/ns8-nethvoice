@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import Mock, call, patch
 import wave
 
+from latency import latency_summary, score_greeting
 from media import MediaError, MediaPhone, pcm_window
 from run import claim_run, cleanup
 from scenarios import CALLBACK_SELECTION, CORALLO, REFUSAL, Call, matches, matrix
@@ -22,6 +23,27 @@ def sample():
 
 
 class HarnessTests(unittest.TestCase):
+    def test_word_timing_requires_the_configured_greeting(self):
+        words = [("attendere", .2), ("buongiorno", 2.2), ("dal", 2.5),
+                 ("laboratorio", 2.7), ("corello", 3.0)]
+        self.assertEqual(score_greeting(words, 10), {"greetings": 1, "onset_ms": 2210})
+        self.assertEqual(score_greeting(words + words, 10), {"greetings": 2})
+        self.assertEqual(score_greeting(words[:2], 0), {"greetings": 0})
+        self.assertEqual(score_greeting([("trasferisco", .1), ("laboratorio", .2), ("corallo", .4)], 0),
+                         {"greetings": 0})
+        self.assertEqual(score_greeting([("corallo", .1)], 0), {"greetings": 0})
+
+    def test_latency_percentile_includes_every_attempt(self):
+        rows = [dict(status="passed", greetings=1, onset_ms=3000) for _ in range(38)]
+        slow = dict(status="passed", greetings=1, onset_ms=3001)
+        self.assertTrue(latency_summary(rows + [slow, slow])["passed"])
+        self.assertFalse(latency_summary(rows[:-1] + [slow] * 3)["passed"])
+        missing = dict(status="failed", observed={"runs": [{"outcome": "fallback"}]})
+        result = latency_summary(rows + [missing, missing])
+        self.assertFalse(result["passed"])
+        self.assertEqual((result["p95_ms"], result["known_fallbacks"]), (3000, 2))
+        self.assertIsNone(latency_summary(rows[:-1] + [missing] * 3)["p95_ms"])
+
     def test_cache_reuse_and_repair(self):
         calls = []
         def generate(phrase):

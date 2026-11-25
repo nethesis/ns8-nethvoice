@@ -102,6 +102,8 @@ class MediaPhone:
                 match = re.search(r"Call (\d+) (?:state changed to|is DISCONNECTED)", line)
                 if match:
                     self.call_slot = int(match[1])
+                if "state changed to CONFIRMED" in line:
+                    self.confirmed_at = time.monotonic()
                 if "Playback started: /run/nvtest/turn.wav" in line:
                     self.event("play-start")
                 elif "Playback stopped" in line:
@@ -136,6 +138,10 @@ class MediaPhone:
                    "--id=sip:" + cfg["username"] + "@" + str(address),
                    "--ip-addr=" + str(address), "--bound-addr=" + str(address),
                    "--local-port=" + str(int(cfg["sip_port"])), "--rtp-port=" + str(int(cfg["rtp_port"]))]
+        if cfg.get("latency_mode"):
+            options.append("--add-codec=PCMU/8000")
+            if cfg["latency_mode"] == "continuous":
+                options.append("--no-vad")
         argv = ["podman", "run", "--rm", "-i", "--network", "host", "--name", self.ep.name,
                 "--label", "org.nethvoice.test=" + self.ep.label, "--entrypoint", "/usr/bin/stdbuf",
                 "-v", str(self.ep.directory.resolve()) + ":/run/nvtest:ro,Z",
@@ -190,6 +196,33 @@ class MediaPhone:
         with self.capture.open("rb") as stream:
             rate, offset = pcm_header(stream)
             return max(0, os.fstat(stream.fileno()).st_size - offset) // 2 * 2 if rate else 0
+
+    def greeting_capture(self):
+        """Map the caller recorder's sample clock to its local SIP answer event."""
+        self.wait("CONFIRMED", 25)
+        answer = self.ep.confirmed_at
+        previous = self.mark()
+        checked = time.monotonic()
+        anchor = None
+        # Anchor at the first observed WAV buffer flush. A cursor sampled only
+        # at answer would include the recorder's partially buffered block.
+        while time.monotonic() < answer + 15:
+            current = self.mark()
+            observed = time.monotonic()
+            if current > previous and anchor is None and observed - checked <= .03:
+                anchor = (observed, current)
+            previous, checked = current, observed
+            if self.ep.snapshot()["call"] == "DISCONNECTED":
+                break
+            time.sleep(.005 if anchor is None else .1)
+        if anchor is None:
+            raise MediaError("no caller recorder clock after SIP answer")
+        rate, _ = pcm_window(self.capture, previous)
+        elapsed, offset = anchor[0] - answer, anchor[1]
+        start = max(0, offset - round(elapsed * rate) * 2)
+        rate, data = pcm_window(self.capture, start)
+        origin_ms = round(1000 * (elapsed - (offset - start) / (2 * rate)))
+        return {"audio": base64.b64encode(wav_bytes(rate, data)).decode(), "origin_ms": origin_ms}
 
     def discard(self):
         # Asterisk calls have ended. Keep PJSUA's recorder cursor and WAV header intact
@@ -331,7 +364,7 @@ def serve(workdir, expected_label=None):
                     finally:
                         path.unlink(missing_ok=True)
                 elif op in ("discard", "dial", "wait", "answer", "reject", "behavior", "hangup",
-                            "status", "mark", "received", "listen", "wait_speech", "register", "unregister"):
+                            "status", "mark", "greeting_capture", "received", "listen", "wait_speech", "register", "unregister"):
                     result = getattr(phone, op)(*args)
                 else:
                     raise MediaError("unknown media operation")
@@ -458,6 +491,10 @@ class RemotePhone:
 
     def play(self, path):
         self._rpc("play", base64.b64encode(Path(path).read_bytes()).decode("ascii"), deadline=95)
+
+    def greeting_capture(self):
+        result = self._rpc("greeting_capture", deadline=50)
+        return result["origin_ms"], base64.b64decode(result["audio"], validate=True)
 
     def discard(self):
         self._rpc("discard")

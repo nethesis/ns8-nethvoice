@@ -17,6 +17,15 @@ from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 op, lang = sys.argv[1:]
 payload = sys.stdin.buffer.read()
+if op == "greeting_words":
+    # The normal Satellite transcript omits word timings. Keep the configured
+    # key inside Satellite and return only synthetic word onsets to the scorer.
+    url = "https://api.deepgram.com/v1/listen?model=nova-3&language=it"
+    headers = {"Authorization": "Token " + os.environ["DEEPGRAM_API_KEY"], "Content-Type": "audio/wav"}
+    with urlopen(Request(url, data=payload, headers=headers), timeout=90) as response:
+        alt = json.load(response)["results"]["channels"][0]["alternatives"][0]
+    print(json.dumps([[w["word"], w["start"]] for w in alt["words"]]))
+    sys.exit(0)
 if op == "get_speech":
     body = urlencode(json.loads(payload)).encode()
     content_type = "application/x-www-form-urlencoded"
@@ -56,6 +65,9 @@ class SatelliteSpeech:
 
     def synthesize(self, phrase):
         return self.request("get_speech", json.dumps(phrase).encode())
+
+    def greeting_words(self, wav):
+        return json.loads(self.request("greeting_words", wav))
 
     def transcribe(self, wav, language):
         return json.loads(self.request("get_transcription", wav, language))["transcript"]

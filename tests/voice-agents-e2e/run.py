@@ -14,6 +14,7 @@ import time
 
 from history import History
 from lab import Lab
+from latency import latency_summary, measure_greeting
 from media import RemotePhone
 from phone_cleanup import recover_phones
 from scenarios import Call, matrix, require
@@ -101,22 +102,29 @@ def cleanup(lab, history):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("profile", nargs="?", choices=["functional", "smoke", "recovery", "audio", "preflight", "list", "cleanup"],
+    parser.add_argument("profile", nargs="?", choices=["functional", "smoke", "recovery", "latency", "audio", "preflight", "list", "cleanup"],
                         default="functional")
     parser.add_argument("--host", default="root@makako.sf.nethserver.net")
     parser.add_argument("--domain", default="voice2.makako.sf.nethserver.net")
     parser.add_argument("--module", default="nethvoice70")
+    parser.add_argument("--calls-per-mode", type=int, help="Fresh calls for each latency caller mode (default 20)")
     parser.add_argument("--case", dest="cases", action="append", help="Scenario name; repeat to select several")
     parser.add_argument("--transport", choices=["realtime", "live"])
     parser.add_argument("--sip-helper")
     parser.add_argument("--run-dir", type=Path, help="New private results directory, or existing directory for cleanup")
     args = parser.parse_args(argv)
+    if args.calls_per_mode is not None and (args.profile != "latency" or not 1 <= args.calls_per_mode <= 20):
+        parser.error("--calls-per-mode requires latency and a count between 1 and 20")
     launch = Path.cwd()
     if args.profile == "list":
-        for profile in ("smoke", "functional", "recovery"):
+        for profile in ("smoke", "functional", "recovery", "latency"):
             print(profile, " ".join(f"{t}/{c}" for t, c in matrix(profile)))
         return 0
     eligible = matrix(args.profile)
+    if args.profile == "latency":
+        if args.cases:
+            parser.error("latency measures both caller modes; select the batch size with --calls-per-mode")
+        eligible = [row for _ in range(args.calls_per_mode or 20) for row in eligible]
     eligible = [(t, c) for t, c in eligible if not args.transport or args.transport == t]
     missing = set(args.cases or ()) - {c for _, c in eligible}
     if missing:
@@ -193,7 +201,10 @@ def main(argv=None):
                 case = Call(lab, phones, fixture, clips, speech, row["transport"], row["case"], row["evidence"])
                 case.history = history
                 try:
-                    case.run()
+                    if args.profile == "latency":
+                        measure_greeting(case, row)
+                    else:
+                        case.run()
                     row["status"] = "passed"
                 except KeyboardInterrupt:
                     row.update(status="interrupted", error="Controller interrupted")
@@ -230,6 +241,13 @@ def main(argv=None):
         except Exception as exc:
             failed = True
             report["cleanup"] = f"failed: {exc}"
+        if args.profile == "latency":
+            report["greeting_latency"] = latency_summary(report["scenarios"])
+            report["greeting_latency"]["modes"] = {
+                mode: latency_summary([r for r in report["scenarios"] if r["case"] == mode])
+                for mode in ("vad", "continuous")}
+            failed |= not report["greeting_latency"]["passed"]
+            print(json.dumps(report["greeting_latency"]), flush=True)
         if failed and "run_error" not in report and report["cleanup"] != "complete":
             print(report["cleanup"], file=sys.stderr)
         save_report(result, report)
