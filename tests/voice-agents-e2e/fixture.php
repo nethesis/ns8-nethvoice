@@ -208,14 +208,13 @@ function publishAgent(Service $service, array $r, bool $internal = false): array
         $e = $r['extensions'];
         $extensionIds = ['extension:'.$e['colleague'], 'extension:'.$e['alternate']];
         $inventory = FreePBX::Satellite()->agentDirectory()['items'];
-        $queues = array_column(array_filter($inventory, fn($d) => $d['type'] === 'queue'), 'id');
         $extensions = array_column(array_filter($inventory, fn($d) => $d['type'] === 'extension'), 'id');
         $allowedCallbacks = $r['exclude_callback'] ? [$extensionIds[1]] : $extensionIds;
         foreach ($draft['tool_bindings'] as &$tool) {
             if ($tool['tool_id'] === 'pbx.transfer') {
                 $tool['config'] = array_replace($tool['config'], [
                     'extensions_enabled'=>$r['direct'], 'extension_allowlist'=>$extensionIds,
-                    'queues_enabled'=>$r['queues'], 'queue_denylist'=>array_values(array_diff($queues, ['queue:'.$r['queue']])),
+                    'queues_enabled'=>$r['queues'], 'queue_allowlist'=>['queue:'.$r['queue']],
                     'recent_callers_enabled'=>$r['callbacks'],
                     'recent_caller_denylist'=>array_values(array_diff($extensions, $allowedCallbacks)),
                     'descriptions'=>[
@@ -275,8 +274,8 @@ try {
     $result = [];
     if (in_array($op, ['preflight','configure','delete'],true)) checkSyncScope($r);
     if ($op === 'preflight') {
-        $bindings = array_filter($service->trunks(), fn($t) => $t['provider'] === 'openai' && $t['sync_status'] === 'synced' && $t['api_key_configured'] && $t['webhook_secret_configured']);
-        demand(count($bindings) > 0, 'missing_synced_openai_sip_trunk');
+        $bindings = array_filter($service->trunks(), fn($t) => $t['provider'] === 'openai' && $t['sync_status'] === 'synced' && $t['api_key_configured']);
+        demand(count($bindings) > 0, 'missing_synced_openai_trunk');
         $result = ['binding'=>array_values($bindings)[0]['binding_id'], 'domain'=>$r['domain'],
             'directory'=>internalDirectory(), 'client_proxy'=>getenv('NETHVOICE_PROXY_FQDN'),
             'endpoint_proxy'=>getenv('PROXY_IP'), 'proxy_port'=>(int)getenv('PROXY_PORT')];

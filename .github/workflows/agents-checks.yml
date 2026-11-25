@@ -40,7 +40,7 @@ jobs:
           python-version: "3.12.13"
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
-          php-version: "8.2"
+          php-version: "8.3"
           extensions: pdo_mysql, mbstring, sodium
           coverage: none
       - name: Fetch native dialplan library

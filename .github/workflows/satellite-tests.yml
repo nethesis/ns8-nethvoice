@@ -33,7 +33,7 @@ jobs:
             satellite/requirements-dev.txt
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
-          php-version: '8.2'
+          php-version: '8.3'
           extensions: mbstring, sodium
           coverage: none
       - name: Install system dependencies

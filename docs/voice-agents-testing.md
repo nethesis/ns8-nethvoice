@@ -68,3 +68,10 @@ for real OpenAI calls and Italian and English Deepgram fixtures on the authorize
 Run the [Python entry point](../tests/voice-agents-e2e/run.py) from the directory where
 you want the generated WAV files. The default profile is the full functional suite.
 Use `list` to see the cases or `smoke` for the two-transport conversation check.
+
+To test with module transcription disabled, set `NVAGENT_LAB_DEEPGRAM_KEY` in
+the test controller environment and pass `--speech-backend deepgram` to the
+runner. That key is used only for the synthetic caller audio and transcription.
+Select `--transport live` on a preview instance. The SIP comparison requires
+an isolated instance with `VOICE_AGENT_SIP_LAB_ENABLED=true`, a configured
+OpenAI signing secret, and a reachable webhook.

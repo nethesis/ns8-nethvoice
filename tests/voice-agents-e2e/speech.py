@@ -3,6 +3,8 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 import shlex
 import subprocess
 import tempfile
@@ -71,6 +73,36 @@ class SatelliteSpeech:
 
     def transcribe(self, wav, language):
         return json.loads(self.request("get_transcription", wav, language))["transcript"]
+
+
+class LabSpeech:
+    """Use a runner-owned Deepgram key when Satellite transcription is off."""
+    def __init__(self):
+        self.key = os.environ.get("NVAGENT_LAB_DEEPGRAM_KEY")
+        if not self.key:
+            raise ValueError("Set NVAGENT_LAB_DEEPGRAM_KEY for the deepgram speech backend")
+
+    def request(self, api, query, body, content_type):
+        request = Request("https://api.deepgram.com/v1/" + api + "?" + urlencode(query),
+                          data=body, headers={"Content-Type": content_type})
+        request.add_unredirected_header("Authorization", "Token " + self.key)
+        with urlopen(request, timeout=90) as response:
+            return response.read()
+
+    def synthesize(self, phrase):
+        return self.request("speak", {"model": phrase["model"], "encoding": "linear16",
+                                      "container": "wav", "sample_rate": 8000},
+                            json.dumps({"text": phrase["text"]}).encode(), "application/json")
+
+    def alternative(self, wav, language):
+        result = self.request("listen", {"model": "nova-3", "language": language}, wav, "audio/wav")
+        return json.loads(result)["results"]["channels"][0]["alternatives"][0]
+
+    def greeting_words(self, wav):
+        return [[word["word"], word["start"]] for word in self.alternative(wav, "it")["words"]]
+
+    def transcribe(self, wav, language):
+        return self.alternative(wav, language)["transcript"]
 
 
 def valid_wav(path):

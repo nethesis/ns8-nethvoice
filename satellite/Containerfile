@@ -1,5 +1,5 @@
 # Build stage
-FROM docker.io/library/python:3.12.13-slim AS builder
+FROM docker.io/library/python:3.12.13-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36 AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -21,7 +21,7 @@ COPY README.md /tmp/
 RUN pip install --no-cache-dir --no-warn-script-location --user -r /tmp/requirements.txt -r /tmp/requirements-agent.lock
 
 # Final stage
-FROM docker.io/library/python:3.12.13-slim
+FROM docker.io/library/python:3.12.13-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
 
 # Install runtime dependencies for PyAudio
 RUN apt-get update && apt-get install -y --no-install-recommends \

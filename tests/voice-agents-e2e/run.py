@@ -18,7 +18,7 @@ from latency import latency_summary, measure_greeting
 from media import RemotePhone
 from phone_cleanup import recover_phones
 from scenarios import Call, matrix, require
-from speech import SatelliteSpeech, prepare
+from speech import LabSpeech, SatelliteSpeech, prepare
 
 
 def helper_path(selected):
@@ -102,6 +102,8 @@ def cleanup(lab, history):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--speech-backend", choices=("satellite", "deepgram"), default="satellite",
+                        help="deepgram uses the runner-owned NVAGENT_LAB_DEEPGRAM_KEY")
     parser.add_argument("profile", nargs="?", choices=["functional", "smoke", "recovery", "latency", "audio", "preflight", "list", "cleanup"],
                         default="functional")
     parser.add_argument("--host", default="root@makako.sf.nethserver.net")
@@ -133,7 +135,8 @@ def main(argv=None):
     if not cases:
         parser.error("no scenario matches this profile and selection")
     os.umask(0o077)
-    speech = SatelliteSpeech(args.host, args.module, args.domain)
+    speech = (LabSpeech() if args.speech_backend == "deepgram" else
+              SatelliteSpeech(args.host, args.module, args.domain))
     if args.profile == "audio":
         clips = prepare(launch, speech.synthesize)
         print(f"{len(clips)} validated WAVs in {launch}")

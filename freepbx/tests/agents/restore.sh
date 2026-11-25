@@ -5,7 +5,7 @@ freepbx_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 restore_container="voice-agent-restore-${BASHPID}"
 cleanup() { docker rm -f "$restore_container" >/dev/null 2>&1 || true; }
 trap cleanup EXIT
-docker run -d --rm --name "$restore_container" -e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1 -p 127.0.0.1::3306 mariadb:10.11.19 >/dev/null
+docker run -d --rm --name "$restore_container" -e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1 -p 127.0.0.1::3306 mariadb:11.8.9 >/dev/null
 ready=false
 for attempt in {1..30}; do
     if docker exec "$restore_container" mariadb-admin --host=127.0.0.1 --protocol=tcp ping --silent >/dev/null 2>&1; then ready=true; break; fi
