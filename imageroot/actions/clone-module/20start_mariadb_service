@@ -10,10 +10,12 @@ set -e
 exec 1>&2
 
 # copy passwords.env to passwords.old to keep old passwords
-/usr/bin/cp passwords.env passwords.old
+if [[ ! -e passwords.old ]]; then
+    /usr/bin/install -m 600 passwords.env passwords.old
+fi
 
 # start mariadb service
 /usr/bin/systemctl --user start mariadb.service
 
 # regenerate the secrets
-runagent ../actions/create-module/05setenvs
+runagent ../actions/create-module/05setenvs --clone
