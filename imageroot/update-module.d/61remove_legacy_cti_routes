@@ -1,0 +1,23 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# The legacy CTI server is reachable only through the middleware (/api):
+# remove the routes that published it directly on /webrest and /socket.io.
+# configure-module no longer creates them, but instances installed before
+# still have them. Runs on every update; configure-module repeats the
+# cleanup, so a failure here is retried on the next configuration too.
+
+import os
+import sys
+
+import agent
+import legacy_cti_routes
+
+remaining = legacy_cti_routes.remove(os.environ['MODULE_ID'])
+if remaining:
+    print(agent.SD_ERR + "Legacy CTI routes still published, the CTI server is reachable without the middleware: " + ", ".join(remaining), file=sys.stderr)
+    sys.exit(1)

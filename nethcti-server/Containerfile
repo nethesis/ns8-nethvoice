@@ -41,6 +41,8 @@ CMD ["node", "nethcti.js"]
 COPY root/var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
 COPY root/usr/lib/node/nethcti-server/packages packages
 COPY root/usr/lib/node/nethcti-server/plugins plugins
+# webroot of the static server: it holds the temporary files of the downloads
+RUN mkdir -p plugins/com_static_http/static
 COPY root/usr/lib/node/nethcti-server/scripts scripts
 COPY root/usr/lib/node/nethcti-server/sql sql
 COPY root/usr/lib/node/nethcti-server/nethcti-cli.js .

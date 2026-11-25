@@ -277,15 +277,6 @@ EOF
 FILE=/etc/nethcti/services.json
 cat > $FILE <<EOF
 {
-  "tcp": {
-    "port": "${NETHCTI_TCP_PORT}",
-    "base_templates": "http://${NETHVOICE_HOST}/webrest/static/templates/notification_popup"
-  },
-  "tls": {
-    "port": "${NETHCTI_TLS_PORT}",
-    "key": "/etc/certificates/NethServer.key",
-    "cert": "/etc/certificates/NethServer.crt"
-  },
   "websocket": {
     "http_port": "${NETHCTI_SERVER_WS_PORT}"
   },
@@ -380,6 +371,9 @@ cat > $FILE <<EOF
 }
 EOF
 
+# Not served to the wizard (the FreePBX container writes that one): the
+# authentication plugin reads SECRET_KEY from here to check the wizard
+# admin requests.
 FILE=/var/www/html/freepbx/wizard/scripts/custom.js
 mkdir -p $(dirname $FILE)
 cat > $FILE <<EOF
@@ -388,7 +382,7 @@ var customConfig = {
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
   BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethvoice.com/it/}',
   BASE_API_URL: '/freepbx/rest',
-  BASE_API_URL_CTI: '/webrest',
+  BASE_API_URL_CTI: '/api',
   VPLAN_URL: '/freepbx/visualplan',
   OUTBOUNDS_URL: '/freepbx/admin/config.php?display=routing&view=form&id=',
   SECRET_KEY: '${NETHVOICESECRETKEY}'
