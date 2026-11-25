@@ -9,10 +9,10 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faCircleMinus,
   faCirclePlus,
-  faCircleXmark,
   faLock,
   faPenToSquare,
   faShieldHalved,
+  faXmark,
 } from '@fortawesome/free-solid-svg-icons'
 import {
   NeBadgeV2,
@@ -131,7 +131,7 @@ const menuItems = (admin: AdminAccount): NeDropdownItem[] => [
                 class="shrink-0"
                 :data-testid="`admin-disabled-${admin.username}`"
               >
-                <FontAwesomeIcon :icon="faCircleXmark" class="size-3" aria-hidden="true" />
+                <FontAwesomeIcon :icon="faXmark" class="size-3" aria-hidden="true" />
                 {{ t('common.disabled') }}
               </NeBadgeV2>
             </span>

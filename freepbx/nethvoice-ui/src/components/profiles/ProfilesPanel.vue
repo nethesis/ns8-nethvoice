@@ -6,13 +6,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useMediaQuery } from '@vueuse/core'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faChevronDown,
-  faCircleCheck,
-  faCircleMinus,
   faCirclePlus,
   faClone,
+  faGauge,
+  faGaugeHigh,
+  faGaugeSimple,
   faMagnifyingGlass,
   faPenToSquare,
   faStar,
@@ -56,19 +58,25 @@ const isShownDrawer = ref(false)
 const profileToDelete = ref<Profile | undefined>()
 const isShownDeleteModal = ref(false)
 
-const CARDS_GRID_CLASSES = 'grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3'
+const CARDS_GRID_CLASSES = 'grid grid-cols-1 gap-6 xl:grid-cols-2 2xl:grid-cols-3'
 
 const DEFAULT_PROFILE_ICONS: Record<number, IconDefinition> = {
-  1: faCircleMinus,
-  2: faCircleCheck,
-  3: faCirclePlus,
+  1: faGaugeSimple,
+  2: faGauge,
+  3: faGaugeHigh,
 }
+
+const isSmallScreenUp = useMediaQuery('(min-width: 640px)')
 
 const loading = computed(
   () => profilesState.value.status === 'pending' || usersState.value.status === 'pending',
 )
 
 const loadError = computed(() => profilesState.value.error ?? usersState.value.error)
+
+const hasData = computed(
+  () => profilesState.value.data !== undefined && usersState.value.data !== undefined,
+)
 
 const profiles = computed(() => profilesState.value.data ?? [])
 
@@ -134,19 +142,42 @@ function reload() {
 
 <template>
   <div>
-    <LoadError v-if="loadError" :error="loadError" @retry="reload" />
-    <template v-else>
-      <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <p class="text-secondary-neutral max-w-152">
+    <LoadError
+      v-if="loadError"
+      :error="loadError"
+      :title="t('profiles.cannot_retrieve_profiles')"
+      :class="{ 'mb-6': hasData }"
+      @retry="reload"
+    />
+    <template v-if="!loadError || hasData">
+      <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
+        <p class="text-tertiary-neutral max-w-2xl">
           {{ t('profiles.description_line_1') }}<br />{{
             t('profiles.description_line_2', { brand: runtimeConfigStore.config.brandName })
           }}
         </p>
+        <NeButton
+          v-if="loading"
+          kind="primary"
+          disabled
+          class="mt-2 justify-self-start sm:mt-0"
+          data-testid="create-profile-loading"
+        >
+          <template #prefix>
+            <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+          </template>
+          {{ t('profiles.create_profile') }}
+          <template #suffix>
+            <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
+          </template>
+        </NeButton>
         <NeDropdown
+          v-else
           :items="createFromItems"
-          :align-to-right="true"
+          :align-to-right="isSmallScreenUp"
           :open-menu-aria-label="t('profiles.create_profile')"
-          menu-classes="min-w-48"
+          menu-classes="min-w-48 max-w-xs"
+          class="mt-2 justify-self-start sm:mt-0"
         >
           <template #button>
             <NeButton kind="primary" tabindex="-1" aria-hidden="true">
@@ -176,14 +207,14 @@ function reload() {
           class="w-full max-w-xs"
         />
         <NeButton kind="tertiary" :disabled="textFilter === ''" @click="textFilter = ''">
-          {{ t('common.reset_filters') }}
+          {{ t('common.clear_filter') }}
         </NeButton>
       </div>
       <ul v-if="loading" :class="CARDS_GRID_CLASSES">
         <li
           v-for="index in DEFAULT_PROFILE_IDS.length"
           :key="index"
-          class="bg-elevation-0 flex min-w-0 flex-col gap-3 rounded-lg border-l-4 border-gray-300 p-6 shadow-xs dark:border-gray-600"
+          class="bg-elevation-0 border-border-secondary flex min-w-0 flex-col gap-3 rounded-lg border-l-4 p-6 shadow-xs"
         >
           <NeSkeleton :lines="2" />
         </li>
@@ -211,9 +242,7 @@ function reload() {
           :key="profile.id"
           :data-profile="profile.id"
           class="bg-elevation-0 flex min-w-0 flex-col gap-3 rounded-lg p-6 shadow-xs"
-          :class="
-            isDefaultProfile(profile) ? 'border-l-4 border-gray-300 dark:border-gray-600' : ''
-          "
+          :class="isDefaultProfile(profile) ? 'border-border-secondary border-l-4' : ''"
         >
           <div class="flex items-center justify-between gap-3">
             <h4 class="text-primary-neutral flex min-w-0 items-center gap-2 text-base font-medium">

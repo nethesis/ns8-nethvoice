@@ -1,8 +1,8 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { onScopeDispose, ref } from 'vue'
-import { useQueryCache } from '@pinia/colada'
+import { onScopeDispose } from 'vue'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import { USER_LIMITS_KEY } from '@/lib/users/extensions'
 import { ORPHAN_EXTENSIONS_KEY } from '@/lib/users/orphans'
 import { getUsersSyncRunning, postUsersSync, USERS_KEY } from '@/lib/users/users'
@@ -49,8 +49,6 @@ export const waitForUsersSync = async ({
 
 export function useUsersProviderSync() {
   const queryCache = useQueryCache()
-  const syncing = ref(false)
-  const syncError = ref<unknown>(null)
   let disposed = false
   let timer: ReturnType<typeof setTimeout> | undefined
 
@@ -59,33 +57,38 @@ export function useUsersProviderSync() {
       timer = setTimeout(resolve, milliseconds)
     })
 
-  const sync = async (): Promise<boolean> => {
-    if (syncing.value) {
-      return false
-    }
-    syncing.value = true
-    syncError.value = null
-    let completed = false
-
-    try {
+  const {
+    mutateAsync,
+    isLoading: syncing,
+    error: syncError,
+  } = useMutation({
+    mutation: async () => {
       await postUsersSync()
-      completed = await waitForUsersSync({
+      return waitForUsersSync({
         isRunning: getUsersSyncRunning,
         wait,
         isCancelled: () => disposed,
       })
-    } catch (error) {
-      syncError.value = error
-    } finally {
-      syncing.value = false
-
-      if (!disposed && syncError.value === null) {
-        queryCache.invalidateQueries({ key: [USERS_KEY] }).catch(() => undefined)
-        queryCache.invalidateQueries({ key: [USER_LIMITS_KEY] }).catch(() => undefined)
-        queryCache.invalidateQueries({ key: [ORPHAN_EXTENSIONS_KEY] }).catch(() => undefined)
+    },
+    onSuccess() {
+      if (disposed) {
+        return
       }
+      for (const key of [USERS_KEY, USER_LIMITS_KEY, ORPHAN_EXTENSIONS_KEY]) {
+        queryCache.invalidateQueries({ key: [key] }).catch(() => undefined)
+      }
+    },
+  })
+
+  const sync = async (): Promise<boolean> => {
+    if (syncing.value) {
+      return false
     }
-    return completed
+    try {
+      return await mutateAsync()
+    } catch {
+      return false
+    }
   }
 
   onScopeDispose(() => {

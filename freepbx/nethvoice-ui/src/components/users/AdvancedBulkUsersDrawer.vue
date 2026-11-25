@@ -15,6 +15,7 @@ import {
   NeSideDrawer,
   NeSkeleton,
   NeTextInput,
+  focusElement,
   type NeComboboxOption,
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
@@ -28,6 +29,7 @@ import {
   EMPTY_ADVANCED_BULK_FORM,
   getBulkSettings,
   getDestinations,
+  MAX_RING_TIME,
   postBulkSettings,
   validateAdvancedBulk,
   type AdvancedBulkField,
@@ -154,7 +156,7 @@ function setField(field: AdvancedBulkField, value: string) {
 
 const issueFor = (field: AdvancedBulkField) => {
   const issue = issues.value[field]
-  return issue ? t(issue) : ''
+  return issue ? t(issue, { min: 0, max: MAX_RING_TIME }) : ''
 }
 
 const {
@@ -224,7 +226,7 @@ function save() {
   usersIssue.value = mainExtensions.value.length === 0 ? t('users.choose_at_least_one_user') : ''
 
   if (usersIssue.value) {
-    usersRef.value?.focus()
+    focusElement(usersRef)
     return
   }
 
@@ -234,11 +236,11 @@ function save() {
   issues.value = validateAdvancedBulk(form.value)
 
   if (issues.value.ringtime) {
-    ringtimeRef.value?.focus()
+    focusElement(ringtimeRef)
   } else if (issues.value.outboundcid) {
-    outboundcidRef.value?.focus()
+    focusElement(outboundcidRef)
   } else if (issues.value.outboundcidDigits) {
-    digitsRef.value?.focus()
+    focusElement(digitsRef)
   }
 
   if (Object.keys(issues.value).length > 0) {
@@ -312,7 +314,7 @@ const comboboxLabels = computed(() => ({
           ref="ringtimeRef"
           :model-value="form.ringtime"
           :label="t('users.ring_time')"
-          :helper-text="t('users.bulk_ringtime_helper')"
+          :helper-text="t('users.bulk_ringtime_helper', { min: 0, max: MAX_RING_TIME })"
           :placeholder="t('users.keep_current_values')"
           :invalid-message="issueFor('ringtime')"
           :disabled="saving"

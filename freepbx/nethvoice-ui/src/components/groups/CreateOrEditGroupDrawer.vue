@@ -21,6 +21,7 @@ import {
 import {
   buildGroupFormSchema,
   createGroup,
+  GROUP_NAME_MAX_LENGTH,
   GroupMembersError,
   saveGroupMembers,
   type Group,
@@ -214,7 +215,7 @@ function discardChanges() {
           :label="t('groups.name')"
           :placeholder="t('groups.name_placeholder')"
           :helper-text="currentGroup ? t('groups.rename_not_available') : ''"
-          :invalid-message="nameIssue ? t(nameIssue) : ''"
+          :invalid-message="nameIssue ? t(nameIssue, { max: GROUP_NAME_MAX_LENGTH }) : ''"
           :disabled="saving || !!currentGroup"
           @blur="name = name.trim()"
         />

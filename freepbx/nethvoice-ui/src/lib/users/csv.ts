@@ -23,6 +23,10 @@ export const CSV_IMPORT_START_ATTEMPTS = 15
 
 export const MAX_CSV_IMPORT_BASE64_LENGTH = 120000
 
+export const USERNAME_MAX_LENGTH = 32
+
+export const DISPLAY_NAME_MAX_LENGTH = 50
+
 export const USERNAME_REGEX = /^[a-z][a-z0-9._-]{0,31}$/
 
 export const IMPORT_PREVIEW_ROWS = 5
@@ -72,7 +76,9 @@ export type ImportRow = {
 export type ImportIssue =
   | 'missing_username'
   | 'invalid_username'
+  | 'username_too_long'
   | 'missing_name'
+  | 'name_too_long'
   | 'invalid_extension'
   | 'duplicate_username'
   | 'duplicate_extension'
@@ -131,6 +137,11 @@ export class CsvImportError extends Error {
 
 export const isCsvImportError = (error: unknown): error is CsvImportError =>
   error instanceof CsvImportError
+
+export const isValueTooLongFailure = (error: unknown): boolean =>
+  isCsvImportError(error) &&
+  error.code === 'import_failed' &&
+  /SQLSTATE\[22001\]|Data too long for column/.test(error.message)
 
 export type ImportFileErrorCode = 'missing_username_column'
 
@@ -444,6 +455,8 @@ const findRowIssues = (
 
   if (row.username === '') {
     issues.push('missing_username')
+  } else if (row.username.length > USERNAME_MAX_LENGTH) {
+    issues.push('username_too_long')
   } else if (!USERNAME_REGEX.test(row.username)) {
     issues.push('invalid_username')
   } else if (seen.usernames.has(row.username)) {
@@ -452,6 +465,11 @@ const findRowIssues = (
 
   if (row.fullName.trim() === '') {
     issues.push('missing_name')
+  } else if (
+    row.fullName.trim().length > DISPLAY_NAME_MAX_LENGTH &&
+    !findUserByUsername(users, row.username)
+  ) {
+    issues.push('name_too_long')
   }
 
   if (

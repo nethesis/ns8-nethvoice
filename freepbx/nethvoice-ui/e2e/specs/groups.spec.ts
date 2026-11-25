@@ -67,7 +67,7 @@ test.describe('groups', () => {
     await page.getByRole('textbox', { name: 'Filter groups' }).fill('nothing')
     await expect(page.getByText('No groups found')).toBeVisible()
     await expect(page.getByText('Try different or fewer words.')).toBeVisible()
-    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await page.getByRole('button', { name: 'Clear filter' }).last().click()
     await expect(page.getByRole('textbox', { name: 'Filter groups' })).toHaveValue('')
     await expect(rows(page)).toHaveCount(3)
   })
@@ -89,10 +89,42 @@ test.describe('groups', () => {
     )
     await page.goto('./users/groups')
 
-    await expect(page.getByText('Cannot load data')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve groups')).toBeVisible()
     fail = false
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(rows(page)).toHaveCount(3)
+  })
+
+  test('keeps the groups on screen when a refresh fails', async ({ page, mockApi }) => {
+    let fail = false
+
+    mockGroups(mockApi).on('GET', '/freepbx/rest/cti/groups', () =>
+      fail ? { status: 500 } : { json: GROUPS },
+    )
+    await page.goto('./users/groups')
+    await expect(rows(page)).toHaveCount(3)
+
+    fail = true
+    await page.clock.install()
+    await page.clock.runFor(60_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(page.getByText('Cannot retrieve groups')).toBeVisible()
+    await expect(rows(page)).toHaveCount(3)
+  })
+
+  test('wraps a long group name in the cards of a phone screen', async ({ page, mockApi }) => {
+    const name = 'Amministrazione contabilita risorse umane sede centrale di Milano'
+    mockGroups(mockApi, [{ ...GROUPS[0], name }, ...GROUPS.slice(1)])
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('./users/groups')
+
+    const groupName = page.locator('[data-group-name]').filter({ hasText: name })
+    await expect(groupName).toBeVisible()
+    expect(await groupName.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(
+      true,
+    )
+    expect((await groupName.boundingBox())?.height ?? 0).toBeGreaterThan(30)
   })
 
   test('creates a group with its members', async ({ page, mockApi }) => {
@@ -195,9 +227,9 @@ test.describe('groups', () => {
     mockGroups(mockApi)
     await page.goto('./users/groups')
 
-    await expect(page.getByRole('button', { name: 'Reset filters' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Clear filter' })).toBeDisabled()
     await page.getByRole('textbox', { name: 'Filter groups' }).fill('sales')
-    await page.getByRole('button', { name: 'Reset filters' }).click()
+    await page.getByRole('button', { name: 'Clear filter' }).click()
     await expect(page.getByRole('textbox', { name: 'Filter groups' })).toHaveValue('')
 
     await page.getByRole('button', { name: 'Create group' }).click()

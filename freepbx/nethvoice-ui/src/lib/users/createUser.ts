@@ -3,9 +3,11 @@
 
 import * as v from 'valibot'
 import {
+  DISPLAY_NAME_MAX_LENGTH,
   hasSurroundingWhitespace,
   runCsvImport,
   serializeCsv,
+  USERNAME_MAX_LENGTH,
   USERNAME_REGEX,
 } from '@/lib/users/csv'
 import { isValidExtension } from '@/lib/users/extensions'
@@ -46,6 +48,7 @@ export const NewUserSchema = v.pipe(
       v.trim(),
       v.toLowerCase(),
       v.nonEmpty('users.username_required'),
+      v.maxLength(USERNAME_MAX_LENGTH, 'users.username_too_long'),
       v.regex(USERNAME_REGEX, 'users.username_invalid'),
     ),
     name: v.pipe(v.string(), v.trim(), v.nonEmpty('users.name_required')),
@@ -71,6 +74,14 @@ export const NewUserSchema = v.pipe(
       'users.passwords_do_not_match',
     ),
     ['confirmPassword'],
+  ),
+  v.forward(
+    v.partialCheck(
+      [['name'], ['surname']],
+      (input) => getFullName(input).length <= DISPLAY_NAME_MAX_LENGTH,
+      'users.full_name_too_long',
+    ),
+    ['name'],
   ),
 )
 
@@ -106,7 +117,7 @@ export const getNewUserConflicts = (
   return conflicts
 }
 
-export const getFullName = (newUser: Pick<NewUser, 'name' | 'surname'>): string =>
+export const getFullName = (newUser: { name: string; surname: string }): string =>
   [newUser.name.trim(), newUser.surname.trim()].filter(Boolean).join(' ')
 
 export const buildNewUserCsv = (newUser: NewUser, extension: string): string =>

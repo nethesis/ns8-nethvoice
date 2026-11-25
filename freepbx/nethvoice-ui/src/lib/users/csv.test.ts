@@ -5,6 +5,8 @@ import { describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/errors'
 import {
+  CsvImportError,
+  isValueTooLongFailure,
   analyzeImport,
   buildCsvTemplate,
   buildExportFileName,
@@ -249,6 +251,25 @@ describe('analyzeImport', () => {
     expect(analyzeImport(rows, users, DIRECTORY, 'overwrite').errors[0].issues).toEqual([
       { issue: 'too_many_devices' },
     ])
+  })
+
+  it('reports a username or a full name that is too long for a new user', () => {
+    const rows = parseImportFile(
+      [
+        'username,name,surname,extension',
+        `k${'x'.repeat(32)},Kevin,Lee,305`,
+        `m.cole,${'M'.repeat(45)},Coles,306`,
+        `n.ray,${'N'.repeat(44)},Rays,307`,
+        `a.miller,${'A'.repeat(60)},Miller,300`,
+      ].join('\n'),
+    )
+    const analysis = analyzeImport(rows, USERS, DIRECTORY, 'overwrite')
+
+    expect(analysis.errors.map(({ row, issues }) => [row.line, issues])).toEqual([
+      [2, [{ issue: 'username_too_long' }]],
+      [3, [{ issue: 'name_too_long' }]],
+    ])
+    expect(analysis.valid.map((row) => row.username)).toEqual(['n.ray', 'a.miller'])
   })
 
   it('reports every issue of a row together', () => {
@@ -570,5 +591,20 @@ describe('import status', () => {
     expect(getCsvImportFailure(apiError(422, { status: 'No csv import active' }))).toBeNull()
     expect(isCsvImportNotRunning(apiError(422, { status: 'No csv import active' }))).toBe(true)
     expect(isCsvImportNotRunning(new Error('x'))).toBe(false)
+  })
+
+  it('recognizes a value too long for the PBX tables', () => {
+    const failure = (message: string) => new CsvImportError('import_failed', message)
+
+    expect(
+      isValueTooLongFailure(
+        failure(
+          "Error adding main extension 300 to user a.b: Unable to insert into users: SQLSTATE[22001]: String data, right truncated: 1406 Data too long for column 'name' at row 1",
+        ),
+      ),
+    ).toBe(true)
+    expect(isValueTooLongFailure(failure('Error creating user a.b: HTTP 503'))).toBe(false)
+    expect(isValueTooLongFailure(new CsvImportError('file_too_large'))).toBe(false)
+    expect(isValueTooLongFailure(new Error('Data too long'))).toBe(false)
   })
 })

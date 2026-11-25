@@ -162,7 +162,7 @@ test.describe('admin control', () => {
   test('lists the administrators with their access and the domain groups', async ({ page }) => {
     await page.goto('./admin-control')
 
-    await expect(page.getByRole('heading', { name: 'Admin control', level: 3 })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Admin control', level: 1 })).toBeVisible()
     await expect(table(page).getByRole('row')).toHaveCount(ADMINS.length + 1)
 
     await expect(row(page, 'a.miller')).toContainText('Anna Miller')
@@ -528,6 +528,34 @@ test.describe('admin control without a manageable account provider', () => {
     await expect(page.getByText('Cannot retrieve administrators')).toBeVisible()
     fail = false
     await page.getByRole('button', { name: 'Retry' }).click()
+    await expect(row(page, 'a.miller')).toBeVisible()
+  })
+
+  test('keeps the administrators on screen when a refresh fails', async ({ page, mockApi }) => {
+    let fail = false
+    mockAdminsApi(mockApi)
+    mockApi.on('GET', `${REST}/admins`, () =>
+      fail
+        ? { status: 500, json: { message: 'invented failure' } }
+        : {
+            json: {
+              prefix: 'nethvoice3',
+              groups: GROUPS,
+              manageable: true,
+              reason: null,
+              admins: ADMINS,
+            },
+          },
+    )
+    await page.goto('./admin-control')
+    await expect(row(page, 'a.miller')).toBeVisible()
+
+    fail = true
+    await page.clock.install()
+    await page.clock.runFor(60_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(page.getByText('Cannot retrieve administrators')).toBeVisible()
     await expect(row(page, 'a.miller')).toBeVisible()
   })
 

@@ -59,6 +59,10 @@ const loading = computed(
 
 const loadError = computed(() => groupsState.value.error ?? usersState.value.error)
 
+const hasData = computed(
+  () => groupsState.value.data !== undefined && usersState.value.data !== undefined,
+)
+
 const groups = computed(() => groupsState.value.data ?? [])
 
 const users = computed(() => usersState.value.data ?? [])
@@ -136,9 +140,15 @@ function reload() {
 
 <template>
   <div>
-    <LoadError v-if="loadError" :error="loadError" @retry="reload" />
+    <LoadError
+      v-if="loadError"
+      :error="loadError"
+      :title="t('groups.cannot_retrieve_groups')"
+      :class="{ 'mb-6': hasData }"
+      @retry="reload"
+    />
     <NeEmptyState
-      v-else-if="isNoDataEmptyStateShown"
+      v-if="isNoDataEmptyStateShown"
       :title="t('groups.no_groups_configured')"
       :description="`${t('groups.description_line_1')} ${t('groups.description_line_2')}`"
       :icon="faUsers"
@@ -151,14 +161,14 @@ function reload() {
         {{ t('groups.create_group') }}
       </NeButton>
     </NeEmptyState>
-    <template v-else>
-      <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-        <p class="text-secondary-neutral max-w-152">
+    <template v-else-if="!loadError || hasData">
+      <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
+        <p class="text-tertiary-neutral max-w-2xl">
           {{ t('groups.description_line_1') }}<br />{{ t('groups.description_line_2') }}
         </p>
         <NeButton
           kind="primary"
-          class="shrink-0"
+          class="mt-2 justify-self-start sm:mt-0"
           :disabled="loading"
           @click="showCreateGroupDrawer"
         >
@@ -178,7 +188,7 @@ function reload() {
           class="w-full max-w-xs"
         />
         <NeButton kind="tertiary" :disabled="textFilter === ''" @click="textFilter = ''">
-          {{ t('common.reset_filters') }}
+          {{ t('common.clear_filter') }}
         </NeButton>
       </div>
       <NeEmptyState
@@ -214,10 +224,12 @@ function reload() {
                 trigger-event="mouseenter focus"
                 placement="top"
                 :tippy-props="{ onShow: showOnlyIfTruncated }"
-                class="block max-w-xs min-w-0"
+                class="block min-w-0 md:max-w-xs"
               >
                 <template #trigger>
-                  <span class="block truncate" data-group-name>{{ group.name }}</span>
+                  <span class="block wrap-anywhere md:truncate" data-group-name>{{
+                    group.name
+                  }}</span>
                 </template>
                 <template #content>{{ group.name }}</template>
               </NeTooltip>

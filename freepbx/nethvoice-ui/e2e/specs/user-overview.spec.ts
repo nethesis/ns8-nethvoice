@@ -123,7 +123,7 @@ test.describe('user overview', () => {
         /93300\s*Offline/,
       ])
       await expect(page.getByText('Live data not available')).toHaveCount(0)
-      await expect(page.getByText('Cannot load the status of users')).toHaveCount(0)
+      await expect(page.getByText('Cannot retrieve the status of users')).toHaveCount(0)
     })
   }
 
@@ -167,7 +167,9 @@ test.describe('user overview', () => {
     await page.goto('./users/overview')
 
     await expect(page.getByRole('button', { name: 'Reset filters' })).toBeDisabled()
-    await expect(userCard(page, 'c.rossi').getByText('Call forward')).toBeAttached()
+    await expect(userCard(page, 'c.rossi').getByTestId('overview-card-presence')).toHaveText(
+      'Call forward',
+    )
     await page.getByRole('button', { name: 'Open filter Status' }).click()
     await page.getByRole('checkbox', { name: 'Call forward' }).check()
     await expect(page.locator('[data-user]')).toHaveCount(1)
@@ -185,9 +187,29 @@ test.describe('user overview', () => {
     )
     await page.goto('./users/overview')
 
-    await expect(page.getByText('Cannot load the status of users')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the status of users')).toBeVisible()
     fail = false
     await page.getByRole('button', { name: 'Retry' }).click()
+    await expect(page.locator('[data-user]')).toHaveCount(3)
+  })
+
+  test('keeps the users on screen when a refresh fails', async ({ page, mockApi }) => {
+    let fail = false
+
+    mockOverview(mockApi).on('GET', '/freepbx/rest/dashboard/live/extensions', () =>
+      fail
+        ? { status: 503, json: { message: 'The CTI server is not reachable' } }
+        : { json: EXTENSIONS },
+    )
+    await page.goto('./users/overview')
+    await expect(page.locator('[data-user]')).toHaveCount(3)
+
+    fail = true
+    await page.clock.install()
+    await page.clock.runFor(60_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(page.getByText('Cannot retrieve the status of users')).toBeVisible()
     await expect(page.locator('[data-user]')).toHaveCount(3)
   })
 

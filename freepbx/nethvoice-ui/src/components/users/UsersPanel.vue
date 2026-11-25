@@ -31,13 +31,12 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faCircleArrowUp,
   faArrowsRotate,
+  faCircleMinus,
   faCirclePlus,
-  faCircleXmark,
   faFileCsv,
   faGears,
   faHeadset,
   faKey,
-  faLinkSlash,
   faMagnifyingGlass,
   faPenToSquare,
   faRightLeft,
@@ -45,6 +44,7 @@ import {
   faUserGroup,
   faUserGear,
   faVoicemail,
+  faXmark,
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
@@ -113,6 +113,9 @@ const loading = computed(
 const loadError = computed(
   () => usersQuery.state.value.error ?? directoryQuery.state.value.error ?? null,
 )
+const hasData = computed(
+  () => usersQuery.state.value.data !== undefined && directoryQuery.state.value.data !== undefined,
+)
 const users = computed(() => usersQuery.state.value.data ?? [])
 const directory = computed(() => directoryQuery.state.value.data ?? EMPTY_USERS_DIRECTORY)
 const loginStore = useLoginStore()
@@ -125,6 +128,11 @@ const accounts = computed(() =>
   accountsManageable.value ? (accountsQuery.state.value.data ?? []) : [],
 )
 const accountsLoaded = computed(() => accountsQuery.state.value.status === 'success')
+const accountsLoading = computed(
+  () =>
+    domainQuery.state.value.status === 'pending' ||
+    (accountsManageable.value && accountsQuery.state.value.status === 'pending'),
+)
 const accountsLoadFailed = computed(
   () => accountsManageable.value && accountsQuery.state.value.status === 'error',
 )
@@ -454,7 +462,7 @@ const rowMenuItems = (row: UserRow): NeDropdownItem[] => [
   {
     id: 'remove-extension',
     label: t('users.remove_extension'),
-    icon: faLinkSlash,
+    icon: faCircleMinus,
     danger: true,
     disabled: row.mainExtension === '',
     action: () => {
@@ -484,11 +492,11 @@ const filterLabels = computed(() => ({
 
 <template>
   <div>
-    <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-      <p class="text-secondary-neutral max-w-152">
+    <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
+      <p class="text-tertiary-neutral max-w-2xl">
         {{ t('users.description_line_1') }}<br />{{ t('users.description_line_2') }}
       </p>
-      <div class="flex items-center gap-4">
+      <div class="mt-2 flex items-center gap-4 justify-self-start sm:mt-0">
         <UsersActionsDropdown :items="actionItems" />
         <NeButton v-if="!isEmptyStateShown" kind="primary" @click="showCreateUser">
           <template #prefix>
@@ -536,9 +544,10 @@ const filterLabels = computed(() => ({
       v-if="loadError"
       :error="loadError"
       :title="t('users.cannot_load_users')"
+      :class="{ 'mb-6': hasData }"
       @retry="reload"
     />
-    <template v-else>
+    <template v-if="!loadError || hasData">
       <NeInlineNotification
         v-if="unavailableParts"
         kind="warning"
@@ -710,7 +719,7 @@ const filterLabels = computed(() => ({
                     class="shrink-0"
                     :data-testid="`disabled-badge-${row.username}`"
                   >
-                    <FontAwesomeIcon :icon="faCircleXmark" class="size-3" aria-hidden="true" />
+                    <FontAwesomeIcon :icon="faXmark" class="size-3" aria-hidden="true" />
                     {{ t('common.disabled') }}
                   </NeBadgeV2>
                   <NeBadgeV2
@@ -858,6 +867,9 @@ const filterLabels = computed(() => ({
       :account="currentUser?.account"
       :accounts-manageable="accountsManageable"
       :account-restriction="currentUser ? restrictionOf(currentUser) : null"
+      :accounts-loading="
+        currentUser ? accountsLoading : domainQuery.state.value.status === 'pending'
+      "
       :creation-blocked="creationBlocked"
       @close="isShownUserDrawer = false"
     />

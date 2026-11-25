@@ -8,13 +8,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCirclePlus } from '@fortawesome/free-solid-svg-icons'
-import {
-  NeButton,
-  NeCard,
-  NeHeading,
-  NeInlineNotification,
-  NeSpinner,
-} from '@nethesis/vue-components'
+import { NeButton, NeCard, NeInlineNotification, NeSpinner } from '@nethesis/vue-components'
 import AdminDrawer from '@/components/admins/AdminDrawer.vue'
 import AdminsTable from '@/components/admins/AdminsTable.vue'
 import RemoveAdminModal from '@/components/admins/RemoveAdminModal.vue'
@@ -89,13 +83,13 @@ function showRemoveModal(admin: AdminAccount) {
   <div>
     <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
       <div class="flex max-w-3xl flex-col gap-2">
-        <NeHeading tag="h3">{{ t('admin_control.title') }}</NeHeading>
+        <h1 class="text-primary-neutral text-2xl font-medium">{{ t('admin_control.title') }}</h1>
         <p class="text-secondary-neutral">
           {{ t('admin_control.description', { brand: runtimeConfigStore.config.brandName }) }}
         </p>
       </div>
       <NeButton
-        v-if="!loadError"
+        v-if="!loadError || control"
         kind="primary"
         size="lg"
         class="shrink-0"
@@ -112,9 +106,10 @@ function showRemoveModal(admin: AdminAccount) {
       v-if="loadError"
       :error="loadError"
       :title="t('admin_control.cannot_retrieve_admins')"
+      :class="{ 'mb-8': control }"
       @retry="refetch()"
     />
-    <div v-else class="flex flex-col gap-8">
+    <div v-if="!loadError || control" class="flex flex-col gap-8">
       <NeInlineNotification
         v-if="control && !control.manageable"
         :kind="control.reason === 'external' ? 'info' : 'warning'"

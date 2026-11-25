@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from 'vitest'
 import * as v from 'valibot'
-import { parseCsv } from './csv'
+import { DISPLAY_NAME_MAX_LENGTH, parseCsv } from './csv'
 import {
   buildNewUserCsv,
   getFullName,
@@ -90,6 +90,23 @@ describe('NewUserSchema', () => {
 
   it('accepts a user without extension and mobile', () => {
     expect(issues({ extension: '', mobile: '' })).toEqual({})
+  })
+
+  it('limits the username length', () => {
+    expect(issues({ username: `a${'b'.repeat(31)}` })).toEqual({})
+    expect(issues({ username: `a${'b'.repeat(32)}` })).toEqual({
+      username: 'users.username_too_long',
+    })
+  })
+
+  it('limits the full name to the length of the extension name', () => {
+    const name = 'A'.repeat(DISPLAY_NAME_MAX_LENGTH - 7)
+
+    expect(issues({ name, surname: 'Miller' })).toEqual({})
+    expect(issues({ name, surname: 'Millers' })).toEqual({
+      name: 'users.full_name_too_long',
+    })
+    expect(issues({ name: `  ${name}  `, surname: '  Miller  ' })).toEqual({})
   })
 })
 

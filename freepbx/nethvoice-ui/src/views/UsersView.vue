@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NeHeading, NeTabs } from '@nethesis/vue-components'
+import { NeTabs } from '@nethesis/vue-components'
 import { vKeyboardTabs } from '@/lib/keyboardTabs'
 import { useRouteTab } from '@/composables/useRouteTab'
 import UsersPanel from '@/components/users/UsersPanel.vue'
@@ -37,7 +37,7 @@ function selectTab(tabName: string) {
 
 <template>
   <div>
-    <NeHeading tag="h3" class="mb-7">{{ $t('users.title') }}</NeHeading>
+    <h1 class="text-primary-neutral mb-7 text-2xl font-medium">{{ $t('users.title') }}</h1>
     <NeTabs
       v-keyboard-tabs
       :tabs="tabs"

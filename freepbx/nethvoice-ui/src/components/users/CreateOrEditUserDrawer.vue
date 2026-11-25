@@ -7,7 +7,7 @@
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
-import { useMutation } from '@pinia/colada'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import {
   NeButton,
   NeCombobox,
@@ -16,14 +16,17 @@ import {
   NeMultiselectCombobox,
   NePasswordRequirements,
   NeSideDrawer,
+  NeSkeleton,
   NeTextInput,
   NeToggle,
+  focusElement,
   usePasswordRequirements,
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import UserPhonesField from '@/components/users/UserPhonesField.vue'
 import { isApiError } from '@/lib/api/errors'
+import { PHONES_KEY } from '@/lib/phones/phones'
 import { focusUnlessFocusedWithin } from '@/lib/common'
 import {
   EmailSchema,
@@ -36,13 +39,20 @@ import {
   type AccountRestriction,
   type UserAccount,
 } from '@/lib/users/accounts'
-import { hasControlCharacters, isCsvImportError } from '@/lib/users/csv'
+import {
+  DISPLAY_NAME_MAX_LENGTH,
+  hasControlCharacters,
+  isCsvImportError,
+  isValueTooLongFailure,
+  USERNAME_MAX_LENGTH,
+} from '@/lib/users/csv'
 import {
   createUser,
   CreatedUserNotFoundError,
   getFullName,
   getNewUserConflicts,
   NewUserSchema,
+  PASSWORD_MIN_LENGTH,
   type NewUserField,
 } from '@/lib/users/createUser'
 import {
@@ -74,6 +84,7 @@ import {
   type User,
 } from '@/lib/users/users'
 import { useInvalidateAccounts } from '@/queries/users/accounts'
+import { useUserLimits } from '@/queries/users/userLimits'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
@@ -98,6 +109,7 @@ const {
   account = undefined,
   accountsManageable = false,
   accountRestriction = null,
+  accountsLoading = false,
   creationBlocked = '',
 } = defineProps<{
   isShown: boolean
@@ -109,6 +121,7 @@ const {
   account?: UserAccount
   accountsManageable?: boolean
   accountRestriction?: AccountRestriction | null
+  accountsLoading?: boolean
   creationBlocked?: string
 }>()
 
@@ -121,11 +134,14 @@ const runtimeConfigStore = useRuntimeConfigStore()
 const notificationsStore = useNotificationsStore()
 const invalidateUsers = useInvalidateUsers()
 const invalidateAccounts = useInvalidateAccounts()
+const queryCache = useQueryCache()
+const { state: limitsState } = useUserLimits()
 
 const isEdit = computed(() => user !== undefined)
 const isSetup = computed(() => variant === 'setup')
 const showPhones = computed(() => isEdit.value && !isSetup.value)
 const showAccount = computed(() => !isSetup.value)
+const accountsPending = computed(() => showAccount.value && accountsLoading)
 const accountEditable = computed(() => showAccount.value && accountsManageable)
 const identityLocked = computed(
   () =>
@@ -155,6 +171,7 @@ const devices = ref<NeMultiselectComboboxOption[]>([])
 const phoneMacs = ref<string[]>([])
 const validationIssues = ref<Partial<Record<Field, string>>>({})
 const showPasswordErrors = ref(false)
+const initialIdentitySnapshot = ref('')
 const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
 const focusAfterSave = ref<'error' | 'extension' | 'email' | 'name' | 'surname' | null>(null)
@@ -172,21 +189,26 @@ const extensionRef = useTemplateRef<{ focus(): void }>('extensionRef')
 const mobileRef = useTemplateRef<{ focus(): void }>('mobileRef')
 const profileRef = useTemplateRef<{ focus(): void }>('profileRef')
 
-const fieldRefs = computed<Partial<Record<Field, { focus(): void } | null>>>(() => ({
-  username: usernameRef.value,
-  name: nameRef.value,
-  surname: surnameRef.value,
-  email: emailRef.value,
-  password: passwordRef.value,
-  confirmPassword: confirmPasswordRef.value,
-  extension: extensionRef.value,
-  mobile: mobileRef.value,
-  profileId: profileRef.value,
-}))
+const fieldRefs: Record<Field, typeof usernameRef> = {
+  username: usernameRef,
+  name: nameRef,
+  surname: surnameRef,
+  email: emailRef,
+  password: passwordRef,
+  confirmPassword: confirmPasswordRef,
+  extension: extensionRef,
+  mobile: mobileRef,
+  profileId: profileRef,
+}
+
+const ISSUE_PARAMS: Record<string, Record<string, number>> = {
+  'users.username_too_long': { max: USERNAME_MAX_LENGTH },
+  'users.full_name_too_long': { max: DISPLAY_NAME_MAX_LENGTH },
+}
 
 const { requirements: passwordRequirements } = usePasswordRequirements(password, {
   labels: () => ({
-    minLength: t('users.password_rule_min_length', { min: 8 }),
+    minLength: t('users.password_rule_min_length', { min: PASSWORD_MIN_LENGTH }),
     uppercase: t('users.password_rule_uppercase'),
     lowercase: t('users.password_rule_lowercase'),
     number: t('users.password_rule_number'),
@@ -281,13 +303,12 @@ const saveAccount = async (username: string, changes: AccountChanges) => {
   accountSaved.value = true
 }
 
+const identitySnapshot = () =>
+  JSON.stringify([name.value, surname.value, email.value.trim(), accountEnabled.value])
+
 const formSnapshot = () =>
   JSON.stringify([
     username.value,
-    name.value,
-    surname.value,
-    email.value.trim(),
-    accountEnabled.value,
     password.value,
     confirmPassword.value,
     extension.value.trim(),
@@ -299,7 +320,25 @@ const formSnapshot = () =>
     phoneMacs.value,
   ])
 
-const isDirty = computed(() => formSnapshot() !== initialSnapshot.value)
+const isDirty = computed(
+  () =>
+    identitySnapshot() !== initialIdentitySnapshot.value ||
+    formSnapshot() !== initialSnapshot.value,
+)
+
+const loadIdentity = (current: UserRow) => {
+  const fullName = splitDisplayName(account?.displayName || current.displayName)
+  name.value = fullName.name
+  surname.value = fullName.surname
+  email.value = account ? account.mail : current.email
+  accountEnabled.value = account?.locked !== true
+  initialAccount.value = {
+    displayName: currentDisplayName(),
+    mail: email.value,
+    locked: !accountEnabled.value,
+  }
+  initialIdentitySnapshot.value = identitySnapshot()
+}
 
 watch(
   () => isShown,
@@ -317,16 +356,7 @@ watch(
     accountSynchronized.value = null
 
     if (user) {
-      const fullName = splitDisplayName(account?.displayName || user.displayName)
-      name.value = fullName.name
-      surname.value = fullName.surname
-      email.value = account ? account.mail : user.email
-      accountEnabled.value = account?.locked !== true
-      initialAccount.value = {
-        displayName: currentDisplayName(),
-        mail: email.value,
-        locked: !accountEnabled.value,
-      }
+      loadIdentity(user)
       const settings = getUserSettings(user)
       extension.value = settings.extension
       mobile.value = settings.mobile
@@ -355,6 +385,7 @@ watch(
       phoneMacs.value = []
     }
     validationIssues.value = {}
+    initialIdentitySnapshot.value = identitySnapshot()
     initialSnapshot.value = formSnapshot()
     setTimeout(
       () =>
@@ -368,6 +399,15 @@ watch(
         ),
       300,
     )
+  },
+)
+
+watch(
+  () => accountsLoading,
+  (loading, wasLoading) => {
+    if (isShown && user && wasLoading && !loading && !saving.value) {
+      loadIdentity(user)
+    }
   },
 )
 
@@ -534,7 +574,11 @@ const {
     }
   },
   onSettled() {
-    return Promise.all([invalidateUsers(), invalidateAccounts()])
+    return Promise.all([
+      invalidateUsers(),
+      invalidateAccounts(),
+      queryCache.invalidateQueries({ key: [PHONES_KEY] }),
+    ])
   },
 })
 
@@ -546,14 +590,10 @@ watch(saving, async (isSaving) => {
   focusAfterSave.value = null
   await nextTick()
 
-  if (target === 'extension') {
-    extensionRef.value?.focus()
-  } else if (target === 'email') {
-    emailRef.value?.focus()
-  } else if (target === 'name' || target === 'surname') {
-    fieldRefs.value[target]?.focus()
+  if (target === 'error') {
+    focusElement(errorRef)
   } else {
-    errorRef.value?.focus()
+    focusElement(fieldRefs[target])
   }
 })
 
@@ -585,7 +625,7 @@ const describeStepError = (error: UserSettingsStepError): string => {
     const kind = getExtensionErrorKind(error.cause)
 
     if (kind !== 'unknown') {
-      return t(`users.extension_error_${kind}`)
+      return t(`users.extension_error_${kind}`, { limit: limitsState.value.data?.limit ?? '' })
     }
   }
   return describeError(error.cause)
@@ -608,6 +648,9 @@ const getErrorDescription = (error: unknown): string => {
     return accountSaved.value ? `${applied} ${t('users.account_already_saved')}` : applied
   }
 
+  if (isValueTooLongFailure(error)) {
+    return t('users.create_error_value_too_long')
+  }
   if (isCsvImportError(error)) {
     return error.code === 'import_failed' && error.message
       ? error.message
@@ -731,7 +774,7 @@ function validate(): boolean {
   const firstInvalid = ordered.find((field) => validationIssues.value[field])
 
   if (firstInvalid) {
-    fieldRefs.value[firstInvalid]?.focus()
+    focusElement(fieldRefs[firstInvalid])
     return false
   }
   return true
@@ -765,8 +808,10 @@ function discardChanges() {
   emit('close')
 }
 
-const issue = (field: Field) =>
-  validationIssues.value[field] ? t(validationIssues.value[field]) : ''
+const issue = (field: Field) => {
+  const key = validationIssues.value[field]
+  return key ? t(key, ISSUE_PARAMS[key] ?? {}) : ''
+}
 
 const extensionChangeWarning = computed(
   () =>
@@ -789,15 +834,20 @@ const extensionChangeWarning = computed(
         :description="t('users.users_created_externally', { action: t('users.sync_users') })"
         data-testid="user-creation-blocked"
       />
-      <div v-if="accountEditable" class="flex flex-col gap-2">
-        <NeFormItemLabel class="!mb-0">{{ t('common.status') }}</NeFormItemLabel>
+      <NeSkeleton
+        v-if="accountsPending"
+        :lines="isEdit ? 10 : 4"
+        data-testid="user-account-skeleton"
+      />
+      <div v-else-if="accountEditable" class="flex flex-col">
+        <NeFormItemLabel>{{ t('common.status') }}</NeFormItemLabel>
         <NeToggle
           v-model="accountEnabled"
           :label="accountEnabled ? t('common.enabled') : t('common.disabled')"
           :disabled="saving || statusLocked || isCreationBlocked"
           data-testid="user-status-toggle"
         />
-        <p class="text-secondary-neutral text-sm" data-testid="user-status-helper">
+        <p class="text-secondary-neutral mt-2 text-sm" data-testid="user-status-helper">
           {{
             statusLocked
               ? t(`users.${accountRestriction}_restricted`)
@@ -805,7 +855,7 @@ const extensionChangeWarning = computed(
           }}
         </p>
       </div>
-      <template v-if="isEdit && showAccount">
+      <template v-if="isEdit && showAccount && !accountsPending">
         <NeTextInput
           ref="nameRef"
           v-model="name"
@@ -840,6 +890,7 @@ const extensionChangeWarning = computed(
           :label="t('users.username')"
           :invalid-message="issue('username')"
           :disabled="saving || isCreationBlocked"
+          :maxlength="USERNAME_MAX_LENGTH"
           autocomplete="off"
         />
         <NeTextInput
@@ -886,8 +937,9 @@ const extensionChangeWarning = computed(
           :hide-password-label="t('ne_text_input.hide_password')"
           autocomplete="new-password"
         />
+        <NeSkeleton v-if="accountsPending" :lines="2" />
         <NeTextInput
-          v-if="accountEditable"
+          v-else-if="accountEditable"
           ref="emailRef"
           v-model="email"
           type="email"
@@ -936,8 +988,8 @@ const extensionChangeWarning = computed(
         inputmode="tel"
       />
       <template v-if="!isSetup || isEdit">
-        <div class="flex flex-col gap-2">
-          <NeFormItemLabel class="!mb-0">{{ t('users.voicemail') }}</NeFormItemLabel>
+        <div class="flex flex-col">
+          <NeFormItemLabel>{{ t('users.voicemail') }}</NeFormItemLabel>
           <NeToggle
             v-model="voicemail"
             :label="voicemail ? t('common.enabled') : t('common.disabled')"
@@ -945,7 +997,7 @@ const extensionChangeWarning = computed(
               saving || needsSavedExtension || effectiveExtension === '' || !voicemailAvailable
             "
           />
-          <p v-if="!voicemailAvailable" class="text-secondary-neutral text-sm">
+          <p v-if="!voicemailAvailable" class="text-secondary-neutral mt-2 text-sm">
             {{ t('users.cannot_load_voicemail') }}
           </p>
         </div>

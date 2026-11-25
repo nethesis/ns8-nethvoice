@@ -66,7 +66,7 @@ test.describe('profiles', () => {
     await page.getByRole('textbox', { name: 'Filter profiles' }).fill('none')
     await expect(page.getByText('No profiles found')).toBeVisible()
     await expect(page.getByText('Try different or fewer words.')).toBeVisible()
-    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await page.getByRole('button', { name: 'Clear filter' }).last().click()
     await expect(page.getByRole('textbox', { name: 'Filter profiles' })).toHaveValue('')
     await expect(page.getByText('No profiles found')).toBeHidden()
   })
@@ -86,10 +86,51 @@ test.describe('profiles', () => {
     )
     await page.goto('./users/profiles')
 
-    await expect(page.getByText('Cannot load data')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve profiles')).toBeVisible()
     fail = false
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(page.locator('[data-profile]')).toHaveCount(4)
+  })
+
+  test('keeps the profiles on screen when a refresh fails', async ({ page, mockApi }) => {
+    let fail = false
+
+    mockProfiles(mockApi).on('GET', '/freepbx/rest/cti/profiles', () =>
+      fail ? { status: 500 } : { json: PROFILES },
+    )
+    await page.goto('./users/profiles')
+    await expect(page.locator('[data-profile]')).toHaveCount(4)
+
+    fail = true
+    await page.clock.install()
+    await page.clock.runFor(60_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(page.getByText('Cannot retrieve profiles')).toBeVisible()
+    await expect(page.locator('[data-profile]')).toHaveCount(4)
+  })
+
+  test('opens Create profile only when the profiles are loaded', async ({ page, mockApi }) => {
+    let release: () => void = () => undefined
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    mockProfiles(mockApi).on('GET', '/freepbx/rest/cti/profiles', async () => {
+      await released
+      return { json: PROFILES }
+    })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('./users/profiles')
+
+    await expect(page.getByTestId('create-profile-loading')).toBeDisabled()
+    release()
+    await page.getByRole('button', { name: 'Create profile' }).click()
+
+    const menu = page.getByRole('menu')
+    await expect(menu.getByRole('menuitem')).toHaveCount(4)
+    const box = await menu.boundingBox()
+    expect(box?.x).toBeGreaterThanOrEqual(0)
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390)
   })
 
   test('creates a profile from an existing one', async ({ page, mockApi }) => {
@@ -249,7 +290,7 @@ test.describe('profiles', () => {
     mockProfiles(mockApi)
     await page.goto('./users/profiles')
 
-    await expect(page.getByRole('button', { name: 'Reset filters' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Clear filter' })).toBeDisabled()
     await card(page, 2).getByRole('button', { name: 'Edit Standard' }).click()
     await page.keyboard.press('Escape')
     await expect(drawerHeading(page, 'Edit Standard profile')).toBeHidden()

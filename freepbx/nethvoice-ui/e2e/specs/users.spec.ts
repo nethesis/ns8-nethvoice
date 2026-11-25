@@ -13,6 +13,7 @@ import {
   mockWrites,
   RAW_USERS,
   REST,
+  TANCREDI,
 } from './users-data'
 
 const ORPHANS = [
@@ -129,7 +130,7 @@ test.describe('users', () => {
     mockUsersApi(mockApi, { users: [] })
     await page.goto('./users/users')
 
-    await expect(page.getByText('No users', { exact: true })).toBeVisible()
+    await expect(page.getByText('No users configured', { exact: true })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Create user' })).toHaveCount(1)
     await expect(page.getByRole('button', { name: 'Import users from CSV' })).toBeVisible()
     await expect(page.getByTestId('users-counter')).toHaveCount(0)
@@ -141,7 +142,9 @@ test.describe('users', () => {
     await page.goto('./users/users')
 
     await expect(page.getByTestId('user-a.miller')).toBeVisible()
-    await expect(page.getByTestId('users-directory-warning')).toContainText('Cannot load: Profiles')
+    await expect(page.getByTestId('users-directory-warning')).toContainText(
+      'Cannot retrieve: Profiles',
+    )
     await page.getByRole('button', { name: 'Edit a.miller' }).click()
     const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
     await expect(drawer.getByRole('combobox', { name: 'Profile' })).toBeDisabled()
@@ -155,7 +158,7 @@ test.describe('users', () => {
     })
     await page.goto('./users/users')
 
-    await expect(page.getByText('Cannot load users')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve users')).toBeVisible()
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(page.getByTestId('user-a.miller')).toBeVisible()
   })
@@ -406,6 +409,32 @@ test.describe('users', () => {
       username: 'd.jones',
       extension: '302',
     })
+  })
+
+  test('tells the users limit of the Community version from the server', async ({
+    page,
+    mockApi,
+  }) => {
+    mockWrites(mockApi)
+      .on('POST', `${REST}/mainextensions`, {
+        status: 403,
+        json: { status: 'ERROR: community version is limited to 8 users' },
+      })
+      .on('GET', `${REST}/mainextensions/userlimits`, {
+        json: { configured: 5, limit: 5, configurable: 0 },
+      })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit d.jones' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user d.jones' })
+
+    await drawer.getByRole('textbox', { name: 'Extension' }).fill('302')
+    await drawer.getByRole('combobox', { name: 'Profile' }).click()
+    await drawer.getByRole('option', { name: 'Base' }).click()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(
+      drawer.getByText('The Community version allows up to 5 users with an extension.'),
+    ).toBeVisible()
   })
 
   test('creates a user through the CSV import and applies the settings', async ({
@@ -1305,7 +1334,7 @@ test.describe('users', () => {
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
     const warning = modal.getByTestId('import-directory-warning')
-    await expect(warning).toContainText('Cannot load: Mobile number')
+    await expect(warning).toContainText('Cannot retrieve: Mobile number')
     await expect(modal.getByRole('button', { name: 'Import 1 user' })).toBeDisabled()
     await modal.getByText('Overwrite existing users').click()
     await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeDisabled()
@@ -1468,10 +1497,10 @@ test.describe('user accounts', () => {
     await expect(password).toBeFocused()
     for (const rule of [
       'Minimum 8 characters',
-      'At least 1 uppercase letter (A-Z)',
-      'At least 1 lowercase letter (a-z)',
-      'At least 1 number (0-9)',
-      'At least 1 special character (!@#^&_?-)',
+      'At least one uppercase letter (A-Z)',
+      'At least one lowercase letter (a-z)',
+      'At least one number (0-9)',
+      'At least one special character (!@#^&_?-)',
     ]) {
       await expect(drawer.getByText(rule)).toBeVisible()
     }
@@ -2019,6 +2048,195 @@ test.describe('user accounts', () => {
     await expect(modal.getByRole('button', { name: 'Delete', exact: true })).toBeInViewport()
   })
 
+  test('opens the actions menu inside a phone screen', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+
+    const menu = page.getByRole('menu')
+    await expect(menu.getByRole('menuitem', { name: 'Import users from CSV' })).toBeVisible()
+    const box = await menu.boundingBox()
+    expect(box?.x).toBeGreaterThanOrEqual(0)
+    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390)
+  })
+
+  test('limits the username and the full name of a new user', async ({ page, mockApi }) => {
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Create user' }).first().click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    const username = drawer.getByRole('textbox', { name: 'Username' })
+    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
+
+    await expect(username).toHaveAttribute('maxlength', '32')
+    await username.fill('e.johnson')
+    await name.fill('Emma Josephine Alexandra Margaret')
+    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson-Whitfield')
+    await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
+    await drawer.getByLabel('Confirm password').fill('Secret,123')
+    await drawer.getByRole('button', { name: 'Create' }).click()
+
+    await expect(
+      drawer.getByText('Name and surname can be at most 50 characters long in total'),
+    ).toBeVisible()
+    await expect(name).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
+  })
+
+  test('explains a value too long for the PBX instead of the database error', async ({
+    page,
+    mockApi,
+  }) => {
+    csvImportMock(mockApi, {
+      status: 500,
+      json: {
+        status:
+          "Error adding main extension 305 to user e.johnson: Unable to insert into users: SQLSTATE[22001]: String data, right truncated: 1406 Data too long for column 'name' at row 1\n",
+      },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Create user' }).first().click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
+    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
+    await drawer.getByLabel('Confirm password').fill('Secret,123')
+    await drawer.getByRole('textbox', { name: 'Extension' }).fill('305')
+    await drawer.getByRole('button', { name: 'Create' }).click()
+
+    await expect(
+      drawer.getByText(
+        'Some values are longer than the PBX allows, so the extension has not been created. Shorten the name and surname, then add the extension with Edit.',
+      ),
+    ).toBeVisible(IMPORT_TIMEOUT)
+    await expect(drawer.getByText('SQLSTATE')).toHaveCount(0)
+  })
+
+  test('keeps the users on screen when a refresh fails', async ({ page, mockApi }) => {
+    let failing = false
+    mockApi.on('GET', `${REST}/users/:all`, () =>
+      failing ? { status: 500, json: { error: 'boom' } } : { json: RAW_USERS },
+    )
+    await page.goto('./users/users')
+    await expect(page.getByTestId('user-a.miller')).toBeVisible()
+
+    failing = true
+    await page.clock.install()
+    await page.clock.runFor(60_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(page.getByText('Cannot retrieve users')).toBeVisible()
+    await expect(page.getByTestId('user-a.miller')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create user' })).toBeVisible()
+  })
+
+  test('waits for the accounts before showing the identity of an edited user', async ({
+    page,
+    mockApi,
+  }) => {
+    let releaseAccounts: () => void = () => undefined
+    const accountsReleased = new Promise<void>((resolve) => {
+      releaseAccounts = resolve
+    })
+    mockApi.on('GET', `${REST}/users/domain/accounts`, async () => {
+      await accountsReleased
+      return { json: ACCOUNTS }
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+
+    await expect(drawer.getByTestId('user-account-skeleton')).toBeVisible()
+    await expect(
+      drawer.getByText('The user accounts are not loaded', { exact: false }),
+    ).toHaveCount(0)
+    releaseAccounts()
+
+    await expect(drawer.getByTestId('user-account-skeleton')).toBeHidden()
+    await expect(drawer.getByTestId('user-status-toggle').getByRole('checkbox')).toBeEnabled()
+    await expect(drawer.getByRole('textbox', { name: 'Name', exact: true })).toBeEnabled()
+    await expect(drawer.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Anna')
+    await expect(drawer.getByRole('textbox', { name: 'Email' })).toHaveValue(
+      'anna.miller@example.org',
+    )
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    await expect(drawer).toBeHidden()
+  })
+
+  test('reserves the place of the status of a new user until the domain is known', async ({
+    page,
+    mockApi,
+  }) => {
+    let releaseDomain: () => void = () => undefined
+    const domainReleased = new Promise<void>((resolve) => {
+      releaseDomain = resolve
+    })
+    mockApi
+      .on('GET', `${REST}/users/domain`, async () => {
+        await domainReleased
+        return { json: { manageable: true, reason: null } }
+      })
+      .on('GET', `${REST}/users/domain/accounts`, () => new Promise(() => undefined))
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Create user' }).first().click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+
+    await expect(drawer.getByTestId('user-account-skeleton')).toBeVisible()
+    releaseDomain()
+
+    await expect(drawer.getByTestId('user-account-skeleton')).toBeHidden()
+    await expect(drawer.getByTestId('user-status-toggle')).toBeVisible()
+    await expect(drawer.getByRole('textbox', { name: 'Email' })).toBeVisible()
+  })
+
+  test('reloads the physical phones after removing an extension', async ({ page, mockApi }) => {
+    mockWrites(mockApi)
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    await expect(drawer.getByRole('button', { name: 'Add phone' })).toBeVisible()
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    await expect(drawer).toBeHidden()
+    const phoneReads = mockApi.callsTo('GET', `${TANCREDI}/phones`).length
+
+    await page.getByRole('button', { name: 'Actions for c.davis' }).click()
+    await page.getByRole('menuitem', { name: 'Remove extension' }).click()
+    await page
+      .getByRole('dialog', { name: 'Remove extension' })
+      .getByRole('button', { name: 'Remove extension' })
+      .click()
+    await expect(page.getByText('Extension removed')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    await expect(drawer.getByRole('button', { name: 'Add phone' })).toBeVisible()
+    await expect
+      .poll(() => mockApi.callsTo('GET', `${TANCREDI}/phones`).length)
+      .toBeGreaterThan(phoneReads)
+  })
+
+  test('moves the focus to the missing user of a reassignment', async ({ page }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions for a.miller' }).click()
+    await page.getByRole('menuitem', { name: 'Reassign extension' }).click()
+    const modal = page.getByRole('dialog', { name: 'Reassign extension' })
+    await modal.getByRole('button', { name: 'Reassign' }).click()
+
+    await expect(modal.getByText('Choose the user')).toBeVisible()
+    await expect(modal.getByRole('combobox', { name: 'Assign to' })).toBeFocused()
+  })
+
+  test('moves the focus to the file of an import without file', async ({ page }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.getByRole('button', { name: 'Next' }).click()
+
+    await expect(drawer.getByText('Choose a CSV file')).toBeVisible()
+    await expect(drawer.locator('input[type=file]')).toBeFocused()
+  })
+
   test('locks the account actions until the accounts are loaded', async ({ page, mockApi }) => {
     let accountsLoaded = false
     mockApi.on('GET', `${REST}/users/domain/accounts`, () =>
@@ -2027,7 +2245,7 @@ test.describe('user accounts', () => {
     await page.goto('./users/users')
 
     const warning = page.getByTestId('users-accounts-warning')
-    await expect(warning).toContainText('Cannot load the user accounts')
+    await expect(warning).toContainText('Cannot retrieve the user accounts')
     await openRowMenu(page, 'a.miller')
     await expect(page.getByTestId('account-restriction-a.miller')).toHaveText(
       "The user accounts are not loaded: passwords, status, names and email addresses can't be changed now.",

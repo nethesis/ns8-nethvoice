@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation } from '@pinia/colada'
 import {
@@ -22,6 +22,7 @@ import {
   NeTableHeadCell,
   NeTableRow,
   NeTooltip,
+  focusElement,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
@@ -29,6 +30,7 @@ import {
   analyzeImport,
   buildCsvTemplate,
   DEFAULT_EXISTING_USERS_MODE,
+  DISPLAY_NAME_MAX_LENGTH,
   downloadTextFile,
   exceedsImportSizeLimit,
   IMPORT_ISSUES_SHOWN,
@@ -38,12 +40,14 @@ import {
   isImportFileError,
   parseImportFile,
   toLegacyCsv,
+  USERNAME_MAX_LENGTH,
   type ExistingUsersMode,
   type ImportRow,
   type ImportFlagColumn,
   type ImportRowError,
   type ImportRowIssue,
 } from '@/lib/users/csv'
+import { GROUP_NAME_MAX_LENGTH } from '@/lib/groups/groups'
 import {
   DIRECTORY_PART_LABELS,
   DIRECTORY_PARTS,
@@ -85,6 +89,7 @@ const visiblePanel = ref<ImportStep | null>(null)
 let panelFrame: number | undefined
 const file = ref<File | null>(null)
 const fileError = ref('')
+const fileRef = useTemplateRef<{ focus(): void }>('fileRef')
 const rows = ref<ImportRow[]>([])
 const existingUsersMode = ref<ExistingUsersMode>(DEFAULT_EXISTING_USERS_MODE)
 const progress = ref(0)
@@ -256,6 +261,7 @@ const importErrorDescription = computed(() => {
 async function readFile() {
   if (!file.value) {
     fileError.value = t('users.import_choose_file')
+    focusElement(fileRef)
     return
   }
 
@@ -264,6 +270,7 @@ async function readFile() {
 
     if (parsed.length === 0) {
       fileError.value = t('users.import_no_users_in_file')
+      focusElement(fileRef)
       return
     }
     rows.value = parsed
@@ -272,6 +279,7 @@ async function readFile() {
     fileError.value = isImportFileError(error)
       ? t(`users.import_error_${error.code}`)
       : t('users.import_cannot_read_file')
+    focusElement(fileRef)
   }
 }
 
@@ -295,8 +303,10 @@ const FLAG_COLUMN_LABELS: Record<ImportFlagColumn, string> = {
 const issueLabel = (issue: ImportRowIssue) =>
   t(`users.import_issue_${issue.issue}`, {
     group: issue.group ?? '',
-    reason: issue.reason ? t(issue.reason) : '',
+    reason: issue.reason ? t(issue.reason, { max: GROUP_NAME_MAX_LENGTH }) : '',
     max: MAX_DEVICES_PER_USER,
+    usernameMax: USERNAME_MAX_LENGTH,
+    nameMax: DISPLAY_NAME_MAX_LENGTH,
     column: issue.column ? t(FLAG_COLUMN_LABELS[issue.column]) : '',
     value: issue.value ?? '',
   })
@@ -327,6 +337,7 @@ const formatDevices = (row: ImportRow) => {
     <form class="flex flex-col gap-6" @submit.prevent="readFile">
       <div class="flex flex-col gap-2">
         <NeFileInput
+          ref="fileRef"
           v-model="file"
           :label="t('users.csv_file')"
           :dropzone-label="t('ne_file_input.drag_and_drop_or_click_to_upload')"
@@ -463,7 +474,7 @@ const formatDevices = (row: ImportRow) => {
             <li>
               {{ t('users.import_valid', { count: analysis.valid.length }, analysis.valid.length) }}
             </li>
-            <li v-if="analysis.errors.length" class="text-rose-700 dark:text-rose-400">
+            <li v-if="analysis.errors.length" class="text-danger">
               {{
                 t(
                   'users.import_with_errors',
@@ -472,7 +483,7 @@ const formatDevices = (row: ImportRow) => {
                 )
               }}
             </li>
-            <li v-if="analysis.existing.length" class="text-amber-700 dark:text-amber-400">
+            <li v-if="analysis.existing.length" class="text-amber-700 dark:text-amber-500">
               {{
                 t(
                   'users.import_existing_skipped',

@@ -32,12 +32,17 @@ const deviceLabel = (device: OverviewDevice) =>
       <OverviewAvatar :name="user.name" :presence="user.presence" :favorite="favorite" />
       <div class="min-w-0 flex-1">
         <p class="text-primary-neutral truncate text-sm" :title="user.name">{{ user.name }}</p>
+        <OverviewStatusLabel
+          :status="user.presence"
+          class="text-sm"
+          data-testid="overview-card-presence"
+        />
         <p
           v-if="user.groups.length"
           class="text-tertiary-neutral flex items-center gap-1.5 text-sm"
         >
           <FontAwesomeIcon :icon="faUserGroup" class="size-3.5 shrink-0" aria-hidden="true" />
-          <span class="truncate">{{ user.groups.join(', ') }}</span>
+          <span class="truncate" :title="user.groups.join(', ')">{{ user.groups.join(', ') }}</span>
         </p>
       </div>
       <NeTooltip trigger-event="mouseenter focus" placement="top">

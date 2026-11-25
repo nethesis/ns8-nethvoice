@@ -124,6 +124,13 @@ const loadError = computed(
   () => liveState.value.error ?? usersState.value.error ?? groupsState.value.error,
 )
 
+const hasData = computed(
+  () =>
+    liveState.value.data !== undefined &&
+    usersState.value.data !== undefined &&
+    groupsState.value.data !== undefined,
+)
+
 const overviewUsers = computed(() =>
   liveState.value.data
     ? buildOverviewUsers(
@@ -277,9 +284,10 @@ function reload() {
       v-if="loadError"
       :error="loadError"
       :title="t('user_overview.cannot_load')"
+      :class="{ 'mb-6': hasData }"
       @retry="reload"
     />
-    <template v-else>
+    <template v-if="!loadError || hasData">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap items-center gap-4">
           <NeTextInput
@@ -371,7 +379,7 @@ function reload() {
       />
       <div
         v-else-if="loading"
-        class="3xl:grid-cols-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+        class="3xl:grid-cols-5 grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
       >
         <div v-for="index in 5" :key="index" class="bg-elevation-0 rounded-lg p-5">
           <NeSkeleton :lines="4" />
@@ -395,7 +403,7 @@ function reload() {
       </NeEmptyState>
       <ul
         v-else-if="view === 'grid'"
-        class="3xl:grid-cols-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4"
+        class="3xl:grid-cols-5 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
       >
         <li v-for="user in shownUsers" :key="user.username" :data-user="user.username">
           <OverviewUserCard
@@ -425,7 +433,7 @@ function reload() {
               {{ section.label }}
             </NeBadgeV2>
           </h3>
-          <ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+          <ul class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             <li v-for="user in section.users" :key="user.username" :data-user="user.username">
               <OverviewCompactCard
                 :user="user"

@@ -37,6 +37,7 @@ import {
   getProfileSaveErrorKey,
   getProfileUsers,
   isDefaultProfile,
+  PROFILE_NAME_MAX_LENGTH,
   ProfileUsersError,
   RESERVED_PROFILE_NAME,
   toProfileForm,
@@ -327,7 +328,11 @@ function discardChanges() {
           v-model="form.name"
           :label="t('profiles.name')"
           :invalid-message="
-            nameIssue ? t(nameIssue) : saveErrorNameIssue ? t(saveErrorNameIssue) : ''
+            nameIssue
+              ? t(nameIssue, { max: PROFILE_NAME_MAX_LENGTH })
+              : saveErrorNameIssue
+                ? t(saveErrorNameIssue)
+                : ''
           "
           :disabled="saving"
           @blur="form.name = form.name.trim()"

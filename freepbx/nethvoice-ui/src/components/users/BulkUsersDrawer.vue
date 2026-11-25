@@ -17,6 +17,7 @@ import {
   NeProgressBar,
   NeSideDrawer,
   NeToggle,
+  focusElement,
   type NeMultiselectComboboxOption,
 } from '@nethesis/vue-components'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
@@ -263,9 +264,9 @@ function save() {
     action === 'profile' && profileId.value === '' ? t('users.profile_required') : ''
 
   if (usersIssue.value) {
-    usersRef.value?.focus()
+    focusElement(usersRef)
   } else if (profileIssue.value) {
-    profileRef.value?.focus()
+    focusElement(profileRef)
   } else if (action === 'devices' && getDisablingPlans(devicePlans()).length > 0) {
     disablingPlans.value = getDisablingPlans(devicePlans())
     isShownDisableModal.value = true
@@ -337,8 +338,8 @@ function discardChanges() {
         :user-input-label="t('ne_combobox.user_input_label')"
         :optional-label="t('common.optional')"
       />
-      <div v-else-if="action === 'voicemail'" class="flex flex-col gap-2">
-        <NeFormItemLabel class="!mb-0">{{ t('users.voicemail') }}</NeFormItemLabel>
+      <div v-else-if="action === 'voicemail'" class="flex flex-col">
+        <NeFormItemLabel>{{ t('users.voicemail') }}</NeFormItemLabel>
         <NeToggle
           v-model="voicemail"
           :label="voicemail ? t('common.enabled') : t('common.disabled')"

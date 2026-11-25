@@ -15,12 +15,7 @@ const { items, kind = 'secondary' } = defineProps<{
 </script>
 
 <template>
-  <NeDropdown
-    :items="items"
-    :align-to-right="true"
-    :open-menu-aria-label="$t('common.actions')"
-    menu-classes="min-w-56"
-  >
+  <NeDropdown :items="items" :open-menu-aria-label="$t('common.actions')" menu-classes="min-w-56">
     <template #button>
       <NeButton :kind="kind" tabindex="-1" aria-hidden="true">
         <template #suffix>

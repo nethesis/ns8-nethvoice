@@ -4,13 +4,14 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation } from '@pinia/colada'
 import {
   NeCombobox,
   NeInlineNotification,
   NeModal,
+  focusElement,
   type NeComboboxOption,
 } from '@nethesis/vue-components'
 import { getUserLabel } from '@/lib/phones/phones'
@@ -40,6 +41,7 @@ const invalidateUsers = useInvalidateUsers()
 
 const username = ref('')
 const usernameIssue = ref('')
+const usernameRef = useTemplateRef<{ focus(): void }>('usernameRef')
 
 const comboboxLabels = computed(() => ({
   noResultsLabel: t('ne_combobox.no_results'),
@@ -126,6 +128,7 @@ function confirm() {
 
   if (!user || !target) {
     usernameIssue.value = t('users.new_user_required')
+    focusElement(usernameRef)
     return
   }
   mutate({ owner: user, target })
@@ -155,6 +158,7 @@ function confirm() {
         }}
       </p>
       <NeCombobox
+        ref="usernameRef"
         v-model="username"
         :label="t('users.new_user')"
         :options="userOptions"

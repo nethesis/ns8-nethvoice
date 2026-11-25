@@ -288,7 +288,7 @@ test.describe('section permissions', () => {
     await page.goto('./trunks')
 
     await expect(page).toHaveURL(/\/nethvoice\/no-access$/)
-    await expect(page.getByText('Cannot load your permissions')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve your permissions')).toBeVisible()
     await expect(page.getByRole('navigation').getByRole('link')).toHaveCount(0)
 
     available = true
