@@ -2,7 +2,7 @@
 
 GPT-Live uses a primary OpenAI WebSocket for audio and session control. Asterisk
 connects to Satellite through a private `chan_websocket` externalMedia channel.
-Realtime and Grok continue to use provider SIP and their own sideband protocols.
+Realtime and Grok SIP are available for lab testing when the separate SIP switch is enabled.
 
 The transport is fixed by the selected adapter. There is no transport selector or
 automatic SIP failover. Configure models, voices and tool permissions on the agent.
@@ -42,11 +42,11 @@ existing encrypted, per-agent opt-in policy. Audio is never persisted by the bri
 
 ## Operations
 
-`VOICE_AGENT_LIVE_WS_MAX_CALLS` defaults to **4**; valid values are 0–32.
-Zero blocks new bridge admissions and takes the published safe fallback while
-existing calls drain. Invalid values fail closed. The NS8 helper passes this
-nonsecret setting into Satellite and restore preserves it. Changing a container
-environment requires its normal service restart under the active-call gate.
+`VOICE_AGENT_LIVE_WS_MAX_CALLS` defaults to **2** across public and consultation
+GPT-Live sessions. The global ceiling is 32. Zero blocks new GPT-Live admissions.
+Overloaded callers take the configured native fallback, with
+`capacity_exceeded` recorded in Activity. The NS8 apply worker waits for active
+agent calls and transcription work to finish before changing the runtime environment.
 
 Asterisk must load `chan_websocket` and support incoming JSON media/control on
 its private HTTP listener. Startup exercises these APIs before opening a paid
