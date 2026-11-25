@@ -114,7 +114,11 @@ export interface paths {
     /** List the administrators of NethVoice and the user domain groups that grant the permissions. */
     get: operations['get_admins']
     put?: never
-    post?: never
+    /**
+     * Create an account in the user domain and make it an administrator.
+     * @description The account is created unlocked, without an extension, and becomes a member of exactly the groups of the given permissions, as with `PUT /admins/{username}`. When the groups cannot be changed, the new account is deleted.
+     */
+    post: operations['post_admins']
     delete?: never
     options?: never
     head?: never
@@ -3387,6 +3391,16 @@ export interface components {
       /** @description `superadmin` alone, or one or more sections. */
       permissions: components['schemas']['AdminSection'][]
     }
+    AdminCreate: {
+      username: string
+      /** @description Trimmed; control characters are refused. */
+      display_name: string
+      password: string
+      /** @description Optional email address; an empty string sets none. */
+      mail?: string
+      /** @description `superadmin` alone, or one or more sections. */
+      permissions: components['schemas']['AdminSection'][]
+    }
     AdminError: {
       /** @enum {string} */
       code:
@@ -3399,6 +3413,10 @@ export interface components {
         | 'domain_not_manageable'
         | 'domain_unavailable'
         | 'provider_error'
+        | 'username_taken'
+        | 'invalid_mail'
+        | 'password_rejected'
+        | 'account_created'
       message?: string
     }
     SuccessFlag: {
@@ -4619,6 +4637,84 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['Error']
+        }
+      }
+    }
+  }
+  post_admins: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AdminCreate']
+      }
+    }
+    responses: {
+      /** @description Account created with its permissions */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminAccount']
+        }
+      }
+      /** @description `invalid_request` */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description Missing permission, or `own_account` or `protected_account` (`admin` or a reserved name) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `username_taken`: the user domain already has an account with this username; `local_account`: a local administrator has this username; `domain_not_manageable`: the user domain is external */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `invalid_mail`, or `password_rejected` by the rules of the user domain */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `provider_error`: nothing was left in the user domain; `account_created`: the account was created but its permissions could not be granted, and it could not be deleted */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
+        }
+      }
+      /** @description `domain_unavailable` */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AdminError']
         }
       }
     }

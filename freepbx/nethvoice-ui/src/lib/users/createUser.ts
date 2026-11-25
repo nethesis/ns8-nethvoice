@@ -41,25 +41,29 @@ export const isValidPassword = (password: string): boolean =>
 
 const MOBILE_NUMBER_REGEX = /^\+?[0-9 ().-]*$/
 
+export const NEW_ACCOUNT_ENTRIES = {
+  username: v.pipe(
+    v.string(),
+    v.trim(),
+    v.toLowerCase(),
+    v.nonEmpty('users.username_required'),
+    v.maxLength(USERNAME_MAX_LENGTH, 'users.username_too_long'),
+    v.regex(USERNAME_REGEX, 'users.username_invalid'),
+  ),
+  name: v.pipe(v.string(), v.trim(), v.nonEmpty('users.name_required')),
+  surname: v.pipe(v.string(), v.trim(), v.nonEmpty('users.surname_required')),
+  password: v.pipe(
+    v.string(),
+    v.nonEmpty('users.password_required'),
+    v.check((value) => !hasSurroundingWhitespace(value), 'users.password_surrounding_spaces'),
+    v.check(isValidPassword, 'users.password_invalid'),
+  ),
+  confirmPassword: v.pipe(v.string(), v.nonEmpty('users.confirm_password_required')),
+}
+
 export const NewUserSchema = v.pipe(
   v.object({
-    username: v.pipe(
-      v.string(),
-      v.trim(),
-      v.toLowerCase(),
-      v.nonEmpty('users.username_required'),
-      v.maxLength(USERNAME_MAX_LENGTH, 'users.username_too_long'),
-      v.regex(USERNAME_REGEX, 'users.username_invalid'),
-    ),
-    name: v.pipe(v.string(), v.trim(), v.nonEmpty('users.name_required')),
-    surname: v.pipe(v.string(), v.trim(), v.nonEmpty('users.surname_required')),
-    password: v.pipe(
-      v.string(),
-      v.nonEmpty('users.password_required'),
-      v.check((value) => !hasSurroundingWhitespace(value), 'users.password_surrounding_spaces'),
-      v.check(isValidPassword, 'users.password_invalid'),
-    ),
-    confirmPassword: v.pipe(v.string(), v.nonEmpty('users.confirm_password_required')),
+    ...NEW_ACCOUNT_ENTRIES,
     extension: v.pipe(
       v.string(),
       v.trim(),

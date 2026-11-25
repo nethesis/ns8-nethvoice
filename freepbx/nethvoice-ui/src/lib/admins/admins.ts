@@ -6,7 +6,10 @@ import { api } from '@/lib/api/client'
 import { isApiError } from '@/lib/api/errors'
 import { compareNatural } from '@/lib/common'
 import { SECTIONS, SUPERADMIN, type Permission, type Section } from '@/lib/permissions/permissions'
-import type { UserAccount } from '@/lib/users/accounts'
+import { EmailSchema, type UserAccount } from '@/lib/users/accounts'
+import { getFullName, NEW_ACCOUNT_ENTRIES } from '@/lib/users/createUser'
+import { DISPLAY_NAME_MAX_LENGTH, hasControlCharacters } from '@/lib/users/csv'
+import type { components } from '@/lib/api/schema'
 
 export const ADMINS_KEY = 'admins'
 
@@ -30,6 +33,10 @@ export const ADMIN_ERROR_CODES = [
   'domain_not_manageable',
   'domain_unavailable',
   'provider_error',
+  'username_taken',
+  'invalid_mail',
+  'password_rejected',
+  'account_created',
 ] as const
 
 export type AdminSource = (typeof ADMIN_SOURCES)[number]
@@ -112,6 +119,8 @@ const RESERVED_USERNAME = /^(admin|support-.*)$/i
 
 export const isReservedUsername = (username: string): boolean => RESERVED_USERNAME.test(username)
 
+const PROTECTED_USERNAMES = ['administrator', 'guest', 'krbtgt', 'ldapservice']
+
 export const sortPermissions = (permissions: readonly Permission[]): Permission[] =>
   permissions.includes(SUPERADMIN)
     ? [SUPERADMIN]
@@ -156,6 +165,12 @@ export const setAdminPermissions = async (
     params: { path: { username } },
     body: { permissions },
   })
+}
+
+export type NewAdmin = components['schemas']['AdminCreate']
+
+export const createAdmin = async (newAdmin: NewAdmin): Promise<void> => {
+  await api.POST('/admins', { body: newAdmin })
 }
 
 export const removeAdmin = async (username: string): Promise<void> => {
@@ -223,3 +238,83 @@ export const getAdminCandidates = (
       return { username: account.username, displayName: account.displayName, unavailable }
     })
     .sort((first, second) => compareNatural(first.username, second.username))
+
+const withoutControlCharacters = <TSchema extends v.GenericSchema<string, string>>(
+  schema: TSchema,
+) =>
+  v.pipe(
+    schema,
+    v.check((value: string) => !hasControlCharacters(value), 'users.name_control_characters'),
+  )
+
+export const NewAdminAccountSchema = v.pipe(
+  v.object({
+    ...NEW_ACCOUNT_ENTRIES,
+    name: withoutControlCharacters(NEW_ACCOUNT_ENTRIES.name),
+    surname: withoutControlCharacters(NEW_ACCOUNT_ENTRIES.surname),
+    email: EmailSchema,
+  }),
+  v.forward(
+    v.partialCheck(
+      [['password'], ['confirmPassword']],
+      (input) => input.password === input.confirmPassword,
+      'users.passwords_do_not_match',
+    ),
+    ['confirmPassword'],
+  ),
+  v.forward(
+    v.partialCheck(
+      [['name'], ['surname']],
+      (input) => getFullName(input).length <= DISPLAY_NAME_MAX_LENGTH,
+      'users.full_name_too_long',
+    ),
+    ['name'],
+  ),
+)
+
+export type NewAdminAccount = v.InferOutput<typeof NewAdminAccountSchema>
+
+export type NewAdminField = keyof NewAdminAccount
+
+export const buildNewAdmin = (account: NewAdminAccount, permissions: Permission[]): NewAdmin => ({
+  username: account.username,
+  display_name: getFullName(account),
+  password: account.password,
+  ...(account.email ? { mail: account.email } : {}),
+  permissions,
+})
+
+export const getNewAdminConflict = (
+  username: string,
+  accounts: readonly UserAccount[],
+  admins: readonly AdminAccount[],
+): string | null => {
+  if (isReservedUsername(username) || PROTECTED_USERNAMES.includes(username.toLowerCase())) {
+    return 'admin_control.username_reserved'
+  }
+  const admin = admins.find((candidate) => sameUsername(candidate.username, username))
+
+  if (admin?.source === 'local') {
+    return 'admin_control.username_local_admin'
+  }
+  if (admin || accounts.some((account) => sameUsername(account.username, username))) {
+    return 'users.username_already_exists'
+  }
+  return null
+}
+
+const NEW_ADMIN_FIELD_ISSUES: Partial<
+  Record<AdminErrorCode, { field: NewAdminField; message: string }>
+> = {
+  username_taken: { field: 'username', message: 'users.username_already_exists' },
+  local_account: { field: 'username', message: 'admin_control.username_local_admin' },
+  protected_account: { field: 'username', message: 'admin_control.username_reserved' },
+  invalid_mail: { field: 'email', message: 'users.email_invalid' },
+}
+
+export const getNewAdminFieldIssue = (
+  error: unknown,
+): { field: NewAdminField; message: string } | null => {
+  const code = getAdminErrorCode(error)
+  return (code && NEW_ADMIN_FIELD_ISSUES[code]) ?? null
+}

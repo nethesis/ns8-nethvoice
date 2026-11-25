@@ -41,6 +41,10 @@ $app->get('/admins', function (Request $request, Response $response) {
     return domainAdminsResponse($response, domainAdminsDefault()->overview(domainAdminsCaller($request)));
 });
 
+$app->post('/admins', function (Request $request, Response $response) {
+    return domainAdminsResponse($response, domainAdminsDefault()->create(nethvoiceRequestBody($request), domainAdminsCaller($request)));
+});
+
 $app->put('/admins/{username}', function (Request $request, Response $response, $args) {
     return domainAdminsResponse($response, domainAdminsDefault()->setPermissions((string) $args['username'], nethvoiceRequestBody($request), domainAdminsCaller($request)));
 });

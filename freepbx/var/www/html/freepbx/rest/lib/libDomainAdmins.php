@@ -32,7 +32,13 @@ const DOMAIN_ADMINS_MESSAGES = [
     'domain_not_manageable' => 'The user domain cannot be managed from NethVoice',
     'domain_unavailable' => 'The user domain is not reachable',
     'provider_error' => 'The user domain did not complete the request',
+    'username_taken' => 'The username is already in use in the user domain',
+    'invalid_mail' => 'Invalid email address',
+    'password_rejected' => 'The password does not meet the rules of the user domain',
+    'account_created' => 'The account was created in the user domain, but its permissions could not be granted',
 ];
+const DOMAIN_ADMINS_NEW_USERNAME_PATTERN = '/^[a-z][a-z0-9._-]{0,31}$/D';
+const DOMAIN_ADMINS_DISPLAY_NAME_MAX_LENGTH = 50;
 
 function domainAdminsError(int $status, string $code): array
 {
@@ -405,6 +411,52 @@ class DomainAdmins
         });
     }
 
+    public function create($body, string $caller): array
+    {
+        $account = $this->requestedAccount($body);
+        $permissions = $account === null ? null : $this->requestedPermissions(['permissions' => $body['permissions']]);
+        if ($permissions === null) {
+            return domainAdminsError(400, 'invalid_request');
+        }
+        if (isset($account['mail']) && (strlen($account['mail']) > USERS_ADMIN_MAX_LENGTH || filter_var($account['mail'], FILTER_VALIDATE_EMAIL) === false)) {
+            return domainAdminsError(422, 'invalid_mail');
+        }
+        $username = $account['user'];
+        $error = $this->targetError($username, $caller);
+        if ($error !== null) {
+            return $error;
+        }
+        if ($this->ampuser($username) !== null) {
+            return domainAdminsError(409, 'local_account');
+        }
+        $error = $this->availabilityError();
+        if ($error !== null) {
+            return $error;
+        }
+        return $this->locked(function () use ($account, $username, $permissions) {
+            $users = $this->domainUsers();
+            $groups = $users === null ? null : usersAdminGroups($this->client);
+            if ($groups === null) {
+                return domainAdminsError(502, 'provider_error');
+            }
+            foreach ($users as $user) {
+                if (strcasecmp($user['user'], $username) === 0) {
+                    return domainAdminsError(409, 'username_taken');
+                }
+            }
+            $result = $this->client->call('add-user', $account);
+            if (!usersAdminSucceeded($result)) {
+                return $this->addUserError($result);
+            }
+            if (!$this->applyMembership($username, $permissions, $groups)) {
+                $removed = usersAdminSucceeded($this->client->call('remove-user', ['user' => $username]));
+                return domainAdminsError(502, $removed ? 'provider_error' : 'account_created');
+            }
+            $own = array_values(array_intersect_key($this->groupNames(), array_flip($permissions)));
+            return [201, $this->entry($username, $account['display_name'], 'domain', $permissions, $own, false, true, true, null)];
+        });
+    }
+
     public function remove(string $username, string $caller): array
     {
         if (preg_match(USERS_ADMIN_USERNAME_PATTERN, $username) !== 1) {
@@ -526,6 +578,41 @@ class DomainAdmins
             return count($permissions) === 1 ? $permissions : null;
         }
         return array_values(array_intersect(NETHVOICE_SECTIONS, $permissions));
+    }
+
+    private function requestedAccount($body): ?array
+    {
+        if (!is_array($body) || array_diff(array_keys($body), ['username', 'display_name', 'password', 'mail', 'permissions'])
+            || !isset($body['permissions']) || !is_string($body['username'] ?? null) || !is_string($body['display_name'] ?? null)
+            || !is_string($body['password'] ?? null) || (array_key_exists('mail', $body) && !is_string($body['mail']))) {
+            return null;
+        }
+        $displayName = trim($body['display_name']);
+        if (preg_match(DOMAIN_ADMINS_NEW_USERNAME_PATTERN, $body['username']) !== 1
+            || preg_match('/^[^\x00-\x1F\x7F]{1,' . DOMAIN_ADMINS_DISPLAY_NAME_MAX_LENGTH . '}$/u', $displayName) !== 1
+            || $body['password'] === '' || strlen($body['password']) > USERS_ADMIN_MAX_LENGTH) {
+            return null;
+        }
+        $account = ['user' => $body['username'], 'display_name' => $displayName, 'password' => $body['password'], 'locked' => false, 'groups' => []];
+        $mail = trim($body['mail'] ?? '');
+        return $mail === '' ? $account : $account + ['mail' => $mail];
+    }
+
+    private function addUserError(array $result): array
+    {
+        $errors = is_array($result['data']['error'] ?? null) ? array_filter($result['data']['error'], 'is_array') : [];
+        if (in_array('user_already_exists', array_column($errors, 'error'), true)) {
+            return domainAdminsError(409, 'username_taken');
+        }
+        $fields = array_column($errors, 'field');
+        if (in_array('mail', $fields, true)) {
+            return domainAdminsError(422, 'invalid_mail');
+        }
+        $message = $result['data']['message'] ?? null;
+        if (in_array('password', $fields, true) || ($result['status'] === 200 && is_string($message) && isset(USERS_ADMIN_POLICY_ERRORS[$message]))) {
+            return domainAdminsError(422, 'password_rejected');
+        }
+        return domainAdminsError(502, 'provider_error');
     }
 
     private function targetError(string $username, string $caller): ?array

@@ -132,6 +132,16 @@ const mockAdminsApi = (mockApi: MockApi, options: ControlOptions = {}) => {
         : [...admins, updated]
       return { json: updated }
     })
+    .on('POST', `${REST}/admins`, (request) => {
+      const { username, display_name, permissions } = request.body as {
+        username: string
+        display_name: string
+        permissions: string[]
+      }
+      const created = domainAdmin(username, display_name, permissions)
+      admins = [...admins, created]
+      return { status: 201, json: created }
+    })
     .on('DELETE', `${REST}/admins/:username`, (request) => {
       const username = decodeURIComponent(request.path.split('/').at(-1) ?? '')
       admins = admins.filter((admin) => admin.username !== username)
@@ -145,6 +155,31 @@ const table = (page: Page) => page.getByRole('grid', { name: 'Administrators' })
 const row = (page: Page, username: string) => page.getByTestId(`admin-${username}`)
 
 const toasts = (page: Page) => page.getByTestId('toast-notifications')
+
+const NEW_PASSWORD = 'Invented-Secret-42!'
+
+const openNewUser = async (page: Page) => {
+  await page.goto('./admin-control')
+  await page.getByRole('button', { name: 'Add administrator' }).click()
+  const drawer = page.getByRole('dialog', { name: 'Add administrator' })
+  await drawer.getByText('New user', { exact: true }).click()
+  await expect(drawer.getByRole('radio', { name: /^New user/ })).toBeChecked()
+  return drawer
+}
+
+const fillNewUser = async (
+  drawer: ReturnType<Page['getByRole']>,
+  values: Partial<
+    Record<'username' | 'name' | 'surname' | 'email' | 'password' | 'confirm', string>
+  > = {},
+) => {
+  await drawer.getByRole('textbox', { name: 'Username' }).fill(values.username ?? 'z.hart')
+  await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill(values.name ?? 'Zoe')
+  await drawer.getByRole('textbox', { name: 'Surname' }).fill(values.surname ?? 'Hart')
+  await drawer.getByRole('textbox', { name: /^Email/ }).fill(values.email ?? '')
+  await drawer.getByLabel('Password', { exact: true }).fill(values.password ?? NEW_PASSWORD)
+  await drawer.getByLabel('Confirm password').fill(values.confirm ?? NEW_PASSWORD)
+}
 
 const pickUser = async (page: Page, username: string) => {
   const combobox = page.getByRole('combobox', { name: 'User' })
@@ -205,6 +240,7 @@ test.describe('admin control', () => {
     ]) {
       await expect(row(page, username).getByRole('button', { name: /^Edit/ })).toHaveCount(0)
       const readOnly = page.getByTestId(`admin-read-only-${username}`)
+      await expect(readOnly).toContainText('Not editable')
       await expect(readOnly).toContainText(reason)
       await readOnly.hover()
       await expect(page.locator('[data-tippy-root]').getByText(reason)).toBeVisible()
@@ -214,6 +250,33 @@ test.describe('admin control', () => {
     await expect(page.getByRole('button', { name: 'Actions for d.jones' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Actions for operator' })).toBeVisible()
   })
+
+  for (const width of [1440, 390]) {
+    test(`keeps the not editable label in the same place with and without a menu at ${width} px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('./admin-control')
+      await expect(page.getByRole('button', { name: 'Actions for operator' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Actions for admin' })).toHaveCount(0)
+      await expect(page.getByRole('button', { name: 'Actions for d.jones' })).toHaveCount(0)
+
+      const box = async (username: string) => {
+        const label = page.getByTestId(`admin-read-only-${username}`)
+        await expect(label).toContainText('Not editable')
+        const bounds = await label.boundingBox()
+        expect(bounds).not.toBeNull()
+        return bounds!
+      }
+      const withMenu = await box('operator')
+
+      for (const username of ['admin', 'd.jones']) {
+        const withoutMenu = await box(username)
+        expect(Math.abs(withoutMenu.x - withMenu.x)).toBeLessThan(1)
+        expect(Math.abs(withoutMenu.width - withMenu.width)).toBeLessThan(1)
+      }
+    })
+  }
 
   test('adds an administrator for some sections', async ({ page, mockApi }) => {
     await page.goto('./admin-control')
@@ -260,6 +323,131 @@ test.describe('admin control', () => {
       permissions: ['superadmin'],
     })
     await expect(row(page, 'f.green')).toContainText('Full access')
+  })
+
+  test('creates a user and makes it an administrator', async ({ page, mockApi }) => {
+    const drawer = await openNewUser(page)
+    await expect(drawer.getByRole('combobox', { name: 'User' })).toHaveCount(0)
+    await fillNewUser(drawer, { email: 'zoe@example.org' })
+    await drawer.getByRole('checkbox', { name: /^Dashboard/ }).check()
+    await drawer.getByRole('checkbox', { name: /^Routes/ }).check()
+    await drawer.getByRole('button', { name: 'Add', exact: true }).click()
+
+    await expect(toasts(page).getByText('Administrator added')).toBeVisible()
+    await expect(toasts(page).getByText('Administrator z.hart has been added.')).toBeVisible()
+    expect(mockApi.callsTo('POST', `${REST}/admins`)[0].body).toEqual({
+      username: 'z.hart',
+      display_name: 'Zoe Hart',
+      password: NEW_PASSWORD,
+      mail: 'zoe@example.org',
+      permissions: ['dashboard', 'routes'],
+    })
+    expect(mockApi.callsTo('PUT', `${REST}/admins/:username`)).toHaveLength(0)
+    await expect(row(page, 'z.hart')).toContainText('Zoe Hart')
+    await expect(row(page, 'z.hart')).toContainText('Routes')
+  })
+
+  test('checks the new user before creating it', async ({ page, mockApi }) => {
+    const drawer = await openNewUser(page)
+    const add = drawer.getByRole('button', { name: 'Add', exact: true })
+    await add.click()
+
+    await expect(drawer.getByText('Enter the username')).toBeVisible()
+    await expect(drawer.getByText('Enter the name')).toBeVisible()
+    await expect(drawer.getByText('Enter the surname')).toBeVisible()
+    await expect(drawer.getByText('Enter the password')).toBeVisible()
+    await expect(drawer.getByText('Confirm the password')).toBeVisible()
+    await expect(drawer.getByText('Choose at least one section')).toBeVisible()
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeFocused()
+
+    await fillNewUser(drawer, {
+      username: 'Bad Name',
+      email: 'zoe@',
+      password: 'short',
+      confirm: 'other',
+    })
+    await drawer.getByRole('checkbox', { name: /^Trunks/ }).check()
+    await add.click()
+    await expect(
+      drawer.getByText(
+        'Use lowercase letters, numbers, dot, dash and underscore, starting with a letter',
+      ),
+    ).toBeVisible()
+    await expect(drawer.getByText('The password does not meet the requirements')).toBeVisible()
+    await expect(drawer.getByText('Enter a valid email address')).toBeVisible()
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeFocused()
+
+    await fillNewUser(drawer, { username: 'c.davis' })
+    await add.click()
+    await expect(drawer.getByText('This username already exists')).toBeVisible()
+    await fillNewUser(drawer, { username: 'operator' })
+    await add.click()
+    await expect(drawer.getByText('A local administrator has this username')).toBeVisible()
+    await fillNewUser(drawer, { username: 'support-team' })
+    await add.click()
+    await expect(drawer.getByText('This username is reserved')).toBeVisible()
+    await fillNewUser(drawer, { confirm: 'Other-Secret-42!' })
+    await add.click()
+    await expect(drawer.getByText('The passwords do not match')).toBeVisible()
+    await expect(drawer.getByLabel('Confirm password')).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/admins`)).toHaveLength(0)
+  })
+
+  test('shows a username taken meanwhile on its field', async ({ page, mockApi }) => {
+    mockApi.on('POST', `${REST}/admins`, {
+      status: 409,
+      json: { code: 'username_taken', message: 'invented server detail' },
+    })
+    const drawer = await openNewUser(page)
+    await fillNewUser(drawer)
+    await drawer.getByRole('checkbox', { name: /^Settings/ }).check()
+    await drawer.getByRole('button', { name: 'Add', exact: true }).click()
+
+    await expect(drawer.getByText('This username already exists')).toBeVisible()
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeFocused()
+    await expect(drawer.getByText('Cannot add administrator')).toHaveCount(0)
+    await expect(drawer.getByText('invented server detail')).toHaveCount(0)
+  })
+
+  test('tells when the account was created but not made an administrator', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('POST', `${REST}/admins`, { status: 502, json: { code: 'account_created' } })
+    const drawer = await openNewUser(page)
+    await fillNewUser(drawer)
+    await drawer.getByText('Full access', { exact: true }).click()
+    await drawer.getByRole('button', { name: 'Add', exact: true }).click()
+
+    await expect(drawer.getByText('Cannot add administrator')).toBeVisible()
+    await expect(
+      drawer.getByText(
+        "The account was created in the account provider, but it couldn't be made an administrator. To try again, choose Existing user and select it.",
+      ),
+    ).toBeVisible()
+    await expect(drawer.getByRole('button', { name: 'Add', exact: true })).toBeEnabled()
+  })
+
+  test('asks before discarding a new user', async ({ page }) => {
+    const drawer = await openNewUser(page)
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('z.hart')
+    await page.keyboard.press('Escape')
+
+    await expect(page.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await expect(drawer).toBeHidden()
+  })
+
+  test('fits a phone screen while creating a user', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    const drawer = await openNewUser(page)
+    await drawer.getByRole('button', { name: 'Add', exact: true }).scrollIntoViewIfNeeded()
+    await expect(drawer.getByRole('button', { name: 'Add', exact: true })).toBeInViewport()
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      ),
+    ).toBeLessThanOrEqual(0)
   })
 
   test('tells which users cannot be added', async ({ page }) => {
@@ -461,6 +649,25 @@ test.describe('admin control without a manageable account provider', () => {
     await expect(page.getByRole('button', { name: 'Actions for operator' })).toBeVisible()
     await expect(page.getByTestId('admin-read-only-operator')).toBeVisible()
     await expect(page.getByTestId('admin-control-groups')).toHaveCount(0)
+  })
+
+  test('offers only existing users when the account provider cannot create accounts', async ({
+    page,
+    mockApi,
+  }) => {
+    mockAdminsApi(mockApi)
+    mockApi.on('GET', `${REST}/users/domain`, { json: { manageable: false, reason: 'external' } })
+    await page.goto('./admin-control')
+    await page.getByRole('button', { name: 'Add administrator' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Add administrator' })
+    await expect(drawer.getByRole('radio', { name: /^Existing user/ })).toBeChecked()
+    await expect(drawer.getByRole('radio', { name: /^New user/ })).toBeDisabled()
+    await expect(drawer).toContainText(
+      'Users are managed in an external account provider: create the user there.',
+    )
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toHaveCount(0)
+    await expect(drawer.getByRole('combobox', { name: 'User' })).toBeVisible()
   })
 
   test('removes a local administrator while the account provider cannot be reached', async ({

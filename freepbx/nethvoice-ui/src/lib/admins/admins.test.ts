@@ -1,15 +1,21 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import * as v from 'valibot'
+import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/errors'
 import type { UserAccount } from '@/lib/users/accounts'
 import {
   AdminFormSchema,
+  buildNewAdmin,
   buildPermissions,
+  createAdmin,
   getAdminCandidates,
   getAdminErrorCode,
+  getNewAdminConflict,
+  getNewAdminFieldIssue,
+  NewAdminAccountSchema,
   getAdminSections,
   isFullAccess,
   isReservedUsername,
@@ -17,6 +23,8 @@ import {
   sortPermissions,
   type AdminAccount,
 } from './admins'
+
+vi.mock('@/lib/api/client', () => ({ api: { POST: vi.fn() } }))
 
 const GROUPS = {
   superadmin: 'nethvoice3-admins',
@@ -235,5 +243,146 @@ describe('getAdminErrorCode', () => {
     )
     expect(getAdminErrorCode(apiError(502, 'Bad gateway'))).toBeNull()
     expect(getAdminErrorCode(new Error('network'))).toBeNull()
+  })
+})
+
+describe('NewAdminAccountSchema', () => {
+  const VALID = {
+    username: ' Z.Hart ',
+    name: ' Zoe ',
+    surname: 'Hart',
+    email: '',
+    password: 'Invented-Secret-42!',
+    confirmPassword: 'Invented-Secret-42!',
+  }
+  const issues = (input: Partial<typeof VALID>) => {
+    const result = v.safeParse(NewAdminAccountSchema, { ...VALID, ...input })
+    return result.success
+      ? {}
+      : Object.fromEntries(
+          [...result.issues]
+            .reverse()
+            .map((issue) => [String(issue.path?.[0]?.key), issue.message]),
+        )
+  }
+
+  it('accepts an account with the rules of the Users page', () => {
+    const result = v.safeParse(NewAdminAccountSchema, VALID)
+    expect(result.success).toBe(true)
+    expect(result.output).toMatchObject({ username: 'z.hart', name: 'Zoe', email: '' })
+  })
+
+  it('reports each invalid field with the texts of the Users page', () => {
+    expect(
+      issues({ username: '', name: '', surname: '', password: '', confirmPassword: '' }),
+    ).toEqual({
+      username: 'users.username_required',
+      name: 'users.name_required',
+      surname: 'users.surname_required',
+      password: 'users.password_required',
+      confirmPassword: 'users.confirm_password_required',
+    })
+    expect(issues({ username: '1zoe' })).toEqual({ username: 'users.username_invalid' })
+    expect(issues({ username: 'z'.repeat(33) })).toEqual({ username: 'users.username_too_long' })
+    expect(issues({ password: 'short', confirmPassword: 'short' })).toEqual({
+      password: 'users.password_invalid',
+    })
+    expect(issues({ confirmPassword: 'Other-Secret-42!' })).toEqual({
+      confirmPassword: 'users.passwords_do_not_match',
+    })
+    expect(issues({ name: 'Z'.repeat(30), surname: 'H'.repeat(20) })).toEqual({
+      name: 'users.full_name_too_long',
+    })
+    expect(issues({ surname: 'Ha\trt' })).toEqual({ surname: 'users.name_control_characters' })
+    expect(issues({ email: 'zoe@' })).toEqual({ email: 'users.email_invalid' })
+  })
+})
+
+describe('new administrator', () => {
+  it('builds the request without an extension and with the optional email', () => {
+    const account = {
+      username: 'z.hart',
+      name: 'Zoe',
+      surname: 'Hart',
+      email: '',
+      password: 'Invented-Secret-42!',
+      confirmPassword: 'Invented-Secret-42!',
+    }
+    expect(buildNewAdmin(account, ['users'])).toEqual({
+      username: 'z.hart',
+      display_name: 'Zoe Hart',
+      password: 'Invented-Secret-42!',
+      permissions: ['users'],
+    })
+    expect(buildNewAdmin({ ...account, email: 'zoe@example.org' }, ['superadmin'])).toEqual({
+      username: 'z.hart',
+      display_name: 'Zoe Hart',
+      password: 'Invented-Secret-42!',
+      mail: 'zoe@example.org',
+      permissions: ['superadmin'],
+    })
+  })
+
+  it('posts the new administrator', async () => {
+    const body = {
+      username: 'z.hart',
+      display_name: 'Zoe Hart',
+      password: 'Invented-Secret-42!',
+      permissions: ['users' as const],
+    }
+    vi.mocked(api.POST).mockResolvedValue({ data: undefined } as never)
+    await createAdmin(body)
+    expect(api.POST).toHaveBeenCalledWith('/admins', { body })
+  })
+
+  it('finds the usernames that cannot be created', () => {
+    const accounts = [account('C.Davis')]
+    const admins = [{ ...admin('operator'), source: 'local' as const }, admin('a.miller')]
+
+    expect(getNewAdminConflict('c.davis', accounts, admins)).toBe('users.username_already_exists')
+    expect(getNewAdminConflict('operator', accounts, admins)).toBe(
+      'admin_control.username_local_admin',
+    )
+    expect(getNewAdminConflict('a.miller', accounts, admins)).toBe('users.username_already_exists')
+    for (const username of ['admin', 'support-team', 'administrator', 'guest']) {
+      expect(getNewAdminConflict(username, accounts, admins)).toBe(
+        'admin_control.username_reserved',
+      )
+    }
+    expect(getNewAdminConflict('z.hart', accounts, admins)).toBeNull()
+  })
+
+  it('moves the refusals about one field to that field', () => {
+    const refusal = (code: string) =>
+      new ApiError({ status: 409, method: 'POST', url: '/admins', body: { code } })
+
+    expect(getNewAdminFieldIssue(refusal('username_taken'))).toEqual({
+      field: 'username',
+      message: 'users.username_already_exists',
+    })
+    expect(getNewAdminFieldIssue(refusal('local_account'))).toEqual({
+      field: 'username',
+      message: 'admin_control.username_local_admin',
+    })
+    expect(getNewAdminFieldIssue(refusal('protected_account'))).toEqual({
+      field: 'username',
+      message: 'admin_control.username_reserved',
+    })
+    expect(getNewAdminFieldIssue(refusal('invalid_mail'))).toEqual({
+      field: 'email',
+      message: 'users.email_invalid',
+    })
+    expect(getNewAdminFieldIssue(refusal('account_created'))).toBeNull()
+    expect(getNewAdminFieldIssue(new Error('network'))).toBeNull()
+  })
+
+  it('reads the codes of the creation', () => {
+    for (const code of ['username_taken', 'invalid_mail', 'password_rejected', 'account_created']) {
+      expect(
+        getAdminErrorCode(
+          new ApiError({ status: 422, method: 'POST', url: '/admins', body: { code } }),
+        ),
+      ).toBe(code)
+    }
   })
 })

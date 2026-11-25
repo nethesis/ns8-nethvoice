@@ -69,6 +69,11 @@
       "callers": ["ui:admin-control"],
       "reason": "Lists the administrators and the user domain groups that grant their permissions; it decides who manages the PBX."
     },
+    "POST /admins": {
+      "intent": "superadmin",
+      "callers": ["ui:admin-control"],
+      "reason": "Creates an account in the user domain and grants it permissions by changing the NethVoice groups: only a superadmin may grant them."
+    },
     "PUT /admins/{username}": {
       "intent": "superadmin",
       "callers": ["ui:admin-control"],

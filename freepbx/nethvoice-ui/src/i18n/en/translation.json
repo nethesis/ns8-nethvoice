@@ -2056,7 +2056,6 @@
     "source_local": "Local account",
     "source_domain": "Domain group",
     "source_domain_admin": "Domain administrator",
-    "read_only": "Read only",
     "reason_builtin": "Built-in administrator, always with full access. Change its password in @:{'settings.title'}.",
     "reason_own_account": "You can't change or remove the account you are signed in with.",
     "reason_domain_admin": "Domain administrators always have full access. You can change them from the Domains and users page of NethServer 8.",
@@ -2102,6 +2101,20 @@
     "error_provider_error": "The account provider refused the change. Try again later.",
     "updating": "Updating…",
     "domain_groups": "Domain groups",
-    "domain_groups_description": "Administrators are the members of these groups of the account provider. Members of the domain administrators group always have full access. You can also change the members from the Domains and users page of NethServer 8."
+    "domain_groups_description": "Administrators are the members of these groups of the account provider. Members of the domain administrators group always have full access. You can also change the members from the Domains and users page of NethServer 8.",
+    "not_editable": "Not editable",
+    "account": "Account",
+    "existing_user": "Existing user",
+    "existing_user_description": "A user of the account provider.",
+    "new_user": "New user",
+    "new_user_description": "A new account of the account provider, without an extension.",
+    "new_user_unavailable_external": "Users are managed in an external account provider: create the user there.",
+    "new_user_unavailable": "The account provider can't be reached now.",
+    "username_local_admin": "A local administrator has this username",
+    "username_reserved": "This username is reserved",
+    "error_username_taken": "This username already exists in the account provider.",
+    "error_invalid_mail": "Enter a valid email address.",
+    "error_password_rejected": "The password does not meet the rules of the account provider.",
+    "error_account_created": "The account was created in the account provider, but it couldn't be made an administrator. To try again, choose @:{'admin_control.existing_user'} and select it."
   }
 }

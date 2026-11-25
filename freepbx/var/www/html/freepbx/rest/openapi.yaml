@@ -221,6 +221,70 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       operationId: get_admins
+    post:
+      summary: Create an account in the user domain and make it an administrator.
+      tags:
+      - Admins
+      responses:
+        '201':
+          description: Account created with its permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAccount'
+        '400':
+          description: '`invalid_request`'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminError'
+        '403':
+          description: Missing permission, or `own_account` or `protected_account`
+            (`admin` or a reserved name)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminError'
+        '409':
+          description: '`username_taken`: the user domain already has an account
+            with this username; `local_account`: a local administrator has this
+            username; `domain_not_manageable`: the user domain is external'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminError'
+        '422':
+          description: '`invalid_mail`, or `password_rejected` by the rules of the
+            user domain'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminError'
+        '502':
+          description: '`provider_error`: nothing was left in the user domain;
+            `account_created`: the account was created but its permissions could
+            not be granted, and it could not be deleted'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminError'
+        '503':
+          description: '`domain_unavailable`'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminError'
+      operationId: post_admins
+      description: The account is created unlocked, without an extension, and
+        becomes a member of exactly the groups of the given permissions, as with
+        `PUT /admins/{username}`. When the groups cannot be changed, the new account
+        is deleted.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminCreate'
   /admins/{username}:
     put:
       summary: Set the permissions of a domain account.
@@ -6418,6 +6482,36 @@ components:
           description: '`superadmin` alone, or one or more sections.'
           items:
             $ref: '#/components/schemas/AdminSection'
+    AdminCreate:
+      type: object
+      required:
+      - username
+      - display_name
+      - password
+      - permissions
+      properties:
+        username:
+          type: string
+          pattern: ^[a-z][a-z0-9._-]{0,31}$
+        display_name:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Trimmed; control characters are refused.
+        password:
+          type: string
+          minLength: 1
+          maxLength: 256
+        mail:
+          type: string
+          description: Optional email address; an empty string sets none.
+        permissions:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          description: '`superadmin` alone, or one or more sections.'
+          items:
+            $ref: '#/components/schemas/AdminSection'
     AdminError:
       type: object
       required:
@@ -6435,6 +6529,10 @@ components:
           - domain_not_manageable
           - domain_unavailable
           - provider_error
+          - username_taken
+          - invalid_mail
+          - password_rejected
+          - account_created
         message:
           type: string
     SuccessFlag:

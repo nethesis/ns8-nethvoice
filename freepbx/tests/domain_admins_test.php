@@ -425,6 +425,117 @@ $tests['Admin control removes the permissions and signs the administrator out'] 
     $f->cleanup();
 };
 
+function newAdmin(array $overrides = []): array {
+    return array_merge(['username' => 'zoe', 'display_name' => 'Zoe Hart', 'password' => PASSWORD, 'permissions' => ['users', 'trunks']], $overrides);
+}
+
+$tests['Admin control creates an account without an extension and grants its permissions'] = function () {
+    $f = new Fixture();
+    $result = $f->admins()->create(newAdmin(['mail' => 'zoe@example.org', 'permissions' => ['trunks', 'users']]), 'admin');
+    check($result === [201, ['username' => 'zoe', 'display_name' => 'Zoe Hart', 'source' => 'domain', 'permissions' => ['users', 'trunks'], 'groups' => ['nethvoice3-users', 'nethvoice3-trunks'], 'locked' => false, 'editable' => true, 'removable' => true, 'reason' => null]], 'unexpected answer: ' . json_encode($result));
+    check($f->writes() === [
+        ['add-user', ['user' => 'zoe', 'display_name' => 'Zoe Hart', 'password' => PASSWORD, 'locked' => false, 'groups' => [], 'mail' => 'zoe@example.org']],
+        ['add-group', ['group' => 'nethvoice3-users', 'description' => 'NethVoice voice.example.org: Users section', 'users' => ['zoe']]],
+        ['alter-group', ['group' => 'nethvoice3-trunks', 'users' => ['alice', 'dave', 'zoe']]],
+    ], 'unexpected writes: ' . json_encode($f->writes()));
+    check($f->row('zoe') === null && $f->managed() === [], 'no row is created before the sign-in');
+
+    $f->calls = [];
+    $result = $f->admins()->create(newAdmin(['username' => 'yuri', 'display_name' => '  Yuri Lane ', 'mail' => '', 'permissions' => ['superadmin']]), 'admin');
+    check($result[0] === 201 && $result[1]['display_name'] === 'Yuri Lane' && $result[1]['groups'] === ['nethvoice3-admins'], 'unexpected answer: ' . json_encode($result));
+    check($f->writes()[0] === ['add-user', ['user' => 'yuri', 'display_name' => 'Yuri Lane', 'password' => PASSWORD, 'locked' => false, 'groups' => []]], 'an empty email must not be sent: ' . json_encode($f->writes()[0]));
+    $f->cleanup();
+};
+
+$tests['Admin control refuses to create invalid, taken or protected accounts without writing'] = function () {
+    $f = new Fixture();
+    $bodies = [
+        null,
+        [],
+        ['username' => 'zoe', 'permissions' => ['users']],
+        newAdmin(['extra' => 1]),
+        newAdmin(['username' => 'Zoe']),
+        newAdmin(['username' => '1zoe']),
+        newAdmin(['username' => 'zoe hart']),
+        newAdmin(['username' => str_repeat('z', 33)]),
+        newAdmin(['display_name' => ' ']),
+        newAdmin(['display_name' => str_repeat('z', 51)]),
+        newAdmin(['display_name' => "Zoe\tHart"]),
+        newAdmin(['password' => '']),
+        newAdmin(['password' => str_repeat('x', 257)]),
+        newAdmin(['mail' => 5]),
+        newAdmin(['permissions' => []]),
+        newAdmin(['permissions' => ['superadmin', 'users']]),
+    ];
+    foreach ($bodies as $body) {
+        check($f->admins()->create($body, 'admin') === domainAdminsError(400, 'invalid_request'), 'accepted: ' . json_encode($body));
+    }
+    check($f->admins()->create(newAdmin(['display_name' => str_repeat('è', 50)]), 'admin')[0] === 201, 'the length of the display name must count characters');
+    $f->calls = [];
+    $cases = [
+        ['alice', 'admin', 409, 'username_taken'],
+        ['bob', 'admin', 409, 'username_taken'],
+        ['qa_trunks', 'admin', 409, 'local_account'],
+        ['admin', 'qa_x', 403, 'protected_account'],
+        ['administrator', 'admin', 403, 'protected_account'],
+        ['support-team', 'admin', 403, 'protected_account'],
+        ['helpdesk', 'helpdesk', 403, 'own_account'],
+    ];
+    foreach ($cases as [$username, $caller, $status, $code]) {
+        $result = $f->admins()->create(newAdmin(['username' => $username]), $caller);
+        check($result === domainAdminsError($status, $code), "$username by $caller must be $code: " . json_encode($result));
+    }
+    check($f->admins()->create(newAdmin(['mail' => 'zoe@']), 'admin') === domainAdminsError(422, 'invalid_mail'), 'an invalid email must be refused');
+    check($f->writes() === [], 'nothing may be written: ' . json_encode($f->writes()));
+    $f->token = '';
+    check($f->admins()->create(newAdmin(), 'admin') === domainAdminsError(503, 'domain_unavailable'), 'no token must be unavailable');
+    $f->token = 'invented-token';
+    $f->url = '';
+    check($f->admins()->create(newAdmin(), 'admin') === domainAdminsError(409, 'domain_not_manageable'), 'an external domain must not be changed');
+    $f->url = 'https://users-admin.example.org/api';
+    $f->responses['list-users'] = reply(500, ['code' => 500]);
+    check($f->admins()->create(newAdmin(), 'admin') === domainAdminsError(502, 'provider_error'), 'an unreadable domain must be a provider error');
+    check($f->writes() === [], 'nothing may be written: ' . json_encode($f->writes()));
+    $f->cleanup();
+};
+
+$tests['Admin control tells why the user domain refused the new account'] = function () {
+    $failure = fn(string $field, string $error) => reply(400, ['status' => 'failure', 'message' => 'validation_failed', 'error' => [['field' => $field, 'parameter' => $field, 'value' => '', 'error' => $error]]]);
+    $cases = [
+        [$failure('user', 'user_already_exists'), 409, 'username_taken'],
+        [$failure('mail', 'format'), 422, 'invalid_mail'],
+        [$failure('password', 'maxLength'), 422, 'password_rejected'],
+        [reply(200, ['status' => 'failure', 'message' => 'error_password_complexity']), 422, 'password_rejected'],
+        [reply(500, ['code' => 500]), 502, 'provider_error'],
+        [reply(0, ''), 502, 'provider_error'],
+    ];
+    foreach ($cases as [$response, $status, $code]) {
+        $f = new Fixture();
+        $f->responses['add-user'] = $response;
+        $result = $f->admins()->create(newAdmin(), 'admin');
+        check($result === domainAdminsError($status, $code), "expected $code: " . json_encode($result));
+        check(array_column($f->writes(), 0) === ['add-user'], 'no group may change after a refused account: ' . json_encode($f->writes()));
+        $f->cleanup();
+    }
+};
+
+$tests['Admin control deletes the new account when its permissions cannot be granted'] = function () {
+    $f = new Fixture();
+    $f->responses['add-group'] = reply(500, ['code' => 500]);
+    check($f->admins()->create(newAdmin(), 'admin') === domainAdminsError(502, 'provider_error'), 'a failed grant must be a provider error');
+    check($f->writes() === [
+        ['add-user', ['user' => 'zoe', 'display_name' => 'Zoe Hart', 'password' => PASSWORD, 'locked' => false, 'groups' => []]],
+        ['add-group', ['group' => 'nethvoice3-users', 'description' => 'NethVoice voice.example.org: Users section', 'users' => ['zoe']]],
+        ['remove-user', ['user' => 'zoe']],
+    ], 'the new account must be deleted: ' . json_encode($f->writes()));
+
+    $f->calls = [];
+    $f->responses['remove-user'] = reply(500, ['code' => 500]);
+    check($f->admins()->create(newAdmin(), 'admin') === domainAdminsError(502, 'account_created'), 'an account left behind must be told');
+    check(array_column($f->writes(), 0) === ['add-user', 'add-group', 'remove-user'], 'unexpected writes: ' . json_encode($f->writes()));
+    $f->cleanup();
+};
+
 $tests['the re-read job revokes and updates the domain administrators'] = function () {
     $f = new Fixture();
     $f->accounts['dave'] = ['uid' => 'dave', 'groups' => ['nethvoice3-trunks']];

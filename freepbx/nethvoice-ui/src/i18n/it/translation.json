@@ -2056,7 +2056,6 @@
     "source_local": "Account locale",
     "source_domain": "Gruppo del dominio",
     "source_domain_admin": "Amministratore del dominio",
-    "read_only": "Sola lettura",
     "reason_builtin": "Amministratore predefinito, sempre con accesso completo. Cambia la sua password in @:{'settings.title'}.",
     "reason_own_account": "Non puoi modificare o rimuovere l'account con cui hai effettuato l'accesso.",
     "reason_domain_admin": "Gli amministratori del dominio hanno sempre accesso completo. Puoi modificarli dalla pagina Domini e utenti di NethServer 8.",
@@ -2102,6 +2101,20 @@
     "error_provider_error": "Il provider di account ha rifiutato la modifica. Riprova più tardi.",
     "updating": "Aggiornamento…",
     "domain_groups": "Gruppi del dominio",
-    "domain_groups_description": "Gli amministratori sono i membri di questi gruppi del provider di account. I membri del gruppo degli amministratori del dominio hanno sempre accesso completo. Puoi modificare i membri anche dalla pagina Domini e utenti di NethServer 8."
+    "domain_groups_description": "Gli amministratori sono i membri di questi gruppi del provider di account. I membri del gruppo degli amministratori del dominio hanno sempre accesso completo. Puoi modificare i membri anche dalla pagina Domini e utenti di NethServer 8.",
+    "not_editable": "Non modificabile",
+    "account": "Account",
+    "existing_user": "Utente esistente",
+    "existing_user_description": "Un utente del provider di account.",
+    "new_user": "Nuovo utente",
+    "new_user_description": "Un nuovo account del provider di account, senza interno.",
+    "new_user_unavailable_external": "Gli utenti sono gestiti in un provider di account esterno: crea l'utente lì.",
+    "new_user_unavailable": "Ora il provider di account non è raggiungibile.",
+    "username_local_admin": "Un amministratore locale ha questo nome utente",
+    "username_reserved": "Questo nome utente è riservato",
+    "error_username_taken": "Questo nome utente esiste già nel provider di account.",
+    "error_invalid_mail": "Inserisci un indirizzo email valido.",
+    "error_password_rejected": "La password non rispetta le regole del provider di account.",
+    "error_account_created": "L'account è stato creato nel provider di account, ma non è stato possibile renderlo amministratore. Per riprovare, scegli @:{'admin_control.existing_user'} e selezionalo."
   }
 }
