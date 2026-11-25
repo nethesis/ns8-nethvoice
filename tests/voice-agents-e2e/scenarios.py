@@ -99,7 +99,7 @@ class Call:
         self.denied_count = self.invites["denied"]
         self.pending = []
         self.dial_attempted = False
-        self.confirmed_colleague = False
+        self.confirmed_recipient = False
         self.history = None
 
     def diagnostic(self):
@@ -155,15 +155,16 @@ class Call:
         # Score captured windows after time-critical handoffs and the 60-second consultation.
         self.pending.append((audio, pattern, label))
 
-    def confirm_colleague(self, text):
-        # Answer an explicit question about the requested person once. A voicemail
-        # offer, a choice between people, or a progress announcement needs a different turn.
-        if (not self.confirmed_colleague and matches(text, COLLEAGUE_NAME)
-                and matches(text, r"(?:intendev[ai]|intendi|intende|conferm[ai]|si riferisce|e lei)\b.{0,90}\?")
+    def confirm_destination(self, text, destination=COLLEAGUE_NAME):
+        # Confirmation must refer to the requested destination, without alternatives.
+        question = (r"\b(?:intendev[ai]|intendi|intende|conferm[ai]|si riferisce|e lei|posso|"
+                    r"vuoi che|vuole che|desider[ai]|procedo)\b.{0,110}\?"
+                    r"|\b(?:posso|vuoi che|vuole che)\b.{0,55}(?:trasfer|pass[ao]|colleg|metta in contatto)")
+        if (not self.confirmed_recipient and matches(text, destination) and matches(text, question)
                 and not matches(text, r"segreteria|messaggio|oppure|\bluca\b|\briva\b")):
             self.play(self.caller, "confirm")
-            self.confirmed_colleague = True
-            self.evidence.append("caller confirmed the named recipient when asked")
+            self.confirmed_recipient = True
+            self.evidence.append("caller confirmed the requested destination when asked")
 
     @staticmethod
     def audio_end(cursor, audio):
@@ -192,15 +193,15 @@ class Call:
                 self.evidence.append(label)
                 return observed
             if confirm_recipient:
-                self.confirm_colleague(observed)
+                self.confirm_destination(observed)
         raise AssertionError(f"Expected {label}; last heard {observed[-160:]!r}")
 
-    def wait_for_recipient(self, wait, cursor):
+    def wait_for_recipient(self, wait, cursor, destination=COLLEAGUE_NAME):
         """Answer a caller-side confirmation while waiting on the other leg."""
         observed = ""
         with ThreadPoolExecutor(max_workers=1) as pool:
             signal = pool.submit(wait)
-            while not self.confirmed_colleague:
+            while not self.confirmed_recipient:
                 try:
                     return signal.result(timeout=1)
                 except FutureTimeout:
@@ -215,7 +216,7 @@ class Call:
                 cursor = self.audio_end(cursor, chunk)
                 observed = (observed + " " + self.speech.transcribe(chunk, self.language))[-300:]
                 if not signal.done():
-                    self.confirm_colleague(observed)
+                    self.confirm_destination(observed, destination)
             return signal.result()
 
     def score(self):
@@ -334,9 +335,9 @@ class Call:
             self.play(self.caller, "interrupt")
             # Counting audio received during the interruption belongs to the prior turn.
             after_input = self.caller.mark()
-            self.expect(self.caller.listen(after_input, 20), "limone", "barge-in response")
+            self.expect(self.caller.listen(after_input, 20), r"\bl[ie]mone\b", "barge-in response")
             self.expect(self.caller.received(mark),
-                        r"(?s)^(?!.*(?:cinquanta|\b50\b)).*(?:\b[123]\b|uno|due|tre).*limone",
+                        r"(?s)^(?!.*(?:cinquanta|\b50\b)).*(?:\b[123]\b|uno|due|tre).*\bl[ie]mone\b",
                         "counting started and stopped before fifty when interrupted")
             self.finish()
         elif case == "silence":
@@ -349,11 +350,13 @@ class Call:
             self.turn(self.caller, "hello", r"\bsi\b|sent[oi]|ascolt|aiut", "continued conversation")
             self.finish()
         else:
-            if self.language == "it":
-                self.turn(self.caller, "remember", "girasole", "first turn")
-                self.turn(self.caller, "recall", "girasole", "second turn recalled the word")
-            else:
-                self.turn(self.caller, "hello_en", "sunflower", "English response")
+            turns = (("remember", "girasole", "first turn"),
+                     ("recall", "girasole", "second turn recalled the word")) if self.language == "it" else (
+                         ("hello_en", "sunflower", "English response"),)
+            for clip, word, label in turns:
+                start = self.caller.mark()
+                self.play(self.caller, clip)
+                self.hear_until(self.caller, start, word, label, timeout=25)
             mark = self.caller.mark()
             self.play(self.caller, "bye_en" if self.language == "en" else "bye")
             self.caller.wait("DISCONNECTED", 25)
@@ -382,11 +385,9 @@ class Call:
         start = self.caller.mark()
         self.play(self.caller, case.replace("-", "_"))
         if case in ("name", "queue"):
-            if case == "name":
-                self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), start)
-                self.answer_ringing_peer(self.peer)
-            else:
-                self.accept(self.peer)
+            destination = r"\b(?:assistenza|collaudo|coda)\b" if case == "queue" else COLLEAGUE_NAME
+            self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), start, destination)
+            self.answer_ringing_peer(self.peer)
             if case == "queue":
                 deadline = time.monotonic() + 10
                 while not self.lab.queue_connected(self.number("colleague"), cursor):
@@ -606,7 +607,7 @@ class Call:
             require(admitted.status()["call"] == "CONFIRMED",
                     "A call admitted before overload was interrupted")
             admitted.hangup()
-        self.evidence.append("two callers heard their greetings and the third reached native fallback")
+        self.evidence.append("third caller reached native fallback while both admitted calls stayed connected")
 
     def run(self):
         with ExitStack() as self.stack:
