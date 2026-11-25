@@ -85,7 +85,11 @@ export const describeError: (error: unknown, options?: DescribeErrorOptions) => 
   if (error instanceof PhoneSettingsNotSavedError) {
     return t('phones.changes_not_saved')
   }
-  return error instanceof Error ? error.message : ''
+
+  if (error instanceof Error && error.cause !== undefined && error.cause !== error) {
+    return describeError(error.cause)
+  }
+  return error === null || error === undefined ? '' : t('common.request_failed')
 }
 
 export const useNotificationsStore = defineStore('notifications', () => {

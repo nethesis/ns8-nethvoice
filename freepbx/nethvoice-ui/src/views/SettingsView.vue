@@ -5,7 +5,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { NeButton, NeHeading } from '@nethesis/vue-components'
+import { NeButton } from '@nethesis/vue-components'
 import { faArrowUpRightFromSquare, faKey } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import ChangeAdminPasswordDrawer from '@/components/settings/ChangeAdminPasswordDrawer.vue'
@@ -29,7 +29,7 @@ function openAdvancedSettings() {
 <template>
   <div>
     <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
-      <NeHeading tag="h3">{{ $t('settings.title') }}</NeHeading>
+      <h1 class="text-primary-neutral text-2xl font-medium">{{ $t('settings.title') }}</h1>
       <NeButton v-if="isSuperadmin" kind="secondary" size="lg" @click="openAdvancedSettings">
         <template #prefix>
           <FontAwesomeIcon :icon="faArrowUpRightFromSquare" class="size-4" aria-hidden="true" />

@@ -110,7 +110,15 @@ describe('describeError', () => {
     expect(describeError(offline)).toBe(
       'Cannot reach the server. Check the connection and try again.',
     )
-    expect(describeError(new Error('boom'))).toBe('boom')
+    expect(describeError(new Error('boom'))).toBe('Request failed')
+  })
+
+  it('describes the cause of a wrapping error and never shows an internal message', () => {
+    expect(describeError(new Error('wrapper', { cause: new TypeError('Failed to fetch') }))).toBe(
+      'Cannot reach the server. Check the connection and try again.',
+    )
+    expect(describeError(new Error('missing wizard state'))).toBe('Request failed')
+    expect(describeError(undefined)).toBe('')
   })
 })
 

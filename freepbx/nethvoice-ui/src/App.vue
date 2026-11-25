@@ -9,6 +9,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTitle } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { PiniaColadaDevtools } from '@pinia/colada-devtools'
+import { NeSkeleton } from '@nethesis/vue-components'
+import BrandLogo from '@/components/shell/BrandLogo.vue'
 import AppShell from '@/components/shell/AppShell.vue'
 import ToastNotificationsArea from '@/components/shell/ToastNotificationsArea.vue'
 import SignInSplash from '@/components/shell/SignInSplash.vue'
@@ -103,6 +105,32 @@ onMounted(() => {
   <div class="h-full">
     <AppShell v-if="layout === 'app'" />
     <RouterView v-else-if="layout === 'blank'" />
+    <div
+      v-else-if="loginStore.isAuthenticated"
+      role="status"
+      :aria-label="t('common.loading')"
+      data-testid="app-loading"
+    >
+      <div class="hidden lg:fixed lg:flex lg:h-screen lg:w-75 lg:flex-col">
+        <div
+          class="flex grow flex-col gap-y-5 border-r border-gray-200 bg-white px-2 pt-1 pb-4 dark:border-gray-700 dark:bg-gray-950"
+        >
+          <div class="flex h-12.5 shrink-0 items-center px-4">
+            <BrandLogo class="h-5.5 w-auto" />
+          </div>
+          <NeSkeleton :lines="7" class="px-4" />
+        </div>
+      </div>
+      <div class="lg:pl-75">
+        <div
+          class="h-16 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950"
+        ></div>
+        <div class="flex flex-col gap-7 px-4 py-6 sm:px-6 lg:px-8">
+          <NeSkeleton size="lg" class="max-w-xs" />
+          <NeSkeleton :lines="8" />
+        </div>
+      </div>
+    </div>
     <SignInSplash />
     <ToastNotificationsArea />
   </div>

@@ -14,6 +14,7 @@ import {
   NeInlineNotification,
   NeLink,
   NeTextInput,
+  focusElement,
 } from '@nethesis/vue-components'
 import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
@@ -88,9 +89,9 @@ function validate(): boolean {
   }
 
   if (validationIssues.value.username) {
-    usernameRef.value?.focus()
+    focusElement(usernameRef)
   } else {
-    passwordRef.value?.focus()
+    focusElement(passwordRef)
   }
   return false
 }
@@ -110,7 +111,7 @@ async function signIn() {
     retryAfter.value = error instanceof SignInError ? error.retryAfter : null
     loading.value = false
     await nextTick()
-    passwordRef.value?.focus()
+    focusElement(passwordRef)
     return
   }
 
@@ -202,7 +203,7 @@ async function signIn() {
       </form>
     </div>
     <div
-      class="hidden flex-1 items-center justify-center bg-linear-to-b from-emerald-800 to-gray-950 bg-cover bg-center lg:flex"
+      class="from-primary-800 hidden flex-1 items-center justify-center bg-linear-to-b to-gray-950 bg-cover bg-center lg:flex"
       :style="backgroundStyle"
       aria-hidden="true"
     >

@@ -61,6 +61,24 @@ test.describe('settings', () => {
       expect(mockApi.callsTo('POST', '/freepbx/rest/settings/defaultlanguage')).toHaveLength(0)
     })
 
+    test('keeps the language on screen when a refresh fails', async ({ page, mockApi }) => {
+      let fail = false
+
+      mockApi.on('GET', '/freepbx/rest/settings/languages', () =>
+        fail ? { status: 500 } : { json: { it: { default: true }, en: { default: false } } },
+      )
+      await page.goto('./settings')
+      await expect(page.getByRole('combobox', { name: 'Language' })).toHaveValue('Italiano')
+
+      fail = true
+      await page.clock.install()
+      await page.clock.runFor(60_000)
+      await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+      await expect(page.getByText('Cannot retrieve settings')).toBeVisible()
+      await expect(page.getByRole('combobox', { name: 'Language' })).toHaveValue('Italiano')
+    })
+
     test('reports a load error and retries', async ({ page, mockApi }) => {
       let fail = true
 
@@ -70,7 +88,7 @@ test.describe('settings', () => {
 
       await page.goto('./settings')
 
-      await expect(page.getByText('Cannot load settings')).toBeVisible()
+      await expect(page.getByText('Cannot retrieve settings')).toBeVisible()
       await expect(page.getByRole('button', { name: 'Change admin password' })).toBeVisible()
 
       fail = false

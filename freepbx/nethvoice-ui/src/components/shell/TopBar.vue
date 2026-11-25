@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { NeDropdown, NeTooltip } from '@nethesis/vue-components'
+import { NeAvatar, NeDropdown, NeTooltip } from '@nethesis/vue-components'
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useThemeStore } from '@/stores/theme'
@@ -216,7 +216,7 @@ function openNotificationsDrawer() {
               </button>
             </template>
             <template #content>
-              {{ $t('notifications.title') }}
+              {{ $t('shell.show_notifications') }}
             </template>
           </NeTooltip>
 
@@ -235,11 +235,7 @@ function openNotificationsDrawer() {
                     data-testid="account-menu"
                     aria-hidden="true"
                   >
-                    <span
-                      class="flex size-8 items-center justify-center rounded-full bg-gray-700 text-sm text-gray-50 uppercase dark:bg-gray-200 dark:text-gray-900"
-                    >
-                      {{ initials }}
-                    </span>
+                    <NeAvatar size="sm" :initials="initials" :alt="loginStore.username" />
                   </span>
                 </template>
                 <template #menuHeader>

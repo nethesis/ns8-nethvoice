@@ -28,6 +28,9 @@ export const fetchWizardState = async (): Promise<WizardState> => {
   const { refetch } = useWizardState()
   const state = await refetch(true)
 
+  if (state.error) {
+    throw state.error
+  }
   if (!state.data) {
     throw new Error('missing wizard state')
   }

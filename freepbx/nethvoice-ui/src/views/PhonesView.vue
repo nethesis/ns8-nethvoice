@@ -7,7 +7,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { NeHeading, NeTabs } from '@nethesis/vue-components'
+import { NeTabs } from '@nethesis/vue-components'
 import { vKeyboardTabs } from '@/lib/keyboardTabs'
 import { useRouteTab } from '@/composables/useRouteTab'
 import PhonesPanel from '@/components/phones/PhonesPanel.vue'
@@ -43,7 +43,7 @@ function selectTab(tabName: string) {
 <template>
   <div>
     <template v-if="!isModelDetailShown">
-      <NeHeading tag="h3" class="mb-7">{{ $t('phones.title') }}</NeHeading>
+      <h1 class="text-primary-neutral mb-7 text-2xl font-medium">{{ $t('phones.title') }}</h1>
       <NeTabs
         v-keyboard-tabs
         :tabs="tabs"

@@ -62,6 +62,34 @@ test.describe('shell', () => {
     })
   }
 
+  test('shows the shell while the permissions are loading', async ({ page, mockApi }) => {
+    let release: () => void = () => undefined
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    mockApi.on('GET', '/freepbx/rest/me', async () => {
+      await released
+      return { json: { username: 'admin', permissions: ['superadmin'] } }
+    })
+    await page.goto('./users/users')
+
+    const loading = page.getByTestId('app-loading')
+    await expect(loading).toBeVisible()
+    await expect(loading).toHaveAccessibleName('Loading…')
+    release()
+
+    await expect(loading).toBeHidden()
+    await expect(page.getByRole('heading', { name: 'Users and groups', level: 1 })).toBeVisible()
+  })
+
+  test('names the notifications button as its tooltip', async ({ page }) => {
+    await page.goto('./dashboard')
+
+    const bell = page.getByRole('button', { name: 'Show notifications' })
+    await bell.hover()
+    await expect(page.getByRole('tooltip')).toHaveText('Show notifications')
+  })
+
   test('marks the current page in the side menu', async ({ page }) => {
     await page.goto('./settings')
 

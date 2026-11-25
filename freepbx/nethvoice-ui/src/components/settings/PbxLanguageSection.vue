@@ -94,12 +94,22 @@ function save() {
   <LoadError
     v-if="languagesState.error"
     class="max-w-105"
+    :class="{ 'mb-6': languagesState.data !== undefined }"
     :error="languagesState.error"
     :title="$t('settings.cannot_load_settings')"
     @retry="refetchLanguages()"
   />
-  <NeSkeleton v-else-if="languagesState.status === 'pending'" :lines="3" class="w-105" />
-  <form v-else class="flex w-full max-w-105 flex-col gap-6" @submit.prevent="save">
+  <NeSkeleton
+    v-if="languagesState.status === 'pending'"
+    :lines="3"
+    class="w-full max-w-105"
+    data-testid="pbx-language-skeleton"
+  />
+  <form
+    v-else-if="languagesState.data !== undefined"
+    class="flex w-full max-w-105 flex-col gap-6"
+    @submit.prevent="save"
+  >
     <NeCombobox
       ref="languageRef"
       v-model="language"

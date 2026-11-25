@@ -4,7 +4,7 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '../fixtures/mockApi'
 
-const SPLASH_MS = 1000
+const SPLASH_MS = 1100
 
 const DEFAULT_CONFIG = {
   BRAND_NAME: 'NethVoice',
@@ -78,7 +78,7 @@ test.describe('sign-in splash', () => {
       Reflect.set(window, 'e2eSplashOpacityOverDashboard', opacities)
       new MutationObserver(() => {
         const splash = document.querySelector('[data-testid="sign-in-splash"]')
-        const dashboard = Array.from(document.querySelectorAll('[aria-level="1"]')).some(
+        const dashboard = Array.from(document.querySelectorAll('h1')).some(
           (element) => element.textContent?.trim() === 'Dashboard',
         )
         if (splash && dashboard && opacities.length === 0) {
