@@ -842,3 +842,22 @@ async def test_native_watchdog_leaves_runtime_time_to_execute_deadline_fallback(
     finally:
         await runtime.finish(call, 'completed')
         await asyncio.gather(conversation, return_exceptions=True)
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('language, words', [('en', 'call time limit'), ('it', 'limite di tempo')])
+async def test_late_duration_notice_cannot_delay_native_fallback(language, words):
+    runtime, _, controller, _ = fixtures()
+    call = await admit(runtime)
+    call.media_connected = True
+    call.snapshot['conversation']['language'] = language
+    call.adapter = AsyncMock()
+    spoken = asyncio.Event()
+    async def stalled(instructions):
+        assert words in instructions
+        spoken.set()
+        await asyncio.Event().wait()
+    call.adapter.consultation_say.side_effect = stalled
+    await asyncio.wait_for(runtime.deadline(call, .03), .5)
+    assert spoken.is_set()
+    controller.continue_channel.assert_awaited_once()
+    assert any(e['error_code'] == 'duration_exceeded' for e in runtime.monitoring.pending.values())
