@@ -404,11 +404,21 @@ function start() {
               });
             }
             if (req.url.indexOf('/freepbx') === 0) {
+              // Only these exact paths, compared after the URL is resolved
+              // (dot segments, encoded characters): the request goes on
+              // with the path that was checked and without query string.
+              let freepbxPath = null;
+              try {
+                freepbxPath = new URL(req.url, 'http://localhost').pathname;
+              } catch (e) {
+                freepbxPath = null;
+              }
               if (
-                (req.url.indexOf('/freepbx/rest/provisioning/engine') === 0 && req.method === 'GET')
+                (freepbxPath === '/freepbx/rest/provisioning/engine' && req.method === 'GET')
                 ||
-                (req.url.indexOf('/freepbx/rest/phones/reboot') === 0 && req.method === 'POST')
+                (freepbxPath === '/freepbx/rest/phones/reboot' && req.method === 'POST')
               ) {
+                req.url = freepbxPath;
                 req.headers.User = 'admin';
                 req.headers.SecretKey = compAuthentication.getAdminSecretKey();
                 logger.log.info(IDLOG, `proxy provisioning request ${req.method} ${req.url} for user ${arr[0]} from ${req.headers['x-forwarded-for']}`);
