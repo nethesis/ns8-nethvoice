@@ -33,7 +33,7 @@ def getDbConn(config):
     try:
       port = int(config['port'])
       driver = config.get('driver') or 'FreeTDS'
-      return pyodbc.connect(driver=driver, server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'])
+      return pyodbc.connect('', driver=driver, server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'])
     except Exception as err:
       logger.error(str(err))
       return None
