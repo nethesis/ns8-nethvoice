@@ -156,6 +156,9 @@ $app->post('/phones', function (Request $request, Response $response, $args) use
         $response = $response->withHeader('Content-Language', 'en');
         return $response;
     }
+    if (($invalid = invalidDoorPhoneVariable($variables)) !== null) {
+        return invalidVariableResponse($response, $invalid);
+    }
     $scope = new \Tancredi\Entity\Scope($mac, $storage, $logger);
     $scope->metadata['displayName'] = $display_name;
     $scope->metadata['inheritFrom'] = $model;
@@ -224,6 +227,9 @@ $app->patch('/phones/{mac}', function (Request $request, Response $response, $ar
         return $response;
     }
     if (array_key_exists('variables',$patch_data)) {
+        if (($invalid = invalidDoorPhoneVariable($patch_data['variables'])) !== null) {
+            return invalidVariableResponse($response, $invalid);
+        }
         $scope = new \Tancredi\Entity\Scope($mac, $storage, $logger);
         $scope->setVariables($patch_data['variables']);
         $response = withJson($response, \Tancredi\Entity\Scope::getPhoneScope($mac, $storage, $logger), 200, JSON_FLAGS);
@@ -382,6 +388,9 @@ $app->post('/models', function (Request $request, Response $response, $args) use
         $response = $response->withHeader('Content-Language', 'en');
         return $response;
     }
+    if (($invalid = invalidDoorPhoneVariable($variables)) !== null) {
+        return invalidVariableResponse($response, $invalid);
+    }
     $scope = new \Tancredi\Entity\Scope($id, $storage, $logger);
     $scope->metadata['displayName'] = $display_name;
     $scope->metadata['scopeType'] = "model";
@@ -425,6 +434,9 @@ $app->patch('/models/{id}', function (Request $request, Response $response, $arg
     }
 
     if (array_key_exists('variables',$patch_data) or array_key_exists('display_name',$patch_data)) {
+        if (array_key_exists('variables',$patch_data) && ($invalid = invalidDoorPhoneVariable($patch_data['variables'])) !== null) {
+            return invalidVariableResponse($response, $invalid);
+        }
         $scope = new \Tancredi\Entity\Scope($id, $storage, $logger);
         if (array_key_exists('display_name',$patch_data)) {
             $scope->metadata['displayName'] = $patch_data['display_name'];
@@ -500,6 +512,9 @@ $app->patch('/defaults', function (Request $request, Response $response, $args) 
 
     $patch_data = $request->getParsedBody();
 
+    if (($invalid = invalidDoorPhoneVariable($patch_data)) !== null) {
+        return invalidVariableResponse($response, $invalid);
+    }
     $scope = new \Tancredi\Entity\Scope('defaults', $storage, $logger);
     foreach ($patch_data as $patch_key => $patch_value) {
         if (is_null($patch_value)) {
@@ -645,6 +660,66 @@ function getModelScope($id,$storage,$logger,$inherit = false, $original = false)
         'model_url' => $config['api_url_path'] . "models/" . $id,
     );
     return $results;
+}
+
+/*
+ * Door phone variables ("door_*") are written by templates into the device
+ * configuration, one "key :value" per line: a value is refused when it
+ * contains a line break or a NUL byte, or when it does not match the format
+ * of its variable (DTMF codes, relay durations, numbers). Null removes the
+ * variable and an empty string leaves the device value. Return the name of
+ * the first invalid variable, null when all are valid.
+ */
+function invalidDoorPhoneVariable($variables) {
+    if (!is_array($variables)) {
+        return null;
+    }
+    foreach ($variables as $name => $value) {
+        $name = (string) $name;
+        if (strpos($name, 'door_') !== 0 || $value === null) {
+            continue;
+        }
+        if (!is_scalar($value) || is_bool($value)) {
+            return $name;
+        }
+        $value = (string) $value;
+        if (preg_match('/[\r\n\0]/', $value)) {
+            return $name;
+        }
+        if ($value === '') {
+            continue;
+        }
+        if (preg_match('/^door_dtmf_code(_\d+)?$/', $name)) {
+            // DTMF digits a door phone relay accepts as trigger code
+            $valid = preg_match('/^[0-9A-Da-d*#]{1,16}$/', $value) === 1;
+        } elseif (preg_match('/^door_relay_duration_\d+$/', $name)) {
+            // Seconds the relay stays active: 1-600 on the Fanvil i-series
+            $valid = preg_match('/^\d{1,3}$/', $value) === 1 && (int) $value >= 1 && (int) $value <= 600;
+        } elseif ($name === 'door_rtsp_port') {
+            $valid = preg_match('/^\d{1,5}$/', $value) === 1 && (int) $value >= 1 && (int) $value <= 65535;
+        } elseif (preg_match('/^door_video_(main_bitrate|sub_bitrate|sub_resolution|iframe_interval)$/', $name)) {
+            $valid = preg_match('/^\d{1,9}$/', $value) === 1;
+        } else {
+            $valid = true;
+        }
+        if (!$valid) {
+            return $name;
+        }
+    }
+    return null;
+}
+
+/* 422 problem response for an invalid variable value */
+function invalidVariableResponse(Response $response, $name) {
+    $results = array(
+        'type' => 'https://nethesis.github.io/tancredi/problems/#malformed-data',
+        'title' => 'Invalid value of variable ' . $name,
+        'variable' => $name
+    );
+    $response = withJson($response, $results, 422, JSON_FLAGS);
+    $response = $response->withHeader('Content-Type', 'application/problem+json');
+    $response = $response->withHeader('Content-Language', 'en');
+    return $response;
 }
 
 function withJson(Response $response, $data, $status = 200, $flags = 0) {

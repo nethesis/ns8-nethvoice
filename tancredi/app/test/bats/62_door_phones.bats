@@ -203,3 +203,78 @@ EOF
     assert_http_body '"cap_door_relay_count":"1"'
     ! assert_http_body '"door_dtmf_code_2"'
 }
+
+@test "PATCH /tancredi/api/v1/phones refuses invalid door phone values with 422" {
+    for variables in \
+        '{"door_dtmf_code": "12;3"}' \
+        '{"door_dtmf_code": "12345678901234567"}' \
+        '{"door_dtmf_code_2": "#8\nRTSP Server Passwd :x"}' \
+        '{"door_relay_duration_1": "3\nOutput1 DTMF Trigger Code  :0"}' \
+        '{"door_relay_duration_1": "0"}' \
+        '{"door_relay_duration_2": "601"}' \
+        '{"door_relay_duration_2": "1000"}' \
+        '{"door_relay_duration_2": "3s"}' \
+        '{"door_rtsp_password": "pw\r\nRTSP Server User :x"}' \
+        '{"door_rtsp_user": "admin\u0000"}' \
+        '{"door_rtsp_user": ["admin"]}'
+    do
+        run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<<"{\"variables\": ${variables}}"
+        assert_http_code "422"
+        assert_http_body "Invalid value of variable door_"
+    done
+}
+
+@test "PATCH /tancredi/api/v1/phones accepts valid, empty and null door phone values" {
+    run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
+{
+    "variables": {
+        "door_dtmf_code": "*12#",
+        "door_dtmf_code_2": "aD9",
+        "door_relay_duration_1": "600",
+        "door_relay_duration_2": "",
+        "door_rtsp_password": "Abc-123:x@y"
+    }
+}
+EOF
+    assert_http_code "200"
+    run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<EOF
+{
+    "variables": {
+        "door_dtmf_code": null,
+        "door_dtmf_code_2": null,
+        "door_relay_duration_1": 3,
+        "door_relay_duration_2": null
+    }
+}
+EOF
+    assert_http_code "200"
+}
+
+@test "POST /tancredi/api/v1/phones refuses an invalid door phone value with 422" {
+    run POST /tancredi/api/v1/phones <<EOF
+{
+    "mac": "0C-38-3E-AA-BB-E1",
+    "model": "fanvil-i62",
+    "display_name": "Invalid door phone",
+    "variables": {
+        "door_dtmf_code": "4711\nAccount2 Level :10"
+    }
+}
+EOF
+    assert_http_code "422"
+    run GET /tancredi/api/v1/phones/0C-38-3E-AA-BB-E1
+    assert_http_code "404"
+}
+
+@test "Models and defaults refuse invalid door phone values with 422" {
+    run PATCH /tancredi/api/v1/models/fanvil-i62 <<<'{"variables": {"door_dtmf_code": "*\n"}}'
+    assert_http_code "422"
+    run POST /tancredi/api/v1/models <<<'{"name": "door-test-model", "display_name": "Door test", "variables": {"door_relay_duration_1": "x"}}'
+    assert_http_code "422"
+    run GET /tancredi/api/v1/models/door-test-model
+    assert_http_code "404"
+    run PATCH /tancredi/api/v1/defaults <<<'{"door_rtsp_user": "admin\nx"}'
+    assert_http_code "422"
+    run GET /tancredi/api/v1/defaults
+    ! assert_http_body "door_rtsp_user"
+}
