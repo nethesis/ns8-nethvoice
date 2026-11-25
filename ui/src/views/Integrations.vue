@@ -105,6 +105,18 @@
                 :title="$t('integrations.apply_' + applyStatus)"
                 :showCloseButton="false"
               />
+              <NsButton
+                v-if="applyStatus === 'pending'"
+                kind="ghost"
+                type="button"
+                :loading="loading.refreshApplyStatus"
+                :disabled="
+                  loading.refreshApplyStatus || loading.setIntegrations
+                "
+                @click="getIntegrations(true)"
+              >
+                {{ $t("integrations.refresh_apply_status") }}
+              </NsButton>
               <h5 class="mb-4">{{ $t("integrations.deepgram_section") }}</h5>
               <NsTextInput
                 :label="$t('integrations.deepgram_api_key')"
@@ -308,6 +320,7 @@ export default {
       chatUploadMaxFileMb: "25",
       loading: {
         getIntegrations: false,
+        refreshApplyStatus: false,
         setIntegrations: false,
       },
       error: {
@@ -350,8 +363,11 @@ export default {
     this.getIntegrations();
   },
   methods: {
-    async getIntegrations() {
-      this.loading.getIntegrations = true;
+    async getIntegrations(statusOnly = false) {
+      const loadingField = statusOnly
+        ? "refreshApplyStatus"
+        : "getIntegrations";
+      this.loading[loadingField] = true;
       this.error.getIntegrations = "";
       const taskAction = "get-integrations";
       const eventId = this.getUuid();
@@ -359,13 +375,15 @@ export default {
       // register to task error
       this.core.$root.$once(
         `${taskAction}-aborted-${eventId}`,
-        this.getIntegrationsAborted
+        (result, context) =>
+          this.getIntegrationsAborted(result, context, loadingField)
       );
 
       // register to task completion
       this.core.$root.$once(
         `${taskAction}-completed-${eventId}`,
-        this.getIntegrationsCompleted
+        (context, result) =>
+          this.getIntegrationsCompleted(context, result, loadingField)
       );
 
       const res = await to(
@@ -383,17 +401,22 @@ export default {
       if (err) {
         console.error(`error creating task ${taskAction}`, err);
         this.error.getIntegrations = this.getErrorMessage(err);
-        this.loading.getIntegrations = false;
+        this.loading[loadingField] = false;
         return;
       }
     },
-    getIntegrationsAborted(taskResult, taskContext) {
+    getIntegrationsAborted(taskResult, taskContext, loadingField) {
       console.error(`${taskContext.action} aborted`, taskResult);
       this.error.getIntegrations = this.$t("error.generic_error");
-      this.loading.getIntegrations = false;
+      this.loading[loadingField] = false;
     },
-    getIntegrationsCompleted(taskContext, taskResult) {
+    getIntegrationsCompleted(taskContext, taskResult, loadingField) {
       const integrations = taskResult.output;
+      this.loading[loadingField] = false;
+      this.applyStatus = integrations.satellite_apply_status || "applied";
+      if (loadingField === "refreshApplyStatus") {
+        return;
+      }
       this.deepgramApiKey = integrations.deepgram_api_key || "";
       this.openaiApiKey = integrations.openai_api_key || "";
       this.isCallTranscriptionEnabled =
@@ -404,7 +427,6 @@ export default {
         integrations.satellite_call_summary_enabled || false;
       this.savedOpenaiKey = !!integrations.openai_api_key;
       this.voiceAgentEnabled = !!integrations.voice_agent_enabled;
-      this.applyStatus = integrations.satellite_apply_status || "applied";
       this.inheritedAgents =
         integrations.inherited_agents === undefined
           ? []
@@ -415,7 +437,6 @@ export default {
       this.chatUploadMaxFileMb = String(
         integrations.chat_upload_max_file_mb || 25
       );
-      this.loading.getIntegrations = false;
     },
     validateChat() {
       this.error.chat_retention_days = "";

@@ -241,6 +241,7 @@
   },
   "integrations": {
     "voice_agent_preview": "Voice agents preview",
+    "refresh_apply_status": "Refresh status",
     "apply_pending": "Waiting to apply Satellite settings",
     "apply_failed": "Satellite settings could not be applied. Check the satellite-apply service journal and save again.",
     "key_removal": "Removing this key sends calls for these agents to their fallback",
