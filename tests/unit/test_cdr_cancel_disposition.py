@@ -8,12 +8,12 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 
 
-class CdrCancelDispositionTest(unittest.TestCase):
+class CdrSettingsTest(unittest.TestCase):
     def setUp(self):
         source = (ROOT / 'freepbx/initdb.d/update.php').read_text()
-        self.query = re.search(
+        self.cancel_query, self.batch_query = re.findall(
             r'\$db->exec\("(INSERT INTO `asterisk`\.`freepbx_settings`.*?)"\);',
-            source, re.S).group(1)
+            source, re.S)
         self.db = sqlite3.connect(':memory:')
         self.addCleanup(self.db.close)
         self.db.execute("ATTACH DATABASE ':memory:' AS asterisk")
@@ -29,7 +29,7 @@ class CdrCancelDispositionTest(unittest.TestCase):
 
     def test_missing_setting_gets_complete_definition_and_is_idempotent(self):
         for _ in range(2):
-            self.db.execute(self.query)
+            self.db.execute(self.cancel_query)
             row = self.db.execute('''SELECT keyword, value, name, level, type, options,
                 defaultval, readonly, hidden, category, module, emptyok, sortorder
                 FROM asterisk.freepbx_settings WHERE keyword = 'CANCELDISPOSITION'
@@ -48,9 +48,30 @@ class CdrCancelDispositionTest(unittest.TestCase):
                 self.db.execute('''INSERT INTO asterisk.freepbx_settings
                     (keyword, value, name) VALUES ('CANCELDISPOSITION', ?, 'Existing setting')''', (value,))
                 before = self.db.execute('SELECT * FROM asterisk.freepbx_settings ORDER BY keyword').fetchall()
-                self.db.execute(self.query)
+                self.db.execute(self.cancel_query)
                 self.assertEqual(self.db.execute(
                     'SELECT * FROM asterisk.freepbx_settings ORDER BY keyword').fetchall(), before)
+
+    def test_partial_batch_settings_are_completed_without_overwriting_existing_rows(self):
+        self.db.execute("INSERT INTO asterisk.freepbx_settings (keyword, value) VALUES ('CDR_BATCH', '0')")
+        self.db.execute("""INSERT INTO asterisk.freepbx_settings (keyword, value, name)
+            VALUES ('CDR_BATCH_SIZE', '123', 'Existing size')""")
+        for _ in range(2):
+            self.db.execute(self.batch_query)
+            self.assertEqual(self.db.execute('''SELECT keyword, value, defaultval, type, options, name
+                FROM asterisk.freepbx_settings WHERE keyword LIKE 'CDR_BATCH%' ORDER BY keyword''').fetchall(), [
+                ('CDR_BATCH', '0', None, None, None, None),
+                ('CDR_BATCH_ENABLE', '1', None, None, None, None),
+                ('CDR_BATCH_SAFE_SHUT_DOWN', '1', '1', 'bool', '', 'CDR Batch Safe ShutDown'),
+                ('CDR_BATCH_SCHEDULE_ONLY', '0', '0', 'bool', '', 'CDR Schedule Only'),
+                ('CDR_BATCH_SIZE', '123', None, None, None, 'Existing size'),
+                ('CDR_BATCH_TIME', '300', '300', 'int', '0,300', 'CDR Batch Time'),
+            ])
+
+    def test_batch_settings_are_left_to_installer_without_enable_setting(self):
+        self.db.execute("DELETE FROM asterisk.freepbx_settings WHERE keyword = 'CDR_BATCH_ENABLE'")
+        self.db.execute(self.batch_query)
+        self.assertEqual(self.db.execute('SELECT * FROM asterisk.freepbx_settings').fetchall(), [])
 
 
 if __name__ == '__main__':
