@@ -1241,10 +1241,14 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
             $data['secret'] = $doorSecret;
         }
         $source = streaming_normalize_source($data, $sources[$currentDescr]);
-        // The link to the door phone stays while its password is kept
+        // The link to the door phone stays while its password is kept for
+        // the same device: a linked source takes the door phone password at
+        // every reload, it must never follow the URL to another device
         $source['door_phone'] = $doorSecret !== null
             ? streaming_door_phone_mac((string) $data['door_phone'])
-            : (((string) ($data['secret'] ?? '') === '' && $source['user'] === $sources[$currentDescr]['user']) ? $sources[$currentDescr]['door_phone'] : null);
+            : (((string) ($data['secret'] ?? '') === '' && $source['user'] === $sources[$currentDescr]['user']
+                && streaming_url_endpoint($source['url']) === streaming_url_endpoint((string) $sources[$currentDescr]['url']))
+                ? $sources[$currentDescr]['door_phone'] : null);
         streaming_check_door_phone_gates($source);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
         $source = streamingPinCertificate($source);
