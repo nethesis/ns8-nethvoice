@@ -24,8 +24,8 @@ class FreePBX {
         ]; }
     }; }
 }
-$amp_conf=['ASTVARLIBDIR'=>sys_get_temp_dir().'/agent-dialplan-'.bin2hex(random_bytes(8))];
-mkdir($amp_conf['ASTVARLIBDIR'],0700);
+$amp_conf=['ASTETCDIR'=>sys_get_temp_dir().'/agent-dialplan-'.bin2hex(random_bytes(8))];
+mkdir($amp_conf['ASTETCDIR'],0700);
 $ext=new class {
     public array $lines=[];
     public function add($context,$extension,$label,$object) { $this->lines[$context][$extension][]=[$label,$object->output()]; }
@@ -103,12 +103,12 @@ assert($render('ordinary-route')===['Hangup()']);
 assert(!isset($ext->lines['voice-agent-provider']));
 assert($render('voice-agent-receptionist')===['Goto(from-did-direct,203,1)']);
 assert(satellite_destinations()===[]);
-assert($render(satellite_agent_fallback_context('receptionist','extension:203'))===['Goto(from-did-direct,203,1)']);
+assert($render(satellite_agent_fallback_context('receptionist','extension:203'))===['Set(TIMEOUT(absolute)=0)','StopMusicOnHold()','Goto(from-did-direct,203,1)']);
 putenv('VOICE_AGENT_ENABLED=false');
 $ext->lines=[];
 satellite_get_config_late('asterisk');
 assert($render('voice-agent-receptionist')===['Goto(from-did-direct,203,1)']);
 assert(!isset($ext->lines['voice-agent-provider']));
-unlink($amp_conf['ASTVARLIBDIR'].'/voice-agent-fallbacks.json');
-rmdir($amp_conf['ASTVARLIBDIR']);
+unlink($amp_conf['ASTETCDIR'].'/voice-agent-fallbacks.json');
+rmdir($amp_conf['ASTETCDIR']);
 echo "Native routing, isolated reload failure and saved fallback passed\n";

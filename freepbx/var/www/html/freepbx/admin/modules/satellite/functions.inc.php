@@ -152,13 +152,18 @@ function satellite_build_saved_agent_fallbacks(string $cache): void {
         if (!is_string($id) || !preg_match('/^[a-z][a-z0-9_-]{0,47}$/D',$id)) continue;
         $safe = is_string($target) && preg_match('/^[a-zA-Z0-9_-]{1,80},[a-zA-Z0-9_*#.-]{1,64},1$/D',$target)
             && !str_starts_with($target,'voice-agent-');
-        $ext->add('voice-agent-'.$id,'s','',$safe ? new ext_goto($target) : new ext_hangup());
+        $context='voice-agent-'.$id;
+        if (str_starts_with($id,'fallback-')) {
+            $ext->add($context,'s','',new ext_set('TIMEOUT(absolute)','0'));
+            $ext->add($context,'s','',new ext_stopmusiconhold());
+        }
+        $ext->add($context,'s','',$safe ? new ext_goto($target) : new ext_hangup());
     }
 }
 
 function satellite_build_agent_dialplan() {
     global $ext, $amp_conf;
-    $cache = ($amp_conf['ASTVARLIBDIR'] ?? '/var/lib/asterisk') . '/voice-agent-fallbacks.json';
+    $cache = ($amp_conf['ASTETCDIR'] ?? '/etc/asterisk') . '/voice-agent-fallbacks.json';
     if (!\NethVoice\Agents\Preview::enabled()) {
         if (is_file($cache)) satellite_build_saved_agent_fallbacks($cache);
         return;
