@@ -338,8 +338,7 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
 
         // Owner is mandatory and must be an existing user (fail closed).
         $owner = isset($data['owner']) ? trim($data['owner']) : '';
-        $ownerUser = $owner === '' ? false : FreePBX::create()->Userman->getUserByUsername($owner);
-        if (empty($ownerUser) || empty($ownerUser['default_extension']) || $ownerUser['default_extension'] === 'none') {
+        if ($owner === '' || !userHasExtension($owner)) {
             return jsonResponse($response, array("status"=>"Invalid or missing owner"), 400);
         }
 
