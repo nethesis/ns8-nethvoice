@@ -96,3 +96,57 @@ export function timeline(events: TraceEvent[]): TraceEvent[] {
     (a, b) => (a.elapsed_ms ?? Infinity) - (b.elapsed_ms ?? Infinity),
   );
 }
+
+type Translate = (key: string, named?: Record<string, unknown>) => string;
+type Exists = (key: string) => boolean;
+function described(text: string, code: string) {
+  return text ? text + " (" + code + ")" : code;
+}
+export function runErrorText(code: string, t: Translate, te: Exists): string {
+  if (te("monitoring.runErrors." + code))
+    return described(t("monitoring.runErrors." + code), code);
+  const http = /^provider_http_([0-9]+)$/.exec(code);
+  if (http)
+    return described(
+      t("monitoring.errorPatterns.providerHttp", { status: http[1] }),
+      code,
+    );
+  const hangup = /^provider_hangup_([0-9]+)$/.exec(code);
+  if (hangup)
+    return described(
+      t("monitoring.errorPatterns.providerHangup", { cause: hangup[1] }),
+      code,
+    );
+  const setup = /^setup_([a-z_]+)_failed$/.exec(code);
+  if (setup) {
+    const phase =
+      setup[1] === "tool_catalog"
+        ? t("monitoring.errorPatterns.toolCatalog")
+        : setup[1] === "run_storage"
+          ? t("monitoring.errorPatterns.runStorage")
+          : te("monitoring.phasesMap." + setup[1])
+            ? t("monitoring.phasesMap." + setup[1])
+            : setup[1];
+    return described(
+      t("monitoring.errorPatterns.setupFailed", { phase }),
+      code,
+    );
+  }
+  const consultation = /^consultation_([a-z]+)_(failed|timeout)$/.exec(code);
+  if (consultation && te("monitoring.consultationStages." + consultation[1]))
+    return described(
+      t(
+        consultation[2] === "failed"
+          ? "monitoring.errorPatterns.consultationFailed"
+          : "monitoring.errorPatterns.consultationTimeout",
+        { stage: t("monitoring.consultationStages." + consultation[1]) },
+      ),
+      code,
+    );
+  return code;
+}
+export function providerCodeText(code: string, t: Translate, te: Exists) {
+  return te("monitoring.providerCodes." + code)
+    ? described(t("monitoring.providerCodes." + code), code)
+    : code;
+}

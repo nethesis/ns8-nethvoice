@@ -10,6 +10,7 @@ import {
   NeToggle,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
+import { useLoadError } from "../composables/useLoadError";
 import { useDestinations } from "../composables/useDestinations";
 import DestinationsDrawer, {
   type DestinationSelection,
@@ -25,6 +26,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: ToolBinding[]] }>();
 const { t } = useI18n();
+const loadError = useLoadError();
 const extensions = useDestinations("extension");
 const queues = useDestinations("queue");
 const transfer = computed(() =>
@@ -243,7 +245,7 @@ function number(key: string, value: string) {
             v-if="extensions.isError.value || queues.isError.value"
             class="mt-4"
             kind="error"
-            :title="t('error.request_failed')"
+            :title="loadError(extensions.error.value, queues.error.value)"
           />
         </div>
       </div>

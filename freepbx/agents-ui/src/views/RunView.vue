@@ -18,13 +18,22 @@ import {
   NeTextArea,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
+import { useLoadError } from "../composables/useLoadError";
 import { request } from "../api";
 import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import type { Run, TraceEvent } from "../types";
-import { duration, formatTime, formatUtc, timeline } from "../monitoring";
+import {
+  duration,
+  formatTime,
+  formatUtc,
+  providerCodeText,
+  runErrorText,
+  timeline,
+} from "../monitoring";
 const { t, te, locale } = useI18n(),
+  loadError = useLoadError(),
   route = useRoute();
 const query = useQuery({
   queryKey: ["run", computed(() => route.params.id)],
@@ -100,8 +109,8 @@ function details(event: TraceEvent) {
     lines.push(t("directoryMatches", { count: event.result_count }));
   const error = [
     event.http_status ? "HTTP " + event.http_status : "",
-    event.error_code,
-    event.provider_code,
+    event.error_code ? runErrorText(event.error_code, t, te) : "",
+    event.provider_code ? providerCodeText(event.provider_code, t, te) : "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -154,7 +163,13 @@ const summary = computed(() => {
       value: duration(value.duration_ms),
     },
     ...(value.error_code
-      ? [{ id: "error", label: t("errorCode"), value: value.error_code }]
+      ? [
+          {
+            id: "error",
+            label: t("errorCode"),
+            value: runErrorText(value.error_code, t, te),
+          },
+        ]
       : []),
   ];
 });
@@ -239,7 +254,7 @@ const partial = computed(
   <NeInlineNotification
     v-if="query.isError.value"
     kind="error"
-    :title="t('error.request_failed')"
+    :title="loadError(query.error.value)"
   />
   <div v-if="run" class="flex flex-col gap-12">
     <RouterLink
@@ -297,7 +312,7 @@ const partial = computed(
         v-if="traceQuery.isError.value"
         class="mb-3"
         kind="error"
-        :title="t('error.request_failed')"
+        :title="loadError(traceQuery.error.value)"
       />
       <div data-testid="trace-timeline">
         <NeTable

@@ -140,6 +140,15 @@ export function errorCode(error: unknown): string {
     ? error.message
     : "request_failed";
 }
+export function loadErrorCode(error: unknown): string {
+  const code = errorCode(error);
+  if (code === "request_uncertain") return "load_timeout";
+  if (code !== "request_failed" || !axios.isAxiosError(error)) return code;
+  const status = error.response?.status || 0;
+  if (status === 404) return "not_found";
+  if (status >= 500) return "request_unavailable";
+  return code;
+}
 export function signIn(keepPage = false) {
   if (keepPage) window.open("/freepbx/wizard/#!/login", "_blank", "noopener");
   else window.location.assign("/freepbx/wizard/#!/login");

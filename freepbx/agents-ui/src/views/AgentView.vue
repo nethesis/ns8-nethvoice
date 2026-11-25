@@ -12,6 +12,7 @@ import {
   NeBadgeV2,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
+import { useLoadError } from "../composables/useLoadError";
 import { request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
@@ -31,6 +32,7 @@ import type {
   CleverAiConfiguration,
 } from "../types";
 const { t } = useI18n();
+const loadError = useLoadError();
 const route = useRoute(),
   router = useRouter(),
   task = useTask(),
@@ -425,7 +427,9 @@ async function synchronize() {
         agent.isError.value || catalog.isError.value || trunks.isError.value
       "
       kind="error"
-      :title="t('error.request_failed')"
+      :title="
+        loadError(agent.error.value, catalog.error.value, trunks.error.value)
+      "
       class="mb-6"
     />
     <form

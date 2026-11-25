@@ -13,6 +13,7 @@ import {
 import { faChartLine, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { faAiSpark } from "../aiSpark";
 import { useI18n } from "vue-i18n";
+import { useLoadError } from "../composables/useLoadError";
 import { request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
 import { agentStatus } from "../agentStatus";
@@ -23,6 +24,7 @@ import { menuIcon } from "../menuIcon";
 import StatusBadge from "../components/StatusBadge.vue";
 import type { Agent, JsonObject, Trunk } from "../types";
 const { t } = useI18n();
+const loadError = useLoadError();
 const router = useRouter(),
   task = useTask();
 const query = useQuery({
@@ -57,9 +59,14 @@ const filters = computed(() => [
   {
     key: "status",
     label: t("state"),
-    options: ["published", "modified", "draft", "pending", "ready"].map(
-      (id) => ({ id, label: t("status." + id) }),
-    ),
+    options: [
+      "published",
+      "modified",
+      "draft",
+      "pending",
+      "ready",
+      "error",
+    ].map((id) => ({ id, label: t("status." + id) })),
   },
 ]);
 function openVisualplan() {
@@ -129,7 +136,7 @@ async function remove() {
   <NeInlineNotification
     v-if="query.isError.value"
     kind="error"
-    :title="t('error.request_failed')"
+    :title="loadError(query.error.value)"
     class="mb-6"
   />
   <CatalogTable
