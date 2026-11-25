@@ -37,7 +37,7 @@ final class ProviderCatalog
         if ($id==='gpt-live-1' && trim($conversation['options']['backend_instructions'])==='') throw new \RuntimeException('invalid_model_options',422);
     }
     /** Model availability and adapter compatibility are separate requirements. */
-    public function models(string $provider, string $key): array
+    public function models(string $provider, string $key,bool $fresh=false): array
     {
         $capabilities=self::capabilities($provider);
         $base=['selection'=>$capabilities['selection'],'default_model'=>$capabilities['default'],'capability_version'=>2];
@@ -45,7 +45,7 @@ final class ProviderCatalog
         if ($capabilities['selection']==='provider_managed') return $base+['items'=>$capabilities['models'],'backend_models'=>[],'source'=>'provider_managed'];
         if ($key==='' || preg_match('/[\r\n\x00]/',$key)) throw new \RuntimeException('provider_credentials_unavailable',422);
         $cacheKey='voice_agent_models_v2_'.hash('sha256',$provider.$key);
-        if (!$this->fetchModels && function_exists('apcu_fetch')) {
+        if (!$fresh && !$this->fetchModels && function_exists('apcu_fetch')) {
             $cached=apcu_fetch($cacheKey);
             if (is_array($cached)) return $base+$cached+['source'=>'cached_provider_api'];
         }
@@ -64,7 +64,7 @@ final class ProviderCatalog
             if (!$this->fetchModels && function_exists('apcu_store')) apcu_store($cacheKey,$result,300);
             return $base+$result+['source'=>'provider_api'];
         } catch (\Throwable $error) {
-            if ($error instanceof \RuntimeException && $error->getMessage()==='provider_credentials_rejected') throw $error;
+            if ($error instanceof \RuntimeException && in_array($error->getMessage(),['provider_credentials_rejected','provider_permission_denied'],true)) throw $error;
             return $base+['items'=>$capabilities['models'],'backend_models'=>$capabilities['backend_models'],'source'=>'adapter_catalog','discovery_error'=>'provider_catalog_unavailable'];
         }
     }
@@ -78,7 +78,8 @@ final class ProviderCatalog
                 $body.=$chunk;return strlen($chunk);
             }]);
         $ok=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_HTTP_CODE);curl_close($curl);
-        if (in_array($status,[401,403],true)) throw new \RuntimeException('provider_credentials_rejected',422);
+        if ($status===403) throw new \RuntimeException('provider_permission_denied',422);
+        if ($status===401) throw new \RuntimeException('provider_credentials_rejected',422);
         if (!$ok || $status!==200) throw new \RuntimeException('provider_catalog_unavailable',503);
         return json_decode($body,true,32,JSON_THROW_ON_ERROR);
     }

@@ -1,6 +1,10 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
+  credentialValid: "Credential verified",
+  testCredential: "Test credential",
+  dedicatedKey: "Dedicated key",
+  integrationKey: "NethVoice integrations key",
   collapseItem: "Collapse {name}",
   expandItem: "Expand {name}",
   details: "Details",
@@ -20,7 +24,8 @@ const en = {
     externalSetup: "External setup",
     status: {
       configured: "Configured automatically",
-      manual: "Manual secret stored",
+      manual: "Manual secret stored. Place a signed test call to verify it.",
+      verified: "Verified by a signed call",
       not_configured: "Not configured",
       needs_setup: "Configuration changed: check setup",
       recovery_required: "Recovery required",
@@ -397,6 +402,8 @@ const en = {
     modified: "Modified",
   },
   error: {
+    provider_permission_denied: "This key lacks permission to list models.",
+    sip_lab_required: "SIP Realtime is available only in the media lab. Choose GPT-Live.",
     consultation_assistant_unavailable:
       "Publish an available internal consultation assistant first.",
     consultation_chat_model_required:
@@ -781,6 +788,10 @@ const en = {
   maxOutputTokens: "Maximum backend output tokens",
 };
 const it: typeof en = {
+  credentialValid: "Credenziale verificata",
+  testCredential: "Verifica credenziale",
+  dedicatedKey: "Chiave dedicata",
+  integrationKey: "Chiave delle integrazioni NethVoice",
   collapseItem: "Comprimi {name}",
   expandItem: "Espandi {name}",
   details: "Dettagli",
@@ -800,7 +811,8 @@ const it: typeof en = {
     externalSetup: "Configurazione esterna",
     status: {
       configured: "Configurato automaticamente",
-      manual: "Segreto manuale salvato",
+      manual: "Segreto manuale salvato. Effettua una chiamata di prova firmata per verificarlo.",
+      verified: "Verificato tramite chiamata firmata",
       not_configured: "Non configurato",
       needs_setup: "Configurazione modificata: verifica il webhook",
       recovery_required: "Recupero richiesto",
@@ -1182,6 +1194,8 @@ const it: typeof en = {
     modified: "Modificato",
   },
   error: {
+    provider_permission_denied: "Questa chiave non ha il permesso di elencare i modelli.",
+    sip_lab_required: "SIP Realtime è disponibile solo in laboratorio. Seleziona GPT-Live.",
     consultation_assistant_unavailable:
       "Pubblica prima un assistente interno disponibile.",
     consultation_chat_model_required:
