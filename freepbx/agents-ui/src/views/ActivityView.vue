@@ -20,6 +20,7 @@ import {
 } from "@nethesis/vue-components";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
+import { useLoadError } from "../composables/useLoadError";
 import { request } from "../api";
 import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
@@ -34,6 +35,7 @@ import type {
 } from "../types";
 type Option = { id: string; label: string };
 const { t, te, locale } = useI18n(),
+  loadError = useLoadError(),
   route = useRoute(),
   router = useRouter();
 const filterLabels = computed(() => ({
@@ -518,7 +520,9 @@ function refresh() {
         "
         data-testid="monitoring-request-error"
         kind="error"
-        :title="t('error.request_failed')"
+        :title="
+          loadError(summary.error.value, runs.error.value, health.error.value)
+        "
       />
       <details v-if="delivery.length || healthWarning">
         <summary>{{ t("diagnostics") }}</summary>

@@ -15,6 +15,7 @@ import {
 } from "@nethesis/vue-components";
 import { faNetworkWired, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
+import { useLoadError } from "../composables/useLoadError";
 import { request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
 import PageHeader from "../components/PageHeader.vue";
@@ -24,6 +25,7 @@ import { menuIcon } from "../menuIcon";
 import StatusBadge from "../components/StatusBadge.vue";
 import type { Agent, Catalog, Trunk } from "../types";
 const { t } = useI18n(),
+  loadError = useLoadError(),
   task = useTask(),
   webhookTask = useTask();
 const query = useQuery({
@@ -156,7 +158,7 @@ async function synchronize() {
   <NeInlineNotification
     v-if="(task.error.value && !removing) || query.isError.value"
     kind="error"
-    :title="task.error.value || t('error.request_failed')"
+    :title="task.error.value || loadError(query.error.value)"
     class="mb-6"
   />
   <NeInlineNotification
