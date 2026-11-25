@@ -57,6 +57,27 @@ db < /docker-entrypoint-initdb.d/40_fias.messages-schema.sql
 db < /docker-entrypoint-initdb.d/40_fias.messagesparameters-schema.sql
 db < /docker-entrypoint-initdb.d/40_fias.reservations-schema.sql
 db -e "GRANT ALL on fias.* to '${AMPDBUSER}'@'127.0.0.1' identified by '${AMPDBPASS}'"
+# Reports accounts: nethvoice_report runs the scheduled jobs,
+# nethvoice_report_ro runs the report queries of the API
+db <<SQL
+CREATE USER IF NOT EXISTS 'nethvoice_report'@'%', 'nethvoice_report'@'localhost',
+    'nethvoice_report_ro'@'%', 'nethvoice_report_ro'@'localhost';
+ALTER USER 'nethvoice_report'@'%' IDENTIFIED BY '${REPORTS_PASSWORD}',
+    'nethvoice_report'@'localhost' IDENTIFIED BY '${REPORTS_PASSWORD}',
+    'nethvoice_report_ro'@'%' IDENTIFIED BY '${REPORTS_PASSWORD}',
+    'nethvoice_report_ro'@'localhost' IDENTIFIED BY '${REPORTS_PASSWORD}';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'nethvoice_report'@'%', 'nethvoice_report'@'localhost',
+    'nethvoice_report_ro'@'%', 'nethvoice_report_ro'@'localhost';
+GRANT ALL ON asteriskcdrdb.* TO 'nethvoice_report'@'%', 'nethvoice_report'@'localhost';
+GRANT SELECT ON asterisk.* TO 'nethvoice_report'@'%', 'nethvoice_report'@'localhost';
+GRANT SELECT ON phonebook.* TO 'nethvoice_report'@'%', 'nethvoice_report'@'localhost';
+GRANT SELECT ON asteriskcdrdb.* TO 'nethvoice_report_ro'@'%', 'nethvoice_report_ro'@'localhost';
+SQL
+# The reports device list needs this collation
+devices_collation=$(db -N -B -e "SELECT TABLE_COLLATION FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_devices_phones'")
+if [[ -n "$devices_collation" && "$devices_collation" != utf8mb4_unicode_ci ]]; then
+    db -e 'ALTER TABLE asterisk.rest_devices_phones CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
+fi
 db phonebook -e 'CREATE TABLE IF NOT EXISTS `sync_metadata` (`scope` varchar(255) NOT NULL, `last_sync_at` datetime DEFAULT NULL, PRIMARY KEY (`scope`)) ENGINE=MyISAM DEFAULT CHARSET=utf8'
 db asterisk -e 'INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VALUES (10,"phonebook_level_0","Phonebook read only","View phonebook contacts"),(11,"phonebook_level_1","Phonebook private contacts","Create, edit and delete owned private contacts"),(12,"ad_phonebook","Advanced Phonebook","Read and write all contacts"),(14,"phonebook_level_2","Phonebook public and shared contacts","Create, edit and delete public and shared contacts") ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `displayname`=VALUES(`displayname`), `description`=VALUES(`description`)'
 db asterisk -e 'INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (2,10),(2,11),(2,12),(2,14) ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
@@ -71,8 +92,9 @@ VM_CALLERID_LENGTH=$(db -N -B -e "SELECT CHARACTER_MAXIMUM_LENGTH FROM informati
 if [ -n "${VM_CALLERID_LENGTH}" ] && [ "${VM_CALLERID_LENGTH}" -lt 255 ]; then
     db -e "ALTER TABLE \`asteriskcdrdb\`.\`voicemessages\` MODIFY \`callerid\` varchar(255) DEFAULT ''"
 fi
-# Refresh bundled catalogs only on initialization, update or import.
+# Run database migrations and refresh bundled catalogs on initialization, update or import.
 if $migrate; then
+    db < /docker-entrypoint-initdb.d/85_asterisk.clean_legacy_sip_nat.sql
     # VoIP Providers
     db < /docker-entrypoint-initdb.d/10_asterisk.rest_pjsip_trunks_custom_flags.sql
     db asterisk -e 'DROP TABLE IF EXISTS `providers`'
@@ -214,7 +236,7 @@ WHEN 'HTTPENABLED' THEN '1' WHEN 'HTTPTLSENABLE' THEN '1'
 WHEN 'HTTPTLSCERTFILE' THEN '/etc/asterisk/keys/NethServer.crt'
 WHEN 'HTTPTLSPRIVATEKEY' THEN '/etc/asterisk/keys/NethServer.key'
 END WHERE keyword IN ('HTTPBINDADDRESS','HTTPBINDPORT','HTTPTLSBINDPORT','HTTPENABLED','HTTPTLSENABLE','HTTPTLSCERTFILE','HTTPTLSPRIVATEKEY');
-UPDATE freepbx_settings SET value='0.0.0.0' WHERE keyword='HTTPTLSBINDADDRESS' AND value IN ('::','127.0.0.1');
+UPDATE freepbx_settings SET value='127.0.0.1', defaultval='127.0.0.1' WHERE keyword='HTTPTLSBINDADDRESS';
 SQL
 
 if [[ -n "${PROXY_IP:-}" && -n "${PROXY_PORT:-}" ]]; then

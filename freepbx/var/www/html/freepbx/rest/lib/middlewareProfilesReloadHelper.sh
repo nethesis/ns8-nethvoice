@@ -1,9 +1,15 @@
 #!/bin/bash
 
-while (ps aux | grep -q [f]"wconsole userman.*syncall"); do
-    sleep 1
-done
-sleep 2
+retry=()
+if [[ $1 == --after-reload ]]; then
+    # Startup has already written users.json, but middleware may still be starting.
+    retry=(--retry-connrefused --retry 30 --retry-delay 2 --retry-max-time 60)
+else
+    while (ps aux | grep -q [f]"wconsole userman.*syncall"); do
+        sleep 1
+    done
+    sleep 2
+fi
 
 if [[ -z "${NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN}" || -z "${NETHVOICE_MIDDLEWARE_PORT}" ]]; then
     exit 0
@@ -19,7 +25,7 @@ fi
 
 # the token is passed to curl on stdin (-K -), never on a command line
 printf 'header = "Authorization: Bearer %s"\n' "${NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN}" | curl -fsS \
-    --connect-timeout 1 \
+    "${retry[@]}" --connect-timeout 1 \
     --max-time 2 \
     -X POST \
     -K - \
