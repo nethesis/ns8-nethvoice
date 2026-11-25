@@ -1,15 +1,15 @@
-# Voice agents alpha
+# Voice agents preview
 
-This implementation supports fresh installations of publication contracts **v8** and opt-in **v9**.
-Install the matching FreePBX and Satellite images together. An installation containing
-an earlier development schema is rejected with `unsupported_development_database`
-before Agents schema or seed changes. There is no automatic conversion or erase.
-Take a protected backup and use an explicitly reviewed test-instance reset, or install
-on a new instance. Never use the alpha installer to upgrade a development database.
+Enable **Voice agents preview** in NethVoice **Integrations**, then open
+**Voice agents** in Wizard. The switch defaults to off. The preview supports
+GPT-Live with the matching FreePBX and Satellite images from one NethVoice
+build. SIP Realtime, Grok and CleverAI routing require the isolated lab switch
+`VOICE_AGENT_SIP_LAB_ENABLED=true`.
 
-NethVoice builds `nethvoice-satellite` from the bundled `satellite/` directory.
-The runtime and FreePBX contracts use the same source revision in CI. Use images
-from the same NethVoice build when deploying the feature.
+A database from alpha-v8 or another development layout is rejected before
+Agents setup writes to it. Keep the original module backup, encryption key
+and matching alpha images for recovery. A new preview needs fresh Agents data.
+Disabling and re-enabling an existing preview reuses its saved configuration.
 
 ## Architecture and ownership
 
@@ -30,7 +30,10 @@ Voice agents run with transcription disabled; either existing transcription flag
 starts the separate transcription module and private HTTP listener. The listeners
 retain their ports/authentication and distinct ARI applications. Transcription
 connection failures recover without restarting agent calls; fatal process failure
-affects both components. No configuration, credentials or stored data move.
+affects both components. Integrations tracks whether Satellite settings are
+pending, applied or failed. An inactive runtime starts when enabled. Changes to
+a running runtime wait for its work to drain. PHP and Satellite use the applied
+provider credentials.
 The pinned published image includes the shared lifecycle. NethVoice checks its
 imports and tests the matching source revision; older images are rejected.
 
@@ -39,12 +42,14 @@ imports and tests the matching source revision; older images are rejected.
 Fresh installation seeds disabled, unpublished **Receptionist** and internal
 **Consultation assistant** profiles. Upgrades add the assistant without replacing
 existing settings. Administrators can also create independent Basic Voice agents.
-Configure an OpenAI or Grok trunk,
+Configure an OpenAI trunk for GPT-Live,
 then choose the conversation model, voice, language, greeting, instructions and
 maximum duration on each agent page. Trunks carry credential references and native
 provider configuration, never conversation-model settings. Credentials are encrypted
-and write-only. Blank edits preserve an existing secret; an explicitly configured
-key takes precedence over the module integration's environment credential.
+and write-only. Choose **NethVoice integrations key** or **Dedicated key**.
+Leaving a dedicated key blank keeps the saved value. Switching to inheritance
+clears it. Test credentials before publishing. Calls for published agents that
+inherit a removed module key take their native fallback.
 
 Save a draft, then **Publish** to activate the agent. No separate activation endpoint
 or switch exists. Only a published, synchronized agent with a ready native trunk is
@@ -68,7 +73,7 @@ Each agent owns its own enabled bindings, configuration and grants.
 | --- | --- |
 | Directory discovery and transfer | Enabled |
 | Direct extensions | Disabled, empty explicit allowlist |
-| Queues | Enabled, empty denylist |
+| Queues | Enabled, empty explicit allowlist |
 | Recent callbacks | Enabled, seven-day window, separate extension denylist |
 | Agent-controlled hangup | Disabled; optional bounded goodbye playback |
 | Debug transcripts | Disabled; encrypted text, 1–24 hour retention when enabled |
@@ -83,7 +88,7 @@ agent, publication and live session. Lookup uses the PBX's inbound caller identi
 not a number supplied by a model or caller. Caller ID is spoofable and is not strong
 authentication. CDR queries are bounded and use narrow read-only views.
 
-Transfer success requires both Stasis release and the native acknowledgement for the
+Transfer requires caller confirmation. Success requires both Stasis release and the native acknowledgement for the
 owned channel, destination and one-use token. A tool acknowledgement alone is not
 success. Optional call ending rechecks ownership and has a hard playback deadline;
 a failed or uncertain hangup never claims success or falls back into another route.
@@ -134,10 +139,17 @@ validated snapshot before opening any paid provider session. Signed SIP webhooks
 are accepted only at `/satellite-webhooks/openai` and `/satellite-webhooks/grok`,
 with original-byte verification, replay bounds and pending-call correlation.
 The private readiness endpoint requires authentication and binds to loopback.
+Incoming GPT-Live calls and consultations share a default limit of two and obey
+a global ceiling. At capacity, the call records the capacity outcome and follows
+the native fallback. Satellite requests a localized notice before the hard call deadline. Missing or
+delayed playback never extends that deadline. ARI disconnect takes the native
+fallback when Asterisk REST remains reachable. New admissions resume after
+reconnect.
 
 Activity provides paginated history, parent-linked traces, approximate latency
-percentiles, usage and safe outcome/error codes. Monitoring format 2 is the only
-supported format. Missing or interrupted traces remain partial, including after
+percentiles, usage and allowlisted outcome and failure details. Run details show
+the publication actor and, when a CDR matches the linked ID and call time, link
+to the native record under existing CDR permissions and retention. Missing or interrupted traces remain partial, including after
 restart; confirmed transfers may still have incomplete delivery. Bounded durable
 outboxes retry idempotently. Audio is never persisted by the Live bridge. Automated
 first-audio measurements do not prove intelligible speech or human playback.
@@ -150,19 +162,19 @@ per-agent opt-in retention; they do not enable general call recording.
 
 ## Installation, backup and recovery
 
-`Schema::install` serializes setup with a MariaDB advisory lock. It writes a fixed
-`alpha-v8` installation identity before repeatable DDL, then installs final
-`schema/configuration.sql` and `schema/execution.sql`. This identity is not a
-migration history. Current tool definitions and the Receptionist draft are inserted
-from canonical PHP/JSON defaults in a transaction. Retrying an interrupted or
-completed setup preserves edited drafts, secrets, activation and immutable versions.
-Publication and catalog triggers prevent updates and deletes.
+`Schema::install` serializes setup with a MariaDB advisory lock. It validates the
+database layout, installs the versioned baseline and records each completed
+migration in `asterisk.voice_agent_preview_schema`. MariaDB DDL commits as it
+runs, so each step can be retried after interruption. Schema versions are
+independent of published workflow versions. A repeated setup preserves drafts,
+secrets and immutable publications.
 
 NS8 provisions private runtime credentials from `passwords.env`, regenerates the
 runner environment and grants two separate loopback DB identities their narrow
 views and columns. Backup/restore must retain MariaDB configuration/execution data,
-secretbox keys, provider secrets, environment and native PBX state together. Clone
-credentials are independent. Restore reruns setup without reseeding operator edits.
+secretbox keys, provider secrets, environment and native PBX state together. A clone preserves the data encryption key, rotates its service credentials and
+starts with Agents disabled. Restore reconciles saved settings after the PBX is
+ready.
 
 Before a staging reset or image replacement, record exact source/image provenance,
 protect database/secrets/routes/override backups, independently verify zero calls
@@ -186,7 +198,7 @@ live acceptance. Duplication, caller admission policies, richer graph workflows 
 custom connectors remain roadmap work; IVR discovery, menu context and transfers
 are intentionally excluded.
 
-## CleverAI (external conversations)
+## CleverAI (external conversations, lab only)
 
 Choose **CleverAI** as the trunk type and enter its display name and OpenAI project
 ID. It reuses the managed OpenAI SIP trunk, proxy, port and media settings.
@@ -228,6 +240,5 @@ confirmed. Do not treat the local identity or empty-header handling as verified
 CleverAI behavior. Confirm the mapping with CleverAI before a live rollout;
 experimental numbers such as 9907001 are not created or copied.
 
-This is additive metadata in the existing fresh-v8 configuration tables, with no
-schema conversion or development-database reset. Repeated installation preserves
+CleverAI shares the preview database schema and retains its separate activation path. Repeated installation preserves
 CleverAI edits as well as existing local credentials and immutable publications.
