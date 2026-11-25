@@ -338,7 +338,7 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
 
         // Owner is mandatory and must be an existing user (fail closed).
         $owner = isset($data['owner']) ? trim($data['owner']) : '';
-        if ($owner === '' || !userExists($owner)) {
+        if ($owner === '' || !userHasExtension($owner)) {
             return jsonResponse($response, array("status"=>"Invalid or missing owner"), 400);
         }
 
