@@ -60,7 +60,7 @@ final class VisualPlan
             $queue=$adj[$origin]??[];$seen=[];
             while ($queue) {
                 $node=array_pop($queue);
-                if ($node===$origin) throw new \RuntimeException('invalid_agent_reference',422);
+                if ($node===$origin) throw new \RuntimeException('fallback_cycle',422);
                 if (isset($seen[$node])) continue;
                 $seen[$node]=true;foreach ($adj[$node]??[] as $next) $queue[]=$next;
             }

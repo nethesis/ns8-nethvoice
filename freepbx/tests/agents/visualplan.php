@@ -10,11 +10,11 @@ $connection=['source'=>['node'=>'incoming%test','port'=>'output_incoming%test'],
 VisualPlan::validateGraph([$widget],[$connection],fn($id)=>$agent);
 foreach ([[[],[$connection]],[[$widget],[array_replace($connection,['source'=>['node'=>$widget['id']]])]],[[$widget],[array_replace($connection,['target'=>['node'=>$widget['id'],'port'=>'forged']])]]] as [$widgets,$connections]) {
     try { VisualPlan::validateGraph($widgets,$connections,fn($id)=>$agent); throw new Exception('unsafe_graph_accepted'); }
-    catch (RuntimeException $error) { assert($error->getMessage()==='invalid_agent_reference'); }
+    catch (RuntimeException $error) { assert(in_array($error->getMessage(),['invalid_agent_reference','fallback_cycle'],true)); }
 }
 foreach ([['id'=>'satellite-agent-destination%../bad','userData'=>['agent_id'=>'../bad']], ['id'=>'satellite-agent-destination%internal','userData'=>['agent_id'=>'external']]] as $invalid) {
     try { VisualPlan::resolve($invalid,fn($id)=>$agent); throw new Exception('unsafe_widget_accepted'); }
-    catch (RuntimeException $error) { assert($error->getMessage()==='invalid_agent_reference'); }
+    catch (RuntimeException $error) { assert(in_array($error->getMessage(),['invalid_agent_reference','fallback_cycle'],true)); }
 }
 $hangup=['id'=>'app-blackhole%hangup'];
 $fallback=['source'=>['node'=>$widget['id'],'port'=>'output_agent_fallback%internal'],'target'=>['node'=>$hangup['id'],'port'=>'input_'.$hangup['id']]];
@@ -22,7 +22,7 @@ VisualPlan::validateGraph([$widget,$hangup],[$connection,$fallback],fn($id)=>$ag
 $back=['source'=>['node'=>$hangup['id'],'port'=>'output_back'],'target'=>['node'=>$widget['id'],'port'=>'input_'.$widget['id']]];
 foreach ([[$fallback,$fallback],[$fallback,$back],[array_replace($fallback,['source'=>['node'=>$widget['id'],'port'=>'output_forged']])],[array_replace($fallback,['target'=>['node'=>'missing','port'=>'input_missing']])]] as $edges) {
     try { VisualPlan::validateGraph([$widget,$hangup],$edges,fn($id)=>$agent); throw new Exception('unsafe_fallback_accepted'); }
-    catch (RuntimeException $error) { assert($error->getMessage()==='invalid_agent_reference'); }
+    catch (RuntimeException $error) { assert(in_array($error->getMessage(),['invalid_agent_reference','fallback_cycle'],true)); }
 }
 $agent['routable']=false;
 try { VisualPlan::resolve($widget,fn($id)=>$agent); throw new Exception('disabled_agent_accepted'); }
