@@ -44,7 +44,7 @@ FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "si
         "denied", "denied-queue", "unknown", "ambiguous", "callback-empty",
         "callback-excluded", "callback-multiple", "callback-inbound", "callback-other-caller",
         "attended-decline", "attended-question", "chat-busy", "chat-no-answer",
-        "chat-expired", "publication", "deadline", "fallback")
+        "chat-expired", "publication", "deadline", "fallback", "overload")
 RECOVERY = ("restart-during-call", "restart-after-transfer")
 
 
@@ -587,6 +587,27 @@ class Call:
                 self.accept(self.peer)
                 self.transferred()
 
+    def overload(self):
+        route = self.configure(fallback=True, hangup=False)
+        first = self.caller
+        second = self.phones["colleague"]
+        self.start(route)
+        self.start(route, second)
+        self.baseline = {row["run_id"] for row in self.lab.activity(self.transport)}
+        self.caller = self.phones["denied"]
+        fallback = self.phones["alternate"]
+        self.caller.dial(route)
+        self.accept(fallback)
+        self.caller.wait("CONFIRMED", 12)
+        self.exchange(fallback)
+        self.caller.hangup()
+        self.outcome("fallback", "capacity_exceeded")
+        for admitted in (first, second):
+            require(admitted.status()["call"] == "CONFIRMED",
+                    "A call admitted before overload was interrupted")
+            admitted.hangup()
+        self.evidence.append("two callers heard their greetings and the third reached native fallback")
+
     def run(self):
         with ExitStack() as self.stack:
             self.steps()
@@ -601,6 +622,8 @@ class Call:
             self.callback()
         elif case.startswith(("attended", "chat", "voicemail")) or case == "restart-after-transfer":
             self.consultation()
+        elif case == "overload":
+            self.overload()
         elif case in ("deadline", "fallback"):
             route = self.configure(duration=30, fallback=case == "fallback")
             self.start(route)
