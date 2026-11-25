@@ -463,6 +463,7 @@ RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/queues < /tmp/nethvoice-core-patches/freepbx-queues-join-announcement.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/recordings < /tmp/nethvoice-core-patches/freepbx-recordings-italian-placeholders.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/userman < /tmp/nethvoice-core-patches/freepbx-userman-sync-status.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/voicemail < /tmp/nethvoice-core-patches/freepbx-voicemail-primary-mailbox.patch && \
     rm -rf /tmp/nethvoice-core-patches
