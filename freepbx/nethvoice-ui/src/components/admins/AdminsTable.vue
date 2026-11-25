@@ -176,18 +176,20 @@ const menuItems = (admin: AdminAccount): NeDropdownItem[] => [
                   :data-testid="`admin-read-only-${admin.username}`"
                 >
                   <FontAwesomeIcon :icon="faLock" class="size-4" aria-hidden="true" />
-                  {{ t('admin_control.read_only') }}
+                  {{ t('admin_control.not_editable') }}
                   <span class="sr-only">{{ readOnlyReason(admin) }}</span>
                 </span>
               </template>
               <template #content>{{ readOnlyReason(admin) }}</template>
             </NeTooltip>
-            <NeDropdown
-              v-if="isRemovable(admin)"
-              :items="menuItems(admin)"
-              :align-to-right="true"
-              :open-menu-aria-label="t('admin_control.admin_actions', { name: admin.username })"
-            />
+            <div class="flex w-10 shrink-0 justify-end">
+              <NeDropdown
+                v-if="isRemovable(admin)"
+                :items="menuItems(admin)"
+                :align-to-right="true"
+                :open-menu-aria-label="t('admin_control.admin_actions', { name: admin.username })"
+              />
+            </div>
           </div>
         </NeTableCell>
       </NeTableRow>
