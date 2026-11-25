@@ -82,7 +82,7 @@ class PhoneConsultation:
 
     async def ring(self, seconds, connect_only=False):
         c = self.consultation
-        if seconds <= 0 or len(self.runtime.calls)+len(self.runtime.admitting)>=32:
+        if seconds <= 0:
             return False
         self.coordinator.channels[self.channel] = c
         c.answered.clear()
@@ -113,14 +113,10 @@ class PhoneConsultation:
     async def start_assistant(self):
         from .runtime import Call
         c = self.consultation
-        if len(self.runtime.calls)+len(self.runtime.admitting)>=32:
-            raise ValueError('provider_capacity_exceeded')
         snapshot, binding = copy.deepcopy(c.caller.assistant_snapshot), copy.deepcopy(c.caller.assistant_binding)
-        if binding['adapter']=='live_ws':
-            active = sum(call.binding.get('adapter')=='live_ws' for call in self.runtime.calls.values())
-            import os
-            if active+len(self.runtime._live_admissions)>=int(os.getenv('VOICE_AGENT_LIVE_WS_MAX_CALLS','4')):
-                raise ValueError('media_capacity_exceeded')
+        if not self.runtime.capacity_available(binding['adapter']):
+            from .consultation import CapacityExceeded
+            raise CapacityExceeded()
         call = Call(str(uuid.uuid4()),str(uuid.uuid4()),new_channel_id(),self.channel,snapshot,binding,c.caller.linkedid)
         call.deadline = c.deadline
         call.private_consultation = c

@@ -28,7 +28,7 @@ ERRORS = frozenset(('other', 'timeout', 'cancelled', 'transport', 'provider_erro
     'provider_answer_failed', 'media_bridge_failed', 'media_prepare_failed', 'setup_timeout', 'duration_exceeded',
     'runtime_restarted', 'runtime_stopped', 'ari_disconnected', 'caller_cancelled_before_connect',
     'setup_cancelled', 'tool_execution_failed', 'provider_live_error', 'provider_live_backend_failed',
-    'debug_transcription_unavailable', 'media_eof', 'media_identity_invalid', 'media_backpressure', 'media_transport_failed', 'media_capacity_exceeded', 'cleanup_failed', 'fallback_failed', 'trace_limit', 'observation_gap', 'shutdown', 'setup_expired', 'test_finished'))
+    'debug_transcription_unavailable', 'media_eof', 'media_identity_invalid', 'media_backpressure', 'media_transport_failed', 'media_capacity_exceeded', 'capacity_exceeded', 'cleanup_failed', 'fallback_failed', 'trace_limit', 'observation_gap', 'shutdown', 'setup_expired', 'test_finished'))
 ERRORS = ERRORS | frozenset('consultation_' + stage + '_' + result
     for stage in ('announcement','moh','presence','origination','provider','chat') for result in ('failed','timeout')) | frozenset((
     'consultation_recovery_failed','consultation_update_failed','consultation_handoff_failed','consultation_no_answer',

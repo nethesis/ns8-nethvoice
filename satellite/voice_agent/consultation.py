@@ -66,6 +66,10 @@ class Consultation:
     budget: object | None = None
 
 
+class CapacityExceeded(Exception):
+    pass
+
+
 class Consultations:
     def __init__(self, runtime, client=None, phone_factory=None):
         from .consultation_transport import ConsultationClient
@@ -168,6 +172,8 @@ class Consultations:
                 if config['phone'] and self.can_ring(c.recipient):
                     try:
                         await self.phone(c)
+                    except CapacityExceeded:
+                        raise
                     except Exception:
                         if c.releasing or c.uncertain:
                             raise
@@ -183,6 +189,10 @@ class Consultations:
                     await self.chat(c)
                 if c.state not in TERMINAL:
                     await self.resolve(c, 'unavailable')
+        except CapacityExceeded:
+            c.failure_reason = 'capacity_exceeded'
+            self.emit(c, 'unavailable', c.failure_reason)
+            await self.runtime.finish(c.caller, 'fallback', c.failure_reason, fallback=True)
         except TimeoutError:
             c.failure_reason = 'consultation_' + c.stage + '_timeout'
             await self.resolve(c, 'timed_out')
@@ -340,8 +350,10 @@ class Consultations:
         from .telemetry import CallTrace
         import copy
         import uuid
-        if len(self.runtime.calls)+len(self.runtime.admitting)>=32 or not (await self.current(c))['chat_allowed']:
+        if not (await self.current(c))['chat_allowed']:
             raise ValueError('chat_unavailable')
+        if not self.runtime.capacity_available('chat'):
+            raise CapacityExceeded()
         conversation = ChatConversation(c.caller.assistant_snapshot, c.caller.assistant_binding, c)
         call = Call(str(uuid.uuid4()),str(uuid.uuid4()),'', '',copy.deepcopy(c.caller.assistant_snapshot),
                     {**c.caller.assistant_binding,'adapter':'chat','model':conversation.model},c.caller.linkedid)
