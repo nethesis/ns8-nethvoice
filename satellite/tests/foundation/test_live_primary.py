@@ -46,14 +46,18 @@ async def test_primary_start_real_identity_audio_tools_and_finalization():
         assert await session.start(profile, []) == 'live_real'
         assert await asyncio.wait_for(session.audio.frame(), 1) == b'x' * 79 + b'y' * 81
         await session.send_audio(b'\xff' * 160)
-        await session.respond('A long greeting must not be appended again. ' * 30)
+        for _ in range(10):
+            session.audio_played(bytes(160))
+        await session.respond()
         assert accepted[0]['audio']['format'] == {'type': 'audio/pcmu', 'rate': 8000}
         assert accepted[0]['store'] is False and accepted[0]['model'] == 'gpt-live-1'
         assert 'Synthetic full opening.' in accepted[0]['input'][0]['content'][0]['text']
         assert 'Approved context.' in accepted[0]['delegation']['responses']['instructions']
         await session.close()
         assert inputs == [b'\xff' * 160]
-        assert commands.count('session.start') == commands.count('session.commentary.append') == 1
+        assert len(accepted[0]['input']) == 1
+        assert commands.count('session.start') == 1
+        assert 'session.commentary.append' not in commands
         assert session.usage_snapshot['final'] and session.usage_snapshot['seconds'] == 1.25
         assert not any(e['type'] == 'monitoring_gap' for e in session.drain_observations())
         assert session.audio.pending_bytes == 0
@@ -202,37 +206,58 @@ async def test_consultation_rejected_append_fails_without_waiting_for_speech():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('played, expected', [(False, 'timeout'), (True, 'completed')])
-async def test_primary_greeting_ack_timeout_requires_voiced_audio_written_to_asterisk(
-        monkeypatch, played, expected):
+async def test_silent_or_buffered_output_does_not_confirm_greeting():
+    session = OpenAILiveWebSocketSession({'api_key': 'synthetic'})
+    session.greeting_timeout = .01
+    await session._handle({'type': 'session.output_audio.delta',
+                           'delta': base64.b64encode(bytes(1600)).decode()})
+    session.audio_played(b'\xff' * 160)
+    with pytest.raises(TimeoutError):
+        await session.respond()
+    assert 'playback' not in session.startup_marks
+    await session.close()
+
+
+@pytest.mark.asyncio
+async def test_voice_at_deadline_can_finish_but_partial_voice_still_times_out():
+    session = OpenAILiveWebSocketSession({'api_key': 'synthetic'})
+    session.greeting_timeout = .02
+    session.greeting_confirmation = .2
+    greeting = asyncio.create_task(session.respond())
+    await asyncio.sleep(.01)
+    session.audio_played(bytes(160))
+    await asyncio.sleep(.025)
+    assert not greeting.done()
+    for _ in range(9):
+        session.audio_played(bytes(160))
+    await greeting
+    await session.close()
+
+    silent = OpenAILiveWebSocketSession({'api_key': 'synthetic'})
+    silent.greeting_timeout = silent.greeting_confirmation = .01
+    silent.audio_played(bytes(160))
+    with pytest.raises(TimeoutError):
+        await silent.respond()
+    await silent.close()
+
+
+@pytest.mark.asyncio
+async def test_early_caller_can_finish_before_model_answers_without_replaying_opening():
     from unittest.mock import AsyncMock
-
-    from voice_agent.providers import live
-    from voice_agent.media import FRAME_BYTES
-
-    monkeypatch.setattr(live, 'COMMAND_ACK_TIMEOUT', .02)
     session = OpenAILiveWebSocketSession({'api_key': 'synthetic'})
     session._send = AsyncMock()
+    session.greeting_timeout = .3
     greeting = asyncio.create_task(session.respond())
-    await asyncio.sleep(0)
-    command = session._send.await_args.args[0]
-    if played:
-        for _ in range(1600 // FRAME_BYTES):
-            session.audio_played(b'\x80' * FRAME_BYTES)
-    else:
-        # Buffered provider output and written silence do not prove playback.
-        await session._handle({'type': 'session.output_audio.delta',
-                               'delta': base64.b64encode(b'\x80' * 1600).decode()})
-        session.audio_played(b'\xff' * FRAME_BYTES)
-    if expected == 'timeout':
-        with pytest.raises(live.LiveAcknowledgmentTimeout):
-            await greeting
-    else:
-        await greeting
-    session._send.assert_awaited_once()
-    await session._handle({'type': 'session.commentary.appended',
-                           'client_event_id': command['event_id']})
-    assert session._acks == {}
+    for _ in range(14):
+        await session.send_audio(bytes(160))
+        await asyncio.sleep(.02)
+    await asyncio.sleep(.06)
+    assert not greeting.done()
+    for _ in range(10):
+        session.audio_played(bytes(160))
+    await greeting
+    assert all(call.args[0]['type'] == 'session.input_audio.append'
+               for call in session._send.await_args_list)
     await session.close()
 
 

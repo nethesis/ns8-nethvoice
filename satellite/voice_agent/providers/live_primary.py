@@ -6,7 +6,7 @@ import time
 
 import aiohttp
 
-from .live import LOG, LiveAcknowledgmentTimeout, OpenAILiveAdapter
+from .live import OpenAILiveAdapter
 from .realtime import ProviderError
 from ..media import AudioBuffer, FRAME_BYTES, MAX_AUDIO_BYTES
 
@@ -23,6 +23,8 @@ PCMU_POWER = tuple(_pcmu_power(value) for value in range(256))
 class OpenAILiveWebSocketSession(OpenAILiveAdapter):
     close_timeout = 15
     primary_audio = True
+    greeting_timeout = 10.0
+    greeting_confirmation = .2
 
     def __init__(self, binding, *, session=None):
         super().__init__(binding, session=session)
@@ -33,6 +35,11 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
         self._startup_error = False
         self._signal_observed = False
         self._signal_remainder = bytearray()
+        self.startup_marks = {}
+        self._greeting_played = asyncio.Event()
+        self._caller_onset = None
+        self._last_caller_voice = None
+        self._greeting_interruption = None
 
     async def start(self, profile, tools):
         configuration = self.configuration(profile, tools)
@@ -63,6 +70,7 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
                 raise ProviderError('provider_live_error')
             if self._call is not None and self._call != value:
                 raise ProviderError('provider_live_error')
+            self.startup_marks.setdefault('ready', time.monotonic())
             self._call = value
             self._ready.set()
         elif kind == 'session.output_audio.delta':
@@ -78,7 +86,8 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
             self.audio.append(data)
             if not self._output_observed:
                 self._output_observed = True
-                await self._emit({'type': 'audio_started'})
+                self.startup_marks['packet'] = time.monotonic()
+                await self._emit({'type': 'audio_started', '_observed_at': self.startup_marks['packet']})
             if not self._signal_observed:
                 # One content-free onset marker distinguishes generated silence
                 # from signal. Discard samples immediately; never infer words or
@@ -90,7 +99,8 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
                     if sum(PCMU_POWER[v] for v in frame) >= 160 * 200 ** 2:
                         self._signal_observed = True
                         self._signal_remainder.clear()
-                        await self._emit({'type': 'audio_signal', '_observed_at': time.monotonic()})
+                        self.startup_marks['signal'] = time.monotonic()
+                        await self._emit({'type': 'audio_signal', '_observed_at': self.startup_marks['signal']})
                         break
         else:
             await super()._handle(raw)
@@ -101,18 +111,22 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
                 self._ready.set()
 
     async def respond(self, instructions=None, *, response_id=None):
-        try:
-            await super().respond(instructions, response_id=response_id)
-        except LiveAcknowledgmentTimeout:
-            # Startup can deliver the seeded opening without a timely commentary
-            # acknowledgment. Require at least 200 ms of voiced audio written to
-            # Asterisk before continuing. Replaying the command can greet twice.
-            minimum_frames = 1600 // FRAME_BYTES
-            if (response_id is not None or self._closed_event.is_set()
-                    or not self._audio_enabled
-                    or getattr(self, '_played_speech_sequence', 0) < minimum_frames):
-                raise
-            LOG.warning("OpenAI Live greeting continued after voiced audio reached Asterisk")
+        if response_id is not None:
+            return await super().respond(instructions, response_id=response_id)
+        # session.start already requested the opening. The media writer confirms
+        # playback even if the caller interrupted and the model answered instead.
+        deadline = time.monotonic() + self.greeting_timeout
+        while self._audio_enabled and not self._greeting_played.is_set():
+            try:
+                await asyncio.wait_for(self._greeting_played.wait(), max(0, deadline - time.monotonic()))
+            except TimeoutError:
+                if self._greeting_interruption is not None:
+                    deadline = max(deadline, self._greeting_interruption + self.greeting_timeout)
+                onset = self.startup_marks.get('playback')
+                if onset is not None and onset <= deadline:
+                    deadline = max(deadline, onset + self.greeting_confirmation)
+                if time.monotonic() >= deadline and not self._greeting_played.is_set():
+                    raise
 
     async def send_audio(self, frame):
         if self._audio_enabled:
@@ -120,6 +134,13 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
             # as media diagnostics; it is not identity/intent recognition.
             signal = bool(frame) and sum(PCMU_POWER[v] for v in frame) >= len(frame)*200**2
             if signal:
+                now = time.monotonic()
+                if not self._greeting_played.is_set():
+                    if self._last_caller_voice is None or now - self._last_caller_voice > .1:
+                        self._caller_onset = now
+                    self._last_caller_voice = now
+                    if now - self._caller_onset >= .2:
+                        self._greeting_interruption = now
                 if not getattr(self,'_consultation_input_active',False):
                     await self._emit({'type':'input_speech'})
                 self._consultation_input_active = True
@@ -132,12 +153,17 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
     def audio_played(self, frame):
         if sum(PCMU_POWER[value] for value in frame) >= len(frame) * 200 ** 2:
             self._played_speech_sequence = getattr(self, '_played_speech_sequence', 0) + 1
+            if self._played_speech_sequence == 1:
+                self.startup_marks['playback'] = time.monotonic()
+            if self._played_speech_sequence == 1600 // FRAME_BYTES:
+                self._greeting_played.set()
             self._played_quiet_bytes = 0
         else:
             self._played_quiet_bytes = min(8000, getattr(self, '_played_quiet_bytes', 0) + len(frame))
 
     def stop_audio(self):
         self._audio_enabled = False
+        self._greeting_played.set()
         self.audio.close()
         self._signal_remainder.clear()
 
