@@ -132,11 +132,14 @@ final class Monitoring
         $row['call_record_url']=null;
         if (!empty($row['linkedid'])) {
             // The native CDR report enforces its own authorization and retention.
-            $uid=$this->query("SELECT uniqueid FROM asterisk.voice_agent_recent_cdr WHERE linkedid=? AND calldate BETWEEN
+            $call=$this->query("SELECT uniqueid,calldate FROM asterisk.voice_agent_recent_cdr WHERE linkedid=? AND calldate BETWEEN
                 CONVERT_TZ(?, '+00:00', 'SYSTEM') - INTERVAL 1 HOUR AND CONVERT_TZ(?, '+00:00', 'SYSTEM') + INTERVAL 1 HOUR
-                ORDER BY calldate,sequence LIMIT 1",[$row['linkedid'],$row['started_at'],$row['started_at']])->fetchColumn();
-            if (is_string($uid) && preg_match('/^[a-zA-Z0-9._:-]{1,128}$/D',$uid))
-                $row['call_record_url']='/freepbx/admin/config.php?display=cdr&action=cel_show&uid='.rawurlencode($uid);
+                ORDER BY calldate,sequence LIMIT 1",[$row['linkedid'],$row['started_at'],$row['started_at']])->fetch(\PDO::FETCH_ASSOC);
+            if ($call && preg_match('/^[a-zA-Z0-9._:-]{1,128}$/D',$call['uniqueid'])) {
+                $row['call_record_url']='/freepbx/admin/config.php?'.http_build_query([
+                    'display'=>'cdr','action'=>'cdr_record','uid'=>$call['uniqueid'],'calldate'=>$call['calldate']
+                ],'', '&', PHP_QUERY_RFC3986).'#CDR';
+            }
         }
         unset($row['linkedid']);
         return self::row($row);
