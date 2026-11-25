@@ -190,6 +190,12 @@ $app->get('/{filename}', function(Request $request, Response $response, array $a
         $id = strtoupper($id);
     }
 
+    // Unknown phone: the same answer as a file that matches no pattern
+    if (!$storage->scopeExists($id)) {
+        $logger->debug(sprintf('Scope "%s" not found for "%s"', $id, $filename));
+        return $response->withStatus(404);
+    }
+
     // Instantiate scope
     $scope = \Tancredi\Entity\Scope::getPhoneScope($id, $storage, $logger, TRUE);
     // Get template variable name from file
@@ -217,13 +223,27 @@ $app->get('/{filename}', function(Request $request, Response $response, array $a
     foreach ($scope_data as $key => $value) {
         if (strpos($key, 'account_') !== FALSE ||
             strpos($key, 'adminpw') !== FALSE ||
-            strpos($key, 'userpw') !== FALSE) {
+            strpos($key, 'userpw') !== FALSE ||
+            strpos($key, 'door_rtsp_password') !== FALSE ||
+            strpos($key, 'door_dtmf_code') !== FALSE) {
             $scope_data[$key] = '';
         }
     }
-    // Use token 1 instead of token 2
-    $scope_data['tok2'] = $scope_data['tok1'];
-    $scope_data['provisioning_url2'] = $scope_data['provisioning_url1'];
+    if (!empty($scope_data['cap_door_phone'])) {
+        // Door phones: no token at all. The first access token would give
+        // the full configuration (relay codes, passwords) to anyone who
+        // reads the MAC on the device label. A door phone gets its
+        // tokenized URL (provisioning_url1) from RPS or from the
+        // administrator, never from this file.
+        $scope_data['tok1'] = '';
+        $scope_data['tok2'] = '';
+        $scope_data['provisioning_url1'] = '';
+        $scope_data['provisioning_url2'] = '';
+    } else {
+        // Use token 1 instead of token 2
+        $scope_data['tok2'] = $scope_data['tok1'];
+        $scope_data['provisioning_url2'] = $scope_data['provisioning_url1'];
+    }
 
     // Add provisioning_complete variable
     $scope_data['provisioning_complete'] = '';

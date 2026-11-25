@@ -33,7 +33,7 @@ jobs:
           - group: cti
             images: cti-server,cti-middleware,cti-ui
           - group: services
-            images: mariadb,tancredi,phonebook,satellite,sftp,saml2-proxy,oauth2-proxy,ejabberd
+            images: mariadb,tancredi,phonebook,satellite,sftp,saml2-proxy,oauth2-proxy,ejabberd,mediamtx
           - group: reports
             images: reports-api,reports-ui
           - group: janus

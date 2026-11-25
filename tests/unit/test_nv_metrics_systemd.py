@@ -109,7 +109,7 @@ class ReadUnitsTest(unittest.TestCase):
         self.assertEqual(
             set(systemd.SERVICES),
             {
-                "freepbx", "mariadb", "janus", "nethcti-ui", "nethcti-server",
+                "freepbx", "mariadb", "janus", "mediamtx", "nethcti-ui", "nethcti-server",
                 "nethcti-middleware", "phonebook", "tancredi", "satellite",
                 "satellite-mqtt", "satellite-pgsql", "reports-api",
                 "reports-redis", "reports-ui", "sftp", "saml2-proxy",

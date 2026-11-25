@@ -481,16 +481,17 @@ angular.module('nethvoiceWizardUiApp')
 
     var buildModelUI = function (service, variables) {
       let map = GenericPhoneService.map(variables)
-      return {
+      return GenericPhoneService.applySettingsBlacklist({
         map: map,
         softKeys: convertKeysMap(service.softKeys(map)),
         lineKeys: convertKeysMap(service.lineKeys(map)),
         expansionKeys: convertKeysMap(service.expansionKeys(map)),
         displayAndRingtones: service.displayAndRingtones(map),
         preferences: service.preferences(map),
+        doorRelays: service.doorRelays ? service.doorRelays(map) : undefined,
         phonebook: service.phonebook(map),
         network: service.network(map)
-      }
+      }, variables)
     }
 
     var getModelUI = function (brand, variables) {

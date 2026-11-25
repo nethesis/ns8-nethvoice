@@ -63,7 +63,14 @@ export interface PhoneKeysConfiguration {
   lineKeysCount: number
   expansionKeysPerModule: number
   expansionModulesCount: number
+  // Door phone (model capability "cap_door_phone", e.g. Fanvil i6x): its keys,
+  // relays and credentials are configured by the administrator only
+  doorPhone: boolean
 }
+
+// Tancredi capabilities are strings ("1"); missing or empty means false
+const isCapabilityEnabled = (value: any) =>
+  value === true || value === 1 || value === '1' || value === 'true'
 
 interface CachedPhoneKeysConfiguration {
   request: Promise<PhoneKeysConfiguration | null>
@@ -102,6 +109,9 @@ const fetchPhoneKeysConfiguration = async (
     lineKeysCount: toNumber(model?.variables?.cap_linekey_count),
     expansionKeysPerModule: toNumber(model?.variables?.cap_expkey_count),
     expansionModulesCount: toNumber(model?.variables?.cap_expmodule_count),
+    doorPhone:
+      isCapabilityEnabled(configuration?.variables?.cap_door_phone) ||
+      isCapabilityEnabled(model?.variables?.cap_door_phone),
   }
 }
 

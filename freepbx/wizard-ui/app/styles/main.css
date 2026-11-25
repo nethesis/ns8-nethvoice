@@ -751,6 +751,15 @@ a {
 .configDevices-item-heading {
   flex: 1 0 calc(40% - 80px) !important;
   max-width: 188px;
+  /* long extensions (e.g. 91203) wrap to a second line instead of being cut */
+  flex-wrap: wrap;
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.configDevices-item-heading .configDevices-extension {
+  white-space: nowrap;
 }
 
 .selected {
@@ -2522,6 +2531,16 @@ iframe body {
   margin-top: 38px;
 }
 
+.streaming-gate {
+  border-bottom: 1px solid #d1d1d1;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+}
+
+.streaming-gate-detail {
+  margin-top: 5px;
+}
+
 .urls-margin-top {
   margin-top: 38px;
 }
@@ -3922,4 +3941,25 @@ a.black:active {
 #syncingAlert {
   margin-top: 8px !important;
   margin-bottom: -4px !important;
+}
+
+/* Action column as narrow as its button, button centred */
+.streaming-action-cell {
+  width: 1%;
+  white-space: nowrap;
+  text-align: center;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+}
+
+/* Credentials managed by the PBX: static rows as tall as the input rows */
+.form-control-static.streaming-static {
+  min-height: 26px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.help-block.streaming-help-tight {
+  margin-top: 2px;
+  margin-bottom: 0;
 }

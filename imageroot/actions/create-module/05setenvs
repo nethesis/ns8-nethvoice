@@ -10,6 +10,7 @@ import sys
 import secrets
 import string
 import agent
+import video_gateway
 
 
 def gen_password(length=32):
@@ -196,6 +197,16 @@ agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_lis
 agent.set_env('SAML2_PROXY_PORT', port_list[36])
 agent.set_env('OAUTH2_PROXY_PORT', port_list[37])
 
+# Video gateway (MediaMTX): WHEP, control API and local RTSP on loopback,
+# ICE over TCP public (indexes 42-45, see pypkg/video_gateway.py)
+for offset, var in enumerate(video_gateway.TCP_PORT_VARS):
+    agent.set_env(var, port_list[video_gateway.TCP_RANGE_OFFSET + offset])
+# ICE over UDP: a separate single-port allocation, after the UDP block has
+# been shrunk above. It must never be part of UDP_PORTS_RANGE (see
+# update-module.d/20allocate_ports).
+ice_udp = agent.allocate_ports(1, "udp", keep_existing=True)
+agent.set_env(video_gateway.UDP_PORT_VAR, ice_udp[0])
+
 # IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 1001
 agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
 
@@ -268,7 +279,9 @@ passwords = {
     "SATELLITE_API_TOKEN": gen_password(),
     "NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN": gen_password(),
     "CHAT_COMPONENT_SECRET": gen_password(),
-    "CHAT_SERVICE_SECRET": gen_password()
+    "CHAT_SERVICE_SECRET": gen_password(),
+    # Video gateway (MediaMTX) control API: the password of the nethcti-server user
+    "MEDIAMTX_API_PASSWORD": gen_password()
 }
 
 agent.write_envfile("passwords.env", passwords)

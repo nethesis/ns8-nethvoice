@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type { NextPage } from 'next'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { useSelector } from 'react-redux'
@@ -25,6 +25,7 @@ import {
   openShowSwitchDeviceInputOutput,
   getDownloadLink,
   openShowDownloadLinkContent,
+  getPhoneKeysConfiguration,
 } from '../../lib/devices'
 import { Badge, Button, Dropdown } from '../common'
 import { useDispatch } from 'react-redux'
@@ -93,9 +94,14 @@ const Devices: NextPage = () => {
 
   const [selectedPhysicalPhone, setSelectedPhysicalPhone] = useState<any>(null)
 
-  const [phoneData, setPhoneData]: any = useState([])
+  const [allPhoneData, setPhoneData]: any = useState([])
   const [webrtcData, setWebrtcData]: any = useState([])
   const [phoneLinkData, setPhoneLinkDataData]: any = useState([])
+  // Kind of each physical phone, from its model: door phones are left out of
+  // this page, their keys are configured by the administrator only
+  const [phoneKinds, setPhoneKinds] = useState<Record<string, 'phone' | 'door'>>({})
+  const canEditPhoneKeys =
+    !!profile?.profile?.macro_permissions?.nethvoice_cti?.permissions?.phone_buttons?.value
 
   const dispatch = useDispatch<Dispatch>()
 
@@ -112,6 +118,31 @@ const Devices: NextPage = () => {
       }
     }
   }, [profile?.endpoints])
+
+  const requestedPhoneKinds = useRef<Set<string>>(new Set())
+
+  useEffect(() => {
+    // The model is read through the phone keys API, allowed with phone_buttons
+    if (!canEditPhoneKeys) {
+      return
+    }
+    allPhoneData.forEach((phone: any) => {
+      const macAddress = operators?.extensions?.[phone?.id]?.mac?.toUpperCase()
+      if (!phone?.id || !macAddress || requestedPhoneKinds.current.has(phone.id)) {
+        return
+      }
+      requestedPhoneKinds.current.add(phone.id)
+      getPhoneKeysConfiguration(macAddress)
+        .then((phoneKeys): 'phone' | 'door' => (phoneKeys?.doorPhone ? 'door' : 'phone'))
+        // a model without capabilities, or not readable: an ordinary phone
+        .catch((): 'phone' => 'phone')
+        .then((kind) => {
+          setPhoneKinds((kinds) => ({ ...kinds, [phone.id]: kind }))
+        })
+    })
+  }, [allPhoneData, operators?.extensions, canEditPhoneKeys])
+
+  const phoneData = allPhoneData.filter((phone: any) => phoneKinds[phone?.id] !== 'door')
 
   const [updatedDownloadLink, setUpdatedDownloadLink]: any = useState()
   const [currentOS, setCurrentOS] = useState('')
@@ -628,8 +659,7 @@ const Devices: NextPage = () => {
                     </td>
                     <td className={`${STYLES.tableCell} whitespace-nowrap text-right`}>
                       <div className='flex items-center justify-end gap-1'>
-                        {profile?.profile?.macro_permissions?.nethvoice_cti?.permissions
-                          ?.phone_buttons?.value ? (
+                        {canEditPhoneKeys && phoneKinds[phone?.id] === 'phone' ? (
                           <Button
                             variant='ghost'
                             onClick={() => setSelectedPhysicalPhone(phone)}

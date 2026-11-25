@@ -1,0 +1,301 @@
+// Copyright (C) 2025 Nethesis S.r.l.
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
+import React, { useCallback, useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import classNames from 'classnames'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { IconDefinition } from '@fortawesome/fontawesome-svg-core'
+import {
+  faVideoSlash,
+  faVolumeHigh,
+  faVolumeXmark,
+  faCircleNotch,
+  faPause,
+} from '@fortawesome/free-solid-svg-icons'
+import { useTranslation } from 'react-i18next'
+import { Skeleton } from '../common/Skeleton'
+import { CustomThemedTooltip } from '../common/CustomThemedTooltip'
+import { VideoSource, VideoSourceGate } from '../../hooks/useVideoSources'
+import { useIsWatched, useWhepPlayer } from '../../hooks/useWhepPlayer'
+import { WhepToken } from '../../lib/whepPlayer'
+import { capitalizeFirstLetter } from '../../utils/stringUtils'
+import { getISODateForFilename } from '../../lib/utils'
+import { VideoSourceActions } from './VideoSourceActions'
+
+interface VideoSourceViewProps {
+  source: VideoSource
+  variant: 'card' | 'expanded'
+  // classes of the media container
+  className?: string
+  hasFailedImage: boolean
+  onImageError: (sourceId: string) => void
+  onUnlockSource: (source: VideoSource, gate?: VideoSourceGate) => void
+  onCallSource: (source: VideoSource) => void
+  sizeAction: {
+    icon: IconDefinition
+    label: string
+    tooltip: string
+    onClick: () => void
+  }
+  // false closes the stream of an rtsp source (e.g. while it is shown expanded)
+  active?: boolean
+  // overridable for tests
+  fetchToken?: (sourceId: string) => Promise<WhepToken>
+  resolveUrl?: (path: string) => string
+}
+
+// Until the size of the picture is known
+const DEFAULT_ASPECT_RATIO = 16 / 9
+// Height of the header of the expanded view, out of its 80vh
+const EXPANDED_HEADER_HEIGHT = '2.5rem'
+
+const snapshotFilename = (source: VideoSource) =>
+  source.description
+    ? `${capitalizeFirstLetter(source.description).replace(
+        /\s+/g,
+        '_',
+      )}_${getISODateForFilename()}_screenshot.jpg`
+    : `screenshot_${getISODateForFilename()}.jpg`
+
+const downloadDataUrl = (dataUrl: string, filename: string) => {
+  const link = document.createElement('a')
+  link.href = dataUrl
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+}
+
+/**
+ * Media area of a video source (JPEG frames for "image" sources, WebRTC for "rtsp" sources)
+ * with its action bar.
+ */
+export const VideoSourceView: React.FC<VideoSourceViewProps> = ({
+  source,
+  variant,
+  className,
+  hasFailedImage,
+  onImageError,
+  onUnlockSource,
+  onCallSource,
+  sizeAction,
+  active = true,
+  fetchToken,
+  resolveUrl,
+}) => {
+  const { t } = useTranslation()
+  const isRtsp = source.type === 'rtsp'
+  const isExpanded = variant === 'expanded'
+  const sourceName = source.description || t('Streaming.Video source')
+  const tooltipKey = isExpanded ? 'expanded' : source.id
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const watched = useIsWatched(containerRef)
+  const [muted, setMuted] = useState(true)
+  // the expanded media area follows the picture, without bands around it
+  const [aspectRatio, setAspectRatio] = useState(DEFAULT_ASPECT_RATIO)
+  const updateAspectRatio = useCallback((width: number, height: number) => {
+    if (width && height) setAspectRatio(width / height)
+  }, [])
+
+  const player = useWhepPlayer({
+    sourceId: source.id,
+    whep: source.whep,
+    enabled: isRtsp && active && watched,
+    videoRef,
+    fetchToken,
+    resolveUrl,
+  })
+
+  // React does not keep the muted attribute in sync, set the property
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.muted = muted
+  }, [muted, player.status])
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!isExpanded || !video) return
+    const onResize = () => updateAspectRatio(video.videoWidth, video.videoHeight)
+    video.addEventListener('loadedmetadata', onResize)
+    video.addEventListener('resize', onResize)
+    return () => {
+      video.removeEventListener('loadedmetadata', onResize)
+      video.removeEventListener('resize', onResize)
+    }
+  }, [isExpanded, updateAspectRatio])
+
+  // the last picture stays visible while waiting for the next one or reconnecting
+  const hasVideoFrame =
+    player.status === 'playing' ||
+    player.status === 'reconnecting' ||
+    (player.status === 'waiting' && player.hasPicture)
+  const canSnapshot = isRtsp ? hasVideoFrame : !!source.url && !hasFailedImage
+
+  const handleSnapshot = useCallback(() => {
+    if (!isRtsp) {
+      if (source.url) downloadDataUrl(source.url, snapshotFilename(source))
+      return
+    }
+    const video = videoRef.current
+    if (!video || !video.videoWidth || !video.videoHeight) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const context = canvas.getContext('2d')
+    if (!context) return
+    context.drawImage(video, 0, 0, canvas.width, canvas.height)
+    downloadDataUrl(canvas.toDataURL('image/jpeg', 0.92), snapshotFilename(source))
+  }, [isRtsp, source])
+
+  const unavailable = (message?: string) => (
+    <div
+      className={classNames(
+        'absolute inset-0 flex flex-col items-center justify-center text-center px-4 font-medium text-secondaryNeutral dark:text-secondaryNeutralDark',
+        isExpanded ? '' : 'text-sm',
+      )}
+    >
+      <FontAwesomeIcon
+        icon={faVideoSlash}
+        className={isExpanded ? 'w-16 h-16 mb-4' : 'w-8 h-8 mb-3'}
+      />
+      <p className={isExpanded ? 'text-lg' : ''}>{t('Streaming.video feed not available')}</p>
+      {message && <p className='mt-1 text-xs font-normal'>{message}</p>}
+    </div>
+  )
+
+  const loading = (
+    <div className='absolute inset-0'>
+      <Skeleton width='100%' height='100%' variant='rectangular' />
+    </div>
+  )
+
+  const renderImage = () => {
+    if (hasFailedImage) return unavailable()
+    if (!source.url) return loading
+    return (
+      <Image
+        src={source.url}
+        alt={sourceName}
+        fill
+        unoptimized
+        className={isExpanded ? 'object-contain' : 'object-cover'}
+        onLoad={(e) =>
+          updateAspectRatio(e.currentTarget.naturalWidth, e.currentTarget.naturalHeight)
+        }
+        onError={() => onImageError(source.id)}
+      />
+    )
+  }
+
+  // the stream is closed while the source is shown in the expanded view
+  const paused = (
+    <div className='absolute inset-0 flex flex-col items-center justify-center text-center px-4 text-sm font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
+      <FontAwesomeIcon icon={faPause} className='w-8 h-8 mb-3' />
+      <p>{t('Streaming.Shown in the expanded view')}</p>
+    </div>
+  )
+
+  const unavailableMessage = () => {
+    switch (player.failure) {
+      case 'codec':
+        return t('Streaming.Your browser cannot play the video format of this source')
+      case 'forbidden':
+        return t("Streaming.You don't have permission to watch this video source")
+      case 'unreachable':
+        return t('Streaming.The video source is not reachable, retrying')
+      case 'busy':
+        return t('Streaming.Too many open videos: close one to watch this')
+      default:
+        return undefined
+    }
+  }
+
+  const renderStream = () => (
+    <>
+      <video
+        ref={videoRef}
+        aria-label={sourceName}
+        muted
+        autoPlay
+        playsInline
+        className={classNames(
+          'absolute inset-0 w-full h-full',
+          isExpanded ? 'object-contain' : 'object-cover',
+          !hasVideoFrame && 'invisible',
+        )}
+      />
+      {!active && paused}
+      {active && player.status === 'connecting' && loading}
+      {player.status === 'unavailable' && unavailable(unavailableMessage())}
+      {player.status === 'waiting' && !player.hasPicture && loading}
+      {(player.status === 'reconnecting' || player.status === 'waiting') && (
+        // over the picture the text is in a dark pill: readable on any picture
+        <div className='absolute inset-0 flex items-center justify-center px-4 text-center'>
+          <div
+            role='status'
+            className={classNames(
+              'flex items-center gap-2 text-sm font-medium',
+              player.hasPicture
+                ? 'rounded-full bg-black/60 px-3 py-1 text-white'
+                : 'text-secondaryNeutral dark:text-secondaryNeutralDark',
+            )}
+          >
+            <FontAwesomeIcon icon={faCircleNotch} className='w-4 h-4 animate-spin shrink-0' />
+            <span>
+              {player.status === 'waiting'
+                ? t('Streaming.Waiting for the picture')
+                : t('Streaming.Reconnecting')}
+            </span>
+          </div>
+        </div>
+      )}
+      {(player.status === 'playing' || player.status === 'waiting') && player.hasAudio && (
+        <>
+          <button
+            type='button'
+            className='absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-black/60 hover:bg-black/80 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primaryRing dark:focus-visible:ring-primaryRingDark'
+            aria-label={(muted ? t('Streaming.Unmute') : t('Streaming.Mute')) || undefined}
+            data-tooltip-id={`audio-tooltip-${tooltipKey}`}
+            data-tooltip-content={muted ? t('Streaming.Unmute') : t('Streaming.Mute')}
+            onClick={(e) => {
+              e.stopPropagation()
+              setMuted((value) => !value)
+            }}
+          >
+            <FontAwesomeIcon icon={muted ? faVolumeXmark : faVolumeHigh} className='w-4 h-4' />
+          </button>
+          <CustomThemedTooltip id={`audio-tooltip-${tooltipKey}`} />
+        </>
+      )}
+    </>
+  )
+
+  return (
+    <div
+      ref={containerRef}
+      className={classNames('relative', className)}
+      style={
+        isExpanded
+          ? {
+              aspectRatio,
+              width: `min(100%, calc((80vh - ${EXPANDED_HEADER_HEIGHT}) * ${aspectRatio}))`,
+            }
+          : undefined
+      }
+    >
+      {isRtsp ? renderStream() : renderImage()}
+
+      <VideoSourceActions
+        source={source}
+        tooltipKey={tooltipKey}
+        canSnapshot={canSnapshot}
+        onSnapshot={handleSnapshot}
+        onUnlockSource={onUnlockSource}
+        onCallSource={onCallSource}
+        sizeAction={sizeAction}
+      />
+    </div>
+  )
+}

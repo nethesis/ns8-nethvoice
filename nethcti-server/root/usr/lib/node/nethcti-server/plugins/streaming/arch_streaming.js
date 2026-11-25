@@ -32,9 +32,11 @@ module.exports = function(options, imports, register) {
   try {
     streaming.setLogger(logger.ctilog);
     streaming.config('/etc/nethcti/streaming.json');
+    streaming.configGateway('/etc/nethcti/services.json');
     streaming.setCompAstProxy(imports.astProxy);
     streaming.setCompAuthorization(imports.authorization);
     streaming.start();
+    streaming.startGatewayCheck();
   } catch (err) {
     logger.ctilog.log.error(IDLOG, err.stack);
   }

@@ -26,7 +26,7 @@
       <form id="currentModelForm">
         <!-- sections -->
         <div ng-if="currentModel.ui.map[sectionkey] && currentModel.ui[sectionkey]"
-          ng-repeat="(sectionkey, section) in ::currentModel.ui track by sectionkey">
+          ng-repeat="(sectionkey, section) in currentModel.ui track by sectionkey">
           <!-- if it's a key section -->
           <div class="mt-20" ng-if="isKeysSection(sectionkey)">
             <h2 ng-click="openSection(sectionkey)"
@@ -305,6 +305,9 @@
                                     autocomplete="off"
                                     class="form-control">
                                   </input>
+                                  <div ng-if="key.type == 'input' && inputInvalid(key, currentModel.inputs[key.variable + '_' + keysIndex])" class="has-error">
+                                    <span class="help-block">{{key.patternError | translate}}</span>
+                                  </div>
                                   <!-- time -->
                                   <input
                                     ng-if="key.type == 'time' && !(key.variable.includes('value') && (currentModel.variables['linekey_type_' + keysIndex] == 'blf' || currentModel.variables['softkey_type_' + keysIndex] == 'blf'))"
@@ -530,6 +533,9 @@
                         autocomplete="off"
                         class="form-control">
                       </input>
+                      <div ng-if="item.type == 'input' && inputInvalid(item, currentModel.inputs[item.variable])" class="has-error">
+                        <span class="help-block">{{item.patternError | translate}}</span>
+                      </div>
                       <!-- time -->
                       <input
                         ng-if="item.type == 'time'"
@@ -575,6 +581,7 @@
     </div>
   </div>
   <button ng-show="!loadingModels[model.name]" ng-click="currentModel.uiLocation == 'configurations' ? saveCurrentModelSingle() : showModal('saveChangesConfirm')"
+    ng-disabled="currentModelInvalid()"
     class="btn btn-primary btn-lg profile-button-save mb-10 mt-30" type="submit">
     {{'Save' | translate}}
   </button>

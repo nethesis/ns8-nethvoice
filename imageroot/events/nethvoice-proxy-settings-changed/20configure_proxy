@@ -7,6 +7,7 @@
 
 import agent
 import os
+import video_gateway
 import subprocess
 import sys
 
@@ -20,6 +21,8 @@ agent.set_env('PROXY_PORT', ksrv[0]["port"])
 agent.set_env('NETHVOICE_PROXY_SIP_PORT', ksrv[0].get("sip_port", "5060"))
 agent.set_env('NETHVOICE_PROXY_SIPS_PORT', ksrv[0].get("sips_port", "5061"))
 agent.set_env("ICEENFORCE", ksrv[0]["address"])
+for key, value in video_gateway.ice_env(ksrv[0]).items():
+    agent.set_env(key, value)
 
 # Configure nethvoice-proxy to route SIP traffic for Nethvoice
 response = agent.tasks.run(

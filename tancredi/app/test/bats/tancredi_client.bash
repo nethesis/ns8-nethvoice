@@ -61,6 +61,22 @@ tancredi_scope_path () {
     printf '%sscopes/%s.ini\n' "${tancredi_rw_dir}" "$1"
 }
 
+# Write the variables of a JSON object read from stdin into the data of a
+# scope, without the API and its checks
+tancredi_store_variables () {
+    php -r '
+        require getenv("TANCREDI_APP_ROOT") . "/vendor/autoload.php";
+        $storage = new \Tancredi\Entity\FileStorage(null, $GLOBALS["config"]);
+        $scope = $storage->storageRead($argv[1]);
+        $variables = json_decode(stream_get_contents(STDIN), true);
+        if (!is_array($scope) || !isset($scope["data"]) || !is_array($variables)) {
+            exit(1);
+        }
+        $scope["data"] = array_merge($scope["data"], $variables);
+        exit($storage->storageWrite($argv[1], $scope) ? 0 : 1);
+    ' "$1"
+}
+
 tancredi_shipped_scope_path () {
     printf '%sscopes/%s.ini\n' "${tancredi_ro_dir}" "$1"
 }

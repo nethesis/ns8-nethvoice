@@ -166,6 +166,7 @@ const Streaming: NextPage = () => {
           <VideoSourcesGrid
             sources={filteredAndSortedSources}
             failedImages={failedImages}
+            expandedId={expandedId}
             onImageError={handleImageError}
             onUnlockSource={handleUnlockSource}
             onCallSource={handleCallSource}

@@ -46,6 +46,7 @@ ExecStart=/usr/bin/podman run \
     --env=CDRDBNAME \
     --env=CDRDBUSER \
     --env=SUBSCRIPTION_SYSTEMID \
+    --env=MEDIAMTX_API_PORT \
     --env=TIMEZONE=${TIMEZONE} \
     --network=host \
     --tz=${TIMEZONE} \
