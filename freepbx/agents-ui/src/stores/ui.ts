@@ -2,7 +2,12 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 
 export const useUi = defineStore("ui", () => {
-  const dark = ref(localStorage.getItem("nethvoice.agents.theme") !== "light");
+  const stored = localStorage.getItem("nethvoice.agents.theme");
+  const dark = ref(
+    stored
+      ? stored === "dark"
+      : window.matchMedia("(prefers-color-scheme: dark)").matches,
+  );
   const notices = ref<
     {
       id: string;
