@@ -58,3 +58,22 @@ test('actual Agent palette has a visible tile and icon in expanded and collapsed
   await page.evaluate('hideSidenav()');
   await expect(agent).not.toHaveClass(/hide_text/);
 });
+
+for (const [code, key] of [['agent_reference_unavailable','toolbar_agent_reference_string'],['agent_fallback_unavailable','toolbar_agent_fallback_string'],['visualplan_save_failed','toolbar_not_save_log_string'],['agent_revision_conflict','toolbar_agent_revision_string']]) {
+  test(`a rejected save explains ${code}`, async ({page}) => {
+    await page.goto('./');
+    const index=readFileSync(resolve(native,'index.php'),'utf8');
+    await page.setContent(index.match(/<body[^>]*>([\s\S]*?)<\/body>/)![1]);
+    await page.addScriptTag({content:'var example={}, languages={}, browserLang="en", app={};'});
+    for (const script of ['lib/shifty.js','lib/raphael.js','lib/jquery-1.10.2.min.js','lib/jquery-ui-1.8.23.custom.min.js','lib/jquery.browser.js','lib/Class.js','lib/json2.js','lib/pathfinding-browser.min.js','lib/draw2d.js','i18n/en.js','i18n/it.js','app/View.js','app/Toolbar.js']) {
+      await page.addScriptTag({path:resolve(native,script)});
+    }
+    await page.route('**/create.php?',route=>route.fulfill({status:409,json:{error:code}}));
+    await page.evaluate('app.view=new example.View("canvas"); app.toolbar=new example.Toolbar("toolbar",app.view); var block=new draw2d.shape.basic.Rectangle(); block.setId("incoming%test"); app.view.add(block,10,10);');
+    await page.evaluate('app.toolbar.saveButton.click()');
+    const expected=await page.evaluate(`languages.en["${key}"]`);
+    expect(expected).toBeTruthy();
+    await expect(page.locator('#errorer > *').nth(1)).toHaveText(new RegExp(String(expected).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+    expect(await page.evaluate('[languages.en.base_agent_fallback_string, languages.it.base_agent_fallback_string]')).toEqual(['Fallback','Destinazione alternativa']);
+  });
+}

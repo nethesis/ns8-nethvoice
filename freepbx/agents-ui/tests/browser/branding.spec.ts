@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 
+test.use({ colorScheme: "dark" });
+
 const wizardLogo = readFileSync(new URL("../../../wizard-ui/app/images/brandDark.svg", import.meta.url));
 const customLogo = '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="80"><rect width="400" height="80" fill="#171717"/><text x="12" y="55" fill="white" font-size="40">Example Voice</text></svg>';
 

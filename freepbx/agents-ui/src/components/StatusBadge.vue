@@ -49,7 +49,6 @@ const appearances: Record<string, { icon: string; color: string }> = {
   failed: danger,
   invalid: danger,
   refresh_failed: danger,
-  sync_failed: danger,
   error: danger,
   denied: danger,
   active: info,

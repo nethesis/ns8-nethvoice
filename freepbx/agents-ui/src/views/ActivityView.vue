@@ -20,12 +20,13 @@ import {
 } from "@nethesis/vue-components";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
+import { useLoadError } from "../composables/useLoadError";
 import { request } from "../api";
 import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
 import AppEmptyState from "../components/AppEmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
-import { duration, formatDay, formatLocal } from "../monitoring";
+import { duration, formatDateTime, formatDay } from "../monitoring";
 import type {
   Run,
   MonitoringSummary,
@@ -34,6 +35,7 @@ import type {
 } from "../types";
 type Option = { id: string; label: string };
 const { t, te, locale } = useI18n(),
+  loadError = useLoadError(),
   route = useRoute(),
   router = useRouter();
 const filterLabels = computed(() => ({
@@ -423,7 +425,7 @@ const delivery = computed(() => {
       id: "last",
       label: t("monitoring.healthKeys.last_write_at"),
       value: value.last_write_at
-        ? formatLocal(value.last_write_at, String(locale.value))
+        ? formatDateTime(value.last_write_at, String(locale.value))
         : "—",
       status: "",
     },
@@ -518,7 +520,9 @@ function refresh() {
         "
         data-testid="monitoring-request-error"
         kind="error"
-        :title="t('error.request_failed')"
+        :title="
+          loadError(summary.error.value, runs.error.value, health.error.value)
+        "
       />
       <details v-if="delivery.length || healthWarning">
         <summary>{{ t("diagnostics") }}</summary>
@@ -732,7 +736,7 @@ function refresh() {
             >
             <NeTableCell :data-label="t('startedAt')"
               ><span class="whitespace-nowrap">{{
-                formatLocal(run.started_at, String(locale))
+                formatDateTime(run.started_at, String(locale))
               }}</span></NeTableCell
             >
             <NeTableCell :data-label="t('outcome')"

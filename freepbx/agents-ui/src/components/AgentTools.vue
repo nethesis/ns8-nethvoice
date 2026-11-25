@@ -10,6 +10,7 @@ import {
   NeToggle,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
+import { useLoadError } from "../composables/useLoadError";
 import { useDestinations } from "../composables/useDestinations";
 import DestinationsDrawer, {
   type DestinationSelection,
@@ -20,11 +21,12 @@ import type {
   ToolBinding,
 } from "../types";
 const props = defineProps<{
-  errors?: Record<string, string>;
   modelValue: ToolBinding[];
+  errors?: Record<string, string>;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: ToolBinding[]] }>();
 const { t } = useI18n();
+const loadError = useLoadError();
 const extensions = useDestinations("extension");
 const queues = useDestinations("queue");
 const transfer = computed(() =>
@@ -238,7 +240,7 @@ function number(key: string, value: string) {
             v-if="extensions.isError.value || queues.isError.value"
             class="mt-4"
             kind="error"
-            :title="t('error.request_failed')"
+            :title="loadError(extensions.error.value, queues.error.value)"
           />
         </div>
       </div>
@@ -266,11 +268,11 @@ function number(key: string, value: string) {
         <NeTextInput
           :model-value="String(config.recent_caller_lookback_days ?? '')"
           :label="t('agentTools.lookback')"
-          :invalid-message="errors?.recent_caller_lookback_days"
           :helper-text="t('agentTools.lookbackHelp')"
           type="number"
           min="1"
           max="90"
+          :invalid-message="errors?.lookback"
           @update:model-value="number('recent_caller_lookback_days', $event)"
         />
       </div>
@@ -324,11 +326,11 @@ function number(key: string, value: string) {
         <NeTextInput
           :model-value="String(hangup.config.playback_timeout_seconds ?? '')"
           :label="t('agentTools.goodbye')"
-          :invalid-message="errors?.playback_timeout_seconds"
           :helper-text="t('agentTools.goodbyeHelp')"
           type="number"
           min="1"
           max="10"
+          :invalid-message="errors?.goodbye"
           @update:model-value="number('playback_timeout_seconds', $event)"
         />
       </div>

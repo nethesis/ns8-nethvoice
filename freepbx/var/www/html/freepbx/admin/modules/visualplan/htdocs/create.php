@@ -85,7 +85,10 @@ try {
 } catch (Throwable $error) {
     http_response_code(in_array($error->getCode(), [403,404,409,422], true) ? $error->getCode() : 422);
     header('Content-Type: application/json');
-    echo json_encode(['error' => in_array($error->getMessage(),['agent_preview_disabled','revision_conflict','agent_not_found','agent_not_ready','fallback_cycle','forbidden'],true)?$error->getMessage():'agent_reference_unavailable']); exit;
+    $reason = $error->getMessage();
+    $code = $error->getCode() === 409 ? 'agent_revision_conflict' : 'agent_reference_unavailable';
+    echo json_encode(['error' => in_array($reason, ['agent_preview_disabled','agent_not_found','agent_not_ready','fallback_cycle','forbidden'], true) ? $reason : $code]);
+    exit;
 }
 
 $currentCreated = array();
@@ -108,7 +111,10 @@ try {
 } catch (Throwable $error) {
     http_response_code(in_array($error->getCode(),[403,404,409,422],true)?$error->getCode():503);
     header('Content-Type: application/json');
-    echo json_encode(['error'=>in_array($error->getMessage(),['fallback_cycle','destination_unavailable','revision_conflict','agent_not_ready'],true)?$error->getMessage():'agent_fallback_unavailable']);
+    $reason = $error->getMessage();
+    $code = $error->getCode() === 409 ? 'agent_revision_conflict' : 'agent_fallback_unavailable';
+    if ($hasAgent && in_array($reason, ['fallback_cycle','destination_unavailable','agent_not_ready'], true)) $code = $reason;
+    echo json_encode(['error' => $hasAgent ? $code : 'visualplan_save_failed']);
     exit;
 }
 
