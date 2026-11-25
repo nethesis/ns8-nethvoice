@@ -895,24 +895,20 @@ check(streaming_tcp_reachability('http://2.119.67.174:8080/snapshot.jpg', $fakeC
 expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('ftp://192.0.2.1/x', $fakeConnect); }, 'url', 'only source URLs');
 expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('not a url', $fakeConnect); }, 'url', 'invalid URL');
 
-// Not a port scanner: video ports only, never the node or the cluster VPN
-$connected = [];
-foreach (['rtsp://2.119.67.174:6379/x', 'http://10.5.4.2:22/', 'https://2.119.67.174:9090/x', 'rtsp://2.119.67.174:65535/x'] as $badPort) {
-    expect_validation(function () use ($fakeConnect, $badPort) { streaming_tcp_reachability($badPort, $fakeConnect, null, 2.0, [], []); }, 'url', "port refused: $badPort");
+// Not a port scanner of the node: any port of a device (NAT port forwards
+// such as 1554, 2554), never the node or the cluster VPN
+foreach (['rtsp://2.119.67.174:1554/x', 'rtsp://2.119.67.174:2554/x', 'http://2.119.67.174:8080/x', 'https://2.119.67.174:8443/x', 'rtsp://2.119.67.174/x', 'rtsps://2.119.67.174/x'] as $anyPort) {
+    check(streaming_tcp_reachability($anyPort, $fakeConnect, null, 2.0, [])['reachable'], "any device port: $anyPort");
 }
-check($connected === [], 'refused ports are never contacted');
-foreach (['rtsp://2.119.67.174:8554/x', 'http://2.119.67.174:8080/x', 'https://2.119.67.174:8443/x', 'rtsp://2.119.67.174/x', 'rtsps://2.119.67.174/x'] as $goodPort) {
-    check(streaming_tcp_reachability($goodPort, $fakeConnect, null, 2.0, [], [])['reachable'], "port of video devices: $goodPort");
-}
-check(streaming_tcp_reachability('rtsp://2.119.67.174:10554/x', $fakeConnect, null, 2.0, [10554], [])['reachable'], 'RTSP port of the door phone model');
+check(streaming_tcp_reachability('rtsp://2.119.67.174:2554/x', $fakeConnect, null, 2.0, [])['port'] === 2554, 'port forward port kept');
 $vpn = ['10.5.4.1/32', '10.5.4.2/32', '192.168.122.0/24', '10.5.4.3', 'fd00:1::/64'];
 $connected = [];
 foreach (['rtsp://10.5.4.2:554/x', 'http://10.5.4.1/x', 'rtsp://192.168.122.77/x', 'rtsp://10.5.4.3/x', 'rtsp://[fd00:1::9]/x', 'rtsp://[::ffff:10.5.4.2]/x'] as $node) {
-    check(streaming_tcp_reachability($node, $fakeConnect, null, 2.0, [], $vpn)['reachable'] === false, "node or VPN address refused: $node");
+    check(streaming_tcp_reachability($node, $fakeConnect, null, 2.0, $vpn)['reachable'] === false, "node or VPN address refused: $node");
 }
-check(streaming_tcp_reachability('rtsp://vpn.example/x', $fakeConnect, function () { return ['192.168.5.1', '10.5.4.2']; }, 2.0, [], $vpn)['reachable'] === false, 'a name with a VPN address is refused');
+check(streaming_tcp_reachability('rtsp://vpn.example/x', $fakeConnect, function () { return ['192.168.5.1', '10.5.4.2']; }, 2.0, $vpn)['reachable'] === false, 'a name with a VPN address is refused');
 check($connected === [], 'node and VPN addresses are never contacted');
-check(streaming_tcp_reachability('rtsp://10.5.5.2/x', $fakeConnect, null, 2.0, [], $vpn)['reachable'] === false && $connected === ['10.5.5.2:554'], 'other private addresses are still checked');
+check(streaming_tcp_reachability('rtsp://10.5.5.2/x', $fakeConnect, null, 2.0, $vpn)['reachable'] === false && $connected === ['10.5.5.2:554'], 'other private addresses are still checked');
 check(streaming_ip_in_networks('10.5.4.200', ['10.5.4.0/24']) && !streaming_ip_in_networks('10.5.5.1', ['10.5.4.0/24']), 'IPv4 network');
 check(streaming_ip_in_networks('172.31.255.1', ['172.16.0.0/12']) && !streaming_ip_in_networks('172.32.0.1', ['172.16.0.0/12']), 'IPv4 network not on a byte boundary');
 check(streaming_ip_in_networks('2001:db8::1', ['2001:db8::/32']) && !streaming_ip_in_networks('10.5.4.1', ['2001:db8::/32']), 'IPv6 network, families never mixed');

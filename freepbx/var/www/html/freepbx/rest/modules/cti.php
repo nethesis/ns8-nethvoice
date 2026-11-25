@@ -1124,10 +1124,9 @@ $app->post('/cti/streaming/doorphones/{mac}/sync', function (Request $request, R
  * private network. With "door_phone", when the device is not reachable, the
  * public address the door phone registers from is suggested if the PBX
  * reaches it on the same port.
- * Only the ports of video devices (and the RTSP port of the door phone
- * model) are checked (400 otherwise); the node and the cluster VPN are never
- * contacted (reachable false); at most STREAMING_REACHABILITY_LIMIT checks
- * per minute (429).
+ * Any port is checked (devices behind NAT are often published on other
+ * ports); the node and the cluster VPN are never contacted (reachable
+ * false); at most STREAMING_REACHABILITY_LIMIT checks per minute (429).
  */
 $app->post('/cti/streaming/reachability', function (Request $request, Response $response, $args) {
     try {

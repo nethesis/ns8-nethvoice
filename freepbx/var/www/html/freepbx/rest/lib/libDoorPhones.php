@@ -283,20 +283,7 @@ function door_phone_sync_sources(\PDO $db, ?string $mac = null, ?callable $varia
  */
 function door_phone_reachability(string $url, ?string $mac): array
 {
-    $extraPorts = [];
-    if ($mac !== null) {
-        try {
-            $phone = door_phone_variables($mac);
-        } catch (DoorPhoneException $e) {
-            // Tancredi not available: the usual ports only
-            $phone = null;
-        }
-        $port = (string) ($phone['variables']['door_rtsp_port'] ?? '');
-        if ($phone !== null && streaming_is_door_phone($phone['variables']) && preg_match('/^\d{1,5}$/', $port)) {
-            $extraPorts[] = (int) $port;
-        }
-    }
-    $result = streaming_tcp_reachability($url, null, null, 2.0, $extraPorts);
+    $result = streaming_tcp_reachability($url);
     $result['public_address'] = null;
     $result['public_url'] = null;
     if ($result['reachable'] || $mac === null) {
@@ -311,7 +298,7 @@ function door_phone_reachability(string $url, ?string $mac): array
         return $result;
     }
     $publicUrl = streaming_url_with_host($url, $public);
-    if ($publicUrl !== null && streaming_tcp_reachability($publicUrl, null, null, 2.0, $extraPorts)['reachable']) {
+    if ($publicUrl !== null && streaming_tcp_reachability($publicUrl)['reachable']) {
         $result['public_address'] = $public;
         $result['public_url'] = $publicUrl;
     }

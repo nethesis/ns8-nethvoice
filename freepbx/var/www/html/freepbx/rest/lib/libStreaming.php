@@ -2025,9 +2025,6 @@ function streaming_url_with_host(string $url, string $host): ?string
     return $parsed['scheme'] . '://' . $authority . $parsed['rest'];
 }
 
-// Ports the reachability check connects to: those of the video devices
-// (RTSP 554 and 8554, RTSPS 322, HTTP 80 and 8080, HTTPS 443 and 8443)
-const STREAMING_REACHABILITY_PORTS = [554, 322, 8554, 80, 443, 8080, 8443];
 // Reachability checks allowed in a window of seconds, all administrators
 const STREAMING_REACHABILITY_LIMIT = 30;
 const STREAMING_REACHABILITY_WINDOW = 60;
@@ -2153,12 +2150,12 @@ function streaming_rate_limit(string $file, int $max, int $window, ?int $now = n
  * nothing is sent to the device. Return { reachable, private, host, port };
  * loopback and link-local addresses, the addresses of the node and the
  * cluster VPN networks ($refused, streaming_node_networks() by default) are
- * never contacted (reachable false). Only the ports of video devices and the
- * $extraPorts (e.g. the RTSP port of a door phone model) are checked: a
- * validation error on "url" otherwise, so that the check cannot be used to
- * scan the services of the network.
+ * never contacted (reachable false). Any port is checked: devices behind NAT
+ * are often published on other ports (e.g. 1554, 2554 for several door
+ * phones of the same site), so the services of the node and of the cluster
+ * are protected by the refused addresses and by the rate limit of the API.
  */
-function streaming_tcp_reachability(string $url, ?callable $connect = null, ?callable $resolve = null, float $timeout = 2.0, array $extraPorts = [], ?array $refused = null): array
+function streaming_tcp_reachability(string $url, ?callable $connect = null, ?callable $resolve = null, float $timeout = 2.0, ?array $refused = null): array
 {
     $parsed = streaming_parse_url($url);
     if ($parsed === null) {
@@ -2166,9 +2163,6 @@ function streaming_tcp_reachability(string $url, ?callable $connect = null, ?cal
     }
     $defaults = ['http' => 80, 'https' => 443, 'rtsp' => 554, 'rtsps' => 322];
     $port = $parsed['port'] !== '' ? (int) $parsed['port'] : $defaults[$parsed['scheme']];
-    if (!in_array($port, array_merge(STREAMING_REACHABILITY_PORTS, array_map('intval', $extraPorts)), true)) {
-        throw new StreamingValidationException('url', 'the reachability check is limited to the ports of video devices');
-    }
     $addresses = ($resolve ?? 'streaming_resolve_host')($parsed['host']);
     $result = [
         'host' => $parsed['host'],
