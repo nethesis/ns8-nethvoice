@@ -61,7 +61,7 @@ function migrateCtiMacroPermissions(\PDO $db): void
 	$res = $stmt->fetch(\PDO::FETCH_ASSOC);
 	if ((int) ($res['required_columns'] ?? 0) === 3) {
 		# Check if NethVoice CTI macro_permission exists
-		$sql = "SELECT * FROM `rest_cti_macro_permissions` WHERE `id` = 12";
+		$sql = "SELECT * FROM `rest_cti_macro_permissions` WHERE `id` = 12 OR `name` = 'nethvoice_cti'";
 		$stmt = $db->prepare($sql);
 		$stmt->execute();
 		$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
