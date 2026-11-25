@@ -84,15 +84,15 @@ test("OpenAI creation needs a key and project but no signing secret; manual inpu
   await page.getByLabel("Name", { exact: true }).fill("OpenAI SIP");
   await page.getByLabel("OpenAI project ID", { exact: true }).fill("proj_explicit");
   await page.getByText("Dedicated key", { exact: true }).click();
-  await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
-  await expect(page.getByLabel(/^Webhook signing secret/)).toBeVisible();
+  await page.locator("input").and(page.getByLabel(/^Provider API key/)).fill("synthetic-provider-key");
+  await expect(page.locator("input").and(page.getByLabel(/^Webhook signing secret/))).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Provider webhook endpoint" })).toHaveValue("https://configured.example/satellite-webhooks/openai");
   await page.getByRole("button", { name: "Create", exact: true }).click();
   await expect(page.getByRole("button", { name: "Configure webhook", exact: true })).toBeVisible();
   expect(saved).toBe(true);expect(configured).toBe(false);
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await expect(page.getByLabel(/^Provider API key/)).toHaveValue("");
-  await expect(page.getByLabel(/^Webhook signing secret/)).toHaveValue("");
+  await expect(page.locator("input").and(page.getByLabel(/^Provider API key/))).toHaveValue("");
+  await expect(page.locator("input").and(page.getByLabel(/^Webhook signing secret/))).toHaveValue("");
 });
 
 for (const error of ["webhook_secret_recovery_required", "webhook_provider_unavailable", "webhook_persistence_failed"]) {
