@@ -142,6 +142,13 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             value for name,value in state['environment'].items()
             if name!='VOICE_AGENT_HTTP_PORT' and name.endswith('PORT')}
         agent.allocate_ports.assert_called_once_with(1000,'udp')
+        source = dict(state['passwords.env'])
+        state['passwords.old'] = source
+        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'33000-33045','UDP_PORTS_RANGE':'40000-40999'}), patch('sys.argv',['05setenvs','--clone']):
+            runpy.run_path(str(root/'imageroot/actions/create-module/05setenvs'))
+        assert state['passwords.env']['SATELLITE_AGENT_CONFIG_KEY'] == source['SATELLITE_AGENT_CONFIG_KEY']
+        assert all(state['passwords.env'][name] != source[name] for name in ('VOICE_AGENT_RUNTIME_TOKEN','VOICE_AGENT_CONFIG_PASSWORD','VOICE_AGENT_MONITOR_PASSWORD'))
+        assert state['environment']['VOICE_AGENT_ENABLED'] == state['environment']['VOICE_AGENT_SIP_LAB_ENABLED'] == 'false'
         # Removal must delete the exact public route previously registered.
         removed=[]
         agent.resolve_agent_id=lambda _: 'module/traefik_test'

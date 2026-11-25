@@ -279,4 +279,11 @@ passwords = {
     "VOICE_AGENT_MONITOR_PASSWORD": gen_password()
 }
 
+# The copied trunk ciphertext belongs to the data, including on a clone.
+if '--clone' in sys.argv:
+    source = agent.read_envfile("passwords.old")
+    if source.get("SATELLITE_AGENT_CONFIG_KEY"):
+        passwords["SATELLITE_AGENT_CONFIG_KEY"] = source["SATELLITE_AGENT_CONFIG_KEY"]
+    agent.set_env('VOICE_AGENT_SIP_LAB_ENABLED', 'false')
+agent.set_env('VOICE_AGENT_ENABLED', 'false')
 agent.write_envfile("passwords.env", passwords)
