@@ -14,6 +14,7 @@ import {
   resetPhoneModel,
   type PhoneModel,
 } from '@/lib/phones/models'
+import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 
@@ -29,6 +30,7 @@ useFocusReturn(() => visible)
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
+const { isSuperadmin } = usePermissions()
 
 const {
   mutate: resetMutate,
@@ -36,7 +38,7 @@ const {
   reset: resetMutationReset,
   error: resetError,
 } = useMutation({
-  mutation: (target: PhoneModel) => resetPhoneModel(target.name),
+  mutation: (target: PhoneModel) => resetPhoneModel(target.name, isSuperadmin.value),
   onSuccess(_data, target) {
     setTimeout(() => {
       notificationsStore.createNotification({

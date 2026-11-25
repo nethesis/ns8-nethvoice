@@ -224,10 +224,13 @@ describe('createPhoneModelFrom', () => {
       variables,
     })
 
-    const created = await createPhoneModelFrom({
-      name: 'Reception copy',
-      baseModel: 'fanvil-X4U-reception',
-    })
+    const created = await createPhoneModelFrom(
+      {
+        name: 'Reception copy',
+        baseModel: 'fanvil-X4U-reception',
+      },
+      true,
+    )
 
     expect(tancredi.get).toHaveBeenCalledWith('/models/fanvil-X4U-reception')
     expect(tancredi.post).toHaveBeenCalledWith('/models', {
@@ -236,6 +239,38 @@ describe('createPhoneModelFrom', () => {
       variables: { tmpl_phone: 'fanvil-X5.tmpl', cap_linekey_count: '21', ldap_server: '' },
     })
     expect(created.displayName).toBe('Reception copy')
+  })
+
+  it('leaves out the variables that only the superadmin can write', async () => {
+    vi.mocked(tancredi.get).mockResolvedValue({
+      name: 'fanvil-X4U-reception',
+      display_name: 'Reception',
+      variables: {
+        tmpl_phone: 'fanvil-X5.tmpl',
+        ldap_user: 'cn=phones',
+        ldap_server: 'ldap.example.org',
+        ldap_port: '636',
+        ldap_tls: 'ldaps',
+        hostname: 'pbx.example.org',
+        lcd_logo_url: 'https://pbx.example.org/logo.png',
+        outbound_proxy_1: 'proxy.example.org',
+        outbound_proxy2_2: 'proxy2.example.org',
+        outbound_proxy_port_1: '5061',
+      },
+    })
+    vi.mocked(tancredi.post).mockResolvedValue({ name: 'fanvil-X4U-reception-Copy', variables: {} })
+
+    await createPhoneModelFrom({ name: 'Copy', baseModel: 'fanvil-X4U-reception' }, false)
+
+    expect(tancredi.post).toHaveBeenLastCalledWith('/models', {
+      name: 'fanvil-X4U-reception-Copy',
+      display_name: 'Copy',
+      variables: {
+        tmpl_phone: 'fanvil-X5.tmpl',
+        ldap_user: 'cn=phones',
+        outbound_proxy_port_1: '5061',
+      },
+    })
   })
 })
 
@@ -272,11 +307,27 @@ describe('patchPhoneModelVariables', () => {
         : stored({ language: 'it', ldap_server: 'ldap.example.org' }),
     )
 
-    await expect(resetPhoneModel('fanvil-X4U-reception')).rejects.toBeInstanceOf(
+    await expect(resetPhoneModel('fanvil-X4U-reception', true)).rejects.toBeInstanceOf(
       PhoneSettingsNotSavedError,
     )
     expect(tancredi.patch).toHaveBeenCalledWith('/models/fanvil-X4U-reception', {
       variables: { language: 'en', ldap_server: null },
+    })
+  })
+
+  it('resets only the variables an administrator who is not superadmin can write', async () => {
+    let current: Record<string, string> = { language: 'en', ldap_tls: 'none', ringtone: '3' }
+    vi.mocked(tancredi.patch).mockImplementation(async () => {
+      current = { language: 'en', ldap_tls: 'none' }
+    })
+    vi.mocked(tancredi.get).mockImplementation(async (path) =>
+      path.endsWith('/version/original') ? stored({ language: 'en' }) : stored(current),
+    )
+
+    await resetPhoneModel('fanvil-X4U-reception', false)
+
+    expect(tancredi.patch).toHaveBeenLastCalledWith('/models/fanvil-X4U-reception', {
+      variables: { language: 'en', ringtone: null },
     })
   })
 })

@@ -657,11 +657,60 @@
       "expect": 403
     },
     {
-      "name": "a phones administrator changes the phonebook, time and firmware settings of a model",
+      "name": "a phones administrator changes the phonebook searches, time and firmware settings of a model",
       "as": "phoner",
       "method": "PATCH",
       "path": "/models/fanvil-X5",
-      "body": { "variables": { "ldap_server": "192.0.2.5", "ntp_server": "ntp.example.org", "firmware_file": "x.bin" } },
+      "body": { "variables": { "ldap_user": "cn=phones,dc=phonebook,dc=nh", "ldap_name_filter": "(cn=%)", "ntp_server": "ntp.example.org", "firmware_file": "x.bin" } },
+      "expect": 200
+    },
+    {
+      "name": "a phones administrator cannot point the phones at another LDAP phonebook server",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/defaults",
+      "body": { "ldap_server": "ldap.example.org" },
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator cannot change the LDAP phonebook server of a model",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/models/fanvil-X5",
+      "body": { "variables": { "ldap_server": "192.0.2.5" } },
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator cannot change the LDAP phonebook port of a model",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/models/fanvil-X5",
+      "body": { "variables": { "ldap_port": "389" } },
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator cannot turn off the encryption of the LDAP phonebook",
+      "as": "phoner",
+      "method": "PATCH",
+      "path": "/phones/AC-CD-EF-01-02-03",
+      "body": { "variables": { "ldap_tls": "none" } },
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator reads the LDAP phonebook server in the defaults",
+      "as": "phoner",
+      "method": "GET",
+      "path": "/defaults",
+      "handler_json": { "ldap_server": "pbx.example.org", "ldap_port": "10636", "ldap_tls": "ldaps", "ldap_password": "ldap-secret" },
+      "expect": 200,
+      "json_equals": { "ldap_server": "pbx.example.org", "ldap_port": "10636", "ldap_tls": "ldaps" }
+    },
+    {
+      "name": "superadmin changes the LDAP phonebook server, port and encryption, as before",
+      "as": "boss",
+      "method": "PATCH",
+      "path": "/models/fanvil-X5",
+      "body": { "variables": { "ldap_server": "ldap.example.org", "ldap_port": "636", "ldap_tls": "ldaps" } },
       "expect": 200
     },
     {

@@ -14,6 +14,17 @@ export const MODEL_NAME_MAX_LENGTH = 64
 
 const CUSTOM_MODEL_NAME_EXCEPTIONS = ['fanvil-X3SG-PRO']
 
+const SUPERADMIN_VARIABLES = [
+  'hostname',
+  'lcd_logo_url',
+  'ldap_server',
+  'ldap_port',
+  'ldap_tls',
+  'ldap_password',
+]
+
+const SUPERADMIN_VARIABLE_PATTERN = /^outbound_proxy2?_\d+$/
+
 export type ModelVariables = Record<string, string>
 
 export type ModelVariablesPatch = Record<string, string | null>
@@ -207,6 +218,17 @@ export const buildResetVariables = (
   return patch
 }
 
+export const isSuperadminVariable = (name: string): boolean =>
+  SUPERADMIN_VARIABLES.includes(name) || SUPERADMIN_VARIABLE_PATTERN.test(name)
+
+export const withoutSuperadminVariables = <T>(
+  variables: Record<string, T>,
+  isSuperadmin: boolean,
+): Record<string, T> =>
+  isSuperadmin
+    ? variables
+    : Object.fromEntries(Object.entries(variables).filter(([name]) => !isSuperadminVariable(name)))
+
 const modelPath = (name: string) => `/models/${encodeURIComponent(name)}`
 
 export const getPhoneModels = async (): Promise<PhoneModel[]> =>
@@ -230,18 +252,27 @@ export const deletePhoneModel = async (name: string): Promise<void> => {
   await tancredi.delete(modelPath(name))
 }
 
-export const createPhoneModelFrom = async (newModel: NewPhoneModel): Promise<PhoneModel> => {
+export const createPhoneModelFrom = async (
+  newModel: NewPhoneModel,
+  isSuperadmin: boolean,
+): Promise<PhoneModel> => {
   const base = await getPhoneModel(newModel.baseModel)
   const created = await tancredi.post('/models', {
     name: buildCustomModelName(newModel.baseModel, newModel.name),
     display_name: newModel.name.trim(),
-    variables: base.variables,
+    variables: withoutSuperadminVariables(base.variables, isSuperadmin),
   })
 
   return parsePhoneModelDetail(created)
 }
 
-export const resetPhoneModel = async (name: string): Promise<void> => {
+export const resetPhoneModel = async (name: string, isSuperadmin: boolean): Promise<void> => {
   const [current, original] = await Promise.all([getPhoneModel(name), getOriginalPhoneModel(name)])
-  await patchPhoneModelVariables(name, buildResetVariables(current.variables, original.variables))
+  await patchPhoneModelVariables(
+    name,
+    withoutSuperadminVariables(
+      buildResetVariables(current.variables, original.variables),
+      isSuperadmin,
+    ),
+  )
 }

@@ -47,11 +47,80 @@ test.describe('physical phones: models', () => {
     mockApi.on('GET', `${TANCREDI}/models`, { status: 500, json: { title: 'Broken storage' } })
     await page.goto('./phones/models')
 
-    await expect(page.getByText('Cannot load models')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve models')).toBeVisible()
     await expect(
       page.getByText('The server could not complete the request (error 500). Try again later.'),
     ).toBeVisible()
     await expect(page.getByText(/Broken storage/)).toHaveCount(0)
+  })
+
+  test('keeps the models on screen when a refresh fails', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+    await page.clock.install()
+    await page.goto('./phones/models')
+    await expect(page.getByRole('row')).toHaveCount(4)
+    await page.clock.pauseAt(Date.now() + 10_000)
+
+    mockApi.on('GET', `${TANCREDI}/models`, { status: 500, json: { title: 'Broken storage' } })
+    const calls = mockApi.callsTo('GET', `${TANCREDI}/models`).length
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect
+      .poll(() => mockApi.callsTo('GET', `${TANCREDI}/models`).length)
+      .toBeGreaterThan(calls)
+
+    await expect(page.getByText('Cannot retrieve models')).toBeVisible()
+    await expect(page.getByRole('row', { name: /Reception desk/ })).toBeVisible()
+    await expect(page.getByRole('row')).toHaveCount(4)
+  })
+
+  test('keeps the model and its unsaved changes when a refresh fails', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPhonesApi(mockApi).on('GET', `${TANCREDI}/models/:id`, {
+      json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
+    })
+    await page.clock.install()
+    await page.goto('./phones/models?model=yealink-T46')
+    await page.getByRole('button', { name: 'Preferences' }).click()
+    await page.getByRole('textbox', { name: 'NTP server address' }).fill('ntp.example.com')
+    await page.clock.pauseAt(Date.now() + 10_000)
+
+    mockApi.on('GET', `${TANCREDI}/models/:id`, { status: 500, json: { title: 'Broken storage' } })
+    const calls = mockApi.callsTo('GET', `${TANCREDI}/models/:id`).length
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect
+      .poll(() => mockApi.callsTo('GET', `${TANCREDI}/models/:id`).length)
+      .toBeGreaterThan(calls)
+
+    await expect(page.getByText('Cannot retrieve model')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'NTP server address' })).toHaveValue(
+      'ntp.example.com',
+    )
+    await expect(page.getByRole('button', { name: 'Save', exact: true })).toBeEnabled()
+  })
+
+  test('shows why the files of a model cannot be retrieved', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+      .on('GET', `${TANCREDI}/models/:id`, {
+        json: { name: 'yealink-T46', display_name: 'Yealink T46', variables: MODEL_VARIABLES },
+      })
+      .on('GET', `${TANCREDI}/firmware`, { status: 500, json: { title: 'Broken storage' } })
+    await page.goto('./phones/models?model=yealink-T46')
+    await page.getByRole('button', { name: 'Preferences' }).click()
+
+    await expect(page.getByText('Cannot retrieve firmware files')).toBeVisible()
+    await expect(
+      page.getByText('The server could not complete the request (error 500). Try again later.'),
+    ).toBeVisible()
+
+    mockApi.on('GET', `${TANCREDI}/firmware`, {
+      json: [{ name: 'fw-1.2.3.rom', size: 2048, mtime: 1767225600 }],
+    })
+    await page.getByRole('button', { name: 'Retry' }).click()
+    await expect(page.getByText('Cannot retrieve firmware files')).toHaveCount(0)
+    await page.getByRole('combobox', { name: 'Firmware' }).click()
+    await expect(page.getByRole('option', { name: 'fw-1.2.3.rom' })).toBeVisible()
   })
 
   test('adds a custom model copying the base model', async ({ page, mockApi }) => {
@@ -224,7 +293,10 @@ test.describe('physical phones: models', () => {
     })
   })
 
-  test('shows the LDAP password of a model to the superadmin', async ({ page, mockApi }) => {
+  test('shows the LDAP server, port, encryption and password of a model to the superadmin', async ({
+    page,
+    mockApi,
+  }) => {
     mockStoredModel(mockPhonesApi(mockApi), {
       name: 'yealink-T46',
       display_name: 'Yealink T46',
@@ -233,10 +305,20 @@ test.describe('physical phones: models', () => {
     await page.goto('./phones/models?model=yealink-T46')
 
     await page.getByRole('button', { name: 'LDAP phonebook' }).click()
+    await expect(page.getByRole('textbox', { name: 'Server address' })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Port' })).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Encryption' })).toBeVisible()
     await expect(page.getByLabel('Password', { exact: true })).toBeVisible()
+
+    await page.getByRole('textbox', { name: 'Server address' }).fill('ldap.example.org')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('Model saved')).toBeVisible()
+    expect(mockApi.callsTo('PATCH', `${TANCREDI}/models/:id`).map((call) => call.body)).toEqual([
+      { variables: { ldap_server: 'ldap.example.org' } },
+    ])
   })
 
-  test('saves a model without the LDAP password for an administrator with the phones section', async ({
+  test('saves a model without the LDAP server, port, encryption and password for an administrator with the phones section', async ({
     page,
     mockApi,
   }) => {
@@ -247,12 +329,16 @@ test.describe('physical phones: models', () => {
     mockStoredModel(mockPhonesApi(mockApi), {
       name: 'yealink-T46',
       display_name: 'Yealink T46',
-      variables: MODEL_VARIABLES,
+      variables: { ...MODEL_VARIABLES, ldap_server: 'ldap.example.org', ldap_tls: 'ldaps' },
     })
     await page.goto('./phones/models?model=yealink-T46')
 
     await page.getByRole('button', { name: 'LDAP phonebook' }).click()
     await expect(page.getByRole('textbox', { name: 'Username' })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Search base DN' })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Server address' })).toHaveCount(0)
+    await expect(page.getByRole('textbox', { name: 'Port' })).toHaveCount(0)
+    await expect(page.getByRole('combobox', { name: 'Encryption' })).toHaveCount(0)
     await expect(page.getByLabel('Password', { exact: true })).toHaveCount(0)
     await page.getByRole('textbox', { name: 'Username' }).fill('cn=phones,dc=example,dc=org')
     await page.getByRole('button', { name: 'Save', exact: true }).click()

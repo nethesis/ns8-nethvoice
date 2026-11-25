@@ -69,15 +69,21 @@ describe('getModelSections', () => {
     expect(network({ tmpl_phone: 'other.tmpl' })).not.toContain('lldp_enable')
   })
 
-  it('should show the LDAP password only to the superadmin', () => {
+  it('should show the LDAP server, port, encryption and password only to the superadmin', () => {
     const ldap = (superadmin: boolean) =>
       getModelSections(variables, superadmin)
         .find((section) => section.id === 'ldap')
         ?.fields.map((field) => field.variable)
 
-    expect(ldap(true)).toContain('ldap_password')
-    expect(ldap(false)).not.toContain('ldap_password')
-    expect(ldap(false)).toContain('ldap_user')
+    expect(ldap(true)).toEqual(
+      expect.arrayContaining(['ldap_server', 'ldap_port', 'ldap_tls', 'ldap_password']),
+    )
+    for (const variable of ['ldap_server', 'ldap_port', 'ldap_tls', 'ldap_password']) {
+      expect(ldap(false)).not.toContain(variable)
+    }
+    expect(ldap(false)).toEqual(
+      expect.arrayContaining(['ldap_user', 'ldap_base', 'ldap_name_filter', 'ldap_number_filter']),
+    )
   })
 })
 
@@ -132,12 +138,20 @@ describe('model form', () => {
     ])
   })
 
-  it('should never send the LDAP password for an administrator who is not superadmin', () => {
+  it('should never send the LDAP server, port, encryption and password for an administrator who is not superadmin', () => {
     const limitedSections = getModelSections(variables, false)
-    const limited = buildModelForm(limitedSections, { ...effective, ldap_password: 'invented' })
+    const limited = buildModelForm(limitedSections, {
+      ...effective,
+      ldap_server: 'ldap.example.org',
+      ldap_port: '636',
+      ldap_tls: 'ldaps',
+      ldap_password: 'invented',
+    })
     const changed = { ...limited, ldap_user: 'cn=phones' }
 
-    expect(limited).not.toHaveProperty('ldap_password')
+    for (const variable of ['ldap_server', 'ldap_port', 'ldap_tls', 'ldap_password']) {
+      expect(limited).not.toHaveProperty(variable)
+    }
     expect(buildVariablesPatch(limited, changed)).toEqual({ ldap_user: 'cn=phones' })
   })
 })

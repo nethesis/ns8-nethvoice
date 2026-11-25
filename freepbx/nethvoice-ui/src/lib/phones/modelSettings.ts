@@ -2,7 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import { PHONE_LANGUAGES, PHONE_TONE_ZONES } from './defaults'
-import type { ModelVariables, ModelVariablesPatch } from './models'
+import { isSuperadminVariable, type ModelVariables, type ModelVariablesPatch } from './models'
 
 export type ModelSectionId =
   'soft_keys' | 'line_keys' | 'display' | 'preferences' | 'ldap' | 'network'
@@ -355,33 +355,31 @@ const getPreferencesFields = (variables: ModelVariables): ModelField[] => [
   },
 ]
 
-const LDAP_PASSWORD_FIELD: ModelField = {
-  variable: 'ldap_password',
-  labelKey: 'phones.models.ldap.ldap_password',
-  type: 'password',
-}
+const getLdapFields = (variables: ModelVariables, isSuperadmin: boolean): ModelField[] => {
+  const fields: ModelField[] = [
+    { variable: 'ldap_server', labelKey: 'phones.models.ldap.ldap_server', type: 'text' },
+    { variable: 'ldap_port', labelKey: 'phones.models.ldap.ldap_port', type: 'text' },
+    { variable: 'ldap_user', labelKey: 'phones.models.ldap.ldap_user', type: 'text' },
+    { variable: 'ldap_password', labelKey: 'phones.models.ldap.ldap_password', type: 'password' },
+    {
+      variable: 'ldap_tls',
+      labelKey: 'phones.models.ldap.ldap_tls',
+      type: 'select',
+      options: withoutBlacklisted(
+        keyedOptions(['none', 'starttls', 'ldaps'], 'phones.models.ldap.tls_modes'),
+        parseList(variables.cap_ldap_tls_blacklist),
+        variables.ldap_tls ?? '',
+      ),
+    },
+    ...LDAP_TEXT_VARIABLES.map((variable): ModelField => ({
+      variable,
+      labelKey: `phones.models.ldap.${variable}`,
+      type: 'text',
+    })),
+  ]
 
-const getLdapFields = (variables: ModelVariables, isSuperadmin: boolean): ModelField[] => [
-  { variable: 'ldap_server', labelKey: 'phones.models.ldap.ldap_server', type: 'text' },
-  { variable: 'ldap_port', labelKey: 'phones.models.ldap.ldap_port', type: 'text' },
-  { variable: 'ldap_user', labelKey: 'phones.models.ldap.ldap_user', type: 'text' },
-  ...(isSuperadmin ? [LDAP_PASSWORD_FIELD] : []),
-  {
-    variable: 'ldap_tls',
-    labelKey: 'phones.models.ldap.ldap_tls',
-    type: 'select',
-    options: withoutBlacklisted(
-      keyedOptions(['none', 'starttls', 'ldaps'], 'phones.models.ldap.tls_modes'),
-      parseList(variables.cap_ldap_tls_blacklist),
-      variables.ldap_tls ?? '',
-    ),
-  },
-  ...LDAP_TEXT_VARIABLES.map((variable): ModelField => ({
-    variable,
-    labelKey: `phones.models.ldap.${variable}`,
-    type: 'text',
-  })),
-]
+  return fields.filter((field) => isSuperadmin || !isSuperadminVariable(field.variable))
+}
 
 const getNetworkFields = (variables: ModelVariables): ModelField[] => {
   const fields: ModelField[] = []

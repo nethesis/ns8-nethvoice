@@ -31,7 +31,7 @@ class NethVoiceAuth implements MiddlewareInterface
 {
     private const SUPERADMIN_FIELDS = ['ldap_password', 'tok1', 'tok2', 'provisioning_url1', 'provisioning_url2'];
     private const PHONES_FIELDS = ['adminpw', 'userpw'];
-    private const SUPERADMIN_WRITE_FIELDS = ['hostname', 'lcd_logo_url'];
+    private const SUPERADMIN_WRITE_FIELDS = ['hostname', 'lcd_logo_url', 'ldap_server', 'ldap_port', 'ldap_tls'];
     private const SUPERADMIN_WRITE_PATTERN = '/^outbound_proxy2?_\d+$/D';
     private const USERS_READABLE_PATHS = ['/phones', '/models', '/defaults', '/macvendors'];
 

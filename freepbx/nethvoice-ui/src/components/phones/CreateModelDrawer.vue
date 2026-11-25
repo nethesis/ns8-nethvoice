@@ -28,6 +28,7 @@ import {
   type NewPhoneModel,
   type PhoneModel,
 } from '@/lib/phones/models'
+import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 
@@ -52,6 +53,7 @@ useFocusReturn(() => isShown)
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
+const { isSuperadmin } = usePermissions()
 
 const name = ref('')
 const baseModel = ref('')
@@ -76,7 +78,7 @@ const isConflict = (error: unknown) => isApiError(error) && error.status === 409
 class ModelNotSavedError extends Error {}
 
 const createAndVerify = async (newModel: NewPhoneModel): Promise<PhoneModel> => {
-  const created = await createPhoneModelFrom(newModel)
+  const created = await createPhoneModelFrom(newModel, isSuperadmin.value)
 
   try {
     await getPhoneModel(created.name)

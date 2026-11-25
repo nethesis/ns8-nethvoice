@@ -104,8 +104,8 @@ foreach (['phoner', 'userer'] as $user) {
     $response = $auth->process(request($factory, $user, 'GET', '/models'), new FixedHandler($list));
     check((string) $response->getBody() === '[{"name":"fanvil-X5","variables":{"ldap_server":"x"}},{"name":"empty","variables":{}}]', "$user received a SIP line password in a list");
 
-    $response = $auth->process(request($factory, $user, 'GET', '/defaults'), new FixedHandler('{"account_password_1":"d","adminpw":"a","userpw":"u","ldap_password":"l","ldap_user":"cn=x"}'));
-    check((string) $response->getBody() === ($user === 'phoner' ? '{"adminpw":"a","userpw":"u","ldap_user":"cn=x"}' : '{"ldap_user":"cn=x"}'), "$user received a secret of another section in the defaults: " . $response->getBody());
+    $response = $auth->process(request($factory, $user, 'GET', '/defaults'), new FixedHandler('{"account_password_1":"d","adminpw":"a","userpw":"u","ldap_password":"l","ldap_user":"cn=x","ldap_server":"pbx.example.org","ldap_port":"10636","ldap_tls":"ldaps"}'));
+    check((string) $response->getBody() === ($user === 'phoner' ? '{"adminpw":"a","userpw":"u","ldap_user":"cn=x","ldap_server":"pbx.example.org","ldap_port":"10636","ldap_tls":"ldaps"}' : '{"ldap_user":"cn=x","ldap_server":"pbx.example.org","ldap_port":"10636","ldap_tls":"ldaps"}'), "$user received a secret of another section in the defaults, or lost the LDAP phonebook server: " . $response->getBody());
 
 }
 $response = $auth->process(request($factory, 'phoner', 'GET', '/firmware/x.bin'), new FixedHandler('binary account_password_1', 'application/octet-stream'));
@@ -137,7 +137,18 @@ foreach ([
     ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['outbound_proxy2_3' => 'evil.example.org']], 403],
     ['phoner', 'POST', '/phones', ['mac' => 'AC-CD-EF-01-02-04', 'model' => 'fanvil-X5', 'variables' => ['hostname' => 'evil.example.org']], 403],
     ['phoner', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['variables' => ['lcd_logo_url' => 'https://evil.example.org/logo.png']], 403],
-    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_server' => '192.0.2.5', 'ntp_server' => 'ntp.example.org', 'firmware_file' => 'x.bin', 'outbound_proxy_port_1' => '5061']], 200],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ntp_server' => 'ntp.example.org', 'firmware_file' => 'x.bin', 'outbound_proxy_port_1' => '5061']], 200],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_user' => 'cn=phones,dc=example,dc=org', 'ldap_base' => 'dc=example,dc=org', 'ldap_name_filter' => '(cn=%)', 'ldap_number_filter' => '(telephoneNumber=%)', 'ldap_name_display' => '%cn']], 200],
+    ['phoner', 'PATCH', '/defaults', ['ldap_server' => 'evil.example.org'], 403],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_server' => '192.0.2.5']], 403],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_port' => '389']], 403],
+    ['phoner', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_tls' => 'none']], 403],
+    ['phoner', 'PATCH', '/phones/AC-CD-EF-01-02-03', ['variables' => ['ldap_server' => 'evil.example.org']], 403],
+    ['phoner', 'POST', '/phones', ['mac' => 'AC-CD-EF-01-02-04', 'model' => 'fanvil-X5', 'variables' => ['ldap_tls' => 'none']], 403],
+    ['phoner', 'POST', '/models', ['name' => 'fanvil-X5-custom', 'variables' => ['ldap_port' => '1389']], 403],
+    ['phoner', 'PATCH', '/models/fanvil-X5', 'variables%5Bldap_server%5D=evil.example.org', 403, 'application/x-www-form-urlencoded'],
+    ['boss', 'PATCH', '/defaults', ['ldap_server' => 'ldap.example.org', 'ldap_port' => '636', 'ldap_tls' => 'ldaps'], 200],
+    ['admin', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_server' => 'ldap.example.org', 'ldap_port' => '389', 'ldap_tls' => 'starttls']], 200],
     ['phoner', 'POST', '/models', ['name' => 'fanvil-X5-custom', 'variables' => ['provisioning_url_filename' => '{mac}.cfg', 'language' => 'it']], 200],
     ['phoner', 'POST', '/phones/AC-CD-EF-01-02-03/tok1', null, 403],
     ['phoner', 'POST', '/firmware', null, 200],
@@ -195,4 +206,4 @@ $static = $factory->createServerRequest('GET', 'http://localhost/tancredi/api/v1
     ->withHeader('Authentication', 'static static-token')->withHeader('HTTP_HOST', '127.0.0.1');
 check((string) $auth->process($static, $handler)->getBody() === $phone, 'the static token must read the phone unchanged');
 
-echo "PASS: Tancredi access, SIP line passwords hidden from sections, LDAP password, provisioning tokens and URLs and phone redirection variables only for the superadmin, phone web passwords only for the phones section, the users section only reads the phones, models and defaults\n";
+echo "PASS: Tancredi access, SIP line passwords hidden from sections, LDAP password, LDAP phonebook server, port and encryption writable, provisioning tokens and URLs and phone redirection variables only for the superadmin, phone web passwords only for the phones section, the users section only reads the phones, models and defaults\n";
