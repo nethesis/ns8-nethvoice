@@ -155,6 +155,21 @@ var AUTH_TYPE = {
 };
 
 /**
+ * Describe the arguments of a call by their types only, for the error
+ * messages: the values are user names, passwords and tokens.
+ *
+ * @method argumentTypes
+ * @param {object} args The arguments object of the call
+ * @return {string} The types of the arguments, e.g. "(string, undefined)".
+ * @private
+ */
+function argumentTypes(args) {
+  return '(' + Array.prototype.map.call(args, function (arg) {
+    return arg === null ? 'null' : typeof arg;
+  }).join(', ') + ')';
+}
+
+/**
  * The path of the ldap authentication script.
  *
  * @property LDAP_SCRIPT_PATH
@@ -648,7 +663,7 @@ function calculateAdminSecretKey(username, sha1Pwd, secret) {
       typeof secret !== 'string' ||
       typeof sha1Pwd !== 'string') {
 
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
     var tohash = username + sha1Pwd + secret;
     return crypto.createHash('sha1').update(tohash).digest('hex');
@@ -673,7 +688,7 @@ function calculateToken(username, password, nonce) {
       typeof nonce !== 'string' ||
       typeof password !== 'string') {
 
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
     // generate token HMAC-SHA1
     var tohash = username + ':' + password + ':' + nonce;
@@ -696,7 +711,7 @@ function getRemoteSiteName(username, token) {
   try {
     // check parameters
     if (typeof username !== 'string' || typeof token !== 'string') {
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
     if (grants[username] &&
       grants[username][token] &&
@@ -728,7 +743,7 @@ function newToken(username, password, nonce, isRemoteSite) {
     if (typeof username !== 'string' || typeof nonce !== 'string' ||
       typeof password !== 'string' || typeof isRemoteSite !== 'boolean') {
 
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
 
     // generate token HMAC-SHA1
@@ -817,7 +832,7 @@ async function removePersistentToken(username, token, type) {
   try {
     // check the parameters
     if (typeof username !== 'string' || typeof token !== 'string' || typeof type !== 'string') {
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
     // delete the persistent token
     await compDbconn.deleteAuthToken({ user: username });
@@ -884,7 +899,7 @@ function getNonce(username, password, isRemoteSite) {
     isRemoteSite = false;
     // check parameters
     if (typeof username !== 'string' || typeof password !== 'string' || typeof isRemoteSite !== 'boolean') {
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
 
     // generate SHA1 nonce
@@ -974,7 +989,7 @@ function authenticateRemoteSite(username, password, remoteIp, cb) {
       typeof password !== 'string' ||
       typeof username !== 'string') {
 
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
 
     // authenticate remote site by credentials read from the file
@@ -1040,7 +1055,7 @@ function authenticate(username, password, cb) {
       typeof password !== 'string' ||
       typeof username !== 'string') {
 
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
     if (authenticationType === AUTH_TYPE.pam) {
       logger.log.info(IDLOG, 'authenticating user "' + username + '" by pam');
@@ -1070,7 +1085,7 @@ function authByPam(username, password, cb) {
       typeof password !== 'string' ||
       typeof username !== 'string') {
 
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
     var child = childProcess.spawn(LDAP_SCRIPT_PATH, [username, password]);
     child.on('close', function(code, signal) {
@@ -1106,7 +1121,7 @@ function authRemoteSiteByFile(username, password, remoteIp, cb) {
       typeof password !== 'string' ||
       typeof username !== 'string') {
 
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
     var site;
     var authenticated = false;
@@ -1145,7 +1160,7 @@ function removeToken(username, token) {
   try {
     // check the parameters
     if (typeof username !== 'string' || typeof token !== 'string') {
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
     // check the grant presence
     var key;
@@ -1180,7 +1195,7 @@ function updateTokenExpires(username, token) {
   try {
     // check parameters
     if (typeof username !== 'string' || typeof token !== 'string') {
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
 
     // check grants presence
@@ -1299,7 +1314,7 @@ function verifyToken(username, token, isRemote) {
     isRemote = false;
     // check parameters
     if (typeof username !== 'string' || typeof token !== 'string' || typeof isRemote !== 'boolean') {
-      throw new Error('wrong parameters: ' + JSON.stringify(arguments));
+      throw new Error('wrong parameters: ' + argumentTypes(arguments));
     }
 
     // check the grant presence
