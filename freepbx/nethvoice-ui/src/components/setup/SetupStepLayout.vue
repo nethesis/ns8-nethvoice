@@ -146,7 +146,7 @@ function goToPreviousStep() {
         :title="$t('setup.cannot_save_progress')"
         :description="describeError(navigationError, { serverDetail: false })"
       />
-      <div class="flex items-center justify-end gap-8">
+      <div class="flex flex-wrap-reverse items-center justify-end gap-x-4 gap-y-2 sm:gap-x-8">
         <NeButton kind="tertiary" size="lg" :disabled="nextLoading" @click="goToPreviousStep">
           <template #prefix>
             <FontAwesomeIcon :icon="faArrowLeft" class="h-4 w-4" aria-hidden="true" />
@@ -156,6 +156,7 @@ function goToPreviousStep() {
         <NeButton
           kind="primary"
           size="lg"
+          class="whitespace-nowrap"
           :loading="nextLoading"
           :disabled="nextDisabled || nextLoading"
           @click="emit('next')"

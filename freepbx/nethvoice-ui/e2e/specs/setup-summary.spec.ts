@@ -412,3 +412,33 @@ test.describe('setup wizard: summary', () => {
     await expect(finish).toBeFocused()
   })
 })
+
+test.describe('setup wizard: summary in Italian on a phone', () => {
+  test.use({ locale: 'it-IT', viewport: { width: 390, height: 844 } })
+
+  test.beforeEach(async ({ page, signedIn, mockApi }) => {
+    void signedIn
+    mockWizardState(mockApi, 12)
+    mockSummary(mockApi)
+    await page.addInitScript(() => localStorage.setItem('nethvoiceSetupCountry', 'it'))
+  })
+
+  test('keeps the finish button on one line and both buttons inside the page', async ({ page }) => {
+    await page.goto('./setup/summary')
+
+    const finish = page.getByRole('button', { name: 'Completa la configurazione' })
+    await expect(finish).toBeVisible()
+    const previous = page.getByRole('button', { name: 'Indietro' })
+    expect((await finish.boundingBox())?.height).toBe((await previous.boundingBox())?.height)
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      ),
+    ).toBe(0)
+    for (const button of [finish, previous]) {
+      const box = await button.boundingBox()
+      expect(box?.x).toBeGreaterThanOrEqual(24)
+      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(390 - 24)
+    }
+  })
+})
