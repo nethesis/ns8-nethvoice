@@ -59,6 +59,8 @@ import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { variant = 'admin' } = defineProps<{ variant?: 'admin' | 'setup' }>()
 
+const showsLiveStatus = variant === 'admin'
+
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const {
@@ -94,7 +96,7 @@ const { can } = usePermissions()
 
 usePolling(
   () => {
-    if (can('trunks')) {
+    if (showsLiveStatus && can('trunks')) {
       refetchLiveState()
     }
   },
@@ -311,20 +313,22 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
           {{ t('common.clear_filter') }}
         </NeButton>
       </NeEmptyState>
-      <LiveDataUnavailableNotice v-if="gateways.length > 0 && liveState.status === 'error'" />
+      <LiveDataUnavailableNotice
+        v-if="showsLiveStatus && gateways.length > 0 && liveState.status === 'error'"
+      />
       <NeTable
         v-if="isTableShown"
         :aria-label="t('trunks.tab_physical')"
         card-breakpoint="lg"
         :loading="isLoading"
-        :skeleton-columns="5"
+        :skeleton-columns="showsLiveStatus ? 5 : 4"
         :skeleton-rows="3"
       >
         <NeTableHead>
           <NeTableHeadCell>{{ t('trunks.trunk') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('trunks.physical.ip_address_column') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('trunks.physical.mac_column') }}</NeTableHeadCell>
-          <NeTableHeadCell>{{ t('common.status') }}</NeTableHeadCell>
+          <NeTableHeadCell v-if="showsLiveStatus">{{ t('common.status') }}</NeTableHeadCell>
           <NeTableHeadCell>
             <span class="sr-only">{{ t('common.actions') }}</span>
           </NeTableHeadCell>
@@ -350,7 +354,7 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
               />
               <template v-else>-</template>
             </NeTableCell>
-            <NeTableCell :data-label="t('common.status')">
+            <NeTableCell v-if="showsLiveStatus" :data-label="t('common.status')">
               <TrunkStatusIndicator :status="getGatewayStatus(item, trunksState.data, liveData)" />
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">

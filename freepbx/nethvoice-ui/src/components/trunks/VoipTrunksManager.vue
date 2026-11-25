@@ -61,6 +61,8 @@ import { describeError } from '@/stores/notifications'
 
 const { variant = 'admin' } = defineProps<{ variant?: 'admin' | 'setup' }>()
 
+const showsLiveStatus = variant === 'admin'
+
 const { t } = useI18n()
 const { state: trunksState, asyncStatus: trunksAsyncStatus, refetch: refetchTrunks } = useTrunks()
 const { state: gatewaysState, refetch: refetchGateways } = useGateways()
@@ -74,7 +76,7 @@ const {
 const { can } = usePermissions()
 
 usePolling(() => {
-  if (can('trunks')) {
+  if (showsLiveStatus && can('trunks')) {
     refetchLiveState()
   }
 }, TRUNKS_LIVE_STATE_REFRESH_INTERVAL)
@@ -255,7 +257,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
         @retry="retry"
       />
       <NeInlineNotification
-        v-if="isLoaded && voipTrunks.length > 0 && liveState.status === 'error'"
+        v-if="showsLiveStatus && isLoaded && voipTrunks.length > 0 && liveState.status === 'error'"
         kind="warning"
         :title="t('trunks.cannot_load_live_status')"
         :description="describeError(liveState.error)"
@@ -308,7 +310,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
         :aria-label="t('trunks.tab_voip')"
         card-breakpoint="xl"
         :loading="isLoading"
-        :skeleton-columns="6"
+        :skeleton-columns="showsLiveStatus ? 6 : 4"
         :skeleton-rows="3"
       >
         <NeTableHead>
@@ -318,8 +320,10 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
             <span class="whitespace-nowrap">{{ t('trunks.voip.phone_number') }}</span>
           </NeTableHeadCell>
           <NeTableHeadCell>{{ t('trunks.voip.codecs') }}</NeTableHeadCell>
-          <NeTableHeadCell>{{ t('trunks.voip.provider_status') }}</NeTableHeadCell>
-          <NeTableHeadCell>{{ t('trunks.voip.sip_registration') }}</NeTableHeadCell>
+          <template v-if="showsLiveStatus">
+            <NeTableHeadCell>{{ t('trunks.voip.provider_status') }}</NeTableHeadCell>
+            <NeTableHeadCell>{{ t('trunks.voip.sip_registration') }}</NeTableHeadCell>
+          </template>
           <NeTableHeadCell>
             <span class="sr-only">{{ t('common.actions') }}</span>
           </NeTableHeadCell>
@@ -328,7 +332,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
           <NeTableRow v-for="item in page" :key="item.id">
             <NeTableCell :data-label="t('trunks.trunk')">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="wrap-anywhere">{{ item.name }}</span>
+                <span class="min-w-28 wrap-anywhere">{{ item.name }}</span>
                 <NeBadgeV2 v-if="item.disabled" kind="gray" size="xs">
                   {{ t('common.disabled') }}
                 </NeBadgeV2>
@@ -343,18 +347,20 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
             <NeTableCell :data-label="t('trunks.voip.codecs')">
               {{ getCodecsLabel(item) || '-' }}
             </NeTableCell>
-            <NeTableCell :data-label="t('trunks.voip.provider_status')">
-              <TrunkStatusIndicator
-                :status="item.disabled ? 'disabled' : getTrunkProviderStatus(item.name, liveData)"
-              />
-            </NeTableCell>
-            <NeTableCell :data-label="t('trunks.voip.sip_registration')">
-              <TrunkStatusIndicator
-                :status="
-                  item.disabled ? 'disabled' : getTrunkRegistrationStatus(item.name, liveData)
-                "
-              />
-            </NeTableCell>
+            <template v-if="showsLiveStatus">
+              <NeTableCell :data-label="t('trunks.voip.provider_status')">
+                <TrunkStatusIndicator
+                  :status="item.disabled ? 'disabled' : getTrunkProviderStatus(item.name, liveData)"
+                />
+              </NeTableCell>
+              <NeTableCell :data-label="t('trunks.voip.sip_registration')">
+                <TrunkStatusIndicator
+                  :status="
+                    item.disabled ? 'disabled' : getTrunkRegistrationStatus(item.name, liveData)
+                  "
+                />
+              </NeTableCell>
+            </template>
             <NeTableCell :data-label="t('common.actions')">
               <div v-if="getTrunkManagement(item) !== 'editable'" class="flex 2xl:justify-end">
                 <NeTooltip>
