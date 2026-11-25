@@ -180,10 +180,10 @@ class HarnessTests(unittest.TestCase):
         call = Call(Mock(), phones, {}, {"confirm": "synthetic.wav"}, Mock(), "live", "chat-dnd", [])
         for text in ("Controllo Giulia Ferri.", "Intende Luca oppure Giulia?",
                      "Giulia ha la segreteria, conferma il messaggio?"):
-            call.confirm_colleague(text)
+            call.confirm_destination(text)
         phones["caller"].play.assert_not_called()
         for _ in range(2):
-            call.confirm_colleague("Ho trovato Giulia Ferri. Intendevi lei?")
+            call.confirm_destination("Posso passarti Giulia Ferri?")
         phones["caller"].play.assert_called_once_with("synthetic.wav")
 
     def test_ringing_wait_allows_caller_to_answer_confirmation(self):
