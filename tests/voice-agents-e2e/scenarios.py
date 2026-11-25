@@ -49,6 +49,8 @@ RECOVERY = ("restart-during-call", "restart-after-transfer")
 
 
 def matrix(profile):
+    if profile == "latency":
+        return [("live", mode) for mode in ("vad", "continuous")]
     if profile == "recovery":
         return [("live", name) for name in RECOVERY]
     primary = ("conversation",) if profile == "smoke" else BOTH
@@ -237,50 +239,53 @@ class Call:
         self.play(phone, key)
         self.expect(phone.listen(start, 25), pattern, label)
 
-    def outcome(self, expected, error=None):
+    def terminal_activity(self):
         deadline = time.monotonic() + 20
         while time.monotonic() < deadline:
             rows = [r for r in self.lab.activity(self.transport)
                     if r["run_id"] not in self.baseline and not r.get("parent_run_id")]
             require(len(rows) <= 1, "Ambiguous Activity correlation for the owned agent")
             if rows and rows[0]["outcome"] != "running":
-                row = rows[0]
-                require(row["outcome"] == expected, f"Expected {expected}, observed {row['outcome']}")
-                require(row["adapter"] in (("realtime",) if self.transport == "realtime" else ("live_ws","live")),
-                        "Activity recorded a different transport")
-                if error:
-                    require(row["error_code"] == error, f"Expected Activity error {error}")
-                if self.case.startswith("callback"):
-                    trace = self.lab.trace(row["run_id"], self.transport)["events"]
-                    counts = [int(event["result_count"]) for event in trace
-                              if event["event_type"] == "tool_completed"
-                              and event["tool_id"] == "pbx.find_recent_callers"
-                              and event.get("result_count") is not None]
-                    wanted = 2 if self.case == "callback-multiple" else int(expected == "transferred")
-                    require(wanted in counts, f"Expected callback lookup returning {wanted}, observed {counts}")
-                    if not wanted:
-                        require(all(n == 0 for n in counts), "An ineligible callback candidate was exposed")
-                    if expected == "transferred":
-                        require(any(e["event_type"] == "transfer_committed" and
-                                    e["destination_id"] == "extension:" + self.number("colleague") for e in trace),
-                                "Missing native callback handoff to the eligible recipient")
-                if self.case.startswith(("attended-", "chat-")) or self.case == "restart-after-transfer":
-                    trace = self.lab.trace(row["run_id"], self.transport)
-                    events = {ev["event_type"] for ev in trace["events"]}
-                    require("consultation_held" in events, "Missing native consultation hold")
-                    if self.case.startswith("chat-"):
-                        require("consultation_chat" in events, "Missing chat consultation trace")
-                    if self.case == "chat-expired":
-                        require(any(ev["event_type"] == "consultation_timed_out" and
-                                    ev["error_code"] == "consultation_chat_timeout" for ev in trace["events"]),
-                                "Missing consultation chat deadline event")
-                    if expected == "transferred":
-                        require("consultation_transferred" in events, "Missing confirmed attended handoff")
-                    require(self.lab.child_runs(row["run_id"], self.transport), "Missing linked private consultation")
-                self.evidence.append(f"Activity {row['run_id']} {expected}")
-                return row
+                return rows[0]
             time.sleep(0.4)
-        raise AssertionError(f"No terminal Activity run for {expected}")
+        raise AssertionError("No terminal Activity run for the owned agent")
+
+    def outcome(self, expected, error=None):
+        row = self.terminal_activity()
+        require(row["outcome"] == expected, f"Expected {expected}, observed {row['outcome']}")
+        require(row["adapter"] in (("realtime",) if self.transport == "realtime" else ("live_ws","live")),
+                "Activity recorded a different transport")
+        if error:
+            require(row["error_code"] == error, f"Expected Activity error {error}")
+        if self.case.startswith("callback"):
+            trace = self.lab.trace(row["run_id"], self.transport)["events"]
+            counts = [int(event["result_count"]) for event in trace
+                      if event["event_type"] == "tool_completed"
+                      and event["tool_id"] == "pbx.find_recent_callers"
+                      and event.get("result_count") is not None]
+            wanted = 2 if self.case == "callback-multiple" else int(expected == "transferred")
+            require(wanted in counts, f"Expected callback lookup returning {wanted}, observed {counts}")
+            if not wanted:
+                require(all(n == 0 for n in counts), "An ineligible callback candidate was exposed")
+            if expected == "transferred":
+                require(any(e["event_type"] == "transfer_committed" and
+                            e["destination_id"] == "extension:" + self.number("colleague") for e in trace),
+                        "Missing native callback handoff to the eligible recipient")
+        if self.case.startswith(("attended-", "chat-")) or self.case == "restart-after-transfer":
+            trace = self.lab.trace(row["run_id"], self.transport)
+            events = {ev["event_type"] for ev in trace["events"]}
+            require("consultation_held" in events, "Missing native consultation hold")
+            if self.case.startswith("chat-"):
+                require("consultation_chat" in events, "Missing chat consultation trace")
+            if self.case == "chat-expired":
+                require(any(ev["event_type"] == "consultation_timed_out" and
+                            ev["error_code"] == "consultation_chat_timeout" for ev in trace["events"]),
+                        "Missing consultation chat deadline event")
+            if expected == "transferred":
+                require("consultation_transferred" in events, "Missing confirmed attended handoff")
+            require(self.lab.child_runs(row["run_id"], self.transport), "Missing linked private consultation")
+        self.evidence.append(f"Activity {row['run_id']} {expected}")
+        return row
 
     def finish(self):
         self.caller.hangup()
