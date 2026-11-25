@@ -20,6 +20,7 @@ let csrf = "";
 let authGeneration = 0;
 const requestGenerations = new WeakMap<object, number>();
 let accessPromise: Promise<void> | undefined;
+let refetchOnAccess = false;
 
 export function credentials(): { user: string; hash: string } | null {
   try {
@@ -43,8 +44,11 @@ function clearAuth() {
   csrf = "";
   accessPromise = undefined;
   auth.authorized = false;
+  refetchOnAccess = true;
   queryClient.cancelQueries();
-  queryClient.clear();
+  const cache = queryClient.getQueryCache();
+  for (const query of cache.getAll())
+    if (!query.getObserversCount()) cache.remove(query);
 }
 
 client.interceptors.request.use((config) => {
@@ -97,6 +101,10 @@ export async function access() {
         }
         csrf = data.csrf;
         auth.authorized = true;
+        if (refetchOnAccess) {
+          refetchOnAccess = false;
+          void queryClient.invalidateQueries();
+        }
       })
       .catch((error) => {
         if (generation === authGeneration) accessPromise = undefined;
@@ -140,10 +148,14 @@ export function errorCode(error: unknown): string {
     ? error.message
     : "request_failed";
 }
-export function loadErrorCode(error: unknown): string {
+export function loadErrorCode(
+  error: unknown,
+  known: (code: string) => boolean = () => false,
+): string {
   const code = errorCode(error);
   if (code === "request_uncertain") return "load_timeout";
-  if (code !== "request_failed" || !axios.isAxiosError(error)) return code;
+  if (!axios.isAxiosError(error) || (code !== "request_failed" && known(code)))
+    return code;
   const status = error.response?.status || 0;
   if (status === 404) return "not_found";
   if (status >= 500) return "request_unavailable";
@@ -158,9 +170,17 @@ export function signOut() {
   clearAuth();
   window.location.assign("/freepbx/wizard/#!/login");
 }
+function resume() {
+  if (auth.ready && !auth.authorized && credentials())
+    access().catch(() => undefined);
+}
 window.addEventListener("storage", (event) => {
   if (event.key === "secretkey") {
     clearAuth();
-    if (credentials()) void access();
+    resume();
   }
+});
+window.addEventListener("focus", resume);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") resume();
 });

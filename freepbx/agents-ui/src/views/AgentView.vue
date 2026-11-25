@@ -13,7 +13,7 @@ import {
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
-import { request, queryClient } from "../api";
+import { errorCode, request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import { agentStatus } from "../agentStatus";
@@ -302,18 +302,33 @@ function validate(publishing: boolean) {
   return !Object.keys(next).length;
 }
 const saving = ref<"" | "draft" | "publish">("");
+const createUncertain = ref(false);
 async function persist(): Promise<Agent> {
-  const value = await request<Agent>(
-    creating.value ? "POST" : "PUT",
-    creating.value
-      ? "/profiles"
-      : "/profiles/" + encodeURIComponent(agentId.value),
-    {
-      profile: { name: name.value.trim(), draft: configuration.value },
-      expected_revision: record.value?.revision || 0,
-    },
-  );
+  const wasCreating = creating.value;
+  let value: Agent;
+  try {
+    value = await request<Agent>(
+      wasCreating ? "POST" : "PUT",
+      wasCreating
+        ? "/profiles"
+        : "/profiles/" + encodeURIComponent(agentId.value),
+      {
+        profile: { name: name.value.trim(), draft: configuration.value },
+        expected_revision: record.value?.revision || 0,
+      },
+    );
+  } catch (error) {
+    if (wasCreating && errorCode(error) === "request_uncertain")
+      createUncertain.value = true;
+    throw error;
+  }
   accept(value);
+  if (wasCreating && !id.value)
+    window.history.replaceState(
+      window.history.state,
+      "",
+      router.resolve("/agents/" + value.agent_id).href,
+    );
   return value;
 }
 async function refreshLists() {
@@ -321,7 +336,7 @@ async function refreshLists() {
   await queryClient.invalidateQueries({ queryKey: ["agents"] });
 }
 async function save() {
-  if (!validate(false)) return;
+  if (createUncertain.value || !validate(false)) return;
   const wasCreating = creating.value;
   saving.value = "draft";
   await task.run(
@@ -351,7 +366,7 @@ async function save() {
   saving.value = "";
 }
 async function publish() {
-  if (!canPublish.value || !validate(true)) return;
+  if (createUncertain.value || !canPublish.value || !validate(true)) return;
   saving.value = "publish";
   await task.run(
     async () => {
@@ -688,7 +703,7 @@ async function synchronize() {
               type="submit"
               :kind="external ? 'primary' : 'secondary'"
               :loading="saving === 'draft'"
-              :disabled="!!saving || (!dirty && !creating)"
+              :disabled="!!saving || createUncertain || (!dirty && !creating)"
               ><template #prefix
                 ><FontAwesomeIcon
                   :icon="external ? 'check' : 'floppy-disk'"
@@ -699,7 +714,7 @@ async function synchronize() {
               v-if="!external"
               kind="primary"
               :loading="saving === 'publish'"
-              :disabled="!!saving || !canPublish"
+              :disabled="!!saving || createUncertain || !canPublish"
               @click="publish"
               ><template #prefix
                 ><FontAwesomeIcon icon="check" aria-hidden="true" /></template

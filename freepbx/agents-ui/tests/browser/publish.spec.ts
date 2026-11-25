@@ -62,9 +62,38 @@ test("a rejected first publication keeps the created agent and retries on it", a
   await expect(page.getByText("Voice and instructions are required.")).toBeVisible();
   await expect(page.getByRole("textbox", {name: "Agent type"})).toHaveValue("Basic voice");
   expect(creates).toBe(1);
+  await expect(page).toHaveURL(/#\/agents\/agent_new$/);
+  await page.reload();
+  await expect(page.getByLabel("Name", {exact: true})).toHaveValue("Night desk");
   await page.getByRole("button", {name: "Publish", exact: true}).click();
   await expect(page).toHaveURL(/#\/agents\/agent_new$/);
   await expect(page.getByText("Version 1 is published.")).toBeVisible();
   expect(creates).toBe(1);
   expect(publishes).toBe(2);
+});
+
+test("a create with an unknown result blocks another create", async ({page}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "synthetic"}));
+    localStorage.setItem("nethvoice.agents.language", "en");
+  });
+  let creates = 0;
+  await page.route("**/freepbx/rest/agents/**", async route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname.replace("/freepbx/rest/agents", "");
+    if (path === "/profiles" && request.method() === "POST") {
+      creates++;
+      await route.abort("connectionreset");
+      return;
+    }
+    await route.fulfill({json: path === "/access" ? {csrf: "synthetic-csrf"} : path === "/catalog" ? {tools, draft_defaults: draft(), extensions: [], default_language: "en", languages: [{id: "en", label: "English"}]} : path === "/trunks" ? {items: [trunk]} : path === "/destinations" ? {items: [], next_offset: null, modules: {}, unavailable_ids: []} : {items: []}});
+  });
+  await page.goto("./#/agents/new");
+  await page.getByLabel("Name", {exact: true}).fill("Night desk");
+  await page.getByRole("button", {name: "Save draft", exact: true}).click();
+  await expect(page.getByText(/The connection ended before the result was received/)).toBeVisible();
+  await expect(page.getByRole("button", {name: "Save draft", exact: true})).toBeDisabled();
+  await expect(page.getByRole("button", {name: "Publish", exact: true})).toBeDisabled();
+  await page.getByLabel("Name", {exact: true}).press("Enter");
+  expect(creates).toBe(1);
 });
