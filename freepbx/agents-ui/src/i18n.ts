@@ -127,6 +127,7 @@ const en = {
     enterName: "Enter a name",
     selectTrunk: "Select a provider trunk to publish the agent",
     retentionRange: "Enter a value from 1 to 24",
+    numberRange: "Enter a value from {min} to {max}",
   },
   modelHelp: {
     noTrunk: "Select a provider trunk to load the available models.",
@@ -289,6 +290,8 @@ const en = {
   authenticationRequired: "Administrator login required",
   authenticationHelp:
     "Use the NethVoice Wizard to sign in, then return to this page.",
+  sessionExpiredHelp:
+    "Sign in again in the tab that opens. This page resumes by itself and keeps your unsaved changes.",
   success: "Saved successfully",
   filters: "Filters",
   resetFilters: "Reset filters",
@@ -909,6 +912,7 @@ const it: typeof en = {
     enterName: "Inserisci un nome",
     selectTrunk: "Seleziona un trunk del provider per pubblicare l'agente",
     retentionRange: "Inserisci un valore da 1 a 24",
+    numberRange: "Inserisci un valore da {min} a {max}",
   },
   modelHelp: {
     noTrunk:
@@ -1073,6 +1077,8 @@ const it: typeof en = {
   authenticationRequired: "Accesso amministratore richiesto",
   authenticationHelp:
     "Accedi tramite il Wizard NethVoice e torna a questa pagina.",
+  sessionExpiredHelp:
+    "Accedi di nuovo nella scheda che si apre. Questa pagina riprende da sola e mantiene le modifiche non salvate.",
   success: "Salvataggio completato",
   filters: "Filtri",
   resetFilters: "Reimposta filtri",
