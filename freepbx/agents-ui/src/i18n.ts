@@ -211,8 +211,6 @@ const en = {
     "Choose a text model available to this provider for chat decisions. Leave empty to use the configured GPT-Live backend. Voice-only models need a separate text model for chat.",
   agentType: "Agent type",
   saveExternal: "Save",
-  cleverAiTrunkHelp:
-    "CleverAI uses OpenAI SIP transport. Configure the OpenAI incoming-call webhook externally to point to CleverAI. NethVoice needs only the project ID; no API key or webhook secret.",
   cleverAiAgentHelp:
     "CleverAI manages conversations, tools and monitoring. Save requests the PBX reload and makes this destination available when ready. Configure fallback in VisualPlan. Transfers back to NethVoice are not supported yet.",
   recentCallbacksHelp:
@@ -245,22 +243,16 @@ const en = {
   tools: "Tools",
   activity: "Monitoring",
   navigation: "Navigation",
-  voiceAgents: "VOICE AGENTS",
-  installer: "NethVoice administrator",
   extensions: "Extensions and devices",
   back: "Back",
-  open: "Open",
   close: "Close",
   cancel: "Cancel",
   save: "Save draft",
   publish: "Publish",
   remove: "Remove",
-  next: "Next",
-  previous: "Previous",
   pagination: "Pagination",
   pageSize: "Show",
   optional: "Optional",
-  directory: "Directory visibility",
   clear: "Clear",
   moreOptions: "Continue typing to show more options",
   rangeOfTotal: "of",
@@ -280,15 +272,12 @@ const en = {
   openVisualplan: "Open VisualPlan",
   defaultLanguage: "Default language",
   voiceCatalogError: "Cannot load provider voices. Retry before publishing.",
-  environmentKeyHelp:
-    "Leave the API key blank to use the configured environment key. Blank fields preserve existing stored credentials. The webhook signing secret is still required.",
   voiceName: "Voice",
   provider: "Voice provider",
   instructions: "Conversation instructions",
   fallback: "Fallback destination",
   catalog: "Open catalog",
   version: "Published version",
-  selected: "Restrict tools for this phase",
   draft: "Draft",
   published: "Published",
   builtin: "Built-in",
@@ -298,8 +287,6 @@ const en = {
   leave: "Discard and leave",
   caller: "Caller",
   outcome: "Outcome",
-  field: "Field",
-  period: "Period",
   day: "Last 24 hours",
   month: "Last 30 days",
   create: "Create",
@@ -329,19 +316,13 @@ const en = {
     'Trunk "{name}" will be deleted. Trunks used by an agent cannot be deleted.',
   openMenu: "Open menu",
   viewActivity: "View monitoring",
-  language: "Language",
-  providerColumn: "Provider",
-  connection: "Project or number",
   credentials: "Credentials",
-  credentialsNotRequired: "Not required",
   credentialSource: {
     stored: "API key and webhook secret",
     environment: "Environment API key and webhook secret",
     missing: "Missing API key",
     project: "Project ID",
   },
-  providerSetup: "Provider setup",
-  trunkNameHelp: "A descriptive name to identify this connection",
   showPassword: "Show password",
   hidePassword: "Hide password",
   generalSettings: "General",
@@ -349,21 +330,11 @@ const en = {
   conversationSettingsHelp:
     "Voice, greeting and the instructions that guide the agent during the call.",
   unsavedHint: "Unsaved changes",
-  toggleEnabled: "Enabled",
-  toggleDisabled: "Disabled",
   expand: "Expand",
-  collapse: "Collapse",
-  routingDescriptions: "Routing descriptions",
-  routingDescriptionsHelp:
-    "Optional. Describe what each destination handles so the agent can route callers by purpose.",
   destinationPicker: {
     extension_allowlist: "Allowed extensions",
     queue_allowlist: "Permitted queues",
     recent_caller_denylist: "Excluded callback extensions",
-  },
-  destinationPickerHelp: {
-    allowlist: "The agent can transfer only to the selected destinations.",
-    denylist: "Every destination is allowed except the selected ones.",
   },
   destinationScope: {
     queue_allowlist: {
@@ -554,27 +525,18 @@ const en = {
   saveDraft: "Save draft",
   edit: "Edit",
   delete: "Delete",
-  basicVoiceHelp:
-    "Configure Basic Voice, save a draft and publish. Choose when to call the agent in the dialplan.",
-  unpublishedChanges:
-    "Saved changes take effect after publishing. Current calls keep their published version.",
-  destinationUnavailable: "Destination unavailable",
-  removeGrant: "Remove permission",
   publishedVersion: "Published version",
-  draftVersion: "Saved draft version",
   reloadSaved: "Reload saved settings",
   retrySync: "Retry synchronization",
   maxDuration: "Maximum call duration",
   greeting: "Greeting",
   toolGrantsHelp:
     "Actions the agent can perform during a call. Each agent has its own tools. Disabled tools keep their settings.",
-  deleteAgentConfirm: "Delete this agent? Referenced agents cannot be deleted.",
   trunks: "Provider trunks",
   trunksHelp:
     "Connections to the AI providers your agents use: OpenAI, Grok and CleverAI.",
   newTrunk: "Create trunk",
   editTrunk: "Edit trunk",
-  deleteTrunkConfirm: "Delete this trunk? Referenced trunks cannot be deleted.",
   openaiProject: "OpenAI project ID",
   grokNumber: "Grok Direct SIP number",
   sipAuthentication: "SIP authentication",
@@ -583,13 +545,6 @@ const en = {
   sipPassword: "SIP password",
   providerApiKey: "Provider API key",
   webhookSigningSecret: "Webhook signing secret",
-  credentialsConfigured: "API key and webhook secret configured",
-  secretKeepHelp:
-    "Leave secret fields empty to keep stored credentials. Secrets are never displayed.",
-  secretRequiredHelp:
-    "Provide API key and webhook signing secret. Credentials are encrypted before storage.",
-  providerSetupHelp:
-    "Register the account and signed webhook with the provider before calls. This form configures the native PBX trunk.",
   startedAt: "Started",
   endedAt: "Ended",
   runDetails: "Run details",
@@ -663,7 +618,6 @@ const en = {
     "Generated transcription can be incomplete or differ from what was heard. No audio recording is saved.",
   noDebugTranscript:
     "No transcript: capture was disabled, content expired, or transcription was unavailable.",
-  partialTranscript: "Partial or interrupted text",
   directoryMatches: "Approved directory matches: {count}",
   transcriptRole: {
     caller: "Caller",
@@ -708,7 +662,6 @@ const en = {
     performance: "Call performance",
     duration: "Duration",
     phases: "Call phases",
-    statusLabel: "Status",
     tools: "Tool performance",
     samples: "Samples",
     invocations: "Invocations",
@@ -728,8 +681,6 @@ const en = {
     audioLimit:
       "Provider output is a reported signal; it does not confirm that audio reached the caller.",
     daily: "Daily outcomes",
-    providerErrors: "Provider errors",
-    showRuns: "Show runs",
     runs: "Runs",
     search: "Filter by agent or run ID",
     timeline: "Call timeline",
@@ -751,13 +702,6 @@ const en = {
       duration_ms: "Runtime duration",
       setup_duration_ms: "Time to media connection",
       first_output_ms: "Time to provider output",
-    },
-    status: {
-      running: "Running",
-      completed: "Completed",
-      failed: "Failed",
-      denied: "Denied",
-      cancelled: "Cancelled",
     },
     phasesMap: {
       snapshot: "Load configuration",
@@ -900,14 +844,11 @@ const en = {
     runtimeP95: "Runtime p95",
     mediaP95: "Media connection p95",
     noRuns: "No runs found",
-    page: "Page {page}",
     phase: "Phase",
     start: "Start",
     timelineHelp: "Start is the time from the beginning of the call.",
     range: "{from} - {to}",
   },
-  hangupToolHelp:
-    "Enable End the call for this agent to let it close a completed conversation or honor a caller’s request to end it. Save and publish to apply.",
   backendInstructions: "Backend-task instructions",
   reasoningEffort: "Backend reasoning effort",
   backendVerbosity: "Backend response detail",
@@ -1126,11 +1067,9 @@ const it: typeof en = {
     "Questo assistente gestisce solo consultazioni private con i colleghi. Non ha una destinazione pubblica né strumenti di instradamento PBX.",
   consultationChatModel: "ID modello per la chat (facoltativo)",
   consultationChatModelHelp:
-    "Scegli un modello di testo disponibile per questo fornitore. Lascia vuoto per usare il backend GPT-Live configurato. I modelli solo voce richiedono un modello di testo separato per la chat.",
+    "Scegli un modello di testo disponibile per questo provider. Lascia vuoto per usare il backend GPT-Live configurato. I modelli solo voce richiedono un modello di testo separato per la chat.",
   agentType: "Tipo di agente",
   saveExternal: "Salva",
-  cleverAiTrunkHelp:
-    "CleverAI usa il trasporto SIP di OpenAI. Configurare esternamente il webhook delle chiamate in ingresso di OpenAI verso CleverAI. NethVoice richiede solo l’ID del progetto, senza chiave API o segreto webhook.",
   cleverAiAgentHelp:
     "CleverAI gestisce conversazioni, strumenti e monitoraggio. Salva richiede il reload del PBX e rende disponibile la destinazione quando pronta. Configurare la destinazione alternativa in VisualPlan. I trasferimenti verso NethVoice non sono ancora supportati.",
   recentCallbacksHelp:
@@ -1163,22 +1102,16 @@ const it: typeof en = {
   tools: "Strumenti",
   activity: "Monitoraggio",
   navigation: "Navigazione",
-  voiceAgents: "AGENTI VOCALI",
-  installer: "Installatore NethVoice",
   extensions: "Interni e dispositivi",
   back: "Indietro",
-  open: "Apri",
   close: "Chiudi",
   cancel: "Annulla",
   save: "Salva bozza",
   publish: "Pubblica",
   remove: "Rimuovi",
-  next: "Avanti",
-  previous: "Indietro",
   pagination: "Paginazione",
   pageSize: "Mostra",
   optional: "Facoltativo",
-  directory: "Visibilità della rubrica",
   clear: "Cancella",
   moreOptions: "Continua a digitare per mostrare altre opzioni",
   rangeOfTotal: "di",
@@ -1195,19 +1128,16 @@ const it: typeof en = {
   agentsHelp:
     "Configura gli agenti vocali AI e pubblicali per usarli nelle rotte di VisualPlan.",
   newAgent: "Crea agente",
-  openVisualplan: "Apri Visualplan",
+  openVisualplan: "Apri VisualPlan",
   defaultLanguage: "Lingua predefinita",
   voiceCatalogError:
     "Impossibile caricare le voci del provider. Riprova prima di pubblicare.",
-  environmentKeyHelp:
-    "Lascia vuota la chiave API per usare quella configurata nell’ambiente. I campi vuoti mantengono le credenziali già salvate. Il segreto firma webhook è comunque richiesto.",
   voiceName: "Voce",
   provider: "Provider vocale",
   instructions: "Istruzioni di conversazione",
   fallback: "Destinazione alternativa",
   catalog: "Apri catalogo",
   version: "Versione pubblicata",
-  selected: "Restringi gli strumenti della fase",
   draft: "Bozza",
   published: "Pubblicato",
   builtin: "Predefinito",
@@ -1217,8 +1147,6 @@ const it: typeof en = {
   leave: "Scarta ed esci",
   caller: "Chiamante",
   outcome: "Esito",
-  field: "Campo",
-  period: "Periodo",
   day: "Ultime 24 ore",
   month: "Ultimi 30 giorni",
   create: "Crea",
@@ -1248,19 +1176,13 @@ const it: typeof en = {
     'Il trunk "{name}" verrà eliminato. I trunk usati da un agente non possono essere eliminati.',
   openMenu: "Apri menu",
   viewActivity: "Visualizza monitoraggio",
-  language: "Lingua",
-  providerColumn: "Provider",
-  connection: "Progetto o numero",
   credentials: "Credenziali",
-  credentialsNotRequired: "Non richieste",
   credentialSource: {
     stored: "Chiave API e segreto webhook",
     environment: "Chiave API d’ambiente e segreto webhook",
     missing: "Chiave API mancante",
     project: "ID progetto",
   },
-  providerSetup: "Configurazione provider",
-  trunkNameHelp: "Un nome descrittivo per identificare questa connessione",
   showPassword: "Mostra password",
   hidePassword: "Nascondi password",
   generalSettings: "Generale",
@@ -1268,22 +1190,11 @@ const it: typeof en = {
   conversationSettingsHelp:
     "Voce, saluto iniziale e istruzioni che guidano l'agente durante la chiamata.",
   unsavedHint: "Modifiche non salvate",
-  toggleEnabled: "Abilitato",
-  toggleDisabled: "Disabilitato",
   expand: "Espandi",
-  collapse: "Comprimi",
-  routingDescriptions: "Descrizioni per l’instradamento",
-  routingDescriptionsHelp:
-    "Facoltativo. Descrivi di cosa si occupa ogni destinazione, così l’agente può instradare in base al motivo della chiamata.",
   destinationPicker: {
     extension_allowlist: "Interni consentiti",
     queue_allowlist: "Code consentite",
     recent_caller_denylist: "Interni esclusi dalle richiamate",
-  },
-  destinationPickerHelp: {
-    allowlist: "L’agente può trasferire solo alle destinazioni selezionate.",
-    denylist:
-      "Tutte le destinazioni sono consentite tranne quelle selezionate.",
   },
   destinationScope: {
     queue_allowlist: {
@@ -1474,29 +1385,18 @@ const it: typeof en = {
   saveDraft: "Salva bozza",
   edit: "Modifica",
   delete: "Elimina",
-  basicVoiceHelp:
-    "Configura Basic Voice, salva una bozza e pubblicala. Il dialplan decide quando chiamare l’agente.",
-  unpublishedChanges:
-    "Le modifiche salvate diventano attive dopo la pubblicazione. Le chiamate in corso mantengono la propria versione pubblicata.",
-  destinationUnavailable: "Destinazione non disponibile",
-  removeGrant: "Rimuovi permesso",
   publishedVersion: "Versione pubblicata",
-  draftVersion: "Versione bozza salvata",
   reloadSaved: "Ricarica impostazioni",
   retrySync: "Riprova sincronizzazione",
   maxDuration: "Durata massima chiamata",
   greeting: "Saluto iniziale",
   toolGrantsHelp:
     "Azioni che l'agente può eseguire durante una chiamata. Ogni agente ha i propri strumenti. Gli strumenti disattivati mantengono le impostazioni.",
-  deleteAgentConfirm:
-    "Eliminare l’agente? Gli agenti usati dalle rotte non possono essere eliminati.",
   trunks: "Trunk dei provider",
   trunksHelp:
     "Connessioni ai provider AI usati dagli agenti: OpenAI, Grok e CleverAI.",
   newTrunk: "Crea trunk",
   editTrunk: "Modifica trunk",
-  deleteTrunkConfirm:
-    "Eliminare il trunk? I trunk usati dagli agenti non possono essere eliminati.",
   openaiProject: "ID progetto OpenAI",
   grokNumber: "Numero Direct SIP Grok",
   sipAuthentication: "Autenticazione SIP",
@@ -1505,13 +1405,6 @@ const it: typeof en = {
   sipPassword: "Password SIP",
   providerApiKey: "Chiave API provider",
   webhookSigningSecret: "Segreto firma webhook",
-  credentialsConfigured: "Chiave API e segreto webhook configurati",
-  secretKeepHelp:
-    "Lascia vuoti i campi segreti per mantenere le credenziali. I segreti non vengono mostrati.",
-  secretRequiredHelp:
-    "Inserisci chiave API e segreto firma webhook. Le credenziali vengono cifrate.",
-  providerSetupHelp:
-    "Registra account e webhook firmato nel provider prima delle chiamate. Questo modulo configura il trunk PBX nativo.",
   startedAt: "Inizio",
   endedAt: "Fine",
   runDetails: "Dettagli esecuzione",
@@ -1526,13 +1419,13 @@ const it: typeof en = {
   sync: {
     pending: "Sincronizzazione in attesa",
     sync_failed: "Sincronizzazione fallita",
-    error: "Sincronizzazione fallita",
+    error: "Sincronizzazione non riuscita",
     synced: "Sincronizzato",
   },
   runOutcomes: {
     running: "In corso",
     completed: "Completata",
-    fallback: "Fallback",
+    fallback: "Destinazione alternativa",
     failed: "Fallita",
     interrupted: "Interrotta",
     transferred: "Trasferita",
@@ -1585,7 +1478,6 @@ const it: typeof en = {
     "La trascrizione generata può essere incompleta o differire da quanto ascoltato. Non viene salvata alcuna registrazione audio.",
   noDebugTranscript:
     "Nessuna trascrizione: acquisizione disattivata, contenuto scaduto o trascrizione non disponibile.",
-  partialTranscript: "Testo parziale o interrotto",
   directoryMatches: "Risultati della rubrica autorizzata: {count}",
   transcriptRole: {
     caller: "Chiamante",
@@ -1624,13 +1516,12 @@ const it: typeof en = {
     incompleteCount: "{count} esecuzioni oltre il termine",
     healthWarning: "Il monitoraggio richiede attenzione",
     stale:
-      "Lo stato del runtime non è disponibile o risale a oltre 60 secondi fa. Lo storico potrebbe non riflettere l'attività attuale.",
+      "Lo stato del servizio degli agenti non è disponibile o risale a oltre 60 secondi fa. Lo storico potrebbe non riflettere l'attività attuale.",
     deliveryWarning:
-      "Il runtime ha segnalato un problema di monitoraggio o una disconnessione dal PBX. Alcune chiamate potrebbero avere tracce incomplete.",
+      "Il servizio degli agenti ha segnalato un problema di monitoraggio o una disconnessione dal PBX. Alcune chiamate potrebbero avere tracce incomplete.",
     performance: "Prestazioni delle chiamate",
     duration: "Durata",
     phases: "Fasi della chiamata",
-    statusLabel: "Stato",
     tools: "Prestazioni degli strumenti",
     samples: "Campioni",
     invocations: "Invocazioni",
@@ -1640,7 +1531,7 @@ const it: typeof en = {
       spool_writable: "Spool",
       queue_depth: "Eventi in attesa",
       oldest_pending_seconds: "Evento in attesa più vecchio",
-      dropped: "Osservazioni perse",
+      dropped: "Misure perse",
       retries: "Tentativi di scrittura",
       last_write_at: "Ultima scrittura riuscita",
     },
@@ -1650,15 +1541,13 @@ const it: typeof en = {
     audioLimit:
       "L'uscita audio del provider è un segnale riportato; non conferma che l'audio sia arrivato al chiamante.",
     daily: "Esiti giornalieri",
-    providerErrors: "Errori del provider",
-    showRuns: "Mostra esecuzioni",
     runs: "Esecuzioni",
     search: "Filtra per agente o ID esecuzione",
     timeline: "Cronologia della chiamata",
     loadMore: "Carica altri eventi",
     partialTrace: "Traccia incompleta",
     partialHelp:
-      "Alcune osservazioni sono state perse, limitate o interrotte. L'esito della chiamata è riportato separatamente.",
+      "Alcune misure sono andate perse, troncate o interrotte. L'esito della chiamata è riportato separatamente.",
     usage: "Consumo riportato dal provider",
     usageHelp:
       "Token delle risposte, secondi Live e token del backend delegato hanno ambiti diversi. Questi valori non costituiscono un rendiconto di fatturazione.",
@@ -1666,21 +1555,14 @@ const it: typeof en = {
     usagePartial:
       "Consumo parziale: il conteggio finale del provider non è stato confermato.",
     metrics: {
-      run_duration: "Durata del runtime",
+      run_duration: "Durata della chiamata",
       setup_duration: "Tempo alla connessione audio",
       first_output: "Tempo all'uscita del provider",
     },
     runMetrics: {
-      duration_ms: "Durata del runtime",
+      duration_ms: "Durata della chiamata",
       setup_duration_ms: "Tempo alla connessione audio",
       first_output_ms: "Tempo all'uscita del provider",
-    },
-    status: {
-      running: "In corso",
-      completed: "Completato",
-      failed: "Fallito",
-      denied: "Negato",
-      cancelled: "Annullato",
     },
     phasesMap: {
       snapshot: "Caricamento configurazione",
@@ -1690,7 +1572,7 @@ const it: typeof en = {
       webhook_wait: "Attesa webhook provider",
       routing_context: "Preparazione contesto instradamento",
       provider_accept: "Accettazione provider",
-      provider_sideband: "Connessione sideband provider",
+      provider_sideband: "Connessione di controllo del provider",
       provider_answer: "Risposta provider",
       media_bridge: "Connessione bridge audio",
       media_prepare: "Preparazione audio WebSocket",
@@ -1701,7 +1583,7 @@ const it: typeof en = {
       response: "Risposta del provider",
       tool: "Esecuzione strumento",
       transfer: "Trasferimento nativo",
-      fallback: "Fallback",
+      fallback: "Destinazione alternativa",
       cleanup: "Pulizia",
     },
     runErrors: {
@@ -1837,14 +1719,11 @@ const it: typeof en = {
     runtimeP95: "Durata p95",
     mediaP95: "Connessione audio p95",
     noRuns: "Nessuna esecuzione trovata",
-    page: "Pagina {page}",
     phase: "Fase",
     start: "Inizio",
     timelineHelp: "Inizio è il tempo trascorso dall'avvio della chiamata.",
     range: "{from} - {to}",
   },
-  hangupToolHelp:
-    "Abilita Termina la chiamata per consentire a questo agente di chiudere una conversazione conclusa o rispettare la richiesta del chiamante. Salva e pubblica per applicare.",
   backendInstructions: "Istruzioni per le attività backend",
   reasoningEffort: "Livello di ragionamento backend",
   backendVerbosity: "Dettaglio della risposta backend",
