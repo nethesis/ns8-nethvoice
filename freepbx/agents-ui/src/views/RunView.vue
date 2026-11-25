@@ -171,7 +171,11 @@ const summary = computed(() => {
       ? [
           {
             id: "error",
-            label: t("errorCode"),
+            label: t(
+              value.error_code === "duration_exceeded"
+                ? "endReason"
+                : "errorCode",
+            ),
             value: runErrorText(value.error_code, t, te),
           },
         ]

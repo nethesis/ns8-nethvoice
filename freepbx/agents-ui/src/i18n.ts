@@ -549,6 +549,7 @@ const en = {
   endedAt: "Ended",
   runDetails: "Run details",
   errorCode: "Error",
+  endReason: "Reason",
   refresh: "Refresh",
   toolNames: {
     pbx_find_destinations: "Find permitted PBX destinations",
@@ -1409,6 +1410,7 @@ const it: typeof en = {
   endedAt: "Fine",
   runDetails: "Dettagli esecuzione",
   errorCode: "Errore",
+  endReason: "Motivo",
   refresh: "Aggiorna",
   toolNames: {
     pbx_find_destinations: "Cerca destinazioni PBX consentite",

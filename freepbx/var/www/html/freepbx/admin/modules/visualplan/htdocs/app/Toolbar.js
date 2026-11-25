@@ -276,7 +276,8 @@ example.Toolbar = Class.extend({
 						var reasons = {
 							visualplan_error_blocks: "toolbar_error_blocks_string",
 							agent_reference_unavailable: "toolbar_agent_reference_string",
-							agent_fallback_unavailable: "toolbar_agent_fallback_string"
+							agent_fallback_unavailable: "toolbar_agent_fallback_string",
+							agent_revision_conflict: "toolbar_agent_revision_string"
 						};
 						var detail = languages[browserLang][reasons[code] || 'agent_error_' + code] || languages[browserLang]["toolbar_not_save_log_string"];
 						$('#errorer').children().eq(0).html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_not_save_string"]);

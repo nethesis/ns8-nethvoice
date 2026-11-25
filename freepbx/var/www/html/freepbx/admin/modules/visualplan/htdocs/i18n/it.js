@@ -277,5 +277,6 @@ languages.it = {
     "agent_already_added_string": "L’agente è già presente nel piano.",
     "base_agent_fallback_string": "Destinazione alternativa",
     "toolbar_agent_reference_string": "Un agente nel piano non esiste o non è pubblicato e sincronizzato. Controllalo in Agenti.",
-    "toolbar_agent_fallback_string": "Non è stato possibile salvare le destinazioni alternative degli agenti. Controlla i collegamenti e riprova."
+    "toolbar_agent_fallback_string": "Non è stato possibile salvare le destinazioni alternative degli agenti. Controlla i collegamenti e riprova.",
+    "toolbar_agent_revision_string": "Un agente è stato modificato altrove mentre il piano era aperto. Ricarica VisualPlan e salva di nuovo."
 };
