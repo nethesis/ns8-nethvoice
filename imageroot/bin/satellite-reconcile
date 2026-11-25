@@ -9,6 +9,8 @@ from pathlib import Path
 import subprocess
 import sys
 import time
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 import agent
 import agent.tasks
@@ -61,6 +63,30 @@ def write(path, value, php=False):
     temporary.replace(path)
 
 
+def pbx_idle():
+    result = run('podman', 'exec', 'freepbx', 'asterisk', '-rx', 'core show channels count',
+                 capture_output=True, text=True)
+    match = re.search(r'^(\d+) active calls?$', result.stdout, re.MULTILINE)
+    if not match:
+        raise RuntimeError('active_call_count_unavailable')
+    return int(match[1]) == 0
+
+
+def wait_for_agents(port, token):
+    request = Request(f'http://127.0.0.1:{int(port)}/internal/ready',
+                      headers={'Authorization': 'Bearer ' + token})
+    deadline = time.monotonic() + 25
+    while time.monotonic() < deadline:
+        try:
+            with urlopen(request, timeout=1) as response:
+                if json.load(response).get('voice_calls_enabled') is True:
+                    return
+        except (OSError, URLError, ValueError):
+            pass
+        time.sleep(0.5)
+    raise RuntimeError('voice_agent_runtime_not_ready')
+
+
 def apply(*, transcription_only=False):
     env = agent.read_envfile('environment')
     if not env.get('NETHVOICE_HOST'):
@@ -108,14 +134,17 @@ def apply(*, transcription_only=False):
 
     # Recreate CTI and FreePBX only if their process-start transcription flags changed.
     consumers = previous.get('flags', flags) != flags or Path('transcription-refresh.pending').exists()
+    if running and consumers and not pbx_idle():
+        return False
     if running:
         check = subprocess.run(['podman', 'exec', 'satellite', 'python3', '-m', 'voice_agent.drain'])
         if check.returncode == 75:
             return False
         check.check_returncode()
     try:
-        if consumers and running:
-            run('restart-services-when-convenient', '--wait-only')
+        if consumers and running and not pbx_idle():
+            run('podman', 'exec', 'satellite', 'python3', '-m', 'voice_agent.drain', '--cancel')
+            return False
         PREVIEW.mkdir(exist_ok=True)
         PREVIEW.chmod(0o755)
         candidate = PREVIEW / 'candidate.env'
@@ -149,18 +178,18 @@ def apply(*, transcription_only=False):
             ctl('enable', '--now', 'satellite-recordings-cleanup.timer')
         else:
             ctl('disable', '--now', 'satellite-recordings-cleanup.timer', 'satellite-mqtt.service')
-        candidate.replace(EFFECTIVE)
-        if agents:
-            visible.touch()
-            visible.chmod(0o644)
-        else:
-            visible.unlink(missing_ok=True)
         if consumers:
             if not running:
                 run('restart-services-when-convenient', '--wait-only')
             ctl('try-restart', 'freepbx.service', 'nethcti-server.service', 'nethcti-ui.service')
             Path('transcription-refresh.pending').unlink(missing_ok=True)
-        elif agents or previous.get('agents'):
+        if agents:
+            wait_for_agents(settings['VOICE_AGENT_HTTP_PORT'], settings['VOICE_AGENT_RUNTIME_TOKEN'])
+        candidate.replace(EFFECTIVE)
+        if agents:
+            visible.touch(mode=0o644)
+            visible.chmod(0o644)
+        if agents or (previous.get('agents') and not consumers):
             run('podman', 'exec', 'freepbx', '/usr/local/bin/configure-agent-recipient')
             run('podman', 'exec', 'freepbx', 'apache2ctl', '-k', 'graceful')
             run('podman', 'exec', 'freepbx', 'fwconsole', 'reload')
@@ -172,7 +201,7 @@ def apply(*, transcription_only=False):
             agent.set_route({'instance': instance, 'host': route, 'path': '/satellite-webhooks',
                              'url': 'http://127.0.0.1:' + str(env['VOICE_AGENT_HTTP_PORT']),
                              'strip_prefix': False, 'http2https': True})
-        elif previous.get('route') or Path('satellite-runtime.sha256').exists():
+        elif 'route' not in previous or previous['route'] or Path('satellite-runtime.sha256').exists():
             response = agent.tasks.run(agent_id=agent.resolve_agent_id('traefik@node'), action='delete-route',
                                        data={'instance': instance}, extra={'isNotificationHidden': True})
             agent.assert_exp(response['exit_code'] == 0)
