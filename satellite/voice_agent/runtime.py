@@ -23,7 +23,7 @@ from .providers import create_adapter
 from .providers.realtime import ProviderError
 from .models import conversation_capability
 from .contract import validate_snapshot
-from .providers.webhook import verify_webhook
+from .providers.webhook import InvalidPayload, verify_webhook
 from .storage import ClaimRejected, trusted_target
 from .tools import ToolRegistry, WIRE_IDS, bounded_caller_name
 
@@ -70,12 +70,12 @@ class Call:
     started_at: object = field(default_factory=lambda: datetime.now(timezone.utc))
     transcript_keys: set = field(default_factory=set)
     transcript_bytes: int = 0
-    webhook_diagnostics: set = field(default_factory=set)
     caller_number: str | None = field(default=None, repr=False)
     caller_name: str = field(default='', repr=False)
     recent: object | None = field(default=None, repr=False)
     trace: object | None = field(default=None, repr=False)
     webhook_span: str | None = None
+    signed_claim: bool = False
     media: object | None = field(default=None, repr=False)
     audio_bridge: object | None = field(default=None, repr=False)
     assistant_snapshot: dict | None = field(default=None, repr=False)
@@ -271,7 +271,7 @@ class Runtime:
         self.tasks = set()
         self._cleanup_tasks = set()
         self.sip_lab_enabled = os.getenv('VOICE_AGENT_SIP_LAB_ENABLED') == 'true'
-        self._webhook_rejection_at = {}
+        self.invalid_webhook_signatures = 0
         self.reserved_adapters = {}
         self.controller.on_event = self.event
         self.controller.on_disconnect = self.disconnected
@@ -287,7 +287,8 @@ class Runtime:
     async def heartbeat(self):
         while not self.stopping:
             health = self.monitoring.health()
-            health.update(ari_connected=bool(self.controller.connected), active_calls=len(self.calls))
+            health.update(ari_connected=bool(self.controller.connected), active_calls=len(self.calls),
+                          invalid_webhook_signatures=self.invalid_webhook_signatures)
             try:
                 await asyncio.to_thread(self.storage.health, health)
             except Exception:
@@ -689,16 +690,14 @@ class Runtime:
             if call.terminal or call.binding['provider'] != provider or call.binding.get('adapter') == 'live_ws':
                 continue
             try:
-                envelope = verify_webhook(call.binding['webhook_secret'], raw, headers)
+                envelope = verify_webhook(call.binding.get('webhook_secret'), raw, headers)
                 verified.append(call)
+            except InvalidPayload:
+                raise
             except ValueError:
                 pass
         if envelope is None:
-            now=time.monotonic()
-            if verified or any(not call.terminal and call.binding['provider']==provider for call in self.calls.values()):
-                if now-self._webhook_rejection_at.get(provider,float('-inf'))>=10:
-                    LOG.warning('Voice agent webhook provider=%s result=invalid_signature',provider)
-                    self._webhook_rejection_at[provider]=now
+            self.invalid_webhook_signatures += 1
             raise ValueError('invalid_webhook')
         kind=envelope.get('type')
         if kind not in ('realtime.call.incoming','live.transport.incoming','live.call.incoming'):
@@ -719,16 +718,6 @@ class Runtime:
             sip[name] = item['value']
         call = self.calls.get(sip.get('x-os-session-id'))
         live=bool(call and call.binding.get('adapter')=='live')
-        correlated=bool(call in verified and sip.get('x-os-provider-leg-id')==call.leg_id and sip.get('x-os-agent-id')==call.snapshot['agent_id'])
-        result='matched' if correlated else 'uncorrelated'
-        if correlated and ((live and kind=='realtime.call.incoming') or (not live and kind!='realtime.call.incoming')):
-            result='wrong_protocol'
-        # Log only fixed protocol/status values, never SIP headers, IDs or bodies.
-        for candidate in verified:
-            diagnostic=(kind,result)
-            if diagnostic not in candidate.webhook_diagnostics:
-                candidate.webhook_diagnostics.add(diagnostic)
-                LOG.warning('Voice agent webhook expected=%s received=%s result=%s','live' if candidate.binding.get('adapter')=='live' else 'realtime',kind,result)
         if live:
             if kind=='live.transport.incoming' and data.get('type')!='sip': return {'status':'ignored'}
             if kind=='live.call.incoming' and data.get('type') not in (None,'sip'): return {'status':'ignored'}
@@ -749,9 +738,16 @@ class Runtime:
             except Exception as error:
                 raise ConnectionError('claim_storage_unavailable') from error
             call.provider_call_id = call_id
+            call.signed_claim = True
             self.trace(call).end(call.webhook_span)
         self.spawn(self.converse(call), call)
         return {'status':'accepted'}
+
+    async def confirm_signing_secret(self, binding):
+        try:
+            await asyncio.wait_for(asyncio.to_thread(self.storage.verify_signing_secret, binding), 5)
+        except Exception:
+            self.monitoring.mark_degraded()
 
     async def converse(self, call):
         stage='provider_accept'
@@ -838,6 +834,8 @@ class Runtime:
             stage = 'media_bridge'
             await self.controller.set_variable(call.caller_id,'TIMEOUT(absolute)',max(1,math.ceil(call.deadline-time.monotonic())+5))
             call.media_connected = True
+            if call.signed_claim and call.binding['provider'] == 'openai':
+                self.spawn(self.confirm_signing_secret(call.binding))
             self.monitoring.emit(call.run_id,'media_connected',elapsed_ms=trace.elapsed())
             self.spawn(self.greet(call,profile['_opening_instructions']),call)
             stage='provider_stream'

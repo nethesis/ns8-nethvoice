@@ -83,7 +83,7 @@ def test_idempotent_projection_and_hourly_histograms(monitor_database):
     finally:
         with database('monitor') as db:
             db.cursor().execute('DROP TRIGGER asteriskcdrdb.synthetic_metric_failure')
-    storage.health({**monitor.health(),'ari_connected':True,'active_calls':0})
+    storage.health({**monitor.health(),'ari_connected':True,'active_calls':0,'invalid_webhook_signatures':3})
     # Native handoff can commit before cleanup/final-summary spooling.
     committed=Call(str(uuid.uuid4()),str(uuid.uuid4()),str(uuid.uuid4()),'synthetic',call.snapshot,call.binding,None)
     storage.admit(committed)
