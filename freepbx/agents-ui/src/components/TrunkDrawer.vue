@@ -242,7 +242,8 @@ function close() {
         v-model="form.openai_project_id"
         :label="t('openaiProject')"
         :helper-text="
-          form.provider === 'openai' ? t('webhook.projectHelp') : ''
+          t('openaiProjectHint') +
+          (form.provider === 'openai' ? ' ' + t('webhook.projectHelp') : '')
         "
         placeholder="proj_A1b2C3d4"
         maxlength="128"

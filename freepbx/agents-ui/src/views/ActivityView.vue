@@ -26,7 +26,7 @@ import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
 import AppEmptyState from "../components/AppEmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
-import { duration, formatDay, formatLocal } from "../monitoring";
+import { duration, formatDateTime, formatDay } from "../monitoring";
 import type {
   Run,
   MonitoringSummary,
@@ -425,7 +425,7 @@ const delivery = computed(() => {
       id: "last",
       label: t("monitoring.healthKeys.last_write_at"),
       value: value.last_write_at
-        ? formatLocal(value.last_write_at, String(locale.value))
+        ? formatDateTime(value.last_write_at, String(locale.value))
         : "—",
       status: "",
     },
@@ -736,7 +736,7 @@ function refresh() {
             >
             <NeTableCell :data-label="t('startedAt')"
               ><span class="whitespace-nowrap">{{
-                formatLocal(run.started_at, String(locale))
+                formatDateTime(run.started_at, String(locale))
               }}</span></NeTableCell
             >
             <NeTableCell :data-label="t('outcome')"

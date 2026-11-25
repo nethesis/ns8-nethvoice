@@ -17,11 +17,10 @@ function parseUtc(value: string): Date {
   );
 }
 
-export function formatLocal(value: string, locale: string): string {
+export function formatDateTime(value: string, locale: string): string {
   const date = parseUtc(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString(dateLocale(locale), {
-    timeZoneName: "short",
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -35,7 +34,6 @@ export function formatTime(value: string, locale: string): string {
   const date = parseUtc(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleTimeString(dateLocale(locale), {
-    timeZoneName: "short",
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",

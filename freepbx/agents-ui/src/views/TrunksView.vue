@@ -80,7 +80,14 @@ function webhookStatus(trunk: Trunk) {
         (trunk.webhook_secret_configured ? "manual" : "not_configured")),
   );
 }
+const configuring = ref("");
+function canConfigureWebhook(trunk: Trunk) {
+  return (
+    trunk.api_key_source !== "missing" && trunk.webhook_status !== "configured"
+  );
+}
 async function configureWebhook(trunk: Trunk) {
+  configuring.value = trunk.binding_id;
   await webhookTask.run(async () => {
     try {
       await request(
@@ -94,6 +101,7 @@ async function configureWebhook(trunk: Trunk) {
       await queryClient.invalidateQueries({ queryKey: ["trunks"] });
     }
   }, false);
+  configuring.value = "";
 }
 function usage(trunk: Trunk) {
   return (agents.data.value?.items || []).filter(
@@ -260,9 +268,10 @@ async function synchronize() {
           >
             <span>{{ webhookStatus(trunk) }}</span>
             <NeButton
+              v-if="canConfigureWebhook(trunk)"
               kind="tertiary"
               size="sm"
-              :loading="webhookTask.pending.value"
+              :loading="configuring === trunk.binding_id"
               :disabled="webhookTask.pending.value"
               @click="configureWebhook(trunk)"
             >
