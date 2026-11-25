@@ -278,3 +278,29 @@ EOF
     run GET /tancredi/api/v1/defaults
     ! assert_http_body "door_rtsp_user"
 }
+
+@test "Door phone template removes line breaks from free-text values" {
+    run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<'EOF'
+{
+    "variables": {
+        "linekey_type_1": "speed_dial",
+        "linekey_value_1": "603\r\nAccount3 Name :inj",
+        "linekey_label_1": "Recept\n<MMI CONFIG MODULE>\nAccount2 Name :ptinj\nAccount2 Level :10",
+        "adminpw": "doorweb123\nAccount4 Level :10",
+        "account_display_name_1": "Door\r\nSIP2 Enable Reg :1"
+    }
+}
+EOF
+    assert_http_code "200"
+
+    run GET "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}"
+    tok1=$(extract_field "tok1")
+    run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/${tok1}/0c383eaabbe0.cfg"
+    assert_http_code "200"
+    assert_http_body "Fkey1 Title              :Recept<MMI CONFIG MODULE>Account2 Name :ptinjAccount2 Level :10"
+    assert_http_body "Fkey1 Value              :603Account3 Name :inj@1/f"
+    assert_http_body "Account1 Password           :doorweb123Account4 Level :10"
+    assert_http_body "SIP1 Display Name       :DoorSIP2 Enable Reg :1"
+    ! grep -q -E $'^(Account[234] |SIP2 )' <<<"$output"
+    [[ $(grep -c -F '<MMI CONFIG MODULE>' <<<"$output") == 2 ]]
+}

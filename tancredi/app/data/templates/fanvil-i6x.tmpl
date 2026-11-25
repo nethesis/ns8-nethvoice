@@ -35,6 +35,8 @@
 #}
 {% import 'fanvil.macros' as fanvil %}
 {% import 'language.macros' as l10n %}
+{# Free-text values never add lines to the file: CR and LF are removed #}
+{% set nl = {"\r": "", "\n": ""} %}
 
 <MM CONFIG MODULE>
 Dtmf Payload Type  :101
@@ -43,17 +45,17 @@ Dtmf Payload Type  :101
 SIP  Port          :5060
 --SIP Line List--  :
 {% if account_username_1 is defined %}
-SIP1 Phone Number       :{{ account_username_1 }}
-SIP1 Display Name       :{{ account_display_name_1 }}
-SIP1 Sip Name           :{{ account_username_1 }}
-SIP1 Register Addr      :{{ hostname }}
+SIP1 Phone Number       :{{ account_username_1 | replace(nl) }}
+SIP1 Display Name       :{{ account_display_name_1 | replace(nl) }}
+SIP1 Sip Name           :{{ account_username_1 | replace(nl) }}
+SIP1 Register Addr      :{{ hostname | replace(nl) }}
 SIP1 Register Port      :{{ account_encryption_1 ? sip_tls_port : sip_udp_port }}
-SIP1 Register User      :{{ account_username_1 }}
-SIP1 Register Pswd      :{{ account_password_1 }}
+SIP1 Register User      :{{ account_username_1 | replace(nl) }}
+SIP1 Register Pswd      :{{ account_password_1 | replace(nl) }}
 SIP1 Register TTL       :3600
 SIP1 Enable Reg         :1
-SIP1 Proxy Addr         :{{ outbound_proxy_1 is defined ? outbound_proxy_1 : '' }}
-SIP1 Proxy Port         :{{ outbound_proxy_port_1 is defined ? outbound_proxy_port_1 : account_encryption_1 ? '5061' : '5060' }}
+SIP1 Proxy Addr         :{{ outbound_proxy_1 is defined ? outbound_proxy_1 | replace(nl) : '' }}
+SIP1 Proxy Port         :{{ outbound_proxy_port_1 is defined ? outbound_proxy_port_1 | replace(nl) : account_encryption_1 ? '5061' : '5060' }}
 SIP1 Media Crypto       :{{ account_encryption_1 ? '2' : '0' }}
 SIP1 DTMF Mode          :{{ fanvil.dtmf_map(account_dtmf_type_1) }}
 SIP1 DTMF Info Mode     :0
@@ -66,7 +68,7 @@ SIP1 TLS Version        :2
 <PHONE FEATURE MODULE>
 --DateTime Config--:
 Enable SNTP        :1
-SNTP Server        :{{ ntp_server | default('pool.ntp.org') }}
+SNTP Server        :{{ ntp_server | default('pool.ntp.org') | replace(nl) }}
 Second SNTP Server :
 Time Zone          :{{ fanvil.tz_map(timezone, 'offset') }}
 Time Zone Name     :{{ fanvil.tz_map(timezone, 'name') }}
@@ -75,7 +77,7 @@ DST Type           :1
 DST Location       :{{ fanvil.tz_map(timezone, 'location') }}
 
 <AUTOUPDATE CONFIG MODULE>
-Flash Server IP    :{{ hostname }}
+Flash Server IP    :{{ hostname | replace(nl) }}
 Flash File Name    :{{ 'http' in provisioning_url_scheme ? (provisioning_url_path | trim('/', 'left') ~ tok2 ~ '/$mac.cfg') : '$mac.cfg' }}
 Flash Protocol     :{{ fanvil.scheme_map(provisioning_url_scheme) }}
 Flash Mode         :{{ (provisioning_complete and provisioning_freq == 'never') ? '1' : '2' }}
@@ -93,8 +95,8 @@ Flash Interval     :{{ provisioning_complete ? fanvil.upgrade_wait_hours(timezon
 {% for index in door_keys %}
 {{ fanvil.linekey_type_map(
     'speed_dial',
-    _context['linekey_value_' ~ index],
-    _context['linekey_label_' ~ index] | default(''),
+    _context['linekey_value_' ~ index] | replace(nl),
+    _context['linekey_label_' ~ index] | default('') | replace(nl),
     index,
     l10n,
     language | default('en'),
@@ -107,7 +109,7 @@ Flash Interval     :{{ provisioning_complete ? fanvil.upgrade_wait_hours(timezon
 
 {% endif %}
 
-{% set door_relay_codes = [door_dtmf_code | default(''), door_dtmf_code_2 | default('')] %}
+{% set door_relay_codes = [door_dtmf_code | default('') | replace(nl), door_dtmf_code_2 | default('') | replace(nl)] %}
 {% set door_relays = [] %}
 {% for relay in (cap_door_relay_count | default(0)) > 0 ? range(1, min(cap_door_relay_count, 2)) : [] %}
 {% if door_relay_codes[relay - 1] != '' %}
@@ -118,7 +120,7 @@ Flash Interval     :{{ provisioning_complete ? fanvil.upgrade_wait_hours(timezon
 <SECURITY CONFIG MODULE>
 --Output List--    :
 {% for relay in door_relays %}
-{% set relay_duration = _context['door_relay_duration_' ~ relay] | default('') %}
+{% set relay_duration = _context['door_relay_duration_' ~ relay] | default('') | replace(nl) %}
 Output{{ relay }} Enabled           :1
 Output{{ relay }} Trigger By DTMF    :1
 Output{{ relay }} DTMF Trigger Code  :{{ door_relay_codes[relay - 1] }}
@@ -131,18 +133,18 @@ Output{{ relay }} Trigger Duration  :{{ relay_duration }}
 {% if door_video_sub_bitrate is defined and door_video_sub_bitrate != '' %}
 <CAMERA CONFIG MODULE>
 --Video Stream-- :
-video1 BitRate          :{{ door_video_main_bitrate }}
-video1 I Frame Interval :{{ door_video_iframe_interval }}
-video2 BitRate          :{{ door_video_sub_bitrate }}
-video2 Resolution       :{{ door_video_sub_resolution }}
-video2 I Frame Interval :{{ door_video_iframe_interval }}
+video1 BitRate          :{{ door_video_main_bitrate | replace(nl) }}
+video1 I Frame Interval :{{ door_video_iframe_interval | replace(nl) }}
+video2 BitRate          :{{ door_video_sub_bitrate | replace(nl) }}
+video2 Resolution       :{{ door_video_sub_resolution | replace(nl) }}
+video2 I Frame Interval :{{ door_video_iframe_interval | replace(nl) }}
 
 {% endif %}
 {% if adminpw is defined and adminpw != '' %}
 <MMI CONFIG MODULE>
 --MMI Account--    :
 Account1 Name               :admin
-Account1 Password           :{{ adminpw }}
+Account1 Password           :{{ adminpw | replace(nl) }}
 Account1 Level              :10
 
 {% endif %}
@@ -150,7 +152,7 @@ Account1 Level              :10
 Enable RTSP        :1
 {% if door_rtsp_password is defined and door_rtsp_password != '' %}
 Enable RTSP Auth   :1
-RTSP Server User   :{{ door_rtsp_user | default('admin') }}
-RTSP Server Passwd :{{ door_rtsp_password }}
+RTSP Server User   :{{ door_rtsp_user | default('admin') | replace(nl) }}
+RTSP Server Passwd :{{ door_rtsp_password | replace(nl) }}
 {% endif %}
 <<END OF FILE>>
