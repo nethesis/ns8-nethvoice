@@ -116,12 +116,15 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
         # session.start already requested the opening. The media writer confirms
         # playback even if the caller interrupted and the model answered instead.
         deadline = time.monotonic() + self.greeting_timeout
+        interruption_limit = deadline + self.greeting_timeout
         while self._audio_enabled and not self._greeting_played.is_set():
             try:
                 await asyncio.wait_for(self._greeting_played.wait(), max(0, deadline - time.monotonic()))
             except TimeoutError:
                 if self._greeting_interruption is not None:
-                    deadline = max(deadline, self._greeting_interruption + self.greeting_timeout)
+                    # Bound the entire wait even when line noise looks like continuous speech.
+                    deadline = max(deadline, min(interruption_limit,
+                                                 self._greeting_interruption + self.greeting_timeout))
                 onset = self.startup_marks.get('playback')
                 if onset is not None and onset <= deadline:
                     deadline = max(deadline, onset + self.greeting_confirmation)
