@@ -153,19 +153,26 @@ function satellite_build_agent_dialplan() {
         $agents = $satellite->agentDestinations();
         $versions = $satellite->agentPublishedVersions();
         $extensions = $satellite->agentExtensions();
-        $directory = $satellite->agentDirectory()['items'];
+        $directory = $satellite->agentDirectory(false)['items'];
         $devicesByNumber = $satellite->agentConsultationDevices();
         $fallbacks = $targets = $transports = [];
         $native = new \NethVoice\Agents\Native();
+        $resolve = static function ($id) use ($native) {
+            try { return $native->destination($id); }
+            catch (RuntimeException $error) {
+                if ($error->getCode()!==422) throw $error;
+                return 'app-blackhole,hangup,1';
+            }
+        };
         foreach ($versions as $version) {
             $context = satellite_agent_fallback_context($version['agent_id'], $version['fallback_destination_id']);
-            $targets[$context] = $native->destination($version['fallback_destination_id']);
+            $targets[$context] = $resolve($version['fallback_destination_id']);
         }
         foreach ($agents as $agent) {
             $id = $agent['agent_id'];
             satellite_agent_destination_key($id);
             if (($agent['agent_type'] ?? '') === 'cleverai') {
-                $fallbacks[$id] = $native->destination($agent['draft']['fallback_destination_id']);
+                $fallbacks[$id] = $resolve($agent['draft']['fallback_destination_id']);
                 $transports[$id] = $satellite->cleverAiTransport($id);
             } elseif ($agent['published']) {
                 $context = satellite_agent_fallback_context($id, $agent['published']['fallback_destination_id']);

@@ -99,6 +99,23 @@ interface BMO {}
 class FreePBX_Helpers { public $FreePBX; public $db; }
 require_once __DIR__.'/../../var/www/html/freepbx/admin/modules/satellite/Satellite.class.php';
 assert((new Satellite($pbx))->agentExtensions()===[['id'=>'extension:203','name'=>'Test extension']]);
+// Main-extension lookup count is constant for a large inventory within one reload.
+$db->beginTransaction();
+$db->exec("INSERT INTO asterisk.users SELECT seq+10000,'Load fixture' FROM seq_1_to_1000");
+$db->exec("INSERT INTO asterisk.userman_users SELECT CONCAT('fixture-',seq),seq+10000 FROM seq_1_to_1000");
+$countingDb=new class($db) {
+    public int $reads=0;
+    public function __construct(private PDO $db) {}
+    public function query(string $sql): PDOStatement { $this->reads++; return $this->db->query($sql); }
+};
+$reloadPbx=clone $pbx; $reloadPbx->Database=$countingDb;
+$reloadPbx->Core=new class { public function getAllDevicesByType($type): array { return [['id'=>'910001','user'=>'9110001']]; } };
+$reload=new Satellite($reloadPbx);
+assert(count($reload->agentExtensions())===1001);
+assert($reload->agentConsultationDevices()===[10001=>['910001']]);
+assert(array_column($reload->agentDirectory(false)['items'],'id')===['queue:600']);
+assert($countingDb->reads===1);
+$db->rollBack();
 // Main-extension identity follows user configuration, including after reassignment.
 $db->exec("UPDATE asterisk.userman_users SET default_extension='91203' WHERE username='test'");
 assert(array_column((new AgentDirectory($pbx))->extensions(),'id')===['extension:91203']);
