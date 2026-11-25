@@ -11,6 +11,8 @@
  * - PATCH /tancredi/api/v1/phones/<MAC>              (phone of the user)
  *   with body {"variables": {...}} of line keys and expansion keys only
  *
+ * The answers keep only the data the page uses (see filterResponse).
+ *
  * @module http_proxy
  * @submodule tancredi_proxy
  */
@@ -45,7 +47,17 @@ var MODEL_PATH = /^\/tancredi\/api\/v1\/models\/([A-Za-z0-9_-][A-Za-z0-9_.-]{0,6
  */
 var KEY_VARIABLE = /^(?:linekey|expkey)_(?:type|value|label)_[1-9][0-9]{0,3}$/;
 
+/**
+ * Model capabilities, e.g. cap_linekey_count or cap_door_phone.
+ *
+ * @property CAPABILITY_VARIABLE
+ * @type RegExp
+ * @private
+ */
+var CAPABILITY_VARIABLE = /^cap_[a-z0-9_]+$/;
+
 var MAX_REQUEST_BODY = 64 * 1024;
+var MAX_RESPONSE_BODY = 2 * 1024 * 1024;
 var MAX_VALUE_LENGTH = 255;
 var CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
@@ -153,6 +165,62 @@ function checkPatchBody(text) {
   return { body: { variables: variables } };
 }
 
+function pickVariables(variables, isAllowed) {
+  var picked = {};
+  if (isPlainObject(variables)) {
+    Object.keys(variables).forEach(function (name) {
+      if (isAllowed(name)) {
+        picked[name] = variables[name];
+      }
+    });
+  }
+  return picked;
+}
+
+function isPhoneVariableForCti(name) {
+  return KEY_VARIABLE.test(name) || CAPABILITY_VARIABLE.test(name);
+}
+
+function isModelVariableForCti(name) {
+  return CAPABILITY_VARIABLE.test(name);
+}
+
+/**
+ * Keeps in a Tancredi phone or model the data the CTI phone keys page uses:
+ * the identifiers, the line key and expansion key variables and the
+ * capabilities. Passwords, tokens, provisioning URLs and the other
+ * variables are left out.
+ *
+ * @method filterResponse
+ * @param {string} type The request type: "phone" or "model"
+ * @param {object} data The Tancredi response
+ * @return {object} The data for the CTI, null when data is not an object
+ */
+function filterResponse(type, data) {
+  if (!isPlainObject(data)) {
+    return null;
+  }
+  if (type === 'phone') {
+    return {
+      mac: data.mac,
+      short_mac: data.short_mac,
+      model: data.model,
+      display_name: data.display_name,
+      model_url: data.model_url,
+      variables: pickVariables(data.variables, isPhoneVariableForCti)
+    };
+  }
+  if (type === 'model') {
+    return {
+      name: data.name,
+      display_name: data.display_name,
+      model_url: data.model_url,
+      variables: pickVariables(data.variables, isModelVariableForCti)
+    };
+  }
+  return null;
+}
+
 /**
  * Reads a whole stream up to a size limit.
  *
@@ -218,6 +286,43 @@ function create(options) {
   var idlog = options.idlog;
   var proxy = httpProxy.createProxy();
 
+  // the Tancredi answer is read and only the data the CTI uses is sent
+  proxy.on('proxyRes', function (proxyRes, req, res) {
+    var route = req.tancrediRoute;
+    readBody(proxyRes, MAX_RESPONSE_BODY, function (err, data) {
+      if (err) {
+        logger.log.error(idlog, 'provisioning request ' + req.method + ' ' + req.url + ': ' + err.message);
+        sendStatus(res, 502);
+        return;
+      }
+      var status = proxyRes.statusCode;
+      if (status < 200 || status >= 300) {
+        // Tancredi errors: 4xx carry a problem description, 5xx nothing useful
+        if (status >= 400 && status < 500 && data.length > 0) {
+          res.writeHead(status, { 'Content-Type': proxyRes.headers['content-type'] || 'application/json' });
+          res.end(data);
+        } else {
+          sendStatus(res, status);
+        }
+        return;
+      }
+      var filtered = null;
+      try {
+        filtered = filterResponse(route.type, JSON.parse(data.toString('utf8')));
+      } catch (parseErr) {
+        filtered = null;
+      }
+      if (filtered === null) {
+        logger.log.error(idlog, 'provisioning request ' + req.method + ' ' + req.url + ': unexpected answer from Tancredi');
+        sendStatus(res, 502);
+        return;
+      }
+      var json = Buffer.from(JSON.stringify(filtered));
+      res.writeHead(status, { 'Content-Type': 'application/json', 'Content-Length': json.length });
+      res.end(json);
+    });
+  });
+
   function forward(req, res, route, user, body) {
     var headers = {};
     FORWARDED_HEADERS.forEach(function (name) {
@@ -228,7 +333,9 @@ function create(options) {
     headers.user = 'admin';
     headers.secretkey = options.getSecretKey();
     headers.accept = 'application/json';
-    var proxyOptions = { target: options.target };
+    // the answer is parsed: no compressed body
+    headers['accept-encoding'] = 'identity';
+    var proxyOptions = { target: options.target, selfHandleResponse: true };
     if (body !== undefined) {
       var data = Buffer.from(JSON.stringify(body));
       headers['content-type'] = 'application/json';
@@ -238,6 +345,7 @@ function create(options) {
     }
     req.headers = headers;
     req.url = route.url;
+    req.tancrediRoute = route;
     logger.log.info(idlog, 'proxy provisioning request ' + req.method + ' ' + req.url + ' for user ' + user.name);
     proxy.web(req, res, proxyOptions, function (err) {
       logger.log.error(idlog, 'provisioning request ' + req.method + ' ' + req.url + ' failed: ' + err.message);
@@ -281,3 +389,4 @@ function create(options) {
 exports.create = create;
 exports.parseRequest = parseRequest;
 exports.checkPatchBody = checkPatchBody;
+exports.filterResponse = filterResponse;

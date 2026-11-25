@@ -1,7 +1,7 @@
 /**
  * Tests of the Tancredi requests of the CTI users: allowed paths and
  * queries, phone owner check, PATCH body checks, URL, headers and body
- * forwarded to Tancredi.
+ * forwarded to Tancredi, data of the answers sent to the CTI.
  *
  * Run with: node plugins/http_proxy/test/test_tancredi_proxy.js
  *
@@ -124,6 +124,67 @@ function testCheckPatchBody() {
   assert.ok(c(JSON.stringify({ variables: { linekey_label_1: new Array(256).join('x') } })).body);
 }
 
+// Tancredi data with the variables the CTI must not receive
+var PHONE = {
+  mac: OWN_MAC,
+  short_mac: '0c383e000001',
+  model: 'fanvil-X5U',
+  display_name: 'Alice phone',
+  tok1: 'first-token',
+  tok2: 'second-token',
+  provisioning_url1: 'https://pbx/provisioning/first-token/0c383e000001.cfg',
+  provisioning_url2: 'https://pbx/provisioning/second-token/0c383e000001.cfg',
+  model_url: '/tancredi/api/v1/models/fanvil-X5U',
+  variables: {
+    adminpw: 'Admin-Pw', userpw: 'User-Pw', ldap_password: 'Ldap-Pw', ldap_user: 'cn=ldap',
+    account_password_1: 'Sip-Pw', account_username_1: '201',
+    door_rtsp_password: 'Rtsp-Pw', door_dtmf_code: '*7', door_open_url_user: 'admin',
+    provisioning_url_path: 'provisioning/', hostname: 'pbx',
+    linekey_type_1: 'blf', linekey_value_1: '202', linekey_label_1: 'Bob',
+    expkey_type_1: 'speed_dial', expkey_value_1: '203', expkey_label_1: 'Carol',
+    softkey_type_1: 'dnd', cap_linekey_count: '6', cap_door_phone: ''
+  }
+};
+var MODEL = {
+  name: 'fanvil-X5U',
+  display_name: 'Fanvil X5U',
+  model_url: '/tancredi/api/v1/models/fanvil-X5U',
+  variables: {
+    cap_linekey_count: '6', cap_expkey_count: '20', cap_expmodule_count: '3',
+    adminpw: 'Model-Admin-Pw', ldap_password: 'Model-Ldap-Pw', tmpl_phone: 'fanvil.tmpl'
+  }
+};
+var SECRETS = ['Admin-Pw', 'User-Pw', 'Ldap-Pw', 'Sip-Pw', 'Rtsp-Pw', '*7', 'first-token', 'second-token', 'cn=ldap'];
+
+function testFilterResponse() {
+  var f = tancrediProxy.filterResponse;
+  assert.deepStrictEqual(f('phone', PHONE), {
+    mac: OWN_MAC,
+    short_mac: '0c383e000001',
+    model: 'fanvil-X5U',
+    display_name: 'Alice phone',
+    model_url: '/tancredi/api/v1/models/fanvil-X5U',
+    variables: {
+      linekey_type_1: 'blf', linekey_value_1: '202', linekey_label_1: 'Bob',
+      expkey_type_1: 'speed_dial', expkey_value_1: '203', expkey_label_1: 'Carol',
+      cap_linekey_count: '6', cap_door_phone: ''
+    }
+  });
+  assert.deepStrictEqual(f('model', MODEL), {
+    name: 'fanvil-X5U',
+    display_name: 'Fanvil X5U',
+    model_url: '/tancredi/api/v1/models/fanvil-X5U',
+    variables: { cap_linekey_count: '6', cap_expkey_count: '20', cap_expmodule_count: '3' }
+  });
+  // an empty scope keeps an empty variables object
+  assert.deepStrictEqual(f('phone', { mac: OWN_MAC, variables: {} }).variables, {});
+  assert.deepStrictEqual(f('phone', { mac: OWN_MAC, variables: [] }).variables, {});
+  assert.strictEqual(f('phone', null), null);
+  assert.strictEqual(f('phone', []), null);
+  assert.strictEqual(f('phone', 'text'), null);
+  assert.strictEqual(f('other', PHONE), null);
+}
+
 // fake Tancredi: records the requests and answers with fixed data
 function startFakeTancredi(cb) {
   var requests = [];
@@ -132,12 +193,33 @@ function startFakeTancredi(cb) {
     req.on('data', function (c) { chunks.push(c); });
     req.on('end', function () {
       requests.push({ method: req.method, url: req.url, headers: req.headers, body: Buffer.concat(chunks).toString() });
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ mac: OWN_MAC, model: 'fanvil-X5U', variables: { linekey_type_1: 'blf' } }));
+      var path = req.url.split('?')[0];
+      if (path === '/tancredi/api/v1/phones/' + OWN_MAC) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(PHONE));
+      } else if (path === '/tancredi/api/v1/models/fanvil-X5U') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(MODEL));
+      } else if (path === '/tancredi/api/v1/models/broken') {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end('<html>' + JSON.stringify(PHONE) + '</html>');
+      } else if (path === '/tancredi/api/v1/models/failing') {
+        res.writeHead(500, { 'Content-Type': 'text/html' });
+        res.end('error in /usr/share/tancredi/src/Entity/Scope.php');
+      } else {
+        res.writeHead(404, { 'Content-Type': 'application/problem+json' });
+        res.end(JSON.stringify({ type: 'https://nethesis.github.io/tancredi/problems/#not-found', title: 'Resource not found' }));
+      }
     });
   });
   server.listen(0, '127.0.0.1', function () {
     cb(server, requests);
+  });
+}
+
+function assertNoSecrets(body) {
+  SECRETS.forEach(function (secret) {
+    assert.strictEqual(body.indexOf(secret), -1, 'the answer must not contain ' + secret);
   });
 }
 
@@ -202,9 +284,12 @@ function testForwarding(done) {
       var patchBody = JSON.stringify({ variables: { linekey_label_1: 'Reception', linekey_value_1: '201' } });
       series([
         function (next) {
-          request(port, 'GET', '/tancredi/api/v1/phones/' + OWN_MAC + '?inherit=1', undefined, false, function (status) {
+          request(port, 'GET', '/tancredi/api/v1/phones/' + OWN_MAC + '?inherit=1', undefined, false, function (status, body) {
             assert.strictEqual(status, 200);
+            assert.deepStrictEqual(JSON.parse(body), tancrediProxy.filterResponse('phone', PHONE));
+            assertNoSecrets(body);
             var r = requests.pop();
+            assert.strictEqual(r.headers['accept-encoding'], 'identity');
             assert.strictEqual(r.method, 'GET');
             assert.strictEqual(r.url, '/tancredi/api/v1/phones/' + OWN_MAC + '?inherit=1');
             assert.strictEqual(r.headers.user, 'admin');
@@ -216,8 +301,11 @@ function testForwarding(done) {
           });
         },
         function (next) {
-          request(port, 'GET', '/tancredi/api/v1/models/fanvil-X5U', undefined, false, function (status) {
+          request(port, 'GET', '/tancredi/api/v1/models/fanvil-X5U', undefined, false, function (status, body) {
             assert.strictEqual(status, 200);
+            assert.deepStrictEqual(JSON.parse(body), tancrediProxy.filterResponse('model', MODEL));
+            assertNoSecrets(body);
+            assert.strictEqual(body.indexOf('Model-'), -1);
             assert.strictEqual(requests.pop().url, '/tancredi/api/v1/models/fanvil-X5U');
             next();
           });
@@ -231,8 +319,9 @@ function testForwarding(done) {
           });
         },
         function (next) {
-          request(port, 'PATCH', '/tancredi/api/v1/phones/' + OWN_MAC, patchBody, true, function (status) {
+          request(port, 'PATCH', '/tancredi/api/v1/phones/' + OWN_MAC, patchBody, true, function (status, body) {
             assert.strictEqual(status, 200);
+            assertNoSecrets(body);
             var r = requests.pop();
             assert.strictEqual(r.method, 'PATCH');
             assert.strictEqual(r.url, '/tancredi/api/v1/phones/' + OWN_MAC);
@@ -250,6 +339,22 @@ function testForwarding(done) {
             assert.strictEqual(status, 200);
             assert.strictEqual(requests.pop().body, patchBody);
             next();
+          });
+        },
+        function (next) {
+          // Tancredi errors: 4xx with their problem description, 5xx without body
+          request(port, 'GET', '/tancredi/api/v1/models/missing', undefined, false, function (status, body) {
+            assert.strictEqual(status, 404);
+            assert.strictEqual(JSON.parse(body).title, 'Resource not found');
+            request(port, 'GET', '/tancredi/api/v1/models/failing', undefined, false, function (status, body) {
+              assert.strictEqual(status, 500);
+              assert.strictEqual(body, '');
+              request(port, 'GET', '/tancredi/api/v1/models/broken', undefined, false, function (status, body) {
+                assert.strictEqual(status, 502);
+                assert.strictEqual(body, '');
+                next();
+              });
+            });
           });
         },
         function (next) {
@@ -309,6 +414,7 @@ function testTancrediDown(done) {
 
 testParseRequest();
 testCheckPatchBody();
+testFilterResponse();
 series([testForwarding, testTancrediDown], function () {
   console.log('tancredi proxy tests: OK');
 });
