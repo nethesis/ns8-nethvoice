@@ -106,7 +106,9 @@ class Storage:
         if not row:
             raise ValueError('binding_unavailable')
         master = os.environ['SATELLITE_AGENT_CONFIG_KEY'].encode()
-        secret = SecretBox(hashlib.sha256(master).digest()).decrypt(base64.b64decode(row.pop('secrets_encrypted'), validate=True))
+        encrypted = row.pop('secrets_encrypted')
+        row['_signing_generation'] = hashlib.sha256(encrypted.encode('ascii')).hexdigest()
+        secret = SecretBox(hashlib.sha256(master).digest()).decrypt(base64.b64decode(encrypted, validate=True))
         row.update(json.loads(secret))
         if not row.get('api_key'):
             names=('OPENAI_API_KEY',) if row['provider']=='openai' else ('XAI_API_KEY','GROK_API_KEY')
@@ -180,6 +182,13 @@ class Storage:
                     raise
                 cursor.execute('UPDATE asteriskcdrdb.voice_agent_runs SET provider_call_id=%s WHERE run_id=%s', (provider_call_id, call.run_id))
 
+    def verify_signing_secret(self, binding):
+        with database('monitor') as db:
+            with db.cursor() as cursor:
+                cursor.execute('UPDATE asterisk.voice_agent_webhook_verification SET webhook_verified_at=NOW() '
+                               'WHERE binding_id=%s AND SHA2(secrets_encrypted,256)=%s',
+                               (binding['binding_id'], binding['_signing_generation']))
+
     def media_ownership(self):
         with database('monitor') as db:
             with db.cursor() as cursor:
@@ -201,13 +210,13 @@ class Storage:
         with database('monitor') as db:
             with db.cursor() as cursor:
                 cursor.execute('INSERT INTO asteriskcdrdb.voice_agent_runtime_health '
-                    '(singleton,observed_at,ari_connected,active_calls,degraded,spool_writable,queue_depth,pending_bytes,oldest_pending_seconds,dropped,retries,last_write_at) '
-                    'VALUES (1,NOW(6),%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE '
+                    '(singleton,observed_at,ari_connected,active_calls,degraded,spool_writable,queue_depth,pending_bytes,oldest_pending_seconds,dropped,retries,invalid_webhook_signatures,last_write_at) '
+                    'VALUES (1,NOW(6),%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE '
                     'observed_at=VALUES(observed_at),ari_connected=VALUES(ari_connected),active_calls=VALUES(active_calls),'
                     'degraded=VALUES(degraded),spool_writable=VALUES(spool_writable),queue_depth=VALUES(queue_depth),pending_bytes=VALUES(pending_bytes),'
-                    'oldest_pending_seconds=VALUES(oldest_pending_seconds),dropped=VALUES(dropped),retries=VALUES(retries),last_write_at=VALUES(last_write_at)',
+                    'oldest_pending_seconds=VALUES(oldest_pending_seconds),dropped=VALUES(dropped),retries=VALUES(retries),invalid_webhook_signatures=VALUES(invalid_webhook_signatures),last_write_at=VALUES(last_write_at)',
                     (values['ari_connected'],values['active_calls'],values['degraded'],values['spool_writable'],values['queue_depth'],values['pending_bytes'],
-                     values['oldest_pending_seconds'],values['dropped'],values['retries'],
+                     values['oldest_pending_seconds'],values['dropped'],values['retries'],values['invalid_webhook_signatures'],
                      datetime.fromisoformat(values['last_write_at']).replace(tzinfo=None) if values['last_write_at'] else None))
 
     def transcript(self, turn):

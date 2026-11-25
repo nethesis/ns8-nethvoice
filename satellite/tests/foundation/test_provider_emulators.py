@@ -92,6 +92,9 @@ async def test_signed_admission_v3_tools_denial_and_provider_disconnect(provider
         assert await runtime.webhook(provider, body, headers) == {'status': 'accepted'}
         assert await runtime.webhook(provider, body, headers) == {'status': 'duplicate'}
         await eventually(lambda: call.media_connected)
+        if provider == 'openai':
+            await eventually(lambda: storage.verify_signing_secret.called)
+            storage.verify_signing_secret.assert_called_once_with(call.binding)
         session = emulator.accepted[0] if provider == 'openai' else next(e['session'] for e in emulator.received if e['type'] == 'session.update')
         assert {t['name'] for t in session['tools']} == {'nv_pbx_find_destinations_v1', 'nv_pbx_transfer_v2','nv_pbx_find_recent_callers_v1'}
         assert bool(emulator.accepted) == (provider == 'openai')

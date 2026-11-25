@@ -11,6 +11,10 @@ MAX_BODY_BYTES = 256 * 1024
 MAX_AGE_SECONDS = 300
 
 
+class InvalidPayload(ValueError):
+    pass
+
+
 def verify_webhook(secret: str, raw_body: bytes, headers: Mapping[str, str]) -> dict:
     """Return authenticated JSON, or raise ValueError without leaking the secret."""
     if not isinstance(raw_body, bytes) or len(raw_body) > MAX_BODY_BYTES:
@@ -45,9 +49,12 @@ def verify_webhook(secret: str, raw_body: bytes, headers: Mapping[str, str]) -> 
             verified |= hmac.compare_digest(expected, provided)
         if not verified:
             raise ValueError
+    except (KeyError, TypeError, UnicodeError, ValueError, base64.binascii.Error, json.JSONDecodeError) as exc:
+        raise ValueError("invalid webhook") from exc
+    try:
         event = json.loads(raw_body)
         if not isinstance(event, dict):
             raise ValueError
         return event
-    except (KeyError, TypeError, UnicodeError, ValueError, base64.binascii.Error, json.JSONDecodeError) as exc:
-        raise ValueError("invalid webhook") from exc
+    except (ValueError, UnicodeError, RecursionError) as error:
+        raise InvalidPayload('invalid webhook payload') from error
