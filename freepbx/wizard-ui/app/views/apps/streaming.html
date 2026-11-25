@@ -210,6 +210,16 @@
                 placeholder="{{newSource.has_secret && (!newSource.door_phone || newSource.onMod) && !newSource.doorPasswordRequired ? ('Unchanged' | translate) : ''}}" class="form-control">
             </div>
           </div>
+          <div ng-if="sourceClearText(newSource)" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div ng-if="sourceClearText(newSource) === 'http'" class="help-block text-warning">
+                <span class="fa fa-exclamation-triangle"></span> {{'The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN' | translate}}
+              </div>
+              <div ng-if="sourceClearText(newSource) === 'rtsp'" class="help-block text-warning">
+                <span class="fa fa-exclamation-triangle"></span> {{'The connection is RTSP without TLS: the username, the password and the video travel in clear text. Use rtsps:// if the device supports it, otherwise use it only in a trusted network or through a VPN' | translate}}
+              </div>
+            </div>
+          </div>
           <!-- Linked to a door phone: the PBX manages the credentials, no fields -->
           <div ng-if="newSource.door_phone && !newSource.onMod && newSource.credentialsGenerated" class="form-group">
             <div class="col-sm-offset-3 col-sm-9">

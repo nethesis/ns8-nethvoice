@@ -326,6 +326,16 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(scope.showCredentials({})).toBe(true);
   });
 
+  it('warns about credentials in clear text on http and rtsp sources', function () {
+    expect(scope.sourceClearText({ url: 'http://192.0.2.10/snap.jpg', user: 'admin' })).toBe('http');
+    expect(scope.sourceClearText({ url: 'rtsp://192.0.2.10/live', user: 'admin' })).toBe('rtsp');
+    expect(scope.sourceClearText({ url: 'rtsp://admin:pw@192.0.2.10/live', user: '' })).toBe('rtsp');
+    expect(scope.sourceClearText({ url: 'rtsps://192.0.2.10/live', user: 'admin' })).toBe(null);
+    expect(scope.sourceClearText({ url: 'https://192.0.2.10/snap.jpg', user: 'admin' })).toBe(null);
+    expect(scope.sourceClearText({ url: 'rtsp://192.0.2.10/live', user: '' })).toBe(null);
+    expect(scope.sourceClearText({ url: 'http://192.0.2.10/a@b.jpg', user: '' })).toBe(null);
+  });
+
   it('keeps a modified source linked to its door phone', function () {
     var stored = storedSource();
     stored.door_phone = '0C-38-3E-32-6B-84';

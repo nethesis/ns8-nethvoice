@@ -291,6 +291,23 @@ angular.module('nethvoiceWizardUiApp')
       return gate.type === 'url' && !!gate.username && /^http:\/\//i.test(gate.url || '');
     };
 
+    // Source with credentials (in the fields or in the URL) on a protocol
+    // without TLS: "http" for an http:// image source, "rtsp" for an rtsp://
+    // stream (the video travels in clear text too), null otherwise
+    $scope.sourceClearText = function (s) {
+      var url = (s && s.url) || '';
+      if (!s || !(s.user || /^[a-z]+:\/\/[^\/?#]*@/i.test(url))) {
+        return null;
+      }
+      if (/^http:\/\//i.test(url)) {
+        return 'http';
+      }
+      if (/^rtsp:\/\//i.test(url)) {
+        return 'rtsp';
+      }
+      return null;
+    };
+
     $scope.gateTypeChanged = function (s) {
       syncDoorGates(s);
     };
