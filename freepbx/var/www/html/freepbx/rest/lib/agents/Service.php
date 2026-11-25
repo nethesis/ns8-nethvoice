@@ -87,7 +87,7 @@ final class Service
         }
         unset($tool);
         try { $webhookUrl=OpenAiWebhook::callbackUrl(); } catch (\RuntimeException $error) { $webhookUrl=null; }
-        return ['openai_webhook_url'=>$webhookUrl,'agent_types'=>[['id'=>'basic_voice','name'=>'Basic Voice'],['id'=>'consultation','name'=>'Internal consultation assistant'],['id'=>'cleverai','name'=>'CleverAI']],
+        return ['sip_lab_enabled'=>Preview::sipEnabled(),'openai_webhook_url'=>$webhookUrl,'agent_types'=>[['id'=>'basic_voice','name'=>'Basic Voice'],['id'=>'consultation','name'=>'Internal consultation assistant'],['id'=>'cleverai','name'=>'CleverAI']],
             'tools'=>$tools,'draft_defaults'=>self::emptyDraft(),
             'consultation_defaults'=>self::consultationDraft(),
             'consultation_assistants'=>array_values(array_map(fn($row)=>['agent_id'=>$row['agent_id'],'name'=>$row['name'],'workflow_version'=>$row['workflow_version']],array_filter($this->all(),fn($row)=>$row['agent_type']==='consultation' && $row['enabled'] && $row['published'] && $row['sync_status']==='synced'))),
@@ -280,6 +280,7 @@ PROMPT;
             }
             if (!$draft['provider_binding_id']) self::fail('provider_required');
             $binding=$this->binding($draft['provider_binding_id']);
+            if ($draft['conversation']['model']!==null && $draft['conversation']['model']!=='gpt-live-1' && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
             if ($binding['provider']==='openai' && ($draft['conversation']['model']??null)!=='gpt-live-1') {
                 $secrets=json_decode($this->crypto->decryptSecret($binding['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
                 if (($secrets['openai_webhook']['state']??null)==='recovery') self::fail('webhook_secret_recovery_required',409);
@@ -292,6 +293,7 @@ PROMPT;
             $snapshot=$draft+['contract_version'=>$draft['contract_version'],'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
             if ($draft['conversation']['model']===null) self::fail('model_required');
             $models=$this->models(['provider'=>$binding['provider'],'binding_id'=>$binding['binding_id']]);
+            if (isset($models['discovery_error'])) self::fail($models['discovery_error'],503);
             if (!in_array($draft['conversation']['model'],array_column($models['items'],'id'),true)) self::fail('provider_model_unavailable');
             if ($draft['conversation']['model']==='gpt-live-1' && !in_array($draft['conversation']['options']['backend_model'],array_column($models['backend_models'],'id'),true)) self::fail('backend_model_unavailable');
             if ($binding['provider']==='grok' && !in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice');
@@ -387,20 +389,21 @@ PROMPT;
     }
     private function webhookStatus(array $row,array $settings,array $secrets): string
     {
+        $manual=empty($row['webhook_verified_at'])?'manual':'verified';
         $setup=$secrets['openai_webhook']??null;
         $attempts=self::webhookAttempts($secrets);
-        if ($row['provider']!=='openai' || (!$setup && !$attempts)) return empty($secrets['webhook_secret'])?'not_configured':'manual';
+        if ($row['provider']!=='openai' || (!$setup && !$attempts)) return empty($secrets['webhook_secret'])?'not_configured':$manual;
         $key=$secrets['api_key']??ProviderCatalog::environmentKey('openai');
         try { $url=OpenAiWebhook::callbackUrl(); } catch (\Throwable $error) { return 'needs_setup'; }
         $scope=['url'=>$url,'project_id'=>$settings['openai_project_id'],'key_hash'=>hash('sha256',$key)];
         if (isset($setup['endpoint_id']) && $setup['key_hash']===$scope['key_hash'] && $setup['project_id']===$scope['project_id'] && $setup['url']===$url) {
-            if (in_array($setup['state'],['configured','manual'],true) && !empty($secrets['webhook_secret'])) return $setup['state'];
+            if (in_array($setup['state'],['configured','manual'],true) && !empty($secrets['webhook_secret'])) return $setup['state']==='manual'?$manual:$setup['state'];
             return 'recovery_required';
         }
         foreach ($attempts as $attempt) {
             if (self::sameWebhookScope($attempt,$scope)) return 'recovery_required';
         }
-        return $setup?'needs_setup':(empty($secrets['webhook_secret'])?'not_configured':'manual');
+        return $setup?'needs_setup':(empty($secrets['webhook_secret'])?'not_configured':$manual);
     }
     private static function webhookAttempts(array $secrets): array
     {
@@ -420,7 +423,7 @@ PROMPT;
         try {
             $encrypted=$this->crypto->encryptSecret(self::encode($secrets));
             $this->db->beginTransaction();
-            $this->query('UPDATE asterisk.voice_agent_bindings SET secrets_encrypted=?,revision=revision+? WHERE binding_id=?',[$encrypted,$complete?1:0,$row['binding_id']]);
+            $this->query('UPDATE asterisk.voice_agent_bindings SET secrets_encrypted=?,webhook_verified_at=NULL,revision=revision+? WHERE binding_id=?',[$encrypted,$complete?1:0,$row['binding_id']]);
             $this->audit($row['binding_id'],$actor,$action,(int)$row['revision']+($complete?1:0),true);
             $this->db->commit();
         } catch (\Throwable $error) {
@@ -430,6 +433,7 @@ PROMPT;
     }
     public function configureWebhook(string $id,int $revision,string $actor): array
     {
+        if (!Preview::sipEnabled()) self::fail('sip_lab_required',409);
         return $this->locked(function() use ($id,$revision,$actor) {
             $row=$this->binding($id);self::revision($row,$revision);
             $settings=json_decode($row['settings_json'],true,512,JSON_THROW_ON_ERROR);
@@ -533,7 +537,9 @@ PROMPT;
     /** POST avoids putting unsaved credentials into URLs, caches or browser history. */
     public function models(array $input): array
     {
-        self::fields($input,['provider','binding_id','api_key']);
+        self::fields($input,['provider','binding_id','api_key','credential_mode','test']);
+        $mode=$input['credential_mode']??null;
+        if ($mode!==null && !in_array($mode,['inherit','dedicated'],true)) self::fail('invalid_field');
         $provider=self::text($input['provider']??null,16,true);
         ProviderCatalog::capabilities($provider);
         $key=isset($input['api_key'])?self::text($input['api_key'],4096):'';
@@ -542,9 +548,29 @@ PROMPT;
             $row=$this->binding(self::text($input['binding_id'],48,true));
             if ($this->safeBinding($row)['provider']!==$provider) self::fail('invalid_provider');
             $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
-            if ($key==='') $key=$secrets['api_key']??'';
+            if ($key==='' && $mode!=='inherit') $key=$secrets['api_key']??'';
         }
-        return $this->providerCatalog->models($provider,$key!==''?$key:ProviderCatalog::environmentKey($provider));
+        if ($mode==='inherit' || ($key==='' && $mode!=='dedicated')) $key=ProviderCatalog::environmentKey($provider);
+        $result=$this->providerCatalog->models($provider,$key,($input['test']??false)===true);
+        if (($input['test']??false)===true && isset($result['discovery_error'])) self::fail($result['discovery_error'],503);
+        if ($provider==='openai' && !Preview::sipEnabled()) {
+            $result['items']=array_values(array_filter($result['items'],fn($item)=>$item['id']==='gpt-live-1'));
+            $result['default_model']='gpt-live-1';
+        }
+        return $result;
+    }
+    public function inheritedAgents(): array
+    {
+        $names=[];
+        $rows=$this->query("SELECT a.name,b.secrets_encrypted FROM asterisk.voice_agent_agents a
+            JOIN asterisk.voice_agent_versions v ON a.agent_id=v.agent_id AND v.workflow_version=a.active_workflow_version
+            JOIN asterisk.voice_agent_bindings b ON b.binding_id=JSON_UNQUOTE(JSON_EXTRACT(v.definition_json,'$.provider_binding_id'))
+            WHERE a.removed=0 AND b.removed=0 AND b.provider='openai' ORDER BY a.name,a.agent_id");
+        foreach ($rows as $row) {
+            $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
+            if (empty($secrets['api_key'])) $names[]=$row['name'];
+        }
+        return $names;
     }
     public function cleverAiTransport(string $id): ?array
     {
@@ -620,7 +646,7 @@ PROMPT;
     public function saveTrunk(?string $id, array $input, int $revision, string $actor): array
     {
         return $this->locked(function() use ($id,$input,$revision,$actor) {
-            self::fields($input,['name','provider','openai_project_id','grok_phone_number','sip_auth_mode','sip_auth_username','sip_password','api_key','webhook_secret']);
+            self::fields($input,['name','provider','openai_project_id','grok_phone_number','sip_auth_mode','sip_auth_username','sip_password','api_key','webhook_secret','credential_mode']);
             $previous=$id===null?null:$this->binding($id);
             if ($previous) self::revision($previous,$revision);
             elseif ($revision!==0) self::fail('revision_conflict',409);
@@ -645,12 +671,20 @@ PROMPT;
             }
             $secrets=$previous && !$external?json_decode($this->crypto->decryptSecret($previous['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR):[];
             $previousSipPassword=$secrets['sip_password']??'';
+            $previousWebhook=$secrets['webhook_secret']??'';
+            $mode=$input['credential_mode']??null;
+            if ($mode!==null && !in_array($mode,['inherit','dedicated'],true)) self::fail('invalid_field');
+            if ($mode==='inherit') {
+                unset($secrets['api_key']);
+                if (!empty($input['api_key'])) self::fail('invalid_field');
+            }
             foreach (['api_key','webhook_secret','sip_password'] as $field) {
                 if (isset($input[$field]) && $input[$field]!=='') {
                     $secrets[$field]=self::text($input[$field],4096,true);
                     if (preg_match('/[\r\n\x00]/',$secrets[$field])) self::fail('invalid_secret');
                 }
             }
+            if ($mode==='dedicated' && empty($secrets['api_key'])) self::fail('credentials_required');
             if (!$external && ((empty($secrets['api_key']) && ProviderCatalog::environmentKey($provider)==='') || ($provider==='grok' && empty($secrets['webhook_secret'])) || ($settings['sip_auth_mode']==='digest' && empty($secrets['sip_password'])))) self::fail('credentials_required');
             if (!$external && isset($secrets['webhook_secret']) && !OpenAiWebhook::validSecret($secrets['webhook_secret'])) self::fail('invalid_secret');
             if (!$external && !empty($input['webhook_secret']) && isset($secrets['openai_webhook']['endpoint_id'])) {
@@ -664,7 +698,7 @@ PROMPT;
                 || $previous['name']!==$name || $nativeSettings!=$previousNativeSettings || ($secrets['sip_password']??'')!==$previousSipPassword;
             $this->db->beginTransaction();
             if (!$previous) $this->query('INSERT INTO asterisk.voice_agent_bindings (binding_id,name,provider,settings_json,secrets_encrypted) VALUES (?,?,?,?,?)',[$id,$name,$external?'openai':$provider,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted]);
-            else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,revision=revision+1,sync_status=? WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$nativeChanged?'pending':'synced',$id]);
+            else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,webhook_verified_at=IF(?,NULL,webhook_verified_at),revision=revision+1,sync_status=? WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,(int)($previousWebhook!==($secrets['webhook_secret']??'') || ($previousSettings['openai_project_id']??null)!==($settings['openai_project_id']??null)),$nativeChanged?'pending':'synced',$id]);
             $this->audit($id,$actor,$previous?'updated':'created',$revision+1,true);
             $this->db->commit();
             $row=$this->binding($id);
