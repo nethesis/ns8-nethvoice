@@ -46,6 +46,59 @@ function setMigrationScriptVersion(\PDO $db, int $version): void
 	$stmt->execute([$version]);
 }
 
+function migrateCtiMacroPermissions(\PDO $db): void
+{
+	$sql = "SELECT COUNT(*) AS `required_columns`
+		FROM `information_schema`.`COLUMNS`
+		WHERE `TABLE_SCHEMA` = 'asterisk'
+		AND (
+			(`TABLE_NAME` = 'rest_cti_macro_permissions' AND `COLUMN_NAME` = 'id')
+			OR (`TABLE_NAME` = 'rest_cti_profiles_macro_permissions' AND `COLUMN_NAME` = 'macro_permission_id')
+			OR (`TABLE_NAME` = 'rest_cti_macro_permissions_permissions' AND `COLUMN_NAME` = 'macro_permission_id')
+		)";
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+	$res = $stmt->fetch(\PDO::FETCH_ASSOC);
+	if ((int) ($res['required_columns'] ?? 0) === 3) {
+		# Check if NethVoice CTI macro_permission exists
+		$sql = "SELECT * FROM `rest_cti_macro_permissions` WHERE `id` = 12 OR `name` = 'nethvoice_cti'";
+		$stmt = $db->prepare($sql);
+		$stmt->execute();
+		$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+		if (count($res) == 0) {
+			# Add NethVoice CTI macro_permission
+			$db->query("INSERT INTO `rest_cti_macro_permissions` VALUES (12,'nethvoice_cti','NethVoice CTI','Enables access to NethVoice CTI application')");
+			# Add NethVoice CTI macro_permission to all existing profiles
+			$db->query("INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`, `macro_permission_id`) SELECT `id`, 12 FROM `rest_cti_profiles`");
+		}
+		# move pickup from presence_panel to settings
+		$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 18");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,18);");
+		# move spy from presence_panel to settings
+		$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 15");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,15);");
+		# move intrude from presence_panel to settings
+		$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 16");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,16);");
+		# move phone_buttons from settings to nethvoice_cti
+		$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 2000");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,2000);");
+		# move privacy from settings to nethvoice_cti
+		$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 9");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,9);");
+		# move chat from settings to nethvoice_cti
+		$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 8");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,8);");
+		# move screen_sharing from settings to nethvoice_cti
+		$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 1000");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,1000);");
+		# move video_conference from settings to nethvoice_cti
+		$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 3000");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,3000);");
+		$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) SELECT 12, `id` FROM `rest_cti_permissions` WHERE `id` = 5000");
+	}
+}
+
 # Disable obsolete chan_sip TLS, including on already-migrated installations.
 $db->exec("UPDATE `asterisk`.`sipsettings` SET `data` = 'no' WHERE `keyword` = 'tlsenable' AND `type` = 0");
 
@@ -55,6 +108,9 @@ $db->exec("DELETE `mailbox` FROM `asterisk`.`sip` AS `mailbox`
 	LEFT JOIN `asterisk`.`sip` AS `account`
 	ON `account`.`id` = `mailbox`.`id` AND `account`.`keyword` = 'account'
 	WHERE `mailbox`.`keyword` = 'mailbox' AND `account`.`id` IS NULL");
+
+# migrate profiles, macro_permissions and permissions scheme to new format
+migrateCtiMacroPermissions($db);
 
 # check if migration is needed. Exit 0 if not
 $stmt = $db->prepare("SELECT `value` FROM `asterisk`.`admin` WHERE `variable` = 'MIGRATION_SCRIPT'");
@@ -182,56 +238,6 @@ $sql = "UPDATE `asterisk`.`pjsip`
 
 $stmt = $db->prepare($sql);
 $stmt->execute(['sip:'.$_ENV['PROXY_IP'].':'.$_ENV['PROXY_PORT'].';lr']);
-# migrate profiles, macro_permissions and permissions scheme to new format
-$sql = "SELECT COUNT(*) AS `required_columns`
-	FROM `information_schema`.`COLUMNS`
-	WHERE `TABLE_SCHEMA` = 'asterisk'
-	AND (
-		(`TABLE_NAME` = 'rest_cti_macro_permissions' AND `COLUMN_NAME` = 'macro_permission_id')
-		OR (`TABLE_NAME` = 'rest_cti_profiles_macro_permissions' AND `COLUMN_NAME` = 'macro_permission_id')
-		OR (`TABLE_NAME` = 'rest_cti_macro_permissions_permissions' AND `COLUMN_NAME` = 'macro_permission_id')
-	)";
-$stmt = $db->prepare($sql);
-$stmt->execute();
-$res = $stmt->fetch(\PDO::FETCH_ASSOC);
-if ((int) ($res['required_columns'] ?? 0) === 3) {
-	# Check if NethVoice CTI macro_permission exists
-	$sql = "SELECT * FROM `rest_cti_macro_permissions` WHERE `macro_permission_id` = 12";
-	$stmt = $db->prepare($sql);
-	$stmt->execute();
-	$res = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-	if (count($res) == 0) {
-		# Add NethVoice CTI macro_permission
-		$db->query("INSERT INTO `rest_cti_macro_permissions` VALUES (12,'nethvoice_cti','NethVoice CTI','Enables access to NethVoice CTI application')");
-		# Add NethVoice CTI macro_permission to all existing profiles
-		$db->query("INSERT INTO `rest_cti_profiles_macro_permissions` (`profile_id`, `macro_permission_id`) SELECT `id`, 12 FROM `rest_cti_profiles`");
-	}
-	# move pickup from presence_panel to settings
-	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 18");
-	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,18);");
-	# move spy from presence_panel to settings
-	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 15");
-	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,15);");
-	# move intrude from presence_panel to settings
-	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 5 AND `permission_id` = 16");
-	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (1,16);");
-	# move phone_buttons from settings to nethvoice_cti
-	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 2000");
-	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,2000);");
-	# move privacy from settings to nethvoice_cti
-	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 9");
-	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,9);");
-	# move chat from settings to nethvoice_cti
-	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 8");
-	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,8);");
-	# move screen_sharing from settings to nethvoice_cti
-	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 1000");
-	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,1000);");
-	# move video_conference from settings to nethvoice_cti
-	$db->query("DELETE FROM `rest_cti_macro_permissions_permissions` WHERE `macro_permission_id` = 1 AND `permission_id` = 3000");
-	$db->query("INSERT IGNORE INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`, `permission_id`) VALUES (12,3000);");
-}
-
 # change default host for nethcqr from localhost to 127.0.0.1:${NETHVOICE_MARIADB_PORT}
 $db->query("UPDATE `asterisk`.`nethcqr_details` SET `db_url` = '127.0.0.1:{$_ENV['NETHVOICE_MARIADB_PORT']}' WHERE `db_url` = 'localhost'");
 $db->query("UPDATE `asterisk`.`nethcqr_details` SET `cc_db_url` = '127.0.0.1:{$_ENV['NETHVOICE_MARIADB_PORT']}' WHERE `cc_db_url` = 'localhost'");
