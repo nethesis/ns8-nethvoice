@@ -32,7 +32,7 @@
         "extensions_enabled": false,
         "extension_allowlist": [],
         "queues_enabled": true,
-        "queue_denylist": [],
+        "queue_allowlist": [],
         "ivrs_enabled": false,
         "ivr_denylist": [],
         "descriptions": [],

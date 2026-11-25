@@ -194,7 +194,7 @@ async def test_confirmed_handoff_records_tool_completion_before_parent_cancellat
     call.adapter=AsyncMock()
     wire=next(t['wire_name'] for t in DEFINITIONS if t['id']=='pbx.transfer')
     handler=runtime.spawn(runtime.handle_tool(call,{'invocation_id':'synthetic-invocation','name':wire,
-        'arguments':{'destination_id':'extension:203'}}),call)
+        'arguments':{'confirmed': True, 'destination_id':'extension:203'}}),call)
     async def wait_for_token():
         while not call.transfer_token: await asyncio.sleep(.001)
     await asyncio.wait_for(wait_for_token(),2)

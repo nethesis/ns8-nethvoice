@@ -47,8 +47,8 @@ async def test_callback_overrides_only_direct_extension_setting():
     page = await registry.invoke('lookup', 'pbx.find_recent_callers', {})
     assert [c['name'] for c in page['candidates']] == ['Private']
     ref = page['candidates'][0]['candidate_ref']
-    assert await registry.invoke('direct', 'pbx.transfer', {'destination_id': 'extension:204'}) == {'error': 'destination_denied'}
-    assert await registry.invoke('callback', 'pbx.transfer', {'candidate_ref': ref}) == {'outcome': 'transferred'}
+    assert await registry.invoke('direct', 'pbx.transfer', {'confirmed': True, 'destination_id': 'extension:204'}) == {'error': 'destination_denied'}
+    assert await registry.invoke('callback', 'pbx.transfer', {'confirmed': True, 'candidate_ref': ref}) == {'outcome': 'transferred'}
     controller.transfer.assert_awaited_once_with('extension:204', candidate_ref=ref)
 
 
@@ -68,7 +68,7 @@ async def test_disabled_callback_cannot_be_invoked_by_wire_name(disabled):
     assert 'nv_pbx_find_recent_callers_v1' not in [m['name'] for m in registry.advertised()]
     assert registry.recent_callback_context() == ''
     assert await registry.invoke('forged', 'nv_pbx_find_recent_callers_v1', {}) == {'error': 'tool_denied'}
-    assert 'error' in await registry.invoke('callback', 'pbx.transfer', {'candidate_ref': 'invented'})
+    assert 'error' in await registry.invoke('callback', 'pbx.transfer', {'confirmed': True, 'candidate_ref': 'invented'})
 
 
 @pytest.mark.asyncio
@@ -281,7 +281,7 @@ async def test_provider_emulator_advertises_callback_flow_without_greeting_looku
         storage.recent_calls.assert_called_once_with('+390212345678', 7)
         controller.continue_channel.assert_not_awaited()
         # Scripted selection stands for a caller choosing the second contact.
-        await emulator.tool('nv_pbx_transfer_v2', {'candidate_ref': candidates[1]['candidate_ref']}, 'selected-contact')
+        await emulator.tool('nv_pbx_transfer_v2', {'confirmed': True, 'candidate_ref': candidates[1]['candidate_ref']}, 'selected-contact')
         await eventually(lambda: controller.continue_channel.await_count > 0)
         assert call.transfer_destination_id == 'extension:204'
         await runtime.event({'type': 'ChannelUserevent', 'eventname': 'VoiceAgentTransfer', 'channel': {'id': call.caller_id},

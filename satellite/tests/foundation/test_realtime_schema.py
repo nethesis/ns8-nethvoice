@@ -34,6 +34,8 @@ async def test_realtime_projects_transfer_schema_without_mutating_the_manifest()
         expected = copy.deepcopy(original[1]['input_schema'])
         expected.pop('oneOf')
         expected['properties']['destination_id']['pattern'] = r'^(extension|queue):[0-9]{1,20}$(?![\s\S])'
+        expected['properties']['confirmed'] = {'type': 'boolean', 'const': True}
+        expected['required'] = ['confirmed']
         assert transfer['parameters'] == expected
         assert 'exactly one' in transfer['description']
         assert DEFINITIONS == original

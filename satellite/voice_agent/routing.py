@@ -28,7 +28,7 @@ class RoutingPolicy:
         kind = destination_id.split(':')[0]
         if kind == 'extension':
             return config['extensions_enabled'] and destination_id in config['extension_allowlist']
-        return config[kind + 's_enabled'] and destination_id not in config[kind + '_denylist']
+        return config['queues_enabled'] and destination_id in config.get('queue_allowlist', [])
 
     def directory(self, rows):
         inventory = {row['id']: row for row in rows if isinstance(row.get('id'), str) and ID.fullmatch(row['id']) and row.get('available', True)}

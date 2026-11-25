@@ -98,7 +98,7 @@ async def test_signed_admission_v3_tools_denial_and_provider_disconnect(provider
         if provider == 'openai': assert session['model'] == 'gpt-realtime-2'
         else: assert 'model' not in session
         # Names/results only: no arbitrary target, payload or caller-number grants.
-        await emulator.tool('nv_pbx_transfer_v2', {'destination_id': 'extension:999'}, 'denied')
+        await emulator.tool('nv_pbx_transfer_v2', {'confirmed': True, 'destination_id': 'extension:999'}, 'denied')
         await eventually(lambda: emulator.results('denied'))
         assert emulator.results('denied') == [{'error': 'destination_denied'}]
         controller.continue_channel.assert_not_awaited()
