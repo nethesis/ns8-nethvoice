@@ -382,6 +382,7 @@ function start() {
             // provisioning requests proxy
             if (req.url.indexOf('/tancredi') === 0 && compAuthorization.authorizePhoneButtonsUser(req.headers.authorization_user) !== true) {
               logger.log.warn(IDLOG, `authorization failed for user ${req.headers.authorization_user} calling api ${req.method} ${req.url}: no permission`);
+              compUtil.net.sendHttp403(IDLOG, res);
               return;
             }
             else if (req.url.indexOf('/tancredi') === 0 && req.url.indexOf('/models/') !== -1 && req.method === 'GET') {
