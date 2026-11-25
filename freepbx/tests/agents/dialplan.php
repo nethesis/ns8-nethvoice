@@ -23,6 +23,8 @@ class FreePBX {
         ]; }
     }; }
 }
+$amp_conf=['ASTVARLIBDIR'=>sys_get_temp_dir().'/agent-dialplan-'.bin2hex(random_bytes(8))];
+mkdir($amp_conf['ASTVARLIBDIR'],0700);
 $ext=new class {
     public array $lines=[];
     public function add($context,$extension,$label,$object) { $this->lines[$context][$extension][]=[$label,$object->output()]; }
@@ -94,10 +96,12 @@ assert(in_array('Set(__CLEVERAI_FALLBACK=from-did-direct,203,1)',$clever));
 assert(satellite_check_destinations()[2]['description']==='Agent: CleverAI fallback');
 
 FreePBX::$broken=true;
-try {
-    satellite_get_config_late('asterisk');
-    assert(false, 'Agent dialplan errors must propagate to the PBX reload');
-} catch (RuntimeException $error) {
-    assert($error->getMessage()==='corrupt_agent');
-}
-echo "Native dialplan, correlation headers, transfer watchdog, disabled fallback and error propagation passed\n";
+$ext->lines=['ordinary-route'=>['s'=>[['','Hangup()']]]];
+satellite_get_config_late('asterisk');
+assert($render('ordinary-route')===['Hangup()']);
+assert(!isset($ext->lines['voice-agent-provider']));
+assert($render('voice-agent-receptionist')===['Goto(from-did-direct,203,1)']);
+assert(satellite_destinations()===[]);
+unlink($amp_conf['ASTVARLIBDIR'].'/voice-agent-fallbacks.json');
+rmdir($amp_conf['ASTVARLIBDIR']);
+echo "Native routing, isolated reload failure and saved fallback passed\n";
