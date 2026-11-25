@@ -646,7 +646,26 @@ class Runtime:
             except Exception:
                 self.monitoring.degraded=True
 
+    async def duration_notice(self, call, delay):
+        await asyncio.sleep(delay)
+        if not call.media_connected or call.terminal or call.transfer_release_requested or not call.adapter:
+            return
+        language = call.snapshot['conversation']['language']
+        notice = ('Abbiamo raggiunto il limite di tempo della chiamata. La conversazione con l’assistente sta per terminare.'
+                  if language.split('-')[0] == 'it' else
+                  'We have reached the call time limit. This conversation with the assistant will end shortly.')
+        instruction = f'In the configured language ({language}), briefly tell the caller: {notice}'
+        try:
+            if call.consultation:
+                await self.consultations.notice(call.consultation, instruction, restore_hold=True)
+            else:
+                await call.adapter.consultation_say(instruction)
+        except Exception:
+            pass  # The independent hard deadline owns fallback.
+
     async def deadline(self, call, seconds, setup=False):
+        if not setup and seconds > 0 and not call.private_consultation:
+            self.spawn(self.duration_notice(call, max(0, seconds - 10)), call)
         await asyncio.sleep(seconds)
         if not call.terminal and (not setup or not call.media_connected):
             await self.finish(call, 'fallback', 'setup_timeout' if setup else 'duration_exceeded', fallback=True)
