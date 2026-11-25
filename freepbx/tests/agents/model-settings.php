@@ -67,4 +67,15 @@ rejected(fn()=>$service->publish($edited['agent_id'],$edited['revision'],'synthe
 $input['api_key']='';$reloads=$native->reloads;
 $trunk=$service->saveTrunk($trunk['binding_id'],$input,$trunk['revision'],'synthetic-admin');
 ensure($native->reloads===$reloads,'credential_edit_not_model_edit');
+$service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'credential_mode'=>'dedicated','test'=>true]);
+ensure(end($keys)==='synthetic-stored-key','blank_edit_preserves_dedicated_key');
+$input['credential_mode']='inherit';
+$trunk=$service->saveTrunk($trunk['binding_id'],$input,$trunk['revision'],'synthetic-admin');
+ensure($trunk['api_key_source']==='environment','explicit_switch_clears_dedicated_key');
+ensure(in_array('Model agent',$service->inheritedAgents(),true),'published_inherited_agent_listed');
+$service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'credential_mode'=>'inherit','test'=>true]);
+ensure(end($keys)==='synthetic-environment-key','inheritance_effective');
+putenv('VOICE_AGENT_SIP_LAB_ENABLED=false');
+ensure(array_column($service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id']])['items'],'id')===['gpt-live-1'],'preview_catalog_only_live');
+rejected(fn()=>$service->configureWebhook($trunk['binding_id'],$trunk['revision'],'test-admin'),'sip_lab_required');
 echo "Agent conversation isolation, publication, discovery, permissions and no-reload behavior passed\n";

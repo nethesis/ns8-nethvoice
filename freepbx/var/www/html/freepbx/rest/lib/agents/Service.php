@@ -91,7 +91,7 @@ final class Service
             'tools'=>$tools,'draft_defaults'=>self::emptyDraft(),
             'consultation_defaults'=>self::consultationDraft(),
             'consultation_assistants'=>array_values(array_map(fn($row)=>['agent_id'=>$row['agent_id'],'name'=>$row['name'],'workflow_version'=>$row['workflow_version']],array_filter($this->all(),fn($row)=>$row['agent_type']==='consultation' && $row['enabled'] && $row['published'] && $row['sync_status']==='synced'))),
-            'providers'=>['openai','grok','cleverai'], 'extensions'=>$this->native->extensions(),
+            'providers'=>Preview::sipEnabled()?['openai','grok','cleverai']:['openai'], 'extensions'=>$this->native->extensions(),
             'default_language'=>$this->native->defaultLanguage(),'languages'=>ProviderCatalog::languages(),
             'provider_credentials'=>array_combine(['openai','grok'],array_map(fn($p)=>['environment_available'=>ProviderCatalog::environmentKey($p)!==''],['openai','grok']))];
     }
@@ -158,6 +158,7 @@ final class Service
     private function bindingReady(string $published): bool
     {
         $snapshot=json_decode($published,true,512,JSON_THROW_ON_ERROR);
+        if (!Preview::sipEnabled() && ($snapshot['conversation']['model']??null)!=='gpt-live-1') return false;
         try { $binding=$this->binding($snapshot['provider_binding_id']); }
         catch (\RuntimeException $error) { if ($error->getCode()===404) return false; throw $error; }
         return $binding['sync_status']==='synced' && $this->native->trunkReady($binding);
@@ -249,6 +250,7 @@ PROMPT;
             if (!is_array($input['draft']??null)) self::fail('invalid_configuration');
             $input['draft']['fallback_destination_id']=$id===null?'hangup':$this->get($id)['draft']['fallback_destination_id'];
             $external=($input['draft']['execution']??null)==='cleverai';
+            if ($external && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
             if ($id!==null && ($this->get($id)['agent_type']==='cleverai')!==$external) self::fail('invalid_agent_type');
             if ($id!==null && (($this->get($id)['draft']['role']??'public')==='consultation')!== (($input['draft']['role']??'public')==='consultation')) self::fail('invalid_agent_type');
             $draft=$this->validateDraft($input['draft']);
@@ -575,7 +577,7 @@ PROMPT;
     public function cleverAiTransport(string $id): ?array
     {
         $agent=$this->get($id);
-        if ($agent['agent_type']!=='cleverai' || !$agent['enabled']) return null;
+        if (!Preview::sipEnabled() || $agent['agent_type']!=='cleverai' || !$agent['enabled']) return null;
         $row=$this->binding($agent['draft']['provider_binding_id']);
         if ($this->safeBinding($row)['provider']!=='cleverai' || !$this->native->trunkExists($row)) return null;
         $settings=json_decode($row['settings_json'],true,512,JSON_THROW_ON_ERROR);
@@ -652,6 +654,7 @@ PROMPT;
             elseif ($revision!==0) self::fail('revision_conflict',409);
             $provider=$input['provider']??null;
             if (!in_array($provider,['openai','grok','cleverai'],true) || ($previous && $this->safeBinding($previous)['provider']!==$provider)) self::fail('invalid_provider');
+            if ($provider!=='openai' && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
             $external=$provider==='cleverai';
             if ($external) self::fields($input,['name','provider','openai_project_id']);
             $name=self::text($input['name']??null,100,true);

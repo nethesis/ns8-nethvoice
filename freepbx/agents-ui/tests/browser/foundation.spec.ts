@@ -19,8 +19,8 @@ async function login(page: Page) {
 }
 tools[1].editor={categories:[{enabled_field:"extensions_enabled",destinations_field:"extension_allowlist",inventory:"extensions",selection:"allowlist"}]};
 const draft = {contract_version:8,debug:{transcription_enabled:false,retention_hours:24},provider_binding_id:"trunk_test",conversation:{model:"gpt-realtime-2.1",options:null,language:"en",voice:"ash",greeting:"Hello",instructions:"Synthetic test instructions"},tool_bindings:tools.map(tool=>({tool_id:tool.id,tool_version:tool.version,enabled:false,config:structuredClone(tool.defaults)})),fallback_destination_id:"extension:203",max_call_duration_seconds:600};
-const catalog = {draft_defaults:structuredClone(draft),tools,extensions:[{id:"extension:203",name:"Test extension"}],providers:["openai","grok"],default_language:"it",languages:[{id:"it",label:"Italiano (it)"},{id:"en",label:"English (en)"},{id:"es",label:"Español (es)"}],provider_credentials:{openai:{environment_available:true},grok:{environment_available:false}}};
-const trunks = [{binding_id:"trunk_test",name:"Test provider",provider:"openai",revision:1,sync_status:"synced",openai_project_id:"proj_test",api_key_configured:true,webhook_secret_configured:true}];
+const catalog = {sip_lab_enabled:true,draft_defaults:structuredClone(draft),tools,extensions:[{id:"extension:203",name:"Test extension"}],providers:["openai","grok"],default_language:"it",languages:[{id:"it",label:"Italiano (it)"},{id:"en",label:"English (en)"},{id:"es",label:"Español (es)"}],provider_credentials:{openai:{environment_available:true},grok:{environment_available:false}}};
+const trunks = [{binding_id:"trunk_test",name:"Test provider",provider:"openai",revision:1,sync_status:"synced",openai_project_id:"proj_test",api_key_configured:true,api_key_source:"stored",webhook_secret_configured:true}];
 
 test("built-in agents render with v0.1 navigation and independent tool editing", async ({ page }) => {
   await login(page);

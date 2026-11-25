@@ -50,7 +50,7 @@ test("CleverAI trunk accepts only name and project, without local secrets or dis
         path === "/access"
           ? { csrf: "synthetic-csrf" }
           : path === "/catalog"
-            ? {}
+            ? {sip_lab_enabled:true}
             : { items: saved ? [externalTrunk] : [] },
     });
   });
@@ -130,6 +130,7 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
           ? { csrf: "synthetic-csrf" }
           : path === "/catalog"
             ? {
+                sip_lab_enabled:true,
                 default_language: "en",
                 languages: [],
                 tools: [],
