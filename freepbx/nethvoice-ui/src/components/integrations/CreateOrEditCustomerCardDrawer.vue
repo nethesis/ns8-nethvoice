@@ -450,10 +450,7 @@ function save() {
             :title="t('integrations.cards.preview_failed')"
             :description="describePreviewError(previewError)"
           />
-          <div
-            v-else-if="previewHtml !== undefined"
-            class="rounded-md border border-gray-300 p-4 dark:border-gray-600"
-          >
+          <div v-else-if="previewHtml !== undefined" class="border-secondary rounded-md border p-4">
             <NeTabs
               :tabs="[
                 { name: 'card', label: form.name.trim() || t('integrations.cards.customer_card') },

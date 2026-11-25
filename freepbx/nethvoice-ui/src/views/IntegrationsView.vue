@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NeHeading, NeTabs } from '@nethesis/vue-components'
+import { NeTabs } from '@nethesis/vue-components'
 import { vKeyboardTabs } from '@/lib/keyboardTabs'
 import { useRouteTab } from '@/composables/useRouteTab'
 import PhonebookSourcesPanel from '@/components/integrations/PhonebookSourcesPanel.vue'
@@ -45,16 +45,18 @@ function selectTab(tabName: string) {
 
 <template>
   <div>
-    <NeHeading tag="h3" class="mb-7">{{ $t('integrations.title') }}</NeHeading>
-    <NeTabs
-      v-keyboard-tabs
-      :tabs="tabs"
-      :selected="selectedTab"
-      :sr-tabs-label="t('ne_tabs.tabs')"
-      :sr-select-tab-label="t('ne_tabs.select_a_tab')"
-      class="mb-8"
-      @select-tab="selectTab"
-    />
+    <h1 class="text-primary-neutral mb-7 text-2xl font-medium">{{ $t('integrations.title') }}</h1>
+    <div class="mb-8 overflow-x-auto">
+      <NeTabs
+        v-keyboard-tabs
+        :tabs="tabs"
+        :selected="selectedTab"
+        :sr-tabs-label="t('ne_tabs.tabs')"
+        :sr-select-tab-label="t('ne_tabs.select_a_tab')"
+        class="min-w-max"
+        @select-tab="selectTab"
+      />
+    </div>
     <CustomerCardsPanel v-if="selectedTab === 'customer-cards'" />
     <VideoSourcesPanel v-else-if="selectedTab === 'video-sources'" />
     <PhonebookSourcesPanel v-else-if="selectedTab === 'phonebook'" />

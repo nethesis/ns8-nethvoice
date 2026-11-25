@@ -5,7 +5,7 @@ import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
 import { compareNatural } from '@/lib/common'
-import { type FieldIssues, requiredText, validateForm } from './validation'
+import { type FieldIssues, isValidPort, requiredText, validateForm } from './validation'
 
 export const DB_CONNECTIONS_KEY = 'customerCardDbConnections'
 export const DB_CONNECTION_TYPES_KEY = 'customerCardDbConnectionTypes'
@@ -15,7 +15,9 @@ export const DB_CONNECTION_STATUS_STALE_TIME = 5 * 60_000
 
 export const BUILT_IN_DB_CONNECTION_IDS = ['1', '2']
 
-const LOCAL_HOSTS = ['', 'localhost', '127.0.0.1', '::1']
+const LOCAL_NAMES = ['', 'localhost']
+
+const HOST_TRIM = /^[\s\0[\]]+|[\s\0[\]]+$/g
 
 type DbConnectionInput = components['schemas']['IntegrationsDbConnectionInput']
 
@@ -77,13 +79,87 @@ export type DbConnectionForm = {
   password: string
 }
 
-export const isLocalHost = (host: string): boolean => {
-  const name = host
-    .trim()
-    .toLowerCase()
-    .replace(/^\[(.*)\]$/, '$1')
+const parseIpv4 = (address: string): number[] | null => {
+  const parts = address.split('.')
 
-  return LOCAL_HOSTS.includes(name) || name.endsWith('.localhost')
+  if (parts.length !== 4 || !parts.every((part) => /^(0|[1-9]\d{0,2})$/.test(part))) {
+    return null
+  }
+  const bytes = parts.map(Number)
+
+  return bytes.every((byte) => byte <= 255) ? bytes : null
+}
+
+const parseIpv6 = (address: string): number[] | null => {
+  const halves = address.split('::')
+
+  if (halves.length > 2) {
+    return null
+  }
+  const groups = halves.map((half) => (half === '' ? [] : half.split(':')))
+  const last = groups[groups.length - 1]
+  const tail = last[last.length - 1] ?? ''
+
+  if (tail.includes('.')) {
+    const ipv4 = parseIpv4(tail)
+
+    if (!ipv4) {
+      return null
+    }
+    last.splice(
+      -1,
+      1,
+      ((ipv4[0] << 8) | ipv4[1]).toString(16),
+      ((ipv4[2] << 8) | ipv4[3]).toString(16),
+    )
+  }
+  const count = groups.reduce((total, half) => total + half.length, 0)
+
+  if (
+    (halves.length === 1 ? count !== 8 : count > 7) ||
+    !groups.every((half) => half.every((group) => /^[0-9a-f]{1,4}$/.test(group)))
+  ) {
+    return null
+  }
+  const words = [
+    ...groups[0],
+    ...Array<string>(8 - count).fill('0'),
+    ...(halves.length === 2 ? groups[1] : []),
+  ].map((group) => parseInt(group, 16))
+
+  return words.flatMap((word) => [word >> 8, word & 0xff])
+}
+
+const isLocalIpv4 = ([first, second]: number[]): boolean =>
+  first === 0 || first === 127 || (first === 169 && second === 254)
+
+const isLocalAddress = (address: string): boolean => {
+  const ipv4 = parseIpv4(address)
+
+  if (ipv4) {
+    return isLocalIpv4(ipv4)
+  }
+  const ipv6 = parseIpv6(address)
+
+  if (!ipv6) {
+    return false
+  }
+  const prefix = ipv6.slice(0, 12)
+  const mapped = prefix.slice(0, 10).every((byte) => byte === 0)
+
+  if (
+    mapped &&
+    ((prefix[10] === 0xff && prefix[11] === 0xff) || (prefix[10] === 0 && prefix[11] === 0))
+  ) {
+    return isLocalIpv4(ipv6.slice(12))
+  }
+  return ipv6[0] === 0xfe && (ipv6[1] & 0xc0) === 0x80
+}
+
+export const isLocalHost = (host: string): boolean => {
+  const name = host.replace(HOST_TRIM, '').toLowerCase()
+
+  return LOCAL_NAMES.includes(name) || name.endsWith('.localhost') || isLocalAddress(name)
 }
 
 export const parseDbConnections = (raw: unknown): DbConnection[] => {
@@ -97,19 +173,9 @@ export const parseDbConnections = (raw: unknown): DbConnection[] => {
     hasPassword: connection.has_password ?? connection.pass !== '',
     builtIn: BUILT_IN_DB_CONNECTION_IDS.includes(connection.id) && isLocalHost(connection.host),
   }))
-  const pbxPorts = connections
-    .filter((connection) => connection.builtIn)
-    .map((connection) => connection.port.trim())
 
   return connections
-    .map((connection) => ({
-      ...connection,
-      pbxServer:
-        connection.builtIn ||
-        (pbxPorts.length > 0 &&
-          isLocalHost(connection.host) &&
-          (connection.port.trim() === '' || pbxPorts.includes(connection.port.trim()))),
-    }))
+    .map((connection) => ({ ...connection, pbxServer: isLocalHost(connection.host) }))
     .sort((a, b) => compareNatural(a.name, b.name))
 }
 
@@ -160,10 +226,7 @@ export const isDbConnectionPasswordKept = (
 const OptionalPortSchema = v.pipe(
   v.string(),
   v.trim(),
-  v.check(
-    (port) => port === '' || (/^\d{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535),
-    'integrations.port_invalid',
-  ),
+  v.check((port) => port === '' || isValidPort(port), 'integrations.port_invalid'),
 )
 
 const buildDbConnectionSchema = (passwordRequired: boolean) =>

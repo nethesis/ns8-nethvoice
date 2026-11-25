@@ -37,7 +37,7 @@ import {
   validateDbConnectionForm,
 } from '@/lib/integrations/dbConnections'
 import { getLegacyStatusMessage } from '@/lib/integrations/errors'
-import type { FieldIssues } from '@/lib/integrations/validation'
+import { PORT_RANGE, type FieldIssues } from '@/lib/integrations/validation'
 import { useDbConnectionTypes } from '@/queries/integrations/customerCards'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
@@ -312,7 +312,7 @@ async function save() {
           inputmode="numeric"
           optional
           :optional-label="t('common.optional')"
-          :invalid-message="validationIssues.port ? t(validationIssues.port) : ''"
+          :invalid-message="validationIssues.port ? t(validationIssues.port, PORT_RANGE) : ''"
           :disabled="busy"
           @blur="form.port = form.port.trim()"
         />
@@ -393,7 +393,7 @@ async function save() {
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="busy" :loading="saving">
-          {{ currentConnection ? t('common.save') : t('common.create') }}
+          {{ currentConnection ? t('common.save') : t('common.add') }}
         </NeButton>
       </div>
     </form>

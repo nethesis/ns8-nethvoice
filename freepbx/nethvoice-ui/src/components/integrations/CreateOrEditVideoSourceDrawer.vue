@@ -33,6 +33,8 @@ import {
   testVideoSource,
   toVideoSourceForm,
   validateVideoSourceForm,
+  VIDEO_SOURCE_NAME_MAX_LENGTH,
+  VIDEO_SOURCE_OPEN_CODE_MAX_LENGTH,
   VIDEO_SOURCES_KEY,
   type VideoSource,
   type VideoSourceForm,
@@ -223,7 +225,11 @@ function save() {
           ref="nameRef"
           v-model="form.name"
           :label="t('integrations.name')"
-          :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
+          :invalid-message="
+            validationIssues.name
+              ? t(validationIssues.name, { max: VIDEO_SOURCE_NAME_MAX_LENGTH })
+              : ''
+          "
           :disabled="saving"
           @blur="form.name = form.name.trim()"
         />
@@ -270,8 +276,12 @@ function save() {
             :description="t('integrations.video.not_an_image')"
           />
           <div v-else-if="snapshot !== undefined" class="flex flex-col gap-2">
-            <p class="flex items-center gap-2 text-sm text-green-700 dark:text-green-500">
-              <FontAwesomeIcon :icon="faCircleCheck" class="h-4 w-4" aria-hidden="true" />
+            <p class="flex items-center gap-2 text-sm">
+              <FontAwesomeIcon
+                :icon="faCircleCheck"
+                class="text-icon-enabled h-4 w-4"
+                aria-hidden="true"
+              />
               {{ t('integrations.video.test_succeeded') }}
             </p>
             <div>
@@ -283,7 +293,7 @@ function save() {
                     name: form.name || maskVideoSourceUrl(form.url),
                   })
                 "
-                class="max-h-64 max-w-full rounded-md border border-gray-300 dark:border-gray-600"
+                class="border-secondary max-h-64 max-w-full rounded-md border"
               />
             </div>
           </div>
@@ -308,7 +318,11 @@ function save() {
           v-model="form.openCode"
           :label="t('integrations.video.open_code')"
           :helper-text="t('integrations.video.open_code_helper')"
-          :invalid-message="validationIssues.openCode ? t(validationIssues.openCode) : ''"
+          :invalid-message="
+            validationIssues.openCode
+              ? t(validationIssues.openCode, { max: VIDEO_SOURCE_OPEN_CODE_MAX_LENGTH })
+              : ''
+          "
           :disabled="saving"
           optional
           :optional-label="t('common.optional')"
@@ -357,7 +371,7 @@ function save() {
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
-          {{ currentSource ? t('common.save') : t('integrations.video.create_source') }}
+          {{ currentSource ? t('common.save') : t('common.create') }}
         </NeButton>
       </div>
     </form>

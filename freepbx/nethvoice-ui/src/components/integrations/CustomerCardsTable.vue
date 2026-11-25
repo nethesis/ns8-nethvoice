@@ -76,7 +76,11 @@ const { pageNum, pageSize, page: cardsPage } = useClientPagination(cards)
 
 const isEmpty = computed(() => state.value.status === 'success' && cards.value.length === 0)
 
-const isTableShown = computed(() => state.value.status === 'pending' || cards.value.length > 0)
+const isLoading = computed(
+  () => state.value.status === 'pending' || profilesState.value.status === 'pending',
+)
+
+const isTableShown = computed(() => isLoading.value || cards.value.length > 0)
 
 function isTemplateMissing(card: CustomerCard): boolean {
   return (
@@ -182,8 +186,8 @@ function deleteCurrentCard() {
       <NeTable
         v-if="isTableShown"
         :aria-label="t('integrations.cards.cards')"
-        card-breakpoint="lg"
-        :loading="state.status === 'pending'"
+        card-breakpoint="xl"
+        :loading="isLoading"
         :skeleton-columns="5"
         :skeleton-rows="3"
       >
@@ -199,11 +203,11 @@ function deleteCurrentCard() {
         <NeTableBody>
           <NeTableRow v-for="card in cardsPage" :key="card.id">
             <NeTableCell :data-label="t('integrations.name')">
-              <span class="wrap-anywhere">{{ card.name }}</span>
+              <span class="wrap-break-word">{{ card.name }}</span>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.database')">
               <div class="flex items-center gap-2">
-                <span class="wrap-anywhere">{{ describeConnection(card.dbConnectionId) }}</span>
+                <span class="wrap-break-word">{{ describeConnection(card.dbConnectionId) }}</span>
                 <NeTooltip
                   v-if="getStatus(card.dbConnectionId) === 'notConnected'"
                   trigger-event="mouseenter focus"
@@ -235,7 +239,7 @@ function deleteCurrentCard() {
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.cards.template')">
               <div class="flex items-center gap-2">
-                <span class="wrap-anywhere">{{ card.templateName }}</span>
+                <span class="wrap-break-word">{{ card.templateName }}</span>
                 <NeTooltip v-if="isTemplateMissing(card)" trigger-event="mouseenter focus">
                   <template #trigger>
                     <span
@@ -255,7 +259,7 @@ function deleteCurrentCard() {
               </div>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.profiles')">
-              <span v-if="card.profileIds.length" class="wrap-anywhere">
+              <span v-if="card.profileIds.length" class="wrap-break-word">
                 {{ getProfileNames(card.profileIds, profiles).join(', ') }}
               </span>
               <span v-else class="flex items-center gap-2">
@@ -268,7 +272,7 @@ function deleteCurrentCard() {
               </span>
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
-              <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+              <div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
                 <NeButton kind="tertiary" @click="showDrawer('edit', card)">
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />

@@ -86,10 +86,12 @@ const isNoMatchEmptyStateShown = computed(
     filteredSources.value.length === 0,
 )
 
+const isLoading = computed(
+  () => state.value.status === 'pending' || profilesState.value.status === 'pending',
+)
+
 const isTableShown = computed(
-  () =>
-    state.value.status === 'pending' ||
-    (state.value.data !== undefined && filteredSources.value.length > 0),
+  () => isLoading.value || (state.value.data !== undefined && filteredSources.value.length > 0),
 )
 
 watch(textFilter, () => {
@@ -215,8 +217,8 @@ function deleteCurrentSource() {
       <NeTable
         v-if="isTableShown"
         :aria-label="t('integrations.tab_video_sources')"
-        card-breakpoint="lg"
-        :loading="state.status === 'pending'"
+        card-breakpoint="xl"
+        :loading="isLoading"
         :skeleton-columns="5"
         :skeleton-rows="5"
       >
@@ -233,7 +235,7 @@ function deleteCurrentSource() {
           <NeTableRow v-for="source in sourcesPage" :key="source.name">
             <NeTableCell :data-label="t('integrations.name')">
               <div class="flex flex-col">
-                <span class="wrap-anywhere">{{ source.name }}</span>
+                <span class="wrap-break-word">{{ source.name }}</span>
                 <span v-if="source.openCode" class="text-tertiary-neutral text-sm">
                   {{ t('integrations.video.open_code_value', { code: source.openCode }) }}
                 </span>
@@ -246,12 +248,12 @@ function deleteCurrentSource() {
               {{ describeExtension(source.extension) }}
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.profiles')">
-              <span class="wrap-anywhere">
+              <span class="wrap-break-word">
                 {{ getProfileNames(source.profileIds, profiles).join(', ') || '-' }}
               </span>
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
-              <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+              <div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
                 <NeButton kind="tertiary" @click="showEditDrawer(source)">
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="h-4 w-4" aria-hidden="true" />

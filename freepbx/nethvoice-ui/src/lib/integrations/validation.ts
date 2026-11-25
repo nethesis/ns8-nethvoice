@@ -7,12 +7,16 @@ export type FieldIssues = Record<string, string>
 
 export const requiredText = (message: string) => v.pipe(v.string(), v.trim(), v.nonEmpty(message))
 
+export const PORT_RANGE = { min: 1, max: 65535 } as const
+
+export const isValidPort = (port: string): boolean =>
+  /^\d{1,5}$/.test(port) && Number(port) >= PORT_RANGE.min && Number(port) <= PORT_RANGE.max
+
 export const PortSchema = v.pipe(
   v.string(),
   v.trim(),
   v.nonEmpty('integrations.port_required'),
-  v.regex(/^\d{1,5}$/, 'integrations.port_invalid'),
-  v.check((port) => Number(port) >= 1 && Number(port) <= 65535, 'integrations.port_invalid'),
+  v.check(isValidPort, 'integrations.port_invalid'),
 )
 
 export const HttpUrlSchema = (requiredMessage: string, invalidMessage: string) =>

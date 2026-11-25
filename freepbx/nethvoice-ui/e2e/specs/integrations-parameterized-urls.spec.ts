@@ -76,6 +76,27 @@ test.describe('integrations: parameterized URLs', () => {
     await expect(menu.getByRole('menuitem')).toHaveText(['Duplicate', 'Delete'])
   })
 
+  test('waits for the profiles before listing the URLs', async ({ page, mockApi }) => {
+    let releaseProfiles = () => {}
+    const profilesLoaded = new Promise<void>((resolve) => {
+      releaseProfiles = resolve
+    })
+
+    mockApi.on('GET', '/freepbx/rest/cti/profiles', async () => {
+      await profilesLoaded
+      return { json: PROFILES }
+    })
+    await page.goto('./integrations/parameterized-urls')
+
+    const table = grid(page)
+    await expect(table.locator('.animate-pulse').first()).toBeVisible()
+    await expect(table).not.toContainText('CRM contact')
+    await expect(page.getByText(/#\d/)).toHaveCount(0)
+
+    releaseProfiles()
+    await expect(table.getByRole('row').nth(1)).toContainText('Standard')
+  })
+
   test('splits a URL shared by several profiles into one row each', async ({ page, mockApi }) => {
     mockApi.on('GET', '/freepbx/rest/cti/paramurls', {
       json: [
@@ -177,7 +198,7 @@ test.describe('integrations: parameterized URLs', () => {
     )
 
     await page.goto('./integrations/parameterized-urls')
-    await expect(page.getByText('Cannot load the parameterized URLs')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the parameterized URLs')).toBeVisible()
 
     failing = false
     await page.getByRole('button', { name: 'Retry' }).click()

@@ -78,7 +78,7 @@ import {
   validatePhonebookSourceFields,
   validatePhonebookVisibility,
 } from '@/lib/integrations/phonebookSources'
-import type { FieldIssues } from '@/lib/integrations/validation'
+import { PORT_RANGE, type FieldIssues } from '@/lib/integrations/validation'
 import { usePhonebookFields } from '@/queries/integrations/phonebookSources'
 import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
@@ -332,7 +332,7 @@ const readError = computed<ReadError | undefined>(() => {
     return {
       title: t('integrations.phonebook.cannot_upload_file'),
       description: isCsvUploadRejected(uploadError.value)
-        ? t('integrations.phonebook.csv_upload_rejected')
+        ? t('integrations.phonebook.csv_upload_rejected', { size: CSV_MAX_SIZE_MB })
         : getLegacyStatusMessage(uploadError.value) || describeError(uploadError.value),
       details: '',
     }
@@ -865,7 +865,7 @@ function discardChanges() {
             inputmode="numeric"
             optional
             :optional-label="t('common.optional')"
-            :invalid-message="issues.port ? t(issues.port) : ''"
+            :invalid-message="issues.port ? t(issues.port, PORT_RANGE) : ''"
             :disabled="busy"
             @blur="form.port = form.port.trim()"
           />

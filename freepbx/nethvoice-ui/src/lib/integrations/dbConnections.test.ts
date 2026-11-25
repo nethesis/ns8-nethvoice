@@ -11,6 +11,7 @@ import {
   getDbConnectionPort,
   getDbConnectionStatuses,
   getDbConnectionTypeLabel,
+  isLocalHost,
   parseDbConnections,
   parseDbConnectionTypes,
   toDbConnectionForm,
@@ -66,6 +67,48 @@ const form = (changes: Partial<DbConnectionForm> = {}): DbConnectionForm => ({
   ...changes,
 })
 
+describe('isLocalHost', () => {
+  it.each([
+    '',
+    ' ',
+    'localhost',
+    'LOCALHOST',
+    'db.localhost',
+    '127.0.0.1',
+    '127.12.0.9',
+    '0.0.0.0',
+    '169.254.1.1',
+    '::1',
+    '[::1]',
+    ' [::1] ',
+    '::',
+    '::ffff:127.0.0.1',
+    '::FFFF:7F00:1',
+    '::127.0.0.1',
+    '0:0:0:0:0:ffff:7f00:1',
+    'fe80::1',
+    'FEBF::1',
+  ])('should treat %j as local', (host) => {
+    expect(isLocalHost(host)).toBe(true)
+  })
+
+  it.each([
+    'db.example.com',
+    'localhost.example.com',
+    '10.0.0.1',
+    '128.0.0.1',
+    '169.255.0.1',
+    '::ffff:10.0.0.1',
+    '2001:db8::1',
+    'fec0::1',
+    '127.0.0.256',
+    '0127.0.0.1',
+    '1:2:3:4:5:6:7:8:9',
+  ])('should not treat %j as local', (host) => {
+    expect(isLocalHost(host)).toBe(false)
+  })
+})
+
 describe('parseDbConnections', () => {
   it('should normalize the connections and flag the built-in ones', () => {
     expect(connections()).toEqual([
@@ -105,7 +148,7 @@ describe('parseDbConnections', () => {
     ])
   })
 
-  it('should flag the other connections to the database server of the PBX', () => {
+  it('should flag every connection to a local host, whatever its port', () => {
     const builtIn = { id: 1, name: 'phonebook', type: 'mysql', host: '127.0.0.1', port: '20093' }
     const parsed = parseDbConnections([
       builtIn,
@@ -116,7 +159,7 @@ describe('parseDbConnections', () => {
     ])
 
     expect(parsed.map(({ name, builtIn, pbxServer }) => ({ name, builtIn, pbxServer }))).toEqual([
-      { name: 'crm', builtIn: false, pbxServer: false },
+      { name: 'crm', builtIn: false, pbxServer: true },
       { name: 'erp', builtIn: false, pbxServer: false },
       { name: 'orders', builtIn: false, pbxServer: true },
       { name: 'phonebook', builtIn: true, pbxServer: true },
@@ -140,11 +183,11 @@ describe('parseDbConnections', () => {
     ])
   })
 
-  it('should not flag a local connection when there is no built-in connection', () => {
+  it('should flag a local connection also when there is no built-in connection', () => {
     expect(
       parseDbConnections([{ id: 3, name: 'orders', type: 'mysql', host: 'localhost', port: '' }])[0]
         .pbxServer,
-    ).toBe(false)
+    ).toBe(true)
   })
 
   it('should never keep a password returned by the server', () => {

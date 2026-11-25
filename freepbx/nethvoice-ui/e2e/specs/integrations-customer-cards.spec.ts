@@ -165,6 +165,27 @@ test.describe('integrations: customer cards', () => {
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test')).toHaveLength(3)
   })
 
+  test('waits for the profiles before listing the customer cards', async ({ page, mockApi }) => {
+    let releaseProfiles = () => {}
+    const profilesLoaded = new Promise<void>((resolve) => {
+      releaseProfiles = resolve
+    })
+
+    mockApi.on('GET', '/freepbx/rest/cti/profiles', async () => {
+      await profilesLoaded
+      return { json: PROFILES }
+    })
+    await page.goto('./integrations/customer-cards')
+
+    const table = cardsGrid(page)
+    await expect(table.locator('.animate-pulse').first()).toBeVisible()
+    await expect(table).not.toContainText('Open invoices')
+    await expect(page.getByText(/#\d/)).toHaveCount(0)
+
+    releaseProfiles()
+    await expect(table.getByRole('row').nth(2)).toContainText('Standard')
+  })
+
   test('lists the templates with color and use', async ({ page }) => {
     await page.goto('./integrations/customer-cards')
 
@@ -335,7 +356,7 @@ test.describe('integrations: customer cards', () => {
     )
 
     await page.goto('./integrations/customer-cards')
-    await expect(page.getByText('Cannot load the customer cards')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the customer cards')).toBeVisible()
 
     failing = false
     await page.getByRole('button', { name: 'Retry' }).click()
@@ -749,9 +770,9 @@ test.describe('integrations: customer cards', () => {
     mockApi.on('POST', '/freepbx/rest/cti/dbconn', { status: 200 })
 
     await page.goto('./integrations/customer-cards')
-    await page.getByRole('button', { name: 'Create database' }).click()
+    await page.getByRole('button', { name: 'Add database' }).click()
 
-    await expect(drawer(page).getByRole('heading', { name: 'Create database' })).toBeVisible()
+    await expect(drawer(page).getByRole('heading', { name: 'Add database' })).toBeVisible()
     await expect(drawer(page).getByRole('textbox', { name: 'Name', exact: true })).toBeFocused()
     await expect(drawer(page).getByText('Name of the database on the server.')).toBeVisible()
     await expect(
@@ -767,7 +788,7 @@ test.describe('integrations: customer cards', () => {
       drawer(page).getByText('Leave empty to use the default port of MySQL (3306).'),
     ).toBeVisible()
 
-    await createButton(page).click()
+    await drawer(page).getByRole('button', { name: 'Add', exact: true }).click()
     await expect(drawer(page).getByText('Enter the name')).toBeVisible()
     await expect(drawer(page).getByText('Enter the address')).toBeVisible()
     await expect(drawer(page).getByText('Enter the username')).toBeVisible()
@@ -783,11 +804,11 @@ test.describe('integrations: customer cards', () => {
     await drawer(page).getByRole('textbox', { name: 'Address' }).fill('orders.example.com')
     await drawer(page).getByRole('textbox', { name: 'Username' }).fill('wrong')
     await drawer(page).getByLabel('Password', { exact: true }).fill('orders-secret')
-    await createButton(page).click()
+    await drawer(page).getByRole('button', { name: 'Add', exact: true }).click()
     await expect(drawer(page).getByText('Enter a port between 1 and 65535')).toBeVisible()
 
     await port.fill('')
-    await createButton(page).click()
+    await drawer(page).getByRole('button', { name: 'Add', exact: true }).click()
     await expect(drawer(page).getByText('Cannot connect to the database')).toBeVisible()
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn')).toHaveLength(0)
 
@@ -795,7 +816,7 @@ test.describe('integrations: customer cards', () => {
     await expect(drawer(page).getByText('Cannot connect to the database')).toHaveCount(0)
     await drawer(page).getByRole('button', { name: 'Test connection' }).click()
     await expect(drawer(page).getByText('Connection verified')).toBeVisible()
-    await createButton(page).click()
+    await drawer(page).getByRole('button', { name: 'Add', exact: true }).click()
 
     await expect(drawer(page)).toBeHidden()
     const body = {
@@ -813,8 +834,8 @@ test.describe('integrations: customer cards', () => {
         .at(-1)?.body,
     ).toEqual(body)
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn')[0].body).toEqual(body)
-    await expect(toasts(page).getByText('Database created')).toBeVisible()
-    await expect(toasts(page).getByText('Database orders has been created.')).toBeVisible()
+    await expect(toasts(page).getByText('Database added')).toBeVisible()
+    await expect(toasts(page).getByText('Database orders has been added.')).toBeVisible()
   })
 
   test('tests before saving and keeps the stored password', async ({ page, mockApi }) => {
@@ -890,22 +911,22 @@ test.describe('integrations: customer cards', () => {
     await page.getByRole('button', { name: 'Open the menu of erp' }).click()
     await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText([
       'Test connection',
-      'Delete',
+      'Remove',
     ])
-    await page.getByRole('menuitem', { name: 'Delete' }).click()
+    await page.getByRole('menuitem', { name: 'Remove' }).click()
 
     const modal = page.getByRole('dialog')
-    await expect(modal.getByRole('heading', { name: 'Delete database' })).toBeVisible()
+    await expect(modal.getByRole('heading', { name: 'Remove database' })).toBeVisible()
     await expect(modal).toContainText(
-      "Database erp will be permanently deleted from NethVoice. Its data on the database server won't change.",
+      "Database erp will be removed from NethVoice. Its data on the database server won't change.",
     )
-    await modal.getByRole('button', { name: 'Delete' }).click()
+    await modal.getByRole('button', { name: 'Remove' }).click()
 
     await expect(modal).toBeHidden()
     expect(mockApi.callsTo('DELETE', '/freepbx/rest/cti/dbconn/:id')[0].path).toBe(
       '/freepbx/rest/cti/dbconn/6',
     )
-    await expect(toasts(page).getByText('Database erp has been deleted.')).toBeVisible()
+    await expect(toasts(page).getByText('Database erp has been removed.')).toBeVisible()
   })
 
   test('works with the keyboard only', async ({ page, mockApi }) => {
@@ -1029,8 +1050,8 @@ test.describe('integrations: customer cards', () => {
         ...CONNECTIONS,
         {
           id: 8,
-          host: '127.0.0.1',
-          port: '3306',
+          host: '::ffff:127.0.0.1',
+          port: '5432',
           type: 'mysql',
           user: 'orders_reader',
           has_password: true,

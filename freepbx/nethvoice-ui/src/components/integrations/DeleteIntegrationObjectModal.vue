@@ -24,6 +24,7 @@ const {
   invalidateKeys,
   blockedBy = [],
   blockedMessage = '',
+  primaryLabel = '',
 } = defineProps<{
   visible: boolean
   title: string
@@ -36,6 +37,7 @@ const {
   invalidateKeys: string[]
   blockedBy?: string[]
   blockedMessage?: string
+  primaryLabel?: string
 }>()
 
 const emit = defineEmits<{ close: [] }>()
@@ -102,7 +104,7 @@ watch(
     v-else
     :visible="visible"
     :title="title"
-    :primary-label="t('common.delete')"
+    :primary-label="primaryLabel || t('common.delete')"
     :deleting="deleting"
     :confirmation-message="confirmationMessage"
     :error-title="deleteError ? errorTitle : ''"

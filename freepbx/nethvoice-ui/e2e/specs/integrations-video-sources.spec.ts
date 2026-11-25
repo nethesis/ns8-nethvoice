@@ -58,6 +58,27 @@ test.describe('integrations: video sources', () => {
     await expect(rows.nth(2)).toContainText('Warehouse')
   })
 
+  test('waits for the profiles before listing the sources', async ({ page, mockApi }) => {
+    let releaseProfiles = () => {}
+    const profilesLoaded = new Promise<void>((resolve) => {
+      releaseProfiles = resolve
+    })
+
+    mockApi.on('GET', '/freepbx/rest/cti/profiles', async () => {
+      await profilesLoaded
+      return { json: PROFILES }
+    })
+    await page.goto('./integrations/video-sources')
+
+    const grid = page.getByRole('grid', { name: 'Video sources' })
+    await expect(grid.locator('.animate-pulse').first()).toBeVisible()
+    await expect(grid).not.toContainText('Front door')
+    await expect(page.getByText('#1')).toHaveCount(0)
+
+    releaseProfiles()
+    await expect(grid.getByRole('row').nth(1)).toContainText('Base, Standard')
+  })
+
   test('hides the password of a source URL', async ({ page, context, mockApi }) => {
     await context.grantPermissions(['clipboard-read', 'clipboard-write'])
     mockApi.on('GET', '/freepbx/rest/cti/streaming', {
@@ -119,7 +140,7 @@ test.describe('integrations: video sources', () => {
     )
 
     await page.goto('./integrations/video-sources')
-    await expect(page.getByText('Cannot load the video sources')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the video sources')).toBeVisible()
 
     failing = false
     await page.getByRole('button', { name: 'Retry' }).click()
@@ -139,7 +160,12 @@ test.describe('integrations: video sources', () => {
     await drawer.getByRole('textbox', { name: 'Name' }).fill('front door!')
     await drawer.getByRole('textbox', { name: 'Image URL' }).fill('rtsp://192.0.2.30')
     await drawer.getByRole('textbox', { name: 'Opening code' }).fill('9a')
-    await drawer.getByRole('button', { name: 'Create video source' }).click()
+    await drawer.getByRole('button', { name: 'Create', exact: true }).click()
+    await expect(
+      drawer.getByText(
+        'Use digits, optionally preceded by * + # and followed by * #, up to 10 characters',
+      ),
+    ).toBeVisible()
 
     await expect(drawer.getByText('Another video source has the same name')).toBeVisible()
     await expect(drawer.getByText(/Enter a URL starting with http/)).toBeVisible()
@@ -163,7 +189,7 @@ test.describe('integrations: video sources', () => {
     await drawer.getByRole('combobox', { name: 'Profiles' }).click()
     await page.getByRole('option', { name: 'Standard' }).click()
     await drawer.getByRole('heading', { name: 'Create video source' }).click()
-    await drawer.getByRole('button', { name: 'Create video source' }).click()
+    await drawer.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(drawer).toBeHidden()
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/streaming')[0].body).toEqual({

@@ -30,6 +30,8 @@ import {
   getProfileName,
   getRowsSharingUrl,
   PARAMETERIZED_URL_EXAMPLE,
+  PARAMETERIZED_URL_MAX_LENGTH,
+  PARAMETERIZED_URL_NAME_MAX_LENGTH,
   PARAMETERIZED_URL_PLACEHOLDERS,
   PARAMETERIZED_URLS_KEY,
   type ParameterizedUrl,
@@ -218,7 +220,11 @@ function save() {
           v-model="form.name"
           :label="t('integrations.name')"
           :placeholder="t('integrations.param_urls.name_placeholder')"
-          :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
+          :invalid-message="
+            validationIssues.name
+              ? t(validationIssues.name, { max: PARAMETERIZED_URL_NAME_MAX_LENGTH })
+              : ''
+          "
           :disabled="saving"
           @blur="form.name = form.name.trim()"
         />
@@ -233,7 +239,11 @@ function save() {
             :helper-text="
               t('integrations.param_urls.url_helper', { placeholders: placeholdersText })
             "
-            :invalid-message="validationIssues.url ? t(validationIssues.url) : ''"
+            :invalid-message="
+              validationIssues.url
+                ? t(validationIssues.url, { max: PARAMETERIZED_URL_MAX_LENGTH })
+                : ''
+            "
             :disabled="saving"
           />
           <div class="flex flex-wrap items-center gap-2">

@@ -162,7 +162,7 @@ function deleteCurrentTemplate() {
       <NeTable
         v-if="isTableShown"
         :aria-label="t('integrations.cards.templates')"
-        card-breakpoint="lg"
+        card-breakpoint="xl"
         :loading="state.status === 'pending'"
         :skeleton-columns="4"
         :skeleton-rows="3"
@@ -179,7 +179,7 @@ function deleteCurrentTemplate() {
           <NeTableRow v-for="template in templatesPage" :key="template.id">
             <NeTableCell :data-label="t('integrations.name')">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="wrap-anywhere">{{ template.name }}</span>
+                <span class="wrap-break-word">{{ template.name }}</span>
                 <NeBadgeV2 v-if="!template.custom" kind="gray" size="xs">
                   {{ t('integrations.cards.built_in') }}
                 </NeBadgeV2>
@@ -189,7 +189,7 @@ function deleteCurrentTemplate() {
               {{ describeColor(template) }}
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.cards.used_by')">
-              <span class="wrap-anywhere">
+              <span class="wrap-break-word">
                 {{
                   cardsState.status === 'success'
                     ? getUsers(template).join(', ') || t('integrations.cards.not_used')
@@ -198,7 +198,7 @@ function deleteCurrentTemplate() {
               </span>
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
-              <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+              <div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
                 <NeButton v-if="isSuperadmin" kind="tertiary" @click="openDrawer('edit', template)">
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />

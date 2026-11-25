@@ -26,11 +26,11 @@ import {
   faArrowRightArrowLeft,
   faCircleCheck,
   faCirclePlus,
-  faCircleQuestion,
+  faCircleHalfStroke,
+  faCircleMinus,
   faCircleXmark,
   faDatabase,
   faPenToSquare,
-  faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
 import CreateOrEditDbConnectionDrawer from './CreateOrEditDbConnectionDrawer.vue'
@@ -102,8 +102,8 @@ function getKebabMenuItems(connection: DbConnection): NeDropdownItem[] {
       { id: 'divider' },
       {
         id: 'delete',
-        label: t('common.delete'),
-        icon: faTrash,
+        label: t('common.remove'),
+        icon: faCircleMinus,
         danger: true,
         action: () => {
           currentConnection.value = connection
@@ -160,7 +160,7 @@ function deleteCurrentConnection() {
       <NeTable
         v-if="isTableShown"
         :aria-label="t('integrations.cards.connections')"
-        card-breakpoint="lg"
+        card-breakpoint="xl"
         :loading="state.status === 'pending'"
         :skeleton-columns="7"
         :skeleton-rows="3"
@@ -180,7 +180,7 @@ function deleteCurrentConnection() {
           <NeTableRow v-for="connection in connectionsPage" :key="connection.id">
             <NeTableCell :data-label="t('integrations.name')">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="wrap-anywhere">{{ connection.name }}</span>
+                <span class="wrap-break-word">{{ connection.name }}</span>
                 <NeBadgeV2 v-if="connection.builtIn" kind="gray" size="xs">
                   {{ t('integrations.cards.built_in') }}
                 </NeBadgeV2>
@@ -196,7 +196,7 @@ function deleteCurrentConnection() {
               <span class="wrap-break-word">{{ connection.user || '-' }}</span>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.cards.used_by')">
-              <span class="wrap-anywhere">
+              <span class="wrap-break-word">
                 {{
                   cardsState.status === 'success'
                     ? getUsers(connection).join(', ') || t('integrations.cards.not_used')
@@ -240,7 +240,7 @@ function deleteCurrentConnection() {
                 class="flex items-center gap-2"
               >
                 <FontAwesomeIcon
-                  :icon="faCircleQuestion"
+                  :icon="faCircleHalfStroke"
                   class="text-icon-neutral size-4"
                   aria-hidden="true"
                 />
@@ -249,9 +249,9 @@ function deleteCurrentConnection() {
             </NeTableCell>
             <NeTableCell
               :data-label="t('common.actions')"
-              :class="{ 'max-lg:hidden': isReadOnly(connection) }"
+              :class="{ 'max-xl:hidden': isReadOnly(connection) }"
             >
-              <div v-if="!isReadOnly(connection)" class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+              <div v-if="!isReadOnly(connection)" class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
                 <NeButton kind="tertiary" @click="showDrawer(connection)">
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
@@ -286,6 +286,7 @@ function deleteCurrentConnection() {
     <DeleteIntegrationObjectModal
       :visible="isShownDeleteModal"
       :title="t('integrations.cards.delete_connection')"
+      :primary-label="t('common.remove')"
       :object-name="currentConnection?.name ?? ''"
       :confirmation-message="
         t('integrations.cards.delete_connection_confirmation', {

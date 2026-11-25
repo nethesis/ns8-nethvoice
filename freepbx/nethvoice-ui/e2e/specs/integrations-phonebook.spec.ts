@@ -328,14 +328,14 @@ test.describe('integrations: phonebook', () => {
       'MS SQL Server',
       'Purchasing, Management',
       'Every hour',
-      'Failed today at 02:00 AM',
+      'Failed today at 2:00 AM',
     ])
     await expect(cells(page, 'Partners')).toContainText([
       'Partners',
       'CSV',
       'Everyone',
       'Sync-',
-      'Yesterday at 06:30 PM',
+      'Yesterday at 6:30 PM',
     ])
     await expect(cells(page, 'HR directory')).toContainText([
       'HR directory',
@@ -1196,7 +1196,7 @@ test.describe('integrations: phonebook', () => {
     })
 
     await page.goto('./integrations/phonebook')
-    await expect(sourceRow(page, 'Partners')).toContainText('Yesterday at 06:30 PM')
+    await expect(sourceRow(page, 'Partners')).toContainText('Yesterday at 6:30 PM')
     await page.getByRole('button', { name: 'Open the menu of Partners' }).click()
     await page.getByRole('menuitem', { name: 'Sync now' }).click()
 
@@ -1275,6 +1275,22 @@ test.describe('integrations: phonebook', () => {
     await expect(sourceRow(page, 'HR directory')).toContainText('Today at 12:00 PM')
   })
 
+  test('writes the hour of the last sync without a leading zero', async ({ page }) => {
+    state.statuses = [
+      {
+        id: 'custom_4',
+        status: 'ok',
+        started_at: `${TODAY}T09:04:00Z`,
+        finished_at: `${TODAY}T09:05:00Z`,
+        imported: 57,
+        message: null,
+      },
+    ]
+    await page.goto('./integrations/phonebook')
+
+    await expect(sourceRow(page, 'HR directory')).toContainText('Today at 9:05 AM')
+  })
+
   test('refreshes the sync status every minute while the tab is open', async ({
     page,
     mockApi,
@@ -1326,7 +1342,7 @@ test.describe('integrations: phonebook', () => {
     await page.keyboard.press('Tab')
     await expect(page.getByText('The database server does not answer')).toBeHidden()
 
-    await expect(sourceRow(page, 'HR directory')).toContainText('Failed today at 03:00 AM')
+    await expect(sourceRow(page, 'HR directory')).toContainText('Failed today at 3:00 AM')
     await expect(
       sourceRow(page, 'HR directory').getByRole('button', { name: /sync error/ }),
     ).toHaveCount(0)
@@ -1739,8 +1755,8 @@ test.describe('integrations: phonebook', () => {
   }) => {
     state.sources.custom_6 = {
       dbtype: 'mysql',
-      host: '127.0.0.1',
-      port: '3306',
+      host: '127.0.1.1',
+      port: '33060',
       user: 'pbx_reader',
       has_password: true,
       dbname: 'contacts',

@@ -93,10 +93,12 @@ const isNoMatchEmptyStateShown = computed(
     state.value.status === 'success' && urls.value.length > 0 && filteredUrls.value.length === 0,
 )
 
+const isLoading = computed(
+  () => state.value.status === 'pending' || profilesState.value.status === 'pending',
+)
+
 const isTableShown = computed(
-  () =>
-    state.value.status === 'pending' ||
-    (state.value.data !== undefined && filteredUrls.value.length > 0),
+  () => isLoading.value || (state.value.data !== undefined && filteredUrls.value.length > 0),
 )
 
 watch(textFilter, () => {
@@ -254,8 +256,8 @@ function deleteCurrentUrl() {
       <NeTable
         v-if="isTableShown"
         :aria-label="t('integrations.tab_parameterized_urls')"
-        card-breakpoint="lg"
-        :loading="state.status === 'pending'"
+        card-breakpoint="xl"
+        :loading="isLoading"
         :skeleton-columns="5"
         :skeleton-rows="5"
       >
@@ -271,7 +273,7 @@ function deleteCurrentUrl() {
         <NeTableBody>
           <NeTableRow v-for="item in urlsPage" :key="item.id">
             <NeTableCell :data-label="t('integrations.name')">
-              <span class="wrap-anywhere">{{ item.name }}</span>
+              <span class="wrap-break-word">{{ item.name }}</span>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.url')">
               <ClickToCopy class="wrap-anywhere" :text="item.url" />
@@ -283,7 +285,7 @@ function deleteCurrentUrl() {
               {{ describeCalls(item) }}
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
-              <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+              <div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
                 <NeButton kind="tertiary" @click="showDrawer('edit', item)">
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />

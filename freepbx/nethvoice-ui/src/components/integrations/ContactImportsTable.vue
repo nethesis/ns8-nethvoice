@@ -123,7 +123,7 @@ function describeVisibility(item: PhonebookImport): string {
       <NeTable
         v-if="isTableShown"
         :aria-label="t('integrations.phonebook.imported_contacts')"
-        card-breakpoint="lg"
+        card-breakpoint="xl"
         :loading="state.status === 'pending'"
         :skeleton-columns="5"
         :skeleton-rows="3"
@@ -141,7 +141,7 @@ function describeVisibility(item: PhonebookImport): string {
               {{ formatDateTimeNoSeconds(item.createdAt, locale) }}
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.phonebook.owner')">
-              <span class="wrap-anywhere">{{ describeOwner(item.owner, owners) }}</span>
+              <span class="wrap-break-word">{{ describeOwner(item.owner, owners) }}</span>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.phonebook.file')">
               <span class="flex items-center gap-2">
@@ -184,7 +184,7 @@ function describeVisibility(item: PhonebookImport): string {
               }}
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.phonebook.visible_to')">
-              <span class="wrap-anywhere">{{ describeVisibility(item) }}</span>
+              <span class="wrap-break-word">{{ describeVisibility(item) }}</span>
             </NeTableCell>
           </NeTableRow>
         </NeTableBody>

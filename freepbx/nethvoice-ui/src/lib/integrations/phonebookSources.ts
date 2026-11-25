@@ -7,7 +7,7 @@ import type { components } from '@/lib/api/schema'
 import { isApiError } from '@/lib/api/errors'
 import { compareNatural, foldText } from '@/lib/common'
 import { isLocalHost } from './dbConnections'
-import { type FieldIssues, requiredText, validateForm } from './validation'
+import { type FieldIssues, isValidPort, requiredText, validateForm } from './validation'
 
 export const PHONEBOOK_SOURCES_KEY = 'phonebookSources'
 export const PHONEBOOK_FIELDS_KEY = 'phonebookFields'
@@ -589,10 +589,7 @@ export const isNameTaken = (name: string, otherNames: string[]): boolean => {
 const OptionalPortSchema = v.pipe(
   v.string(),
   v.trim(),
-  v.check(
-    (port) => port === '' || (/^\d{1,5}$/.test(port) && Number(port) >= 1 && Number(port) <= 65535),
-    'integrations.port_invalid',
-  ),
+  v.check((port) => port === '' || isValidPort(port), 'integrations.port_invalid'),
 )
 
 const HTTP_URL = /^https?:\/\/\S+$/i

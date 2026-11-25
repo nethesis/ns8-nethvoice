@@ -173,7 +173,7 @@ function describeLastSync(display: LastSyncDisplay): string {
   if (display.state !== 'ok' && display.state !== 'failed') {
     return ''
   }
-  const time = new Intl.DateTimeFormat(locale.value, { hour: '2-digit', minute: '2-digit' }).format(
+  const time = new Intl.DateTimeFormat(locale.value, { hour: 'numeric', minute: '2-digit' }).format(
     display.at,
   )
   const date = formatDateTimeNoSeconds(display.at, locale.value)
@@ -297,7 +297,7 @@ function deleteCurrentSource() {
       <NeTable
         v-if="isTableShown"
         :aria-label="t('integrations.phonebook.sources')"
-        card-breakpoint="lg"
+        card-breakpoint="xl"
         :loading="state.status === 'pending'"
         :skeleton-columns="6"
         :skeleton-rows="4"
@@ -315,13 +315,13 @@ function deleteCurrentSource() {
         <NeTableBody>
           <NeTableRow v-for="source in sourcesPage" :key="source.id">
             <NeTableCell :data-label="t('integrations.name')">
-              <span class="wrap-anywhere">{{ source.name }}</span>
+              <span class="wrap-break-word">{{ source.name }}</span>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.phonebook.type')">
               {{ describeKind(source) }}
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.phonebook.visible_to')">
-              <span class="wrap-anywhere">{{ describeVisibility(source) }}</span>
+              <span class="wrap-break-word">{{ describeVisibility(source) }}</span>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.phonebook.sync')">
               {{ source.enabled ? t('integrations.phonebook.every_hour') : '-' }}
@@ -370,14 +370,14 @@ function deleteCurrentSource() {
                     </button>
                   </template>
                   <template #content>
-                    <span class="wrap-anywhere">{{ getSyncErrorMessage(source) }}</span>
+                    <span class="wrap-break-word">{{ getSyncErrorMessage(source) }}</span>
                   </template>
                 </NeTooltip>
               </span>
               <span v-else>-</span>
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
-              <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
+              <div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
                 <NeButton
                   v-if="!isReadOnly(source)"
                   kind="tertiary"
