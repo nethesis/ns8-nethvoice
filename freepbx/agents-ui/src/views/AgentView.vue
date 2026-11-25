@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter, onBeforeRouteLeave } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import {
@@ -12,7 +12,7 @@ import {
   NeBadgeV2,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
-import { request, queryClient } from "../api";
+import { request, queryClient, auth, errorCode } from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import { agentStatus } from "../agentStatus";
@@ -102,6 +102,39 @@ function transferMode(mode: string) {
 const snapshot = () =>
   JSON.stringify({ name: name.value, draft: configuration.value });
 const dirty = computed(() => !!baseline.value && snapshot() !== baseline.value);
+const conflict = ref<Agent>();
+const editKey = "nethvoice.agents.edit";
+function rememberDraft() {
+  if (dirty.value) sessionStorage.setItem(editKey, JSON.stringify({
+    user:auth.user, path:route.path, revision:record.value?.revision ?? 0,
+    type:agentType.value, name:name.value, draft:configuration.value,
+  }));
+}
+function recoverDraft() {
+  const raw = sessionStorage.getItem(editKey);
+  if (!raw) return;
+  let saved;
+  try { saved = JSON.parse(raw); } catch { sessionStorage.removeItem(editKey); return; }
+  if (saved.user !== auth.user) { sessionStorage.removeItem(editKey); return; }
+  if (saved.path !== route.path) return;
+  sessionStorage.removeItem(editKey);
+  if (record.value && record.value.revision !== saved.revision) conflict.value = record.value;
+  agentType.value = saved.type;
+  name.value = saved.name;
+  if (external.value) externalConfig.value = saved.draft;
+  else draft.value = saved.draft;
+}
+function warnUnload(event: BeforeUnloadEvent) {
+  if (dirty.value) { event.preventDefault(); event.returnValue = ""; }
+}
+onMounted(() => {
+  window.addEventListener("agents-auth-expired", rememberDraft);
+  window.addEventListener("beforeunload", warnUnload);
+});
+onUnmounted(() => {
+  window.removeEventListener("agents-auth-expired", rememberDraft);
+  window.removeEventListener("beforeunload", warnUnload);
+});
 const errors = ref<Record<string, string>>({});
 const agent = useQuery({
   queryKey: ["agent", id],
@@ -134,6 +167,7 @@ watch(
         draft.value.conversation.language = value.default_language;
       }
       if (pristine) baseline.value = snapshot();
+      recoverDraft();
     }
   },
   { immediate: true },
@@ -198,7 +232,10 @@ function accept(value: Agent) {
 watch(
   () => agent.data.value,
   (value) => {
-    if (value && !record.value) accept(value);
+    if (value && (!record.value || (!dirty.value && value.revision > record.value.revision))) {
+      accept(value);
+      recoverDraft();
+    }
   },
   { immediate: true },
 );
@@ -253,11 +290,18 @@ function validate(publishing: boolean) {
   if (!name.value.trim()) next.name = t("agentForm.enterName");
   if (publishing && !configuration.value.provider_binding_id)
     next.trunk = t("agentForm.selectTrunk");
+  if (!external.value) {
+    const duration = draft.value.max_call_duration_seconds;
+    if (!Number.isInteger(duration) || duration < 30 || duration > 3600) next.duration = t("durationRange");
+    if (publishing && !draft.value.conversation.instructions.trim()) next.instructions = t("requiredField");
+    if (publishing && !draft.value.conversation.voice) next.voice = t("requiredField");
+    if (publishing && !draft.value.conversation.model) next.model = t("requiredField");
+  }
   const retention = draft.value.debug.retention_hours;
   if (
     !external.value &&
     draft.value.debug.transcription_enabled &&
-    !(retention >= 1 && retention <= 24)
+    !(Number.isInteger(retention) && retention >= 1 && retention <= 24)
   )
     next.retention = t("agentForm.retentionRange");
   errors.value = next;
@@ -265,7 +309,10 @@ function validate(publishing: boolean) {
 }
 const saving = ref<"" | "draft" | "publish">("");
 async function persist(): Promise<Agent> {
-  const value = await request<Agent>(
+  if (conflict.value) throw new Error("revision_conflict");
+  const wasCreating = creating.value;
+  let value: Agent;
+  try { value = await request<Agent>(
     creating.value ? "POST" : "PUT",
     creating.value ? "/profiles" : "/profiles/" + encodeURIComponent(id.value),
     {
@@ -273,7 +320,13 @@ async function persist(): Promise<Agent> {
       expected_revision: record.value?.revision || 0,
     },
   );
+  } catch (failure) {
+    if (errorCode(failure) === "revision_conflict" && id.value)
+      conflict.value = await request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value));
+    throw failure;
+  }
   accept(value);
+  if (wasCreating) await router.replace("/agents/" + value.agent_id);
   return value;
 }
 async function refreshLists() {
@@ -286,9 +339,8 @@ async function save() {
   saving.value = "draft";
   await task.run(
     async () => {
-      const value = await persist();
+      await persist();
       await refreshLists();
-      if (wasCreating) await router.replace("/agents/" + value.agent_id);
     },
     {
       title: t(
@@ -318,14 +370,19 @@ async function publish() {
     async () => {
       let value = record.value;
       if (dirty.value || !value) value = await persist();
-      value = await request<Agent>(
+      try { value = await request<Agent>(
         "POST",
         "/profiles/" + encodeURIComponent(value.agent_id) + "/publish",
         { expected_revision: value.revision },
       );
+      } catch (failure) {
+        if (wasCreating) ui.notify(t("draftSaved"), t("error." + errorCode(failure)), "error");
+        else if (errorCode(failure) === "revision_conflict")
+          conflict.value = await request<Agent>("GET", "/profiles/" + value.agent_id);
+        throw failure;
+      }
       accept(value);
       await refreshLists();
-      if (wasCreating) await router.replace("/agents/" + value.agent_id);
     },
     {
       title: t("agentPublished"),
@@ -336,6 +393,7 @@ async function publish() {
 }
 async function reload() {
   await task.run(async () => {
+    conflict.value = undefined;
     accept(
       await request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value)),
     );
@@ -391,6 +449,19 @@ async function synchronize() {
       novalidate
       @submit.prevent="save"
     >
+      <section v-if="conflict" class="grid gap-3">
+        <h3>{{ t("compareRevisions") }}</h3>
+        <details><summary>{{ t("savedRevision") }} {{ conflict.revision }}</summary><pre class="overflow-auto whitespace-pre-wrap">{{ JSON.stringify({ name:conflict.name, draft:conflict.draft }, null, 2) }}</pre></details>
+        <details><summary>{{ t("yourEdits") }}</summary><pre class="overflow-auto whitespace-pre-wrap">{{ JSON.stringify({ name, draft:configuration }, null, 2) }}</pre></details>
+        <NeButton kind="secondary" @click="record = conflict; conflict = undefined">{{ t("keepEdits") }}</NeButton>
+      </section>
+      <section v-if="!external && !record?.published" class="grid gap-1" :aria-label="t('publishReadiness')">
+        <h3>{{ t("publishReadiness") }}</h3>
+        <ul class="list-inside list-disc"><li v-for="item in [
+          [t('trunk'), !!draft.provider_binding_id], [t('voiceModel'), !!draft.conversation.model],
+          [t('voiceName'), !!draft.conversation.voice], [t('instructions'), !!draft.conversation.instructions.trim()]
+        ]" :key="String(item[0])">{{ item[0] }} · {{ t(item[1] ? 'status.ready' : 'requiredField') }}</li></ul>
+      </section>
       <NeInlineNotification
         v-if="task.error.value"
         kind="error"
@@ -486,6 +557,7 @@ async function synchronize() {
               :model-value="String(draft.max_call_duration_seconds)"
               :label="t('maxDuration')"
               :helper-text="t('agentForm.durationHelp')"
+              :invalid-message="errors.duration" min="30" max="3600"
               type="number"
               @update:model-value="
                 draft.max_call_duration_seconds = Number($event)
@@ -503,7 +575,7 @@ async function synchronize() {
           <div class="grid grid-cols-1 gap-6">
             <ConversationSettings
               v-model="draft.conversation"
-              :binding="selectedTrunk"
+              :binding="selectedTrunk" :errors="errors"
             />
             <NeTextArea
               v-model="draft.conversation.greeting"
@@ -513,7 +585,7 @@ async function synchronize() {
               maxlength="4096"
             />
             <NeTextArea
-              v-model="draft.conversation.instructions"
+              v-model="draft.conversation.instructions" :invalid-message="errors.instructions"
               :label="t('instructions')"
               :helper-text="t('agentForm.instructionsHelp')"
               :rows="8"
