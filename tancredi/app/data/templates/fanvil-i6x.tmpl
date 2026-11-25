@@ -32,6 +32,10 @@
   for relay 2. door_relay_duration_N sets how long the relay stays active, in
   seconds. A relay without a code is not written, so the tokenless
   provisioning, which strips the codes, leaves the relays as they are.
+
+  The tokenless provisioning of a door phone has no token (tok2 is empty):
+  the AUTOUPDATE module is not written, so the device keeps the tokenized
+  provisioning URL it got from RPS or from the administrator.
 #}
 {% import 'fanvil.macros' as fanvil %}
 {% import 'language.macros' as l10n %}
@@ -76,12 +80,14 @@ SNTP Timeout       :3600
 DST Type           :1
 DST Location       :{{ fanvil.tz_map(timezone, 'location') }}
 
+{% if tok2 | default('') != '' %}
 <AUTOUPDATE CONFIG MODULE>
 Flash Server IP    :{{ hostname | replace(nl) }}
 Flash File Name    :{{ 'http' in provisioning_url_scheme ? (provisioning_url_path | trim('/', 'left') ~ tok2 ~ '/$mac.cfg') : '$mac.cfg' }}
 Flash Protocol     :{{ fanvil.scheme_map(provisioning_url_scheme) }}
 Flash Mode         :{{ (provisioning_complete and provisioning_freq == 'never') ? '1' : '2' }}
 Flash Interval     :{{ provisioning_complete ? fanvil.upgrade_wait_hours(timezone, short_mac) : '1' }}
+{% endif %}
 
 {% set door_keys = [] %}
 {% for index in (cap_linekey_count | default(0)) > 0 ? range(1, cap_linekey_count) : [] %}

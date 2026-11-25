@@ -2,6 +2,7 @@
 
 DOOR_PHONE_MAC="0C-38-3E-AA-BB-E0"
 DOOR_PHONE_UA="Fanvil i62 2.12.51 0c383eaabbe0"
+DESK_PHONE_MAC="0C-38-3E-AA-BB-E2"
 
 setup () {
     load tancredi_client
@@ -10,6 +11,7 @@ setup () {
 teardown_file () {
     load tancredi_client
     run DELETE "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}"
+    run DELETE "/tancredi/api/v1/phones/${DESK_PHONE_MAC}"
 }
 
 @test "GET /tancredi/api/v1/models lists the Fanvil i6x door phones" {
@@ -303,4 +305,42 @@ EOF
     assert_http_body "SIP1 Display Name       :DoorSIP2 Enable Reg :1"
     ! grep -q -E $'^(Account[234] |SIP2 )' <<<"$output"
     [[ $(grep -c -F '<MMI CONFIG MODULE>' <<<"$output") == 2 ]]
+}
+
+@test "GET /provisioning/0c383eaabbe0.cfg (tokenless) gives no token to a door phone" {
+    run POST "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}/tok1" <<<'{}'
+    run GET "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}"
+    assert_http_code "200"
+    tok1=$(extract_field "tok1")
+    [[ -n "$tok1" ]]
+
+    run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/0c383eaabbe0.cfg"
+    assert_http_code "200"
+    ! assert_http_body "$tok1"
+    ! assert_http_body "<AUTOUPDATE CONFIG MODULE>"
+    ! assert_http_body "Flash File Name"
+    assert_http_body "<<END OF FILE>>"
+
+    # The first access token still works for the device that knows it
+    run GET_PROVISIONING "$DOOR_PHONE_UA" "/provisioning/${tok1}/0c383eaabbe0.cfg"
+    assert_http_code "200"
+    assert_http_body "<AUTOUPDATE CONFIG MODULE>"
+    assert_http_body "Flash File Name    :provisioning/"
+}
+
+@test "GET /provisioning/{mac}.cfg (tokenless) still gives the first access token to other phones" {
+    run POST /tancredi/api/v1/phones <<EOF
+{
+    "mac": "${DESK_PHONE_MAC}",
+    "model": "fanvil-V61",
+    "display_name": "Fanvil desk phone test",
+    "variables": {}
+}
+EOF
+    assert_http_code "201"
+    tok1=$(extract_field "tok1")
+    [[ -n "$tok1" ]]
+    run GET_PROVISIONING "Fanvil V61 2.12.0 0c383eaabbe2" "/provisioning/0c383eaabbe2.cfg"
+    assert_http_code "200"
+    assert_http_body "$tok1"
 }
