@@ -35,7 +35,7 @@ def installation(tmp_path, monkeypatch):
     # Import the SDK against this test's instance rather than an earlier fixture.
     monkeypatch.delitem(sys.modules, 'voice_preview', raising=False)
     state = SimpleNamespace(env=env, secrets=secrets, calls=calls, routes=routes, units=units,
-                            busy=False, reject=False)
+                            busy=False, reject=False, native_calls=0)
 
     def command(args, **kwargs):
         args = list(args)
@@ -54,6 +54,8 @@ def installation(tmp_path, monkeypatch):
                 units.discard(args[-1])
         elif args[:3] == ['podman', 'image', 'inspect']:
             output = b'image-id'
+        elif args[-1] == 'core show channels count':
+            output = f"{state.native_calls} active calls\n"
         elif args[-1] == 'voice_agent.drain':
             rc = 75 if state.busy else 0
         elif args[-1].endswith('install-runtime.php'):
@@ -65,6 +67,8 @@ def installation(tmp_path, monkeypatch):
 
     monkeypatch.setattr(subprocess, 'run', command)
     state.apply = runpy.run_path(str(ROOT / 'bin/satellite-reconcile'))['apply']
+    monkeypatch.setitem(state.apply.__globals__, 'wait_for_agents',
+                        lambda port, token: calls.append(['ready', port, token]))
     return state
 
 
@@ -89,7 +93,7 @@ def test_effective_service_matrix(installation, agents, transcription):
     assert ('voice-agent-retention.timer' in s.units) == agents
     assert Path('voice-preview/enabled').exists() == agents
     assert any(c[-1].endswith('install-runtime.php') for c in s.calls) == agents
-    assert not s.routes
+    assert s.routes == [{'instance': 'nethvoice-test-voice-agent-webhooks'}]
     if agents or transcription:
         projection = Path('satellite.env').read_text()
         assert 'forbidden' not in projection
@@ -136,3 +140,30 @@ def test_webhook_only_on_explicit_lab_enable_and_historical_pg_is_preserved(inst
     assert s.routes[-1] == {'instance': 'nethvoice-test-voice-agent-webhooks'}
     assert 'satellite-pgsql.service' in s.units
     assert 'satellite.service' not in s.units
+
+
+def test_native_pbx_activity_does_not_close_running_satellite_admission(installation):
+    s = installation
+    s.env['VOICE_AGENT_ENABLED'] = 'true'
+    assert s.apply()
+    s.native_calls = 1
+    s.env['SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'] = 'True'
+    s.calls.clear()
+    assert not s.apply()
+    assert not any('voice_agent.drain' in command for command in s.calls)
+    assert 'satellite.service' in s.units
+
+
+def test_satellite_readiness_failure_keeps_the_candidate_disabled(installation, monkeypatch):
+    s = installation
+    s.env['VOICE_AGENT_ENABLED'] = 'true'
+
+    def unavailable(port, token):
+        raise RuntimeError('voice_agent_runtime_not_ready')
+
+    monkeypatch.setitem(s.apply.__globals__, 'wait_for_agents', unavailable)
+    with pytest.raises(RuntimeError, match='voice_agent_runtime_not_ready'):
+        s.apply()
+    assert not Path('voice-preview/enabled').exists()
+    assert not Path('voice-preview/effective.env').exists()
+    assert json.loads(Path('satellite-applied.json').read_text())['applying']
