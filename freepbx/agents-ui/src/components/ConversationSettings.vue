@@ -14,6 +14,7 @@ import type { Draft, ModelCatalog, Trunk } from "../types";
 const props = defineProps<{
   modelValue: Draft["conversation"];
   binding?: Trunk;
+  errors?: Record<string, string>;
 }>();
 const emit = defineEmits<{
   "update:modelValue": [value: Draft["conversation"]];
@@ -185,7 +186,7 @@ function choices(key: string, values: string[]) {
   >
     <FieldCombobox
       :model-value="modelValue.model || ''"
-      :label="t('voiceModel')"
+      :label="t('voiceModel')" :invalid-message="errors?.model"
       :options="modelOptions"
       :placeholder="t('modelHelp.placeholder')"
       :helper-text="modelHelper"
@@ -198,7 +199,7 @@ function choices(key: string, values: string[]) {
     />
     <FieldCombobox
       :model-value="modelValue.voice"
-      :label="t('voiceName')"
+      :label="t('voiceName')" :invalid-message="errors?.voice"
       :options="voiceOptions"
       :placeholder="t('voicePlaceholder')"
       :helper-text="voiceHelper"

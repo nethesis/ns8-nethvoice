@@ -36,7 +36,8 @@ export function credentials(): { user: string; hash: string } | null {
   }
 }
 
-function clearAuth() {
+function clearAuth(recover = true) {
+  if (recover && auth.authorized) window.dispatchEvent(new Event("agents-auth-expired"));
   authGeneration++;
   auth.user = "";
   auth.ready = true;
@@ -149,7 +150,8 @@ export function signIn() {
 }
 export function signOut() {
   localStorage.removeItem("secretkey");
-  clearAuth();
+  clearAuth(false);
+  sessionStorage.removeItem("nethvoice.agents.edit");
   window.location.assign("/freepbx/wizard/#!/login");
 }
 window.addEventListener("storage", (event) => {

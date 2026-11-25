@@ -1,6 +1,13 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
+  publishReadiness: "Required for publication",
+  keepEdits: "Keep my edits for the next save",
+  yourEdits: "Your edits",
+  savedRevision: "Saved revision",
+  compareRevisions: "Compare changes",
+  requiredField: "Required",
+  durationRange: "Enter a whole number from 30 to 3600 seconds.",
   credentialValid: "Credential verified",
   testCredential: "Test credential",
   dedicatedKey: "Dedicated key",
@@ -788,6 +795,13 @@ const en = {
   maxOutputTokens: "Maximum backend output tokens",
 };
 const it: typeof en = {
+  publishReadiness: "Requisiti per la pubblicazione",
+  keepEdits: "Mantieni le mie modifiche per il prossimo salvataggio",
+  yourEdits: "Le tue modifiche",
+  savedRevision: "Revisione salvata",
+  compareRevisions: "Confronta modifiche",
+  requiredField: "Obbligatorio",
+  durationRange: "Inserisci un numero intero fra 30 e 3600 secondi.",
   credentialValid: "Credenziale verificata",
   testCredential: "Verifica credenziale",
   dedicatedKey: "Chiave dedicata",
