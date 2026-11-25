@@ -11,7 +11,7 @@ function satellite_get_config_late($engine) {
     global $db;
     switch($engine) {
         case "asterisk":
-        if (\NethVoice\Agents\Preview::enabled()) satellite_build_agent_dialplan();
+        satellite_build_agent_dialplan();
         /* satellite STT real time Transcriptions*/
         if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
             $satellite_mixmonitor_options = 'br(/var/run/nethvoice/satellite-r-${UNIQUEID}-${CHANNEL(linkedid)}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}-${CHANNEL(linkedid)}.wav)i(${SATELLITE_LOCAL_MIXMON_ID})';
@@ -145,9 +145,24 @@ function satellite_check_destinations($dest = true) {
     }
     return $result;
 }
+function satellite_build_saved_agent_fallbacks(string $cache): void {
+    global $ext;
+    $saved = json_decode((string)@file_get_contents($cache), true);
+    foreach (is_array($saved) ? $saved : [] as $id => $target) {
+        if (!is_string($id) || !preg_match('/^[a-z][a-z0-9_-]{0,47}$/D',$id)) continue;
+        $safe = is_string($target) && preg_match('/^[a-zA-Z0-9_-]{1,80},[a-zA-Z0-9_*#.-]{1,64},1$/D',$target)
+            && !str_starts_with($target,'voice-agent-');
+        $ext->add('voice-agent-'.$id,'s','',$safe ? new ext_goto($target) : new ext_hangup());
+    }
+}
+
 function satellite_build_agent_dialplan() {
     global $ext, $amp_conf;
     $cache = ($amp_conf['ASTVARLIBDIR'] ?? '/var/lib/asterisk') . '/voice-agent-fallbacks.json';
+    if (!\NethVoice\Agents\Preview::enabled()) {
+        if (is_file($cache)) satellite_build_saved_agent_fallbacks($cache);
+        return;
+    }
     try {
         $satellite = FreePBX::Satellite();
         $agents = $satellite->agentDestinations();
@@ -181,13 +196,7 @@ function satellite_build_agent_dialplan() {
         }
     } catch (Throwable $error) {
         error_log('Voice agent routing unavailable; using saved native fallbacks');
-        $saved = json_decode((string)@file_get_contents($cache), true);
-        foreach (is_array($saved) ? $saved : [] as $id => $target) {
-            if (!is_string($id) || !preg_match('/^[a-z][a-z0-9_-]{0,47}$/D',$id)) continue;
-            $safe = is_string($target) && preg_match('/^[a-zA-Z0-9_-]{1,80},[a-zA-Z0-9_*#.-]{1,64},1$/D',$target)
-                && !str_starts_with($target,'voice-agent-');
-            $ext->add('voice-agent-'.$id,'s','',$safe ? new ext_goto($target) : new ext_hangup());
-        }
+        satellite_build_saved_agent_fallbacks($cache);
         return;
     }
     $ext->add('voice-agent-trunk-hangup','s','',new ext_hangup());
@@ -313,6 +322,8 @@ function satellite_build_agent_dialplan() {
         $ext->add($context,'T','',new ext_set('TIMEOUT(absolute)','0'));
         $ext->add($context,'T','',$external?new ext_goto('${CLEVERAI_FALLBACK}'):new ext_goto('1','s','${VOICE_AGENT_FALLBACK}'));
     }
+    // Active calls may still refer to a previous immutable fallback wrapper.
+    foreach ($targets as $context=>$target) $fallbacks[substr($context,strlen('voice-agent-'))]=$target;
     $temp = tempnam(dirname($cache), 'voice-agent-fallbacks-');
     if ($temp !== false) {
         if (file_put_contents($temp, json_encode($fallbacks, JSON_THROW_ON_ERROR)) === false || !rename($temp,$cache)) {
