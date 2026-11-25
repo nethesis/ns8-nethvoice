@@ -160,6 +160,39 @@ angular.module('nethvoiceWizardUiApp')
       $scope.$emit('variableChanged')
     }
 
+    // Inputs with a format ("pattern" of the UI item, e.g. the door phone
+    // relay codes): an empty value is valid, it removes the variable
+    $scope.inputInvalid = function (item, value) {
+      return !!(item && item.pattern && value !== undefined && value !== null && value !== "" && !item.pattern.test(String(value)))
+    }
+
+    // True when an input of the current model does not match its format:
+    // the variables are not saved
+    $scope.currentModelInvalid = function () {
+      var ui = $scope.currentModel && $scope.currentModel.ui
+      var inputs = ($scope.currentModel && $scope.currentModel.inputs) || {}
+      if (!ui) {
+        return false
+      }
+      return Object.keys(ui).some(function (sectionkey) {
+        var section = ui[sectionkey]
+        if (sectionkey === "map" || !section || !Array.isArray(section.items)) {
+          return false
+        }
+        return section.items.some(function (item) {
+          if (item.type === "loop") {
+            var keys = (item.data && item.data.items) || []
+            return keys.some(function (key) {
+              return key.pattern && (item.keysIndexes || []).some(function (index) {
+                return $scope.inputInvalid(key, inputs[key.variable + "_" + index])
+              })
+            })
+          }
+          return $scope.inputInvalid(item, inputs[item.variable])
+        })
+      })
+    }
+
     $scope.getOptionText = function (options, value) {
       for (var option in options) {
         if (options[option].value == value) {
@@ -308,6 +341,9 @@ angular.module('nethvoiceWizardUiApp')
     // save function for model variables
     $scope.saveCurrentModel = function () {
       resetErrMessage()
+      if ($scope.currentModelInvalid()) {
+        return
+      }
       $scope.loadingAction = true
       for (var variable in $scope.currentModel.variables) {
         // remove globals from variables
@@ -346,6 +382,9 @@ angular.module('nethvoiceWizardUiApp')
 
     // save function for single variables
     $scope.saveCurrentModelSingle = function () {
+      if ($scope.currentModelInvalid()) {
+        return
+      }
       $scope.loadingActionSingle = true
       for (var variable in $scope.currentModel.singleVariables) {
         // manage empty variables and convert "null" strings to null

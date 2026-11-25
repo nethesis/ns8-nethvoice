@@ -43,6 +43,14 @@ angular.module('nethvoiceWizardUiApp')
       return GenericPhoneService.softKeys(modelMap)
     }
 
+    // Door phone values, checked again by Tancredi (422): DTMF codes of 1-16
+    // characters among 0-9, A-D, * and #; relay open time of 1-600 seconds;
+    // labels without control characters (a line break would add lines to
+    // the device configuration)
+    const DOOR_DTMF_PATTERN = /^[0-9A-Da-d*#]{1,16}$/
+    const DOOR_DURATION_PATTERN = /^([1-9]|[1-9][0-9]|[1-5][0-9][0-9]|600)$/
+    const DOOR_LABEL_PATTERN = /^[^\x00-\x1f\x7f]*$/
+
     this.lineKeys = function (modelMap) {
       let lineKeys = GenericPhoneService.lineKeys(modelMap)
       if (lineKeys && modelMap.general.door_phone) {
@@ -53,6 +61,11 @@ angular.module('nethvoiceWizardUiApp')
             item.options = item.options.filter(function (option) {
               return option.value == "speed_dial"
             })
+          }
+          // The label is written as it is into the door phone configuration
+          if (item.variable == "linekey_label") {
+            item.pattern = DOOR_LABEL_PATTERN
+            item.patternError = "door_phone_label_invalid"
           }
         })
         modelMap.lineKeys.hidden_types = []
@@ -73,11 +86,15 @@ angular.module('nethvoiceWizardUiApp')
         items.push({
           "variable": relay == 1 ? "door_dtmf_code" : "door_dtmf_code_" + relay,
           "description": "door_phone_relay_" + relay + "_dtmf_label",
-          "type": "input"
+          "type": "input",
+          "pattern": DOOR_DTMF_PATTERN,
+          "patternError": "door_phone_dtmf_invalid"
         }, {
           "variable": "door_relay_duration_" + relay,
           "description": "door_phone_relay_" + relay + "_duration_label",
-          "type": "input"
+          "type": "input",
+          "pattern": DOOR_DURATION_PATTERN,
+          "patternError": "door_phone_duration_invalid"
         })
       }
       return {
