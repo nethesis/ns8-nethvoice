@@ -15,6 +15,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 from .monitoring import Monitoring, MAX_PENDING, RESERVED
+from .drain import admit_work
 from .ari import AriHTTPError, new_channel_id
 from .telemetry import CallTrace, ACTIVE_SPAN, error_info, safe_error
 from .transcripts import Transcripts
@@ -39,6 +40,7 @@ class Call:
     snapshot: dict
     binding: dict
     linkedid: str | None
+    work_lease: object | None = field(default=None, init=False, repr=False)
     deadline: float = 0
     provider_call_id: str | None = None
     adapter: object | None = None
@@ -516,7 +518,12 @@ class Runtime:
         origin_at = datetime.now(timezone.utc)
         observations = []
         stage='snapshot'
+        lease = None
         try:
+            lease = admit_work()
+            if lease is None:
+                await self.controller.continue_channel(channel['id'])
+                return
             if not re.fullmatch(r'[a-z][a-z0-9_-]{0,47}', agent_id):
                 raise ValueError('invalid_agent')
             if (channel.get('dialplan') or {}).get('context') != 'voice-agent-' + agent_id:
@@ -596,6 +603,7 @@ class Runtime:
             if binding.get('adapter') != 'live_ws':
                 call.webhook_span = call.trace.start('webhook_wait')
             self.calls[call.session_id] = call
+            call.work_lease, lease = lease, None
             self.reserved_adapters.pop(channel['id'], None)
             if asyncio.current_task() in self.tasks:
                 call.tasks.add(asyncio.current_task())
@@ -634,6 +642,8 @@ class Runtime:
                 except Exception:
                     pass
         finally:
+            if lease is not None:
+                lease.close()
             self.reserved_adapters.pop(channel['id'], None)
             self.admitting.discard(channel['id'])
             self.admissions.pop(channel['id'],None)
@@ -1117,6 +1127,8 @@ class Runtime:
         if call.admitted:
             self.monitoring.emit(call.run_id,kind,outcome=outcome,error=error,elapsed_ms=self.trace(call).elapsed(),**details)
         self.calls.pop(call.session_id,None)
+        if call.work_lease is not None:
+            call.work_lease.close()
 
     async def disconnected(self):
         await self._finish_calls('ari_disconnected')
