@@ -22,7 +22,7 @@ tools[1].editor = {
     },
     {
       enabled_field: "queues_enabled",
-      destinations_field: "queue_denylist",
+      destinations_field: "queue_allowlist",
       inventory: "queues",
       selection: "denylist",
     },

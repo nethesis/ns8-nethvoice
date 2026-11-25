@@ -7,10 +7,11 @@ delete tools[1].configuration_schema.properties.ivr_denylist;
 tools[0].editor = {automatic:true};
 tools[1].editor = {descriptions_field:"descriptions",categories:[
   {enabled_field:"extensions_enabled",destinations_field:"extension_allowlist",inventory:"extensions",selection:"allowlist"},
-  {enabled_field:"queues_enabled",destinations_field:"queue_denylist",inventory:"queues",selection:"denylist"},
+  {enabled_field:"queues_enabled",destinations_field:"queue_allowlist",inventory:"queues",selection:"allowlist"},
 ]};
 const defaults = JSON.parse(readFileSync(new URL("published-v8.example.json", base), "utf8"));
 for (const key of ["agent_id", "destination_id", "workflow_version", "provider"]) delete defaults[key];
+defaults.tool_bindings[1].config.queue_allowlist = ["queue:600"];
 defaults.tool_bindings[0].enabled = true;
 defaults.tool_bindings[1].enabled = false;
 defaults.tool_bindings[1].config.ivrs_enabled = false;
@@ -80,7 +81,7 @@ test("routing editor uses permitted destinations, routing descriptions and publi
   expect(config.extensions_enabled).toBe(true);
   expect(config.extension_allowlist).toEqual(["extension:203"]);
   expect(config.queues_enabled).toBe(true);
-  expect(config.queue_denylist).toEqual([]);
+  expect(config.queue_allowlist).toEqual(["queue:600"]);
   expect(config.descriptions).toEqual([{destination_id:"extension:203",description:"He is a very cool guy"},{destination_id:"queue:600",description:"Technical support team"}]);
   await page.screenshot({path:"/tmp/voice-agent-routing-editor.png",fullPage:true});
   await publish.click();

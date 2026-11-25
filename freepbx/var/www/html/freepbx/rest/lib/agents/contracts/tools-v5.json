@@ -109,7 +109,7 @@
       "extensions_enabled": false,
       "extension_allowlist": [],
       "queues_enabled": true,
-      "queue_denylist": [],
+      "queue_allowlist": [],
       "ivrs_enabled": false,
       "ivr_denylist": [],
       "descriptions": [],
@@ -123,7 +123,7 @@
         "extensions_enabled",
         "extension_allowlist",
         "queues_enabled",
-        "queue_denylist",
+        "queue_allowlist",
         "ivrs_enabled",
         "ivr_denylist",
         "descriptions",
@@ -152,7 +152,7 @@
           "type": "boolean",
           "title": "Queues"
         },
-        "queue_denylist": {
+        "queue_allowlist": {
           "type": "array",
           "maxItems": 100,
           "uniqueItems": true,
@@ -160,7 +160,7 @@
             "type": "string",
             "pattern": "^queue:[0-9]{1,20}$(?![\\s\\S])"
           },
-          "title": "Excluded queues",
+          "title": "Permitted queues",
           "x-inventory": "queues",
           "x-control": "destination-list"
         },

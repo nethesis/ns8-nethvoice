@@ -32,7 +32,7 @@ assert($agent['draft']['contract_version']===8);
 assert($agent['draft']['tool_bindings'][1]['config']['extension_allowlist']===['extension:203']);
 assert($agent['draft']['tool_bindings'][0]['enabled']);
 $draft=$agent['draft']; foreach ($draft['tool_bindings'] as &$binding) $binding['enabled']=true; unset($binding);
-$draft['tool_bindings'][1]['config']['queue_denylist']=['queue:999'];
+$draft['tool_bindings'][1]['config']['queue_allowlist']=['queue:600','queue:999'];
 $draft['tool_bindings'][1]['config']['ivrs_enabled']=true;
 $one=$service->save(null,['name'=>'Routing one','draft'=>$draft],0,'synthetic-admin');
 assert($one['draft_version']===1);
@@ -62,6 +62,8 @@ assert(!isset($transfer['configuration_schema']['properties']['ivrs_enabled'],$t
 assert(!str_contains(json_encode($service->destinations(['agent_id'=>$one['agent_id']])['items']),'ivr:'));
 try { $service->destinations(['type'=>'ivr']); assert(false); }
 catch (RuntimeException $error) { assert($error->getMessage()==='invalid_destination'); }
+assert(\NethVoice\Agents\RoutingPolicy::permits($one['published'],'queue:600'));
+assert(!\NethVoice\Agents\RoutingPolicy::permits($one['published'],'queue:601'));
 $withdrawn=$draft;$withdrawn['tool_bindings'][1]['config']['ivrs_enabled']=true;
 assert(!\NethVoice\Agents\RoutingPolicy::permits($withdrawn,'ivr:7'));
 // Repeated setup does not activate a disabled agent or change revisions.

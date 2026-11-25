@@ -216,7 +216,7 @@ const en = {
     extensions_enabled: "Direct extensions",
     extension_allowlist: "Approved extensions",
     queues_enabled: "Queues",
-    queue_denylist: "Queues",
+    queue_allowlist: "Queues",
     descriptions: "Routing descriptions",
     playback_timeout_seconds: "Maximum goodbye playback (seconds)",
   },
@@ -337,7 +337,7 @@ const en = {
     "Optional. Describe what each destination handles so the agent can route callers by purpose.",
   destinationPicker: {
     extension_allowlist: "Allowed extensions",
-    queue_denylist: "Excluded queues",
+    queue_allowlist: "Permitted queues",
     recent_caller_denylist: "Excluded callback extensions",
   },
   destinationPickerHelp: {
@@ -345,7 +345,7 @@ const en = {
     denylist: "Every destination is allowed except the selected ones.",
   },
   destinationScope: {
-    queue_denylist: {
+    queue_allowlist: {
       label: "Reachable queues",
       all: "All queues",
       except: "All queues except the selected ones",
@@ -999,7 +999,7 @@ const it: typeof en = {
     extensions_enabled: "Interni diretti",
     extension_allowlist: "Interni autorizzati",
     queues_enabled: "Code",
-    queue_denylist: "Code",
+    queue_allowlist: "Code",
     descriptions: "Descrizioni di instradamento",
     playback_timeout_seconds: "Attesa massima per il saluto finale (secondi)",
   },
@@ -1121,7 +1121,7 @@ const it: typeof en = {
     "Facoltativo. Descrivi di cosa si occupa ogni destinazione, così l’agente può instradare in base al motivo della chiamata.",
   destinationPicker: {
     extension_allowlist: "Interni consentiti",
-    queue_denylist: "Code escluse",
+    queue_allowlist: "Code consentite",
     recent_caller_denylist: "Interni esclusi dalle richiamate",
   },
   destinationPickerHelp: {
@@ -1130,7 +1130,7 @@ const it: typeof en = {
       "Tutte le destinazioni sono consentite tranne quelle selezionate.",
   },
   destinationScope: {
-    queue_denylist: {
+    queue_allowlist: {
       label: "Code raggiungibili",
       all: "Tutte le code",
       except: "Tutte le code tranne quelle selezionate",

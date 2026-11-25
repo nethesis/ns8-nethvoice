@@ -81,7 +81,7 @@ final class Service
             if (in_array($tool['id'],['pbx.find_destinations','pbx.find_recent_callers'],true)) $tool['editor']=['automatic'=>true];
             if ($tool['id']==='pbx.transfer') $tool['editor']=['descriptions_field'=>'descriptions','categories'=>[
                 ['enabled_field'=>'extensions_enabled','destinations_field'=>'extension_allowlist','inventory'=>'extensions','selection'=>'allowlist'],
-                ['enabled_field'=>'queues_enabled','destinations_field'=>'queue_denylist','inventory'=>'queues','selection'=>'denylist'],
+                ['enabled_field'=>'queues_enabled','destinations_field'=>'queue_allowlist','inventory'=>'queues','selection'=>'allowlist'],
             ]];
             if ($tool['id']==='pbx.transfer') $tool['editor']['categories'][]=['enabled_field'=>'recent_callers_enabled','destinations_field'=>'recent_caller_denylist','inventory'=>'extensions','selection'=>'denylist','fields'=>['recent_caller_lookback_days'],'descriptions'=>false];
         }
@@ -108,7 +108,7 @@ final class Service
         if (isset($query['agent_id'])) { if (!is_string($query['agent_id'])) self::fail('invalid_identifier'); $draft=$this->get($query['agent_id'])['draft']; }
         $inventory=$this->native->directory(); unset($inventory['modules']['ivr']); $rows=array_values(array_filter($inventory['items'],fn($row)=>in_array($row['type'],['extension','queue'],true)));
         $unavailable=[];
-        if ($draft) foreach ($draft['tool_bindings']??[] as $binding) foreach (['extension_allowlist','queue_denylist','recent_caller_denylist'] as $field) {
+        if ($draft) foreach ($draft['tool_bindings']??[] as $binding) foreach (['extension_allowlist','queue_allowlist','recent_caller_denylist'] as $field) {
             foreach ($binding['config'][$field]??[] as $id) if (!in_array($id,array_column(array_filter($rows,fn($row)=>$row['available']),'id'),true)) $unavailable[]=$id;
         }
         // The same per-agent purpose text is searchable by administrators and the LLM.
