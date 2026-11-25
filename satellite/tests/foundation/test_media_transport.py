@@ -49,6 +49,24 @@ async def test_suppressed_input_is_padded_without_losing_partial_audio():
 
 
 @pytest.mark.asyncio
+async def test_real_frame_after_padding_sets_one_idle_interval():
+    clock = asyncio.get_running_loop().time
+    reads = []
+    class Source:
+        async def frame(self, *, deadline):
+            reads.append((clock(), deadline))
+            return (b'', bytes(160), None)[len(reads) - 1]
+
+    async def send(frame):
+        pass
+
+    bridge = AudioBridge(SimpleNamespace(input=Source()), SimpleNamespace(send_audio=send), pytest.fail)
+    await bridge._pump_input()
+    at, deadline = reads[-1]
+    assert deadline - at <= FRAME_SECONDS
+
+
+@pytest.mark.asyncio
 async def test_idle_clock_skips_missed_slots_after_a_stall():
     source = AudioBuffer()
     clock = asyncio.get_running_loop().time

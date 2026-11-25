@@ -212,9 +212,8 @@ class AudioBridge:
                     self.input_real_frames += 1
                 else:
                     self.input_silence_frames += 1
-                # Keep one frame of timing credit for early arrivals. Drain real
-                # startup audio immediately; never build up synthetic catch-up work.
-                deadline = min(deadline + FRAME_SECONDS, now + 2 * FRAME_SECONDS)
+                # An early real frame must not postpone padding for two idle slots.
+                deadline = min(deadline + FRAME_SECONDS, now + FRAME_SECONDS)
                 if deadline <= now:
                     deadline = now + FRAME_SECONDS
         except asyncio.CancelledError:
