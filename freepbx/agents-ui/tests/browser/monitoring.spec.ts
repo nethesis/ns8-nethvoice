@@ -35,6 +35,7 @@ for (const scenario of [{language:'en',width:1440}, {language:'it',width:375}]) 
     await expect(page.getByTestId('monitoring-total')).toHaveText('180');
     await expect(page.getByTestId('documentation-link')).toHaveAttribute('href',`https://docs.nethvoice.com/${scenario.language==='it'?'it/':''}docs/administrator-manual/configuration/applications/voice_agents`);
     await expect(page.getByTestId('documentation-link')).toHaveAttribute('target','_blank');
+    await page.getByText(scenario.language === 'en' ? 'Diagnostics' : 'Diagnostica',{exact:true}).click();
     await expect(page.getByTestId('monitoring-health-warning')).toBeVisible();
     await page.getByTestId('run-search').fill('outside-first-page');
     await expect.poll(()=>searches.includes('outside-first-page')).toBe(true);
@@ -71,6 +72,7 @@ test('unavailable metrics show errors rather than fabricated zero counts', async
   });
   await page.goto('./#/activity');
   await expect(page.getByTestId('monitoring-request-error')).toBeVisible();
+  await page.getByText('Diagnostics',{exact:true}).click();
   await expect(page.getByTestId('monitoring-health-warning')).toBeVisible();
   await expect(page.getByTestId('monitoring-total')).toHaveCount(0);
 });

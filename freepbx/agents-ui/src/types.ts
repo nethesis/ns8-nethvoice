@@ -109,6 +109,8 @@ export interface ModelCatalog {
   discovery_error?: string;
 }
 export interface Run extends JsonObject {
+  published_by?: string | null;
+  call_record_url?: string | null;
   run_id: string;
   parent_run_id?: string | null;
   agent_id: string;
@@ -253,5 +255,6 @@ export interface MonitoringHealth {
   oldest_pending_seconds?: number;
   dropped?: number;
   retries?: number;
+  invalid_webhook_signatures?: number;
   last_write_at?: string | null;
 }
