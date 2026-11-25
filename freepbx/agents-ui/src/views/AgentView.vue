@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted } from "vue";
-import { useRoute, useRouter, onBeforeRouteLeave } from "vue-router";
+import {
+  useRoute,
+  useRouter,
+  onBeforeRouteLeave,
+  onBeforeRouteUpdate,
+} from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import {
   NeTextInput,
@@ -67,24 +72,28 @@ const draft = ref<Draft>({
   debug: { transcription_enabled: false, retention_hours: 24 },
 });
 const baseline = ref("");
-watch(agentType, (value) => {
-  if (
-    creating.value &&
-    catalog.data.value &&
-    (value === "consultation"
-      ? catalog.data.value.consultation_defaults
-      : catalog.data.value.draft_defaults)
-  ) {
-    draft.value = JSON.parse(
-      JSON.stringify(
-        value === "consultation"
-          ? catalog.data.value.consultation_defaults
-          : catalog.data.value.draft_defaults,
-      ),
-    );
-    draft.value.conversation.language = catalog.data.value.default_language;
-  }
-});
+watch(
+  agentType,
+  (value) => {
+    if (
+      creating.value &&
+      catalog.data.value &&
+      (value === "consultation"
+        ? catalog.data.value.consultation_defaults
+        : catalog.data.value.draft_defaults)
+    ) {
+      draft.value = JSON.parse(
+        JSON.stringify(
+          value === "consultation"
+            ? catalog.data.value.consultation_defaults
+            : catalog.data.value.draft_defaults,
+        ),
+      );
+      draft.value.conversation.language = catalog.data.value.default_language;
+    }
+  },
+  { flush: "sync" },
+);
 function transferMode(mode: string) {
   if ((draft.value.consultation?.mode || "direct") === mode) return;
   draft.value.contract_version = 9;
@@ -105,27 +114,47 @@ const dirty = computed(() => !!baseline.value && snapshot() !== baseline.value);
 const conflict = ref<Agent>();
 const editKey = "nethvoice.agents.edit";
 function rememberDraft() {
-  if (dirty.value) sessionStorage.setItem(editKey, JSON.stringify({
-    user:auth.user, path:route.path, revision:record.value?.revision ?? 0,
-    type:agentType.value, name:name.value, draft:configuration.value,
-  }));
+  if (dirty.value)
+    sessionStorage.setItem(
+      editKey,
+      JSON.stringify({
+        user: auth.user,
+        path: route.path,
+        revision: record.value?.revision ?? 0,
+        type: agentType.value,
+        name: name.value,
+        draft: configuration.value,
+      }),
+    );
 }
 function recoverDraft() {
   const raw = sessionStorage.getItem(editKey);
   if (!raw) return;
   let saved;
-  try { saved = JSON.parse(raw); } catch { sessionStorage.removeItem(editKey); return; }
-  if (saved.user !== auth.user) { sessionStorage.removeItem(editKey); return; }
+  try {
+    saved = JSON.parse(raw);
+  } catch {
+    sessionStorage.removeItem(editKey);
+    return;
+  }
+  if (saved.user !== auth.user) {
+    sessionStorage.removeItem(editKey);
+    return;
+  }
   if (saved.path !== route.path) return;
   sessionStorage.removeItem(editKey);
-  if (record.value && record.value.revision !== saved.revision) conflict.value = record.value;
+  if (record.value && record.value.revision !== saved.revision)
+    conflict.value = record.value;
   agentType.value = saved.type;
   name.value = saved.name;
   if (external.value) externalConfig.value = saved.draft;
   else draft.value = saved.draft;
 }
 function warnUnload(event: BeforeUnloadEvent) {
-  if (dirty.value) { event.preventDefault(); event.returnValue = ""; }
+  if (dirty.value) {
+    event.preventDefault();
+    event.returnValue = "";
+  }
 }
 onMounted(() => {
   window.addEventListener("agents-auth-expired", rememberDraft);
@@ -232,7 +261,11 @@ function accept(value: Agent) {
 watch(
   () => agent.data.value,
   (value) => {
-    if (value && (!record.value || (!dirty.value && value.revision > record.value.revision))) {
+    if (
+      value &&
+      (!record.value ||
+        (!dirty.value && value.revision > record.value.revision))
+    ) {
       accept(value);
       recoverDraft();
     }
@@ -240,7 +273,9 @@ watch(
   { immediate: true },
 );
 if (creating.value) baseline.value = snapshot();
-onBeforeRouteLeave(() => (dirty.value ? ui.confirmLeave() : true));
+const confirmNavigation = () => (dirty.value ? ui.confirmLeave() : true);
+onBeforeRouteLeave(confirmNavigation);
+onBeforeRouteUpdate((to, from) => to.path === from.path || confirmNavigation());
 const status = computed(() =>
   record.value ? agentStatus(record.value) : "draft",
 );
@@ -292,10 +327,35 @@ function validate(publishing: boolean) {
     next.trunk = t("agentForm.selectTrunk");
   if (!external.value) {
     const duration = draft.value.max_call_duration_seconds;
-    if (!Number.isInteger(duration) || duration < 30 || duration > 3600) next.duration = t("durationRange");
-    if (publishing && !draft.value.conversation.instructions.trim()) next.instructions = t("requiredField");
-    if (publishing && !draft.value.conversation.voice) next.voice = t("requiredField");
-    if (publishing && !draft.value.conversation.model) next.model = t("requiredField");
+    if (!Number.isInteger(duration) || duration < 30 || duration > 3600)
+      next.duration = t("durationRange");
+    if (publishing && !draft.value.conversation.instructions.trim())
+      next.instructions = t("requiredField");
+    if (publishing && !draft.value.conversation.voice)
+      next.voice = t("requiredField");
+    if (publishing && !draft.value.conversation.model)
+      next.model = t("requiredField");
+  }
+  if (!external.value && draft.value.conversation.model === "gpt-live-1") {
+    const options = draft.value.conversation.options;
+    const tokens = Number(options?.max_output_tokens);
+    if (!Number.isInteger(tokens) || tokens < 16 || tokens > 8192)
+      next.max_output_tokens = t("wholeNumberRange", { min: 16, max: 8192 });
+    if (!String(options?.backend_instructions ?? "").trim())
+      next.backend_instructions = t("requiredField");
+  }
+  for (const tool of draft.value.tool_bindings) {
+    for (const [key, max] of [
+      ["recent_caller_lookback_days", 90],
+      ["playback_timeout_seconds", 10],
+    ] as const) {
+      const value = tool.config[key];
+      if (
+        value !== undefined &&
+        (!Number.isInteger(value) || Number(value) < 1 || Number(value) > max)
+      )
+        next[key] = t("wholeNumberRange", { min: 1, max });
+    }
   }
   const retention = draft.value.debug.retention_hours;
   if (
@@ -312,17 +372,23 @@ async function persist(): Promise<Agent> {
   if (conflict.value) throw new Error("revision_conflict");
   const wasCreating = creating.value;
   let value: Agent;
-  try { value = await request<Agent>(
-    creating.value ? "POST" : "PUT",
-    creating.value ? "/profiles" : "/profiles/" + encodeURIComponent(id.value),
-    {
-      profile: { name: name.value.trim(), draft: configuration.value },
-      expected_revision: record.value?.revision || 0,
-    },
-  );
+  try {
+    value = await request<Agent>(
+      creating.value ? "POST" : "PUT",
+      creating.value
+        ? "/profiles"
+        : "/profiles/" + encodeURIComponent(id.value),
+      {
+        profile: { name: name.value.trim(), draft: configuration.value },
+        expected_revision: record.value?.revision || 0,
+      },
+    );
   } catch (failure) {
     if (errorCode(failure) === "revision_conflict" && id.value)
-      conflict.value = await request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value));
+      conflict.value = await request<Agent>(
+        "GET",
+        "/profiles/" + encodeURIComponent(id.value),
+      );
     throw failure;
   }
   accept(value);
@@ -370,15 +436,20 @@ async function publish() {
     async () => {
       let value = record.value;
       if (dirty.value || !value) value = await persist();
-      try { value = await request<Agent>(
-        "POST",
-        "/profiles/" + encodeURIComponent(value.agent_id) + "/publish",
-        { expected_revision: value.revision },
-      );
+      try {
+        value = await request<Agent>(
+          "POST",
+          "/profiles/" + encodeURIComponent(value.agent_id) + "/publish",
+          { expected_revision: value.revision },
+        );
       } catch (failure) {
-        if (wasCreating) ui.notify(t("draftSaved"), t("error." + errorCode(failure)), "error");
+        if (wasCreating)
+          ui.notify(t("draftSaved"), t("error." + errorCode(failure)), "error");
         else if (errorCode(failure) === "revision_conflict")
-          conflict.value = await request<Agent>("GET", "/profiles/" + value.agent_id);
+          conflict.value = await request<Agent>(
+            "GET",
+            "/profiles/" + value.agent_id,
+          );
         throw failure;
       }
       accept(value);
@@ -451,16 +522,50 @@ async function synchronize() {
     >
       <section v-if="conflict" class="grid gap-3">
         <h3>{{ t("compareRevisions") }}</h3>
-        <details><summary>{{ t("savedRevision") }} {{ conflict.revision }}</summary><pre class="overflow-auto whitespace-pre-wrap">{{ JSON.stringify({ name:conflict.name, draft:conflict.draft }, null, 2) }}</pre></details>
-        <details><summary>{{ t("yourEdits") }}</summary><pre class="overflow-auto whitespace-pre-wrap">{{ JSON.stringify({ name, draft:configuration }, null, 2) }}</pre></details>
-        <NeButton kind="secondary" @click="record = conflict; conflict = undefined">{{ t("keepEdits") }}</NeButton>
+        <details>
+          <summary>{{ t("savedRevision") }} {{ conflict.revision }}</summary>
+          <pre class="overflow-auto whitespace-pre-wrap">{{
+            JSON.stringify(
+              { name: conflict.name, draft: conflict.draft },
+              null,
+              2,
+            )
+          }}</pre>
+        </details>
+        <details>
+          <summary>{{ t("yourEdits") }}</summary>
+          <pre class="overflow-auto whitespace-pre-wrap">{{
+            JSON.stringify({ name, draft: configuration }, null, 2)
+          }}</pre>
+        </details>
+        <NeButton
+          kind="secondary"
+          @click="
+            record = conflict;
+            conflict = undefined;
+          "
+          >{{ t("keepEdits") }}</NeButton
+        >
       </section>
-      <section v-if="!external && !record?.published" class="grid gap-1" :aria-label="t('publishReadiness')">
+      <section
+        v-if="!external && !record?.published"
+        class="grid gap-1"
+        :aria-label="t('publishReadiness')"
+      >
         <h3>{{ t("publishReadiness") }}</h3>
-        <ul class="list-inside list-disc"><li v-for="item in [
-          [t('trunk'), !!draft.provider_binding_id], [t('voiceModel'), !!draft.conversation.model],
-          [t('voiceName'), !!draft.conversation.voice], [t('instructions'), !!draft.conversation.instructions.trim()]
-        ]" :key="String(item[0])">{{ item[0] }} · {{ t(item[1] ? 'status.ready' : 'requiredField') }}</li></ul>
+        <ul class="list-inside list-disc">
+          <li
+            v-for="item in [
+              [t('trunk'), !!draft.provider_binding_id],
+              [t('voiceModel'), !!draft.conversation.model],
+              [t('voiceName'), !!draft.conversation.voice],
+              [t('instructions'), !!draft.conversation.instructions.trim()],
+            ]"
+            :key="String(item[0])"
+          >
+            {{ item[0] }} · {{ t(item[1] ? "status.ready" : "requiredField") }}
+          </li>
+        </ul>
       </section>
       <NeInlineNotification
         v-if="task.error.value"
@@ -482,7 +587,7 @@ async function synchronize() {
           record.sync_status !== 'synced' &&
           (record.workflow_version || external)
         "
-:kind="record.sync_status === 'error' ? 'error' : 'warning'"
+        :kind="record.sync_status === 'error' ? 'error' : 'warning'"
         :title="t('sync.' + record.sync_status)"
         ><template #description
           ><NeButton
@@ -516,7 +621,9 @@ async function synchronize() {
               :options="[
                 { id: 'basic_voice', label: t('agentTypes.basic_voice') },
                 { id: 'consultation', label: t('internalAssistant') },
-                ...(catalog.data.value?.sip_lab_enabled ? [{ id: 'cleverai', label: t('agentTypes.cleverai') }] : []),
+                ...(catalog.data.value?.sip_lab_enabled
+                  ? [{ id: 'cleverai', label: t('agentTypes.cleverai') }]
+                  : []),
               ]"
               @update:model-value="agentType = $event || agentType"
             />
@@ -557,7 +664,9 @@ async function synchronize() {
               :model-value="String(draft.max_call_duration_seconds)"
               :label="t('maxDuration')"
               :helper-text="t('agentForm.durationHelp')"
-              :invalid-message="errors.duration" min="30" max="3600"
+              :invalid-message="errors.duration"
+              min="30"
+              max="3600"
               type="number"
               @update:model-value="
                 draft.max_call_duration_seconds = Number($event)
@@ -575,7 +684,8 @@ async function synchronize() {
           <div class="grid grid-cols-1 gap-6">
             <ConversationSettings
               v-model="draft.conversation"
-              :binding="selectedTrunk" :errors="errors"
+              :binding="selectedTrunk"
+              :errors="errors"
             />
             <NeTextArea
               v-model="draft.conversation.greeting"
@@ -585,7 +695,8 @@ async function synchronize() {
               maxlength="4096"
             />
             <NeTextArea
-              v-model="draft.conversation.instructions" :invalid-message="errors.instructions"
+              v-model="draft.conversation.instructions"
+              :invalid-message="errors.instructions"
               :label="t('instructions')"
               :helper-text="t('agentForm.instructionsHelp')"
               :rows="8"
@@ -656,7 +767,7 @@ async function synchronize() {
           :title="t('tools')"
           :description="t('toolGrantsHelp')"
         >
-          <AgentTools v-model="draft.tool_bindings" />
+          <AgentTools v-model="draft.tool_bindings" :errors="errors" />
         </SettingsSection>
         <SettingsSection
           divider

@@ -186,7 +186,8 @@ function choices(key: string, values: string[]) {
   >
     <FieldCombobox
       :model-value="modelValue.model || ''"
-      :label="t('voiceModel')" :invalid-message="errors?.model"
+      :label="t('voiceModel')"
+      :invalid-message="errors?.model"
       :options="modelOptions"
       :placeholder="t('modelHelp.placeholder')"
       :helper-text="modelHelper"
@@ -199,7 +200,8 @@ function choices(key: string, values: string[]) {
     />
     <FieldCombobox
       :model-value="modelValue.voice"
-      :label="t('voiceName')" :invalid-message="errors?.voice"
+      :label="t('voiceName')"
+      :invalid-message="errors?.voice"
       :options="voiceOptions"
       :placeholder="t('voicePlaceholder')"
       :helper-text="voiceHelper"
@@ -287,6 +289,7 @@ function choices(key: string, values: string[]) {
             :model-value="String(modelValue.options?.[key] ?? '')"
             :label="t(field.title)"
             :maxlength="field.maxLength"
+            :invalid-message="errors?.[key]"
             @update:model-value="setOption(String(key), $event)"
           />
           <NeTextInput
@@ -295,6 +298,7 @@ function choices(key: string, values: string[]) {
             :label="t(field.title)"
             type="number"
             :min="field.minimum"
+            :invalid-message="errors?.[key]"
             :max="field.maximum"
             @update:model-value="setOption(String(key), Number($event))"
           />

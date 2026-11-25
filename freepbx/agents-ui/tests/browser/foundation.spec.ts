@@ -164,3 +164,43 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
   await expect(page.getByRole("textbox",{name:"Call transcription"})).toHaveValue(/<script>synthetic transcript<\/script>/);
   expect(await page.locator("main script").count()).toBe(0);
 });
+
+test("failed first publication keeps one draft and sign-in restores its edits", async ({ page }) => {
+  await login(page);
+  let creates = 0;
+  let expire = false;
+  const profile = { agent_id: "agent_saved", agent_type: "basic_voice", kind: "custom",
+    name: "Saved draft", revision: 1, workflow_version: null, draft_version: 1, enabled: false,
+    routable: false, sync_status: "pending", draft: structuredClone(draft), published: null };
+  await page.route("**/freepbx/rest/agents/**", async route => {
+    const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
+    const method = route.request().method();
+    if (path === "/profiles" && method === "POST") {
+      creates++;
+      return route.fulfill({ json: profile });
+    }
+    if (path.endsWith("/publish"))
+      return route.fulfill({ status: 409, json:{error:"trunk_not_ready"} });
+    if (expire && method === "PUT")
+      return route.fulfill({ status: 401, json:{error:"authentication_required"} });
+    const data = path === "/access" ? {csrf:"synthetic-csrf"} : path === "/catalog" ? catalog
+      : path === "/trunks" ? {items:trunks} : path === "/trunks/models" ? modelCatalog
+      : path === "/profiles/agent_saved" ? profile : {items:[]};
+    return route.fulfill({json:data});
+  });
+  await page.goto("./#/agents/new");
+  await page.getByLabel("Name", {exact:true}).fill("Saved draft");
+  await page.getByRole("button", {name:"Publish",exact:true}).click();
+  await expect(page).toHaveURL(/#\/agents\/agent_saved$/);
+  await expect(page.getByLabel("Name", {exact:true})).toHaveValue("Saved draft");
+  expect(creates).toBe(1);
+  await page.getByLabel("Name", {exact:true}).fill("Edit awaiting sign-in");
+  expire = true;
+  await page.getByRole("button", {name:"Save draft",exact:true}).click();
+  await expect(page.getByRole("button", { name: "Sign in through Wizard", exact: true })).toBeVisible();
+  expire = false;
+  await page.reload();
+  await expect(page.getByLabel("Name", {exact:true})).toHaveValue("Edit awaiting sign-in");
+  await expect(page.getByRole("button", {name:"Save draft",exact:true})).toBeEnabled();
+  expect(await page.evaluate(() => sessionStorage.getItem("nethvoice.agents.edit"))).toBe(null);
+});

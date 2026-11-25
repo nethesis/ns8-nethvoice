@@ -1,6 +1,8 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
+  wizard: "Wizard",
+  wholeNumberRange: "Enter a whole number from {min} to {max}.",
   diagnostics: "Diagnostics",
   invalidSignatures: "Invalid signatures since runtime start",
   publisher: "Published by",
@@ -376,8 +378,7 @@ const en = {
   destinationPickerLimited: "Refine the search to see more results",
   categoryHelp: {
     extensions_enabled: "Transfer callers to the extensions you allow.",
-    queues_enabled:
-      "Transfer callers to the selected queues.",
+    queues_enabled: "Transfer callers to the selected queues.",
   },
   status: {
     published: "Published",
@@ -414,8 +415,11 @@ const en = {
     modified: "Modified",
   },
   error: {
+    provider_catalog_unavailable:
+      "The provider is unavailable. Retry the credential test.",
     provider_permission_denied: "This key lacks permission to list models.",
-    sip_lab_required: "SIP Realtime is available only in the media lab. Choose GPT-Live.",
+    sip_lab_required:
+      "SIP Realtime is available only in the media lab. Choose GPT-Live.",
     consultation_assistant_unavailable:
       "Publish an available internal consultation assistant first.",
     consultation_chat_model_required:
@@ -801,6 +805,8 @@ const en = {
   maxOutputTokens: "Maximum backend output tokens",
 };
 const it: typeof en = {
+  wizard: "Wizard",
+  wholeNumberRange: "Inserisci un numero intero fra {min} e {max}.",
   diagnostics: "Diagnostica",
   invalidSignatures: "Firme non valide dall’avvio del servizio",
   publisher: "Pubblicato da",
@@ -835,7 +841,8 @@ const it: typeof en = {
     externalSetup: "Configurazione esterna",
     status: {
       configured: "Configurato automaticamente",
-      manual: "Segreto manuale salvato. Effettua una chiamata di prova firmata per verificarlo.",
+      manual:
+        "Segreto manuale salvato. Effettua una chiamata di prova firmata per verificarlo.",
       verified: "Verificato tramite chiamata firmata",
       not_configured: "Non configurato",
       needs_setup: "Configurazione modificata: verifica il webhook",
@@ -1181,8 +1188,7 @@ const it: typeof en = {
   destinationPickerLimited: "Affina la ricerca per vedere altri risultati",
   categoryHelp: {
     extensions_enabled: "Trasferisci le chiamate agli interni che consenti.",
-    queues_enabled:
-      "Trasferisci le chiamate alle code selezionate.",
+    queues_enabled: "Trasferisci le chiamate alle code selezionate.",
   },
   status: {
     published: "Pubblicato",
@@ -1219,8 +1225,12 @@ const it: typeof en = {
     modified: "Modificato",
   },
   error: {
-    provider_permission_denied: "Questa chiave non ha il permesso di elencare i modelli.",
-    sip_lab_required: "SIP Realtime è disponibile solo in laboratorio. Seleziona GPT-Live.",
+    provider_catalog_unavailable:
+      "Il provider non è disponibile. Riprova a verificare la credenziale.",
+    provider_permission_denied:
+      "Questa chiave non ha il permesso di elencare i modelli.",
+    sip_lab_required:
+      "SIP Realtime è disponibile solo in laboratorio. Seleziona GPT-Live.",
     consultation_assistant_unavailable:
       "Pubblica prima un assistente interno disponibile.",
     consultation_chat_model_required:

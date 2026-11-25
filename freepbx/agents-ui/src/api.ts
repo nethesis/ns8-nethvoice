@@ -37,7 +37,8 @@ export function credentials(): { user: string; hash: string } | null {
 }
 
 function clearAuth(recover = true) {
-  if (recover && auth.authorized) window.dispatchEvent(new Event("agents-auth-expired"));
+  if (recover && auth.authorized)
+    window.dispatchEvent(new Event("agents-auth-expired"));
   authGeneration++;
   auth.user = "";
   auth.ready = true;

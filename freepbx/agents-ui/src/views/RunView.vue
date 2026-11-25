@@ -125,7 +125,11 @@ const summary = computed(() => {
       label: t("publishedVersion"),
       value: String(value.workflow_version),
     },
-    { id: "publisher", label: t("publisher"), value: value.published_by || "—" },
+    {
+      id: "publisher",
+      label: t("publisher"),
+      value: value.published_by || "—",
+    },
     {
       id: "started",
       label: t("startedAt"),
@@ -264,7 +268,14 @@ const partial = computed(
           </dd>
         </div>
       </dl>
-      <a v-if="run.call_record_url" class="mt-4 inline-block underline" :href="run.call_record_url" target="_blank" rel="noopener">{{ t("callRecord") }}</a>
+      <a
+        v-if="run.call_record_url"
+        class="mt-4 inline-block underline"
+        :href="run.call_record_url"
+        target="_blank"
+        rel="noopener"
+        >{{ t("callRecord") }}</a
+      >
     </NeCard>
     <section>
       <NeHeading tag="h5" class="mb-3">{{
