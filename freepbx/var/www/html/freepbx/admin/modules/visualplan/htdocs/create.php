@@ -107,7 +107,7 @@ try {
 } catch (Throwable $error) {
     http_response_code(in_array($error->getCode(),[403,404,409,422],true)?$error->getCode():503);
     header('Content-Type: application/json');
-    echo json_encode(['error'=>'agent_fallback_unavailable']);
+    echo json_encode(['error'=>$hasAgent?'agent_fallback_unavailable':'visualplan_save_failed']);
     exit;
 }
 
