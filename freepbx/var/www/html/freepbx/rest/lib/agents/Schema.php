@@ -13,66 +13,71 @@ final class Schema
             throw new \RuntimeException('schema_busy');
         }
         try {
-            self::preflight($db);
-            // A fixed format identity is written before any other DDL. It is not
-            // a migration ledger. Its presence permits an interrupted install
-            // to resume without adopting an unknown development database.
-            $db->exec("CREATE TABLE IF NOT EXISTS asterisk.voice_agent_installation (singleton TINYINT UNSIGNED PRIMARY KEY CHECK(singleton=1), format VARCHAR(32) CHARACTER SET ascii NOT NULL CHECK(format='alpha-v8')) ENGINE=InnoDB");
-            $db->exec("INSERT IGNORE INTO asterisk.voice_agent_installation VALUES (1,'alpha-v8')");
-            foreach (['configuration','execution'] as $schema) {
-                foreach (explode(';',file_get_contents(__DIR__.'/schema/'.$schema.'.sql')) as $statement) {
-                    if (trim($statement)!=='') $db->exec($statement);
+            $version=self::version($db);
+            if ($version<1) {
+                $db->exec("CREATE TABLE IF NOT EXISTS asterisk.voice_agent_preview_schema (
+                    singleton TINYINT UNSIGNED PRIMARY KEY CHECK(singleton=1),
+                    schema_version SMALLINT UNSIGNED NOT NULL
+                ) ENGINE=InnoDB");
+                $db->exec("INSERT IGNORE INTO asterisk.voice_agent_preview_schema VALUES (1,0)");
+                foreach (['configuration','execution'] as $schema) {
+                    foreach (explode(';',file_get_contents(__DIR__.'/schema/'.$schema.'.sql')) as $statement) {
+                        if (trim($statement)!=='') $db->exec($statement);
+                    }
                 }
+                self::seed($db);
+                $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=1 WHERE singleton=1");
             }
-            // Add support for explicitly published v9 snapshots; never rewrite
-            // an existing draft/publication or adopt a development database.
-            $check=$db->query("SELECT CHECK_CLAUSE FROM information_schema.CHECK_CONSTRAINTS WHERE CONSTRAINT_SCHEMA='asterisk' AND TABLE_NAME='voice_agent_versions' AND CONSTRAINT_NAME='voice_agent_contract_check'")->fetchColumn();
-            if (is_string($check) && !str_contains($check,'9')) $db->exec("ALTER TABLE asterisk.voice_agent_versions DROP CONSTRAINT voice_agent_contract_check, ADD CONSTRAINT voice_agent_contract_check CHECK (workflow_version>0 AND contract_version IN (8,9))");
-            $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_runs ADD COLUMN IF NOT EXISTS parent_run_id CHAR(36) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL");
-            // CREATE IF NOT EXISTS does not update existing event enums. Keep
-            // their order (including legacy empty values) and extend in place.
-            preg_match('/`event_type` (enum\([^\n]+\)) NOT NULL,/',file_get_contents(__DIR__.'/schema/execution.sql'),$eventType);
-            $installedType=$db->query("SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='asteriskcdrdb' AND TABLE_NAME='voice_agent_run_events' AND COLUMN_NAME='event_type'")->fetchColumn();
-            if ($installedType!==$eventType[1]) $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_run_events MODIFY event_type ".$eventType[1]." NOT NULL");
+            if ($version<2) {
+                $db->exec("ALTER TABLE asterisk.voice_agent_bindings ADD COLUMN IF NOT EXISTS webhook_verified_at TIMESTAMP NULL");
+                $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_webhook_verification AS
+                    SELECT binding_id,secrets_encrypted,webhook_verified_at FROM asterisk.voice_agent_bindings
+                    WHERE removed=0 AND provider='openai' WITH CASCADED CHECK OPTION");
+                $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=2 WHERE singleton=1");
+            }
             self::directoryViews($db);
             RecentCallerViews::install($db);
-            require_once __DIR__.'/Service.php';
-            $db->beginTransaction();
-            try {
-                $insert=$db->prepare('INSERT IGNORE INTO asterisk.voice_agent_builtin_tools (tool_id,tool_version,manifest_json) VALUES (?,?,?)');
-                foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v5.json'),true,512,JSON_THROW_ON_ERROR) as $tool) {
-                    $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
-                }
-                foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v6.json'),true,512,JSON_THROW_ON_ERROR) as $tool) $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
-                $agentSeed=$db->prepare("INSERT IGNORE INTO asterisk.voice_agent_agents (agent_id,name,destination_id,kind) VALUES (?,?,?,'builtin')");
-                $draftSeed=$db->prepare('INSERT IGNORE INTO asterisk.voice_agent_drafts (agent_id,definition_json) VALUES (?,?)');
-                foreach (['receptionist'=>['Receptionist',Service::receptionistDraft()],
-                          'consultation_assistant'=>['Consultation assistant',Service::consultationDraft()]] as $id=>[$name,$draft]) {
-                    $agentSeed->execute([$id,$name,'agent:'.$id]);
-                    $draftSeed->execute([$id,json_encode($draft,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
-                }
-                $db->commit();
-            } catch (\Throwable $error) {
-                if ($db->inTransaction()) $db->rollBack();
-                throw $error;
-            }
         } finally {
             $db->query("SELECT RELEASE_LOCK('voice_agent_installation')");
         }
     }
-    /** Fail before any DDL or seed write on unsupported development state. */
-    private static function preflight(\PDO $db): void
+
+    /** Inspect pre-preview and unknown databases before writing even the marker. */
+    private static function version(\PDO $db): int
     {
         $objects=$db->query("SELECT CONCAT(table_schema,'.',table_name) FROM information_schema.tables WHERE table_schema IN ('asterisk','asteriskcdrdb') AND LEFT(table_name,12)='voice_agent_'")->fetchAll(\PDO::FETCH_COLUMN);
-        $marker='asterisk.voice_agent_installation';
-        if (in_array('asterisk.voice_agent_schema',$objects,true) || ($objects && !in_array($marker,$objects,true))) {
+        if (!$objects) return 0;
+        $marker='asterisk.voice_agent_preview_schema';
+        if (!in_array($marker,$objects,true) || in_array('asterisk.voice_agent_installation',$objects,true) || in_array('asterisk.voice_agent_schema',$objects,true)) {
             throw new \RuntimeException('unsupported_development_database');
         }
-        if (in_array($marker,$objects,true)) {
-            $format=$db->query('SELECT format FROM asterisk.voice_agent_installation WHERE singleton=1')->fetchColumn();
-            if (($format===false && count($objects)>1) || ($format!==false && $format!=='alpha-v8')) {
-                throw new \RuntimeException('unsupported_development_database');
+        $version=$db->query("SELECT schema_version FROM $marker WHERE singleton=1")->fetchColumn();
+        if ($version===false && count($objects)===1) return 0; // Interrupted immediately after CREATE.
+        if ($version===false || !in_array((string)$version,['0','1','2'],true)) throw new \RuntimeException('unsupported_schema_version');
+        return (int)$version;
+    }
+
+    private static function seed(\PDO $db): void
+    {
+        require_once __DIR__.'/Service.php';
+        $db->beginTransaction();
+        try {
+            $insert=$db->prepare('INSERT IGNORE INTO asterisk.voice_agent_builtin_tools (tool_id,tool_version,manifest_json) VALUES (?,?,?)');
+            foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v5.json'),true,512,JSON_THROW_ON_ERROR) as $tool) {
+                $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
             }
+            foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v6.json'),true,512,JSON_THROW_ON_ERROR) as $tool) $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
+            $agentSeed=$db->prepare("INSERT IGNORE INTO asterisk.voice_agent_agents (agent_id,name,destination_id,kind) VALUES (?,?,?,'builtin')");
+            $draftSeed=$db->prepare('INSERT IGNORE INTO asterisk.voice_agent_drafts (agent_id,definition_json) VALUES (?,?)');
+            foreach (['receptionist'=>['Receptionist',Service::receptionistDraft()],
+                      'consultation_assistant'=>['Consultation assistant',Service::consultationDraft()]] as $id=>[$name,$draft]) {
+                $agentSeed->execute([$id,$name,'agent:'.$id]);
+                $draftSeed->execute([$id,json_encode($draft,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
+            }
+            $db->commit();
+        } catch (\Throwable $error) {
+            if ($db->inTransaction()) $db->rollBack();
+            throw $error;
         }
     }
     /** Re-evaluated on install/reload so optional PBX modules can appear later.

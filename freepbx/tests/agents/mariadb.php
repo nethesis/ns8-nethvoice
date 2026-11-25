@@ -30,19 +30,8 @@ assert($seedPrompt()==='');
 // Restore the canonical seed for subsequent service tests through an explicit test write.
 $q=$db->prepare("UPDATE asterisk.voice_agent_drafts SET definition_json=? WHERE agent_id='receptionist'");
 $q->execute([json_encode(\NethVoice\Agents\Service::receptionistDraft(),JSON_THROW_ON_ERROR)]);
-// An older installation gains the internal builtin without changing custom assistants.
 $assistant=\NethVoice\Agents\Service::consultationDraft();
-$db->exec("DELETE FROM asterisk.voice_agent_drafts WHERE agent_id='consultation_assistant'");
-$db->exec("DELETE FROM asterisk.voice_agent_agents WHERE agent_id='consultation_assistant'");
-$db->exec("INSERT INTO asterisk.voice_agent_agents (agent_id,name,destination_id) VALUES ('custom_consultation','Custom assistant','agent:custom_consultation')");
-$q=$db->prepare('INSERT INTO asterisk.voice_agent_drafts (agent_id,definition_json) VALUES (?,?)');
-$q->execute(['custom_consultation',json_encode($assistant,JSON_THROW_ON_ERROR)]);
-\NethVoice\Agents\Schema::install($db);
-\NethVoice\Agents\Schema::install($db);
 $readAssistant=fn()=>json_decode($db->query("SELECT definition_json FROM asterisk.voice_agent_drafts WHERE agent_id='consultation_assistant'")->fetchColumn(),true);
-assert($readAssistant()===$assistant);
-assert($db->query("SELECT definition_json FROM asterisk.voice_agent_drafts WHERE agent_id='custom_consultation'")->fetchColumn()===json_encode($assistant,JSON_THROW_ON_ERROR));
-assert((int)$db->query("SELECT enabled FROM asterisk.voice_agent_agents WHERE agent_id='consultation_assistant'")->fetchColumn()===0);
 // Preserve edits and intentional blanks, including settings outside the prompt.
 foreach (['Private operator prompt',''] as $prompt) {
     $edited=$assistant;$edited['conversation']['instructions']=$prompt;$edited['conversation']['language']='fr';
@@ -90,18 +79,7 @@ $writer->exec("INSERT INTO asteriskcdrdb.voice_agent_runs (run_id, agent_id, wor
 $writer->exec("INSERT IGNORE INTO asteriskcdrdb.voice_agent_run_events (event_id, run_id, event_type) VALUES ('$event', '$run', 'admitted')");
 $writer->exec("INSERT IGNORE INTO asteriskcdrdb.voice_agent_run_events (event_id, run_id, event_type) VALUES ('$event', '$run', 'admitted')");
 assert((int)$writer->query('SELECT COUNT(*) FROM asteriskcdrdb.voice_agent_run_events')->fetchColumn() === 1);
-// Upgrade the original enum, preserving historical admitted and empty values.
-$currentType=$db->query("SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='asteriskcdrdb' AND TABLE_NAME='voice_agent_run_events' AND COLUMN_NAME='event_type'")->fetchColumn();
 $states=['announced','held','phone','phone_failed','chat','connecting','clarification','transferred','uncertain','replied','declined','unavailable','timed_out','cancelled','failed','recovery_failed'];
-foreach ($states as $state) assert(str_contains($currentType,"'consultation_".$state."'"));
-$legacyType=preg_replace("/,'consultation_[a-z_]+'/",'', $currentType);
-$db->exec("ALTER TABLE asteriskcdrdb.voice_agent_run_events MODIFY event_type ".$legacyType." NOT NULL");
-$db->exec("INSERT IGNORE INTO asteriskcdrdb.voice_agent_run_events (event_id,run_id,event_type) VALUES ('00000000-0000-4000-8000-000000000090','$run','consultation_failed')");
-\NethVoice\Agents\Schema::install($db);
-\NethVoice\Agents\Schema::install($db);
-assert($db->query("SELECT event_type FROM asteriskcdrdb.voice_agent_run_events WHERE event_id='$event'")->fetchColumn()==='admitted');
-assert($db->query("SELECT event_type FROM asteriskcdrdb.voice_agent_run_events WHERE event_id='00000000-0000-4000-8000-000000000090'")->fetchColumn()==='');
-$db->exec("DELETE FROM asteriskcdrdb.voice_agent_run_events WHERE event_id='00000000-0000-4000-8000-000000000090'");
 $q=$writer->prepare("INSERT IGNORE INTO asteriskcdrdb.voice_agent_run_events (event_id,run_id,event_type,error_code) VALUES (?,?,?,?)");
 foreach ($states as $i=>$state) {
     $eventId=sprintf('00000000-0000-4000-8000-%012d',100+$i);
