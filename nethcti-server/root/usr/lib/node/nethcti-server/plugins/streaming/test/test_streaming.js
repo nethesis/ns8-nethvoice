@@ -158,9 +158,28 @@ function checkDigest(req, user, pass) {
 function basicOk(req, user, pass) {
   return req.headers.authorization === 'Basic ' + Buffer.from(user + ':' + pass).toString('base64');
 }
+// what /switch.jpg asks for: 'digest', 'basic' or 'none' (401 without challenge)
+var switchMode = 'digest';
 function deviceHandler(req, res) {
   deviceCalls.push({ method: req.method, url: req.url, auth: (req.headers.authorization || '').split(' ')[0] });
   var u = req.url.split('?')[0];
+  if (u === '/switch.jpg') {
+    if ((switchMode === 'digest' && checkDigest(req, 'cam', 'Img-Secret-9')) ||
+      (switchMode !== 'digest' && basicOk(req, 'cam', 'Img-Secret-9'))) {
+      res.writeHead(200, { 'Content-Type': 'image/jpeg' });
+      res.end('SWITCH');
+    } else if (switchMode === 'digest') {
+      res.writeHead(401, { 'WWW-Authenticate': 'Digest realm="dev", qop="auth", nonce="' + digestNonce + '", opaque="x"' });
+      res.end();
+    } else if (switchMode === 'basic') {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="dev"' });
+      res.end();
+    } else {
+      res.writeHead(401);
+      res.end();
+    }
+    return;
+  }
   if (u === '/basic.jpg' || u === '/basic') {
     if (basicOk(req, u === '/basic' ? 'gate' : 'cam', u === '/basic' ? 'Gate-Spike-77' : 'Img-Secret-9')) {
       res.writeHead(200, { 'Content-Type': 'image/jpeg' });
@@ -599,7 +618,7 @@ async function main() {
   deviceCalls = [];
   r = await open('vs_rtsp', '2');
   assert.strictEqual(r[0], null);
-  assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), ['Basic'], 'basic remembered');
+  assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), ['', 'Basic'], 'no preemptive Basic over http');
   deviceCalls = [];
   r = await open('vs_rtsp', '3');
   assert.strictEqual(r[0], null, 'digest URL gate');
@@ -685,8 +704,10 @@ async function main() {
   assert.strictEqual(r[1], 'data:image/jpeg;base64,' + Buffer.from('DIGESTJPEG').toString('base64'));
   assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), ['', 'Digest']);
   var noch = new Streaming({ id: 'n', url: 'http://' + DEV_HOST + ':' + devPort + '/nochallenge.jpg', type: 'image', image_auth: { username: 'cam', password: 'Img-Secret-9' } });
+  deviceCalls = [];
   r = await p(function(cb) { noch.getSample(function(e, id, img) { cb(e, img); }); });
-  assert.strictEqual(r[0], null, '401 without challenge falls back to preemptive Basic');
+  assert.strictEqual(r[0], 'HTTP status 401', 'http: 401 without challenge, no Basic in clear text');
+  assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), ['']);
   var legacy = new Streaming({ id: 'l', url: 'http://' + DEV_HOST + ':' + devPort + '/basic.jpg', user: 'cam', secret: 'Img-Secret-9' });
   r = await p(function(cb) { legacy.getSample(function(e, id, img) { cb(e, img); }); });
   assert.strictEqual(r[0], null, 'legacy user/secret used for the snapshot');
@@ -824,8 +845,66 @@ async function main() {
   assert(/TLS_FINGERPRINT_MISMATCH/.test(flipLogs()[1]));
   streaming.setSubscribersChecker(function() { return false; });
   streaming.reload();
-  tlsSrv.close();
   ok('TLS certificate verified by default, skipped only for the sources with tls_skip_verify, pinned when saved');
+
+  // --- Basic only as the answer to a Basic challenge over http ---------------
+  var camAuth = { username: 'cam', password: 'Img-Secret-9' };
+  var httpBase = 'http://' + DEV_HOST + ':' + devPort;
+  function devGet(uri, memo, extra) {
+    return p(function(cb) {
+      deviceHttp.deviceRequest(Object.assign({ uri: uri, timeout: 3000 }, extra || {}), camAuth, memo, cb);
+    });
+  }
+  var tlsOpts = { tlsSkipVerify: true };
+  var memo = {};
+  deviceCalls = [];
+  r = await devGet(httpBase + '/basic.jpg', memo);
+  r = await devGet(httpBase + '/basic.jpg', memo);
+  assert.strictEqual(r[1].statusCode, 200);
+  assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), ['', 'Basic', '', 'Basic'], 'http: Basic never preemptive');
+  memo = {};
+  deviceCalls = [];
+  r = await devGet(tlsBase + '/basic.jpg', memo, tlsOpts);
+  r = await devGet(tlsBase + '/basic.jpg', memo, tlsOpts);
+  assert.strictEqual(r[1].statusCode, 200);
+  assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), ['', 'Basic', 'Basic'], 'https: Basic remembered');
+  deviceCalls = [];
+  r = await devGet(tlsBase + '/nochallenge.jpg', {}, tlsOpts);
+  assert.strictEqual(r[1].statusCode, 200, 'https: 401 without challenge falls back to preemptive Basic');
+  assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), ['', 'Basic']);
+  // Digest remembered: a later Basic challenge is a downgrade, the password is not sent
+  var bases = [[httpBase, {}], [tlsBase, tlsOpts]];
+  for (i = 0; i < bases.length; i++) {
+    memo = {};
+    switchMode = 'digest';
+    deviceCalls = [];
+    r = await devGet(bases[i][0] + '/switch.jpg', memo, bases[i][1]);
+    assert.strictEqual(r[1].statusCode, 200, bases[i][0] + ': digest');
+    assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), ['', 'Digest']);
+    switchMode = 'basic';
+    deviceCalls = [];
+    r = await devGet(bases[i][0] + '/switch.jpg', memo, bases[i][1]);
+    assert(r[0] && r[0].code === deviceHttp.ERR_AUTH_DOWNGRADE, bases[i][0] + ': Basic after Digest refused: ' + (r[0] && r[0].code));
+    assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), [''], bases[i][0] + ': no Basic sent after Digest');
+    assert(/password was not sent/.test(deviceHttp.describeError(r[0])));
+    switchMode = 'none';
+    deviceCalls = [];
+    r = await devGet(bases[i][0] + '/switch.jpg', memo, bases[i][1]);
+    assert.strictEqual(r[1].statusCode, 401, bases[i][0] + ': 401 without challenge after Digest');
+    assert.deepStrictEqual(deviceCalls.map(function(c) { return c.auth; }), [''], bases[i][0] + ': no preemptive Basic after Digest');
+    switchMode = 'digest';
+    r = await devGet(bases[i][0] + '/switch.jpg', memo, bases[i][1]);
+    assert.strictEqual(r[1].statusCode, 200, bases[i][0] + ': Digest still works');
+  }
+  // the memory is per device: another origin sharing the memo can use Basic
+  memo = { digest: tlsBase };
+  switchMode = 'basic';
+  r = await devGet(httpBase + '/switch.jpg', memo);
+  assert.strictEqual(r[1].statusCode, 200, 'Digest of another device does not refuse Basic');
+  switchMode = 'digest';
+  tlsSrv.close();
+  SECRETS.forEach(function(sec) { assert(logs.join('\n').indexOf(sec) < 0, 'log leaks ' + sec); });
+  ok('Basic only as the answer to a Basic challenge over http, Digest never downgraded');
 
   // --- device addresses -------------------------------------------------------
   assert.strictEqual(deviceHttp.isBlockedAddress('127.0.0.1'), true);

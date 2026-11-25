@@ -62,6 +62,16 @@ var ERR_FINGERPRINT_MISMATCH = 'TLS_FINGERPRINT_MISMATCH';
 var ERR_RESPONSE_TOO_LARGE = 'RESPONSE_TOO_LARGE';
 
 /**
+ * Error code of a device that asked for HTTP Basic after it had used Digest:
+ * the password is not sent (a man in the middle downgrading the
+ * authentication would read it).
+ *
+ * @property ERR_AUTH_DOWNGRADE
+ * @type string
+ */
+var ERR_AUTH_DOWNGRADE = 'AUTH_DOWNGRADE';
+
+/**
  * Returns a SHA-256 fingerprint as 64 lowercase hex digits (colons removed),
  * or null if it is not a valid one.
  *
@@ -282,10 +292,14 @@ function isSuccess(statusCode) {
  * request answers the challenge of the device: HTTP Basic or Digest,
  * depending on the "WWW-Authenticate" header of its 401 response, so the
  * password is never sent in clear text to a device that asked for Digest.
- * A device that replies 401 without any challenge gets a preemptive Basic
- * request. Once a device has accepted Basic, the next requests sharing the
- * same _memo_ object send it preemptively (one round trip instead of two):
- * the memo is reset as soon as the device replies 401 again.
+ * Basic is sent only as the answer to a Basic challenge over http: a device
+ * that replies 401 without any challenge gets a preemptive Basic request,
+ * and a device that accepted Basic gets it preemptively on the next requests
+ * sharing the same _memo_ object (one round trip instead of two), only over
+ * https; the memo is reset as soon as the device replies 401 again.
+ * Once a device (same origin) has accepted Digest, the memo remembers it and
+ * a later Basic challenge is refused without sending the password (error
+ * with code "AUTH_DOWNGRADE"): a man in the middle cannot downgrade it.
  *
  * The whole exchange is bound by _opts.timeout_ (milliseconds): the callback
  * is called once, with an error with code "ETIMEDOUT" when the deadline
@@ -342,7 +356,7 @@ function deviceRequest(opts, auth, memo, cb) {
     return Math.max(1, deadline - Date.now());
   }
 
-  function send(withAuth, sendImmediately, callback) {
+  function send(withAuth, sendImmediately, callback, refuseBasic) {
     var o = {};
     var k;
     for (k in opts) {
@@ -375,11 +389,18 @@ function deviceRequest(opts, auth, memo, cb) {
         finish(err1);
       }
     });
-    // emitted when the request library answers an authentication challenge
+    // emitted when the request library answers an authentication challenge,
+    // before the new request is sent
     current.on('redirect', function() {
       if (this.response && this.response.statusCode === 401) {
         var h = this.response.headers['www-authenticate'];
         challenge = typeof h === 'string' ? h.split(' ')[0].toLowerCase() : null;
+        if (refuseBasic && challenge === 'basic') {
+          var downgrade = new Error('the device asked for Basic authentication after Digest: the password was not sent');
+          downgrade.code = ERR_AUTH_DOWNGRADE;
+          finish(downgrade);
+          try { this.abort(); } catch (e) {}
+        }
       }
     });
     // limit the body: a device answers a small page or a single image
@@ -420,6 +441,11 @@ function deviceRequest(opts, auth, memo, cb) {
       return;
     }
 
+    var isHttps = protocol === 'https:';
+    var origin = new URL(opts.uri).origin;
+    // Digest accepted by this device before: Basic is a downgrade
+    var digestKnown = memo.digest === origin;
+
     var preemptiveBasic = function(onResult) {
       send(true, true, function(err, res, body) {
         if (!err && isSuccess(res.statusCode)) {
@@ -438,19 +464,23 @@ function deviceRequest(opts, auth, memo, cb) {
           return;
         }
         if (res.statusCode === 401 && challenge === null &&
-          !res.headers['www-authenticate']) {
-          // 401 without any challenge: try a preemptive Basic once
+          !res.headers['www-authenticate'] && isHttps && !digestKnown) {
+          // 401 without any challenge: try a preemptive Basic once, never
+          // in clear text (over http the 401 is the answer)
           preemptiveBasic(finish);
           return;
         }
         if (isSuccess(res.statusCode) && challenge === 'basic') {
           memo.mode = 'basic';
+        } else if (isSuccess(res.statusCode) && challenge === 'digest') {
+          memo.digest = origin;
+          delete memo.mode;
         }
         finish(err, res, body);
-      });
+      }, digestKnown);
     };
 
-    if (memo.mode === 'basic') {
+    if (memo.mode === 'basic' && isHttps && !digestKnown) {
       preemptiveBasic(function(err, res, body) {
         if (!err && res.statusCode === 401) {
           // the device changed its mind (e.g. now it wants Digest)
@@ -519,6 +549,10 @@ function describeError(err) {
   if (err && err.code === ERR_ADDRESS_NOT_ALLOWED) {
     return 'device address not allowed (' + err.code + '): loopback and link-local addresses are refused';
   }
+  if (err && err.code === ERR_AUTH_DOWNGRADE) {
+    return 'the device asked for Basic authentication after using Digest (' + err.code +
+      '): the password was not sent, check the network path to the device';
+  }
   if (err && err.code === ERR_RESPONSE_TOO_LARGE) {
     return 'device response too large (' + err.code + ')';
   }
@@ -538,6 +572,7 @@ exports.normalizeFingerprint = normalizeFingerprint;
 exports.ERR_ADDRESS_NOT_ALLOWED = ERR_ADDRESS_NOT_ALLOWED;
 exports.ERR_FINGERPRINT_MISMATCH = ERR_FINGERPRINT_MISMATCH;
 exports.ERR_RESPONSE_TOO_LARGE = ERR_RESPONSE_TOO_LARGE;
+exports.ERR_AUTH_DOWNGRADE = ERR_AUTH_DOWNGRADE;
 exports.isTlsCertError = isTlsCertError;
 exports.describeError = describeError;
 exports.deviceRequest = deviceRequest;
