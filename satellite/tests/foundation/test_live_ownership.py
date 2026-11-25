@@ -16,11 +16,12 @@ def live_runtime():
 
 
 @pytest.mark.asyncio
-async def test_zero_bridge_capacity_falls_back_before_paid_or_durable_admission(monkeypatch):
+async def test_zero_bridge_capacity_records_overload_before_native_fallback(monkeypatch):
     runtime, storage, controller = live_runtime()
     monkeypatch.setenv('VOICE_AGENT_LIVE_WS_MAX_CALLS', '0')
     await runtime.admit({'id': 'test', 'dialplan': {'context': 'voice-agent-basic_voice'}}, 'basic_voice')
-    storage.admit.assert_not_called()
+    storage.admit.assert_called_once()
+    assert storage.admit.call_args.kwargs == {'capacity_fallback': True}
     runtime.adapter_factory.assert_not_called()
     controller.create_media_channel.assert_not_awaited()
     controller.continue_channel.assert_awaited_once_with('test')
@@ -96,3 +97,16 @@ async def test_ambiguous_ari_timeout_cleans_the_owned_resource():
         await runtime.owned_resource(call, create(), cleanup)
     assert history == ['committed', 'cleaned']
     await runtime.finish(call, 'completed')
+
+@pytest.mark.asyncio
+async def test_default_capacity_includes_child_calls_and_pending_admissions(monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.delenv('VOICE_AGENT_LIVE_WS_MAX_CALLS', raising=False)
+    runtime, _, _ = live_runtime()
+    runtime.calls['private-leg'] = SimpleNamespace(binding={'adapter': 'live_ws'})
+    assert runtime.capacity_available('live_ws')
+    runtime.reserved_adapters['incoming'] = 'live_ws'
+    assert not runtime.capacity_available('live_ws')
+    assert runtime.capacity_available('realtime')
+    runtime.reserved_adapters.update({str(i): 'realtime' for i in range(30)})
+    assert not runtime.capacity_available('chat')

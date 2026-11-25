@@ -270,7 +270,7 @@ class Runtime:
         self._cleanup_tasks = set()
         self.sip_lab_enabled = os.getenv('VOICE_AGENT_SIP_LAB_ENABLED') == 'true'
         self._webhook_rejection_at = {}
-        self._live_admissions = set()
+        self.reserved_adapters = {}
         self.controller.on_event = self.event
         self.controller.on_disconnect = self.disconnected
         self.stopping = False
@@ -437,7 +437,7 @@ class Runtime:
                     await self.controller.hangup(channel_id)
             elif len(args) == 2 and args[0] == 'caller':
                 if channel_id not in self.admitting and not any(c.caller_id == channel_id for c in self.calls.values()):
-                    if len(self.calls) + len(self.admitting) >= 32 or self.stopping or not self.controller.connected:
+                    if len(self.admitting) >= 32 or self.stopping or not self.controller.connected:
                         await self.controller.continue_channel(channel_id)
                         return
                     self.admitting.add(channel_id)
@@ -492,6 +492,18 @@ class Runtime:
                 LOG.warning('Voice agent phase=provider_channel error_code=%s',reason)
                 self.spawn(self.finish(call, 'fallback', reason, fallback=True), call)
 
+    def capacity_available(self, adapter):
+        # Both inbound admissions and private consultations run on this event loop.
+        adapters = [call.binding.get('adapter') for call in self.calls.values()]
+        adapters.extend(self.reserved_adapters.values())
+        if len(adapters) >= 32:
+            return False
+        if adapter != 'live_ws':
+            return True
+        value = os.getenv('VOICE_AGENT_LIVE_WS_MAX_CALLS') or '2'
+        limit = int(value) if re.fullmatch(r'[0-9]{1,2}', value) else 0
+        return adapters.count('live_ws') < min(limit, 32)
+
     def live_transport(self, caller_id, linkedid, snapshot):
         return 'live_ws'
 
@@ -531,14 +543,17 @@ class Runtime:
             if binding['adapter'] != 'live_ws' and not self.sip_lab_enabled:
                 raise ValueError('sip_lab_disabled')
             observations.append(('binding', binding_started, time.monotonic()))
-            if binding.get('adapter') == 'live_ws':
-                value = os.getenv('VOICE_AGENT_LIVE_WS_MAX_CALLS', '4') or '4'
-                limit = int(value) if value.isascii() and value.isdigit() and int(value) <= 32 else 0
-                active = sum(c.binding.get('adapter') == 'live_ws' for c in self.calls.values())
-                if active + len(self._live_admissions) >= limit:
-                    raise ValueError('media_capacity_exceeded')
-                self._live_admissions.add(channel['id'])
             call = Call(str(uuid.uuid4()), str(uuid.uuid4()), new_channel_id(), channel['id'], copy.deepcopy(snapshot), copy.deepcopy(binding), linkedid)
+            if not self.capacity_available(binding['adapter']):
+                try:
+                    await asyncio.wait_for(asyncio.to_thread(self.storage.admit, call, capacity_fallback=True), 3)
+                except Exception:
+                    self.monitoring.mark_degraded()
+                # The dialplan resumes at its native fallback after Stasis.
+                call = None
+                await self.controller.continue_channel(channel['id'])
+                return
+            self.reserved_adapters[channel['id']] = binding['adapter']
             if binding.get('adapter') == 'live_ws':
                 call.leg_id = 'vw' + secrets.token_hex(14)
             call.started_at = origin_at
@@ -581,7 +596,7 @@ class Runtime:
             if binding.get('adapter') != 'live_ws':
                 call.webhook_span = call.trace.start('webhook_wait')
             self.calls[call.session_id] = call
-            self._live_admissions.discard(channel['id'])
+            self.reserved_adapters.pop(channel['id'], None)
             if asyncio.current_task() in self.tasks:
                 call.tasks.add(asyncio.current_task())
             stage='tool_catalog'
@@ -619,7 +634,7 @@ class Runtime:
                 except Exception:
                     pass
         finally:
-            self._live_admissions.discard(channel['id'])
+            self.reserved_adapters.pop(channel['id'], None)
             self.admitting.discard(channel['id'])
             self.admissions.pop(channel['id'],None)
 
