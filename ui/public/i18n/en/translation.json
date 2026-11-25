@@ -240,6 +240,11 @@
     "cannot_create_task": "Cannot create task {action}"
   },
   "integrations": {
+    "voice_agent_preview": "Voice agents preview",
+    "apply_pending": "Waiting to apply Satellite settings",
+    "apply_failed": "Satellite settings could not be applied. Check the satellite-apply service journal and save again.",
+    "key_removal": "Removing this key sends calls for these agents to their fallback",
+    "inventory_unavailable": "The list of affected agents is unavailable.",
     "chat": "Chat",
     "chat_tooltip": "Chat between NethVoice CTI users and the mobile app",
     "deepgram_section": "Transcription with Deepgram",

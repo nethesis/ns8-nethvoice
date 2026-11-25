@@ -8,6 +8,8 @@
 import json
 import sys
 import os
+from pathlib import Path
+import subprocess
 
 import agent
 
@@ -23,5 +25,18 @@ config = {
     'chat_upload_quota_mb': int(os.getenv('CHAT_UPLOAD_QUOTA_MB', '200')),
     'chat_upload_max_file_mb': int(os.getenv('CHAT_UPLOAD_MAX_FILE_MB', '25')),
 }
+
+config['voice_agent_enabled'] = os.getenv('VOICE_AGENT_ENABLED', '').lower() == 'true'
+config['satellite_apply_status'] = ('pending' if any(Path('satellite-apply.' + name).exists() for name in ('pending', 'running'))
+                                    else 'failed' if Path('satellite-apply.failed').exists() else 'applied')
+config['inherited_agents'] = []
+if Path('voice-preview/enabled').is_file():
+    try:
+        result = subprocess.run(['podman', 'exec', 'freepbx', 'php',
+                                 '/var/www/html/freepbx/rest/lib/agents/inherited-agents.php'],
+                                capture_output=True, text=True, check=True, timeout=10)
+        config['inherited_agents'] = json.loads(result.stdout)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        config['inherited_agents'] = None
 
 json.dump(config, fp=sys.stdout)
