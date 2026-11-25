@@ -344,3 +344,11 @@ EOF
     assert_http_code "200"
     assert_http_body "$tok1"
 }
+
+@test "GET /provisioning/{mac}.cfg (tokenless) answers 404 for an unknown MAC" {
+    run GET_PROVISIONING "Fanvil i62 2.12.51 0c383eaabbe9" "/provisioning/0c383eaabbe9.cfg"
+    assert_http_code "404"
+    ! assert_http_body "Slim Application Error"
+    run GET_PROVISIONING "Fanvil i62 2.12.51 0c383eaabbe9" "/provisioning/not-a-phone-file.cfg"
+    assert_http_code "404"
+}

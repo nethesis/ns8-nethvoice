@@ -190,6 +190,12 @@ $app->get('/{filename}', function(Request $request, Response $response, array $a
         $id = strtoupper($id);
     }
 
+    // Unknown phone: the same answer as a file that matches no pattern
+    if (!$storage->scopeExists($id)) {
+        $logger->debug(sprintf('Scope "%s" not found for "%s"', $id, $filename));
+        return $response->withStatus(404);
+    }
+
     // Instantiate scope
     $scope = \Tancredi\Entity\Scope::getPhoneScope($id, $storage, $logger, TRUE);
     // Get template variable name from file
