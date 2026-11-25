@@ -5,9 +5,8 @@ export NETHVOICE_RECIPIENT_SERVICE_PORT=31043
 export VOICE_AGENT_RECIPIENT_TOKEN=synthetic-recipient-key-000000000000000000
 mkdir -p /run/nethvoice-preview
 printf '%s\n' 'VOICE_AGENT_ENABLED=true' "NETHVOICE_RECIPIENT_SERVICE_PORT=$NETHVOICE_RECIPIENT_SERVICE_PORT" "VOICE_AGENT_RECIPIENT_TOKEN=$VOICE_AGENT_RECIPIENT_TOKEN" >/run/nethvoice-preview/effective.env
-# Run the listener's real configuration block without initializing a PBX.
-sed -n '/# Reuse Apache/,/^# Don.t continue/p' /entrypoint > /tmp/recipient-listener.sh
-bash /tmp/recipient-listener.sh
+touch /run/nethvoice-preview/enabled
+/usr/local/bin/configure-agent-recipient
 source /etc/apache2/envvars
 apache2 -t
 apache2ctl start
