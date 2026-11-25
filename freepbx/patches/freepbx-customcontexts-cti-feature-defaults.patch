@@ -1,0 +1,46 @@
+--- a/functions.inc.php
++++ b/functions.inc.php
+@@ -45,6 +45,10 @@
+ 	$sections = [];
+ 	switch($engine) {
+ 		case 'asterisk':
++			$ctiFeatures = [
++				'app-daynight-toggle', 'app-miscapps', 'ext-paging',
++				'timeconditions-toggles', 'ext-bosssecretary',
++			];
+ 			$sql = 'UPDATE customcontexts_includes_list SET missing = 1 WHERE context
+ 							NOT IN (SELECT context FROM customcontexts_contexts_list WHERE locked = 1)';
+ 			$db->query($sql);
+@@ -67,6 +71,19 @@
+ 											ON DUPLICATE KEY UPDATE sort = "'.($i+100).'", missing = "0"';
+ 							$db->query($sql);
+ 						} else {
++							if ($section === 'from-internal-additional' && in_array($include['include'], $ctiFeatures, true)) {
++								$statement = $db->prepare("INSERT IGNORE INTO customcontexts_includes (context, `include`, sort)
++									SELECT c.context, ?, ? FROM customcontexts_contexts c
++									JOIN rest_cti_profiles p ON c.context = CONCAT('cti-profile-', p.id)
++									WHERE BINARY p.name <> 'Hotel'
++									AND EXISTS (SELECT 1 FROM customcontexts_includes WHERE context = c.context)
++									AND NOT EXISTS (SELECT 1 FROM customcontexts_module WHERE id = CONCAT('nethvoice-seen:', ?))
++									AND NOT EXISTS (
++										SELECT 1 FROM customcontexts_includes_list
++										WHERE context = 'from-internal-additional' AND `include` = ?
++									)");
++								$statement->execute([$include['include'], $i, $include['include'], $include['include']]);
++							}
+ 							$sql = 'UPDATE customcontexts_includes_list SET missing = "0", sort = "'.$i.'"
+ 											WHERE context = "'.$section.'" and include = "'.$include['include'].'"';
+ 							$db->query($sql);
+@@ -79,6 +96,12 @@
+ 					}
+ 				}
+ 			}
++			// Keep discovery history after the catalog removes an unavailable feature.
++			$placeholders = implode(',', array_fill(0, count($ctiFeatures), '?'));
++			$statement = $db->prepare("INSERT IGNORE INTO customcontexts_module (id)
++				SELECT CONCAT('nethvoice-seen:', `include`) FROM customcontexts_includes_list
++				WHERE context = 'from-internal-additional' AND `include` IN ($placeholders)");
++			$statement->execute($ctiFeatures);
+ 			$sql = "delete from  customcontexts_includes_list where missing = 1";
+ 			$db->query($sql);
+ 		break;

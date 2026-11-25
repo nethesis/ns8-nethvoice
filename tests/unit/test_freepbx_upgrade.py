@@ -50,6 +50,12 @@ call = ' '.join([name, *args])
 with open('calls', 'a') as output: output.write(json.dumps([name, *args])+'\\n')
 if name == 'systemctl' and args[:3] == ['--user', 'is-active', '--quiet']:
     sys.exit(0 if args[3] in ['freepbx', 'nethcti-server', 'tancredi'] else 3)
+if name == 'systemctl' and args[:2] == ['--user', 'is-enabled']:
+    # A failed upgrade left these stopped; static and disabled units stay down.
+    state = {'watcher.path': 'enabled', 'phonebook-update.timer': 'enabled',
+             'nethvoice-restore-background': 'static'}.get(args[2], 'disabled')
+    print(state)
+    sys.exit(0 if state in ['enabled', 'static'] else 1)
 if name == 'podman' and args[0] == 'exec': print('-- recoverable SQL dump')
 if name == 'podman' and args[0] == 'run': print('configuration archive')
 if name == 'runagent' and args[0] == 'mysql-update-postprocess':
@@ -77,6 +83,17 @@ if call == os.environ.get('TEST_FAIL'): sys.exit(17)
         self.assertLess(pbx, cti)
         self.assertTrue(list(directory.glob('upgrade-backups/*/succeeded')))
         self.assertFalse(any('fwconsole' in call for call in calls))
+
+    def test_enabled_units_stopped_by_a_failed_upgrade_are_started(self):
+        result, calls, directory = self.run_upgrade()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        started = [call[3] for call in calls if call[:3] == ['systemctl', '--user', 'start']]
+        self.assertIn('watcher.path', started)
+        self.assertIn('phonebook-update.timer', started)
+        self.assertNotIn('nethvoice-restore-background', started)
+        self.assertNotIn('satellite', started)
+        saved = next(directory.glob('upgrade-backups/*/active-services')).read_text().split()
+        self.assertIn('watcher.path', saved)
 
     def test_failed_initialization_or_migration_preserves_snapshot_and_stops_consumers(self):
         for fail in ['systemctl --user start freepbx', 'runagent mysql-update-postprocess --migrate']:
