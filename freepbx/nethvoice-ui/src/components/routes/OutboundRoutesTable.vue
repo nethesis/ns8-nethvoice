@@ -45,7 +45,7 @@ import { useUpdatingIndicator } from '@/composables/useUpdatingIndicator'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { usePermissions } from '@/queries/permissions/me'
-import { useTrunkProviders, useTrunks } from '@/queries/trunks/trunks'
+import { useTrunks } from '@/queries/trunks/trunks'
 import { getTrunkLabelById } from '@/lib/trunks/providers'
 import {
   filterOutboundRoutes,
@@ -86,7 +86,6 @@ const { state, asyncStatus, refetch } = useOutboundRoutes()
 const { isSuperadmin } = usePermissions()
 const { getRouteTitleAmong, getRouteDescription } = useOutboundRouteLabels()
 const { state: trunksState } = useTrunks()
-const { state: providersState } = useTrunkProviders()
 
 const textFilter = ref('')
 const sortKey = ref<string | undefined>(DEFAULT_SORT_KEY)
@@ -123,12 +122,7 @@ function isWithoutActiveTrunks(route: OutboundRoute): boolean {
 }
 
 function getTrunkLabel(trunk: RouteTrunk): string {
-  return getTrunkLabelById(
-    trunk.id,
-    trunk.name,
-    trunksState.value.data ?? [],
-    providersState.value.data ?? [],
-  )
+  return getTrunkLabelById(trunk.id, trunk.name, trunksState.value.data ?? [])
 }
 
 const loading = computed(() => busy || state.value.status === 'pending')

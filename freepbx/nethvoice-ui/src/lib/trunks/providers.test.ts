@@ -7,7 +7,6 @@ import {
   getCodecLabel,
   getProviderName,
   getSelectableCodecs,
-  getTrunkLabel,
   getTrunkLabelById,
   parseTrunkCodecs,
   parseTrunkProviders,
@@ -114,27 +113,14 @@ describe('findTrunkProvider', () => {
   })
 })
 
-describe('getTrunkLabel', () => {
-  it('should join provider and phone number', () => {
-    expect(getTrunkLabel(trunk, providers)).toBe('TWT–0721405516')
-  })
-
-  it('should fall back to the trunk name without a known provider or a phone number', () => {
-    expect(getTrunkLabel({ ...trunk, provider: '' }, providers)).toBe('main_trunk')
-    expect(getTrunkLabel({ ...trunk, phoneNumber: '' }, providers)).toBe('main_trunk')
-  })
-})
-
 describe('getTrunkLabelById', () => {
-  it('should label the trunk with the given id', () => {
-    expect(getTrunkLabelById(2, 'main_trunk', [trunk], providers)).toBe('TWT–0721405516')
+  it('should label the trunk with its name as the trunks page does', () => {
+    expect(getTrunkLabelById(2, 'TWT-0721405516', [trunk])).toBe('main_trunk')
   })
 
   it('should fall back to the given name when the trunk is not found', () => {
-    expect(getTrunkLabelById(5, 'Patton_0b1cdd_isdn_0', [trunk], providers)).toBe(
-      'Patton_0b1cdd_isdn_0',
-    )
-    expect(getTrunkLabelById(2, 'main_trunk', [], [])).toBe('main_trunk')
+    expect(getTrunkLabelById(5, 'Patton_0b1cdd_isdn_0', [trunk])).toBe('Patton_0b1cdd_isdn_0')
+    expect(getTrunkLabelById(2, 'main_trunk', [])).toBe('main_trunk')
   })
 })
 

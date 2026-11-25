@@ -33,7 +33,7 @@ import RouteTrunkBadge from './RouteTrunkBadge.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useOutboundRouteDefaults, useOutboundRoutes } from '@/queries/routes/outbound'
-import { useTrunkProviders, useTrunks } from '@/queries/trunks/trunks'
+import { useTrunks } from '@/queries/trunks/trunks'
 import { getTrunkLabelById } from '@/lib/trunks/providers'
 import {
   getAvailableTrunks,
@@ -64,7 +64,6 @@ const { getRouteTitleAmong, describeRouteError } = useOutboundRouteLabels()
 const { state: routesState } = useOutboundRoutes()
 const { state: defaultsState, refetch: refetchDefaults } = useOutboundRouteDefaults()
 const { state: trunksState, refetch: refetchTrunks } = useTrunks()
-const { state: providersState } = useTrunkProviders()
 
 useFocusReturn(() => isShown)
 
@@ -77,12 +76,7 @@ const isShownDiscardModal = ref(false)
 const trunkListRef = useTemplateRef<HTMLOListElement>('trunkListRef')
 
 function getTrunkLabel(trunk: RouteTrunk): string {
-  return getTrunkLabelById(
-    trunk.id,
-    trunk.name,
-    trunksState.value.data ?? [],
-    providersState.value.data ?? [],
-  )
+  return getTrunkLabelById(trunk.id, trunk.name, trunksState.value.data ?? [])
 }
 
 const {

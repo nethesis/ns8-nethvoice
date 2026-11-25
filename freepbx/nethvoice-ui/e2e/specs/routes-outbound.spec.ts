@@ -68,7 +68,7 @@ test.describe('routes: outbound', () => {
     await recordWindowOpen(page)
   })
 
-  test('labels the trunks with provider and phone number', async ({ page, mockApi }) => {
+  test('labels the trunks with their name as the trunks page does', async ({ page, mockApi }) => {
     mockApi
       .on('GET', '/freepbx/rest/trunks', {
         json: [
@@ -87,13 +87,15 @@ test.describe('routes: outbound', () => {
       })
     await page.goto('./routes/outbound')
 
-    await expect(routeRow(page, 'National')).toContainText('TWT–0212345678')
+    await expect(routeRow(page, 'National')).toContainText('main_trunk')
     await expect(routeRow(page, 'National')).toContainText('Vodafone-0698765432')
+    await expect(routeRow(page, 'National')).not.toContainText('TWT–0212345678')
 
     await routeRow(page, 'National').getByRole('button', { name: /Edit/ }).click()
     const drawer = page.getByRole('dialog')
     const trunks = drawer.getByRole('list', { name: 'Trunk priority' }).getByRole('listitem')
-    await expect(trunks.first()).toContainText('TWT–0212345678')
+    await expect(trunks.first()).toContainText('main_trunk')
+    await expect(trunks.first()).not.toContainText('TWT–0212345678')
   })
 
   test('lists default and custom routes with their trunks in priority order', async ({ page }) => {

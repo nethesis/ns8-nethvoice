@@ -90,22 +90,8 @@ export const findTrunkProvider = (
 export const getProviderName = (trunk: Trunk, providers: TrunkProvider[]): string =>
   findTrunkProvider(trunk, providers)?.name ?? ''
 
-export const getTrunkLabel = (trunk: Trunk, providers: TrunkProvider[]): string => {
-  const providerName = getProviderName(trunk, providers)
-
-  return providerName && trunk.phoneNumber ? `${providerName}–${trunk.phoneNumber}` : trunk.name
-}
-
-export const getTrunkLabelById = (
-  trunkId: number,
-  fallback: string,
-  trunks: Trunk[],
-  providers: TrunkProvider[],
-): string => {
-  const trunk = trunks.find((item) => item.id === trunkId)
-
-  return trunk ? getTrunkLabel(trunk, providers) : fallback
-}
+export const getTrunkLabelById = (trunkId: number, fallback: string, trunks: Trunk[]): string =>
+  trunks.find((item) => item.id === trunkId)?.name || fallback
 
 export const getCodecLabel = (codec: string): string => CODEC_LABELS[codec.toLowerCase()] ?? codec
 
