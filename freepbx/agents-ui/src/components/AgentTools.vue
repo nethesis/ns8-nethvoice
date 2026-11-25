@@ -19,7 +19,10 @@ import type {
   DescriptionOverride,
   ToolBinding,
 } from "../types";
-const props = defineProps<{ modelValue: ToolBinding[] }>();
+const props = defineProps<{
+  errors?: Record<string, string>;
+  modelValue: ToolBinding[];
+}>();
 const emit = defineEmits<{ "update:modelValue": [value: ToolBinding[]] }>();
 const { t } = useI18n();
 const extensions = useDestinations("extension");
@@ -53,7 +56,9 @@ const permittedExtensions = computed(() =>
     : [],
 );
 const permittedQueues = computed(() =>
-  config.value.queues_enabled === true ? list(config.value.queue_allowlist) : [],
+  config.value.queues_enabled === true
+    ? list(config.value.queue_allowlist)
+    : [],
 );
 const unavailable = computed(() =>
   extensions.data.value
@@ -261,6 +266,7 @@ function number(key: string, value: string) {
         <NeTextInput
           :model-value="String(config.recent_caller_lookback_days ?? '')"
           :label="t('agentTools.lookback')"
+          :invalid-message="errors?.recent_caller_lookback_days"
           :helper-text="t('agentTools.lookbackHelp')"
           type="number"
           min="1"
@@ -318,6 +324,7 @@ function number(key: string, value: string) {
         <NeTextInput
           :model-value="String(hangup.config.playback_timeout_seconds ?? '')"
           :label="t('agentTools.goodbye')"
+          :invalid-message="errors?.playback_timeout_seconds"
           :helper-text="t('agentTools.goodbyeHelp')"
           type="number"
           min="1"

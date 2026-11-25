@@ -40,7 +40,12 @@ const blank = () => ({
 const form = ref(blank());
 const errors = ref<Record<string, string>>({});
 const credentialChecked = ref(false);
-watch(() => [form.value.credential_mode, form.value.api_key, form.value.provider], () => { credentialChecked.value = false; });
+watch(
+  () => [form.value.credential_mode, form.value.api_key, form.value.provider],
+  () => {
+    credentialChecked.value = false;
+  },
+);
 const editing = computed(() => !!props.trunk);
 watch(
   () => props.isShown,
@@ -54,7 +59,8 @@ watch(
       ...blank(),
       ...(trunk
         ? {
-            credential_mode: trunk.api_key_source === "stored" ? "dedicated" : "inherit",
+            credential_mode:
+              trunk.api_key_source === "stored" ? "dedicated" : "inherit",
             name: trunk.name,
             provider: trunk.provider,
             openai_project_id: trunk.openai_project_id || "",
@@ -67,11 +73,18 @@ watch(
   },
   { immediate: true },
 );
-const providers = computed(() => [
-  { id: "openai", label: "OpenAI" },
-  { id: "grok", label: "Grok" },
-  { id: "cleverai", label: "CleverAI" },
-].filter(item => item.id === "openai" || catalog.data.value?.sip_lab_enabled || props.trunk?.provider === item.id));
+const providers = computed(() =>
+  [
+    { id: "openai", label: "OpenAI" },
+    { id: "grok", label: "Grok" },
+    { id: "cleverai", label: "CleverAI" },
+  ].filter(
+    (item) =>
+      item.id === "openai" ||
+      catalog.data.value?.sip_lab_enabled ||
+      props.trunk?.provider === item.id,
+  ),
+);
 const provider = computed({
   get: () => form.value.provider,
   set: (value: string) => {
@@ -123,9 +136,13 @@ function validate() {
     if (f.sip_auth_mode === "digest" && create && !f.sip_password)
       next.sip_password = t("trunkForm.enterSipPassword");
   }
-  if (f.provider !== "cleverai" && (f.credential_mode === "dedicated"
+  if (
+    f.provider !== "cleverai" &&
+    (f.credential_mode === "dedicated"
       ? !f.api_key && props.trunk?.api_key_source !== "stored"
-      : !environmentKey.value)) next.api_key = t("trunkForm.enterApiKey");
+      : !environmentKey.value)
+  )
+    next.api_key = t("trunkForm.enterApiKey");
   if (f.provider === "grok" && create && !f.webhook_secret)
     next.webhook_secret = t("trunkForm.enterSecret");
   errors.value = next;
@@ -134,13 +151,21 @@ function validate() {
 async function testCredential() {
   credentialChecked.value = false;
   await task.run(async () => {
-    const result = await request<{ items: unknown[] }>("POST", "/trunks/models", {
-      provider: form.value.provider, credential_mode: form.value.credential_mode, test: true,
-      api_key: form.value.credential_mode === "dedicated" ? form.value.api_key : "",
-      ...(props.trunk ? { binding_id: props.trunk.binding_id } : {}),
-    });
+    const result = await request<{ items: unknown[] }>(
+      "POST",
+      "/trunks/models",
+      {
+        provider: form.value.provider,
+        credential_mode: form.value.credential_mode,
+        test: true,
+        api_key:
+          form.value.credential_mode === "dedicated" ? form.value.api_key : "",
+        ...(props.trunk ? { binding_id: props.trunk.binding_id } : {}),
+      },
+    );
     credentialChecked.value = result.items.length > 0;
-    if (!credentialChecked.value) errors.value.api_key = t("error.provider_model_unavailable");
+    if (!credentialChecked.value)
+      errors.value.api_key = t("error.provider_model_unavailable");
   }, false);
 }
 async function save() {
@@ -265,9 +290,17 @@ function close() {
         </template>
       </template>
       <template v-if="form.provider !== 'cleverai'">
-        <NeRadioSelection v-model="form.credential_mode" name="credential-mode" :label="t('providerApiKey')"
-          :options="[{ id:'inherit', label:t('integrationKey') },{ id:'dedicated', label:t('dedicatedKey') }]" />
-        <NeTextInput v-if="form.credential_mode === 'dedicated'"
+        <NeRadioSelection
+          v-model="form.credential_mode"
+          name="credential-mode"
+          :label="t('providerApiKey')"
+          :options="[
+            { id: 'inherit', label: t('integrationKey') },
+            { id: 'dedicated', label: t('dedicatedKey') },
+          ]"
+        />
+        <NeTextInput
+          v-if="form.credential_mode === 'dedicated'"
           v-model="form.api_key"
           :label="t('providerApiKey')"
           is-password
@@ -281,10 +314,22 @@ function close() {
           :invalid-message="errors.api_key"
           @update:model-value="errors.api_key = ''"
         />
-        <p v-if="form.credential_mode === 'inherit' && errors.api_key" role="alert">{{ errors.api_key }}</p>
-        <NeButton v-if="form.provider === 'openai'" kind="secondary" :loading="task.pending.value" @click="testCredential">{{ t('testCredential') }}</NeButton>
-        <p v-if="credentialChecked" role="status">{{ t('credentialValid') }}</p>
-        <NeTextInput v-if="catalog.data.value?.sip_lab_enabled"
+        <p
+          v-if="form.credential_mode === 'inherit' && errors.api_key"
+          role="alert"
+        >
+          {{ errors.api_key }}
+        </p>
+        <NeButton
+          v-if="form.provider === 'openai'"
+          kind="secondary"
+          :loading="task.pending.value"
+          @click="testCredential"
+          >{{ t("testCredential") }}</NeButton
+        >
+        <p v-if="credentialChecked" role="status">{{ t("credentialValid") }}</p>
+        <NeTextInput
+          v-if="catalog.data.value?.sip_lab_enabled"
           v-model="form.webhook_secret"
           :label="t('webhookSigningSecret')"
           :optional="form.provider === 'openai' || editing"

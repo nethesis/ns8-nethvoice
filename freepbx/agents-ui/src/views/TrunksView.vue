@@ -30,7 +30,10 @@ const query = useQuery({
   queryKey: ["trunks"],
   queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
 });
-const catalog = useQuery({ queryKey:["catalog"], queryFn:()=>request<Catalog>("GET","/catalog") });
+const catalog = useQuery({
+  queryKey: ["catalog"],
+  queryFn: () => request<Catalog>("GET", "/catalog"),
+});
 const agents = useQuery({
   queryKey: ["agents"],
   queryFn: () => request<{ items: Agent[] }>("GET", "/profiles"),
@@ -47,7 +50,8 @@ const providers: Record<string, string> = {
   cleverai: "CleverAI",
 };
 function supportsWebhook(trunk: Trunk) {
-  if (!catalog.data.value?.sip_lab_enabled || trunk.provider !== "openai") return false;
+  if (!catalog.data.value?.sip_lab_enabled || trunk.provider !== "openai")
+    return false;
   const snapshots = (agents.data.value?.items || [])
     .flatMap((agent) => [agent.draft, agent.published])
     .filter(

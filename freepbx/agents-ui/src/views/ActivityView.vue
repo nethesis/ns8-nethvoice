@@ -407,7 +407,12 @@ const delivery = computed(() => {
       value: String(value.dropped ?? "—"),
       status: warn(value.dropped),
     },
-    { id: "signatures", label: t("invalidSignatures"), value: String(value.invalid_webhook_signatures ?? "—"), status: "" },
+    {
+      id: "signatures",
+      label: t("invalidSignatures"),
+      value: String(value.invalid_webhook_signatures ?? "—"),
+      status: "",
+    },
     {
       id: "retries",
       label: t("monitoring.healthKeys.retries"),
@@ -515,38 +520,39 @@ function refresh() {
         kind="error"
         :title="t('error.request_failed')"
       />
-      <details v-if="delivery.length || healthWarning"><summary>{{ t("diagnostics") }}</summary>
-      <NeInlineNotification
-        v-if="healthWarning"
-        data-testid="monitoring-health-warning"
-        kind="warning"
-        :title="t('monitoring.healthWarning')"
-        :description="
-          health.data.value?.stale
-            ? t('monitoring.stale')
-            : t('monitoring.deliveryWarning')
-        "
-      />
-      <NeCard v-if="delivery.length" :title="t('monitoring.delivery')">
-        <dl
-          class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-4"
-        >
-          <div
-            v-for="item in delivery"
-            :key="item.id"
-            class="flex flex-col gap-1"
+      <details v-if="delivery.length || healthWarning">
+        <summary>{{ t("diagnostics") }}</summary>
+        <NeInlineNotification
+          v-if="healthWarning"
+          data-testid="monitoring-health-warning"
+          kind="warning"
+          :title="t('monitoring.healthWarning')"
+          :description="
+            health.data.value?.stale
+              ? t('monitoring.stale')
+              : t('monitoring.deliveryWarning')
+          "
+        />
+        <NeCard v-if="delivery.length" :title="t('monitoring.delivery')">
+          <dl
+            class="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-4"
           >
-            <dt class="text-tertiary-neutral text-sm">{{ item.label }}</dt>
-            <dd class="text-primary-neutral flex items-center gap-2">
-              <StatusBadge
-                v-if="item.status"
-                :status="item.status"
-                :label="item.value"
-              /><template v-else>{{ item.value }}</template>
-            </dd>
-          </div>
-        </dl>
-      </NeCard>
+            <div
+              v-for="item in delivery"
+              :key="item.id"
+              class="flex flex-col gap-1"
+            >
+              <dt class="text-tertiary-neutral text-sm">{{ item.label }}</dt>
+              <dd class="text-primary-neutral flex items-center gap-2">
+                <StatusBadge
+                  v-if="item.status"
+                  :status="item.status"
+                  :label="item.value"
+                /><template v-else>{{ item.value }}</template>
+              </dd>
+            </div>
+          </dl>
+        </NeCard>
       </details>
     </div>
     <NeSkeleton v-if="summary.isLoading.value" :lines="6" />
@@ -731,12 +737,12 @@ function refresh() {
             >
             <NeTableCell :data-label="t('outcome')"
               ><div class="flex flex-wrap items-center gap-2">
-                <StatusBadge :status="run.outcome" /><span v-if="run.error_code">{{ run.error_code }}</span><NeBadgeV2
-                  v-if="run.incomplete"
-                  kind="amber"
-                  size="xs"
-                  >{{ t("monitoring.incomplete") }}</NeBadgeV2
-                >
+                <StatusBadge :status="run.outcome" /><span
+                  v-if="run.error_code"
+                  >{{ run.error_code }}</span
+                ><NeBadgeV2 v-if="run.incomplete" kind="amber" size="xs">{{
+                  t("monitoring.incomplete")
+                }}</NeBadgeV2>
               </div></NeTableCell
             >
             <NeTableCell :data-label="t('monitoring.duration')"
