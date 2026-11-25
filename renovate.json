@@ -7,6 +7,9 @@
     "enabled": true
   },
   "postUpdateOptions": ["gomodTidy"],
+  "pip_requirements": {
+    "managerFilePatterns": ["/^satellite\\/requirements-agent\\.lock$/"]
+  },
   "ignorePaths": [
     "**/node_modules/**",
     "**/bower_components/**",

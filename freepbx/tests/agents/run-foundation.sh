@@ -6,6 +6,7 @@ satellite_dir=${M0_SATELLITE_DIR:-"${freepbx_dir}/../satellite"}
 test_python=${M0_PYTHON:-python3}
 agent_php() { php -d zend.assertions=1 -d assert.exception=1 -d session.save_path="$test_tmp" "$@"; }
 python3 "$freepbx_dir/tests/agents/ns8.py"
+export VOICE_AGENT_ENABLED=true VOICE_AGENT_SIP_LAB_ENABLED=true
 test_tmp=$(mktemp -d "${TMPDIR:-/tmp}/voice-agent-m0.XXXXXX")
 db_container="voice-agent-m0-db-${test_tmp##*.}"
 cleanup() {
@@ -24,7 +25,7 @@ PY
 )
 docker run -d --rm --name "$db_container" \
     --network=host -e MARIADB_ALLOW_EMPTY_ROOT_PASSWORD=1 \
-    mariadb:10.11.19 --port="$M0_TEST_PORT" --bind-address=127.0.0.1 >/dev/null
+    mariadb:11.8.9 --port="$M0_TEST_PORT" --bind-address=127.0.0.1 >/dev/null
 ready=false
 for attempt in {1..30}; do
     if docker exec "$db_container" mariadb-admin --host=127.0.0.1 --protocol=tcp --port="$M0_TEST_PORT" ping --silent >/dev/null 2>&1; then
