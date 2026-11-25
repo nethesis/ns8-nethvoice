@@ -344,6 +344,46 @@ test.describe('trunks: physical', () => {
     )
   })
 
+  test('creates and deletes a gateway while the CTI server is not reachable', async ({
+    page,
+    mockApi,
+  }) => {
+    const livePath = '/freepbx/rest/dashboard/live/trunks'
+    mockTrunksApi(mockApi)
+    mockApi
+      .on('GET', livePath, { status: 503, json: { message: 'The CTI server is not reachable' } })
+      .on('POST', '/freepbx/rest/devices/gateways', {
+        json: { status: true, errors: [], warnings: [], infos: [], id: 8 },
+      })
+      .on('DELETE', '/freepbx/rest/devices/gateways/:id', { json: { status: true } })
+    await page.goto('./trunks/physical')
+    await expect(page.getByTestId('live-data-unavailable')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Create physical trunk' }).click()
+    await page.getByText('Patton', { exact: true }).last().click()
+    await page.getByRole('combobox', { name: 'Device model' }).click()
+    await page.getByRole('option', { name: /TRI_ISDN_2/ }).click()
+    await page.getByRole('textbox', { name: 'MAC address' }).fill('00-a0-ba-0b-1c-ee')
+    await page.getByRole('textbox', { name: 'Device IP address' }).fill('192.168.10.21')
+    await page.getByRole('textbox', { name: 'Subnet mask' }).fill('255.255.255.0')
+    await page.getByRole('textbox', { name: 'Network gateway' }).fill('192.168.10.1')
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
+    await expect(
+      page.getByText('Physical trunk Patton TRINITY ISDN 2 Porte has been created.'),
+    ).toBeVisible()
+    await expect.poll(() => mockApi.callsTo('GET', livePath).length).toBeGreaterThan(1)
+    const afterCreate = mockApi.callsTo('GET', livePath).length
+
+    await page.getByRole('button', { name: /Open the menu of Patton/ }).click()
+    await page.getByRole('menuitem', { name: 'Delete trunk' }).click()
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(
+      page.getByText('Physical trunk Patton TRINITY ISDN 2 Porte has been deleted.'),
+    ).toBeVisible()
+    await expect.poll(() => mockApi.callsTo('GET', livePath).length).toBeGreaterThan(afterCreate)
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
+  })
+
   test('shows the error of a failed deletion inside the modal', async ({ page, mockApi }) => {
     mockTrunksApi(mockApi)
     mockApi.on('DELETE', '/freepbx/rest/devices/gateways/:id', {

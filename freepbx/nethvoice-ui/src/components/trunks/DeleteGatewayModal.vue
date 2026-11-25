@@ -67,7 +67,7 @@ const {
   onSettled() {
     queryCache.invalidateQueries({ key: [GATEWAYS_KEY] })
     queryCache.invalidateQueries({ key: [TRUNKS_KEY] })
-    queryCache.invalidateQueries({ key: [TRUNKS_LIVE_STATE_KEY] })
+    queryCache.invalidateQueries({ key: [TRUNKS_LIVE_STATE_KEY] }).catch(() => undefined)
     queryCache.invalidateQueries({ key: [FXS_USERS_KEY] })
     queryCache.invalidateQueries({ key: [OUTBOUND_ROUTES_KEY] })
   },

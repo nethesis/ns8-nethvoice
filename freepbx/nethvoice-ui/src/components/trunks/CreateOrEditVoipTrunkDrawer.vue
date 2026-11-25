@@ -181,7 +181,7 @@ const {
   },
   onSettled() {
     queryCache.invalidateQueries({ key: [TRUNKS_KEY] })
-    queryCache.invalidateQueries({ key: [TRUNKS_LIVE_STATE_KEY] })
+    queryCache.invalidateQueries({ key: [TRUNKS_LIVE_STATE_KEY] }).catch(() => undefined)
   },
 })
 
@@ -219,7 +219,7 @@ const {
   },
   onSettled() {
     queryCache.invalidateQueries({ key: [TRUNKS_KEY] })
-    queryCache.invalidateQueries({ key: [TRUNKS_LIVE_STATE_KEY] })
+    queryCache.invalidateQueries({ key: [TRUNKS_LIVE_STATE_KEY] }).catch(() => undefined)
   },
 })
 

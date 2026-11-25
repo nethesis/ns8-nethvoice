@@ -97,6 +97,41 @@ test.describe('trunks: VoIP', () => {
     expect(overflow).toBe(0)
   })
 
+  test('keeps a short trunk name on one line at 1440 px', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi, {
+      trunks: [
+        {
+          ...VOIP_TRUNK,
+          channelid: 'demo_example',
+          name: 'demo_example',
+          outcid: '0212345678',
+          provider: '',
+          details: {
+            ...VOIP_TRUNK.details,
+            sip_server: 'sip.secondary-provider.example.invalid',
+            codecs: 'ulaw,alaw,gsm,g726,g722,g729',
+          },
+        },
+      ],
+      liveState: {},
+    })
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('./trunks/voip')
+
+    const name = page
+      .getByRole('row', { name: /demo_example/ })
+      .getByText('demo_example', { exact: true })
+      .first()
+    await expect(name).toBeVisible()
+    expect(
+      await name.evaluate(
+        (element) =>
+          element.getBoundingClientRect().height <=
+          parseFloat(getComputedStyle(element).lineHeight),
+      ),
+    ).toBe(true)
+  })
+
   test('keeps the trunks and shows the error above them when a refresh fails', async ({
     page,
     mockApi,
@@ -321,6 +356,50 @@ test.describe('trunks: VoIP', () => {
       codecs: ['g729'],
       forceCodec: false,
     })
+  })
+
+  test('creates, edits and deletes a VoIP trunk while the CTI server is not reachable', async ({
+    page,
+    mockApi,
+  }) => {
+    const livePath = '/freepbx/rest/dashboard/live/trunks'
+    mockTrunksApi(mockApi)
+    mockApi
+      .on('GET', livePath, { status: 503, json: { message: 'The CTI server is not reachable' } })
+      .on('POST', '/freepbx/rest/trunks', { status: 200 })
+      .on('PATCH', '/freepbx/rest/trunks/:trunkid', { status: 204 })
+      .on('DELETE', '/freepbx/rest/trunks/:trunkid', { status: 200 })
+    await page.goto('./trunks/voip')
+    await expect(page.getByText('Cannot retrieve the live status of the trunks')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Create VoIP trunk' }).click()
+    await page.getByRole('combobox', { name: 'Provider' }).click()
+    await page.getByRole('option', { name: 'MessageNet' }).click()
+    await page.getByRole('textbox', { name: 'Trunk name' }).fill('office_trunk')
+    await page.getByRole('textbox', { name: 'Phone number' }).fill('+390212345679')
+    await page.getByRole('textbox', { name: 'Username' }).fill('office_user')
+    await page.getByLabel('Password').fill('Secret,1234')
+    await page.getByRole('button', { name: 'Create', exact: true }).click()
+    await expect(page.getByText('Trunk office_trunk has been created.')).toBeVisible()
+    await expect.poll(() => mockApi.callsTo('GET', livePath).length).toBeGreaterThan(1)
+    const afterCreate = mockApi.callsTo('GET', livePath).length
+
+    await page
+      .getByRole('row', { name: /main_trunk/ })
+      .getByRole('button', { name: /Edit/ })
+      .click()
+    await page.getByRole('textbox', { name: 'Phone number' }).fill('0212345699')
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByText('Trunk main_trunk has been updated.')).toBeVisible()
+    await expect.poll(() => mockApi.callsTo('GET', livePath).length).toBeGreaterThan(afterCreate)
+    const afterEdit = mockApi.callsTo('GET', livePath).length
+
+    await page.getByRole('button', { name: 'Open the menu of backup_trunk' }).click()
+    await page.getByRole('menuitem', { name: 'Delete trunk' }).click()
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+    await expect(page.getByText('Trunk backup_trunk has been deleted.')).toBeVisible()
+    await expect.poll(() => mockApi.callsTo('GET', livePath).length).toBeGreaterThan(afterEdit)
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)))
   })
 
   test('shows the error of a failed creation inside the drawer', async ({ page, mockApi }) => {
