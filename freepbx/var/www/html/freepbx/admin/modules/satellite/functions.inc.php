@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__DIR__,3).'/rest/lib/agents/Preview.php';
 
 function satellite_get_config($engine) {
     // Intentionally left as a no-op. Configuration handling is done in satellite_get_config_late().
@@ -10,7 +11,7 @@ function satellite_get_config_late($engine) {
     global $db;
     switch($engine) {
         case "asterisk":
-        satellite_build_agent_dialplan();
+        if (\NethVoice\Agents\Preview::enabled()) satellite_build_agent_dialplan();
         /* satellite STT real time Transcriptions*/
         if (!empty($_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED']) && $_ENV['SATELLITE_CALL_TRANSCRIPTION_ENABLED'] == 'True') {
             $satellite_mixmonitor_options = 'br(/var/run/nethvoice/satellite-r-${UNIQUEID}-${CHANNEL(linkedid)}.wav)t(/var/run/nethvoice/satellite-t-${UNIQUEID}-${CHANNEL(linkedid)}.wav)i(${SATELLITE_LOCAL_MIXMON_ID})';
@@ -113,6 +114,7 @@ function satellite_agent_destination_key($id) {
     return 'voice-agent-' . $id . ',s,1';
 }
 function satellite_selectable_agents() {
+    if (!\NethVoice\Agents\Preview::enabled()) return [];
     try { return FreePBX::Satellite()->agentDestinations(); }
     catch (Throwable $error) { error_log('Voice agent destinations unavailable'); return []; }
 }

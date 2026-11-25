@@ -1,4 +1,5 @@
 <?php
+putenv('VOICE_AGENT_ENABLED=true');
 // Run against the disposable M0 database with the image's actual PSR7 dependencies.
 require getenv('M0_REST_AUTOLOAD');
 require __DIR__ . '/../../var/www/html/freepbx/rest/lib/AuthMiddleware.php';

@@ -1,4 +1,5 @@
 <?php
+putenv('VOICE_AGENT_ENABLED=true');
 // Execute both native trunk mutation routes with the real Slim router.
 require getenv('M0_REST_AUTOLOAD');
 require __DIR__.'/../../var/www/html/freepbx/rest/lib/JsonResponse.php';

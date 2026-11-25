@@ -1,6 +1,7 @@
 <?php
 // SPDX-License-Identifier: GPL-3.0-or-later
 namespace NethVoice\Agents;
+require_once __DIR__.'/Preview.php';
 
 /** Public provider metadata only. Keys and upstream response bodies never leave PHP. */
 final class ProviderCatalog
@@ -85,7 +86,7 @@ final class ProviderCatalog
     {
         $names=$provider==='openai'?['OPENAI_API_KEY']:($provider==='grok'?['XAI_API_KEY','GROK_API_KEY']:[]);
         foreach ($names as $name) {
-            $value=getenv($name);
+            $value=$name==='OPENAI_API_KEY'?Preview::value($name):getenv($name);
             if (is_string($value) && $value!=='' && !preg_match('/[\r\n\x00]/',$value)) return $value;
         }
         return '';

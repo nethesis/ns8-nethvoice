@@ -245,6 +245,8 @@ if ($data['codeavailable'] === null) {
 // Saved agents, including built-ins, are projected from the PHP library.
 $agentData = nethvplan_attempt(function () use ($langArray) {
     $agents = ['satellite-agent-destination' => [], 'voice-agents' => []];
+    require_once dirname(__DIR__,4).'/rest/lib/agents/Preview.php';
+    if (!\NethVoice\Agents\Preview::enabled()) return $agents;
     foreach (FreePBX::Satellite()->agentDestinations() as $agent) {
         $agents['satellite-agent-destination'][$agent['agent_id']] = $agent;
         $agents['voice-agents'][$agent['agent_id']] = \NethVoice\Agents\VisualPlan::widget($agent, $langArray);
