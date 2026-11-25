@@ -235,10 +235,11 @@ check(strpos($accented, 'source: "rtsp://cam/vid\\u00e9o\\u0085/\\U0001f6aa"') !
 
 // --- Device addresses ----------------------------------------------------------
 
-foreach (['127.0.0.1', '127.9.9.9', '0.0.0.0', '0.1.2.3', '169.254.169.254', '::1', '::', '0:0:0:0:0:0:0:1', 'fe80::1', 'febf::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '::ffff:169.254.1.1', '[::1]', 'fe80::1%eth0', 'not an ip'] as $ip) {
+foreach (['127.0.0.1', '127.9.9.9', '0.0.0.0', '0.1.2.3', '169.254.169.254', '::1', '::', '0:0:0:0:0:0:0:1', 'fe80::1', 'febf::1', '::ffff:127.0.0.1', '::ffff:7f00:1', '::ffff:169.254.1.1', '[::1]', 'fe80::1%eth0', 'not an ip',
+    '::7f00:1', '::127.0.0.1', '[::7f00:1]', '64:ff9b::7f00:1', '64:ff9b::127.0.0.1', '64:ff9b::a9fe:a9fe', '64:ff9b::0.0.0.0'] as $ip) {
     check(streaming_ip_blocked($ip), "$ip refused");
 }
-foreach (['192.168.1.10', '10.0.0.1', '172.16.5.4', '203.0.113.7', '1.1.1.1', 'fd00::1', 'fec0::1', '2001:db8::1', '::ffff:192.168.1.1'] as $ip) {
+foreach (['192.168.1.10', '10.0.0.1', '172.16.5.4', '203.0.113.7', '1.1.1.1', 'fd00::1', 'fec0::1', '2001:db8::1', '::ffff:192.168.1.1', '64:ff9b::c0a8:10a', '64:ff9b:1::7f00:1'] as $ip) {
     check(!streaming_ip_blocked($ip), "$ip allowed");
 }
 $fakeDns = function (string $host) {
@@ -893,6 +894,46 @@ check(streaming_tcp_reachability('https://2.119.67.174/snapshot.jpg', $fakeConne
 check(streaming_tcp_reachability('http://2.119.67.174:8080/snapshot.jpg', $fakeConnect)['port'] === 8080, 'explicit HTTP port');
 expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('ftp://192.0.2.1/x', $fakeConnect); }, 'url', 'only source URLs');
 expect_validation(function () use ($fakeConnect) { streaming_tcp_reachability('not a url', $fakeConnect); }, 'url', 'invalid URL');
+
+// Not a port scanner: video ports only, never the node or the cluster VPN
+$connected = [];
+foreach (['rtsp://2.119.67.174:6379/x', 'http://10.5.4.2:22/', 'https://2.119.67.174:9090/x', 'rtsp://2.119.67.174:65535/x'] as $badPort) {
+    expect_validation(function () use ($fakeConnect, $badPort) { streaming_tcp_reachability($badPort, $fakeConnect, null, 2.0, [], []); }, 'url', "port refused: $badPort");
+}
+check($connected === [], 'refused ports are never contacted');
+foreach (['rtsp://2.119.67.174:8554/x', 'http://2.119.67.174:8080/x', 'https://2.119.67.174:8443/x', 'rtsp://2.119.67.174/x', 'rtsps://2.119.67.174/x'] as $goodPort) {
+    check(streaming_tcp_reachability($goodPort, $fakeConnect, null, 2.0, [], [])['reachable'], "port of video devices: $goodPort");
+}
+check(streaming_tcp_reachability('rtsp://2.119.67.174:10554/x', $fakeConnect, null, 2.0, [10554], [])['reachable'], 'RTSP port of the door phone model');
+$vpn = ['10.5.4.1/32', '10.5.4.2/32', '192.168.122.0/24', '10.5.4.3', 'fd00:1::/64'];
+$connected = [];
+foreach (['rtsp://10.5.4.2:554/x', 'http://10.5.4.1/x', 'rtsp://192.168.122.77/x', 'rtsp://10.5.4.3/x', 'rtsp://[fd00:1::9]/x', 'rtsp://[::ffff:10.5.4.2]/x'] as $node) {
+    check(streaming_tcp_reachability($node, $fakeConnect, null, 2.0, [], $vpn)['reachable'] === false, "node or VPN address refused: $node");
+}
+check(streaming_tcp_reachability('rtsp://vpn.example/x', $fakeConnect, function () { return ['192.168.5.1', '10.5.4.2']; }, 2.0, [], $vpn)['reachable'] === false, 'a name with a VPN address is refused');
+check($connected === [], 'node and VPN addresses are never contacted');
+check(streaming_tcp_reachability('rtsp://10.5.5.2/x', $fakeConnect, null, 2.0, [], $vpn)['reachable'] === false && $connected === ['10.5.5.2:554'], 'other private addresses are still checked');
+check(streaming_ip_in_networks('10.5.4.200', ['10.5.4.0/24']) && !streaming_ip_in_networks('10.5.5.1', ['10.5.4.0/24']), 'IPv4 network');
+check(streaming_ip_in_networks('172.31.255.1', ['172.16.0.0/12']) && !streaming_ip_in_networks('172.32.0.1', ['172.16.0.0/12']), 'IPv4 network not on a byte boundary');
+check(streaming_ip_in_networks('2001:db8::1', ['2001:db8::/32']) && !streaming_ip_in_networks('10.5.4.1', ['2001:db8::/32']), 'IPv6 network, families never mixed');
+check(streaming_ip_in_networks('1.2.3.4', ['0.0.0.0/0']) && !streaming_ip_in_networks('1.2.3.4', ['bad', '']), 'default route and invalid networks');
+$procRoutes = "Iface\tDestination\tGateway \tFlags\tRefCnt\tUse\tMetric\tMask\t\tMTU\tWindow\tIRTT\n"
+    . "eth0\t00000000\t0100A8C0\t0003\t0\t0\t100\t00000000\t0\t0\t0\n"
+    . "wg0\t0104050A\t00000000\t0001\t0\t0\t0\tFFFFFFFF\t0\t0\t0\n"
+    . "wg0\t0000120A\t00000000\t0001\t0\t0\t0\t00F0FFFF\t0\t0\t0\n"
+    . "eth0\t0000A8C0\t00000000\t0001\t0\t0\t100\t00FFFFFF\t0\t0\t0\n";
+check(streaming_parse_proc_routes($procRoutes, 'wg0') === ['10.5.4.1/32', '10.18.0.0/20'], 'cluster VPN routes from /proc/net/route');
+check(streaming_parse_proc_routes('', 'wg0') === [] && streaming_parse_proc_routes("garbage\nwg0 x y", 'wg0') === [], 'no VPN routes');
+check(is_array(streaming_node_networks()), 'node networks can be read');
+
+$limitFile = tempnam(sys_get_temp_dir(), 'reach');
+check(streaming_rate_limit($limitFile, 3, 60, 1000) && streaming_rate_limit($limitFile, 3, 60, 1001) && streaming_rate_limit($limitFile, 3, 60, 1002), 'requests within the limit');
+check(!streaming_rate_limit($limitFile, 3, 60, 1003) && !streaming_rate_limit($limitFile, 3, 60, 1059), 'limit reached in the window');
+check(streaming_rate_limit($limitFile, 3, 60, 1061), 'allowed again when the oldest request leaves the window');
+file_put_contents($limitFile, 'not json');
+check(streaming_rate_limit($limitFile, 3, 60, 2000), 'a corrupted file is reset');
+unlink($limitFile);
+check(streaming_rate_limit(sys_get_temp_dir() . '/no-such-dir/limit.json', 1, 60), 'an unusable file does not block the check');
 
 // --- Sources linked to a door phone follow its password -------------------------
 

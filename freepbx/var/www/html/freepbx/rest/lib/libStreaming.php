@@ -180,8 +180,10 @@ function streaming_url_endpoint(string $url): string
 /*
  * True for an IP address that can never be a device: loopback (127.0.0.0/8,
  * ::1), link-local (169.254.0.0/16, fe80::/10) and unspecified (0.0.0.0/8,
- * ::), also as IPv4-mapped IPv6 addresses. Anything that is not an IP
- * address is refused too. Private LAN ranges are allowed.
+ * ::), also as IPv6 addresses that carry an IPv4 address (IPv4-mapped
+ * ::ffff:a.b.c.d, IPv4-compatible ::a.b.c.d, NAT64 64:ff9b::a.b.c.d).
+ * Anything that is not an IP address is refused too. Private LAN ranges are
+ * allowed.
  */
 function streaming_ip_blocked(string $ip): bool
 {
@@ -191,12 +193,11 @@ function streaming_ip_blocked(string $ip): bool
         return true;
     }
     if (strlen($packed) === 16) {
-        if (substr($packed, 0, 12) === str_repeat("\0", 10) . "\xff\xff") {
-            // IPv4-mapped
+        $prefix = substr($packed, 0, 12);
+        if ($prefix === str_repeat("\0", 10) . "\xff\xff"      // IPv4-mapped
+            || $prefix === str_repeat("\0", 12)                 // IPv4-compatible, "::", "::1"
+            || $prefix === "\x00\x64\xff\x9b" . str_repeat("\0", 8)) { // NAT64 well-known prefix
             $packed = substr($packed, 12);
-        } elseif (substr($packed, 0, 15) === str_repeat("\0", 15)) {
-            // "::" and "::1"
-            return ord($packed[15]) <= 1;
         } else {
             return ord($packed[0]) === 0xfe && (ord($packed[1]) & 0xc0) === 0x80;
         }
@@ -2024,13 +2025,140 @@ function streaming_url_with_host(string $url, string $host): ?string
     return $parsed['scheme'] . '://' . $authority . $parsed['rest'];
 }
 
+// Ports the reachability check connects to: those of the video devices
+// (RTSP 554 and 8554, RTSPS 322, HTTP 80 and 8080, HTTPS 443 and 8443)
+const STREAMING_REACHABILITY_PORTS = [554, 322, 8554, 80, 443, 8080, 8443];
+// Reachability checks allowed in a window of seconds, all administrators
+const STREAMING_REACHABILITY_LIMIT = 30;
+const STREAMING_REACHABILITY_WINDOW = 60;
+
+/* True when $ip belongs to one of the networks ("a.b.c.d/len", "x::/len" or an address) */
+function streaming_ip_in_networks(string $ip, array $networks): bool
+{
+    $packed = @inet_pton(preg_replace('/%.*$/', '', trim($ip, '[]')));
+    if ($packed === false) {
+        return false;
+    }
+    if (strlen($packed) === 16 && substr($packed, 0, 12) === str_repeat("\0", 10) . "\xff\xff") {
+        // IPv4-mapped: the IPv4 address it reaches
+        $packed = substr($packed, 12);
+    }
+    foreach ($networks as $network) {
+        $parts = explode('/', (string) $network, 2);
+        $net = @inet_pton($parts[0]);
+        if ($net === false || strlen($net) !== strlen($packed)) {
+            continue;
+        }
+        $bits = isset($parts[1]) && preg_match('/^\d{1,3}$/', $parts[1]) ? min((int) $parts[1], strlen($net) * 8) : strlen($net) * 8;
+        $bytes = intdiv($bits, 8);
+        if (substr($packed, 0, $bytes) !== substr($net, 0, $bytes)) {
+            continue;
+        }
+        $rest = $bits % 8;
+        if ($rest === 0 || ((ord($packed[$bytes]) ^ ord($net[$bytes])) & (0xff << (8 - $rest)) & 0xff) === 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/*
+ * IPv4 networks routed through an interface, from the content of
+ * /proc/net/route (destination and mask are little-endian hex numbers).
+ */
+function streaming_parse_proc_routes(string $content, string $interface): array
+{
+    $networks = [];
+    foreach (preg_split('/\R/', $content) as $line) {
+        $fields = preg_split('/\s+/', trim($line));
+        if (count($fields) < 8 || $fields[0] !== $interface || !preg_match('/^[0-9A-Fa-f]{8}$/', $fields[1]) || !preg_match('/^[0-9A-Fa-f]{8}$/', $fields[7])) {
+            continue;
+        }
+        $destination = inet_ntop(strrev(hex2bin($fields[1])));
+        $mask = unpack('N', strrev(hex2bin($fields[7])))[1];
+        $bits = 0;
+        while ($bits < 32 && ($mask & (1 << (31 - $bits)))) {
+            $bits++;
+        }
+        $networks[] = "$destination/$bits";
+    }
+    return $networks;
+}
+
+/*
+ * Addresses of the node itself and the cluster VPN, never checked for
+ * reachability: the addresses of the local interfaces (FreePBX uses the
+ * host network) and the networks routed through the cluster VPN interface
+ * (wg0: the other nodes and the networks behind them).
+ */
+function streaming_node_networks(): array
+{
+    $networks = [];
+    if (function_exists('net_get_interfaces')) {
+        foreach ((array) @net_get_interfaces() as $interface) {
+            foreach ($interface['unicast'] ?? [] as $unicast) {
+                if (isset($unicast['address']) && filter_var($unicast['address'], FILTER_VALIDATE_IP) !== false) {
+                    $networks[] = $unicast['address'];
+                }
+            }
+        }
+    }
+    $routes = @file_get_contents('/proc/net/route');
+    if (is_string($routes)) {
+        $networks = array_merge($networks, streaming_parse_proc_routes($routes, 'wg0'));
+    }
+    return $networks;
+}
+
+/*
+ * Count a request against a limit shared by all PHP processes: at most $max
+ * requests in $window seconds, timestamps kept in $file under a lock.
+ * Return false when the limit is reached. If the file cannot be used the
+ * request is allowed (and logged): the limit is a brake, not a permission.
+ */
+function streaming_rate_limit(string $file, int $max, int $window, ?int $now = null): bool
+{
+    $now = $now ?? time();
+    $handle = @fopen($file, 'c+');
+    if ($handle === false) {
+        error_log("rate limit: cannot open $file");
+        return true;
+    }
+    try {
+        if (!flock($handle, LOCK_EX)) {
+            return true;
+        }
+        $times = json_decode((string) stream_get_contents($handle), true);
+        $times = array_values(array_filter(is_array($times) ? $times : [], function ($time) use ($now, $window) {
+            return is_int($time) && $time > $now - $window && $time <= $now;
+        }));
+        $allowed = count($times) < $max;
+        if ($allowed) {
+            $times[] = $now;
+        }
+        ftruncate($handle, 0);
+        rewind($handle);
+        fwrite($handle, json_encode($times));
+        fflush($handle);
+        flock($handle, LOCK_UN);
+        return $allowed;
+    } finally {
+        fclose($handle);
+    }
+}
+
 /*
  * Whether the PBX can open a TCP connection to the device of a source URL
  * (rtsp, rtsps, http, https): a plain TCP connect with a short timeout,
  * nothing is sent to the device. Return { reachable, private, host, port };
- * loopback and link-local addresses are never contacted (reachable false).
+ * loopback and link-local addresses, the addresses of the node and the
+ * cluster VPN networks ($refused, streaming_node_networks() by default) are
+ * never contacted (reachable false). Only the ports of video devices and the
+ * $extraPorts (e.g. the RTSP port of a door phone model) are checked: a
+ * validation error on "url" otherwise, so that the check cannot be used to
+ * scan the services of the network.
  */
-function streaming_tcp_reachability(string $url, ?callable $connect = null, ?callable $resolve = null, float $timeout = 2.0): array
+function streaming_tcp_reachability(string $url, ?callable $connect = null, ?callable $resolve = null, float $timeout = 2.0, array $extraPorts = [], ?array $refused = null): array
 {
     $parsed = streaming_parse_url($url);
     if ($parsed === null) {
@@ -2038,6 +2166,9 @@ function streaming_tcp_reachability(string $url, ?callable $connect = null, ?cal
     }
     $defaults = ['http' => 80, 'https' => 443, 'rtsp' => 554, 'rtsps' => 322];
     $port = $parsed['port'] !== '' ? (int) $parsed['port'] : $defaults[$parsed['scheme']];
+    if (!in_array($port, array_merge(STREAMING_REACHABILITY_PORTS, array_map('intval', $extraPorts)), true)) {
+        throw new StreamingValidationException('url', 'the reachability check is limited to the ports of video devices');
+    }
     $addresses = ($resolve ?? 'streaming_resolve_host')($parsed['host']);
     $result = [
         'host' => $parsed['host'],
@@ -2047,6 +2178,12 @@ function streaming_tcp_reachability(string $url, ?callable $connect = null, ?cal
     ];
     if ($addresses === [] || streaming_host_blocked($parsed['host'], function () use ($addresses) { return $addresses; })) {
         return $result;
+    }
+    $refused = $refused ?? streaming_node_networks();
+    foreach ($addresses as $address) {
+        if (streaming_ip_in_networks((string) $address, $refused)) {
+            return $result;
+        }
     }
     $connect = $connect ?? function (string $address, int $port, float $timeout): bool {
         $target = filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false ? "[$address]" : $address;

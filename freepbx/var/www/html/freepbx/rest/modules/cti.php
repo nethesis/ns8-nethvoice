@@ -1124,12 +1124,19 @@ $app->post('/cti/streaming/doorphones/{mac}/sync', function (Request $request, R
  * private network. With "door_phone", when the device is not reachable, the
  * public address the door phone registers from is suggested if the PBX
  * reaches it on the same port.
+ * Only the ports of video devices (and the RTSP port of the door phone
+ * model) are checked (400 otherwise); the node and the cluster VPN are never
+ * contacted (reachable false); at most STREAMING_REACHABILITY_LIMIT checks
+ * per minute (429).
  */
 $app->post('/cti/streaming/reachability', function (Request $request, Response $response, $args) {
     try {
         $data = $request->getParsedBody();
         if (!is_array($data) || !isset($data['url']) || !is_string($data['url'])) {
             return jsonResponse($response, ['status' => 'Invalid source URL', 'field' => 'url'], 400);
+        }
+        if (!streaming_rate_limit(sys_get_temp_dir() . '/nethvoice-streaming-reachability.json', STREAMING_REACHABILITY_LIMIT, STREAMING_REACHABILITY_WINDOW)) {
+            return jsonResponse($response, ['status' => 'too many reachability checks, try again in a minute'], 429);
         }
         $mac = null;
         if (isset($data['door_phone']) && is_string($data['door_phone']) && $data['door_phone'] !== '') {

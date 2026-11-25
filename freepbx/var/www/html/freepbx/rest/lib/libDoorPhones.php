@@ -276,13 +276,27 @@ function door_phone_sync_sources(\PDO $db, ?string $mac = null, ?callable $varia
 
 /*
  * Reachability of the URL of a source (TCP connect only, see
- * streaming_tcp_reachability). When the PBX does not reach it and the door
- * phone registers from a public address that the PBX reaches on the same
- * port, that address is suggested ("public_address", "public_url").
+ * streaming_tcp_reachability; with a door phone, the RTSP port of its model
+ * can be checked too). When the PBX does not reach it and the door phone
+ * registers from a public address that the PBX reaches on the same port,
+ * that address is suggested ("public_address", "public_url").
  */
 function door_phone_reachability(string $url, ?string $mac): array
 {
-    $result = streaming_tcp_reachability($url);
+    $extraPorts = [];
+    if ($mac !== null) {
+        try {
+            $phone = door_phone_variables($mac);
+        } catch (DoorPhoneException $e) {
+            // Tancredi not available: the usual ports only
+            $phone = null;
+        }
+        $port = (string) ($phone['variables']['door_rtsp_port'] ?? '');
+        if ($phone !== null && streaming_is_door_phone($phone['variables']) && preg_match('/^\d{1,5}$/', $port)) {
+            $extraPorts[] = (int) $port;
+        }
+    }
+    $result = streaming_tcp_reachability($url, null, null, 2.0, $extraPorts);
     $result['public_address'] = null;
     $result['public_url'] = null;
     if ($result['reachable'] || $mac === null) {
@@ -297,7 +311,7 @@ function door_phone_reachability(string $url, ?string $mac): array
         return $result;
     }
     $publicUrl = streaming_url_with_host($url, $public);
-    if ($publicUrl !== null && streaming_tcp_reachability($publicUrl)['reachable']) {
+    if ($publicUrl !== null && streaming_tcp_reachability($publicUrl, null, null, 2.0, $extraPorts)['reachable']) {
         $result['public_address'] = $public;
         $result['public_url'] = $publicUrl;
     }
