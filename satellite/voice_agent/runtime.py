@@ -870,7 +870,15 @@ class Runtime:
 
     async def quiesce_media(self, call):
         if call.audio_bridge:
-            await call.audio_bridge.stop()
+            bridge = call.audio_bridge
+            if not bridge.stopped:
+                marks = getattr(call.adapter, 'startup_marks', {})
+                timings = {key: self.trace(call).elapsed(at) for key, at in marks.items()}
+                LOG.info('Live audio run=%s startup_ms=%s real_frames=%d silence_frames=%d '
+                         'max_input_gap_ms=%d max_real_input_gap_ms=%d',
+                         call.run_id, timings, bridge.input_real_frames, bridge.input_silence_frames,
+                         bridge.max_input_gap_ms, bridge.max_real_input_gap_ms)
+            await bridge.stop()
         elif call.media:
             if call.adapter and hasattr(call.adapter, 'stop_audio'):
                 call.adapter.stop_audio()

@@ -183,8 +183,10 @@ async def test_armed_live_call_records_selected_comparison_at_close(monkeypatch,
                 {'name': 'X-OS-Agent-ID', 'value': 'receptionist'}]}
             body, headers = sign(call, data, event_type='live.transport.incoming')
             assert await runtime.webhook('openai', body, headers) == {'status': 'accepted'}
-        await eventually(lambda: call.media_connected and call.adapter.commands and
-                         call.adapter.commands[0]['outcome'] == 'acknowledged')
+        await eventually(lambda: call.media_connected)
+        if variant != 'primary-ws':
+            await eventually(lambda: call.adapter.commands and
+                             call.adapter.commands[0]['outcome'] == 'acknowledged')
         assert not call.adapter._capture
         if variant == 'primary-ws':
             media.input.append(bytes([128]) * 160)
@@ -198,7 +200,10 @@ async def test_armed_live_call_records_selected_comparison_at_close(monkeypatch,
         await server.close()
     result = json.loads((tmp_path / ('live-diagnostic-result-' + label + '.json')).read_text())
     assert result['variant'] == variant
-    assert result['commands'][0]['kind'] == ('session.instructions.append' if variant == 'concise' else 'session.commentary.append')
+    if variant == 'primary-ws':
+        assert result['commands'] == []
+    else:
+        assert result['commands'][0]['kind'] == ('session.instructions.append' if variant == 'concise' else 'session.commentary.append')
 
 
 @pytest.mark.asyncio

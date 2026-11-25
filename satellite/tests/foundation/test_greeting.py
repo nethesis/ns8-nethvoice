@@ -204,5 +204,8 @@ def test_live_sip_and_websocket_seed_personalized_opening(primary_audio):
     adapter = (OpenAILiveWebSocketSession if primary_audio else OpenAILiveAdapter)({'api_key': 'synthetic'})
     configuration = adapter.configuration(profile, [])
     assert configuration['input'][0]['role'] == 'developer'
-    assert configuration['input'][0]['content'][0]['text'] == profile['_opening_instructions']
+    assert profile['_opening_instructions'] in configuration['input'][0]['content'][0]['text']
+    if primary_audio:
+        assert len(configuration['input']) == 1
+        assert configuration['input'][0]['content'][0]['text'].startswith('Start speaking now.')
     assert 'Alice Example' in configuration['input'][0]['content'][0]['text']

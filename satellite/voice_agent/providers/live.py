@@ -118,7 +118,10 @@ class OpenAILiveAdapter(_RealtimeAdapter):
             voice += (' The SIP session starts before caller media is attached. '
                       'Deliver the opening only after the application confirms caller media is connected.')
         seed = []
-        if profile.get('_opening_instructions'):
+        if self.primary_audio:
+            opening = ('Start speaking now. ' + (profile.get('_opening_instructions') or opening)
+                       + ' Deliver this opening once, then listen. Do not use the backend for the opening.')
+        elif profile.get('_opening_instructions'):
             seed.append({'type': 'message', 'role': 'developer', 'content': [
                 {'type': 'input_text', 'text': profile['_opening_instructions']}]})
         seed.append({'type': 'message', 'role': 'developer', 'content': [
