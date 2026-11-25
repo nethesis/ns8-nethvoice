@@ -42,8 +42,8 @@ def create_app(token: str, runtime=None) -> FastAPI:
         provider = request.url.path.rsplit('/', 1)[1]
         if provider not in ('openai', 'grok'):
             raise HTTPException(status_code=404, detail='not_found')
-        if runtime is None:
-            raise HTTPException(status_code=503, detail='runtime_unavailable')
+        if runtime is None or not runtime.sip_lab_enabled:
+            raise HTTPException(status_code=404, detail='not_found')
         raw = bytearray()
         try:
             async with asyncio.timeout(5):

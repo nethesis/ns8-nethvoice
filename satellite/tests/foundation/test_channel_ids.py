@@ -61,3 +61,28 @@ async def test_existing_uuid_channels_can_still_be_cleaned_up():
     for channel_id in (str(uuid.uuid4()), str(uuid.uuid4()) + ';2'):
         await controller.hangup(channel_id)
         controller.request.assert_awaited_with('DELETE', '/channels/' + quote(channel_id, safe=''))
+
+@pytest.mark.asyncio
+async def test_shared_provider_originate_requests_narrowband_codecs():
+    controller = AriController('http://synthetic', 'user', 'password')
+    controller.request = AsyncMock()
+    await controller.originate_local('session', 'a' * 28, {})
+    params = controller.request.await_args.kwargs['params']
+    assert params['endpoint'] == 'Local/session@voice-agent-provider/n'
+    assert params['formats'] == 'ulaw,alaw'
+
+
+@pytest.mark.asyncio
+async def test_sip_admission_and_webhook_are_closed_by_default(monkeypatch):
+    from fastapi.testclient import TestClient
+    from voice_agent.runner import create_app
+    from voice_agent.runtime import Runtime
+
+    monkeypatch.delenv('VOICE_AGENT_SIP_LAB_ENABLED', raising=False)
+    _, storage, controller, snapshot = fixtures()
+    runtime = Runtime(storage, controller)
+    await runtime.admit({'id': 'caller', 'dialplan': {'context': 'voice-agent-basic_voice'}}, snapshot['agent_id'])
+    controller.continue_channel.assert_awaited_once_with('caller')
+    controller.originate_local.assert_not_awaited()
+    client = TestClient(create_app('synthetic', runtime))
+    assert client.post('/satellite-webhooks/openai').status_code == 404

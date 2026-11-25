@@ -268,6 +268,7 @@ class Runtime:
         self.admissions = {}
         self.tasks = set()
         self._cleanup_tasks = set()
+        self.sip_lab_enabled = os.getenv('VOICE_AGENT_SIP_LAB_ENABLED') == 'true'
         self._webhook_rejection_at = {}
         self._live_admissions = set()
         self.controller.on_event = self.event
@@ -527,6 +528,8 @@ class Runtime:
                 linkedid = None
             if binding['adapter'] == 'live':
                 binding['adapter'] = self.live_transport(channel['id'], linkedid, snapshot)
+            if binding['adapter'] != 'live_ws' and not self.sip_lab_enabled:
+                raise ValueError('sip_lab_disabled')
             observations.append(('binding', binding_started, time.monotonic()))
             if binding.get('adapter') == 'live_ws':
                 value = os.getenv('VOICE_AGENT_LIVE_WS_MAX_CALLS', '4') or '4'
@@ -554,6 +557,8 @@ class Runtime:
                     if internal_binding['provider'] != assistant['provider']:
                         raise ValueError('provider_mismatch')
                     capability = conversation_capability(assistant['provider'], assistant['conversation'])
+                    if capability['adapter'] != 'live' and not self.sip_lab_enabled:
+                        raise ValueError('sip_lab_disabled')
                     call.assistant_snapshot = assistant
                     call.assistant_binding = {**internal_binding, 'model': assistant['conversation']['model'], 'adapter': 'live_ws' if capability['adapter'] == 'live' else capability['adapter']}
                 except Exception:
