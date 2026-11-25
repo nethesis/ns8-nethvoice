@@ -16,9 +16,12 @@ WebSocket runs cannot be claimed by a SIP webhook. The existing pending/run tabl
 hold ownership, with `live_ws` identifying this adapter in monitoring.
 
 The shared Live configuration and Responses tool handler retain the existing
-conversation and authorization rules. The full opening is seeded at startup;
-one short instruction activates the greeting when media and provider are ready.
-Input continues during speech and silence. Live's continuous conversation does
+conversation and authorization rules. The primary session requests its opening
+once in `session.start`. After setup, the greeting watchdog waits up to 10 seconds
+for 200 ms of voiced audio written to Asterisk. Speech beginning at the deadline
+gets up to 200 ms to confirm playback. Sustained caller speech can extend the
+wait for a reply to 20 seconds in total. Satellite sends 20 ms PCMU silence
+frames during idle input and forwards buffered caller speech in order. Live's continuous conversation does
 not use Realtime cancellation/truncation events.
 
 Asterisk media is PCMU/8000 mono, reframed into 160-byte/20 ms frames. Each direction
