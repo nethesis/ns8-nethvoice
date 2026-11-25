@@ -56,6 +56,7 @@ import { useGateways } from '@/queries/trunks/gateways'
 import { usePermissions } from '@/queries/permissions/me'
 import { useClientPagination } from '@/composables/useClientPagination'
 import { usePolling } from '@/composables/usePolling'
+import { useUpdatingIndicator } from '@/composables/useUpdatingIndicator'
 import { describeError } from '@/stores/notifications'
 
 const { variant = 'admin' } = defineProps<{ variant?: 'admin' | 'setup' }>()
@@ -108,23 +109,29 @@ const liveData = computed(() =>
   liveState.value.status === 'error' ? undefined : liveState.value.data,
 )
 
-const isLoaded = computed(() => !isLoading.value && !loadError.value)
+const isLoaded = computed(() => !isLoading.value && trunksState.value.data !== undefined)
 
-const isNoDataEmptyStateShown = computed(() => isLoaded.value && voipTrunks.value.length === 0)
+const isNoDataEmptyStateShown = computed(
+  () => isLoaded.value && !loadError.value && voipTrunks.value.length === 0,
+)
 
 const emptyStateDescription = computed(() =>
   variant === 'admin' ? '' : t('trunks.voip.no_trunks_setup_description'),
 )
 
 const isNoMatchEmptyStateShown = computed(
-  () => isLoaded.value && voipTrunks.value.length > 0 && filteredTrunks.value.length === 0,
+  () =>
+    isLoaded.value &&
+    !loadError.value &&
+    voipTrunks.value.length > 0 &&
+    filteredTrunks.value.length === 0,
 )
 
 const isTableShown = computed(
   () => isLoading.value || (isLoaded.value && filteredTrunks.value.length > 0),
 )
 
-const isUpdating = computed(
+const isUpdating = useUpdatingIndicator(
   () =>
     isLoaded.value &&
     (trunksAsyncStatus.value === 'loading' || liveAsyncStatus.value === 'loading'),
@@ -209,7 +216,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
     </div>
     <div class="flex flex-col gap-6">
       <div
-        v-if="!isNoDataEmptyStateShown && !loadError"
+        v-if="!isNoDataEmptyStateShown && (isLoading || isLoaded)"
         class="flex flex-wrap items-center justify-between gap-4"
       >
         <div class="flex flex-wrap items-center gap-4">
@@ -228,7 +235,7 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
             :disabled="!textFilter"
             @click="textFilter = ''"
           >
-            {{ t('common.clear_filter') }}
+            {{ t('common.reset_filters') }}
           </NeButton>
         </div>
         <div class="flex items-center gap-4">

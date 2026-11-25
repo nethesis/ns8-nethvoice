@@ -4,10 +4,11 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch, type ShallowRef } from 'vue'
+import { computed, ref, toRef, useTemplateRef, watch, type ShallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import {
+  focusElement,
   NeButton,
   NeCombobox,
   NeInlineNotification,
@@ -45,6 +46,7 @@ import { focusUnlessFocusedWithin, type Focusable } from '@/lib/common'
 import { useFxsUsers, useGatewayModels, useHostNetworks } from '@/queries/trunks/gateways'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useSetupGuard } from '@/composables/useSetupGuard'
 
 const {
   isShown = false,
@@ -74,6 +76,7 @@ const FIELD_ORDER: GatewayField[] = [
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
+const { ensureSetupInProgress } = useSetupGuard()
 const notificationsStore = useNotificationsStore()
 const { state: modelsState, refetch: refetchModels } = useGatewayModels()
 const { state: networksState } = useHostNetworks()
@@ -140,8 +143,10 @@ const {
   reset: resetCreate,
   error: saveError,
 } = useMutation({
-  mutation: ({ values, model }: { values: GatewayForm; model: GatewayModel }) =>
-    postGateway(toGatewaySaveRequest(values, model)),
+  mutation: async ({ values, model }: { values: GatewayForm; model: GatewayModel }) => {
+    await ensureSetupInProgress()
+    await postGateway(toGatewaySaveRequest(values, model))
+  },
   onSuccess(_data, { model }) {
     setTimeout(() => {
       notificationsStore.createNotification({
@@ -261,19 +266,19 @@ function focusFirstInvalidField() {
   const field = FIELD_ORDER.find((name) => validationIssues.value[name])
 
   if (field) {
-    fieldRefs[field].value?.focus()
+    focusElement(fieldRefs[field])
     return
   }
   const fxoIndex = Object.keys(validationIssues.value.fxoNumbers ?? {}).map(Number)[0]
 
   if (fxoIndex !== undefined) {
-    fxoRefs.value?.[fxoIndex]?.focus()
+    focusElement(toRef(() => fxoRefs.value?.[fxoIndex]))
     return
   }
   const fxsIndex = Object.keys(validationIssues.value.fxsExtensions ?? {}).map(Number)[0]
 
   if (fxsIndex !== undefined) {
-    fxsRefs.value?.[fxsIndex]?.focus()
+    focusElement(toRef(() => fxsRefs.value?.[fxsIndex]))
   }
 }
 

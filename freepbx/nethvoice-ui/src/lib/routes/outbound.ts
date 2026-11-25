@@ -20,7 +20,8 @@ export type OutboundRouteSortKey = (typeof OUTBOUND_ROUTE_SORT_KEYS)[number]
 
 export type RouteTrunkState = 'active' | 'disabled' | 'deleted' | 'voice_agents'
 
-export type OutboundRouteErrorCode = 'route_not_found' | 'no_default_routes'
+export type OutboundRouteErrorCode =
+  'route_not_found' | 'no_default_routes' | 'routes_already_exist'
 
 export class OutboundRouteError extends Error {
   readonly code: OutboundRouteErrorCode
@@ -278,7 +279,7 @@ export const getOutboundRouteDefaults = async (): Promise<OutboundRouteDefaults>
 
 export const postDefaultOutboundRoutes = async (locale: string): Promise<void> => {
   if ((await getOutboundRoutes()).length > 0) {
-    return
+    throw new OutboundRouteError('routes_already_exist')
   }
   const [defaults, trunks] = await Promise.all([getOutboundRouteDefaults(), getTrunks()])
   const body = buildCreateDefaultsRequest(locale, defaults, trunks)

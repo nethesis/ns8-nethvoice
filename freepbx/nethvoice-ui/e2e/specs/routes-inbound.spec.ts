@@ -70,6 +70,39 @@ test.describe('routes: inbound', () => {
     await recordWindowOpen(page)
   })
 
+  test('shows Updating only when a refresh takes more than half a second', async ({
+    page,
+    mockApi,
+  }) => {
+    let release = () => {}
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+
+    await page.clock.install()
+    await page.goto('./routes/inbound')
+    const rows = page.getByRole('grid', { name: 'Inbound routes' }).getByRole('row')
+    await expect(rows).toHaveCount(3)
+    await page.clock.pauseAt(Date.now() + 10_000)
+
+    mockApi.on('GET', '/freepbx/rest/inboundroutes', async () => {
+      await released
+      return { json: INBOUND_ROUTES }
+    })
+    const calls = mockApi.callsTo('GET', '/freepbx/rest/inboundroutes').length
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect
+      .poll(() => mockApi.callsTo('GET', '/freepbx/rest/inboundroutes').length)
+      .toBeGreaterThan(calls)
+    await expect(page.getByText('Updating…')).toHaveCount(0)
+
+    await page.clock.runFor(600)
+    await expect(page.getByText('Updating…')).toBeVisible()
+    await expect(rows).toHaveCount(3)
+
+    release()
+  })
+
   test('lists routes with their resolved destination', async ({ page }) => {
     await page.goto('./routes/inbound')
 
@@ -154,7 +187,7 @@ test.describe('routes: inbound', () => {
     )
 
     await page.goto('./routes/inbound')
-    await expect(page.getByText('Cannot load inbound routes')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve inbound routes')).toBeVisible()
 
     failing = false
     await page.getByRole('button', { name: 'Retry' }).click()

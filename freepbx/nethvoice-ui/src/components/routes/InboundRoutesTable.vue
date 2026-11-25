@@ -31,6 +31,7 @@ import {
 import LoadError from '@/components/common/LoadError.vue'
 import TablePaginator from '@/components/common/TablePaginator.vue'
 import TrunksUpdatingIndicator from '@/components/trunks/TrunksUpdatingIndicator.vue'
+import { useUpdatingIndicator } from '@/composables/useUpdatingIndicator'
 import DeleteInboundRouteModal from './DeleteInboundRouteModal.vue'
 import { useInboundRouteLabels } from '@/composables/useInboundRouteLabels'
 import { useInboundRoutes } from '@/queries/routes/inbound'
@@ -97,7 +98,7 @@ const isNoMatchEmptyStateShown = computed(
     filteredRoutes.value.length === 0,
 )
 
-const isUpdating = computed(
+const isUpdating = useUpdatingIndicator(
   () => state.value.status === 'success' && asyncStatus.value === 'loading',
 )
 
@@ -221,10 +222,10 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
       <NeTableBody>
         <NeTableRow v-for="item in routesPage" :key="item.id">
           <NeTableCell :data-label="t('routes.route')">
-            <span class="wrap-anywhere">{{ getRouteName(item) }}</span>
+            <span class="wrap-break-word">{{ getRouteName(item) }}</span>
           </NeTableCell>
           <NeTableCell :data-label="t('routes.description')">
-            <span class="wrap-anywhere">{{ item.description || '-' }}</span>
+            <span class="wrap-break-word">{{ item.description || '-' }}</span>
           </NeTableCell>
           <NeTableCell :data-label="t('routes.destination')">
             <span
@@ -238,7 +239,7 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
               />
               {{ t('routes.invalid_destination') }}
             </span>
-            <span v-else class="wrap-anywhere">{{
+            <span v-else class="wrap-break-word">{{
               describeDestination(item.destination) || '-'
             }}</span>
           </NeTableCell>

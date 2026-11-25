@@ -8,7 +8,13 @@ import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
 import { useMutation, useQueryCache } from '@pinia/colada'
-import { NeCombobox, NeInlineNotification, NeModal, NeSkeleton } from '@nethesis/vue-components'
+import {
+  focusElement,
+  NeCombobox,
+  NeInlineNotification,
+  NeModal,
+  NeSkeleton,
+} from '@nethesis/vue-components'
 import LoadError from '@/components/common/LoadError.vue'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useOutboundRouteDefaults } from '@/queries/routes/outbound'
@@ -21,6 +27,7 @@ import { getCountryLabel } from '@/lib/settings/system'
 import type { Focusable } from '@/lib/common'
 import { useSetupStore } from '@/stores/setup'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useSetupGuard } from '@/composables/useSetupGuard'
 
 const { visible = false } = defineProps<{
   visible: boolean
@@ -30,6 +37,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t, locale } = useI18n()
 const queryCache = useQueryCache()
+const { ensureSetupInProgress } = useSetupGuard()
 const setupStore = useSetupStore()
 const notificationsStore = useNotificationsStore()
 const { describeRouteError } = useOutboundRouteLabels()
@@ -45,7 +53,10 @@ const {
   reset: createRoutesReset,
   error: createRoutesError,
 } = useMutation({
-  mutation: (pbxLocale: string) => postDefaultOutboundRoutes(pbxLocale),
+  mutation: async (pbxLocale: string) => {
+    await ensureSetupInProgress()
+    await postDefaultOutboundRoutes(pbxLocale)
+  },
   onSuccess() {
     setTimeout(() => {
       notificationsStore.createNotification({
@@ -84,7 +95,7 @@ function createRoutes() {
 
   if (!result.success) {
     validationIssues.value = { country: result.issues[0].message }
-    countryRef.value?.focus()
+    focusElement(countryRef)
     return
   }
   createRoutesMutate(result.output.country)
@@ -96,7 +107,7 @@ function createRoutes() {
     :visible="visible"
     :title="t('routes.create_default_routes')"
     kind="neutral"
-    :primary-label="t('routes.create_routes')"
+    :primary-label="t('common.create')"
     :cancel-label="t('common.cancel')"
     :primary-button-disabled="createRoutesLoading || defaultsState.status !== 'success'"
     :primary-button-loading="createRoutesLoading"

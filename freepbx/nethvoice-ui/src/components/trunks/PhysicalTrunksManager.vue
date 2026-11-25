@@ -54,6 +54,7 @@ import { usePermissions } from '@/queries/permissions/me'
 import { useClientPagination } from '@/composables/useClientPagination'
 import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
 import { usePolling } from '@/composables/usePolling'
+import { useUpdatingIndicator } from '@/composables/useUpdatingIndicator'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const { variant = 'admin' } = defineProps<{ variant?: 'admin' | 'setup' }>()
@@ -85,7 +86,7 @@ const isLoading = computed(
   () => gatewaysState.value.status === 'pending' || modelsState.value.status === 'pending',
 )
 
-const isLoaded = computed(() => !isLoading.value && !loadError.value)
+const isLoaded = computed(() => !isLoading.value && gatewaysState.value.data !== undefined)
 
 const gateways = computed(() => gatewaysState.value.data ?? [])
 
@@ -115,21 +116,27 @@ const liveData = computed(() =>
   liveState.value.status === 'error' ? undefined : liveState.value.data,
 )
 
-const isNoDataEmptyStateShown = computed(() => isLoaded.value && gateways.value.length === 0)
+const isNoDataEmptyStateShown = computed(
+  () => isLoaded.value && !loadError.value && gateways.value.length === 0,
+)
 
 const emptyStateDescription = computed(() =>
   variant === 'admin' ? '' : t('trunks.physical.no_trunks_setup_description'),
 )
 
 const isNoMatchEmptyStateShown = computed(
-  () => isLoaded.value && gateways.value.length > 0 && filteredGateways.value.length === 0,
+  () =>
+    isLoaded.value &&
+    !loadError.value &&
+    gateways.value.length > 0 &&
+    filteredGateways.value.length === 0,
 )
 
 const isTableShown = computed(
   () => isLoading.value || (isLoaded.value && filteredGateways.value.length > 0),
 )
 
-const isUpdating = computed(
+const isUpdating = useUpdatingIndicator(
   () =>
     isLoaded.value &&
     gateways.value.length > 0 &&
@@ -223,7 +230,7 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
     </div>
     <div class="flex flex-col gap-6">
       <div
-        v-if="!isNoDataEmptyStateShown && !loadError"
+        v-if="!isNoDataEmptyStateShown && (isLoading || isLoaded)"
         class="flex flex-wrap items-center justify-between gap-4"
       >
         <div class="flex flex-wrap items-center gap-4">
@@ -242,7 +249,7 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
             :disabled="!textFilter"
             @click="textFilter = ''"
           >
-            {{ t('common.clear_filter') }}
+            {{ t('common.reset_filters') }}
           </NeButton>
         </div>
         <div class="flex items-center gap-4">

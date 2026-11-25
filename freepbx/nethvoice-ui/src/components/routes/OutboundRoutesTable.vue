@@ -41,6 +41,7 @@ import CreateDefaultOutboundRoutesModal from './CreateDefaultOutboundRoutesModal
 import EditOutboundRouteDrawer from './EditOutboundRouteDrawer.vue'
 import RouteTrunkBadge from './RouteTrunkBadge.vue'
 import TrunksUpdatingIndicator from '@/components/trunks/TrunksUpdatingIndicator.vue'
+import { useUpdatingIndicator } from '@/composables/useUpdatingIndicator'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
 import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { usePermissions } from '@/queries/permissions/me'
@@ -70,9 +71,14 @@ const ROUTE_ICONS: Record<OutboundRouteKind, IconDefinition> = {
   toll: faPhoneFlip,
 }
 
-const { showFilters = true, busy = false } = defineProps<{
+const {
+  showFilters = true,
+  busy = false,
+  variant = 'admin',
+} = defineProps<{
   showFilters?: boolean
   busy?: boolean
+  variant?: 'admin' | 'setup'
 }>()
 
 const { t } = useI18n()
@@ -160,7 +166,7 @@ const isNoMatchEmptyStateShown = computed(
     filteredRoutes.value.length === 0,
 )
 
-const isUpdating = computed(
+const isUpdating = useUpdatingIndicator(
   () => !loading.value && state.value.status === 'success' && asyncStatus.value === 'loading',
 )
 
@@ -251,7 +257,11 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
       :icon="faRoute"
       class="bg-elevation-0"
     >
-      <NeButton kind="primary" size="lg" @click="isShownCreateDefaultRoutesModal = true">
+      <NeButton
+        :kind="variant === 'admin' ? 'primary' : 'secondary'"
+        :size="variant === 'admin' ? 'lg' : 'md'"
+        @click="isShownCreateDefaultRoutesModal = true"
+      >
         <template #prefix>
           <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
         </template>

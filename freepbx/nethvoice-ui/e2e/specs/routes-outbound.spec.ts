@@ -188,7 +188,7 @@ test.describe('routes: outbound', () => {
     )
 
     await page.goto('./routes/outbound')
-    await expect(page.getByText('Cannot load outbound routes')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve outbound routes')).toBeVisible()
 
     failing = false
     await page.getByRole('button', { name: 'Retry' }).click()
@@ -215,19 +215,51 @@ test.describe('routes: outbound', () => {
 
     const modal = page.getByRole('dialog')
 
-    await modal.getByRole('button', { name: 'Create routes' }).click()
+    await modal.getByRole('button', { name: 'Create', exact: true }).click()
     await expect(modal.getByText('Choose a country')).toBeVisible()
+    await expect(modal.getByRole('combobox', { name: 'PBX country' })).toBeFocused()
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(0)
 
     await modal.getByRole('combobox', { name: 'PBX country' }).click()
     await page.getByRole('option', { name: 'Italy' }).click()
-    await modal.getByRole('button', { name: 'Create routes' }).click()
+    await modal.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect.poll(() => mockApi.callsTo('POST', '/freepbx/rest/outboundroutes').length).toBe(1)
     await expect(modal).toBeHidden()
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')[0].body).toEqual({
       it: KINDS.map((kind) => ({ name: `${kind}_it`, trunks: [TWT, VODAFONE, TIM] })),
     })
+    await expect(routeRow(page, 'National')).toBeVisible()
+  })
+
+  test('explains that the routes were created in the meantime', async ({ page, mockApi }) => {
+    let listed = 0
+
+    mockApi.on('GET', '/freepbx/rest/outboundroutes', () => {
+      listed += 1
+      return { json: listed === 1 ? [] : ROUTES }
+    })
+
+    await page.goto('./routes/outbound')
+    await expect(page.getByText('No outbound routes configured')).toBeVisible()
+    await page.getByRole('button', { name: 'Create default routes' }).click()
+
+    const modal = page.getByRole('dialog')
+
+    await modal.getByRole('combobox', { name: 'PBX country' }).click()
+    await page.getByRole('option', { name: 'Italy' }).click()
+    await modal.getByRole('button', { name: 'Create', exact: true }).click()
+
+    await expect(modal.getByText('Cannot create default outbound routes')).toBeVisible()
+    await expect(
+      modal.getByText(
+        'The outbound routes have already been created. Close the dialog to see them.',
+      ),
+    ).toBeVisible()
+    await expect(page.getByText('Outbound routes created')).toHaveCount(0)
+    expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(0)
+
+    await modal.getByRole('button', { name: 'Cancel' }).click()
     await expect(routeRow(page, 'National')).toBeVisible()
   })
 

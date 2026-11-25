@@ -8,6 +8,7 @@ import { computed, ref, useTemplateRef, watch, type ShallowRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import {
+  focusElement,
   NeButton,
   NeCombobox,
   NeInlineNotification,
@@ -51,6 +52,7 @@ import { focusUnlessFocusedWithin, type Focusable } from '@/lib/common'
 import { useTrunkCodecs, useTrunkProviders } from '@/queries/trunks/trunks'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useSetupGuard } from '@/composables/useSetupGuard'
 
 const {
   isShown = false,
@@ -77,6 +79,7 @@ const FIELD_ORDER: VoipTrunkField[] = [
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
+const { ensureSetupInProgress } = useSetupGuard()
 const notificationsStore = useNotificationsStore()
 const { state: providersState, refetch: refetchProviders } = useTrunkProviders()
 const { state: codecsState } = useTrunkCodecs()
@@ -158,7 +161,10 @@ const {
   reset: resetCreate,
   error: createError,
 } = useMutation({
-  mutation: (values: VoipTrunkForm) => postTrunk(toCreateTrunkRequest(values)),
+  mutation: async (values: VoipTrunkForm) => {
+    await ensureSetupInProgress()
+    await postTrunk(toCreateTrunkRequest(values))
+  },
   onSuccess(_data, values) {
     markTrunkChanged(values.name.trim())
     setTimeout(() => {
@@ -185,7 +191,7 @@ const {
   reset: resetUpdate,
   error: updateError,
 } = useMutation({
-  mutation: ({
+  mutation: async ({
     item,
     values,
     defaultCodecs,
@@ -193,7 +199,10 @@ const {
     item: Trunk
     values: VoipTrunkForm
     defaultCodecs: string[]
-  }) => patchTrunk(item.id, toUpdateTrunkRequest(values, item, defaultCodecs)),
+  }) => {
+    await ensureSetupInProgress()
+    await patchTrunk(item.id, toUpdateTrunkRequest(values, item, defaultCodecs))
+  },
   onSuccess(_data, { item }) {
     markTrunkChanged(item.name)
     setTimeout(() => {
@@ -283,7 +292,7 @@ function validate(): boolean {
   const firstInvalidField = FIELD_ORDER.find((field) => validationIssues.value[field])
 
   if (firstInvalidField) {
-    fieldRefs[firstInvalidField].value?.focus()
+    focusElement(fieldRefs[firstInvalidField])
     return false
   }
   return true
@@ -340,7 +349,7 @@ function normalizePhoneNumberField() {
 
 function issue(field: VoipTrunkField): string {
   const key = validationIssues.value[field]
-  return key ? t(key) : ''
+  return key ? t(key, { max: TRUNK_NAME_MAX_LENGTH }) : ''
 }
 </script>
 

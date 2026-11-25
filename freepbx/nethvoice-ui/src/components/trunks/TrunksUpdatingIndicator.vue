@@ -8,7 +8,7 @@ import { NeSpinner } from '@nethesis/vue-components'
 </script>
 
 <template>
-  <div class="text-placeholder flex items-center gap-2" role="status">
+  <div class="text-tertiary-neutral flex items-center gap-2" role="status">
     <NeSpinner color="gray" size="4" />
     <span>{{ $t('trunks.updating') }}</span>
   </div>

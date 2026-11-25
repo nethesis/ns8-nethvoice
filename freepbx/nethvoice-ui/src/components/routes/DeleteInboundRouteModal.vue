@@ -11,6 +11,7 @@ import DeleteObjectModal from '@/components/common/DeleteObjectModal.vue'
 import { useInboundRouteLabels } from '@/composables/useInboundRouteLabels'
 import { deleteInboundRoute, INBOUND_ROUTES_KEY, type InboundRoute } from '@/lib/routes/inbound'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useSetupGuard } from '@/composables/useSetupGuard'
 
 const { visible = false, route = undefined } = defineProps<{
   visible: boolean
@@ -21,6 +22,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
+const { ensureSetupInProgress } = useSetupGuard()
 const notificationsStore = useNotificationsStore()
 const { getRouteName } = useInboundRouteLabels()
 
@@ -30,7 +32,10 @@ const {
   reset: deleteRouteReset,
   error: deleteRouteError,
 } = useMutation({
-  mutation: (routeToDelete: InboundRoute) => deleteInboundRoute(routeToDelete),
+  mutation: async (routeToDelete: InboundRoute) => {
+    await ensureSetupInProgress()
+    return deleteInboundRoute(routeToDelete)
+  },
   onSuccess(result, routeToDelete) {
     const name = getRouteName(routeToDelete)
 

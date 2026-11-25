@@ -9,7 +9,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faCircleCheck,
   faCircleMinus,
-  faCircleQuestion,
+  faCircleHalfStroke,
   faCircleXmark,
   faClock,
   type IconDefinition,
@@ -35,7 +35,7 @@ const STYLES: Record<TrunkStatus, { icon: IconDefinition; color: string }> = {
   offline: { icon: faCircleXmark, color: NEUTRAL },
   rejected: { icon: faCircleXmark, color: DANGER },
   not_connected: { icon: faCircleXmark, color: DANGER },
-  unknown: { icon: faCircleQuestion, color: NEUTRAL },
+  unknown: { icon: faCircleHalfStroke, color: NEUTRAL },
   disabled: { icon: faCircleXmark, color: DISABLED },
 }
 

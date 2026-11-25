@@ -41,6 +41,26 @@ test.describe('trunks: physical', () => {
     expect(mockApi.callsTo('GET', '/freepbx/rest/devices/gateways/list/:id')).not.toHaveLength(0)
   })
 
+  test('keeps the gateways and shows the error above them when a refresh fails', async ({
+    page,
+    mockApi,
+  }) => {
+    mockTrunksApi(mockApi)
+    await page.clock.install()
+    await page.goto('./trunks/physical')
+    await expect(page.getByRole('row', { name: /TRINITY ISDN 2 Porte/ })).toBeVisible()
+
+    mockApi.on('GET', '/freepbx/rest/devices/gateways/list/:id', {
+      status: 500,
+      json: 'An error occurred',
+    })
+    await page.clock.runFor(10_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(page.getByText('Cannot retrieve the physical trunks')).toBeVisible()
+    await expect(page.getByRole('row', { name: /TRINITY ISDN 2 Porte/ })).toBeVisible()
+  })
+
   test('shows the gateway status to an administrator with only the trunks section', async ({
     page,
     mockApi,
@@ -100,7 +120,7 @@ test.describe('trunks: physical', () => {
     )
     await page.goto('./trunks/physical')
 
-    await expect(page.getByText('Cannot load the physical trunks')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the physical trunks')).toBeVisible()
     failing = false
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(page.getByRole('row', { name: /TRINITY ISDN 2 Porte/ })).toBeVisible()
@@ -345,7 +365,7 @@ test.describe('trunks: physical', () => {
     mockApi.on('GET', '/freepbx/rest/devices/gateways/manufacturers', { status: 500 })
     await page.goto('./trunks/physical')
 
-    await expect(page.getByText('Cannot load the gateway models')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the gateway models')).toBeVisible()
     await expect(page.getByRole('row', { name: /Patton-TRINITY ISDN 2 Porte/ })).toBeVisible()
   })
 

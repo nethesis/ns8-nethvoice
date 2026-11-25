@@ -21,6 +21,7 @@ import { FXS_USERS_KEY } from '@/lib/trunks/fxsUsers'
 import { OUTBOUND_ROUTES_KEY } from '@/lib/routes/outbound'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useSetupGuard } from '@/composables/useSetupGuard'
 
 const {
   visible = false,
@@ -36,6 +37,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
+const { ensureSetupInProgress } = useSetupGuard()
 const notificationsStore = useNotificationsStore()
 
 useFocusReturn(() => visible)
@@ -48,7 +50,10 @@ const {
   reset,
   error,
 } = useMutation({
-  mutation: (item: Gateway) => deleteGateway(item.id),
+  mutation: async (item: Gateway) => {
+    await ensureSetupInProgress()
+    await deleteGateway(item.id)
+  },
   onSuccess(_data, item) {
     setTimeout(() => {
       notificationsStore.createNotification({

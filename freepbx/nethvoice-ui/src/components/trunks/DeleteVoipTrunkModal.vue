@@ -14,6 +14,7 @@ import { TRUNKS_LIVE_STATE_KEY } from '@/lib/trunks/liveState'
 import { OUTBOUND_ROUTES_KEY } from '@/lib/routes/outbound'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useSetupGuard } from '@/composables/useSetupGuard'
 
 const { visible = false, trunk = undefined } = defineProps<{
   visible: boolean
@@ -24,6 +25,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
+const { ensureSetupInProgress } = useSetupGuard()
 const notificationsStore = useNotificationsStore()
 
 useFocusReturn(() => visible)
@@ -36,7 +38,10 @@ const {
   reset,
   error,
 } = useMutation({
-  mutation: (item: Trunk) => deleteTrunk(item.id),
+  mutation: async (item: Trunk) => {
+    await ensureSetupInProgress()
+    await deleteTrunk(item.id)
+  },
   onSuccess(_data, item) {
     setTimeout(() => {
       notificationsStore.createNotification({

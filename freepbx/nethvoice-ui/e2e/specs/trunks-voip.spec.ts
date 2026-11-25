@@ -97,6 +97,57 @@ test.describe('trunks: VoIP', () => {
     expect(overflow).toBe(0)
   })
 
+  test('keeps the trunks and shows the error above them when a refresh fails', async ({
+    page,
+    mockApi,
+  }) => {
+    mockTrunksApi(mockApi)
+    await page.clock.install()
+    await page.goto('./trunks/voip')
+    await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
+
+    mockApi.on('GET', '/freepbx/rest/trunks', { status: 500, json: 'An error occurred' })
+    await page.clock.runFor(10_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(page.getByText('Cannot retrieve the VoIP trunks')).toBeVisible()
+    await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'Filter trunks' })).toBeVisible()
+  })
+
+  test('shows Updating only when a refresh takes more than half a second', async ({
+    page,
+    mockApi,
+  }) => {
+    let release = () => {}
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+
+    mockTrunksApi(mockApi)
+    await page.clock.install()
+    await page.goto('./trunks/voip')
+    await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
+    await page.clock.pauseAt(Date.now() + 10_000)
+
+    mockApi.on('GET', '/freepbx/rest/trunks', async () => {
+      await released
+      return { json: [VOIP_TRUNK, BACKUP_TRUNK, GATEWAY_TRUNK] }
+    })
+    const calls = mockApi.callsTo('GET', '/freepbx/rest/trunks').length
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect
+      .poll(() => mockApi.callsTo('GET', '/freepbx/rest/trunks').length)
+      .toBeGreaterThan(calls)
+    await expect(page.getByText('Updating…')).toHaveCount(0)
+
+    await page.clock.runFor(600)
+    await expect(page.getByText('Updating…')).toBeVisible()
+    await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
+
+    release()
+  })
+
   test('lists the VoIP trunks with live status, without the gateway trunks', async ({
     page,
     mockApi,
@@ -164,7 +215,7 @@ test.describe('trunks: VoIP', () => {
     )
     await page.goto('./trunks/voip')
 
-    await expect(page.getByText('Cannot load the VoIP trunks')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the VoIP trunks')).toBeVisible()
     failing = false
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
@@ -186,7 +237,7 @@ test.describe('trunks: VoIP', () => {
     await expect(main).toContainText('Registered')
     await expect(page.getByRole('row', { name: /backup_trunk/ })).toContainText('Rejected')
     await expect(page.getByText('Live data not available')).toHaveCount(0)
-    await expect(page.getByText('Cannot load the live status of the trunks')).toHaveCount(0)
+    await expect(page.getByText('Cannot retrieve the live status of the trunks')).toHaveCount(0)
   })
 
   test('keeps the list when the live status is not available', async ({ page, mockApi }) => {
@@ -197,7 +248,7 @@ test.describe('trunks: VoIP', () => {
     })
     await page.goto('./trunks/voip')
 
-    await expect(page.getByText('Cannot load the live status of the trunks')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the live status of the trunks')).toBeVisible()
     await expect(page.getByRole('row', { name: /main_trunk/ })).toContainText('Unknown')
   })
 
@@ -541,7 +592,7 @@ test.describe('trunks: VoIP, special cases', () => {
     await page.goto('./trunks/voip')
 
     await expect(
-      page.getByText('Cannot load the gateways, so their trunks may be listed here too'),
+      page.getByText('Cannot retrieve the gateways, so their trunks may be listed here too'),
     ).toBeVisible()
     await expect(page.getByRole('row', { name: /main_trunk/ })).toBeVisible()
     await expect(page.getByText(GATEWAY_TRUNK.name)).toHaveCount(0)

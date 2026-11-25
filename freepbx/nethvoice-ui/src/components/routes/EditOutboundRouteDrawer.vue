@@ -47,6 +47,7 @@ import {
   type RouteTrunk,
 } from '@/lib/routes/outbound'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useSetupGuard } from '@/composables/useSetupGuard'
 
 const { isShown = false, route = undefined } = defineProps<{
   isShown: boolean
@@ -57,6 +58,7 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
+const { ensureSetupInProgress } = useSetupGuard()
 const notificationsStore = useNotificationsStore()
 const { getRouteTitleAmong, describeRouteError } = useOutboundRouteLabels()
 const { state: routesState } = useOutboundRoutes()
@@ -89,8 +91,10 @@ const {
   reset: saveTrunksReset,
   error: saveTrunksError,
 } = useMutation({
-  mutation: (vars: { route: OutboundRoute; title: string; trunks: RouteTrunk[] }) =>
-    postOutboundRouteTrunks(vars.route.id, vars.trunks),
+  mutation: async (vars: { route: OutboundRoute; title: string; trunks: RouteTrunk[] }) => {
+    await ensureSetupInProgress()
+    await postOutboundRouteTrunks(vars.route.id, vars.trunks)
+  },
   onSuccess(_data, vars) {
     setTimeout(() => {
       notificationsStore.createNotification({
