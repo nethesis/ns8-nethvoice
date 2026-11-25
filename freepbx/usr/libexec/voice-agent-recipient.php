@@ -7,7 +7,7 @@ $started = microtime(true);
 require_once dirname(__DIR__,2).'/var/www/html/freepbx/rest/lib/agents/Preview.php';
 if (!\NethVoice\Agents\Preview::enabled()) { http_response_code(404); exit; }
 $token = \NethVoice\Agents\Preview::value('VOICE_AGENT_RECIPIENT_TOKEN');
-$port = getenv('NETHVOICE_RECIPIENT_SERVICE_PORT');
+$port = \NethVoice\Agents\Preview::value('NETHVOICE_RECIPIENT_SERVICE_PORT');
 if (!$token || strlen($token) < 32 || !$port
     || ($_SERVER['SERVER_PORT'] ?? '') !== $port
     || ($_SERVER['REMOTE_ADDR'] ?? '') !== '127.0.0.1'
