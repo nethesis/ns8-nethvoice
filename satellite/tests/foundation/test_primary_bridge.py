@@ -166,6 +166,7 @@ async def test_armed_live_call_records_selected_comparison_at_close(monkeypatch,
     url = str(server.make_url('/v1/live/sessions'))
     monkeypatch.setattr(OpenAILiveAdapter, 'ws_base', url.replace('http:', 'ws:'))
     monkeypatch.setattr(OpenAILiveAdapter, 'http_base', url)
+    monkeypatch.setenv('VOICE_AGENT_SIP_LAB_ENABLED', 'true')
     runtime = scoped_runner.ScopedRuntime(storage, controller)
     try:
         await runtime.admit({'id': caller_id, 'dialplan': {'context': 'voice-agent-receptionist'}}, 'receptionist')

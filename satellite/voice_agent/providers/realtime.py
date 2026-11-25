@@ -73,10 +73,9 @@ def _openai_realtime_tools(tools) -> list[dict]:
     for tool in result:
         if tool.get('name') not in ('nv_pbx_transfer_v2', 'nv_pbx_transfer_v3'):
             continue
-        from ..tools import SUPPORTED
+        from ..tools import SUPPORTED, transfer_parameters
         canonical = SUPPORTED[('pbx.transfer', 3 if tool['name'].endswith('_v3') else 2)]['input_schema']
-        restricted = copy.deepcopy(canonical)
-        restricted['properties']['destination_id']['pattern'] = r'^(extension|queue):[0-9]{1,20}$(?![\s\S])'
+        restricted = transfer_parameters(canonical)
         if tool.get('parameters') not in (canonical, restricted):
             raise ValueError('unsupported_realtime_tool_schema')
         tool['parameters'] = restricted

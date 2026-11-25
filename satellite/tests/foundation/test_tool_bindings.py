@@ -56,14 +56,14 @@ async def test_v3_config_pins_limit_and_transfer_visibility():
     value['tool_bindings'][1]['config']['extension_allowlist'] = []
     assert len(registry.advertised()) == 2
     assert await registry.invoke('search', 'nv_pbx_find_destinations_v1', {}) == {'destinations': [{'id': 'extension:203', 'name': 'Allowed', 'description': ''}], 'next_offset': 1}
-    assert await registry.invoke('deny', 'nv_pbx_transfer_v2', {'destination_id': 'extension:205'}) == {'error': 'destination_denied'}
+    assert await registry.invoke('deny', 'nv_pbx_transfer_v2', {'confirmed': True, 'destination_id': 'extension:205'}) == {'error': 'destination_denied'}
     controller.transfer.assert_not_awaited()
     disabled = snapshot()
     disabled['tool_bindings'][1]['enabled'] = False
     registry = ToolRegistry(disabled, targets, controller)
     assert len(registry.advertised()) == 1
     assert await registry.invoke('empty', 'pbx.find_destinations', {}) == {'destinations': [], 'next_offset': None}
-    assert await registry.invoke('guess', 'pbx.transfer', {'destination_id': 'extension:203'}) == {'error': 'tool_denied'}
+    assert await registry.invoke('guess', 'pbx.transfer', {'confirmed': True, 'destination_id': 'extension:203'}) == {'error': 'tool_denied'}
     disabled['tool_bindings'][0]['enabled'] = False
     disabled['tool_bindings'][2]['enabled'] = False
     registry = ToolRegistry(disabled, targets, controller)

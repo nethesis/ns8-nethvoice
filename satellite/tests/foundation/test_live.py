@@ -287,7 +287,7 @@ async def test_live_runtime_uses_common_grants_and_confirmed_transfer_over_tcp()
         backend=emulator.accepted[0]['session']['delegation']['responses']
         assert 'extension:203' in backend['instructions']
         wire=next(w for w,name in call.adapter._wire_tools.items() if name==call.tools.manifests['pbx.transfer']['name'])
-        await emulator.tool(wire,invocation='denied',response='denied-response',arguments={'destination_id':'extension:204'})
+        await emulator.tool(wire,invocation='denied',response='denied-response',arguments={'confirmed': True, 'destination_id':'extension:204'})
         await eventually(lambda:any(e['type']=='response.item.create' and e['item'].get('call_id')=='denied' for e in emulator.received))
         controller.continue_channel.assert_not_awaited()
         async def acknowledge(channel,target):
@@ -296,7 +296,7 @@ async def test_live_runtime_uses_common_grants_and_confirmed_transfer_over_tcp()
             assert not call.transfer_done.is_set()
             await runtime.event({'type':'ChannelUserevent','eventname':'VoiceAgentTransfer','channel':{'id':channel},'userevent':{'token':call.transfer_token,'destination_id':'extension:203'}})
         controller.continue_channel.side_effect=acknowledge
-        await emulator.tool(wire,invocation='allowed',response='allowed-response',arguments={'destination_id':'extension:203'})
+        await emulator.tool(wire,invocation='allowed',response='allowed-response',arguments={'confirmed': True, 'destination_id':'extension:203'})
         await eventually(lambda:any(e['event_type']=='transfer_committed' for e in list(runtime.monitoring.queue._queue)))
         assert call.transfer_outcome=='transferred'
     finally:
