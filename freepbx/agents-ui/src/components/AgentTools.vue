@@ -52,13 +52,9 @@ const permittedExtensions = computed(() =>
     ? list(config.value.extension_allowlist)
     : [],
 );
-const permittedQueues = computed(() => {
-  if (config.value.queues_enabled !== true) return [];
-  const excluded = list(config.value.queue_denylist);
-  return (queues.data.value || [])
-    .map((q) => q.id)
-    .filter((id) => !excluded.includes(id));
-});
+const permittedQueues = computed(() =>
+  config.value.queues_enabled === true ? list(config.value.queue_allowlist) : [],
+);
 const unavailable = computed(() =>
   extensions.data.value
     ? permittedExtensions.value.filter(
@@ -110,14 +106,11 @@ function saveDestinations(value: DestinationSelection) {
     .map((e) => e.id)
     .filter((id) => id in value.extensions);
   const selectedQueues = Object.keys(value.queues);
-  const allQueues = (queues.data.value || []).map((q) => q.id);
   configure("pbx.transfer", {
     extensions_enabled: selectedExtensions.length > 0,
     extension_allowlist: selectedExtensions,
     queues_enabled: selectedQueues.length > 0,
-    queue_denylist: selectedQueues.length
-      ? allQueues.filter((id) => !selectedQueues.includes(id))
-      : [],
+    queue_allowlist: selectedQueues,
     descriptions: Object.entries({ ...value.extensions, ...value.queues })
       .filter(([, text]) => text.trim())
       .map(([destination_id, description]) => ({

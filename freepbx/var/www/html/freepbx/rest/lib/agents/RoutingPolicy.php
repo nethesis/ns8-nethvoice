@@ -24,6 +24,6 @@ final class RoutingPolicy
         if (!$transfer || !$transfer['enabled']) return false;
         $config=$transfer['config'];
         if ($m[1]==='extension') return $config['extensions_enabled'] && in_array($id,$config['extension_allowlist'],true);
-        return $config[$m[1].'s_enabled'] && !in_array($id,$config[$m[1].'_denylist'],true);
+        return $config['queues_enabled'] && in_array($id,$config['queue_allowlist']??[],true);
     }
 }
