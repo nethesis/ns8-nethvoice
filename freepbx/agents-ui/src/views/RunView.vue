@@ -27,7 +27,7 @@ import type { Run, TraceEvent } from "../types";
 import {
   duration,
   formatTime,
-  formatUtc,
+  formatDateTime,
   providerCodeText,
   runErrorText,
   timeline,
@@ -137,13 +137,13 @@ const summary = computed(() => {
     {
       id: "started",
       label: t("startedAt"),
-      value: formatUtc(value.started_at, String(locale.value)) + " UTC",
+      value: formatDateTime(value.started_at, String(locale.value)),
     },
     {
       id: "ended",
       label: t("endedAt"),
       value: value.ended_at
-        ? formatUtc(value.ended_at, String(locale.value)) + " UTC"
+        ? formatDateTime(value.ended_at, String(locale.value))
         : "—",
     },
     {
@@ -231,8 +231,7 @@ const partial = computed(
       run
         ? (run.agent_name || run.agent_id) +
           ' · ' +
-          formatUtc(run.started_at, String(locale)) +
-          ' UTC'
+          formatDateTime(run.started_at, String(locale))
         : ''
     "
     back="/activity"
