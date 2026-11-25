@@ -3,6 +3,8 @@
 set -euo pipefail
 export NETHVOICE_RECIPIENT_SERVICE_PORT=31043
 export VOICE_AGENT_RECIPIENT_TOKEN=synthetic-recipient-key-000000000000000000
+mkdir -p /run/nethvoice-preview
+printf '%s\n' 'VOICE_AGENT_ENABLED=true' "VOICE_AGENT_RECIPIENT_TOKEN=$VOICE_AGENT_RECIPIENT_TOKEN" >/run/nethvoice-preview/effective.env
 # Run the listener's real configuration block without initializing a PBX.
 sed -n '/# Reuse Apache/,/^# Don.t continue/p' /entrypoint > /tmp/recipient-listener.sh
 bash /tmp/recipient-listener.sh

@@ -1,4 +1,5 @@
 <?php
+putenv('VOICE_AGENT_ENABLED=true');
 // Exercise the actual Slim routes and Wizard middleware on a disposable DB.
 require getenv('M0_REST_AUTOLOAD') ?: '/var/www/html/freepbx/rest/vendor/autoload.php';
 $root=__DIR__.'/../../var/www/html/freepbx/rest';

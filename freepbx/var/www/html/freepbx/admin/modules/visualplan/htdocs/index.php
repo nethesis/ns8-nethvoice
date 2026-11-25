@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__DIR__,4).'/rest/lib/agents/Preview.php';
 /*check auth*/
 include_once '/etc/freepbx.conf';
 session_start();
@@ -228,7 +229,7 @@ $_SESSION['visualplan_agent_csrf'] ??= bin2hex(random_bytes(32));
 			</div>
 			<div data-shape="Base" id="app-daynight" class="palette_node_element draw2d_droppable" title="drag&amp;drop the table into the canvas..">
 			</div>
-			<div data-shape="Base" id="satellite-agent-destination" class="palette_node_element draw2d_droppable" title="Agent">Agent</div>
+			<?php if (\NethVoice\Agents\Preview::enabled()) { ?><div data-shape="Base" id="satellite-agent-destination" class="palette_node_element draw2d_droppable" title="Agent">Agent</div><?php } ?>
 			<!-- -->
 			<!-- Cerchio -->
 			<div data-shape="Base" data-radius="20" id="from-did-direct" class="palette_node_element draw2d_droppable endWidget" title="drag&amp;drop the table into the canvas..">

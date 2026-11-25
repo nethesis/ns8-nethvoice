@@ -1,6 +1,7 @@
 <?php
 // SPDX-License-Identifier: GPL-3.0-or-later
 namespace NethVoice\Agents;
+require_once __DIR__.'/Preview.php';
 
 /** Read-only monitoring API. Satellite owns observations and metric projections. */
 final class Monitoring
@@ -12,7 +13,7 @@ final class Monitoring
     public function __construct(\PDO $db) { $this->db=$db; $db->exec("SET time_zone='+00:00'"); }
     public static function retentionDays(): int
     {
-        $value=getenv('VOICE_AGENT_MONITORING_RETENTION_DAYS');
+        $value=Preview::value('VOICE_AGENT_MONITORING_RETENTION_DAYS');
         if ($value===false) return 90;
         if (!preg_match('/^[0-9]{1,4}$/D',$value) || (int)$value<1 || (int)$value>3650) {
             error_log('voice_agent_monitoring_retention_invalid'); return 90;

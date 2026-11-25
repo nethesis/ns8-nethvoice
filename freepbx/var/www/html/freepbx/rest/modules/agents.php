@@ -1,5 +1,7 @@
 <?php
 // SPDX-License-Identifier: GPL-3.0-or-later
+require_once __DIR__.'/../lib/agents/Preview.php';
+if (!\NethVoice\Agents\Preview::enabled()) return;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
 require_once __DIR__ . '/../lib/agents/Access.php';

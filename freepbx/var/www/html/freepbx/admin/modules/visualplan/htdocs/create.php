@@ -69,6 +69,7 @@ try {
     foreach ($widgetArray as $widget) $hasAgent=$hasAgent || str_starts_with($widget['id']??'', 'satellite-agent-destination%');
     foreach ($connectionArray as $connection) foreach (['source','target'] as $end) $hasAgent=$hasAgent || str_starts_with($connection[$end]['node']??'', 'satellite-agent-destination%');
     if ($hasAgent) {
+        if (!\NethVoice\Agents\Preview::enabled()) throw new RuntimeException('agent_preview_disabled',409);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['visualplan_agent_csrf']) ||
             !hash_equals($_SESSION['visualplan_agent_csrf'], $_SERVER['HTTP_X_VISUALPLAN_AGENT_CSRF'] ?? '')) throw new RuntimeException('forbidden', 403);
         foreach ($widgetArray as $widget) {

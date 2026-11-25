@@ -100,6 +100,7 @@ try { getMainExtensionPresence('203'); assert(false); } catch (RuntimeException 
 try { getMainExtensionPresence('203)'); assert(false); } catch (InvalidArgumentException $error) {}
 // Authentication and route checks run before the privileged FreePBX bootstrap.
 $handler=__DIR__.'/../../usr/libexec/voice-agent-recipient.php';
+putenv('VOICE_AGENT_ENABLED=true');
 putenv('VOICE_AGENT_RECIPIENT_TOKEN='.str_repeat('x',32));
 putenv('NETHVOICE_RECIPIENT_SERVICE_PORT=31043');
 $server=['SERVER_PORT'=>'31043','REMOTE_ADDR'=>'127.0.0.1','HTTP_AUTHORIZATION'=>'Bearer '.str_repeat('x',32),

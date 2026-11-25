@@ -1,4 +1,5 @@
 <?php
+putenv('VOICE_AGENT_ENABLED=true');
 // Exercise the real FreePBX extension classes with synthetic destinations only.
 require_once getenv('VOICE_AGENT_EXTENSIONS_FILE') ?: '/var/www/html/freepbx/admin/libraries/extensions.class.php';
 require_once __DIR__.'/../../var/www/html/freepbx/admin/modules/satellite/functions.inc.php';

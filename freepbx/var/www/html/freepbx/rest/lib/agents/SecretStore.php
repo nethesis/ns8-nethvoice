@@ -1,13 +1,14 @@
 <?php
 // SPDX-License-Identifier: GPL-3.0-or-later
 namespace NethVoice\Agents;
+require_once __DIR__.'/Preview.php';
 
 /** Adapted from legacy AgentCrypto: one per-instance NS8 secretbox key. */
 final class SecretStore
 {
     private function key(): string
     {
-        $master = getenv('SATELLITE_AGENT_CONFIG_KEY');
+        $master = Preview::value('SATELLITE_AGENT_CONFIG_KEY');
         if (!is_string($master) || $master === '') throw new \RuntimeException('encryption_unavailable', 503);
         return hash('sha256', $master, true);
     }
