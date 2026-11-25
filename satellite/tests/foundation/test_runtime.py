@@ -291,7 +291,7 @@ async def test_lifecycle_waits_for_native_transfer_while_continue_is_in_flight(s
 
 
 @pytest.mark.asyncio
-async def test_event_socket_drop_allows_runtime_cleanup_over_http():
+async def test_event_socket_drop_falls_back_then_accepts_calls_after_reconnect():
     from aiohttp import web
     from aiohttp.test_utils import TestServer
     from voice_agent.ari import AriController
@@ -301,15 +301,27 @@ async def test_event_socket_drop_allows_runtime_cleanup_over_http():
     call.bridge_id = 'sip-bridge'
     requests = []
     cleaned = asyncio.Event()
+    new_call = asyncio.Event()
+    connections = 0
 
     async def drop_events(request):
+        nonlocal connections
+        connections += 1
         ws = web.WebSocketResponse()
         await ws.prepare(request)
-        await ws.close()
+        if connections == 1:
+            await ws.close()
+        else:
+            await ws.send_json({'type': 'StasisStart', 'args': ['caller', 'basic_voice'], 'channel': {
+                'id': 'after-reconnect', 'dialplan': {'context': 'voice-agent-basic_voice'}}})
+            async for _ in ws:
+                pass
         return ws
 
     async def rest(request):
         requests.append((request.method, request.path))
+        if request.path == '/ari/channels' and request.method == 'POST':
+            new_call.set()
         if request.method == 'GET':
             return web.json_response([])
         return web.Response(status=204)
@@ -330,6 +342,10 @@ async def test_event_socket_drop_allows_runtime_cleanup_over_http():
         await controller.start()
         try:
             await asyncio.wait_for(cleaned.wait(), 2)
+            await asyncio.wait_for(new_call.wait(), 4)
+            next_call, = runtime.calls.values()
+            assert next_call.caller_id == 'after-reconnect' and next_call.admitted
+            await runtime.finish(next_call, 'completed')
         finally:
             await controller.stop()
     assert ('POST', f'/ari/channels/{call.caller_id}/continue') in requests
