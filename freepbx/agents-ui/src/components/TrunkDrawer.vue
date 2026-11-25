@@ -67,11 +67,11 @@ watch(
   },
   { immediate: true },
 );
-const providers = [
+const providers = computed(() => [
   { id: "openai", label: "OpenAI" },
   { id: "grok", label: "Grok" },
   { id: "cleverai", label: "CleverAI" },
-];
+].filter(item => item.id === "openai" || catalog.data.value?.sip_lab_enabled || props.trunk?.provider === item.id));
 const provider = computed({
   get: () => form.value.provider,
   set: (value: string) => {
@@ -284,7 +284,7 @@ function close() {
         <p v-if="form.credential_mode === 'inherit' && errors.api_key" role="alert">{{ errors.api_key }}</p>
         <NeButton v-if="form.provider === 'openai'" kind="secondary" :loading="task.pending.value" @click="testCredential">{{ t('testCredential') }}</NeButton>
         <p v-if="credentialChecked" role="status">{{ t('credentialValid') }}</p>
-        <NeTextInput
+        <NeTextInput v-if="catalog.data.value?.sip_lab_enabled"
           v-model="form.webhook_secret"
           :label="t('webhookSigningSecret')"
           :optional="form.provider === 'openai' || editing"
@@ -306,7 +306,7 @@ function close() {
           :invalid-message="errors.webhook_secret"
           @update:model-value="errors.webhook_secret = ''"
         />
-        <div>
+        <div v-if="catalog.data.value?.sip_lab_enabled">
           <NeFormItemLabel for="webhook-endpoint">{{
             t("webhookEndpoint")
           }}</NeFormItemLabel>

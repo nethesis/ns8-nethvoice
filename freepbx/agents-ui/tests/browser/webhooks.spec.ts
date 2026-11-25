@@ -33,7 +33,7 @@ for (const theme of ["light", "dark"]) for (const width of [1440, 375]) {
         return;
       }
       const json = path === "/access" ? { csrf: "synthetic-csrf" }
-        : path === "/trunks" ? { items: [trunk, ...others] }
+        : path === "/catalog" ? {sip_lab_enabled:true} : path === "/trunks" ? { items: [trunk, ...others] }
           : path === "/profiles" ? { items: [{ agent_id: "live", draft: { provider_binding_id: "trunk_live", conversation: { model: "gpt-live-1" } }, published: null }] }
             : {};
       await route.fulfill({ json });
@@ -73,7 +73,7 @@ test("OpenAI creation needs a key and project but no signing secret; manual inpu
       await route.fulfill({ json: initial });return;
     }
     const json = path === "/access" ? { csrf: "synthetic-csrf" }
-      : path === "/catalog" ? { openai_webhook_url: "https://configured.example/satellite-webhooks/openai", provider_credentials: { openai: { environment_available: false } } }
+      : path === "/catalog" ? { sip_lab_enabled:true, openai_webhook_url: "https://configured.example/satellite-webhooks/openai", provider_credentials: { openai: { environment_available: false } } }
         : path === "/trunks" ? { items: saved ? [initial] : [] } : { items: [] };
     if (path.endsWith("configure-webhook")) configured = true;
     await route.fulfill({ json });
@@ -82,6 +82,7 @@ test("OpenAI creation needs a key and project but no signing secret; manual inpu
   await page.getByRole("button", { name: "Create trunk", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("OpenAI SIP");
   await page.getByLabel("OpenAI project ID", { exact: true }).fill("proj_explicit");
+  await page.getByText("Dedicated key", { exact: true }).click();
   await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
   await expect(page.getByLabel(/^Webhook signing secret/)).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Provider webhook endpoint" })).toHaveValue("https://configured.example/satellite-webhooks/openai");
@@ -101,7 +102,7 @@ for (const error of ["webhook_secret_recovery_required", "webhook_provider_unava
       if (route.request().method() === "POST") {
         await route.fulfill({ status: error === "webhook_secret_recovery_required" ? 409 : 503, json: { error } });return;
       }
-      await route.fulfill({ json: path.endsWith("/access") ? { csrf: "synthetic-csrf" } : { items: path.endsWith("/trunks") ? [initial] : [] } });
+      await route.fulfill({ json: path.endsWith("/access") ? { csrf: "synthetic-csrf" } : path.endsWith("/catalog") ? {sip_lab_enabled:true} : { items: path.endsWith("/trunks") ? [initial] : [] } });
     });
     await page.goto("./#/trunks");
     const button = page.getByRole("button", { name: "Configure webhook", exact: true });

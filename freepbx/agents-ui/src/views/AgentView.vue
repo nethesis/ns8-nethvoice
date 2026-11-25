@@ -516,7 +516,7 @@ async function synchronize() {
               :options="[
                 { id: 'basic_voice', label: t('agentTypes.basic_voice') },
                 { id: 'consultation', label: t('internalAssistant') },
-                { id: 'cleverai', label: t('agentTypes.cleverai') },
+                ...(catalog.data.value?.sip_lab_enabled ? [{ id: 'cleverai', label: t('agentTypes.cleverai') }] : []),
               ]"
               @update:model-value="agentType = $event || agentType"
             />
