@@ -1220,5 +1220,7 @@
   "The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN": "Il collegamento è HTTP: nome utente e password viaggiano in chiaro. Usalo solo in una rete fidata o tramite una VPN",
   "door_phone_dtmf_invalid": "Usa da 1 a 16 caratteri tra 0-9, A-D, * e #",
   "door_phone_duration_invalid": "Usa un numero di secondi da 1 a 600",
-  "door_phone_label_invalid": "L'etichetta non può contenere a capo o altri caratteri di controllo"
+  "door_phone_label_invalid": "L'etichetta non può contenere a capo o altri caratteri di controllo",
+  "The PBX sends the door phone password only to the address the door phone registers from. For another address, type the RTSP password of the door phone: you find it in the door phone settings": "Il centralino invia la password del citofono solo all'indirizzo da cui il citofono si registra. Per un altro indirizzo inserisci la password RTSP del citofono: la trovi nelle impostazioni del citofono",
+  "the door phone password is sent only to the address the door phone registers from: type the password": "la password del citofono viene inviata solo all'indirizzo da cui il citofono si registra: inserisci la password"
 }

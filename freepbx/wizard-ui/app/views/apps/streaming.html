@@ -189,17 +189,25 @@
               </div>
             </div>
           </div>
-          <div ng-if="!newSource.door_phone" class="form-group">
+          <div ng-if="newSource.door_phone && showCredentials(newSource)" class="form-group">
+            <div class="col-sm-offset-3 col-sm-9">
+              <div class="alert alert-info no-margin-bottom">
+                <span class="pficon pficon-info"></span>
+                {{'The PBX sends the door phone password only to the address the door phone registers from. For another address, type the RTSP password of the door phone: you find it in the door phone settings' | translate}}
+              </div>
+            </div>
+          </div>
+          <div ng-if="showCredentials(newSource)" class="form-group">
             <label class="col-sm-3 control-label" for="streaming-user">{{'Username' | translate}}</label>
             <div class="col-sm-9">
               <input id="streaming-user" maxlength="255" ng-model="newSource.user" ng-change="sourceChanged(newSource)" type="text" autocomplete="off" class="form-control">
             </div>
           </div>
-          <div ng-if="!newSource.door_phone" class="form-group">
+          <div ng-if="showCredentials(newSource)" class="form-group">
             <label class="col-sm-3 control-label" for="streaming-secret">{{'Password' | translate}}</label>
             <div class="col-sm-9">
               <input id="streaming-secret" maxlength="255" ng-model="newSource.secret" ng-change="sourceChanged(newSource)" ng-disabled="!newSource.user" type="password" autocomplete="new-password"
-                placeholder="{{newSource.has_secret ? ('Unchanged' | translate) : ''}}" class="form-control">
+                placeholder="{{newSource.has_secret && (!newSource.door_phone || newSource.onMod) && !newSource.doorPasswordRequired ? ('Unchanged' | translate) : ''}}" class="form-control">
             </div>
           </div>
           <!-- Linked to a door phone: the PBX manages the credentials, no fields -->

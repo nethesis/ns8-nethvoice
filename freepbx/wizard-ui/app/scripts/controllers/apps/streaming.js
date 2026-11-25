@@ -476,8 +476,20 @@ angular.module('nethvoiceWizardUiApp')
         s.isChecking = false;
         s.verified = false;
         s.check = { success: false, reason: 'unknown', message: err && err.data && err.data.status ? err.data.status : '' };
+        // The stored password of a door phone goes only to the address the
+        // door phone registers from: for another address it must be typed
+        if (s.door_phone && err && err.status === 400 && err.data && err.data.field === 'secret') {
+          s.doorPasswordRequired = true;
+        }
         console.log(err);
       });
+    };
+
+    // Credential fields of a source linked to a door phone: hidden while the
+    // PBX can use the door phone password, shown when it must be typed (the
+    // door phone is not registered, or the URL is not its address)
+    $scope.showCredentials = function (s) {
+      return !s.door_phone || !!s.doorPasswordRequired || (!s.onMod && !s.doorPhoneRegistered);
     };
 
     // Can the PBX open a TCP connection to the device of the URL? A LAN

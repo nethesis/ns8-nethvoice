@@ -306,6 +306,26 @@ describe('Controller: AppsStreamingCtrl', function () {
     expect(s.reachability.reachable).toBe(false);
   });
 
+  it('asks for the door phone password when the URL is not the door phone address', function () {
+    var s = {
+      url: 'rtsp://203.0.113.9:554/h264/stream.live0', user: 'admin', secret: '', door_phone: '0C-38-3E-32-6B-84',
+      doorPhoneRegistered: true, onMod: false, gates: []
+    };
+    expect(scope.showCredentials(s)).toBe(false);
+    ApplicationService.checkConnectionVideoSource.and.callFake(function () {
+      return $q.reject({ status: 400, data: { status: 'the door phone password is sent only to the address the door phone registers from: type the password', field: 'secret' } });
+    });
+    scope.checkConnection(s);
+    scope.$apply();
+    expect(s.verified).toBe(false);
+    expect(s.doorPasswordRequired).toBe(true);
+    expect(scope.showCredentials(s)).toBe(true);
+    // an unregistered door phone has no address the PBX trusts
+    expect(scope.showCredentials({ door_phone: '0C-38-3E-32-6B-84', doorPhoneRegistered: false })).toBe(true);
+    expect(scope.showCredentials({ door_phone: '0C-38-3E-32-6B-84', onMod: true })).toBe(false);
+    expect(scope.showCredentials({})).toBe(true);
+  });
+
   it('keeps a modified source linked to its door phone', function () {
     var stored = storedSource();
     stored.door_phone = '0C-38-3E-32-6B-84';

@@ -1236,7 +1236,7 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
             return jsonResponse($response, ['status' => "video source $currentDescr not found"], 404);
         }
         // Moved to a door phone: its generated password, never sent to the client
-        $doorSecret = door_phone_request_secret($data);
+        $doorSecret = door_phone_request_secret($data, trim((string) ($data['url'] ?? '')), $sources[$currentDescr]);
         if ($doorSecret !== null) {
             $data['secret'] = $doorSecret;
         }
@@ -1262,7 +1262,9 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
  * POST /cti/streaming
  * { descr, url, user, secret, exten, frame-rate, open, gates: [{ name, type, code | url, method, username, password }], tls_skip_verify, profiles, door_phone }
  * "door_phone" (MAC of a door phone, see POST /cti/streaming/doorphones/:mac)
- * without "secret" and with the door phone user name uses its stored password.
+ * without "secret" and with the door phone user name uses its stored password,
+ * only when the URL host is an address the door phone registers from (400,
+ * field "secret", otherwise: the password must be typed).
  * The type ("image" for http(s), "rtsp" for rtsp(s)) follows the URL scheme;
  * credentials pasted into the URL are stored separately.
  * "tls_skip_verify" (default false, stored as false when neither the URL nor
@@ -1280,7 +1282,7 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
             return jsonResponse($response, ['status' => 'Invalid request'], 400);
         }
         // Created from a door phone: its generated password, never sent to the client
-        $doorSecret = door_phone_request_secret($data);
+        $doorSecret = door_phone_request_secret($data, is_string($data['url'] ?? null) ? trim($data['url']) : '');
         if ($doorSecret !== null) {
             $data['secret'] = $doorSecret;
         }
@@ -1342,15 +1344,6 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
             $user = $user !== '' ? $user : $parsed['user'];
             $secret = $secret !== '' ? $secret : $parsed['secret'];
         }
-        // A source being created from a door phone: its generated password
-        try {
-            $doorSecret = door_phone_request_secret(['door_phone' => $data['door_phone'] ?? null, 'user' => $user, 'secret' => $secret]);
-        } catch (StreamingValidationException $e) {
-            return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
-        }
-        if ($doorSecret !== null) {
-            $secret = $doorSecret;
-        }
         $stored = null;
         if (isset($data['descr']) && is_string($data['descr']) && $data['descr'] !== '') {
             $sources = streaming_load_sources(FreePBX::Database());
@@ -1359,6 +1352,16 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
             if ($stored !== null && streaming_url_endpoint((string) $stored['url']) !== streaming_url_endpoint($parsed['url'])) {
                 $stored = null;
             }
+        }
+        // A source created from (or linked to) a door phone: its generated
+        // password, only for the address of the door phone
+        try {
+            $doorSecret = door_phone_request_secret(['door_phone' => $data['door_phone'] ?? null, 'user' => $user, 'secret' => $secret], $parsed['url'], $stored);
+        } catch (StreamingValidationException $e) {
+            return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
+        }
+        if ($doorSecret !== null) {
+            $secret = $doorSecret;
         }
         $usesStoredSecret = false;
         if ($user !== '' && $secret === '' && $stored !== null && $stored['user'] === $user) {

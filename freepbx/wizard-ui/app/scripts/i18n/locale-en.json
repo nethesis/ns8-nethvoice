@@ -350,5 +350,7 @@
   "The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN": "The connection is HTTP: the username and the password are sent in clear text. Use it only in a trusted network or through a VPN",
   "door_phone_dtmf_invalid": "Use 1 to 16 characters among 0-9, A-D, * and #",
   "door_phone_duration_invalid": "Use a number of seconds from 1 to 600",
-  "door_phone_label_invalid": "The label cannot contain line breaks or other control characters"
+  "door_phone_label_invalid": "The label cannot contain line breaks or other control characters",
+  "The PBX sends the door phone password only to the address the door phone registers from. For another address, type the RTSP password of the door phone: you find it in the door phone settings": "The PBX sends the door phone password only to the address the door phone registers from. For another address, type the RTSP password of the door phone: you find it in the door phone settings",
+  "the door phone password is sent only to the address the door phone registers from: type the password": "the door phone password is sent only to the address the door phone registers from: type the password"
 }

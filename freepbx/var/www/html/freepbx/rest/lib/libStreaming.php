@@ -1990,6 +1990,26 @@ function streaming_contact_public_address(array $contacts): ?string
     return null;
 }
 
+/*
+ * True when the host of a URL is one of the IP addresses (any notation of
+ * the same IPv6 address matches). Host names never match.
+ */
+function streaming_url_host_in(string $url, array $addresses): bool
+{
+    $parsed = streaming_parse_url($url);
+    if ($parsed === null || filter_var($parsed['host'], FILTER_VALIDATE_IP) === false) {
+        return false;
+    }
+    $host = inet_pton($parsed['host']);
+    foreach ($addresses as $address) {
+        $address = trim((string) $address, '[]');
+        if (filter_var($address, FILTER_VALIDATE_IP) !== false && inet_pton($address) === $host) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /* The URL with another host, port and path kept; null if it cannot be built */
 function streaming_url_with_host(string $url, string $host): ?string
 {

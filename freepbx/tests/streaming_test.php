@@ -817,6 +817,41 @@ check(streaming_door_phone_secret(['user' => '', 'secret' => ''], $fanvil) === n
 check(streaming_door_phone_secret(['user' => 'admin'], array_merge($fanvil, ['cap_door_phone' => ''])) === null, 'only door phones');
 check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], array_merge($i6x, ['door_rtsp_password' => 'Rtsp1'])) === 'Rtsp1', 'i6x: source password is door_rtsp_password');
 check(streaming_door_phone_secret(['user' => 'admin', 'secret' => ''], $i6x) === null, 'i6x: never the phones admin password');
+
+// The stored door phone password goes only to the door phone
+check(streaming_url_host_in('rtsp://192.168.5.218:554/x', ['192.168.5.218']), 'URL host is the door phone address');
+check(streaming_url_host_in('rtsp://[2001:db8:0::5]/x', ['2001:db8::5']), 'same IPv6 address in another notation');
+check(!streaming_url_host_in('rtsp://192.168.5.219/x', ['192.168.5.218', '2.119.67.174']), 'another address');
+check(!streaming_url_host_in('rtsp://door.example.org/x', ['192.168.5.218']), 'host names never match');
+check(!streaming_url_host_in('rtsp://192.168.5.218/x', []), 'unregistered door phone: no address');
+$doorVars = function (string $mac) use ($fanvil) {
+    return $mac === '0C-38-3E-32-6B-84' ? ['variables' => $fanvil] : null;
+};
+$doorAddresses = function (string $mac) {
+    return $mac === '0C-38-3E-32-6B-84' ? ['192.168.5.218', '2.119.67.174'] : [];
+};
+$doorRequest = ['door_phone' => '0C-38-3E-32-6B-84', 'user' => 'admin', 'secret' => ''];
+check(door_phone_request_secret($doorRequest, 'rtsp://192.168.5.218:554/h264/stream.live0', null, $doorVars, $doorAddresses) === 'Stored1', 'door phone password for the registered address');
+check(door_phone_request_secret($doorRequest, 'rtsp://2.119.67.174:10554/h264/stream.live0', null, $doorVars, $doorAddresses) === 'Stored1', 'door phone password for the public address it registers from');
+expect_validation(function () use ($doorRequest, $doorVars, $doorAddresses) {
+    door_phone_request_secret($doorRequest, 'rtsp://203.0.113.9:554/whatever', null, $doorVars, $doorAddresses);
+}, 'secret', 'door phone password refused for any other device');
+expect_validation(function () use ($doorRequest, $doorVars) {
+    door_phone_request_secret($doorRequest, 'rtsp://192.168.5.218:554/x', null, $doorVars, function () { return []; });
+}, 'secret', 'unregistered door phone: the password must be typed');
+check(door_phone_request_secret(array_merge($doorRequest, ['secret' => 'typed']), 'rtsp://203.0.113.9/x', null, $doorVars, $doorAddresses) === null, 'typed password: no door phone password, no error');
+check(door_phone_request_secret(['user' => 'admin'], 'rtsp://203.0.113.9/x', null, $doorVars, $doorAddresses) === null, 'no door phone in the request');
+$linkedStored = ['url' => 'rtsp://192.168.5.10:554/h264/stream.live0', 'door_phone' => '0C-38-3E-32-6B-84'];
+check(door_phone_request_secret($doorRequest, 'rtsp://192.168.5.10/h264/stream.live1', $linkedStored, $doorVars, function () { return []; }) === 'Stored1', 'linked source, same device (door phone offline): stored link kept');
+expect_validation(function () use ($doorRequest, $doorVars, $linkedStored) {
+    door_phone_request_secret($doorRequest, 'rtsp://192.168.5.11/h264/stream.live0', $linkedStored, $doorVars, function () { return []; });
+}, 'secret', 'linked source moved to another device');
+expect_validation(function () use ($doorRequest, $doorVars, $linkedStored) {
+    door_phone_request_secret($doorRequest, 'rtsp://192.168.5.10/h264/stream.live0', array_merge($linkedStored, ['door_phone' => null]), $doorVars, function () { return []; });
+}, 'secret', 'stored source not linked to the door phone');
+expect_validation(function () use ($doorRequest, $doorVars, $doorAddresses) {
+    door_phone_request_secret(array_merge($doorRequest, ['door_phone' => '0C-38-3E-00-00-09']), 'rtsp://192.168.5.218/x', null, $doorVars, $doorAddresses);
+}, 'door_phone', 'unknown door phone');
 $i6xItem = streaming_door_phone_item(['mac' => '0C383E326B84', 'extension' => '91203'], array_merge($i6x, ['door_rtsp_password' => 'Rtsp1']), null, [['descr' => 'Linked', 'exten' => '1', 'door_phone' => '0C-38-3E-32-6B-84']]);
 check($i6xItem['has_secret'] && !array_key_exists('password_is_admin', $i6xItem) && strpos(json_encode($i6xItem), 'Rtsp1') === false, 'i6x item: has_secret, no password');
 check($i6xItem['sources'] === ['Linked'], 'sources linked by door phone MAC');

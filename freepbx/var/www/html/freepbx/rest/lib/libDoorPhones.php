@@ -177,11 +177,41 @@ function door_phone_resync(string $extension): bool
     return true;
 }
 
+/* Extension of the provisioned device with this MAC, null if none */
+function door_phone_extension(string $mac): ?string
+{
+    $dbh = FreePBX::Database();
+    $stmt = $dbh->prepare("SELECT `extension` FROM `rest_devices_phones` WHERE `mac` = ? AND `extension` IS NOT NULL AND `extension` != ''");
+    $stmt->execute([str_replace('-', ':', $mac)]);
+    $extension = $stmt->fetchColumn();
+    return $extension === false ? null : (string) $extension;
+}
+
+/*
+ * Addresses of a door phone from its current SIP registration: the address
+ * it registers from (LAN) and the public address the SIP proxy sees, when
+ * different. Empty when the door phone is not registered.
+ */
+function door_phone_addresses(string $mac): array
+{
+    $extension = door_phone_extension($mac);
+    if ($extension === null) {
+        return [];
+    }
+    $contacts = door_phone_contacts($extension);
+    return array_values(array_filter([streaming_contact_address($contacts), streaming_contact_public_address($contacts)]));
+}
+
 /*
  * Password of a source sent with "door_phone" (see
- * streaming_door_phone_secret): null when the request does not use it.
+ * streaming_door_phone_secret) for the source URL $url: null when the
+ * request does not use it. The stored password goes only to the door phone:
+ * the host of the URL must be an address of its current registration
+ * (door_phone_addresses), or the URL must keep the device of the stored
+ * source $current already linked to the same door phone. Otherwise the
+ * administrator must type the password (validation error on "secret").
  */
-function door_phone_request_secret(array $data): ?string
+function door_phone_request_secret(array $data, string $url, ?array $current = null, ?callable $variables = null, ?callable $addresses = null): ?string
 {
     if (!isset($data['door_phone']) || !is_string($data['door_phone']) || $data['door_phone'] === '') {
         return null;
@@ -190,11 +220,22 @@ function door_phone_request_secret(array $data): ?string
     if ($mac === null) {
         throw new StreamingValidationException('door_phone', 'invalid door phone');
     }
-    $phone = door_phone_variables($mac);
+    $phone = ($variables ?? 'door_phone_variables')($mac);
     if ($phone === null || !streaming_is_door_phone($phone['variables'])) {
         throw new StreamingValidationException('door_phone', 'door phone not found');
     }
-    return streaming_door_phone_secret($data, $phone['variables']);
+    $secret = streaming_door_phone_secret($data, $phone['variables']);
+    if ($secret === null || streaming_parse_url($url) === null) {
+        return null;
+    }
+    if ($current !== null && (string) ($current['door_phone'] ?? '') === $mac
+        && streaming_url_endpoint((string) $current['url']) === streaming_url_endpoint($url)) {
+        return $secret;
+    }
+    if (!streaming_url_host_in($url, ($addresses ?? 'door_phone_addresses')($mac))) {
+        throw new StreamingValidationException('secret', 'the door phone password is sent only to the address the door phone registers from: type the password', "door phone $mac, URL host not allowed");
+    }
+    return $secret;
 }
 
 /*
@@ -247,14 +288,11 @@ function door_phone_reachability(string $url, ?string $mac): array
     if ($result['reachable'] || $mac === null) {
         return $result;
     }
-    $dbh = FreePBX::Database();
-    $stmt = $dbh->prepare("SELECT `extension` FROM `rest_devices_phones` WHERE `mac` = ? AND `extension` IS NOT NULL AND `extension` != ''");
-    $stmt->execute([str_replace('-', ':', $mac)]);
-    $extension = $stmt->fetchColumn();
-    if ($extension === false) {
+    $extension = door_phone_extension($mac);
+    if ($extension === null) {
         return $result;
     }
-    $public = streaming_contact_public_address(door_phone_contacts((string) $extension));
+    $public = streaming_contact_public_address(door_phone_contacts($extension));
     if ($public === null || $public === $result['host']) {
         return $result;
     }
