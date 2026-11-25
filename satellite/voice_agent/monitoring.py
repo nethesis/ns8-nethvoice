@@ -271,7 +271,7 @@ class Monitoring:
                     except (ValueError, DatabaseError) as error:
                         # Retry dependency/schema errors; reject only per-event failures.
                         if isinstance(error, DatabaseError) and error.errno not in (
-                                1048, 1264, 1265, 1292, 1366, 1406, 1452, 3819, 4025):
+                                1048, 1264, 1265, 1292, 1366, 1406, 1452, 1644, 3819, 4025):
                             self.retries += 1
                             self.mark_degraded()
                             await asyncio.sleep(1)

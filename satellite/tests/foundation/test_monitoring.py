@@ -83,3 +83,25 @@ async def test_permanent_rejection_then_good_event_survives_restart(tmp_path):
     assert not list(tmp_path.glob('*.json'))
     assert all('private' not in p.read_text() for p in tmp_path.glob('*.rejected'))
     await after.stop()
+
+@pytest.mark.asyncio
+async def test_database_rejection_during_startup_replay(tmp_path):
+    run = str(uuid.uuid4())
+    before = Monitoring(MagicMock(), tmp_path)
+    before.emit(run, 'tool_started')
+    before.emit(run, 'completed', outcome='completed')
+    for event in before.pending.values():
+        before._persist(event)
+    storage = MagicMock()
+    def write(event):
+        if event['event_type'] == 'tool_started':
+            raise ValueError('unsupported stored observation')
+    storage.event.side_effect = write
+    after = Monitoring(storage, tmp_path)
+    await after.start()
+    await asyncio.wait_for(after.queue.join(), 1)
+    assert [item.args[0]['event_type'] for item in storage.event.call_args_list] == [
+        'tool_started', 'completed', 'trace_gap']
+    assert len(list(tmp_path.glob('*.rejected'))) == 1
+    assert not list(tmp_path.glob('*.json'))
+    await after.stop()
