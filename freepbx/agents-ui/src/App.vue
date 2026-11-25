@@ -177,6 +177,7 @@ watch(
         <span class="bg-line -my-px h-16 w-px lg:hidden" aria-hidden="true" />
         <div class="flex-1" />
         <div class="flex items-center gap-6">
+          <a href="/freepbx/wizard/" class="text-secondary-neutral hover:underline">Wizard</a>
           <NeTooltip trigger-event="mouseenter focus" placement="bottom">
             <template #trigger>
               <a
