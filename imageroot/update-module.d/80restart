@@ -10,7 +10,12 @@ systemctl --user daemon-reload
 services=(watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus nethcti-server satellite-mqtt satellite-pgsql nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite)
 active=()
 for service in "${services[@]}"; do
-    if systemctl --user is-active --quiet "$service"; then active+=("$service"); fi
+    # Enabled units come back too: a failed upgrade leaves them stopped, and
+    # a stopped watcher.path leaves notify files that block extract-image.
+    if systemctl --user is-active --quiet "$service" ||
+        [[ $(systemctl --user is-enabled "$service" 2>/dev/null) == enabled ]]; then
+        active+=("$service")
+    fi
 done
 # Save the running image identities before systemd replaces their containers.
 mkdir -p upgrade-backups
