@@ -94,6 +94,14 @@ if [ -n "${VM_CALLERID_LENGTH}" ] && [ "${VM_CALLERID_LENGTH}" -lt 255 ]; then
 fi
 # Run database migrations and refresh bundled catalogs on initialization, update or import.
 if $migrate; then
+    # CEL's installer may be skipped when the module is already enabled.
+    cel_appdata_attributes=$(db -N -B -e "SELECT CONCAT('COLLATE ', COLLATION_NAME, IF(IS_NULLABLE = 'NO', ' NOT NULL', ' NULL'))
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asteriskcdrdb' AND TABLE_NAME = 'cel' AND COLUMN_NAME = 'appdata'
+          AND DATA_TYPE = 'varchar' AND CHARACTER_MAXIMUM_LENGTH < 1024")
+    if [[ -n "$cel_appdata_attributes" ]]; then
+        db -e "ALTER TABLE asteriskcdrdb.cel MODIFY COLUMN appdata VARCHAR(1024) $cel_appdata_attributes"
+    fi
     db < /docker-entrypoint-initdb.d/85_asterisk.clean_legacy_sip_nat.sql
     # VoIP Providers
     db < /docker-entrypoint-initdb.d/10_asterisk.rest_pjsip_trunks_custom_flags.sql

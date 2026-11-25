@@ -59,6 +59,7 @@ printf '%s\\n' "$*" >> "$TEST_CALLS"
 if [[ "$*" == *'-e '* ]]; then
     case "$*" in
         *'COUNT(*) FROM roomsdb.rates'*) echo 1 ;;
+        *"TABLE_NAME = 'cel'"*) echo 'COLLATE utf8mb4_unicode_ci NOT NULL' ;;
         *CHARACTER_MAXIMUM_LENGTH*) echo 255 ;;
     esac
 else
@@ -75,6 +76,8 @@ fi
                                  'TRUNCATE TABLE', '50_asterisk.rest_pjsip_providers.sql',
                                  '50_asterisk.gateway_models.sql',
                                  '85_asterisk.clean_legacy_sip_nat.sql',
+                                 'ALTER TABLE asteriskcdrdb.cel MODIFY COLUMN appdata '
+                                 'VARCHAR(1024) COLLATE utf8mb4_unicode_ci NOT NULL',
                                  'UPDATE sip s JOIN rest_devices_phones',
                                  "WHEN 'voicecodecs' THEN",
                                  "UPDATE pjsip SET data = '90'"]:
