@@ -15,6 +15,7 @@ VHOST = (ROOT / 'freepbx/etc/apache2/sites-enabled/000-default.conf').read_text(
 CONTAINERFILE = (ROOT / 'freepbx/Containerfile').read_text()
 UI_ROOT = '/var/www/html/freepbx/nethvoice-ui'
 INDEX = ROOT / 'freepbx/nethvoice-ui/index.html'
+FREEPBX_SERVICE = (ROOT / 'imageroot/systemd/user/freepbx.service').read_text()
 
 
 def wizard_alias_pattern():
@@ -88,7 +89,7 @@ class RuntimeConfigTest(unittest.TestCase):
         script = ENTRYPOINT[start:end].replace(UI_ROOT, directory.name)
         clean = {key: value for key, value in os.environ.items()
                  if not key.startswith(('WIZARD_', 'BRAND_', 'NETHCTI_')) and not key.endswith('_URL')
-                 and key not in ('NETHVOICE_HOST', 'NETHVOICE_UI_NAME')}
+                 and key not in ('NETHVOICE_HOST', 'NETHVOICE_UI_NAME', 'TIMEZONE')}
         result = subprocess.run(['bash', '-euo', 'pipefail', '-c', script],
                                 env=dict(clean, NETHVOICESECRETKEY='do-not-leak', **environment),
                                 capture_output=True, text=True, timeout=10)
@@ -105,9 +106,10 @@ class RuntimeConfigTest(unittest.TestCase):
         self.assertEqual(config['INSTANCE_NAME'], '')
         self.assertEqual(config['LOGO_LIGHT_URL'], '')
         self.assertEqual(config['CTI_PRODUCT_NAME'], 'NethVoice CTI')
+        self.assertEqual(config['TIMEZONE'], '')
         self.assertEqual(sorted(config), ['BRAND_DOCS', 'BRAND_NAME', 'BRAND_SITE', 'CTI_PRODUCT_NAME',
                                           'FAVICON_URL', 'HOSTNAME', 'INSTANCE_NAME', 'LOGIN_BACKGROUND_URL',
-                                          'LOGIN_LOGO_URL', 'LOGO_LIGHT_URL', 'NAVBAR_LOGO_URL'])
+                                          'LOGIN_LOGO_URL', 'LOGO_LIGHT_URL', 'NAVBAR_LOGO_URL', 'TIMEZONE'])
 
     def test_hostname_comes_from_the_nethvoice_host(self):
         config = json.loads(self.render(NETHVOICE_HOST='voice.example.org'))
@@ -116,6 +118,13 @@ class RuntimeConfigTest(unittest.TestCase):
     def test_instance_name_comes_from_the_ui_name(self):
         config = json.loads(self.render(NETHVOICE_UI_NAME='Milan "office"'))
         self.assertEqual(config['INSTANCE_NAME'], 'Milan "office"')
+
+    def test_time_zone_comes_from_the_module_configuration(self):
+        config = json.loads(self.render(TIMEZONE='Europe/Rome'))
+        self.assertEqual(config['TIMEZONE'], 'Europe/Rome')
+
+    def test_freepbx_container_receives_the_module_time_zone(self):
+        self.assertIn('    --env=TIMEZONE \\\n', FREEPBX_SERVICE)
 
     def test_rebranding_values_are_json_encoded(self):
         name = 'Acme "Voice" </script><b>'

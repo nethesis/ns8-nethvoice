@@ -22,6 +22,7 @@ export const RuntimeConfigSchema = v.object({
   CTI_PRODUCT_NAME: OptionalText,
   HOSTNAME: OptionalText,
   INSTANCE_NAME: OptionalText,
+  TIMEZONE: OptionalText,
 })
 
 export type RuntimeConfig = {
@@ -36,6 +37,7 @@ export type RuntimeConfig = {
   ctiProductName: string
   hostname: string
   instanceName: string
+  timeZone: string
 }
 
 export const DEFAULT_DOCS_URL = 'https://docs.nethvoice.com/'
@@ -77,6 +79,7 @@ export const DEFAULT_RUNTIME_CONFIG: RuntimeConfig = {
   ctiProductName: CTI_PRODUCT_NAME,
   hostname: '',
   instanceName: '',
+  timeZone: '',
 }
 
 const safeUrl = (value: string): string => {
@@ -112,6 +115,7 @@ export const parseRuntimeConfig = (raw: unknown): RuntimeConfig => {
     ctiProductName: config.CTI_PRODUCT_NAME.trim() || CTI_PRODUCT_NAME,
     hostname: config.HOSTNAME.trim(),
     instanceName: config.INSTANCE_NAME.trim(),
+    timeZone: config.TIMEZONE.trim(),
   }
 }
 

@@ -6,16 +6,19 @@ import { derivePbxCountry } from '@/lib/setup/country'
 import { getRoutesLocale } from '@/lib/routes/outbound'
 import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { usePbxCountries, usePbxLanguages } from '@/queries/settings/system'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useSetupStore } from '@/stores/setup'
 
 export function usePbxCountry({ remember = true }: { remember?: boolean } = {}) {
   const setupStore = useSetupStore()
+  const runtimeConfigStore = useRuntimeConfigStore()
   const { state: routesState } = useOutboundRoutes()
   const { state: countriesState } = usePbxCountries()
   const { state: languagesState } = usePbxLanguages()
 
   const settled = computed(
     () =>
+      runtimeConfigStore.loaded &&
       routesState.value.status !== 'pending' &&
       countriesState.value.status !== 'pending' &&
       languagesState.value.status !== 'pending',
@@ -26,6 +29,7 @@ export function usePbxCountry({ remember = true }: { remember?: boolean } = {}) 
       cached: setupStore.country,
       routesLocale: getRoutesLocale(routesState.value.data ?? []),
       countries: countriesState.value.data,
+      timeZone: runtimeConfigStore.config.timeZone,
       defaultLanguage: languagesState.value.data?.defaultLanguage,
     }),
   )

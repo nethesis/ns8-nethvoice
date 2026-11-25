@@ -256,6 +256,7 @@ FAVICON_URL_VALUE="${wizard_favicon_url}" \
 CTI_PRODUCT_NAME_VALUE="${NETHCTI_UI_PRODUCT_NAME:-NethVoice CTI}" \
 HOSTNAME_VALUE="${NETHVOICE_HOST:-}" \
 INSTANCE_NAME_VALUE="${NETHVOICE_UI_NAME:-}" \
+TIMEZONE_VALUE="${TIMEZONE:-}" \
 php -r 'echo json_encode([
 	"BRAND_NAME" => getenv("BRAND_NAME_VALUE"),
 	"BRAND_SITE" => getenv("BRAND_SITE_VALUE"),
@@ -268,6 +269,7 @@ php -r 'echo json_encode([
 	"CTI_PRODUCT_NAME" => getenv("CTI_PRODUCT_NAME_VALUE"),
 	"HOSTNAME" => getenv("HOSTNAME_VALUE"),
 	"INSTANCE_NAME" => getenv("INSTANCE_NAME_VALUE"),
+	"TIMEZONE" => getenv("TIMEZONE_VALUE"),
 ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), "\n";' > /var/www/html/freepbx/nethvoice-ui/config.json
 
 BRAND_NAME_VALUE="${wizard_brand_name}" \

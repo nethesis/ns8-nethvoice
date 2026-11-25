@@ -117,6 +117,54 @@ test.describe('setup wizard: welcome and system settings', () => {
     await expect(page.getByRole('combobox', { name: 'PBX language' })).toHaveValue('English')
   })
 
+  test('preselects the country of the PBX time zone over the PBX language', async ({ page }) => {
+    await page.route('**/nethvoice/config.json', (route) =>
+      route.fulfill({ json: { TIMEZONE: 'Europe/Rome' } }),
+    )
+
+    await page.goto('./setup/system')
+
+    await expect(page.getByRole('combobox', { name: 'PBX country' })).toHaveValue('Italy')
+    await expect(page.getByRole('combobox', { name: 'PBX language' })).toHaveValue('English')
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('nethvoiceSetupCountry')))
+      .toBe('it')
+  })
+
+  test('waits for the PBX time zone before preselecting the country', async ({ page }) => {
+    let releaseConfig = () => {}
+    const configHeld = new Promise<void>((resolve) => {
+      releaseConfig = resolve
+    })
+    await page.route('**/nethvoice/config.json', async (route) => {
+      await configHeld
+      await route.fulfill({ json: { TIMEZONE: 'Europe/Rome' } })
+    })
+    const settingsLoaded = Promise.all([
+      page.waitForResponse('**/freepbx/rest/settings/languages'),
+      page.waitForResponse('**/freepbx/rest/outboundroutes/supportedLocales'),
+      page.waitForResponse('**/freepbx/rest/outboundroutes'),
+    ])
+
+    await page.goto('./setup/system')
+    await settingsLoaded
+    await expect(page.getByRole('combobox', { name: 'PBX language' })).toHaveValue('English')
+    releaseConfig()
+
+    await expect(page.getByRole('combobox', { name: 'PBX country' })).toHaveValue('Italy')
+  })
+
+  test('keeps the country chosen before over the one of the PBX time zone', async ({ page }) => {
+    await page.route('**/nethvoice/config.json', (route) =>
+      route.fulfill({ json: { TIMEZONE: 'Europe/Rome' } }),
+    )
+    await page.addInitScript(() => localStorage.setItem('nethvoiceSetupCountry', 'de'))
+
+    await page.goto('./setup/system')
+
+    await expect(page.getByRole('combobox', { name: 'PBX country' })).toHaveValue('Germany')
+  })
+
   test('saves a changed language, remembers the country and moves to the users step', async ({
     page,
     mockApi,

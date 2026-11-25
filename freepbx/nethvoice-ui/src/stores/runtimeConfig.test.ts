@@ -59,6 +59,12 @@ describe('parseRuntimeConfig', () => {
     expect(parseRuntimeConfig({}).instanceName).toBe('')
   })
 
+  it('should read the PBX time zone', () => {
+    expect(parseRuntimeConfig({ TIMEZONE: ' Europe/Rome ' }).timeZone).toBe('Europe/Rome')
+    expect(parseRuntimeConfig({}).timeZone).toBe('')
+    expect(parseRuntimeConfig({ TIMEZONE: 7 }).timeZone).toBe('')
+  })
+
   it('should drop URLs with a scheme other than http and https', () => {
     const config = parseRuntimeConfig({
       NAVBAR_LOGO_URL: 'javascript:alert(1)',
