@@ -339,7 +339,7 @@ if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     container=$(buildah from docker.io/bluenviron/mediamtx:1.21.4@sha256:c730bccdbc8739f8f0c13cefe9bea8b61926f599b88fa4d0d229baa91846c7bc)
     # The upstream image has no CA certificates: add them, to verify the
     # rtsps:// devices that do not skip the TLS verification
-    buildah copy --from docker.io/library/alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f "${container}" \
+    buildah copy --from docker.io/library/alpine:3.24@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf "${container}" \
         /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
     buildah commit "${container}" "${repobase}/${reponame}"
     buildah commit "${container}" "${repobase}/${reponame}:${IMAGETAG:-latest}"
