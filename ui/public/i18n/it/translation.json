@@ -187,6 +187,7 @@
   },
   "integrations": {
     "voice_agent_preview": "Anteprima agenti vocali",
+    "refresh_apply_status": "Aggiorna stato",
     "apply_pending": "In attesa di applicare le impostazioni di Satellite",
     "apply_failed": "Impossibile applicare le impostazioni di Satellite. Consulta il log del servizio satellite-apply e salva di nuovo.",
     "key_removal": "Rimuovendo questa chiave le chiamate di questi agenti seguiranno la destinazione alternativa",
