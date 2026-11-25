@@ -267,5 +267,6 @@ languages.en = {
     "agent_already_added_string": "This agent is already on the canvas.",
     "base_agent_fallback_string": "Fallback",
     "toolbar_agent_reference_string": "An agent in the plan is missing or not published and synchronized. Check it in Agents.",
-    "toolbar_agent_fallback_string": "The agent fallback destinations could not be saved. Check the fallback connections and try again."
+    "toolbar_agent_fallback_string": "The agent fallback destinations could not be saved. Check the fallback connections and try again.",
+    "toolbar_agent_revision_string": "An agent was changed elsewhere while the plan was open. Reload VisualPlan and save again."
 };

@@ -59,7 +59,7 @@ test('actual Agent palette has a visible tile and icon in expanded and collapsed
   await expect(agent).not.toHaveClass(/hide_text/);
 });
 
-for (const [code, key] of [['agent_reference_unavailable','toolbar_agent_reference_string'],['agent_fallback_unavailable','toolbar_agent_fallback_string'],['visualplan_save_failed','toolbar_not_save_log_string']]) {
+for (const [code, key] of [['agent_reference_unavailable','toolbar_agent_reference_string'],['agent_fallback_unavailable','toolbar_agent_fallback_string'],['visualplan_save_failed','toolbar_not_save_log_string'],['agent_revision_conflict','toolbar_agent_revision_string']]) {
   test(`a rejected save explains ${code}`, async ({page}) => {
     await page.goto('./');
     const index=readFileSync(resolve(native,'index.php'),'utf8');

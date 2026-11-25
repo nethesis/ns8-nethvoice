@@ -20,3 +20,12 @@ test("a saved choice wins over the system preference", async ({page}) => {
   await page.goto("./#/agents");
   await expect(page.locator("html")).not.toHaveClass(/dark/);
 });
+
+test("without a saved choice a system theme change applies at once", async ({page}) => {
+  await page.emulateMedia({colorScheme: "light"});
+  await page.addInitScript(() => localStorage.removeItem("nethvoice.agents.theme"));
+  await page.goto("./#/agents");
+  await expect(page.locator("html")).not.toHaveClass(/dark/);
+  await page.emulateMedia({colorScheme: "dark"});
+  await expect(page.locator("html")).toHaveClass(/dark/);
+});

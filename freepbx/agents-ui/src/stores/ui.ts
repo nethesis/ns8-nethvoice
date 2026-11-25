@@ -27,6 +27,13 @@ export const useUi = defineStore("ui", () => {
       root.classList.remove("theme-switching"),
     );
   }
+  window
+    .matchMedia("(prefers-color-scheme: dark)")
+    .addEventListener("change", (event) => {
+      if (localStorage.getItem("nethvoice.agents.theme")) return;
+      dark.value = event.matches;
+      applyTheme();
+    });
   function toggleTheme() {
     dark.value = !dark.value;
     localStorage.setItem(
