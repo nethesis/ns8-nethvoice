@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS asteriskcdrdb.`voice_agent_runs` (
   `run_id` char(36) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `agent_id` varchar(48) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `workflow_version` int(10) unsigned NOT NULL,
+  `parent_run_id` char(36) CHARACTER SET ascii COLLATE ascii_bin DEFAULT NULL,
   `linkedid` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `provider_call_id` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `started_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6),

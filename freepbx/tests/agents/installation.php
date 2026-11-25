@@ -21,6 +21,13 @@ foreach (['asterisk.voice_agent_schema','asterisk.voice_agent_agents','asteriskc
     assert((int)$db->query("SELECT sentinel FROM $old")->fetchColumn()===42);
     assert((int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('asterisk','asteriskcdrdb')")->fetchColumn()===3);
 }
+fresh($db);
+$db->exec("CREATE TABLE asterisk.voice_agent_installation (singleton INT PRIMARY KEY, format VARCHAR(32))");
+$db->exec("INSERT INTO asterisk.voice_agent_installation VALUES (1,'alpha-v8')");
+try { Schema::install($db); throw new LogicException('alpha_database_adopted'); }
+catch (RuntimeException $error) { assert($error->getMessage()==='unsupported_development_database'); }
+assert($db->query('SELECT format FROM asterisk.voice_agent_installation')->fetchColumn()==='alpha-v8');
+assert((int)$db->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema IN ('asterisk','asteriskcdrdb')")->fetchColumn()===3);
 class InterruptedInstall extends PDO {
     public int $remaining;
     public function exec(string $statement): int|false {
@@ -37,7 +44,7 @@ foreach ([1,2,4,9,15,20,27,33] as $boundary) {
     catch (RuntimeException $e) { assert($e->getMessage()==='simulated_interruption'); }
     unset($interrupted);
     Schema::install($db);Schema::install($db);
-    assert($db->query('SELECT format FROM asterisk.voice_agent_installation')->fetchColumn()==='alpha-v8');
+    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_agents')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_drafts')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_versions')->fetchColumn()===0);

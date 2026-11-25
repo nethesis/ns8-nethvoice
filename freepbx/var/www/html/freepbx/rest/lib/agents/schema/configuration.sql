@@ -1,5 +1,5 @@
 -- SPDX-License-Identifier: GPL-3.0-or-later
--- Fresh alpha-v8 configuration. No development database upgrades.
+-- Preview baseline 1.
 CREATE TABLE IF NOT EXISTS asterisk.`voice_agent_agents` (
   `agent_id` varchar(48) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
   `name` varchar(100) NOT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS asterisk.`voice_agent_versions` (
   `published_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`agent_id`,`workflow_version`),
   CONSTRAINT `voice_agent_versions_ibfk_1` FOREIGN KEY (`agent_id`) REFERENCES asterisk.`voice_agent_agents` (`agent_id`),
-  CONSTRAINT `voice_agent_contract_check` CHECK (`workflow_version` > 0 and `contract_version` = 8)
+  CONSTRAINT `voice_agent_contract_check` CHECK (`workflow_version` > 0 and `contract_version` IN (8,9))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_published AS
