@@ -186,6 +186,11 @@
     "cannot_create_task": "Impossibile eseguire task {action}"
   },
   "integrations": {
+    "voice_agent_preview": "Anteprima agenti vocali",
+    "apply_pending": "In attesa di applicare le impostazioni di Satellite",
+    "apply_failed": "Impossibile applicare le impostazioni di Satellite. Consulta il log del servizio satellite-apply e salva di nuovo.",
+    "key_removal": "Rimuovendo questa chiave le chiamate di questi agenti seguiranno la destinazione alternativa",
+    "inventory_unavailable": "Elenco degli agenti interessati non disponibile.",
     "chat": "Chat",
     "chat_tooltip": "Chat tra gli utenti di NethVoice CTI e l'app mobile",
     "deepgram_section": "Trascrizione con Deepgram",

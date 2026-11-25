@@ -86,6 +86,25 @@
               <h4 class="mb-4 section-title">
                 {{ $t("integrations.transcription_and_ai") }}
               </h4>
+              <NsToggle
+                :label="$t('integrations.voice_agent_preview')"
+                value="voiceAgentEnabled"
+                :disabled="loading.setIntegrations"
+                v-model="voiceAgentEnabled"
+              >
+                <template slot="text-left">{{
+                  $t("common.disabled")
+                }}</template>
+                <template slot="text-right">{{
+                  $t("common.enabled")
+                }}</template>
+              </NsToggle>
+              <NsInlineNotification
+                v-if="applyStatus !== 'applied'"
+                :kind="applyStatus === 'failed' ? 'error' : 'info'"
+                :title="$t('integrations.apply_' + applyStatus)"
+                :showCloseButton="false"
+              />
               <h5 class="mb-4">{{ $t("integrations.deepgram_section") }}</h5>
               <NsTextInput
                 :label="$t('integrations.deepgram_api_key')"
@@ -165,7 +184,7 @@
                     value: 'sk-proj-1234567890abcdef',
                   })
                 "
-                :disabled="!hasDeepgramApiKey || loading.setIntegrations"
+                :disabled="loading.setIntegrations"
                 :invalid-message="error.openai_api_key"
                 type="password"
                 :passwordHideLabel="core.$t('password.hide_password')"
@@ -188,6 +207,21 @@
                   </i18n>
                 </template>
               </NsTextInput>
+              <NsInlineNotification
+                v-if="
+                  savedOpenaiKey &&
+                  !openaiApiKey &&
+                  (inheritedAgents === null || inheritedAgents.length)
+                "
+                kind="warning"
+                :title="$t('integrations.key_removal')"
+                :description="
+                  inheritedAgents === null
+                    ? $t('integrations.inventory_unavailable')
+                    : inheritedAgents.join(', ')
+                "
+                :showCloseButton="false"
+              />
               <NsToggle
                 :label="$t('integrations.call_summary')"
                 value="isCallSummaryEnabled"
@@ -261,6 +295,10 @@ export default {
       urlCheckInterval: null,
       deepgramApiKey: "",
       openaiApiKey: "",
+      savedOpenaiKey: false,
+      voiceAgentEnabled: false,
+      applyStatus: "applied",
+      inheritedAgents: [],
       isCallTranscriptionEnabled: false,
       isVoicemailTranscriptionEnabled: false,
       isCallSummaryEnabled: false,
@@ -295,7 +333,7 @@ export default {
       return !!this.deepgramApiKey;
     },
     hasOpenaiApiKey() {
-      return this.hasDeepgramApiKey && !!this.openaiApiKey;
+      return !!this.openaiApiKey;
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -364,6 +402,13 @@ export default {
         integrations.satellite_voicemail_transcription_enabled || false;
       this.isCallSummaryEnabled =
         integrations.satellite_call_summary_enabled || false;
+      this.savedOpenaiKey = !!integrations.openai_api_key;
+      this.voiceAgentEnabled = !!integrations.voice_agent_enabled;
+      this.applyStatus = integrations.satellite_apply_status || "applied";
+      this.inheritedAgents =
+        integrations.inherited_agents === undefined
+          ? []
+          : integrations.inherited_agents;
       this.isChatEnabled = integrations.chat_enabled || false;
       this.chatRetentionDays = String(integrations.chat_retention_days || 365);
       this.chatUploadQuotaMb = String(integrations.chat_upload_quota_mb || 200);
@@ -447,6 +492,7 @@ export default {
         this.createModuleTaskForApp(this.instanceName, {
           action: taskAction,
           data: {
+            voice_agent_enabled: this.voiceAgentEnabled,
             chat_enabled: this.isChatEnabled,
             ...(this.isChatEnabled && {
               chat_retention_days: Number(this.chatRetentionDays),
@@ -454,7 +500,7 @@ export default {
               chat_upload_max_file_mb: Number(this.chatUploadMaxFileMb),
             }),
             deepgram_api_key: this.deepgramApiKey,
-            openai_api_key: hasDeepgramApiKey ? this.openaiApiKey : "",
+            openai_api_key: this.openaiApiKey,
             satellite_call_transcription_enabled: hasDeepgramApiKey
               ? this.isCallTranscriptionEnabled
               : false,
@@ -506,7 +552,6 @@ export default {
       if (value) {
         return;
       }
-      this.openaiApiKey = "";
       this.isCallTranscriptionEnabled = false;
       this.isVoicemailTranscriptionEnabled = false;
       this.isCallSummaryEnabled = false;

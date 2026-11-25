@@ -28,6 +28,9 @@
         "openai_api_key"
     ],
     "properties": {
+        "voice_agent_enabled": {"type": "boolean"},
+        "satellite_apply_status": {"enum": ["applied", "pending", "failed"]},
+        "inherited_agents": {"type": ["array", "null"], "items": {"type": "string"}},
         "satellite_call_transcription_enabled": {
             "description": "Enable real-time call transcription",
             "type": "boolean"
