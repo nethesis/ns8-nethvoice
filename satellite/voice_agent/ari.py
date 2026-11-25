@@ -191,6 +191,7 @@ class AriController:
             "endpoint": f"Local/{session_id}@voice-agent-provider/n",
             "app": self.app,
             "appArgs": f"provider,{session_id}",
+            "formats": "ulaw,alaw",
             "channelId": channel_id,
             "timeout": 20,
         }, json_body={"variables": variables})

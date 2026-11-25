@@ -29,6 +29,7 @@ def fixtures():
     controller.connected = True
     controller.get_variable.return_value = 'synthetic-linkedid'
     runtime = Runtime(storage, controller, MagicMock())
+    runtime.sip_lab_enabled = True  # Exercise the private SIP lab path in this fixture.
     return runtime, storage, controller, snapshot
 
 
