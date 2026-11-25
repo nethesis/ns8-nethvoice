@@ -35,6 +35,11 @@ final class Schema
                     WHERE removed=0 AND provider='openai' WITH CASCADED CHECK OPTION");
                 $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=2 WHERE singleton=1");
             }
+            if ($version<3) {
+                $db->exec("ALTER TABLE asterisk.voice_agent_versions ADD COLUMN IF NOT EXISTS published_by VARCHAR(100) DEFAULT NULL");
+                $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_runtime_health ADD COLUMN IF NOT EXISTS invalid_webhook_signatures BIGINT UNSIGNED NOT NULL DEFAULT 0");
+                $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=3 WHERE singleton=1");
+            }
             self::directoryViews($db);
             RecentCallerViews::install($db);
         } finally {
@@ -53,7 +58,7 @@ final class Schema
         }
         $version=$db->query("SELECT schema_version FROM $marker WHERE singleton=1")->fetchColumn();
         if ($version===false && count($objects)===1) return 0; // Interrupted immediately after CREATE.
-        if ($version===false || !in_array((string)$version,['0','1','2'],true)) throw new \RuntimeException('unsupported_schema_version');
+        if ($version===false || !in_array((string)$version,['0','1','2','3'],true)) throw new \RuntimeException('unsupported_schema_version');
         return (int)$version;
     }
 

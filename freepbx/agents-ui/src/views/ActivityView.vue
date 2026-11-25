@@ -25,7 +25,7 @@ import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
 import AppEmptyState from "../components/AppEmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
-import { duration, formatDay, formatUtc } from "../monitoring";
+import { duration, formatDay, formatLocal } from "../monitoring";
 import type {
   Run,
   MonitoringSummary,
@@ -81,8 +81,8 @@ const common = computed(() => {
   if (adapterFilter.value.length) filters.adapter = ids(adapterFilter.value);
   if (period.value === "custom") {
     if (from.value)
-      filters.from = new Date(from.value + "T00:00:00Z").toISOString();
-    if (to.value) filters.to = new Date(to.value + "T23:59:59Z").toISOString();
+      filters.from = new Date(from.value + "T00:00:00").toISOString();
+    if (to.value) filters.to = new Date(to.value + "T23:59:59").toISOString();
   } else if (period.value !== "default") {
     const start = new Date(
       windowEnd.value.getTime() - Number(period.value) * 86400000,
@@ -407,6 +407,7 @@ const delivery = computed(() => {
       value: String(value.dropped ?? "—"),
       status: warn(value.dropped),
     },
+    { id: "signatures", label: t("invalidSignatures"), value: String(value.invalid_webhook_signatures ?? "—"), status: "" },
     {
       id: "retries",
       label: t("monitoring.healthKeys.retries"),
@@ -417,7 +418,7 @@ const delivery = computed(() => {
       id: "last",
       label: t("monitoring.healthKeys.last_write_at"),
       value: value.last_write_at
-        ? formatUtc(value.last_write_at, String(locale.value)) + " UTC"
+        ? formatLocal(value.last_write_at, String(locale.value))
         : "—",
       status: "",
     },
@@ -514,6 +515,7 @@ function refresh() {
         kind="error"
         :title="t('error.request_failed')"
       />
+      <details v-if="delivery.length || healthWarning"><summary>{{ t("diagnostics") }}</summary>
       <NeInlineNotification
         v-if="healthWarning"
         data-testid="monitoring-health-warning"
@@ -545,6 +547,7 @@ function refresh() {
           </div>
         </dl>
       </NeCard>
+      </details>
     </div>
     <NeSkeleton v-if="summary.isLoading.value" :lines="6" />
     <template v-if="summary.data.value?.coverage">
@@ -723,12 +726,12 @@ function refresh() {
             >
             <NeTableCell :data-label="t('startedAt')"
               ><span class="whitespace-nowrap">{{
-                formatUtc(run.started_at, String(locale))
+                formatLocal(run.started_at, String(locale))
               }}</span></NeTableCell
             >
             <NeTableCell :data-label="t('outcome')"
               ><div class="flex flex-wrap items-center gap-2">
-                <StatusBadge :status="run.outcome" /><NeBadgeV2
+                <StatusBadge :status="run.outcome" /><span v-if="run.error_code">{{ run.error_code }}</span><NeBadgeV2
                   v-if="run.incomplete"
                   kind="amber"
                   size="xs"

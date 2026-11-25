@@ -300,7 +300,7 @@ PROMPT;
             PublishedContract::validate($snapshot);
             $changed=!$agent['enabled'] || !$agent['published'] || $agent['published']['fallback_destination_id']!==$snapshot['fallback_destination_id'] || $agent['published']['provider_binding_id']!==$snapshot['provider_binding_id'];
             $this->db->beginTransaction();
-            $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,?,?,?)',[$id,$version,$snapshot['contract_version'],self::encode($snapshot)]);
+            $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json,published_by) VALUES (?,?,?,?,?)',[$id,$version,$snapshot['contract_version'],self::encode($snapshot),self::text($actor,100,true)]);
             $this->query('UPDATE asterisk.voice_agent_drafts SET definition_json=?,revision=? WHERE agent_id=?',[self::encode($draft),$revision+1,$id]);
             $this->query('UPDATE asterisk.voice_agent_agents SET active_workflow_version=?,enabled=1,revision=revision+1,sync_status=? WHERE agent_id=?',[$version,$changed?'pending':$agent['sync_status'],$id]);
             $this->audit($id,$actor,'published',$revision+1);
@@ -633,7 +633,7 @@ PROMPT;
                     $version=(int)$this->query('SELECT MAX(workflow_version)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
                     $snapshot=$agent['published'];$snapshot['workflow_version']=$version;$snapshot['fallback_destination_id']=$target;
                     PublishedContract::validate($snapshot);
-                    $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,?,?,?)',[$id,$version,$snapshot['contract_version'],self::encode($snapshot)]);
+                    $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json,published_by) VALUES (?,?,?,?,?)',[$id,$version,$snapshot['contract_version'],self::encode($snapshot),self::text($actor,100,true)]);
                     $this->query("UPDATE asterisk.voice_agent_agents SET active_workflow_version=?,sync_status='pending' WHERE agent_id=?",[$version,$id]);
                 }
                 if ($agent['agent_type']==='cleverai') $this->query("UPDATE asterisk.voice_agent_agents SET sync_status='pending' WHERE agent_id=?",[$id]);
@@ -746,6 +746,8 @@ PROMPT;
     {
         $row=(new Monitoring($this->db))->run($id);
         $row['events']=$this->query('SELECT event_id,event_type,occurred_at,error_code,tool_id,destination_id,result_count FROM asteriskcdrdb.voice_agent_run_events WHERE run_id=? ORDER BY occurred_at,event_id LIMIT 1000',[$id])->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($row['events'] as &$event) $event['error_code']=Monitoring::reason($event['error_code']);
+        unset($event);
         $row['transcripts']=[];
         $secretStore=new SecretStore();
         foreach ($this->query('SELECT event_id,content_encrypted,occurred_at FROM asteriskcdrdb.voice_agent_transcripts WHERE run_id=? AND expires_at>NOW() ORDER BY position,occurred_at,event_id LIMIT 64',[$id])->fetchAll(\PDO::FETCH_ASSOC) as $turn) {

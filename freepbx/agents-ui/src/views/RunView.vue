@@ -23,7 +23,7 @@ import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import type { Run, TraceEvent } from "../types";
-import { duration, formatTime, formatUtc, timeline } from "../monitoring";
+import { duration, formatTime, formatLocal, timeline } from "../monitoring";
 const { t, te, locale } = useI18n(),
   route = useRoute();
 const query = useQuery({
@@ -125,16 +125,17 @@ const summary = computed(() => {
       label: t("publishedVersion"),
       value: String(value.workflow_version),
     },
+    { id: "publisher", label: t("publisher"), value: value.published_by || "—" },
     {
       id: "started",
       label: t("startedAt"),
-      value: formatUtc(value.started_at, String(locale.value)) + " UTC",
+      value: formatLocal(value.started_at, String(locale.value)),
     },
     {
       id: "ended",
       label: t("endedAt"),
       value: value.ended_at
-        ? formatUtc(value.ended_at, String(locale.value)) + " UTC"
+        ? formatLocal(value.ended_at, String(locale.value))
         : "—",
     },
     {
@@ -212,8 +213,7 @@ const partial = computed(
       run
         ? (run.agent_name || run.agent_id) +
           ' · ' +
-          formatUtc(run.started_at, String(locale)) +
-          ' UTC'
+          formatLocal(run.started_at, String(locale))
         : ''
     "
     back="/activity"
@@ -264,6 +264,7 @@ const partial = computed(
           </dd>
         </div>
       </dl>
+      <a v-if="run.call_record_url" class="mt-4 inline-block underline" :href="run.call_record_url" target="_blank" rel="noopener">{{ t("callRecord") }}</a>
     </NeCard>
     <section>
       <NeHeading tag="h5" class="mb-3">{{

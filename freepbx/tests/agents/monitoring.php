@@ -23,6 +23,13 @@ assert(Monitoring::filters(['provider'=>'openai,openai,grok'])['provider']===['o
 assert(count($monitor->runs(['query'=>$id,'from'=>gmdate('Y-m-d\TH:i:s\Z',time()-86400)])['items'])===0);
 $row=$monitor->run($id); assert($row['duration_ms']==1200 && $row['trace_status']==='complete');
 assert(!isset($row['linkedid'],$row['provider_call_id']));
+$db->prepare("UPDATE asteriskcdrdb.voice_agent_runs SET linkedid='synthetic-support',error_code='private_untrusted_detail' WHERE run_id=?")->execute([$id]);
+$db->exec("INSERT INTO asteriskcdrdb.cdr (calldate,linkedid,uniqueid) VALUES (NOW()-INTERVAL 23 DAY,'synthetic-support','outside-window')");
+assert($monitor->run($id)['call_record_url']===null);
+$db->exec("INSERT INTO asteriskcdrdb.cdr (calldate,linkedid,uniqueid) VALUES (CONVERT_TZ(NOW(),'+00:00','SYSTEM')-INTERVAL 20 DAY,'synthetic-support','native-42')");
+$detail=$monitor->run($id);
+assert($detail['call_record_url']==='/freepbx/admin/config.php?display=cdr&action=cel_show&uid=native-42');
+assert($detail['error_code']==='other' && !isset($detail['src'],$detail['dst'],$detail['linkedid']));
 $trace=$monitor->trace($id,[]); assert($trace['items']===[] && $trace['next_cursor']===null);
 assert($monitor->summary([])['coverage']['instrumented_runs']>=0);
 assert($monitor->health()['stale']===true);

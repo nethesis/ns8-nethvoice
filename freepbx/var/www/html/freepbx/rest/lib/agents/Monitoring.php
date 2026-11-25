@@ -14,7 +14,7 @@ final class Monitoring
     public static function retentionDays(): int
     {
         $value=Preview::value('VOICE_AGENT_MONITORING_RETENTION_DAYS');
-        if ($value===false) return 90;
+        if ($value==='') return 90;
         if (!preg_match('/^[0-9]{1,4}$/D',$value) || (int)$value<1 || (int)$value>3650) {
             error_log('voice_agent_monitoring_retention_invalid'); return 90;
         }
@@ -97,8 +97,19 @@ final class Monitoring
         return [implode(' AND ',$parts),$args];
     }
     private const RUN_COLUMNS='r.run_id,r.parent_run_id,r.agent_id,a.name AS agent_name,r.workflow_version,r.started_at,r.ended_at,r.outcome,r.error_code,r.monitoring_version,r.provider,r.adapter,r.model,r.duration_ms,r.setup_duration_ms,r.first_output_ms,r.trace_status,r.usage_json,r.usage_complete,(r.outcome=\'running\' AND COALESCE(r.deadline_at,DATE_ADD(r.started_at,INTERVAL 3660 SECOND))<NOW()) AS incomplete';
+    public static function reason(?string $code): ?string
+    {
+        if ($code===null) return null;
+        static $reasons;
+        $reasons ??= json_decode(file_get_contents(__DIR__.'/contracts/monitoring-reasons.json'),true,16,JSON_THROW_ON_ERROR);
+        if (in_array($code,$reasons,true) || preg_match('/^provider_http_[1-5][0-9]{2}$/D',$code)
+            || (preg_match('/^provider_hangup_([0-9]{1,3})$/D',$code,$m) && (int)$m[1]<=127)) return $code;
+        return 'other';
+    }
+
     private static function row(array $row): array
     {
+        $row['error_code']=self::reason($row['error_code']);
         $row['usage']=$row['usage_json']!==null?json_decode($row['usage_json'],true):null; unset($row['usage_json']);
         foreach (['workflow_version','monitoring_version','duration_ms','setup_duration_ms','first_output_ms'] as $key) $row[$key]=$row[$key]===null?null:(int)$row[$key];
         $row['usage_complete']=(bool)$row['usage_complete']; $row['incomplete']=(bool)$row['incomplete'];
@@ -113,8 +124,21 @@ final class Monitoring
     public function run(string $id): array
     {
         if (!preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/D',$id)) self::fail('invalid_identifier');
-        $row=$this->query('SELECT '.self::RUN_COLUMNS.' FROM asteriskcdrdb.voice_agent_runs r LEFT JOIN asterisk.voice_agent_agents a ON a.agent_id=r.agent_id WHERE r.run_id=? AND r.started_at>=DATE_SUB(NOW(),INTERVAL ? DAY)',[$id,self::retentionDays()])->fetch(\PDO::FETCH_ASSOC);
+        $row=$this->query('SELECT '.self::RUN_COLUMNS.',r.linkedid,v.published_by FROM asteriskcdrdb.voice_agent_runs r
+            LEFT JOIN asterisk.voice_agent_agents a ON a.agent_id=r.agent_id
+            LEFT JOIN asterisk.voice_agent_versions v ON v.agent_id=r.agent_id AND v.workflow_version=r.workflow_version
+            WHERE r.run_id=? AND r.started_at>=DATE_SUB(NOW(),INTERVAL ? DAY)',[$id,self::retentionDays()])->fetch(\PDO::FETCH_ASSOC);
         if (!$row) throw new \RuntimeException('run_not_found',404);
+        $row['call_record_url']=null;
+        if (!empty($row['linkedid'])) {
+            // The native CDR report enforces its own authorization and retention.
+            $uid=$this->query("SELECT uniqueid FROM asterisk.voice_agent_recent_cdr WHERE linkedid=? AND calldate BETWEEN
+                CONVERT_TZ(?, '+00:00', 'SYSTEM') - INTERVAL 1 HOUR AND CONVERT_TZ(?, '+00:00', 'SYSTEM') + INTERVAL 1 HOUR
+                ORDER BY calldate,sequence LIMIT 1",[$row['linkedid'],$row['started_at'],$row['started_at']])->fetchColumn();
+            if (is_string($uid) && preg_match('/^[a-zA-Z0-9._:-]{1,128}$/D',$uid))
+                $row['call_record_url']='/freepbx/admin/config.php?display=cdr&action=cel_show&uid='.rawurlencode($uid);
+        }
+        unset($row['linkedid']);
         return self::row($row);
     }
     public function trace(string $id,array $query): array
@@ -130,6 +154,8 @@ final class Monitoring
         }
         $rows=$this->query('SELECT event_id,event_type,occurred_at,error_code,tool_id,destination_id,result_count,span_id,parent_span_id,phase,status,elapsed_ms,duration_ms,http_status,provider_code FROM asteriskcdrdb.voice_agent_run_events WHERE '.$where.' ORDER BY occurred_at,event_id LIMIT 101',$args)->fetchAll(\PDO::FETCH_ASSOC);
         $items=array_slice($rows,0,100); $last=end($items);
+        foreach ($items as &$item) $item['error_code']=self::reason($item['error_code']);
+        unset($item);
         foreach ($items as &$item) foreach (['result_count','elapsed_ms','duration_ms','http_status'] as $key) $item[$key]=$item[$key]===null?null:(int)$item[$key]; unset($item);
         return ['items'=>$items,'next_cursor'=>count($rows)>100?base64_encode(json_encode([$last['occurred_at'],$last['event_id']])):null];
     }
@@ -157,7 +183,7 @@ final class Monitoring
         $rows=$this->query('SELECT metric,dimension,result,bucket,SUM(samples) samples,SUM(total) total FROM asteriskcdrdb.voice_agent_metric_hours m WHERE '.$metricWhere.' GROUP BY metric,dimension,result,bucket',$metricArgs)->fetchAll(\PDO::FETCH_ASSOC);
         $groups=[]; $errors=[];
         foreach ($rows as $row) {
-            if ($row['metric']==='provider_error') $errors[]=['phase'=>$row['dimension'],'error_code'=>$row['result'],'count'=>(int)$row['samples']];
+            if ($row['metric']==='provider_error') $errors[]=['phase'=>$row['dimension'],'error_code'=>self::reason($row['result']),'count'=>(int)$row['samples']];
             else $groups[$row['metric']][$row['dimension']][$row['result']][]=$row;
         }
         $latencies=[]; foreach (['run_duration','setup_duration','first_output'] as $metric) {
@@ -181,9 +207,9 @@ final class Monitoring
     }
     public function health(): array
     {
-        $row=$this->query('SELECT observed_at,ari_connected,active_calls,degraded,spool_writable,queue_depth,pending_bytes,oldest_pending_seconds,dropped,retries,last_write_at FROM asteriskcdrdb.voice_agent_runtime_health WHERE singleton=1')->fetch(\PDO::FETCH_ASSOC);
+        $row=$this->query('SELECT observed_at,ari_connected,active_calls,degraded,spool_writable,queue_depth,pending_bytes,oldest_pending_seconds,dropped,retries,invalid_webhook_signatures,last_write_at FROM asteriskcdrdb.voice_agent_runtime_health WHERE singleton=1')->fetch(\PDO::FETCH_ASSOC);
         if (!$row) return ['stale'=>true,'observed_at'=>null];
-        foreach (['active_calls','queue_depth','pending_bytes','oldest_pending_seconds','dropped','retries'] as $key) $row[$key]=(int)$row[$key];
+        foreach (['active_calls','queue_depth','pending_bytes','oldest_pending_seconds','dropped','retries','invalid_webhook_signatures'] as $key) $row[$key]=(int)$row[$key];
         foreach (['ari_connected','degraded','spool_writable'] as $key) $row[$key]=(bool)$row[$key];
         $row['stale']=(new \DateTimeImmutable('now',new \DateTimeZone('UTC')))->getTimestamp()-(new \DateTimeImmutable($row['observed_at'],new \DateTimeZone('UTC')))->getTimestamp()>60;
         return $row;
