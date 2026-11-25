@@ -2068,7 +2068,12 @@ test.describe('user accounts', () => {
     const username = drawer.getByRole('textbox', { name: 'Username' })
     const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
 
-    await expect(username).toHaveAttribute('maxlength', '32')
+    await username.fill('emma.josephine.alexandra.johnson.w')
+    await drawer.getByRole('button', { name: 'Create' }).click()
+    await expect(drawer.getByText('The username can be at most 32 characters long')).toBeVisible()
+    await expect(username).toHaveValue('emma.josephine.alexandra.johnson.w')
+    await expect(username).toBeFocused()
+
     await username.fill('e.johnson')
     await name.fill('Emma Josephine Alexandra Margaret')
     await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson-Whitfield')

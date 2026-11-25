@@ -890,7 +890,6 @@ const extensionChangeWarning = computed(
           :label="t('users.username')"
           :invalid-message="issue('username')"
           :disabled="saving || isCreationBlocked"
-          :maxlength="USERNAME_MAX_LENGTH"
           autocomplete="off"
         />
         <NeTextInput
