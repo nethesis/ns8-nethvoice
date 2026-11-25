@@ -271,6 +271,7 @@ function number(key: string, value: string) {
           type="number"
           min="1"
           max="90"
+          :invalid-message="errors?.lookback"
           @update:model-value="number('recent_caller_lookback_days', $event)"
         />
       </div>
@@ -329,6 +330,7 @@ function number(key: string, value: string) {
           type="number"
           min="1"
           max="10"
+          :invalid-message="errors?.goodbye"
           @update:model-value="number('playback_timeout_seconds', $event)"
         />
       </div>

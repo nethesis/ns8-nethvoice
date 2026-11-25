@@ -142,12 +142,9 @@ export function errorCode(error: unknown): string {
     ? error.message
     : "request_failed";
 }
-export function signIn() {
-  sessionStorage.setItem(
-    "nethvoice.agents.return",
-    window.location.pathname + window.location.hash,
-  );
-  window.location.assign("/freepbx/wizard/#!/login");
+export function signIn(keepPage = false) {
+  if (keepPage) window.open("/freepbx/wizard/#!/login", "_blank", "noopener");
+  else window.location.assign("/freepbx/wizard/#!/login");
 }
 export function signOut() {
   localStorage.removeItem("secretkey");

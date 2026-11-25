@@ -64,6 +64,14 @@ const accountMenu = computed<NeDropdownItem[]>(() => [
     action: signOut,
   },
 ]);
+const everAuthorized = ref(false);
+watch(
+  () => auth.authorized,
+  (value) => {
+    if (value) everAuthorized.value = true;
+  },
+  { immediate: true },
+);
 onMounted(() => {
   document.documentElement.lang = String(locale.value);
   void loadWizardBranding().then((value) => {
@@ -218,18 +226,26 @@ watch(
       </header>
       <main class="flex-1 px-4 py-6 sm:px-8">
         <NeSkeleton v-if="!auth.ready" :lines="8" />
-        <AppEmptyState
-          v-else-if="!auth.authorized"
-          :title="t('authenticationRequired')"
-          :description="t('authenticationHelp')"
-          :icon="faLock"
-          ><NeButton kind="primary" size="lg" @click="signIn">{{
-            t("signIn")
-          }}</NeButton></AppEmptyState
-        >
-        <RouterView v-else v-slot="{ Component }"
-          ><component :is="Component" :key="$route.path"
-        /></RouterView>
+        <template v-else>
+          <AppEmptyState
+            v-if="!auth.authorized"
+            :title="t('authenticationRequired')"
+            :description="
+              t(everAuthorized ? 'sessionExpiredHelp' : 'authenticationHelp')
+            "
+            :icon="faLock"
+            ><NeButton
+              kind="primary"
+              size="lg"
+              @click="signIn(everAuthorized)"
+              >{{ t("signIn") }}</NeButton
+            ></AppEmptyState
+          >
+          <RouterView v-if="everAuthorized" v-slot="{ Component }"
+            ><div v-show="auth.authorized">
+              <component :is="Component" :key="$route.path" /></div
+          ></RouterView>
+        </template>
       </main>
     </div>
     <div

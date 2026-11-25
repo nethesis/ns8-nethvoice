@@ -41,8 +41,9 @@ const route = useRoute(),
   task = useTask(),
   ui = useUi();
 const id = computed(() => String(route.params.id || ""));
-const creating = computed(() => !id.value);
 const record = ref<Agent>();
+const agentId = computed(() => id.value || record.value?.agent_id || "");
+const creating = computed(() => !agentId.value);
 const name = ref("");
 const agentType = ref("basic_voice");
 const external = computed(() => agentType.value === "cleverai");
@@ -167,7 +168,7 @@ onUnmounted(() => {
 const errors = ref<Record<string, string>>({});
 const agent = useQuery({
   queryKey: ["agent", id],
-  enabled: computed(() => !creating.value),
+  enabled: computed(() => !!id.value),
   queryFn: () =>
     request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value)),
   refetchOnWindowFocus: false,
@@ -320,6 +321,14 @@ const canPublish = computed(
       (record.value.draft_version != null &&
         record.value.draft_version !== record.value.workflow_version)),
 );
+watch(
+  () => draft.value.tool_bindings,
+  () => {
+    if (errors.value.lookback || errors.value.goodbye)
+      errors.value = { ...errors.value, lookback: "", goodbye: "" };
+  },
+  { deep: true },
+);
 function validate(publishing: boolean) {
   const next: Record<string, string> = {};
   if (!name.value.trim()) next.name = t("agentForm.enterName");
@@ -364,6 +373,28 @@ function validate(publishing: boolean) {
     !(Number.isInteger(retention) && retention >= 1 && retention <= 24)
   )
     next.retention = t("agentForm.retentionRange");
+  if (!external.value) {
+    const range = (value: unknown, min: number, max: number) =>
+      Number.isInteger(value) && Number(value) >= min && Number(value) <= max
+        ? ""
+        : t("agentForm.numberRange", { min, max });
+    const tool = (toolId: string) =>
+      draft.value.tool_bindings.find((b) => b.tool_id === toolId);
+    const transfer = tool("pbx.transfer"),
+      hangup = tool("telephony.hangup");
+    const checks = {
+      duration: range(draft.value.max_call_duration_seconds, 30, 3600),
+      lookback:
+        transfer?.enabled && transfer.config.recent_callers_enabled === true
+          ? range(transfer.config.recent_caller_lookback_days, 1, 90)
+          : "",
+      goodbye: hangup?.enabled
+        ? range(hangup.config.playback_timeout_seconds, 1, 10)
+        : "",
+    };
+    for (const [key, message] of Object.entries(checks))
+      if (message) next[key] = message;
+  }
   errors.value = next;
   return !Object.keys(next).length;
 }
@@ -377,17 +408,17 @@ async function persist(): Promise<Agent> {
       creating.value ? "POST" : "PUT",
       creating.value
         ? "/profiles"
-        : "/profiles/" + encodeURIComponent(id.value),
+        : "/profiles/" + encodeURIComponent(agentId.value),
       {
         profile: { name: name.value.trim(), draft: configuration.value },
         expected_revision: record.value?.revision || 0,
       },
     );
   } catch (failure) {
-    if (errorCode(failure) === "revision_conflict" && id.value)
+    if (errorCode(failure) === "revision_conflict" && agentId.value)
       conflict.value = await request<Agent>(
         "GET",
-        "/profiles/" + encodeURIComponent(id.value),
+        "/profiles/" + encodeURIComponent(agentId.value),
       );
     throw failure;
   }
@@ -430,7 +461,6 @@ async function save() {
 }
 async function publish() {
   if (!canPublish.value || !validate(true)) return;
-  const wasCreating = creating.value;
   saving.value = "publish";
   await task.run(
     async () => {
@@ -466,7 +496,10 @@ async function reload() {
   await task.run(async () => {
     conflict.value = undefined;
     accept(
-      await request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value)),
+      await request<Agent>(
+        "GET",
+        "/profiles/" + encodeURIComponent(agentId.value),
+      ),
     );
   }, false);
 }
@@ -474,7 +507,10 @@ async function synchronize() {
   await task.run(async () => {
     await request("POST", "/synchronize", { retry: true });
     accept(
-      await request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value)),
+      await request<Agent>(
+        "GET",
+        "/profiles/" + encodeURIComponent(agentId.value),
+      ),
     );
   });
 }
@@ -664,12 +700,13 @@ async function synchronize() {
               :model-value="String(draft.max_call_duration_seconds)"
               :label="t('maxDuration')"
               :helper-text="t('agentForm.durationHelp')"
-              :invalid-message="errors.duration"
+              type="number"
               min="30"
               max="3600"
-              type="number"
+              :invalid-message="errors.duration"
               @update:model-value="
-                draft.max_call_duration_seconds = Number($event)
+                draft.max_call_duration_seconds = Number($event);
+                errors.duration = '';
               "
             />
           </template>
