@@ -401,14 +401,15 @@ function validate(publishing: boolean) {
   return !Object.keys(next).length;
 }
 const saving = ref<"" | "draft" | "publish">("");
+const createUncertain = ref(false);
 async function persist(): Promise<Agent> {
   if (conflict.value) throw new Error("revision_conflict");
   const wasCreating = creating.value;
   let value: Agent;
   try {
     value = await request<Agent>(
-      creating.value ? "POST" : "PUT",
-      creating.value
+      wasCreating ? "POST" : "PUT",
+      wasCreating
         ? "/profiles"
         : "/profiles/" + encodeURIComponent(agentId.value),
       {
@@ -417,6 +418,8 @@ async function persist(): Promise<Agent> {
       },
     );
   } catch (failure) {
+    if (wasCreating && errorCode(failure) === "request_uncertain")
+      createUncertain.value = true;
     if (errorCode(failure) === "revision_conflict" && agentId.value)
       conflict.value = await request<Agent>(
         "GET",
@@ -433,7 +436,7 @@ async function refreshLists() {
   await queryClient.invalidateQueries({ queryKey: ["agents"] });
 }
 async function save() {
-  if (!validate(false)) return;
+  if (createUncertain.value || !validate(false)) return;
   const wasCreating = creating.value;
   saving.value = "draft";
   await task.run(
@@ -462,7 +465,7 @@ async function save() {
   saving.value = "";
 }
 async function publish() {
-  if (!canPublish.value || !validate(true)) return;
+  if (createUncertain.value || !canPublish.value || !validate(true)) return;
   saving.value = "publish";
   await task.run(
     async () => {
@@ -861,7 +864,7 @@ async function synchronize() {
               type="submit"
               :kind="external ? 'primary' : 'secondary'"
               :loading="saving === 'draft'"
-              :disabled="!!saving || (!dirty && !creating)"
+              :disabled="!!saving || createUncertain || (!dirty && !creating)"
               ><template #prefix
                 ><FontAwesomeIcon
                   :icon="external ? 'check' : 'floppy-disk'"
@@ -872,7 +875,7 @@ async function synchronize() {
               v-if="!external"
               kind="primary"
               :loading="saving === 'publish'"
-              :disabled="!!saving || !canPublish"
+              :disabled="!!saving || createUncertain || !canPublish"
               @click="publish"
               ><template #prefix
                 ><FontAwesomeIcon icon="check" aria-hidden="true" /></template

@@ -63,3 +63,61 @@ test("closing the editor with unsaved changes asks for confirmation", async ({pa
   await page.close({runBeforeUnload: true});
   expect(await dialog).toBe("beforeunload");
 });
+
+async function monitoring(page: Page, expireOnce: (path: string) => boolean) {
+  let expired = false;
+  const unhandled: string[] = [];
+  page.on("pageerror", error => unhandled.push(error.message));
+  await page.addInitScript(() => {
+    localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "synthetic"}));
+    localStorage.setItem("nethvoice.agents.language", "en");
+  });
+  await page.route("**/freepbx/rest/agents/**", async route => {
+    const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
+    if (!expired && expireOnce(path)) {
+      expired = true;
+      await route.fulfill({status: 401, json: {error: "unauthorized"}});
+      return;
+    }
+    const json = path === "/access" ? {csrf: "synthetic-csrf"}
+      : path === "/monitoring/summary" ? {coverage: {total_runs: 42, instrumented_runs: 42, partial_runs: 0, incomplete_runs: 0}, outcomes: [], trends: [], latencies: {}, phases: [], tools: [], errors: []}
+      : path === "/monitoring/health" ? {stale: false, degraded: false, ari_connected: true, queue_depth: 0, oldest_pending_seconds: 0, dropped: 0, retries: 0, last_write_at: null}
+      : {items: [], has_more: false};
+    await route.fulfill({json});
+  });
+  await page.goto("./#/activity");
+  await expect(page.getByText("Administrator login required")).toBeVisible();
+  return unhandled;
+}
+
+test("monitoring loads again after the session resumes", async ({page}) => {
+  const unhandled = await monitoring(page, path => path === "/monitoring/summary");
+  await page.evaluate(() => {
+    localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "renewed"}));
+    window.dispatchEvent(new StorageEvent("storage", {key: "secretkey"}));
+  });
+  await expect(page.getByTestId("monitoring-total")).toHaveText("42");
+  expect(unhandled).toEqual([]);
+});
+
+test("returning to the tab resumes when the wizard stored the same key", async ({page}) => {
+  const unhandled = await monitoring(page, path => path === "/monitoring/summary");
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(page.getByTestId("monitoring-total")).toHaveText("42");
+  expect(unhandled).toEqual([]);
+});
+
+test("an invalid stored key does not leave unhandled rejections", async ({page}) => {
+  const rejections: string[] = [];
+  await page.exposeFunction("reportRejection", (value: string) => rejections.push(value));
+  await page.addInitScript(() => window.addEventListener("unhandledrejection", event => (window as unknown as {reportRejection: (v: string) => void}).reportRejection(String(event.reason))));
+  await monitoring(page, () => true);
+  await page.route("**/freepbx/rest/agents/access", route => route.fulfill({status: 401, json: {error: "unauthorized"}}));
+  await page.evaluate(() => {
+    localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "wrong"}));
+    window.dispatchEvent(new StorageEvent("storage", {key: "secretkey"}));
+  });
+  await expect(page.getByText("Administrator login required")).toBeVisible();
+  await page.waitForTimeout(300);
+  expect(rejections).toEqual([]);
+});

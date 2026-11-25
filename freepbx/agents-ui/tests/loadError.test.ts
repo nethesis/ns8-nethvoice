@@ -16,9 +16,20 @@ const failure = (status?: number, data?: unknown) => {
 };
 
 describe("load error codes", () => {
-  it("prefers a specific server code", () => {
-    expect(loadErrorCode(failure(404, { error: "run_not_found" }))).toBe(
-      "run_not_found",
+  it("prefers a specific server code that has its own text", () => {
+    expect(
+      loadErrorCode(
+        failure(404, { error: "run_not_found" }),
+        (code) => code === "run_not_found",
+      ),
+    ).toBe("run_not_found");
+  });
+  it("uses the status when the server code has no text", () => {
+    expect(loadErrorCode(failure(404, { error: "agent_not_found" }))).toBe(
+      "not_found",
+    );
+    expect(loadErrorCode(failure(503, { error: "access_unavailable" }))).toBe(
+      "request_unavailable",
     );
   });
   it("explains missing, unavailable and unanswered requests", () => {
