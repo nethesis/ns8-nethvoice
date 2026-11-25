@@ -9,6 +9,7 @@ import signal
 from dotenv import load_dotenv
 import uvicorn
 
+from voice_agent.drain import claim_idle
 from voice_agent.runner import app_from_env, settings
 
 
@@ -24,6 +25,8 @@ def api_server_settings():
 
 
 async def run(shutdown_event=None):
+    if not claim_idle(cancel=True):
+        raise RuntimeError('Satellite work lock is busy during startup')
     shutdown_event = shutdown_event or asyncio.Event()
     flags = [os.getenv(name) for name in (
         "SATELLITE_CALL_TRANSCRIPTION_ENABLED", "SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED")]

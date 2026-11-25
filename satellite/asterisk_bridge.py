@@ -1,4 +1,5 @@
 import asyncio
+from voice_agent.drain import admit_work
 import logging
 import aiohttp
 import json
@@ -247,7 +248,11 @@ class AsteriskBridge:
 
         if not channel_id.startswith("snoop-") and not channel_id.startswith("ext-media-"):
             # Normal channel entered Stasis
-            self.channels[channel_id] = {}
+            lease = admit_work()
+            if lease is None:
+                await self._ari_request('POST', f"/channels/{channel_id}/continue", params={})
+                return
+            self.channels[channel_id] = {'work_lease': lease}
             self.channels[channel_id]['language'] = channel.get('language', 'en')
             self.channels[channel_id]['caller_name'] = channel['caller'].get('name', 'caller')
             self.channels[channel_id]['caller_number'] = channel['caller'].get('number', 'unknown')
@@ -535,7 +540,11 @@ class AsteriskBridge:
                 return
             task = asyncio.create_task(self._close_channel_resources(channel_id, channel))
             self._closing_channels[channel_id] = task
-            task.add_done_callback(lambda _: self._closing_channels.pop(channel_id))
+            def released(_):
+                self._closing_channels.pop(channel_id)
+                if channel.get('work_lease') is not None:
+                    channel['work_lease'].close()
+            task.add_done_callback(released)
         await asyncio.shield(task)
 
     async def _close_channel_resources(self, channel_id, channel):

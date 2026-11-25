@@ -21,6 +21,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 import db
 import metrics
+from voice_agent.drain import admit_work
 
 logger = logging.getLogger("api")
 _worker_tasks = set()
@@ -278,9 +279,17 @@ def _require_api_token_if_configured(request: Request) -> None:
         )
 
 
+async def _work_lease():
+    lease = admit_work()
+    if lease is None:
+        raise HTTPException(status_code=503, detail="Satellite configuration is being applied")
+    with lease:
+        yield
+
+
 api_router = APIRouter(
     prefix="/api",
-    dependencies=[Depends(_require_api_token_if_configured)],
+    dependencies=[Depends(_require_api_token_if_configured), Depends(_work_lease)],
 )
 
 async def _run_call_processor(
