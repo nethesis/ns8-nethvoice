@@ -18,6 +18,7 @@ def write(name,values):
 def set_env(name,value):
     state['environment'][name]=value
 agent=SimpleNamespace(read_envfile=lambda name:dict(state[name]),write_envfile=write,set_env=set_env,
+    mset_env=lambda values:state["environment"].update(values),
     allocate_ports=Mock(return_value=(30000,30000)),set_route=Mock())
 with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agent':agent}), patch.dict(os.environ,{'MODULE_ID':'nethvoice_test'}):
     before=os.getcwd()
@@ -115,6 +116,15 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             raise AssertionError('conflicting port must require a successful allocation')
         assert state['environment']['VOICE_AGENT_HTTP_PORT']=='31038'
         agent.set_route.assert_not_called()
+        # A legacy install used 39 TCP slots plus four extra chat ports.
+        state['environment'] = {'NETHVOICE_HOST':'synthetic.example','TCP_PORTS_RANGE':'31000-31038','CHAT_GW_PORT':'32003'}
+        agent.allocate_ports.reset_mock()
+        agent.allocate_ports.side_effect = None
+        agent.allocate_ports.return_value = (33000,33002)
+        for _ in range(2):
+            runpy.run_path(str(root/'imageroot/actions/configure-module/29voice_agents'))
+        agent.allocate_ports.assert_called_once_with(3,'tcp',keep_existing=True)
+        assert [state['environment'][name] for name in ('VOICE_AGENT_HTTP_PORT','NETHVOICE_RECIPIENT_SERVICE_PORT','VOICE_AGENT_CHAT_PORT')] == ['33000','33001','33002']
         # Execute the actual fresh-create mapping as well.
         state['environment'].clear()
         def shrink_udp(count, protocol, **kwargs):
@@ -142,5 +152,5 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         assert any(call['data']['instance']=='nethvoice_test-voice-agent-webhooks' for call in removed)
     finally:
         os.chdir(before)
-assert 'org.nethserver.tcp-ports-demand="45"' in (root/'Containerfile').read_text()
+assert 'org.nethserver.tcp-ports-demand="46"' in (root/'Containerfile').read_text()
 print('NS8 secret filtering, idempotent port allocation and exact webhook route passed')

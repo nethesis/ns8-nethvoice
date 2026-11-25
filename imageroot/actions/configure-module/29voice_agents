@@ -11,38 +11,44 @@ env = agent.read_envfile('environment')
 if 'VOICE_AGENT_MONITORING_RETENTION_DAYS' not in env:
     agent.set_env('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
     env['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = '90'
-occupied_ports = {str(value) for name, value in env.items()
-                  if name != 'VOICE_AGENT_HTTP_PORT' and re.search(r'PORT\d*$', name)}
-if '--secrets-only' not in sys.argv and (
-        not env.get('VOICE_AGENT_HTTP_PORT') or str(env['VOICE_AGENT_HTTP_PORT']) in occupied_ports):
-    # Fresh installs reserve slot 42 after chat's slots 38..41. Upgrades can
-    # have a different layout: never reuse a slot assigned to another service.
-    # Also repair the chat collision saved by earlier voice-agent versions.
-    port_range = (env.get('TCP_PORTS_RANGE') or os.getenv('TCP_PORTS_RANGE', '')).split('-')
-    if (len(port_range) == 2 and int(port_range[1]) - int(port_range[0]) >= 42
-            and str(int(port_range[0]) + 42) not in occupied_ports):
-        port = int(port_range[0]) + 42
-    else:
-        port = agent.allocate_ports(1, 'tcp', keep_existing=True)[0]
-    agent.set_env('VOICE_AGENT_HTTP_PORT', str(port))
+def allocate_agent_ports(env):
+    names = ('VOICE_AGENT_HTTP_PORT', 'NETHVOICE_RECIPIENT_SERVICE_PORT', 'VOICE_AGENT_CHAT_PORT')
+    occupied = {str(value) for key, value in env.items()
+                if key not in names and re.search(r'PORT\d*$', key)}
+    missing = []
+    for name in names:
+        value = str(env.get(name, ''))
+        if value.isdecimal() and 0 < int(value) <= 65535 and value not in occupied:
+            occupied.add(value)
+        else:
+            missing.append(name)
+    if not missing:
+        return
+    reserved = re.fullmatch(r'(\d+)-(\d+)', env.get('TCP_PORTS_RANGE', ''))
+    ports = {}
+    for name in missing:
+        if reserved:
+            candidate = int(reserved[1]) + 42 + names.index(name)
+            if candidate <= int(reserved[2]) and str(candidate) not in occupied:
+                ports[name] = str(candidate)
+    extra = [name for name in missing if name not in ports]
+    if extra:
+        first, last = agent.allocate_ports(len(extra), 'tcp', keep_existing=True)
+        if last - first + 1 != len(extra):
+            raise RuntimeError('Unexpected TCP allocation size')
+        ports.update({name: str(first + offset) for offset, name in enumerate(extra)})
+    agent.mset_env(ports)
+    env.update(ports)
+
+
+if '--secrets-only' not in sys.argv:
+    allocate_agent_ports(env)
 passwords = agent.read_envfile('passwords.env')
 for name in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD', 'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN'):
     if not passwords.get(name):
         passwords[name] = secrets.token_urlsafe(32)
 agent.write_envfile('passwords.env', passwords)
 os.chmod('passwords.env', 0o600)
-if '--secrets-only' not in sys.argv:
-    for name, slot in (('NETHVOICE_RECIPIENT_SERVICE_PORT', 43), ('VOICE_AGENT_CHAT_PORT', 44)):
-        collision = any(key != name and re.search(r'PORT\d*$', key) and str(value) == str(env.get(name)) for key, value in env.items())
-        if not env.get(name) or collision:
-            port_range = (env.get('TCP_PORTS_RANGE') or os.getenv('TCP_PORTS_RANGE', '')).split('-')
-            free = {str(value) for key, value in env.items() if key != name and re.search(r'PORT\d*$', key)}
-            if len(port_range)==2 and int(port_range[1])-int(port_range[0])>=slot and str(int(port_range[0])+slot) not in free:
-                port = str(int(port_range[0])+slot)
-            else:
-                port = str(agent.allocate_ports(1, 'tcp', keep_existing=True)[0])
-            agent.set_env(name, port)
-            env[name] = port
 runtime_keys = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
                 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
                 'SATELLITE_ARI_PASSWORD', 'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN')
