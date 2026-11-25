@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+from pathlib import Path
+
 import agent
 
 
@@ -24,3 +26,10 @@ if any(k in passwords for k in ('NETHCTI_SSO_TRUSTED_SECRET', 'NETHCTI_SSO_TOKEN
               'NETHCTI_SSO_PROXY_SECRET', 'NETHCTI_SSO_OIDC_COOKIE_SECRET'):
         passwords.pop(k, None)
     agent.write_envfile('passwords.env', passwords)
+
+# Derived files may be present on a filesystem clone. Reconcile from the
+# clone's newly generated credentials and disabled preview on first configure.
+for name in ('voice-preview/enabled', 'voice-preview/effective.env', 'voice-preview/candidate.env',
+             'satellite.env', 'satellite-applied.json', 'satellite-runtime.sha256',
+             'satellite-apply.running', 'satellite-apply.pending', 'satellite-apply.failed'):
+    Path(name).unlink(missing_ok=True)
