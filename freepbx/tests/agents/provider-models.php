@@ -32,4 +32,15 @@ foreach (['grok-voice-3.0','gpt-realtime-2.1?secret',''] as $invalid) {
     try { ProviderCatalog::validateModel('openai',$invalid); throw new LogicException('accepted_invalid_model'); }
     catch (RuntimeException $error) { ensure($error->getMessage()==='invalid_provider_model','safe_validation'); }
 }
+$decode = new ReflectionMethod(ProviderCatalog::class, 'openAiModelsResponse');
+foreach ([
+    [401, '{"error":{"code":"invalid_api_key"}}', 'provider_credentials_rejected'],
+    [401, '{"error":{"message":"Missing scopes: api.model.read."}}', 'provider_permission_denied'],
+    [403, '', 'provider_permission_denied'],
+    [401, '', 'provider_catalog_unavailable'],
+    [429, '', 'provider_catalog_unavailable'],
+] as [$status,$body,$reason]) {
+    try { $decode->invoke(null,true,$status,$body);throw new LogicException('failed_response_accepted'); }
+    catch (RuntimeException $error) { ensure($error->getMessage()===$reason,'credential_readiness_reason'); }
+}
 echo "Provider model catalogs passed\n";
