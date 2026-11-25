@@ -252,10 +252,7 @@ test.describe('dashboard', () => {
   test('shows counters, subscription and live data', async ({ page }) => {
     await page.goto('./dashboard')
 
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toHaveAttribute(
-      'aria-level',
-      '1',
-    )
+    await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
     await expect(counterValue(page, 'users')).toHaveText('5')
     await expect(counterValue(page, 'groups')).toHaveText('2')
     await expect(counterValue(page, 'physicalPhones')).toHaveText('125')
@@ -345,6 +342,23 @@ test.describe('dashboard', () => {
     await expect(queue).toHaveText('Through a queue')
     await queue.hover()
     await expect(page.getByRole('tooltip', { name: 'Through a queue' })).toBeVisible()
+  })
+
+  test('shows the do not disturb status on the dark card', async ({ page }) => {
+    await page.goto('./dashboard')
+
+    const presence = page.getByTestId('presence-card')
+    await expect(presence.getByTestId('breakdown-dnd')).toHaveText('1')
+    const dot = presence
+      .getByRole('term')
+      .filter({ hasText: 'Do not disturb' })
+      .locator('span.rounded-full')
+    const dotColor = await dot.evaluate((element) => getComputedStyle(element).backgroundColor)
+    const cardColor = await presence.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    )
+
+    expect(dotColor).not.toBe(cardColor)
   })
 
   test('opens the section of a counter', async ({ page }) => {
@@ -566,15 +580,16 @@ test.describe('dashboard', () => {
       .on('GET', '/freepbx/rest/inboundroutes', { status: 500, json: 'An error occurred' })
     await page.clock.runFor(61000)
 
-    const loadError = page.getByTestId('dashboard-load-error')
-    await expect(loadError).toHaveCount(1)
-    await expect(loadError).toContainText('Cannot load some dashboard data')
-    await expect(loadError).toContainText('Not available: trunks and inbound routes.')
-    await expect(loadError).toContainText(
+    const trunksCard = page.getByTestId('trunks-card')
+    const inboundRoutesCard = page.getByTestId('inbound-routes-card')
+    await expect(trunksCard).toContainText('Cannot retrieve the trunks')
+    await expect(trunksCard).toContainText(
       'The server could not complete the request (error 500). Try again later.',
     )
+    await expect(inboundRoutesCard).toContainText('Cannot retrieve the inbound routes')
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
     await expect(trunkRows).toHaveCount(2)
-    await expect(page.getByTestId('inbound-routes-card').getByTestId('list-row')).toHaveCount(1)
+    await expect(inboundRoutesCard.getByTestId('list-row')).toHaveCount(1)
   })
 
   test('shows empty states without trunks and inbound routes', async ({ page, mockApi }) => {
@@ -652,12 +667,14 @@ test.describe('dashboard', () => {
 
     await page.goto('./dashboard')
 
-    await expect(page.getByText("Cannot load today's calls")).toBeVisible()
-    await expect(page.getByTestId('calls-summary-card')).toHaveCount(0)
+    const card = page.getByTestId('calls-summary-card')
+    await expect(card.getByText("Cannot retrieve today's calls")).toBeVisible()
+    await expect(card.getByTestId('breakdown-total')).toHaveCount(0)
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
     await expect(page.getByTestId('hourly-chart')).toBeVisible()
 
     fail = false
-    await page.getByRole('button', { name: 'Retry' }).click()
+    await card.getByRole('button', { name: 'Retry' }).click()
 
     await expect(page.getByTestId('calls-summary-card').getByTestId('breakdown-total')).toHaveText(
       '12',
@@ -676,18 +693,18 @@ test.describe('dashboard', () => {
 
     await page.goto('./dashboard')
 
-    const notification = page.getByTestId('dashboard-load-error')
-    await expect(notification).toContainText('Cannot load calls per hour')
-    await expect(notification).not.toContainText('Prometheus')
     const card = page.getByTestId('hourly-calls-card')
-    await expect(card.getByTestId('hourly-calls-unavailable')).toHaveText('Not available')
+    await expect(card).toContainText('Cannot retrieve calls per hour')
+    await expect(card).not.toContainText('Prometheus')
+    await expect(card.getByTestId('hourly-calls-unavailable')).toHaveCount(0)
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
     await expect(page.getByTestId('calls-summary-card')).toBeVisible()
 
     fail = false
-    await page.getByRole('button', { name: 'Retry' }).click()
+    await card.getByRole('button', { name: 'Retry' }).click()
 
     await expect(card.getByTestId('hourly-chart')).toBeVisible()
-    await expect(notification).toHaveCount(0)
+    await expect(card).not.toContainText('Cannot retrieve')
   })
 
   test('reports the phone status when it cannot be loaded', async ({ page, mockApi }) => {
@@ -699,15 +716,18 @@ test.describe('dashboard', () => {
 
     await page.goto('./dashboard')
 
+    const card = page.getByTestId('phone-status-card')
     await expect(page.getByTestId('dashboard-load-error')).toContainText(
-      'Not available: counters and phone status.',
+      'Cannot retrieve some counters',
     )
-    await expect(page.getByTestId('phone-status-card')).toHaveCount(0)
+    await expect(card).toContainText('Cannot retrieve the phone status')
+    await expect(card.getByTestId('breakdown-provisioned')).toHaveCount(0)
     await expect(counterValue(page, 'physicalPhones')).toHaveCount(0)
     await expect(page.getByTestId('calls-summary-card')).toBeVisible()
 
     fail = false
-    await page.getByRole('button', { name: 'Retry' }).click()
+    await card.getByRole('button', { name: 'Retry' }).click()
+    await page.getByTestId('dashboard-load-error').getByRole('button', { name: 'Retry' }).click()
 
     await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
     await expect(
@@ -738,7 +758,7 @@ test.describe('dashboard', () => {
 
     await page.goto('./dashboard')
 
-    await expect(page.getByText('Cannot load system information')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve system information')).toBeVisible()
     await expect(page.getByTestId('system-uptime')).toHaveCount(0)
     await expect(page.getByTestId('system-hostname')).toBeVisible()
     await expect(page.getByTestId('subscription-plan')).toHaveText('Enterprise')
@@ -751,7 +771,7 @@ test.describe('dashboard', () => {
     await page.getByRole('button', { name: 'Retry' }).click()
 
     await expect(page.getByTestId('system-uptime')).toHaveText('14 days 6 hours 12 minutes')
-    await expect(page.getByText('Cannot load system information')).toHaveCount(0)
+    await expect(page.getByText('Cannot retrieve system information')).toHaveCount(0)
     expect(mockApi.callsTo('GET', '/freepbx/rest/mainextensions/userlimits')).toHaveLength(
       subscriptionCalls,
     )
@@ -1099,20 +1119,24 @@ test.describe('dashboard', () => {
 
     await page.goto('./dashboard')
 
-    await expect(page.getByText('Cannot load live data')).toBeVisible()
+    const callsCard = page.getByTestId('calls-card')
+    await expect(callsCard.getByText('Cannot retrieve live data')).toBeVisible()
     await expect(
-      page.getByText('The server could not complete the request (error 500). Try again later.'),
+      callsCard.getByText(
+        'The server could not complete the request (error 500). Try again later.',
+      ),
     ).toBeVisible()
-    await expect(page.getByTestId('calls-card')).toHaveCount(0)
+    await expect(callsCard.getByTestId('call-row')).toHaveCount(0)
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
     await expect(page.getByTestId('counter-callsInProgress')).toContainText('Not available')
     await expect(page.getByTestId('presence-card').getByTestId('breakdown-busy')).toHaveText('2')
     await expect(page.getByTestId('devices-card').getByTestId('breakdown-webPhone')).toHaveText('3')
     await expect(counterValue(page, 'users')).toHaveText('5')
 
     fail = false
-    await page.getByRole('button', { name: 'Retry' }).click()
+    await callsCard.getByRole('button', { name: 'Retry' }).click()
 
-    await expect(page.getByText('Cannot load live data')).toHaveCount(0)
+    await expect(page.getByText('Cannot retrieve live data')).toHaveCount(0)
     await expect(page.getByTestId('call-row')).toHaveCount(2)
   })
 
@@ -1125,7 +1149,7 @@ test.describe('dashboard', () => {
 
     await page.goto('./dashboard')
 
-    await expect(page.getByText('Cannot load some counters')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve some counters')).toBeVisible()
     await expect(counterValue(page, 'trunks')).toHaveCount(0)
     await expect(counterValue(page, 'users')).toHaveText('5')
 
@@ -1133,15 +1157,13 @@ test.describe('dashboard', () => {
     await page.getByRole('button', { name: 'Retry' }).click()
 
     await expect(counterValue(page, 'trunks')).toHaveText('1')
-    await expect(page.getByText('Cannot load some counters')).toHaveCount(0)
+    await expect(page.getByText('Cannot retrieve some counters')).toHaveCount(0)
   })
 
   test('summarizes the unreachable services in one notification', async ({ page, mockApi }) => {
     let fail = true
     const responses: Record<string, unknown> = {
-      '/freepbx/rest/dashboard/live/extensions': EXTENSIONS,
-      '/freepbx/rest/dashboard/live/trunks': TRUNKS,
-      '/freepbx/rest/dashboard/live/users': USERS,
+      '/freepbx/rest/dashboard/system': SYSTEM,
       '/freepbx/rest/cti/groups': [{ id: 1, name: 'Sales' }],
     }
 
@@ -1157,9 +1179,9 @@ test.describe('dashboard', () => {
 
     const loadError = page.getByTestId('dashboard-load-error')
     await expect(loadError).toHaveCount(1)
-    await expect(loadError).toContainText('Cannot load some dashboard data')
+    await expect(loadError).toContainText('Cannot retrieve some dashboard data')
     await expect(loadError).toContainText(
-      'Not available: counters and live data. The service is not reachable at the moment. Try again shortly.',
+      'Not available: system information and counters. The service is not reachable at the moment. Try again shortly.',
     )
     await expect(page.getByText('Bad Gateway')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Retry' })).toHaveCount(1)
@@ -1180,10 +1202,12 @@ test.describe('dashboard', () => {
 
     await page.goto('./dashboard')
 
-    await expect(page.getByText('Cannot load live data')).toBeVisible()
     await expect(page.getByTestId('presence-card').getByTestId('breakdown-online')).toHaveText('1')
-    await expect(page.getByTestId('devices-card')).toHaveCount(0)
-    await expect(page.getByTestId('calls-card')).toHaveCount(0)
+    await expect(page.getByTestId('presence-card')).not.toContainText('Cannot retrieve')
+    await expect(page.getByTestId('devices-card')).toContainText('Cannot retrieve live data')
+    await expect(page.getByTestId('devices-card').getByTestId('breakdown-webPhone')).toHaveCount(0)
+    await expect(page.getByTestId('calls-card')).toContainText('Cannot retrieve live data')
+    await expect(page.getByTestId('dashboard-load-error')).toHaveCount(0)
     await expect(
       page.getByTestId('trunks-card').getByTestId('list-row').filter({ hasText: 'Provider' }),
     ).toContainText('Registered')
@@ -1198,7 +1222,7 @@ test.describe('dashboard', () => {
 
     const presence = page.getByTestId('presence-card')
     await expect(presence.getByTestId('breakdown-offline')).toHaveText('2')
-    await expect(page.getByText('Cannot load live data')).toHaveCount(0)
+    await expect(page.getByText('Cannot retrieve live data')).toHaveCount(0)
   })
 
   test('lists only connected calls and keeps internal calls to services', async ({

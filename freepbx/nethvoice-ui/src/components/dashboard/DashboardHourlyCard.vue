@@ -19,6 +19,7 @@ import {
   VisXYContainer,
 } from '@unovis/vue'
 import { AxisType, CurveType, type XYContainer } from '@unovis/ts'
+import LoadError from '@/components/common/LoadError.vue'
 import { isHistoryPartial, type CallsHistory, type CallsPoint } from '@/lib/dashboard/calls'
 import {
   formatCallCount,
@@ -48,10 +49,17 @@ const PAN_RATIO = 0.25
 
 type Drag = { pointerId: number; startX: number; from: number; to: number; moved: boolean }
 
-const { history, loading = false } = defineProps<{
+const {
+  history,
+  loading = false,
+  error = null,
+} = defineProps<{
   history?: CallsHistory
   loading?: boolean
+  error?: unknown
 }>()
+
+const emit = defineEmits<{ retry: [] }>()
 
 const { t, locale } = useI18n()
 
@@ -278,14 +286,23 @@ const describePoint = (point: CallsPoint) => {
       >
         {{ $t('dashboard.hourly_calls.available_from', { time: availableFrom }) }}
       </p>
+      <LoadError
+        v-if="error && !loading"
+        :error="error"
+        :title="$t('dashboard.cannot_load_calls_per_hour')"
+        :server-detail="false"
+        @retry="emit('retry')"
+      />
       <NeSkeleton v-if="loading" :lines="10" class="w-full" />
-      <p
-        v-else-if="!history"
-        class="text-tertiary-neutral py-6 text-center text-sm"
-        data-testid="hourly-calls-unavailable"
-      >
-        {{ $t('dashboard.not_available') }}
-      </p>
+      <template v-else-if="!history">
+        <p
+          v-if="!error"
+          class="text-tertiary-neutral py-6 text-center text-sm"
+          data-testid="hourly-calls-unavailable"
+        >
+          {{ $t('dashboard.not_available') }}
+        </p>
+      </template>
       <NeEmptyState
         v-else-if="history.historyStart === null"
         data-testid="hourly-calls-no-data"

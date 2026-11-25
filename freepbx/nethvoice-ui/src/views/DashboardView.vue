@@ -8,7 +8,7 @@ import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { useEventListener } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import type { RouteLocationRaw } from 'vue-router'
-import { NeHeading, NeInlineNotification } from '@nethesis/vue-components'
+import { NeInlineNotification } from '@nethesis/vue-components'
 import {
   faNetworkWired,
   faPhone,
@@ -319,20 +319,19 @@ const CARD_SPANS: Record<DashboardCardId, string> = {
 
 const cardGrid = useTemplateRef<HTMLUListElement>('cardGrid')
 
-const cardVisibility = computed<Record<DashboardCardId, boolean>>(() => ({
-  presence: presenceLoading.value || presence.value !== null,
-  devices: devicesLoading.value || devices.value !== null,
-  phoneStatus: !phonesState.value.error || phonesState.value.data !== undefined,
-  callsSummary: !callsState.value.error || callsState.value.data !== undefined,
-  calls: callsLoading.value || liveCalls.value !== null,
-  hourlyCalls: true,
-  trunks: !trunksState.value.error || trunksState.value.data !== undefined,
-  inboundRoutes: !inboundRoutesState.value.error || inboundRoutesState.value.data !== undefined,
-}))
+const visibleCards = computed(() => dashboardLayoutStore.cardOrder)
 
-const visibleCards = computed(() =>
-  dashboardLayoutStore.cardOrder.filter((card) => cardVisibility.value[card]),
-)
+const getLiveError = (queries: typeof liveQueries) =>
+  queries.find((query) => query.state.value.status === 'error')?.state.value.error ?? null
+
+const refetchFailed = (queries: typeof liveQueries) =>
+  queries
+    .filter((query) => query.state.value.status === 'error')
+    .forEach((query) => query.refetch())
+
+const presenceError = computed(() => getLiveError([liveUsersQuery]))
+const devicesError = computed(() => getLiveError([liveUsersQuery, liveExtensionsQuery]))
+const callsError = computed(() => getLiveError([liveExtensionsQuery, liveTrunksQuery]))
 
 const armedCard = ref<DashboardCardId | null>(null)
 const draggedCard = ref<DashboardCardId | null>(null)
@@ -484,53 +483,12 @@ const loadFailures = computed(() => {
       retry: () => failedCounters.value.forEach((query) => query.refetch()),
     })
   }
-  if (isEnterprise.value && callsState.value.error) {
-    failures.push({
-      part: 'dashboard.load_error.calls',
-      title: 'dashboard.cannot_load_calls',
-      error: callsState.value.error,
-      retry: () => refetchCalls(),
-    })
-  }
-  if (isEnterprise.value && callsHistoryState.value.error) {
-    failures.push({
-      part: 'dashboard.load_error.calls_per_hour',
-      title: 'dashboard.cannot_load_calls_per_hour',
-      error: callsHistoryState.value.error,
-      retry: () => refetchCallsHistory(),
-      serverDetail: false,
-    })
-  }
-  if (isEnterprise.value && phonesState.value.error) {
-    failures.push({
-      part: 'dashboard.load_error.phones',
-      title: 'dashboard.cannot_load_phones',
-      error: phonesState.value.error,
-      retry: () => refetchPhones(),
-    })
-  }
-  if (failedLiveQueries.value.length) {
+  if (!isEnterprise.value && failedLiveQueries.value.length) {
     failures.push({
       part: 'dashboard.load_error.live_data',
       title: 'dashboard.cannot_load_live_data',
       error: failedLiveQueries.value[0].state.value.error,
       retry: () => failedLiveQueries.value.forEach((query) => query.refetch()),
-    })
-  }
-  if (isEnterprise.value && trunksState.value.error) {
-    failures.push({
-      part: 'dashboard.load_error.trunks',
-      title: 'dashboard.cannot_load_trunks',
-      error: trunksState.value.error,
-      retry: () => refetchTrunks(),
-    })
-  }
-  if (isEnterprise.value && inboundRoutesState.value.error) {
-    failures.push({
-      part: 'dashboard.load_error.inbound_routes',
-      title: 'dashboard.cannot_load_inbound_routes',
-      error: inboundRoutesState.value.error,
-      retry: () => refetchInboundRoutes(),
     })
   }
   return failures
@@ -593,7 +551,7 @@ usePolling(() => {
 <template>
   <div>
     <div class="mb-8 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-      <NeHeading tag="h3" aria-level="1">{{ $t('dashboard.title') }}</NeHeading>
+      <h1 class="text-primary-neutral text-2xl font-medium">{{ $t('dashboard.title') }}</h1>
       <p v-if="updatedAt" class="text-tertiary-neutral" data-testid="updated-at">
         {{ $t('dashboard.updated_at', { time: updatedAt }) }}
       </p>
@@ -662,7 +620,7 @@ usePolling(() => {
             'rounded-lg',
             CARD_SPANS[card],
             dropTarget === card && draggedCard !== card
-              ? 'bg-emerald-100 dark:bg-emerald-700 [&>*]:invisible'
+              ? 'bg-primary-100 dark:bg-primary-700 [&>*]:invisible'
               : '',
             draggedCard ? '[&_*]:pointer-events-none' : '',
           ]"
@@ -681,6 +639,10 @@ usePolling(() => {
             orientation="vertical"
             outlined
             :loading="presenceLoading"
+            :error="presenceError"
+            :error-title="$t('dashboard.cannot_load_live_data')"
+            :has-data="presence !== null"
+            @retry="refetchFailed([liveUsersQuery])"
           >
             <template #handle>
               <DashboardDragHandle
@@ -699,6 +661,10 @@ usePolling(() => {
             :bars="deviceBars"
             orientation="horizontal"
             :loading="devicesLoading"
+            :error="devicesError"
+            :error-title="$t('dashboard.cannot_load_live_data')"
+            :has-data="devices !== null"
+            @retry="refetchFailed([liveUsersQuery, liveExtensionsQuery])"
           >
             <template #handle>
               <DashboardDragHandle
@@ -717,6 +683,10 @@ usePolling(() => {
             :bars="phoneStatusBars"
             orientation="vertical"
             :loading="phonesState.status === 'pending'"
+            :error="phonesState.error"
+            :error-title="$t('dashboard.cannot_load_phones')"
+            :has-data="phonesState.data !== undefined"
+            @retry="refetchPhones()"
           >
             <template #handle>
               <DashboardDragHandle
@@ -735,6 +705,10 @@ usePolling(() => {
             :bars="callOutcomeBars"
             orientation="horizontal"
             :loading="callsState.status === 'pending'"
+            :error="callsState.error"
+            :error-title="$t('dashboard.cannot_load_calls')"
+            :has-data="callsState.data !== undefined"
+            @retry="refetchCalls()"
           >
             <template #handle>
               <DashboardDragHandle
@@ -749,6 +723,8 @@ usePolling(() => {
             class="h-full"
             :history="callsHistoryState.data"
             :loading="callsHistoryState.status === 'pending'"
+            :error="callsHistoryState.error"
+            @retry="refetchCallsHistory()"
           >
             <template #handle>
               <DashboardDragHandle
@@ -764,6 +740,9 @@ usePolling(() => {
             :calls="liveCalls?.calls ?? []"
             :fetched-at="liveCalls?.fetchedAt ?? 0"
             :loading="callsLoading"
+            :error="callsError"
+            :has-data="liveCalls !== null"
+            @retry="refetchFailed([liveExtensionsQuery, liveTrunksQuery])"
           >
             <template #handle>
               <DashboardDragHandle
@@ -784,6 +763,10 @@ usePolling(() => {
             :empty-title="$t('dashboard.trunks.no_trunks')"
             :empty-icon="faNetworkWired"
             :loading="trunksState.status === 'pending'"
+            :error="trunksState.error"
+            :error-title="$t('dashboard.cannot_load_trunks')"
+            :has-data="trunksState.data !== undefined"
+            @retry="refetchTrunks()"
           >
             <template #handle>
               <DashboardDragHandle
@@ -807,6 +790,10 @@ usePolling(() => {
             :empty-title="$t('dashboard.inbound_routes.no_routes')"
             :empty-icon="faRoute"
             :loading="inboundRoutesState.status === 'pending'"
+            :error="inboundRoutesState.error"
+            :error-title="$t('dashboard.cannot_load_inbound_routes')"
+            :has-data="inboundRoutesState.data !== undefined"
+            @retry="refetchInboundRoutes()"
           >
             <template #handle>
               <DashboardDragHandle

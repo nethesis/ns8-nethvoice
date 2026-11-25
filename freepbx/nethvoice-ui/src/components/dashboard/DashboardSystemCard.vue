@@ -84,8 +84,8 @@ const usageValue = computed(() =>
       <div class="flex items-center gap-2.5">
         <NeRoundedIcon
           :custom-icon="faServer"
-          custom-background-classes="bg-emerald-100 dark:bg-emerald-700"
-          custom-foreground-classes="text-emerald-700 dark:text-emerald-50"
+          custom-background-classes="bg-primary-100 dark:bg-primary-700"
+          custom-foreground-classes="text-primary-700 dark:text-primary-50"
         />
         <span class="text-primary-neutral text-sm">{{ runtimeConfigStore.config.brandName }}</span>
       </div>
