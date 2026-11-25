@@ -14,6 +14,7 @@ var fs = require('fs');
 var http = require('http');
 var httpProxy = require('http-proxy');
 var httpProxyRules = require('http-proxy-rules');
+var tancrediProxy = require('./tancredi_proxy');
 
 /**
  * The module identifier used by the logger.
@@ -225,6 +226,13 @@ function start() {
       rules: router
     });
     var proxy = httpProxy.createProxy();
+    // target '' is the local web server, which routes /tancredi to Tancredi
+    var handleTancrediRequest = tancrediProxy.create({
+      target: '',
+      getSecretKey: function () { return compAuthentication.getAdminSecretKey(); },
+      logger: logger,
+      idlog: IDLOG
+    });
 
     httpServer = http.createServer(function (req, res) {
       try {
@@ -380,44 +388,20 @@ function start() {
             req.headers.authorization_user = req.headers.authorization_user.toLowerCase();
 
             // provisioning requests proxy
-            if (req.url.indexOf('/tancredi') === 0 && compAuthorization.authorizePhoneButtonsUser(req.headers.authorization_user) !== true) {
-              logger.log.warn(IDLOG, `authorization failed for user ${req.headers.authorization_user} calling api ${req.method} ${req.url}: no permission`);
-              compUtil.net.sendHttp403(IDLOG, res);
-              return;
-            }
-            else if (req.url.indexOf('/tancredi') === 0 && req.url.indexOf('/models/') !== -1 && req.method === 'GET') {
-              delete req.headers.authorization;
-              delete req.headers.authorization_user;
-              delete req.headers.authorization_token;
-              req.headers.User = 'admin';
-              req.headers.SecretKey = compAuthentication.getAdminSecretKey();
-              logger.log.info(IDLOG, `proxy provisioning request ${req.method} ${req.url} for user ${arr[0]} from ${req.headers['x-forwarded-for']}`);
-              return proxy.web(req, res, { target: '' });
-            }
-            else if (req.url.indexOf('/tancredi') === 0) {
-              if (req.method === 'GET' || req.method === 'PATCH') {
-                let macToCheck = req.url.split('/').pop();
-                if (macToCheck.indexOf('?')) {
-                  macToCheck = macToCheck.split('?')[0];
-                }
-                let extenToCheck = compAstProxy.getExtenFromMac(macToCheck) || '';
-                if (compAuthorization.verifyUserEndpointExten(req.headers.authorization_user, extenToCheck) === true) {
-                  delete req.headers.authorization;
-                  delete req.headers.authorization_user;
-                  delete req.headers.authorization_token;
-                  req.headers.User = 'admin';
-                  req.headers.SecretKey = compAuthentication.getAdminSecretKey();
-                  logger.log.info(IDLOG, `proxy provisioning request ${req.method} ${req.url} for user ${arr[0]} from ${req.headers['x-forwarded-for']}`);
-                  return proxy.web(req, res, { target: '' });
-                } else {
-                  logger.log.warn(IDLOG, `authorization failed for user ${req.headers.authorization_user} calling api ${req.method} ${req.url}`);
-                  compUtil.net.sendHttp403(IDLOG, res);
-                }
+            if (req.url.indexOf('/tancredi') === 0) {
+              const username = req.headers.authorization_user;
+              if (compAuthorization.authorizePhoneButtonsUser(username) !== true) {
+                logger.log.warn(IDLOG, `authorization failed for user ${username} calling api ${req.method} ${req.url}: no permission`);
+                compUtil.net.sendHttp403(IDLOG, res);
                 return;
               }
-              logger.log.warn(IDLOG, `${req.method} ${req.url} not permitted: (from user ${req.headers.authorization_user})`);
-              compUtil.net.sendHttp403(IDLOG, res);
-              return;
+              return handleTancrediRequest(req, res, {
+                name: username,
+                isPhoneOwner: function (mac) {
+                  const exten = compAstProxy.getExtenFromMac(mac) || '';
+                  return compAuthorization.verifyUserEndpointExten(username, exten) === true;
+                }
+              });
             }
             if (req.url.indexOf('/freepbx') === 0) {
               if (
