@@ -456,12 +456,16 @@ COPY patches /tmp/nethvoice-core-patches
 RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
         patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < "$core_patch" || exit 1; \
     done && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/customcontexts < /tmp/nethvoice-core-patches/freepbx-customcontexts-cti-feature-defaults.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-trunks-hook.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-bindaddress.patch && \
     patch --batch --forward --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-disabled-trunk-return.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/queues < /tmp/nethvoice-core-patches/freepbx-queues-join-announcement.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/recordings < /tmp/nethvoice-core-patches/freepbx-recordings-italian-placeholders.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/userman < /tmp/nethvoice-core-patches/freepbx-userman-sync-status.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/voicemail < /tmp/nethvoice-core-patches/freepbx-voicemail-primary-mailbox.patch && \
     rm -rf /tmp/nethvoice-core-patches
 
 # PHP 8.x compatibility: harden customcontexts against empty dialpattern array entries
