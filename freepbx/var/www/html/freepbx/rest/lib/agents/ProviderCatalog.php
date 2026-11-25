@@ -78,10 +78,23 @@ final class ProviderCatalog
                 $body.=$chunk;return strlen($chunk);
             }]);
         $ok=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_HTTP_CODE);curl_close($curl);
-        if ($status===403) throw new \RuntimeException('provider_permission_denied',422);
-        if ($status===401) throw new \RuntimeException('provider_credentials_rejected',422);
-        if (!$ok || $status!==200) throw new \RuntimeException('provider_catalog_unavailable',503);
-        return json_decode($body,true,32,JSON_THROW_ON_ERROR);
+        return self::openAiModelsResponse($ok !== false, $status, $body);
+    }
+
+    private static function openAiModelsResponse(bool $received, int $status, string $body): array
+    {
+        if ($received && $status === 200) return json_decode($body, true, 32, JSON_THROW_ON_ERROR);
+        if ($status === 403) throw new \RuntimeException('provider_permission_denied', 422);
+        if ($status === 401) {
+            $error = json_decode($body, true, 32)['error'] ?? [];
+            if (($error['code'] ?? null) === 'invalid_api_key') {
+                throw new \RuntimeException('provider_credentials_rejected', 422);
+            }
+            if (is_string($error['message'] ?? null) && str_contains($error['message'], 'Missing scopes:')) {
+                throw new \RuntimeException('provider_permission_denied', 422);
+            }
+        }
+        throw new \RuntimeException('provider_catalog_unavailable', 503);
     }
     public static function environmentKey(string $provider): string
     {
