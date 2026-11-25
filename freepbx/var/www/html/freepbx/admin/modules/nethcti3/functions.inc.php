@@ -992,11 +992,19 @@ function nethcti3_get_config_early($engine) {
             && array_key_exists('settings',$permissions[$ext['profile_id']]['macro_permissions'])
             && array_key_exists('permissions',$permissions[$ext['profile_id']]['macro_permissions']['settings']))
         {
-            foreach ($permissions[$ext['profile_id']]['macro_permissions']['settings']['permissions'] as $permission) {
+            // Same rule as the CTI authorization: DND and call forward are
+            // allowed only when the Settings macro permission is enabled too
+            $settings = $permissions[$ext['profile_id']]['macro_permissions']['settings'];
+            $settingsEnabled = !empty($settings['value']);
+            if (!$settingsEnabled) {
+                $user_variables['account_dnd_allow_1'] = '';
+                $user_variables['account_fwd_allow_1'] = '';
+            }
+            foreach ($settings['permissions'] as $permission) {
                 if ($permission['name'] == 'dnd') {
-                    $user_variables['account_dnd_allow_1'] = $permission['value'] ? '1' : '';
+                    $user_variables['account_dnd_allow_1'] = ($settingsEnabled && $permission['value']) ? '1' : '';
                 } elseif ($permission['name'] == 'call_forward') {
-                    $user_variables['account_fwd_allow_1'] = $permission['value'] ? '1' : '';
+                    $user_variables['account_fwd_allow_1'] = ($settingsEnabled && $permission['value']) ? '1' : '';
                 }
             }
         }
