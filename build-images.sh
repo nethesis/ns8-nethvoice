@@ -336,7 +336,7 @@ reponame="nethvoice-mediamtx"
 if should_build "${reponame}" && ! reuse_image "${reponame}"; then
     start_timing "${reponame}"
     # Pinned by digest (tag kept for Renovate)
-    container=$(buildah from docker.io/bluenviron/mediamtx:1.21.3@sha256:59e43552f3be43695b70c19424dc2a42fcec18075f88d91561a24ac5d70a586c)
+    container=$(buildah from docker.io/bluenviron/mediamtx:1.21.4@sha256:c730bccdbc8739f8f0c13cefe9bea8b61926f599b88fa4d0d229baa91846c7bc)
     # The upstream image has no CA certificates: add them, to verify the
     # rtsps:// devices that do not skip the TLS verification
     buildah copy --from docker.io/library/alpine:3.22@sha256:49340b346798875b5592e5d420241f2f9cfba5f47e62ebb1446a1b34734e898f "${container}" \
