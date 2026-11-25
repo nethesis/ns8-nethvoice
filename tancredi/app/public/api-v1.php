@@ -156,7 +156,7 @@ $app->post('/phones', function (Request $request, Response $response, $args) use
         $response = $response->withHeader('Content-Language', 'en');
         return $response;
     }
-    if (($invalid = invalidDoorPhoneVariable($variables)) !== null) {
+    if (($invalid = invalidVariable($variables)) !== null) {
         return invalidVariableResponse($response, $invalid);
     }
     $scope = new \Tancredi\Entity\Scope($mac, $storage, $logger);
@@ -227,7 +227,7 @@ $app->patch('/phones/{mac}', function (Request $request, Response $response, $ar
         return $response;
     }
     if (array_key_exists('variables',$patch_data)) {
-        if (($invalid = invalidDoorPhoneVariable($patch_data['variables'])) !== null) {
+        if (($invalid = invalidVariable($patch_data['variables'])) !== null) {
             return invalidVariableResponse($response, $invalid);
         }
         $scope = new \Tancredi\Entity\Scope($mac, $storage, $logger);
@@ -388,7 +388,7 @@ $app->post('/models', function (Request $request, Response $response, $args) use
         $response = $response->withHeader('Content-Language', 'en');
         return $response;
     }
-    if (($invalid = invalidDoorPhoneVariable($variables)) !== null) {
+    if (($invalid = invalidVariable($variables)) !== null) {
         return invalidVariableResponse($response, $invalid);
     }
     $scope = new \Tancredi\Entity\Scope($id, $storage, $logger);
@@ -434,7 +434,7 @@ $app->patch('/models/{id}', function (Request $request, Response $response, $arg
     }
 
     if (array_key_exists('variables',$patch_data) or array_key_exists('display_name',$patch_data)) {
-        if (array_key_exists('variables',$patch_data) && ($invalid = invalidDoorPhoneVariable($patch_data['variables'])) !== null) {
+        if (array_key_exists('variables',$patch_data) && ($invalid = invalidVariable($patch_data['variables'])) !== null) {
             return invalidVariableResponse($response, $invalid);
         }
         $scope = new \Tancredi\Entity\Scope($id, $storage, $logger);
@@ -512,7 +512,7 @@ $app->patch('/defaults', function (Request $request, Response $response, $args) 
 
     $patch_data = $request->getParsedBody();
 
-    if (($invalid = invalidDoorPhoneVariable($patch_data)) !== null) {
+    if (($invalid = invalidVariable($patch_data)) !== null) {
         return invalidVariableResponse($response, $invalid);
     }
     $scope = new \Tancredi\Entity\Scope('defaults', $storage, $logger);
@@ -663,19 +663,27 @@ function getModelScope($id,$storage,$logger,$inherit = false, $original = false)
 }
 
 /*
- * Door phone variables ("door_*") are written by templates into the device
- * configuration, one "key :value" per line: a value is refused when it
- * contains a line break or a NUL byte, or when it does not match the format
- * of its variable (DTMF codes, relay durations, numbers). Null removes the
- * variable and an empty string leaves the device value. Return the name of
- * the first invalid variable, null when all are valid.
+ * Templates write the variables into the device configuration files, where
+ * a line break starts a new setting: a variable is refused when its name or
+ * its string value (also inside an array value) contains a line break or a
+ * NUL byte. No shipped template reads a multi-line value, so no variable is
+ * exempted.
+ *
+ * Door phone variables ("door_*") must also match the format of their
+ * variable (DTMF codes, relay durations, numbers). Null removes the
+ * variable and an empty string leaves the device value.
+ *
+ * Return the name of the first invalid variable, null when all are valid.
  */
-function invalidDoorPhoneVariable($variables) {
+function invalidVariable($variables) {
     if (!is_array($variables)) {
         return null;
     }
     foreach ($variables as $name => $value) {
         $name = (string) $name;
+        if (hasLineBreak($name) || hasLineBreak($value)) {
+            return $name;
+        }
         if (strpos($name, 'door_') !== 0 || $value === null) {
             continue;
         }
@@ -683,9 +691,6 @@ function invalidDoorPhoneVariable($variables) {
             return $name;
         }
         $value = (string) $value;
-        if (preg_match('/[\r\n\0]/', $value)) {
-            return $name;
-        }
         if ($value === '') {
             continue;
         }
@@ -707,6 +712,21 @@ function invalidDoorPhoneVariable($variables) {
         }
     }
     return null;
+}
+
+/* True when a string, or a string inside an array, has CR, LF or NUL */
+function hasLineBreak($value) {
+    if (is_string($value)) {
+        return preg_match('/[\r\n\0]/', $value) === 1;
+    }
+    if (is_array($value)) {
+        foreach ($value as $key => $item) {
+            if (hasLineBreak((string) $key) || hasLineBreak($item)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 /* 422 problem response for an invalid variable value */

@@ -282,18 +282,18 @@ EOF
 }
 
 @test "Door phone template removes line breaks from free-text values" {
-    run PATCH "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}" <<'EOF'
+    # The API refuses line breaks: store the values as data saved before
+    # that check
+    run tancredi_store_variables "${DOOR_PHONE_MAC}" <<'EOF'
 {
-    "variables": {
-        "linekey_type_1": "speed_dial",
-        "linekey_value_1": "603\r\nAccount3 Name :inj",
-        "linekey_label_1": "Recept\n<MMI CONFIG MODULE>\nAccount2 Name :ptinj\nAccount2 Level :10",
-        "adminpw": "doorweb123\nAccount4 Level :10",
-        "account_display_name_1": "Door\r\nSIP2 Enable Reg :1"
-    }
+    "linekey_type_1": "speed_dial",
+    "linekey_value_1": "603\r\nAccount3 Name :inj",
+    "linekey_label_1": "Recept\n<MMI CONFIG MODULE>\nAccount2 Name :ptinj\nAccount2 Level :10",
+    "adminpw": "doorweb123\nAccount4 Level :10",
+    "account_display_name_1": "Door\r\nSIP2 Enable Reg :1"
 }
 EOF
-    assert_http_code "200"
+    [[ $status == 0 ]]
 
     run GET "/tancredi/api/v1/phones/${DOOR_PHONE_MAC}"
     tok1=$(extract_field "tok1")
