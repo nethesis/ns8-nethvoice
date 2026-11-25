@@ -384,26 +384,28 @@ test.describe('setup: users and extensions', () => {
     await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
   })
 
-  test('creates a user and keeps its extension as a draft until Next', async ({
+  test('creates a user with its extension and keeps it after a reload', async ({
     page,
     mockApi,
   }) => {
-    const created = {
-      ...RAW_USERS[2],
-      id: '14',
-      username: 'e.johnson',
-      displayname: 'Emma Johnson',
-    }
-    let imported = false
+    let created: object | undefined
     mockStep(mockApi)
     mockWrites(mockApi)
     csvImportMock(mockApi, { status: 200, json: { result: 100 } })
     mockApi
       .on('GET', `${REST}/users/:all`, () => ({
-        json: imported ? [...RAW_USERS, created] : RAW_USERS,
+        json: created ? [...RAW_USERS, created] : RAW_USERS,
       }))
-      .on('POST', `${REST}/csv/csvimport`, () => {
-        imported = true
+      .on('POST', `${REST}/csv/csvimport`, (request) => {
+        const csv = Buffer.from((request.body as { file: string }).file, 'base64').toString()
+        created = {
+          ...RAW_USERS[2],
+          id: '14',
+          username: 'e.johnson',
+          displayname: 'Emma Johnson',
+          default_extension: csv.split(',')[2].replaceAll('"', '') || 'none',
+          profile: null,
+        }
         return { status: 200 }
       })
     await page.goto('./setup/users')
@@ -428,10 +430,26 @@ test.describe('setup: users and extensions', () => {
     await expect(page.getByText('User created')).toBeVisible({ timeout: 15_000 })
     const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as { file: string }
     expect(Buffer.from(file.file, 'base64').toString()).toBe(
-      '"e.johnson","Emma Johnson","","Secret,123"\r\n',
+      '"e.johnson","Emma Johnson","305","Secret,123"\r\n',
     )
+    expect(mockApi.callsTo('POST', `${REST}/cti/profiles/users/14`)[0].body).toEqual({
+      profile_id: 1,
+    })
     await expect(extensionInput(page, 'Emma Johnson')).toHaveValue('305')
+
+    await page.reload()
+
+    await expect(extensionInput(page, 'Emma Johnson')).toHaveValue('305')
+    await expect(page.getByTestId('users-counter')).toHaveText(
+      '3 out of 4 users configured with an extension',
+    )
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/physical-trunks$/)
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+    expect(mockApi.callsTo('POST', `${REST}/webrtc`).map((call) => call.body)).toEqual([
+      { extension: '305' },
+    ])
   })
 
   test('does not create a user with an extension when the Base profile is missing', async ({

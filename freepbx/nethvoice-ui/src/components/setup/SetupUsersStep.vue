@@ -207,12 +207,6 @@ function showCreateUser() {
   isShownUserDrawer.value = true
 }
 
-function onUserCreated(username: string, extension: string) {
-  if (extension) {
-    setDraft(username, extension)
-  }
-}
-
 function onUsersImported(usernames: string[]) {
   edits.value = Object.fromEntries(
     Object.entries(edits.value).filter(([username]) => !usernames.includes(username)),
@@ -551,7 +545,6 @@ function provisionAndContinue() {
       variant="setup"
       :reserved-extensions="reservedExtensions"
       @close="isShownUserDrawer = false"
-      @created="onUserCreated"
     />
     <ImportUsersFlow
       :is-shown="isShownImport"

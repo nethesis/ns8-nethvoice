@@ -125,7 +125,7 @@ const {
   creationBlocked?: string
 }>()
 
-const emit = defineEmits<{ close: []; created: [username: string, extension: string] }>()
+const emit = defineEmits<{ close: [] }>()
 
 useFocusReturn(() => isShown)
 
@@ -465,7 +465,9 @@ const {
     const settings = nextSettings()
     await createUser(
       newUser,
-      isSetup.value ? { ...settings, extension: '', voicemail: false, devices: [] } : settings,
+      isSetup.value
+        ? { ...settings, extension: newUser.extension, voicemail: false, devices: [] }
+        : settings,
     )
 
     if (accountEditable.value) {
@@ -485,10 +487,7 @@ const {
     }
     return newUser.username
   },
-  onSuccess(savedUsername) {
-    if (!user && isSetup.value) {
-      emit('created', savedUsername, extension.value.trim())
-    }
+  onSuccess() {
     const displayName = user
       ? user.displayName
       : getFullName({ name: name.value, surname: surname.value })
