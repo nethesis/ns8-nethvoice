@@ -4,8 +4,11 @@ import json
 import os
 import re
 import uuid
+import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+from mysql.connector.errors import Error as DatabaseError
 
 from .telemetry import PHASES, STATUSES, TOOLS, PROVIDER_CODES, USAGE_KEYS, retention_days, safe_error
 
@@ -21,6 +24,7 @@ DETAIL_FIELDS = {'result_count', 'monitoring_version', 'span_id', 'parent_span_i
     'run_duration_ms', 'trace_complete', 'first_output_ms'}
 MAX_PENDING = 4096
 RESERVED = 256
+MAX_REJECTED = 32
 MAX_BYTES = 16 * 1024 * 1024
 
 
@@ -90,7 +94,7 @@ class Monitoring:
         self.spool_queue = asyncio.Queue(maxsize=MAX_PENDING)
         self.degraded = False
         self.spool_disabled = False
-        self.worker = self.spool_worker = None
+        self.worker = self.spool_worker = self.retention_worker = None
         self.directory = Path(directory or os.environ['VOICE_AGENT_EVENT_DIR']) if directory or os.getenv('VOICE_AGENT_EVENT_DIR') else None
         if self.directory:
             self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
@@ -99,39 +103,91 @@ class Monitoring:
         self.pending, self.ready = {}, {}
         self.pending_bytes = 0
         self.dropped = self.retries = 0
+        self.quarantine_lock = threading.Lock()
         self.last_write = None
+
+    def _prune_rejected(self):
+        with self.quarantine_lock:
+            return self._read_rejected()
+
+    def _read_rejected(self):
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days())).timestamp()
+        paths = sorted(self.directory.glob('*.rejected'), key=lambda path: path.lstat().st_mtime, reverse=True)
+        runs = set()
+        for index, path in enumerate(paths):
+            if (index >= MAX_REJECTED or path.lstat().st_mtime < cutoff
+                    or path.is_symlink() or path.stat().st_size > 36):
+                path.unlink(missing_ok=True)
+            else:
+                try:
+                    runs.add(str(uuid.UUID(path.read_text())))
+                except (ValueError, UnicodeError):
+                    pass
+        return runs
+
+    def _quarantine(self, path, event):
+        # Store only a run reference. Malformed payloads can contain private data.
+        run = event.get('run_id') if isinstance(event, dict) else None
+        try:
+            run = str(uuid.UUID(str(run)))
+        except ValueError:
+            run = ''
+        marker = self.directory / (str(uuid.uuid4()) + '.rejected')
+        with marker.open('x') as stream:
+            stream.write(run)
+            stream.flush()
+            os.fsync(stream.fileno())
+        path.unlink(missing_ok=True)
+        self._prune_rejected()
+        return run
 
     async def start(self):
         if self.directory:
             # Files are bounded independently of in-memory replay, including stale files.
             def load():
                 loaded, bad = [], False
+                gaps = self._prune_rejected()
                 paths = sorted(self.directory.glob('*.json'))
                 if len(paths) > MAX_PENDING:
                     bad = True
                 cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days())
-                for path in paths[:MAX_PENDING]:
+                for path in paths:
+                    event = None
                     try:
                         if path.is_symlink() or path.stat().st_size > 4096:
                             raise ValueError('invalid_outbox_event')
-                        event = validate_event(json.loads(path.read_text()))
+                        event = json.loads(path.read_text())
+                        validate_event(event)
                         if event['event_id'] != path.stem:
                             raise ValueError('invalid_outbox_event')
                         if datetime.fromisoformat(event['occurred_at']) < cutoff:
                             path.unlink()
                             continue
+                        if len(loaded) >= MAX_PENDING - MAX_REJECTED:
+                            raise ValueError('spool_capacity_exceeded')
                         loaded.append(event)
-                    except Exception:
+                    except (ValueError, TypeError, KeyError, AttributeError, OverflowError, RecursionError):
                         bad = True
-                return loaded, bad
-            loaded, bad = await asyncio.to_thread(load)
-            self.degraded |= bad
-            self.spool_disabled |= bad
+                        gaps.add(self._quarantine(path, event))
+                return loaded, bad, gaps
+            loaded, bad, gaps = await asyncio.to_thread(load)
+            self.degraded |= bad or bool(gaps)
             for event in sorted(loaded, key=lambda item: item['occurred_at']):
                 if event['event_id'] not in self.pending:
                     self._enqueue(event)
+            for run_id in gaps - {''}:
+                self.emit(run_id, 'trace_gap')
+            self.retention_worker = asyncio.create_task(self._expire_quarantine())
         self.spool_worker = asyncio.create_task(self._spool())
         self.worker = asyncio.create_task(self._write())
+
+    async def _expire_quarantine(self):
+        while True:
+            await asyncio.sleep(3600)
+            try:
+                await asyncio.to_thread(self._prune_rejected)
+            except OSError:
+                self.mark_degraded()
 
     def mark_degraded(self):
         self.degraded = True
@@ -162,8 +218,9 @@ class Monitoring:
             self.mark_degraded()
             return False
         terminal = outcome is not None or kind in ('trace_gap', 'usage_snapshot')
-        if (len(self.pending) >= (MAX_PENDING if terminal else MAX_PENDING - RESERVED)
-                or self.pending_bytes + len(json.dumps(event).encode()) > MAX_BYTES or self.queue.full()):
+        disk_reserve = MAX_REJECTED if self.directory else 0
+        if (len(self.pending) >= MAX_PENDING - disk_reserve - (0 if terminal else RESERVED)
+                or self.pending_bytes + len(json.dumps(event).encode()) + disk_reserve * 36 > MAX_BYTES or self.queue.full()):
             self.dropped += 1
             self.mark_degraded()
             return False
@@ -211,23 +268,40 @@ class Monitoring:
                 while True:
                     try:
                         await asyncio.to_thread(self.storage.event, event)
+                    except (ValueError, DatabaseError) as error:
+                        # Retry dependency/schema errors; reject only per-event failures.
+                        if isinstance(error, DatabaseError) and error.errno not in (
+                                1048, 1264, 1265, 1292, 1366, 1406, 1452, 3819, 4025):
+                            self.retries += 1
+                            self.mark_degraded()
+                            await asyncio.sleep(1)
+                            continue
+                        self.dropped += 1
+                        self.mark_degraded()
+                        if self.directory:
+                            try:
+                                await asyncio.to_thread(self._quarantine, self.directory / (event['event_id'] + '.json'), event)
+                            except OSError:
+                                self.spool_disabled = True
+                        if event['event_type'] != 'trace_gap':
+                            self.emit(event['run_id'], 'trace_gap')
+                    except Exception:
+                        self.retries += 1
+                        self.mark_degraded()
+                        await asyncio.sleep(1)
+                        continue
+                    else:
                         self.last_write = datetime.now(timezone.utc).isoformat()
                         if self.directory:
                             try:
                                 await asyncio.to_thread((self.directory / (event['event_id'] + '.json')).unlink, missing_ok=True)
                             except OSError:
-                                # Already committed: retain the file for safe replay,
-                                # but do not block later writes or subtract twice.
                                 self.spool_disabled = True
                                 self.mark_degraded()
-                        self.pending.pop(event['event_id'], None)
-                        self.ready.pop(event['event_id'], None)
-                        self.pending_bytes -= len(json.dumps(event).encode())
-                        break
-                    except Exception:
-                        self.retries += 1
-                        self.mark_degraded()
-                        await asyncio.sleep(1)
+                    self.pending.pop(event['event_id'], None)
+                    self.ready.pop(event['event_id'], None)
+                    self.pending_bytes -= len(json.dumps(event).encode())
+                    break
             finally:
                 self.queue.task_done()
 
@@ -248,10 +322,10 @@ class Monitoring:
                 await asyncio.to_thread(self._persist_marker)
             except OSError:
                 pass
-        for task in (self.worker, self.spool_worker):
+        for task in (self.worker, self.spool_worker, self.retention_worker):
             if task:
                 task.cancel()
-        await asyncio.gather(*(t for t in (self.worker, self.spool_worker) if t), return_exceptions=True)
+        await asyncio.gather(*(t for t in (self.worker, self.spool_worker, self.retention_worker) if t), return_exceptions=True)
 
     def _persist_marker(self):
         descriptor = os.open(self.directory / 'monitoring-degraded', os.O_WRONLY | os.O_CREAT, 0o600)
