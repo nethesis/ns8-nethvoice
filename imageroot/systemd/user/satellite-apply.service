@@ -1,0 +1,9 @@
+[Unit]
+Description=Reconcile Satellite settings after calls drain
+After=freepbx.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=%E/state
+ExecStart=runagent satellite-reconcile
+TimeoutStartSec=infinity

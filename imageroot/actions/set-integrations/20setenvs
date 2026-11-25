@@ -8,11 +8,21 @@
 import json
 import sys
 import os
+from pathlib import Path
 
 import agent
 
 request = json.load(sys.stdin)
 
+env = agent.read_envfile("environment")
+for key in ("satellite_call_transcription_enabled", "satellite_voicemail_transcription_enabled",
+            "satellite_call_summary_enabled"):
+    if key in request and request[key] != (env.get(key.upper(), '').lower() == 'true'):
+        Path('transcription-refresh.pending').touch(mode=0o600)
+if "voice_agent_enabled" in request:
+    agent.set_env("VOICE_AGENT_ENABLED", "true" if request["voice_agent_enabled"] else "false")
+if "chat_enabled" in request and request["chat_enabled"] != (env.get("CHAT_ENABLED") == "true"):
+    Path('cti-chat-refresh.pending').touch(mode=0o600)
 if "satellite_call_transcription_enabled" in request:
     agent.set_env("SATELLITE_CALL_TRANSCRIPTION_ENABLED", request["satellite_call_transcription_enabled"])
 if "satellite_voicemail_transcription_enabled" in request:

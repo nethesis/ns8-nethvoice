@@ -276,7 +276,9 @@ passwords = {
     "SATELLITE_AGENT_CONFIG_KEY": gen_password(),
     "VOICE_AGENT_RUNTIME_TOKEN": gen_password(),
     "VOICE_AGENT_CONFIG_PASSWORD": gen_password(),
-    "VOICE_AGENT_MONITOR_PASSWORD": gen_password()
+    "VOICE_AGENT_MONITOR_PASSWORD": gen_password(),
+    "VOICE_AGENT_CHAT_TOKEN": gen_password(),
+    "VOICE_AGENT_RECIPIENT_TOKEN": gen_password()
 }
 
 # The copied trunk ciphertext belongs to the data, including on a clone.

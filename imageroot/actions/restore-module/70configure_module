@@ -7,6 +7,7 @@
 
 import json
 import sys
+import secrets
 import os
 
 import agent
@@ -14,6 +15,14 @@ import agent
 # get old environment from action
 request = json.load(sys.stdin)
 old_envs = request['environment']
+
+# Older transcription-only backups predate the optional Agents credentials.
+passwords = agent.read_envfile("passwords.env")
+for key in ('VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
+            'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN', 'SATELLITE_AGENT_CONFIG_KEY'):
+    if not passwords.get(key):
+        passwords[key] = secrets.token_urlsafe(32)
+agent.write_envfile("passwords.env", passwords)
 
 # call configure module
 response = agent.tasks.run(agent_id=os.environ['AGENT_ID'], action='configure-module', data={

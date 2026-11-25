@@ -8,4 +8,8 @@
 # NethVoice chat: routes and units follow CHAT_ENABLED.
 set -e
 "${AGENT_INSTALL_DIR}/actions/configure-module/45chat_routes" </dev/null
-exec "${AGENT_INSTALL_DIR}/actions/configure-module/46chat" </dev/null
+"${AGENT_INSTALL_DIR}/actions/configure-module/46chat" </dev/null
+if [[ -f cti-chat-refresh.pending ]]; then
+    systemctl --user try-restart nethcti-ui.service nethcti-server.service
+    rm -f cti-chat-refresh.pending
+fi

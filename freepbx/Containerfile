@@ -757,6 +757,7 @@ COPY initdb.d/update.php /initdb.d/
 COPY initdb.d/slow_database_updates.php /initdb.d/
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
+COPY usr/local/bin/configure-agent-recipient /usr/local/bin/configure-agent-recipient
 COPY entrypoint.sh /entrypoint
 COPY usr/libexec/voice-agent-recipient.php /usr/libexec/voice-agent-recipient.php
 COPY usr/share/neth-hotel-fias /usr/share/neth-hotel-fias
