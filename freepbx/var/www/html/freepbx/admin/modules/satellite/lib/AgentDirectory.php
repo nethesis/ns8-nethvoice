@@ -4,17 +4,17 @@
 final class AgentDirectory
 {
     private object $pbx;
+    private ?array $extensions = null;
     public function __construct(object $pbx) { $this->pbx=$pbx; }
     public function extensions(): array
     {
-        require_once dirname(__DIR__,4).'/rest/lib/libExtensions.php';
-        $rows=[];
-        foreach ($this->pbx->Core->listUsers(false) as $user) {
-            $number=(string)($user[0]??$user['extension']??'');
-            if (!preg_match('/^[0-9]{1,20}$/D',$number) || isMainExtension($number)!==true) continue;
-            $rows[]=['id'=>'extension:'.$number,'name'=>(string)($user[1]??$user['name']??$number)];
-        }
-        return $rows;
+        if ($this->extensions !== null) return $this->extensions;
+        return $this->extensions = $this->pbx->Database->query(
+            "SELECT CONCAT('extension:',u.extension) AS id, u.name FROM users u
+             WHERE u.extension REGEXP '^[0-9]{1,20}$'
+             AND EXISTS (SELECT 1 FROM userman_users m WHERE m.default_extension=u.extension)
+             ORDER BY u.extension"
+        )->fetchAll(\PDO::FETCH_ASSOC);
     }
     public function inventory(): array
     {
