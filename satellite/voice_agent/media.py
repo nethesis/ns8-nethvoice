@@ -10,6 +10,7 @@ from .providers.realtime import ProviderError
 
 FRAME_BYTES = 160
 FRAME_SECONDS = .02
+PCMU_SILENCE = b'\xff' * FRAME_BYTES
 MAX_AUDIO_BYTES = 16000  # Two seconds of PCMU/8000, never an unbounded queue.
 
 
@@ -31,14 +32,21 @@ class AudioBuffer:
         self._data.extend(data)
         self._available.set()
 
-    async def frame(self):
+    async def frame(self, *, deadline=None):
+        """Return a full frame, None at EOF, or empty bytes at the idle deadline."""
         while not self._closed:
             if len(self._data) >= FRAME_BYTES:
                 data = bytes(self._data[:FRAME_BYTES])
                 del self._data[:FRAME_BYTES]
                 return data
             self._available.clear()
-            await self._available.wait()
+            try:
+                async with asyncio.timeout_at(deadline):
+                    await self._available.wait()
+            except TimeoutError:
+                # A real frame or EOF may have arrived on the same loop tick.
+                if not self._closed and len(self._data) < FRAME_BYTES:
+                    return b''
         return None
 
     def clear(self):
@@ -179,23 +187,36 @@ class AudioBridge:
         self.media, self.provider, self.failure = media, provider, failure
         self.tasks = []
         self.stopped = False
+        self.input_real_frames = self.input_silence_frames = 0
+        self.max_input_gap_ms = self.max_real_input_gap_ms = 0
 
     def start(self):
         self.tasks = [asyncio.create_task(self._pump_input()), asyncio.create_task(self._pump_output())]
 
     async def _pump_input(self):
+        clock = asyncio.get_running_loop().time
+        last_sent = last_real = clock()
+        deadline = last_sent + FRAME_SECONDS
         try:
             while not self.stopped:
-                frame = await self.media.input.frame()
-                if frame is None:
+                frame = await self.media.input.frame(deadline=deadline)
+                if frame is None or self.stopped:
                     return
-                if self.stopped:
-                    return
-                # Asterisk already clocks this stream. Re-pacing its FIFO here
-                # preserves the entire provider-startup backlog indefinitely.
-                # Forward the bounded buffer in order, including early speech;
-                # frame() naturally waits for Asterisk once we are caught up.
-                await asyncio.wait_for(self.provider.send_audio(frame), 2)
+                await asyncio.wait_for(self.provider.send_audio(frame or PCMU_SILENCE), 2)
+                now = clock()
+                self.max_input_gap_ms = max(self.max_input_gap_ms, round((now - last_sent) * 1000))
+                self.max_real_input_gap_ms = max(self.max_real_input_gap_ms, round((now - last_real) * 1000))
+                last_sent = now
+                if frame:
+                    last_real = now
+                    self.input_real_frames += 1
+                else:
+                    self.input_silence_frames += 1
+                # Keep one frame of timing credit for early arrivals. Drain real
+                # startup audio immediately; never build up synthetic catch-up work.
+                deadline = min(deadline + FRAME_SECONDS, now + 2 * FRAME_SECONDS)
+                if deadline <= now:
+                    deadline = now + FRAME_SECONDS
         except asyncio.CancelledError:
             raise
         except Exception:
