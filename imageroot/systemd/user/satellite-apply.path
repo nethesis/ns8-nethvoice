@@ -1,0 +1,9 @@
+[Unit]
+Description=Apply saved Satellite settings
+
+[Path]
+PathExists=%E/state/satellite-apply.pending
+PathExists=%E/state/satellite-apply.running
+
+[Install]
+WantedBy=default.target

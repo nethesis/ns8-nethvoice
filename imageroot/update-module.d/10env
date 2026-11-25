@@ -168,7 +168,8 @@ agent.write_envfile('passwords.env', passwordsfile)
 
 # Per-instance voice-agent secrets never belong in Redis environment metadata.
 for key in ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_RUNTIME_TOKEN',
-            'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD'):
+            'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
+            'VOICE_AGENT_CHAT_TOKEN', 'VOICE_AGENT_RECIPIENT_TOKEN'):
     if not passwordsfile.get(key):
         passwordsfile[key] = gen_password()
 agent.write_envfile('passwords.env', passwordsfile)

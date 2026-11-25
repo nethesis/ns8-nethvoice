@@ -28,9 +28,3 @@ systemctl --user enable --now nethvoice-calendar-sync.timer
 # Enable NethCTI UI weekly restart timer for timezone updates
 echo "Enabling nethcti-ui-restart timer"
 systemctl --user enable --now nethcti-ui-restart.timer
-
-# Start the shared runtime after the no-active-calls check in 80restart.
-systemctl --user daemon-reload
-systemctl --user enable satellite.service
-
-systemctl --user enable --now voice-agent-retention.timer

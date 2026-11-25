@@ -287,6 +287,8 @@ passwords = {
     "VOICE_AGENT_RUNTIME_TOKEN": gen_password(),
     "VOICE_AGENT_CONFIG_PASSWORD": gen_password(),
     "VOICE_AGENT_MONITOR_PASSWORD": gen_password(),
+    "VOICE_AGENT_CHAT_TOKEN": gen_password(),
+    "VOICE_AGENT_RECIPIENT_TOKEN": gen_password(),
     # Video gateway (MediaMTX) control API: the password of the nethcti-server user
     "MEDIAMTX_API_PASSWORD": gen_password()
 }

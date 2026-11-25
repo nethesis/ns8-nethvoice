@@ -50,7 +50,7 @@ namespace {
                             capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert 'all core updates completed' in result.stdout
-    assert 'Voice agent setup failed' in result.stderr
+    assert 'Agents\\Schema::install' not in source and 'Agents\\RuntimeAccounts::install' not in source
 
 
 @pytest.mark.parametrize('mode,status', [('busy_then_idle', 0), ('unavailable', 1), ('invalid', 1)])

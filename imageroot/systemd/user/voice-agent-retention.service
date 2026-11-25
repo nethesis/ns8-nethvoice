@@ -4,4 +4,4 @@ After=freepbx.service
 
 [Service]
 Type=oneshot
-ExecStart=runagent /usr/bin/podman exec freepbx php /var/www/html/freepbx/rest/lib/agents/retention.php
+ExecStart=runagent /usr/bin/podman exec freepbx php /var/www/html/freepbx/rest/lib/agents/retention-cli.php

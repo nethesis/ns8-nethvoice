@@ -12,7 +12,6 @@ Restart=always
 RestartSec=10s
 TimeoutStopSec=45
 ExecStartPre=/bin/rm -f %t/satellite.pid %t/satellite.ctr-id
-ExecStartPre=runagent %E/actions/configure-module/29voice_agents --secrets-only
 ExecStart=runagent /usr/bin/podman run \
     --detach \
     --init \
@@ -23,14 +22,10 @@ ExecStart=runagent /usr/bin/podman run \
     --stop-timeout=35 \
     --volume=voice-agent-events:/var/lib/voice-agent:Z,U \
     --env-file=%E/state/satellite.env \
-    --env=VOICE_AGENT_ENABLED=true \
     --env=VOICE_AGENT_EVENT_DIR=/var/lib/voice-agent \
     --env=VOICE_AGENT_HTTP_HOST=127.0.0.1 \
-    --env=VOICE_AGENT_HTTP_PORT=${VOICE_AGENT_HTTP_PORT} \
     --env=VOICE_AGENT_DB_PORT=${NETHVOICE_MARIADB_PORT} \
     --env=VOICE_AGENT_CDR_TIMEZONE=${TIMEZONE} \
-    --env=SATELLITE_CALL_TRANSCRIPTION_ENABLED=${SATELLITE_CALL_TRANSCRIPTION_ENABLED} \
-    --env=SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED=${SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED} \
     --env=ASTERISK_URL="http://127.0.0.1:${ASTERISK_WS_PORT}" \
     --env=ARI_APP=${SATELLITE_ARI_APP} \
     --env=ARI_USERNAME=${SATELLITE_ARI_USERNAME} \

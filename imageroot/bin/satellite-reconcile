@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Apply one coherent credential generation after the current work drains."""
+import hashlib
+import json
+import os
+import re
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+import agent
+import agent.tasks
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'pypkg'))
+from voice_preview import allocate_agent_ports
+
+PENDING = Path('satellite-apply.pending')
+RUNNING = Path('satellite-apply.running')
+FAILED = Path('satellite-apply.failed')
+PREVIEW = Path('voice-preview')
+EFFECTIVE = PREVIEW / 'effective.env'
+STATE = Path('satellite-applied.json')
+FLAGS = ('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED',
+         'SATELLITE_CALL_SUMMARY_ENABLED')
+SECRET_KEYS = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
+               'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN')
+
+
+def run(*args, **kwargs):
+    return subprocess.run(args, check=True, **kwargs)
+
+
+def ctl(*args):
+    run('systemctl', '--user', *args)
+
+
+def active(unit):
+    return subprocess.run(['systemctl', '--user', 'is-active', '--quiet', unit]).returncode == 0
+
+
+def enabled(env, name):
+    return str(env.get(name, '')).lower() == 'true'
+
+
+def to_env(values):
+    for value in values.values():
+        if any(c in str(value) for c in '\r\n\0'):
+            raise ValueError('invalid_environment_value')
+    return ''.join(f'{k}={v}\n' for k, v in sorted(values.items())).encode()
+
+
+def write(path, value, php=False):
+    temporary = path.with_suffix('.tmp')
+    temporary.write_bytes(value)
+    if php:
+        # The FreePBX image assigns group 991 to the asterisk/Apache identity.
+        run('podman', 'unshare', 'chgrp', '991', str(temporary))
+        temporary.chmod(0o640)
+    temporary.replace(path)
+
+
+def apply(*, transcription_only=False):
+    env = agent.read_envfile('environment')
+    if not env.get('NETHVOICE_HOST'):
+        return True
+    previous = json.loads(STATE.read_text()) if STATE.exists() else {}
+    agents = not transcription_only and enabled(env, 'VOICE_AGENT_ENABLED')
+    sip = agents and enabled(env, 'VOICE_AGENT_SIP_LAB_ENABLED')
+    transcription = any(enabled(env, name) for name in FLAGS[:2])
+    flags = [enabled(env, name) for name in FLAGS]
+    needed = agents or transcription
+    passwords = agent.read_envfile('passwords.env')
+    if agents:
+        allocate_agent_ports(env)
+    settings = {'VOICE_AGENT_ENABLED': str(agents).lower(), 'VOICE_AGENT_SIP_LAB_ENABLED': str(sip).lower()}
+    if agents:
+        settings.update({name: passwords[name] for name in SECRET_KEYS})
+        for name in ('VOICE_AGENT_HTTP_PORT', 'NETHVOICE_RECIPIENT_SERVICE_PORT', 'VOICE_AGENT_CHAT_PORT'):
+            settings[name] = env[name]
+        settings['CHAT_CONSULTATION_LISTEN'] = '127.0.0.1:' + str(env['VOICE_AGENT_CHAT_PORT'])
+        settings['OPENAI_API_KEY'] = passwords.get('OPENAI_API_KEY', '')
+        settings['VOICE_AGENT_MONITORING_RETENTION_DAYS'] = env.get('VOICE_AGENT_MONITORING_RETENTION_DAYS', '90')
+    runtime = dict(settings)
+    if needed:
+        runtime.update({name: passwords.get(name, '') for name in
+                        ('SATELLITE_ARI_PASSWORD', 'SATELLITE_MQTT_PASSWORD', 'OPENAI_API_KEY', 'DEEPGRAM_API_KEY')})
+        runtime['API_TOKEN'] = passwords['SATELLITE_API_TOKEN']
+        runtime['PGVECTOR_PASSWORD'] = passwords['SATELLITE_PGSQL_PASSWORD']
+        for name in ('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED'):
+            runtime[name] = env.get(name, 'False')
+    if agents:
+        runtime['VOICE_AGENT_LIVE_WS_MAX_CALLS'] = env.get('VOICE_AGENT_LIVE_WS_MAX_CALLS', '2')
+        for key, name in [('CHAT', 'VOICE_AGENT_CHAT_PORT'), ('RECIPIENT', 'NETHVOICE_RECIPIENT_SERVICE_PORT')]:
+            runtime['VOICE_AGENT_' + key + '_URL'] = 'http://127.0.0.1:' + str(env[name])
+    unit = (Path(os.environ['AGENT_INSTALL_DIR']) / 'systemd/user/satellite.service').read_text()
+    external = {key: env.get(key, os.getenv(key, '')) for key in re.findall(r'\$\{(\w+)\}', unit)}
+    image = run('podman', 'image', 'inspect', '--format', '{{.Id}}', os.environ['NETHVOICE_SATELLITE_IMAGE'],
+                capture_output=True).stdout if needed else b''
+    digest = hashlib.sha256(to_env(runtime) + unit.encode() + to_env(external) + image).hexdigest()
+    running = active('satellite.service')
+    route = env['NETHVOICE_HOST'] if sip else ''
+    desired = {'digest': digest, 'agents': agents, 'route': route, 'flags': flags}
+    if (previous == desired and running == needed and not Path('transcription-refresh.pending').exists()
+            and (not agents or EFFECTIVE.exists())):
+        return True
+
+    # Recreate CTI and FreePBX only if their process-start transcription flags changed.
+    consumers = previous.get('flags', flags) != flags or Path('transcription-refresh.pending').exists()
+    if running:
+        check = subprocess.run(['podman', 'exec', 'satellite', 'python3', '-m', 'voice_agent.drain'])
+        if check.returncode == 75:
+            return False
+        check.check_returncode()
+    try:
+        if consumers and running:
+            run('restart-services-when-convenient', '--wait-only')
+        PREVIEW.mkdir(exist_ok=True)
+        PREVIEW.chmod(0o755)
+        candidate = PREVIEW / 'candidate.env'
+        write(candidate, to_env(settings), php=True)
+        if agents:
+            try:
+                run('podman', 'exec', '--env', 'VOICE_AGENT_SETTINGS_FILE=/run/nethvoice-preview/candidate.env',
+                    'freepbx', 'php', '/var/www/html/freepbx/rest/lib/agents/install-runtime.php')
+            except subprocess.CalledProcessError:
+                # On first setup a rejected Agents schema must not prevent transcription startup.
+                if transcription and not running:
+                    apply(transcription_only=True)
+                raise
+        write(STATE, json.dumps(dict(previous, applying=True)).encode())
+        # Stop publishing the old PHP generation while the runtime is being replaced.
+        visible = PREVIEW / 'enabled'
+        visible.unlink(missing_ok=True)
+        if EFFECTIVE.exists():
+            write(EFFECTIVE, b'VOICE_AGENT_ENABLED=false\n', php=True)
+        if running:
+            ctl('stop', 'satellite.service')
+        if needed:
+            write(Path('satellite.env'), to_env(runtime))
+            if transcription:
+                ctl('enable', '--now', 'satellite-pgsql.service', 'satellite-mqtt.service')
+            ctl('enable', '--now', 'satellite.service')
+        else:
+            ctl('disable', '--now', 'satellite.service')
+            Path('satellite.env').unlink(missing_ok=True)
+        if transcription:
+            ctl('enable', '--now', 'satellite-recordings-cleanup.timer')
+        else:
+            ctl('disable', '--now', 'satellite-recordings-cleanup.timer', 'satellite-mqtt.service')
+        candidate.replace(EFFECTIVE)
+        if agents:
+            visible.touch()
+            visible.chmod(0o644)
+        else:
+            visible.unlink(missing_ok=True)
+        if consumers:
+            if not running:
+                run('restart-services-when-convenient', '--wait-only')
+            ctl('try-restart', 'freepbx.service', 'nethcti-server.service', 'nethcti-ui.service')
+            Path('transcription-refresh.pending').unlink(missing_ok=True)
+        elif agents or previous.get('agents'):
+            run('podman', 'exec', 'freepbx', '/usr/local/bin/configure-agent-recipient')
+            run('podman', 'exec', 'freepbx', 'apache2ctl', '-k', 'graceful')
+            run('podman', 'exec', 'freepbx', 'fwconsole', 'reload')
+        if (previous.get('agents', False) != agents or not previous) and enabled(env, 'CHAT_ENABLED'):
+            ctl('try-restart', 'chat-gateway.service')
+        ctl('enable' if agents else 'disable', '--now', 'voice-agent-retention.timer')
+        instance = os.environ['MODULE_ID'] + '-voice-agent-webhooks'
+        if route:
+            agent.set_route({'instance': instance, 'host': route, 'path': '/satellite-webhooks',
+                             'url': 'http://127.0.0.1:' + str(env['VOICE_AGENT_HTTP_PORT']),
+                             'strip_prefix': False, 'http2https': True})
+        elif previous.get('route') or Path('satellite-runtime.sha256').exists():
+            response = agent.tasks.run(agent_id=agent.resolve_agent_id('traefik@node'), action='delete-route',
+                                       data={'instance': instance}, extra={'isNotificationHidden': True})
+            agent.assert_exp(response['exit_code'] == 0)
+        Path('satellite-runtime.sha256').unlink(missing_ok=True)
+        write(STATE, json.dumps(desired).encode())
+        return True
+    except Exception:
+        if running and active('satellite.service'):
+            subprocess.run(['podman', 'exec', 'satellite', 'python3', '-m', 'voice_agent.drain', '--cancel'])
+        raise
+
+
+def main():
+    os.umask(0o077)
+    if PENDING.exists():
+        PENDING.replace(RUNNING)
+    elif not RUNNING.exists():
+        return
+    try:
+        while not apply():
+            time.sleep(5)
+        FAILED.unlink(missing_ok=True)
+    except Exception:
+        FAILED.touch(mode=0o600)
+        raise
+    finally:
+        RUNNING.unlink(missing_ok=True)
+
+
+if __name__ == '__main__':
+    main()

@@ -1,229 +1,138 @@
-"""Model the NS8 service state across consolidation and transcription toggles."""
+"""Run the configure/Integrations entry points and the systemd apply job against a disposable state."""
 import json
-import os
 from pathlib import Path
 import runpy
 import subprocess
 import sys
 from types import SimpleNamespace
-from unittest.mock import patch
 
 import pytest
 
-
-ROOT = Path(__file__).resolve().parents[2]
-
-
-@pytest.fixture(params=['configure-module/94voice_agents', 'set-integrations/50manage_service'])
-def action(request):
-    return ROOT / 'imageroot/actions' / request.param
+ROOT = Path(__file__).resolve().parents[2] / 'imageroot'
 
 
-class Services:
-    def __init__(self, legacy):
-        self.active = {'satellite.service', 'satellite-mqtt.service',
-                       'satellite-pgsql.service', 'satellite-recordings-cleanup.timer'}
-        self.enabled = set(self.active)
-        if legacy:
-            self.active.add('voice-agent.service')
-            self.enabled.add('voice-agent.service')
-        self.legacy = legacy
-        self.orphan = True
-        self.calls = []
-        self.idle = True
-        self.fail_legacy_stop = False
-        self.image = "synthetic-image-id"
-
-    def run(self, args, **kwargs):
-        self.calls.append(args)
-        if args[0] == str(ROOT / 'imageroot/actions/configure-module/29voice_agents'):
-            assert args[1:] == ['--secrets-only']
-            with patch('sys.argv', args):
-                try:
-                    runpy.run_path(args[0])
-                except SystemExit as result:
-                    assert result.code == 0
-            return subprocess.CompletedProcess(args, 0)
-        if args[0] == 'restart-services-when-convenient':
-            assert args[1:] == ['--wait-only']
-            if not self.idle:
-                raise subprocess.CalledProcessError(1, args)
-            return subprocess.CompletedProcess(args, 0)
-        if args[:3] == ['podman', 'image', 'inspect']:
-            return subprocess.CompletedProcess(args, 0, stdout=self.image)
-        if args[:2] == ['podman', 'exec']:
-            return subprocess.CompletedProcess(args, 0)
-        if args[:2] == ['podman', 'rm']:
-            assert 'voice-agent.service' not in self.active
-            assert '--volumes' not in args and '-v' not in args
-            self.orphan = False
-        else:
-            assert args[:2] == ['systemctl', '--user']
-            action = args[2]
-            if action == 'daemon-reload':
-                return subprocess.CompletedProcess(args, 0)
-            if action == 'is-active':
-                return subprocess.CompletedProcess(args, 0 if args[-1] in self.active else 3)
-            if action == 'disable' and 'voice-agent.service' in args and self.fail_legacy_stop:
-                raise subprocess.CalledProcessError(1, args)
-            if action == 'show':
-                return subprocess.CompletedProcess(args, 0, stdout='loaded' if self.legacy else 'not-found')
-            services = [arg for arg in args[3:] if not arg.startswith('-')]
-            if action == 'enable':
-                self.enabled.update(services)
-                if '--now' in args:
-                    self.active.update(services)
-            elif action == 'disable':
-                self.enabled.difference_update(services)
-                if '--now' in args:
-                    self.active.difference_update(services)
-            elif action == 'start':
-                if 'satellite.service' in services:
-                    assert not self.orphan and 'voice-agent.service' not in self.active
-                self.active.update(services)
-            elif action == 'try-restart':
-                pass
-            elif action == 'stop':
-                self.active.difference_update(services)
-            else:
-                raise AssertionError(action)
-        return subprocess.CompletedProcess(args, 0)
-
-
-def apply(services, action):
-    with patch('subprocess.run', side_effect=services.run):
-        runpy.run_path(str(action))
-
-
-@pytest.fixture(autouse=True)
-def state(tmp_path, monkeypatch):
+@pytest.fixture
+def installation(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv('NETHVOICE_SATELLITE_IMAGE', 'synthetic-image')
-    monkeypatch.setenv('AGENT_INSTALL_DIR', str(ROOT / 'imageroot'))
-    values = {'environment': {'NETHVOICE_RECIPIENT_SERVICE_PORT':'31043','VOICE_AGENT_CHAT_PORT':'31044'}, 'passwords.env': {
-        'SATELLITE_ARI_PASSWORD': 'synthetic-ari',
-        'SATELLITE_API_TOKEN': 'synthetic-api',
-        'SATELLITE_PGSQL_PASSWORD': 'synthetic-pg',
-        'MARIADB_ROOT_PASSWORD': 'synthetic-root',
-    }}
+    monkeypatch.syspath_prepend(str(ROOT / 'pypkg'))
+    monkeypatch.setenv('NETHVOICE_HOST', 'pbx.example')
+    monkeypatch.setenv('NETHVOICE_SATELLITE_IMAGE', 'test-image')
+    monkeypatch.setenv('AGENT_INSTALL_DIR', str(ROOT))
+    monkeypatch.setenv('MODULE_ID', 'nethvoice-test')
+    env = {'NETHVOICE_HOST': 'pbx.example', 'TCP_PORTS_RANGE': '30000-30045'}
+    secrets = dict.fromkeys(('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_CONFIG_PASSWORD',
+                             'VOICE_AGENT_MONITOR_PASSWORD', 'VOICE_AGENT_RUNTIME_TOKEN',
+                             'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN',
+                             'SATELLITE_API_TOKEN', 'SATELLITE_PGSQL_PASSWORD'), 'synthetic')
+    secrets.update(OPENAI_API_KEY='first', MARIADB_ROOT_PASSWORD='forbidden')
+    calls, routes, units = [], [], set()
+    tasks = SimpleNamespace(run=lambda **kw: routes.append(kw['data']) or {'exit_code': 0})
+    sdk = SimpleNamespace(read_envfile=lambda name: dict(env if name == 'environment' else secrets),
+                          mset_env=env.update, tasks=tasks, set_route=routes.append,
+                          resolve_agent_id=lambda _: 'traefik-test', assert_exp=lambda ok: ok)
+    monkeypatch.setitem(sys.modules, 'agent', sdk)
+    monkeypatch.setitem(sys.modules, 'agent.tasks', tasks)
+    # Import the SDK against this test's instance rather than an earlier fixture.
+    monkeypatch.delitem(sys.modules, 'voice_preview', raising=False)
+    state = SimpleNamespace(env=env, secrets=secrets, calls=calls, routes=routes, units=units,
+                            busy=False, reject=False)
 
-    def write(name, settings):
-        values[name] = dict(settings)
-        Path(name).write_text(json.dumps(settings, sort_keys=True))
+    def command(args, **kwargs):
+        args = list(args)
+        calls.append(args)
+        rc, output = 0, b''
+        if args[:2] == ['systemctl', '--user']:
+            if args[2] == 'is-active':
+                rc = 0 if args[-1] in units else 3
+            elif args[2] in ('enable', 'disable') and '--now' in args:
+                for unit in args[4:]:
+                    if args[2] == 'enable':
+                        units.add(unit)
+                    else:
+                        units.discard(unit)
+            elif args[2] == 'stop':
+                units.discard(args[-1])
+        elif args[:3] == ['podman', 'image', 'inspect']:
+            output = b'image-id'
+        elif args[-1] == 'voice_agent.drain':
+            rc = 75 if state.busy else 0
+        elif args[-1].endswith('install-runtime.php'):
+            rc = int(state.reject)
+        result = subprocess.CompletedProcess(args, rc, output)
+        if kwargs.get('check'):
+            result.check_returncode()
+        return result
 
-    agent = SimpleNamespace(
-        read_envfile=lambda name: dict(values[name]), write_envfile=write,
-        set_env=lambda name, value: values['environment'].update({name: value}))
-    monkeypatch.setitem(sys.modules, 'agent', agent)
-    return values
+    monkeypatch.setattr(subprocess, 'run', command)
+    state.apply = runpy.run_path(str(ROOT / 'bin/satellite-reconcile'))['apply']
+    return state
 
 
-@pytest.mark.parametrize('legacy', [False, True])
-@pytest.mark.parametrize('call,voicemail', [('False', 'False'), ('True', 'False'),
-                                          ('False', 'True'), ('True', 'True')])
-def test_agents_survive_transcription_changes_and_legacy_is_retired(action, legacy, call, voicemail):
-    services = Services(legacy)
-    with patch.dict('os.environ', {'SATELLITE_CALL_TRANSCRIPTION_ENABLED': call,
-                                 'SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED': voicemail}):
-        # Repeated configuration is safe and cannot re-enable the retired runner.
-        apply(services, action)
-        apply(services, action)
-    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 1
-    assert 'satellite.service' in services.active & services.enabled
-    assert 'voice-agent.service' not in services.active | services.enabled
-    assert 'satellite-pgsql.service' in services.active
-    transcription = 'True' in (call, voicemail)
-    for name in ('satellite-mqtt.service', 'satellite-recordings-cleanup.timer'):
-        assert (name in services.active) == transcription
-        assert (name in services.enabled) == transcription
+@pytest.mark.parametrize('action', ['configure-module/94voice_agents', 'set-integrations/50manage_service'])
+def test_actions_only_queue_on_configured_instances(installation, action, monkeypatch):
+    monkeypatch.delenv('NETHVOICE_HOST')
+    runpy.run_path(str(ROOT / 'actions' / action))
+    assert not installation.calls
+    monkeypatch.setenv('NETHVOICE_HOST', 'pbx.example')
+    runpy.run_path(str(ROOT / 'actions' / action))
+    assert Path('satellite-apply.pending').exists()
+    assert installation.calls[-1][-1] == 'satellite-apply.path'
 
 
-def test_failed_legacy_stop_prevents_duplicate_ari_consumer(action):
-    services = Services(True)
-    services.fail_legacy_stop = True
+@pytest.mark.parametrize('agents,transcription', [(False, False), (True, False), (False, True), (True, True)])
+def test_effective_service_matrix(installation, agents, transcription):
+    s = installation
+    s.env.update(VOICE_AGENT_ENABLED=str(agents), SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED=str(transcription))
+    assert s.apply()
+    assert ('satellite.service' in s.units) == (agents or transcription)
+    assert ('satellite-pgsql.service' in s.units) == transcription
+    assert ('voice-agent-retention.timer' in s.units) == agents
+    assert Path('voice-preview/enabled').exists() == agents
+    assert any(c[-1].endswith('install-runtime.php') for c in s.calls) == agents
+    assert not s.routes
+    if agents or transcription:
+        projection = Path('satellite.env').read_text()
+        assert 'forbidden' not in projection
+        assert ('VOICE_AGENT_RUNTIME_TOKEN=' in projection) == agents
+    s.calls.clear()
+    assert s.apply()
+    assert not any('stop' in c or 'enable' in c for c in s.calls)
+
+
+def test_drain_and_key_generation(installation):
+    s = installation
+    s.env['VOICE_AGENT_ENABLED'] = 'true'
+    assert s.apply()
+    s.secrets['OPENAI_API_KEY'] = 'second'
+    s.busy = True
+    assert not s.apply()
+    for file in ('satellite.env', 'voice-preview/effective.env'):
+        assert 'OPENAI_API_KEY=first' in Path(file).read_text()
+    s.busy = False
+    assert s.apply()
+    for file in ('satellite.env', 'voice-preview/effective.env'):
+        assert 'OPENAI_API_KEY=second' in Path(file).read_text()
+
+
+def test_schema_failure_leaves_transcription_running(installation):
+    s = installation
+    s.env.update(VOICE_AGENT_ENABLED='true', SATELLITE_CALL_TRANSCRIPTION_ENABLED='True')
+    s.reject = True
     with pytest.raises(subprocess.CalledProcessError):
-        apply(services, action)
-    assert not any('start' in call for call in services.calls)
+        s.apply()
+    assert 'satellite.service' in s.units
+    assert 'VOICE_AGENT_ENABLED=false' in Path('satellite.env').read_text()
+    assert not Path('voice-preview/enabled').exists()
 
 
-def test_changed_environment_waits_for_idle_and_unrelated_settings_do_not_restart(action, monkeypatch):
-    services = Services(False)
-    apply(services, action)
-    monkeypatch.setenv('NETHVOICE_HOST', 'other.example.org')
-    apply(services, action)
-    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 1
-    monkeypatch.setenv('SATELLITE_HTTP_PORT', '31000')
-    services.idle = False
-    with pytest.raises(subprocess.CalledProcessError):
-        apply(services, action)
-    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 1
-    services.idle = True
-    apply(services, action)
-    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 2
-    services.image = 'replacement-image-id'
-    apply(services, action)
-    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 3
-
-
-def test_upgrade_defers_consolidation_until_call_safe_restart(tmp_path):
-    log = tmp_path / 'commands'
-    stub = tmp_path / 'stub'
-    stub.write_text(f'''#!{sys.executable}
-from pathlib import Path
-import json
-from types import SimpleNamespace
-import os, sys
-with open(os.environ['TEST_COMMAND_LOG'], 'a') as log:
-    log.write(Path(sys.argv[0]).name + ' ' + ' '.join(sys.argv[1:]) + '\\n')
-''')
-    stub.chmod(0o755)
-    for name in ('systemctl', 'runagent', 'restart-services-when-convenient', 'podman'):
-        (tmp_path / name).symlink_to(stub)
-    env = dict(os.environ, PATH=str(tmp_path) + os.pathsep + os.environ['PATH'],
-               TEST_COMMAND_LOG=str(log), NETHVOICE_FREEPBX_IMAGE='synthetic-freepbx',
-               AGENT_INSTALL_DIR=str(ROOT / 'imageroot'))
-    for name in ('70enable', '80restart'):
-        subprocess.run(['bash', str(ROOT / 'imageroot/update-module.d' / name)],
-                       cwd=tmp_path, env=env, check=True, capture_output=True)
-    calls = log.read_text().splitlines()
-    restart = next(i for i, call in enumerate(calls) if call.startswith('restart-services-when-convenient '))
-    configure = 'runagent ' + str(ROOT / 'imageroot/actions/configure-module/94voice_agents')
-    consolidate = calls.index(configure)
-    assert restart < consolidate
-    assert calls.count(configure) == 1
-    assert calls[restart].startswith('restart-services-when-convenient --stop ')
-    assert 'satellite' in calls[restart].split()[2:]
-    assert 'systemctl --user start satellite' not in calls
-    assert calls.index('systemctl --user start freepbx') < consolidate
-    assert not any({'voice-agent', 'voice-agent.service'} & set(call.split()) for call in calls)
-
-
-def test_credentials_are_filtered_and_changes_require_a_call_safe_restart(action, state):
-    services = Services(False)
-    apply(services, action)
-    secrets = dict(state['passwords.env'])
-    fingerprint = Path('satellite-runtime.sha256').read_text()
-    assert 'MARIADB_ROOT_PASSWORD' not in state['satellite.env']
-    assert all(state['satellite.env'].get('VOICE_AGENT_'+service+'_TOKEN') and state['satellite.env'].get('VOICE_AGENT_'+service+'_URL') for service in ('RECIPIENT','CHAT'))
-    assert Path('satellite.env').stat().st_mode & 0o777 == 0o600
-    assert Path('passwords.env').stat().st_mode & 0o777 == 0o600
-    apply(services, action)
-    assert state['passwords.env'] == secrets
-    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 1
-    if action.parent.name == 'configure-module':
-        assert services.calls.count(['systemctl', '--user', 'enable', '--now',
-                                     'voice-agent-retention.timer']) == 2
-    else:
-        for name in ('freepbx.service', 'nethcti-server.service', 'nethcti-ui.service'):
-            assert services.calls.count(['systemctl', '--user', 'try-restart', name]) == 2
-    state['passwords.env']['OPENAI_API_KEY'] = 'synthetic-new-provider'
-    services.idle = False
-    with pytest.raises(subprocess.CalledProcessError):
-        apply(services, action)
-    assert Path('satellite-runtime.sha256').read_text() == fingerprint
-    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 1
-    services.idle = True
-    apply(services, action)
-    assert state['satellite.env']['OPENAI_API_KEY'] == 'synthetic-new-provider'
-    assert Path('satellite-runtime.sha256').read_text() != fingerprint
-    assert services.calls.count(['systemctl', '--user', 'stop', 'satellite.service']) == 2
+def test_webhook_only_on_explicit_lab_enable_and_historical_pg_is_preserved(installation):
+    s = installation
+    s.env.update(VOICE_AGENT_ENABLED='true', VOICE_AGENT_SIP_LAB_ENABLED='true',
+                 SATELLITE_CALL_TRANSCRIPTION_ENABLED='True')
+    assert s.apply()
+    assert s.routes[-1]['url'] == 'http://127.0.0.1:30042'
+    s.env.update(VOICE_AGENT_ENABLED='false', SATELLITE_CALL_TRANSCRIPTION_ENABLED='False')
+    assert s.apply()
+    assert s.routes[-1] == {'instance': 'nethvoice-test-voice-agent-webhooks'}
+    assert 'satellite-pgsql.service' in s.units
+    assert 'satellite.service' not in s.units
