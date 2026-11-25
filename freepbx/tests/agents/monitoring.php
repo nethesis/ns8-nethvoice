@@ -28,7 +28,11 @@ $db->exec("INSERT INTO asteriskcdrdb.cdr (calldate,linkedid,uniqueid) VALUES (NO
 assert($monitor->run($id)['call_record_url']===null);
 $db->exec("INSERT INTO asteriskcdrdb.cdr (calldate,linkedid,uniqueid) VALUES (CONVERT_TZ(NOW(),'+00:00','SYSTEM')-INTERVAL 20 DAY,'synthetic-support','native-42')");
 $detail=$monitor->run($id);
-assert($detail['call_record_url']==='/freepbx/admin/config.php?display=cdr&action=cel_show&uid=native-42');
+$cdrUrl=parse_url($detail['call_record_url']);
+assert($cdrUrl['path']==='/freepbx/admin/config.php' && $cdrUrl['fragment']==='CDR');
+parse_str($cdrUrl['query'],$cdrParams);
+assert($cdrParams['display']==='cdr' && $cdrParams['action']==='cdr_record' && $cdrParams['uid']==='native-42');
+assert($cdrParams['calldate']===$db->query("SELECT calldate FROM asteriskcdrdb.cdr WHERE uniqueid='native-42'")->fetchColumn());
 assert($detail['error_code']==='other' && !isset($detail['src'],$detail['dst'],$detail['linkedid']));
 $trace=$monitor->trace($id,[]); assert($trace['items']===[] && $trace['next_cursor']===null);
 assert($monitor->summary([])['coverage']['instrumented_runs']>=0);
