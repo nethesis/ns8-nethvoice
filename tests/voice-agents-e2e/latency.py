@@ -12,17 +12,20 @@ def score_greeting(words, origin_ms):
     for marker, word in enumerate(tokens):
         if word not in ("corallo", "corello") or marker == 0 or tokens[marker - 1] != "laboratorio":
             continue
-        # Find the greeting in this utterance. A bare lab name in a transfer
-        # announcement, or a salutation from an earlier sentence, is insufficient.
-        first = None
-        for index in range(marker - 2, max(-1, marker - 12), -1):
-            if words[index + 1][1] - words[index][1] > 1.2 or tokens[index] in ("corallo", "corello"):
-                break
-            if tokens[index] in salutations:
-                first = index
+        # Allow a direct address or one linking preposition. Unrelated speech
+        # before the actual welcome must not bring its onset forward.
+        first = marker - 2
+        if first >= 0 and tokens[first] in ("al", "dal", "del", "nel", "il"):
+            first -= 1
+        if first < 0 or tokens[first] not in salutations:
+            first = None
         if first is None and marker + 1 < len(tokens) and tokens[marker + 1] in salutations:
-            if words[marker + 1][1] - words[marker][1] <= 1.2:
-                first = marker - 1
+            first = marker - 1
+            end = marker + 1
+        else:
+            end = marker
+        if first is not None and any(words[i+1][1] - words[i][1] > 1.2 for i in range(first, end)):
+            first = None
         if first is not None:
             openings.append(first)
     result = {"greetings": len(openings)}

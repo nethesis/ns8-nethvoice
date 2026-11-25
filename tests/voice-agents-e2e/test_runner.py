@@ -27,6 +27,11 @@ class HarnessTests(unittest.TestCase):
         words = [("attendere", .2), ("buongiorno", 2.2), ("dal", 2.5),
                  ("laboratorio", 2.7), ("corello", 3.0)]
         self.assertEqual(score_greeting(words, 10), {"greetings": 1, "onset_ms": 2210})
+        unrelated = list(zip("buongiorno la trasferisco al laboratorio corallo".split(),
+                             (2.8, 3.2, 3.3, 3.5, 3.7, 4.1)))
+        self.assertEqual(score_greeting(unrelated, 0), {"greetings": 0})
+        late = list(zip("ciao benvenuti al laboratorio corallo".split(), (2.8, 3.2, 3.4, 3.6, 4.0)))
+        self.assertEqual(score_greeting(late, 0), {"greetings": 1, "onset_ms": 3200})
         self.assertEqual(score_greeting(words + words, 10), {"greetings": 2})
         self.assertEqual(score_greeting(words[:2], 0), {"greetings": 0})
         self.assertEqual(score_greeting([("trasferisco", .1), ("laboratorio", .2), ("corallo", .4)], 0),

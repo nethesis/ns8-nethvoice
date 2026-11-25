@@ -262,6 +262,29 @@ async def test_early_caller_can_finish_before_model_answers_without_replaying_op
 
 
 @pytest.mark.asyncio
+async def test_continuous_caller_noise_cannot_hold_a_silent_provider_open():
+    from unittest.mock import AsyncMock
+    session = OpenAILiveWebSocketSession({'api_key': 'synthetic'})
+    session._send = AsyncMock()
+    session.greeting_timeout = .3
+    async def noise():
+        while True:
+            await session.send_audio(bytes(160))
+            await asyncio.sleep(.02)
+    task = asyncio.create_task(noise())
+    try:
+        greeting = asyncio.create_task(session.respond())
+        done, _ = await asyncio.wait([greeting], timeout=.8)
+        assert greeting in done
+        with pytest.raises(TimeoutError):
+            await greeting
+    finally:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
+        await session.close()
+
+
+@pytest.mark.asyncio
 async def test_primary_ari_media_error_retains_pbx_failure_stage(caplog):
     from unittest.mock import AsyncMock
 
