@@ -1245,6 +1245,7 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
         $source['door_phone'] = $doorSecret !== null
             ? streaming_door_phone_mac((string) $data['door_phone'])
             : (((string) ($data['secret'] ?? '') === '' && $source['user'] === $sources[$currentDescr]['user']) ? $sources[$currentDescr]['door_phone'] : null);
+        streaming_check_door_phone_gates($source);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
         $source = streamingPinCertificate($source);
         // A stored password is never kept for a device with a new certificate
@@ -1285,6 +1286,7 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         }
         $source = streaming_normalize_source($data);
         $source['door_phone'] = $doorSecret !== null ? streaming_door_phone_mac((string) $data['door_phone']) : null;
+        streaming_check_door_phone_gates($source);
         $profiles = streaming_normalize_profiles($data['profiles'] ?? []);
         $source = streamingPinCertificate($source);
         streaming_store_source(FreePBX::Database(), $source, $profiles);

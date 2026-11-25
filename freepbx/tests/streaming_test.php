@@ -789,7 +789,20 @@ check(streaming_door_phone_gates('2001:db8::5', $i6xVars)[0]['url'] === 'http://
 check(streaming_door_phone_gates(null, $i6xVars)[1] === ['relay' => 2, 'code' => '#', 'url' => null, 'user' => null], 'no open URL without the device address');
 check(streaming_door_phone_gates('192.168.5.249', ['door_dtmf_code' => '*']) === [['relay' => 1, 'code' => '*', 'url' => null, 'user' => null]], 'models without relays and URLs: one relay, DTMF only');
 check(streaming_door_phone_gates('192.168.5.249', array_merge($i6xVars, ['door_open_url_path_1' => 'no-slash', 'door_open_url_path_2' => '/a b']))[0]['url'] === null && streaming_door_phone_gates('192.168.5.249', array_merge($i6xVars, ['door_open_url_path_2' => '/a b']))[1]['url'] === null, 'invalid open URL paths are refused');
-$i6xItem = streaming_door_phone_item(['mac' => '0C383E328271', 'extension' => '302'], $i6xVars, '192.168.5.249');
+foreach (["*\nOutput1 DTMF Trigger Code  :0", '12345678901234567', '1+2', '*;', '', 'E'] as $badCode) {
+    check(streaming_door_phone_gates(null, ['door_dtmf_code' => $badCode])[0]['code'] === null, 'door phone code not in the relay format ignored: ' . json_encode($badCode));
+}
+check(streaming_door_phone_gates(null, ['door_dtmf_code' => 'aD#*0123456789AB'])[0]['code'] === 'aD#*0123456789AB', 'door phone code of 16 characters');
+$doorSource = ['door_phone' => '0C-38-3E-32-6B-84', 'gates' => [['type' => 'url', 'code' => null], ['type' => 'dtmf', 'code' => '#']]];
+streaming_check_door_phone_gates($doorSource);
+check(true, 'door phone source with valid DTMF gates');
+streaming_check_door_phone_gates(['door_phone' => null, 'gates' => [['type' => 'dtmf', 'code' => '1+2']]]);
+check(true, 'other sources keep the general DTMF format');
+expect_validation(function () use ($doorSource) {
+    $doorSource['gates'][1]['code'] = '1+2';
+    streaming_check_door_phone_gates($doorSource);
+}, 'gates[1].code', 'door phone source with a DTMF code the device does not accept');
+$i6xItem =streaming_door_phone_item(['mac' => '0C383E328271', 'extension' => '302'], $i6xVars, '192.168.5.249');
 check($i6xItem['max_gates'] === 2 && streaming_door_phone_prefill($i6xItem)['max_gates'] === 2, 'door phone with two relays: at most two gates');
 check($item['max_gates'] === null, 'models without relays: no gate limit of their own');
 check(streaming_door_phone_item(['mac' => '0C383E328271', 'extension' => '300'], array_merge($i6xVars, ['cap_door_relay_count' => '1']), null)['max_gates'] === 1, 'door phone with one relay: one gate');

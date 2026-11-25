@@ -1670,6 +1670,9 @@ function streaming_probe_image(string $url, string $user, string $secret, bool $
 // Length of the generated password: letters and digits only, a device web
 // form or a Digest implementation may refuse other characters
 const STREAMING_DOOR_PASSWORD_LENGTH = 16;
+// DTMF code of a door phone relay: what the device accepts as trigger code
+// (Tancredi refuses other values of door_dtmf_code*)
+const STREAMING_DOOR_DTMF_PATTERN = '/^[0-9A-Da-d*#]{1,16}$/';
 
 /* MAC address as "AA-BB-CC-DD-EE-FF" (Tancredi scope id), null if invalid */
 function streaming_door_phone_mac(string $mac): ?string
@@ -1819,7 +1822,7 @@ function streaming_door_phone_gates(?string $ip, array $variables): array
         }
         $gates[] = [
             'relay' => $relay,
-            'code' => preg_match('/^[0-9A-Da-d*#+]{1,30}$/', $code) ? $code : null,
+            'code' => preg_match(STREAMING_DOOR_DTMF_PATTERN, $code) ? $code : null,
             'url' => $url,
             'user' => $url !== null ? (string) ($variables['door_open_url_user'] ?? '') : null,
         ];
@@ -1894,6 +1897,22 @@ function streaming_door_phone_prefill(array $item): array
         'ip' => $item['ip'],
         'registered' => $item['registered'],
     ];
+}
+
+/*
+ * The DTMF gates of a source linked to a door phone send their code to the
+ * door phone: it must be a code the device accepts as relay trigger.
+ */
+function streaming_check_door_phone_gates(array $source): void
+{
+    if (empty($source['door_phone'])) {
+        return;
+    }
+    foreach ($source['gates'] as $index => $gate) {
+        if ($gate['type'] === 'dtmf' && !preg_match(STREAMING_DOOR_DTMF_PATTERN, (string) $gate['code'])) {
+            throw new StreamingValidationException("gates[$index].code", 'invalid door phone DTMF code: use 1 to 16 characters among 0-9, A-D, * and #');
+        }
+    }
 }
 
 /*

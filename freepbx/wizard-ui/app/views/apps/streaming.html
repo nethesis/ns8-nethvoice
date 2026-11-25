@@ -243,7 +243,7 @@
                 </div>
                 <div ng-if="gate.type === 'dtmf'" class="row streaming-gate-detail">
                   <div class="col-sm-5">
-                    <input required maxlength="30" ng-model="gate.code" ng-pattern="dtmfPattern" ng-readonly="doorGateCodeLocked(newSource, gate, $index)" type="text" placeholder="{{'DTMF code' | translate}}" class="form-control">
+                    <input required maxlength="30" ng-model="gate.code" ng-pattern="newSource.door_phone ? doorDtmfPattern : dtmfPattern" ng-readonly="doorGateCodeLocked(newSource, gate, $index)" type="text" placeholder="{{'DTMF code' | translate}}" class="form-control">
                   </div>
                   <div ng-if="!doorGateCodeLocked(newSource, gate, $index)" class="col-sm-7 help-block">{{'Sent to the extension of the source during a call' | translate}}</div>
                   <div ng-if="doorGateCodeLocked(newSource, gate, $index)" class="col-sm-7 help-block">{{'Code of the door phone relay' | translate}} {{$index + 1}}, {{'set in the door phone provisioning' | translate}}</div>

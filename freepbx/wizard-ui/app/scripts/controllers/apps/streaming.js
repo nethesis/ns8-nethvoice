@@ -35,6 +35,8 @@ angular.module('nethvoiceWizardUiApp')
     $scope.urlPattern = /^(https?|rtsps?):\/\/[^\s]+$/i;
     $scope.httpPattern = /^https?:\/\/[^\s]+$/i;
     $scope.dtmfPattern = /^[0-9A-Da-d*#+]{1,30}$/;
+    // The DTMF gates of a door phone source: a code its relays accept
+    $scope.doorDtmfPattern = /^[0-9A-Da-d*#]{1,16}$/;
     $scope.doorPhones = [];
     $scope.doorPhonesLoading = false;
     $scope.doorPhonesError = false;
