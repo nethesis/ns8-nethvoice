@@ -52,8 +52,8 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     }
 
     /** Native extensions and queues; optional missing modules are unavailable. */
-    public function agentDirectory(): array {
-        return $this->directory()->inventory();
+    public function agentDirectory(bool $includeExtensions=true): array {
+        return $this->directory()->inventory($includeExtensions);
     }
 
     /** Native internal PJSIP devices belonging to each configured main extension. */

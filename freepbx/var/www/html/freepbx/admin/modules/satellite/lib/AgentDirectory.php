@@ -16,10 +16,10 @@ final class AgentDirectory
              ORDER BY u.extension"
         )->fetchAll(\PDO::FETCH_ASSOC);
     }
-    public function inventory(): array
+    public function inventory(bool $includeExtensions=true): array
     {
         $rows=[]; $modules=['extension'=>true,'queue'=>true];
-        foreach ($this->extensions() as $user) {
+        foreach ($includeExtensions ? $this->extensions() : [] as $user) {
             $row=$this->resource('extension',substr($user['id'],10),$user['name']);
             if ($row) $rows[$row['id']]=$row;
         }
