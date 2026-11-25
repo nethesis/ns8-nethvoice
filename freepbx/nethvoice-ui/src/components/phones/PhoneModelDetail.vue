@@ -95,6 +95,10 @@ const loading = computed(
 
 const loadError = computed(() => modelState.value.error ?? defaultsState.value.error)
 
+const isContentShown = computed(
+  () => model.value !== undefined && defaultsState.value.data !== undefined,
+)
+
 const isModelNotFound = computed(
   () => isApiError(modelState.value.error) && modelState.value.error.status === 404,
 )
@@ -295,17 +299,20 @@ function onReset() {
       :icon="faMagnifyingGlass"
       class="elevation-0"
     />
-    <LoadError
-      v-else-if="loadError"
-      :error="loadError"
-      :title="$t('phones.models.cannot_load_model')"
-      @retry="retry"
-    />
-    <div v-else-if="loading" class="flex flex-col gap-6">
-      <NeSkeleton size="lg" class="w-64" />
-      <NeSkeleton :lines="8" />
-    </div>
-    <template v-else-if="model">
+    <template v-else>
+      <LoadError
+        v-if="loadError"
+        :error="loadError"
+        :title="$t('phones.models.cannot_load_model')"
+        :class="isContentShown ? 'mb-6' : ''"
+        @retry="retry"
+      />
+      <div v-if="loading" class="flex flex-col gap-6">
+        <NeSkeleton size="lg" class="w-64" />
+        <NeSkeleton :lines="8" />
+      </div>
+    </template>
+    <template v-if="!isModelNotFound && !loading && isContentShown && model">
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <NeHeading tag="h3">{{ model.displayName }}</NeHeading>
         <NeButton v-if="!model.custom" kind="tertiary" @click="isShownResetModal = true">
@@ -333,7 +340,7 @@ function onReset() {
                 {{ $t(`phones.models.sections.${section.id}`) }}
                 <span
                   v-if="countSectionChanges(section, initialForm, form) > 0"
-                  class="text-primary-700 dark:text-primary-500 text-xs"
+                  class="text-secondary text-xs"
                 >
                   {{
                     $t(

@@ -51,6 +51,7 @@ import {
 import { PHONE_ENCRYPTION_KEY } from '@/lib/phones/encryption'
 import { PHONE_MODELS_KEY } from '@/lib/phones/models'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { usePermissions } from '@/queries/permissions/me'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 
@@ -86,9 +87,12 @@ const {
 
 const emit = defineEmits<{ close: [] }>()
 
+const MAX_LISTED_INVALID_MACS = 10
+
 useFocusReturn(() => isShown)
 
 const { t } = useI18n()
+const { isSuperadmin } = usePermissions()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 
@@ -197,7 +201,11 @@ const {
           notificationsStore.createNotification({
             kind: 'warning',
             title: t('phones.inventory.rps_failed', result.rpsFailed),
-            description: t('phones.inventory.rps_failed_description'),
+            description: t(
+              isSuperadmin.value
+                ? 'phones.inventory.rps_failed_description'
+                : 'phones.inventory.rps_failed_description_limited',
+            ),
           })
         }
 
@@ -292,6 +300,14 @@ function goToStep2() {
     macsIssue.value = t('phones.inventory.enter_at_least_one_mac')
   } else if (macs.length > MAX_NEW_PHONES) {
     macsIssue.value = t('phones.inventory.too_many_macs', { max: MAX_NEW_PHONES, n: macs.length })
+  } else if (invalidMacs.length > MAX_LISTED_INVALID_MACS) {
+    const hidden = invalidMacs.length - MAX_LISTED_INVALID_MACS
+
+    macsIssue.value = t(
+      'phones.inventory.invalid_macs_more',
+      { macs: invalidMacs.slice(0, MAX_LISTED_INVALID_MACS).join(', '), n: hidden },
+      hidden,
+    )
   } else if (invalidMacs.length > 0) {
     macsIssue.value = t(
       'phones.inventory.invalid_macs',
@@ -574,11 +590,7 @@ const rowIssue = (issue: string | undefined) => (issue ? t(issue) : '')
             <p
               v-if="row.error"
               class="text-sm md:col-span-4"
-              :class="
-                row.added
-                  ? 'text-amber-700 dark:text-amber-500'
-                  : 'text-rose-700 dark:text-rose-400'
-              "
+              :class="row.added ? 'text-amber-700 dark:text-amber-500' : 'text-danger'"
             >
               {{ row.error }}
             </p>

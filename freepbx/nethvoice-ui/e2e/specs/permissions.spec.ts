@@ -259,7 +259,7 @@ test.describe('section permissions', () => {
     })
     await page.goto('./phones/models')
 
-    await expect(page.getByText('Cannot load models')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve models')).toBeVisible()
     await expect(page).toHaveURL(/\/nethvoice\/phones\/models$/)
   })
 

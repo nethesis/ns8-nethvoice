@@ -11,6 +11,7 @@ import {
   REST,
   TANCREDI,
   TANCREDI_MODELS,
+  TANCREDI_PHONES,
   UNASSIGNED_MAC,
 } from './phones-data'
 
@@ -186,7 +187,7 @@ test.describe('physical phones: inventory', () => {
     mockPhonesApi(mockApi).on('GET', `${TANCREDI}/defaults`, { status: 500, json: { title: 'x' } })
     await page.goto('./phones/phones')
 
-    await expect(page.getByText('Cannot load the default settings of the phones')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve the default settings of the phones')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Add phones' })).toBeDisabled()
     await expect(
       page.getByRole('row', { name: /00:15:65:AB:CD:01/ }).getByRole('button', { name: /Edit/ }),
@@ -274,11 +275,61 @@ test.describe('physical phones: inventory', () => {
     ])
   })
 
+  test('shows Updating only when a refresh takes more than half a second', async ({
+    page,
+    mockApi,
+  }) => {
+    let release = () => {}
+    const released = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    mockPhonesApi(mockApi)
+    await page.clock.install()
+    await page.goto('./phones/phones')
+    await expect(page.getByRole('row', { name: /00:15:65:AB:CD:01/ })).toBeVisible()
+    await page.clock.pauseAt(Date.now() + 10_000)
+
+    mockApi.on('GET', `${TANCREDI}/phones`, async () => {
+      await released
+      return { json: TANCREDI_PHONES }
+    })
+    const calls = mockApi.callsTo('GET', `${TANCREDI}/phones`).length
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect
+      .poll(() => mockApi.callsTo('GET', `${TANCREDI}/phones`).length)
+      .toBeGreaterThan(calls)
+    await expect(page.getByText('Updating…')).toHaveCount(0)
+
+    await page.clock.runFor(600)
+    await expect(page.getByText('Updating…')).toBeVisible()
+    await expect(page.getByRole('row', { name: /00:15:65:AB:CD:01/ })).toBeVisible()
+
+    release()
+  })
+
+  test('keeps the phones on screen when a refresh fails', async ({ page, mockApi }) => {
+    mockPhonesApi(mockApi)
+    await page.clock.install()
+    await page.goto('./phones/phones')
+    await expect(page.getByRole('row', { name: /00:15:65:AB:CD:01/ })).toBeVisible()
+    await page.clock.pauseAt(Date.now() + 10_000)
+
+    mockApi.on('GET', `${TANCREDI}/phones`, { status: 500, json: { title: 'Internal error' } })
+    const calls = mockApi.callsTo('GET', `${TANCREDI}/phones`).length
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect
+      .poll(() => mockApi.callsTo('GET', `${TANCREDI}/phones`).length)
+      .toBeGreaterThan(calls)
+
+    await expect(page.getByText('Cannot retrieve phones')).toBeVisible()
+    await expect(page.getByRole('row', { name: /00:15:65:AB:CD:01/ })).toBeVisible()
+  })
+
   test('reports a load error and retries', async ({ page, mockApi }) => {
     mockPhonesApi(mockApi, { phonesStatus: 500, phones: { title: 'Internal error' } })
     await page.goto('./phones/phones')
 
-    await expect(page.getByText('Cannot load phones')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve phones')).toBeVisible()
     mockPhonesApi(mockApi)
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(page.getByRole('row', { name: /00:15:65:AB:CD:01/ })).toBeVisible()
@@ -384,6 +435,18 @@ test.describe('physical phones: inventory', () => {
     await macs.fill('FF:FF:FF:FF:FF:FF\n0011.2233.4455\nxyz')
     await modal.getByRole('button', { name: 'Next' }).click()
     await expect(modal.getByText('Enter valid MAC addresses: FF:FF:FF:FF:FF:FF, xyz')).toBeVisible()
+
+    await macs.fill(Array.from({ length: 12 }, (_, index) => `bad-${index + 1}`).join('\n'))
+    await modal.getByRole('button', { name: 'Next' }).click()
+    await expect(
+      modal.getByText(
+        'Enter valid MAC addresses: bad-1, bad-2, bad-3, bad-4, bad-5, bad-6, bad-7, bad-8, bad-9, bad-10 and 2 more',
+      ),
+    ).toBeVisible()
+
+    await macs.fill(Array.from({ length: 11 }, (_, index) => `bad-${index + 1}`).join('\n'))
+    await modal.getByRole('button', { name: 'Next' }).click()
+    await expect(modal.getByText(/bad-10 and 1 more$/)).toBeVisible()
 
     await macs.fill('0011.2233.4455\n00 11 22 33 44 56')
     await modal.getByRole('button', { name: 'Next' }).click()
@@ -827,6 +890,55 @@ test.describe('physical phones: inventory', () => {
       'https://pbx.example.com/provisioning/token/0c383e000002.cfg',
     )
   })
+
+  for (const { who, sections, hint } of [
+    {
+      who: 'the superadmin',
+      sections: null,
+      hint: 'Choose Copy provisioning URL from the phone menu and set the URL on the device manually.',
+    },
+    {
+      who: 'an administrator with only the phones section',
+      sections: ['phones'],
+      hint: 'Ask an administrator with full access to set the provisioning URL on the device.',
+    },
+  ]) {
+    test(`tells ${who} how to provision a phone the redirection service refused`, async ({
+      page,
+      mockApi,
+    }) => {
+      if (sections) {
+        await page.addInitScript(() => {
+          localStorage.setItem(
+            'secretkey',
+            JSON.stringify({ user: 'operator', hash: 'e2e-secret' }),
+          )
+        })
+        mockPermissions(mockApi, sections, 'operator')
+      }
+      mockPhonesApi(mockApi)
+        .on('POST', `${TANCREDI}/phones`, (request) => ({
+          status: 201,
+          json: { mac: (request.body as { mac: string }).mac },
+        }))
+        .on('POST', `${REST}/physicalextensions`, { json: undefined })
+        .on('POST', `${REST}/phones/rps/:mac`, { status: 500, json: { status: 'failed' } })
+        .on('POST', `${REST}/extensions/:extension/srtp/:enabled`, { status: 200 })
+      await page.goto('./phones/phones')
+
+      await page.getByRole('button', { name: 'Add phones' }).click()
+      const modal = page.getByRole('dialog')
+      await modal.getByRole('textbox', { name: 'MAC addresses' }).fill('001565ABCD02')
+      await modal.getByRole('button', { name: 'Next' }).click()
+      await modal.getByRole('button', { name: 'Add', exact: true }).click()
+      await modal.getByTestId('phone-row-0').getByRole('combobox').nth(0).click()
+      await page.getByRole('option', { name: 'Yealink T54' }).click()
+      await modal.getByRole('button', { name: 'Add', exact: true }).click()
+
+      await expect(page.getByText('Remote provisioning not configured for 1 phone')).toBeVisible()
+      await expect(page.getByText(hint)).toBeVisible()
+    })
+  }
 
   test('does not offer the provisioning URL to an administrator with only the phones section', async ({
     page,

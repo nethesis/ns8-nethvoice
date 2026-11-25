@@ -8,6 +8,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation } from '@pinia/colada'
 import {
+  NeAvatar,
   NeBadgeV2,
   NeButton,
   NeDropdown,
@@ -39,7 +40,6 @@ import {
   faMagnifyingGlass,
   faPenToSquare,
   faTrash,
-  faUser,
 } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
@@ -51,6 +51,7 @@ import PhonePasswordDrawer from './PhonePasswordDrawer.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
 import LiveDataUnavailableNotice from '@/components/common/LiveDataUnavailableNotice.vue'
 import { usePolling } from '@/composables/usePolling'
+import { useUpdatingIndicator } from '@/composables/useUpdatingIndicator'
 import { PAGE_SIZES } from '@/lib/common'
 import { formatMac } from '@/lib/phones/mac'
 import { getPhoneWebPassword, isDefaultAdminPassword } from '@/lib/phones/defaults'
@@ -75,6 +76,7 @@ const COPIED_FEEDBACK_MS = 2000
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const { phones, models, users, loading, updating, error, refetch } = usePhones()
+const isUpdatingShown = useUpdatingIndicator(() => updating.value)
 const { state: defaultsState, refetch: refetchDefaults } = usePhoneDefaults()
 const { state: macVendorsState } = useMacVendors()
 const { state: registrationsState, refetch: refetchRegistrations } = usePhoneRegistrations()
@@ -183,6 +185,8 @@ const areFiltersApplied = computed(
 const isEmptyStateShown = computed(
   () => !loading.value && !error.value && phones.value.length === 0,
 )
+
+const hasPhones = computed(() => phones.value.length > 0)
 
 const isNoMatchShown = computed(
   () => !loading.value && phones.value.length > 0 && filteredPhones.value.length === 0,
@@ -400,7 +404,7 @@ function showDeletePhoneModal(phone: Phone) {
         </NeButton>
       </div>
     </NeEmptyState>
-    <template v-else-if="!error">
+    <template v-else-if="!error || hasPhones">
       <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
         <p class="text-secondary-neutral max-w-2xl">
           {{ $t('phones.inventory.description') }}
@@ -469,7 +473,7 @@ function showDeletePhoneModal(phone: Phone) {
           {{ $t('common.reset_filters') }}
         </NeButton>
         <div
-          v-if="updating"
+          v-if="isUpdatingShown"
           class="text-tertiary-neutral ml-auto flex items-center gap-2 text-sm"
           role="status"
           data-testid="phones-updating"
@@ -537,12 +541,7 @@ function showDeletePhoneModal(phone: Phone) {
             </NeTableCell>
             <NeTableCell :data-label="$t('phones.user')">
               <div v-if="phone.user" class="flex items-center gap-2">
-                <span
-                  class="flex size-8 shrink-0 items-center justify-center rounded-full bg-gray-700 text-gray-50 dark:bg-gray-200 dark:text-gray-900"
-                  aria-hidden="true"
-                >
-                  <FontAwesomeIcon :icon="faUser" class="size-4" />
-                </span>
+                <NeAvatar size="sm" class="shrink-0" aria-hidden="true" />
                 <div class="flex min-w-0 flex-col wrap-anywhere">
                   <span>{{ phone.user.displayName }}</span>
                   <span v-if="userDetails(phone)" class="text-tertiary-neutral">
@@ -564,7 +563,7 @@ function showDeletePhoneModal(phone: Phone) {
                 <span class="flex items-center gap-2">
                   <FontAwesomeIcon
                     :icon="faCircleCheck"
-                    class="size-4 text-green-700 dark:text-green-500"
+                    class="text-icon-enabled size-4"
                     aria-hidden="true"
                   />
                   {{ $t('phones.inventory.registered') }}

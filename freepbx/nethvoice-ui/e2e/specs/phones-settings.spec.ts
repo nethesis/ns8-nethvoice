@@ -31,6 +31,45 @@ test.describe('physical phones: settings', () => {
     })
   })
 
+  test('moves the focus to the first invalid field', async ({ page, mockApi }) => {
+    mockStoredDefaults(mockApi, { ...DEFAULTS, language: '', tonezone: '' })
+    await page.goto('./phones/settings')
+
+    await page.getByText('Only at startup').click()
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('Choose a language')).toBeVisible()
+    await expect(page.getByText('Choose a tone region')).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Phone language' })).toBeFocused()
+    expect(mockApi.callsTo('PATCH', `${TANCREDI}/defaults`)).toHaveLength(0)
+  })
+
+  test('keeps the settings and the unsaved changes when a refresh fails', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.clock.install()
+    await page.goto('./phones/settings')
+    await page.getByText('Only at startup').click()
+    await page.clock.pauseAt(Date.now() + 10_000)
+
+    mockApi.on('GET', `${TANCREDI}/defaults`, { status: 500, json: { title: 'Down' } })
+    const calls = mockApi.callsTo('GET', `${TANCREDI}/defaults`).length
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+    await expect
+      .poll(() => mockApi.callsTo('GET', `${TANCREDI}/defaults`).length)
+      .toBeGreaterThan(calls)
+
+    await expect(page.getByText('Cannot retrieve phone settings')).toBeVisible()
+    await expect(page.getByRole('radio', { name: 'Only at startup' })).toBeChecked()
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled()
+
+    mockApi.on('GET', `${TANCREDI}/defaults`, { json: DEFAULTS })
+    await page.getByRole('button', { name: 'Retry' }).click()
+    await expect(page.getByText('Cannot retrieve phone settings')).toHaveCount(0)
+    await expect(page.getByRole('radio', { name: 'Only at startup' })).toBeChecked()
+  })
+
   test('reveals the current passwords and changes the user password', async ({ page, mockApi }) => {
     mockStoredDefaults(mockApi)
     await page.goto('./phones/settings')
@@ -106,7 +145,7 @@ test.describe('physical phones: settings', () => {
     mockApi.on('GET', `${TANCREDI}/defaults`, { status: 500, json: { title: 'Down' } })
     await page.goto('./phones/settings')
 
-    await expect(page.getByText('Cannot load phone settings')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve phone settings')).toBeVisible()
     mockApi.on('GET', `${TANCREDI}/defaults`, { json: DEFAULTS })
     await page.getByRole('button', { name: 'Retry' }).click()
     await expect(page.getByRole('combobox', { name: 'Tone region' })).toHaveValue('Italy')

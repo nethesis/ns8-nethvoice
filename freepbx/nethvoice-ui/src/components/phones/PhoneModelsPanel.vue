@@ -87,6 +87,10 @@ const loading = computed(
 
 const loadError = computed(() => modelsState.value.error ?? phonesState.value.error)
 
+const hasData = computed(
+  () => modelsState.value.data !== undefined && phonesState.value.data !== undefined,
+)
+
 const allModels = computed(() => modelsState.value.data ?? [])
 
 const rows = computed(() =>
@@ -156,6 +160,8 @@ const areFiltersApplied = computed(
 const isEmptyStateShown = computed(
   () => !loading.value && !loadError.value && rows.value.length === 0,
 )
+
+const isContentShown = computed(() => !loadError.value || hasData.value)
 
 const isNoMatchShown = computed(
   () => !loading.value && rows.value.length > 0 && filteredRows.value.length === 0,
@@ -274,7 +280,7 @@ function onModelCreated(model: PhoneModel) {
         {{ $t('phones.models.go_to_phones') }}
       </NeButton>
     </NeEmptyState>
-    <template v-else-if="!loadError">
+    <template v-else-if="isContentShown">
       <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
         <p class="text-secondary-neutral max-w-2xl">{{ $t('phones.models.description') }}</p>
         <NeButton

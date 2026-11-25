@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
 import { useMutation, useQueryCache } from '@pinia/colada'
@@ -16,12 +16,14 @@ import {
   NeSkeleton,
   NeTextInput,
   NeTooltip,
+  focusElement,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCircleInfo, faFloppyDisk, faKey } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
 import PhonePasswordDrawer from './PhonePasswordDrawer.vue'
 import { getLanguageLabel } from '@/lib/settings/system'
+import type { Focusable } from '@/lib/common'
 import {
   DefaultPhoneConfigurationSchema,
   getToneZoneLabel,
@@ -31,6 +33,7 @@ import {
   saveDefaultPhoneConfiguration,
   withCurrentOption,
   type DefaultPhoneConfiguration,
+  type PhoneDefaults,
   type PhonePasswordKind,
   type ProvisioningFrequency,
 } from '@/lib/phones/defaults'
@@ -50,6 +53,12 @@ const provisioningFrequency = ref<string>('everyday')
 const validationIssues = ref<Partial<Record<ConfigurationField, string>>>({})
 const passwordDrawerKind = ref<PhonePasswordKind>('admin')
 const isShownPasswordDrawer = ref(false)
+const appliedDefaults = ref<PhoneDefaults | undefined>()
+
+const fieldRefs = {
+  language: useTemplateRef<Focusable>('languageRef'),
+  toneZone: useTemplateRef<Focusable>('toneZoneRef'),
+}
 
 const comboboxLabels = computed(() => ({
   noResultsLabel: t('ne_combobox.no_results'),
@@ -110,15 +119,26 @@ const {
   },
 })
 
+const isFormEqualTo = (defaults: PhoneDefaults) =>
+  language.value === defaults.language &&
+  toneZone.value === defaults.toneZone &&
+  provisioningFrequency.value === defaults.provisioningFrequency
+
 watch(
   () => state.value.data,
   (defaults) => {
     if (!defaults || saveError.value) {
       return
     }
+    const previous = appliedDefaults.value
+
+    if (previous && !isFormEqualTo(previous) && !isFormEqualTo(defaults)) {
+      return
+    }
     language.value = defaults.language
     toneZone.value = defaults.toneZone
     provisioningFrequency.value = defaults.provisioningFrequency
+    appliedDefaults.value = defaults
   },
   { immediate: true },
 )
@@ -144,6 +164,7 @@ function save() {
       validationIssues.value[field] = issue.message
     }
   }
+  focusElement(validationIssues.value.language ? fieldRefs.language : fieldRefs.toneZone)
 }
 
 function showPasswordDrawer(kind: PhonePasswordKind) {
@@ -163,13 +184,14 @@ const issueMessage = (field: ConfigurationField) => {
       v-if="state.status === 'error'"
       :error="state.error"
       :title="$t('phones.settings.cannot_load_settings')"
+      :class="state.data ? 'mb-6' : ''"
       @retry="refetch"
     />
-    <div v-else-if="state.status === 'pending'" class="flex max-w-207 flex-col gap-8">
+    <div v-if="state.status === 'pending'" class="flex max-w-207 flex-col gap-8">
       <NeSkeleton :lines="6" />
       <NeSkeleton :lines="4" />
     </div>
-    <div v-else class="flex max-w-207 flex-col">
+    <div v-else-if="state.data" class="flex max-w-207 flex-col">
       <section
         class="flex flex-col gap-6 border-b border-gray-200 pb-8 lg:flex-row dark:border-gray-700"
       >
@@ -183,6 +205,7 @@ const issueMessage = (field: ConfigurationField) => {
         </div>
         <form class="flex w-full flex-col gap-6 lg:max-w-105" novalidate @submit.prevent="save">
           <NeCombobox
+            ref="languageRef"
             v-model="language"
             :label="$t('phones.settings.phone_language')"
             :options="languageOptions"
@@ -192,6 +215,7 @@ const issueMessage = (field: ConfigurationField) => {
             v-bind="comboboxLabels"
           />
           <NeCombobox
+            ref="toneZoneRef"
             v-model="toneZone"
             :label="$t('phones.settings.tone_region')"
             :options="toneZoneOptions"

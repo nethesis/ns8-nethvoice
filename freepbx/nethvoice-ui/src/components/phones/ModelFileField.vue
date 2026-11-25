@@ -8,6 +8,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import { NeCombobox, NeFileInput, NeInlineNotification } from '@nethesis/vue-components'
+import LoadError from '@/components/common/LoadError.vue'
 import {
   isValidPhoneFileName,
   PHONE_FILES_KEY,
@@ -38,7 +39,7 @@ const UPLOAD_LABELS: Record<PhoneFileType, string> = {
 
 const { t } = useI18n()
 const queryCache = useQueryCache()
-const { state } = usePhoneFiles(fileType)
+const { state, refetch } = usePhoneFiles(fileType)
 const file = ref<File | null>(null)
 const fileIssue = ref('')
 
@@ -102,6 +103,12 @@ function onSelect(selected: File | File[] | null) {
       :no-options-label="$t('ne_combobox.no_options_label')"
       :selected-label="$t('ne_combobox.selected')"
       :user-input-label="$t('ne_combobox.user_input_label')"
+    />
+    <LoadError
+      v-if="state.status === 'error'"
+      :error="state.error"
+      :title="$t(`phones.models.cannot_retrieve_files.${fileType}`)"
+      @retry="refetch()"
     />
     <NeFileInput
       v-model="file"
