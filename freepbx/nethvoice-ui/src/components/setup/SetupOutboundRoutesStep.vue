@@ -30,6 +30,6 @@ usePbxCountry()
         {{ $t('setup.outbound_routes.description_line_2') }}
       </p>
     </template>
-    <OutboundRoutesTable :show-filters="false" />
+    <OutboundRoutesTable :show-filters="false" variant="setup" />
   </SetupStepLayout>
 </template>

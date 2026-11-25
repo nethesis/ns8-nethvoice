@@ -4,11 +4,10 @@
 -->
 
 <script setup lang="ts">
-import { onMounted, ref, useTemplateRef } from 'vue'
+import { computed, onMounted, ref, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useQueryCache } from '@pinia/colada'
-import { NeButton, NeLink } from '@nethesis/vue-components'
+import { useMutation, useQueryCache } from '@pinia/colada'
+import { NeButton, NeInlineNotification, NeLink } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faArrowUpRightFromSquare,
@@ -21,20 +20,19 @@ import {
 import BrandLogo from '@/components/shell/BrandLogo.vue'
 import SetupSignOutButton from './SetupSignOutButton.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
-import { useNotificationsStore } from '@/stores/notifications'
+import { describeError } from '@/stores/notifications'
 import { getCurrentSetupRoute } from '@/lib/setup/guard'
 import { SETUP_STEPS } from '@/lib/setup/steps'
-import { postWizardState, WIZARD_STATE_KEY, type WizardState } from '@/lib/setup/wizard'
-import { fetchWizardState } from '@/queries/setup/wizardState'
+import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
+import { useSetupGuard, withoutSetupCompletedError } from '@/composables/useSetupGuard'
 
 type Topic = { id: string; icon: IconDefinition }
 
-const { t } = useI18n()
 const router = useRouter()
 const queryCache = useQueryCache()
 const runtimeConfigStore = useRuntimeConfigStore()
-const notificationsStore = useNotificationsStore()
-const starting = ref(false)
+const { readSetupInProgress } = useSetupGuard()
+const checking = ref(false)
 const titleRef = useTemplateRef<HTMLElement>('titleRef')
 
 onMounted(() => titleRef.value?.focus({ preventScroll: true }))
@@ -46,36 +44,16 @@ const topics: Topic[] = [
   { id: 'call_routing', icon: faRoute },
 ]
 
-async function loadSavedState(): Promise<WizardState | undefined> {
-  try {
-    return await fetchWizardState()
-  } catch (error) {
-    notificationsStore.createNotificationFromError(error, t('setup.cannot_check_setup'), {
-      serverDetail: false,
-    })
-  }
-}
-
-async function startSetup() {
-  const [firstStep] = SETUP_STEPS
-  starting.value = true
-
-  try {
-    const savedState = await loadSavedState()
-
-    if (!savedState) {
-      return
-    }
-
-    if (!savedState.inProgress) {
-      notificationsStore.createNotification({
-        kind: 'info',
-        title: t('setup.setup_already_completed'),
-        description: t('setup.setup_already_completed_description'),
-      })
-      await router.replace({ name: 'dashboard' })
-      return
-    }
+const {
+  mutate: startSetup,
+  isLoading: starting,
+  error: startError,
+} = useMutation({
+  mutation: async () => {
+    const [firstStep] = SETUP_STEPS
+    checking.value = true
+    const savedState = await readSetupInProgress()
+    checking.value = false
 
     if (savedState.legacyStep > firstStep.legacyStep) {
       await router.push(getCurrentSetupRoute(savedState))
@@ -84,14 +62,10 @@ async function startSetup() {
     await postWizardState(firstStep.legacyStep, true)
     await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] }).catch(() => undefined)
     await router.push({ name: `setup-${firstStep.id}` })
-  } catch (error) {
-    notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'), {
-      serverDetail: false,
-    })
-  } finally {
-    starting.value = false
-  }
-}
+  },
+})
+
+const startErrorShown = computed(() => withoutSetupCompletedError(startError.value))
 </script>
 
 <template>
@@ -160,13 +134,19 @@ async function startSetup() {
           </li>
         </ul>
       </div>
+      <NeInlineNotification
+        v-if="startErrorShown"
+        kind="error"
+        :title="checking ? $t('setup.cannot_check_setup') : $t('setup.cannot_save_progress')"
+        :description="describeError(startErrorShown, { serverDetail: false })"
+      />
       <div class="flex items-center justify-end gap-8">
         <NeButton
           kind="primary"
           size="lg"
           :loading="starting"
           :disabled="starting"
-          @click="startSetup"
+          @click="startSetup()"
         >
           {{ $t('setup.welcome.start_setup') }}
         </NeButton>

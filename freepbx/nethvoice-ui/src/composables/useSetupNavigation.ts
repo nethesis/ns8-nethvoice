@@ -1,58 +1,63 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { ref } from 'vue'
+import { computed, inject, provide, type ComputedRef, type InjectionKey } from 'vue'
 import { useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { useQueryCache } from '@pinia/colada'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import { getNextStep, type SetupStepId } from '@/lib/setup/steps'
 import { getLegacyStepToSave } from '@/lib/setup/guard'
 import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
-import { fetchWizardState } from '@/queries/setup/wizardState'
-import { useNotificationsStore } from '@/stores/notifications'
+import { useSetupGuard, withoutSetupCompletedError } from '@/composables/useSetupGuard'
+
+type BeforeAdvance = () => Promise<boolean | void>
+
+const SETUP_NAVIGATION_ERROR: InjectionKey<ComputedRef<unknown>> = Symbol('setupNavigationError')
+
+export const useSetupNavigationError = (): ComputedRef<unknown> | undefined =>
+  inject(SETUP_NAVIGATION_ERROR, undefined)
 
 export function useSetupNavigation(stepId: SetupStepId) {
-  const { t } = useI18n()
   const router = useRouter()
   const queryCache = useQueryCache()
-  const notificationsStore = useNotificationsStore()
-  const advancing = ref(false)
+  const { readSetupInProgress } = useSetupGuard()
 
-  const goToNextStep = async (beforeAdvance?: () => Promise<boolean | void>) => {
-    const nextStep = getNextStep(stepId)
+  const {
+    mutateAsync,
+    isLoading: advancing,
+    error,
+    reset,
+  } = useMutation({
+    mutation: async (beforeAdvance?: BeforeAdvance) => {
+      const nextStep = getNextStep(stepId)
 
-    if (!nextStep) {
-      return
-    }
-    advancing.value = true
-
-    try {
-      const savedState = await fetchWizardState()
-
-      if (!savedState.inProgress) {
-        notificationsStore.createNotification({
-          kind: 'info',
-          title: t('setup.setup_already_completed'),
-          description: t('setup.setup_already_completed_description'),
-        })
-        await router.replace({ name: 'dashboard' })
-        return
+      if (!nextStep) {
+        return null
       }
+      const savedState = await readSetupInProgress()
 
       if (beforeAdvance && (await beforeAdvance()) === false) {
-        return
+        return null
       }
       await postWizardState(getLegacyStepToSave(nextStep.legacyStep, savedState), true)
+      return nextStep
+    },
+    async onSuccess(nextStep) {
+      if (!nextStep) {
+        return
+      }
       await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] }).catch(() => undefined)
       await router.push({ name: `setup-${nextStep.id}` })
-    } catch (error) {
-      notificationsStore.createNotificationFromError(error, t('setup.cannot_save_progress'), {
-        serverDetail: false,
-      })
-    } finally {
-      advancing.value = false
-    }
+    },
+  })
+
+  const saveError = computed(() => withoutSetupCompletedError(error.value))
+
+  provide(SETUP_NAVIGATION_ERROR, saveError)
+
+  const goToNextStep = async (beforeAdvance?: BeforeAdvance) => {
+    reset()
+    await mutateAsync(beforeAdvance).catch(() => undefined)
   }
 
-  return { advancing, goToNextStep }
+  return { advancing, goToNextStep, saveError }
 }

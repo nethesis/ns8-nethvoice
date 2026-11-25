@@ -93,8 +93,29 @@ test.describe('setup: users and extensions', () => {
     mockApi.on('GET', `${REST}/users/:all`, { status: 500, json: { error: 'boom' } })
     await page.goto('./setup/users')
 
-    await expect(page.getByText('Cannot load users')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve users')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+  })
+
+  test('keeps the users and the edited extensions when a refresh fails', async ({
+    page,
+    mockApi,
+  }) => {
+    let fail = false
+    mockStep(mockApi)
+    mockApi.on('GET', `${REST}/users/:all`, () =>
+      fail ? { status: 500, json: { error: 'boom' } } : { json: RAW_USERS },
+    )
+    await page.goto('./setup/users')
+    await extensionInput(page, 'Anna Miller').fill('310')
+
+    fail = true
+    await page.clock.install()
+    await page.clock.runFor(60_000)
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(page.getByText('Cannot retrieve users')).toBeVisible()
+    await expect(extensionInput(page, 'Anna Miller')).toHaveValue('310')
   })
 
   test('validates the extensions inline', async ({ page, mockApi }) => {
@@ -226,7 +247,7 @@ test.describe('setup: users and extensions', () => {
     await extensionInput(page, 'Anna Miller').fill('310')
     await page.getByRole('button', { name: 'Next' }).click()
 
-    const modal = page.getByRole('dialog', { name: 'The devices will be deleted' })
+    const modal = page.getByRole('dialog', { name: 'Change extensions' })
     await expect(modal).toContainText('removes the user from all the groups')
     await expect(modal).toContainText('Only the Web phone is created again')
     await expect(modal).not.toContainText('are kept')
@@ -237,7 +258,7 @@ test.describe('setup: users and extensions', () => {
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
 
     await page.getByRole('button', { name: 'Next' }).click()
-    await modal.getByRole('button', { name: 'Change extensions' }).click()
+    await modal.getByRole('button', { name: 'Change', exact: true }).click()
 
     await expect(page).toHaveURL(/\/nethvoice\/setup\/physical-trunks$/)
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`).map((call) => call.body)).toEqual([
@@ -256,8 +277,8 @@ test.describe('setup: users and extensions', () => {
     const next = page.getByRole('button', { name: 'Next' })
     await next.click()
 
-    const modal = page.getByRole('dialog', { name: 'The devices will be deleted' })
-    await expect(modal.getByRole('heading', { name: 'The devices will be deleted' })).toBeVisible()
+    const modal = page.getByRole('dialog', { name: 'Change extensions' })
+    await expect(modal.getByRole('heading', { name: 'Change extensions' })).toBeVisible()
     await page.keyboard.press('Escape')
 
     await expect(modal).toHaveCount(0)

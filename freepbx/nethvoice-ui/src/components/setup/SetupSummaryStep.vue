@@ -7,7 +7,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useQueryCache } from '@pinia/colada'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import { NeInlineNotification, NeModal, NeSpinner } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCircleInfo, faCheck } from '@fortawesome/free-solid-svg-icons'
@@ -33,16 +33,20 @@ import { LEGACY_FINAL_STEP } from '@/lib/setup/steps'
 import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
 import { useSetupStore } from '@/stores/setup'
 import { usePbxCountry } from '@/queries/setup/pbxCountry'
-import { fetchWizardState } from '@/queries/setup/wizardState'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
-import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { describeError } from '@/stores/notifications'
+import {
+  isSetupCompletedError,
+  useSetupGuard,
+  withoutSetupCompletedError,
+} from '@/composables/useSetupGuard'
 
 const { t, locale } = useI18n()
 const router = useRouter()
 const queryCache = useQueryCache()
 const setupStore = useSetupStore()
 const runtimeConfigStore = useRuntimeConfigStore()
-const notificationsStore = useNotificationsStore()
+const { readSetupInProgress } = useSetupGuard()
 const { getRouteTitle } = useOutboundRouteLabels()
 
 const { state: languagesState, refetch: refetchLanguages } = usePbxLanguages()
@@ -52,10 +56,7 @@ const { state: gatewaysState, refetch: refetchGateways } = useGateways()
 const { state: inboundState, refetch: refetchInbound } = useInboundRoutes()
 const { state: outboundState, refetch: refetchOutbound } = useOutboundRoutes()
 
-const completing = ref(false)
 const isFinishModalShown = ref(false)
-const completionError = ref<unknown>(null)
-let completionStarted = false
 
 const { country } = usePbxCountry({ remember: false })
 
@@ -110,44 +111,41 @@ const warnings = computed(() =>
   }),
 )
 
-function askToCompleteSetup() {
-  if (!completionStarted) {
-    isFinishModalShown.value = true
-  }
-}
-
-async function completeSetup() {
-  if (completionStarted) {
-    return
-  }
-  isFinishModalShown.value = false
-  completionStarted = true
-  completing.value = true
-  completionError.value = null
-
-  try {
-    const savedState = await fetchWizardState()
-
-    if (!savedState.inProgress) {
-      setupStore.reset()
-      notificationsStore.createNotification({
-        kind: 'info',
-        title: t('setup.setup_already_completed'),
-        description: t('setup.setup_already_completed_description'),
-      })
-      await router.replace({ name: 'dashboard' })
-      return
+const {
+  mutate: completeSetupMutate,
+  isLoading: completing,
+  error: completeSetupError,
+} = useMutation({
+  mutation: async () => {
+    try {
+      await readSetupInProgress()
+    } catch (error) {
+      if (isSetupCompletedError(error)) {
+        setupStore.reset()
+      }
+      throw error
     }
     await postWizardState(LEGACY_FINAL_STEP, false)
     setupStore.reset()
     await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] }).catch(() => undefined)
     await router.replace({ name: 'dashboard' })
-  } catch (error) {
-    completionStarted = false
-    completionError.value = error
-  } finally {
-    completing.value = false
+  },
+})
+
+const completionError = computed(() => withoutSetupCompletedError(completeSetupError.value))
+
+function askToCompleteSetup() {
+  if (!completing.value) {
+    isFinishModalShown.value = true
   }
+}
+
+function completeSetup() {
+  if (completing.value) {
+    return
+  }
+  isFinishModalShown.value = false
+  completeSetupMutate()
 }
 </script>
 
@@ -182,6 +180,7 @@ async function completeSetup() {
         :title="`1. ${t('setup.system.title')}`"
         :loading="languagesState.status === 'pending'"
         :error="languagesState.error"
+        :has-data="languagesState.data !== undefined"
         @retry="refetchLanguages()"
       >
         <p>
@@ -201,6 +200,7 @@ async function completeSetup() {
         :title="`2. ${t('setup.summary.extensions')}`"
         :loading="usersState.status === 'pending'"
         :error="usersState.error"
+        :has-data="usersState.data !== undefined"
         @retry="refetchUsers()"
       >
         <p>
@@ -224,11 +224,12 @@ async function completeSetup() {
         :title="`3. ${t('setup.summary.physical_trunks')}`"
         :loading="gatewaysState.status === 'pending'"
         :error="gatewaysState.error"
+        :has-data="gatewaysState.data !== undefined"
         @retry="refetchGateways()"
       >
         <ul v-if="gateways.length">
           <li v-for="gateway in gateways" :key="gateway.id" class="flex flex-wrap gap-x-2">
-            <span class="wrap-anywhere">{{
+            <span class="wrap-break-word">{{
               [gateway.name || gateway.manufacturer, gateway.ipAddress].filter(Boolean).join(' ')
             }}</span>
             <span v-if="isGatewayDisabled(gateway)" class="text-tertiary-neutral">
@@ -242,12 +243,13 @@ async function completeSetup() {
         :title="`4. ${t('setup.voip_trunks.title')}`"
         :loading="trunksState.status === 'pending' || gatewaysState.status === 'pending'"
         :error="trunksState.error ?? gatewaysState.error"
+        :has-data="voipTrunks !== undefined"
         @retry="trunksState.error ? refetchTrunks() : refetchGateways()"
       >
         <ul v-if="voipTrunks?.length">
           <li v-for="trunk in voipTrunks" :key="trunk.id" class="flex flex-wrap gap-x-2">
-            <span class="wrap-anywhere">{{ trunk.name }}</span>
-            <span v-if="trunk.phoneNumber" class="wrap-anywhere">{{ trunk.phoneNumber }}</span>
+            <span class="wrap-break-word">{{ trunk.name }}</span>
+            <span v-if="trunk.phoneNumber" class="wrap-break-word">{{ trunk.phoneNumber }}</span>
             <span v-if="trunk.disabled" class="text-tertiary-neutral">
               ({{ t('common.disabled') }})
             </span>
@@ -259,10 +261,11 @@ async function completeSetup() {
         :title="`5. ${t('setup.inbound_routes.title')}`"
         :loading="inboundState.status === 'pending'"
         :error="inboundState.error"
+        :has-data="inboundState.data !== undefined"
         @retry="refetchInbound()"
       >
         <ul v-if="inboundRoutes.length">
-          <li v-for="route in inboundRoutes" :key="route.id" class="wrap-anywhere">
+          <li v-for="route in inboundRoutes" :key="route.id" class="wrap-break-word">
             <span class="font-medium">{{ getInboundRouteName(route) }}:</span>
             {{ route.description || '-' }}
           </li>
@@ -273,10 +276,11 @@ async function completeSetup() {
         :title="`6. ${t('setup.outbound_routes.title')}`"
         :loading="outboundState.status === 'pending'"
         :error="outboundState.error"
+        :has-data="outboundState.data !== undefined"
         @retry="refetchOutbound()"
       >
         <ul v-if="outboundState.data?.length">
-          <li v-for="route in outboundState.data" :key="route.id" class="wrap-anywhere">
+          <li v-for="route in outboundState.data" :key="route.id" class="wrap-break-word">
             <span class="font-medium">{{ getRouteTitle(route) }}:</span>
             {{ route.trunks.length ? '' : t('routes.no_trunks')
             }}<span v-for="(trunk, index) in route.trunks" :key="trunk.id"
@@ -319,7 +323,7 @@ async function completeSetup() {
   <Teleport to="body">
     <div
       v-if="completing"
-      class="fixed inset-0 z-100 flex flex-col items-center justify-center gap-10 bg-gray-50 dark:bg-gray-950"
+      class="elevation-1 fixed inset-0 z-100 flex flex-col items-center justify-center gap-10"
       role="status"
       aria-live="polite"
     >

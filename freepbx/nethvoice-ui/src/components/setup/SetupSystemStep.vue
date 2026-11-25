@@ -7,8 +7,13 @@
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
-import { useQueryCache } from '@pinia/colada'
-import { focusElement, NeCombobox, NeSkeleton } from '@nethesis/vue-components'
+import { useMutation, useQueryCache } from '@pinia/colada'
+import {
+  focusElement,
+  NeCombobox,
+  NeInlineNotification,
+  NeSkeleton,
+} from '@nethesis/vue-components'
 import SetupStepLayout from './SetupStepLayout.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import { useSetupNavigation } from '@/composables/useSetupNavigation'
@@ -22,12 +27,11 @@ import {
 } from '@/lib/settings/system'
 import { usePbxCountry } from '@/queries/setup/pbxCountry'
 import { useSetupStore } from '@/stores/setup'
-import { useNotificationsStore } from '@/stores/notifications'
+import { describeError } from '@/stores/notifications'
 
 const { t, locale } = useI18n()
 const queryCache = useQueryCache()
 const setupStore = useSetupStore()
-const notificationsStore = useNotificationsStore()
 const { state: languagesState, refetch: refetchLanguages } = usePbxLanguages()
 const { state: countriesState, refetch: refetchCountries } = usePbxCountries()
 const { advancing, goToNextStep } = useSetupNavigation('system')
@@ -44,6 +48,20 @@ const loading = computed(
 )
 
 const loadError = computed(() => languagesState.value.error ?? countriesState.value.error)
+
+const hasData = computed(
+  () => languagesState.value.data !== undefined && countriesState.value.data !== undefined,
+)
+
+const {
+  mutateAsync: saveLanguage,
+  error: saveLanguageError,
+  reset: resetSaveLanguage,
+} = useMutation({
+  mutation: (newLanguage: string) => postPbxDefaultLanguage(newLanguage),
+  onSuccess: () =>
+    queryCache.invalidateQueries({ key: [PBX_LANGUAGES_KEY] }).catch(() => undefined),
+})
 
 const countryOptions = computed(() =>
   (countriesState.value.data ?? [])
@@ -125,6 +143,8 @@ function validate(): boolean {
 }
 
 function saveAndContinue() {
+  resetSaveLanguage()
+
   if (!validate()) {
     return
   }
@@ -132,14 +152,10 @@ function saveAndContinue() {
   goToNextStep(async () => {
     if (language.value !== languagesState.value.data?.defaultLanguage) {
       try {
-        await postPbxDefaultLanguage(language.value)
-      } catch (error) {
-        notificationsStore.createNotificationFromError(error, t('settings.cannot_save_language'), {
-          serverDetail: false,
-        })
+        await saveLanguage(language.value)
+      } catch {
         return false
       }
-      await queryCache.invalidateQueries({ key: [PBX_LANGUAGES_KEY] }).catch(() => undefined)
     }
     setupStore.country = country.value
   })
@@ -152,7 +168,7 @@ function saveAndContinue() {
     :title="t('setup.system.title')"
     :description="t('setup.system.description')"
     :next-loading="advancing"
-    :next-disabled="loading || !!loadError"
+    :next-disabled="loading || !hasData"
     @next="saveAndContinue"
   >
     <LoadError
@@ -162,11 +178,15 @@ function saveAndContinue() {
       :title="t('setup.system.cannot_load_settings')"
       @retry="retryLoading"
     />
-    <div v-else-if="loading" class="flex w-full max-w-105 flex-col gap-8">
+    <div v-if="loading" class="flex w-full max-w-105 flex-col gap-8">
       <NeSkeleton :lines="3" />
       <NeSkeleton :lines="3" />
     </div>
-    <form v-else class="flex w-full max-w-105 flex-col gap-8" @submit.prevent="saveAndContinue">
+    <form
+      v-else-if="hasData"
+      class="flex w-full max-w-105 flex-col gap-8"
+      @submit.prevent="saveAndContinue"
+    >
       <NeCombobox
         ref="countryRef"
         @keydown.capture="keepEmptyCountryOnTab"
@@ -199,6 +219,12 @@ function saveAndContinue() {
         :selected-label="t('ne_combobox.selected')"
         :user-input-label="t('ne_combobox.user_input_label')"
         :optional-label="t('common.optional')"
+      />
+      <NeInlineNotification
+        v-if="saveLanguageError"
+        kind="error"
+        :title="t('settings.cannot_save_language')"
+        :description="describeError(saveLanguageError, { serverDetail: false })"
       />
     </form>
   </SetupStepLayout>

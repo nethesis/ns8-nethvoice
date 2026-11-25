@@ -11,10 +11,12 @@ const {
   title,
   loading = false,
   error = null,
+  hasData = false,
 } = defineProps<{
   title: string
   loading?: boolean
   error?: unknown
+  hasData?: boolean
 }>()
 
 const emit = defineEmits<{ retry: [] }>()
@@ -31,7 +33,7 @@ const emit = defineEmits<{ retry: [] }>()
       class="max-w-3xl"
       @retry="emit('retry')"
     />
-    <div v-else class="text-tertiary-neutral flex flex-col gap-1">
+    <div v-if="!loading && (!error || hasData)" class="text-tertiary-neutral flex flex-col gap-1">
       <slot />
     </div>
   </section>

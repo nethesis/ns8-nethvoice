@@ -99,7 +99,8 @@ test.describe('setup wizard: welcome and system settings', () => {
     await page.goto('./setup')
     await page.getByRole('button', { name: 'Start setup' }).click()
 
-    await expect(page.getByText('Cannot save the setup progress').first()).toBeVisible()
+    await expect(page.getByRole('main').getByText('Cannot save the setup progress')).toBeVisible()
+    await expect(page.getByTestId('toast-notifications')).not.toContainText('Cannot save')
     await expect(page).toHaveURL(/\/nethvoice\/setup$/)
   })
 
@@ -183,9 +184,49 @@ test.describe('setup wizard: welcome and system settings', () => {
     await page.getByRole('option', { name: 'Italiano' }).click()
     await page.getByRole('button', { name: 'Next' }).click()
 
-    await expect(page.getByText('Cannot save PBX language').first()).toBeVisible()
+    await expect(page.getByRole('main').getByText('Cannot save PBX language')).toBeVisible()
+    await expect(page.getByTestId('toast-notifications')).not.toContainText('Cannot save')
     await expect(page).toHaveURL(/\/nethvoice\/setup\/system$/)
     expect(mockApi.callsTo('POST', '/freepbx/rest/configuration/wizard')).toHaveLength(0)
+  })
+
+  test('stays on the step and shows the error when saving the progress fails', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('POST', '/freepbx/rest/configuration/wizard', { status: 500 })
+
+    await page.goto('./setup/system')
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await expect(page.getByRole('main').getByText('Cannot save the setup progress')).toBeVisible()
+    await expect(page.getByTestId('toast-notifications')).not.toContainText('Cannot save')
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/system$/)
+    await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
+  })
+
+  test('keeps the settings when reading them again fails', async ({ page, mockApi }) => {
+    let failing = false
+    mockApi.on('GET', '/freepbx/rest/settings/languages', () =>
+      failing
+        ? { status: 500, json: { message: 'db down' } }
+        : { json: { it: { default: false }, en: { default: true } } },
+    )
+
+    await page.clock.install()
+    await page.goto('./setup/system')
+    await expect(page.getByRole('combobox', { name: 'PBX language' })).toHaveValue('English')
+
+    failing = true
+    await page.clock.runFor(10_000)
+    await page.evaluate(() => {
+      document.dispatchEvent(new Event('visibilitychange'))
+      window.dispatchEvent(new Event('focus'))
+    })
+
+    await expect(page.getByText('Cannot retrieve system settings')).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'PBX language' })).toHaveValue('English')
+    await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
   })
 
   test('shows a load error and blocks Next when settings cannot be read', async ({
@@ -201,7 +242,7 @@ test.describe('setup wizard: welcome and system settings', () => {
 
     await page.goto('./setup/system')
 
-    await expect(page.getByText('Cannot load system settings')).toBeVisible()
+    await expect(page.getByText('Cannot retrieve system settings')).toBeVisible()
     await expect(page.getByText('db down')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
 

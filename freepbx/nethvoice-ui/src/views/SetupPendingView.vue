@@ -50,7 +50,7 @@ async function signOut() {
 </script>
 
 <template>
-  <div class="flex min-h-full items-center justify-center bg-gray-50 p-6 dark:bg-gray-900">
+  <div class="elevation-1 flex min-h-full items-center justify-center p-6">
     <NeEmptyState
       :title="$t('permissions.setup_pending_title')"
       :description="$t('permissions.setup_pending_description')"

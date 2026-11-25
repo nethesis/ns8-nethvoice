@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed, onMounted, useTemplateRef } from 'vue'
 import { useRouter } from 'vue-router'
-import { NeButton } from '@nethesis/vue-components'
+import { NeButton, NeInlineNotification } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faArrowLeft, faArrowRight, type IconDefinition } from '@fortawesome/free-solid-svg-icons'
 import SymbolNethvoice from '@/assets/symbol_nethvoice.svg'
@@ -14,6 +14,8 @@ import SetupHelpLinks from './SetupHelpLinks.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { isRebranded } from '@/lib/signInSplash'
 import { getPreviousStep, getStepIndex, SETUP_STEPS, type SetupStepId } from '@/lib/setup/steps'
+import { useSetupNavigationError } from '@/composables/useSetupNavigation'
+import { describeError } from '@/stores/notifications'
 
 const {
   stepId,
@@ -43,6 +45,10 @@ const router = useRouter()
 const runtimeConfigStore = useRuntimeConfigStore()
 
 const titleRef = useTemplateRef<HTMLElement>('titleRef')
+
+const injectedNavigationError = useSetupNavigationError()
+
+const navigationError = computed(() => injectedNavigationError?.value ?? null)
 
 const showProductSymbol = computed(
   () =>
@@ -134,6 +140,12 @@ function goToPreviousStep() {
           <slot />
         </div>
       </div>
+      <NeInlineNotification
+        v-if="navigationError"
+        kind="error"
+        :title="$t('setup.cannot_save_progress')"
+        :description="describeError(navigationError, { serverDetail: false })"
+      />
       <div class="flex items-center justify-end gap-8">
         <NeButton kind="tertiary" size="lg" :disabled="nextLoading" @click="goToPreviousStep">
           <template #prefix>

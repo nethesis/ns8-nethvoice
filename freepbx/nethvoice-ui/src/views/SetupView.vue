@@ -45,7 +45,7 @@ async function retry() {
 
 <template>
   <div
-    class="flex min-h-full items-stretch justify-center bg-gray-200 p-0 sm:p-6 lg:items-center lg:p-10 dark:bg-gray-700"
+    class="elevation-3 flex min-h-full items-stretch justify-center p-0 sm:p-6 lg:items-center lg:p-10"
   >
     <div
       class="elevation-1 flex w-full max-w-375 overflow-hidden shadow-xl sm:rounded-3xl lg:h-[min(920px,calc(100vh-5rem))]"

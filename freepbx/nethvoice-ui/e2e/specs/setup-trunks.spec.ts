@@ -62,4 +62,36 @@ test.describe('setup: trunks', () => {
       status: 'true',
     })
   })
+  test('does not delete a trunk once the setup was completed in another session', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.allowUnmockedCalls()
+    mockTrunksApi(mockApi)
+    mockApi.on('DELETE', '/freepbx/rest/trunks/:trunkid', { status: 200 })
+    await page.goto('./setup/voip-trunks')
+
+    await page.getByRole('button', { name: 'Open the menu of backup_trunk' }).click()
+    await page.getByRole('menuitem', { name: 'Delete trunk' }).click()
+    mockWizardState(mockApi, 13, false)
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(page.getByText('Setup already completed')).toBeVisible()
+    expect(mockApi.callsTo('DELETE', '/freepbx/rest/trunks/:trunkid')).toHaveLength(0)
+  })
+
+  test('still deletes a trunk from the trunks page after the setup', async ({ page, mockApi }) => {
+    mockWizardState(mockApi, 13, false)
+    mockTrunksApi(mockApi)
+    mockApi.on('DELETE', '/freepbx/rest/trunks/:trunkid', { status: 200 })
+    await page.goto('./trunks/voip')
+
+    await page.getByRole('button', { name: 'Open the menu of backup_trunk' }).click()
+    await page.getByRole('menuitem', { name: 'Delete trunk' }).click()
+    await page.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(page.getByText('Trunk backup_trunk has been deleted.')).toBeVisible()
+    expect(mockApi.callsTo('GET', '/freepbx/rest/configuration/wizard')).toHaveLength(1)
+  })
 })

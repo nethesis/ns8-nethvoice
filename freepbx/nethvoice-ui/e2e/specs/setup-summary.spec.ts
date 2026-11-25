@@ -262,6 +262,23 @@ test.describe('setup wizard: summary', () => {
     await expect(section(page, '5. Inbound routes')).toContainText('Sales department')
   })
 
+  test('keeps a section when reading it again fails', async ({ page, mockApi }) => {
+    let failing = false
+
+    mockApi.on('GET', '/freepbx/rest/inboundroutes', () =>
+      failing ? { status: 500, json: 'An error occurred' } : { json: INBOUND_ROUTES },
+    )
+
+    await page.goto('./setup/summary')
+    await expect(section(page, '5. Inbound routes')).toContainText('Sales department')
+
+    failing = true
+    await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')))
+
+    await expect(section(page, '5. Inbound routes')).toContainText('Cannot load data')
+    await expect(section(page, '5. Inbound routes')).toContainText('Sales department')
+  })
+
   test('completes the setup once and opens the dashboard', async ({ page, mockApi }) => {
     let release: () => void = () => undefined
     const completed = new Promise<void>((resolve) => {

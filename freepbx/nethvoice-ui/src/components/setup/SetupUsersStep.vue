@@ -22,10 +22,10 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faCircleArrowDown,
   faCircleArrowUp,
+  faCircleMinus,
   faCirclePlus,
   faCircleUser,
   faGear,
-  faLinkSlash,
   faMagnifyingGlass,
   faPenToSquare,
   faUserGroup,
@@ -119,6 +119,9 @@ const loading = computed(
 const loadError = computed(
   () => usersQuery.state.value.error ?? directoryQuery.state.value.error ?? null,
 )
+const hasData = computed(
+  () => usersQuery.state.value.data !== undefined && directoryQuery.state.value.data !== undefined,
+)
 const users = computed(() => usersQuery.state.value.data ?? [])
 const directory = computed(() => directoryQuery.state.value.data ?? EMPTY_USERS_DIRECTORY)
 const drafts = computed(() => getDrafts(users.value, edits.value))
@@ -192,7 +195,7 @@ const rowMenuItems = (username: string): NeDropdownItem[] => [
   {
     id: 'remove-extension',
     label: t('users.remove_extension'),
-    icon: faLinkSlash,
+    icon: faCircleMinus,
     danger: true,
     disabled: !savedExtensions.value[username],
     action: () => showRemoveExtension(username),
@@ -258,7 +261,7 @@ const provisioningErrorDescription = computed(() => {
       ? t('users.base_profile_missing')
       : kind === 'unknown'
         ? describeError(error.cause, { serverDetail: false })
-        : t(`users.extension_error_${kind}`)
+        : t(`users.extension_error_${kind}`, { limit: usersLimit.value ?? '' })
 
   return t('setup.users.provisioning_failed_for', {
     username: error.username,
@@ -379,160 +382,166 @@ function provisionAndContinue() {
         {{ t('setup.users.configuring_progress', progress) }}
       </p>
     </div>
-    <LoadError
-      :server-detail="false"
-      v-else-if="loadError"
-      :error="loadError"
-      :title="t('users.cannot_load_users')"
-      @retry="(usersQuery.refetch(), directoryQuery.refetch())"
-    />
-    <div v-else-if="loading" class="flex flex-col gap-6">
-      <NeSkeleton :lines="1" class="max-w-md" />
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <NeSkeleton v-for="index in 6" :key="index" :lines="2" />
-      </div>
-    </div>
-    <NeEmptyState
-      v-else-if="users.length === 0"
-      :title="t('users.no_users_yet')"
-      :description="t('users.no_users_yet_description')"
-      :icon="faUserGroup"
-      class="elevation-2"
-    >
-      <div class="flex flex-col items-center gap-4">
-        <NeSpinner v-if="syncing" />
-        <NeButton kind="secondary" @click="showCreateUser">
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-          </template>
-          {{ t('users.create_user') }}
-        </NeButton>
-        <NeButton kind="tertiary" @click="isShownImport = true">
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCircleArrowUp" class="size-4" aria-hidden="true" />
-          </template>
-          {{ t('users.import_users_from_csv') }}
-        </NeButton>
-      </div>
-    </NeEmptyState>
     <template v-else>
-      <div v-if="provisioningError" ref="errorRef" tabindex="-1" class="focus:outline-none">
-        <NeInlineNotification
-          kind="error"
-          :title="t('setup.users.provisioning_failed')"
-          :description="provisioningErrorDescription"
-        />
-      </div>
-      <NeInlineNotification
-        v-if="overLimit"
-        kind="warning"
-        :title="t('setup.users.users_limit_title')"
-        :description="t('setup.users.users_limit_description', { limit: usersLimit ?? 0 })"
+      <LoadError
+        v-if="loadError"
+        :server-detail="false"
+        :error="loadError"
+        :title="t('users.cannot_load_users')"
+        @retry="(usersQuery.refetch(), directoryQuery.refetch())"
       />
-      <div class="flex flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-4">
-          <NeTextInput
-            v-model="textFilter"
-            is-search
-            :placeholder="t('users.filter_users')"
-            :clear-search-label="t('ne_text_input.clear_search')"
-            :aria-label="t('users.filter_users')"
-            class="w-full max-w-xs"
-          />
-          <NeSortDropdown
-            :sort-key="sortKey"
-            :sort-descending="sortDescending"
-            :label="t('sort.sort_by')"
-            :options="sortOptions"
-            :open-menu-aria-label="t('ne_dropdown.open_menu')"
-            :sort-by-label="t('sort.sort_by')"
-            :sort-direction-label="t('sort.direction')"
-            :ascending-label="t('sort.ascending')"
-            :descending-label="t('sort.descending')"
-            @update:sort-key="setSortKey"
-            @update:sort-descending="sortDescending = $event ?? false"
-          />
-          <span v-if="syncing" class="text-secondary-neutral flex items-center gap-2 text-sm">
-            <NeSpinner />
-            {{ t('setup.users.syncing_users') }}
-          </span>
+      <template v-if="!loadError || hasData">
+        <div v-if="loading" class="flex flex-col gap-6">
+          <NeSkeleton :lines="1" class="max-w-md" />
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <NeSkeleton v-for="index in 6" :key="index" :lines="2" />
+          </div>
         </div>
-        <div class="flex items-center gap-4">
-          <UsersActionsDropdown :items="actionItems" kind="tertiary" />
-          <NeButton kind="secondary" @click="showCreateUser">
-            <template #prefix>
-              <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-            </template>
-            {{ t('users.create_user') }}
-          </NeButton>
-        </div>
-      </div>
-      <div class="flex flex-wrap items-center justify-between gap-2">
-        <h2 class="text-primary-neutral text-sm font-medium">
-          {{ t('setup.users.assign_extensions') }}
-        </h2>
-        <p class="text-tertiary-neutral text-sm" data-testid="users-counter">
-          {{ t('users.configured_counter', { configured: configuredCount, total: users.length }) }}
-        </p>
-      </div>
-      <NeEmptyState
-        v-if="visibleUsers.length === 0"
-        :title="t('users.no_users_found')"
-        :description="t('common.try_different_words')"
-        :icon="faMagnifyingGlass"
-      >
-        <NeButton kind="tertiary" @click="textFilter = ''">
-          {{ t('common.clear_filter') }}
-        </NeButton>
-      </NeEmptyState>
-      <ul v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <li
-          v-for="user in visibleUsers"
-          :key="user.username"
-          class="elevation-0 flex flex-wrap items-center gap-4 rounded-lg px-4 py-3"
-          :data-testid="`setup-user-${user.username}`"
+        <NeEmptyState
+          v-else-if="users.length === 0"
+          :title="t('users.no_users_yet')"
+          :description="t('users.no_users_yet_description')"
+          :icon="faUserGroup"
+          class="elevation-2"
         >
-          <div class="flex min-w-48 flex-1 items-center gap-3">
-            <FontAwesomeIcon
-              :icon="faCircleUser"
-              class="size-8 shrink-0 text-gray-700 dark:text-gray-100"
-              aria-hidden="true"
+          <div class="flex flex-col items-center gap-4">
+            <NeSpinner v-if="syncing" />
+            <NeButton kind="secondary" @click="showCreateUser">
+              <template #prefix>
+                <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+              </template>
+              {{ t('users.create_user') }}
+            </NeButton>
+            <NeButton kind="tertiary" @click="isShownImport = true">
+              <template #prefix>
+                <FontAwesomeIcon :icon="faCircleArrowUp" class="size-4" aria-hidden="true" />
+              </template>
+              {{ t('users.import_users_from_csv') }}
+            </NeButton>
+          </div>
+        </NeEmptyState>
+        <template v-else>
+          <div v-if="provisioningError" ref="errorRef" tabindex="-1" class="focus:outline-none">
+            <NeInlineNotification
+              kind="error"
+              :title="t('setup.users.provisioning_failed')"
+              :description="provisioningErrorDescription"
             />
-            <div class="flex min-w-0 flex-col">
-              <span class="text-primary-neutral truncate text-sm font-medium">
-                {{ user.displayName }}
+          </div>
+          <NeInlineNotification
+            v-if="overLimit"
+            kind="warning"
+            :title="t('setup.users.users_limit_title')"
+            :description="t('setup.users.users_limit_description', { limit: usersLimit ?? 0 })"
+          />
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-4">
+              <NeTextInput
+                v-model="textFilter"
+                is-search
+                :placeholder="t('users.filter_users')"
+                :clear-search-label="t('ne_text_input.clear_search')"
+                :aria-label="t('users.filter_users')"
+                class="w-full max-w-xs"
+              />
+              <NeSortDropdown
+                :sort-key="sortKey"
+                :sort-descending="sortDescending"
+                :label="t('sort.sort_by')"
+                :options="sortOptions"
+                :open-menu-aria-label="t('ne_dropdown.open_menu')"
+                :sort-by-label="t('sort.sort_by')"
+                :sort-direction-label="t('sort.direction')"
+                :ascending-label="t('sort.ascending')"
+                :descending-label="t('sort.descending')"
+                @update:sort-key="setSortKey"
+                @update:sort-descending="sortDescending = $event ?? false"
+              />
+              <span v-if="syncing" class="text-secondary-neutral flex items-center gap-2 text-sm">
+                <NeSpinner />
+                {{ t('setup.users.syncing_users') }}
               </span>
-              <span class="text-secondary-neutral truncate text-sm">{{ user.username }}</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <UsersActionsDropdown :items="actionItems" kind="tertiary" />
+              <NeButton kind="secondary" @click="showCreateUser">
+                <template #prefix>
+                  <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+                </template>
+                {{ t('users.create_user') }}
+              </NeButton>
             </div>
           </div>
-          <div class="w-44 shrink-0">
-            <NeTextInput
-              :id="`extension-${user.username}`"
-              :model-value="drafts[user.username] ?? ''"
-              :placeholder="t('users.extension_placeholder')"
-              :invalid-message="issueFor(user.username)"
-              :aria-label="t('setup.users.extension_of', { name: user.displayName })"
-              :disabled="advancing"
-              inputmode="numeric"
-              @update:model-value="setDraft(user.username, $event)"
-            />
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h2 class="text-primary-neutral text-sm font-medium">
+              {{ t('setup.users.assign_extensions') }}
+            </h2>
+            <p class="text-tertiary-neutral text-sm" data-testid="users-counter">
+              {{
+                t('users.configured_counter', { configured: configuredCount, total: users.length })
+              }}
+            </p>
           </div>
-          <div class="flex items-center gap-2">
-            <NeButton kind="tertiary" @click="showEditUser(user.username)">
-              <template #prefix>
-                <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
-              </template>
-              {{ t('common.edit') }}
-              <span class="sr-only">{{ user.username }}</span>
+          <NeEmptyState
+            v-if="visibleUsers.length === 0"
+            :title="t('users.no_users_found')"
+            :description="t('common.try_different_words')"
+            :icon="faMagnifyingGlass"
+          >
+            <NeButton kind="tertiary" @click="textFilter = ''">
+              {{ t('common.clear_filter') }}
             </NeButton>
-            <NeDropdown
-              :items="rowMenuItems(user.username)"
-              :align-to-right="true"
-              :open-menu-aria-label="t('users.user_actions', { name: user.username })"
-            />
-          </div>
-        </li>
-      </ul>
+          </NeEmptyState>
+          <ul v-else class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <li
+              v-for="user in visibleUsers"
+              :key="user.username"
+              class="elevation-0 flex flex-wrap items-center gap-4 rounded-lg px-4 py-3"
+              :data-testid="`setup-user-${user.username}`"
+            >
+              <div class="flex min-w-48 flex-1 items-center gap-3">
+                <FontAwesomeIcon
+                  :icon="faCircleUser"
+                  class="size-8 shrink-0 text-gray-700 dark:text-gray-100"
+                  aria-hidden="true"
+                />
+                <div class="flex min-w-0 flex-col">
+                  <span class="text-primary-neutral truncate text-sm font-medium">
+                    {{ user.displayName }}
+                  </span>
+                  <span class="text-secondary-neutral truncate text-sm">{{ user.username }}</span>
+                </div>
+              </div>
+              <div class="w-44 shrink-0">
+                <NeTextInput
+                  :id="`extension-${user.username}`"
+                  :model-value="drafts[user.username] ?? ''"
+                  :placeholder="t('users.extension_placeholder')"
+                  :invalid-message="issueFor(user.username)"
+                  :aria-label="t('setup.users.extension_of', { name: user.displayName })"
+                  :disabled="advancing"
+                  inputmode="numeric"
+                  @update:model-value="setDraft(user.username, $event)"
+                />
+              </div>
+              <div class="flex items-center gap-2">
+                <NeButton kind="tertiary" @click="showEditUser(user.username)">
+                  <template #prefix>
+                    <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
+                  </template>
+                  {{ t('common.edit') }}
+                  <span class="sr-only">{{ user.username }}</span>
+                </NeButton>
+                <NeDropdown
+                  :items="rowMenuItems(user.username)"
+                  :align-to-right="true"
+                  :open-menu-aria-label="t('users.user_actions', { name: user.username })"
+                />
+              </div>
+            </li>
+          </ul>
+        </template>
+      </template>
     </template>
     <CreateOrEditUserDrawer
       :is-shown="isShownUserDrawer"
@@ -559,8 +568,8 @@ function provisionAndContinue() {
     <NeModal
       :visible="isShownChangeWarning"
       kind="warning"
-      :title="t('setup.users.extension_change_warning_title')"
-      :primary-label="t('setup.users.change_extensions')"
+      :title="t('setup.users.change_extensions')"
+      :primary-label="t('common.change')"
       :cancel-label="t('common.cancel')"
       :close-aria-label="t('common.close')"
       @close="isShownChangeWarning = false"

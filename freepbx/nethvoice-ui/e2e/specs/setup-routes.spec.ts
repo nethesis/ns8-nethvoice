@@ -166,18 +166,39 @@ test.describe('setup wizard: outbound routes', () => {
 
     await expect(page.getByText('No outbound routes')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
+    await expect(page.locator('main button.bg-primary-700')).toHaveText(['Next'])
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(0)
 
     await page.getByRole('button', { name: 'Create default routes' }).click()
     const modal = page.getByRole('dialog', { name: 'Create default routes' })
     await expect(modal.getByRole('combobox', { name: 'PBX country' })).toHaveValue('Italy')
-    await modal.getByRole('button', { name: 'Create routes' }).click()
+    await modal.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(page.getByText('Calls within the country')).toBeVisible()
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(1)
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')[0].body).toEqual({
       it: KINDS.map((kind) => ({ name: `${kind}_it`, trunks: [TWT, VODAFONE] })),
     })
+  })
+
+  test('does not create the default routes once the setup was completed in another session', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.allowUnmockedCalls()
+    mockApi.on('GET', '/freepbx/rest/outboundroutes', { json: [] })
+    await setCountry(page, 'it')
+    await page.goto('./setup/outbound-routes')
+
+    await page.getByRole('button', { name: 'Create default routes' }).click()
+    const modal = page.getByRole('dialog', { name: 'Create default routes' })
+    await expect(modal.getByRole('combobox', { name: 'PBX country' })).toHaveValue('Italy')
+    mockWizardState(mockApi, 13, false)
+    await modal.getByRole('button', { name: 'Create', exact: true }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(page.getByText('Setup already completed')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(0)
   })
 
   test('moves on without routes when the admin does not create them', async ({ page, mockApi }) => {
@@ -240,7 +261,7 @@ test.describe('setup wizard: outbound routes', () => {
     await page.goto('./setup/outbound-routes')
     await page.getByRole('button', { name: 'Create default routes' }).click()
     const modal = page.getByRole('dialog', { name: 'Create default routes' })
-    await modal.getByRole('button', { name: 'Create routes' }).click()
+    await modal.getByRole('button', { name: 'Create', exact: true }).click()
 
     await expect(modal.getByText('Cannot create default outbound routes')).toBeVisible()
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(1)
@@ -261,6 +282,7 @@ test.describe('setup wizard: outbound routes', () => {
 
     await drawer.getByRole('button', { name: 'Remove TWT-0212345678' }).click()
     await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect.poll(() => mockApi.callsTo('POST', '/freepbx/rest/outboundroutes').length).toBe(1)
     await expect(drawer).toBeHidden()
 
     const body = mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')[0].body as Record<
