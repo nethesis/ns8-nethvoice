@@ -1,12 +1,13 @@
 import asyncio
 import json
+from types import SimpleNamespace
 
 import pytest
 from aiohttp import web
 from aiohttp.test_utils import TestServer
 import aiohttp
 
-from voice_agent.media import AudioBuffer, AsteriskWebSocketMedia
+from voice_agent.media import AudioBridge, AudioBuffer, AsteriskWebSocketMedia, FRAME_SECONDS, PCMU_SILENCE
 from voice_agent.providers.realtime import ProviderError
 
 
@@ -24,6 +25,49 @@ async def test_audio_buffer_preserves_fragments_and_bounds_bytes():
         buffer.append(b'x')
     buffer.close()
     assert await buffer.frame() is None and buffer.pending_bytes == 0
+
+
+@pytest.mark.asyncio
+async def test_suppressed_input_is_padded_without_losing_partial_audio():
+    source = AudioBuffer()
+    source.append(b'a' * 79)
+    sent = []
+
+    async def send(frame):
+        sent.append(frame)
+        if len(sent) == 2:
+            source.append(b'b' * 81 + PCMU_SILENCE)
+        if len(sent) == 4:
+            source.close()
+
+    bridge = AudioBridge(SimpleNamespace(input=source), SimpleNamespace(send_audio=send), pytest.fail)
+    await asyncio.wait_for(bridge._pump_input(), 1)
+    assert sent == [PCMU_SILENCE, PCMU_SILENCE, b'a' * 79 + b'b' * 81, PCMU_SILENCE]
+    assert bridge.input_real_frames == bridge.input_silence_frames == 2
+    assert bridge.max_input_gap_ms >= 19
+    assert bridge.max_real_input_gap_ms >= 39
+
+
+@pytest.mark.asyncio
+async def test_idle_clock_skips_missed_slots_after_a_stall():
+    source = AudioBuffer()
+    clock = asyncio.get_running_loop().time
+    finished = []
+    started = []
+
+    async def send(frame):
+        assert frame == PCMU_SILENCE
+        started.append(clock())
+        if len(started) == 1:
+            await asyncio.sleep(4 * FRAME_SECONDS)
+        if len(started) == 3:
+            source.close()
+        finished.append(clock())
+
+    bridge = AudioBridge(SimpleNamespace(input=source), SimpleNamespace(send_audio=send), pytest.fail)
+    await asyncio.wait_for(bridge._pump_input(), 1)
+    assert len(started) == bridge.input_silence_frames == 3
+    assert all(start - finish >= .015 for start, finish in zip(started[1:], finished))
 
 
 @pytest.mark.asyncio
