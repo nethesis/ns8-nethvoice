@@ -22,6 +22,7 @@ PLUGINS = {
         "type": "rtp",
         "media": [{"type": "audio", "mid": "audio", "port": 0, "pt": 111, "codec": "opus"}],
     }),
+    "videoroom": (429, 433, {"room": 80234}),
 }
 
 
@@ -109,7 +110,6 @@ def verify_protected(image, key, wrong):
             assert result.get("permanent") is True, f"{plugin} did not save its configuration"
             assert docker_output("exec", container, "stat", "-c", "%a", path) == b"600\n", path
 
-        assert create(attach(session, "videoroom"), room=80234).get("videoroom") == "created"
         attach(session, "sip")
 
         cannot_contain(docker_output("exec", container, "cat", "/proc/1/cmdline"), key)

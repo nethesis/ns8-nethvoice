@@ -575,6 +575,7 @@ function setCompUtil(comp) {
          * @type {array}
          *
          *   @param {string} me To get the user information
+         *   @param {string} janus_admin_key To get the key for starting a screen share
          *   @param {string} paramurl To get the parameterized URL for the user profile
          *   @param {string} presence To get the user presence status
          *   @param {string} presence_onbusy To get the conditional user presence status on busy
@@ -587,6 +588,7 @@ function setCompUtil(comp) {
          */
         'get': [
           'me',
+          'janus_admin_key',
           'paramurl',
           'presence',
           'all_avatars',
@@ -637,6 +639,22 @@ function setCompUtil(comp) {
           'settings',
           'setting/:prop'
         ]
+      },
+
+      janus_admin_key: function(req, res) {
+        res.header('Cache-Control', 'no-store');
+
+        var username = req.headers.authorization_user;
+        if (!username || compAuthorization.authorizeScreenSharing(username) !== true) {
+          return res.send(403);
+        }
+
+        var key = process.env.JANUS_ADMIN_SECRET;
+        if (!key || /[^a-zA-Z0-9]/.test(key)) {
+          return res.send(503);
+        }
+
+        return res.send(200, { admin_key: key });
       },
 
       /**
@@ -1207,6 +1225,7 @@ function setCompUtil(comp) {
     };
 
     exports.me = user.me;
+    exports.janus_admin_key = user.janus_admin_key;
     exports.api = user.api;
     exports.mobile = user.mobile;
     exports.setting = user.setting;

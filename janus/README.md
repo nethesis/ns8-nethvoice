@@ -17,4 +17,5 @@ bypass that logger may still appear at lower levels.
 - `STUNSERVER` STUN server. Default is stun1.l.google.com
 - `STUNPORT` STUN port. Default is 19302
 - `JANUS_DEBUG_LEVEL` defaults to 3 (warnings and errors). With `JANUS_ADMIN_SECRET` set, levels 5–7 emit a startup warning because they can log the key.
-- `JANUS_ADMIN_SECRET` is the per-instance `admin_key` for creating AudioBridge and TextRoom rooms and Streaming mountpoints. NethVoice supplies it through `passwords.env`.
+- `JANUS_ADMIN_SECRET` is the per-instance `admin_key` for creating AudioBridge, TextRoom, and VideoRoom rooms and Streaming mountpoints. NethVoice supplies it through `passwords.env`.
+- NethCTI Server returns the shared key through the authenticated `GET /user/janus_admin_key` endpoint for users with screen-sharing permission. Upgrade CTI and NethLink publishers before enabling VideoRoom enforcement by installing this release.

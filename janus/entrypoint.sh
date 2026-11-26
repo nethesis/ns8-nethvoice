@@ -75,7 +75,7 @@ if [[ -v JANUS_ADMIN_SECRET ]]; then
 	fi
 	# Permanent saves can recreate a config. Keep newly created files private.
 	umask 077
-	for plugin in audiobridge textroom streaming; do
+	for plugin in audiobridge textroom streaming videoroom; do
 		config="/usr/local/etc/janus/janus.plugin.$plugin.jcfg"
 		if ! LC_ALL=C set_admin_key "$config"; then
 			echo "Cannot set admin_key in $config" >&2
