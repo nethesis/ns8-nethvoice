@@ -36,7 +36,8 @@ ExecStart=/usr/bin/podman run \
     --env=NETHVOICE_MIDDLEWARE_V1_PROTOCOL \
     --env=SATELLITE_MQTT_HOST \
     --env=SATELLITE_MQTT_PORT \
-    --env=SATELLITE_PGSQL_HOST \
+    --volume=satellite_pgsocket:/var/run/postgresql:z \
+    --env=SATELLITE_PGSQL_HOST=/var/run/postgresql \
     --env=SATELLITE_PGSQL_PORT \
     --env=NETHVOICE_MIDDLEWARE_MARIADB_PASSWORD=${MARIADB_ROOT_PASSWORD} \
     --env=NETHVOICE_MIDDLEWARE_MARIADB_PORT=${NETHVOICE_MARIADB_PORT} \

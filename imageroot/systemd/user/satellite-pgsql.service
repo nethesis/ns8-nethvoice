@@ -16,16 +16,20 @@ ExecStart=/usr/bin/podman run --conmon-pidfile %t/satellite-pgsql.pid \
 	--detach \
 	--name=%N \
 	--volume=satellite_pgdata:/var/lib/postgresql/18/docker:Z \
+	--volume=satellite_pgsocket:/var/run/postgresql:z \
 	--env POSTGRES_PASSWORD=${SATELLITE_PGSQL_PASSWORD} \
 	--env POSTGRES_USER=${SATELLITE_PGSQL_USER} \
 	--env POSTGRES_DB=${SATELLITE_PGSQL_DB} \
 	--env PGPORT=${SATELLITE_PGSQL_PORT} \
 	--tz=${TIMEZONE} \
-	--network=host \
-	${PGVECTOR_IMAGE}
+	--network=none \
+	${PGVECTOR_IMAGE} \
+	postgres -c listen_addresses=
 
-# Wait for the final TCP listener, not the temporary initialization socket.
-ExecStartPost=/usr/bin/podman exec satellite-pgsql sh -c 'until pg_isready -q -h 127.0.0.1 -p "$$PGPORT" -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"; do sleep 1; done'
+# Clients connect through the Unix socket in the satellite_pgsocket volume.
+# Wait for the final server (PID 1 is postgres), not the temporary one the
+# entrypoint runs on the same socket while it initializes the database.
+ExecStartPost=/usr/bin/podman exec satellite-pgsql sh -c 'until [ "$$(cat /proc/1/comm)" = postgres ] && pg_isready -q -h /var/run/postgresql -p "$$PGPORT" -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"; do sleep 1; done'
 
 ExecStop=/usr/bin/podman stop --ignore --cidfile %t/satellite-pgsql.ctr-id -t 10
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile %t/satellite-pgsql.ctr-id

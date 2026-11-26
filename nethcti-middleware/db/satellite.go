@@ -35,6 +35,28 @@ var (
 
 const satelliteRetryDelay = 5 * time.Second
 
+// satelliteDSN returns the connection URL of the satellite database. A host
+// that starts with "/" is the directory of the PostgreSQL Unix socket: pgx
+// reads it, and the port that names the socket file, from the query.
+func satelliteDSN() string {
+	host := configuration.Config.SatellitePgSQLHost
+	port := configuration.Config.SatellitePgSQLPort
+	pgURL := url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(configuration.Config.SatellitePgSQLUser, configuration.Config.SatellitePgSQLPassword),
+		Host:   fmt.Sprintf("%s:%s", host, port),
+		Path:   "/" + configuration.Config.SatellitePgSQLDB,
+	}
+	if strings.HasPrefix(host, "/") {
+		pgURL.Host = ""
+		query := url.Values{}
+		query.Set("host", host)
+		query.Set("port", port)
+		pgURL.RawQuery = query.Encode()
+	}
+	return pgURL.String()
+}
+
 // initSatellite initializes the satellite database connection pool.
 // The caller must hold satelliteMutex.
 func initSatellite() error {
@@ -45,16 +67,7 @@ func initSatellite() error {
 		return fmt.Errorf("missing satellite database configuration")
 	}
 
-	pgURL := url.URL{
-		Scheme: "postgres",
-		User:   url.UserPassword(configuration.Config.SatellitePgSQLUser, configuration.Config.SatellitePgSQLPassword),
-		Host:   fmt.Sprintf("%s:%s", configuration.Config.SatellitePgSQLHost, configuration.Config.SatellitePgSQLPort),
-		Path:   configuration.Config.SatellitePgSQLDB,
-	}
-	query := pgURL.Query()
-	pgURL.RawQuery = query.Encode()
-
-	dsn := pgURL.String()
+	dsn := satelliteDSN()
 
 	// Open and ping a local pool: SatelliteDB is set only once the pool works,
 	// so concurrent readers never get a closed handle.
