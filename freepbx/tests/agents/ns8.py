@@ -91,7 +91,7 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         state['environment'].clear()
         agent.allocate_ports.reset_mock()
         agent.allocate_ports.side_effect=[(40000,40999), (41000,41000), (41001,41001)]
-        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'32000-32049','UDP_PORTS_RANGE':'40000-42999'}):
+        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'32000-32053','UDP_PORTS_RANGE':'40000-42999'}):
             runpy.run_path(str(root/'imageroot/actions/create-module/05setenvs'))
         assert [state['environment'][name] for name in AGENT_TCP_PORT_VARS]==list(range(32046,32049))
         assert state['environment']['OAUTH2_PROXY_PORT']==32037
@@ -102,7 +102,7 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         assert agent.allocate_ports.call_args.kwargs=={'keep_existing':True}
         source = dict(state['passwords.env'])
         state['passwords.old'] = source
-        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'33000-33049','UDP_PORTS_RANGE':'40000-40999'}), patch('sys.argv',['05setenvs','--clone']):
+        with patch.dict(os.environ,{'TCP_PORTS_RANGE':'33000-33053','UDP_PORTS_RANGE':'40000-40999'}), patch('sys.argv',['05setenvs','--clone']):
             runpy.run_path(str(root/'imageroot/actions/create-module/05setenvs'))
         assert state['passwords.env']['SATELLITE_AGENT_CONFIG_KEY'] == source['SATELLITE_AGENT_CONFIG_KEY']
         assert all(state['passwords.env'][name] != source[name] for name in ('VOICE_AGENT_RUNTIME_TOKEN','VOICE_AGENT_CONFIG_PASSWORD','VOICE_AGENT_MONITOR_PASSWORD'))
@@ -118,5 +118,5 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         assert any(call['data']['instance']=='nethvoice_test-voice-agent-webhooks' for call in removed)
     finally:
         os.chdir(before)
-assert 'org.nethserver.tcp-ports-demand="50"' in (root/'Containerfile').read_text()
+assert 'org.nethserver.tcp-ports-demand="54"' in (root/'Containerfile').read_text()
 print('NS8 port allocation, clone secrets and route cleanup passed')

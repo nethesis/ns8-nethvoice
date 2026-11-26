@@ -28,6 +28,7 @@ import video_gateway  # noqa: E402
 import voice_preview  # noqa: E402
 
 MODULE = "nethvoice1"
+TCP_DEMAND = 54
 
 
 class FakePorts:
@@ -39,7 +40,7 @@ class FakePorts:
 
     def allocate(self, count, protocol, keep_existing=False, module=MODULE):
         self.calls.append((count, protocol, keep_existing))
-        if protocol == "tcp" and keep_existing and len(self.ports("tcp", module)) + count > 50:
+        if protocol == "tcp" and keep_existing and len(self.ports("tcp", module)) + count > TCP_DEMAND:
             raise RuntimeError("max_ports_exceeded")
         rows = self.rows[protocol]
         if not keep_existing:
@@ -85,8 +86,8 @@ class VideoGatewayPortsTest(unittest.TestCase):
 
     def install(self):
         """create-module/05setenvs on a new instance: ns8-core allocated the
-        label demands (50 TCP, 3000 UDP) before the action runs."""
-        tcp = self.ports.allocate(50, "tcp")
+        label demands (54 TCP, 3000 UDP) before the action runs."""
+        tcp = self.ports.allocate(TCP_DEMAND, "tcp")
         udp = self.ports.allocate(3000, "udp")
         self.ports.calls.clear()
         self.run_script("actions/create-module/05setenvs", {
@@ -202,6 +203,18 @@ class VideoGatewayPortsTest(unittest.TestCase):
                 self.update()
                 self.enable_agents()
                 self.assertEqual(self.ports.calls, calls)
+
+    def test_legacy_chat_and_stale_ports_leave_upgrade_headroom(self):
+        self.existing_18_instance(39)
+        chat_start, _ = self.ports.allocate(4, "tcp", keep_existing=True)
+        self.env.update(zip(("CHAT_C2S_PORT", "CHAT_HTTP_PORT", "CHAT_COMPONENT_PORT", "CHAT_GW_PORT"),
+                            map(str, range(chat_start, chat_start + 4))))
+        self.ports.allocate(2, "tcp", keep_existing=True)
+        self.update()
+        self.enable_agents()
+        self.assert_gateway_ports()
+        self.assertEqual(len(self.ports.ports("tcp")), 52)
+        self.assertLess(len(self.ports.ports("tcp")), TCP_DEMAND)
 
     def test_agents_upgrade_keeps_main_gateway_slots(self):
         self.existing_18_instance(47)
