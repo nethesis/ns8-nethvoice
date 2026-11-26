@@ -132,7 +132,7 @@
     "model": "aura-2-thalia-en"
   },
   "consult_request": {
-    "text": "Mi passa Giulia Ferri? Chiamo per la consegna di un pianoforte.",
+    "text": "Chiamo per la consegna di un pianoforte e vorrei parlare con Giulia Ferri.",
     "model": "aura-2-cesare-it"
   },
   "recall_greeting": {
