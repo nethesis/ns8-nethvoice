@@ -22,6 +22,7 @@ from voice_preview import allocate_agent_ports
 PENDING = Path('satellite-apply.pending')
 RUNNING = Path('satellite-apply.running')
 FAILED = Path('satellite-apply.failed')
+CHAT_REFRESH = Path('chat-gateway-refresh.pending')
 PREVIEW = Path('voice-preview')
 EFFECTIVE = PREVIEW / 'effective.env'
 STATE = Path('satellite-applied.json')
@@ -236,7 +237,8 @@ def apply(*, transcription_only=False):
         if recipient_changed or (agents and (previous.get('route') != route
                                             or previous.get('inherited_key') != inherited_key)):
             run('podman', 'exec', 'freepbx', 'fwconsole', 'reload')
-        if (recipient_changed or previous.get('chat_port') != chat_port) and enabled(env, 'CHAT_ENABLED'):
+        if (not CHAT_REFRESH.exists() and (recipient_changed or previous.get('chat_port') != chat_port)
+                and enabled(env, 'CHAT_ENABLED')):
             ctl('try-restart', 'chat-gateway.service')
         ctl('enable' if agents else 'disable', '--now', 'voice-agent-retention.timer')
         instance = os.environ['MODULE_ID'] + '-voice-agent-webhooks'
@@ -284,6 +286,11 @@ def main():
         return
     try:
         apply_with_retry()
+        if CHAT_REFRESH.exists():
+            if enabled(agent.read_envfile('environment'), 'CHAT_ENABLED'):
+                ctl('enable', 'chat-gateway.service')
+                ctl('restart', 'chat-gateway.service')
+            CHAT_REFRESH.unlink()
         # Use the applied generation. A newer request can be queued while this
         # worker is running and has its own drain before disabling Agents.
         if STATE.exists() and json.loads(STATE.read_text()).get('agents') is False:
