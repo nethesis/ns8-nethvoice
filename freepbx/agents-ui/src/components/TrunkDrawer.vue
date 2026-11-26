@@ -294,7 +294,7 @@ function close() {
         <NeRadioSelection
           v-model="form.credential_mode"
           name="credential-mode"
-          :label="t('providerApiKey')"
+          :label="t('apiKeySource')"
           :options="[
             { id: 'inherit', label: t('integrationKey') },
             { id: 'dedicated', label: t('dedicatedKey') },
