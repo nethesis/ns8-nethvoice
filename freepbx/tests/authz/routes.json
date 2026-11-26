@@ -237,6 +237,11 @@
       "callers": ["ui:users", "legacy"],
       "reason": "Creates a group."
     },
+    "PUT /cti/groups/{id}": {
+      "intent": "users",
+      "callers": ["ui:users"],
+      "reason": "Renames a group and the phonebook sharing that names it."
+    },
     "DELETE /cti/groups/{id}": {
       "intent": "users",
       "callers": ["ui:users", "legacy"],
@@ -311,6 +316,11 @@
       "intent": "superadmin",
       "callers": ["ui:integrations", "legacy"],
       "reason": "Deleting a template breaks every card that uses it; reserved with the other template writes."
+    },
+    "POST /cti/customer_card/template/preview": {
+      "intent": "superadmin",
+      "callers": ["ui:integrations"],
+      "reason": "Renders a template body sent by the client: its EJS code runs on the CTI server, so it is reserved to superadmin like the template writes."
     },
     "POST /cti/customer_card/preview": {
       "intent": "integrations",
@@ -460,6 +470,11 @@
       "intent": "trunks",
       "callers": ["ui:trunks", "legacy"],
       "reason": "Deletes a physical gateway."
+    },
+    "PUT /devices/gateways/{id}": {
+      "intent": "trunks",
+      "callers": ["ui:trunks"],
+      "reason": "Updates a configured physical gateway in place."
     },
     "GET /devices/gateways/download/{name}[/{mac}]": {
       "intent": "trunks",

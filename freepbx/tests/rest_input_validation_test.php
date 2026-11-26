@@ -158,7 +158,7 @@ $patch("$sandbox/rest/lib/libCTI.php", "include_once '/etc/freepbx.conf';", '', 
 $patch("$sandbox/rest/lib/libCTI.php", "include_once '/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php';", '', 1);
 $patch("$sandbox/rest/lib/libCTI.php", "include_once '/var/www/html/freepbx/rest/config.inc.php';", '', 1);
 $patch("$sandbox/rest/lib/libCTI.php", "include_once '/var/www/html/freepbx/rest/lib/context_default_permissions.php';", '', 1);
-foreach (['webrtc.php' => 2, 'nethlink.php' => 2, 'physicalextensions.php' => 7, 'devices.php' => 1, 'routes.php' => 4, 'bulk.php' => 1, 'cti.php' => 21, 'trunks.php' => 3, 'settings.php' => 1, 'mainextensions.php' => 3] as $module => $helpers) {
+foreach (['webrtc.php' => 2, 'nethlink.php' => 2, 'physicalextensions.php' => 7, 'devices.php' => 1, 'routes.php' => 4, 'bulk.php' => 1, 'cti.php' => 22, 'trunks.php' => 3, 'settings.php' => 1, 'mainextensions.php' => 3] as $module => $helpers) {
     copy("$rest/modules/$module", "$sandbox/rest/modules/$module");
     $patch("$sandbox/rest/modules/$module", "system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');", 'null;', $helpers);
 }
@@ -553,6 +553,20 @@ resetFakes();
 lockFakes();
 [$status] = call($app, 'POST', '/devices/gateways', $gatewayRequest);
 check($status === 500 && FreePBX::$db->log[0] === ['prepare', 'SELECT `manufacturer` FROM `gateway_models` WHERE `id` = ?', [126]], 'a valid gateway did not reach the model lookup');
+foreach ($controlCharacters as $character) {
+    resetFakes();
+    lockFakes();
+    check(call($app, 'PUT', '/devices/gateways/4', ['ipv4_green' => '192.0.2.5' . $character . '#exec /bin/id'] + $gatewayRequest) === [400, '{"status":false,"errors":["Invalid control character"],"warnings":[],"infos":[]}'] && FreePBX::$db->log === [], 'the gateway update accepted a control character');
+}
+foreach (['4a', '0x4', '-4'] as $id) {
+    resetFakes();
+    lockFakes();
+    check(call($app, 'PUT', "/devices/gateways/$id", $gatewayRequest) === [404, '{"status":false,"errors":["Gateway configuration not found"],"warnings":[],"infos":[]}'] && FreePBX::$db->log === [], "the gateway update accepted the id $id");
+}
+resetFakes();
+lockFakes();
+[$status] = call($app, 'PUT', '/devices/gateways/4', $gatewayRequest);
+check($status === 500 && FreePBX::$db->log[0] === ['prepare', 'SELECT * FROM `gateway_config` WHERE `id` = ?', ['4']], 'a valid gateway update did not reach the configuration lookup');
 
 class FakeUserman {
     public array $log = [];

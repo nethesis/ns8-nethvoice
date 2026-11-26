@@ -583,7 +583,11 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    put?: never
+    /**
+     * Rename a CTI presence group.
+     * @description The name is trimmed and checked like the name of a new group (at most 65 characters, no commas, at least a letter or a digit, not the name of another group or a name with the same presence panel permission). Everything that keeps the group by name follows the new name in the same request: the presence panel permission (`grp_<name>`; its id and its profiles are kept), the phonebook sources shared with the group, the imported and CTI phonebook contacts shared with it and the history of the phonebook imports. Then the CTI configuration is reloaded. A rename that would leave any of them broken is refused with 409 and changes nothing.
+     */
+    put: operations['put_cti_groups_id']
     post?: never
     /** Remove a CTI group and its dynamic permission artifacts. */
     delete: operations['delete_cti_groups_id']
@@ -771,6 +775,26 @@ export interface paths {
      * @description Deletes `<name>_custom.ejs`, or `<name>.ejs` when there is no custom template with that name. Requires the superadmin permission: templates are rendered by the CTI server.
      */
     delete: operations['delete_cti_customer_card_template_name']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/cti/customer_card/template/preview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Render a template body with sample results, without saving it.
+     * @description nethcti-server renders the EJS template in a separate process, with `results` as the query results, a 3 second limit and no environment. Only `html` is returned. A template that cannot be rendered returns 422 with the EJS error in `error`, without server paths. Requires the superadmin permission: the template code runs on the CTI server.
+     */
+    post: operations['post_cti_customer_card_template_preview']
+    delete?: never
     options?: never
     head?: never
     patch?: never
@@ -1152,7 +1176,11 @@ export interface paths {
       cookie?: never
     }
     get?: never
-    put?: never
+    /**
+     * Update a configured gateway in place.
+     * @description Keeps the gateway model, its trunks and the FXS extensions of the ports whose user does not change. Updates the network settings, the address of the trunks, the ISDN port modes and the FXO line numbers. An FXS port whose user changes gets a new extension and the extension of the previous user is deleted after the configuration is saved. When a step fails, the extensions created by the request are removed and the configuration is kept. Cleanup failures are listed in `warnings`.
+     */
+    put: operations['put_devices_gateways_id']
     post?: never
     /** Remove a gateway configuration, including trunks and provisioning artifacts. */
     delete: operations['delete_devices_gateways_id']
@@ -3264,6 +3292,7 @@ export interface components {
         ip?: components['schemas']['LiveScalar']
         port?: components['schemas']['LiveScalar']
         sipuseragent?: components['schemas']['LiveScalar']
+        chanType?: components['schemas']['LiveScalar']
       }
     }
     LiveChannel: {
@@ -3765,6 +3794,21 @@ export interface components {
       /** @description Group name. An existing name returns the id of the existing group. */
       name: string
     }
+    CtiGroupRenameRequest: {
+      name: string
+    }
+    CtiGroupRenameResult: {
+      id: number
+      name: string
+      /** @description Phonebook sources whose sharing was updated. */
+      phonebook_sources: number
+      /** @description Imported and CTI phonebook contacts whose sharing was updated. */
+      contacts: number
+    }
+    CtiGroupRenameError: {
+      message: string
+      errors?: string[]
+    }
     CtiGroupMember: {
       /** @description Userman user id. */
       user_id: number
@@ -4100,6 +4144,14 @@ export interface components {
       custom: boolean
       /** @description Base64 encoded EJS source */
       html: string
+    }
+    IntegrationsCardTemplatePreviewInput: {
+      /** @description Base64 encoded EJS source */
+      html: string
+      /** @description Sample query results, one object per row */
+      results: {
+        [key: string]: unknown
+      }[]
     }
     IntegrationsCustomerCard: {
       id: number
@@ -5814,6 +5866,66 @@ export interface operations {
       }
     }
   }
+  put_cti_groups_id: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CtiGroupRenameRequest']
+      }
+    }
+    responses: {
+      /** @description Group renamed, or already with this name. */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiGroupRenameResult']
+        }
+      }
+      /** @description Invalid name. */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiGroupRenameError']
+        }
+      }
+      /** @description Group not found. */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiGroupRenameError']
+        }
+      }
+      /** @description Another group has this name or a name with the same presence panel permission, or the phonebook sharing cannot follow the new name (a source that cannot be read or written, a sharing value longer than its column); `errors` lists the reasons. */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiGroupRenameError']
+        }
+      }
+      /** @description Internal server error; the changes already made are undone. */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
   delete_cti_groups_id: {
     parameters: {
       query?: never
@@ -6377,6 +6489,84 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+    }
+  }
+  post_cti_customer_card_template_preview: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IntegrationsCardTemplatePreviewInput']
+      }
+    }
+    responses: {
+      /** @description The rendered template */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['IntegrationsCustomerCardPreview']
+        }
+      }
+      /** @description Missing or empty template, template larger than 256 KiB, results that are not a list of objects or larger than 64 KiB as JSON */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Forbidden: missing permission */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            message?: string
+          }
+        }
+      }
+      /** @description The template cannot be rendered with these results; `error` holds the EJS error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description nethcti-server cannot show the preview */
+      502: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description nethcti-server is not reachable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
       }
     }
   }
@@ -7163,6 +7353,68 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['GatewayActionResult']
+        }
+      }
+    }
+  }
+  put_devices_gateways_id: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['GatewaySaveRequest']
+      }
+    }
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['GatewaySaveResult']
+        }
+      }
+      /** @description Bad request, in `errors` `Missing gateway field <field>`, `Gateway model cannot be changed`, `Gateway ports cannot be changed` (the ISDN, PRI or FXO ports differ from the configured ones), `Invalid linked extension` (not digits or assigned to two ports), `Invalid line number` (an FXO number that is not digits with an optional leading +), `Invalid control character`; for administrators who are not superadmin also `Invalid gateway field <field>` and `Invalid gateway MAC address` */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['GatewaySaveResult']
+        }
+      }
+      /** @description Gateway configuration not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['GatewaySaveResult']
+        }
+      }
+      /** @description Another gateway already uses this MAC address. Nothing is changed. */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['GatewaySaveResult']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['GatewaySaveResult']
         }
       }
     }
@@ -10473,7 +10725,8 @@ export interface operations {
            *         ],
            *         "ip": "192.0.2.10",
            *         "port": "5060",
-           *         "sipuseragent": "Yealink T46U"
+           *         "sipuseragent": "Yealink T46U",
+           *         "chanType": "pjsip"
            *       }
            *     }
            */

@@ -275,6 +275,14 @@
       "expect": 403
     },
     {
+      "name": "an integrations administrator cannot render a template body",
+      "as": "integrator",
+      "method": "POST",
+      "path": "/cti/customer_card/template/preview",
+      "body": { "html": "PCU9IHByb2Nlc3MuZW52ICU+", "results": [] },
+      "expect": 403
+    },
+    {
       "name": "an administrator of every section cannot create a custom card template",
       "as": "allsections",
       "method": "POST",
@@ -741,6 +749,37 @@
       "method": "GET",
       "path": "/phones",
       "expect": 403
+    },
+    {
+      "name": "a phones administrator lists the custom provisioning templates to choose one for a model",
+      "as": "phoner",
+      "method": "GET",
+      "path": "/templates",
+      "handler_json": [{ "name": "custom.tmpl", "size": 7, "mtime": 1767225600 }],
+      "expect": 200
+    },
+    {
+      "name": "a phones administrator cannot import a provisioning template, which runs code on the server",
+      "as": "phoner",
+      "method": "POST",
+      "path": "/templates",
+      "body": { "name": "custom.tmpl", "content": "{{ 1 }}" },
+      "expect": 403
+    },
+    {
+      "name": "a phones administrator cannot delete a provisioning template",
+      "as": "phoner",
+      "method": "DELETE",
+      "path": "/templates/custom.tmpl",
+      "expect": 403
+    },
+    {
+      "name": "superadmin imports a provisioning template",
+      "as": "boss",
+      "method": "POST",
+      "path": "/templates",
+      "body": { "name": "custom.tmpl", "content": "{{ 1 }}" },
+      "expect": 200
     }
   ]
 }

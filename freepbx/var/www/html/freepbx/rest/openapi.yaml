@@ -1127,6 +1127,62 @@ paths:
         schema:
           type: string
   /cti/groups/{id}:
+    put:
+      summary: Rename a CTI presence group.
+      description: 'The name is trimmed and checked like the name of a new group
+        (at most 65 characters, no commas, at least a letter or a digit, not the
+        name of another group or a name with the same presence panel permission).
+        Everything that keeps the group by name follows the new name in the same
+        request: the presence panel permission (`grp_<name>`; its id and its profiles
+        are kept), the phonebook sources shared with the group, the imported
+        and CTI phonebook contacts shared with it and the history of the phonebook
+        imports. Then the CTI configuration is reloaded. A rename that would leave
+        any of them broken is refused with 409 and changes nothing.'
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: Group renamed, or already with this name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiGroupRenameResult'
+        '400':
+          description: Invalid name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiGroupRenameError'
+        '404':
+          description: Group not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiGroupRenameError'
+        '409':
+          description: Another group has this name or a name with the same presence
+            panel permission, or the phonebook sharing cannot follow the new name
+            (a source that cannot be read or written, a sharing value longer than
+            its column); `errors` lists the reasons.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiGroupRenameError'
+        '500':
+          description: Internal server error; the changes already made are undone.
+      operationId: put_cti_groups_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CtiGroupRenameRequest'
     delete:
       summary: Remove a CTI group and its dynamic permission artifacts.
       tags:
@@ -1487,6 +1543,59 @@ paths:
         required: true
         schema:
           type: string
+  /cti/customer_card/template/preview:
+    post:
+      summary: Render a template body with sample results, without saving it.
+      description: 'nethcti-server renders the EJS template in a separate process,
+        with `results` as the query results, a 3 second limit and no environment.
+        Only `html` is returned. A template that cannot be rendered returns 422 with
+        the EJS error in `error`, without server paths. Requires the superadmin permission:
+        the template code runs on the CTI server.'
+      tags:
+      - CTI
+      responses:
+        '200':
+          description: The rendered template
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntegrationsCustomerCardPreview'
+        '400':
+          description: Missing or empty template, template larger than 256 KiB, results
+            that are not a list of objects or larger than 64 KiB as JSON
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403': *id001
+        '422':
+          description: The template cannot be rendered with these results; `error`
+            holds the EJS error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+        '502':
+          description: nethcti-server cannot show the preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: nethcti-server is not reachable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: post_cti_customer_card_template_preview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationsCardTemplatePreviewInput'
   /cti/customer_card/preview:
     post:
       summary: Show a customer card rendered by nethcti-server, without saving it.
@@ -2416,6 +2525,68 @@ paths:
         required: true
         schema:
           type: string
+    put:
+      summary: Update a configured gateway in place.
+      description: Keeps the gateway model, its trunks and the FXS extensions of
+        the ports whose user does not change. Updates the network settings, the
+        address of the trunks, the ISDN port modes and the FXO line numbers. An
+        FXS port whose user changes gets a new extension and the extension of the
+        previous user is deleted after the configuration is saved. When a step fails,
+        the extensions created by the request are removed and the configuration is
+        kept. Cleanup failures are listed in `warnings`.
+      tags:
+      - Devices
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySaveResult'
+        '400':
+          description: Bad request, in `errors` `Missing gateway field <field>`,
+            `Gateway model cannot be changed`, `Gateway ports cannot be changed`
+            (the ISDN, PRI or FXO ports differ from the configured ones), `Invalid
+            linked extension` (not digits or assigned to two ports), `Invalid line
+            number` (an FXO number that is not digits with an optional leading +), `Invalid
+            control character`; for administrators who are not superadmin also `Invalid
+            gateway field <field>` and `Invalid gateway MAC address`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySaveResult'
+        '404':
+          description: Gateway configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySaveResult'
+        '409':
+          description: Another gateway already uses this MAC address. Nothing is
+            changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySaveResult'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GatewaySaveResult'
+      operationId: put_devices_gateways_id
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GatewaySaveRequest'
   /devices/gateways/download/{name}[/{mac}]:
     get:
       summary: Generate the gateway configuration file and return it Base64 encoded.
@@ -4953,6 +5124,7 @@ paths:
                   ip: 192.0.2.10
                   port: '5060'
                   sipuseragent: Yealink T46U
+                  chanType: pjsip
         '403':
           description: Missing permission
           content:
@@ -6220,6 +6392,8 @@ components:
             $ref: '#/components/schemas/LiveScalar'
           sipuseragent:
             $ref: '#/components/schemas/LiveScalar'
+          chanType:
+            $ref: '#/components/schemas/LiveScalar'
     LiveChannel:
       type: object
       nullable: true
@@ -7229,6 +7403,43 @@ components:
           type: string
           description: Group name. An existing name returns the id of the existing
             group.
+    CtiGroupRenameRequest:
+      type: object
+      required:
+      - name
+      properties:
+        name:
+          type: string
+          maxLength: 65
+    CtiGroupRenameResult:
+      type: object
+      required:
+      - id
+      - name
+      - phonebook_sources
+      - contacts
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phonebook_sources:
+          type: integer
+          description: Phonebook sources whose sharing was updated.
+        contacts:
+          type: integer
+          description: Imported and CTI phonebook contacts whose sharing was updated.
+    CtiGroupRenameError:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string
     CtiGroupMember:
       type: object
       required:
@@ -7980,6 +8191,21 @@ components:
         html:
           type: string
           description: Base64 encoded EJS source
+    IntegrationsCardTemplatePreviewInput:
+      type: object
+      required:
+      - html
+      - results
+      properties:
+        html:
+          type: string
+          description: Base64 encoded EJS source
+        results:
+          type: array
+          description: Sample query results, one object per row
+          items:
+            type: object
+            additionalProperties: true
     IntegrationsCustomerCard:
       type: object
       required:

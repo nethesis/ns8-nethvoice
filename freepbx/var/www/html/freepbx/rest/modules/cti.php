@@ -28,12 +28,17 @@ include_once('lib/libStreaming.php');
 include_once('lib/libDoorPhones.php');
 include_once('lib/libSecurity.php');
 include_once('lib/libParamUrls.php');
+include_once('lib/libCTIGroups.php');
 
 const CTI_DBCONN_TARGET_FIELDS = ['host', 'port', 'type'];
 const CTI_DBCONN_PASSWORD_REQUIRED = 'Enter the password to connect to a different server';
 const CTI_PREVIEW_INVALID = 'Invalid customer card preview fields';
 const CTI_PREVIEW_UNREACHABLE = 'The CTI server is not reachable';
 const CTI_PREVIEW_FAILED = 'The CTI server cannot show the preview';
+const CTI_TEMPLATE_PREVIEW_INVALID = 'Invalid template preview fields';
+const CTI_TEMPLATE_PREVIEW_ERROR = 'The template cannot be rendered with these results';
+const CTI_TEMPLATE_PREVIEW_MAX_BYTES = 262144;
+const CTI_TEMPLATE_PREVIEW_MAX_RESULTS_BYTES = 65536;
 const CTI_CUSTOMER_CARD_COLUMNS = ['id', 'name', 'creation', 'query', 'template', 'dbconn_id', 'permission_id'];
 
 function ctiCustomerCardFilters(array $params): ?array
@@ -151,6 +156,52 @@ function ctiCustomerCardPreviewResponse($data, callable $send, callable $templat
     }
 
     return [200, ['html' => $preview['html']]];
+}
+
+function ctiIsTemplatePreviewResults($results): bool
+{
+    if (!is_array($results) || !array_is_list($results)) {
+        return false;
+    }
+    foreach ($results as $row) {
+        if (!is_array($row) || ($row !== [] && array_is_list($row))) {
+            return false;
+        }
+    }
+    $json = json_encode($results, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+    return $json !== false && strlen($json) <= CTI_TEMPLATE_PREVIEW_MAX_RESULTS_BYTES;
+}
+
+function ctiCardTemplatePreviewResponse($data, callable $send): array
+{
+    if (!is_array($data)) {
+        return [400, ['message' => CTI_TEMPLATE_PREVIEW_INVALID]];
+    }
+    $html = $data['html'] ?? null;
+    $template = is_string($html) ? base64_decode($html, true) : false;
+    $results = $data['results'] ?? null;
+    if ($template === false || trim($template) === '' || strlen($template) > CTI_TEMPLATE_PREVIEW_MAX_BYTES
+        || !ctiIsTemplatePreviewResults($results)) {
+        return [400, ['message' => CTI_TEMPLATE_PREVIEW_INVALID]];
+    }
+    $answer = $send('/custcard/render', [
+        'template' => base64_encode($template),
+        'results' => array_map(fn($row) => (object) $row, $results),
+    ]);
+    if ($answer === null) {
+        return [503, ['message' => CTI_PREVIEW_UNREACHABLE]];
+    }
+    $body = json_decode((string) $answer['body'], true);
+    if ($answer['status'] === 200 && is_array($body) && is_string($body['html'] ?? null)) {
+        return [200, ['html' => $body['html']]];
+    }
+    if ($answer['status'] === 422 && is_array($body) && is_string($body['error'] ?? null)) {
+        return [422, ['message' => CTI_TEMPLATE_PREVIEW_ERROR, 'error' => $body['error']]];
+    }
+    error_log('customer card template preview: unexpected answer from the CTI server, HTTP ' . $answer['status']);
+
+    return [502, ['message' => CTI_PREVIEW_FAILED]];
 }
 
 /* GET /cti/profiles
@@ -448,6 +499,31 @@ $app->post('/cti/groups', function (Request $request, Response $response, $args)
         triggerMiddlewareProfilesReload();
 
         return jsonResponse($response, $group_id, 200);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return $response->withStatus(500);
+    }
+});
+
+/* PUT /cti/groups/{id} {"name": "support"} */
+$app->put('/cti/groups/{id}', function (Request $request, Response $response, $args) {
+    try {
+        $route = $request->getAttribute('route');
+        $data = $request->getParsedBody();
+        list($status, $body, $renamed) = ctiRenameGroup(
+            FreePBX::Database(),
+            phonebookDatabase(),
+            NethCTI::Database(),
+            PHONEBOOK_SOURCES_DIR,
+            $route->getArgument('id'),
+            is_array($data) && isset($data['name']) ? $data['name'] : null
+        );
+        if ($renamed) {
+            system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+            triggerMiddlewareProfilesReload();
+        }
+
+        return jsonResponse($response, $body, $status);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -956,6 +1032,16 @@ $app->post('/cti/customer_card/preview', function (Request $request, Response $r
             'ctiServerRequest',
             [new NethvoiceDatabaseLookup(), 'cardTemplateExists']
         );
+        return jsonResponse($response, $body, $status);
+    } catch (Exception $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, ['message' => 'An error occurred'], 500);
+    }
+});
+
+$app->post('/cti/customer_card/template/preview', function (Request $request, Response $response, $args) {
+    try {
+        [$status, $body] = ctiCardTemplatePreviewResponse($request->getParsedBody(), 'ctiServerRequest');
         return jsonResponse($response, $body, $status);
     } catch (Exception $e) {
         error_log($e->getMessage());
