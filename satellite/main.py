@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import uvicorn
 
 from voice_agent.drain import claim_idle
-from voice_agent.runner import app_from_env, settings
+from voice_agent.runner import TRUSTED_FORWARDERS, app_from_env, settings
 
 
 logger = logging.getLogger(__name__)
@@ -60,6 +60,7 @@ async def run(shutdown_event=None):
                 ipaddress.ip_address(api_server.config.host), api_server.config.port):
             raise ValueError("http_listener_collision")
         await serve("voice-agents", app_from_env(), host=host, port=port, access_log=False,
+                    forwarded_allow_ips=TRUSTED_FORWARDERS,
                     log_level=os.getenv("LOG_LEVEL", "info").lower())
 
     async def run_transcription():

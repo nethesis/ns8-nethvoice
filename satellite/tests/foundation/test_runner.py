@@ -1,5 +1,5 @@
 import json
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -28,6 +28,68 @@ def test_bind_is_actually_private(monkeypatch):
     monkeypatch.setenv('VOICE_AGENT_HTTP_HOST', '0.0.0.0')
     with pytest.raises(ValueError, match='loopback_bind_required'):
         settings()
+
+
+def test_webhook_rejection_limit_is_per_client_and_expires(monkeypatch):
+    from types import SimpleNamespace
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+    from voice_agent import runner
+
+    now = [200]
+    monkeypatch.setattr(runner, 'time', SimpleNamespace(monotonic=lambda: now[0]))
+    webhook = AsyncMock(side_effect=ValueError('synthetic rejection'))
+    app = create_app('synthetic-token', SimpleNamespace(sip_lab_enabled=True, webhook=webhook))
+    app = ProxyHeadersMiddleware(app, trusted_hosts=runner.TRUSTED_FORWARDERS)
+    proxy = TestClient(app, client=('127.0.0.1', 12345), headers={'X-Forwarded-For':'192.0.2.1'})
+    bad_peer = TestClient(app, client=('192.0.2.1', 12345), headers={'X-Forwarded-For':'192.0.2.2'})
+    path = '/satellite-webhooks/openai'
+    for _ in range(runner.REJECTIONS_PER_SENDER):
+        assert proxy.post(path).status_code == 403
+    response = bad_peer.post(path)
+    assert response.status_code == 429 and response.headers['Retry-After'] == str(runner.REJECTION_WINDOW)
+    assert proxy.post(path, headers={'X-Forwarded-For':'192.0.2.2'}).status_code == 403
+    webhook.side_effect = None
+    webhook.return_value = {'status': 'accepted'}
+    assert proxy.post(path).json() == {'status': 'accepted'}
+    now[0] += runner.REJECTION_WINDOW
+    webhook.side_effect = ValueError('synthetic rejection')
+    assert proxy.post(path).status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_webhook_limits_concurrent_requests_by_sender(monkeypatch):
+    import asyncio
+    from types import SimpleNamespace
+    from httpx import ASGITransport, AsyncClient
+    from voice_agent import runner
+
+    monkeypatch.setattr(runner, 'MAX_IN_FLIGHT_PER_SENDER', 2)
+    webhook = AsyncMock(return_value={'status':'accepted'})
+    app = create_app('synthetic-token', SimpleNamespace(sip_lab_enabled=True, webhook=webhook))
+    path = '/satellite-webhooks/openai'
+    entered, release = asyncio.Event(), asyncio.Event()
+    pending = 0
+
+    async def delayed_body():
+        nonlocal pending
+        pending += 1
+        if pending == 2:
+            entered.set()
+        await release.wait()
+        yield b'{}'
+
+    async with AsyncClient(transport=ASGITransport(app=app, client=('192.0.2.1', 1)), base_url='http://lab') as sender:
+        async with asyncio.TaskGroup() as tasks:
+            deliveries = [tasks.create_task(sender.post(path, content=delayed_body())) for _ in range(2)]
+            try:
+                await asyncio.wait_for(entered.wait(), 1)
+                assert (await sender.post(path)).status_code == 429
+                async with AsyncClient(transport=ASGITransport(app=app, client=('192.0.2.2', 1)), base_url='http://lab') as other:
+                    assert (await other.post(path)).status_code == 200
+            finally:
+                release.set()
+        assert all(delivery.result().status_code == 200 for delivery in deliveries)
+        assert (await sender.post(path)).status_code == 200
 
 
 def test_published_repository_pins_and_checks_database_identity():
