@@ -73,34 +73,43 @@ function supportsWebhook(trunk: Trunk) {
       ))
   );
 }
-function webhookStatus(trunk: Trunk) {
-  return t(
-    "webhook.status." +
-      (trunk.webhook_status ||
-        (trunk.webhook_secret_configured ? "manual" : "not_configured")),
+function webhookState(trunk: Trunk) {
+  return (
+    trunk.webhook_status ||
+    (trunk.webhook_secret_configured ? "manual" : "not_configured")
   );
+}
+function webhookStatus(trunk: Trunk) {
+  return t("webhook.status." + webhookState(trunk));
 }
 const configuring = ref("");
 function canConfigureWebhook(trunk: Trunk) {
   return (
-    trunk.api_key_source !== "missing" && trunk.webhook_status !== "configured"
+    trunk.api_key_source !== "missing" &&
+    ["not_configured", "needs_setup"].includes(webhookState(trunk))
   );
 }
 async function configureWebhook(trunk: Trunk) {
   configuring.value = trunk.binding_id;
-  await webhookTask.run(async () => {
-    try {
-      await request(
-        "POST",
-        "/trunks/" + trunk.binding_id + "/configure-webhook",
-        {
-          expected_revision: trunk.revision,
-        },
-      );
-    } finally {
-      await queryClient.invalidateQueries({ queryKey: ["trunks"] });
-    }
-  }, false);
+  await webhookTask.run(
+    async () => {
+      try {
+        await request(
+          "POST",
+          "/trunks/" + trunk.binding_id + "/configure-webhook",
+          {
+            expected_revision: trunk.revision,
+          },
+        );
+      } finally {
+        await queryClient.invalidateQueries({ queryKey: ["trunks"] });
+      }
+    },
+    {
+      title: t("webhook.configuredTitle"),
+      description: t("webhook.configuredHelp", { name: trunk.name }),
+    },
+  );
   configuring.value = "";
 }
 function usage(trunk: Trunk) {
@@ -267,6 +276,11 @@ async function synchronize() {
             class="flex flex-col items-start gap-1"
           >
             <span>{{ webhookStatus(trunk) }}</span>
+            <span
+              v-if="webhookState(trunk) === 'recovery_required'"
+              class="text-muted text-sm"
+              >{{ t("error.webhook_secret_recovery_required") }}</span
+            >
             <NeButton
               v-if="canConfigureWebhook(trunk)"
               kind="tertiary"

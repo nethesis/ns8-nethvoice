@@ -28,6 +28,8 @@ const en = {
     configure: "Configure webhook",
     setupTitle: "OpenAI SIP webhook setup",
     failedTitle: "Cannot configure webhook",
+    configuredTitle: "Webhook configured",
+    configuredHelp: "The webhook endpoint is configured for trunk {name}",
     projectHelp:
       "Setup uses the API key’s project. Check that the project ID you enter belongs to that project; NethVoice does not verify it.",
     manualHelp:
@@ -52,8 +54,6 @@ const en = {
       "CleverAI uses the OpenAI SIP transport. Point the OpenAI incoming-call webhook to CleverAI. NethVoice needs only the project ID.",
     namePlaceholder: "e.g. OpenAI production",
     keepApiKey: "Leave empty to keep the stored API key.",
-    environmentApiKey:
-      "Leave empty to use the OpenAI API key from the NethVoice Integrations settings.",
     keepPassword: "Leave empty to keep the stored password.",
     keepSecret: "Leave empty to keep the stored secret.",
     secretEncrypted: "Credentials are encrypted before storage.",
@@ -120,6 +120,9 @@ const en = {
       "Version {published} is published. Draft version {draft} has unpublished changes.",
     notPublished: "Not published yet. Draft version {draft}.",
     notSaved: "Not saved yet",
+    createUncertainHelp:
+      "The agent may have been created anyway. Check the Agents list before creating it again.",
+    openAgents: "Go to the Agents list",
     draftVersion: "Draft version {draft}",
     publishedVersion: "Published version {published}",
     unpublished: "Not published",
@@ -507,6 +510,7 @@ const en = {
   sipUsername: "SIP username",
   sipPassword: "SIP password",
   providerApiKey: "Provider API key",
+  apiKeySource: "API key source",
   webhookSigningSecret: "Webhook signing secret",
   startedAt: "Started",
   endedAt: "Ended",
@@ -845,6 +849,8 @@ const it: typeof en = {
     configure: "Configura webhook",
     setupTitle: "Configurazione webhook SIP OpenAI",
     failedTitle: "Impossibile configurare il webhook",
+    configuredTitle: "Webhook configurato",
+    configuredHelp: "L'endpoint del webhook è configurato per il trunk {name}",
     projectHelp:
       "La configurazione usa il progetto della chiave API. Verifica che l’ID progetto inserito appartenga a quel progetto; NethVoice non lo verifica.",
     manualHelp:
@@ -870,8 +876,6 @@ const it: typeof en = {
       "CleverAI usa il trasporto SIP di OpenAI. Punta il webhook delle chiamate in arrivo di OpenAI verso CleverAI. NethVoice richiede solo l'ID progetto.",
     namePlaceholder: "es. OpenAI produzione",
     keepApiKey: "Lascia vuoto per mantenere la chiave API salvata.",
-    environmentApiKey:
-      "Lascia vuoto per usare la chiave API OpenAI delle impostazioni Integrazioni di NethVoice.",
     keepPassword: "Lascia vuoto per mantenere la password salvata.",
     keepSecret: "Lascia vuoto per mantenere il segreto salvato.",
     secretEncrypted: "Le credenziali vengono cifrate prima del salvataggio.",
@@ -938,6 +942,9 @@ const it: typeof en = {
       "La versione {published} è pubblicata. La bozza versione {draft} ha modifiche non pubblicate.",
     notPublished: "Non ancora pubblicato. Bozza versione {draft}.",
     notSaved: "Non ancora salvato",
+    createUncertainHelp:
+      "L'agente potrebbe essere stato creato comunque. Controlla l'elenco degli agenti prima di crearlo di nuovo.",
+    openAgents: "Vai all'elenco degli agenti",
     draftVersion: "Bozza versione {draft}",
     publishedVersion: "Versione pubblicata {published}",
     unpublished: "Non pubblicato",
@@ -1329,6 +1336,7 @@ const it: typeof en = {
   sipUsername: "Nome utente SIP",
   sipPassword: "Password SIP",
   providerApiKey: "Chiave API provider",
+  apiKeySource: "Origine della chiave API",
   webhookSigningSecret: "Segreto firma webhook",
   startedAt: "Inizio",
   endedAt: "Fine",

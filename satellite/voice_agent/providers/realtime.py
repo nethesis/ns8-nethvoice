@@ -7,6 +7,7 @@ to the Agent runtime. See the providers' SIP and speech-to-speech documentation.
 import asyncio
 import copy
 import json
+import logging
 import os
 import re
 import time
@@ -17,6 +18,9 @@ from urllib.parse import quote, urlencode
 from ..telemetry import PROVIDER_CODES
 
 import aiohttp
+
+
+LOG = logging.getLogger(__name__)
 
 
 class ProviderError(RuntimeError):
@@ -324,7 +328,10 @@ class _RealtimeAdapter:
                 if not isinstance(raw, dict):
                     continue
                 await self._handle(raw)
-        except Exception:
+        except Exception as exc:
+            # The event carries only a generic code; keep the cause in the log.
+            LOG.warning("%s sideband read failed error_class=%s detail=%s", self.provider, type(exc).__name__,
+                        "".join(c if c.isascii() and c.isprintable() else " " for c in str(exc))[:120])
             try:
                 await self._emit({"type": "error", "code": "provider_sideband_error"})
             except ProviderError:

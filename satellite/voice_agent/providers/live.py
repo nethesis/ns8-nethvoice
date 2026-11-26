@@ -19,6 +19,15 @@ from .realtime import ProviderError, _RealtimeAdapter, _call_id, _instructions, 
 
 LOG = logging.getLogger(__name__)
 COMMAND_ACK_TIMEOUT = 10
+# Error codes after which the provider keeps the session: only the offending
+# input append was dropped. Keep this explicit; every other error is fatal.
+NONFATAL_CODES = frozenset(("input_audio_rate_limit_exceeded",))
+NONFATAL_LOG_INTERVAL = 10
+
+
+def _token(value):
+    # Provider codes and types are identifiers; never log free provider text.
+    return value if isinstance(value, str) and 0 < len(value) <= 64 and value.replace("_", "").replace(".", "").isalnum() and value.isascii() else "other"
 
 
 class LiveAcknowledgmentTimeout(TimeoutError):
@@ -64,6 +73,8 @@ class OpenAILiveAdapter(_RealtimeAdapter):
         self._final_usage = False
         self._backend_usage = {}
         self._greeting_activation = None
+        self._nonfatal_errors = 0
+        self._nonfatal_logged = None
 
     def _configure_tools(self, tools):
         # A fresh namespace binds provider invocations to this call's tools.
@@ -253,7 +264,16 @@ class OpenAILiveAdapter(_RealtimeAdapter):
             elif kind == ack[0]:
                 ack[1].set_result(None)
         if kind == "error":
-            code = (raw.get("error") or {}).get("code")
+            error = raw.get("error") or {}
+            code = error.get("code")
+            if code in NONFATAL_CODES:
+                self._nonfatal_errors += 1
+                now = time.monotonic()
+                if self._nonfatal_logged is None or now - self._nonfatal_logged >= NONFATAL_LOG_INTERVAL:
+                    self._nonfatal_logged = now
+                    LOG.warning("OpenAI Live provider_code=%s count=%d session=continued", code, self._nonfatal_errors)
+                return
+            LOG.warning("OpenAI Live error provider_code=%s provider_type=%s", _token(code), _token(error.get("type")))
             await self._emit({"type": "error", "code": "provider_live_error", "provider_code": code if isinstance(code,str) and code in PROVIDER_CODES else "other"})
         elif kind == "session.closed":
             await self._usage(raw.get("usage"), final=True)

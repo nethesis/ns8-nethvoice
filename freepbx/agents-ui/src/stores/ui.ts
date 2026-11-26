@@ -60,6 +60,8 @@ export const useUi = defineStore("ui", () => {
       notices.value = notices.value.filter((n) => n.id !== id);
     }, 7000);
   }
+  // Path the next navigation reaches without remounting the current view.
+  const keepView = ref("");
   const leaveDialog = ref(false);
   let leaveResolve: ((value: boolean) => void) | undefined;
   function confirmLeave() {
@@ -79,6 +81,7 @@ export const useUi = defineStore("ui", () => {
     notices,
     toggleTheme,
     notify,
+    keepView,
     leaveDialog,
     confirmLeave,
     resolveLeave,

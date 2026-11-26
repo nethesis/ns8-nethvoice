@@ -104,10 +104,17 @@ async def test_signed_webhook_requires_live_pinned_pending_call_and_deduplicates
     with pytest.raises(ValueError):
         await runtime.webhook('openai',stale,stale_headers)
     assert runtime.invalid_webhook_signatures == 3
+    for unsigned in ({}, {'Content-Type':'application/json'}, {k:v for k,v in headers.items() if k!='webhook-signature'}):
+        with pytest.raises(ValueError):
+            await runtime.webhook('openai',body+b' ',unsigned)
+    assert runtime.invalid_webhook_signatures == 3
+    with pytest.raises(ValueError):
+        await runtime.webhook('openai',body+b' ',{k.upper():v for k,v in headers.items()})
+    assert runtime.invalid_webhook_signatures == 4
     assert not any(e['error_code'] == 'invalid_signature' for e in runtime.monitoring.pending.values())
     signed_notice, auth = sign(call, {}, event_type='response.completed')
     assert await runtime.webhook('openai', signed_notice, auth) == {'status': 'ignored'}
-    assert runtime.invalid_webhook_signatures == 3
+    assert runtime.invalid_webhook_signatures == 4
     storage.verify_signing_secret.assert_not_called()  # Signed claim alone is insufficient.
     unrelated = copy.deepcopy(data)
     unrelated['sip_headers'][0]['value'] = 'unrelated-session'
@@ -866,7 +873,7 @@ async def test_native_watchdog_leaves_runtime_time_to_execute_deadline_fallback(
         await asyncio.gather(conversation, return_exceptions=True)
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('language, words', [('en', 'call time limit'), ('it', 'limite di tempo')])
+@pytest.mark.parametrize('language, words', [('en', 'about to reach the call time limit'), ('it', 'Stiamo per raggiungere il limite di tempo')])
 async def test_late_duration_notice_cannot_delay_native_fallback(language, words):
     runtime, _, controller, _ = fixtures()
     call = await admit(runtime)
@@ -875,7 +882,7 @@ async def test_late_duration_notice_cannot_delay_native_fallback(language, words
     call.adapter = AsyncMock()
     spoken = asyncio.Event()
     async def stalled(instructions):
-        assert words in instructions
+        assert words in instructions and 'reached' not in instructions and 'raggiunto' not in instructions
         spoken.set()
         await asyncio.Event().wait()
     call.adapter.consultation_say.side_effect = stalled

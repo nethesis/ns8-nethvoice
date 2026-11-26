@@ -13,6 +13,9 @@ import subprocess
 
 import agent
 
+APPLY_ERRORS = ('port_allocation_failed', 'unsupported_development_database',
+                'runtime_initialization_failed', 'voice_agent_runtime_not_ready')
+
 config = {
     'satellite_call_transcription_enabled': os.getenv('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'False') == 'True',
     'satellite_voicemail_transcription_enabled': os.getenv('SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED', 'False') == 'True',
@@ -29,6 +32,13 @@ config = {
 config['voice_agent_enabled'] = os.getenv('VOICE_AGENT_ENABLED', '').lower() == 'true'
 config['satellite_apply_status'] = ('pending' if any(Path('satellite-apply.' + name).exists() for name in ('pending', 'running'))
                                     else 'failed' if Path('satellite-apply.failed').exists() else 'applied')
+config['satellite_apply_error'] = None
+if config['satellite_apply_status'] == 'failed':
+    try:
+        reason = Path('satellite-apply.failed').read_text().strip()
+    except OSError:
+        reason = ''
+    config['satellite_apply_error'] = reason if reason in APPLY_ERRORS else 'apply_failed'
 config['inherited_agents'] = []
 if Path('voice-preview/enabled').is_file():
     try:

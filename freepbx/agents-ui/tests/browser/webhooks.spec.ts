@@ -52,6 +52,7 @@ for (const theme of ["light", "dark"]) for (const width of [1440, 375]) {
     await page.keyboard.press("Enter");
     await expect(page.getByText(language === "en" ? "Configured automatically" : "Configurato automaticamente", { exact: true })).toBeVisible();
     await expect(configure).toHaveCount(0);
+    await expect(page.getByText(language === "en" ? "The webhook endpoint is configured for trunk OpenAI SIP" : "L'endpoint del webhook è configurato per il trunk OpenAI SIP", { exact: true })).toBeVisible();
     expect(calls).toBe(1);
     const state = await page.evaluate(() => JSON.stringify({ local: localStorage, session: sessionStorage }));
     expect(state).not.toMatch(/signing_secret|whsec_|synthetic-provider-key/);
@@ -84,15 +85,16 @@ test("OpenAI creation needs a key and project but no signing secret; manual inpu
   await page.getByLabel("Name", { exact: true }).fill("OpenAI SIP");
   await page.getByLabel("OpenAI project ID", { exact: true }).fill("proj_explicit");
   await page.getByText("Dedicated key", { exact: true }).click();
-  await page.locator("input").and(page.getByLabel(/^Provider API key/)).fill("synthetic-provider-key");
-  await expect(page.locator("input").and(page.getByLabel(/^Webhook signing secret/))).toBeVisible();
+  await expect(page.getByRole("group", { name: "API key source", exact: true })).toBeVisible();
+  await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
+  await expect(page.getByLabel(/^Webhook signing secret/)).toBeVisible();
   await expect(page.getByRole("textbox", { name: "Provider webhook endpoint" })).toHaveValue("https://configured.example/satellite-webhooks/openai");
   await page.getByRole("button", { name: "Create", exact: true }).click();
   await expect(page.getByRole("button", { name: "Configure webhook", exact: true })).toBeVisible();
   expect(saved).toBe(true);expect(configured).toBe(false);
   await page.getByRole("button", { name: "Edit", exact: true }).click();
-  await expect(page.locator("input").and(page.getByLabel(/^Provider API key/))).toHaveValue("");
-  await expect(page.locator("input").and(page.getByLabel(/^Webhook signing secret/))).toHaveValue("");
+  await expect(page.getByLabel(/^Provider API key/)).toHaveValue("");
+  await expect(page.getByLabel(/^Webhook signing secret/)).toHaveValue("");
 });
 
 for (const error of ["webhook_secret_recovery_required", "webhook_provider_unavailable", "webhook_persistence_failed"]) {
@@ -121,6 +123,9 @@ test("trunk credentials and webhook action follow the real trunk state", async (
     { ...initial, binding_id: "stored", name: "Stored key", webhook_status: "configured", webhook_secret_configured: true },
     { ...initial, binding_id: "inherited", name: "Inherited key", api_key_configured: false, api_key_source: "environment" },
     { ...initial, binding_id: "missing", name: "No key", api_key_configured: false, api_key_source: "missing" },
+    { ...initial, binding_id: "manual", name: "Manual secret", webhook_status: "manual", webhook_secret_configured: true },
+    { ...initial, binding_id: "recovery", name: "Lost secret", webhook_status: "recovery_required" },
+    { ...initial, binding_id: "changed", name: "Changed project", webhook_status: "needs_setup", webhook_secret_configured: true },
   ];
   await page.route("**/freepbx/rest/agents/**", async route => {
     const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
@@ -135,7 +140,38 @@ test("trunk credentials and webhook action follow the real trunk state", async (
   await expect(row("Inherited key").getByRole("button", { name: "Configure webhook" })).toBeVisible();
   await expect(row("No key")).toContainText("Missing API key");
   await expect(row("No key").getByRole("button", { name: "Configure webhook" })).toHaveCount(0);
+  await expect(row("Manual secret")).toContainText("Manual secret stored");
+  await expect(row("Manual secret").getByRole("button", { name: "Configure webhook" })).toHaveCount(0);
+  await expect(row("Lost secret")).toContainText("Recovery required");
+  await expect(row("Lost secret")).toContainText("Enter its saved secret manually or explicitly rotate it in OpenAI");
+  await expect(row("Lost secret").getByRole("button", { name: "Configure webhook" })).toHaveCount(0);
+  await expect(row("Changed project")).toContainText("Configuration changed: check setup");
+  await expect(row("Changed project").getByRole("button", { name: "Configure webhook" })).toBeVisible();
   await expect(page.getByText(/webhook secret/i)).toHaveCount(0);
   await page.getByRole("button", { name: "Create trunk" }).first().click();
   await expect(page.getByText(/the ID starts with proj_/)).toBeVisible();
+});
+
+test("a dedicated key is required unless the trunk already stores one", async ({ page }) => {
+  await login(page);
+  const trunks = [
+    { ...initial, binding_id: "stored", name: "Stored key" },
+    { ...initial, binding_id: "inherited", name: "Inherited key", api_key_configured: false, api_key_source: "environment" },
+  ];
+  await page.route("**/freepbx/rest/agents/**", async route => {
+    const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
+    await route.fulfill({ json: path === "/access" ? { csrf: "synthetic-csrf" } : path === "/catalog" ? { provider_credentials: { openai: { environment_available: true } } } : path === "/trunks" ? { items: trunks } : { items: [] } });
+  });
+  await page.goto("./#/trunks");
+  const row = (name: string) => page.getByRole("row").filter({ hasText: name });
+  await row("Inherited key").getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByText("Dedicated key", { exact: true }).click();
+  await expect(page.getByLabel("Provider API key", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Leave empty to/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Enter the provider API key", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await row("Stored key").getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(page.getByText("Leave empty to keep the stored API key.", { exact: true })).toBeVisible();
+  await expect(page.getByText(/NethVoice Integrations settings/)).toHaveCount(0);
 });

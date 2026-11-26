@@ -95,13 +95,13 @@ test("provider credentials are write-only and cleared after saving", async ({pag
   await page.getByLabel("Name",{exact:true}).fill("Test provider");
   await page.getByLabel("OpenAI project ID",{exact:true}).fill("proj_test");
   await page.getByText("Dedicated key",{exact:true}).click();
-  await page.locator("input").and(page.getByLabel(/^Provider API key/)).fill("synthetic-provider-key");
-  await page.locator("input").and(page.getByLabel(/^Webhook signing secret/)).fill("whsec_c3ludGhldGljLXNpZ25pbmctc2VjcmV0");
+  await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
+  await page.getByLabel(/^Webhook signing secret/).fill("whsec_c3ludGhldGljLXNpZ25pbmctc2VjcmV0");
   await page.getByRole("button",{name:"Create",exact:true}).click();
   await expect(page.getByText("Test provider",{exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Edit",exact:true}).click();
-  await expect(page.locator("input").and(page.getByLabel(/^Provider API key/))).toHaveValue("");
-  await expect(page.locator("input").and(page.getByLabel(/^Webhook signing secret/))).toHaveValue("");
+  await expect(page.getByLabel(/^Provider API key/)).toHaveValue("");
+  await expect(page.getByLabel(/^Webhook signing secret/)).toHaveValue("");
   expect(await page.evaluate(()=>JSON.stringify(localStorage))).not.toContain("synthetic-provider-key");
 });
 

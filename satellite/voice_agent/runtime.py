@@ -662,9 +662,9 @@ class Runtime:
         if not call.media_connected or call.terminal or call.transfer_release_requested or not call.adapter:
             return
         language = call.snapshot['conversation']['language']
-        notice = ('Abbiamo raggiunto il limite di tempo della chiamata. La conversazione con l’assistente sta per terminare.'
+        notice = ('Stiamo per raggiungere il limite di tempo della chiamata. La conversazione con l’assistente terminerà tra pochi secondi.'
                   if language.split('-')[0] == 'it' else
-                  'We have reached the call time limit. This conversation with the assistant will end shortly.')
+                  'We are about to reach the call time limit. This conversation with the assistant will end in a few seconds.')
         instruction = f'In the configured language ({language}), briefly tell the caller: {notice}'
         try:
             if call.consultation:
@@ -697,7 +697,9 @@ class Runtime:
             except ValueError:
                 pass
         if envelope is None:
-            self.invalid_webhook_signatures += 1
+            # Unsigned requests are noise from anyone; count only signature failures.
+            if {'webhook-id','webhook-timestamp','webhook-signature'} <= {str(k).lower() for k in headers}:
+                self.invalid_webhook_signatures += 1
             raise ValueError('invalid_webhook')
         kind=envelope.get('type')
         if kind not in ('realtime.call.incoming','live.transport.incoming','live.call.incoming'):
