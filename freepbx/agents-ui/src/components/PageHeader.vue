@@ -2,6 +2,7 @@
 import { NeButton, NeHeading } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 defineProps<{ title: string; description?: string; back?: string }>();
 const { t } = useI18n();
 const router = useRouter();
@@ -13,7 +14,7 @@ const router = useRouter();
     class="mb-3 -ml-2.5"
     @click="router.push(back)"
     ><template #prefix
-      ><FontAwesomeIcon icon="arrow-left" aria-hidden="true" /></template
+      ><FontAwesomeIcon :icon="faArrowLeft" aria-hidden="true" /></template
     >{{ t("back") }}</NeButton
   >
   <div class="flex flex-wrap items-center gap-3">

@@ -300,7 +300,7 @@ const en = {
   deleteTrunkHelp:
     'Trunk "{name}" will be deleted. Trunks used by an agent cannot be deleted.',
   openMenu: "Open menu",
-  viewActivity: "View monitoring",
+  viewActivity: "Go to Monitoring",
   credentials: "Credentials",
   credentialSource: {
     stored: "Trunk API key",
@@ -1487,7 +1487,7 @@ const it: typeof en = {
   deleteTrunkHelp:
     'Il trunk "{name}" verrà eliminato. I trunk usati da un agente non possono essere eliminati.',
   openMenu: "Apri menu",
-  viewActivity: "Visualizza monitoraggio",
+  viewActivity: "Vai a Monitoraggio",
   credentials: "Credenziali",
   credentialSource: {
     stored: "Chiave API del trunk",

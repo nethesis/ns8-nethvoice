@@ -11,7 +11,7 @@ const expanded = defineModel<boolean>({ required: true });
 const id = useId();
 </script>
 <template>
-  <div :class="boxed ? 'border-divider rounded-lg border px-4 py-3' : ''">
+  <div :class="boxed ? 'border-line rounded-lg border px-4 py-3' : ''">
     <NeExpandable
       :is-expanded="expanded"
       :full-width="boxed"
@@ -21,7 +21,7 @@ const id = useId();
         <NeButton
           kind="tertiary"
           size="sm"
-          class="-ml-2"
+          class="-ml-2 text-left"
           :aria-expanded="expanded ? 'true' : 'false'"
           :aria-controls="id"
           >{{ label

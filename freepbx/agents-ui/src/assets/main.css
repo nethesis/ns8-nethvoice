@@ -2,7 +2,6 @@
 @import "tailwindcss";
 @import "@fontsource/poppins/400.css";
 @import "@fontsource/poppins/500.css";
-@import "@fontsource/poppins/600.css";
 @import "@nethesis/vue-components/theme.css";
 @source '../../node_modules/@nethesis/vue-components';
 @custom-variant dark (&:where(.dark, .dark *));
@@ -78,35 +77,6 @@
   }
   body {
     @apply bg-elevation-1 text-secondary-neutral m-0 text-sm font-normal;
-  }
-}
-@layer components {
-  .nv-panel {
-    @apply bg-elevation-0 rounded-lg p-6 shadow-sm ring-1 ring-gray-900/5 dark:ring-white/5;
-  }
-  .nv-muted {
-    @apply text-tertiary-neutral;
-  }
-  .nv-field-grid {
-    @apply grid gap-6 md:grid-cols-2;
-  }
-  .nv-stack {
-    @apply space-y-6;
-  }
-  .nv-action-bar {
-    @apply flex flex-wrap items-center gap-3;
-  }
-  .nv-section-header {
-    @apply border-divider mb-6 border-b pb-6;
-  }
-  .nv-subcard {
-    @apply border-line rounded-lg border p-5;
-  }
-  .nv-counter-title {
-    @apply text-tertiary-neutral flex items-center gap-3 text-sm uppercase;
-  }
-  .nv-counter {
-    @apply text-counter text-4xl leading-none font-medium;
   }
 }
 

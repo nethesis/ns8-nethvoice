@@ -1,6 +1,15 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import {
+  faCircleArrowRight,
+  faCircleCheck,
+  faCircleXmark,
+  faCirclePlay,
+  faCircleQuestion,
+  faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 const props = defineProps<{
   status: string;
   version?: number;
@@ -8,23 +17,23 @@ const props = defineProps<{
 }>();
 const { t, te } = useI18n();
 const success = {
-  icon: "circle-check",
+  icon: faCircleCheck,
   color: "text-green-700 dark:text-green-500",
 };
 const warning = {
-  icon: "circle-exclamation",
+  icon: faTriangleExclamation,
   color: "text-amber-700 dark:text-amber-500",
 };
 const danger = {
-  icon: "circle-xmark",
+  icon: faCircleXmark,
   color: "text-rose-700 dark:text-rose-500",
 };
-const info = { icon: "circle-play", color: "text-blue-700 dark:text-blue-500" };
+const info = { icon: faCirclePlay, color: "text-blue-700 dark:text-blue-500" };
 const neutral = {
-  icon: "circle-xmark",
+  icon: faCircleXmark,
   color: "text-gray-700 dark:text-gray-400",
 };
-const appearances: Record<string, { icon: string; color: string }> = {
+const appearances: Record<string, { icon: IconDefinition; color: string }> = {
   ready: success,
   completed: success,
   ended_by_agent: success,
@@ -33,7 +42,7 @@ const appearances: Record<string, { icon: string; color: string }> = {
   synced: success,
   enabled: success,
   transferred: {
-    icon: "circle-arrow-right",
+    icon: faCircleArrowRight,
     color: "text-blue-700 dark:text-blue-500",
   },
   modified: warning,
@@ -43,7 +52,7 @@ const appearances: Record<string, { icon: string; color: string }> = {
   interrupted: warning,
   unconfigured: warning,
   fallback: {
-    icon: "triangle-exclamation",
+    icon: faTriangleExclamation,
     color: "text-amber-700 dark:text-amber-500",
   },
   failed: danger,
@@ -64,7 +73,7 @@ const appearances: Record<string, { icon: string; color: string }> = {
 const appearance = computed(
   () =>
     appearances[props.status] || {
-      icon: "circle-question",
+      icon: faCircleQuestion,
       color: "text-gray-700 dark:text-gray-400",
     },
 );

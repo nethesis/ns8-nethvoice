@@ -117,7 +117,7 @@ test("list shows built-in badge, filters and row menus", async ({ page }) => {
   // Built-in agents have no Delete; custom ones do.
   const menus = page.getByRole("button", { name: "Open menu" });
   await menus.first().click();
-  await expect(page.getByRole("menuitem", { name: "View monitoring" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Go to Monitoring" })).toBeVisible();
   await expect(page.getByRole("menuitem", { name: "Delete" })).toHaveCount(0);
   await page.getByRole("heading", { name: "Agents" }).click();
   await menus.nth(1).click();

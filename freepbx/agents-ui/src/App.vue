@@ -135,7 +135,7 @@ watch(
             :class="[
               'h-6.5 w-auto max-w-50 object-contain object-left',
               customLogo
-                ? 'rounded bg-[#171717] px-2 py-1 dark:bg-transparent dark:px-0 dark:py-0'
+                ? 'rounded bg-neutral-900 px-2 py-1 dark:bg-transparent dark:px-0 dark:py-0'
                 : '',
             ]"
             @error="branding.logoUrl = DEFAULT_BRANDING.logoUrl"
@@ -194,16 +194,15 @@ watch(
       <header
         class="bg-elevation-0 border-line sticky top-0 z-30 flex h-16 min-h-16 items-center gap-6 border-b px-4"
       >
-        <button
-          type="button"
-          class="text-secondary-neutral flex cursor-pointer items-center lg:hidden"
+        <NeButton
+          kind="tertiary"
+          class="-ml-2.5 lg:hidden"
           :aria-label="t('openNavigation')"
           aria-controls="main-sidebar"
           :aria-expanded="mobileMenu ? 'true' : 'false'"
           @click="mobileMenu = true"
-        >
-          <FontAwesomeIcon :icon="faBars" class="size-4" aria-hidden="true" />
-        </button>
+          ><FontAwesomeIcon :icon="faBars" class="size-4" aria-hidden="true"
+        /></NeButton>
         <span class="bg-line -my-px h-16 w-px lg:hidden" aria-hidden="true" />
         <div class="flex-1" />
         <div class="flex items-center gap-6">
