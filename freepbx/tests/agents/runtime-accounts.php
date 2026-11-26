@@ -1,6 +1,7 @@
 <?php
 // Last disposable-DB check: real generated identities and column grants.
 require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/RuntimeAccounts.php';
+require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/SecretStore.php';
 $dsn=getenv('M0_TEST_DSN');
 $db=new PDO($dsn,'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 foreach (['localhost','%'] as $host) $db->exec("ALTER USER 'root'@".$db->quote($host)." IDENTIFIED BY 'synthetic-root-only'");
@@ -26,6 +27,10 @@ forbidden($reader,"UPDATE asterisk.voice_agent_recent_cdr SET dst='forged'");
 forbidden($reader,'SELECT * FROM asterisk.queues_config LIMIT 0');
 forbidden($reader,'SELECT * FROM asterisk.ivr_details LIMIT 0');
 forbidden($reader,'SELECT * FROM asterisk.voice_agent_bindings LIMIT 0');
+forbidden($writer,'SELECT * FROM asterisk.voice_agent_bindings LIMIT 0');
+forbidden($writer,'SELECT * FROM asterisk.voice_agent_runtime_bindings LIMIT 0');
+forbidden($reader,'SELECT signing_generation FROM asterisk.voice_agent_webhook_verification LIMIT 0');
+forbidden($writer,'SELECT * FROM asterisk.voice_agent_webhook_verification LIMIT 0');
 forbidden($reader,'SELECT * FROM asteriskcdrdb.voice_agent_runs LIMIT 0');
 forbidden($writer,'SELECT * FROM asterisk.voice_agent_published LIMIT 0');
 forbidden($writer,'UPDATE asteriskcdrdb.voice_agent_runs SET agent_id=agent_id');
@@ -39,4 +44,37 @@ foreach (['voice_agent_metric_hours','voice_agent_runtime_health'] as $table) {
     $writer->query('SELECT * FROM asteriskcdrdb.'.$table.' LIMIT 0');
 }
 $writer->exec('UPDATE asteriskcdrdb.voice_agent_runs SET outcome=outcome');
+putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-disposable-key');
+$store=new \NethVoice\Agents\SecretStore();
+$binding=$reader->query("SELECT binding_id,secrets_encrypted FROM asterisk.voice_agent_runtime_bindings
+    WHERE JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.openai_project_id'))='proj_test'")->fetch(PDO::FETCH_ASSOC);
+assert(json_decode($store->decryptSecret($binding['secrets_encrypted']),true)['api_key']==='synthetic-api');
+$read=$writer->prepare('SELECT signing_generation FROM asterisk.voice_agent_webhook_verification WHERE binding_id=?');
+$read->execute([$binding['binding_id']]);
+$generation=$read->fetchColumn();
+assert($generation===hash('sha256',$binding['secrets_encrypted']));
+$verify=$writer->prepare('UPDATE asterisk.voice_agent_webhook_verification SET webhook_verified_at=NOW()
+    WHERE binding_id=? AND signing_generation=?');
+$db->prepare('UPDATE asterisk.voice_agent_bindings SET webhook_verified_at=NULL WHERE binding_id=?')->execute([$binding['binding_id']]);
+$verify->execute([$binding['binding_id'],$generation]);
+assert($verify->rowCount()===1);
+$newProjection=$store->encryptRuntimeCredentials(['api_key'=>'synthetic-rotated-api']);
+$db->prepare('UPDATE asterisk.voice_agent_bindings SET runtime_secrets_encrypted=?,webhook_verified_at=NULL WHERE binding_id=?')->execute([$newProjection,$binding['binding_id']]);
+$verify->execute([$binding['binding_id'],$generation]);
+assert($verify->rowCount()===0);
+$verify->execute([$binding['binding_id'],hash('sha256',$newProjection)]);
+assert($verify->rowCount()===1);
+$db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_webhook_verification AS
+    SELECT binding_id,secrets_encrypted,webhook_verified_at FROM asterisk.voice_agent_bindings
+    WHERE removed=0 AND provider='openai' WITH CASCADED CHECK OPTION");
+foreach (['127.0.0.1','localhost'] as $host) {
+    $db->exec("GRANT SELECT (binding_id,secrets_encrypted) ON asterisk.voice_agent_webhook_verification TO 'voice_agent_monitor'@".$db->quote($host));
+}
+assert(is_string($writer->query('SELECT secrets_encrypted FROM asterisk.voice_agent_webhook_verification LIMIT 1')->fetchColumn()));
+$installer=__DIR__.'/../../var/www/html/freepbx/rest/lib/agents/install-runtime.php';
+$disable=escapeshellarg(PHP_BINARY).' '.escapeshellarg($installer).' --disable-accounts';
+passthru($disable,$status);
+assert($status===0);
+forbidden($writer,'SELECT secrets_encrypted FROM asterisk.voice_agent_webhook_verification LIMIT 0');
+forbidden($reader,'SELECT secrets_encrypted FROM asterisk.voice_agent_runtime_bindings LIMIT 0');
 echo "Separate runtime identities and least-privilege grants passed twice\n";

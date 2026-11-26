@@ -217,3 +217,22 @@ def test_legacy_empty_failure_flag_is_reported_generically(installation, capsys)
     runpy.run_path(str(ROOT / 'actions/get-integrations/20read'))
     output = json.loads(capsys.readouterr().out)
     assert output['satellite_apply_status'] == 'failed' and output['satellite_apply_error'] == 'apply_failed'
+
+
+def test_disabled_worker_retires_old_grants_after_applying_state(installation):
+    s = installation
+    main = s.apply.__globals__['main']
+    s.env['VOICE_AGENT_ENABLED'] = 'true'
+    Path('satellite-apply.pending').touch()
+    main()
+    assert not any('--disable-accounts' in command for command in s.calls)
+    s.env['VOICE_AGENT_ENABLED'] = 'false'
+    Path('satellite-apply.pending').touch()
+    main()
+    stop = next(index for index, command in enumerate(s.calls) if command[2:] == ['stop', 'satellite.service'])
+    retire = next(index for index, command in enumerate(s.calls) if command[-1] == '--disable-accounts')
+    assert stop < retire
+    s.calls.clear()
+    Path('satellite-apply.pending').touch()
+    main()
+    assert any(command[-1] == '--disable-accounts' for command in s.calls)

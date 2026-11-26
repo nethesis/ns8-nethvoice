@@ -424,8 +424,9 @@ PROMPT;
     {
         try {
             $encrypted=$this->crypto->encryptSecret(self::encode($secrets));
+            $runtimeEncrypted=$this->crypto->encryptRuntimeCredentials($secrets);
             $this->db->beginTransaction();
-            $this->query('UPDATE asterisk.voice_agent_bindings SET secrets_encrypted=?,webhook_verified_at=NULL,revision=revision+? WHERE binding_id=?',[$encrypted,$complete?1:0,$row['binding_id']]);
+            $this->query('UPDATE asterisk.voice_agent_bindings SET secrets_encrypted=?,runtime_secrets_encrypted=?,webhook_verified_at=NULL,revision=revision+? WHERE binding_id=?',[$encrypted,$runtimeEncrypted,$complete?1:0,$row['binding_id']]);
             $this->audit($row['binding_id'],$actor,$action,(int)$row['revision']+($complete?1:0),true);
             $this->db->commit();
         } catch (\Throwable $error) {
@@ -695,13 +696,14 @@ PROMPT;
                 unset($secrets['openai_webhook']['automatic'],$secrets['openai_webhook']['secret_hint'],$secrets['openai_webhook']['endpoint_updated_at']);
             }
             $encrypted=$external?'':$this->crypto->encryptSecret(json_encode($secrets,JSON_THROW_ON_ERROR));
+            $runtimeEncrypted=$external?null:$this->crypto->encryptRuntimeCredentials($secrets);
             $id=$id??'trunk_'.bin2hex(random_bytes(8));
             $nativeSettings=$settings;$previousNativeSettings=$previousSettings;
             $nativeChanged=!$previous || $previous['sync_status']!=='synced' || !$this->native->trunkReady($previous)
                 || $previous['name']!==$name || $nativeSettings!=$previousNativeSettings || ($secrets['sip_password']??'')!==$previousSipPassword;
             $this->db->beginTransaction();
-            if (!$previous) $this->query('INSERT INTO asterisk.voice_agent_bindings (binding_id,name,provider,settings_json,secrets_encrypted) VALUES (?,?,?,?,?)',[$id,$name,$external?'openai':$provider,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted]);
-            else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,webhook_verified_at=IF(?,NULL,webhook_verified_at),revision=revision+1,sync_status=? WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,(int)($previousWebhook!==($secrets['webhook_secret']??'') || ($previousSettings['openai_project_id']??null)!==($settings['openai_project_id']??null)),$nativeChanged?'pending':'synced',$id]);
+            if (!$previous) $this->query('INSERT INTO asterisk.voice_agent_bindings (binding_id,name,provider,settings_json,secrets_encrypted,runtime_secrets_encrypted) VALUES (?,?,?,?,?,?)',[$id,$name,$external?'openai':$provider,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$runtimeEncrypted]);
+            else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,runtime_secrets_encrypted=?,webhook_verified_at=IF(?,NULL,webhook_verified_at),revision=revision+1,sync_status=? WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$runtimeEncrypted,(int)($previousWebhook!==($secrets['webhook_secret']??'') || ($previousSettings['openai_project_id']??null)!==($settings['openai_project_id']??null)),$nativeChanged?'pending':'synced',$id]);
             $this->audit($id,$actor,$previous?'updated':'created',$revision+1,true);
             $this->db->commit();
             $row=$this->binding($id);

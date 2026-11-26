@@ -36,22 +36,52 @@ class InterruptedInstall extends PDO {
         return $result;
     }
 }
-class Version3Install extends PDO {
+class StopBeforeMigration extends PDO {
+    public string $statementPrefix;
     public function exec(string $statement): int|false {
-        if (str_starts_with($statement,'ALTER TABLE asteriskcdrdb.voice_agent_run_events MODIFY COLUMN')) {
-            throw new RuntimeException('stopped_at_version_3');
+        if (str_starts_with($statement,$this->statementPrefix)) {
+            throw new RuntimeException('stopped_before_migration');
         }
         return parent::exec($statement);
     }
 }
 fresh($db);
-try { Schema::install(new Version3Install($dsn,'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION])); assert(false); }
-catch (RuntimeException $e) { assert($e->getMessage()==='stopped_at_version_3'); }
+$before=new StopBeforeMigration($dsn,'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+$before->statementPrefix='ALTER TABLE asteriskcdrdb.voice_agent_run_events MODIFY COLUMN';
+try { Schema::install($before); assert(false); }
+catch (RuntimeException $e) { assert($e->getMessage()==='stopped_before_migration'); }
 assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===3);
 $eventType="SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='asteriskcdrdb' AND TABLE_NAME='voice_agent_run_events' AND COLUMN_NAME='event_type'";
 assert(!str_contains($db->query($eventType)->fetchColumn(),'provider_warning'));
 Schema::install($db);
 assert(str_contains($db->query($eventType)->fetchColumn(),'provider_warning'));
+fresh($db);
+$before->statementPrefix='ALTER TABLE asterisk.voice_agent_bindings ADD COLUMN IF NOT EXISTS runtime_secrets_encrypted';
+try { Schema::install($before); assert(false); }
+catch (RuntimeException $e) { assert($e->getMessage()==='stopped_before_migration'); }
+assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===4);
+require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/SecretStore.php';
+putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-migration-key');
+$store=new \NethVoice\Agents\SecretStore();
+$credentials=['api_key'=>'synthetic-api-key','webhook_secret'=>'synthetic-signing-secret',
+    'sip_password'=>'synthetic-sip-password','openai_webhook'=>['state'=>'manual']];
+$private=$store->encryptSecret(json_encode($credentials,JSON_THROW_ON_ERROR));
+$insert=$db->prepare("INSERT INTO asterisk.voice_agent_bindings (binding_id,name,provider,settings_json,secrets_encrypted,sync_status) VALUES (?,'Migration fixture','openai',?,?,'synced')");
+$insert->execute(['trunk_migration','{}',$private]);
+$insert->execute(['trunk_external','{"execution":"cleverai"}','']);
+putenv('SATELLITE_AGENT_CONFIG_KEY');
+try { Schema::install($db); assert(false); }
+catch (RuntimeException $e) { assert($e->getMessage()==='encryption_unavailable'); }
+assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===4);
+assert($db->query('SELECT secrets_encrypted FROM asterisk.voice_agent_runtime_bindings')->fetchColumn()===$private);
+putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-migration-key');
+Schema::install($db);
+$projection=$db->query('SELECT binding_id,secrets_encrypted FROM asterisk.voice_agent_runtime_bindings')->fetchAll(PDO::FETCH_ASSOC);
+assert(count($projection)===1 && $projection[0]['binding_id']==='trunk_migration');
+assert(json_decode($store->decryptSecret($projection[0]['secrets_encrypted']),true)===array_slice($credentials,0,2));
+assert($db->query("SELECT secrets_encrypted FROM asterisk.voice_agent_bindings WHERE binding_id='trunk_migration'")->fetchColumn()===$private);
+Schema::install($db);
+assert($db->query('SELECT secrets_encrypted FROM asterisk.voice_agent_runtime_bindings')->fetchColumn()===$projection[0]['secrets_encrypted']);
 foreach ([1,2,4,9,15,20,27,33] as $boundary) {
     fresh($db);
     $interrupted=new InterruptedInstall($dsn,'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
@@ -60,7 +90,7 @@ foreach ([1,2,4,9,15,20,27,33] as $boundary) {
     catch (RuntimeException $e) { assert($e->getMessage()==='simulated_interruption'); }
     unset($interrupted);
     Schema::install($db);Schema::install($db);
-    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===4);
+    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===5);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_agents')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_drafts')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_versions')->fetchColumn()===0);
