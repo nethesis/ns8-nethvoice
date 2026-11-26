@@ -103,6 +103,7 @@
                 v-if="applyStatus !== 'applied'"
                 :kind="applyStatus === 'failed' ? 'error' : 'info'"
                 :title="$t('integrations.apply_' + applyStatus)"
+                :description="applyErrorDescription"
                 :showCloseButton="false"
               />
               <NsButton
@@ -310,6 +311,7 @@ export default {
       savedOpenaiKey: false,
       voiceAgentEnabled: false,
       applyStatus: "applied",
+      applyError: null,
       inheritedAgents: [],
       isCallTranscriptionEnabled: false,
       isVoicemailTranscriptionEnabled: false,
@@ -347,6 +349,15 @@ export default {
     },
     hasOpenaiApiKey() {
       return !!this.openaiApiKey;
+    },
+    applyErrorDescription() {
+      if (this.applyStatus !== "failed") {
+        return "";
+      }
+      const key = "integrations.apply_error_" + this.applyError;
+      return this.$te(key)
+        ? this.$t(key)
+        : this.$t("integrations.apply_error_apply_failed");
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -414,6 +425,7 @@ export default {
       const integrations = taskResult.output;
       this.loading[loadingField] = false;
       this.applyStatus = integrations.satellite_apply_status || "applied";
+      this.applyError = integrations.satellite_apply_error || null;
       if (loadingField === "refreshApplyStatus") {
         return;
       }

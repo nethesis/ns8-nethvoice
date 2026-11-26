@@ -40,7 +40,7 @@ def installation(tmp_path, monkeypatch):
     def command(args, **kwargs):
         args = list(args)
         calls.append(args)
-        rc, output = 0, b''
+        rc, output, stderr = 0, b'', None
         if args[:2] == ['systemctl', '--user']:
             if args[2] == 'is-active':
                 rc = 0 if args[-1] in units else 3
@@ -59,8 +59,9 @@ def installation(tmp_path, monkeypatch):
         elif args[-1] == 'voice_agent.drain':
             rc = 75 if state.busy else 0
         elif args[-1].endswith('install-runtime.php'):
-            rc = int(state.reject)
-        result = subprocess.CompletedProcess(args, rc, output)
+            rc = int(bool(state.reject))
+            stderr = state.reject if isinstance(state.reject, bytes) else None
+        result = subprocess.CompletedProcess(args, rc, output, stderr)
         if kwargs.get('check'):
             result.check_returncode()
         return result
@@ -167,3 +168,52 @@ def test_satellite_readiness_failure_keeps_the_candidate_disabled(installation, 
     assert not Path('voice-preview/enabled').exists()
     assert not Path('voice-preview/effective.env').exists()
     assert json.loads(Path('satellite-applied.json').read_text())['applying']
+
+
+@pytest.mark.parametrize('failure,reason', [
+    ('ports', 'port_allocation_failed'),
+    (b'unsupported_development_database\n', 'unsupported_development_database'),
+    (b'runtime_initialization_failed\n', 'runtime_initialization_failed'),
+    (b'PHP Fatal error: synthetic-secret\n', 'apply_failed'),
+    ('ready', 'voice_agent_runtime_not_ready'),
+    ('other', 'apply_failed')])
+def test_failed_apply_records_a_stable_reason(installation, monkeypatch, capsys, failure, reason):
+    s = installation
+    s.env['VOICE_AGENT_ENABLED'] = 'true'
+    if failure == 'ports':
+        s.env['TCP_PORTS_RANGE'] = ''
+        monkeypatch.setattr(sys.modules['agent'], 'allocate_ports',
+                            lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError('max_ports_exceeded')), raising=False)
+    elif failure in ('ready', 'other'):
+        message = 'voice_agent_runtime_not_ready' if failure == 'ready' else 'synthetic-secret'
+        monkeypatch.setitem(s.apply.__globals__, 'wait_for_agents',
+                            lambda port, token: (_ for _ in ()).throw(RuntimeError(message)))
+    else:
+        s.reject = failure
+    main = s.apply.__globals__['main']
+    Path('satellite-apply.pending').touch()
+    with pytest.raises(Exception):
+        main()
+    assert Path('satellite-apply.failed').read_text() == reason + '\n'
+    assert not Path('satellite-apply.running').exists()
+    capsys.readouterr()
+    runpy.run_path(str(ROOT / 'actions/get-integrations/20read'))
+    output = json.loads(capsys.readouterr().out)
+    assert output['satellite_apply_status'] == 'failed' and output['satellite_apply_error'] == reason
+    assert 'secret' not in json.dumps(output['satellite_apply_error'])
+    s.reject = False
+    monkeypatch.setitem(s.apply.__globals__, 'wait_for_agents', lambda port, token: None)
+    s.env['TCP_PORTS_RANGE'] = '30000-30045'
+    Path('satellite-apply.pending').touch()
+    main()
+    assert not Path('satellite-apply.failed').exists()
+    runpy.run_path(str(ROOT / 'actions/get-integrations/20read'))
+    output = json.loads(capsys.readouterr().out)
+    assert output['satellite_apply_status'] == 'applied' and output['satellite_apply_error'] is None
+
+
+def test_legacy_empty_failure_flag_is_reported_generically(installation, capsys):
+    Path('satellite-apply.failed').touch()
+    runpy.run_path(str(ROOT / 'actions/get-integrations/20read'))
+    output = json.loads(capsys.readouterr().out)
+    assert output['satellite_apply_status'] == 'failed' and output['satellite_apply_error'] == 'apply_failed'

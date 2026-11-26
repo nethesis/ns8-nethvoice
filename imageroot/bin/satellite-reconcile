@@ -28,6 +28,9 @@ FLAGS = ('SATELLITE_CALL_TRANSCRIPTION_ENABLED', 'SATELLITE_VOICEMAIL_TRANSCRIPT
          'SATELLITE_CALL_SUMMARY_ENABLED')
 SECRET_KEYS = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOICE_AGENT_MONITOR_PASSWORD',
                'VOICE_AGENT_RUNTIME_TOKEN', 'VOICE_AGENT_RECIPIENT_TOKEN', 'VOICE_AGENT_CHAT_TOKEN')
+# Stable reasons stored in FAILED; anything else is recorded as apply_failed.
+INSTALL_ERRORS = ('unsupported_development_database', 'runtime_initialization_failed')
+APPLY_ERRORS = ('port_allocation_failed', 'voice_agent_runtime_not_ready') + INSTALL_ERRORS
 
 
 def run(*args, **kwargs):
@@ -99,7 +102,11 @@ def apply(*, transcription_only=False):
     needed = agents or transcription
     passwords = agent.read_envfile('passwords.env')
     if agents:
-        allocate_agent_ports(env)
+        try:
+            allocate_agent_ports(env)
+        except Exception as error:
+            error.apply_error = 'port_allocation_failed'
+            raise
     settings = {'VOICE_AGENT_ENABLED': str(agents).lower(), 'VOICE_AGENT_SIP_LAB_ENABLED': str(sip).lower()}
     if agents:
         settings.update({name: passwords[name] for name in SECRET_KEYS})
@@ -152,8 +159,12 @@ def apply(*, transcription_only=False):
         if agents:
             try:
                 run('podman', 'exec', '--env', 'VOICE_AGENT_SETTINGS_FILE=/run/nethvoice-preview/candidate.env',
-                    'freepbx', 'php', '/var/www/html/freepbx/rest/lib/agents/install-runtime.php')
-            except subprocess.CalledProcessError:
+                    'freepbx', 'php', '/var/www/html/freepbx/rest/lib/agents/install-runtime.php', stderr=subprocess.PIPE)
+            except subprocess.CalledProcessError as error:
+                reason = (error.stderr or b'').decode(errors='replace').strip()
+                if reason:
+                    print(reason, file=sys.stderr)
+                error.apply_error = reason if reason in INSTALL_ERRORS else None
                 # On first setup a rejected Agents schema must not prevent transcription startup.
                 if transcription and not running:
                     apply(transcription_only=True)
@@ -224,8 +235,10 @@ def main():
         while not apply():
             time.sleep(5)
         FAILED.unlink(missing_ok=True)
-    except Exception:
-        FAILED.touch(mode=0o600)
+    except Exception as error:
+        # Existence still means failed; the content is only a stable reason code.
+        reason = getattr(error, 'apply_error', None) or (error.args[0] if error.args else None)
+        FAILED.write_text((reason if reason in APPLY_ERRORS else 'apply_failed') + '\n')
         raise
     finally:
         RUNNING.unlink(missing_ok=True)
