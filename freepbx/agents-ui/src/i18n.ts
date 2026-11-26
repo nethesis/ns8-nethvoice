@@ -1108,7 +1108,10 @@ const en = {
       channels: "Consult the colleague by",
       phone: "Phone call",
       chat: "Chat message",
-      chatHelp: "The assistant needs a chat model ID or GPT Live 1.",
+      chatHelp:
+        "Sends a message to the colleague in the NethVoice CTI chat. The colleague needs the chat permission of NethVoice CTI.",
+      chatNeedsModel:
+        "Not available: {name} has no text model for chat. Set its @:{'agentEditor.chatModel'}, or use GPT Live 1 as its voice model.",
     },
     errors: {
       name: "Enter a name",
@@ -2312,7 +2315,9 @@ const it: typeof en = {
       phone: "Telefonata",
       chat: "Messaggio in chat",
       chatHelp:
-        "L'assistente richiede un ID del modello per la chat o GPT Live 1.",
+        "Invia un messaggio al collega nella chat di NethVoice CTI. Il collega deve avere il permesso chat di NethVoice CTI.",
+      chatNeedsModel:
+        "Non disponibile: {name} non ha un modello di testo per la chat. Imposta il suo @:{'agentEditor.chatModel'} o usa GPT Live 1 come modello vocale.",
     },
     errors: {
       name: "Inserisci un nome",

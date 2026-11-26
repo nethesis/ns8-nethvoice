@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { drawer, flip, mockApi, profile } from "./agentsMock";
+import { consultationDraft, drawer, flip, mockApi, profile } from "./agentsMock";
 
 const text = {
   en: { transfer: "Transfer calls", attended: /Consult before connecting/, single: "Colleagues are consulted by Private assistant.", save: "Save draft" },
@@ -50,4 +50,28 @@ test("internal assistant has its own configuration and no public PBX tools", asy
   await page.locator("main table").getByRole("link", { name: "Private assistant", exact: true }).click();
   await expect(page.getByText(/It handles private consultations only/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Tools", exact: true })).toHaveCount(0);
+});
+
+test("chat consultation follows the model of the published assistant", async ({ page }) => {
+  const published = (model: string, chat_model: string | null) => ({ ...consultationDraft(), workflow_version: 1, chat_model, conversation: { ...consultationDraft().conversation, model } });
+  const assistant = profile({ agent_id: "internal", name: "Private assistant", agent_type: "consultation", kind: "custom", workflow_version: 1, enabled: true, published: published("gpt-live-1", null) });
+  const mock = await mockApi(page, { assistants: [{ agent_id: "internal", name: "Private assistant", workflow_version: 1 }], profiles: { receptionist: profile(), internal: assistant } });
+  await page.goto("./#/agents/receptionist");
+  await page.getByRole("radio", { name: /Consult before connecting/ }).check();
+  const chat = page.getByRole("checkbox", { name: "Chat message", exact: true });
+  // GPT Live 1 answers the chat with its text model.
+  await expect(chat).toBeEnabled();
+  await expect(page.getByText(/Sends a message to the colleague in the NethVoice CTI chat/)).toBeVisible();
+  await expect(page.getByText(/needs a chat model ID or GPT Live 1/)).toHaveCount(0);
+  // A SIP Realtime assistant without a chat model cannot.
+  mock.profiles.internal = { ...assistant, published: published("gpt-realtime-2.1", null) };
+  await page.reload();
+  await page.getByRole("radio", { name: /Consult before connecting/ }).check();
+  await expect(chat).toBeDisabled();
+  await expect(page.getByText("Not available: Private assistant has no text model for chat. Set its Chat model ID, or use GPT Live 1 as its voice model.")).toBeVisible();
+  // With a chat model it can.
+  mock.profiles.internal = { ...assistant, published: published("gpt-realtime-2.1", "synthetic-text-model") };
+  await page.reload();
+  await page.getByRole("radio", { name: /Consult before connecting/ }).check();
+  await expect(chat).toBeEnabled();
 });

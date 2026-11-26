@@ -34,6 +34,27 @@ const unpublished = computed(() =>
     (item) => item.agent_type === "consultation" && !item.workflow_version,
   ),
 );
+// The service answers a chat consultation with the chat model of the
+// published assistant, or with the text model of GPT Live 1. Unknown
+// while the agents load: then the option stays available.
+const assistantRecord = computed(() =>
+  (props.agents || []).find((item) => item.agent_id === selected.value),
+);
+const chatModelMissing = computed(() => {
+  const published = assistantRecord.value?.published;
+  return (
+    !!published &&
+    !published.chat_model &&
+    published.conversation?.model !== "gpt-live-1"
+  );
+});
+const chatDescription = computed(() =>
+  chatModelMissing.value
+    ? t("agentEditor.consultation.chatNeedsModel", {
+        name: assistantRecord.value?.name,
+      })
+    : t("agentEditor.consultation.chatHelp"),
+);
 function setMode(value: string) {
   form.clearError("consultation");
   if (mode.value === value) return;
@@ -165,10 +186,9 @@ function openAssistant() {
           id="consult-chat"
           :model-value="consultation.chat"
           :label="t('agentEditor.consultation.chat')"
+          :disabled="chatModelMissing && !consultation.chat"
           @update:model-value="setChannel('chat', $event)"
-          ><template #description>{{
-            t("agentEditor.consultation.chatHelp")
-          }}</template></NeCheckbox
+          ><template #description>{{ chatDescription }}</template></NeCheckbox
         >
       </fieldset>
       <p
