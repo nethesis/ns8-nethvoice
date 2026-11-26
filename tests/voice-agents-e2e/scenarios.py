@@ -62,7 +62,7 @@ NO_CONFIRMATION_QUESTION = r"(?s)^(?!.*\b(?:conferm[ai]|confermate|posso|vuoi ch
 # Every name here is dispatched below. The second transport repeats its riskiest handoffs.
 BOTH = ("conversation", "name", "callback", "attended-accept", "chat-dnd", "voicemail-yes", "voicemail-no")
 FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "silence", "long-conversation", "activity-numbers", "debug-transcript", "queue",
-        "denied", "denied-queue", "unknown", "ambiguous", "callback-empty",
+        "denied", "denied-queue", "unknown", "ambiguous", "inferred", "callback-empty",
         "callback-excluded", "callback-multiple", "callback-inbound", "callback-other-caller",
         "attended-decline", "attended-question", "chat-busy", "chat-no-answer",
         "chat-expired", "publication", "deadline", "fallback")
@@ -257,6 +257,16 @@ class Call:
             self.evidence.append(label)
         self.pending.clear()
 
+    def wait_for_named_recipient(self, cursor, label):
+        try:
+            self.peer.wait("RINGING", 40)
+        except MediaError as error:
+            observed = " ".join(self.speech.transcribe(self.caller.received(cursor), self.language).split())
+            if observed:
+                raise AssertionError(f"Named recipient did not ring. The caller heard {observed[-240:]!r}") from error
+            raise
+        self.evidence.append(label)
+
     def play(self, phone, key):
         phone.play(self.clips[key])
         self.evidence.append("played " + key)
@@ -337,12 +347,12 @@ class Call:
 
     def transferred(self):
         self.exchange(self.peer)
-        if self.case in ("name", "queue") or self.case.startswith("callback"):
+        if self.case in ("name", "queue", "inferred") or self.case.startswith("callback"):
             caller = self.history.name if self.case.startswith("callback") else self.number("caller")
             require(self.lab.bridge(caller, self.number("colleague")), "Missing native bridge between fixture legs")
             self.evidence.append("native basic bridge contained caller and recipient")
         row = self.outcome("transferred")
-        if self.case in ("name", "queue"):
+        if self.case in ("name", "queue", "inferred"):
             target = ("queue:" + self.fixture["queue"] if self.case == "queue"
                       else "extension:" + self.number("colleague"))
             events = self.lab.trace(row["run_id"], self.transport)["events"]
@@ -434,11 +444,17 @@ class Call:
         counts = {role: phone.incoming for role, phone in self.phones.items()}
         start = self.caller.mark()
         self.play(self.caller, case.replace("-", "_"))
-        if case in ("name", "queue"):
+        if case in ("name", "queue", "inferred"):
             if case == "name":
-                self.peer.wait("RINGING", 40)
-                self.evidence.append("named recipient rang without a second caller confirmation")
+                self.wait_for_named_recipient(start, "named recipient rang without a second caller confirmation")
                 self.expect(self.caller.received(start), NO_CONFIRMATION_QUESTION, "no repeated confirmation request")
+            elif case == "inferred":
+                self.hear_until(self.caller, start, rf"(?s)(?=.*{COLLEAGUE_NAME})(?=.*{CALLBACK_SELECTION})",
+                                "caller heard a confirmation request for the single inferred recipient", timeout=30)
+                require(all(phone.incoming == counts[role] for role, phone in self.phones.items()),
+                        "A fixture endpoint rang before the caller agreed to the inferred recipient")
+                self.play(self.caller, "confirm_inferred")
+                self.peer.wait("RINGING", 40)
             else:
                 self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), start, r"\b(?:assistenza|collaudo|coda)\b")
             self.answer_ringing_peer(self.peer)
@@ -528,15 +544,15 @@ class Call:
             self.recipient_alternative(held)
             return
         if case == "attended-accept":
-            self.peer.wait("RINGING", 40)
-            self.evidence.append("named private consultation rang without a second caller confirmation")
+            self.wait_for_named_recipient(held, "named private consultation rang without a second caller confirmation")
         else:
             self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), held)
         mark = self.answer_ringing_peer(self.peer)
         self.hear_until(self.peer, mark, Phrase("consegna del pianoforte"),
                         "private call reason reached colleague", timeout=20)
         # A colleague-only token tests isolation without asking the agent to invent an opening detail.
-        self.play(self.peer, "private")
+        if case != "attended-accept":
+            self.play(self.peer, "private")
         if case == "attended-question":
             mark = self.caller.mark()
             self.play(self.peer, "question")
@@ -549,7 +565,8 @@ class Call:
             self.expect(caller_audio, NO_CONFIRMATION_QUESTION, "no repeated confirmation request before the private call")
         self.expect(caller_audio, r"attend|attes|colleg|contatt|verific|giulia|linea",
                     "audible consultation announcement on caller leg")
-        self.expect(caller_audio, r"(?s)^(?!.*zafferano).+$", "private marker stayed off caller leg")
+        if case != "attended-accept":
+            self.expect(caller_audio, r"(?s)^(?!.*zafferano).+$", "private marker stayed off caller leg")
         if case == "attended-decline":
             mark = self.caller.mark()
             self.play(self.peer, "decline")
@@ -557,8 +574,10 @@ class Call:
             self.hear_until(self.caller, mark, Phrase("richiamare venerdi"), "attributed refusal message", timeout=15)
             self.finish()
         else:
-            self.play(self.peer, "accept")
+            self.play(self.peer, "accept_private" if case == "attended-accept" else "accept")
             self.outcome("transferred")
+            if case == "attended-accept":
+                self.expect(self.caller.received(held), r"(?s)^(?!.*zafferano).+$", "private marker stayed off caller leg")
             if case == "restart-after-transfer":
                 self.lab.restart_satellite()
             self.exchange(self.peer)
@@ -699,7 +718,7 @@ class Call:
                     break
                 require(time.monotonic() < deadline, "Missing caller or assistant debug transcript")
                 time.sleep(0.4)
-        elif case in ("name", "queue", "denied", "denied-queue", "unknown", "ambiguous"):
+        elif case in ("name", "queue", "denied", "denied-queue", "unknown", "ambiguous", "inferred"):
             self.routing()
         elif case.startswith("callback"):
             self.callback()

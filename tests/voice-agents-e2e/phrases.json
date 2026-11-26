@@ -31,6 +31,10 @@
     "text": "Mi passa la persona del collaudo? Non ricordo il nome.",
     "model": "aura-2-cesare-it"
   },
+  "inferred": {
+    "text": "Vorrei parlare con la responsabile delle spedizioni.",
+    "model": "aura-2-cesare-it"
+  },
   "unknown": {
     "text": "Vorrei parlare con Zeno Fantasia, per favore.",
     "model": "aura-2-cesare-it"
@@ -43,6 +47,10 @@
     "text": "Sì, confermo. Mi metta in contatto con Giulia Ferri.",
     "model": "aura-2-cesare-it"
   },
+  "confirm_inferred": {
+    "text": "Sì, confermo.",
+    "model": "aura-2-cesare-it"
+  },
   "confirm_queue": {
     "text": "Sì, confermo. Mi passi la coda Assistenza Collaudo, per favore.",
     "model": "aura-2-cesare-it"
@@ -53,6 +61,10 @@
   },
   "accept": {
     "text": "Sì, accetto. Passami la chiamata.",
+    "model": "aura-2-cinzia-it"
+  },
+  "accept_private": {
+    "text": "Con la parola privata zafferano, accetto la chiamata.",
     "model": "aura-2-cinzia-it"
   },
   "decline": {
