@@ -6,10 +6,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 
@@ -84,9 +82,7 @@ func main() {
 	})
 
 	// Create router
-	screenShareRooms := methods.NewScreenShareRooms(db.GetDBContext, os.Getenv("JANUS_TRANSPORT_PORT"), os.Getenv("JANUS_ADMIN_SECRET"))
-	go screenShareRooms.Reconcile(context.Background())
-	router := createRouter(screenShareRooms)
+	router := createRouter()
 
 	// Create cron to run daily
 	c := cron.New()
@@ -97,7 +93,7 @@ func main() {
 	router.Run(configuration.Config.ListenAddress)
 }
 
-func createRouter(screenShareRooms *methods.ScreenShareRooms) *gin.Engine {
+func createRouter() *gin.Engine {
 	// Disable log to stdout when running in release mode
 	if gin.Mode() == gin.ReleaseMode {
 		gin.DefaultWriter = io.Discard
@@ -181,8 +177,6 @@ func createRouter(screenShareRooms *methods.ScreenShareRooms) *gin.Engine {
 	// Authentication required endpoints
 	api.Use(middleware.InstanceJWT().MiddlewareFunc())
 	{
-		api.POST(methods.ScreenShareRoomsPath, middleware.BodyLimit(4<<10), screenShareRooms.Create)
-
 		// Transcription
 		api.GET("/transcripts/:uniqueid", middleware.RequireCapabilities("nethvoice_cti.satellite_stt"), methods.GetTranscriptionByUniqueID)
 

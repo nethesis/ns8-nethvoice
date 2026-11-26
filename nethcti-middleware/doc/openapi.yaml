@@ -593,57 +593,6 @@ components:
           description: Last centralized-phonebook sync timestamp (RFC3339), or null.
 
 paths:
-  /screen-sharing/rooms:
-    post:
-      summary: Create a screen-sharing room
-      description: >
-        Requires both nethvoice_cti and nethvoice_cti.screen_sharing
-        on the current profile and a connected call on an owned extension.
-        Start the publisher join within 30 seconds of sending this request.
-      operationId: createScreenSharingRoom
-      tags:
-        - Screen sharing
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              required: [conversationId]
-              properties:
-                conversationId:
-                  type: string
-                  minLength: 1
-                  description: Opaque conversation identifier from NethCTI.
-      responses:
-        '201':
-          description: Room created
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: false
-                required: [room]
-                properties:
-                  room:
-                    type: integer
-                    format: int64
-                    minimum: 1
-                    maximum: 9007199254740991
-        '400':
-          description: Malformed request
-        '401':
-          description: Invalid or missing authentication
-        '403':
-          description: Missing screen-sharing permission
-        '404':
-          description: Connected conversation not found
-        '503':
-          description: Screen sharing is temporarily unavailable
-
   /login:
     post:
       summary: User login

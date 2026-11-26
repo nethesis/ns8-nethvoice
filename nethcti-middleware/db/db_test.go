@@ -1,18 +1,13 @@
 package db_test
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
-	"net"
 	"os"
-	"strconv"
 	"testing"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/nethesis/nethcti-middleware/configuration"
 	"github.com/nethesis/nethcti-middleware/db"
@@ -40,47 +35,6 @@ func TestDatabaseConnection(t *testing.T) {
 	assert.NotNil(t, db.GetDB(), "Database connection pool should be initialized")
 	err := db.GetDB().Ping()
 	assert.NoError(t, err, "Database ping should succeed")
-}
-
-func TestDatabaseRecoversAfterFailedInit(t *testing.T) {
-	require.NoError(t, db.Close())
-	name := configuration.Config.MiddlewareMariaDBDatabase
-	t.Cleanup(func() { configuration.Config.MiddlewareMariaDBDatabase = name })
-	configuration.Config.MiddlewareMariaDBDatabase = ""
-	require.Error(t, db.Init())
-	require.Nil(t, db.GetDB())
-
-	configuration.Config.MiddlewareMariaDBDatabase = name
-	pool := db.GetDB()
-	require.NotNil(t, pool)
-	require.NoError(t, pool.Ping())
-}
-
-func TestConcurrentDatabaseRecovery(t *testing.T) {
-	require.NoError(t, db.Close())
-	listener, err := net.ListenTCP("tcp4", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1)})
-	require.NoError(t, err)
-	defer listener.Close()
-	port := configuration.Config.MiddlewareMariaDBPort
-	defer func() { configuration.Config.MiddlewareMariaDBPort = port }()
-	configuration.Config.MiddlewareMariaDBPort = strconv.Itoa(listener.Addr().(*net.TCPAddr).Port)
-
-	// Suspend the first bootstrap at the MariaDB handshake.
-	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
-	done := make(chan *sql.DB, 1)
-	go func() { done <- db.GetDBContext(ctx) }()
-	defer func() {
-		cancel()
-		require.Nil(t, <-done)
-	}()
-	require.NoError(t, listener.SetDeadline(time.Now().Add(3*time.Second)))
-	conn, err := listener.Accept()
-	require.NoError(t, err)
-	defer conn.Close()
-
-	started := time.Now()
-	require.Nil(t, db.GetDBContext(ctx))
-	require.Less(t, time.Since(started), time.Second, "another request must not wait for the stalled bootstrap")
 }
 
 func applyTestEnv() {

@@ -3,7 +3,6 @@ declare module '@nethesis/phone-island' {
     dataConfig: string;
     uaType: 'desktop' | 'mobile';
     preferredSummaryExtensionType?: 'webrtc';
-    screenShareRoomCreation?: 'direct' | 'middleware';
   }
 
   export const PhoneIsland: React.FC<PhoneIslandProps>;

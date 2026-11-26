@@ -160,7 +160,7 @@ func InitJWT() *jwt.GinJWTMiddleware {
 			// handle identity and extract claims
 			claims := jwt.ExtractClaims(c)
 
-			username, _ := claims[identityKey].(string)
+			username := claims[identityKey].(string)
 
 			// return username
 			return username
@@ -168,21 +168,15 @@ func InitJWT() *jwt.GinJWTMiddleware {
 		Authorizer: func(c *gin.Context, data any) bool {
 			// Extract claims and session info
 			claims := jwt.ExtractClaims(c)
-			username, _ := claims[identityKey].(string)
+			username := claims[identityKey].(string)
 
 			reqMethod := c.Request.Method
 			// path only: the query string may carry the token (?jwt=)
 			reqURI := c.Request.URL.Path
-			screenShareRoute := c.FullPath() == methods.ScreenShareRoomsPath
-			authHeader := c.GetHeader("Authorization")
-			JWTToken := strings.TrimPrefix(authHeader, "Bearer ")
-			// Match the checked session token to the Bearer token whose claims were validated.
-			if screenShareRoute && (JWTToken == authHeader || JWTToken == "" || JWTToken != jwt.GetToken(c)) {
-				return false
-			}
+			JWTToken := strings.TrimPrefix(c.GetHeader("Authorization"), "Bearer ")
 
 			// Check if session exists and token is valid
-			if username == "" || !store.SessionHasToken(username, JWTToken) {
+			if !store.SessionHasToken(username, JWTToken) {
 				logs.Log("[ERROR][AUTH] authorization failed for user " + username + " (session not found or invalid token). " + reqMethod + " " + reqURI)
 				return false
 			}
@@ -201,7 +195,7 @@ func InitJWT() *jwt.GinJWTMiddleware {
 			}
 
 			reqBody := ""
-			if !screenShareRoute && (reqMethod == "POST" || reqMethod == "PUT") {
+			if reqMethod == "POST" || reqMethod == "PUT" {
 				// extract body
 				var buf bytes.Buffer
 				tee := io.TeeReader(c.Request.Body, &buf)
@@ -232,7 +226,7 @@ func InitJWT() *jwt.GinJWTMiddleware {
 				reqBody = string(jsonOut)
 			}
 
-			logs.Log("[INFO][AUTH] authorization success for user " + username + ". " + reqMethod + " " + reqURI + " " + reqBody)
+			logs.Log("[INFO][AUTH] authorization success for user " + claims["id"].(string) + ". " + reqMethod + " " + reqURI + " " + reqBody)
 
 			return true
 		},
@@ -276,10 +270,6 @@ func InitJWT() *jwt.GinJWTMiddleware {
 			c.JSON(200, gin.H{"code": 200})
 		},
 		Unauthorized: func(c *gin.Context, code int, message string) {
-			if c.FullPath() == methods.ScreenShareRoomsPath {
-				code = http.StatusUnauthorized
-				message = "authentication required"
-			}
 			var data interface{}
 			if policy, ok := c.Get(passwordPolicyKey); ok {
 				// policy of the new password, for the expired password form

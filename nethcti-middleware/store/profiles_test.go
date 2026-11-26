@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 )
 
@@ -198,30 +197,6 @@ func TestReloadProfiles_PartialFailures(t *testing.T) {
 	}
 }
 
-func TestReloadNullRecords(t *testing.T) {
-	const current = `{"full":{"macro_permissions":{"nethvoice_cti":{"value":true}}}}`
-	profilesFile := writeTempFile(t, "profiles.json", current)
-	usersFile := writeTempFile(t, "users.json", `{"alice":{"profile_id":"full","endpoints":{"mainextension":{"100":{}}}}}`)
-	if err := InitProfiles(profilesFile, usersFile); err != nil {
-		t.Fatal(err)
-	}
-	for _, update := range []struct{ path, data string }{
-		{profilesFile, `{"full":null,"other":{"macro_permissions":{"unused":null,"also_unused":{"permissions":[null]}}}}`},
-		{usersFile, `{"alice":null}`},
-	} {
-		if err := os.WriteFile(update.path, []byte(update.data), 0600); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := ReloadProfiles(); err != nil {
-			t.Fatal(err)
-		}
-		caps, extensions, err := GetUserExtensionAccess("alice")
-		if err != nil || len(caps) != 0 || len(extensions) != 0 {
-			t.Fatalf("malformed record retained access: %v, %v, %v", caps, extensions, err)
-		}
-	}
-}
-
 func TestReloadProfiles_Concurrent(t *testing.T) {
 	// Prepare valid profiles and users
 	profilesJSON := `{
@@ -264,62 +239,6 @@ func TestReloadProfiles_Concurrent(t *testing.T) {
 	}
 
 	<-done
-}
-
-func TestReloadProfilesPublishesExtensionAccessTogether(t *testing.T) {
-	const disabled = `{"role":{"macro_permissions":{"nethvoice_cti":{"value":false}}}}`
-	const enabled = `{"role":{"macro_permissions":{"nethvoice_cti":{"value":true}}}}`
-	const oldUser = `{"alice":{"profile_id":"role","endpoints":{"extension":{"201":{}}}}}`
-	const newUser = `{"alice":{"profile_id":"role","endpoints":{"extension":{"202":{}}}}}`
-	profileFile := writeTempFile(t, "profiles.json", disabled)
-	usersFile := writeTempFile(t, "users.json", oldUser)
-	if err := InitProfiles(profileFile, usersFile); err != nil {
-		t.Fatal(err)
-	}
-
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		for i := 0; i < 100; i++ {
-			profile, user := enabled, newUser
-			if i%2 != 0 {
-				profile, user = disabled, oldUser
-			}
-			if err := os.WriteFile(profileFile, []byte(profile), 0600); err != nil {
-				t.Error(err)
-				return
-			}
-			if err := os.WriteFile(usersFile, []byte(user), 0600); err != nil {
-				t.Error(err)
-				return
-			}
-			if _, err := ReloadProfiles(); err != nil {
-				t.Error(err)
-				return
-			}
-		}
-	}()
-
-	for {
-		capabilities, extensions, err := GetUserExtensionAccess("alice")
-		if err != nil {
-			<-done
-			t.Fatal(err)
-		}
-		want := []string{"201"}
-		if capabilities["nethvoice_cti"] {
-			want = []string{"202"}
-		}
-		if !slices.Equal(extensions, want) {
-			<-done
-			t.Fatalf("profile and extension ownership came from different reloads: %v, %v", capabilities, extensions)
-		}
-		select {
-		case <-done:
-			return
-		default:
-		}
-	}
 }
 
 func TestInitProfiles_UsesEmbeddedDefaults(t *testing.T) {
@@ -368,7 +287,7 @@ func TestInitProfiles_UsesEmbeddedDefaults(t *testing.T) {
 func TestLoadProfiles_FallbackPopulatesProfiles(t *testing.T) {
 	// Call loadProfiles with a missing file path and verify profiles are populated
 	missing := filepath.Join(t.TempDir(), "no-such-file.json")
-	if _, _, err := loadProfiles(missing); err != nil {
+	if _, err := loadProfiles(missing); err != nil {
 		t.Fatalf("loadProfiles failed when falling back to embedded defaults: %v", err)
 	}
 

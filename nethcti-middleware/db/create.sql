@@ -63,11 +63,3 @@ CREATE TABLE IF NOT EXISTS user_nethlink (
 	os_release varchar(128) DEFAULT NULL,
 	arch varchar(32) DEFAULT NULL
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8mb3;
-
-CREATE TABLE IF NOT EXISTS screen_share_pending_rooms (
-	room_id BIGINT UNSIGNED NOT NULL,
-	marker CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
-	cleanup_at DATETIME(6) NOT NULL,
-	PRIMARY KEY (room_id),
-	KEY (cleanup_at)
-) ENGINE=InnoDB;
