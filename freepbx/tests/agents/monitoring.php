@@ -35,6 +35,11 @@ assert($cdrParams['display']==='cdr' && $cdrParams['action']==='cdr_record' && $
 assert($cdrParams['calldate']===$db->query("SELECT calldate FROM asteriskcdrdb.cdr WHERE uniqueid='native-42'")->fetchColumn());
 assert($detail['error_code']==='other' && !isset($detail['src'],$detail['dst'],$detail['linkedid']));
 $trace=$monitor->trace($id,[]); assert($trace['items']===[] && $trace['next_cursor']===null);
+$warning='99999999-9999-4999-a999-000000000999';
+$db->prepare("INSERT INTO asteriskcdrdb.voice_agent_run_events (event_id,run_id,event_type,provider_code,occurred_at) VALUES (?,?,'provider_warning','input_audio_rate_limit_exceeded',NOW(6))")->execute([$warning,$id]);
+$observed=$monitor->trace($id,[])['items'];
+assert(count($observed)===1 && $observed[0]['event_type']==='provider_warning' && $observed[0]['provider_code']==='input_audio_rate_limit_exceeded');
+$db->prepare('DELETE FROM asteriskcdrdb.voice_agent_run_events WHERE event_id=?')->execute([$warning]);
 assert($monitor->summary([])['coverage']['instrumented_runs']>=0);
 assert($monitor->health()['stale']===true);
 try { $monitor->trace($id,['cursor'=>'not-a-cursor']); assert(false); } catch (RuntimeException $e) { assert($e->getCode()===422); }

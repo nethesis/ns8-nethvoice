@@ -36,6 +36,22 @@ class InterruptedInstall extends PDO {
         return $result;
     }
 }
+class Version3Install extends PDO {
+    public function exec(string $statement): int|false {
+        if (str_starts_with($statement,'ALTER TABLE asteriskcdrdb.voice_agent_run_events MODIFY COLUMN')) {
+            throw new RuntimeException('stopped_at_version_3');
+        }
+        return parent::exec($statement);
+    }
+}
+fresh($db);
+try { Schema::install(new Version3Install($dsn,'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION])); assert(false); }
+catch (RuntimeException $e) { assert($e->getMessage()==='stopped_at_version_3'); }
+assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===3);
+$eventType="SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='asteriskcdrdb' AND TABLE_NAME='voice_agent_run_events' AND COLUMN_NAME='event_type'";
+assert(!str_contains($db->query($eventType)->fetchColumn(),'provider_warning'));
+Schema::install($db);
+assert(str_contains($db->query($eventType)->fetchColumn(),'provider_warning'));
 foreach ([1,2,4,9,15,20,27,33] as $boundary) {
     fresh($db);
     $interrupted=new InterruptedInstall($dsn,'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
@@ -44,7 +60,7 @@ foreach ([1,2,4,9,15,20,27,33] as $boundary) {
     catch (RuntimeException $e) { assert($e->getMessage()==='simulated_interruption'); }
     unset($interrupted);
     Schema::install($db);Schema::install($db);
-    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===3);
+    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===4);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_agents')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_drafts')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_versions')->fetchColumn()===0);

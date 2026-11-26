@@ -15,7 +15,7 @@ from collections import OrderedDict
 from collections.abc import AsyncIterator, Mapping
 from urllib.parse import quote, urlencode
 
-from ..telemetry import PROVIDER_CODES
+from ..telemetry import PROVIDER_CODES, safe_error
 
 import aiohttp
 
@@ -103,6 +103,7 @@ class _RealtimeAdapter:
         self._reader_task = None
         self._queue: asyncio.Queue[dict | None] = asyncio.Queue(maxsize=256)
         self._observation_queue = asyncio.Queue(maxsize=64)
+        self._provider_warning = None
         self._event_ready = asyncio.Event()
         self._condition = asyncio.Condition()
         self._pending: set[str] = set()
@@ -226,6 +227,9 @@ class _RealtimeAdapter:
 
     def drain_observations(self):
         result = []
+        if self._provider_warning is not None:
+            result.append(self._provider_warning)
+            self._provider_warning = None
         while not self._observation_queue.empty():
             event = self._observation_queue.get_nowait()
             if event.get('type') in ('usage', 'monitoring_gap', 'response_started'):
@@ -243,6 +247,9 @@ class _RealtimeAdapter:
                 if event is None:
                     return
                 yield event
+            elif self._provider_warning is not None:
+                warning, self._provider_warning = self._provider_warning, None
+                yield warning
             elif not self._observation_queue.empty():
                 yield self._observation_queue.get_nowait()
             else:
@@ -312,26 +319,33 @@ class _RealtimeAdapter:
             self._queue.put_nowait(event)
             self._event_ready.set()
         except asyncio.QueueFull:
-            raise ProviderError(f"{self.provider} event queue full")
+            raise ProviderError("provider_event_queue_full")
 
     async def _read_events(self) -> None:
         try:
             async for message in self._ws:
+                if message.type == aiohttp.WSMsgType.ERROR:
+                    if isinstance(message.data, Exception):
+                        raise message.data
+                    raise ProviderError('provider_sideband_error')
                 if message.type != aiohttp.WSMsgType.TEXT:
-                    if message.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
+                    if message.type == aiohttp.WSMsgType.CLOSED:
                         break
                     continue
-                try:
-                    raw = json.loads(message.data)
-                except json.JSONDecodeError:
-                    raise ProviderError(f"{self.provider} invalid event")
+                raw = json.loads(message.data)
                 if not isinstance(raw, dict):
                     continue
                 await self._handle(raw)
+            if (error := self._ws.exception()) is not None:
+                raise error
+            close_code = self._ws.close_code
+            if isinstance(close_code, int) and close_code not in (1000, 1001):
+                raise aiohttp.WebSocketError(close_code, '')
         except Exception as exc:
-            # The event carries only a generic code; keep the cause in the log.
-            LOG.warning("%s sideband read failed error_class=%s detail=%s", self.provider, type(exc).__name__,
-                        "".join(c if c.isascii() and c.isprintable() else " " for c in str(exc))[:120])
+            detail = safe_error(exc.args[0]) if isinstance(exc, ProviderError) and exc.args else 'other'
+            close_code = exc.code if isinstance(exc, aiohttp.WebSocketError) else self._ws.close_code
+            LOG.warning("%s sideband read failed error_class=%s detail=%s close_code=%s",
+                        self.provider, type(exc).__name__, detail, close_code)
             try:
                 await self._emit({"type": "error", "code": "provider_sideband_error"})
             except ProviderError:
@@ -493,7 +507,7 @@ class _RealtimeAdapter:
                     await self._tool_call(item, response_id)
             async with self._condition:
                 if len(self._done_responses) >= 4096:
-                    raise ProviderError(f"{self.provider} response capacity exceeded")
+                    raise ProviderError("provider_response_capacity_exceeded")
                 self._done_responses.add(response_id)
                 if response_id == self._response_id:
                     self._response_done = True
@@ -517,7 +531,7 @@ class _RealtimeAdapter:
             if invocation_id in self._seen_calls:
                 return
             if len(self._seen_calls) >= 4096:
-                raise ProviderError(f"{self.provider} invocation capacity exceeded")
+                raise ProviderError("provider_invocation_capacity_exceeded")
             self._seen_calls.add(invocation_id)
             self._pending.add(invocation_id)
             self._response_done = False

@@ -4,7 +4,7 @@ import base64
 import copy
 import json
 from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, MagicMock, Mock
 from types import SimpleNamespace
 import pytest
 from aiohttp import web
@@ -209,6 +209,8 @@ async def test_live_rejects_unadvertised_wire_tools_and_redacts_command_errors()
 @pytest.mark.asyncio
 async def test_live_input_rate_limit_is_not_fatal_and_other_errors_keep_their_code(caplog):
     async with connected() as (adapter,emulator):
+        for _ in range(adapter._observation_queue.maxsize):
+            await adapter._observation({'type': 'transcript'})
         dropped={'type':'error','error':{'type':'invalid_request_error','code':'input_audio_rate_limit_exceeded',
                  'message':'PRIVATE Input audio is arriving too quickly. This append was dropped.'}}
         for _ in range(3):
@@ -216,6 +218,9 @@ async def test_live_input_rate_limit_is_not_fatal_and_other_errors_keep_their_co
         await eventually(lambda:adapter._nonfatal_errors==3)
         assert not any(e.get('type') in ('error','closed') for e in list(adapter._queue._queue))
         assert caplog.text.count('input_audio_rate_limit_exceeded')==1 and 'PRIVATE' not in caplog.text
+        assert adapter.drain_observations() == [{
+            'type': 'provider_warning', 'provider_code': 'input_audio_rate_limit_exceeded'}]
+        assert 'provider_type=invalid_request_error' in caplog.text and 'detail=audio_append_dropped' in caplog.text
         await adapter.respond('Greet the caller now.')
         assert not adapter._closed and emulator.received[-1]['type']=='session.commentary.append'
         await emulator.ws.send_json({'type':'error','error':{'type':'invalid_request_error','code':'rate_limit_exceeded','message':'PRIVATE'}})
@@ -223,19 +228,33 @@ async def test_live_input_rate_limit_is_not_fatal_and_other_errors_keep_their_co
         error=next(e for e in list(adapter._queue._queue) if e.get('type')=='error')
         assert error=={'type':'error','code':'provider_live_error','provider_code':'rate_limit_exceeded'}
         assert 'provider_code=rate_limit_exceeded provider_type=invalid_request_error' in caplog.text
-        await adapter._handle({'type':'error','error':{'code':'PRIVATE caller text','type':None}})
+        await adapter._handle({'type':'error','error':{'code':'PRIVATE_caller_text','type':'PRIVATE_type'}})
         assert list(adapter._queue._queue)[-1]['provider_code']=='other'
         assert 'PRIVATE' not in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_sideband_read_failure_logs_its_cause(caplog):
+@pytest.mark.parametrize('bad_frame', [True, False])
+async def test_sideband_read_failure_logs_its_cause_without_provider_text(caplog, bad_frame):
     async with connected() as (adapter,emulator):
-        adapter._handle=AsyncMock(side_effect=ProviderError('missing\nfield'+'x'*200))
-        await emulator.ws.send_json({'type':'session.usage.updated'})
+        if bad_frame:
+            await emulator.ws.send_str('PRIVATE')
+        else:
+            await emulator.ws.close(code=1011, message=b'PRIVATE')
         await eventually(lambda:any(e and e.get('code')=='provider_sideband_error' for e in list(adapter._queue._queue)))
-        assert 'sideband read failed error_class=ProviderError detail=missing field' in caplog.text
-        assert 'x'*120 not in caplog.text
+        assert ('error_class=JSONDecodeError' if bad_frame else 'close_code=1011') in caplog.text
+        assert 'PRIVATE' not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_sideband_preserves_exception_recorded_on_socket_close(caplog):
+    adapter = OpenAILiveAdapter({'api_key': 'synthetic'})
+    adapter._ws = MagicMock(close_code=1006)
+    adapter._ws.exception.return_value = TimeoutError('PRIVATE')
+    await adapter._read_events()
+    assert (await anext(adapter.events()))['code'] == 'provider_sideband_error'
+    assert 'error_class=TimeoutError detail=other close_code=1006' in caplog.text
+    assert 'PRIVATE' not in caplog.text
 
 
 @pytest.mark.asyncio
@@ -350,6 +369,8 @@ async def test_live_runtime_uses_common_grants_and_confirmed_transfer_over_tcp()
         release_tool.set()
         await eventually(lambda:any(e['type']=='response.item.create' and e['item'].get('call_id')=='denied' for e in emulator.received))
         assert not call.terminal and not call.adapter._startup_error
+        warning = next(e for e in runtime.monitoring.queue._queue if e['event_type'] == 'provider_warning')
+        assert warning['provider_code'] == 'input_audio_rate_limit_exceeded' and warning['outcome'] is None
         controller.continue_channel.assert_not_awaited()
         async def acknowledge(channel,target):
             media.flush.assert_awaited()

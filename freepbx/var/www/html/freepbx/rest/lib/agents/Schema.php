@@ -40,6 +40,10 @@ final class Schema
                 $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_runtime_health ADD COLUMN IF NOT EXISTS invalid_webhook_signatures BIGINT UNSIGNED NOT NULL DEFAULT 0");
                 $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=3 WHERE singleton=1");
             }
+            if ($version<4) {
+                $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_run_events MODIFY COLUMN `event_type` enum('admitted','provider_connected','media_connected','response_completed','completed','fallback','failed','interrupted','tool_started','tool_completed','tool_failed','tool_denied','transfer_requested','transfer_committed','transfer_failed','transfer_uncertain','trace_started','trace_finished','trace_gap','usage_snapshot','provider_output','transcription_failed','consultation_announced','consultation_held','consultation_phone','consultation_phone_failed','consultation_chat','consultation_connecting','consultation_clarification','consultation_transferred','consultation_uncertain','consultation_replied','consultation_declined','consultation_unavailable','consultation_timed_out','consultation_cancelled','consultation_failed','consultation_recovery_failed','provider_warning') NOT NULL");
+                $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=4 WHERE singleton=1");
+            }
             self::directoryViews($db);
             RecentCallerViews::install($db);
         } finally {
@@ -58,7 +62,7 @@ final class Schema
         }
         $version=$db->query("SELECT schema_version FROM $marker WHERE singleton=1")->fetchColumn();
         if ($version===false && count($objects)===1) return 0; // Interrupted immediately after CREATE.
-        if ($version===false || !in_array((string)$version,['0','1','2','3'],true)) throw new \RuntimeException('unsupported_schema_version');
+        if ($version===false || !in_array((string)$version,['0','1','2','3','4'],true)) throw new \RuntimeException('unsupported_schema_version');
         return (int)$version;
     }
 

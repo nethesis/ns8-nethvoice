@@ -894,6 +894,9 @@ class Runtime:
         kind = event.get('type')
         if kind == 'usage':
             trace.usage(event.get('usage'), event.get('observation_key'))
+        elif kind == 'provider_warning':
+            self.monitoring.emit(call.run_id, 'provider_warning', provider_code=event.get('provider_code'),
+                                 elapsed_ms=trace.elapsed())
         elif kind == 'audio_started':
             trace.provider_output(event.get('_observed_at'))
         elif kind == 'audio_signal':

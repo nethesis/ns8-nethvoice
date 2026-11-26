@@ -23,11 +23,7 @@ COMMAND_ACK_TIMEOUT = 10
 # input append was dropped. Keep this explicit; every other error is fatal.
 NONFATAL_CODES = frozenset(("input_audio_rate_limit_exceeded",))
 NONFATAL_LOG_INTERVAL = 10
-
-
-def _token(value):
-    # Provider codes and types are identifiers; never log free provider text.
-    return value if isinstance(value, str) and 0 < len(value) <= 64 and value.replace("_", "").replace(".", "").isalnum() and value.isascii() else "other"
+ERROR_TYPES = ('invalid_request_error', 'rate_limit_error', 'server_error', 'authentication_error')
 
 
 class LiveAcknowledgmentTimeout(TimeoutError):
@@ -253,10 +249,17 @@ class OpenAILiveAdapter(_RealtimeAdapter):
 
     async def _handle(self, raw):
         kind = raw.get("type")
-        ack_id = raw.get("client_event_id") or (raw.get("error") or {}).get("client_event_id")
-        ack = self._acks.get(ack_id)
+        error = raw.get('error')
+        error = error if isinstance(error, dict) else {}
+        ack_id = raw.get("client_event_id") or error.get("client_event_id")
+        ack = self._acks.get(ack_id) if isinstance(ack_id, str) else None
+        code = error.get('code')
+        code = code if isinstance(code, str) and code in PROVIDER_CODES else 'other'
+        error_type = error.get('type')
+        error_type = error_type if error_type in ERROR_TYPES else 'other'
         if ack and not ack[1].done():
             if kind == "error":
+                LOG.warning("OpenAI Live command rejected provider_code=%s provider_type=%s", code, error_type)
                 ack[1].set_exception(ProviderError("openai live command rejected"))
                 # The command's caller owns recovery; a rejected announcement
                 # must not race a second, fatal session-wide fallback.
@@ -264,17 +267,19 @@ class OpenAILiveAdapter(_RealtimeAdapter):
             elif kind == ack[0]:
                 ack[1].set_result(None)
         if kind == "error":
-            error = raw.get("error") or {}
-            code = error.get("code")
             if code in NONFATAL_CODES:
                 self._nonfatal_errors += 1
+                if self._nonfatal_errors == 1:
+                    self._provider_warning = {'type': 'provider_warning', 'provider_code': code}
+                    self._event_ready.set()
                 now = time.monotonic()
                 if self._nonfatal_logged is None or now - self._nonfatal_logged >= NONFATAL_LOG_INTERVAL:
                     self._nonfatal_logged = now
-                    LOG.warning("OpenAI Live provider_code=%s count=%d session=continued", code, self._nonfatal_errors)
+                    LOG.warning("OpenAI Live provider_code=%s provider_type=%s count=%d detail=audio_append_dropped",
+                                code, error_type, self._nonfatal_errors)
                 return
-            LOG.warning("OpenAI Live error provider_code=%s provider_type=%s", _token(code), _token(error.get("type")))
-            await self._emit({"type": "error", "code": "provider_live_error", "provider_code": code if isinstance(code,str) and code in PROVIDER_CODES else "other"})
+            LOG.warning("OpenAI Live error provider_code=%s provider_type=%s", code, error_type)
+            await self._emit({"type": "error", "code": "provider_live_error", "provider_code": code})
         elif kind == "session.closed":
             await self._usage(raw.get("usage"), final=True)
             self._closed_event.set()
@@ -304,7 +309,7 @@ class OpenAILiveAdapter(_RealtimeAdapter):
             if response_id in self._responses:
                 return
             if len(self._responses) >= MAX_EVENTS:
-                raise ProviderError("openai live response capacity exceeded")
+                raise ProviderError("provider_response_capacity_exceeded")
             self._response_id = response_id
             self._responses[response_id] = {"generation": self._generation, "delegation_id": delegation_id,
                 "pending": set(), "done": False, "continued": False, "has_tools": False,
@@ -321,7 +326,7 @@ class OpenAILiveAdapter(_RealtimeAdapter):
             if not isinstance(invocation, str) or not 1 <= len(invocation) <= 128 or invocation in self._invocations:
                 return
             if len(self._invocations) >= MAX_EVENTS:
-                raise ProviderError("openai live invocation capacity exceeded")
+                raise ProviderError("provider_invocation_capacity_exceeded")
             self._invocations[invocation] = response_id
             record["pending"].add(invocation)
             record["has_tools"] = True
