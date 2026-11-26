@@ -6,7 +6,7 @@ import time
 
 import aiohttp
 
-from .live import OpenAILiveAdapter
+from .live import LiveAcknowledgmentTimeout, OpenAILiveAdapter
 from .realtime import ProviderError
 from ..media import AudioBuffer, FRAME_BYTES, MAX_AUDIO_BYTES
 
@@ -25,6 +25,7 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
     primary_audio = True
     greeting_timeout = 10.0
     greeting_confirmation = .2
+    private_greeting_activation_delay = 3.0
 
     def __init__(self, binding, *, session=None):
         super().__init__(binding, session=session)
@@ -113,6 +114,31 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
     async def respond(self, instructions=None, *, response_id=None):
         if response_id is not None:
             return await super().respond(instructions, response_id=response_id)
+        if not (self._profile or {}).get('_private_consultation'):
+            return await self._wait_for_greeting()
+        activation = asyncio.create_task(self._activate_private_greeting())
+        try:
+            await self._wait_for_greeting()
+        finally:
+            activation.cancel()
+            await asyncio.gather(activation, return_exceptions=True)
+
+    async def _activate_private_greeting(self):
+        # A silent recipient may leave the seeded opening dormant. Prompt once
+        # while there is still time to hear it before the normal watchdog.
+        await asyncio.sleep(self.private_greeting_activation_delay)
+        if (self._closed or self._closed_event.is_set() or self._greeting_played.is_set()
+                or self._signal_observed or 'playback' in self.startup_marks
+                or self._last_caller_voice is not None or 'activation' in self.startup_marks):
+            return
+        self.startup_marks['activation'] = time.monotonic()
+        try:
+            await super().respond()
+        except (ProviderError, LiveAcknowledgmentTimeout):
+            # Playback may still arrive from the opening supplied at startup.
+            pass
+
+    async def _wait_for_greeting(self):
         # session.start already requested the opening. The media writer confirms
         # playback even if the caller interrupted and the model answered instead.
         deadline = time.monotonic() + self.greeting_timeout

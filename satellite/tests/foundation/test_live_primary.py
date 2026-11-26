@@ -219,6 +219,47 @@ async def test_silent_or_buffered_output_does_not_confirm_greeting():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('playback', [True, False])
+async def test_silent_private_greeting_activates_once_within_playback_deadline(playback):
+    from test_live import PrimaryLiveEmulator
+    from test_provider_emulators import eventually
+
+    emulator = PrimaryLiveEmulator()
+    server = TestServer(emulator.app)
+    await server.start_server()
+    session = OpenAILiveWebSocketSession({'api_key': 'synthetic'})
+    session.ws_base = str(server.make_url('/v1/live/sessions')).replace('http:', 'ws:')
+    session.private_greeting_activation_delay = .02
+    session.greeting_timeout = .2
+    profile = {**snapshot('gpt-live-1')['conversation'], '_private_consultation': True,
+               '_opening_instructions': 'Explain the synthetic consultation reason, then ask for consent.'}
+    greeting = None
+    try:
+        await session.start(profile, [])
+        await session.send_audio(b'\xff' * 160)
+        greeting = asyncio.create_task(session.respond())
+        appends = lambda: [e for e in emulator.received if e['type'] == 'session.commentary.append']
+        await eventually(appends)
+        assert not greeting.done()
+        assert 'Explain the synthetic consultation reason' in appends()[0]['content']
+        if playback:
+            for _ in range(10):
+                session.audio_played(b'\x80' * 160)
+            await asyncio.wait_for(greeting, .5)
+        else:
+            with pytest.raises(TimeoutError):
+                await asyncio.wait_for(greeting, .5)
+        assert len(appends()) == 1
+        assert session.startup_marks['activation'] >= session.startup_marks['ready']
+    finally:
+        if greeting is not None:
+            greeting.cancel()
+            await asyncio.gather(greeting, return_exceptions=True)
+        await session.close()
+        await server.close()
+
+
+@pytest.mark.asyncio
 async def test_voice_at_deadline_can_finish_but_partial_voice_still_times_out():
     session = OpenAILiveWebSocketSession({'api_key': 'synthetic'})
     session.greeting_timeout = .02
