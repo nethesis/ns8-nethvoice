@@ -60,7 +60,7 @@ COLLEAGUE_NAME = r"\b(?:giulia|julia|ferri|ferry)\b"
 
 # Every name here is dispatched below. The second transport repeats its riskiest handoffs.
 BOTH = ("conversation", "name", "callback", "attended-accept", "chat-dnd", "voicemail-yes", "voicemail-no")
-FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "silence", "long-conversation", "queue",
+FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "silence", "long-conversation", "activity-numbers", "queue",
         "denied", "denied-queue", "unknown", "ambiguous", "callback-empty",
         "callback-excluded", "callback-multiple", "callback-inbound", "callback-other-caller",
         "attended-decline", "attended-question", "chat-busy", "chat-no-answer",
@@ -666,6 +666,14 @@ class Call:
         case = self.case
         if case in ("conversation", "english", "hangup-disabled", "barge-in", "silence", "long-conversation"):
             self.conversation()
+        elif case == "activity-numbers":
+            route = self.configure()
+            self.start(route)
+            row = self.finish()
+            for field, expected in (("caller_number", self.number("caller")), ("called_number", route)):
+                require(row[field] == expected, f"{field} does not match the fixture")
+                require(row["run_id"] in self.lab.search_activity(self.transport, expected), f"Activity search missed {field}")
+                self.evidence.append(f"Activity records and finds the synthetic {field}")
         elif case in ("name", "queue", "denied", "denied-queue", "unknown", "ambiguous"):
             self.routing()
         elif case.startswith("callback"):

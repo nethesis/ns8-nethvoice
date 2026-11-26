@@ -173,6 +173,9 @@ class Lab:
     def activity(self, transport):
         return self._php("runs", transport=transport)
 
+    def search_activity(self, transport, number):
+        return self._php("search_runs", transport=transport, term=number)
+
     def trace(self, run_id, transport):
         return self._php("trace", run_id=run_id, transport=transport)
 
