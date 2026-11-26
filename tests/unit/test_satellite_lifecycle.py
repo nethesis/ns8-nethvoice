@@ -10,6 +10,7 @@ import sys
 from types import SimpleNamespace
 
 import pytest
+from jsonschema import Draft7Validator
 
 ROOT = Path(__file__).resolve().parents[2] / 'imageroot'
 
@@ -392,6 +393,8 @@ def test_integrations_reports_preview_impact(installation, monkeypatch, capsys, 
     monkeypatch.setattr(subprocess, 'run', inventory_result)
     runpy.run_path(str(ROOT / 'actions/get-integrations/20read'))
     output = json.loads(capsys.readouterr().out)
+    schema = ROOT / 'actions/get-integrations/validate-output.json'
+    Draft7Validator(json.loads(schema.read_text())).validate(output)
     assert output['inherited_agents'] == names
     assert output['voice_agent_preview_impact'] == (None if old_image else impact)
 
