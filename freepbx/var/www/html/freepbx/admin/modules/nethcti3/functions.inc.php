@@ -202,8 +202,11 @@ function nethcti3_configure_forward_progress($ext) {
         error_log('NethCTI: Cannot find the Core call-forward return; skipping TIM progress hook');
         return;
     }
-    $ext->splice('macro-dial-one', 'cf', (string) $matches[0], new ext_answer(), 'nethvoice-cf-answer');
-    $ext->splice('macro-dial-one', 'cf', (string) ($matches[0] + 1), new ext_ringing());
+    // Only when the forward is applied (CFIGNORE empties DEXTEN) and never on Local channels: answering the
+    // Local leg of a queue member or ring group makes the caller look connected before the forward target answers.
+    $condition = '$["${DEXTEN}"!="" & "${CHANNEL(channeltype)}"!="Local"]';
+    $ext->splice('macro-dial-one', 'cf', (string) $matches[0], new ext_execif($condition, 'Answer'), 'nethvoice-cf-answer');
+    $ext->splice('macro-dial-one', 'cf', (string) ($matches[0] + 1), new ext_execif($condition, 'Ringing'));
 }
 
 /** Keep the transferer identity instead of the outbound CID on the consultation leg of DTMF/AMI attended transfers. */
