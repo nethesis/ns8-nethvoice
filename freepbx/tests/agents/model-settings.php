@@ -18,7 +18,9 @@ $native=new class {
     public function destination(string $id): string { return 'app-blackhole,hangup,1'; }
 };
 $keys=[];$available=['gpt-realtime-2.1','gpt-realtime-2','gpt-live-1','gpt-6-luna','gpt-6-sol'];
-$catalog=new ProviderCatalog(function($provider,$key) use (&$keys,&$available) {
+$discoveryError=null;
+$catalog=new ProviderCatalog(function($provider,$key) use (&$keys,&$available,&$discoveryError) {
+    if ($discoveryError!==null) throw new RuntimeException($discoveryError);
     $keys[]=$key;return ['data'=>array_map(fn($id)=>['id'=>$id],$available)];
 });
 $service=new Service($db,$native,$catalog);
@@ -60,10 +62,14 @@ ensure($native->reloads===$reloads,'conversation_only_does_not_reload');
 ensure($db->query("SELECT definition_json FROM asterisk.voice_agent_versions WHERE agent_id='$modelId' AND workflow_version=1")->fetchColumn()===$before,'publication_immutable');
 $bad=$draft;$bad['conversation']['options']['tools']=['arbitrary'];
 rejected(fn()=>$service->save($first['agent_id'],['name'=>$first['name'],'draft'=>$bad],$edited['revision'],'synthetic-admin'),'invalid_configuration');
-$available=[];
-rejected(fn()=>$service->publish($edited['agent_id'],$edited['revision'],'synthetic-admin'),'provider_model_unavailable');
+foreach (['provider_catalog_unavailable','provider_permission_denied'] as $error) {
+    $discoveryError=$error;
+    rejected(fn()=>$service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'test'=>true]),$error);
+    $edited=$service->publish($edited['agent_id'],$edited['revision'],'synthetic-admin');
+    ensure($edited['published']['conversation']['model']==='gpt-live-1','publish_does_not_require_discovery');
+}
+$discoveryError=null;
 $available=['gpt-live-1'];
-rejected(fn()=>$service->publish($edited['agent_id'],$edited['revision'],'synthetic-admin'),'backend_model_unavailable');
 $input['api_key']='';$reloads=$native->reloads;
 $trunk=$service->saveTrunk($trunk['binding_id'],$input,$trunk['revision'],'synthetic-admin');
 ensure($native->reloads===$reloads,'credential_edit_not_model_edit');
@@ -75,6 +81,9 @@ ensure($trunk['api_key_source']==='environment','explicit_switch_clears_dedicate
 ensure(in_array('Model agent',$service->inheritedAgents(),true),'published_inherited_agent_listed');
 $service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'credential_mode'=>'inherit','test'=>true]);
 ensure(end($keys)==='synthetic-environment-key','inheritance_effective');
+putenv('OPENAI_API_KEY');
+rejected(fn()=>$service->publish($edited['agent_id'],$edited['revision'],'synthetic-admin'),'provider_credentials_unavailable');
+putenv('OPENAI_API_KEY=synthetic-environment-key');
 putenv('VOICE_AGENT_SIP_LAB_ENABLED=false');
 ensure(array_column($service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id']])['items'],'id')===['gpt-live-1'],'preview_catalog_only_live');
 rejected(fn()=>$service->configureWebhook($trunk['binding_id'],$trunk['revision'],'test-admin'),'sip_lab_required');
