@@ -1,14 +1,19 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { describe, expect, it } from 'vitest'
-import type { Phone } from '@/lib/phones/phones'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { updatePhone, type Phone } from '@/lib/phones/phones'
 import {
+  applyPhoneChanges,
   getAssignedPhoneMacs,
   getMaxPhones,
+  getPhoneLabel,
   getPhonesWithoutMac,
+  PhoneChangeError,
   planPhoneChanges,
 } from './userPhones'
+
+vi.mock('@/lib/phones/phones', () => ({ updatePhone: vi.fn() }))
 
 const phone = (mac: string, username: string | null): Phone => ({
   mac,
@@ -114,5 +119,78 @@ describe('getPhonesWithoutMac', () => {
         { ...base, id: 2, extension: '93205', mac: '' },
       ]).map((device) => device.extension),
     ).toEqual(['93205'])
+  })
+})
+
+describe('getPhoneLabel', () => {
+  it('names the phone by model and MAC address', () => {
+    expect(getPhoneLabel(PHONES[2])).toBe('Acme T1 (00:11:22:33:44:03)')
+    expect(getPhoneLabel({ ...PHONES[2], modelLabel: '' })).toBe('Acme (00:11:22:33:44:03)')
+    expect(getPhoneLabel({ ...PHONES[2], modelLabel: '', vendor: '' })).toBe('00:11:22:33:44:03')
+  })
+})
+
+describe('applyPhoneChanges', () => {
+  const free = (mac: string) => phone(mac, null)
+
+  beforeEach(() => {
+    vi.mocked(updatePhone).mockReset()
+  })
+
+  it('assigns the phones to the main extension with the given web password', async () => {
+    vi.mocked(updatePhone).mockResolvedValue()
+
+    await applyPhoneChanges(
+      { unassign: [], assign: [free('00-11-22-33-44-03')] },
+      '301',
+      null,
+      true,
+    )
+
+    expect(updatePhone).toHaveBeenCalledWith(
+      free('00-11-22-33-44-03'),
+      { model: 'acme-T1', mainExtension: '301', encrypted: true },
+      null,
+    )
+  })
+
+  it('names the phone that failed and the ones already changed', async () => {
+    const failure = new Error('boom')
+    vi.mocked(updatePhone)
+      .mockResolvedValueOnce()
+      .mockResolvedValueOnce()
+      .mockRejectedValueOnce(failure)
+
+    const error = await applyPhoneChanges(
+      {
+        unassign: [PHONES[0]],
+        assign: [free('00-11-22-33-44-03'), free('00-11-22-33-44-04'), free('00-11-22-33-44-05')],
+      },
+      '301',
+      'secret',
+      false,
+    ).catch((reason: unknown) => reason)
+
+    expect(error).toBeInstanceOf(PhoneChangeError)
+    const change = error as PhoneChangeError
+    expect(change.kind).toBe('assign')
+    expect(change.phone.mac).toBe('00-11-22-33-44-04')
+    expect(macs(change.completed)).toEqual(['01', '03'])
+    expect(change.cause).toBe(failure)
+    expect(updatePhone).toHaveBeenCalledTimes(3)
+  })
+
+  it('tells when releasing a phone failed', async () => {
+    vi.mocked(updatePhone).mockRejectedValueOnce(new Error('boom'))
+
+    const error = await applyPhoneChanges(
+      { unassign: [PHONES[0]], assign: [free('00-11-22-33-44-03')] },
+      '301',
+      null,
+      false,
+    ).catch((reason: unknown) => reason)
+
+    expect(error).toMatchObject({ kind: 'release', completed: [] })
+    expect(updatePhone).toHaveBeenCalledTimes(1)
   })
 })

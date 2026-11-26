@@ -67,7 +67,13 @@ import {
   isChangingExtension,
   isRemovingExtension,
 } from '@/lib/users/extensions'
-import { getAssignedPhoneMacs, getMaxPhones, getPhonesWithoutMac } from '@/lib/users/userPhones'
+import {
+  getAssignedPhoneMacs,
+  getMaxPhones,
+  getPhoneLabel,
+  getPhonesWithoutMac,
+  PhoneChangeError,
+} from '@/lib/users/userPhones'
 import {
   applyUserSettingsSteps,
   getUserSettings,
@@ -139,7 +145,7 @@ const { state: limitsState } = useUserLimits()
 
 const isEdit = computed(() => user !== undefined)
 const isSetup = computed(() => variant === 'setup')
-const showPhones = computed(() => isEdit.value && !isSetup.value)
+const showPhones = computed(() => !isSetup.value)
 const showAccount = computed(() => !isSetup.value)
 const accountsPending = computed(() => showAccount.value && accountsLoading)
 const accountEditable = computed(() => showAccount.value && accountsManageable)
@@ -176,6 +182,7 @@ const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
 const focusAfterSave = ref<'error' | 'extension' | 'email' | 'name' | 'surname' | null>(null)
 const createdAccountError = ref<unknown>(null)
+const createdPhonesError = ref<unknown>(null)
 const errorRef = useTemplateRef<HTMLElement>('errorRef')
 const formRef = useTemplateRef<HTMLFormElement>('formRef')
 
@@ -463,7 +470,7 @@ const {
       mobile: mobile.value,
     })
     const settings = nextSettings()
-    await createUser(
+    const created = await createUser(
       newUser,
       isSetup.value
         ? { ...settings, extension: newUser.extension, voicemail: false, devices: [] }
@@ -485,6 +492,14 @@ const {
         createdAccountError.value = error
       }
     }
+
+    if (showPhones.value && created.mainExtension !== '') {
+      try {
+        await phonesField.value?.save([], created.mainExtension, false)
+      } catch (error) {
+        createdPhonesError.value = error
+      }
+    }
     return newUser.username
   },
   onSuccess() {
@@ -493,6 +508,8 @@ const {
       : getFullName({ name: name.value, surname: surname.value })
     const accountError = createdAccountError.value
     createdAccountError.value = null
+    const phonesError = createdPhonesError.value
+    createdPhonesError.value = null
     const notSynchronized = accountSynchronized.value === false
     setTimeout(() => {
       notificationsStore.createNotification({
@@ -508,6 +525,14 @@ const {
           kind: 'error',
           title: t('users.cannot_save_account'),
           description: getErrorDescription(new AccountSaveError(accountError)),
+        })
+      }
+
+      if (phonesError) {
+        notificationsStore.createNotification({
+          kind: 'error',
+          title: getErrorTitle(phonesError),
+          description: `${getErrorDescription(phonesError)} ${t('users.assign_missing_phones')}`,
         })
       }
 
@@ -614,6 +639,9 @@ const getErrorTitle = (error: unknown): string => {
   if (error instanceof UserSettingsStepError) {
     return t(`users.step_failed_${error.step.kind}`)
   }
+  if (error instanceof PhoneChangeError) {
+    return t(`users.cannot_${error.kind}_phone`, { phone: getPhoneLabel(error.phone) })
+  }
   return isEdit.value ? t('users.cannot_save_user') : t('users.cannot_create_user')
 }
 
@@ -645,6 +673,15 @@ const getErrorDescription = (error: unknown): string => {
         : detail
 
     return accountSaved.value ? `${applied} ${t('users.account_already_saved')}` : applied
+  }
+  if (error instanceof PhoneChangeError) {
+    const detail = describeError(error.cause)
+
+    return error.completed.length > 0
+      ? `${detail} ${t('users.phones_already_updated', {
+          phones: error.completed.map(getPhoneLabel).join(', '),
+        })}`
+      : detail
   }
 
   if (isValueTooLongFailure(error)) {
@@ -1052,10 +1089,10 @@ const extensionChangeWarning = computed(
           :remove-label="t('common.remove')"
         />
         <UserPhonesField
-          v-if="isShown && showPhones && user"
+          v-if="isShown && showPhones"
           ref="phonesField"
           v-model="phoneMacs"
-          :username="user.username"
+          :username="user?.username ?? ''"
           :max-phones="getMaxPhones(otherDevicesCount)"
           :phones-without-mac="phonesWithoutMac"
           :disabled="saving || effectiveExtension === ''"

@@ -14,6 +14,7 @@ import {
   RAW_USERS,
   REST,
   TANCREDI,
+  TANCREDI_PHONES,
 } from './users-data'
 
 const ORPHANS = [
@@ -2613,5 +2614,147 @@ test.describe('user accounts', () => {
     await notice.getByRole('button', { name: 'Retry' }).click()
     await expect(notice).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Status', exact: true })).toBeVisible()
+  })
+})
+
+test.describe('assigning physical phones', () => {
+  const SECOND_FREE_MAC = '0C-38-3E-00-00-03'
+  const created = {
+    ...RAW_USERS[2],
+    id: '14',
+    username: 'e.johnson',
+    displayname: 'Emma Johnson',
+    default_extension: '305',
+    devices: [],
+  }
+
+  test.beforeEach(({ signedIn, mockApi }) => {
+    void signedIn
+    mockUsersApi(mockApi)
+    mockUserPhonesApi(mockApi)
+    mockWrites(mockApi)
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    let imported = false
+    mockApi
+      .on('GET', `${REST}/users/:all`, () => ({
+        json: imported ? [...RAW_USERS, created] : RAW_USERS,
+      }))
+      .on('POST', `${REST}/csv/csvimport`, () => {
+        imported = true
+        return { status: 200 }
+      })
+      .on('GET', `${TANCREDI}/phones`, {
+        json: [
+          ...TANCREDI_PHONES,
+          { mac: SECOND_FREE_MAC, model: 'fanvil-X4U', display_name: 'Fanvil' },
+        ],
+      })
+      .on('POST', `${REST}/physicalextensions`, (request) =>
+        (request.body as { mac: string }).mac === SECOND_FREE_MAC
+          ? { status: 500, json: { error: 'boom' } }
+          : { json: { extension: '91305' } },
+      )
+      .on('POST', `${REST}/extensions/:ext/srtp/:value`, { status: 200 })
+  })
+
+  const fillNewUser = async (page: import('@playwright/test').Page, macs: RegExp[]) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Create user' }).first().click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
+    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
+    await drawer.getByLabel('Confirm password').fill('Secret,123')
+    await expect(drawer.getByText('Assign an extension to add physical phones')).toBeVisible()
+    await expect(drawer.getByRole('button', { name: 'Add phone' })).toBeDisabled()
+    await drawer.getByRole('textbox', { name: 'Extension' }).fill('305')
+
+    for (const [index, mac] of macs.entries()) {
+      await drawer.getByRole('button', { name: 'Add phone' }).click()
+      await drawer.getByTestId('user-phone-row').nth(index).getByRole('combobox').click()
+      await expect(drawer.getByRole('option', { name: /00:15:65:AB:CD:01/ })).toHaveCount(0)
+      await drawer.getByRole('option', { name: mac }).click()
+    }
+    await drawer.getByRole('button', { name: 'Create' }).click()
+    return drawer
+  }
+
+  test('assigns the chosen phones after creating the user', async ({ page, mockApi }) => {
+    const drawer = await fillNewUser(page, [/0C:38:3E:00:00:02/])
+
+    await expect(page.getByText('User created')).toBeVisible(IMPORT_TIMEOUT)
+    await expect(drawer).toBeHidden()
+    const assignments = mockApi.callsTo('POST', `${REST}/physicalextensions`)
+    expect(assignments).toHaveLength(1)
+    expect(assignments[0].body).toMatchObject({
+      mainextension: '305',
+      mac: FREE_PHONE_MAC,
+      model: 'fanvil-X4U',
+      web_user: 'admin',
+      web_password: 'invented-admin-pw',
+    })
+    expect(mockApi.callsTo('POST', `${REST}/extensions/91305/srtp/:value`)).toHaveLength(1)
+    const order = mockApi.calls.map((call) => call.path)
+    expect(order.indexOf(`${REST}/webrtc`)).toBeLessThan(
+      order.indexOf(`${REST}/physicalextensions`),
+    )
+  })
+
+  test('keeps the user and names the phone that could not be assigned', async ({
+    page,
+    mockApi,
+  }) => {
+    const drawer = await fillNewUser(page, [/0C:38:3E:00:00:02/, /0C:38:3E:00:00:03/])
+
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('User created')).toBeVisible(IMPORT_TIMEOUT)
+    await expect(drawer).toBeHidden()
+    await expect(
+      toasts.getByText('Cannot assign phone Fanvil X4U (0C:38:3E:00:00:03)'),
+    ).toBeVisible()
+    await expect(
+      toasts.getByText(
+        /These phones are already updated: Fanvil X4U \(0C:38:3E:00:00:02\)\. Assign the missing phones with Edit\.$/,
+      ),
+    ).toBeVisible()
+    expect(
+      mockApi
+        .callsTo('POST', `${REST}/physicalextensions`)
+        .map((call) => (call.body as { mac: string }).mac),
+    ).toEqual([FREE_PHONE_MAC, SECOND_FREE_MAC])
+    expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(1)
+    await expect(page.getByTestId('user-e.johnson')).toBeVisible()
+  })
+
+  test('names the phone that could not be assigned while editing a user', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit c.davis' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
+    await drawer.getByRole('button', { name: 'Add phone' }).click()
+    await drawer.getByTestId('user-phone-row').first().getByRole('combobox').click()
+    await drawer.getByRole('option', { name: /0C:38:3E:00:00:03/ }).click()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    const failure = drawer.getByTestId('user-save-error')
+    await expect(failure).toContainText('Cannot assign phone Fanvil X4U (0C:38:3E:00:00:03)')
+    await expect(failure).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/physicalextensions`)).toHaveLength(1)
+  })
+
+  test('assigns a phone as administrator of the Users section only', async ({ page, mockApi }) => {
+    await signInAs(page, 'helpdesk')
+    mockPermissions(mockApi, ['users'], 'helpdesk')
+    mockApi.on('GET', `${TANCREDI}/defaults`, { json: { language: 'it' } })
+    await fillNewUser(page, [/0C:38:3E:00:00:02/])
+
+    await expect(page.getByText('User created')).toBeVisible(IMPORT_TIMEOUT)
+    const assignments = mockApi.callsTo('POST', `${REST}/physicalextensions`)
+    expect(assignments).toHaveLength(1)
+    expect(assignments[0].body).toMatchObject({ mainextension: '305', mac: FREE_PHONE_MAC })
+    expect(assignments[0].body).not.toHaveProperty('web_password')
   })
 })

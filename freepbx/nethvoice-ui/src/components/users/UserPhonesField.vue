@@ -19,8 +19,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faCircleInfo, faCirclePlus, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { faOfficePhone } from '@nethesis/nethesis-solid-svg-icons'
 import { getPhoneWebPassword } from '@/lib/phones/defaults'
-import { formatMac } from '@/lib/phones/mac'
-import { applyPhoneChanges, planPhoneChanges } from '@/lib/users/userPhones'
+import { applyPhoneChanges, getPhoneLabel, planPhoneChanges } from '@/lib/users/userPhones'
 import { MAX_DEVICES_PER_USER, type UserDevice } from '@/lib/users/users'
 import { usePermissions } from '@/queries/permissions/me'
 import { usePhoneDefaults } from '@/queries/phones/defaults'
@@ -85,12 +84,7 @@ const limitReached = computed(() => selectedMacs.value.length >= maxPhones)
 const phoneOptions = computed<NeComboboxOption[]>(() =>
   phones.value
     .filter((phone) => phone.user === null || phone.user.username === username)
-    .map((phone) => {
-      const model = phone.modelLabel || phone.vendor
-      const mac = formatMac(phone.mac)
-
-      return { id: phone.mac, label: model ? `${model} (${mac})` : mac }
-    }),
+    .map((phone) => ({ id: phone.mac, label: getPhoneLabel(phone) })),
 )
 
 const optionsByRow = computed<NeComboboxOption[][]>(() =>
