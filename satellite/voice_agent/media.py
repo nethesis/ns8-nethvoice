@@ -12,6 +12,7 @@ FRAME_BYTES = 160
 FRAME_SECONDS = .02
 PCMU_SILENCE = b'\xff' * FRAME_BYTES
 MAX_AUDIO_BYTES = 16000  # Two seconds of PCMU/8000, never an unbounded queue.
+MAX_INPUT_BACKLOG_FRAMES = 5
 
 
 class AudioBuffer:
@@ -32,10 +33,15 @@ class AudioBuffer:
         self._data.extend(data)
         self._available.set()
 
-    async def frame(self, *, deadline=None):
+    async def frame(self, *, deadline=None, max_frames=None):
         """Return a full frame, None at EOF, or empty bytes at the idle deadline."""
         while not self._closed:
             if len(self._data) >= FRAME_BYTES:
+                if max_frames is not None:
+                    # Trim whole stale frames and preserve a trailing fragment.
+                    excess = len(self._data) // FRAME_BYTES - max_frames
+                    if excess > 0:
+                        del self._data[:excess * FRAME_BYTES]
                 data = bytes(self._data[:FRAME_BYTES])
                 del self._data[:FRAME_BYTES]
                 return data
@@ -196,10 +202,13 @@ class AudioBridge:
     async def _pump_input(self):
         clock = asyncio.get_running_loop().time
         last_sent = last_real = clock()
-        deadline = last_sent + FRAME_SECONDS
         try:
             while not self.stopped:
-                frame = await self.media.input.frame(deadline=deadline)
+                # Pace from the last completed send so a stalled socket or
+                # event loop cannot release a burst of queued input.
+                deadline = last_sent + FRAME_SECONDS
+                await asyncio.sleep(max(0, deadline - clock()))
+                frame = await self.media.input.frame(deadline=deadline, max_frames=MAX_INPUT_BACKLOG_FRAMES)
                 if frame is None or self.stopped:
                     return
                 await asyncio.wait_for(self.provider.send_audio(frame or PCMU_SILENCE), 2)
@@ -212,10 +221,6 @@ class AudioBridge:
                     self.input_real_frames += 1
                 else:
                     self.input_silence_frames += 1
-                # An early real frame must not postpone padding for two idle slots.
-                deadline = min(deadline + FRAME_SECONDS, now + FRAME_SECONDS)
-                if deadline <= now:
-                    deadline = now + FRAME_SECONDS
         except asyncio.CancelledError:
             raise
         except Exception:

@@ -53,7 +53,7 @@ async def test_real_frame_after_padding_sets_one_idle_interval():
     clock = asyncio.get_running_loop().time
     reads = []
     class Source:
-        async def frame(self, *, deadline):
+        async def frame(self, *, deadline, max_frames):
             reads.append((clock(), deadline))
             return (b'', bytes(160), None)[len(reads) - 1]
 
