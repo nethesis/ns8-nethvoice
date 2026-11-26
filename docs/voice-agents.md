@@ -39,9 +39,10 @@ imports and tests the matching source revision; older images are rejected.
 
 ## Configuration and activation
 
-Fresh installation seeds disabled, unpublished **Receptionist** and internal
-**Consultation assistant** profiles. Upgrades add the assistant without replacing
-existing settings. Administrators can also create independent Basic Voice agents.
+The first preview enable creates the Agents schema and seeds disabled, unpublished
+**Receptionist** and internal **Consultation assistant** profiles. Later enables and
+schema updates keep existing agents and settings and add no profiles.
+Administrators can also create independent Basic Voice agents.
 Configure an OpenAI trunk for GPT-Live,
 then choose the conversation model, voice, language, greeting, instructions and
 maximum duration on each agent page. Trunks carry credential references and native
