@@ -110,11 +110,6 @@
   }
 }
 
-.counter-card > div:last-child {
-  margin-top: auto;
-  align-items: flex-end;
-}
-
 .nav-icon svg {
   display: block;
   width: 100%;

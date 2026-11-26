@@ -182,3 +182,14 @@ for (const language of ['en', 'it']) {
     await expect(pagination).toContainText(en ? 'Calls 1–25' : 'Chiamate 1–25');
   });
 }
+
+test('counter values line up when a title wraps', async ({page}) => {
+  await page.setViewportSize({width: 1440, height: 1000});
+  await mock(page, 'it');
+  await page.goto('./#/activity');
+  const values = ['total', 'completed', 'transferred', 'failures'].map(id => page.getByTestId('monitoring-' + id));
+  await expect(values[3]).toBeVisible();
+  const tops = await Promise.all(values.map(async value => Math.round((await value.boundingBox())!.y)));
+  expect(new Set(tops).size).toBe(1);
+  await page.screenshot({path: '/tmp/voice-agent-monitoring-cards-it.png'});
+});
