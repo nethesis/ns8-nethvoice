@@ -428,7 +428,10 @@ async function persist(): Promise<Agent> {
     throw failure;
   }
   accept(value);
-  if (wasCreating) await router.replace("/agents/" + value.agent_id);
+  if (wasCreating) {
+    ui.keepView = "/agents/" + value.agent_id;
+    await router.replace(ui.keepView);
+  }
   return value;
 }
 async function refreshLists() {
@@ -478,9 +481,7 @@ async function publish() {
           { expected_revision: value.revision },
         );
       } catch (failure) {
-        if (wasCreating)
-          ui.notify(t("draftSaved"), t("error." + errorCode(failure)), "error");
-        else if (errorCode(failure) === "revision_conflict")
+        if (errorCode(failure) === "revision_conflict")
           conflict.value = await request<Agent>(
             "GET",
             "/profiles/" + value.agent_id,

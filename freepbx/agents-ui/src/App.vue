@@ -81,10 +81,13 @@ onMounted(() => {
     auth.ready = true;
   });
 });
+const viewKey = ref(0);
 watch(
   () => route.path,
-  () => {
+  (path) => {
     mobileMenu.value = false;
+    if (path !== ui.keepView) viewKey.value++;
+    ui.keepView = "";
   },
 );
 </script>
@@ -241,10 +244,9 @@ watch(
               >{{ t("signIn") }}</NeButton
             ></AppEmptyState
           >
-          <RouterView v-if="everAuthorized" v-slot="{ Component }"
-            ><div v-show="auth.authorized">
-              <component :is="Component" :key="$route.path" /></div
-          ></RouterView>
+          <RouterView v-if="auth.authorized" v-slot="{ Component }">
+            <component :is="Component" :key="auth.user + ':' + viewKey" />
+          </RouterView>
         </template>
       </main>
     </div>
