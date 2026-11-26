@@ -97,15 +97,13 @@ export default {
     exportToCSV () {
       let data = this._.cloneDeep(this.data)
       if(this.$root._route.path == "/queue/data/caller" || this.$root._route.path == "/queue/data/call") {
-        let nameCompany = data.slice(1).map(item => {
+        data.slice(1).forEach(item => {
           if (item[2]) {
             item[2] = this.reversePhonebookSearchCsvName(item[2]);
           }
           if (item[3]) {
             item[3] = this.reversePhonebookSearchCsvCompany(item[3]);
           }
-          console.log(nameCompany);
-          return item;
         });
       }
 
