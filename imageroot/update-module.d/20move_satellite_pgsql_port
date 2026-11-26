@@ -1,0 +1,107 @@
+#!/usr/bin/env python3
+
+#
+# Copyright (C) 2026 Nethesis S.r.l.
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+
+# Some upgraded instances have SATELLITE_PGSQL_PORT on the same port as
+# another local TCP service, usually NETHVOICE_MIDDLEWARE_PORT. Since 1.8 the
+# middleware requires satellite-pgsql, so PostgreSQL takes the port first and
+# the middleware cannot start. Move PostgreSQL only: its clients read the port
+# from the environment and are restarted at 80restart.
+#
+# A new port is taken, in order of preference, from:
+# 1. the instance TCP range (TCP_PORTS_RANGE): a port that no variable uses
+#    and nothing listens on. It is already reserved, so the TCP ports quota
+#    does not change;
+# 2. a new single-port allocation, which counts against the quota.
+#
+# The file name sorts after 20allocate_ports and 20allocate_video_gateway_ports,
+# so the ports they need are allocated first.
+import socket
+import sys
+
+import agent
+
+# TCP ports this instance listens on, on the host network. Remote ports (for
+# example NETHVOICE_HOTEL_FIAS_PORT) and UDP ports are left out on purpose.
+LOCAL_TCP_PORT_VARS = (
+    'APACHE_PORT',
+    'ASTERISK_RECORDING_SFTP_PORT',
+    'ASTERISK_SIP_PORT',
+    'ASTERISK_SIPS_PORT',
+    'ASTERISK_WS_PORT',
+    'ASTERISK_WSS_PORT',
+    'ASTMANAGERPORT',
+    'CHAT_C2S_PORT',
+    'CHAT_COMPONENT_PORT',
+    'CHAT_GW_PORT',
+    'CHAT_HTTP_PORT',
+    'JANUS_TRANSPORT_PORT',
+    'MEDIAMTX_API_PORT',
+    'MEDIAMTX_ICE_TCP_PORT',
+    'MEDIAMTX_RTSP_PORT',
+    'MEDIAMTX_WHEP_PORT',
+    'NETHCTI_DB_PORT',
+    'NETHCTI_SERVER_API_PORT',
+    'NETHCTI_SERVER_WS_PORT',
+    'NETHCTI_TCP_PORT',
+    'NETHCTI_TLS_PORT',
+    'NETHCTI_UI_PORT',
+    'NETHVOICE_LDAP_PORT',
+    'NETHVOICE_MARIADB_PORT',
+    'NETHVOICE_MIDDLEWARE_PORT',
+    'OAUTH2_PROXY_PORT',
+    'PHONEBOOK_DB_PORT',
+    'PHONEBOOK_LDAP_PORT',
+    'REPORTS_API_PORT',
+    'REPORTS_REDIS_PORT',
+    'REPORTS_UI_PORT',
+    'SAML2_PROXY_PORT',
+    'SATELLITE_HTTP_PORT',
+    'SATELLITE_MQTT_PORT',
+    'TANCREDIPORT',
+) + tuple(f'NETHCTI_INTERNAL_REST_PORT{i}' for i in range(1, 14))
+
+
+def is_free(port):
+    """True if nothing listens on the TCP port, on any address"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.bind(('0.0.0.0', port))
+        except OSError:
+            return False
+    return True
+
+
+def reserved_free_port(env):
+    """Lowest port of TCP_PORTS_RANGE that no variable uses and is free"""
+    try:
+        start, end = (int(value) for value in env['TCP_PORTS_RANGE'].split('-'))
+    except (KeyError, ValueError):
+        return None
+    used = {str(value).strip() for value in env.values()}
+    for port in range(start, end + 1):
+        if str(port) not in used and is_free(port):
+            return port
+    return None
+
+
+env = agent.read_envfile('environment')
+pgsql_port = str(env.get('SATELLITE_PGSQL_PORT') or '')
+clashing = [name for name in LOCAL_TCP_PORT_VARS if pgsql_port and str(env.get(name) or '') == pgsql_port]
+if not clashing:
+    sys.exit(0)
+
+new_port = reserved_free_port(env)
+if new_port is None:
+    try:
+        new_port = agent.allocate_ports(1, 'tcp', keep_existing=True)[0]
+    except Exception as ex:
+        # Do not stop the update: the rest of the instance keeps working
+        print(agent.SD_ERR + f"SATELLITE_PGSQL_PORT {pgsql_port} is also used by {', '.join(clashing)} and no TCP port is available: {ex}", file=sys.stderr)
+        sys.exit(0)
+
+print(f"SATELLITE_PGSQL_PORT {pgsql_port} is also used by {', '.join(clashing)}: moved to {new_port}", file=sys.stderr)
+agent.set_env('SATELLITE_PGSQL_PORT', str(new_port))
