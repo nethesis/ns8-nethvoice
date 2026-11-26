@@ -17,7 +17,7 @@ export const VIDEO_SOURCE_OPEN_CODE_MAX_LENGTH = 10
 
 export const VIDEO_SOURCE_PASSWORD_MASK = '••••'
 
-type VideoSourceInput = components['schemas']['IntegrationsVideoSourceInput']
+type VideoSourceInput = components['schemas']['VideoSourceInput'] & { currentDescr?: string }
 
 const IdSchema = v.pipe(v.union([v.number(), v.string()]), v.transform(String))
 

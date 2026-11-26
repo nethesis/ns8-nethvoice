@@ -873,16 +873,96 @@ export interface paths {
       cookie?: never
     }
     /**
-     * List the video sources with the profiles allowed to see them.
-     * @description The stored secret is never returned to administrators who are not superadmin; `has_password` tells whether one is stored.
+     * List the video sources with their gates and profile bindings.
+     * @description Passwords are write-only and never returned; `has_secret` and `has_password` tell whether one is stored.
      */
     get: operations['get_cti_streaming']
     put?: never
     /**
-     * Create a video source.
-     * @description For administrators who are not superadmin the URL must use http or https and its host must not resolve to a loopback, link-local or unspecified address.
+     * Create a video source, its CTI permission and its gates.
+     * @description The type follows the URL scheme (`http(s)` image polled by the CTI, `rtsp(s)` stream served by the video gateway). Credentials pasted into the URL are stored separately. Without `gates`, the legacy `open` code creates a first DTMF gate named "Door 1". With `door_phone` (the MAC of a door phone prepared by `POST /cti/streaming/doorphones/{mac}`), no `secret` and the door phone user name, the RTSP password generated for the door phone is used. For administrators who are not superadmin the addresses of the PBX node and of the cluster VPN networks are refused too (400, field `url` or `gates[N].url`), and nethcti-server refuses the addresses of the node at every snapshot and gate request of the source.
      */
     post: operations['post_cti_streaming']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/cti/streaming/doorphones': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * List the provisioned door phones that can become a video source.
+     * @description Devices of the inventory assigned to an extension whose Tancredi model has `cap_door_phone`. `ip` comes from the SIP registration of the extension (null when not registered), `url` is the suggested RTSP URL, `sources` the sources that already use the extension. Secrets are never returned.
+     */
+    get: operations['get_cti_streaming_doorphones']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/cti/streaming/doorphones/{mac}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Prepare a video source for a door phone.
+     * @description Generate the RTSP password (and user name) of the door phone when it has none, store them as Tancredi phone variables written on the device by its provisioning, ask the device to update its configuration and return the form prefill. The password is not returned.
+     */
+    post: operations['post_cti_streaming_doorphones_mac']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/cti/streaming/doorphones/{mac}/sync': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Give the sources linked to a door phone its current password.
+     * @description Called by the wizard after the settings of a door phone are saved. Applies the configuration when a source changed.
+     */
+    post: operations['post_cti_streaming_doorphones_mac_sync']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/cti/streaming/reachability': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /**
+     * Check whether the PBX reaches the device of a source URL.
+     * @description Opens a TCP connection to the host and port of a rtsp, rtsps, http or https URL (default ports 554, 322, 80, 443; 2 seconds), nothing is sent to the device. `private` tells that the address belongs to a private network. With `door_phone`, when the device is not reachable, the public address the door phone registers from is returned in `public_address` and `public_url` if the PBX reaches it on the same port.
+     */
+    post: operations['post_cti_streaming_reachability']
     delete?: never
     options?: never
     head?: never
@@ -915,8 +995,8 @@ export interface paths {
     }
     get?: never
     /**
-     * Update a video source (found by `currentDescr` in the body).
-     * @description For administrators who are not superadmin the URL must use http or https and its host must not resolve to a loopback, link-local or unspecified address. Only the permission of the video source is renamed.
+     * Update a video source, its gates and its profile assignments.
+     * @description `currentDescr` (or the path parameter) is the current name. An empty or missing `secret` keeps the stored password, an empty `user` removes the credentials; the same applies to `password` and `username` of a URL gate identified by its `id`. Without `gates`, the legacy `open` code replaces the code of the first DTMF gate. For administrators who are not superadmin the addresses of the PBX node and of the cluster VPN networks are refused too (400, field `url` or `gates[N].url`), and nethcti-server refuses the addresses of the node at every snapshot and gate request of the source, unless it keeps the URL and URL gates of a source saved by the superadmin.
      */
     put: operations['put_cti_streaming_descr']
     post?: never
@@ -936,10 +1016,30 @@ export interface paths {
     get?: never
     put?: never
     /**
-     * Fetch one frame from a video source URL.
-     * @description Body: `{ "url": "http(s)://..." }`. Returns the content encoded in Base64 or HTTP 500 on failure. For administrators who are not superadmin only a JPEG, PNG or GIF image is returned, the URL is fetched only over http or https, never from a loopback, link-local or unspecified address or from an address of the PBX node, and redirects are not followed; a refused, closed or unreachable address answers the same 400. For the superadmin the URL is fetched as given. The fetch stops after 10 seconds.
+     * Check a video source and grab a preview frame.
+     * @description RTSP(S) sources are probed with ffprobe (codecs, resolution) and one JPEG frame is grabbed with ffmpeg, always over TCP, directly from the device. HTTP(S) sources are fetched with the given credentials. With `descr` of a stored source and an empty `secret`, the stored password is used, only for the same scheme, host and port. TLS certificates of https:// and rtsps:// devices are verified (system CA store and host name) unless `tls_skip_verify`; an untrusted certificate fails with reason `tls_error`. Without `tls_skip_verify`, the value stored for `descr` is used (same scheme, host and port). RTSP sources, or `details: true`, answer with a `VideoSourceCheck` object (HTTP 200 also on failure); legacy clients (HTTP URL without `details`) get the Base64 image as a JSON string, or HTTP 500. For administrators who are not superadmin the addresses of the PBX node and of the cluster VPN networks are refused too (`address_not_allowed`).
      */
     post: operations['post_cti_sources_test']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/cti/sources/gateway': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Network facts of the video gateway for the administrator.
+     * @description `public_ip` is the address the devices see the PBX coming from: the port-forward of a RTSP device should allow only it.
+     */
+    get: operations['get_cti_sources_gateway']
+    put?: never
+    post?: never
     delete?: never
     options?: never
     head?: never
@@ -956,7 +1056,10 @@ export interface paths {
     get?: never
     put?: never
     post?: never
-    /** Delete a video source. */
+    /**
+     * Delete a streaming source and related permission record.
+     * @description The source must exist with exactly this name.
+     */
     delete: operations['delete_cti_streaming_name']
     options?: never
     head?: never
@@ -3266,6 +3369,114 @@ export interface components {
       error?: string
       message?: string
     }
+    VideoSourceGate: {
+      /** @description Identifier of a stored gate (omit for a new one) */
+      id?: number
+      readonly position?: number
+      name?: string
+      /** @enum {string} */
+      type?: 'dtmf' | 'url'
+      /** @description DTMF code sent to the source extension (dtmf gates) */
+      code?: string
+      /** @description http(s) URL requested to open the gate (url gates) */
+      url?: string
+      /** @enum {string} */
+      method?: 'GET' | 'POST'
+      username?: string
+      password?: string
+      readonly has_password?: boolean
+      /** @description SHA-256 of the certificate of an https:// gate device, pinned when the source (with `tls_skip_verify`) is saved */
+      readonly tls_fingerprint?: string | null
+    }
+    VideoSourceInput: {
+      descr: string
+      /** @example rtsp://192.0.2.10:554/stream1 */
+      url: string
+      user?: string
+      secret?: string
+      exten?: string | null
+      /** @description Polling interval of image sources, in milliseconds */
+      'frame-rate'?: number
+      /** @description Legacy opening code, used only when `gates` is absent */
+      open?: string
+      gates?: components['schemas']['VideoSourceGate'][]
+      /** @description Skip the TLS certificate verification for the source URL and all its URL gates (devices with a self-signed certificate). Absent on create: false. Absent on update: the stored value is kept. Stored as false when neither the URL nor a URL gate uses TLS. The SHA-256 fingerprint of the certificate each TLS device (rtsps:// or https:// URL, https:// URL gates) presents when the source is saved is pinned: the save fails (400) if a certificate cannot be read and none is stored for that device. */
+      tls_skip_verify?: boolean
+      profiles?: (string | number)[]
+      /** @description MAC of a door phone prepared by `POST /cti/streaming/doorphones/{mac}`, whose generated RTSP password is used when `secret` is empty and `user` is the door phone user name. */
+      door_phone?: string
+    }
+    VideoSource: {
+      descr?: string
+      /** @enum {string} */
+      type?: 'image' | 'rtsp'
+      /** @description URL without credentials */
+      url?: string
+      user?: string
+      has_secret?: boolean
+      'frame-rate'?: string
+      exten?: string | null
+      /** @description Code of the first DTMF gate (legacy) */
+      open?: string
+      gates?: components['schemas']['VideoSourceGate'][]
+      tls_skip_verify?: boolean
+      /** @description SHA-256 of the device certificate pinned by the gateway (rtsps://) or by nethcti-server (https://) for sources with `tls_skip_verify`, null if none */
+      readonly tls_fingerprint?: string | null
+      /** @description A device of the source skips the TLS verification without a pinned certificate (saved by an older version): it is contacted unpinned until the source is saved again */
+      readonly tls_unpinned?: boolean
+      /** @example vs_front_door */
+      permission?: string
+      /** @example streaming-gw/vs_front_door */
+      gateway_path?: string | null
+      profiles?: string[]
+    }
+    VideoSourceCheck: {
+      success?: boolean
+      /** @enum {string} */
+      type?: 'image' | 'rtsp'
+      /** @description Base64 preview */
+      image?: string | null
+      mime?: string | null
+      video?: {
+        /** @example h264 */
+        codec?: string
+        width?: number
+        height?: number
+      } | null
+      audio?: {
+        /** @example pcm_mulaw */
+        codec?: string
+        sample_rate?: number
+      } | null
+      /** @description The video is H.265, which most browsers cannot play */
+      h265?: boolean
+      /** @description `tls_certificate_changed`: the device certificate is not the one pinned by the gateway, which refuses the device until the source is saved again */
+      warnings?: (
+        'h265' | 'codec_not_supported_by_webrtc' | 'preview_failed' | 'tls_certificate_changed'
+      )[]
+      /**
+       * @description `address_not_allowed`: loopback, link-local or unspecified device address, or for administrators who are not superadmin an address of the PBX node; `unsupported` also for an image source that does not answer with a JPEG or PNG image (its content is never returned)
+       * @enum {string|null}
+       */
+      reason?:
+        | 'auth_failed'
+        | 'connection_refused'
+        | 'timeout'
+        | 'not_found'
+        | 'tls_error'
+        | 'unsupported'
+        | 'address_not_allowed'
+        | 'unknown'
+        | null
+      /** @description Raw error message, without credentials */
+      message?: string
+      /** @description SHA-256 of the certificate of a rtsps:// or https:// device, read when `tls_skip_verify` is set */
+      tls_fingerprint?: string | null
+    }
+    VideoSourceError: {
+      status?: string
+      field?: string
+    }
     LiveScalar: (string | null) | number | boolean
     /** @description Live state of the extensions, keyed by extension number. */
     LiveExtensions: {
@@ -4037,34 +4248,6 @@ export interface components {
       status: boolean
       /** @description `file://` URL of the stored CSV file, to be used as the source `url` */
       uri: string
-    }
-    IntegrationsVideoSource: {
-      /** @description Name and primary key of the source */
-      descr: string
-      url: string
-      user?: string | null
-      /** @description Returned only to the superadmin, for the legacy wizard */
-      secret?: string | null
-      /** @description Whether a secret is stored, returned only to administrators who are not superadmin */
-      has_password?: boolean
-      'frame-rate'?: number | null
-      exten?: number | null
-      /** @description Code dialed to open the door */
-      open?: string | null
-      /** @description Ids of the CTI profiles allowed to see the source */
-      profiles: string[]
-    }
-    IntegrationsVideoSourceInput: {
-      /** @description Name before the change, required by PUT */
-      currentDescr?: string
-      descr: string
-      url: string
-      exten: string | null
-      open: string
-      profiles: number[]
-    }
-    IntegrationsVideoSourceTestInput: {
-      url: string
     }
     IntegrationsParamUrl: {
       id: number
@@ -6835,7 +7018,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['IntegrationsVideoSource'][]
+          'application/json': components['schemas']['VideoSource'][]
         }
       }
       /** @description Internal server error */
@@ -6856,7 +7039,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['IntegrationsVideoSourceInput']
+        'application/json': components['schemas']['VideoSourceInput']
       }
     }
     responses: {
@@ -6867,16 +7050,229 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Invalid source URL: only http and https are accepted, and the host must not resolve to a loopback, link-local or unspecified address. Redirects are not followed. */
+      /** @description Invalid field */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
+          'application/json': components['schemas']['VideoSourceError']
+        }
+      }
+      /** @description A source with the same name, or a name that maps to the same permission, already exists */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VideoSourceError']
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  get_cti_streaming_doorphones: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Successful response */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
           'application/json': {
-            status?: string
+            /** @example 0C-38-3E-32-6B-84 */
+            mac?: string
+            /** @example fanvil-i62 */
+            model?: string
+            model_name?: string
+            extension?: string
+            name?: string
+            ip?: string | null
+            registered?: boolean
+            url?: string
+            user?: string
+            has_secret?: boolean
+            dtmf_code?: string | null
+            /** @description DTMF code of the second relay */
+            dtmf_code_2?: string | null
+            /** @description Most gates a source of this door phone can have (one per relay), null when the model does not declare its relays */
+            max_gates?: number | null
+            /** @description The relays of the door phone, the gate N of a source opens the relay N. code is the DTMF code that opens it during a call; url and user, when the model knows them and the device address is known, the http URL that opens it and its web user */
+            door_gates?: {
+              relay?: number
+              code?: string | null
+              url?: string | null
+              user?: string | null
+            }[]
+            /** @description RTSP paths of the main (high quality, default) and sub (slow connections) streams, with the resolution labels of the model */
+            streams?: {
+              main?: string | null
+              sub?: string | null
+              main_label?: string
+              sub_label?: string
+            }
+            sources?: string[]
+          }[]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  post_cti_streaming_doorphones_mac: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        mac: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Form prefill */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            descr?: string
+            exten?: string
+            url?: string
+            user?: string
+            has_secret?: boolean
+            door_phone?: string
+            /** @description Same as in GET /cti/streaming/doorphones */
+            streams?: Record<string, never>
+            gates?: Record<string, never>[]
+            /** @description Same as in GET /cti/streaming/doorphones */
+            door_gates?: Record<string, never>[]
+            /** @description Same as in GET /cti/streaming/doorphones */
+            max_gates?: number | null
+            ip?: string | null
+            registered?: boolean
+            credentials_generated?: boolean
           }
         }
+      }
+      /** @description Invalid MAC address */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Not a door phone assigned to an extension */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  post_cti_streaming_doorphones_mac_sync: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        mac: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Number of updated sources */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            updated?: number
+          }
+        }
+      }
+      /** @description Invalid MAC address */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  post_cti_streaming_reachability: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': {
+          url?: string
+          door_phone?: string
+        }
+      }
+    }
+    responses: {
+      /** @description Reachability */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': {
+            host?: string
+            port?: number
+            private?: boolean
+            reachable?: boolean
+            public_address?: string | null
+            public_url?: string | null
+          }
+        }
+      }
+      /** @description Not a source URL or invalid door phone */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Internal server error */
       500: {
@@ -6925,7 +7321,9 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['IntegrationsVideoSourceInput']
+        'application/json': components['schemas']['VideoSourceInput'] & {
+          currentDescr?: string
+        }
       }
     }
     responses: {
@@ -6936,23 +7334,30 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Invalid source URL: only http and https are accepted, and the host must not resolve to a loopback, link-local or unspecified address. Redirects are not followed. */
+      /** @description Invalid field */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            status?: string
-          }
+          'application/json': components['schemas']['VideoSourceError']
         }
       }
-      /** @description No video source has `currentDescr` as description */
+      /** @description Source not found */
       404: {
         headers: {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description The new name is already used */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VideoSourceError']
+        }
       }
       /** @description Internal server error */
       500: {
@@ -6972,9 +7377,54 @@ export interface operations {
     }
     requestBody: {
       content: {
-        'application/json': components['schemas']['IntegrationsVideoSourceTestInput']
+        'application/json': {
+          /** @example rtsp://192.0.2.10:554/stream1 */
+          url: string
+          user?: string
+          secret?: string
+          /** @description Name of a stored source whose password is used when `secret` is empty */
+          descr?: string
+          /** @description Do not verify the TLS certificate of the device (self-signed certificates) */
+          tls_skip_verify?: boolean
+          /** @description Return a VideoSourceCheck also for HTTP sources */
+          details?: boolean
+        }
       }
     }
+    responses: {
+      /** @description Check result */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['VideoSourceCheck'] | string
+        }
+      }
+      /** @description Invalid URL */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  get_cti_sources_gateway: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
     responses: {
       /** @description Successful response */
       200: {
@@ -6982,28 +7432,13 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          'application/json': string
-        }
-      }
-      /** @description Invalid source URL: only http and https are accepted, and the host must not resolve to a loopback, link-local or unspecified address. Redirects are not followed. */
-      400: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
           'application/json': {
-            status?: string
-          }
-        }
-      }
-      /** @description The content is not a JPEG, PNG or GIF image (administrators who are not superadmin only) */
-      422: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          'application/json': {
-            status?: string
+            public_ip?: string | null
+            ice_hosts?: string[]
+            ice_udp_port?: number | null
+            ice_tcp_port?: number | null
+            /** @example /streaming-gw/ */
+            path_prefix?: string
           }
         }
       }
@@ -7029,6 +7464,15 @@ export interface operations {
     responses: {
       /** @description Successful response */
       200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': Record<string, never>
+        }
+      }
+      /** @description No source with exactly this name */
+      404: {
         headers: {
           [name: string]: unknown
         }

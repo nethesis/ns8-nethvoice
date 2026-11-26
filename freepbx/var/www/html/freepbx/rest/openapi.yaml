@@ -1785,6 +1785,10 @@ paths:
         `door_phone` (the MAC of a door phone prepared by
         `POST /cti/streaming/doorphones/{mac}`), no `secret` and the door phone
         user name, the RTSP password generated for the door phone is used.
+        For administrators who are not superadmin the addresses of the PBX node
+        and of the cluster VPN networks are refused too (400, field `url` or
+        `gates[N].url`), and nethcti-server refuses the addresses of the node
+        at every snapshot and gate request of the source.
       tags:
       - CTI
       responses:
@@ -2079,7 +2083,12 @@ paths:
         An empty or missing `secret` keeps the stored password, an empty `user`
         removes the credentials; the same applies to `password` and `username`
         of a URL gate identified by its `id`. Without `gates`, the legacy `open`
-        code replaces the code of the first DTMF gate.'
+        code replaces the code of the first DTMF gate. For administrators who
+        are not superadmin the addresses of the PBX node and of the cluster VPN
+        networks are refused too (400, field `url` or `gates[N].url`), and
+        nethcti-server refuses the addresses of the node at every snapshot and
+        gate request of the source, unless it keeps the URL and URL gates of a
+        source saved by the superadmin.'
       tags:
       - CTI
       responses:
@@ -2133,7 +2142,9 @@ paths:
         the value stored for `descr` is used (same scheme, host and port).
         RTSP sources, or `details: true`, answer with a `VideoSourceCheck`
         object (HTTP 200 also on failure); legacy clients (HTTP URL without
-        `details`) get the Base64 image as a JSON string, or HTTP 500.'
+        `details`) get the Base64 image as a JSON string, or HTTP 500. For
+        administrators who are not superadmin the addresses of the PBX node and
+        of the cluster VPN networks are refused too (`address_not_allowed`).'
       tags:
       - CTI
       responses:
@@ -6182,6 +6193,7 @@ components:
           writeOnly: true
         exten:
           type: string
+          nullable: true
         frame-rate:
           type: integer
           minimum: 500
@@ -6196,10 +6208,10 @@ components:
             $ref: '#/components/schemas/VideoSourceGate'
         tls_skip_verify:
           type: boolean
-          default: false
           description: 'Skip the TLS certificate verification for the source
             URL and all its URL gates (devices with a self-signed
-            certificate). Absent on update: the stored value is kept. Stored
+            certificate). Absent on create: false. Absent on update: the
+            stored value is kept. Stored
             as false when neither the URL nor a URL gate uses TLS. The SHA-256
             fingerprint of the certificate each TLS device (rtsps:// or
             https:// URL, https:// URL gates) presents when the source is
@@ -6208,7 +6220,9 @@ components:
         profiles:
           type: array
           items:
-            type: string
+            oneOf:
+            - type: string
+            - type: integer
         door_phone:
           type: string
           description: MAC of a door phone prepared by
@@ -6319,7 +6333,8 @@ components:
           nullable: true
           enum: [auth_failed, connection_refused, timeout, not_found, tls_error, unsupported, address_not_allowed, unknown, null]
           description: '`address_not_allowed`: loopback, link-local or
-            unspecified device address; `unsupported` also for an image
+            unspecified device address, or for administrators who are not
+            superadmin an address of the PBX node; `unsupported` also for an image
             source that does not answer with a JPEG or PNG image (its content
             is never returned)'
         message:
@@ -7946,76 +7961,6 @@ components:
           type: string
           description: '`file://` URL of the stored CSV file, to be used as the source
             `url`'
-    IntegrationsVideoSource:
-      type: object
-      required:
-      - descr
-      - url
-      - profiles
-      properties:
-        descr:
-          type: string
-          description: Name and primary key of the source
-        url:
-          type: string
-        user:
-          type: string
-          nullable: true
-        secret:
-          type: string
-          nullable: true
-          description: Returned only to the superadmin, for the legacy wizard
-        has_password:
-          type: boolean
-          description: Whether a secret is stored, returned only to administrators
-            who are not superadmin
-        frame-rate:
-          type: integer
-          nullable: true
-        exten:
-          type: integer
-          nullable: true
-        open:
-          type: string
-          nullable: true
-          description: Code dialed to open the door
-        profiles:
-          type: array
-          description: Ids of the CTI profiles allowed to see the source
-          items:
-            type: string
-    IntegrationsVideoSourceInput:
-      type: object
-      required:
-      - descr
-      - url
-      - exten
-      - open
-      - profiles
-      properties:
-        currentDescr:
-          type: string
-          description: Name before the change, required by PUT
-        descr:
-          type: string
-        url:
-          type: string
-        exten:
-          type: string
-          nullable: true
-        open:
-          type: string
-        profiles:
-          type: array
-          items:
-            type: integer
-    IntegrationsVideoSourceTestInput:
-      type: object
-      required:
-      - url
-      properties:
-        url:
-          type: string
     IntegrationsParamUrl:
       type: object
       required:
