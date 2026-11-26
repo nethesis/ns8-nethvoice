@@ -71,6 +71,7 @@ export function Island() {
           dataConfig={config}
           uaType={'desktop'}
           preferredSummaryExtensionType='webrtc'
+          screenShareRoomCreation='middleware'
         />
       )}
     </>
