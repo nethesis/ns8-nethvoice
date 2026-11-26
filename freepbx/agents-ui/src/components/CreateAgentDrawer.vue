@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
   NeButton,
+  NeHeading,
   NeInlineNotification,
   NeSideDrawer,
   NeStepper,
@@ -122,21 +123,34 @@ async function focusErrors() {
   await nextTick();
   await form.focusFirstError(body.value);
 }
-// Next checks the values of the step; what publishing needs is checked by
-// Publish, which goes back to the step of the first error.
+// Next checks the fields of the step with the rules of Publish, so that a
+// required field blocks the step it belongs to. Publish checks every step
+// and goes back to the step of the first error.
 async function next() {
-  if (!form.validate(false, [current.value])) {
+  if (!form.validate(true, [current.value])) {
     await focusErrors();
     return;
   }
   step.value++;
-  await nextTick();
-  body.value?.scrollIntoView({ block: "start" });
+  await showStep();
 }
-function previous() {
+async function previous() {
   form.errors.value = {};
   if (step.value > 1) step.value--;
+  await showStep();
 }
+// A new step starts at the top of the drawer, with the focus on its title.
+const heading = ref<HTMLElement>();
+async function showStep() {
+  await nextTick();
+  body.value?.closest(".overflow-y-auto")?.scrollTo({ top: 0 });
+  heading.value?.focus({ preventScroll: true });
+}
+const stepTitles: Record<string, string> = {
+  general: "generalSettings",
+  conversation: "conversationSettings",
+  tools: "tools",
+};
 
 const errorText = (error: unknown) => form.errorMessage(error);
 let creating = false;
@@ -377,6 +391,15 @@ function openAgents() {
         :current-step="step"
         :step-label="t('createWizard.step')"
       />
+      <div
+        v-if="steps.length > 1"
+        ref="heading"
+        tabindex="-1"
+        data-testid="step-heading"
+        class="-mb-2 outline-none"
+      >
+        <NeHeading tag="h5">{{ t(stepTitles[current]) }}</NeHeading>
+      </div>
       <NeInlineNotification
         v-if="uncertain"
         kind="error"

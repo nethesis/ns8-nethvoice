@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { choose, drawer, flip, mockApi, toggle } from "./agentsMock";
+import { choose, drawer, flip, mockApi, openaiTrunk, toggle } from "./agentsMock";
 
 const button = (page: Page, name: string) =>
   drawer(page).getByRole("button", { name, exact: true });
@@ -28,13 +28,8 @@ test("basic voice agent: three steps, Next checks the step, Publish jumps to the
   // GPT-Live settings are collapsed under Advanced settings.
   await expect(page.getByRole("button", { name: "Advanced settings" })).toBeVisible();
   await expect(page.getByText("Reasoning effort", { exact: true })).toBeHidden();
+  // Voice and instructions are required: Next stays on step 2.
   await button(page, "Next").click();
-  await expect(drawer(page).getByText("Step 3/3")).toBeVisible();
-  // Transfer starts off for new agents.
-  await expect(toggle(page, "Transfer calls")).not.toBeChecked();
-  await flip(page, "Transfer calls");
-  await button(page, "Publish").click();
-  // Voice and instructions are on step 2: Publish goes back there.
   await expect(drawer(page).getByText("Step 2/3")).toBeVisible();
   await expect(page.getByText("Select a voice", { exact: true })).toBeVisible();
   await expect(page.getByText("Enter the conversation instructions", { exact: true })).toBeVisible();
@@ -42,6 +37,10 @@ test("basic voice agent: three steps, Next checks the step, Publish jumps to the
   await choose(page, "Voice", "Coral");
   await page.getByLabel("Conversation instructions").fill("Greet and transfer.");
   await button(page, "Next").click();
+  await expect(drawer(page).getByText("Step 3/3")).toBeVisible();
+  // Transfer starts off for new agents.
+  await expect(toggle(page, "Transfer calls")).not.toBeChecked();
+  await flip(page, "Transfer calls");
   await button(page, "Publish").click();
   await expect(page.getByText("Select at least one queue or extension", { exact: true })).toBeVisible();
   await page.getByRole("combobox", { name: "Queues", exact: true }).click();
@@ -59,6 +58,40 @@ test("basic voice agent: three steps, Next checks the step, Publish jumps to the
   const transfer = created.draft.tool_bindings.find((b: { tool_id: string }) => b.tool_id === "pbx.transfer");
   expect(transfer.enabled).toBe(true);
   expect(transfer.config).toMatchObject({ queues_enabled: true, queue_allowlist: ["queue:401"], extensions_enabled: false });
+});
+
+test("Next needs the provider trunk and shows the next step from its title", async ({ page }) => {
+  await mockApi(page, {
+    trunks: [openaiTrunk, { ...openaiTrunk, binding_id: "trunk_test", name: "OpenAI test" }],
+  });
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await page.goto("./#/agents/new");
+  // Two trunks: none is preselected.
+  await expect(page.getByRole("combobox", { name: "Provider trunk" })).toHaveValue("");
+  await page.getByLabel("Name", { exact: true }).fill("Front desk");
+  await button(page, "Next").click();
+  await expect(drawer(page).getByText("Step 1/3")).toBeVisible();
+  await expect(page.getByText("Select a provider trunk", { exact: true })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Provider trunk" })).toBeFocused();
+  await choose(page, "Provider trunk", /OpenAI test/);
+  await expect(page.getByText("Select a provider trunk", { exact: true })).toHaveCount(0);
+  await button(page, "Next").click();
+  await expect(drawer(page).getByText("Step 2/3")).toBeVisible();
+  // The drawer starts from the top, with the focus on the title of the step.
+  await expect(drawer(page).getByTestId("step-heading")).toBeFocused();
+  await expect(drawer(page).getByTestId("step-heading")).toHaveText("Conversation");
+  await expect(page.getByRole("button", { name: "Close side drawer" })).toBeInViewport();
+  // Required fields carry no Optional label; optional ones do.
+  await expect(drawer(page).getByText("Optional", { exact: true })).toHaveCount(1);
+  // Scrolled down, Next back from step 3 starts again from the top.
+  await choose(page, "Voice", "Coral");
+  await page.getByLabel("Conversation instructions").fill("Greet and transfer.");
+  await button(page, "Next").click();
+  await expect(drawer(page).getByTestId("step-heading")).toHaveText("Tools");
+  await expect(page.getByRole("button", { name: "Close side drawer" })).toBeInViewport();
+  await button(page, "Previous").click();
+  await expect(drawer(page).getByTestId("step-heading")).toBeFocused();
+  await expect(page.getByRole("button", { name: "Close side drawer" })).toBeInViewport();
 });
 
 test("SIP lab on: SIP Realtime models are offered and the provider default is preselected", async ({ page }) => {
