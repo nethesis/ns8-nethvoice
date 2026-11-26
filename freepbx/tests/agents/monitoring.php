@@ -30,6 +30,7 @@ assert(count($monitor->runs(['query'=>$id,'from'=>gmdate('Y-m-d\TH:i:s\Z',time()
 $row=$monitor->run($id); assert($row['duration_ms']==1200 && $row['trace_status']==='complete');
 assert($row['caller_number']==='+12025550159' && $row['called_number']==='+12025550170');
 assert(!isset($row['linkedid'],$row['provider_call_id']));
+$version=(int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema WHERE singleton=1')->fetchColumn();
 $db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version=5 WHERE singleton=1');
 try {
     $beforeMigration=new Monitoring($db);
@@ -37,7 +38,7 @@ try {
     assert($beforeMigration->runs(['query'=>'5550159'],searchNumbers:true)['items']===[]);
     assert(count($beforeMigration->runs(['query'=>$id])['items'])===1);
 } finally {
-    $db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version=6 WHERE singleton=1');
+    $db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version='.$version.' WHERE singleton=1');
 }
 $db->prepare("UPDATE asteriskcdrdb.voice_agent_runs SET linkedid='synthetic-support',error_code='private_untrusted_detail' WHERE run_id=?")->execute([$id]);
 $db->exec("INSERT INTO asteriskcdrdb.cdr (calldate,linkedid,uniqueid) VALUES (NOW()-INTERVAL 23 DAY,'synthetic-support','outside-window')");

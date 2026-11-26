@@ -64,18 +64,29 @@ def test_environment_binding_reads_key_only_at_admission(monkeypatch):
     import mysql.connector
     import voice_agent.storage as module
     @contextmanager
-    def config_only(role):
-        assert role=='config'
-        db=mysql.connector.connect(host='127.0.0.1',port=int(os.environ['M0_TEST_PORT']),user='m0_reader',password='')
-        try: yield db
+    def database(role):
+        user = {'config':'m0_reader','monitor':'m0_writer'}[role]
+        db=mysql.connector.connect(host='127.0.0.1',port=int(os.environ['M0_TEST_PORT']),user=user,password='')
+        try:
+            yield db
+            db.commit()
         finally: db.close()
-    monkeypatch.setattr(module,'database',config_only)
+    monkeypatch.setattr(module,'database',database)
     monkeypatch.setenv('SATELLITE_AGENT_CONFIG_KEY','synthetic-disposable-key')
     monkeypatch.setenv('OPENAI_API_KEY','synthetic-current-environment')
-    with config_only('config') as db:
+    with database('config') as db:
         cur=db.cursor()
         cur.execute("SELECT binding_id FROM asterisk.voice_agent_runtime_bindings WHERE JSON_UNQUOTE(JSON_EXTRACT(settings_json,'$.openai_project_id'))='proj_env'")
         binding_id=cur.fetchone()[0]
-    assert module.Storage().binding(binding_id)['api_key']=='synthetic-current-environment'
+    storage=module.Storage()
+    binding=storage.binding(binding_id)
+    assert binding['api_key']=='synthetic-current-environment'
+    monkeypatch.setenv('OPENAI_API_KEY','synthetic-next-environment')
+    storage.verify_signing_secret(binding)
+    with mysql.connector.connect(host='127.0.0.1',port=int(os.environ['M0_TEST_PORT']),user='root',password='') as db:
+        cur=db.cursor()
+        cur.execute('SELECT webhook_verified_key_generation FROM asterisk.voice_agent_bindings WHERE binding_id=%s',(binding_id,))
+        # This synthetic digest is the same value produced by PHP SecretStore::webhookKeyGeneration.
+        assert cur.fetchone()[0]=='dea69a38ba99b6bc42d66a57b4cb53cce493e9198f029f3ae3125721692dbdb0'
     monkeypatch.delenv('OPENAI_API_KEY')
     with pytest.raises(ValueError,match='provider_credentials_unavailable'): module.Storage().binding(binding_id)

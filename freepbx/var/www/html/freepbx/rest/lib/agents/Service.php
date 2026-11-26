@@ -390,11 +390,13 @@ PROMPT;
     private function webhookStatus(array $row,array $settings,array $secrets): string
     {
         if ($row['provider']==='openai' && empty($settings['openai_project_id'])) return 'not_configured';
-        $manual=empty($row['webhook_verified_at'])?'manual':'verified';
+        $key=$secrets['api_key']??ProviderCatalog::environmentKey($row['provider']);
+        $generation=$this->crypto->webhookKeyGeneration($row['provider'],$key);
+        $manual=$key!=='' && !empty($row['webhook_verified_at'])
+            && ($row['webhook_verified_key_generation']??null)===$generation?'verified':'manual';
         $setup=$secrets['openai_webhook']??null;
         $attempts=self::webhookAttempts($secrets);
         if ($row['provider']!=='openai' || (!$setup && !$attempts)) return empty($secrets['webhook_secret'])?'not_configured':$manual;
-        $key=$secrets['api_key']??ProviderCatalog::environmentKey('openai');
         try { $url=OpenAiWebhook::callbackUrl(); } catch (\Throwable $error) { return 'needs_setup'; }
         $scope=['url'=>$url,'project_id'=>$settings['openai_project_id'],'key_hash'=>hash('sha256',$key)];
         if (isset($setup['endpoint_id']) && $setup['key_hash']===$scope['key_hash'] && $setup['project_id']===$scope['project_id'] && $setup['url']===$url) {
@@ -422,16 +424,47 @@ PROMPT;
     private function storeWebhookSecrets(array $row,array $secrets,string $actor,string $action,bool $complete=false): void
     {
         try {
+            $secrets['webhook_key_generation']=$this->crypto->webhookKeyGeneration($row['provider'],
+                $secrets['api_key']??ProviderCatalog::environmentKey($row['provider']));
             $encrypted=$this->crypto->encryptSecret(self::encode($secrets));
             $runtimeEncrypted=$this->crypto->encryptRuntimeCredentials($secrets);
             $this->db->beginTransaction();
-            $this->query('UPDATE asterisk.voice_agent_bindings SET secrets_encrypted=?,runtime_secrets_encrypted=?,webhook_verified_at=NULL,revision=revision+? WHERE binding_id=?',[$encrypted,$runtimeEncrypted,$complete?1:0,$row['binding_id']]);
+            $resetProof=array_key_exists('webhook_verified_key_generation',$row)?',webhook_verified_key_generation=NULL':'';
+            $this->query('UPDATE asterisk.voice_agent_bindings SET secrets_encrypted=?,runtime_secrets_encrypted=?,webhook_verified_at=NULL'.$resetProof.',revision=revision+? WHERE binding_id=?',[$encrypted,$runtimeEncrypted,$complete?1:0,$row['binding_id']]);
             $this->audit($row['binding_id'],$actor,$action,(int)$row['revision']+($complete?1:0),true);
             $this->db->commit();
         } catch (\Throwable $error) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             self::fail('webhook_persistence_failed',503);
         }
+    }
+    public function reconcileWebhookKeys(): void
+    {
+        $this->locked(function () {
+            $rows=$this->query("SELECT binding_id,provider,secrets_encrypted,runtime_secrets_encrypted,
+                    webhook_verified_at,webhook_verified_key_generation FROM asterisk.voice_agent_bindings
+                WHERE provider IN ('openai','grok') AND runtime_owner='builtin' AND removed=0 AND secrets_encrypted<>''")->fetchAll(\PDO::FETCH_ASSOC);
+            $this->db->beginTransaction();
+            foreach ($rows as $row) {
+                $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
+                if (empty($secrets['webhook_secret'])) continue;
+                $generation=$this->crypto->webhookKeyGeneration($row['provider'],
+                    $secrets['api_key']??ProviderCatalog::environmentKey($row['provider']));
+                $changed=($secrets['webhook_key_generation']??null)!==$generation;
+                $staleProof=$row['webhook_verified_at']!==null && $row['webhook_verified_key_generation']!==$generation;
+                if (!$changed && !$staleProof) continue;
+                if ($changed) {
+                    $secrets['webhook_key_generation']=$generation;
+                    $row['secrets_encrypted']=$this->crypto->encryptSecret(self::encode($secrets));
+                    $row['runtime_secrets_encrypted']=$this->crypto->encryptRuntimeCredentials($secrets);
+                }
+                $this->query('UPDATE asterisk.voice_agent_bindings SET secrets_encrypted=?,runtime_secrets_encrypted=?,
+                    webhook_verified_at=IF(webhook_verified_key_generation=?,webhook_verified_at,NULL),
+                    webhook_verified_key_generation=IF(webhook_verified_key_generation=?,webhook_verified_key_generation,NULL)
+                    WHERE binding_id=?',[$row['secrets_encrypted'],$row['runtime_secrets_encrypted'],$generation,$generation,$row['binding_id']]);
+            }
+            $this->db->commit();
+        });
     }
     public function configureWebhook(string $id,int $revision,string $actor): array
     {
@@ -696,6 +729,8 @@ PROMPT;
             $secrets=$previous && !$external?json_decode($this->crypto->decryptSecret($previous['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR):[];
             $previousSipPassword=$secrets['sip_password']??'';
             $previousWebhook=$secrets['webhook_secret']??'';
+            $moduleKey=$external?'':ProviderCatalog::environmentKey($provider);
+            $previousKey=$secrets['api_key']??$moduleKey;
             $mode=$input['credential_mode']??null;
             if ($mode!==null && !in_array($mode,['inherit','dedicated'],true)) self::fail('invalid_field');
             if ($mode==='inherit') {
@@ -709,12 +744,18 @@ PROMPT;
                 }
             }
             if ($mode==='dedicated' && empty($secrets['api_key'])) self::fail('credentials_required');
-            if (!$external && ((empty($secrets['api_key']) && ProviderCatalog::environmentKey($provider)==='') || ($provider==='grok' && empty($secrets['webhook_secret'])) || ($settings['sip_auth_mode']==='digest' && empty($secrets['sip_password'])))) self::fail('credentials_required');
+            if (!$external && ((empty($secrets['api_key']) && $moduleKey==='') || ($provider==='grok' && empty($secrets['webhook_secret'])) || ($settings['sip_auth_mode']==='digest' && empty($secrets['sip_password'])))) self::fail('credentials_required');
             if (!$external && isset($secrets['webhook_secret']) && !OpenAiWebhook::validSecret($secrets['webhook_secret'])) self::fail('invalid_secret');
             if (!$external && !empty($input['webhook_secret']) && isset($secrets['openai_webhook']['endpoint_id'])) {
                 $secrets['openai_webhook']['state']='manual';
                 unset($secrets['openai_webhook']['automatic'],$secrets['openai_webhook']['secret_hint'],$secrets['openai_webhook']['endpoint_updated_at']);
             }
+            $generation=$external?null:$this->crypto->webhookKeyGeneration($provider,$secrets['api_key']??$moduleKey);
+            if ($generation!==null) $secrets['webhook_key_generation']=$generation;
+            $invalidateVerification=$previousWebhook!==($secrets['webhook_secret']??'')
+                || ($previousSettings['openai_project_id']??null)!==($settings['openai_project_id']??null)
+                || $previousKey!==($secrets['api_key']??$moduleKey);
+            $resetProof=$invalidateVerification && $previous && array_key_exists('webhook_verified_key_generation',$previous)?',webhook_verified_key_generation=NULL':'';
             $encrypted=$external?'':$this->crypto->encryptSecret(json_encode($secrets,JSON_THROW_ON_ERROR));
             $runtimeEncrypted=$external?null:$this->crypto->encryptRuntimeCredentials($secrets);
             $id=$id??'trunk_'.bin2hex(random_bytes(8));
@@ -725,7 +766,7 @@ PROMPT;
                 ) : !empty($previous['freepbx_trunk_id']);
             $this->db->beginTransaction();
             if (!$previous) $this->query('INSERT INTO asterisk.voice_agent_bindings (binding_id,name,provider,settings_json,secrets_encrypted,runtime_secrets_encrypted,sync_status) VALUES (?,?,?,?,?,?,?)',[$id,$name,$external?'openai':$provider,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$runtimeEncrypted,$nativeChanged?'pending':'synced']);
-            else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,runtime_secrets_encrypted=?,webhook_verified_at=IF(?,NULL,webhook_verified_at),revision=revision+1,sync_status=? WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$runtimeEncrypted,(int)($previousWebhook!==($secrets['webhook_secret']??'') || ($previousSettings['openai_project_id']??null)!==($settings['openai_project_id']??null)),$nativeChanged?'pending':'synced',$id]);
+            else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,runtime_secrets_encrypted=?,webhook_verified_at=IF(?,NULL,webhook_verified_at)".$resetProof.",revision=revision+1,sync_status=? WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$runtimeEncrypted,(int)$invalidateVerification,$nativeChanged?'pending':'synced',$id]);
             $this->audit($id,$actor,$previous?'updated':'created',$revision+1,true);
             $this->db->commit();
             $row=$this->binding($id);
