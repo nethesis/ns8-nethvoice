@@ -60,6 +60,8 @@
   "provider_sideband_failed",
   "provider_stream_failed",
   "provider_unavailable",
+  "provider_webhook_signature_rejected",
+  "provider_webhook_timeout",
   "recent_lookup_overflow",
   "recent_lookup_unavailable",
   "runtime_restarted",

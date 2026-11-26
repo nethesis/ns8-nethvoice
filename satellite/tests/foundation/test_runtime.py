@@ -663,11 +663,36 @@ async def test_destroy_media_bridge_even_when_provider_leg_is_already_gone():
 async def test_setup_deadline_requires_connected_media_not_allocated_bridge():
     runtime, storage, controller, snapshot = fixtures()
     call = await admit(runtime)
+    call.provider_call_id = 'signed-provider-id'
     call.bridge_id = 'partially-created-bridge'
     assert not call.media_connected
     await runtime.deadline(call, 0, setup=True)
     assert call.terminal
     controller.continue_channel.assert_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('hangup', [False, True])
+async def test_sip_signature_rejection_reaches_fallback_with_safe_reason(hangup):
+    runtime, _, controller, _ = fixtures()
+    call = await admit(runtime)
+    data = {'call_id':'synthetic', 'sip_headers': [
+        {'name':'X-OS-Session-ID', 'value':call.session_id},
+        {'name':'X-OS-Provider-Leg-ID', 'value':call.leg_id},
+        {'name':'X-OS-Agent-ID', 'value':'basic_voice'}]}
+    body, headers = sign(call, data)
+    with pytest.raises(ValueError, match='invalid_webhook'):
+        await runtime.webhook('openai', body+b' ', headers)
+    assert not call.terminal
+    if hangup:
+        await runtime.event({'type':'ChannelDestroyed', 'channel':{'id':call.leg_id}, 'cause':127})
+        await asyncio.sleep(0)
+        await call.finalizer
+    else:
+        await runtime.deadline(call, 0, setup=True)
+    controller.continue_channel.assert_awaited()
+    assert any(event['outcome'] == 'fallback' and event['error_code'] == 'provider_webhook_signature_rejected'
+               for event in runtime.monitoring.queue._queue)
 
 
 def test_webhook_http_body_boundaries_and_public_route_isolation():
