@@ -131,3 +131,96 @@ async def test_provider_transcripts_off_by_default_and_optional_failure_is_nonfa
     assert adapter._queue.empty()
     assert adapter._observation_queue.get_nowait() == {'type': 'transcript_failed'}
     await adapter._handle(raw); assert adapter._observation_queue.empty()
+
+
+def test_grouped_fragments_fit_the_encrypted_database_limit(monkeypatch):
+    monkeypatch.setenv('SATELLITE_AGENT_CONFIG_KEY', 'synthetic-debug-key')
+    writer = Transcripts(MagicMock(), MagicMock())
+    call = fake_call()
+    call.binding['adapter'] = 'live_ws'
+    call.transcript_pending = None
+    fragment = 'é\x01\x02\x03' * 250
+    for index in range(4):
+        writer.capture(call, turn(f'part-{index}', fragment))
+    writer.flush(call)
+    encrypted = writer.queue.get_nowait()['content_encrypted']
+    assert len(encrypted) <= 24000
+    vault = SecretBox(hashlib.sha256(b'synthetic-debug-key').digest())
+    content = json.loads(vault.decrypt(base64.b64decode(encrypted)))
+    assert content['truncated'] and (fragment * 4).startswith(content['text'])
+    assert len(content['text'].encode()) == call.transcript_bytes
+
+
+@pytest.mark.asyncio
+async def test_primary_live_debug_transcript_combines_fragments_and_flushes_at_close(monkeypatch):
+    from aiohttp.test_utils import TestServer
+    from test_agent_models import snapshot as model_snapshot
+    from test_live import PrimaryLiveEmulator, eventually
+    from test_runtime import admit, fixtures
+    from voice_agent.media import AudioBuffer
+    from voice_agent.providers import create_adapter
+
+    monkeypatch.setenv('SATELLITE_AGENT_CONFIG_KEY', 'synthetic-debug-key')
+    runtime, storage, controller, _ = fixtures()
+    value = model_snapshot('gpt-live-1')
+    value['debug'] = {'transcription_enabled': True, 'retention_hours': 1}
+    storage.snapshot.return_value = value
+    controller.connect_media_channel.return_value = SimpleNamespace(
+        input=AudioBuffer(), failed=asyncio.Event(), error=None,
+        enable_input=MagicMock(), stop_input=MagicMock(), write=AsyncMock(),
+        flush=AsyncMock(), close=AsyncMock())
+    emulator = PrimaryLiveEmulator()
+    async with TestServer(emulator.app) as server:
+        def factory(binding):
+            adapter = create_adapter(binding)
+            adapter.ws_base = str(server.make_url('/v1/live/sessions')).replace('http:', 'ws:')
+            events = adapter.events
+
+            async def with_terminal_race():
+                async for event in events():
+                    if event.get('text') == 'Posso':
+                        call.terminal = True
+                    yield event
+
+            adapter.events = with_terminal_race
+            return adapter
+
+        runtime.adapter_factory = factory
+        await runtime.transcripts.start()
+        call = await admit(runtime)
+        fragments = ['Discussione', ' di', ' prova.'] * 24
+        try:
+            await eventually(lambda: call.media_connected)
+            for index, fragment in enumerate(fragments):
+                await emulator.ws.send_json({'type': 'session.input_transcript.delta',
+                    'event_id': f'input-{index}', 'delta': fragment})
+            await emulator.ws.send_json({'type': 'session.output_transcript.delta',
+                'event_id': 'answer-start', 'delta': 'Posso'})
+            await eventually(lambda: len(call.adapter._observed) == len(fragments) + 1)
+            # Close produces a final fragment after the conversation task is cancelled.
+            close = call.adapter.close
+
+            async def close_with_final_fragment():
+                await emulator.ws.send_json({'type': 'session.output_transcript.delta',
+                    'event_id': 'answer-end', 'delta': ' aiutare.'})
+                await eventually(lambda: 'answer-end' in call.adapter._observed)
+                # An automatic provider capture limit stops new collection,
+                # while already queued opt-in text remains valid.
+                call.adapter._capture = False
+                await close()
+
+            monkeypatch.setattr(call.adapter, 'close', close_with_final_fragment)
+            await runtime.finish(call, 'completed')
+        finally:
+            await runtime.finish(call, 'completed')
+            await asyncio.gather(*list(runtime.tasks), return_exceptions=True)
+            await runtime.transcripts.stop()
+
+    rows = [request.args[0] for request in storage.transcript.call_args_list]
+    assert [row['position'] for row in rows] == [1, 2]
+    vault = SecretBox(hashlib.sha256(b'synthetic-debug-key').digest())
+    turns = [json.loads(vault.decrypt(base64.b64decode(row['content_encrypted']))) for row in rows]
+    assert [(item['role'], item['text']) for item in turns] == [
+        ('caller', ''.join(fragments)), ('assistant', 'Posso aiutare.')]
+    assert all(row['expires_at'] == call.started_at + timedelta(hours=1) for row in rows)
+    assert all(event['event_type'] != 'transcription_failed' for event in runtime.monitoring.queue._queue)
