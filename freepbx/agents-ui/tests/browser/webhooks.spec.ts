@@ -152,7 +152,7 @@ test("trunk credentials and webhook action follow the real trunk state", async (
   await expect(page.getByText(/the ID starts with proj_/)).toBeVisible();
 });
 
-test("editing a trunk explains where an empty API key comes from", async ({ page }) => {
+test("a dedicated key is required unless the trunk already stores one", async ({ page }) => {
   await login(page);
   const trunks = [
     { ...initial, binding_id: "stored", name: "Stored key" },
@@ -166,8 +166,10 @@ test("editing a trunk explains where an empty API key comes from", async ({ page
   const row = (name: string) => page.getByRole("row").filter({ hasText: name });
   await row("Inherited key").getByRole("button", { name: "Edit", exact: true }).click();
   await page.getByText("Dedicated key", { exact: true }).click();
-  await expect(page.getByText("Leave empty to use the OpenAI API key from the NethVoice Integrations settings.", { exact: true })).toBeVisible();
-  await expect(page.getByText("Leave empty to keep the stored API key.", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Provider API key", { exact: true })).toBeVisible();
+  await expect(page.getByText(/^Leave empty to/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Enter the provider API key", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
   await row("Stored key").getByRole("button", { name: "Edit", exact: true }).click();
   await expect(page.getByText("Leave empty to keep the stored API key.", { exact: true })).toBeVisible();

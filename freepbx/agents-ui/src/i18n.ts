@@ -54,8 +54,6 @@ const en = {
       "CleverAI uses the OpenAI SIP transport. Point the OpenAI incoming-call webhook to CleverAI. NethVoice needs only the project ID.",
     namePlaceholder: "e.g. OpenAI production",
     keepApiKey: "Leave empty to keep the stored API key.",
-    environmentApiKey:
-      "Leave empty to use the OpenAI API key from the NethVoice Integrations settings.",
     keepPassword: "Leave empty to keep the stored password.",
     keepSecret: "Leave empty to keep the stored secret.",
     secretEncrypted: "Credentials are encrypted before storage.",
@@ -878,8 +876,6 @@ const it: typeof en = {
       "CleverAI usa il trasporto SIP di OpenAI. Punta il webhook delle chiamate in arrivo di OpenAI verso CleverAI. NethVoice richiede solo l'ID progetto.",
     namePlaceholder: "es. OpenAI produzione",
     keepApiKey: "Lascia vuoto per mantenere la chiave API salvata.",
-    environmentApiKey:
-      "Lascia vuoto per usare la chiave API OpenAI delle impostazioni Integrazioni di NethVoice.",
     keepPassword: "Lascia vuoto per mantenere la password salvata.",
     keepSecret: "Lascia vuoto per mantenere il segreto salvato.",
     secretEncrypted: "Le credenziali vengono cifrate prima del salvataggio.",
