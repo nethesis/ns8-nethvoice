@@ -1,6 +1,7 @@
 """Least-privilege MariaDB connections and durable pending-call correlation."""
 import base64
 import hashlib
+import hmac
 import json
 import os
 import re
@@ -105,16 +106,18 @@ class Storage:
                 row = cursor.fetchone()
         if not row:
             raise ValueError('binding_unavailable')
-        master = os.environ['SATELLITE_AGENT_CONFIG_KEY'].encode()
+        master = hashlib.sha256(os.environ['SATELLITE_AGENT_CONFIG_KEY'].encode()).digest()
         encrypted = row.pop('secrets_encrypted')
         row['_signing_generation'] = hashlib.sha256(encrypted.encode('ascii')).hexdigest()
-        secret = SecretBox(hashlib.sha256(master).digest()).decrypt(base64.b64decode(encrypted, validate=True))
+        secret = SecretBox(master).decrypt(base64.b64decode(encrypted, validate=True))
         row.update(json.loads(secret))
         if not row.get('api_key'):
             names=('OPENAI_API_KEY',) if row['provider']=='openai' else ('XAI_API_KEY','GROK_API_KEY')
             row['api_key']=next((os.environ[name] for name in names if os.environ.get(name)),None)
         if not isinstance(row.get('api_key'),str) or not row['api_key'] or any(c in row['api_key'] for c in '\r\n\x00'):
             raise ValueError('provider_credentials_unavailable')
+        row['_webhook_key_generation'] = hmac.digest(
+            master, f"voice-agent-webhook-key\0{row['provider']}\0{row['api_key']}".encode(), 'sha256').hex()
         row.update(json.loads(row.pop('settings_json')))
         if not re.fullmatch(r'VoiceAgentTrunk_[1-9][0-9]*', row['trunk_name']):
             raise ValueError('invalid_native_binding')
@@ -195,9 +198,10 @@ class Storage:
     def verify_signing_secret(self, binding):
         with database('monitor') as db:
             with db.cursor() as cursor:
-                cursor.execute('UPDATE asterisk.voice_agent_webhook_verification SET webhook_verified_at=NOW() '
+                cursor.execute('UPDATE asterisk.voice_agent_webhook_verification '
+                               'SET webhook_verified_at=NOW(),webhook_verified_key_generation=%s '
                                'WHERE binding_id=%s AND signing_generation=%s',
-                               (binding['binding_id'], binding['_signing_generation']))
+                               (binding['_webhook_key_generation'], binding['binding_id'], binding['_signing_generation']))
 
     def media_ownership(self):
         with database('monitor') as db:

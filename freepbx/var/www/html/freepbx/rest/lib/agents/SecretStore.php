@@ -23,6 +23,10 @@ final class SecretStore
         $credentials=array_intersect_key($secrets,['api_key'=>true,'webhook_secret'=>true]);
         return $this->encryptSecret(json_encode((object)$credentials,JSON_THROW_ON_ERROR));
     }
+    public function webhookKeyGeneration(string $provider,string $apiKey): string
+    {
+        return hash_hmac('sha256',"voice-agent-webhook-key\0".$provider."\0".$apiKey,$this->key());
+    }
     public function decryptSecret(?string $encoded): string
     {
         if (!$encoded) return '';

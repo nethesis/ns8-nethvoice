@@ -65,6 +65,7 @@ $db->exec("GRANT SELECT ON asterisk.voice_agent_published TO 'm0_reader'@'%'");
 foreach (['voice_agent_runtime_bindings','voice_agent_extension_directory','voice_agent_runtime_tools','voice_agent_queue_directory','voice_agent_ivr_directory','voice_agent_ivr_branches'] as $view) $db->exec("GRANT SELECT ON asterisk.$view TO 'm0_reader'@'%'");
 $db->exec("GRANT SELECT, INSERT ON asteriskcdrdb.voice_agent_runs TO 'm0_writer'@'%'");
 $db->exec("GRANT UPDATE (provider_call_id, ended_at, outcome, error_code) ON asteriskcdrdb.voice_agent_runs TO 'm0_writer'@'%'");
+$db->exec("GRANT SELECT (binding_id,signing_generation), UPDATE (webhook_verified_at,webhook_verified_key_generation) ON asterisk.voice_agent_webhook_verification TO 'm0_writer'@'%'");
 $db->exec("GRANT SELECT, INSERT ON asteriskcdrdb.voice_agent_run_events TO 'm0_writer'@'%'");
 $reader = new PDO($dsn, 'm0_reader', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 $writer = new PDO($dsn, 'm0_writer', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);

@@ -31,6 +31,7 @@ forbidden($writer,'SELECT * FROM asterisk.voice_agent_bindings LIMIT 0');
 forbidden($writer,'SELECT * FROM asterisk.voice_agent_runtime_bindings LIMIT 0');
 forbidden($reader,'SELECT signing_generation FROM asterisk.voice_agent_webhook_verification LIMIT 0');
 forbidden($writer,'SELECT * FROM asterisk.voice_agent_webhook_verification LIMIT 0');
+forbidden($writer,'SELECT webhook_verified_key_generation FROM asterisk.voice_agent_webhook_verification LIMIT 0');
 forbidden($reader,'SELECT * FROM asteriskcdrdb.voice_agent_runs LIMIT 0');
 forbidden($writer,'SELECT * FROM asterisk.voice_agent_published LIMIT 0');
 forbidden($writer,'UPDATE asteriskcdrdb.voice_agent_runs SET agent_id=agent_id');
@@ -53,17 +54,21 @@ $read=$writer->prepare('SELECT signing_generation FROM asterisk.voice_agent_webh
 $read->execute([$binding['binding_id']]);
 $generation=$read->fetchColumn();
 assert($generation===hash('sha256',$binding['secrets_encrypted']));
-$verify=$writer->prepare('UPDATE asterisk.voice_agent_webhook_verification SET webhook_verified_at=NOW()
+$verify=$writer->prepare('UPDATE asterisk.voice_agent_webhook_verification SET webhook_verified_at=NOW(),webhook_verified_key_generation=?
     WHERE binding_id=? AND signing_generation=?');
 $db->prepare('UPDATE asterisk.voice_agent_bindings SET webhook_verified_at=NULL WHERE binding_id=?')->execute([$binding['binding_id']]);
-$verify->execute([$binding['binding_id'],$generation]);
+$verify->execute([$store->webhookKeyGeneration('openai','synthetic-api'),$binding['binding_id'],$generation]);
 assert($verify->rowCount()===1);
 $newProjection=$store->encryptRuntimeCredentials(['api_key'=>'synthetic-rotated-api']);
 $db->prepare('UPDATE asterisk.voice_agent_bindings SET runtime_secrets_encrypted=?,webhook_verified_at=NULL WHERE binding_id=?')->execute([$newProjection,$binding['binding_id']]);
-$verify->execute([$binding['binding_id'],$generation]);
+$verifiedKeyGeneration=$store->webhookKeyGeneration('openai','synthetic-rotated-api');
+$verify->execute([$verifiedKeyGeneration,$binding['binding_id'],$generation]);
 assert($verify->rowCount()===0);
-$verify->execute([$binding['binding_id'],hash('sha256',$newProjection)]);
+$verify->execute([$verifiedKeyGeneration,$binding['binding_id'],hash('sha256',$newProjection)]);
 assert($verify->rowCount()===1);
+$q=$db->prepare('SELECT webhook_verified_key_generation FROM asterisk.voice_agent_bindings WHERE binding_id=?');
+$q->execute([$binding['binding_id']]);
+assert($q->fetchColumn()===$verifiedKeyGeneration);
 $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_webhook_verification AS
     SELECT binding_id,secrets_encrypted,webhook_verified_at FROM asterisk.voice_agent_bindings
     WHERE removed=0 AND provider='openai' WITH CASCADED CHECK OPTION");

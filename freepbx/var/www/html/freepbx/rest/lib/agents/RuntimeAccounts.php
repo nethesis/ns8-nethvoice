@@ -38,7 +38,7 @@ final class RuntimeAccounts
                 if ($user==='voice_agent_config') {
                     foreach (['voice_agent_published','voice_agent_runtime_bindings','voice_agent_extension_directory','voice_agent_runtime_tools','voice_agent_queue_directory','voice_agent_ivr_directory','voice_agent_ivr_branches','voice_agent_callback_devices','voice_agent_callback_trunks','voice_agent_callback_patterns','voice_agent_recent_cdr'] as $view) $db->exec('GRANT SELECT ON asterisk.'.$view.' TO '.$identity);
                 } else {
-                    $db->exec('GRANT SELECT (binding_id,signing_generation), UPDATE (webhook_verified_at) ON asterisk.voice_agent_webhook_verification TO '.$identity);
+                    $db->exec('GRANT SELECT (binding_id,signing_generation), UPDATE (webhook_verified_at,webhook_verified_key_generation) ON asterisk.voice_agent_webhook_verification TO '.$identity);
                     $db->exec('GRANT SELECT,INSERT ON asteriskcdrdb.voice_agent_runs TO '.$identity);
                     $db->exec('GRANT UPDATE (parent_run_id,provider_call_id,ended_at,outcome,error_code,duration_ms,setup_duration_ms,first_output_ms,trace_status,usage_json,usage_complete) ON asteriskcdrdb.voice_agent_runs TO '.$identity);
                     $db->exec('GRANT SELECT,INSERT ON asteriskcdrdb.voice_agent_run_events TO '.$identity);

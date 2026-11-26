@@ -54,6 +54,14 @@ final class Schema
                     ADD COLUMN IF NOT EXISTS called_number VARCHAR(21) CHARACTER SET ascii COLLATE ascii_bin NULL");
                 $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=6 WHERE singleton=1");
             }
+            if ($version<7) {
+                $db->exec('ALTER TABLE asterisk.voice_agent_bindings ADD COLUMN IF NOT EXISTS webhook_verified_key_generation CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL');
+                $db->exec("CREATE OR REPLACE SQL SECURITY DEFINER VIEW asterisk.voice_agent_webhook_verification AS
+                    SELECT binding_id,SHA2(runtime_secrets_encrypted,256) AS signing_generation,webhook_verified_at,webhook_verified_key_generation
+                    FROM asterisk.voice_agent_bindings WHERE removed=0 AND provider='openai' AND runtime_secrets_encrypted IS NOT NULL
+                    WITH CASCADED CHECK OPTION");
+                $db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version=7 WHERE singleton=1');
+            }
             self::directoryViews($db);
             RecentCallerViews::install($db);
         } finally {
@@ -72,7 +80,7 @@ final class Schema
         }
         $version=$db->query("SELECT schema_version FROM $marker WHERE singleton=1")->fetchColumn();
         if ($version===false && count($objects)===1) return 0; // Interrupted immediately after CREATE.
-        if ($version===false || !in_array((string)$version,['0','1','2','3','4','5','6'],true)) throw new \RuntimeException('unsupported_schema_version');
+        if ($version===false || !in_array((string)$version,['0','1','2','3','4','5','6','7'],true)) throw new \RuntimeException('unsupported_schema_version');
         return (int)$version;
     }
 
