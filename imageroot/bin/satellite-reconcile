@@ -31,6 +31,7 @@ SECRET_KEYS = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOI
 # Stable reasons stored in FAILED; anything else is recorded as apply_failed.
 INSTALL_ERRORS = ('unsupported_development_database', 'runtime_initialization_failed')
 APPLY_ERRORS = ('port_allocation_failed', 'voice_agent_runtime_not_ready') + INSTALL_ERRORS
+TRANSIENT_ERRORS = ('voice_agent_runtime_not_ready', 'runtime_initialization_failed')
 
 
 def run(*args, **kwargs):
@@ -162,7 +163,7 @@ def apply(*, transcription_only=False):
                     'freepbx', 'php', '/var/www/html/freepbx/rest/lib/agents/install-runtime.php', stderr=subprocess.PIPE)
             except subprocess.CalledProcessError as error:
                 reason = (error.stderr or b'').decode(errors='replace').strip()
-                if reason:
+                if reason in INSTALL_ERRORS:
                     print(reason, file=sys.stderr)
                 error.apply_error = reason if reason in INSTALL_ERRORS else None
                 # On first setup a rejected Agents schema must not prevent transcription startup.
@@ -225,6 +226,25 @@ def apply(*, transcription_only=False):
         raise
 
 
+def apply_error(error):
+    reason = getattr(error, 'apply_error', None) or (error.args[0] if error.args else None)
+    return reason if reason in APPLY_ERRORS else 'apply_failed'
+
+
+def apply_with_retry():
+    for delay in (5, 15, None):
+        try:
+            while not apply():
+                time.sleep(5)
+            return
+        except Exception as error:
+            reason = apply_error(error)
+            if delay is None or reason not in TRANSIENT_ERRORS:
+                raise
+            print(f'Satellite apply will retry after {delay}s: {reason}', file=sys.stderr)
+            time.sleep(delay)
+
+
 def main():
     os.umask(0o077)
     if PENDING.exists():
@@ -232,8 +252,7 @@ def main():
     elif not RUNNING.exists():
         return
     try:
-        while not apply():
-            time.sleep(5)
+        apply_with_retry()
         # Use the applied generation. A newer request can be queued while this
         # worker is running and has its own drain before disabling Agents.
         if STATE.exists() and json.loads(STATE.read_text()).get('agents') is False:
@@ -242,8 +261,7 @@ def main():
         FAILED.unlink(missing_ok=True)
     except Exception as error:
         # Existence still means failed; the content is only a stable reason code.
-        reason = getattr(error, 'apply_error', None) or (error.args[0] if error.args else None)
-        FAILED.write_text((reason if reason in APPLY_ERRORS else 'apply_failed') + '\n')
+        FAILED.write_text(apply_error(error) + '\n')
         raise
     finally:
         RUNNING.unlink(missing_ok=True)
