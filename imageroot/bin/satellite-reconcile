@@ -33,7 +33,6 @@ SECRET_KEYS = ('SATELLITE_AGENT_CONFIG_KEY', 'VOICE_AGENT_CONFIG_PASSWORD', 'VOI
 # Stable reasons stored in FAILED; anything else is recorded as apply_failed.
 INSTALL_ERRORS = ('unsupported_development_database', 'runtime_initialization_failed')
 APPLY_ERRORS = ('port_allocation_failed', 'voice_agent_runtime_not_ready') + INSTALL_ERRORS
-TRANSIENT_ERRORS = ('voice_agent_runtime_not_ready', 'runtime_initialization_failed')
 
 
 def run(*args, **kwargs):
@@ -81,7 +80,9 @@ def pbx_idle():
 def wait_for_agents(port, token):
     request = Request(f'http://127.0.0.1:{int(port)}/internal/ready',
                       headers={'Authorization': 'Bearer ' + token})
-    deadline = time.monotonic() + 25
+    # Give the started generation the previous retry budget without replacing it
+    # while ARI reconnects or systemd is recovering an exited process.
+    deadline = time.monotonic() + 95
     while time.monotonic() < deadline:
         try:
             with urlopen(request, timeout=1) as response:
@@ -272,7 +273,7 @@ def apply_with_retry():
             return
         except Exception as error:
             reason = apply_error(error)
-            if delay is None or reason not in TRANSIENT_ERRORS:
+            if delay is None or reason != 'runtime_initialization_failed':
                 raise
             print(f'Satellite apply will retry after {delay}s: {reason}', file=sys.stderr)
             time.sleep(delay)
