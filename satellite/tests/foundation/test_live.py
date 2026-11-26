@@ -1,5 +1,6 @@
 """Adapted Live TCP emulator: real HTTP/WebSocket frames, no vendor traffic."""
 import asyncio
+import base64
 import copy
 import json
 from contextlib import asynccontextmanager
@@ -89,6 +90,7 @@ class LiveEmulator:
 class PrimaryLiveEmulator(LiveEmulator):
     def __init__(self):
         super().__init__()
+        self.audio_received = []
         self.app.router.add_get('/v1/live/sessions', self.primary)
 
     async def primary(self, request):
@@ -100,6 +102,8 @@ class PrimaryLiveEmulator(LiveEmulator):
             if event['type'] == 'session.start':
                 self.accepted.append({'session': event['session']})
                 await self.ws.send_json({'type': 'session.started', 'session': {'id': 'live_test'}})
+            elif event['type'] == 'session.input_audio.append':
+                self.audio_received.append((asyncio.get_running_loop().time(), base64.b64decode(event['audio'])))
             elif event['type'].endswith('.append') and 'content' in event:
                 await self.ws.send_json({'type': event['type'] + 'ed', 'client_event_id': event['event_id']})
             elif event['type'] == 'session.close':
@@ -300,7 +304,7 @@ async def test_live_runtime_uses_common_grants_and_confirmed_transfer_over_tcp()
     value['tool_bindings'][1]['config'].update(extensions_enabled=True, extension_allowlist=['extension:203'])
     storage.snapshot.return_value=value;storage.tools.return_value=copy.deepcopy(DEFINITIONS)
     emulator=PrimaryLiveEmulator();server=TestServer(emulator.app);await server.start_server()
-    from voice_agent.media import AudioBuffer
+    from voice_agent.media import AudioBuffer, FRAME_BYTES, FRAME_SECONDS, PCMU_SILENCE
     media=SimpleNamespace(input=AudioBuffer(),failed=asyncio.Event(),error=None,
         enable_input=Mock(),stop_input=Mock(),write=AsyncMock(),flush=AsyncMock(),close=AsyncMock())
     controller.connect_media_channel.return_value=media
@@ -322,7 +326,28 @@ async def test_live_runtime_uses_common_grants_and_confirmed_transfer_over_tcp()
         await emulator.ws.send_json({'type': 'error', 'error': {
             'code': 'input_audio_rate_limit_exceeded', 'type': 'invalid_request_error',
             'message': 'This audio append was dropped.'}})
+        handle_tool = runtime.handle_tool
+        tool_started, release_tool = asyncio.Event(), asyncio.Event()
+
+        async def hold_tool(call, event):
+            tool_started.set()
+            await release_tool.wait()
+            await handle_tool(call, event)
+
+        runtime.handle_tool = hold_tool
         await emulator.tool(wire,invocation='denied',response='denied-response',arguments={'confirmed': True, 'destination_id':'extension:204'})
+        await asyncio.wait_for(tool_started.wait(), 1)
+        for base in (128, 144):
+            frames = [bytes([base + index]) * FRAME_BYTES for index in range(15)]
+            start = len(emulator.audio_received)
+            media.input.append(b''.join(frames))
+            await eventually(lambda: any(frame == frames[-1] for _, frame in emulator.audio_received[start:]))
+            await eventually(lambda: emulator.audio_received[-1][1] == PCMU_SILENCE)
+            audio = emulator.audio_received[start:]
+            assert [frame for _, frame in audio if frame != PCMU_SILENCE] == frames[-5:]
+            times = [when for when, _ in audio]
+            assert min(right - left for left, right in zip(times, times[1:])) >= FRAME_SECONDS / 1.2
+        release_tool.set()
         await eventually(lambda:any(e['type']=='response.item.create' and e['item'].get('call_id')=='denied' for e in emulator.received))
         assert not call.terminal and not call.adapter._startup_error
         controller.continue_channel.assert_not_awaited()
