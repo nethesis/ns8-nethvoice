@@ -176,8 +176,15 @@ if __name__ == "__main__":
             assert f"Debug/log level is {level}".encode() in output
     print("Keyed startup warned and served HTTP requests at levels 5–7")
     verify_startup_failure(image, key, b"Janus debug level must be 0 through 7", janus_args=("-d", "8"))
+    for args in (
+        ("--configs-folder=/tmp/custom",),
+        ("--configs-folder", "/tmp/custom"),
+        ("-Fo", "/tmp/custom"),
+        ("-oF", "/tmp/custom"),
+    ):
+        verify_startup_failure(image, key, b"Janus requires the configuration folder", janus_args=args)
     verify_startup_failure(
         image, key, b"Cannot set admin_key in /usr/local/etc/janus/janus.plugin.audiobridge.jcfg",
         "--read-only",
     )
-    print("Invalid keys, an invalid log level, and an unwritable configuration failed startup safely")
+    print("Invalid keys, an invalid log level, and unsupported configurations failed startup safely")

@@ -5,6 +5,23 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+keyed_config_folder=/usr/local/etc/janus
+
+check_keyed_config_folder() {
+	while (( $# )); do
+		case $1 in
+			--configs-folder=*) [[ ${1#*=} == "$keyed_config_folder" ]] || return 1 ;;
+			--configs-folder|-F*|-[!-]*F*) [[ ${2-} == "$keyed_config_folder" ]] || return 1 ;;
+		esac
+		shift
+	done
+}
+
+if [[ -v JANUS_ADMIN_SECRET && ${1##*/} == janus ]] && ! check_keyed_config_folder "${@:2}"; then
+	echo "[janus] Janus requires the configuration folder $keyed_config_folder when JANUS_ADMIN_SECRET is set" >&2
+	exit 1
+fi
+
 # Tag all output, including JANUS_PRINT and library messages that bypass
 # Janus's configured logger. Keep already prefixed messages unchanged.
 # Process substitution lets Janus remain PID 1 and receive signals directly.
@@ -76,7 +93,7 @@ if [[ -v JANUS_ADMIN_SECRET ]]; then
 	# Permanent saves can recreate a config. Keep newly created files private.
 	umask 077
 	for plugin in audiobridge textroom streaming; do
-		config="/usr/local/etc/janus/janus.plugin.$plugin.jcfg"
+		config="$keyed_config_folder/janus.plugin.$plugin.jcfg"
 		if ! LC_ALL=C set_admin_key "$config"; then
 			echo "Cannot set admin_key in $config" >&2
 			exit 1
