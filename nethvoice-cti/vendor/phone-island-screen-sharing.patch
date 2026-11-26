@@ -1,24 +1,24 @@
 diff --git a/package-lock.json b/package-lock.json
-index 0b87326..08f1d05 100644
+index 0b87326..98c11a7 100644
 --- a/package-lock.json
 +++ b/package-lock.json
 @@ -1,12 +1,12 @@
  {
    "name": "@nethesis/phone-island",
 -  "version": "1.1.10",
-+  "version": "1.1.11-screen-sharing.0",
++  "version": "1.1.11-screen-sharing.1",
    "lockfileVersion": 2,
    "requires": true,
    "packages": {
      "": {
        "name": "@nethesis/phone-island",
 -      "version": "1.1.10",
-+      "version": "1.1.11-screen-sharing.0",
++      "version": "1.1.11-screen-sharing.1",
        "license": "GPL-3.0-or-later",
        "dependencies": {
          "@fortawesome/fontawesome-svg-core": "7.3.1",
 diff --git a/package.json b/package.json
-index 9c34ae9..6a1cec3 100644
+index 9c34ae9..44be01d 100644
 --- a/package.json
 +++ b/package.json
 @@ -1,7 +1,7 @@
@@ -26,7 +26,7 @@ index 9c34ae9..6a1cec3 100644
    "name": "@nethesis/phone-island",
    "author": "Nethesis",
 -  "version": "1.1.10",
-+  "version": "1.1.11-screen-sharing.0",
++  "version": "1.1.11-screen-sharing.1",
    "description": "NethVoice CTI Phone Island",
    "keywords": [
      "nethserver",
@@ -259,7 +259,7 @@ index 1a99b44..c6f6134 100644
        pendingScreenStream,
        isStartingScreenShare: true,
 diff --git a/src/components/Socket.tsx b/src/components/Socket.tsx
-index 46f99d5..d05b838 100644
+index 46f99d5..f301ead 100644
 --- a/src/components/Socket.tsx
 +++ b/src/components/Socket.tsx
 @@ -1476,7 +1476,9 @@ export const Socket: FC<SocketProps> = ({
@@ -273,8 +273,11 @@ index 46f99d5..d05b838 100644
              dispatch.island.toggleSideViewVisible(false)
              dispatch.island.toggleTranscriptionViewVisible(false)
              dispatch.island.setIslandView('video')
-@@ -1486,10 +1488,11 @@ export const Socket: FC<SocketProps> = ({
+@@ -1484,12 +1486,14 @@ export const Socket: FC<SocketProps> = ({
+             dispatch.screenShare.update({
+               isJoiningScreenShare: true,
                room: (data as ScreenSharingMessage).roomId,
++              publisherUsername: (data as ScreenSharingMessage).callUser,
              })
              break
 +          }
@@ -287,10 +290,10 @@ index 46f99d5..d05b838 100644
              }
              dispatch.island.toggleSideViewVisible(false)
 diff --git a/src/components/VideoView/index.tsx b/src/components/VideoView/index.tsx
-index 04f15be..8bf5975 100644
+index 04f15be..e6b5713 100644
 --- a/src/components/VideoView/index.tsx
 +++ b/src/components/VideoView/index.tsx
-@@ -41,13 +41,51 @@ import { getInitials } from '../../lib/avatars/avatars'
+@@ -41,13 +41,53 @@ import { getInitials } from '../../lib/avatars/avatars'
  import { checkWebCamPermission } from '../../lib/devices/devices'
  import { dispatchVideoCallStarted } from '../../events/SocketEvents'
  import { notifyPeerVideoStart } from '../../lib/phone/video'
@@ -307,14 +310,16 @@ index 04f15be..8bf5975 100644
 +  screenShareRoomCreation?: ScreenShareRoomCreation
 +}
 +
-+interface ScreenShareAttempt {
-+  role: 'publisher' | 'listener'
-+  call?: ScreenShareCall
++type ScreenShareAttempt = (
++  | { role: 'publisher'; call: ScreenShareCall; roomCreation: ScreenShareRoomCreation }
++  | { role: 'listener'; publisher: string }
++) & {
 +  plugin?: any
 +  createPending?: boolean
 +  joinRequested?: boolean
 +  offerStarted?: boolean
-+  publishRequested?: boolean
++  published?: boolean
++  signallingTimer?: ReturnType<typeof setTimeout>
 +  invited?: boolean
 +  unsubscribe?: () => void
 +  removePendingTrackListener?: () => void
@@ -322,11 +327,11 @@ index 04f15be..8bf5975 100644
 +
 +// A share can outlive the video view. Phone Island has one store per page.
 +let screenShareAttempt: ScreenShareAttempt | undefined
++
++const PUBLISHER_SIGNALLING_TIMEOUT = 30_000
++const ROOM_REQUEST_TIMEOUT = 90_000
  
 -export interface VideoViewProps {}
-+const PUBLISHER_JOIN_TIMEOUT = 30_000
-+const ROOM_REQUEST_TIMEOUT = 90_000
-+
 +const isCurrentScreenShare = (attempt: ScreenShareAttempt) => {
 +  const { active, plugin, role } = store.getState().screenShare
 +  return (
@@ -334,7 +339,7 @@ index 04f15be..8bf5975 100644
 +    active &&
 +    role === attempt.role &&
 +    (!attempt.plugin || plugin === attempt.plugin) &&
-+    (!attempt.call || isScreenShareCallCurrent(attempt.call))
++    (attempt.role === 'listener' || isScreenShareCallCurrent(attempt.call))
 +  )
 +}
  
@@ -345,7 +350,7 @@ index 04f15be..8bf5975 100644
    destUser: string
    callUser: string
  }
-@@ -58,7 +96,7 @@ export type VideoCallMessage = {
+@@ -58,7 +98,7 @@ export type VideoCallMessage = {
    callUser: string
  }
  
@@ -354,7 +359,7 @@ index 04f15be..8bf5975 100644
    const dispatch = useDispatch<Dispatch>()
    const {
      muted,
-@@ -89,7 +127,6 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -89,7 +129,6 @@ export const VideoView: FC<VideoViewProps> = () => {
    const uiTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
    const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
    const videoRenegotiationInFlightRef = useRef(false)
@@ -362,7 +367,7 @@ index 04f15be..8bf5975 100644
    const screenShareViewRef = useRef(null)
    const fullscreenElementRef = useRef<HTMLElement | null>(null)
    const localScreen = useRef<HTMLVideoElement>(null)
-@@ -142,7 +179,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -142,7 +181,7 @@ export const VideoView: FC<VideoViewProps> = () => {
  
    // starting screen sharing
    useEffect(() => {
@@ -371,7 +376,7 @@ index 04f15be..8bf5975 100644
        initAndStartScreenShare()
        store.dispatch.screenShare.update({
          isStartingScreenShare: false,
-@@ -152,7 +189,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -152,7 +191,7 @@ export const VideoView: FC<VideoViewProps> = () => {
  
    // joining screen sharing
    useEffect(() => {
@@ -380,7 +385,7 @@ index 04f15be..8bf5975 100644
        initAndJoinScreenShare()
        store.dispatch.screenShare.update({
          isJoiningScreenShare: false,
-@@ -162,7 +199,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -162,7 +201,7 @@ export const VideoView: FC<VideoViewProps> = () => {
  
    // leaving screen sharing
    useEffect(() => {
@@ -389,7 +394,7 @@ index 04f15be..8bf5975 100644
        leaveScreenShare()
        store.dispatch.screenShare.update({
          isLeavingScreenShare: false,
-@@ -245,7 +282,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -245,7 +284,7 @@ export const VideoView: FC<VideoViewProps> = () => {
      toggleFullScreen()
    })
  
@@ -398,7 +403,7 @@ index 04f15be..8bf5975 100644
      // A new feed has been published, create a new plugin handle and attach to it as a listener
  
      dispatch.screenShare.update({
-@@ -257,6 +294,10 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -257,6 +296,10 @@ export const VideoView: FC<VideoViewProps> = () => {
        plugin: 'janus.plugin.videoroom',
        opaqueId: janus.current.randomString(32),
        success: function (pluginHandle) {
@@ -409,7 +414,7 @@ index 04f15be..8bf5975 100644
          remoteFeed = pluginHandle
  
          dispatch.screenShare.update({
-@@ -306,6 +347,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -306,6 +349,7 @@ export const VideoView: FC<VideoViewProps> = () => {
          )
        },
        onmessage: function (msg, jsep) {
@@ -417,7 +422,7 @@ index 04f15be..8bf5975 100644
          janus.current.debug?.(' ::: Got a message (listener) :::', msg)
          let event = msg['videoroom']
          janus.current.debug?.('Event: ' + event)
-@@ -330,6 +372,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -330,6 +374,7 @@ export const VideoView: FC<VideoViewProps> = () => {
              // as recvonly (since we won't capture anything ourselves)
              tracks: [{ type: 'data' }],
              success: function (jsep) {
@@ -425,7 +430,7 @@ index 04f15be..8bf5975 100644
                janus.current.debug?.('Got SDP!', jsep)
  
                const { room } = store.getState().screenShare
-@@ -538,101 +581,120 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -538,101 +583,125 @@ export const VideoView: FC<VideoViewProps> = () => {
      }
    }
  
@@ -444,20 +449,25 @@ index 04f15be..8bf5975 100644
 +    if (isCurrentScreenShare(attempt)) {
 +      attempt.plugin.send({
 +        message: { request: 'join', room, ptype: 'publisher', display: username },
-+        error: () => abortScreenShare(attempt, Boolean(attempt.call)),
++        error: () => abortScreenShare(attempt, true),
 +      })
      }
 +  }
  
 -    // Create a new room
 -    const roomName = janus.current.randomString(32)
+-
+-    let create = {
+-      request: 'create',
+-      description: roomName,
+-      bitrate: 500000,
+-      publishers: 1,
 +  const createRoomThroughMiddleware = async (
 +    attempt: ScreenShareAttempt,
 +    conversationId: string,
 +  ) => {
 +    const controller = new AbortController()
-+    const deadline = Date.now() + PUBLISHER_JOIN_TIMEOUT
-+    const joinTimer = setTimeout(() => abortScreenShare(attempt, true), PUBLISHER_JOIN_TIMEOUT)
++    const deadline = Date.now() + PUBLISHER_SIGNALLING_TIMEOUT
 +    // Keep reading the response after the UI deadline so a late room can be removed.
 +    const requestTimer = setTimeout(() => controller.abort(), ROOM_REQUEST_TIMEOUT)
 +    try {
@@ -475,42 +485,14 @@ index 04f15be..8bf5975 100644
 +    } catch {
 +      abortScreenShare(attempt, true)
 +    } finally {
-+      clearTimeout(joinTimer)
 +      clearTimeout(requestTimer)
 +      attempt.createPending = false
-+    }
+     }
 +  }
  
--    let create = {
--      request: 'create',
--      description: roomName,
--      bitrate: 500000,
--      publishers: 1,
-+  const shareScreen = (attempt: ScreenShareAttempt) => {
-+    if (attempt.createPending || attempt.joinRequested) return
-+    if (!janus.current.isExtensionEnabled()) {
-+      janus.current.error?.('Screen sharing requires getDisplayMedia')
-+      abortScreenShare(attempt, Boolean(attempt.call))
-+      return
-     }
- 
 -    const { plugin } = store.getState().screenShare
-+    attempt.createPending = true
-+    if (attempt.call) {
-+      void createRoomThroughMiddleware(attempt, attempt.call.conversationId)
-+      return
-+    }
- 
-+    const { plugin } = attempt
-+    const onError = () => {
-+      attempt.createPending = false
-+      if (isCurrentScreenShare(attempt)) {
-+        abortScreenShare(attempt)
-+      } else {
-+        plugin.detach()
-+      }
-+    }
-     plugin.send({
+-
+-    plugin.send({
 -      message: create,
 -      success: function (result) {
 -        if (result['error']) {
@@ -536,16 +518,34 @@ index 04f15be..8bf5975 100644
 -          janus.current.log?.('Screen sharing session created: ' + room)
 -
 -          const { username } = store.getState().currentUser
--
++  const startSignallingTimeout = (attempt: ScreenShareAttempt) => {
++    attempt.signallingTimer = setTimeout(
++      () => abortScreenShare(attempt, true),
++      PUBLISHER_SIGNALLING_TIMEOUT,
++    )
++  }
+ 
 -          if (screenSharePublisherJoinRequestedRef.current) {
 -            janus.current.log?.(
 -              'Screen share publisher join already requested on this handle, skipping duplicate join',
 -            )
 -            return
 -          }
--
++  const shareScreen = (attempt: ScreenShareAttempt) => {
++    if (attempt.role !== 'publisher' || attempt.createPending || attempt.joinRequested) return
++    if (!janus.current.isExtensionEnabled()) {
++      janus.current.error?.('Screen sharing requires getDisplayMedia')
++      abortScreenShare(attempt, true)
++      return
++    }
+ 
 -          screenSharePublisherJoinRequestedRef.current = true
--
++    attempt.createPending = true
++    if (attempt.roomCreation === 'middleware') {
++      void createRoomThroughMiddleware(attempt, attempt.call.conversationId)
++      return
++    }
+ 
 -          let register = {
 -            request: 'join',
 -            room: room,
@@ -553,6 +553,16 @@ index 04f15be..8bf5975 100644
 -            display: username,
 -          }
 -          plugin.send({ message: register })
++    const { plugin } = attempt
++    const onError = () => {
++      attempt.createPending = false
++      if (isCurrentScreenShare(attempt)) {
++        abortScreenShare(attempt)
++      } else {
++        plugin.detach()
++      }
++    }
++    plugin.send({
 +      message: {
 +        request: 'create',
 +        description: janus.current.randomString(32),
@@ -577,7 +587,7 @@ index 04f15be..8bf5975 100644
 -    janusInstance?.attach({
 +  const initScreenShare = (attempt: ScreenShareAttempt) => {
 +    if (!janusInstance) {
-+      abortScreenShare(attempt, Boolean(attempt.call))
++      abortScreenShare(attempt, attempt.role === 'publisher')
 +      return
 +    }
 +    janusInstance.attach({
@@ -612,11 +622,11 @@ index 04f15be..8bf5975 100644
        error: function (error) {
          janus.current.error?.('Error attaching videoroom plugin', error)
 -        abortScreenShare()
-+        abortScreenShare(attempt, Boolean(attempt.call))
++        abortScreenShare(attempt, attempt.role === 'publisher')
        },
        consentDialog: function (on) {},
        iceState: function (state) {
-@@ -658,21 +720,23 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -658,21 +727,24 @@ export const VideoView: FC<VideoViewProps> = () => {
          )
        },
        onmessage: function (msg, jsep) {
@@ -631,6 +641,7 @@ index 04f15be..8bf5975 100644
            if (event === 'joined') {
              if (role === 'publisher') {
 +              if (!attempt.joinRequested || attempt.offerStarted) return
++              clearTimeout(attempt.signallingTimer)
 +              attempt.offerStarted = true
                // This is our session, publish our stream
                janus.current.debug?.('Negotiating WebRTC stream for our screen')
@@ -642,7 +653,7 @@ index 04f15be..8bf5975 100644
  
                plugin.createOffer({
                  // We want sendonly audio and screensharing
-@@ -681,17 +745,23 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -681,17 +753,22 @@ export const VideoView: FC<VideoViewProps> = () => {
                    { type: 'screen', capture: screenTrack ?? true, recv: false },
                  ],
                  success: function (jsep) {
@@ -651,16 +662,15 @@ index 04f15be..8bf5975 100644
                    janus.current.debug?.('Got publisher SDP!', jsep)
 -                  let publish = { request: 'configure', audio: true, video: true }
 -                  plugin.send({ message: publish, jsep: jsep })
++                  startSignallingTimeout(attempt)
 +                  const publish = { request: 'configure', audio: true, video: true }
 +                  plugin.send({
 +                    message: publish,
 +                    jsep,
-+                    error: () => abortScreenShare(attempt, Boolean(attempt.call)),
++                    error: () => abortScreenShare(attempt, true),
 +                  })
 +                  if (!isCurrentScreenShare(attempt)) return
-+                  attempt.publishRequested = true
 +                  dispatch.screenShare.update({ pendingScreenStream: null })
-+                  inviteOtherUser(attempt)
                  },
                  error: function (error) {
 -                  screenSharePublisherJoinRequestedRef.current = false
@@ -669,11 +679,11 @@ index 04f15be..8bf5975 100644
 -                  dispatch.screenShare.update({ active: false, role: '' })
 -                  exitVideoViewIfNoVideo()
 -                  releaseScreenShareHandles(true)
-+                  abortScreenShare(attempt, Boolean(attempt.call))
++                  abortScreenShare(attempt, true)
                  },
                })
              } else {
-@@ -704,7 +774,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -704,7 +781,7 @@ export const VideoView: FC<VideoViewProps> = () => {
                    let id = list[f]['id']
                    let display = list[f]['display']
                    janus.current.debug?.('  >> [' + id + '] ' + display)
@@ -682,7 +692,7 @@ index 04f15be..8bf5975 100644
                  }
                }
              }
-@@ -718,7 +788,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -718,7 +795,7 @@ export const VideoView: FC<VideoViewProps> = () => {
                  let id = list[f]['id']
                  let display = list[f]['display']
                  janus.current.debug?.('  >> [' + id + '] ' + display)
@@ -691,18 +701,34 @@ index 04f15be..8bf5975 100644
                }
              } else if (msg['leaving']) {
                // One of the publishers has gone away?
-@@ -726,8 +796,8 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -726,17 +803,34 @@ export const VideoView: FC<VideoViewProps> = () => {
                janus.current.log?.('Publisher left: ' + leaving)
              } else if (msg['error']) {
                janus.current.error?.('Error event: ' + msg['error'])
 -              abortScreenShare()
 -              releaseScreenShareHandles(role === 'publisher')
-+              abortScreenShare(attempt, Boolean(attempt.call))
++              abortScreenShare(attempt, attempt.role === 'publisher')
 +              return
              }
            }
          }
-@@ -737,6 +807,10 @@ export const VideoView: FC<VideoViewProps> = () => {
+         if (jsep) {
+           janus.current.debug?.('Handling SDP as well...', jsep)
+-          plugin.handleRemoteJsep({ jsep: jsep })
++          plugin.handleRemoteJsep({
++            jsep,
++            success: () => {
++              if (
++                role === 'publisher' && msg.configured === 'ok' &&
++                jsep.type === 'answer' && isCurrentScreenShare(attempt)
++              ) {
++                clearTimeout(attempt.signallingTimer)
++                attempt.published = true
++                inviteOtherUser(attempt)
++              }
++            },
++            error: () => abortScreenShare(attempt, role === 'publisher'),
++          })
          }
        },
        onlocaltrack: function (track, on) {
@@ -713,7 +739,7 @@ index 04f15be..8bf5975 100644
          janus.current.debug?.('Local track ' + (on ? 'added' : 'removed') + ':', track)
          // We use the track ID as name of the element, but it may contain invalid characters
          let trackId = track.id.replace(/[{}]/g, '')
-@@ -790,13 +864,12 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -790,13 +884,12 @@ export const VideoView: FC<VideoViewProps> = () => {
  
            if (localScreenElement?.current) {
              janus.current.attachMediaStream?.(localScreenElement.current, stream)
@@ -732,7 +758,7 @@ index 04f15be..8bf5975 100644
          }
          const { plugin } = store.getState().screenShare
  
-@@ -812,7 +885,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -812,7 +905,7 @@ export const VideoView: FC<VideoViewProps> = () => {
        },
        oncleanup: function () {
          janus.current.log?.(' ::: Got a cleanup notification :::')
@@ -741,7 +767,7 @@ index 04f15be..8bf5975 100644
  
          dispatch.screenShare.update({
            localTracks: {},
-@@ -850,13 +923,20 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -850,13 +943,21 @@ export const VideoView: FC<VideoViewProps> = () => {
      }
    }
  
@@ -750,23 +776,24 @@ index 04f15be..8bf5975 100644
 +  const inviteOtherUser = (attempt: ScreenShareAttempt) => {
 +    const { room, localScreenStream } = store.getState().screenShare
 +    if (
++      attempt.role !== 'publisher' ||
 +      !isCurrentScreenShare(attempt) ||
 +      attempt.invited ||
-+      !attempt.publishRequested ||
++      !attempt.published ||
 +      !localScreenStream
 +    ) return
 +
      const { socket } = store.getState().websocket
 -    const { username: destUsername } = store.getState().currentCall
 -    const { room } = store.getState().screenShare
-+    const destUsername = (attempt.call ?? store.getState().currentCall).username
++    const destUsername = attempt.call.username
      const { username } = store.getState().currentUser
  
 +    attempt.invited = true
      socket.emit('message', {
        message: 'screenSharingStart',
        roomId: room,
-@@ -884,33 +964,64 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -884,33 +985,81 @@ export const VideoView: FC<VideoViewProps> = () => {
      }
    }
  
@@ -779,6 +806,21 @@ index 04f15be..8bf5975 100644
 +    if (screenShareAttempt !== attempt) return
 +    stopScreenShare(attempt.invited === true)
 +    if (showError && !screenShareAttempt) dispatch.alerts.setAlert('screen_share_unavailable')
++  }
++
++  const watchScreenShare = (attempt: ScreenShareAttempt) => {
++    const stopOnHold = () => stopScreenShare()
++    window.addEventListener('phone-island-call-held', stopOnHold)
++    const unsubscribe = store.subscribe(() => {
++      if (
++        !isCurrentScreenShare(attempt) ||
++        store.getState().webrtc.janusInstance !== janusInstance
++      ) abortScreenShare(attempt)
++    })
++    attempt.unsubscribe = () => {
++      unsubscribe()
++      window.removeEventListener('phone-island-call-held', stopOnHold)
++    }
    }
  
    const initAndStartScreenShare = () => {
@@ -791,8 +833,12 @@ index 04f15be..8bf5975 100644
 +    const { active, pendingScreenStream } = store.getState().screenShare
 +    if (active) return
 +
-+    const call = screenShareRoomCreation === 'middleware' ? store.getState().currentCall : undefined
-+    const attempt: ScreenShareAttempt = { role: 'publisher', call }
++    const call = store.getState().currentCall
++    const attempt: ScreenShareAttempt = {
++      role: 'publisher',
++      call,
++      roomCreation: screenShareRoomCreation,
++    }
 +    screenShareAttempt = attempt
 +    dispatch.alerts.removeAlert('screen_share_unavailable')
 +    dispatch.screenShare.update({
@@ -817,18 +863,15 @@ index 04f15be..8bf5975 100644
 +      attempt.removePendingTrackListener = () => screenTrack.removeEventListener('ended', stop)
 +    }
 +
-+    if (call) {
-+      if (!call.conversationId || !isScreenShareCallCurrent(call)) {
-+        abortScreenShare(attempt, true)
-+        return
-+      }
-+      attempt.unsubscribe = store.subscribe(() => {
-+        if (
-+          !isCurrentScreenShare(attempt) ||
-+          store.getState().webrtc.janusInstance !== janusInstance
-+        ) abortScreenShare(attempt)
-+      })
++    if (
++      !isScreenShareCallCurrent(call) ||
++      (attempt.roomCreation === 'middleware' && !call.conversationId)
++    ) {
++      abortScreenShare(attempt, true)
++      return
 +    }
++    watchScreenShare(attempt)
++    startSignallingTimeout(attempt)
 +    initScreenShare(attempt)
    }
    useEventListener('phone-island-screen-share-start', () => {
@@ -836,20 +879,22 @@ index 04f15be..8bf5975 100644
    })
  
    const initAndJoinScreenShare = () => {
-+    const { active, isLeavingScreenShare } = store.getState().screenShare
++    const { active, isLeavingScreenShare, publisherUsername } = store.getState().screenShare
 +    if (active || isLeavingScreenShare) return
-+    const attempt: ScreenShareAttempt = { role: 'listener' }
++    const attempt: ScreenShareAttempt = { role: 'listener', publisher: publisherUsername }
 +    screenShareAttempt = attempt
      dispatch.screenShare.update({ active: true, role: 'listener' })
 -    initScreenShare()
++    watchScreenShare(attempt)
 +    initScreenShare(attempt)
      eventDispatch('phone-island-screen-share-joined', {})
    }
  
-@@ -935,8 +1046,9 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -935,8 +1084,10 @@ export const VideoView: FC<VideoViewProps> = () => {
        if (active) stopScreenShare(false)
        return
      }
++    screenShareAttempt?.unsubscribe?.()
 +    screenShareAttempt = undefined
      janus.current.stopAllTracks(remoteScreenStream)
 -    dispatch.screenShare.update({ active: false })
@@ -857,7 +902,7 @@ index 04f15be..8bf5975 100644
      releaseScreenShareHandles(false)
      exitFullScreenIfActive()
      exitVideoViewIfNoVideo()
-@@ -974,17 +1086,33 @@ export const VideoView: FC<VideoViewProps> = () => {
+@@ -974,17 +1125,36 @@ export const VideoView: FC<VideoViewProps> = () => {
    }
  
    const stopScreenShare = (notifyRemote = true) => {
@@ -867,6 +912,7 @@ index 04f15be..8bf5975 100644
 +    const attempt = screenShareAttempt
 +    if (!attempt) return
 +    screenShareAttempt = undefined
++    clearTimeout(attempt.signallingTimer)
 +    attempt.unsubscribe?.()
 +    attempt.removePendingTrackListener?.()
 +
@@ -877,7 +923,9 @@ index 04f15be..8bf5975 100644
 -    releaseScreenShareHandles(role === 'publisher')
 +    janus.current.stopAllTracks(remoteScreenStream)
 +    janus.current.stopAllTracks(pendingScreenStream)
-+    releaseScreenShareHandles(role === 'publisher', !attempt.call && attempt.createPending === true)
++    const awaitingDirectRoom = attempt.role === 'publisher' &&
++      attempt.roomCreation === 'direct' && attempt.createPending === true
++    releaseScreenShareHandles(role === 'publisher', awaitingDirectRoom)
 +    dispatch.screenShare.update({
 +      active: false,
 +      role: '',
@@ -891,14 +939,37 @@ index 04f15be..8bf5975 100644
  
 -    if (notifyRemote) {
 -      // send message to websocket to tell the other user the screen share has stopped
-+    if (notifyRemote && attempt.invited) {
-+      // Send stop to the peer that got this attempt's invitation.
++    if (notifyRemote && room && (attempt.invited || role === 'listener')) {
++      // A local listener stop, including Hold, also stops the publisher.
        const { socket } = store.getState().websocket
 -      const { username: destUsername } = store.getState().currentCall
-+      const destUsername = (attempt.call ?? store.getState().currentCall).username
++      const destUsername = attempt.role === 'listener' ? attempt.publisher : attempt.call.username
        const { username } = store.getState().currentUser
  
        socket.emit('message', {
+@@ -1002,13 +1172,6 @@ export const VideoView: FC<VideoViewProps> = () => {
+     stopScreenShare()
+   })
+ 
+-  const pauseCall = () => {
+-    pauseCurrentCall()
+-    if (store.getState().screenShare.active) {
+-      stopScreenShare()
+-    }
+-  }
+-
+   const [isVideoCallButtonVisible, setIsVideoCallButtonVisible] = useState(true)
+ 
+   const checkCameraPermission = async () => {
+@@ -1232,7 +1395,7 @@ export const VideoView: FC<VideoViewProps> = () => {
+               {!(intrudeListenStatus?.isIntrude || intrudeListenStatus?.isListen) && (
+                 <Button
+                   variant='default'
+-                  onClick={() => (paused ? unpauseCurrentCall() : pauseCall())}
++                  onClick={() => (paused ? unpauseCurrentCall() : pauseCurrentCall())}
+                   data-tooltip-id='tooltip-pause-video-view'
+                   data-tooltip-content={paused ? t('Tooltip.Play') : t('Tooltip.Pause')}
+                 >
 diff --git a/src/lib/phone/screenShare.ts b/src/lib/phone/screenShare.ts
 index 73a7872..1fe5b41 100644
 --- a/src/lib/phone/screenShare.ts
@@ -975,14 +1046,15 @@ index 6fec098..ddc0e54 100644
  export interface AlertTypes {
    active: boolean
 diff --git a/src/models/screenShare.ts b/src/models/screenShare.ts
-index 326b562..6b2b78e 100644
+index 326b562..07e5f90 100644
 --- a/src/models/screenShare.ts
 +++ b/src/models/screenShare.ts
-@@ -8,16 +8,16 @@ export interface ScreenShareTypes {
+@@ -8,16 +8,17 @@ export interface ScreenShareTypes {
    active?: boolean
    plugin?: any
    role?: 'publisher' | 'listener' | ''
 -  room?: string
++  publisherUsername?: string
 +  room?: string | number
    source?: string
    remoteFeed?: any
@@ -998,21 +1070,22 @@ index 326b562..6b2b78e 100644
    isStartingScreenShare?: boolean
    isJoiningScreenShare?: boolean
    isLeavingScreenShare?: boolean
-@@ -27,7 +27,7 @@ const defaultState = {
+@@ -27,7 +28,8 @@ const defaultState = {
    active: false,
    plugin: null as any,
    role: '',
 -  room: '',
++  publisherUsername: '',
 +  room: '' as string | number,
    source: '',
    remoteFeed: null as any,
    localTracks: null as any,
 diff --git a/scripts/test-screen-sharing.cjs b/scripts/test-screen-sharing.cjs
 new file mode 100644
-index 0000000..59b0339
+index 0000000..69b36e8
 --- /dev/null
 +++ b/scripts/test-screen-sharing.cjs
-@@ -0,0 +1,319 @@
+@@ -0,0 +1,456 @@
 +// Copyright (C) 2026 Nethesis S.r.l.
 +// SPDX-License-Identifier: GPL-3.0-or-later
 +
@@ -1029,6 +1102,8 @@ index 0000000..59b0339
 +const modules = {
 +  useSideViewLogic: evaluate('components/SideView/hooks/useSideViewLogic.ts'),
 +  VideoView: evaluate('components/VideoView/index.tsx'),
++  CallEvents: evaluate('events/CallEvents.tsx'),
++  call: evaluate('lib/phone/call.ts'),
 +  screenShare: evaluate('lib/phone/screenShare.ts'),
 +  screenSharing: evaluate('services/screenSharing.ts'),
 +}
@@ -1054,6 +1129,7 @@ index 0000000..59b0339
 +
 +function harness(mode) {
 +  const events = new Map()
++  const eventTarget = new EventTarget()
 +  const notices = []
 +  const effects = []
 +  const tasks = []
@@ -1086,7 +1162,7 @@ index 0000000..59b0339
 +    dispatch: {
 +      alerts: { setAlert: (a) => state.alerts = a, removeAlert: () => state.alerts = '' },
 +      screenShare: { update: (patch) => update('screenShare', patch) },
-+      player: { updatePlayer: (patch) => update('player', patch) },
++      player: { updatePlayer: (patch) => update('player', patch), pauseRemoteAudio() {} },
 +      currentCall: { updateCurrentCall: (patch) => update('currentCall', patch) },
 +      island: {
 +        setIslandView: (view) => update('island', { view }),
@@ -1106,6 +1182,7 @@ index 0000000..59b0339
 +        detach() { this.detached = true },
 +        webrtcStuff: { pc: { iceConnectionState: 'connected' } },
 +        createOffer(offer) { this.offer = offer; this.offerCount = (this.offerCount ?? 0) + 1 },
++        handleRemoteJsep(answer) { this.answer = answer },
 +        send(config) {
 +          messages.push({ id, ...config })
 +          if (config.message.request === 'destroy') config.success?.()
@@ -1124,17 +1201,22 @@ index 0000000..59b0339
 +    store: { store }, react: hooks,
 +    'react-redux': { useDispatch: () => store.dispatch, useSelector: (select) => select(state) },
 +    'janus.js': JanusLib,
++    default_device: { isWebRTC: () => true },
++    messages: { pauseWebRTC: () => true },
 +    utils: {
 +      useIsomorphicLayoutEffect: (effect) => effects.push(effect),
 +      useEventListener: (event, handler) => events.set(event, handler),
-+      eventDispatch: (event) => notices.push(event),
++      eventDispatch(event) {
++        notices.push(event)
++        eventTarget.dispatchEvent(new Event(event))
++      },
 +    },
 +  }
 +  const globals = {
-+    AbortController, MediaStream, document: {}, addEventListener() {}, removeEventListener() {},
++    AbortController, MediaStream, window: eventTarget, document: {}, addEventListener() {}, removeEventListener() {},
 +    Date: { now: () => now },
 +    setTimeout(cb, ms) { const task = { cb, at: now + ms }; tasks.push(task); return task },
-+    clearTimeout(task) { task.cancel = true },
++    clearTimeout(task) { if (task) task.cancel = true },
 +    fetch(url, config) {
 +      const request = defer()
 +      requests.push({ url, config, ...request })
@@ -1152,6 +1234,8 @@ index 0000000..59b0339
 +    api[key] = exports
 +    return exports
 +  }
++  load('call')
++  load('CallEvents').CallEvents({})
 +  load('screenShare')
 +  load('screenSharing')
 +  const { VideoView } = load('VideoView')
@@ -1162,6 +1246,7 @@ index 0000000..59b0339
 +  }
 +  const start = () => events.get('phone-island-screen-share-start')()
 +  const stop = () => events.get('phone-island-screen-share-stop')()
++  const hold = () => events.get('phone-island-call-hold')()
 +  const advance = (ms) => {
 +    now += ms
 +    for (const task of tasks.filter(({ at, cancel }) => at <= now && !cancel)) {
@@ -1169,11 +1254,49 @@ index 0000000..59b0339
 +      task.cb()
 +    }
 +  }
-+  return { state, store, update, render, start, stop, advance, notices, messages, socket,
++  return { state, store, update, render, start, stop, hold, advance, notices, messages, socket,
 +    requests, handles, pickers, useSideViewLogic, sent: () => messages.map(({ message }) => message.request) }
 +}
 +
++// Exercise the bundled Janus SDK's createOffer with a browser picker that finishes after teardown.
++async function checkLateCapture() {
++  let picker
++  const module = { exports: {} }
++  class PeerConnection { close() { this.signalingState = 'closed' } }
++  vm.runInNewContext(fs.readFileSync(path.join(src, 'lib/webrtc/janus.js'), 'utf8'), {
++    module, window: { RTCPeerConnection: PeerConnection }, RTCPeerConnection: PeerConnection,
++    RTCRtpSender: class {}, MediaStreamTrack: Track, MediaStream,
++    navigator: { mediaDevices: { getDisplayMedia: () => picker.promise } },
++  })
++  const Janus = module.exports
++  Object.assign(Janus, {
++    initDone: true, isArray: Array.isArray, log() {}, debug() {}, error() {}, warn() {},
++    httpAPICall(_url, req) {
++      if (req.verb === 'POST') req.success({ janus: 'success', data: { id: 1 } })
++    },
++  })
++  const session = new Janus({ server: 'https://example.invalid/janus' })
++  for (const teardown of ['detach', 'replace']) {
++    picker = defer()
++    let handle
++    session.attach({ plugin: 'janus.plugin.videoroom', success: (h) => { handle = h } })
++    const track = new Track()
++    let error
++    handle.createOffer({ tracks: [{ type: 'screen', capture: true }], error: (e) => { error = e } })
++    if (teardown === 'detach') handle.detach()
++    else {
++      handle.hangup()
++      handle.webrtcStuff.pc = new PeerConnection()
++    }
++    picker.resolve(new MediaStream([track]))
++    await tick()
++    assert.equal(track.readyState, 'ended')
++    assert.match(String(error), /Capture ended/)
++  }
++}
++
 +;(async () => {
++  await checkLateCapture()
 +  {
 +    const h = harness()
 +    h.render()
@@ -1196,6 +1319,20 @@ index 0000000..59b0339
 +    assert.equal(h.requests.length, 0)
 +    assert.equal(h.state.currentCall.accepted, true)
 +    assert.equal(h.state.alerts, 'screen_share_unavailable')
++  }
++  {
++    const h = harness()
++    h.render()
++    h.start()
++    h.update('currentCall', { transferring: true })
++    h.update('currentCall', { transferring: false, username: 'charlie', conversationId: 'new-call' })
++    assert.equal(h.state.screenShare.active, false)
++    h.start()
++    h.messages[0].success({ videoroom: 'created', room: 321 })
++    assert.deepEqual(h.sent(), ['create', 'create', 'destroy'])
++    assert.equal(h.handles[0].detached, true)
++    assert.equal(h.handles[1].detached, false)
++    assert.deepEqual(h.socket, [])
 +  }
 +  for (const status of [401, 403, 503]) {
 +    const h = harness('middleware')
@@ -1244,10 +1381,77 @@ index 0000000..59b0339
 +    publisher.callbacks.onlocaltrack(new Track(), true)
 +    publisher.offer.success('sdp')
 +    assert.deepEqual(h.sent(), ['destroy', 'join', 'configure'])
++    assert.deepEqual(h.socket, [])
++    publisher.callbacks.onmessage({ videoroom: 'event', configured: 'ok' }, { type: 'answer', sdp: 'answer' })
++    assert.deepEqual(h.socket, [])
++    publisher.answer.success()
++    h.advance(30000)
++    assert.equal(h.state.screenShare.active, true, 'successful publication clears the signalling deadline')
 +    assert.equal(h.socket.length, 1)
 +    assert.equal(h.socket[0].message, 'screenSharingStart')
 +    assert.equal(h.socket[0].destUser, 'alice')
 +    assert.equal(h.socket[0].roomId, 500)
++  }
++  {
++    const h = harness('middleware')
++    const track = new Track()
++    h.update('screenShare', { pendingScreenStream: new MediaStream([track]) })
++    let attach
++    h.state.webrtc.janusInstance.attach = (callbacks) => { attach = callbacks }
++    h.render()
++    h.start()
++    h.advance(30000)
++    assert.equal(h.state.screenShare.active, false)
++    assert.equal(track.readyState, 'ended')
++    assert.equal(h.state.alerts, 'screen_share_unavailable')
++    let detached = false
++    attach.success({ detach() { detached = true } })
++    assert.equal(detached, true)
++    assert.equal(h.requests.length, 0)
++  }
++  for (const mode of ['direct', 'middleware']) {
++    const h = harness(mode)
++    const track = new Track()
++    h.update('screenShare', { pendingScreenStream: new MediaStream([track]) })
++    h.render()
++    h.start()
++    if (mode === 'direct') h.messages[0].success({ videoroom: 'created', room: 123 })
++    else h.requests[0].resolve(response(201, 123))
++    await tick()
++    assert.equal(h.sent().at(-1), 'join')
++    h.advance(30000)
++    h.handles[0].callbacks.onmessage({ videoroom: 'joined' })
++    assert.equal(h.sent().at(-1), 'destroy')
++    assert.equal(h.handles[0].detached, true)
++    assert.equal(track.readyState, 'ended')
++    assert.equal(h.state.screenShare.active, false)
++    assert.equal(h.state.alerts, 'screen_share_unavailable')
++    assert.deepEqual(h.socket, [])
++  }
++  for (const failure of ['janus rejection', 'invalid SDP', 'no response']) {
++    const h = harness('middleware')
++    h.render()
++    h.start()
++    h.requests[0].resolve(response(201, 405))
++    await tick()
++    const publisher = h.handles[0]
++    publisher.callbacks.onmessage({ videoroom: 'joined' })
++    h.advance(30000)
++    assert.equal(h.state.screenShare.active, true, 'screen picker has no signalling deadline')
++    const track = new Track()
++    publisher.callbacks.onlocaltrack(track, true)
++    publisher.offer.success('sdp')
++    if (failure === 'janus rejection') {
++      publisher.callbacks.onmessage({ videoroom: 'event', error: 'Cannot publish' })
++    } else if (failure === 'invalid SDP') {
++      publisher.callbacks.onmessage({ videoroom: 'event', configured: 'ok' }, { type: 'answer', sdp: 'invalid' })
++      publisher.answer.error()
++    } else {
++      h.advance(30000)
++    }
++    assert.equal(track.readyState, 'ended')
++    assert.equal(h.state.screenShare.active, false)
++    assert.deepEqual(h.socket, [])
 +  }
 +  for (const update of [
 +    (h) => h.stop(),
@@ -1286,17 +1490,23 @@ index 0000000..59b0339
 +    assert.equal(h.state.screenShare.plugin, h.handles[1])
 +    assert.deepEqual(h.socket, [])
 +  }
-+  {
++  for (const action of ['stop', 'hold']) {
 +    const h = harness('middleware')
-+    h.update('screenShare', { isJoiningScreenShare: true, room: 123 })
++    h.update('screenShare', { isJoiningScreenShare: true, room: 123, publisherUsername: 'alice' })
 +    h.render()
 +    assert.equal(h.state.screenShare.role, 'listener')
 +    assert.equal(h.requests.length, 0)
 +    assert.deepEqual(h.sent(), ['join'])
 +    assert.equal(h.messages[0].message.room, 123)
-+    h.stop()
++    h.update('currentCall', { username: 'charlie', conversationId: 'new-call' })
++    h.update('island', { view: 'transfer' })
++    h[action]()
 +    assert.equal(h.handles[0].detached, true)
 +    assert.deepEqual(h.sent(), ['join'])
++    assert.equal(h.socket.length, 1)
++    assert.equal(h.socket[0].message, 'screenSharingStop')
++    assert.equal(h.socket[0].destUser, 'alice')
++    assert.equal(h.socket[0].roomId, 123)
 +  }
 +  {
 +    const h = harness('middleware')
@@ -1321,7 +1531,7 @@ index 0000000..59b0339
 +  }
 +  {
 +    const h = harness('middleware')
-+    h.update('screenShare', { isJoiningScreenShare: true, room: 123 })
++    h.update('screenShare', { isJoiningScreenShare: true, room: 123, publisherUsername: 'alice' })
 +    h.render()
 +    h.update('screenShare', { isLeavingScreenShare: true })
 +    h.stop()
@@ -1367,3 +1577,30 @@ index 0000000..8014f1e
 +  }
 +  return room
 +}
+diff --git a/src/lib/webrtc/janus.js b/src/lib/webrtc/janus.js
+index 7a26361..ecf3e44 100644
+--- a/src/lib/webrtc/janus.js
++++ b/src/lib/webrtc/janus.js
+@@ -2530,7 +2530,8 @@ var Janus = (function (factory) {
+         throw 'Invalid handle'
+       }
+       let config = pluginHandle.webrtcStuff
+-      if (!config.pc) {
++      const pc = config.pc
++      if (!pc) {
+         Janus.warn('Invalid PeerConnection')
+         throw 'Invalid PeerConnection'
+       }
+@@ -2721,6 +2722,12 @@ var Janus = (function (factory) {
+               // Use getDisplayMedia
+               stream = await navigator.mediaDevices.getDisplayMedia(constraints)
+             }
++            // The user may have ended the share or the call while the picker was open.
++            if (pluginHandles.get(handleId) !== pluginHandle || pluginHandle.detached ||
++                config.pc !== pc || pc.signalingState === 'closed') {
++              Janus.stopAllTracks(stream)
++              throw new Error('Capture ended with the original PeerConnection')
++            }
+             nt = track.type === 'audio' ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0]
+           }
+           if (track.replace) {
