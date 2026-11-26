@@ -601,3 +601,98 @@ test.describe('user overview', () => {
     await expectDotOnAvatarCorner(page.getByRole('dialog'), 'Online')
   })
 })
+
+test.describe('registration of the physical phones', () => {
+  const REGISTERED = {
+    ...EXTENSIONS,
+    '93300': extension('online', {
+      ip: '192.0.2.20',
+      port: 5062,
+      sipuseragent: 'Fanvil X4U 2.12.1',
+      chanType: 'pjsip',
+    }),
+  }
+
+  const openPhoneDetails = async (page: Page) => {
+    await page.goto('./users/overview')
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    const drawer = page.getByRole('dialog')
+    await drawer
+      .getByRole('button', { name: 'Fanvil X4U Pro 93300 settings' })
+      .click({ position: { x: 8, y: 8 } })
+    return drawer
+  }
+
+  const detailRows = (details: ReturnType<Page['locator']>) =>
+    details.locator('div').filter({ has: details.page().locator('dt') })
+
+  test.beforeEach(async ({ signedIn }) => {
+    void signedIn
+  })
+
+  test('shows user agent, type, IP address and port of a physical phone', async ({
+    page,
+    mockApi,
+  }) => {
+    mockOverview(mockApi).on('GET', '/freepbx/rest/dashboard/live/extensions', {
+      json: REGISTERED,
+    })
+    const drawer = await openPhoneDetails(page)
+
+    const details = drawer.getByTestId('device-details').nth(2)
+    await expect(details).toBeVisible()
+    await expect(detailRows(details)).toHaveText([
+      /^User agent\s*Fanvil X4U 2\.12\.1$/,
+      /^Codecs\s*opus, alaw$/,
+      /^Type\s*pjsip$/,
+      /^IP address\s*192\.0\.2\.20$/,
+      /^Port\s*5062$/,
+      /^Do not disturb\s*Off$/,
+      /^Call forward\s*Off$/,
+    ])
+
+    await drawer
+      .getByRole('button', { name: 'Mobile app 92300 settings' })
+      .click({ position: { x: 8, y: 8 } })
+    const mobile = drawer.getByTestId('device-details').nth(1)
+    await expect(mobile).toBeVisible()
+    await expect(mobile.getByTestId('device-type')).toHaveText(/^Type\s*-$/)
+    await expect(mobile.getByTestId('device-user-agent')).toHaveCount(0)
+    await expect(mobile.getByTestId('device-ip')).toHaveCount(0)
+    await expect(mobile.getByTestId('device-port')).toHaveCount(0)
+  })
+
+  test('shows a dash for a phone that is not registered', async ({ page, mockApi }) => {
+    mockOverview(mockApi)
+    const drawer = await openPhoneDetails(page)
+
+    const details = drawer.getByTestId('device-details').nth(2)
+    await expect(details.getByTestId('device-user-agent')).toHaveText(/^User agent\s*-$/)
+    await expect(details.getByTestId('device-ip')).toHaveText(/^IP address\s*-$/)
+    await expect(details.getByTestId('device-port')).toHaveText(/^Port\s*-$/)
+    await expect(drawer.getByTestId('device-row').nth(2)).toContainText('Offline')
+  })
+
+  test('shows the registration to an administrator of the Users section only', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem('secretkey', JSON.stringify({ user: 'operator', hash: 'e2e-secret' }))
+    })
+    mockPermissions(mockApi, ['users'], 'operator')
+    mockOverview(mockApi).on('GET', '/freepbx/rest/dashboard/live/extensions', {
+      json: REGISTERED,
+    })
+    const drawer = await openPhoneDetails(page)
+
+    const details = drawer.getByTestId('device-details').nth(2)
+    await expect(details.getByTestId('device-ip')).toHaveText(/192\.0\.2\.20/)
+    await expect(details.getByTestId('device-user-agent')).toHaveText(/Fanvil X4U 2\.12\.1/)
+    await expect(page.getByText('Cannot retrieve the status of users')).toHaveCount(0)
+    expect(mockApi.calls.every((call) => !call.path.startsWith('/tancredi/api/v1/phones'))).toBe(
+      true,
+    )
+    expect(mockApi.calls.every((call) => call.method === 'GET')).toBe(true)
+  })
+})

@@ -276,12 +276,44 @@ function getDeviceLabel(device: OverviewDevice) {
                 class="mx-4 divide-y divide-gray-200 border-t border-gray-200 text-sm dark:divide-gray-700 dark:border-gray-700"
                 data-testid="device-details"
               >
+                <div
+                  v-if="device.type === 'physical'"
+                  class="flex justify-between gap-4 py-3"
+                  data-testid="device-user-agent"
+                >
+                  <dt class="text-primary-neutral shrink-0">
+                    {{ t('user_overview.user_agent') }}
+                  </dt>
+                  <dd class="text-secondary-neutral text-right wrap-anywhere">
+                    {{ device.userAgent || '-' }}
+                  </dd>
+                </div>
                 <div class="flex justify-between gap-4 py-3">
                   <dt class="text-primary-neutral shrink-0">{{ t('user_overview.codecs') }}</dt>
                   <dd class="text-secondary-neutral text-right wrap-anywhere">
                     {{ device.codecs.length ? device.codecs.join(', ') : '-' }}
                   </dd>
                 </div>
+                <div class="flex justify-between gap-4 py-3" data-testid="device-type">
+                  <dt class="text-primary-neutral shrink-0">{{ t('user_overview.type') }}</dt>
+                  <dd class="text-secondary-neutral text-right wrap-anywhere">
+                    {{ device.channelType || '-' }}
+                  </dd>
+                </div>
+                <template v-if="device.type === 'physical'">
+                  <div class="flex justify-between gap-4 py-3" data-testid="device-ip">
+                    <dt class="text-primary-neutral shrink-0">
+                      {{ t('user_overview.ip_address') }}
+                    </dt>
+                    <dd class="text-secondary-neutral text-right wrap-anywhere">
+                      {{ device.ip || '-' }}
+                    </dd>
+                  </div>
+                  <div class="flex justify-between gap-4 py-3" data-testid="device-port">
+                    <dt class="text-primary-neutral shrink-0">{{ t('user_overview.port') }}</dt>
+                    <dd class="text-secondary-neutral text-right">{{ device.port || '-' }}</dd>
+                  </div>
+                </template>
                 <div class="flex justify-between gap-4 py-3">
                   <dt class="text-primary-neutral shrink-0">
                     {{ t('user_overview.do_not_disturb') }}

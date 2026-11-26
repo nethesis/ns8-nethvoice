@@ -646,6 +646,7 @@ const DASHBOARD_LIVE_RULES = [
         'ip' => 'scalar',
         'port' => 'scalar',
         'sipuseragent' => 'scalar',
+        'chanType' => 'scalar',
     ]]],
     'trunks' => ['map' => ['fields' => [
         'name' => 'scalar',

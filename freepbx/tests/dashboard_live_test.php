@@ -81,7 +81,7 @@ check(json_decode($json, true) === [
             ],
         ],
         'dnd' => false, 'cf' => '', 'codecs' => ['ulaw', 'alaw'],
-        'ip' => '192.0.2.10', 'port' => '5060', 'sipuseragent' => 'Yealink T46U',
+        'ip' => '192.0.2.10', 'port' => '5060', 'sipuseragent' => 'Yealink T46U', 'chanType' => 'pjsip',
     ],
     '202' => ['exten' => '202', 'status' => 'online', 'conversations' => []],
 ], "the extensions must keep only the allowed fields: $json");

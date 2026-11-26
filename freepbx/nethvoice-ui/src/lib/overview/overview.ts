@@ -46,6 +46,10 @@ const ExtensionsResponseSchema = v.record(
     dnd: v.nullish(v.boolean(), false),
     cf: TextSchema,
     codecs: v.nullish(v.array(v.string()), []),
+    sipuseragent: TextSchema,
+    ip: TextSchema,
+    port: TextSchema,
+    chanType: TextSchema,
   }),
 )
 
@@ -67,6 +71,10 @@ export type OverviewExtension = {
   doNotDisturb: boolean
   callForward: string
   codecs: string[]
+  userAgent: string
+  ip: string
+  port: string
+  channelType: string
 }
 
 export type OverviewEndpointUser = {
@@ -136,6 +144,10 @@ export const parseOverviewExtensions = (raw: unknown): Record<string, OverviewEx
           doNotDisturb: state.dnd,
           callForward: state.cf,
           codecs: state.codecs,
+          userAgent: state.sipuseragent,
+          ip: state.ip,
+          port: state.port,
+          channelType: state.chanType,
         },
       ]
     }),
@@ -242,6 +254,10 @@ const OFFLINE_EXTENSION: OverviewExtension = {
   doNotDisturb: false,
   callForward: '',
   codecs: [],
+  userAgent: '',
+  ip: '',
+  port: '',
+  channelType: '',
 }
 
 export const buildOverviewUsers = (

@@ -33,6 +33,16 @@ const extensionsResponse = {
   '91300': { status: 'online', dnd: true, cf: '', codecs: [] },
   '92300': { status: 'busy_ringing', dnd: false, cf: '0612345678' },
   '301': { status: 'offline', dnd: false, cf: null, codecs: null },
+  '93300': {
+    status: 'offline',
+    dnd: false,
+    cf: '',
+    codecs: [],
+    ip: '192.0.2.20',
+    port: 5062,
+    sipuseragent: ' Fanvil X4U 2.12.1 ',
+    chanType: 'pjsip',
+  },
 }
 
 const endpointsResponse = {
@@ -122,6 +132,19 @@ describe('parseOverviewExtensions', () => {
       doNotDisturb: false,
       callForward: '',
       codecs: [],
+      userAgent: '',
+      ip: '',
+      port: '',
+      channelType: '',
+    })
+  })
+
+  it('should read the registration of the extension', () => {
+    expect(liveState.extensions['93300']).toMatchObject({
+      userAgent: 'Fanvil X4U 2.12.1',
+      ip: '192.0.2.20',
+      port: '5062',
+      channelType: 'pjsip',
     })
   })
 })
@@ -149,6 +172,7 @@ describe('buildOverviewUsers', () => {
       ['physical', '93300', 'offline'],
     ])
     expect(anna.devices[3].model).toBe('Fanvil X4U')
+    expect(anna.devices[3]).toMatchObject({ ip: '192.0.2.20', userAgent: 'Fanvil X4U 2.12.1' })
     expect(anna.devices[2].callForward).toBe('0612345678')
   })
 
@@ -367,6 +391,7 @@ describe('getOverviewLiveState', () => {
                   ip: '192.0.2.10',
                   port: '5060',
                   sipuseragent: 'Yealink T46U',
+                  chanType: 'pjsip',
                 },
               }
             : {
@@ -385,7 +410,16 @@ describe('getOverviewLiveState', () => {
 
     await expect(getOverviewLiveState()).resolves.toEqual({
       extensions: {
-        '201': { status: 'dnd', doNotDisturb: true, callForward: '0200000000', codecs: ['alaw'] },
+        '201': {
+          status: 'dnd',
+          doNotDisturb: true,
+          callForward: '0200000000',
+          codecs: ['alaw'],
+          userAgent: 'Yealink T46U',
+          ip: '192.0.2.10',
+          port: '5060',
+          channelType: 'pjsip',
+        },
       },
       users: [
         {
