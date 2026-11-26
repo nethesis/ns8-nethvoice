@@ -611,9 +611,18 @@ async function synchronize() {
         </ul>
       </section>
       <NeInlineNotification
-        v-if="task.error.value"
+        v-if="task.error.value || createUncertain"
         kind="error"
-        :title="task.error.value"
+        :title="task.error.value || t('error.request_uncertain')"
+        :description="
+          creating && createUncertain
+            ? t('agentForm.createUncertainHelp')
+            : undefined
+        "
+        :primary-button-label="
+          creating && createUncertain ? t('agentForm.openAgents') : undefined
+        "
+        @primary-click="router.push('/agents')"
         ><template v-if="!creating" #description
           ><NeButton
             kind="tertiary"

@@ -96,4 +96,9 @@ test("a create with an unknown result blocks another create", async ({page}) => 
   await expect(page.getByRole("button", {name: "Publish", exact: true})).toBeDisabled();
   await page.getByLabel("Name", {exact: true}).press("Enter");
   expect(creates).toBe(1);
+  await expect(page.getByText("The agent may have been created anyway. Check the Agents list before creating it again.", {exact: true})).toBeVisible();
+  await page.getByRole("button", {name: "Go to the Agents list", exact: true}).click();
+  await page.getByRole("button", {name: "Discard and leave", exact: true}).click();
+  await expect(page).toHaveURL(/#\/agents$/);
+  expect(creates).toBe(1);
 });

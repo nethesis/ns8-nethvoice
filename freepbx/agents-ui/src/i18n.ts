@@ -122,6 +122,9 @@ const en = {
       "Version {published} is published. Draft version {draft} has unpublished changes.",
     notPublished: "Not published yet. Draft version {draft}.",
     notSaved: "Not saved yet",
+    createUncertainHelp:
+      "The agent may have been created anyway. Check the Agents list before creating it again.",
+    openAgents: "Go to the Agents list",
     draftVersion: "Draft version {draft}",
     publishedVersion: "Published version {published}",
     unpublished: "Not published",
@@ -984,6 +987,9 @@ const it: typeof en = {
       "La versione {published} è pubblicata. La bozza versione {draft} ha modifiche non pubblicate.",
     notPublished: "Non ancora pubblicato. Bozza versione {draft}.",
     notSaved: "Non ancora salvato",
+    createUncertainHelp:
+      "L'agente potrebbe essere stato creato comunque. Controlla l'elenco degli agenti prima di crearlo di nuovo.",
+    openAgents: "Vai all'elenco degli agenti",
     draftVersion: "Bozza versione {draft}",
     publishedVersion: "Versione pubblicata {published}",
     unpublished: "Non pubblicato",
