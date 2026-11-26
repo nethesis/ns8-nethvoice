@@ -350,7 +350,7 @@
     "GET /cti/streaming": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Lists video sources."
+      "reason": "Lists video sources with their gates; source and gate passwords are write-only and never returned, has_secret and has_password tell whether one is stored."
     },
     "GET /cti/paramurls": {
       "intent": "integrations",
@@ -360,22 +360,52 @@
     "PUT /cti/streaming/{descr}": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Edits a video source; only video source permissions are renamed."
+      "reason": "Edits a video source and its gates; only video source permissions are renamed, loopback and link-local device addresses are refused, and for limited administrators also the addresses of the PBX node; a stored password is kept only for the same device."
     },
     "POST /cti/streaming": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Creates a video source."
+      "reason": "Creates a video source and its gates; loopback and link-local device addresses are refused, and for limited administrators also the addresses of the PBX node."
     },
     "POST /cti/sources/test": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
-      "reason": "Tests a video source URL from the video source form."
+      "reason": "Checks a video source from the video source form (ffprobe for RTSP, http(s) snapshot otherwise); loopback and link-local addresses are refused, and for limited administrators also the addresses of the PBX node; only JPEG and PNG previews are returned, a stored password goes only to the same device."
     },
     "DELETE /cti/streaming/{name}": {
       "intent": "integrations",
       "callers": ["ui:integrations", "legacy"],
       "reason": "Deletes a video source."
+    },
+    "GET /cti/streaming/doorphones": {
+      "intent": "integrations",
+      "callers": ["legacy"],
+      "reason": "Lists the provisioned door phones that can become a video source (MAC, model, extension, registered address, suggested RTSP URL, relays); passwords are never returned.",
+      "note": "Part of the video source form; the new UI calls only the routes it already used, the intent follows the Integrations screen that will adopt it."
+    },
+    "POST /cti/streaming/doorphones/{mac}": {
+      "intent": "integrations",
+      "callers": ["legacy"],
+      "reason": "Prepares a video source for a door phone: generates its RTSP password in Tancredi when missing, asks the device to fetch its configuration and returns the form prefill without the password.",
+      "note": "Part of the video source form; the new UI calls only the routes it already used, the intent follows the Integrations screen that will adopt it."
+    },
+    "POST /cti/streaming/doorphones/{mac}/sync": {
+      "intent": "integrations",
+      "callers": ["legacy"],
+      "reason": "Copies the current RTSP password of a door phone into the video sources linked to it after its settings are saved; nothing is returned but the count.",
+      "note": "Called by the previous wizard after the phone settings of a door phone are saved; the same sync runs at every configuration reload."
+    },
+    "POST /cti/streaming/reachability": {
+      "intent": "integrations",
+      "callers": ["legacy"],
+      "reason": "Opens a TCP connection from the PBX to the host and port of a source URL, sending nothing; loopback and link-local addresses, the addresses of the node and the cluster VPN networks are never contacted, at most 30 checks a minute.",
+      "note": "Part of the video source form; the new UI calls only the routes it already used, the intent follows the Integrations screen that will adopt it."
+    },
+    "GET /cti/sources/gateway": {
+      "intent": "integrations",
+      "callers": ["legacy"],
+      "reason": "Network facts of the video gateway (public address, ICE hosts and ports) shown in the video source form.",
+      "note": "Part of the video source form; the new UI calls only the routes it already used, the intent follows the Integrations screen that will adopt it."
     },
     "GET /dashboard/calls": {
       "intent": "dashboard",
