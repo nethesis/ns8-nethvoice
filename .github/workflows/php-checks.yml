@@ -21,8 +21,8 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Python test runner
-        run: python3 -m pip install 'pytest>=7.4.0'
+      - name: Install Python test dependencies
+        run: python3 -m pip install --constraint satellite/requirements-agent.lock 'pytest>=7.4.0' jsonschema
 
       - name: Install compatibility tools
         run: composer install --working-dir=tools/php-compatibility --no-interaction --no-progress --prefer-dist
