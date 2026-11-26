@@ -60,7 +60,7 @@ COLLEAGUE_NAME = r"\b(?:giulia|julia|ferri|ferry)\b"
 
 # Every name here is dispatched below. The second transport repeats its riskiest handoffs.
 BOTH = ("conversation", "name", "callback", "attended-accept", "chat-dnd", "voicemail-yes", "voicemail-no")
-FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "silence", "queue",
+FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "silence", "long-conversation", "queue",
         "denied", "denied-queue", "unknown", "ambiguous", "callback-empty",
         "callback-excluded", "callback-multiple", "callback-inbound", "callback-other-caller",
         "attended-decline", "attended-question", "chat-busy", "chat-no-answer",
@@ -357,6 +357,8 @@ class Call:
             mark = self.caller.mark()
             self.play(self.caller, "long")
             self.caller.wait_speech(mark, 12)
+            # Leave enough of the count for narrowband speech recognition to score it.
+            time.sleep(1.2)
             self.play(self.caller, "interrupt")
             # Counting audio received during the interruption belongs to the prior turn.
             after_input = self.caller.mark()
@@ -371,6 +373,27 @@ class Call:
             self.turn(self.caller, "after_silence", Phrase("la prova continua senza problemi"),
                       "agent heard caller after silence")
             self.finish()
+        elif case == "long-conversation":
+            connected_at = time.monotonic()
+            self.turn(self.caller, "remember", REMEMBER_PHRASE, "first turn")
+            cursor = self.caller.mark()
+            self.play(self.caller, "denied")
+            self.hear_until(self.caller, cursor, r"paolo|neri|risult|interni|disponibile",
+                            "agent answered after the directory lookup")
+            while True:
+                past_threshold = time.monotonic() - connected_at >= 36
+                cursor = self.caller.mark()
+                self.play(self.caller, "recall")
+                self.hear_until(self.caller, cursor, REMEMBER_PHRASE, "recalled the phrase", timeout=25)
+                if past_threshold:
+                    self.evidence.append("response to caller speech sent more than 36 seconds into the call")
+                    break
+            row = self.finish()
+            events = self.lab.trace(row["run_id"], self.transport)["events"]
+            require(any(event["event_type"] == "tool_completed" and event["tool_id"] == "pbx.find_destinations"
+                        for event in events), "No directory lookup in the long conversation")
+            require(not any(event["event_type"] == "transfer_committed" for event in events),
+                    "A transfer committed for a denied or unconfirmed destination")
         elif case == "hangup-disabled":
             self.turn(self.caller, "bye", r"\w+", "agent responded to the request to end the call")
             self.turn(self.caller, "hello", r"\bsi\b|sent[oi]|ascolt|aiut", "continued conversation")
@@ -641,7 +664,7 @@ class Call:
 
     def steps(self):
         case = self.case
-        if case in ("conversation", "english", "hangup-disabled", "barge-in", "silence"):
+        if case in ("conversation", "english", "hangup-disabled", "barge-in", "silence", "long-conversation"):
             self.conversation()
         elif case in ("name", "queue", "denied", "denied-queue", "unknown", "ambiguous"):
             self.routing()
