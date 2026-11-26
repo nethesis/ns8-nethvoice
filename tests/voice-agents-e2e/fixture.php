@@ -414,10 +414,14 @@ try {
             needreload();
         } else demand(count($match)===1 && $match[0]['description']===$label && $match[0]['dest']===$dest, 'route_owner_mismatch');
         $result = ['agent_id'=>$a['agent_id'],'workflow_version'=>$a['workflow_version'],'new_route'=>!$match];
-    } elseif ($op === 'runs' || $op === 'trace' || $op === 'children') {
+    } elseif ($op === 'runs' || $op === 'trace' || $op === 'children' || $op === 'search_runs') {
         $agent = ownedAgent($service, $owner.'-'.$r['transport']);
         demand($agent, 'fixture_agent_missing');
         if ($op==='runs') $result=$service->runs($agent['agent_id'])['items'];
+        elseif ($op==='search_runs') {
+            demand(in_array($r['term'],[$r['extensions']['caller'],$r['routes'][$r['transport']]],true),'non_fixture_search');
+            $result=array_column($service->searchRuns(['agent_id'=>$agent['agent_id'],'query'=>$r['term']])['items'],'run_id');
+        }
         else {
             $run = (new Monitoring(FreePBX::Database()))->run($r['run_id']);
             demand($run['agent_id'] === $agent['agent_id'], 'run_owner_mismatch');
