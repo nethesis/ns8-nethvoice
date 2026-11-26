@@ -26,6 +26,7 @@ const props = defineProps<{
   filters?: { key: string; label: string; options: Option[] }[];
   searchPlaceholder?: string;
   ariaLabel?: string;
+  emptyTitle?: string;
 }>();
 const { t } = useI18n();
 const search = ref(""),
@@ -90,13 +91,16 @@ watch(
         :clear-search-label="t('clear')"
         @update:model-value="selected[filter.key] = $event"
       />
-      <NeButton kind="tertiary" @click="reset">{{
-        t("resetFilters")
-      }}</NeButton>
+      <NeButton
+        kind="tertiary"
+        :disabled="!search && !Object.values(selected).some((v) => v.length)"
+        @click="reset"
+        >{{ t("resetFilters") }}</NeButton
+      >
     </div>
     <AppEmptyState
       v-if="!loading && !filtered.length"
-      :title="t('noResults')"
+      :title="emptyTitle || t('noResults')"
       :description="t('noResultsHelp')"
       :icon="faMagnifyingGlass"
       ><NeButton kind="tertiary" size="lg" @click="reset">{{

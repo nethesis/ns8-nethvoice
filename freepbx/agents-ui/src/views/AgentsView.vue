@@ -10,7 +10,13 @@ import {
   NeModal,
   type NeDropdownItem,
 } from "@nethesis/vue-components";
-import { faChartLine, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowUpRightFromSquare,
+  faChartLine,
+  faCirclePlus,
+  faPenToSquare,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import { faAiSpark } from "../aiSpark";
 import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
@@ -22,7 +28,7 @@ import CatalogTable from "../components/CatalogTable.vue";
 import AppEmptyState from "../components/AppEmptyState.vue";
 import { menuIcon } from "../menuIcon";
 import StatusBadge from "../components/StatusBadge.vue";
-import type { Agent, JsonObject, Trunk } from "../types";
+import type { Agent, Catalog, JsonObject, Trunk } from "../types";
 const { t } = useI18n();
 const loadError = useLoadError();
 const router = useRouter(),
@@ -35,6 +41,11 @@ const trunks = useQuery({
   queryKey: ["trunks"],
   queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
 });
+const catalog = useQuery({
+  queryKey: ["catalog"],
+  queryFn: () => request<Catalog>("GET", "/catalog"),
+});
+const sipLab = computed(() => catalog.data.value?.sip_lab_enabled === true);
 const rows = computed(() =>
   (query.data.value?.items || []).map((a) => ({
     ...a,
@@ -47,28 +58,103 @@ const rows = computed(() =>
     status: agentStatus(a),
   })),
 );
-const filters = computed(() => [
-  {
-    key: "type",
-    label: t("kind"),
-    options: ["basic_voice", "consultation", "cleverai"].map((id) => ({
-      id,
-      label: t("agentTypes." + id),
-    })),
-  },
-  {
-    key: "status",
-    label: t("state"),
-    options: [
-      "published",
-      "modified",
-      "draft",
-      "pending",
-      "ready",
-      "error",
-    ].map((id) => ({ id, label: t("status." + id) })),
-  },
-]);
+const filters = computed(() => {
+  const present = new Set(rows.value.map((row) => row.status));
+  return [
+    {
+      key: "type",
+      label: t("kind"),
+      options: ["basic_voice", "cleverai", "consultation"]
+        .filter(
+          (id) =>
+            id !== "cleverai" ||
+            sipLab.value ||
+            rows.value.some((row) => row.type === id),
+        )
+        .map((id) => ({ id, label: t("agentTypes." + id) })),
+    },
+    {
+      key: "status",
+      label: t("state"),
+      options: ["published", "modified", "draft", "pending", "ready", "error"]
+        .filter(
+          (id) =>
+            ["published", "modified", "draft"].includes(id) || present.has(id),
+        )
+        .map((id) => ({ id, label: t("status." + id) })),
+    },
+  ];
+});
+
+// Setup notice: lists only the steps still missing before callers can reach
+// an agent.
+const webhookReady = (trunk: Trunk) =>
+  trunk.provider === "cleverai" ||
+  ["configured", "manual", "verified"].includes(
+    trunk.webhook_status ||
+      (trunk.webhook_secret_configured ? "manual" : "not_configured"),
+  );
+const answering = (agent: Agent) =>
+  agent.agent_type !== "consultation" &&
+  agent.enabled &&
+  (agent.agent_type === "cleverai" || !!agent.workflow_version);
+// Routes are counted only when the server reports them for each agent.
+const routeUse = (agent: Agent) =>
+  typeof agent.in_use === "boolean"
+    ? agent.in_use
+    : typeof agent.route_count === "number"
+      ? agent.route_count > 0
+      : undefined;
+type SetupStep = {
+  id: string;
+  label: string;
+  to?: string;
+  href?: string;
+  link: string;
+};
+const setupSteps = computed<SetupStep[]>(() => {
+  const agents = query.data.value?.items;
+  const bindings = trunks.data.value?.items;
+  if (!agents || !bindings || !catalog.data.value) return [];
+  const usage = agents.map(routeUse);
+  const routesKnown = usage.some((value) => value !== undefined);
+  if (usage.some((value) => value === true)) return [];
+  const steps: SetupStep[] = [];
+  if (!bindings.length)
+    steps.push({
+      id: "trunk",
+      label: t("agentsList.setup.trunk"),
+      to: "/trunks",
+      link: t("trunks"),
+    });
+  else if (sipLab.value && !bindings.some(webhookReady))
+    steps.push({
+      id: "webhook",
+      label: t("agentsList.setup.webhook"),
+      to: "/trunks",
+      link: t("trunks"),
+    });
+  if (!agents.some(answering)) {
+    const candidate =
+      agents.find((agent) => agent.agent_type === "basic_voice") ||
+      agents.find((agent) => agent.agent_type !== "consultation");
+    steps.push({
+      id: "publish",
+      label: t("agentsList.setup.publish"),
+      to: candidate ? "/agents/" + candidate.agent_id : "/agents/new",
+      link: candidate ? candidate.name : t("newAgent"),
+    });
+  }
+  if (routesKnown)
+    steps.push({
+      id: "route",
+      label: t("agentsList.setup.route"),
+      href: "/freepbx/visualplan/",
+      link: t("openVisualplan"),
+    });
+  return steps;
+});
+
 function openVisualplan() {
   window.open("/freepbx/visualplan/", "_blank", "noopener");
 }
@@ -123,16 +209,45 @@ async function remove() {
     <NeButton kind="secondary" size="lg" @click="openVisualplan"
       ><template #prefix
         ><FontAwesomeIcon
-          icon="arrow-up-right-from-square"
+          :icon="faArrowUpRightFromSquare"
           aria-hidden="true" /></template
       >{{ t("openVisualplan") }}</NeButton
     >
     <NeButton kind="primary" size="lg" @click="router.push('/agents/new')"
       ><template #prefix
-        ><FontAwesomeIcon icon="circle-plus" aria-hidden="true" /></template
+        ><FontAwesomeIcon :icon="faCirclePlus" aria-hidden="true" /></template
       >{{ t("newAgent") }}</NeButton
     >
   </PageHeader>
+  <NeInlineNotification
+    v-if="setupSteps.length"
+    kind="info"
+    :title="t('agentsList.setup.title')"
+    class="mb-8 max-w-3xl"
+    data-testid="setup-notice"
+  >
+    <template #description>
+      <span class="block">{{ t("agentsList.setup.description") }}</span>
+      <ol class="mt-1 list-inside list-decimal">
+        <li v-for="item in setupSteps" :key="item.id" :data-step="item.id">
+          {{ item.label }}:
+          <RouterLink
+            v-if="item.to"
+            :to="item.to"
+            class="font-medium underline"
+            >{{ item.link }}</RouterLink
+          ><a
+            v-else
+            :href="item.href"
+            target="_blank"
+            rel="noopener"
+            class="font-medium underline"
+            >{{ item.link }}</a
+          >
+        </li>
+      </ol>
+    </template>
+  </NeInlineNotification>
   <NeInlineNotification
     v-if="query.isError.value"
     kind="error"
@@ -147,6 +262,7 @@ async function remove() {
     :search-placeholder="t('filterAgents')"
     :filters="filters"
     :search-keys="['name', 'typeLabel', 'trunk', 'agent_id']"
+    :empty-title="t('agentsList.noneFound')"
     :columns="[
       { key: 'name', label: t('name') },
       { key: 'typeLabel', label: t('kind') },
@@ -189,10 +305,11 @@ async function remove() {
       ><div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
         <NeButton
           kind="tertiary"
+          :aria-label="t('agentsList.editAgent', { name: row.name })"
           @click="router.push('/agents/' + row.agent_id)"
           ><template #prefix
             ><FontAwesomeIcon
-              icon="pen-to-square"
+              :icon="faPenToSquare"
               class="size-4"
               aria-hidden="true" /></template
           >{{ t("edit") }}</NeButton

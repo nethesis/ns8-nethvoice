@@ -820,6 +820,19 @@ const en = {
   backendVerbosity: "Backend response detail",
   serviceTier: "Backend service tier",
   maxOutputTokens: "Maximum backend output tokens",
+  // Agents list and setup notice
+  agentsList: {
+    noneFound: "No agents found",
+    editAgent: "Edit {name}",
+    setup: {
+      title: "Agents can’t answer calls yet",
+      description: "Callers reach an agent once you complete these steps:",
+      trunk: "Create a provider trunk",
+      webhook: "Configure the webhook of the provider trunk",
+      publish: "Publish an agent",
+      route: "Use an agent in a VisualPlan route",
+    },
+  },
 };
 const it: typeof en = {
   wizard: "Wizard",
@@ -1661,6 +1674,20 @@ const it: typeof en = {
   backendVerbosity: "Dettaglio della risposta backend",
   serviceTier: "Livello di servizio backend",
   maxOutputTokens: "Token massimi di output backend",
+  // Agents list and setup notice
+  agentsList: {
+    noneFound: "Nessun agente trovato",
+    editAgent: "Modifica {name}",
+    setup: {
+      title: "Gli agenti non possono ancora rispondere alle chiamate",
+      description:
+        "I chiamanti raggiungono un agente quando completi questi passaggi:",
+      trunk: "Crea un trunk del provider",
+      webhook: "Configura il webhook del trunk del provider",
+      publish: "Pubblica un agente",
+      route: "Usa un agente in una rotta di VisualPlan",
+    },
+  },
 };
 
 export const i18n = createI18n({

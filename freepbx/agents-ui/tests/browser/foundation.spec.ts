@@ -46,11 +46,11 @@ test("built-in agents render with v0.1 navigation and independent tool editing",
   });
   await page.goto("./#/agents");
   for (const name of ["Dashboard","Extensions and devices","Routes / VisualPlan"]) await expect(page.getByRole("link",{name,exact:true})).toHaveCount(0);
-  await expect(page.getByRole("link",{name:"Receptionist",exact:true})).toBeVisible();
+  await expect(page.locator("main table").getByRole("link",{name:"Receptionist",exact:true})).toBeVisible();
   await expect(page.getByRole("link",{name:"Independent custom",exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Create agent",exact:true})).toBeVisible();
   await expect(page.getByRole("link",{name:"Data sources",exact:true})).toHaveCount(0);
-  await page.getByRole("link",{name:"Receptionist",exact:true}).click();
+  await page.locator("main table").getByRole("link",{name:"Receptionist",exact:true}).click();
   await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Receptionist");
   await page.getByLabel("Name",{exact:true}).fill("Receptionist test agent");
   await expect(toggle(page,"Find permitted PBX destinations")).toHaveCount(0);
