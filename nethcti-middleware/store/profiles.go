@@ -91,6 +91,7 @@ var (
 	profiles         map[string]*ProfileData
 	users            map[string]*UserProfile
 	profileMutex     sync.RWMutex
+	profileReloadMu  sync.Mutex
 	profilesFilePath string
 	usersFilePath    string
 )
@@ -100,6 +101,9 @@ var defaultProfilesJSON []byte
 
 // InitProfiles loads profiles and users from JSON files
 func InitProfiles(profilesPath, usersPath string) error {
+	profileReloadMu.Lock()
+	defer profileReloadMu.Unlock()
+
 	profAbs, err := filepath.Abs(profilesPath)
 	if err != nil {
 		return fmt.Errorf("profiles path: %w", err)
@@ -153,6 +157,19 @@ func GetUserCapabilities(username string) (map[string]bool, error) {
 	return profile.Capabilities, nil
 }
 
+// GetUserExtensionAccess returns capabilities and owned extensions from the same profile snapshot.
+func GetUserExtensionAccess(username string) (map[string]bool, []string) {
+	profileMutex.RLock()
+	defer profileMutex.RUnlock()
+
+	user := users[strings.ToLower(username)]
+	if user == nil || profiles[user.ProfileID] == nil {
+		return nil, nil
+	}
+	// PhoneNumbers is the union of the caller's configured primary and secondary extensions.
+	return profiles[user.ProfileID].Capabilities, append([]string(nil), user.PhoneNumbers...)
+}
+
 // UserExists reports whether the username is a configured user (exact name,
 // case insensitive): extensions and other aliases are not users.
 func UserExists(username string) bool {
@@ -204,6 +221,9 @@ func GetUserDisplayInfo(username string) (string, []string, error) {
 
 // ReloadProfiles reloads profiles and users and returns resulting counters.
 func ReloadProfiles() (*ReloadStats, error) {
+	profileReloadMu.Lock()
+	defer profileReloadMu.Unlock()
+
 	// Load new profiles and users into temporary variables
 	newProfiles, profilesErr := loadProfiles(profilesFilePath)
 
@@ -226,35 +246,23 @@ func ReloadProfiles() (*ReloadStats, error) {
 		return nil, fmt.Errorf("reload failed for both profiles and users")
 	}
 
-	stats := &ReloadStats{}
-
-	// Update profiles if load succeeded, otherwise keep old data
 	if profilesErr != nil {
 		logs.Log(fmt.Sprintf("[WARNING][AUTH] Failed to reload profiles (keeping previous data): %v", profilesErr))
-		profileMutex.RLock()
-		stats.ProfilesLoaded = len(profiles)
-		profileMutex.RUnlock()
-	} else {
-		profileMutex.Lock()
-		profiles = newProfiles
-		profileMutex.Unlock()
-		stats.ProfilesLoaded = len(newProfiles)
 	}
-
-	// Update users if load succeeded, otherwise keep old data
 	if usersErr != nil {
 		logs.Log(fmt.Sprintf("[WARNING][AUTH] Failed to reload users (keeping previous data): %v", usersErr))
-		profileMutex.RLock()
-		stats.UsersLoaded = len(users)
-		profileMutex.RUnlock()
-	} else {
-		profileMutex.Lock()
-		users = newUsers
-		profileMutex.Unlock()
-		stats.UsersLoaded = len(newUsers)
 	}
 
-	return stats, nil
+	// Publish the matching profile and ownership maps together.
+	profileMutex.Lock()
+	defer profileMutex.Unlock()
+	if profilesErr == nil {
+		profiles = newProfiles
+	}
+	if usersErr == nil {
+		users = newUsers
+	}
+	return &ReloadStats{ProfilesLoaded: len(profiles), UsersLoaded: len(users)}, nil
 }
 
 // loadProfiles loads profiles into a temporary map without modifying global state

@@ -11,6 +11,14 @@
 -- scan of cti_phonebook. Indexes here would be pure write-path overhead.
 USE nethcti3;
 
+CREATE TABLE IF NOT EXISTS screen_share_pending_rooms (
+	room_id BIGINT UNSIGNED NOT NULL,
+	marker CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+	cleanup_at DATETIME(6) NOT NULL,
+	PRIMARY KEY (room_id),
+	KEY (cleanup_at)
+) ENGINE=InnoDB;
+
 ALTER TABLE cti_phonebook
 	ADD COLUMN IF NOT EXISTS firstname varchar(255) DEFAULT NULL,
 	ADD COLUMN IF NOT EXISTS lastname varchar(255) DEFAULT NULL,

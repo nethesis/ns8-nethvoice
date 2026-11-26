@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -239,6 +240,58 @@ func TestReloadProfiles_Concurrent(t *testing.T) {
 	}
 
 	<-done
+}
+
+func TestReloadProfilesPublishesExtensionAccessTogether(t *testing.T) {
+	const disabled = `{"role":{"macro_permissions":{"nethvoice_cti":{"value":false}}}}`
+	const enabled = `{"role":{"macro_permissions":{"nethvoice_cti":{"value":true}}}}`
+	const oldUser = `{"alice":{"profile_id":"role","endpoints":{"extension":{"201":{}}}}}`
+	const newUser = `{"alice":{"profile_id":"role","endpoints":{"extension":{"202":{}}}}}`
+	profileFile := writeTempFile(t, "profiles.json", disabled)
+	usersFile := writeTempFile(t, "users.json", oldUser)
+	if err := InitProfiles(profileFile, usersFile); err != nil {
+		t.Fatal(err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i := 0; i < 100; i++ {
+			profile, user := enabled, newUser
+			if i%2 != 0 {
+				profile, user = disabled, oldUser
+			}
+			if err := os.WriteFile(profileFile, []byte(profile), 0600); err != nil {
+				t.Error(err)
+				return
+			}
+			if err := os.WriteFile(usersFile, []byte(user), 0600); err != nil {
+				t.Error(err)
+				return
+			}
+			if _, err := ReloadProfiles(); err != nil {
+				t.Error(err)
+				return
+			}
+		}
+	}()
+
+	for {
+		capabilities, extensions := GetUserExtensionAccess("alice")
+		want := []string{"201"}
+		if capabilities["nethvoice_cti"] {
+			want = []string{"202"}
+		}
+		if !slices.Equal(extensions, want) {
+			<-done
+			t.Fatalf("profile and extension ownership came from different reloads: %v, %v", capabilities, extensions)
+		}
+		select {
+		case <-done:
+			return
+		default:
+		}
+	}
 }
 
 func TestInitProfiles_UsesEmbeddedDefaults(t *testing.T) {

@@ -28,6 +28,7 @@ import (
 
 	"github.com/nethesis/nethcti-middleware/configuration"
 	"github.com/nethesis/nethcti-middleware/db"
+	"github.com/nethesis/nethcti-middleware/methods"
 	"github.com/nethesis/nethcti-middleware/middleware"
 	"github.com/nethesis/nethcti-middleware/models"
 	"github.com/nethesis/nethcti-middleware/store"
@@ -236,12 +237,12 @@ func TestLogout(t *testing.T) {
 }
 
 func TestCreateRouter_IncludesLegacyPhonebookTrailingSlashRoutes(t *testing.T) {
-	router := createRouter()
+	router := createRouter(methods.NewScreenShareRooms(nil, "", ""))
 	routes := router.Routes()
 	expectedRoutes := map[string]bool{
-		"GET /phonebook/search/":      false,
+		"GET /phonebook/search/":       false,
 		"GET /phonebook/search/:term/": false,
-		"GET /phonebook/getall/":      false,
+		"GET /phonebook/getall/":       false,
 		"GET /phonebook/getall/:term/": false,
 	}
 
