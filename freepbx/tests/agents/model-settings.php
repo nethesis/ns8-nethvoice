@@ -18,11 +18,12 @@ $native=new class {
     public function extensions(): array { return [['id'=>'extension:203','name'=>'Test extension']]; }
     public function destination(string $id): string { return 'app-blackhole,hangup,1'; }
 };
-$keys=[];$available=['gpt-realtime-2.1','gpt-realtime-2','gpt-live-1','gpt-6-luna','gpt-6-sol'];
+$keys=[];$projects=[];$available=['gpt-realtime-2.1','gpt-realtime-2','gpt-live-1','gpt-6-luna','gpt-6-sol'];
 $discoveryError=null;
-$catalog=new ProviderCatalog(function($provider,$key) use (&$keys,&$available,&$discoveryError) {
+$catalog=new ProviderCatalog(function($provider,$key,$project) use (&$keys,&$projects,&$available,&$discoveryError) {
     if ($discoveryError!==null) throw new RuntimeException($discoveryError);
-    $keys[]=$key;return ['data'=>array_map(fn($id)=>['id'=>$id],$available)];
+    if ($project==='proj_unknown') throw new RuntimeException('provider_project_unverified',422);
+    $keys[]=$key;$projects[]=$project;return ['data'=>array_map(fn($id)=>['id'=>$id],$available)];
 });
 $service=new Service($db,$native,$catalog);
 function ensure($condition,string $name): void { if (!$condition) throw new RuntimeException($name); }
@@ -38,6 +39,12 @@ $trunk=$service->saveTrunk(null,$input,0,'synthetic-admin');
 ensure(!array_key_exists('model',$trunk) && !isset($trunk['effective_model']),'trunk_has_no_conversation_model');
 $service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id']]);
 ensure(end($keys)==='synthetic-stored-key','stored_discovery');
+ensure(end($projects)===null,'ordinary_catalog_has_no_project_dependency');
+$tested=$service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'test'=>true]);
+ensure($tested['project_checked'] && end($projects)==='proj_models','credential_test_scoped_to_saved_project');
+rejected(fn()=>$service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'test'=>true,'openai_project_id'=>'proj_unknown']),'provider_project_unverified');
+$service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'test'=>true,'openai_project_id'=>'']);
+ensure(end($projects)===null,'explicit_blank_project_tests_live_key');
 $service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'api_key'=>'synthetic-unsaved-key']);
 ensure(end($keys)==='synthetic-unsaved-key','unsaved_key_precedence');
 rejected(fn()=>$service->models(['provider'=>'grok','binding_id'=>$trunk['binding_id']]),'invalid_provider');

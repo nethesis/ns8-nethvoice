@@ -616,22 +616,35 @@ PROMPT;
     /** POST avoids putting unsaved credentials into URLs, caches or browser history. */
     public function models(array $input): array
     {
-        self::fields($input,['provider','binding_id','api_key','credential_mode','test']);
+        self::fields($input,['provider','binding_id','api_key','credential_mode','test','openai_project_id']);
         $mode=$input['credential_mode']??null;
         if ($mode!==null && !in_array($mode,['inherit','dedicated'],true)) self::fail('invalid_field');
         $provider=self::text($input['provider']??null,16,true);
         ProviderCatalog::capabilities($provider);
+        $test=($input['test']??false)===true;
+        if (array_key_exists('openai_project_id',$input) && (!$test || $provider!=='openai')) self::fail('invalid_fields',field:'openai_project_id');
+        $project=$input['openai_project_id']??null;
         $key=isset($input['api_key'])?self::text($input['api_key'],4096):'';
         if ($key!=='' && preg_match('/[\r\n\x00]/',$key)) self::fail('invalid_secret');
         if (isset($input['binding_id'])) {
             $row=$this->binding(self::text($input['binding_id'],48,true));
-            if ($this->safeBinding($row)['provider']!==$provider) self::fail('invalid_provider');
+            $binding=$this->safeBinding($row);
+            if ($binding['provider']!==$provider) self::fail('invalid_provider');
+            if ($test && $provider==='openai') $project??=$binding['openai_project_id']??null;
             $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
             if ($key==='' && $mode!=='inherit') $key=$secrets['api_key']??'';
         }
         if ($mode==='inherit' || ($key==='' && $mode!=='dedicated')) $key=ProviderCatalog::environmentKey($provider);
-        $result=$this->providerCatalog->models($provider,$key,($input['test']??false)===true);
-        if (($input['test']??false)===true && isset($result['discovery_error'])) self::fail($result['discovery_error'],503);
+        if ($project!==null) {
+            $project=self::text($project,128,false,'openai_project_id');
+            if ($project!=='' && !preg_match('/^proj_[A-Za-z0-9_-]+$/D',$project)) self::fail('invalid_provider_configuration',field:'openai_project_id');
+        }
+        try { $result=$this->providerCatalog->models($provider,$key,$test,$project?:null); }
+        catch (\RuntimeException $error) {
+            if ($error->getMessage()==='provider_project_unverified') self::fail('provider_project_unverified',422,'openai_project_id');
+            throw $error;
+        }
+        if ($test && isset($result['discovery_error'])) self::fail($result['discovery_error'],503);
         if ($provider==='openai' && !Preview::sipEnabled()) {
             $result['items']=array_values(array_filter($result['items'],fn($item)=>$item['id']==='gpt-live-1'));
             $result['default_model']='gpt-live-1';

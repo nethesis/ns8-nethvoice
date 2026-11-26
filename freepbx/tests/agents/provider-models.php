@@ -43,4 +43,17 @@ foreach ([
     try { $decode->invoke(null,true,$status,$body);throw new LogicException('failed_response_accepted'); }
     catch (RuntimeException $error) { ensure($error->getMessage()===$reason,'credential_readiness_reason'); }
 }
+foreach ([400,401,404] as $status) {
+    try { $decode->invoke(null,true,$status,'{"error":{"message":"synthetic upstream content"}}',true); assert(false); }
+    catch (RuntimeException $error) { ensure($error->getMessage()==='provider_project_unverified','scoped_request_rejected'); }
+}
+try { $decode->invoke(null,true,401,'{"error":{"code":"invalid_api_key"}}',true); assert(false); }
+catch (RuntimeException $error) { ensure($error->getMessage()==='provider_project_unverified','scoped_authentication_can_reject_key_or_project'); }
+$checked=new ProviderCatalog(function($provider,$key,$project) {
+    ensure($provider==='openai' && $key==='synthetic-key' && $project==='proj_verified','project_forwarded');
+    return ['data'=>[]];
+});
+ensure($checked->models('openai','synthetic-key',true,'proj_verified')['project_checked']===true,'scoped_request_succeeded');
+try { $checked->models('openai','synthetic-key',true,"proj_invalid\r\nheader"); assert(false); }
+catch (RuntimeException $error) { ensure($error->getMessage()==='invalid_provider_configuration','invalid_project_rejected_before_request'); }
 echo "Provider model catalogs passed\n";
