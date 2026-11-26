@@ -25,7 +25,8 @@ COPY imageroot /imageroot
 COPY --from=ui_builder /app/dist /ui
 ENTRYPOINT [ "/" ]
 LABEL org.nethserver.authorizations="traefik@any:fulladm node:fwadm,portsadm nethvoice-proxy@any:routeadm,trunkadm cluster:accountconsumer openldap@any:domadm samba@any:domadm"
-LABEL org.nethserver.tcp-ports-demand="47"
+# One TCP port of headroom for update-module.d/20move_satellite_pgsql_port
+LABEL org.nethserver.tcp-ports-demand="48"
 LABEL org.nethserver.udp-ports-demand="3000"
 LABEL org.nethserver.max-per-node="22"
 LABEL org.nethserver.rootfull="0"

@@ -12,10 +12,15 @@
 # from the environment and are restarted at 80restart.
 #
 # A new port is taken, in order of preference, from:
-# 1. the instance TCP range (TCP_PORTS_RANGE): a port that no variable uses
-#    and nothing listens on. It is already reserved, so the TCP ports quota
-#    does not change;
-# 2. a new single-port allocation, which counts against the quota.
+# 1. the instance TCP range (TCP_PORTS_RANGE): a port that no local TCP
+#    service uses and nothing listens on. It is already reserved, so the TCP
+#    ports quota does not change;
+# 2. SATELLITE_PGSQL_SPARE_PORT, a single port allocated by an earlier run
+#    and rejected because something was listening on it;
+# 3. a new single-port allocation. The tcp-ports-demand label keeps one port
+#    of headroom for it. A port that turns out to be in use is kept as
+#    SATELLITE_PGSQL_SPARE_PORT, so a later update retries it instead of
+#    taking one more port.
 #
 # The file name sorts after 20allocate_ports and 20allocate_video_gateway_ports,
 # so the ports they need are allocated first.
@@ -75,33 +80,53 @@ def is_free(port):
     return True
 
 
-def reserved_free_port(env):
-    """Lowest port of TCP_PORTS_RANGE that no variable uses and is free"""
-    try:
-        start, end = (int(value) for value in env['TCP_PORTS_RANGE'].split('-'))
-    except (KeyError, ValueError):
-        return None
-    used = {str(value).strip() for value in env.values()}
-    for port in range(start, end + 1):
-        if str(port) not in used and is_free(port):
-            return port
-    return None
-
-
 env = agent.read_envfile('environment')
 pgsql_port = str(env.get('SATELLITE_PGSQL_PORT') or '')
 clashing = [name for name in LOCAL_TCP_PORT_VARS if pgsql_port and str(env.get(name) or '') == pgsql_port]
 if not clashing:
     sys.exit(0)
 
-new_port = reserved_free_port(env)
-if new_port is None:
+# Ports configured for local TCP services, plus the current PostgreSQL port.
+# UDP and remote ports may share a number with a free TCP port.
+taken = {str(env[name]).strip() for name in LOCAL_TCP_PORT_VARS if env.get(name)} | {pgsql_port}
+
+
+def usable(port):
+    return str(port) not in taken and is_free(int(port))
+
+
+def range_ports():
     try:
-        new_port = agent.allocate_ports(1, 'tcp', keep_existing=True)[0]
+        start, end = (int(value) for value in env['TCP_PORTS_RANGE'].split('-'))
+    except (KeyError, ValueError):
+        return []
+    return list(range(start, end + 1))
+
+
+spare = str(env.get('SATELLITE_PGSQL_SPARE_PORT') or '')
+new_port = next((port for port in range_ports() if usable(port)), None)
+if new_port is None and spare and usable(spare):
+    new_port = int(spare)
+if new_port is None and not spare:
+    try:
+        allocated = agent.allocate_ports(1, 'tcp', keep_existing=True)[0]
     except Exception as ex:
-        # Do not stop the update: the rest of the instance keeps working
-        print(agent.SD_ERR + f"SATELLITE_PGSQL_PORT {pgsql_port} is also used by {', '.join(clashing)} and no TCP port is available: {ex}", file=sys.stderr)
-        sys.exit(0)
+        allocated = None
+        print(agent.SD_ERR + f"SATELLITE_PGSQL_PORT {pgsql_port} is also used by {', '.join(clashing)} and no TCP port can be allocated: {ex}", file=sys.stderr)
+    if allocated is not None:
+        if usable(allocated):
+            new_port = allocated
+        else:
+            # Keep the reservation for the next update, do not take another one
+            agent.set_env('SATELLITE_PGSQL_SPARE_PORT', str(allocated))
+            print(agent.SD_ERR + f"Port {allocated} allocated for SATELLITE_PGSQL_PORT is already in use, kept as SATELLITE_PGSQL_SPARE_PORT", file=sys.stderr)
+
+if new_port is None:
+    # Do not stop the update: the rest of the instance keeps working
+    print(agent.SD_ERR + f"SATELLITE_PGSQL_PORT {pgsql_port} is also used by {', '.join(clashing)}: no free TCP port, PostgreSQL keeps it", file=sys.stderr)
+    sys.exit(0)
 
 print(f"SATELLITE_PGSQL_PORT {pgsql_port} is also used by {', '.join(clashing)}: moved to {new_port}", file=sys.stderr)
 agent.set_env('SATELLITE_PGSQL_PORT', str(new_port))
+if spare and str(new_port) == spare:
+    agent.unset_env('SATELLITE_PGSQL_SPARE_PORT')

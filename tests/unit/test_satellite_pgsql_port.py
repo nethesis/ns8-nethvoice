@@ -60,6 +60,7 @@ class SatellitePgsqlPortTest(unittest.TestCase):
         self.agent = types.ModuleType("agent")
         self.agent.allocate_ports = mock.Mock(return_value=(20049, 20049))
         self.agent.set_env = lambda key, value: self.env.update({key: str(value)})
+        self.agent.unset_env = lambda key: self.env.pop(key, None)
         self.agent.read_envfile = lambda _name: dict(self.env)
         self.agent.SD_ERR = ""
 
@@ -114,6 +115,39 @@ class SatellitePgsqlPortTest(unittest.TestCase):
         self.run_script()
         self.assertEqual(self.env["SATELLITE_PGSQL_PORT"], "20040")
         self.agent.allocate_ports.assert_not_called()
+
+    def test_udp_setting_does_not_hide_free_tcp_port(self):
+        self.env["ASTERISK_IAX_PORT"] = "20029"
+        self.agent.allocate_ports.side_effect = Exception("max_ports_exceeded")
+        self.run_script()
+        self.assertEqual(self.env["SATELLITE_PGSQL_PORT"], "20029")
+
+    def test_allocated_port_in_use_is_kept_as_spare(self):
+        FakeSocket.busy = {20029, 20049}
+        self.run_script()
+        self.assertEqual(self.env["SATELLITE_PGSQL_PORT"], "20042")
+        self.assertEqual(self.env["SATELLITE_PGSQL_SPARE_PORT"], "20049")
+        # next update: the spare is retried, no new reservation
+        FakeSocket.busy = {20029}
+        self.run_script()
+        self.assertEqual(self.env["SATELLITE_PGSQL_PORT"], "20049")
+        self.assertNotIn("SATELLITE_PGSQL_SPARE_PORT", self.env)
+        self.agent.allocate_ports.assert_called_once()
+
+    def test_busy_spare_does_not_take_another_port(self):
+        FakeSocket.busy = {20029, 20049}
+        self.env["SATELLITE_PGSQL_SPARE_PORT"] = "20049"
+        self.run_script()
+        self.assertEqual(self.env["SATELLITE_PGSQL_PORT"], "20042")
+        self.agent.allocate_ports.assert_not_called()
+
+    def test_reported_instance_at_quota(self):
+        # range full, quota reached: the dropped IAX TCP port is reused
+        self.agent.allocate_ports.side_effect = Exception("max_ports_exceeded")
+        for i, name in enumerate(("CHAT_C2S_PORT", "CHAT_HTTP_PORT", "CHAT_COMPONENT_PORT", "CHAT_GW_PORT")):
+            self.env[name] = str(20045 + i)
+        self.run_script()
+        self.assertEqual(self.env["SATELLITE_PGSQL_PORT"], "20029")
 
 
 if __name__ == "__main__":
