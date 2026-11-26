@@ -2,6 +2,7 @@
 import { computed, ref, watch } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import {
+  NeBadgeV2,
   NeButton,
   NeFormItemLabel,
   NeInlineNotification,
@@ -10,7 +11,11 @@ import {
   NeTextInput,
   NeTooltip,
 } from "@nethesis/vue-components";
-import { faCopy } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCheck,
+  faCopy,
+  faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
 import FieldCombobox from "./FieldCombobox.vue";
 import StatusBadge from "./StatusBadge.vue";
@@ -162,7 +167,11 @@ function validate() {
       ? !f.api_key && props.trunk?.api_key_source !== "stored"
       : !environmentKey.value)
   )
-    next.api_key = t("trunkForm.enterApiKey");
+    next.api_key = t(
+      f.credential_mode === "inherit" && f.provider === "openai"
+        ? "trunkForm.integrationKeyMissing"
+        : "trunkForm.enterApiKey",
+    );
   if (f.provider === "grok" && create && !f.webhook_secret)
     next.webhook_secret = t("trunkForm.enterSecret");
   errors.value = next;
@@ -398,10 +407,36 @@ function close() {
           name="credential-mode"
           :label="t('apiKeySource')"
           :options="[
-            { id: 'inherit', label: t('integrationKey') },
+            {
+              id: 'inherit',
+              label: t('integrationKey'),
+              description:
+                form.provider === 'openai'
+                  ? t('trunkForm.integrationKeyHelp')
+                  : undefined,
+            },
             { id: 'dedicated', label: t('dedicatedKey') },
           ]"
         />
+        <div
+          v-if="form.credential_mode === 'inherit' && catalog.data.value"
+          data-testid="integration-key-status"
+          class="-mt-2"
+        >
+          <NeBadgeV2 :kind="environmentKey ? 'green' : 'amber'"
+            ><FontAwesomeIcon
+              :icon="environmentKey ? faCheck : faTriangleExclamation"
+              class="size-3"
+              aria-hidden="true"
+            />{{
+              t(
+                environmentKey
+                  ? "trunkForm.integrationKeySet"
+                  : "trunkForm.integrationKeyNotSet",
+              )
+            }}</NeBadgeV2
+          >
+        </div>
         <NeTextInput
           v-if="form.credential_mode === 'dedicated'"
           v-model="form.api_key"

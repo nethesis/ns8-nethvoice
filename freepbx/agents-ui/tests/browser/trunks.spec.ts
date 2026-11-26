@@ -8,7 +8,7 @@ const agents = [
   { agent_id: "sales", name: "Sales", draft: { provider_binding_id: "trunk_sip", conversation: { model: "gpt-realtime-2.1" } }, published: { provider_binding_id: "trunk_openai" } },
 ];
 
-export async function mockTrunks(page: Page, options: { language?: string; lab: boolean; trunks: unknown[]; handle?: (path: string, body: any) => unknown }) {
+export async function mockTrunks(page: Page, options: { language?: string; lab: boolean; trunks: unknown[]; environment?: boolean; handle?: (path: string, body: any) => unknown }) {
   page.on("pageerror", error => { throw error; });
   await page.addInitScript(language => {
     localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic" }));
@@ -23,7 +23,7 @@ export async function mockTrunks(page: Page, options: { language?: string; lab: 
       return;
     }
     const json = path === "/access" ? { csrf: "synthetic-csrf" }
-      : path === "/catalog" ? { sip_lab_enabled: options.lab, openai_webhook_url: "https://pbx.example.org/satellite-webhooks/openai", grok_webhook_url: "https://pbx.example.org/satellite-webhooks/grok", provider_credentials: { openai: { environment_available: true }, grok: { environment_available: false } } }
+      : path === "/catalog" ? { sip_lab_enabled: options.lab, openai_webhook_url: "https://pbx.example.org/satellite-webhooks/openai", grok_webhook_url: "https://pbx.example.org/satellite-webhooks/grok", provider_credentials: { openai: { environment_available: options.environment ?? true }, grok: { environment_available: false } } }
         : path === "/trunks" ? { items: options.trunks }
           : path === "/profiles" ? { items: agents } : {};
     await route.fulfill({ json });
@@ -155,4 +155,35 @@ test("in the SIP lab the drawer has provider fields, the endpoint and the webhoo
   await expect(result).toContainText("The API key cannot access this OpenAI project.");
   await expect(result).toContainText("Webhook not configured");
   await expect(page.getByText("The API key cannot access this OpenAI project. Check the project ID.")).toHaveCount(2);
+});
+
+for (const language of ["en", "it"]) {
+  test(`the integrations key says where it is set and whether it is set (${language})`, async ({ page }) => {
+    const en = language === "en";
+    const posted: unknown[] = [];
+    await mockTrunks(page, { language, lab: false, trunks: [], environment: false, handle: (_path, body) => { posted.push(body); return {}; } });
+    await page.goto("./#/trunks");
+    await page.getByRole("button", { name: en ? "Create trunk" : "Crea trunk" }).first().click();
+    const drawer = page.getByRole("dialog");
+    await expect(drawer.getByRole("radio", { name: en ? "NethVoice integrations key" : "Chiave delle integrazioni NethVoice" })).toBeChecked();
+    await expect(drawer).toContainText(en
+      ? "Set it in the NethServer 8 cluster admin: open the NethVoice application, then Integrations, OpenAI API Key."
+      : "Si imposta nell'amministrazione del cluster NethServer 8: apri l'applicazione NethVoice, poi Integrazioni, API Key OpenAI.");
+    await expect(drawer.getByTestId("integration-key-status")).toHaveText(en ? "No key in Integrations" : "Nessuna chiave in Integrazioni");
+    await drawer.getByLabel(en ? "Name" : "Nome", { exact: true }).fill("OpenAI production");
+    await drawer.getByRole("button", { name: en ? "Create" : "Crea", exact: true }).click();
+    await expect(drawer.getByRole("alert")).toHaveText(en
+      ? "Set the OpenAI API Key in Integrations, or use a dedicated key"
+      : "Imposta la API Key OpenAI in Integrazioni o usa una chiave dedicata");
+    expect(posted).toEqual([]);
+    // A dedicated key hides the status of the integrations key.
+    await drawer.getByRole("radio", { name: en ? "Dedicated key" : /dedicata/ }).check();
+    await expect(drawer.getByTestId("integration-key-status")).toHaveCount(0);
+  });
+}
+test("an available integrations key shows as set", async ({ page }) => {
+  await mockTrunks(page, { lab: false, trunks: [] });
+  await page.goto("./#/trunks");
+  await page.getByRole("button", { name: "Create trunk" }).first().click();
+  await expect(page.getByRole("dialog").getByTestId("integration-key-status")).toHaveText("Key set in Integrations");
 });

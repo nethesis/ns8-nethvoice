@@ -72,6 +72,12 @@ const en = {
     enterSipUsername: "Enter the SIP username",
     enterSipPassword: "Enter the SIP password",
     enterApiKey: "Enter the provider API key",
+    integrationKeyMissing:
+      "Set the OpenAI API Key in Integrations, or use a dedicated key",
+    integrationKeyHelp:
+      "Set it in the NethServer 8 cluster admin: open the NethVoice application, then Integrations, OpenAI API Key.",
+    integrationKeySet: "Key set in Integrations",
+    integrationKeyNotSet: "No key in Integrations",
     enterSecret: "Enter the webhook signing secret",
   },
   destinations: {
@@ -1243,6 +1249,12 @@ const it: typeof en = {
     enterSipUsername: "Inserisci il nome utente SIP",
     enterSipPassword: "Inserisci la password SIP",
     enterApiKey: "Inserisci la chiave API del provider",
+    integrationKeyMissing:
+      "Imposta la API Key OpenAI in Integrazioni o usa una chiave dedicata",
+    integrationKeyHelp:
+      "Si imposta nell'amministrazione del cluster NethServer 8: apri l'applicazione NethVoice, poi Integrazioni, API Key OpenAI.",
+    integrationKeySet: "Chiave impostata in Integrazioni",
+    integrationKeyNotSet: "Nessuna chiave in Integrazioni",
     enterSecret: "Inserisci il segreto di firma del webhook",
   },
   destinations: {
@@ -1447,8 +1459,7 @@ const it: typeof en = {
   saveAction: "Salva",
   signIn: "Accedi da @:{'adminInterface'}",
   authenticationRequired: "Accesso amministratore richiesto",
-  authenticationHelp:
-    "Accedi a @:{'adminInterface'} e torna a questa pagina.",
+  authenticationHelp: "Accedi a @:{'adminInterface'} e torna a questa pagina.",
   sessionExpiredHelp:
     "Accedi di nuovo nella scheda che si apre. Questa pagina riprende da sola e mantiene le modifiche non salvate.",
   success: "Salvataggio completato",
