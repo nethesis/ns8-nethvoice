@@ -286,6 +286,29 @@ if 'CHAT_GW_PORT' not in env:
 	agent.set_env('CHAT_COMPONENT_PORT', start + 2)
 	agent.set_env('CHAT_GW_PORT', start + 3)
 
+# Some upgraded instances have SATELLITE_PGSQL_PORT on the same port as another
+# service, usually NETHVOICE_MIDDLEWARE_PORT. Since 1.8 the middleware requires
+# satellite-pgsql, so PostgreSQL takes the port first and the middleware cannot
+# start. Only PostgreSQL moves: its clients read the port from the environment.
+# UDP ports are left out, they cannot clash with a TCP listener.
+env = agent.read_envfile('environment')
+pgsql_port = str(env.get('SATELLITE_PGSQL_PORT', ''))
+clashing = sorted(
+	name for name, value in env.items()
+	if pgsql_port and name.endswith('_PORT') and name != 'SATELLITE_PGSQL_PORT'
+	and not any(tag in name for tag in ('UDP', 'RTP', 'IAX'))
+	and str(value) == pgsql_port
+)
+if clashing:
+	try:
+		new_pgsql_port = agent.allocate_ports(1, "tcp", keep_existing=True)[0]
+	except Exception as ex:
+		print(agent.SD_ERR + f"SATELLITE_PGSQL_PORT {pgsql_port} is also used by {', '.join(clashing)}, cannot allocate a new port: {ex}", file=sys.stderr)
+		allocation_failed = True
+	else:
+		print(f"SATELLITE_PGSQL_PORT {pgsql_port} is also used by {', '.join(clashing)}: moved to {new_pgsql_port}", file=sys.stderr)
+		agent.set_env('SATELLITE_PGSQL_PORT', new_pgsql_port)
+
 # The instance keeps working on its current ports, but the update must report
 # the failed allocation
 if allocation_failed:
