@@ -1,7 +1,9 @@
 import { createI18n } from "vue-i18n";
 
 const en = {
-  wizard: "Wizard",
+  // Name of the administration interface; brand comes from its branding.
+  brand: "NethVoice",
+  adminInterface: "@:{'brand'} Admin",
   wholeNumberRange: "Enter a whole number from {min} to {max}.",
   diagnostics: "Diagnostics",
   invalidSignatures: "Invalid signatures since runtime start",
@@ -268,10 +270,10 @@ const en = {
   month: "Last 30 days",
   create: "Create",
   saveAction: "Save",
-  signIn: "Sign in through Wizard",
+  signIn: "Sign in through @:{'adminInterface'}",
   authenticationRequired: "Administrator login required",
   authenticationHelp:
-    "Use the NethVoice Wizard to sign in, then return to this page.",
+    "Sign in to @:{'adminInterface'}, then return to this page.",
   sessionExpiredHelp:
     "Sign in again in the tab that opens. This page resumes by itself and keeps your unsaved changes.",
   success: "Saved successfully",
@@ -405,7 +407,7 @@ const en = {
     invalid_json: "Enter valid JSON before continuing.",
     request_failed:
       "The request failed. Check the configuration and try again.",
-    authentication_required: "Sign in through the Wizard.",
+    authentication_required: "Sign in through @:{'adminInterface'}.",
     revision_conflict: "Settings changed elsewhere. Reload before editing.",
     request_uncertain:
       "The connection ended before the result was received. Reload the current state before taking another action.",
@@ -1170,7 +1172,8 @@ const en = {
   },
 };
 const it: typeof en = {
-  wizard: "Wizard",
+  brand: "NethVoice",
+  adminInterface: "@:{'brand'} Admin",
   wholeNumberRange: "Inserisci un numero intero fra {min} e {max}.",
   diagnostics: "Diagnostica",
   invalidSignatures: "Firme non valide dall’avvio del servizio",
@@ -1442,10 +1445,10 @@ const it: typeof en = {
   month: "Ultimi 30 giorni",
   create: "Crea",
   saveAction: "Salva",
-  signIn: "Accedi dal Wizard",
+  signIn: "Accedi da @:{'adminInterface'}",
   authenticationRequired: "Accesso amministratore richiesto",
   authenticationHelp:
-    "Accedi tramite il Wizard NethVoice e torna a questa pagina.",
+    "Accedi a @:{'adminInterface'} e torna a questa pagina.",
   sessionExpiredHelp:
     "Accedi di nuovo nella scheda che si apre. Questa pagina riprende da sola e mantiene le modifiche non salvate.",
   success: "Salvataggio completato",
@@ -1581,7 +1584,7 @@ const it: typeof en = {
       "Il provider ha rifiutato le credenziali API.",
     invalid_json: "Inserisci JSON valido prima di continuare.",
     request_failed: "Richiesta fallita. Verifica la configurazione e riprova.",
-    authentication_required: "Accedi tramite il Wizard.",
+    authentication_required: "Accedi da @:{'adminInterface'}.",
     revision_conflict: "Impostazioni cambiate. Ricarica prima di modificare.",
     request_uncertain:
       "La connessione è terminata prima di ricevere il risultato. Ricarica lo stato prima di agire.",

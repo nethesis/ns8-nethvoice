@@ -23,6 +23,7 @@ import {
 import { access, auth, signIn, signOut } from "./api";
 import { useUi } from "./stores/ui";
 import { DEFAULT_BRANDING, loadWizardBranding } from "./branding";
+import { i18n } from "./i18n";
 import { menuIcon } from "./menuIcon";
 import NavIcon from "./components/NavIcon.vue";
 import AppEmptyState from "./components/AppEmptyState.vue";
@@ -78,6 +79,9 @@ onMounted(() => {
   document.documentElement.lang = String(locale.value);
   void loadWizardBranding().then((value) => {
     branding.value = value;
+    // Texts name the administration interface after the brand.
+    for (const language of i18n.global.availableLocales)
+      i18n.global.mergeLocaleMessage(language, { brand: value.name });
   });
   void access().catch(() => {
     auth.ready = true;
@@ -203,7 +207,7 @@ watch(
             href="/freepbx/wizard/"
             class="text-secondary-neutral hover:text-primary-neutral focus-visible:outline-primary-500 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
             data-testid="wizard-link"
-            >{{ t("wizard") }}</a
+            >{{ t("adminInterface") }}</a
           >
           <NeTooltip trigger-event="mouseenter focus" placement="bottom">
             <template #trigger>

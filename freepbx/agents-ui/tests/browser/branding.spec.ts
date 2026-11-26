@@ -35,6 +35,8 @@ for (const branded of [false, true]) {
       await expect(logo).toBeVisible();
       await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
       if (mobile) await page.getByRole("button", { name: "Close navigation", exact: true }).click();
+      // The administration interface carries the brand name.
+      if (!mobile) await expect(page.getByTestId("wizard-link")).toHaveText(branded ? "Example Voice Admin" : "NethVoice Admin");
       await page.getByRole("button", { name: "Open account menu", exact: true }).click();
       await page.getByRole("menuitem", { name: "Switch to light theme", exact: true }).click();
       if (mobile) await page.getByRole("button", { name: "Open navigation", exact: true }).click();
@@ -56,7 +58,7 @@ test("branding unavailable uses the Wizard default without blocking sign-in", as
   await page.route("**/freepbx/wizard/images/brandDark.svg", route => route.fulfill({ contentType: "image/svg+xml", body: wizardLogo }));
   await page.goto("./");
   await expect(page.getByRole("img", { name: "NethVoice", exact: true }).filter({ visible: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign in through Wizard" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in through NethVoice Admin" })).toBeVisible();
 });
 
 test("an unavailable custom image falls back to the Wizard image", async ({ page }) => {

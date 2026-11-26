@@ -114,7 +114,7 @@ test("unsigned visitors use Wizard sign-in and send no API request", async ({ pa
   await page.route("**/freepbx/rest/agents/**", () => { calls++; });
   await page.goto("./");
   await expect(page.getByText("Administrator login required")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Sign in through Wizard" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in through NethVoice Admin" })).toBeVisible();
   expect(calls).toBe(0);
 });
 
