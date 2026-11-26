@@ -708,14 +708,18 @@ class Call:
         elif case == "overload":
             self.overload()
         elif case in ("deadline", "fallback"):
-            route = self.configure(duration=30, fallback=case == "fallback")
-            self.start(route)
             if case == "fallback":
+                self.start(self.configure(duration=30, fallback=True))
                 peer = self.phones["alternate"]
                 self.accept(peer, 45)
                 self.exchange(peer)
                 self.caller.hangup()
             else:
+                self.start(self.configure(duration=30, greeting="Grazie per aver chiamato il laboratorio Corallo."),
+                           marker=r"\bgrazie per aver chiamato il laboratorio corallo\b")
+                warning = self.caller.listen(self.caller.mark(), 35)
+                self.expect(warning, r"\b(?:stiamo per raggiungere|manca poco[^.!?]*|quasi raggiunto)\b[^.!?]*\blimite\b",
+                            "caller heard the duration warning before disconnection")
                 self.caller.wait("DISCONNECTED", 45)
             self.outcome("fallback", "duration_exceeded")
         elif case == "publication":

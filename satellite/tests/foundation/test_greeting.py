@@ -131,7 +131,8 @@ async def test_runtime_delivers_the_opening_policy_before_accept_and_speaks_only
         await asyncio.wait_for(accepted.wait(), 1)
         profile = captured['profile']
         assert 'I can transfer your call to an extension or a specific department.' in profile['_opening_instructions']
-        assert welcome in profile['_opening_instructions']
+        assert json.loads(profile['_opening_instructions'].split('Configured welcome (JSON text): ', 1)[1]) == welcome
+        assert 'Speak its wording verbatim except for unsupported capability claims' in profile['_opening_instructions']
         assert 'Alice Example (ACME)' in profile['_opening_instructions']
         assert 'Changed after admission' not in profile['_opening_instructions']
         assert 'first name' in profile['_opening_instructions']
