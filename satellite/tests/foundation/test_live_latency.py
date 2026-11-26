@@ -47,9 +47,9 @@ def test_primary_session_has_no_wait_for_media_that_is_already_connected():
 
 
 @pytest.mark.asyncio
-async def test_input_forwards_buffered_early_speech_without_retaining_startup_lag():
+async def test_input_trims_stale_startup_speech_and_preserves_recent_audio():
     from types import SimpleNamespace
-    from voice_agent.media import AudioBuffer, AudioBridge
+    from voice_agent.media import AudioBuffer, AudioBridge, FRAME_SECONDS
 
     source = AudioBuffer()
     # A second of early caller audio accumulated while the provider connected.
@@ -59,8 +59,8 @@ async def test_input_forwards_buffered_early_speech_without_retaining_startup_la
     current = asyncio.Event()
 
     async def send(frame):
-        received.append(frame)
-        if len(received) == 51:
+        received.append((asyncio.get_running_loop().time(), frame))
+        if frame == b'z' * 160:
             current.set()
 
     failures = []
@@ -71,8 +71,9 @@ async def test_input_forwards_buffered_early_speech_without_retaining_startup_la
     try:
         await asyncio.sleep(.01)
         source.append(b'z' * 160)
-        await asyncio.wait_for(current.wait(), .15)
-        assert received == frames + [b'z' * 160]
+        await asyncio.wait_for(current.wait(), .5)
+        assert [frame for _, frame in received] == frames[-4:] + [b'z' * 160]
+        assert received[-1][0] - received[0][0] >= 4 * FRAME_SECONDS
         assert not failures
     finally:
         bridge.stopped = True
