@@ -101,12 +101,9 @@ const environmentKey = computed(
     catalog.data.value?.provider_credentials?.[form.value.provider]
       ?.environment_available || false,
 );
+const storedKey = computed(() => props.trunk?.api_key_source === "stored");
 const apiKeyHelper = computed(() =>
-  props.trunk?.api_key_source === "stored"
-    ? t("trunkForm.keepApiKey")
-    : environmentKey.value
-      ? t("trunkForm.environmentApiKey")
-      : "",
+  storedKey.value ? t("trunkForm.keepApiKey") : "",
 );
 const endpoint = computed(() =>
   form.value.provider === "openai"
@@ -307,7 +304,7 @@ function close() {
           is-password
           :show-password-label="t('showApiKey')"
           :hide-password-label="t('hideApiKey')"
-          :optional="editing || environmentKey"
+          :optional="storedKey"
           :optional-label="t('optional')"
           :helper-text="apiKeyHelper"
           maxlength="4096"
