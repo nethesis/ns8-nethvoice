@@ -86,7 +86,7 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
 };
 $agentsRoute('GET','/catalog',fn($s)=>$s->catalog());
 $agentsRoute('GET','/destinations',fn($s,$a,$i,$q)=>$s->destinations($q));
-$agentsRoute('GET','/profiles',fn($s)=>['items'=>$s->all()]);
+$agentsRoute('GET','/profiles',fn($s)=>['items'=>$s->profiles()]);
 $agentsRoute('GET','/profiles/{id}',fn($s,$a)=>$s->get($a['id']));
 $agentsRoute('POST','/profiles',fn($s,$a,$i,$q,$u)=>$s->save(null,$i['profile']??[],$i['expected_revision'],$u));
 $agentsRoute('PUT','/profiles/{id}',fn($s,$a,$i,$q,$u)=>$s->save($a['id'],$i['profile']??[],$i['expected_revision'],$u));

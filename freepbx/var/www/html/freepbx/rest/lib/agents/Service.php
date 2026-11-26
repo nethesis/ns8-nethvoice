@@ -144,6 +144,16 @@ final class Service
     {
         return array_map(fn($row) => $this->get($row['agent_id']), $this->query('SELECT agent_id FROM asterisk.voice_agent_agents WHERE removed=0 ORDER BY kind,name,agent_id')->fetchAll(\PDO::FETCH_ASSOC));
     }
+    public function profiles(): array
+    {
+        try { $referenced=$this->native->referencedAgentIds(); }
+        catch (\Throwable $error) { $referenced=null; }
+        return array_map(static fn($agent)=>$agent+['in_use'=>match (true) {
+            $agent['agent_type']==='consultation' => false,
+            $referenced===null => null,
+            default => isset($referenced[$agent['agent_id']]),
+        }],$this->all());
+    }
     public function get(string $id): array
     {
         self::id($id);

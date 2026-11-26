@@ -125,6 +125,11 @@ class Satellite extends \FreePBX_Helpers implements \BMO
         return !empty($this->FreePBX->Destinations->destinationUsageArray($dest));
     }
 
+    public function referencedAgentIds(): array {
+        require_once __DIR__ . '/functions.inc.php';
+        return satellite_referenced_agent_ids(true, true);
+    }
+
     public function get_available_voices() {
         $satellitePort = getenv('SATELLITE_HTTP_PORT') ?: '8080';
         $satelliteToken = getenv('SATELLITE_API_TOKEN') ?: '';
