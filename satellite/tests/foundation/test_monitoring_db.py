@@ -39,7 +39,8 @@ def test_idempotent_projection_and_hourly_histograms(monitor_database):
     database = monitor_database
     call = Call(str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4()), 'synthetic',
         {'agent_id': 'receptionist', 'workflow_version': 11, 'max_call_duration_seconds': 60},
-        {'binding_id': 'synthetic', 'provider': 'openai', 'adapter': 'realtime', 'model': 'synthetic-model'}, None)
+        {'binding_id': 'synthetic', 'provider': 'openai', 'adapter': 'realtime', 'model': 'synthetic-model'}, None,
+        activity_caller_number='+12025550159', called_number='02')
     storage = module.Storage()
     storage.admit(call)
     monitor = Monitoring(storage)
@@ -58,9 +59,11 @@ def test_idempotent_projection_and_hourly_histograms(monitor_database):
         storage.event(event)
     with database('monitor') as db:
         cursor=db.cursor(dictionary=True)
-        cursor.execute('SELECT duration_ms,usage_json,trace_status,provider,adapter FROM asteriskcdrdb.voice_agent_runs WHERE run_id=%s',(call.run_id,))
+        cursor.execute('SELECT duration_ms,usage_json,trace_status,provider,adapter,caller_number,called_number '
+                       'FROM asteriskcdrdb.voice_agent_runs WHERE run_id=%s',(call.run_id,))
         row=cursor.fetchone()
         assert row['trace_status']=='complete'
+        assert (row['caller_number'],row['called_number'])==('+12025550159','02')
         assert json.loads(row['usage_json'])['response_input_tokens']==12
         cursor.execute("SELECT SUM(samples) samples FROM asteriskcdrdb.voice_agent_metric_hours WHERE agent_id='receptionist' AND metric='tool_duration' AND dimension='pbx.transfer'")
         assert cursor.fetchone()['samples']==1

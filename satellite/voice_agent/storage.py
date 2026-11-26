@@ -147,7 +147,17 @@ class Storage:
         from .telemetry import retention_days
         with database('monitor') as db:
             with db.cursor() as cursor:
-                cursor.execute("INSERT INTO asteriskcdrdb.voice_agent_runs (run_id,agent_id,workflow_version,linkedid,started_at,retention_until,monitoring_version,provider,adapter,model,trace_status,deadline_at) VALUES (%s,%s,%s,%s,%s,DATE_ADD(%s,INTERVAL %s DAY),2,%s,%s,%s,'recording',DATE_ADD(NOW(),INTERVAL %s SECOND))", (call.run_id, call.snapshot['agent_id'], call.snapshot['workflow_version'], call.linkedid, call.started_at.replace(tzinfo=None), call.started_at.replace(tzinfo=None), retention_days(), call.binding['provider'], call.binding.get('adapter','realtime'), call.binding.get('model'), call.snapshot['max_call_duration_seconds']+60))
+                started_at = call.started_at.replace(tzinfo=None)
+                cursor.execute(
+                    'INSERT INTO asteriskcdrdb.voice_agent_runs '
+                    '(run_id,agent_id,workflow_version,linkedid,started_at,retention_until,monitoring_version,'
+                    'provider,adapter,model,trace_status,deadline_at,caller_number,called_number) '
+                    "VALUES (%s,%s,%s,%s,%s,DATE_ADD(%s,INTERVAL %s DAY),2,%s,%s,%s,'recording',"
+                    'DATE_ADD(NOW(),INTERVAL %s SECOND),%s,%s)',
+                    (call.run_id, call.snapshot['agent_id'], call.snapshot['workflow_version'], call.linkedid,
+                     started_at, started_at, retention_days(), call.binding['provider'],
+                     call.binding.get('adapter','realtime'), call.binding.get('model'),
+                     call.snapshot['max_call_duration_seconds']+60, call.activity_caller_number, call.called_number))
                 if call.parent_run_id:
                     cursor.execute('UPDATE asteriskcdrdb.voice_agent_runs SET parent_run_id=%s WHERE run_id=%s', (call.parent_run_id, call.run_id))
                 if capacity_fallback:

@@ -59,6 +59,26 @@ async def test_admission_pins_configuration_and_persists_before_origination():
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(('presentation', 'did', 'dnid', 'expected'), [
+    ('allowed', '+12025550170', '203', ('+12025550159', '+12025550170')),
+    ('allowed_passed_screen', '', '02', ('+12025550159', '02')),
+    ('prohib', '203', '', (None, '203')),
+    (None, 'anonymous', '', (None, None)),
+])
+async def test_caller_stasis_admission_records_activity_numbers(presentation, did, dnid, expected):
+    runtime, storage, controller, _snapshot = fixtures()
+    variables = {'CHANNEL(linkedid)':'synthetic-linkedid','CALLERID(num-pres)':presentation,'FROM_DID':did,'CALLERID(dnid)':dnid}
+    controller.get_variable.side_effect = lambda _channel_id, name: variables[name]
+    await runtime.event({'type':'StasisStart', 'args':['caller','basic_voice'], 'channel':{
+        'id':'caller', 'dialplan':{'context':'voice-agent-basic_voice'}, 'caller':{'number':'+1 (202) 555-0159'},
+    }})
+    await runtime.admissions['caller']
+    call = storage.admit.call_args.args[0]
+    assert (call.activity_caller_number, call.called_number) == expected
+    await runtime.finish(call, 'completed')
+
+
+@pytest.mark.asyncio
 async def test_agent_model_is_pinned_before_provider_origination():
     runtime, storage, controller, snapshot = fixtures()
     storage.binding.return_value['model'] = 'ignored-trunk-setting'

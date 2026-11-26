@@ -23,6 +23,7 @@ from .providers import create_adapter
 from .providers.realtime import ProviderError
 from .models import conversation_capability
 from .contract import validate_snapshot
+from .recent_callers import RecentCallerResolver, normalize_number
 from .providers.webhook import InvalidPayload, InvalidSignature, decode_payload, sip_correlation, verify_webhook
 from .storage import ClaimRejected, trusted_target
 from .tools import ToolRegistry, WIRE_IDS, bounded_caller_name
@@ -30,6 +31,12 @@ from .tools import ToolRegistry, WIRE_IDS, bounded_caller_name
 
 LOG=logging.getLogger(__name__)
 SIP_WEBHOOK_TIMEOUT = 10
+
+
+def activity_number(value):
+    if isinstance(value, str) and re.fullmatch(r'[0-9]{1,2}', value):
+        return value
+    return normalize_number(value)
 
 
 @dataclass
@@ -73,6 +80,8 @@ class Call:
     transcript_bytes: int = 0
     transcript_pending: dict | None = field(default=None, repr=False)
     caller_number: str | None = field(default=None, repr=False)
+    activity_caller_number: str | None = field(default=None, repr=False)
+    called_number: str | None = field(default=None, repr=False)
     caller_name: str = field(default='', repr=False)
     recent: object | None = field(default=None, repr=False)
     trace: object | None = field(default=None, repr=False)
@@ -520,6 +529,21 @@ class Runtime:
     def load_snapshot(self, agent_id):
         return validate_snapshot(self.storage.snapshot(agent_id))
 
+    async def activity_numbers(self, channel):
+        # Read the original DID and presentation without expanding phone numbers into Stasis app data.
+        # Optional metadata has a small shared deadline and never blocks call admission on failure.
+        try:
+            presentation, did, dnid = await asyncio.wait_for(asyncio.gather(
+                *(self.controller.get_variable(channel['id'], name)
+                  for name in ('CALLERID(num-pres)', 'FROM_DID', 'CALLERID(dnid)')),
+                return_exceptions=True), timeout=0.25)
+        except TimeoutError:
+            return None, None
+        caller = None
+        if presentation in ('allowed_not_screened', 'allowed_passed_screen', 'allowed_failed_screen', 'allowed'):
+            caller = activity_number((channel.get('caller') or {}).get('number'))
+        return caller, activity_number(did) or activity_number(dnid)
+
     async def admit(self, channel, agent_id):
         call = None
         origin = time.monotonic()
@@ -550,7 +574,8 @@ class Runtime:
                 raise ValueError('provider_mismatch')
             capability = conversation_capability(snapshot['provider'], snapshot['conversation'])
             binding = {**binding, 'model': snapshot['conversation']['model'], 'adapter': capability['adapter']}
-            linkedid = await self.controller.get_variable(channel['id'], 'CHANNEL(linkedid)')
+            linkedid, activity = await asyncio.gather(
+                self.controller.get_variable(channel['id'], 'CHANNEL(linkedid)'), self.activity_numbers(channel))
             if linkedid is not None and (not isinstance(linkedid, str) or len(linkedid) > 128 or not linkedid.isascii()):
                 linkedid = None
             if binding['adapter'] == 'live':
@@ -559,6 +584,8 @@ class Runtime:
                 raise ValueError('sip_lab_disabled')
             observations.append(('binding', binding_started, time.monotonic()))
             call = Call(str(uuid.uuid4()), str(uuid.uuid4()), new_channel_id(), channel['id'], copy.deepcopy(snapshot), copy.deepcopy(binding), linkedid)
+            call.caller_number = normalize_number((channel.get('caller') or {}).get('number'))
+            call.activity_caller_number, call.called_number = activity
             if not self.capacity_available(binding['adapter']):
                 try:
                     await asyncio.wait_for(asyncio.to_thread(self.storage.admit, call, capacity_fallback=True), 3)
@@ -574,8 +601,6 @@ class Runtime:
             call.started_at = origin_at
             call.trace = CallTrace(self.monitoring, call.run_id, origin=origin)
             call.deadline = time.monotonic()+snapshot['max_call_duration_seconds']
-            from .recent_callers import RecentCallerResolver, normalize_number
-            call.caller_number = normalize_number((channel.get('caller') or {}).get('number'))
             call.caller_name = bounded_caller_name((channel.get('caller') or {}).get('name'))
             if snapshot.get('consultation', {}).get('mode') == 'attended':
                 try:

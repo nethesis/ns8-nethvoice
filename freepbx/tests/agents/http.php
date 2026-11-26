@@ -75,6 +75,14 @@ $draft['max_call_duration_seconds']=60;
 [$status,$destinations]=api('GET','/destinations?limit=1'); assert($status===200 && count($destinations['items'])===1);
 [$status]=api('GET','/destinations?limit=101'); assert($status===422);
 [$status,$runs]=api('GET','/runs'); assert($status===200 && isset($runs['items'],$runs['has_more']));
+[$status]=api('POST','/runs/search',['query'=>'5550159']); assert($status===403);
+[$status]=api('POST','/runs/search',['query'=>'5550159'],$csrf+['Origin'=>'https://cross-site.example']); assert($status===403);
+[$status]=api('POST','/runs/search',['query'=>'5550159'],$csrf+['Secretkey'=>'wrong']); assert($status===403);
+[$status]=api('POST','/runs/search',['query'=>'5550159'],$csrf+['User'=>'http-viewer','Secretkey'=>sha1('http-viewer'.'synthetic-viewer-hash'.'synthetic-http-secret')]); assert($status===403);
+[$status]=api('POST','/runs/search',['query'=>['5550159']],$csrf); assert($status===422);
+[$status,$runs]=api('POST','/runs/search',['query'=>'5550159'],$csrf);
+assert($status===200 && count($runs['items'])===1 && $runs['items'][0]['caller_number']==='+12025550159');
+[$status,$runs]=api('GET','/runs?query=5550159'); assert($status===200 && $runs['items']===[]);
 [$status]=api('GET','/runs?page=0'); assert($status===422);
 [$status,$removed]=api('DELETE','/profiles/'.$created['agent_id'],['expected_revision'=>$created['revision']],$csrf); assert($status===200 && $removed['removed']);
 foreach (['/monitoring/summary','/monitoring/health'] as $path) {

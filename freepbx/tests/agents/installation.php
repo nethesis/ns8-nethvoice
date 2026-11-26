@@ -90,7 +90,7 @@ foreach ([1,2,4,9,15,20,27,33] as $boundary) {
     catch (RuntimeException $e) { assert($e->getMessage()==='simulated_interruption'); }
     unset($interrupted);
     Schema::install($db);Schema::install($db);
-    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===5);
+    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===6);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_agents')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_drafts')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_versions')->fetchColumn()===0);

@@ -44,20 +44,23 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
                 if (strtolower(explode(';',$request->getHeaderLine('Content-Type'))[0]) !== 'application/json') throw new RuntimeException('invalid_envelope',422);
                 $input=$request->getParsedBody();
                 if (!is_array($input) || array_is_list($input)) throw new RuntimeException('invalid_envelope',422);
-                $modelDiscovery=$request->getUri()->getPath()==='/freepbx/rest/agents/trunks/models';
-                if (!str_ends_with($request->getUri()->getPath(),'/synchronize') && !$modelDiscovery) {
-                    if (!isset($input['expected_revision']) || !is_int($input['expected_revision']) || $input['expected_revision'] < 0) throw new RuntimeException('invalid_revision',422);
-                }
                 $path=$request->getUri()->getPath();
-                $allowed=['expected_revision'];
-                if ($modelDiscovery) $allowed=['provider','binding_id','api_key','credential_mode','test'];
-                elseif (str_ends_with($path,'/synchronize')) $allowed=['retry'];
-                elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish') && !str_ends_with($path,'/configure-webhook'))) {
-                    $field=str_contains($path,'/trunks')?'trunk':'profile';
-                    $allowed[]=$field;
-                    if (!is_array($input[$field]??null) || array_is_list($input[$field])) throw new RuntimeException('invalid_envelope',422);
+                $modelDiscovery=$path==='/freepbx/rest/agents/trunks/models';
+                $runSearch=$path==='/freepbx/rest/agents/runs/search';
+                if (!$runSearch) {
+                    if (!str_ends_with($path,'/synchronize') && !$modelDiscovery) {
+                        if (!isset($input['expected_revision']) || !is_int($input['expected_revision']) || $input['expected_revision'] < 0) throw new RuntimeException('invalid_revision',422);
+                    }
+                    $allowed=['expected_revision'];
+                    if ($modelDiscovery) $allowed=['provider','binding_id','api_key','credential_mode','test'];
+                    elseif (str_ends_with($path,'/synchronize')) $allowed=['retry'];
+                    elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish') && !str_ends_with($path,'/configure-webhook'))) {
+                        $field=str_contains($path,'/trunks')?'trunk':'profile';
+                        $allowed[]=$field;
+                        if (!is_array($input[$field]??null) || array_is_list($input[$field])) throw new RuntimeException('invalid_envelope',422);
+                    }
+                    if (array_diff(array_keys($input),$allowed)) throw new RuntimeException('invalid_envelope',422);
                 }
-                if (array_diff(array_keys($input),$allowed)) throw new RuntimeException('invalid_envelope',422);
             }
             if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
             $service=new \NethVoice\Agents\Service(FreePBX::Database());
@@ -99,6 +102,8 @@ $agentsRoute('GET','/runs',function($s,$a,$i,$q) {
     if (isset($q['agent_id']) && !is_string($q['agent_id'])) throw new RuntimeException('invalid_identifier',422);
     return $s->runs($q['agent_id']??null,(int)$page,$q);
 });
+// Keep phone-number terms in the JSON body so normal request logs do not record them.
+$agentsRoute('POST','/runs/search',fn($s,$a,$i)=>$s->searchRuns($i));
 $agentsRoute('GET','/monitoring/summary',fn($s,$a,$i,$q)=>$s->monitoringSummary($q));
 $agentsRoute('GET','/monitoring/health',fn($s)=>$s->monitoringHealth());
 $agentsRoute('GET','/runs/{id}/trace',fn($s,$a,$i,$q)=>$s->trace($a['id'],$q));

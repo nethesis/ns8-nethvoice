@@ -15,6 +15,12 @@ $monitor=new Monitoring($db);
 $id='77777777-7777-4777-a777-777777777777';
 $db->prepare("INSERT INTO asteriskcdrdb.voice_agent_runs (run_id,agent_id,workflow_version,started_at,ended_at,outcome,retention_until,provider,adapter,model,monitoring_version,trace_status,duration_ms) VALUES (?,'receptionist',11,NOW()-INTERVAL 20 DAY,NOW()-INTERVAL 20 DAY,'transferred',NOW()+INTERVAL 70 DAY,'openai','realtime','synthetic-model',2,'complete',1200)")->execute([$id]);
 assert(count($monitor->runs(['query'=>$id])['items'])===1);
+$db->prepare('UPDATE asteriskcdrdb.voice_agent_runs SET caller_number=?,called_number=? WHERE run_id=?')->execute(['+12025550159','+12025550170',$id]);
+foreach (['5550159','5550170'] as $number) {
+    assert($monitor->runs(['query'=>$number])['items']===[]);
+    $numberMatches=$monitor->runs(['query'=>$number],searchNumbers:true)['items'];
+    assert(count($numberMatches)===1 && $numberMatches[0]['run_id']===$id);
+}
 assert(count($monitor->runs(['query'=>$id,'outcome'=>'failed'])['items'])===0);
 assert(count($monitor->runs(['query'=>$id,'outcome'=>'failed,transferred'])['items'])===1);
 assert(count($monitor->runs(['query'=>$id,'agent_id'=>'other_agent,receptionist','provider'=>'grok,openai','adapter'=>'live,realtime'])['items'])===1);
@@ -22,7 +28,17 @@ assert(count($monitor->runs(['query'=>$id,'provider'=>'grok,unknown'])['items'])
 assert(Monitoring::filters(['provider'=>'openai,openai,grok'])['provider']===['openai','grok']);
 assert(count($monitor->runs(['query'=>$id,'from'=>gmdate('Y-m-d\TH:i:s\Z',time()-86400)])['items'])===0);
 $row=$monitor->run($id); assert($row['duration_ms']==1200 && $row['trace_status']==='complete');
+assert($row['caller_number']==='+12025550159' && $row['called_number']==='+12025550170');
 assert(!isset($row['linkedid'],$row['provider_call_id']));
+$db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version=5 WHERE singleton=1');
+try {
+    $beforeMigration=new Monitoring($db);
+    assert($beforeMigration->run($id)['caller_number']===null);
+    assert($beforeMigration->runs(['query'=>'5550159'],searchNumbers:true)['items']===[]);
+    assert(count($beforeMigration->runs(['query'=>$id])['items'])===1);
+} finally {
+    $db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version=6 WHERE singleton=1');
+}
 $db->prepare("UPDATE asteriskcdrdb.voice_agent_runs SET linkedid='synthetic-support',error_code='private_untrusted_detail' WHERE run_id=?")->execute([$id]);
 $db->exec("INSERT INTO asteriskcdrdb.cdr (calldate,linkedid,uniqueid) VALUES (NOW()-INTERVAL 23 DAY,'synthetic-support','outside-window')");
 assert($monitor->run($id)['call_record_url']===null);

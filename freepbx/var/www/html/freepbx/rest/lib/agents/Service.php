@@ -767,6 +767,7 @@ PROMPT;
         return (new Monitoring($this->db))->runs($filters);
     }
     public function monitoringSummary(array $filters): array { return (new Monitoring($this->db))->summary($filters); }
+    public function searchRuns(array $filters): array { return (new Monitoring($this->db))->runs($filters,searchNumbers:true); }
     public function monitoringHealth(): array { return (new Monitoring($this->db))->health(); }
     public function trace(string $id,array $query): array { return (new Monitoring($this->db))->trace($id,$query); }
     public function run(string $id): array

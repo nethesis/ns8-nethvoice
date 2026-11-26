@@ -7,6 +7,7 @@ require_once __DIR__.'/Preview.php';
 final class Monitoring
 {
     private \PDO $db;
+    private ?bool $hasNumberColumns=null;
     public const PHASES=['snapshot','binding','admission','origination','webhook_wait','routing_context','provider_accept','provider_sideband','provider_answer','media_bridge','media_prepare','provider_start','provider_audio','provider_stream','greeting','response','tool','transfer','fallback','cleanup'];
     public const OUTCOMES=['running','completed','fallback','failed','interrupted','transferred','ended_by_agent'];
     public const TOOLS=['pbx.find_destinations','pbx.find_recent_callers','pbx.transfer','telephony.hangup'];
@@ -71,7 +72,7 @@ final class Monitoring
     {
         $q=$this->db->prepare('SET STATEMENT max_statement_time=2 FOR '.$sql); $q->execute($args); return $q;
     }
-    private static function where(array $filters,string $alias='r',bool $metrics=false): array
+    private static function where(array $filters,string $alias='r',bool $metrics=false,bool $searchNumbers=false): array
     {
         $column=$metrics?'hour_start':'started_at';
         $parts=["$alias.$column>=?","$alias.$column<?"]; $args=[$filters['from'],$filters['to']];
@@ -91,12 +92,22 @@ final class Monitoring
         }
         if (isset($filters['query'])) {
             // LOCATE treats %, _ and backslashes as literal data.
-            $parts[]="(LOCATE(?,r.run_id)>0 OR LOCATE(?,r.agent_id)>0 OR LOCATE(?,a.name)>0)";
-            array_push($args,$filters['query'],$filters['query'],$filters['query']);
+            $parts[]='(LOCATE(?,r.run_id)>0 OR LOCATE(?,r.agent_id)>0 OR LOCATE(?,a.name)>0'
+                .($searchNumbers?' OR LOCATE(?,r.caller_number)>0 OR LOCATE(?,r.called_number)>0':'').')';
+            array_push($args,...array_fill(0,$searchNumbers?5:3,$filters['query']));
         }
         return [implode(' AND ',$parts),$args];
     }
     private const RUN_COLUMNS='r.run_id,r.parent_run_id,r.agent_id,a.name AS agent_name,r.workflow_version,r.started_at,r.ended_at,r.outcome,r.error_code,r.monitoring_version,r.provider,r.adapter,r.model,r.duration_ms,r.setup_duration_ms,r.first_output_ms,r.trace_status,r.usage_json,r.usage_complete,(r.outcome=\'running\' AND COALESCE(r.deadline_at,DATE_ADD(r.started_at,INTERVAL 3660 SECOND))<NOW()) AS incomplete';
+    private function hasNumberColumns(): bool
+    {
+        // FreePBX can start before the Satellite apply worker upgrades the schema.
+        return $this->hasNumberColumns ??= (int)$this->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema WHERE singleton=1')->fetchColumn()>=6;
+    }
+    private function runColumns(): string
+    {
+        return self::RUN_COLUMNS.($this->hasNumberColumns()? ',r.caller_number,r.called_number' : ',NULL AS caller_number,NULL AS called_number');
+    }
     public static function reason(?string $code): ?string
     {
         if ($code===null) return null;
@@ -115,16 +126,16 @@ final class Monitoring
         $row['usage_complete']=(bool)$row['usage_complete']; $row['incomplete']=(bool)$row['incomplete'];
         return $row;
     }
-    public function runs(array $query): array
+    public function runs(array $query,bool $searchNumbers=false): array
     {
-        $f=self::filters($query); [$where,$args]=self::where($f);
-        $rows=$this->query('SELECT '.self::RUN_COLUMNS.' FROM asteriskcdrdb.voice_agent_runs r LEFT JOIN asterisk.voice_agent_agents a ON a.agent_id=r.agent_id WHERE '.$where.' ORDER BY r.started_at DESC,r.run_id DESC LIMIT 26 OFFSET '.(($f['page']-1)*25),$args)->fetchAll(\PDO::FETCH_ASSOC);
+        $f=self::filters($query); [$where,$args]=self::where($f,searchNumbers:$searchNumbers && $this->hasNumberColumns());
+        $rows=$this->query('SELECT '.$this->runColumns().' FROM asteriskcdrdb.voice_agent_runs r LEFT JOIN asterisk.voice_agent_agents a ON a.agent_id=r.agent_id WHERE '.$where.' ORDER BY r.started_at DESC,r.run_id DESC LIMIT 26 OFFSET '.(($f['page']-1)*25),$args)->fetchAll(\PDO::FETCH_ASSOC);
         return ['items'=>array_map([self::class,'row'],array_slice($rows,0,25)),'page'=>$f['page'],'has_more'=>count($rows)>25];
     }
     public function run(string $id): array
     {
         if (!preg_match('/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/D',$id)) self::fail('invalid_identifier');
-        $row=$this->query('SELECT '.self::RUN_COLUMNS.',r.linkedid,v.published_by FROM asteriskcdrdb.voice_agent_runs r
+        $row=$this->query('SELECT '.$this->runColumns().',r.linkedid,v.published_by FROM asteriskcdrdb.voice_agent_runs r
             LEFT JOIN asterisk.voice_agent_agents a ON a.agent_id=r.agent_id
             LEFT JOIN asterisk.voice_agent_versions v ON v.agent_id=r.agent_id AND v.workflow_version=r.workflow_version
             WHERE r.run_id=? AND r.started_at>=DATE_SUB(NOW(),INTERVAL ? DAY)',[$id,self::retentionDays()])->fetch(\PDO::FETCH_ASSOC);
