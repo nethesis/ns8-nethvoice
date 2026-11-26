@@ -113,7 +113,7 @@ class OpenAILiveAdapter(_RealtimeAdapter):
         language = _profile_value(profile, 'language', 'en')
         welcome = profile.get('greeting')
         opening = ('Greet the caller in ' + language + '. '
-                   + ('Use this welcome, adapting claims to confirmed capabilities: '
+                   + ('Speak this welcome verbatim, adapting only unsupported claims to confirmed capabilities: '
                       + json.dumps(welcome, ensure_ascii=False) + '. ' if welcome else
                       'Introduce yourself briefly and ask how you can help. ')
                    + 'Then pause and listen. Do not use the backend for this greeting.')
