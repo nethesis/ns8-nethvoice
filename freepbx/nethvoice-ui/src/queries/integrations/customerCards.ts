@@ -1,9 +1,15 @@
 //  Copyright (C) 2026 Nethesis S.r.l.
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, type Ref } from 'vue'
 import { defineQuery, useQuery } from '@pinia/colada'
-import { CARD_TEMPLATES_KEY, getCardTemplates } from '@/lib/integrations/cardTemplates'
+import {
+  CARD_TEMPLATE_PREVIEW_KEY,
+  CARD_TEMPLATES_KEY,
+  getCardTemplates,
+  previewCardTemplate,
+  type SampleRow,
+} from '@/lib/integrations/cardTemplates'
 import { CUSTOMER_CARDS_KEY, getCustomerCards } from '@/lib/integrations/customerCards'
 import {
   DB_CONNECTION_STATUS_STALE_TIME,
@@ -70,6 +76,28 @@ export const useCardTemplates = defineQuery(() => {
 
   return { state, asyncStatus, ...rest }
 })
+
+export type CardTemplatePreviewInput = { code: string; results: SampleRow[] }
+
+export function useCardTemplatePreview(input: Ref<CardTemplatePreviewInput | undefined>) {
+  const loginStore = useLoginStore()
+
+  return useQuery({
+    key: () => [
+      CARD_TEMPLATE_PREVIEW_KEY,
+      input.value?.code ?? '',
+      JSON.stringify(input.value?.results ?? []),
+    ],
+    enabled: () => loginStore.isAuthenticated && !!input.value,
+    query: ({ signal }) =>
+      previewCardTemplate(input.value?.code ?? '', input.value?.results ?? [], signal),
+    placeholderData: (previous) => previous,
+    staleTime: Infinity,
+    gcTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
+}
 
 export const useDbConnectionStatuses = defineQuery(() => {
   const loginStore = useLoginStore()

@@ -3,12 +3,15 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
+import { isApiError } from '@/lib/api/errors'
 import type { components } from '@/lib/api/schema'
 import { compareNatural } from '@/lib/common'
 import { decodeBase64Utf8, encodeBase64Utf8 } from './base64'
 import { type FieldIssues, requiredText, validateForm } from './validation'
 
 export const CARD_TEMPLATES_KEY = 'customerCardTemplates'
+
+export const CARD_TEMPLATE_PREVIEW_KEY = 'customerCardTemplatePreview'
 
 export const CUSTOM_TEMPLATE_SUFFIX = '_custom'
 
@@ -18,6 +21,26 @@ export const DEFAULT_TEMPLATE_CODE =
   '<% } %>\n'
 
 type CardTemplateInput = components['schemas']['IntegrationsCardTemplateInput']
+
+export type SampleRow = Record<string, unknown>
+
+export const SAMPLE_RESULTS_MAX_BYTES = 65536
+
+export const DEFAULT_SAMPLE_RESULTS: SampleRow[] = [
+  { name: 'Anna', lastname: 'Bianchi' },
+  { name: 'Luca', lastname: 'Verdi' },
+]
+
+export const EXAMPLE_RESULTS: SampleRow[] = [
+  { order: 'SO-1042', date: '12/11/2026', total: '€ 1,250.00' },
+  { order: 'SO-0987', date: '28/10/2026', total: '€ 430.00' },
+  { order: 'SO-0911', date: '02/10/2026', total: '€ 2,980.00' },
+]
+
+export const CARD_PREVIEW_STYLESHEET =
+  'https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css'
+
+const PreviewResponseSchema = v.object({ html: v.string() })
 
 const CardTemplatesResponseSchema = v.array(
   v.object({
@@ -74,6 +97,8 @@ export const toDuplicatedCardTemplateForm = (template: CardTemplate): CardTempla
   code: template.code,
 })
 
+export const DEFAULT_TEMPLATE_COLOR = 'indigo'
+
 export const TEMPLATE_COLOR_CLASSES: Record<string, string> = {
   red: 'red-600',
   orange: 'yellow-600',
@@ -82,6 +107,7 @@ export const TEMPLATE_COLOR_CLASSES: Record<string, string> = {
   green: 'emerald-600',
   teal: 'green-400',
   blue: 'blue-600',
+  indigo: 'indigo-600',
   violet: 'violet-500',
   purple: 'purple-600',
   pink: 'pink-500',
@@ -174,4 +200,60 @@ export const saveCardTemplate = async (
 
 export const deleteCardTemplate = async (name: string): Promise<void> => {
   await api.DELETE('/cti/customer_card/template/{name}', { params: { path: { name } } })
+}
+
+export const formatSampleResults = (rows: SampleRow[]): string =>
+  `[\n${rows.map((row) => `  ${JSON.stringify(row)}`).join(',\n')}\n]`
+
+const isRow = (value: unknown): value is SampleRow =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+export type SampleResultsCheck =
+  { results: SampleRow[]; issue?: undefined } | { results?: undefined; issue: string }
+
+export const parseSampleResults = (text: string): SampleResultsCheck => {
+  if (!text.trim()) {
+    return { issue: 'integrations.cards.sample_results_required' }
+  }
+  if (new TextEncoder().encode(text).length > SAMPLE_RESULTS_MAX_BYTES) {
+    return { issue: 'integrations.cards.sample_results_too_large' }
+  }
+  let value: unknown
+
+  try {
+    value = JSON.parse(text)
+  } catch {
+    return { issue: 'integrations.cards.sample_results_invalid_json' }
+  }
+  if (isRow(value)) {
+    return { results: [value] }
+  }
+  if (Array.isArray(value) && value.every(isRow)) {
+    return { results: value }
+  }
+  return { issue: 'integrations.cards.sample_results_not_rows' }
+}
+
+export const buildCardPreviewDocument = (html: string): string =>
+  `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${CARD_PREVIEW_STYLESHEET}"><style>body{padding:8px;}</style></head><body>${html}</body></html>`
+
+export const previewCardTemplate = async (
+  code: string,
+  results: SampleRow[],
+  signal?: AbortSignal,
+): Promise<string> => {
+  const { data } = await api.POST('/cti/customer_card/template/preview', {
+    body: { html: encodeBase64Utf8(code), results },
+    signal,
+  })
+  return decodeBase64Utf8(v.parse(PreviewResponseSchema, data).html)
+}
+
+export const getTemplateRenderError = (error: unknown): string => {
+  if (!isApiError(error) || error.status !== 422 || !isRow(error.body)) {
+    return ''
+  }
+  const message = error.body.error
+
+  return typeof message === 'string' ? message.trim() : ''
 }

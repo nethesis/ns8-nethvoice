@@ -19,6 +19,7 @@ import {
   type NeComboboxOption,
 } from '@nethesis/vue-components'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
+import CardTemplatePreview from './CardTemplatePreview.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
 import {
@@ -27,8 +28,13 @@ import {
   CARD_TEMPLATES_KEY,
   type CardTemplate,
   type CardTemplateForm,
+  DEFAULT_SAMPLE_RESULTS,
+  DEFAULT_TEMPLATE_COLOR,
   emptyCardTemplateForm,
+  EXAMPLE_RESULTS,
+  formatSampleResults,
   saveCardTemplate,
+  setCardTemplateColor,
   TEMPLATE_COLORS,
   toCardTemplateForm,
   toDuplicatedCardTemplateForm,
@@ -62,6 +68,8 @@ const notificationsStore = useNotificationsStore()
 
 const form = ref<CardTemplateForm>(emptyCardTemplateForm())
 const color = ref('')
+const sample = ref('')
+const openCount = ref(0)
 const validationIssues = ref<FieldIssues>({})
 const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
@@ -80,6 +88,12 @@ const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
 const editing = computed(() => mode === 'edit' && !!currentTemplate)
 const editingColor = computed(() => editing.value && !currentTemplate?.custom)
 const readOnly = computed(() => mode === 'view')
+
+const builtInPreviewCode = computed(() =>
+  currentTemplate && color.value
+    ? setCardTemplateColor(currentTemplate.code, color.value)
+    : (currentTemplate?.code ?? ''),
+)
 
 const isDirty = computed(() => !readOnly.value && snapshot() !== initialSnapshot.value)
 
@@ -176,7 +190,9 @@ watch(
     } else {
       form.value = emptyCardTemplateForm()
     }
-    color.value = currentTemplate?.color ?? ''
+    color.value = currentTemplate?.color || (editingColor.value ? DEFAULT_TEMPLATE_COLOR : '')
+    sample.value = formatSampleResults(mode === 'create' ? DEFAULT_SAMPLE_RESULTS : EXAMPLE_RESULTS)
+    openCount.value++
     initialSnapshot.value = snapshot()
     if (!readOnly.value) {
       focusElement(editingColor.value ? colorRef : mode === 'edit' ? codeRef : nameRef)
@@ -256,6 +272,12 @@ function save() {
           :user-input-label="t('ne_combobox.user_input_label')"
           :optional-label="t('common.optional')"
         />
+        <CardTemplatePreview
+          v-if="editingColor"
+          :key="openCount"
+          :code="builtInPreviewCode"
+          :name="currentTemplate?.name ?? ''"
+        />
         <template v-else>
           <NeInlineNotification
             v-if="readOnly"
@@ -298,6 +320,14 @@ function save() {
               </NeLink>
             </div>
           </div>
+          <CardTemplatePreview
+            v-if="!readOnly"
+            :key="openCount"
+            v-model:sample="sample"
+            :code="form.code"
+            :name="form.name.trim() || t('integrations.cards.template')"
+            :disabled="saving"
+          />
         </template>
         <NeInlineNotification
           v-if="saveError"

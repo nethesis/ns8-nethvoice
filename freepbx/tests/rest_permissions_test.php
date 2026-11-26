@@ -202,6 +202,7 @@ $expectedSuperadminOnly = [
     'POST /configuration/localnetworks',
     'POST /configuration/wizard',
     'POST /cti/customer_card/template',
+    'POST /cti/customer_card/template/preview',
     'POST /devices/gateways/push',
     'POST /devices/phones/model',
     'POST /devices/phones/provision',

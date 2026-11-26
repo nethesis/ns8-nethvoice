@@ -96,6 +96,31 @@ const drawer = (page: Page) => page.getByRole('dialog')
 const createButton = (page: Page) =>
   drawer(page).getByRole('button', { name: 'Create', exact: true })
 
+const TEMPLATE_PREVIEW = '/freepbx/rest/cti/customer_card/template/preview'
+
+const EXAMPLE_RESULTS = [
+  { order: 'SO-1042', date: '12/11/2026', total: '€ 1,250.00' },
+  { order: 'SO-0987', date: '28/10/2026', total: '€ 430.00' },
+  { order: 'SO-0911', date: '02/10/2026', total: '€ 2,980.00' },
+]
+
+const renderTemplate = (request: MockRequest) => {
+  const body = request.body as { html: string; results: Record<string, unknown>[] }
+  const code = Buffer.from(body.html, 'base64').toString('utf-8')
+  const rows = body.results.map((row) => Object.values(row).join(' ')).join(', ')
+  return { json: { html: b64(`<p>${code.length} characters: ${rows}</p>`) } }
+}
+
+const templatePreview = (page: Page, name: string) =>
+  drawer(page).frameLocator(`iframe[title="Preview of ${name}"]`).locator('body')
+
+type PreviewBody = { html: string; results: unknown[] }
+
+const lastPreview = (calls: { body: unknown }[]) => {
+  const body = calls[calls.length - 1]?.body as PreviewBody
+  return { code: Buffer.from(body.html, 'base64').toString('utf-8'), results: body.results }
+}
+
 const connectionTest = (request: MockRequest) => {
   const body = request.body as { id?: string; user?: string }
   return { json: { status: body.id !== '6' && body.user !== 'wrong' } }
@@ -111,6 +136,7 @@ test.describe('integrations: customer cards', () => {
       .on('GET', '/freepbx/rest/cti/customer_card/template', { json: TEMPLATES })
       .on('GET', '/freepbx/rest/cti/customer_card', { json: CARDS })
       .on('POST', '/freepbx/rest/cti/dbconn/test', connectionTest)
+      .on('POST', TEMPLATE_PREVIEW, renderTemplate)
   })
 
   test('opens on Customer cards and orders the tabs as the design', async ({ page }) => {
@@ -704,21 +730,144 @@ test.describe('integrations: customer cards', () => {
     await expect(toasts(page).getByText('Template updated')).toBeVisible()
   })
 
-  test('asks a color for a built-in template that has none', async ({ page, mockApi }) => {
-    mockApi.on('GET', '/freepbx/rest/cti/customer_card/template', {
-      json: [{ name: 'statistics', custom: false, html: b64('<dl></dl>'), color: null }],
-    })
+  test('preselects Indigo for a built-in template that has no color', async ({ page, mockApi }) => {
+    mockApi
+      .on('GET', '/freepbx/rest/cti/customer_card/template', {
+        json: [{ name: 'statistics', custom: false, html: b64('<dl></dl>'), color: null }],
+      })
+      .on('PUT', '/freepbx/rest/cti/customer_card/template/:name', { status: 200 })
 
     await page.goto('./integrations/customer-cards')
     await expect(
       templatesGrid(page).getByRole('row').nth(1).getByRole('gridcell').nth(1),
     ).toHaveText(cell('Not set'))
     await page.getByRole('button', { name: 'Edit statistics' }).click()
+    await expect(drawer(page).getByRole('combobox', { name: 'Color' })).toHaveValue('Indigo')
+    await expect(templatePreview(page, 'statistics')).toHaveText(
+      '32 characters: SO-1042 12/11/2026 € 1,250.00, SO-0987 28/10/2026 € 430.00, SO-0911 02/10/2026 € 2,980.00',
+    )
     await drawer(page).getByRole('button', { name: 'Save' }).click()
 
-    await expect(drawer(page).getByText('Select a color')).toBeVisible()
-    await expect(drawer(page).getByRole('combobox', { name: 'Color' })).toBeFocused()
-    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/template/:name')).toHaveLength(0)
+    await expect(drawer(page)).toBeHidden()
+    expect(
+      mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/template/:name')[0].body,
+    ).toEqual({ name: 'statistics', custom: false, html: b64('<!-- color: indigo -->\n<dl></dl>') })
+  })
+
+  test('previews a built-in template with example results and the chosen color', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit table' }).click()
+
+    await expect(drawer(page).getByText('Shown with example results.')).toBeVisible()
+    await expect(drawer(page).getByRole('textbox', { name: 'Sample results' })).toHaveCount(0)
+    await expect(templatePreview(page, 'table')).toContainText('SO-1042 12/11/2026 € 1,250.00')
+    expect(lastPreview(mockApi.callsTo('POST', TEMPLATE_PREVIEW))).toEqual({
+      code: TABLE_CODE,
+      results: EXAMPLE_RESULTS,
+    })
+
+    await drawer(page).getByRole('combobox', { name: 'Color' }).click()
+    await page.getByRole('option', { name: 'Indigo' }).click()
+    await expect
+      .poll(() => lastPreview(mockApi.callsTo('POST', TEMPLATE_PREVIEW)).code)
+      .toBe('<!-- color: indigo -->\n<thead class="bg-indigo-600"></thead>')
+    await page.keyboard.press('Escape')
+    await expect(drawer(page).getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+  })
+
+  test('previews a template while typing, with the sample results', async ({ page, mockApi }) => {
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Create template' }).click()
+
+    const sample = drawer(page).getByRole('textbox', { name: 'Sample results' })
+    await expect(
+      drawer(page).getByText(
+        'Query results in JSON format, used only for the preview: an object for each row.',
+      ),
+    ).toBeVisible()
+    expect(JSON.parse(await sample.inputValue())).toEqual([
+      { name: 'Anna', lastname: 'Bianchi' },
+      { name: 'Luca', lastname: 'Verdi' },
+    ])
+    await expect(templatePreview(page, 'Template')).toHaveText(
+      /characters: Anna Bianchi, Luca Verdi$/,
+    )
+
+    await drawer(page).getByRole('textbox', { name: 'Name', exact: true }).fill('orders')
+    await drawer(page).getByRole('textbox', { name: 'Code' }).fill('<p><%= results[0].order %></p>')
+    await sample.fill('{"order": "SO-1042", "city": "Forlì"}')
+    await expect(templatePreview(page, 'orders')).toHaveText('30 characters: SO-1042 Forlì')
+    expect(lastPreview(mockApi.callsTo('POST', TEMPLATE_PREVIEW))).toEqual({
+      code: '<p><%= results[0].order %></p>',
+      results: [{ order: 'SO-1042', city: 'Forlì' }],
+    })
+    await expect(drawer(page).locator('iframe')).toHaveAttribute('sandbox', '')
+
+    const calls = mockApi.callsTo('POST', TEMPLATE_PREVIEW).length
+    await sample.fill('[{"order": "SO-1042",}]')
+    await expect(drawer(page).getByText('Enter valid JSON')).toBeVisible()
+    await sample.fill('["SO-1042"]')
+    await expect(
+      drawer(page).getByText('Enter an object or a list of objects, one for each row'),
+    ).toBeVisible()
+    await sample.fill('')
+    await expect(drawer(page).getByText('Enter the sample results')).toBeVisible()
+    await expect(templatePreview(page, 'orders')).toHaveText('30 characters: SO-1042 Forlì')
+    expect(mockApi.callsTo('POST', TEMPLATE_PREVIEW)).toHaveLength(calls)
+
+    await sample.fill('[]')
+    await expect(templatePreview(page, 'orders')).toHaveText('30 characters: ')
+    await expect(drawer(page).getByText('Enter the sample results')).toHaveCount(0)
+  })
+
+  test('shows why a template cannot be previewed', async ({ page, mockApi }) => {
+    mockApi.on('PUT', '/freepbx/rest/cti/customer_card/template/:name', { status: 200 })
+    mockApi.on('POST', TEMPLATE_PREVIEW, (request) => {
+      const { html } = request.body as PreviewBody
+      const code = Buffer.from(html, 'base64').toString('utf-8')
+
+      if (code.includes('missing')) {
+        return {
+          status: 422,
+          json: {
+            message: 'The template cannot be rendered with these results',
+            error: 'ejs:1\n >> 1| <%= missing %>\n\nmissing is not defined',
+          },
+        }
+      }
+      if (code.includes('offline')) {
+        return { status: 503, json: { message: 'The CTI server is not reachable' } }
+      }
+      return renderTemplate(request)
+    })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit invoices' }).click()
+    const code = drawer(page).getByRole('textbox', { name: 'Code' })
+    await expect(templatePreview(page, 'invoices')).toContainText('SO-1042')
+
+    await code.fill('<%= missing %>')
+    await expect(drawer(page).getByText('Cannot show the preview')).toBeVisible()
+    await expect(
+      drawer(page).getByText('The template cannot be rendered with these results:'),
+    ).toBeVisible()
+    await expect(drawer(page).getByText(/missing is not defined/)).toBeVisible()
+    await expect(drawer(page).locator('iframe')).toHaveCount(0)
+
+    await code.fill('<p>offline</p>')
+    await expect(
+      drawer(page).getByText('The service is not reachable at the moment. Try again shortly.'),
+    ).toBeVisible()
+    await expect(drawer(page).getByText(/missing is not defined/)).toHaveCount(0)
+
+    await code.fill('<p>back</p>')
+    await expect(templatePreview(page, 'invoices')).toContainText('SO-1042')
+    await expect(drawer(page).getByText('Cannot show the preview')).toHaveCount(0)
+    await drawer(page).getByRole('button', { name: 'Save' }).click()
+    await expect(drawer(page)).toBeHidden()
   })
 
   test('edits a custom template', async ({ page, mockApi }) => {
@@ -1146,8 +1295,11 @@ test.describe('integrations: customer cards', () => {
     await expect(drawer(page).getByRole('combobox', { name: 'Color' })).toHaveCount(0)
     await expect(drawer(page).getByRole('textbox', { name: 'Code' })).toHaveValue(TABLE_CODE)
     await expect(drawer(page).getByRole('textbox', { name: 'Code' })).not.toBeEditable()
+    await expect(drawer(page).getByRole('textbox', { name: 'Sample results' })).toHaveCount(0)
+    await expect(drawer(page).getByText('Preview', { exact: true })).toHaveCount(0)
     await page.keyboard.press('Escape')
     await expect(drawer(page)).toBeHidden()
+    expect(mockApi.callsTo('POST', TEMPLATE_PREVIEW)).toHaveLength(0)
 
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/customer_card/template')).toHaveLength(0)
     expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/template/:name')).toHaveLength(0)

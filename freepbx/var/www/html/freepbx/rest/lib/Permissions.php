@@ -54,6 +54,7 @@ const NETHVOICE_ROUTE_RULES = [
     'POST /cti/customer_card/template' => NETHVOICE_SUPERADMIN,
     'PUT /cti/customer_card/template/{name}' => NETHVOICE_SUPERADMIN,
     'DELETE /cti/customer_card/template/{name}' => NETHVOICE_SUPERADMIN,
+    'POST /cti/customer_card/template/preview' => NETHVOICE_SUPERADMIN,
     'GET /phonebook/ldap' => 'phones',
     'POST /extensions/{extension}/srtp/{enabled}' => ['users', 'phones'],
     'DELETE /outboundroutes/{route_id}/trunks/{id}' => NETHVOICE_SUPERADMIN,

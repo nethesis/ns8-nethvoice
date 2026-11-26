@@ -205,7 +205,7 @@ function setCompUtil(comp) {
          *
          *   @param {string} preview To get the customer card by specified number and data.
          */
-        'post': ['preview'],
+        'post': ['preview', 'render'],
         'head': [],
         'del': []
       },
@@ -346,11 +346,44 @@ function setCompUtil(comp) {
           logger.log.error(IDLOG, err.stack);
           compUtil.net.sendHttp500(IDLOG, res, err.toString());
         }
+      },
+
+      render: function(req, res, next) {
+        try {
+          if (req.headers.authorization_freepbx_admin !== 'true') {
+            compUtil.net.sendHttp403(IDLOG, res);
+            return;
+          }
+          if (typeof req.params.template !== 'string' || !(req.params.results instanceof Array)) {
+            compUtil.net.sendHttp400(IDLOG, res);
+            return;
+          }
+          var template = Buffer.from(req.params.template, 'base64').toString('utf8');
+
+          compCustomerCard.renderCustomerCardTemplate(template, req.params.results, function(err, result) {
+            try {
+              if (err) {
+                compUtil.net.sendHttp500(IDLOG, res, err.toString());
+              } else if (typeof result.error === 'string') {
+                res.send(422, { error: result.error });
+              } else {
+                res.send(200, { html: Buffer.from(result.html).toString('base64') });
+              }
+            } catch (error) {
+              logger.log.error(IDLOG, error.stack);
+              compUtil.net.sendHttp500(IDLOG, res, error.toString());
+            }
+          });
+        } catch (err) {
+          logger.log.error(IDLOG, err.stack);
+          compUtil.net.sendHttp500(IDLOG, res, err.toString());
+        }
       }
     };
     exports.api = custcard.api;
     exports.list = custcard.list;
     exports.preview = custcard.preview;
+    exports.render = custcard.render;
     exports.getbynum = custcard.getbynum;
     exports.setLogger = setLogger;
     exports.setCompUtil = setCompUtil;

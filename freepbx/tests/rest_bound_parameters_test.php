@@ -246,7 +246,7 @@ namespace {
     check(FreePBX::$db->log === [], 'a phone without MAC reached the database');
 
     preg_match_all("/\\\$app->(get|post|put|delete)\\('(\\/cti\\/customer_card\\/template[^']*)'/", file_get_contents("$rest/modules/cti.php"), $templateRoutes, PREG_SET_ORDER);
-    check(array_map(fn($r) => strtoupper($r[1]) . ' ' . $r[2], $templateRoutes) === ['GET /cti/customer_card/template', 'POST /cti/customer_card/template', 'PUT /cti/customer_card/template/{name}', 'DELETE /cti/customer_card/template/{name}'], 'the customer card template routes changed');
+    check(array_map(fn($r) => strtoupper($r[1]) . ' ' . $r[2], $templateRoutes) === ['GET /cti/customer_card/template', 'POST /cti/customer_card/template', 'PUT /cti/customer_card/template/{name}', 'DELETE /cti/customer_card/template/{name}', 'POST /cti/customer_card/template/preview'], 'the customer card template routes changed');
 
     $slim = AppFactory::create();
     $slim->setBasePath('/freepbx/rest');

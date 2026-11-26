@@ -22,6 +22,7 @@ import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { isApiError } from '@/lib/api/errors'
 import type { Focusable } from '@/lib/common'
+import { buildCardPreviewDocument } from '@/lib/integrations/cardTemplates'
 import {
   buildCustomerCardPayload,
   buildCustomerCardPreviewPayload,
@@ -52,9 +53,6 @@ import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useThemeStore } from '@/stores/theme'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
-
-const PREVIEW_STYLESHEET =
-  'https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css'
 
 const {
   isShown = false,
@@ -162,9 +160,7 @@ const templateOptions = computed(() => {
 })
 
 const previewDocument = computed(() =>
-  previewHtml.value === undefined
-    ? ''
-    : `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${PREVIEW_STYLESHEET}"><style>body{padding:8px;}</style></head><body>${previewHtml.value}</body></html>`,
+  previewHtml.value === undefined ? '' : buildCardPreviewDocument(previewHtml.value),
 )
 
 const {
