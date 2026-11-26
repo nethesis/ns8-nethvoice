@@ -40,6 +40,9 @@ export interface Agent extends JsonObject {
   draft_version: number | null;
   sync_status: string;
   routable: boolean;
+  // Used by a VisualPlan route: null when the server cannot tell, missing
+  // on older servers.
+  in_use?: boolean | null;
   draft: Draft | CleverAiConfiguration;
   published: (Draft & { workflow_version: number }) | null;
 }

@@ -31,16 +31,29 @@ test("setup notice lists only the missing steps with their links", async ({ page
   await expect(notice(page)).toHaveCount(0);
 });
 
-test("setup notice asks for a VisualPlan route when the server reports route use", async ({ page }) => {
+test("setup notice asks for a VisualPlan route from the in_use of the agents", async ({ page }) => {
+  const assistant = profile({ agent_id: "assistant", name: "Assistant", agent_type: "consultation", in_use: false });
   const mock = await mockApi(page, {
-    profiles: { receptionist: profile({ workflow_version: 1, enabled: true, in_use: false }) },
+    profiles: { receptionist: profile({ workflow_version: 1, enabled: true, in_use: false }), assistant },
   });
   await page.goto("./#/agents");
+  // false: the step is missing.
   await expect(notice(page).locator("li")).toHaveText(["Use an agent in a VisualPlan route: Open VisualPlan"]);
   await expect(notice(page).getByRole("link", { name: "Open VisualPlan" })).toHaveAttribute("href", "/freepbx/visualplan/");
+  // An unpublished agent in a route does not answer calls.
+  mock.profiles.night = profile({ agent_id: "night", name: "Night desk", kind: "custom", in_use: true });
+  await page.reload();
+  await expect(notice(page).locator("li")).toHaveText(["Use an agent in a VisualPlan route: Open VisualPlan"]);
+  // null (unknown) for every public agent: the step is omitted.
+  delete mock.profiles.night;
+  mock.profiles.receptionist.in_use = null;
+  await page.reload();
+  await expect(page.locator("main table").getByRole("link", { name: "Receptionist", exact: true })).toBeVisible();
+  await expect(notice(page)).toHaveCount(0);
+  // true: setup is complete, even with the other steps listed before.
   mock.profiles.receptionist.in_use = true;
   await page.reload();
-  await expect(page.getByRole("link", { name: "Receptionist", exact: true })).toBeVisible();
+  await expect(page.locator("main table").getByRole("link", { name: "Receptionist", exact: true })).toBeVisible();
   await expect(notice(page)).toHaveCount(0);
 });
 

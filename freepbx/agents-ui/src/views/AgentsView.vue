@@ -107,13 +107,6 @@ const answering = (agent: Agent) =>
   agent.agent_type !== "consultation" &&
   agent.enabled &&
   (agent.agent_type === "cleverai" || !!agent.workflow_version);
-// Routes are counted only when the server reports them for each agent.
-const routeUse = (agent: Agent) =>
-  typeof agent.in_use === "boolean"
-    ? agent.in_use
-    : typeof agent.route_count === "number"
-      ? agent.route_count > 0
-      : undefined;
 type SetupStep = {
   id: string;
   label: string;
@@ -125,9 +118,14 @@ const setupSteps = computed<SetupStep[]>(() => {
   const agents = query.data.value?.items;
   const bindings = trunks.data.value?.items;
   if (!agents || !bindings || !catalog.data.value) return [];
-  const usage = agents.map(routeUse);
-  const routesKnown = usage.some((value) => value !== undefined);
-  if (usage.some((value) => value === true)) return [];
+  // An agent that answers and is used in a route: setup is complete.
+  if (agents.some((agent) => answering(agent) && agent.in_use === true))
+    return [];
+  // Route use is known only when the server reports it for a public agent.
+  const routesKnown = agents.some(
+    (agent) =>
+      agent.agent_type !== "consultation" && typeof agent.in_use === "boolean",
+  );
   const steps: SetupStep[] = [];
   if (!bindings.length)
     steps.push({
