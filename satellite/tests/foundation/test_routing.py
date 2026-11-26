@@ -82,6 +82,10 @@ async def test_untrusted_context_and_independent_defaults():
     value['tool_bindings'][1]['config']['queue_allowlist'] = []
     context = await registry.routing_context()
     assert len(context.encode()) <= 16384
+    assert 'their request confirms that choice' in context
+    assert 'If you suggested or inferred a destination, ask once' in context
+    transfer = next(tool for tool in registry.advertised() if tool['name']=='nv_pbx_transfer_v2')
+    assert 'explicitly asks to reach this exact permitted destination' in transfer['description']
     assert 'untrusted' in context and 'Customer Support' in context and 'Technical help' in context
     assert 'Private' not in context and 'Excluded' not in context
     by_purpose = await registry.invoke('purpose', 'pbx.find_destinations', {'query': 'Technical help'})

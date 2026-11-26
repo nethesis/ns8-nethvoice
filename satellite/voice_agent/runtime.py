@@ -814,7 +814,10 @@ class Runtime:
             call.adapter = self.adapter_factory(call.binding)
             profile = dict(call.snapshot['conversation'])
             profile['model'] = call.binding['model']
-            profile['prompt'] = profile.pop('instructions')
+            # Retire the exact sentence shipped in early receptionist publications without rewriting them.
+            profile['prompt'] = profile.pop('instructions').replace(
+                'Ask the caller to confirm the named destination before attempting the transfer, and claim it succeeded only after the tool confirms success.',
+                'Follow the transfer confirmation policy for this call and claim success only after the tool confirms the transfer.')
             async with trace.measure('routing_context'):
                 routing_context=await call.tools.routing_context()
             profile['_opening_instructions']=call.tools.opening_instructions(profile['greeting'],profile['language'],call.caller_name)
@@ -824,6 +827,7 @@ class Runtime:
                 # Live speaks the opening itself; its delegated backend owns directory data.
                 profile['prompt'] += '\n\n' + call.tools.capability_context()
                 profile['prompt'] += '\n\n' + call.tools.recent_callback_context()
+                profile['prompt'] += '\n\n' + call.tools.transfer_confirmation_context()
             else:
                 profile['prompt'] += '\n\n' + routing_context
             profile['prompt'] += '\n\n' + call.tools.hangup_context()
