@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
   NeAvatar,
@@ -97,10 +97,14 @@ watch(
     if (user) viewUser.value = user;
   },
 );
+// A navigation closes the mobile menu, but not the first one: the menu can
+// be opened while the router resolves the address of the page.
+useRouter().afterEach((to, from) => {
+  if (from.matched.length && to.path !== from.path) mobileMenu.value = false;
+});
 watch(
   () => route.path,
   (path) => {
-    mobileMenu.value = false;
     if (path !== ui.keepView) viewKey.value++;
     ui.keepView = "";
   },
