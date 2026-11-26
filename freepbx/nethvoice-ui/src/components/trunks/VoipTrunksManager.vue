@@ -29,10 +29,12 @@ import {
   faMagnifyingGlass,
   faNetworkWired,
   faPenToSquare,
+  faPhone,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import LoadError from '@/components/common/LoadError.vue'
 import TablePaginator from '@/components/common/TablePaginator.vue'
+import CallThroughTrunkModal from './CallThroughTrunkModal.vue'
 import CreateOrEditVoipTrunkDrawer from './CreateOrEditVoipTrunkDrawer.vue'
 import DeleteVoipTrunkModal from './DeleteVoipTrunkModal.vue'
 import TrunkStatusIndicator from './TrunkStatusIndicator.vue'
@@ -44,6 +46,7 @@ import {
   type Trunk,
 } from '@/lib/trunks/trunks'
 import { getCodecLabel, getProviderName } from '@/lib/trunks/providers'
+import { getCallableLines, getTrunkCallLines } from '@/lib/trunks/trunkCall'
 import { getGatewayTrunkIds } from '@/lib/trunks/gateways'
 import {
   getTrunkProviderStatus,
@@ -85,6 +88,7 @@ const textFilter = ref('')
 const currentTrunk = ref<Trunk | undefined>()
 const isShownDrawer = ref(false)
 const isShownDeleteModal = ref(false)
+const isShownCallModal = ref(false)
 
 const loadError = computed(() => trunksState.value.error)
 
@@ -186,8 +190,29 @@ function showDeleteModal(trunk: Trunk) {
   isShownDeleteModal.value = true
 }
 
+function showCallModal(trunk: Trunk) {
+  currentTrunk.value = trunk
+  isShownCallModal.value = true
+}
+
+const callLines = computed(() =>
+  currentTrunk.value ? getCallableLines(getTrunkCallLines(currentTrunk.value)) : [],
+)
+
 function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
   return [
+    ...(variant === 'admin'
+      ? [
+          {
+            id: 'callThroughTrunk',
+            label: t('trunks.call.title'),
+            icon: faPhone,
+            disabled: trunk.disabled,
+            action: () => showCallModal(trunk),
+          },
+          { id: 'divider-call' },
+        ]
+      : []),
     {
       id: 'deleteTrunk',
       label: t('trunks.delete_trunk'),
@@ -389,7 +414,16 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
                   :items="getKebabMenuItems(item)"
                   :align-to-right="true"
                   :open-menu-aria-label="t('trunks.open_trunk_menu', { name: item.name })"
-                />
+                >
+                  <template v-if="variant === 'admin' && item.disabled" #menuHeader>
+                    <p
+                      class="text-secondary-neutral max-w-xs px-4 py-2 text-sm"
+                      :data-testid="`trunk-call-disabled-${item.id}`"
+                    >
+                      {{ t('trunks.call.trunk_disabled') }}
+                    </p>
+                  </template>
+                </NeDropdown>
               </div>
             </NeTableCell>
           </NeTableRow>
@@ -413,6 +447,12 @@ function getKebabMenuItems(trunk: Trunk): NeDropdownItem[] {
       :visible="isShownDeleteModal"
       :trunk="currentTrunk"
       @close="isShownDeleteModal = false"
+    />
+    <CallThroughTrunkModal
+      :visible="isShownCallModal"
+      :name="currentTrunk?.name ?? ''"
+      :lines="callLines"
+      @close="isShownCallModal = false"
     />
   </div>
 </template>

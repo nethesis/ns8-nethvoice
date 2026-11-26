@@ -163,7 +163,8 @@ check($session['display_name'] === 'Admin (test)', 'wrong display name');
 $sip = Pbx::$sip['770000'];
 check($sip['accountcode'] === 'nv-admin' && $sip['transport'] === '0.0.0.0-udp' && $sip['media_encryption'] === 'no', 'WebRTC settings not applied');
 check($sip['allow'] === 'opus,g722,ulaw,alaw,h264,vp8' && $sip['rewrite_contact'] === 'yes' && $sip['force_rport'] === 'yes', 'softphone settings not applied');
-check($sip['rtp_symmetric'] === 'yes' && $sip['direct_media'] === 'no' && $sip['outbound_proxy'] === '' && $sip['context'] === 'from-internal', 'media settings not applied');
+check($sip['rtp_symmetric'] === 'yes' && $sip['direct_media'] === 'no' && $sip['outbound_proxy'] === '', 'media settings not applied');
+check($sip['context'] === 'nethvoice-adminphone', 'administrator phone context not applied');
 check($sip['callerid'] === 'Admin (test) <770000>', 'wrong caller id');
 check(Pbx::$astdb['AMPUSER/770000/accountcode'] === 'nv-admin' && !isset(Pbx::$astdb['CW/770000']), 'astdb not configured');
 check(Pbx::$kvstore['adminphone']['extension'] === '770000', 'number not stored');
@@ -178,6 +179,8 @@ check($again['session']['secret'] === $session['secret'] && count(Pbx::$created)
 
 Pbx::$sip['770000']['transport'] = '';
 check(adminPhoneSession($env)['changed'] === true && Pbx::$sip['770000']['transport'] === '0.0.0.0-udp', 'drifted settings not repaired');
+Pbx::$sip['770000']['context'] = 'from-internal';
+check(adminPhoneSession($env)['changed'] === true && Pbx::$sip['770000']['context'] === 'nethvoice-adminphone', 'drifted context not repaired');
 
 $renamed = adminPhoneSession($env, 'Admin (mario)');
 check($renamed['changed'] === true && Pbx::$sip['770000']['callerid'] === 'Admin (mario) <770000>', 'display name not applied');

@@ -25,13 +25,15 @@ import {
   faCircleArrowDown,
   faCirclePlus,
   faEthernet,
-  faEye,
   faMagnifyingGlass,
+  faPenToSquare,
+  faPhone,
   faTrash,
 } from '@fortawesome/free-solid-svg-icons'
 import ClickToCopy from '@/components/common/ClickToCopy.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import TablePaginator from '@/components/common/TablePaginator.vue'
+import CallThroughTrunkModal from './CallThroughTrunkModal.vue'
 import GatewayDrawer from './GatewayDrawer.vue'
 import DeleteGatewayModal from './DeleteGatewayModal.vue'
 import TrunkStatusIndicator from './TrunkStatusIndicator.vue'
@@ -47,6 +49,7 @@ import {
   type Gateway,
 } from '@/lib/trunks/gateways'
 import { TRUNKS_LIVE_STATE_REFRESH_INTERVAL } from '@/lib/trunks/liveState'
+import { getCallableLines, getGatewayCallLines } from '@/lib/trunks/trunkCall'
 import { PAGE_SIZES } from '@/lib/common'
 import { useGatewayModels, useGateways } from '@/queries/trunks/gateways'
 import { useTrunks, useTrunksLiveState } from '@/queries/trunks/trunks'
@@ -80,6 +83,7 @@ const textFilter = ref('')
 const currentGateway = ref<Gateway | undefined>()
 const isShownDrawer = ref(false)
 const isShownDeleteModal = ref(false)
+const isShownCallModal = ref(false)
 const downloadingId = ref<number | undefined>()
 
 const loadError = computed(() => gatewaysState.value.error)
@@ -163,9 +167,29 @@ function showCreateDrawer() {
   isShownDrawer.value = true
 }
 
-function showDetailsDrawer(gateway: Gateway) {
+function showEditDrawer(gateway: Gateway) {
   currentGateway.value = gateway
   isShownDrawer.value = true
+}
+
+function showCallModal(gateway: Gateway) {
+  currentGateway.value = gateway
+  isShownCallModal.value = true
+}
+
+function getCallLines(gateway: Gateway) {
+  return getCallableLines(getGatewayCallLines(gateway, trunksState.value.data ?? []))
+}
+
+const callLines = computed(() => (currentGateway.value ? getCallLines(currentGateway.value) : []))
+
+function getCallUnavailableReason(gateway: Gateway): string {
+  if (variant !== 'admin' || getCallLines(gateway).length > 0) {
+    return ''
+  }
+  return getGatewayCallLines(gateway, trunksState.value.data ?? []).length > 0
+    ? t('trunks.call.trunk_disabled')
+    : t('trunks.call.gateway_without_lines')
 }
 
 function showDeleteModal(gateway: Gateway) {
@@ -197,11 +221,23 @@ async function downloadConfiguration(gateway: Gateway) {
 function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
   return [
     {
-      id: 'showTrunk',
-      label: t('trunks.physical.show_configuration'),
-      icon: faEye,
-      action: () => showDetailsDrawer(gateway),
+      id: 'editTrunk',
+      label: t('common.edit'),
+      icon: faPenToSquare,
+      action: () => showEditDrawer(gateway),
     },
+    ...(variant === 'admin'
+      ? [
+          {
+            id: 'callThroughTrunk',
+            label: t('trunks.call.title'),
+            icon: faPhone,
+            disabled: getCallLines(gateway).length === 0,
+            action: () => showCallModal(gateway),
+          },
+        ]
+      : []),
+    { id: 'divider-delete' },
     {
       id: 'deleteTrunk',
       label: t('trunks.delete_trunk'),
@@ -377,7 +413,16 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
                   :open-menu-aria-label="
                     t('trunks.open_trunk_menu', { name: getGatewayLabel(item, models) })
                   "
-                />
+                >
+                  <template v-if="getCallUnavailableReason(item)" #menuHeader>
+                    <p
+                      class="text-secondary-neutral max-w-xs px-4 py-2 text-sm"
+                      :data-testid="`trunk-call-disabled-${item.id}`"
+                    >
+                      {{ getCallUnavailableReason(item) }}
+                    </p>
+                  </template>
+                </NeDropdown>
               </div>
             </NeTableCell>
           </NeTableRow>
@@ -394,16 +439,20 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
     <GatewayDrawer
       :is-shown="isShownDrawer"
       :gateway="currentGateway"
-      :label="currentLabel"
       :existing-mac-addresses="existingMacAddresses"
       @close="isShownDrawer = false"
-      @download="downloadConfiguration"
     />
     <DeleteGatewayModal
       :visible="isShownDeleteModal"
       :gateway="currentGateway"
       :label="currentLabel"
       @close="isShownDeleteModal = false"
+    />
+    <CallThroughTrunkModal
+      :visible="isShownCallModal"
+      :name="currentLabel"
+      :lines="callLines"
+      @close="isShownCallModal = false"
     />
   </div>
 </template>

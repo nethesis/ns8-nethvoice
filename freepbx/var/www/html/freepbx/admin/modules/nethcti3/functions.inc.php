@@ -158,8 +158,36 @@ function nethcti3_get_config($engine) {
             $ext->add($context, '_.', '', new ext_set('PPI_DID', '${CUT(CUT(PJSIP_HEADER(read,P-Preferred-Identity),@,1),:,2)}'));
             $ext->add($context, '_.', '', new ext_gotoif('$["${PPI_DID}"=""]', 'from-pstn,${EXTEN},1'));
             $ext->add($context, '_.', '', new ext_goto('from-pstn,${PPI_DID},1'));
+            nethcti3_configure_adminphone_context($ext, FreePBX::Nethcti3()->getConfig('extension', 'adminphone'));
         break;
     }
+}
+
+function nethcti3_configure_adminphone_context($ext, $extension) {
+    if (preg_match('/^[0-9]+$/D', (string) $extension) !== 1) {
+        return;
+    }
+    $context = 'nethvoice-adminphone';
+    $ext->addInclude($context, 'from-internal');
+    $exten = '_***X.';
+    $call = 'NETHVOICE_TRUNK_CALL';
+    $trunk = 'NETHVOICE_TRUNK_CALL_TRUNK';
+    $number = 'NETHVOICE_TRUNK_CALL_NUMBER';
+    $ext->add($context, $exten, '', new ext_gotoif('$["${CHANNEL(channeltype)}" != "PJSIP"]', 'reject'));
+    $ext->add($context, $exten, '', new ext_gotoif('$["${CHANNEL(endpoint)}" != "' . $extension . '"]', 'reject'));
+    $ext->add($context, $exten, '', new ext_set($call, '${EXTEN:3}'));
+    $ext->add($context, $exten, '', new ext_gotoif('$[${REGEX("^[0-9]+[*][+]?[0-9]+$" ${' . $call . '})} = 0]', 'reject'));
+    $ext->add($context, $exten, '', new ext_set($trunk, '${CUT(' . $call . ',*,1)}'));
+    $ext->add($context, $exten, '', new ext_set($number, '${CUT(' . $call . ',*,2)}'));
+    $ext->add($context, $exten, '', new ext_gotoif('$["${OUT_${' . $trunk . '}}" = "" | ${REGEX("^(ENUM|DUNDI)/" ${OUT_${' . $trunk . '}})} = 1 | ${DIALPLAN_EXISTS(macro-dialout-trunk,s,1)} = 0]', 'reject'));
+    $ext->add($context, $exten, '', new ext_macro('user-callerid', 'LIMIT,EXTERNAL'));
+    $ext->add($context, $exten, '', new ext_gosub('1', 's', 'sub-record-check', 'out,${' . $number . '},dontcare'));
+    $ext->add($context, $exten, '', new ext_set('_CALLERIDNAMEINTERNAL', '${CALLERID(name)}'));
+    $ext->add($context, $exten, '', new ext_set('_CALLERIDNUMINTERNAL', '${CALLERID(num)}'));
+    $ext->add($context, $exten, '', new ext_set('_NODEST', ''));
+    $ext->add($context, $exten, '', new ext_macro('dialout-trunk', '${' . $trunk . '},${' . $number . '},,off'));
+    $ext->add($context, $exten, '', new ext_macro('outisbusy'));
+    $ext->add($context, $exten, 'reject', new ext_hangup('21'));
 }
 
 /** Add the forwarding identity without replacing Core's loop check. */

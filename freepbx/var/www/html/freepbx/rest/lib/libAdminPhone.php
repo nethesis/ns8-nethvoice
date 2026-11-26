@@ -27,6 +27,7 @@ define('ADMINPHONE_ACCOUNTCODE', 'nv-admin');
 define('ADMINPHONE_DEFAULT_NAME', 'Admin (test)');
 define('ADMINPHONE_NAME_MAX_LENGTH', 50);
 define('ADMINPHONE_SIP_HOST', '127.0.0.1');
+define('ADMINPHONE_CONTEXT', 'nethvoice-adminphone');
 
 function adminPhoneCandidates() {
     $candidates = array();
@@ -118,6 +119,7 @@ function adminPhoneDesiredSettings() {
         'transport' => '0.0.0.0-udp',
         'direct_media' => 'no',
         'accountcode' => ADMINPHONE_ACCOUNTCODE,
+        'context' => ADMINPHONE_CONTEXT,
     );
 }
 
