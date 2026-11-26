@@ -664,6 +664,16 @@ PROMPT;
         }
         return $names;
     }
+    public function previewImpact(): array
+    {
+        $impact=[];
+        foreach ($this->all() as $agent) {
+            if (!$agent['routable'] || !$this->native->inUse($agent['agent_id'])) continue;
+            $fallback=$agent['agent_type']==='cleverai'?$agent['draft']['fallback_destination_id']:$agent['published']['fallback_destination_id'];
+            $impact[]=['agent_id'=>$agent['agent_id'],'name'=>$agent['name'],'fallback_destination_id'=>$fallback];
+        }
+        return $impact;
+    }
     public function cleverAiTransport(string $id): ?array
     {
         $agent=$this->get($id);
