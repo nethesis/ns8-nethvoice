@@ -191,6 +191,7 @@ def test_failed_apply_records_a_stable_reason(installation, monkeypatch, capsys,
     else:
         s.reject = failure
     main = s.apply.__globals__['main']
+    monkeypatch.setattr(s.apply.__globals__['time'], 'sleep', lambda _: None)
     Path('satellite-apply.pending').touch()
     with pytest.raises(Exception):
         main()
@@ -210,6 +211,26 @@ def test_failed_apply_records_a_stable_reason(installation, monkeypatch, capsys,
     runpy.run_path(str(ROOT / 'actions/get-integrations/20read'))
     output = json.loads(capsys.readouterr().out)
     assert output['satellite_apply_status'] == 'applied' and output['satellite_apply_error'] is None
+
+
+def test_worker_recovers_a_transient_readiness_failure(installation, monkeypatch):
+    s = installation
+    s.env['VOICE_AGENT_ENABLED'] = 'true'
+    attempts = []
+    delays = []
+
+    def wait_for_agents(port, token):
+        attempts.append(port)
+        if len(attempts) == 1:
+            raise RuntimeError('voice_agent_runtime_not_ready')
+
+    monkeypatch.setitem(s.apply.__globals__, 'wait_for_agents', wait_for_agents)
+    monkeypatch.setattr(s.apply.__globals__['time'], 'sleep', delays.append)
+    Path('satellite-apply.pending').touch()
+    s.apply.__globals__['main']()
+    assert len(attempts) == 2 and delays == [5]
+    assert Path('voice-preview/enabled').exists()
+    assert not Path('satellite-apply.failed').exists()
 
 
 def test_legacy_empty_failure_flag_is_reported_generically(installation, capsys):
