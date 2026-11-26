@@ -562,7 +562,11 @@
     "full_name_too_long": "Name and surname can be at most {max} characters long in total",
     "import_issue_username_too_long": "username longer than {usernameMax} characters",
     "import_issue_name_too_long": "name and surname longer than {nameMax} characters",
-    "create_error_value_too_long": "Some values are longer than the PBX allows, so the extension has not been created. Shorten the name and surname, then add the extension with @:{'common.edit'}."
+    "create_error_value_too_long": "Some values are longer than the PBX allows, so the extension has not been created. Shorten the name and surname, then add the extension with @:{'common.edit'}.",
+    "cannot_assign_phone": "Cannot assign phone {phone}",
+    "cannot_release_phone": "Cannot release phone {phone}",
+    "phones_already_updated": "These phones are already updated: {phones}.",
+    "assign_missing_phones": "Assign the missing phones with @:{'common.edit'}."
   },
   "trunks": {
     "title": "Trunks",
@@ -660,10 +664,6 @@
       "ip_address_column": "IP address",
       "mac_column": "MAC",
       "download": "Download",
-      "download_configuration": "Download configuration",
-      "show_configuration": "Show configuration",
-      "read_only_title": "Configuration cannot be changed here",
-      "read_only_description": "Changing a configured gateway is not available yet. To change it, delete it and create it again.",
       "manufacturer": "Device manufacturer",
       "model": "Device model",
       "choose_model": "Choose a model",
@@ -714,7 +714,12 @@
       "network_gateway_placeholder": "e.g. 192.168.1.1",
       "pbx_address_placeholder": "e.g. 192.168.1.2",
       "trunk_created_description": "Physical trunk {name} has been created.",
-      "trunk_deleted_description": "Physical trunk {name} has been deleted."
+      "trunk_deleted_description": "Physical trunk {name} has been deleted.",
+      "edit_physical_trunk": "Edit physical trunk",
+      "model_edit_helper": "To use another model, delete the trunk and create it again",
+      "fxs_extensions_removed_title": "Some FXS extensions will be deleted",
+      "fxs_extensions_removed_description": "Saving deletes the FXS port extensions of these users: {users}.",
+      "trunk_updated_description": "Physical trunk {name} has been updated."
     },
     "cannot_check_outbound_routes": "Cannot check which outbound routes use this trunk",
     "routes_left_without_trunks": "Some outbound routes will have no trunk",
@@ -724,7 +729,23 @@
     "trunk_updated": "Trunk updated",
     "trunk_updated_description": "Trunk {name} has been updated.",
     "trunk_created_description": "Trunk {name} has been created.",
-    "trunk_deleted_description": "Trunk {name} has been deleted."
+    "trunk_deleted_description": "Trunk {name} has been deleted.",
+    "call": {
+      "title": "Call through this trunk",
+      "call": "Call",
+      "description": "The call will be placed using trunk {name}.",
+      "phone_number": "Phone number",
+      "line": "Line",
+      "line_port": "{type} port {port}",
+      "number_required": "Enter the phone number",
+      "number_invalid": "Use only digits, optionally starting with +. Spaces, dots, dashes and brackets are removed",
+      "number_too_long": "The phone number can contain at most {max} digits",
+      "trunk_disabled": "Calls through this trunk are not available because it is disabled",
+      "gateway_without_lines": "This gateway has only FXS ports, so there are no lines to call through",
+      "phone_in_call": "The administrator phone is already in a call",
+      "cannot_call": "Cannot call",
+      "administrator_phone": "Administrator phone"
+    }
   },
   "routes": {
     "title": "Routes",
@@ -1142,7 +1163,31 @@
       },
       "admin_password_affects_cti": "Updating the password may affect {brand} CTI features"
     },
-    "changes_not_saved": "The PBX did not save the changes. Try again."
+    "changes_not_saved": "The PBX did not save the changes. Try again.",
+    "templates": {
+      "import_template": "Import template",
+      "import": "Import",
+      "import_description": "A custom template generates the configuration files of the phones on the server. After the import, choose it in the @:{'phones.models.sections.preferences'} section of a model.",
+      "template_file": "Template file",
+      "template_file_helper": "Twig template with the .tmpl extension, up to {size} KB. The file name can contain letters, numbers, \"-\", \"_\" and \".\".",
+      "file_required": "Select a template file",
+      "invalid_name": "Select a .tmpl file whose name contains only letters, numbers, \"-\", \"_\" and \".\"",
+      "empty_file": "The file is empty",
+      "file_too_large": "The file is larger than {size} KB",
+      "not_text": "The file is not UTF-8 text",
+      "shipped_name": "A default template has this name. Rename the file",
+      "name_exists": "This name is already in use",
+      "syntax_error": "Syntax error at line {line}: {detail}",
+      "template_exists": "Template already imported",
+      "template_exists_description": "Importing replaces {name}. Phones of the models that use it get the new version at their next provisioning.",
+      "cannot_import_template": "Cannot import template",
+      "template_imported": "Template imported",
+      "template_imported_description": "Template {name} has been imported.",
+      "provisioning_template": "Provisioning template",
+      "template_helper": "Phones of this model use it from their next provisioning.",
+      "standard_option": "{name} (default)",
+      "cannot_retrieve_templates": "Cannot retrieve templates"
+    }
   },
   "integrations": {
     "title": "Integrations",
@@ -1552,7 +1597,8 @@
         "violet": "Violet",
         "purple": "Purple",
         "pink": "Pink",
-        "brown": "Brown"
+        "brown": "Brown",
+        "indigo": "Indigo"
       },
       "used_by": "Used by",
       "not_used": "Not used",
@@ -1584,7 +1630,17 @@
       "view": "Show",
       "view_template": "Template {name}",
       "templates_description_read_only": "Layouts of the customer cards, written in HTML and EJS. Only the superadmin can create, change or delete them.",
-      "template_read_only_info": "Only the superadmin can change the templates."
+      "template_read_only_info": "Only the superadmin can change the templates.",
+      "sample_results": "Sample results",
+      "sample_results_helper": "Query results in JSON format, used only for the preview: an object for each row.",
+      "sample_results_required": "Enter the sample results",
+      "sample_results_invalid_json": "Enter valid JSON",
+      "sample_results_not_rows": "Enter an object or a list of objects, one for each row",
+      "sample_results_too_large": "Sample results can be at most 64 KB",
+      "preview_example_results": "Shown with example results.",
+      "preview_updating": "Updating…",
+      "template_preview_failed": "Cannot show the preview",
+      "template_render_failed_description": "The template cannot be rendered with these results:"
     },
     "external": {
       "description": "Services provided by external providers, such as transcription and summary of calls and voicemail.",
@@ -1802,7 +1858,6 @@
     "name_needs_letter_or_digit": "The name must contain at least one letter or number",
     "name_already_exists": "A group with this name already exists",
     "name_too_similar": "A group with the same letters and numbers already exists: choose a more distinctive name",
-    "rename_not_available": "Renaming a group is not available yet",
     "group_created": "Group created",
     "group_saved": "Group saved",
     "group_deleted": "Group deleted",
@@ -1816,7 +1871,10 @@
     "group_deleted_description": "Group {name} has been deleted.",
     "cannot_add_group_users": "Cannot add the users to the group",
     "group_created_without_users_description": "Group {name} has been created, but not all its users have been added. Edit the group to add them. {error}",
-    "cannot_retrieve_groups": "Cannot retrieve groups"
+    "cannot_retrieve_groups": "Cannot retrieve groups",
+    "name_cannot_contain_commas": "The name cannot contain commas",
+    "rename_group_title": "Renaming the group",
+    "rename_group_description": "Phonebook sources and contacts shared with this group and the operator presence panel of the profiles will use the new name."
   },
   "profiles": {
     "description_line_1": "Configure permission profiles and default communication settings assigned to users.",
@@ -1997,7 +2055,11 @@
     },
     "call_extension": "Call {extension}",
     "devices_description": "Select a device to show its settings.",
-    "device_settings": "{device} {extension} settings"
+    "device_settings": "{device} {extension} settings",
+    "user_agent": "User agent",
+    "type": "Type",
+    "ip_address": "IP address",
+    "port": "Port"
   },
   "admin_phone": {
     "status_connection_lost": "The phone cannot connect to the PBX and keeps trying",

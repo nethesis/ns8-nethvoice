@@ -562,7 +562,11 @@
     "full_name_too_long": "Nome e cognome possono contenere al massimo {max} caratteri in totale",
     "import_issue_username_too_long": "nome utente più lungo di {usernameMax} caratteri",
     "import_issue_name_too_long": "nome e cognome più lunghi di {nameMax} caratteri",
-    "create_error_value_too_long": "Alcuni valori sono più lunghi di quanto consentito dal PBX, quindi l'interno non è stato creato. Accorcia nome e cognome, poi aggiungi l'interno con @:{'common.edit'}."
+    "create_error_value_too_long": "Alcuni valori sono più lunghi di quanto consentito dal PBX, quindi l'interno non è stato creato. Accorcia nome e cognome, poi aggiungi l'interno con @:{'common.edit'}.",
+    "cannot_assign_phone": "Impossibile assegnare il telefono {phone}",
+    "cannot_release_phone": "Impossibile rilasciare il telefono {phone}",
+    "phones_already_updated": "Questi telefoni sono già aggiornati: {phones}.",
+    "assign_missing_phones": "Assegna i telefoni mancanti con @:{'common.edit'}."
   },
   "trunks": {
     "title": "Fasci",
@@ -660,10 +664,6 @@
       "ip_address_column": "Indirizzo IP",
       "mac_column": "MAC",
       "download": "Scarica",
-      "download_configuration": "Scarica configurazione",
-      "show_configuration": "Mostra configurazione",
-      "read_only_title": "La configurazione non può essere modificata qui",
-      "read_only_description": "La modifica di un gateway configurato non è ancora disponibile. Per cambiarlo, eliminalo e crealo di nuovo.",
       "manufacturer": "Produttore del dispositivo",
       "model": "Modello del dispositivo",
       "choose_model": "Scegli un modello",
@@ -714,7 +714,12 @@
       "network_gateway_placeholder": "es. 192.168.1.1",
       "pbx_address_placeholder": "es. 192.168.1.2",
       "trunk_created_description": "Il fascio fisico {name} è stato creato.",
-      "trunk_deleted_description": "Il fascio fisico {name} è stato eliminato."
+      "trunk_deleted_description": "Il fascio fisico {name} è stato eliminato.",
+      "edit_physical_trunk": "Modifica fascio fisico",
+      "model_edit_helper": "Per usare un altro modello, elimina il fascio e crealo di nuovo",
+      "fxs_extensions_removed_title": "Alcuni interni FXS saranno eliminati",
+      "fxs_extensions_removed_description": "Il salvataggio elimina gli interni delle porte FXS di questi utenti: {users}.",
+      "trunk_updated_description": "Il fascio fisico {name} è stato aggiornato."
     },
     "cannot_check_outbound_routes": "Impossibile verificare quali rotte in uscita usano questo fascio",
     "routes_left_without_trunks": "Alcune rotte in uscita resteranno senza fasci",
@@ -724,7 +729,23 @@
     "trunk_updated": "Fascio aggiornato",
     "trunk_updated_description": "Il fascio {name} è stato aggiornato.",
     "trunk_created_description": "Il fascio {name} è stato creato.",
-    "trunk_deleted_description": "Il fascio {name} è stato eliminato."
+    "trunk_deleted_description": "Il fascio {name} è stato eliminato.",
+    "call": {
+      "title": "Chiama tramite questo fascio",
+      "call": "Chiama",
+      "description": "La chiamata sarà effettuata tramite il fascio {name}.",
+      "phone_number": "Numero di telefono",
+      "line": "Linea",
+      "line_port": "Porta {type} {port}",
+      "number_required": "Inserisci il numero di telefono",
+      "number_invalid": "Usa solo cifre, eventualmente precedute da +. Spazi, punti, trattini e parentesi vengono rimossi",
+      "number_too_long": "Il numero di telefono può contenere al massimo {max} cifre",
+      "trunk_disabled": "Le chiamate tramite questo fascio non sono disponibili perché è disabilitato",
+      "gateway_without_lines": "Questo gateway ha solo porte FXS, quindi non ci sono linee per chiamare",
+      "phone_in_call": "Il telefono dell'amministratore è già in chiamata",
+      "cannot_call": "Impossibile chiamare",
+      "administrator_phone": "Telefono dell'amministratore"
+    }
   },
   "routes": {
     "title": "Rotte",
@@ -1142,7 +1163,31 @@
       },
       "admin_password_affects_cti": "La modifica della password può influire sulle funzionalità di {brand} CTI"
     },
-    "changes_not_saved": "Il centralino non ha salvato le modifiche. Riprova."
+    "changes_not_saved": "Il centralino non ha salvato le modifiche. Riprova.",
+    "templates": {
+      "import_template": "Importa template",
+      "import": "Importa",
+      "import_description": "Un template personalizzato genera sul server i file di configurazione dei telefoni. Dopo l'importazione, sceglilo nella sezione @:{'phones.models.sections.preferences'} di un modello.",
+      "template_file": "File del template",
+      "template_file_helper": "Template Twig con estensione .tmpl, fino a {size} KB. Il nome del file può contenere lettere, numeri, \"-\", \"_\" e \".\".",
+      "file_required": "Seleziona il file del template",
+      "invalid_name": "Seleziona un file .tmpl il cui nome contenga solo lettere, numeri, \"-\", \"_\" e \".\"",
+      "empty_file": "Il file è vuoto",
+      "file_too_large": "Il file è più grande di {size} KB",
+      "not_text": "Il file non è testo UTF-8",
+      "shipped_name": "Un template predefinito ha questo nome. Rinomina il file",
+      "name_exists": "Questo nome è già in uso",
+      "syntax_error": "Errore di sintassi alla riga {line}: {detail}",
+      "template_exists": "Template già importato",
+      "template_exists_description": "L'importazione sostituisce {name}. I telefoni dei modelli che lo usano ricevono la nuova versione al prossimo provisioning.",
+      "cannot_import_template": "Impossibile importare il template",
+      "template_imported": "Template importato",
+      "template_imported_description": "Il template {name} è stato importato.",
+      "provisioning_template": "Template di provisioning",
+      "template_helper": "I telefoni di questo modello lo usano dal prossimo provisioning.",
+      "standard_option": "{name} (predefinito)",
+      "cannot_retrieve_templates": "Impossibile recuperare i template"
+    }
   },
   "integrations": {
     "title": "Integrazioni",
@@ -1552,7 +1597,8 @@
         "violet": "Viola",
         "purple": "Porpora",
         "pink": "Rosa",
-        "brown": "Marrone"
+        "brown": "Marrone",
+        "indigo": "Indaco"
       },
       "used_by": "Usato da",
       "not_used": "Non usato",
@@ -1584,7 +1630,17 @@
       "view": "Mostra",
       "view_template": "Template {name}",
       "templates_description_read_only": "Layout delle schede cliente, scritti in HTML ed EJS. Solo il superadmin può crearli, modificarli o eliminarli.",
-      "template_read_only_info": "Solo il superadmin può modificare i template."
+      "template_read_only_info": "Solo il superadmin può modificare i template.",
+      "sample_results": "Risultati di esempio",
+      "sample_results_helper": "Risultati della query in formato JSON, usati solo per l'anteprima: un oggetto per ogni riga.",
+      "sample_results_required": "Inserisci i risultati di esempio",
+      "sample_results_invalid_json": "Inserisci un JSON valido",
+      "sample_results_not_rows": "Inserisci un oggetto o un elenco di oggetti, uno per ogni riga",
+      "sample_results_too_large": "I risultati di esempio possono occupare al massimo 64 KB",
+      "preview_example_results": "Mostrata con risultati di esempio.",
+      "preview_updating": "Aggiornamento…",
+      "template_preview_failed": "Impossibile mostrare l'anteprima",
+      "template_render_failed_description": "Il template non può essere elaborato con questi risultati:"
     },
     "external": {
       "description": "Servizi forniti da provider esterni, come trascrizione e riassunto di chiamate e casella vocale.",
@@ -1802,7 +1858,6 @@
     "name_needs_letter_or_digit": "Il nome deve contenere almeno una lettera o un numero",
     "name_already_exists": "Esiste già un gruppo con questo nome",
     "name_too_similar": "Esiste già un gruppo con le stesse lettere e numeri: scegli un nome più riconoscibile",
-    "rename_not_available": "Non è ancora possibile rinominare un gruppo",
     "group_created": "Gruppo creato",
     "group_saved": "Gruppo salvato",
     "group_deleted": "Gruppo eliminato",
@@ -1816,7 +1871,10 @@
     "group_deleted_description": "Il gruppo {name} è stato eliminato.",
     "cannot_add_group_users": "Impossibile aggiungere gli utenti al gruppo",
     "group_created_without_users_description": "Il gruppo {name} è stato creato, ma non tutti i suoi utenti sono stati aggiunti. Modifica il gruppo per aggiungerli. {error}",
-    "cannot_retrieve_groups": "Impossibile recuperare i gruppi"
+    "cannot_retrieve_groups": "Impossibile recuperare i gruppi",
+    "name_cannot_contain_commas": "Il nome non può contenere virgole",
+    "rename_group_title": "Rinomina del gruppo",
+    "rename_group_description": "Le sorgenti e i contatti della rubrica condivisi con questo gruppo e il pannello presenze operatore dei profili useranno il nuovo nome."
   },
   "profiles": {
     "description_line_1": "Configura i profili di permessi e le impostazioni di comunicazione predefinite assegnate agli utenti.",
@@ -1997,7 +2055,11 @@
     },
     "call_extension": "Chiama {extension}",
     "devices_description": "Seleziona un dispositivo per vederne le impostazioni.",
-    "device_settings": "Impostazioni di {device} {extension}"
+    "device_settings": "Impostazioni di {device} {extension}",
+    "user_agent": "User agent",
+    "type": "Tipo",
+    "ip_address": "Indirizzo IP",
+    "port": "Porta"
   },
   "admin_phone": {
     "status_connection_lost": "Il telefono non riesce a connettersi al centralino e continua a riprovare",
