@@ -314,6 +314,19 @@ def test_inherited_key_rotation_only_restarts_satellite(installation):
     assert ['podman', 'exec', 'freepbx', 'fwconsole', 'reload'] in s.calls
 
 
+def test_update_refresh_restarts_chat_gateway_once_after_settings(installation):
+    s = installation
+    s.env.update(VOICE_AGENT_ENABLED='true', CHAT_ENABLED='true')
+    Path('chat-gateway-refresh.pending').touch()
+    Path('satellite-apply.pending').touch()
+    s.apply.__globals__['main']()
+    restarts = [command for command in s.calls if command[-1] == 'chat-gateway.service'
+                and command[2] in ('restart','try-restart')]
+    assert restarts == [['systemctl', '--user', 'restart', 'chat-gateway.service']]
+    assert s.calls.index(restarts[0]) > s.calls.index(['ready', '30042', 'synthetic'])
+    assert not Path('chat-gateway-refresh.pending').exists()
+
+
 def test_integrations_only_runs_chat_actions_for_chat_changes(tmp_path, monkeypatch):
     env, passwords = {'CHAT_ENABLED':'true'}, {}
     agent = SimpleNamespace(read_envfile=lambda name: dict(env if name=='environment' else passwords),
