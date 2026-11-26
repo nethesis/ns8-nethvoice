@@ -478,3 +478,83 @@ test.describe('setup: users and extensions', () => {
     expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
   })
 })
+
+test.describe('setup: Previous moves the saved progress back', () => {
+  const WIZARD = `${REST}/configuration/wizard`
+
+  test.beforeEach(({ signedIn, mockApi }) => {
+    void signedIn
+    mockWizardState(mockApi, 2)
+    mockStep(mockApi)
+  })
+
+  test('saves the previous step and resumes there after a reload', async ({ page, mockApi }) => {
+    await page.goto('./setup/physical-trunks')
+    await expect(page.getByText('Step 3 of 7')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Previous' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
+    await expect(page.getByText('Step 2 of 7')).toBeVisible()
+    expect(mockApi.callsTo('POST', WIZARD).map((call) => call.body)).toEqual([
+      { step: 1, status: 'true' },
+    ])
+
+    await page.goto('./setup/physical-trunks')
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
+
+    await page.goto('./setup')
+    await page.getByRole('button', { name: 'Start setup' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
+    await expect(
+      page.getByRole('heading', { name: 'Users and extensions', level: 1 }),
+    ).toBeFocused()
+    expect(mockApi.callsTo('POST', WIZARD)).toHaveLength(1)
+  })
+
+  test('does not go back once the setup was completed in another session', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.allowUnmockedCalls()
+    await page.goto('./setup/physical-trunks')
+    await expect(page.getByText('Step 3 of 7')).toBeVisible()
+    mockWizardState(mockApi, 13, false)
+
+    await page.getByRole('button', { name: 'Previous' }).click()
+
+    await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
+    await expect(page.getByText('Setup already completed')).toBeVisible()
+    expect(mockApi.callsTo('POST', WIZARD)).toHaveLength(0)
+  })
+
+  test('stays on the step and shows the error when the progress cannot be saved', async ({
+    page,
+    mockApi,
+  }) => {
+    let release: () => void = () => undefined
+    const saved = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    mockApi.on('POST', WIZARD, async () => {
+      await saved
+      return { status: 500, json: { message: 'boom' } }
+    })
+    await page.goto('./setup/physical-trunks')
+    await expect(page.getByText('Step 3 of 7')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Previous' }).click()
+
+    await expect(page.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+    release()
+
+    await expect(page.getByRole('main').getByText('Cannot save the setup progress')).toBeVisible()
+    await expect(page.getByTestId('toast-notifications')).not.toContainText('Cannot save')
+    await expect(page).toHaveURL(/\/nethvoice\/setup\/physical-trunks$/)
+    await expect(page.getByRole('button', { name: 'Previous' })).toBeEnabled()
+    await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
+    expect(mockApi.callsTo('POST', WIZARD)[0].body).toEqual({ step: 1, status: 'true' })
+  })
+})

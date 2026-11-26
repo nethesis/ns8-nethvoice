@@ -2,10 +2,12 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import {
+  getPreviousStep,
   getStepForLegacyStep,
   getStepIndex,
   LEGACY_SUMMARY_STEP,
   SETUP_STEPS,
+  type SetupStepId,
 } from '@/lib/setup/steps'
 import type { WizardState } from '@/lib/setup/wizard'
 
@@ -48,6 +50,9 @@ export const getLegacyStepToSave = (nextLegacyStep: number, state?: WizardState)
     state?.inProgress ? Math.max(nextLegacyStep, state.legacyStep) : nextLegacyStep,
     LEGACY_SUMMARY_STEP,
   )
+
+export const getPreviousLegacyStepToSave = (stepId: SetupStepId): number =>
+  (getPreviousStep(stepId) ?? SETUP_STEPS[0]).legacyStep
 
 export const getInternalRedirect = (redirect: unknown): string | null =>
   typeof redirect === 'string' &&

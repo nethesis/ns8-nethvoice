@@ -301,11 +301,18 @@ test.describe('setup wizard: welcome and system settings', () => {
     await expect(page.getByRole('button', { name: 'Next' })).toBeEnabled()
   })
 
-  test('Previous goes back to the welcome page', async ({ page }) => {
+  test('Previous saves the first step and goes back to the welcome page', async ({
+    page,
+    mockApi,
+  }) => {
     await page.goto('./setup/system')
     await page.getByRole('button', { name: 'Previous' }).click()
 
     await expect(page).toHaveURL(/\/nethvoice\/setup$/)
+    await expect(page.getByRole('button', { name: 'Start setup' })).toBeVisible()
+    expect(mockApi.callsTo('POST', WIZARD_PATH).map((call) => call.body)).toEqual([
+      { step: 0, status: 'true' },
+    ])
   })
 
   test('moves the focus to the first field that is not valid', async ({ page, mockApi }) => {

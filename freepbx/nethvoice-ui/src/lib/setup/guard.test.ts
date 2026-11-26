@@ -6,6 +6,7 @@ import {
   getCurrentSetupRoute,
   getInternalRedirect,
   getLegacyStepToSave,
+  getPreviousLegacyStepToSave,
   getWizardRedirect,
   isSetupRoute,
 } from './guard'
@@ -82,6 +83,19 @@ describe('getLegacyStepToSave', () => {
   it('should save the next step when the state is unknown or completed', () => {
     expect(getLegacyStepToSave(1)).toBe(1)
     expect(getLegacyStepToSave(1, completed)).toBe(1)
+  })
+})
+
+describe('getPreviousLegacyStepToSave', () => {
+  it('should save the step before the current one', () => {
+    expect(getPreviousLegacyStepToSave('users')).toBe(0)
+    expect(getPreviousLegacyStepToSave('physical-trunks')).toBe(1)
+    expect(getPreviousLegacyStepToSave('outbound-routes')).toBe(4)
+    expect(getPreviousLegacyStepToSave('summary')).toBe(5)
+  })
+
+  it('should save the first step when leaving the first step for the welcome page', () => {
+    expect(getPreviousLegacyStepToSave('system')).toBe(0)
   })
 })
 

@@ -4,8 +4,8 @@
 import { computed, inject, provide, type ComputedRef, type InjectionKey } from 'vue'
 import { useRouter } from 'vue-router'
 import { useMutation, useQueryCache } from '@pinia/colada'
-import { getNextStep, type SetupStepId } from '@/lib/setup/steps'
-import { getLegacyStepToSave } from '@/lib/setup/guard'
+import { getNextStep, getPreviousStep, type SetupStepId } from '@/lib/setup/steps'
+import { getLegacyStepToSave, getPreviousLegacyStepToSave } from '@/lib/setup/guard'
 import { postWizardState, WIZARD_STATE_KEY } from '@/lib/setup/wizard'
 import { useSetupGuard, withoutSetupCompletedError } from '@/composables/useSetupGuard'
 
@@ -60,4 +60,36 @@ export function useSetupNavigation(stepId: SetupStepId) {
   }
 
   return { advancing, goToNextStep, saveError }
+}
+
+export function useSetupPreviousNavigation(stepId: SetupStepId) {
+  const router = useRouter()
+  const queryCache = useQueryCache()
+  const { readSetupInProgress } = useSetupGuard()
+
+  const {
+    mutateAsync,
+    isLoading: goingBack,
+    error,
+    reset,
+  } = useMutation({
+    mutation: async () => {
+      await readSetupInProgress()
+      await postWizardState(getPreviousLegacyStepToSave(stepId), true)
+      return getPreviousStep(stepId)
+    },
+    async onSuccess(previousStep) {
+      await queryCache.invalidateQueries({ key: [WIZARD_STATE_KEY] }).catch(() => undefined)
+      await router.push(previousStep ? { name: `setup-${previousStep.id}` } : { name: 'setup' })
+    },
+  })
+
+  const saveError = computed(() => withoutSetupCompletedError(error.value))
+
+  const goToPreviousStep = async () => {
+    reset()
+    await mutateAsync().catch(() => undefined)
+  }
+
+  return { goingBack, goToPreviousStep, saveError, reset }
 }

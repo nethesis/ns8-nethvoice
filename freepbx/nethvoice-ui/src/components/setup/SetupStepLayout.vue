@@ -5,7 +5,6 @@
 
 <script setup lang="ts">
 import { computed, onMounted, useTemplateRef } from 'vue'
-import { useRouter } from 'vue-router'
 import { NeButton, NeInlineNotification } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faArrowLeft, faArrowRight, type IconDefinition } from '@fortawesome/free-solid-svg-icons'
@@ -13,8 +12,11 @@ import SymbolNethvoice from '@/assets/symbol_nethvoice.svg'
 import SetupHelpLinks from './SetupHelpLinks.vue'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { isRebranded } from '@/lib/signInSplash'
-import { getPreviousStep, getStepIndex, SETUP_STEPS, type SetupStepId } from '@/lib/setup/steps'
-import { useSetupNavigationError } from '@/composables/useSetupNavigation'
+import { getStepIndex, SETUP_STEPS, type SetupStepId } from '@/lib/setup/steps'
+import {
+  useSetupNavigationError,
+  useSetupPreviousNavigation,
+} from '@/composables/useSetupNavigation'
 import { describeError } from '@/stores/notifications'
 
 const {
@@ -41,14 +43,24 @@ const {
 
 const emit = defineEmits<{ next: [] }>()
 
-const router = useRouter()
 const runtimeConfigStore = useRuntimeConfigStore()
 
 const titleRef = useTemplateRef<HTMLElement>('titleRef')
 
 const injectedNavigationError = useSetupNavigationError()
 
-const navigationError = computed(() => injectedNavigationError?.value ?? null)
+const {
+  goingBack,
+  goToPreviousStep,
+  saveError: previousError,
+  reset: resetPreviousError,
+} = useSetupPreviousNavigation(stepId)
+
+const navigationError = computed(
+  () => previousError.value ?? injectedNavigationError?.value ?? null,
+)
+
+const busy = computed(() => nextLoading || goingBack.value)
 
 const showProductSymbol = computed(
   () =>
@@ -71,9 +83,9 @@ const PROGRESS_WIDTHS: Record<SetupStepId, string> = {
 
 onMounted(() => titleRef.value?.focus({ preventScroll: true }))
 
-function goToPreviousStep() {
-  const previousStep = getPreviousStep(stepId)
-  router.push(previousStep ? { name: `setup-${previousStep.id}` } : { name: 'setup' })
+function goToNextStep() {
+  resetPreviousError()
+  emit('next')
 }
 </script>
 
@@ -93,12 +105,12 @@ function goToPreviousStep() {
         />
       </div>
       <div v-else class="size-12.5" />
-      <div class="flex flex-col items-center gap-2" :inert="nextLoading || undefined">
+      <div class="flex flex-col items-center gap-2" :inert="busy || undefined">
         <SetupHelpLinks />
       </div>
     </aside>
     <main class="flex min-w-0 flex-1 flex-col gap-6 p-6 sm:p-10">
-      <div class="-mt-2 -mr-2 flex justify-end gap-2 sm:hidden" :inert="nextLoading || undefined">
+      <div class="-mt-2 -mr-2 flex justify-end gap-2 sm:hidden" :inert="busy || undefined">
         <SetupHelpLinks placement="bottom" />
       </div>
       <div class="flex flex-col items-center gap-2">
@@ -147,7 +159,13 @@ function goToPreviousStep() {
         :description="describeError(navigationError, { serverDetail: false })"
       />
       <div class="flex flex-wrap-reverse items-center justify-end gap-x-4 gap-y-2 sm:gap-x-8">
-        <NeButton kind="tertiary" size="lg" :disabled="nextLoading" @click="goToPreviousStep">
+        <NeButton
+          kind="tertiary"
+          size="lg"
+          :loading="goingBack"
+          :disabled="busy"
+          @click="goToPreviousStep"
+        >
           <template #prefix>
             <FontAwesomeIcon :icon="faArrowLeft" class="h-4 w-4" aria-hidden="true" />
           </template>
@@ -158,8 +176,8 @@ function goToPreviousStep() {
           size="lg"
           class="whitespace-nowrap"
           :loading="nextLoading"
-          :disabled="nextDisabled || nextLoading"
-          @click="emit('next')"
+          :disabled="nextDisabled || busy"
+          @click="goToNextStep"
         >
           <template v-if="nextPrefixIcon" #prefix>
             <FontAwesomeIcon :icon="nextPrefixIcon" class="h-4 w-4" aria-hidden="true" />
