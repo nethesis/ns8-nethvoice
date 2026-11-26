@@ -23,7 +23,7 @@ from .providers import create_adapter
 from .providers.realtime import ProviderError
 from .models import conversation_capability
 from .contract import validate_snapshot
-from .providers.webhook import InvalidPayload, verify_webhook
+from .providers.webhook import InvalidPayload, InvalidSignature, decode_payload, sip_correlation, verify_webhook
 from .storage import ClaimRejected, trusted_target
 from .tools import ToolRegistry, WIRE_IDS, bounded_caller_name
 
@@ -75,6 +75,7 @@ class Call:
     recent: object | None = field(default=None, repr=False)
     trace: object | None = field(default=None, repr=False)
     webhook_span: str | None = None
+    webhook_signature_rejected: bool = False
     signed_claim: bool = False
     media: object | None = field(default=None, repr=False)
     audio_bridge: object | None = field(default=None, repr=False)
@@ -681,11 +682,45 @@ class Runtime:
         if not call.terminal and (not setup or not call.media_connected):
             await self.finish(call, 'fallback', 'setup_timeout' if setup else 'duration_exceeded', fallback=True)
 
+    def incoming_sip_call(self, provider, envelope):
+        sip = sip_correlation(envelope)
+        call = self.calls.get(sip.get('x-os-session-id'))
+        if (not call or call.binding['provider'] != provider or call.binding.get('adapter') == 'live_ws'
+                or sip.get('x-os-provider-leg-id') != call.leg_id
+                or sip.get('x-os-agent-id') != call.snapshot['agent_id']):
+            return
+        kind = envelope.get('type')
+        data = envelope['data']
+        live = call.binding.get('adapter') == 'live'
+        if live:
+            if kind == 'live.transport.incoming' and data.get('type') != 'sip': return
+            if kind == 'live.call.incoming' and data.get('type') not in (None, 'sip'): return
+            if kind not in ('live.transport.incoming', 'live.call.incoming'): return
+        elif kind != 'realtime.call.incoming': return
+        call_id = data.get('session_id' if live else 'call_id')
+        if (isinstance(call_id, str) and 1 <= len(call_id) <= 128 and call_id.isascii()
+                and not any(ord(char) < 32 or ord(char) == 127 for char in call_id)):
+            return call, call_id
+
+    def observe_rejected_webhook(self, provider, raw):
+        try:
+            match = self.incoming_sip_call(provider, decode_payload(raw))
+        except InvalidPayload:
+            return
+        if match:
+            call, _ = match
+            # Rejected notifications can supply evidence for an outstanding
+            # SIP leg. They cannot claim or terminate it.
+            if not call.terminal and not call.provider_call_id and not call.webhook_signature_rejected:
+                call.webhook_signature_rejected = True
+                self.invalid_webhook_signatures += 1
+
     async def webhook(self, provider, raw, headers):
         if provider not in ('openai', 'grok'):
             raise ValueError('invalid_provider')
         verified = []
         envelope = None
+        rejected_signature = False
         for call in list(self.calls.values()):
             if call.terminal or call.binding['provider'] != provider or call.binding.get('adapter') == 'live_ws':
                 continue
@@ -694,40 +729,18 @@ class Runtime:
                 verified.append(call)
             except InvalidPayload:
                 raise
+            except InvalidSignature:
+                rejected_signature = True
             except ValueError:
                 pass
         if envelope is None:
-            # Unsigned requests are noise from anyone; count only signature failures.
-            if {'webhook-id','webhook-timestamp','webhook-signature'} <= {str(k).lower() for k in headers}:
-                self.invalid_webhook_signatures += 1
+            if rejected_signature:
+                self.observe_rejected_webhook(provider, raw)
             raise ValueError('invalid_webhook')
-        kind=envelope.get('type')
-        if kind not in ('realtime.call.incoming','live.transport.incoming','live.call.incoming'):
+        match = self.incoming_sip_call(provider, envelope)
+        if not match or match[0] not in verified:
             return {'status':'ignored'}
-        data = envelope.get('data') or {}
-        if not isinstance(data, dict) or not isinstance(data.get('sip_headers'), list):
-            return {'status':'ignored'}
-        sip = {}
-        if len(data['sip_headers'])>128: return {'status':'ignored'}
-        correlation_headers={'x-os-session-id','x-os-provider-leg-id','x-os-agent-id'}
-        for item in data['sip_headers']:
-            if not isinstance(item, dict) or not isinstance(item.get('name'),str) or not isinstance(item.get('value'),str):
-                return {'status':'ignored'}
-            name = item['name'].lower()
-            if name not in correlation_headers: continue
-            if name in sip:
-                return {'status':'ignored'}
-            sip[name] = item['value']
-        call = self.calls.get(sip.get('x-os-session-id'))
-        live=bool(call and call.binding.get('adapter')=='live')
-        if live:
-            if kind=='live.transport.incoming' and data.get('type')!='sip': return {'status':'ignored'}
-            if kind=='live.call.incoming' and data.get('type') not in (None,'sip'): return {'status':'ignored'}
-            if kind not in ('live.transport.incoming','live.call.incoming'): return {'status':'ignored'}
-        elif kind!='realtime.call.incoming': return {'status':'ignored'}
-        call_id = data.get('session_id' if live else 'call_id')
-        if call not in verified or sip.get('x-os-provider-leg-id') != call.leg_id or sip.get('x-os-agent-id') != call.snapshot['agent_id'] or not isinstance(call_id,str) or not 1<=len(call_id)<=128 or not call_id.isascii() or any(ord(char)<32 or ord(char)==127 for char in call_id):
-            return {'status':'ignored'}
+        call, call_id = match
         async with call.lock:
             if call.terminal:
                 return {'status':'ignored'}
