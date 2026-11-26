@@ -632,6 +632,44 @@ const en = {
       "Reported by the provider. It does not confirm that the caller heard the audio.",
     measuredCalls: "{count} measured call | {count} measured calls",
   },
+  runDetail: {
+    title: "Call details",
+    fallbackTitle: "Sent to fallback destination",
+    fallbackDescription:
+      "{reason}. The call went to the fallback destination of the route.",
+    failedTitle: "Call failed",
+    interruptedTitle: "Call interrupted",
+    endedTitle: "Call ended",
+    reasonSentence: "{reason}.",
+    unknownReason: "The agent service reported an unexpected error",
+    showDetails: "Show details",
+    errorCode: "Error code: {code}",
+    caller: "Caller",
+    calledNumber: "Called number",
+    agent: "Agent",
+    started: "Started",
+    ended: "Ended",
+    duration: "Duration",
+    outcome: "Outcome",
+    voiceProvider: "Voice provider",
+    voiceModel: "Voice model",
+    publishedVersion: "Published version",
+    publishedBy: "Published by",
+    runId: "Run ID",
+    adapter: "Adapter",
+    callRecord: "Open call record",
+    transcription: "Call transcription",
+    transcriptionHelp:
+      "Generated text can be incomplete or differ from what was heard. No audio recording is saved.",
+    providerWarningTitle: "Provider warning",
+    events: {
+      provider_warning: "Provider warning",
+    },
+    providerCodes: {
+      input_audio_rate_limit_exceeded:
+        "The provider dropped some caller audio because it arrived too fast",
+    },
+  },
   monitoring: {
     columns: {
       completed: "Completed",
@@ -1725,6 +1763,44 @@ const it: typeof en = {
     firstAnswerHelp:
       "Riportato dal provider. Non conferma che il chiamante abbia sentito l'audio.",
     measuredCalls: "{count} chiamata misurata | {count} chiamate misurate",
+  },
+  runDetail: {
+    title: "Dettagli chiamata",
+    fallbackTitle: "Inviata alla destinazione alternativa",
+    fallbackDescription:
+      "{reason}. La chiamata è stata inviata alla destinazione alternativa della rotta.",
+    failedTitle: "Chiamata non riuscita",
+    interruptedTitle: "Chiamata interrotta",
+    endedTitle: "Chiamata terminata",
+    reasonSentence: "{reason}.",
+    unknownReason: "Il servizio degli agenti ha segnalato un errore imprevisto",
+    showDetails: "Mostra dettagli",
+    errorCode: "Codice di errore: {code}",
+    caller: "Chiamante",
+    calledNumber: "Numero chiamato",
+    agent: "Agente",
+    started: "Inizio",
+    ended: "Fine",
+    duration: "Durata",
+    outcome: "Esito",
+    voiceProvider: "Provider vocale",
+    voiceModel: "Modello vocale",
+    publishedVersion: "Versione pubblicata",
+    publishedBy: "Pubblicato da",
+    runId: "ID esecuzione",
+    adapter: "Adattatore",
+    callRecord: "Apri il registro della chiamata",
+    transcription: "Trascrizione della chiamata",
+    transcriptionHelp:
+      "Il testo generato può essere incompleto o diverso da quanto ascoltato. Non viene salvata alcuna registrazione audio.",
+    providerWarningTitle: "Avviso del provider",
+    events: {
+      provider_warning: "Avviso del provider",
+    },
+    providerCodes: {
+      input_audio_rate_limit_exceeded:
+        "Il provider ha scartato parte dell'audio del chiamante perché arrivava troppo velocemente",
+    },
   },
   monitoring: {
     columns: {

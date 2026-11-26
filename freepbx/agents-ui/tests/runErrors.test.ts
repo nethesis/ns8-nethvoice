@@ -47,4 +47,24 @@ describe("run error text", () => {
     );
     expect(providerCodeText("other", composer.t, composer.te)).toBe("other");
   });
+  it("describes provider warnings in both languages", () => {
+    use("en");
+    expect(
+      providerCodeText(
+        "input_audio_rate_limit_exceeded",
+        composer.t,
+        composer.te,
+      ),
+    ).toBe(
+      "The provider dropped some caller audio because it arrived too fast (input_audio_rate_limit_exceeded)",
+    );
+    use("it");
+    expect(
+      providerCodeText(
+        "input_audio_rate_limit_exceeded",
+        composer.t,
+        composer.te,
+      ),
+    ).toMatch(/^Il provider ha scartato parte dell'audio del chiamante/);
+  });
 });
