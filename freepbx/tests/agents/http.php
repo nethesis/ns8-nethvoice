@@ -45,6 +45,12 @@ $csrf=['X-Agents-CSRF'=>$access['csrf']];
 [$status]=api('POST','/trunks/models',['provider'=>'grok','unexpected'=>true],$csrf); assert($status===422);
 [$status,$models]=api('POST','/trunks/models',['provider'=>'grok'],$csrf); assert($status===200 && $models['source']==='provider_managed');
 assert(!str_contains(json_encode($models),'api_key'));
+[$status,$error]=api('POST','/trunks/models',['provider'=>'openai','test'=>true,'openai_project_id'=>"proj_header\r\nx-bad"],$csrf);
+assert($status===422 && $error===['error'=>'invalid_provider_configuration','field'=>'openai_project_id']);
+foreach ([['provider'=>'openai'],['provider'=>'grok','test'=>true]] as $options) {
+    [$status,$error]=api('POST','/trunks/models',$options+['openai_project_id'=>'proj_only_for_openai_tests'],$csrf);
+    assert($status===422 && $error===['error'=>'invalid_fields','field'=>'openai_project_id']);
+}
 [$status,$error]=api('POST','/trunks',['expected_revision'=>0,'trunk'=>['name'=>'HTTP trunk','provider'=>'openai','openai_project_id'=>'submitted-project']],$csrf);
 assert($status===422 && $error===['error'=>'invalid_provider_configuration','field'=>'openai_project_id']);
 // The configuration action uses the same administrator, CSRF and envelope protections.

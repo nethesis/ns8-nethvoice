@@ -52,7 +52,7 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
                         if (!isset($input['expected_revision']) || !is_int($input['expected_revision']) || $input['expected_revision'] < 0) throw new RuntimeException('invalid_revision',422);
                     }
                     $allowed=['expected_revision'];
-                    if ($modelDiscovery) $allowed=['provider','binding_id','api_key','credential_mode','test'];
+                    if ($modelDiscovery) $allowed=['provider','binding_id','api_key','credential_mode','test','openai_project_id'];
                     elseif (str_ends_with($path,'/synchronize')) $allowed=['retry'];
                     elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish') && !str_ends_with($path,'/configure-webhook'))) {
                         $field=str_contains($path,'/trunks')?'trunk':'profile';

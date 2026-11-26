@@ -37,20 +37,23 @@ final class ProviderCatalog
         if ($id==='gpt-live-1' && trim($conversation['options']['backend_instructions'])==='') throw new \RuntimeException('invalid_model_options',422);
     }
     /** Model availability and adapter compatibility are separate requirements. */
-    public function models(string $provider, string $key,bool $fresh=false): array
+    public function models(string $provider, string $key,bool $fresh=false,?string $project=null): array
     {
         $capabilities=self::capabilities($provider);
+        if ($project!==null && ($provider!=='openai' || strlen($project)>128 || !preg_match('/^proj_[A-Za-z0-9_-]+$/D',$project))) {
+            throw new \RuntimeException('invalid_provider_configuration',422);
+        }
         $base=['selection'=>$capabilities['selection'],'default_model'=>$capabilities['default'],'capability_version'=>2];
         // xAI explicitly ignores the model query parameter for SIP call_id sessions.
         if ($capabilities['selection']==='provider_managed') return $base+['items'=>$capabilities['models'],'backend_models'=>[],'source'=>'provider_managed'];
         if ($key==='' || preg_match('/[\r\n\x00]/',$key)) throw new \RuntimeException('provider_credentials_unavailable',422);
         $cacheKey='voice_agent_models_v2_'.hash('sha256',$provider.$key);
-        if (!$fresh && !$this->fetchModels && function_exists('apcu_fetch')) {
+        if (!$fresh && $project===null && !$this->fetchModels && function_exists('apcu_fetch')) {
             $cached=apcu_fetch($cacheKey);
             if (is_array($cached)) return $base+$cached+['source'=>'cached_provider_api'];
         }
         try {
-            $response=$this->fetchModels ? ($this->fetchModels)($provider,$key) : self::fetchModels($key);
+            $response=$this->fetchModels ? ($this->fetchModels)($provider,$key,$project) : self::fetchModels($key,$project);
             if (!is_array($response['data']??null) || !array_is_list($response['data']) || count($response['data'])>5000) {
                 throw new \RuntimeException('provider_catalog_unavailable',503);
             }
@@ -61,39 +64,42 @@ final class ProviderCatalog
             }
             $items=array_values(array_filter($capabilities['models'],fn($model)=>isset($available[$model['id']])));
             $result=['items'=>$items,'backend_models'=>array_values(array_filter($capabilities['backend_models'],fn($model)=>isset($available[$model['id']])))];
-            if (!$this->fetchModels && function_exists('apcu_store')) apcu_store($cacheKey,$result,300);
-            return $base+$result+['source'=>'provider_api'];
+            if ($project===null && !$this->fetchModels && function_exists('apcu_store')) apcu_store($cacheKey,$result,300);
+            return $base+$result+['source'=>'provider_api']+($project===null?[]:['project_checked'=>true]);
         } catch (\Throwable $error) {
-            if ($error instanceof \RuntimeException && in_array($error->getMessage(),['provider_credentials_rejected','provider_permission_denied'],true)) throw $error;
+            if ($error instanceof \RuntimeException && in_array($error->getMessage(),['provider_credentials_rejected','provider_permission_denied','provider_project_unverified'],true)) throw $error;
             return $base+['items'=>$capabilities['models'],'backend_models'=>$capabilities['backend_models'],'source'=>'adapter_catalog','discovery_error'=>'provider_catalog_unavailable'];
         }
     }
-    private static function fetchModels(string $key): array
+    private static function fetchModels(string $key,?string $project): array
     {
         $body='';$curl=curl_init('https://api.openai.com/v1/models');
-        curl_setopt_array($curl,[CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Accept: application/json'],
+        $headers=['Authorization: Bearer '.$key,'Accept: application/json'];
+        if ($project!==null) $headers[]='OpenAI-Project: '.$project;
+        curl_setopt_array($curl,[CURLOPT_HTTPHEADER=>$headers,
             CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>5,CURLOPT_FOLLOWLOCATION=>false,
             CURLOPT_WRITEFUNCTION=>function($handle,$chunk) use (&$body) {
                 if (strlen($body)+strlen($chunk)>524288) return 0;
                 $body.=$chunk;return strlen($chunk);
             }]);
         $ok=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_HTTP_CODE);curl_close($curl);
-        return self::openAiModelsResponse($ok !== false, $status, $body);
+        return self::openAiModelsResponse($ok !== false, $status, $body, $project!==null);
     }
 
-    private static function openAiModelsResponse(bool $received, int $status, string $body): array
+    private static function openAiModelsResponse(bool $received, int $status, string $body,bool $projectScoped=false): array
     {
         if ($received && $status === 200) return json_decode($body, true, 32, JSON_THROW_ON_ERROR);
         if ($status === 403) throw new \RuntimeException('provider_permission_denied', 422);
         if ($status === 401) {
             $error = json_decode($body, true, 32)['error'] ?? [];
-            if (($error['code'] ?? null) === 'invalid_api_key') {
+            if (!$projectScoped && ($error['code'] ?? null) === 'invalid_api_key') {
                 throw new \RuntimeException('provider_credentials_rejected', 422);
             }
             if (is_string($error['message'] ?? null) && str_contains($error['message'], 'Missing scopes:')) {
                 throw new \RuntimeException('provider_permission_denied', 422);
             }
         }
+        if ($projectScoped && in_array($status,[400,401,404],true)) throw new \RuntimeException('provider_project_unverified',422);
         throw new \RuntimeException('provider_catalog_unavailable', 503);
     }
     public static function environmentKey(string $provider): string
