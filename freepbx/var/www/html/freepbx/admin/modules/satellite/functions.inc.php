@@ -165,7 +165,7 @@ function satellite_saved_agent_fallbacks(): array {
     return is_array($saved) ? $saved : [];
 }
 
-function satellite_referenced_agent_ids(bool $refresh = false): array {
+function satellite_referenced_agent_ids(bool $refresh = false, bool $strict = false): array {
     static $ids;
     if (isset($ids) && !$refresh) return $ids;
     $ids=[];
@@ -177,6 +177,7 @@ function satellite_referenced_agent_ids(bool $refresh = false): array {
             }
         }
     } catch (Throwable $error) {
+        if ($strict) throw $error;
         error_log('Voice agent native destination references unavailable');
     }
     return $ids;

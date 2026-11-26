@@ -11,6 +11,8 @@ $q=$db->prepare('INSERT INTO ampusers VALUES (?,?,?) ON DUPLICATE KEY UPDATE pas
 $q->execute(['http-admin','synthetic-password-hash','*']);
 $q->execute(['http-viewer','synthetic-viewer-hash','devices']);
 class FreePBX {
+    public static ?array $referencedAgentIds=['receptionist'=>true,'consultation_assistant'=>true];
+    public static int $routeInventoryReads=0;
     public static function Database() { return $GLOBALS['db']; }
     public static function Satellite() { return new class {
         public function agentDirectory() { return ['items'=>[['id'=>'extension:203','type'=>'extension','name'=>'Test extension','description'=>'','available'=>true,'native_destination'=>'from-did-direct,203,1']],'modules'=>['extension'=>true,'queue'=>false,'ivr'=>false]]; }
@@ -20,6 +22,10 @@ class FreePBX {
         public function agentTrunk($operation,$binding,$previous) { return 9002; }
         public function applyAgentDialplan() { return true; }
         public function agentDestinationInUse($id) { return false; }
+        public function referencedAgentIds(): array {
+            FreePBX::$routeInventoryReads++;
+            return FreePBX::$referencedAgentIds ?? throw new RuntimeException('fixture_inventory_unavailable');
+        }
     }; }
 }
 putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-disposable-key');
@@ -73,6 +79,14 @@ foreach (['api_key','url','openai_project_id','signing_secret'] as $field) {
 [$status,$catalog]=api('GET','/catalog'); assert($status===200 && count($catalog['tools'])===5 && $catalog['draft_defaults']['contract_version']===8);
 try { api('POST','/profiles/receptionist/enabled',['expected_revision'=>1,'enabled'=>true],$csrf); assert(false); } catch (\Slim\Exception\HttpNotFoundException $expected) {}
 [$status,$profiles]=api('GET','/profiles'); assert($status===200 && count($profiles['items'])>=2);
+$usage=array_column($profiles['items'],'in_use','agent_id');
+assert($usage['receptionist']===true && $usage['consultation_assistant']===false && FreePBX::$routeInventoryReads===1);
+FreePBX::$referencedAgentIds=[];
+[$status,$profiles]=api('GET','/profiles');
+assert($status===200 && array_column($profiles['items'],'in_use','agent_id')['receptionist']===false);
+FreePBX::$referencedAgentIds=null;
+[$status,$profiles]=api('GET','/profiles');
+assert($status===200 && array_column($profiles['items'],'in_use','agent_id')['receptionist']===null);
 $draft=\NethVoice\Agents\Service::emptyDraft();
 $draft['conversation']=['language'=>'en','voice'=>'marin','greeting'=>'Hello','instructions'=>'Synthetic HTTP test','model'=>'gpt-realtime-2.1','options'=>null];
 $draft['max_call_duration_seconds']=60;

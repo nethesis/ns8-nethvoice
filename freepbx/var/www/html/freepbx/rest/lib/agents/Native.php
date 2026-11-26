@@ -34,4 +34,6 @@ final class Native
     public function apply(): bool { return \FreePBX::Satellite()->applyAgentDialplan(); }
     public function inUse(string $id): bool
     { return \FreePBX::Satellite()->agentDestinationInUse($id); }
+    public function referencedAgentIds(): array
+    { return \FreePBX::Satellite()->referencedAgentIds(); }
 }
