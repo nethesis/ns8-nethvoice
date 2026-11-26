@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Apply one coherent credential generation after the current work drains."""
+import fcntl
 import hashlib
 import json
 import os
@@ -91,6 +92,21 @@ def wait_for_agents(port, token):
     raise RuntimeError('voice_agent_runtime_not_ready')
 
 
+def apply_postgresql(needed):
+    with Path('satellite-postgresql.lock').open('a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        ctl('enable' if needed else 'disable', '--now', 'satellite-pgsql.service')
+
+
+def has_transcription_history(env):
+    if not active('satellite-pgsql.service'):
+        return False
+    result = subprocess.run(['podman', 'exec', 'satellite-pgsql', 'psql', '-At',
+        '-U', env.get('SATELLITE_PGSQL_USER', 'satellite'), '-d', env.get('SATELLITE_PGSQL_DB', 'satellite'),
+        '-c', "SELECT to_regclass('public.transcripts') IS NOT NULL"], capture_output=True)
+    # Keep historical access if an old installation cannot be inspected.
+    return result.returncode != 0 or result.stdout.strip() != b'f'
+
 def apply(*, transcription_only=False):
     env = agent.read_envfile('environment')
     if not env.get('NETHVOICE_HOST'):
@@ -100,6 +116,10 @@ def apply(*, transcription_only=False):
     sip = agents and enabled(env, 'VOICE_AGENT_SIP_LAB_ENABLED')
     transcription = any(enabled(env, name) for name in FLAGS[:2])
     flags = [enabled(env, name) for name in FLAGS]
+    historical_postgresql = transcription or previous.get('historical_postgresql')
+    if historical_postgresql is None:
+        historical_postgresql = has_transcription_history(env)
+    postgresql = historical_postgresql or flags[2]
     needed = agents or transcription
     passwords = agent.read_envfile('passwords.env')
     if agents:
@@ -139,7 +159,8 @@ def apply(*, transcription_only=False):
     chat_port = settings.get('VOICE_AGENT_CHAT_PORT')
     inherited_key = bool(settings.get('OPENAI_API_KEY'))
     desired = {'digest': digest, 'agents': agents, 'route': route, 'flags': flags,
-               'recipient_port': recipient_port, 'chat_port': chat_port, 'inherited_key': inherited_key}
+               'recipient_port': recipient_port, 'chat_port': chat_port, 'inherited_key': inherited_key,
+               'postgresql': postgresql, 'historical_postgresql': historical_postgresql}
     if (previous == desired and running == needed and not Path('transcription-refresh.pending').exists()
             and (not agents or EFFECTIVE.exists())):
         return True
@@ -182,10 +203,11 @@ def apply(*, transcription_only=False):
             write(EFFECTIVE, b'VOICE_AGENT_ENABLED=false\n', php=True)
         if running:
             ctl('stop', 'satellite.service')
+        apply_postgresql(postgresql)
         if needed:
             write(Path('satellite.env'), to_env(runtime))
             if transcription:
-                ctl('enable', '--now', 'satellite-pgsql.service', 'satellite-mqtt.service')
+                ctl('enable', '--now', 'satellite-mqtt.service')
             ctl('enable', '--now', 'satellite.service')
         else:
             ctl('disable', '--now', 'satellite.service')

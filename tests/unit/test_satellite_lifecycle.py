@@ -1,4 +1,5 @@
 """Run the configure/Integrations entry points and the systemd apply job against a disposable state."""
+import gzip
 import io
 import json
 import os
@@ -37,7 +38,7 @@ def installation(tmp_path, monkeypatch):
     # Import the SDK against this test's instance rather than an earlier fixture.
     monkeypatch.delitem(sys.modules, 'voice_preview', raising=False)
     state = SimpleNamespace(env=env, secrets=secrets, calls=calls, routes=routes, units=units,
-                            busy=False, reject=False, native_calls=0)
+                            busy=False, reject=False, native_calls=0, pg_history=False)
 
     def command(args, **kwargs):
         args = list(args)
@@ -60,6 +61,8 @@ def installation(tmp_path, monkeypatch):
             output = f"{state.native_calls} active calls\n"
         elif args[-1] == 'voice_agent.drain':
             rc = 75 if state.busy else 0
+        elif args[:4] == ['podman', 'exec', 'satellite-pgsql', 'psql']:
+            output = b't\n' if state.pg_history else b'f\n'
         elif args[-1].endswith('install-runtime.php'):
             rc = int(bool(state.reject))
             stderr = state.reject if isinstance(state.reject, bytes) else None
@@ -233,6 +236,67 @@ def test_worker_recovers_a_transient_readiness_failure(installation, monkeypatch
     assert len(attempts) == 2 and delays == [5]
     assert Path('voice-preview/enabled').exists()
     assert not Path('satellite-apply.failed').exists()
+
+
+def test_optional_postgresql_stops_without_disabling_cti(installation):
+    s = installation
+    s.units.update(('satellite-pgsql.service', 'nethcti-middleware.service'))
+    assert s.apply()
+    assert 'satellite-pgsql.service' not in s.units
+    assert 'nethcti-middleware.service' in s.units
+    service = (ROOT / 'systemd/user/nethcti-middleware.service').read_text()
+    assert 'Requires=mariadb.service\n' in service and 'PartOf=satellite-pgsql.service' not in service
+    s.env['SATELLITE_CALL_SUMMARY_ENABLED'] = 'true'
+    assert s.apply()
+    assert 'satellite-pgsql.service' in s.units
+    assert 'satellite.service' not in s.units
+
+
+def test_legacy_cti_history_keeps_postgresql_on_after_upgrade(installation):
+    s = installation
+    s.units.add('satellite-pgsql.service')
+    s.pg_history = True
+    assert s.apply()
+    assert 'satellite-pgsql.service' in s.units and 'satellite.service' not in s.units
+    assert json.loads(Path('satellite-applied.json').read_text())['historical_postgresql']
+
+
+@pytest.mark.parametrize('volume,active', [(False, False), (True, False), (True, True)])
+def test_backup_saves_stopped_postgresql_and_restores_its_state(tmp_path, volume, active):
+    (tmp_path / 'passwords.env').write_text('MARIADB_ROOT_PASSWORD=synthetic\n')
+    systemctl = tmp_path / 'systemctl'
+    systemctl.write_text('''#!/bin/sh
+printf "%s\\n" "$*" >> units
+case "$*" in
+    *is-active*) test "$TEST_PG_ACTIVE" = true ;;
+    *is-enabled*) exit 1 ;;
+esac
+''')
+    podman = tmp_path / 'podman'
+    podman.write_text('''#!/bin/sh
+case "$*" in
+    "volume exists satellite_pgdata") test "$TEST_PG_VOLUME" = true ;;
+    "volume inspect"*) exit 1 ;;
+    "exec satellite-pgsql pg_dumpall -U satellite") printf 'synthetic dump' ;;
+esac
+''')
+    for path in (systemctl, podman):
+        path.chmod(0o755)
+    subprocess.run(['/bin/sh', str(ROOT / 'bin/module-dump-state')], cwd=tmp_path, check=True, env=dict(
+        os.environ, PATH=str(tmp_path)+os.pathsep+os.environ['PATH'],
+        TEST_PG_VOLUME=str(volume).lower(), TEST_PG_ACTIVE=str(active).lower()))
+    dump = tmp_path / 'satellite_postgresql.pg_dump.gz'
+    commands = (tmp_path / 'units').read_text().splitlines()
+    if volume:
+        assert gzip.decompress(dump.read_bytes()) == b'synthetic dump'
+    else:
+        assert not dump.exists()
+    if volume and not active:
+        assert commands[-3:] == ['--user start satellite-pgsql.service',
+                                  '--user --quiet is-enabled satellite-pgsql.service',
+                                  '--user stop satellite-pgsql.service']
+    else:
+        assert commands == ['--user --quiet is-active satellite-pgsql.service']
 
 
 def test_inherited_key_rotation_only_restarts_satellite(installation):
