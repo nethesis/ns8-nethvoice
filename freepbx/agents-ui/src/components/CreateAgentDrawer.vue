@@ -7,6 +7,7 @@ import {
   NeHeading,
   NeInlineNotification,
   NeSideDrawer,
+  NeSkeleton,
   NeStepper,
 } from "@nethesis/vue-components";
 import { faArrowLeft, faArrowRight } from "@fortawesome/free-solid-svg-icons";
@@ -420,8 +421,11 @@ function openAgents() {
         "
         :description="failure"
       />
+      <!-- The form starts from the catalog and the trunks: input typed
+           before they load would be reset. -->
+      <NeSkeleton v-if="!catalog || !trunks" :lines="8" />
       <AgentGeneralFields
-        v-if="current === 'general'"
+        v-else-if="current === 'general'"
         :form="form"
         mode="create"
         :trunks="trunks"
