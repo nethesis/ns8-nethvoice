@@ -73,6 +73,11 @@ $published = $service->publish('receptionist', $saved['revision'], 'test-admin')
 $enabled = $published;
 check($published['enabled'] && $published['draft_version']===$published['workflow_version'],'publication_activates');
 check($enabled['routable'], 'ready_destination');
+check($service->previewImpact()===[],'unreferenced_agents_do_not_appear_in_preview_impact');
+$native->inUse=true;
+check($service->previewImpact()===[['agent_id'=>'receptionist','name'=>'Test Receptionist','fallback_destination_id'=>'hangup']],
+    'preview_impact_lists_currently_routable_native_references_and_fallback');
+$native->inUse=false;
 $writes=0;
 denied(fn()=>$service->saveVisualPlan(['receptionist'=>$enabled['revision']-1], function() { throw new RuntimeException('stale_canvas_wrote_routes'); }), 'revision_conflict');
 check($writes===0,'stale_visualplan_does_not_write_routes');

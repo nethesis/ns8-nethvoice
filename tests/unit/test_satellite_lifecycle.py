@@ -361,6 +361,25 @@ def test_legacy_empty_failure_flag_is_reported_generically(installation, capsys)
     assert output['satellite_apply_status'] == 'failed' and output['satellite_apply_error'] == 'apply_failed'
 
 
+@pytest.mark.parametrize('old_image', [False, True])
+def test_integrations_reports_preview_impact(installation, monkeypatch, capsys, old_image):
+    Path('voice-preview').mkdir(exist_ok=True)
+    Path('voice-preview/enabled').touch()
+    impact = [{'agent_id':'receptionist','name':'Synthetic Receptionist','fallback_destination_id':'extension:203'}]
+    names = ['Synthetic Receptionist']
+    inventory = names if old_image else {'inherited_agents':names, 'voice_agent_preview_impact':impact}
+
+    def inventory_result(command, **kwargs):
+        assert command[-1] == '--include-preview-impact' and kwargs['timeout'] == 10
+        return subprocess.CompletedProcess(command, 0, json.dumps(inventory))
+
+    monkeypatch.setattr(subprocess, 'run', inventory_result)
+    runpy.run_path(str(ROOT / 'actions/get-integrations/20read'))
+    output = json.loads(capsys.readouterr().out)
+    assert output['inherited_agents'] == names
+    assert output['voice_agent_preview_impact'] == (None if old_image else impact)
+
+
 def test_disabled_worker_retires_old_grants_after_applying_state(installation):
     s = installation
     main = s.apply.__globals__['main']
