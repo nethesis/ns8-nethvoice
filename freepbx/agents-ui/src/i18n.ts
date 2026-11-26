@@ -547,6 +547,8 @@ const en = {
     ended_by_agent: "Ended by agent",
   },
   runEvents: {
+    consultation_announced: "Consultation announced to caller",
+    consultation_held: "Caller on hold",
     consultation_phone: "Calling colleague",
     consultation_phone_failed: "Phone consultation unavailable",
     consultation_chat: "Waiting for chat reply",
@@ -560,7 +562,7 @@ const en = {
     consultation_timed_out: "Consultation timed out",
     consultation_cancelled: "Consultation cancelled",
     consultation_failed: "Consultation failed",
-
+    consultation_recovery_failed: "Outcome not given to caller",
     admitted: "Call admitted",
     provider_connected: "Provider connected",
     media_connected: "Audio connected",
@@ -1727,6 +1729,8 @@ const it: typeof en = {
     ended_by_agent: "Terminata dall’agente",
   },
   runEvents: {
+    consultation_announced: "Consultazione annunciata al chiamante",
+    consultation_held: "Chiamante in attesa",
     consultation_phone: "Chiamata al collega",
     consultation_phone_failed: "Consultazione telefonica non disponibile",
     consultation_chat: "In attesa della risposta in chat",
@@ -1740,7 +1744,7 @@ const it: typeof en = {
     consultation_timed_out: "Tempo di consultazione scaduto",
     consultation_cancelled: "Consultazione annullata",
     consultation_failed: "Consultazione non riuscita",
-
+    consultation_recovery_failed: "Esito non comunicato al chiamante",
     admitted: "Chiamata accettata",
     provider_connected: "Provider connesso",
     media_connected: "Audio connesso",

@@ -15,7 +15,9 @@ const base = {run_id: runId,agent_id: 'receptionist',agent_name: 'Receptionist',
 const trace = [
   {event_id:'a',event_type:'trace_started',span_id:'parent',parent_span_id:null,phase:'tool',status:'running',elapsed_ms:100,duration_ms:null,occurred_at:'2026-10-20 12:00:00'},
   {event_id:'b',event_type:'trace_finished',span_id:'child',parent_span_id:'parent',phase:'provider_sideband',status:'failed',elapsed_ms:500,duration_ms:400,http_status:503,error_code:'provider_http_503',occurred_at:'2026-10-20 12:00:01'},
-  {event_id:'c',event_type:'provider_warning',provider_code:'input_audio_rate_limit_exceeded',elapsed_ms:1500,occurred_at:'2026-10-20 12:00:02'}];
+  {event_id:'c',event_type:'provider_warning',provider_code:'input_audio_rate_limit_exceeded',elapsed_ms:1500,occurred_at:'2026-10-20 12:00:02'},
+  {event_id:'d',event_type:'consultation_announced',elapsed_ms:3000,occurred_at:'2026-10-20 12:00:03'},
+  {event_id:'e',event_type:'consultation_held',elapsed_ms:3100,occurred_at:'2026-10-20 12:00:03'}];
 
 async function open(page: Page, language: string, run: Record<string, unknown>) {
   page.on('pageerror', error => {throw error;});
@@ -60,6 +62,10 @@ for (const scenario of [{language:'en',width:1440}, {language:'it',width:390}]) 
     await expect(page.getByTestId('trace-partial')).toBeVisible();
     await expect(page.getByTestId('trace-timeline')).toContainText(en ? 'Provider warning' : 'Avviso del provider');
     await expect(page.getByTestId('trace-timeline')).not.toContainText('503');
+    // Consultation steps have readable names, never the event identifier.
+    await expect(page.getByTestId('trace-timeline')).toContainText(en ? 'Consultation announced to caller' : 'Consultazione annunciata al chiamante');
+    await expect(page.getByTestId('trace-timeline')).toContainText(en ? 'Caller on hold' : 'Chiamante in attesa');
+    await expect(page.getByTestId('trace-timeline')).not.toContainText('consultation_');
     await page.getByTestId('trace-timeline').locator('button[aria-expanded="false"]').first().click();
     await expect(page.getByTestId('trace-timeline')).toContainText('503');
     await expect(page.getByTestId('trace-usage')).toContainText(en ? '39,148' : '39.148');

@@ -100,10 +100,16 @@ function toggle(id: string) {
     : [...expanded.value, id];
 }
 function name(event: TraceEvent) {
-  if (event.phase) return t("monitoring.phasesMap." + event.phase);
-  for (const group of ["runDetail.events.", "runEvents."])
-    if (te(group + event.event_type)) return t(group + event.event_type);
-  return event.event_type;
+  const keys = [
+    ...(event.phase ? ["monitoring.phasesMap." + event.phase] : []),
+    "runDetail.events." + event.event_type,
+    "runEvents." + event.event_type,
+  ];
+  const key = keys.find((item) => te(item));
+  if (key) return t(key);
+  // An event of a newer service: readable, never the raw identifier.
+  const text = (event.phase || event.event_type).replaceAll("_", " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 function start(event: TraceEvent) {
   return event.elapsed_ms != null
