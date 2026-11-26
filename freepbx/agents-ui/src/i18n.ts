@@ -28,6 +28,8 @@ const en = {
     configure: "Configure webhook",
     setupTitle: "OpenAI SIP webhook setup",
     failedTitle: "Cannot configure webhook",
+    configuredTitle: "Webhook configured",
+    configuredHelp: "The webhook endpoint is configured for trunk {name}",
     projectHelp:
       "Setup uses the API key’s project. Check that the project ID you enter belongs to that project; NethVoice does not verify it.",
     manualHelp:
@@ -846,6 +848,8 @@ const it: typeof en = {
     configure: "Configura webhook",
     setupTitle: "Configurazione webhook SIP OpenAI",
     failedTitle: "Impossibile configurare il webhook",
+    configuredTitle: "Webhook configurato",
+    configuredHelp: "L'endpoint del webhook è configurato per il trunk {name}",
     projectHelp:
       "La configurazione usa il progetto della chiave API. Verifica che l’ID progetto inserito appartenga a quel progetto; NethVoice non lo verifica.",
     manualHelp:

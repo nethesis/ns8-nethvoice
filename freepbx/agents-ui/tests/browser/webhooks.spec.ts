@@ -52,6 +52,7 @@ for (const theme of ["light", "dark"]) for (const width of [1440, 375]) {
     await page.keyboard.press("Enter");
     await expect(page.getByText(language === "en" ? "Configured automatically" : "Configurato automaticamente", { exact: true })).toBeVisible();
     await expect(configure).toHaveCount(0);
+    await expect(page.getByText(language === "en" ? "The webhook endpoint is configured for trunk OpenAI SIP" : "L'endpoint del webhook è configurato per il trunk OpenAI SIP", { exact: true })).toBeVisible();
     expect(calls).toBe(1);
     const state = await page.evaluate(() => JSON.stringify({ local: localStorage, session: sessionStorage }));
     expect(state).not.toMatch(/signing_secret|whsec_|synthetic-provider-key/);
@@ -122,6 +123,9 @@ test("trunk credentials and webhook action follow the real trunk state", async (
     { ...initial, binding_id: "stored", name: "Stored key", webhook_status: "configured", webhook_secret_configured: true },
     { ...initial, binding_id: "inherited", name: "Inherited key", api_key_configured: false, api_key_source: "environment" },
     { ...initial, binding_id: "missing", name: "No key", api_key_configured: false, api_key_source: "missing" },
+    { ...initial, binding_id: "manual", name: "Manual secret", webhook_status: "manual", webhook_secret_configured: true },
+    { ...initial, binding_id: "recovery", name: "Lost secret", webhook_status: "recovery_required" },
+    { ...initial, binding_id: "changed", name: "Changed project", webhook_status: "needs_setup", webhook_secret_configured: true },
   ];
   await page.route("**/freepbx/rest/agents/**", async route => {
     const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
@@ -136,6 +140,13 @@ test("trunk credentials and webhook action follow the real trunk state", async (
   await expect(row("Inherited key").getByRole("button", { name: "Configure webhook" })).toBeVisible();
   await expect(row("No key")).toContainText("Missing API key");
   await expect(row("No key").getByRole("button", { name: "Configure webhook" })).toHaveCount(0);
+  await expect(row("Manual secret")).toContainText("Manual secret stored");
+  await expect(row("Manual secret").getByRole("button", { name: "Configure webhook" })).toHaveCount(0);
+  await expect(row("Lost secret")).toContainText("Recovery required");
+  await expect(row("Lost secret")).toContainText("Enter its saved secret manually or explicitly rotate it in OpenAI");
+  await expect(row("Lost secret").getByRole("button", { name: "Configure webhook" })).toHaveCount(0);
+  await expect(row("Changed project")).toContainText("Configuration changed: check setup");
+  await expect(row("Changed project").getByRole("button", { name: "Configure webhook" })).toBeVisible();
   await expect(page.getByText(/webhook secret/i)).toHaveCount(0);
   await page.getByRole("button", { name: "Create trunk" }).first().click();
   await expect(page.getByText(/the ID starts with proj_/)).toBeVisible();
