@@ -160,6 +160,21 @@ foreach ([
     ['userer', 'PATCH', '/models/fanvil-X5', ['variables' => ['nested' => ['ldap_password' => 'x']]], 403],
     ['userer', 'POST', '/phones', 'mac=AC-CD-EF-01-02-04&variables%5Badminpw%5D=x', 403, 'application/x-www-form-urlencoded'],
     ['userer', 'POST', '/phones', '{"mac":"AC-CD-EF-01-02-04","variables":{"userpw":"x"}}', 403, 'application/vnd.example+json'],
+    ['phoner', 'GET', '/templates', null, 200],
+    ['phoner', 'PATCH', '/models/fanvil-X5-custom', ['variables' => ['tmpl_phone' => 'custom.tmpl']], 200],
+    ['phoner', 'POST', '/templates', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}'], 403],
+    ['phoner', 'POST', '/templates/', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}'], 403],
+    ['phoner', 'POST', '/%74emplates', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}'], 403],
+    ['phoner', 'POST', '//templates', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}'], 403],
+    ['phoner', 'POST', '/phones/../templates', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}'], 403],
+    ['phoner', 'POST', '/phones/./../templates', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}'], 403],
+    ['phoner', 'PUT', '/templates/custom.tmpl', ['content' => '{{ 1 }}'], 403],
+    ['phoner', 'DELETE', '/templates/custom.tmpl', null, 403],
+    ['userer', 'GET', '/templates', null, 403],
+    ['userer', 'POST', '/templates', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}'], 403],
+    ['boss', 'POST', '/templates', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}'], 200],
+    ['admin', 'POST', '/templates', ['name' => 'custom.tmpl', 'content' => '{{ 1 }}', 'replace' => true], 200],
+    ['boss', 'DELETE', '/templates/custom.tmpl', null, 200],
     ['admin', 'PATCH', '/defaults', ['ldap_password' => 'new', 'adminpw' => 'new'], 200],
     ['boss', 'PATCH', '/models/fanvil-X5', ['variables' => ['ldap_password' => 'new']], 200],
 ] as $case) {
@@ -206,4 +221,4 @@ $static = $factory->createServerRequest('GET', 'http://localhost/tancredi/api/v1
     ->withHeader('Authentication', 'static static-token')->withHeader('HTTP_HOST', '127.0.0.1');
 check((string) $auth->process($static, $handler)->getBody() === $phone, 'the static token must read the phone unchanged');
 
-echo "PASS: Tancredi access, SIP line passwords hidden from sections, LDAP password, LDAP phonebook server, port and encryption writable, provisioning tokens and URLs and phone redirection variables only for the superadmin, phone web passwords only for the phones section, the users section only reads the phones, models and defaults\n";
+echo "PASS: Tancredi access, SIP line passwords hidden from sections, LDAP password, LDAP phonebook server, port and encryption writable, provisioning tokens and URLs and phone redirection variables only for the superadmin, phone web passwords only for the phones section, the users section only reads the phones, models and defaults, custom provisioning templates written only by the superadmin\n";

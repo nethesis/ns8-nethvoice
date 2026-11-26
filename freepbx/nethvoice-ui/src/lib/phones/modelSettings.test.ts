@@ -59,6 +59,20 @@ describe('getModelSections', () => {
     ])
   })
 
+  it('should let every phones administrator choose the provisioning template', () => {
+    const preferences = (vars: Record<string, string>, superadmin: boolean) =>
+      getModelSections(vars, superadmin).find((section) => section.id === 'preferences')?.fields
+
+    for (const superadmin of [true, false]) {
+      expect(preferences(variables, superadmin)?.at(-1)).toEqual({
+        variable: 'tmpl_phone',
+        labelKey: 'phones.templates.provisioning_template',
+        type: 'template',
+      })
+    }
+    expect(preferences({}, true)?.map((field) => field.variable)).not.toContain('tmpl_phone')
+  })
+
   it('should show LLDP only for templates that support it', () => {
     const network = (vars: Record<string, string>) =>
       getModelSections(vars, true)

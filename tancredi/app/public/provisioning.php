@@ -271,15 +271,7 @@ $app->get('/{filename}', function(Request $request, Response $response, array $a
 
 function renderTwigTemplate($template, $scope_data) {
     global $config;
-    $loader = new \Twig\Loader\ChainLoader([
-        new \Twig\Loader\FilesystemLoader($config['rw_dir'] . 'templates-custom/'),
-        new \Twig\Loader\FilesystemLoader($config['ro_dir'] . 'templates/'),
-    ]);
-    $preg_replace_filter = new \Twig\TwigFilter('preg_replace', function($subject, $pattern, $replacement) {
-        return preg_replace($pattern, $replacement, $subject);
-    });
-    $twig = new \Twig\Environment($loader,['autoescape' => false]);
-    $twig->addFilter($preg_replace_filter);
+    $twig = \Tancredi\Entity\CustomTemplates::createEnvironment($config);
     $payload = $twig->render($template, $scope_data);
     return $payload;
 }

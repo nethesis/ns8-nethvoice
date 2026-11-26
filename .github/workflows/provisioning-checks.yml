@@ -35,6 +35,7 @@ jobs:
       - name: Run LLDP migration and rendering tests
         run: |
           php tests/unit/test_tancredi_lldp.php
+          php tests/unit/test_tancredi_templates.php
           tancredi_conf="${TANCREDI_ROOT}/tancredi.conf.sample" php "${TANCREDI_ROOT}/test/lldp-rendering.php"
 
       - name: Run Auto Headset rendering tests

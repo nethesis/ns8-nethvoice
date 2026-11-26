@@ -615,6 +615,73 @@ $app->delete('/{filetype:backgrounds|firmware|ringtones|screensavers}/{file}', f
 });
 
 /*********************************
+* GET /templates
+**********************************/
+$app->get('/templates', function(Request $request, Response $response) use ($app) {
+    $container = $app->getContainer();
+    $templates = new \Tancredi\Entity\CustomTemplates($container->get('config'), $container->get('storage'));
+    return withJson($response, $templates->list(), 200, JSON_FLAGS);
+});
+
+/*********************************
+* POST /templates
+**********************************/
+$app->post('/templates', function(Request $request, Response $response) use ($app) {
+    $container = $app->getContainer();
+    $templates = new \Tancredi\Entity\CustomTemplates($container->get('config'), $container->get('storage'));
+    $post_data = $request->getParsedBody();
+    $post_data = is_array($post_data) ? $post_data : array();
+    $name = $post_data['name'] ?? null;
+    $content = $post_data['content'] ?? null;
+    $problem = $templates->validate($name, $content, ($post_data['replace'] ?? false) === true);
+    if ($problem !== null) {
+        $status = $problem['status'];
+        unset($problem['status']);
+        $problem['type'] = 'https://nethesis.github.io/tancredi/problems/#' . $problem['type'];
+        $response = withJson($response, $problem, $status, JSON_FLAGS);
+        $response = $response->withHeader('Content-Type', 'application/problem+json');
+        return $response->withHeader('Content-Language', 'en');
+    }
+    $container->get('logger')->info('Saving custom template {name}', ['name' => $name]);
+    $response = withJson($response, $templates->save($name, $content), 201, JSON_FLAGS);
+    return $response->withHeader('Location', '/tancredi/api/v1/templates/' . $name);
+});
+
+/*********************************
+* DELETE /templates/{name}
+**********************************/
+$app->delete('/templates/{name}', function(Request $request, Response $response, array $args) use ($app) {
+    $container = $app->getContainer();
+    $templates = new \Tancredi\Entity\CustomTemplates($container->get('config'), $container->get('storage'));
+    $name = $args['name'];
+    if (!$templates->exists($name)) {
+        $results = array(
+            'type' => 'https://nethesis.github.io/tancredi/problems/#not-found',
+            'title' => 'Resource not found'
+        );
+        $response = withJson($response, $results, 404, JSON_FLAGS);
+        $response = $response->withHeader('Content-Type', 'application/problem+json');
+        return $response->withHeader('Content-Language', 'en');
+    }
+    $used_by = $templates->usedBy($name);
+    if ($used_by) {
+        $results = array(
+            'type' => 'https://nethesis.github.io/tancredi/problems/#resource-in-use',
+            'title' => 'The resource is in use by other resources and cannot be deleted',
+            'used_by' => $used_by
+        );
+        $response = withJson($response, $results, 409, JSON_FLAGS);
+        $response = $response->withHeader('Content-Type', 'application/problem+json');
+        return $response->withHeader('Content-Language', 'en');
+    }
+    if (!$templates->delete($name)) {
+        return $response->withStatus(500);
+    }
+    $container->get('logger')->info('Deleted custom template {name}', ['name' => $name]);
+    return $response->withStatus(204);
+});
+
+/*********************************
 * GET /macvendors
 **********************************/
 $app->get('/macvendors', function(Request $request, Response $response, $args) use ($app) {

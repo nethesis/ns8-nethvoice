@@ -34,6 +34,7 @@ class NethVoiceAuth implements MiddlewareInterface
     private const SUPERADMIN_WRITE_FIELDS = ['hostname', 'lcd_logo_url', 'ldap_server', 'ldap_port', 'ldap_tls'];
     private const SUPERADMIN_WRITE_PATTERN = '/^outbound_proxy2?_\d+$/D';
     private const USERS_READABLE_PATHS = ['/phones', '/models', '/defaults', '/macvendors'];
+    private const SUPERADMIN_WRITE_PATHS = '#^/templates(/|$)#';
 
     private $config;
 
@@ -129,7 +130,10 @@ class NethVoiceAuth implements MiddlewareInterface
         $method = strtoupper($method);
         $resource = self::resourcePath($path);
         if (in_array('nethvoice:phones', self::sectionEntries($sections), true)) {
-            return in_array($method, ['GET', 'HEAD', 'OPTIONS'], true) || !preg_match('#^/phones/[^/]+/tok1$#', $resource);
+            return in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)
+                || (!preg_match('#^/phones/[^/]+/tok1$#', $resource)
+                    && !preg_match(self::SUPERADMIN_WRITE_PATHS, $resource)
+                    && !preg_match('#/\.\.?(/|$)#', $resource));
         }
 
         return in_array($method, ['GET', 'HEAD', 'OPTIONS'], true) && in_array($resource, self::USERS_READABLE_PATHS, true);

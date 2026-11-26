@@ -29,6 +29,7 @@ import {
   faArrowRight,
   faArrowRotateLeft,
   faCalendar,
+  faCircleArrowUp,
   faCirclePlus,
   faClone,
   faMagnifyingGlass,
@@ -40,6 +41,7 @@ import LoadError from '@/components/common/LoadError.vue'
 import TablePaginator from '@/components/common/TablePaginator.vue'
 import CreateModelDrawer from './CreateModelDrawer.vue'
 import DeleteModelModal from './DeleteModelModal.vue'
+import ImportTemplateDrawer from './ImportTemplateDrawer.vue'
 import ResetModelModal from './ResetModelModal.vue'
 import PhoneModelDetail from './PhoneModelDetail.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
@@ -51,6 +53,7 @@ import {
   type PhoneModelRow,
 } from '@/lib/phones/models'
 import { usePhoneModels } from '@/queries/phones/models'
+import { usePermissions } from '@/queries/permissions/me'
 import { useTancrediPhones } from '@/queries/phones/phones'
 
 const SORT_KEYS = ['displayName', 'brand', 'phones', 'lastUpdate'] as const
@@ -64,6 +67,7 @@ const route = useRoute()
 const router = useRouter()
 const { state: modelsState, refetch: refetchModels } = usePhoneModels()
 const { state: phonesState, refetch: refetchPhones } = useTancrediPhones()
+const { isSuperadmin } = usePermissions()
 
 const textFilter = ref('')
 const brandFilter = ref<NeDropdownFilterV2Option[]>([])
@@ -75,6 +79,7 @@ const isShownCreateDrawer = ref(false)
 const isDuplicating = ref(false)
 const isShownResetModal = ref(false)
 const isShownDeleteModal = ref(false)
+const isShownImportDrawer = ref(false)
 
 const selectedModelName = computed(() => {
   const model = route.query.model
@@ -283,18 +288,25 @@ function onModelCreated(model: PhoneModel) {
     <template v-else-if="isContentShown">
       <div class="mb-8 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
         <p class="text-secondary-neutral max-w-2xl">{{ $t('phones.models.description') }}</p>
-        <NeButton
-          kind="primary"
-          size="lg"
-          :disabled="loading"
-          class="mt-2 justify-self-start sm:mt-0"
-          @click="showCreateDrawer()"
-        >
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-          </template>
-          {{ $t('phones.models.add_model') }}
-        </NeButton>
+        <div class="mt-2 flex flex-wrap gap-4 justify-self-start sm:mt-0 sm:justify-self-end">
+          <NeButton
+            v-if="isSuperadmin"
+            kind="secondary"
+            size="lg"
+            @click="isShownImportDrawer = true"
+          >
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCircleArrowUp" class="size-4" aria-hidden="true" />
+            </template>
+            {{ $t('phones.templates.import_template') }}
+          </NeButton>
+          <NeButton kind="primary" size="lg" :disabled="loading" @click="showCreateDrawer()">
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+            </template>
+            {{ $t('phones.models.add_model') }}
+          </NeButton>
+        </div>
       </div>
       <div class="mb-6 flex flex-wrap items-center gap-4">
         <NeTextInput
@@ -439,5 +451,6 @@ function onModelCreated(model: PhoneModel) {
       :model="currentModel"
       @close="isShownDeleteModal = false"
     />
+    <ImportTemplateDrawer :is-shown="isShownImportDrawer" @close="isShownImportDrawer = false" />
   </div>
 </template>

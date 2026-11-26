@@ -128,6 +128,7 @@ export const mockPhonesApi = (mockApi: MockApi, options: PhonesApiOptions = {}) 
     .on('GET', `${TANCREDI}/macvendors`, { json: MAC_VENDORS })
     .on('GET', `${REST}/users/:all`, { json: USERS })
     .on('GET', `${TANCREDI}/firmware`, { json: [] })
+    .on('GET', `${TANCREDI}/templates`, { json: [] })
     .on('GET', `${TANCREDI}/backgrounds`, {
       json: [{ name: 'company-logo.png', size: 2048, mtime: 1767225600 }],
     })

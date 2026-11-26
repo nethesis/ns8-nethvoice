@@ -37,6 +37,7 @@ import {
 import LoadError from '@/components/common/LoadError.vue'
 import { isApiError } from '@/lib/api/errors'
 import ModelFileField from './ModelFileField.vue'
+import ModelTemplateField from './ModelTemplateField.vue'
 import ResetModelModal from './ResetModelModal.vue'
 import { getLanguageLabel } from '@/lib/settings/system'
 import { getToneZoneLabel } from '@/lib/phones/defaults'
@@ -409,6 +410,13 @@ function onReset() {
                   v-model="form[field.variable]"
                   :label="$t(field.labelKey)"
                   :file-type="field.fileType"
+                  :disabled="saving"
+                />
+                <ModelTemplateField
+                  v-else-if="field.type === 'template'"
+                  v-model="form[field.variable]"
+                  :label="$t(field.labelKey)"
+                  :model-name="modelName"
                   :disabled="saving"
                 />
                 <NeCombobox

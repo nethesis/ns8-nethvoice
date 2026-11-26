@@ -19,7 +19,7 @@ export type ModelFileType = 'backgrounds' | 'firmware'
 export type ModelField = {
   variable: string
   labelKey: string
-  type: 'text' | 'password' | 'select' | 'file'
+  type: 'text' | 'password' | 'select' | 'file' | 'template'
   options?: ModelOption[]
   optionsKind?: 'language' | 'tone_zone'
   fileType?: ModelFileType
@@ -353,6 +353,15 @@ const getPreferencesFields = (variables: ModelVariables): ModelField[] => [
     type: 'file',
     fileType: 'firmware',
   },
+  ...(variables.tmpl_phone
+    ? [
+        {
+          variable: 'tmpl_phone',
+          labelKey: 'phones.templates.provisioning_template',
+          type: 'template',
+        } satisfies ModelField,
+      ]
+    : []),
 ]
 
 const getLdapFields = (variables: ModelVariables, isSuperadmin: boolean): ModelField[] => {
