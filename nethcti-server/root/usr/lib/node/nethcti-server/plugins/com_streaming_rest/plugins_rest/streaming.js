@@ -167,17 +167,34 @@ function setCompConfigManager(comp) {
         *
         * Example JSON response:
         *
+        * The address of the device and its credentials are never returned:
+        * "url", "user" and "password" are always empty. "type" is "image"
+        * (images sent by the server) or "rtsp" (video from the video gateway
+        * through WHEP, see [`streaming/token`](#tokenpost)). "whep" is the
+        * relative WHEP URL of "rtsp" sources, null otherwise. "gates" are the
+        * gates that can be opened with [`streaming/open`](#openpost).
+        * "cmdOpen" is never the DTMF code of a source with gates: it is "*"
+        * (the open door button of the older clients) or empty without gates;
+        * only the configurations without gates (older FreePBX) have the code.
+        *
+        * Example JSON response:
+        *
         *     {
-         "door": {
-              "id": "door",
-              "url": "http://192.168.5.169/enu/camera352x272.jpg",
-              "type": "helios",
+         "vs_door": {
+              "id": "vs_door",
+              "url": "",
               "user": "",
-              "cmdOpen": "0*",
+              "cmdOpen": "*",
               "password": "",
               "frameRate": "1000",
               "extension": "609",
-              "description": "door"
+              "description": "door",
+              "type": "rtsp",
+              "whep": "/streaming-gw/vs_door/whep",
+              "gates": [
+                { "id": "37", "name": "Door", "type": "dtmf" },
+                { "id": "38", "name": "Gate", "type": "url" }
+              ]
          }
      }
         *
@@ -188,6 +205,11 @@ function setCompConfigManager(comp) {
         * Returns the image of the streaming source base64 encoded. The _source_
         * parameter is the source identifier that can be obtained with
         * _streaming/sources_ rest api.
+        *
+        * Errors with a JSON body `{ "code": "...", "message": "..." }`: 400
+        * (`not_image_source`), 502 (`source_certificate_changed`: the TLS
+        * certificate of the device is not the one pinned when the source was
+        * saved). Other failures of the device answer 500.
         *
         * Example JSON response:
         *
@@ -202,19 +224,64 @@ function setCompConfigManager(comp) {
         * 1. [`streaming/open`](#openpost)
         * 2. [`streaming/subscribe`](#subscribepost)
         * 3. [`streaming/unsubscribe`](#unsubscribepost)
+        * 4. [`streaming/token`](#tokenpost)
         *
         * ---
         *
         * ### <a id="openpost">**`streaming/open`**</a>
         *
-        * Execute the command associated with the streaming to open the associated device, e.g. a door.
+        * Opens a gate of the streaming source, e.g. a door. A "dtmf" gate sends
+        * its code to the extension of the source, an "url" gate is opened by an
+        * HTTP request of the server to the device. Without "gate" the first gate
+        * is opened (sources without gates use their "open" code).
+        * The gate identifier is the "id" of one of the gates of the source
+        * returned by [`streaming/sources`](#sourcesget): it is a global
+        * identifier, not the position of the gate within the source.
         * The request must contains the following parameters:
         *
         * * `id: the streaming identifier`
+        * * `[gate]: the gate identifier (string), the "id" of a gate returned by streaming/sources`
         *
         * Example JSON request parameters:
         *
-        *     { "id": "door" }
+        *     { "id": "vs_door", "gate": "38" }
+        *
+        * Errors are returned with a JSON body `{ "code": "...", "message": "..." }`:
+        * 400 (`missing_id`, `invalid_gate`, `no_gates`, `no_extension`, `no_code`, `no_url`),
+        * 403, 404 (`source_not_found`, `gate_not_found`), 409
+        * (`call_not_answered`: a DTMF gate while the call of the source
+        * extension is not answered yet), 502 (`gate_failed`,
+        * `gate_unreachable`, `gate_certificate_changed`: the TLS certificate
+        * of the device is not the one pinned when the source was saved,
+        * `gate_address_not_allowed`: loopback or link-local address,
+        * `dtmf_failed`), 504 (`gate_timeout`).
+        *
+        * ---
+        *
+        * ### <a id="tokenpost">**`streaming/token`**</a>
+        *
+        * Returns a short-lived token to watch an "rtsp" streaming source through
+        * the video gateway: the client sends it as `Authorization: Bearer <token>`
+        * (the only accepted way) in the WHEP POST request to the returned
+        * relative URL, within "expires_in" seconds. A token opens a single
+        * gateway session: get a new token for every connection, reconnections
+        * included. A user can have at most 3 sessions on a source and 30 in
+        * total.
+        * The request must contains the following parameters:
+        *
+        * * `id: the streaming source identifier`
+        *
+        * Example JSON request parameters:
+        *
+        *     { "id": "vs_door" }
+        *
+        * Example JSON response:
+        *
+        *     { "token": "6f1c...", "expires_in": 60, "whep": "/streaming-gw/vs_door/whep" }
+        *
+        * Errors: 400 (`missing_id`, `not_rtsp_source`), 403, 404 (`source_not_found`),
+        * 429 (`too_many_sessions`: the session limits of the user are reached,
+        * `too_many_requests`: too many tokens in a minute).
         *
         * ---
         *
@@ -279,7 +346,7 @@ function setCompConfigManager(comp) {
          *
          *   @param {string} open To execute the command associated with the streaming source
          */
-        'post': ['open', 'subscribe', 'unsubscribe'],
+        'post': ['open', 'subscribe', 'unsubscribe', 'token'],
         'head': [],
         'del': []
       },
@@ -339,6 +406,10 @@ function setCompConfigManager(comp) {
 
             compStreaming.getVideoSample(sourceId, function(err, videoSample) {
               try {
+                if (err && err.status) {
+                  res.send(err.status, { code: err.code, message: err.message });
+                  return;
+                }
                 if (err) {
                   logger.log.error(IDLOG, 'getting video sample of "' + sourceId + '": ' + err);
                   compUtil.net.sendHttp500(IDLOG, res, err.toString());
@@ -379,6 +450,10 @@ function setCompConfigManager(comp) {
 
           // get the streaming source identifier
           var stream = req.params.id;
+          if (typeof stream !== 'string' || stream === '') {
+            res.send(400, { code: 'missing_id', message: 'missing streaming source identifier' });
+            return;
+          }
 
           // check if the user is authorized to use the streaming source
           if (compAuthorization.getAllowedStreamingSources(username).filter(function(e) {
@@ -393,10 +468,21 @@ function setCompConfigManager(comp) {
               defaultExten = '';
             }
             var callerid = '"' + username + '" <' + defaultExten + '>';
+            var gate = req.params.gate;
+            if (typeof gate === 'number' && isFinite(gate)) {
+              gate = String(gate);
+            } else if (gate !== undefined && gate !== null && typeof gate !== 'string') {
+              res.send(400, { code: 'invalid_gate', message: 'the gate identifier must be a string' });
+              return;
+            }
 
-            compStreaming.open(stream, callerid, defaultExten, function(err) {
+            compStreaming.openGate(stream, gate, callerid, defaultExten, username, function(err) {
 
-              if (err) {
+              if (err && err.status) {
+                logger.log.warn(IDLOG, 'opening streaming source "' + stream + '" by user "' + username + '": ' + err.message);
+                res.send(err.status, { code: err.code, message: err.message });
+
+              } else if (err) {
                 var str = 'opening streaming source "' + stream + '"';
                 logger.log.error(IDLOG, str);
                 compUtil.net.sendHttp500(IDLOG, res, str);
@@ -508,11 +594,134 @@ function setCompConfigManager(comp) {
           logger.log.error(IDLOG, err.stack);
           compUtil.net.sendHttp500(IDLOG, res, err.toString());
         }
+      },
+
+      /**
+       * Returns a short-lived token to watch an RTSP streaming source through
+       * the video gateway with the following REST API:
+       *
+       *     token
+       *
+       * @method token
+       * @param {object}   req  The client request
+       * @param {object}   res  The client response
+       * @param {function} next Function to run the next handler in the chain
+       */
+      token: function(req, res, next) {
+        try {
+          // get the username from the authorization header
+          var username = req.headers.authorization_user;
+
+          // get the streaming source identifier
+          var stream = req.params.id;
+          if (typeof stream !== 'string' || stream === '') {
+            res.send(400, { code: 'missing_id', message: 'missing streaming source identifier' });
+            return;
+          }
+
+          // check if the user is authorized to use the streaming source
+          if (compAuthorization.getAllowedStreamingSources(username).filter(function(e) {
+            return e.permissionId === stream;
+          }).length > 0) {
+
+            compStreaming.createStreamToken(username, stream, function(err, result) {
+              try {
+                if (err && err.status) {
+                  logger.log.warn(IDLOG, 'stream token for user "' + username + '": ' + err.message);
+                  res.send(err.status, { code: err.code, message: err.message });
+                } else if (err) {
+                  logger.log.error(IDLOG, 'creating stream token of source "' + stream + '" for user "' + username + '"');
+                  compUtil.net.sendHttp500(IDLOG, res, 'creating stream token');
+                } else {
+                  logger.log.info(IDLOG, 'sent stream token of source "' + stream + '" to user "' + username + '"');
+                  res.send(200, result);
+                }
+              } catch (err1) {
+                logger.log.error(IDLOG, err1.stack);
+                compUtil.net.sendHttp500(IDLOG, res, err1.toString());
+              }
+            });
+          } else {
+            logger.log.warn(IDLOG, 'authorization for user "' + username + '" to get a stream token of the streaming source "' + stream + '" has been failed !');
+            compUtil.net.sendHttp403(IDLOG, res);
+          }
+        } catch (err) {
+          logger.log.error(IDLOG, err.stack);
+          compUtil.net.sendHttp500(IDLOG, res, err.toString());
+        }
+      },
+
+      /**
+       * Authentication hook of the video gateway (MediaMTX "authMethod: http").
+       * It is NOT part of the REST API of the plugin: it is bound by the
+       * server to the loopback-only path _/mediamtx/auth_, which is not
+       * forwarded by the HTTP proxy. A 200 response allows the request (a
+       * reader or a call to the control API), any other status denies it.
+       *
+       * @method gatewayAuth
+       * @param {object}   req  The request of the video gateway
+       * @param {object}   res  The response
+       * @param {function} next Function to run the next handler in the chain
+       */
+      gatewayAuth: function(req, res, next) {
+        try {
+          var body = (req.body && typeof req.body === 'object') ? req.body : null;
+          compStreaming.authorizeGatewayRequest(body, function(decision) {
+            sendGatewayDecision(res, body, decision);
+          });
+        } catch (err) {
+          logger.log.error(IDLOG, err.stack);
+          try {
+            res.writeHead(500, { 'Content-Type': 'text/plain' });
+            res.end('error');
+          } catch (e) {}
+        }
       }
     };
 
+    /**
+     * Answers the video gateway with the decision of the authentication hook
+     * and logs it. The calls to the control API by this server are logged
+     * only when denied.
+     *
+     * @method sendGatewayDecision
+     * @param {object} res The response
+     * @param {object} body The request of the video gateway
+     * @param {object} decision The decision of the streaming component
+     * @private
+     */
+    function sendGatewayDecision(res, body, decision) {
+      try {
+        var session = body && typeof body.id === 'string' ? body.id : '';
+        var ip = body && typeof body.ip === 'string' ? body.ip : '';
+        var str = 'video gateway ' + (body && typeof body.action === 'string' ? body.action : '') +
+          ' of "' + (body && typeof body.path === 'string' ? body.path : '') + '"' +
+          ' (' + (body && typeof body.protocol === 'string' ? body.protocol : '') + ', session ' + session + ', from ' + ip + ')' +
+          (decision.username ? ' by user "' + decision.username + '"' : '');
+        if (decision.allow === true) {
+          if (!body || body.action !== 'api') {
+            logger.log.info(IDLOG, 'allowed ' + str);
+          }
+          res.writeHead(200, { 'Content-Type': 'text/plain' });
+          res.end('ok');
+        } else {
+          logger.log.warn(IDLOG, 'denied ' + str + ': ' + decision.reason);
+          res.writeHead(401, { 'Content-Type': 'text/plain' });
+          res.end('denied: ' + decision.reason);
+        }
+      } catch (err) {
+        logger.log.error(IDLOG, err.stack);
+        try {
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end('error');
+        } catch (e) {}
+      }
+    }
+
     exports.api = streaming.api;
     exports.open = streaming.open;
+    exports.token = streaming.token;
+    exports.gatewayAuth = streaming.gatewayAuth;
     exports.subscribe = streaming.subscribe;
     exports.unsubscribe = streaming.unsubscribe;
     exports.sources = streaming.sources;

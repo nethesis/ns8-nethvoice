@@ -9,6 +9,7 @@ import json
 import sys
 import agent
 import os
+import video_gateway
 
 
 # Check if NethVoice is configured
@@ -32,6 +33,7 @@ if (os.getenv('NETHVOICE_PROXY_FQDN') == ksrv[0]["fqdn"] and
     os.getenv('PROXY_PORT') == ksrv[0]["port"] and
     os.getenv('NETHVOICE_PROXY_SIP_PORT') == ksrv[0].get("sip_port", "5060") and
     os.getenv('NETHVOICE_PROXY_SIPS_PORT') == ksrv[0].get("sips_port", "5061") and
-    os.getenv('ICEENFORCE') == ksrv[0]["address"]):
+    os.getenv('ICEENFORCE') == ksrv[0]["address"] and
+    all(os.getenv(key, '') == value for key, value in video_gateway.ice_env(ksrv[0]).items())):
     print(agent.SD_DEBUG + "Event ignored: configuration not changed")
     sys.exit(4)

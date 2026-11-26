@@ -156,11 +156,16 @@
 
             var params = getUrlParams();
 
+            // the query string comes from the link that opened the page: text only
+            function safeProto(p) {
+                return p === 'http' || p === 'https' ? p : window.location.protocol.replace(':', '');
+            }
+
             if (params.callerName) {
-                document.getElementById('contact-name').innerHTML = params.callerName;
-                document.getElementById('contact-num').innerHTML = params.callerNum;
+                document.getElementById('contact-name').textContent = params.callerName;
+                document.getElementById('contact-num').textContent = params.callerNum || '';
             } else {
-                document.getElementById('contact-name').innerHTML = params.callerNum;
+                document.getElementById('contact-name').textContent = params.callerNum || '';
             }
 
             if (params.answerAction === 'true') {
@@ -169,12 +174,12 @@
                 $('#hangup').css('width', '100%');
             }
 
-            var argCtiUrl = params.ctiProto + '://' + window.location.hostname +
+            var argCtiUrl = safeProto(params.ctiProto) + '://' + window.location.hostname +
                 (window.location.port ? ':' + window.location.port : '') + '/cti';
 
-            var argCtiCCUrl = params.ctiProto + '://' + window.location.hostname +
+            var argCtiCCUrl = safeProto(params.ctiProto) + '://' + window.location.hostname +
                 (window.location.port ? ':' + window.location.port : '') +
-                '/cti/#/customercard/' + params.callerNum;
+                '/cti/#/customercard/' + encodeURIComponent(params.callerNum || '');
 
             // Open browser only if not webrtc
             if (!(params.webrtc === 'true')) {

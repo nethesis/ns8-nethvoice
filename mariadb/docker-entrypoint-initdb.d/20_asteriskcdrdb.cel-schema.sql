@@ -16,7 +16,7 @@ CREATE TABLE `cel` (
   `context` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
   `channame` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
   `appname` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `appdata` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `appdata` varchar(1024) COLLATE utf8mb4_unicode_ci NOT NULL,
   `amaflags` int(11) NOT NULL,
   `accountcode` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
   `uniqueid` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,

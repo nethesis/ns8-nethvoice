@@ -1,0 +1,11 @@
+--- a/functions.inc/geters_seters.php
++++ b/functions.inc/geters_seters.php
+@@ -151,7 +151,7 @@
+ 			$callconfirm_id = NULL;
+ 		}
+ 	} else {
+-		$joinannounce_id = NULL;
++		$callconfirm_id = NULL;
+ 	}
+ 	$maxwait ??= '';
+ 	$password ??= '';

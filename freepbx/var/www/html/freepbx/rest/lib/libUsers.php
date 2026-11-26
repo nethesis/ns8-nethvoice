@@ -125,6 +125,11 @@ function userExists($username, $token = null) {
     return false;
 }
 
+function userHasExtension($username) {
+    $user = FreePBX::create()->Userman->getUserByUsername($username);
+    return !empty($user) && !empty($user['default_extension']) && $user['default_extension'] !== 'none';
+}
+
 function getPassword($username) {
     $dbh = FreePBX::Database();
     $sql = 'SELECT rest_users.password FROM rest_users JOIN userman_users ON rest_users.user_id = userman_users.id WHERE userman_users.username = ?';

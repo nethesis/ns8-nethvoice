@@ -23,7 +23,7 @@ class NethCTI {
     public function execute($parameters) { check($parameters === ['alice'], 'wrong NethLink user'); }
     public function fetch($mode) { check($mode === PDO::FETCH_ASSOC, 'wrong row format'); return self::$row; }
 }
-function userExists($username) { return $username === 'alice'; }
+function userHasExtension($username) { return $username === 'alice'; }
 
 // Replace the external FreePBX/CTI bootstrap libraries at the include boundary;
 // load the actual route files, JSON helper and CSV validation functions unchanged.
@@ -64,6 +64,9 @@ if (!is_dir($uploads)) { mkdir($uploads, 0700, true); }
 $csv = tempnam($uploads, 'slim4-');
 try {
     $base = ['owner' => 'alice', 'mapping' => ['Name' => 'name'], 'url' => 'file://'.$csv];
+    foreach (['', 'bob'] as $owner) {
+        response('POST', '/phonebook/import-cti', array_replace($base, ['owner' => $owner]), 400, ['status' => 'Invalid or missing owner']);
+    }
     response('POST', '/phonebook/import-cti', array_replace($base, ['mapping' => ['Phone' => 'cellphone']]), 400,
         ['status' => "Mapping must include the 'name' or 'firstname'/'lastname' destination"]);
     response('POST', '/phonebook/import-cti', array_replace($base, ['url' => 'file:///missing.csv']), 400, ['status' => 'CSV file not found']);

@@ -772,30 +772,8 @@ function nethcti3_get_config_late($engine) {
             error_log('fail to write trunks config');
         }
 
-        // write streaming.json
-        $out = [];
-        $dbh = FreePBX::Database();
-        $sql = 'SELECT * FROM rest_cti_streaming';
-        $sth = $dbh->prepare($sql);
-        $sth->execute();
-        $results = $sth->fetchAll(PDO::FETCH_ASSOC);
-
-        if ($results === false) {
-            error_log('Failed to load CTI streaming config');
-            $results = [];
-        }
-        foreach ($results as $r) {
-            foreach ($r as $key => $value) {
-                if ($value !== null) { $r[$key] = (string) $value; }
-            }
-            $pername = 'vs_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$r['descr'])));
-            $out[$pername] = $r;
-        }
-        // Write streaming.json configuration file
-        $res = $nethcti3->writeCTIConfigurationFile('/streaming.json',(object) $out);
-        if ($res === FALSE) {
-            error_log('fail to write streaming config');
-        }
+        // write streaming.json and the video gateway (MediaMTX) configuration
+        nethcti3_write_streaming_config($nethcti3);
 
         // Write recallonbusy.json configuration file
         $out = [];
@@ -831,6 +809,48 @@ function nethcti3_get_config_late($engine) {
         system("/var/www/html/freepbx/rest/lib/ctiReloadHelper.sh > /dev/null 2>&1 &");
     } catch (Exception $e) {
         error_log($e->getMessage());
+    }
+}
+
+/*
+ * Video sources: /etc/nethcti/streaming.json for nethcti-server and
+ * /etc/mediamtx/mediamtx.yml for the RTSP to WebRTC gateway. Both files are
+ * regenerated at every reload, so a restored or cloned instance needs no
+ * extra step.
+ */
+function nethcti3_write_streaming_config($nethcti3) {
+    include_once('/var/www/html/freepbx/rest/lib/libStreaming.php');
+    include_once('/var/www/html/freepbx/rest/lib/libDoorPhones.php');
+    try {
+        // Sources created from a door phone follow its current password
+        door_phone_sync_sources(FreePBX::Database());
+    } catch (Throwable $e) {
+        error_log('Failed to update the door phone passwords of the video sources: ' . $e->getMessage());
+    }
+    try {
+        $sources = streaming_load_sources(FreePBX::Database());
+    } catch (Exception $e) {
+        error_log('Failed to load CTI streaming config: ' . $e->getMessage());
+        return;
+    }
+
+    $res = $nethcti3->writeCTIConfigurationFile('/streaming.json', (object) streaming_cti_config($sources));
+    if ($res === FALSE) {
+        error_log('fail to write streaming config');
+    }
+
+    require('/var/www/html/freepbx/rest/config.inc.php');
+    $gateway = $config['streaming_gateway'] ?? [];
+    $settings = streaming_gateway_settings($gateway);
+    $path = (string) ($gateway['config_path'] ?? '/etc/mediamtx/mediamtx.yml');
+    if ($settings === null) {
+        error_log('video gateway ports are not allocated: ' . $path . ' not written');
+        return;
+    }
+    // The file contains the device passwords: readable only by asterisk,
+    // the user of both FreePBX and the gateway container.
+    if (!streaming_write_file_atomic($path, streaming_mediamtx_config($sources, $settings), 0640, 'asterisk')) {
+        error_log('fail to write video gateway config ' . $path);
     }
 }
 
@@ -931,8 +951,15 @@ function nethcti3_get_config_early($engine) {
     $stmt->execute(array());
     $extdata = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-    // Get CTI profile permissions
-    $permissions = getCTIPermissionProfiles(false,true,true);
+    // Get CTI profile permissions, indexed by profile id: the list returned by
+    // getCTIPermissionProfiles() is numbered from 0, not by profile id
+    $permissions = array();
+    $profiles = getCTIPermissionProfiles(false,true,true);
+    if (is_array($profiles)) {
+        foreach ($profiles as $profile) {
+            $permissions[$profile['id']] = $profile;
+        }
+    }
 
     $tancrediUrl = 'http://127.0.0.1:'.getenv('TANCREDIPORT').'/tancredi/api/v1/';
 
@@ -985,11 +1012,19 @@ function nethcti3_get_config_early($engine) {
             && array_key_exists('settings',$permissions[$ext['profile_id']]['macro_permissions'])
             && array_key_exists('permissions',$permissions[$ext['profile_id']]['macro_permissions']['settings']))
         {
-            foreach ($permissions[$ext['profile_id']]['macro_permissions']['settings']['permissions'] as $permission) {
+            // Same rule as the CTI authorization: DND and call forward are
+            // allowed only when the Settings macro permission is enabled too
+            $settings = $permissions[$ext['profile_id']]['macro_permissions']['settings'];
+            $settingsEnabled = !empty($settings['value']);
+            if (!$settingsEnabled) {
+                $user_variables['account_dnd_allow_1'] = '';
+                $user_variables['account_fwd_allow_1'] = '';
+            }
+            foreach ($settings['permissions'] as $permission) {
                 if ($permission['name'] == 'dnd') {
-                    $user_variables['account_dnd_allow_1'] = $permission['value'] ? '1' : '';
+                    $user_variables['account_dnd_allow_1'] = ($settingsEnabled && $permission['value']) ? '1' : '';
                 } elseif ($permission['name'] == 'call_forward') {
-                    $user_variables['account_fwd_allow_1'] = $permission['value'] ? '1' : '';
+                    $user_variables['account_fwd_allow_1'] = ($settingsEnabled && $permission['value']) ? '1' : '';
                 }
             }
         }

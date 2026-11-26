@@ -44,6 +44,38 @@ angular.module('nethvoiceWizardUiApp')
       }
     }
 
+    // Model capabilities that hide settings the device does not have (e.g.
+    // door phones): "cap_settings_sections_blacklist" lists whole sections,
+    // "cap_settings_blacklist" single variables; a section left without
+    // items is hidden too.
+    this.applySettingsBlacklist = function (ui, variables) {
+      var split = function (value) {
+        return value ? String(value).split(",").map(function (v) { return v.trim() }).filter(Boolean) : []
+      }
+      var sections = split(variables && variables.cap_settings_sections_blacklist)
+      var hidden = split(variables && variables.cap_settings_blacklist)
+      sections.forEach(function (section) {
+        if (section !== "map") {
+          delete ui[section]
+        }
+      })
+      if (hidden.length) {
+        Object.keys(ui).forEach(function (section) {
+          var content = ui[section]
+          if (section === "map" || !content || !Array.isArray(content.items) || content.items.some(function (item) { return item.type === "loop" })) {
+            return
+          }
+          content.items = content.items.filter(function (item) {
+            return hidden.indexOf(item.variable) === -1
+          })
+          if (!content.items.length) {
+            delete ui[section]
+          }
+        })
+      }
+      return ui
+    }
+
     this.map = function (variables) {
       let softkey_count = parseInt(variables.cap_softkey_count),
           softkey_type_blacklist = variables.cap_softkey_type_blacklist ? variables.cap_softkey_type_blacklist.split(",") : "",
@@ -68,6 +100,10 @@ angular.module('nethvoiceWizardUiApp')
         "general": {
           "settings": true,
           "password": true,
+          // Door phones: the admin password is generated per device by the PBX
+          "door_phone": variables.cap_door_phone == "1",
+          // Door phones: relays configurable from the PBX (DTMF code, duration)
+          "door_relay_count": variables.cap_door_phone == "1" ? (parseInt(variables.cap_door_relay_count) || 0) : 0,
           "date_format": {
             "blacklist":  date_formats_blacklist
           }
@@ -116,6 +152,8 @@ angular.module('nethvoiceWizardUiApp')
             "visible": brightness_cap == "1" ? true : false
           }
         },
+        // Door phones: section of the relays, shown only when the model has some
+        "doorRelays": variables.cap_door_phone == "1" && parseInt(variables.cap_door_relay_count) > 0 ? {} : undefined,
         "phonebook": {
           "ldap": true,
           "ldap_tls": {

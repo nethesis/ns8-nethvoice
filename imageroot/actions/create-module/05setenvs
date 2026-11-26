@@ -10,6 +10,7 @@ import sys
 import secrets
 import string
 import agent
+import video_gateway
 
 
 def gen_password(length=32):
@@ -195,10 +196,20 @@ agent.set_env('NETHVOICE_MIDDLEWARE_LISTEN_ADDRESS', '127.0.0.1:' + str(port_lis
 # SSO front-doors (loopback, started on demand): see configure-module/45authentication
 agent.set_env('SAML2_PROXY_PORT', port_list[36])
 agent.set_env('OAUTH2_PROXY_PORT', port_list[37])
-# Chat owns slots 38..41; keep the provider webhook listener separate.
+# Agents use dedicated loopback slots after chat.
 agent.set_env('VOICE_AGENT_HTTP_PORT', port_list[42])
 agent.set_env('NETHVOICE_RECIPIENT_SERVICE_PORT', port_list[43])
 agent.set_env('VOICE_AGENT_CHAT_PORT', port_list[44])
+
+# Video gateway (MediaMTX): WHEP, control API and local RTSP on loopback,
+# ICE over TCP public (indexes 45-48, after the Agents listeners).
+for offset, var in enumerate(video_gateway.TCP_PORT_VARS):
+    agent.set_env(var, port_list[video_gateway.TCP_RANGE_OFFSET + offset])
+# ICE over UDP: a separate single-port allocation, after the UDP block has
+# been shrunk above. It must never be part of UDP_PORTS_RANGE (see
+# update-module.d/20allocate_ports).
+ice_udp = agent.allocate_ports(1, "udp", keep_existing=True)
+agent.set_env(video_gateway.UDP_PORT_VAR, ice_udp[0])
 
 # IAX2 is UDP-only — port derived from UDP_PORTS_RANGE offset 1001
 agent.set_env('ASTERISK_IAX_PORT', iax_udp_port)
@@ -278,7 +289,9 @@ passwords = {
     "VOICE_AGENT_CONFIG_PASSWORD": gen_password(),
     "VOICE_AGENT_MONITOR_PASSWORD": gen_password(),
     "VOICE_AGENT_CHAT_TOKEN": gen_password(),
-    "VOICE_AGENT_RECIPIENT_TOKEN": gen_password()
+    "VOICE_AGENT_RECIPIENT_TOKEN": gen_password(),
+    # Video gateway (MediaMTX) control API: the password of the nethcti-server user
+    "MEDIAMTX_API_PASSWORD": gen_password()
 }
 
 # The copied trunk ciphertext belongs to the data, including on a clone.

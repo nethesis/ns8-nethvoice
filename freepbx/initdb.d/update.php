@@ -18,6 +18,34 @@ $db->exec("INSERT INTO `asterisk`.`freepbx_settings`
         SELECT 1 FROM `asterisk`.`freepbx_settings` WHERE `keyword` = 'CANCELDISPOSITION'
     )");
 
+// The CDR installer and reload read every batch setting when CDR_BATCH_ENABLE
+// exists. Leave the installer's legacy cdr.conf import available otherwise.
+$db->exec("INSERT INTO `asterisk`.`freepbx_settings`
+    (`keyword`, `value`, `name`, `level`, `description`, `type`, `options`,
+     `defaultval`, `readonly`, `hidden`, `category`, `module`, `emptyok`, `sortorder`)
+    SELECT settings.keyword, settings.defaultval, settings.name, settings.level,
+           settings.description, settings.type, settings.options,
+           settings.defaultval, 0, 0, 'cdr', 'cdr', 0, settings.sortorder
+    FROM (
+        SELECT 'CDR_BATCH' AS keyword, '0' AS defaultval, 'CDR Batch' AS name, 3 AS level,
+               'Buffer call detail records before posting them to the backend.' AS description,
+               'bool' AS type, '' AS options, 2 AS sortorder
+        UNION ALL SELECT 'CDR_BATCH_SIZE', '200', 'CDR Batch Size', 1,
+               'Maximum number of CDRs to buffer before posting a batch.', 'int', '0,300', 3
+        UNION ALL SELECT 'CDR_BATCH_TIME', '300', 'CDR Batch Time', 1,
+               'Maximum time in seconds to buffer CDRs before posting a batch.', 'int', '0,300', 4
+        UNION ALL SELECT 'CDR_BATCH_SCHEDULE_ONLY', '0', 'CDR Schedule Only', 3,
+               'Post CDR batches in the Asterisk scheduler thread.', 'bool', '', 5
+        UNION ALL SELECT 'CDR_BATCH_SAFE_SHUT_DOWN', '1', 'CDR Batch Safe ShutDown', 3,
+               'Wait for pending CDR batches to be posted before Asterisk shuts down.', 'bool', '', 6
+    ) AS settings
+    WHERE EXISTS (
+        SELECT 1 FROM `asterisk`.`freepbx_settings`
+        WHERE `keyword` = 'CDR_BATCH_ENABLE' AND `value` IS NOT NULL
+    ) AND NOT EXISTS (
+        SELECT 1 FROM `asterisk`.`freepbx_settings` WHERE `keyword` = settings.keyword
+    )");
+
 // FreePBX 17 requires this keyword on older queues too; '' means Always.
 $db->exec("INSERT INTO `asterisk`.`queues_details` (`id`, `keyword`, `data`, `flags`)
     SELECT q.extension, 'skip_joinannounce', '', 0
