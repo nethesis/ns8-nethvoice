@@ -139,3 +139,25 @@ test("trunk credentials and webhook action follow the real trunk state", async (
   await page.getByRole("button", { name: "Create trunk" }).first().click();
   await expect(page.getByText(/the ID starts with proj_/)).toBeVisible();
 });
+
+test("editing a trunk explains where an empty API key comes from", async ({ page }) => {
+  await login(page);
+  const trunks = [
+    { ...initial, binding_id: "stored", name: "Stored key" },
+    { ...initial, binding_id: "inherited", name: "Inherited key", api_key_configured: false, api_key_source: "environment" },
+  ];
+  await page.route("**/freepbx/rest/agents/**", async route => {
+    const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
+    await route.fulfill({ json: path === "/access" ? { csrf: "synthetic-csrf" } : path === "/catalog" ? { provider_credentials: { openai: { environment_available: true } } } : path === "/trunks" ? { items: trunks } : { items: [] } });
+  });
+  await page.goto("./#/trunks");
+  const row = (name: string) => page.getByRole("row").filter({ hasText: name });
+  await row("Inherited key").getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByText("Dedicated key", { exact: true }).click();
+  await expect(page.getByText("Leave empty to use the OpenAI API key from the NethVoice Integrations settings.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Leave empty to keep the stored API key.", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await row("Stored key").getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(page.getByText("Leave empty to keep the stored API key.", { exact: true })).toBeVisible();
+  await expect(page.getByText(/NethVoice Integrations settings/)).toHaveCount(0);
+});

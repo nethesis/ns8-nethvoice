@@ -102,7 +102,7 @@ const environmentKey = computed(
       ?.environment_available || false,
 );
 const apiKeyHelper = computed(() =>
-  editing.value
+  props.trunk?.api_key_source === "stored"
     ? t("trunkForm.keepApiKey")
     : environmentKey.value
       ? t("trunkForm.environmentApiKey")
