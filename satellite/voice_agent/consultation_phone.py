@@ -43,6 +43,9 @@ class PrivateTools:
     def recent_callback_context(self):
         return ''
 
+    def transfer_confirmation_context(self):
+        return ''
+
     def hangup_context(self):
         return ''
 

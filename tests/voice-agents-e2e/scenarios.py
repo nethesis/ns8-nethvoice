@@ -57,6 +57,7 @@ CALLBACK_SELECTION = (
     r"|\b(?:vuoi che|vuole che|volete che|voi que)\b[^.!?]{0,60}\b(?:contat{1,2}o|richiam\w*)\b)"
 )
 COLLEAGUE_NAME = r"\b(?:giulia|julia|ferri|ferry)\b"
+NO_CONFIRMATION_QUESTION = r"(?s)^(?!.*\b(?:conferm[ai]|confermate|posso|vuoi che|vuole che)\b[^.!?]{0,70}\?).*$"
 
 # Every name here is dispatched below. The second transport repeats its riskiest handoffs.
 BOTH = ("conversation", "name", "callback", "attended-accept", "chat-dnd", "voicemail-yes", "voicemail-no")
@@ -434,8 +435,12 @@ class Call:
         start = self.caller.mark()
         self.play(self.caller, case.replace("-", "_"))
         if case in ("name", "queue"):
-            destination = r"\b(?:assistenza|collaudo|coda)\b" if case == "queue" else COLLEAGUE_NAME
-            self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), start, destination)
+            if case == "name":
+                self.peer.wait("RINGING", 40)
+                self.evidence.append("named recipient rang without a second caller confirmation")
+                self.expect(self.caller.received(start), NO_CONFIRMATION_QUESTION, "no repeated confirmation request")
+            else:
+                self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), start, r"\b(?:assistenza|collaudo|coda)\b")
             self.answer_ringing_peer(self.peer)
             if case == "queue":
                 deadline = time.monotonic() + 10
@@ -505,12 +510,13 @@ class Call:
         chat = case.startswith("chat")
         voicemail = case.startswith("voicemail")
         self.recipient_invites = self.peer.incoming
-        route = self.configure(attended=True, chat=chat, instructions=(
+        consultation_instructions = (
             "Gestisci le richieste di trasferimento con consultazione. Se il chiamante indica "
             "il nome del collega e il motivo della chiamata, cerca il collega e avvia il "
             "trasferimento assistito. Chiedi chiarimenti solo se la destinazione è ambigua "
             "o mancano informazioni. Attendi la risposta del collega e riferisci l’esito. "
-            "Se è disponibile la segreteria, chiedi al chiamante se vuole lasciare un messaggio."))
+            "Se è disponibile la segreteria, chiedi al chiamante se vuole lasciare un messaggio.")
+        route = self.configure(attended=True, chat=chat, **({} if case == "attended-accept" else {"instructions": consultation_instructions}))
         if chat or voicemail:
             self.lab.ensure_cti_login()
             self.prepare_recipient()
@@ -521,7 +527,11 @@ class Call:
         if chat or voicemail:
             self.recipient_alternative(held)
             return
-        self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), held)
+        if case == "attended-accept":
+            self.peer.wait("RINGING", 40)
+            self.evidence.append("named private consultation rang without a second caller confirmation")
+        else:
+            self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), held)
         mark = self.answer_ringing_peer(self.peer)
         self.hear_until(self.peer, mark, Phrase("consegna del pianoforte"),
                         "private call reason reached colleague", timeout=20)
@@ -535,6 +545,8 @@ class Call:
             self.play(self.caller, "answer")
             self.hear_until(self.peer, mark, Phrase("il pianoforte e verde"), "answer reached colleague", timeout=20)
         caller_audio = self.caller.received(held)
+        if case == "attended-accept":
+            self.expect(caller_audio, NO_CONFIRMATION_QUESTION, "no repeated confirmation request before the private call")
         self.expect(caller_audio, r"attend|attes|colleg|contatt|verific|giulia|linea",
                     "audible consultation announcement on caller leg")
         self.expect(caller_audio, r"(?s)^(?!.*zafferano).+$", "private marker stayed off caller leg")
