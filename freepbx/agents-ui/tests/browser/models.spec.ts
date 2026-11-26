@@ -36,7 +36,7 @@ async function open(page:Page,label:string) {await field(page,label).click();awa
 async function choose(page:Page,label:string,option:string|RegExp) {await open(page,label);await page.getByRole('option',{name:option,exact:typeof option==='string'}).click();}
 // GPT-Live settings with a short list of values use a listbox.
 async function pick(page:Page,label:string,option:string) {await page.getByRole('button',{name:new RegExp('^'+label)}).click();await page.getByRole('option',{name:new RegExp('^'+option)}).click();}
-const advanced=(page:Page)=>page.getByRole('button',{name:'Advanced settings',exact:true}).click();
+const advanced=(page:Page)=>page.getByRole('button',{name:/^Advanced settings of /}).click();
 
 test('agent owns model, Live voice and advanced settings across save/reload/publication',async({page})=>{
   const profiles=await setup(page);
@@ -106,7 +106,7 @@ test('changing model drops incompatible voice and options; trunk editor has no m
   await choose(page,'Voice','Quartz');
   await choose(page,'Voice model',/^GPT Realtime 2\s*Previous version/);
   await expect(field(page,'Voice')).not.toHaveValue(/Quartz/);
-  await expect(page.getByRole('button',{name:'Advanced settings',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:/^Advanced settings of /})).toHaveCount(0);
   await page.getByRole('button',{name:'Save draft',exact:true}).click();
   await expect(page.getByRole('button',{name:'Publish',exact:true})).toBeEnabled();
   await page.goto('./#/trunks');

@@ -26,7 +26,7 @@ test("basic voice agent: three steps, Next checks the step, Publish jumps to the
   await expect(page.getByRole("option")).toHaveText([/GPT Live 1.*Fastest answers/]);
   await page.keyboard.press("Escape");
   // GPT-Live settings are collapsed under Advanced settings.
-  await expect(page.getByRole("button", { name: "Advanced settings" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Advanced settings of GPT Live 1" })).toHaveAttribute("aria-expanded", "false");
   await expect(page.getByText("Reasoning effort", { exact: true })).toBeHidden();
   // Voice and instructions are required: Next stays on step 2.
   await button(page, "Next").click();

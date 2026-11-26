@@ -22,7 +22,7 @@ test("agent page: sections, collapsed troubleshooting, versions and readable GPT
   await expect(toggle(page, "Call transcription")).toBeHidden();
   await page.getByRole("button", { name: "Troubleshooting" }).click();
   await expect(toggle(page, "Call transcription")).not.toBeChecked();
-  await page.getByRole("button", { name: "Advanced settings" }).click();
+  await page.getByRole("button", { name: /^Advanced settings of / }).click();
   await expect(page.getByRole("combobox", { name: "Text model", exact: true })).toHaveValue(/GPT-6 Luna/);
   for (const label of ["Maximum answer length", "Text model instructions"]) await expect(page.getByLabel(label, { exact: true })).toBeVisible();
   await expect(page.getByText("Reasoning effort", { exact: true })).toBeVisible();

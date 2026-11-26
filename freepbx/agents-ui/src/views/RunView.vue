@@ -6,7 +6,6 @@ import {
   NeBadgeV2,
   NeButton,
   NeCard,
-  NeExpandable,
   NeHeading,
   NeInlineNotification,
   NeSkeleton,
@@ -33,6 +32,7 @@ import { request } from "../api";
 import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
 import StatusBadge from "../components/StatusBadge.vue";
+import AppExpandable from "../components/AppExpandable.vue";
 import type { Run, TraceEvent } from "../types";
 import {
   duration,
@@ -399,10 +399,9 @@ const partial = computed(
       />
     </section>
     <section data-testid="run-diagnostics">
-      <NeExpandable
+      <AppExpandable
+        v-model="diagnosticsOpen"
         :label="t('monitoringPage.diagnostics')"
-        :is-expanded="diagnosticsOpen"
-        @set-expanded="diagnosticsOpen = $event"
       >
         <div class="mt-6 flex flex-col gap-12">
           <section>
@@ -617,7 +616,7 @@ const partial = computed(
             </template>
           </section>
         </div>
-      </NeExpandable>
+      </AppExpandable>
     </section>
   </div>
 </template>

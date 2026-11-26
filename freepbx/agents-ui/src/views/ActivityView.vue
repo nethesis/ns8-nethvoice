@@ -7,7 +7,6 @@ import {
   NeButton,
   NeCard,
   NeDropdownFilterV2,
-  NeExpandable,
   NeHeading,
   NeInlineNotification,
   NePaginator,
@@ -41,6 +40,7 @@ import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
 import AppEmptyState from "../components/AppEmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
+import AppExpandable from "../components/AppExpandable.vue";
 import {
   duration,
   formatDateTime,
@@ -905,10 +905,9 @@ function refresh() {
       </NeTable>
     </section>
     <section id="diagnostics" class="scroll-mt-20" data-testid="diagnostics">
-      <NeExpandable
+      <AppExpandable
+        v-model="diagnosticsOpen"
         :label="t('monitoringPage.diagnostics')"
-        :is-expanded="diagnosticsOpen"
-        @set-expanded="diagnosticsOpen = $event"
       >
         <div class="mt-6 flex flex-col gap-12">
           <NeCard
@@ -1020,7 +1019,7 @@ function refresh() {
             </div>
           </template>
         </div>
-      </NeExpandable>
+      </AppExpandable>
     </section>
   </div>
 </template>

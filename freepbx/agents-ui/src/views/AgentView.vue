@@ -10,7 +10,6 @@ import { useQuery } from "@tanstack/vue-query";
 import {
   NeBadgeV2,
   NeButton,
-  NeExpandable,
   NeInlineNotification,
   NeSkeleton,
   NeTextInput,
@@ -37,6 +36,7 @@ import AgentGeneralFields from "../components/AgentGeneralFields.vue";
 import AgentConversationFields from "../components/AgentConversationFields.vue";
 import AgentTools from "../components/AgentTools.vue";
 import AppToggle from "../components/AppToggle.vue";
+import AppExpandable from "../components/AppExpandable.vue";
 import TrunkDrawer from "../components/TrunkDrawer.vue";
 import StatusBadge from "../components/StatusBadge.vue";
 import UnsavedChangesModal from "../components/UnsavedChangesModal.vue";
@@ -81,6 +81,13 @@ const internal = computed(() => form.agentType.value === "consultation");
 const sipLab = computed(() => catalog.data.value?.sip_lab_enabled === true);
 const root = ref<HTMLElement>();
 const troubleshooting = ref(false);
+// An error in the troubleshooting settings opens them.
+watch(
+  () => !!form.errors.value.retention,
+  (value) => {
+    if (value) troubleshooting.value = true;
+  },
+);
 // An error that is not about a field, shown above the form.
 const failure = ref<{ title: string; description: string }>();
 
@@ -538,10 +545,9 @@ const debug = computed(() => form.draft.value.debug);
         class="border-divider border-t pt-10"
         data-section="troubleshooting"
       >
-        <NeExpandable
+        <AppExpandable
+          v-model="troubleshooting"
           :label="t('agentEditor.troubleshooting')"
-          :is-expanded="troubleshooting || !!form.errors.value.retention"
-          @set-expanded="troubleshooting = $event"
         >
           <div class="flex flex-col gap-6 pt-2">
             <p class="text-muted">{{ t("agentEditor.troubleshootingHelp") }}</p>
@@ -571,7 +577,7 @@ const debug = computed(() => form.draft.value.debug);
               />
             </div>
           </div>
-        </NeExpandable>
+        </AppExpandable>
       </section>
       <div
         class="bg-elevation-0 border-divider fixed right-0 bottom-0 left-0 z-10 border-t px-4 py-4 sm:px-8 lg:left-75"

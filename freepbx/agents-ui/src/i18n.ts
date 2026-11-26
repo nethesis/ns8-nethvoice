@@ -999,7 +999,7 @@ const en = {
       "Experimental: calls use the WebSocket connection of the agent service.",
     sipModelUnavailable:
       "The saved model needs the SIP media lab, which is off. Select GPT Live 1 to publish the agent.",
-    advancedSettings: "Advanced settings",
+    advancedSettingsOf: "Advanced settings of {model}",
     modelHints: {
       gpt_realtime_2_1: "Best quality, highest cost",
       gpt_realtime_2_1_mini: "Good quality, lower cost",
@@ -2190,7 +2190,7 @@ const it: typeof en = {
       "Sperimentale: le chiamate usano la connessione WebSocket del servizio degli agenti.",
     sipModelUnavailable:
       "Il modello salvato richiede il laboratorio media SIP, che è disattivato. Seleziona GPT Live 1 per pubblicare l'agente.",
-    advancedSettings: "Impostazioni avanzate",
+    advancedSettingsOf: "Impostazioni avanzate di {model}",
     modelHints: {
       gpt_realtime_2_1: "Qualità migliore, costo più alto",
       gpt_realtime_2_1_mini: "Buona qualità, costo inferiore",
