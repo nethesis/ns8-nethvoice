@@ -319,8 +319,12 @@ async def test_live_runtime_uses_common_grants_and_confirmed_transfer_over_tcp()
         backend=emulator.accepted[0]['session']['delegation']['responses']
         assert 'extension:203' in backend['instructions']
         wire=next(w for w,name in call.adapter._wire_tools.items() if name==call.tools.manifests['pbx.transfer']['name'])
+        await emulator.ws.send_json({'type': 'error', 'error': {
+            'code': 'input_audio_rate_limit_exceeded', 'type': 'invalid_request_error',
+            'message': 'This audio append was dropped.'}})
         await emulator.tool(wire,invocation='denied',response='denied-response',arguments={'confirmed': True, 'destination_id':'extension:204'})
         await eventually(lambda:any(e['type']=='response.item.create' and e['item'].get('call_id')=='denied' for e in emulator.received))
+        assert not call.terminal and not call.adapter._startup_error
         controller.continue_channel.assert_not_awaited()
         async def acknowledge(channel,target):
             media.flush.assert_awaited()

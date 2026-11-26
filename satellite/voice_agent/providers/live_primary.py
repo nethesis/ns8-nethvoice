@@ -104,7 +104,7 @@ class OpenAILiveWebSocketSession(OpenAILiveAdapter):
                         break
         else:
             await super()._handle(raw)
-            if kind in ('error', 'session.closed'):
+            if kind == 'session.closed' or (kind == 'error' and self._call is None):
                 self._startup_error = True
                 # Wake startup immediately on failure, rather than charging for
                 # a session until its readiness deadline expires.
