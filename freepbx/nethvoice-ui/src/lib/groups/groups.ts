@@ -59,6 +59,7 @@ export const buildGroupFormSchema = (otherGroupNames: string[]) =>
       v.trim(),
       v.nonEmpty('groups.name_required'),
       v.maxLength(GROUP_NAME_MAX_LENGTH, 'groups.name_too_long'),
+      v.check((name) => !name.includes(','), 'groups.name_cannot_contain_commas'),
       v.check((name) => groupPermissionName(name) !== 'grp_', 'groups.name_needs_letter_or_digit'),
       v.check(
         (name) =>
@@ -143,6 +144,10 @@ export const postGroup = async (name: string): Promise<number> => {
   return v.parse(NumericIdSchema, data)
 }
 
+export const putGroupName = async (groupId: number, name: string): Promise<void> => {
+  await api.PUT('/cti/groups/{id}', { params: { path: { id: String(groupId) } }, body: { name } })
+}
+
 export const deleteGroup = async (groupId: number): Promise<void> => {
   await api.DELETE('/cti/groups/{id}', { params: { path: { id: String(groupId) } } })
 }
@@ -181,4 +186,11 @@ export const createGroup = async (group: GroupForm): Promise<number> => {
     throw new GroupMembersError(groupId, error)
   }
   return groupId
+}
+
+export const updateGroup = async (group: Group, form: GroupForm): Promise<void> => {
+  if (form.name !== group.name) {
+    await putGroupName(group.id, form.name)
+  }
+  await saveGroupMembers(group.id, group.userIds, form.userIds)
 }

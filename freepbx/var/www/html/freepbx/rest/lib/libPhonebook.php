@@ -11,6 +11,8 @@ const PHONEBOOK_ERROR_DETAILS_MAX_LENGTH = 500;
 const PHONEBOOK_IMPORT_FILENAME_MAX_LENGTH = 255;
 const PHONEBOOK_UPLOADS_DIR = '/var/lib/nethvoice/phonebook/uploads/';
 const PHONEBOOK_CONTAINER_STARTED = '/var/run/nethvoice/freepbx-started';
+const PHONEBOOK_SOURCES_DIR = '/etc/phonebook/sources.d';
+const PHONEBOOK_SHARING_PREFIX = 'group:';
 
 function phonebookDatabase(): PDO
 {
@@ -209,4 +211,144 @@ function phonebookDeleteImportedUpload(int $status, $url, callable $inUse, strin
         return 'invalid';
     }
     return phonebookDeleteUpload(substr($url, strlen($prefix)), $inUse, $dir);
+}
+
+function phonebookRenameSharingGroup(string $sharing, string $oldName, string $newName): string
+{
+    if (strpos($sharing, PHONEBOOK_SHARING_PREFIX) !== 0) {
+        return $sharing;
+    }
+    $renamed = false;
+    $groups = array();
+    foreach (explode(',', substr($sharing, strlen(PHONEBOOK_SHARING_PREFIX))) as $group) {
+        $group = trim($group);
+        if ($group === '') {
+            continue;
+        }
+        if (mb_strtolower($group) === mb_strtolower($oldName)) {
+            $group = $newName;
+            $renamed = true;
+        }
+        if (!in_array(mb_strtolower($group), array_map('mb_strtolower', $groups), true)) {
+            $groups[] = $group;
+        }
+    }
+    return $renamed ? PHONEBOOK_SHARING_PREFIX . implode(',', $groups) : $sharing;
+}
+
+function phonebookSourcesSharingRename(string $dir, string $oldName, string $newName, int $maxLength): array
+{
+    $files = array();
+    $problems = array();
+    foreach (glob(rtrim($dir, '/') . '/*.json') ?: array() as $path) {
+        $id = basename($path, '.json');
+        $content = is_readable($path) ? file_get_contents($path) : false;
+        $config = is_string($content) ? json_decode($content) : null;
+        if (!is_object($config)) {
+            if (!is_string($content) || mb_stripos($content, $oldName) !== false) {
+                $problems[] = 'The phonebook source ' . $id . ' cannot be read';
+            }
+            continue;
+        }
+        $changed = false;
+        foreach ($config as $sid => $source) {
+            if (!is_object($source) || !isset($source->access) || !is_string($source->access)) {
+                continue;
+            }
+            $sharing = phonebookRenameSharingGroup($source->access, $oldName, $newName);
+            if ($sharing === $source->access) {
+                continue;
+            }
+            if (mb_strlen($sharing) > $maxLength) {
+                $problems[] = 'The sharing of the phonebook source ' . $sid . ' would be longer than ' . $maxLength . ' characters';
+                continue;
+            }
+            $source->access = $sharing;
+            $changed = true;
+        }
+        if (!$changed) {
+            continue;
+        }
+        if (!is_writable($path) || !is_writable(dirname($path))) {
+            $problems[] = 'The phonebook source ' . $id . ' cannot be written';
+            continue;
+        }
+        $files[$path] = array('old' => $content, 'new' => json_encode($config));
+    }
+    return array('files' => $files, 'problems' => $problems);
+}
+
+function phonebookReplaceFile(string $path, string $content): void
+{
+    $temporary = @tempnam(dirname($path), '.rename-');
+    if ($temporary === false || dirname($temporary) !== dirname($path)) {
+        if ($temporary !== false) {
+            unlink($temporary);
+        }
+        throw new RuntimeException('Cannot write ' . $path);
+    }
+    if (file_put_contents($temporary, $content) !== strlen($content) || !chmod($temporary, fileperms($path) & 0777) || !rename($temporary, $path)) {
+        @unlink($temporary);
+        throw new RuntimeException('Cannot write ' . $path);
+    }
+}
+
+function phonebookWriteFiles(array $files, string $key): array
+{
+    $written = array();
+    try {
+        foreach ($files as $path => $contents) {
+            phonebookReplaceFile($path, $contents[$key]);
+            $written[] = $path;
+        }
+    } catch (Throwable $e) {
+        phonebookRestoreFiles(array_intersect_key($files, array_flip($written)));
+        throw $e;
+    }
+    return $written;
+}
+
+function phonebookRestoreFiles(array $files): void
+{
+    foreach ($files as $path => $contents) {
+        try {
+            phonebookReplaceFile($path, $contents['old']);
+        } catch (Throwable $e) {
+            error_log('Cannot restore ' . $path . ': ' . $e->getMessage());
+        }
+    }
+}
+
+function phonebookSharingRenameRows(PDO $db, string $table, string $column, string $oldName, string $newName, int $maxLength): array
+{
+    $sth = $db->prepare('SELECT `id`, `' . $column . '` AS `sharing` FROM `' . $table . '` WHERE `' . $column . '` LIKE ?');
+    $sth->execute(array(PHONEBOOK_SHARING_PREFIX . '%'));
+    $changes = array();
+    $tooLong = 0;
+    foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $sharing = phonebookRenameSharingGroup((string) $row['sharing'], $oldName, $newName);
+        if ($sharing === (string) $row['sharing']) {
+            continue;
+        }
+        if (mb_strlen($sharing) > $maxLength) {
+            $tooLong++;
+            continue;
+        }
+        $changes[] = array('id' => $row['id'], 'old' => (string) $row['sharing'], 'new' => $sharing);
+    }
+    return array('changes' => $changes, 'too_long' => $tooLong);
+}
+
+function phonebookApplySharingRows(PDO $db, string $table, string $column, array $changes, string $key): void
+{
+    $ids = array();
+    foreach ($changes as $change) {
+        $ids[$change[$key]][] = $change['id'];
+    }
+    foreach ($ids as $sharing => $rowIds) {
+        foreach (array_chunk($rowIds, 500) as $chunk) {
+            $sth = $db->prepare('UPDATE `' . $table . '` SET `' . $column . '` = ? WHERE `id` IN (' . implode(',', array_fill(0, count($chunk), '?')) . ')');
+            $sth->execute(array_merge(array((string) $sharing), $chunk));
+        }
+    }
 }

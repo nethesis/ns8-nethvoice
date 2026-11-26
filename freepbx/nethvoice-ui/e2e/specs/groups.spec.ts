@@ -208,9 +208,10 @@ test.describe('groups', () => {
     await page.goto('./users/groups')
 
     await rows(page).nth(1).getByRole('button', { name: 'Edit' }).click()
-    await expect(page.getByRole('textbox', { name: 'Name' })).toBeDisabled()
+    await expect(page.getByRole('textbox', { name: 'Name' })).toBeFocused()
     await page.getByRole('button', { name: 'Remove b.smith' }).click()
     await pickUser(page, 'c.rossi')
+    await expect(page.getByText('Renaming the group')).toBeHidden()
     await page.getByRole('button', { name: 'Save' }).click()
 
     await expect(page.getByRole('heading', { name: 'Edit group', exact: true })).toBeHidden()
@@ -221,6 +222,111 @@ test.describe('groups', () => {
       ['/freepbx/rest/cti/groups/users/4', { groups: [1, 2] }],
       ['/freepbx/rest/cti/groups/users/3', { groups: [] }],
     ])
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/groups/:id')).toHaveLength(0)
+  })
+
+  test('renames a group and tells that the phonebook sharing follows', async ({
+    page,
+    mockApi,
+  }) => {
+    let groups = GROUPS
+    mockGroups(mockApi)
+      .on('GET', '/freepbx/rest/cti/groups', () => ({ json: groups }))
+      .on('PUT', '/freepbx/rest/cti/groups/:id', (request) => {
+        groups = groups.map((group) =>
+          request.path.endsWith(`/${group.id}`) ? { ...group, name: 'Sales Team' } : group,
+        )
+        return { json: { id: 2, name: 'Sales Team', phonebook_sources: 1, contacts: 12 } }
+      })
+    await page.goto('./users/groups')
+
+    await rows(page).nth(1).getByRole('button', { name: 'Edit' }).click()
+    const name = page.getByRole('textbox', { name: 'Name' })
+    await expect(name).toBeEnabled()
+    await expect(page.getByText('Renaming the group')).toBeHidden()
+    await name.fill('  Sales Team ')
+    await expect(page.getByText('Renaming the group')).toBeVisible()
+    await expect(
+      page.getByText(
+        'Phonebook sources and contacts shared with this group and the operator presence panel of the profiles will use the new name.',
+      ),
+    ).toBeVisible()
+    await name.fill('Sales')
+    await expect(page.getByText('Renaming the group')).toBeHidden()
+    await name.fill('Sales Team')
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByRole('heading', { name: 'Edit group', exact: true })).toBeHidden()
+    const renames = mockApi
+      .callsTo('PUT', '/freepbx/rest/cti/groups/:id')
+      .map((call) => [call.path, call.body])
+    expect(renames).toEqual([['/freepbx/rest/cti/groups/2', { name: 'Sales Team' }]])
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/groups/users/:id')).toHaveLength(0)
+    await expect(
+      page.getByTestId('toast-notifications').getByText('Group Sales Team has been updated.'),
+    ).toBeVisible()
+    await expect(rows(page).filter({ hasText: 'Sales Team' })).toHaveCount(1)
+  })
+
+  test('validates the new name and keeps the drawer open when the rename is refused', async ({
+    page,
+    mockApi,
+  }) => {
+    mockGroups(mockApi).on('PUT', '/freepbx/rest/cti/groups/:id', {
+      status: 409,
+      json: {
+        message: 'The group cannot be renamed: The phonebook source custom_3 cannot be written',
+        errors: ['The phonebook source custom_3 cannot be written'],
+      },
+    })
+    await page.goto('./users/groups')
+    await rows(page).nth(1).getByRole('button', { name: 'Edit' }).click()
+    const name = page.getByRole('textbox', { name: 'Name' })
+
+    for (const [value, message] of [
+      ['support', 'A group with this name already exists'],
+      ['Sup-port', 'A group with the same letters and numbers'],
+      ['North, South', 'The name cannot contain commas'],
+      ['', 'Enter a name for the group'],
+    ]) {
+      await name.fill(value)
+      await page.getByRole('button', { name: 'Save' }).click()
+      await expect(page.getByText(message)).toBeVisible()
+      await expect(name).toBeFocused()
+    }
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/groups/:id')).toHaveLength(0)
+
+    await name.fill('SALES')
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByText('Cannot save group')).toBeVisible()
+    await expect(page.getByText(/The phonebook source custom_3 cannot be written/)).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Edit group', exact: true })).toBeVisible()
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/groups/:id')[0].body).toEqual({
+      name: 'SALES',
+    })
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/groups/users/:id')).toHaveLength(0)
+  })
+
+  test('saves the members of a group whose name the new rules refuse', async ({
+    page,
+    mockApi,
+  }) => {
+    mockGroups(mockApi, [
+      { id: 1, name: 'Support' },
+      { id: 2, name: 'North, South' },
+    ]).on('POST', '/freepbx/rest/cti/groups/users/:id', { status: 200 })
+    await page.goto('./users/groups')
+
+    await rows(page)
+      .filter({ hasText: 'North, South' })
+      .getByRole('button', { name: 'Edit' })
+      .click()
+    await page.getByRole('button', { name: 'Remove b.smith' }).click()
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByRole('heading', { name: 'Edit group', exact: true })).toBeHidden()
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/groups/:id')).toHaveLength(0)
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/groups/users/:id')).toHaveLength(1)
   })
 
   test('asks before discarding the changes and resets the filter', async ({ page, mockApi }) => {

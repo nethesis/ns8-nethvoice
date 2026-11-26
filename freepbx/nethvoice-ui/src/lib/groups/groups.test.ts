@@ -16,6 +16,7 @@ import {
   parseGroups,
   parseGroupUserIds,
   parseUserGroupIds,
+  updateGroup,
   withGroupMembership,
   type Group,
 } from './groups'
@@ -109,6 +110,14 @@ describe('buildGroupFormSchema', () => {
   it('should reject a name longer than the column', () => {
     expect(validate('x'.repeat(66)).issues?.[0].message).toBe('groups.name_too_long')
   })
+
+  it('should reject a comma, which separates the groups a contact is shared with', () => {
+    expect(validate('North, South').issues?.[0].message).toBe('groups.name_cannot_contain_commas')
+  })
+
+  it('should accept the current name with another case when it is not among the others', () => {
+    expect(validate('SALES', ['Support']).success).toBe(true)
+  })
 })
 
 describe('diffGroupMembers', () => {
@@ -178,5 +187,46 @@ describe('createGroup', () => {
     vi.spyOn(api, 'POST').mockRejectedValueOnce(failure)
 
     await expect(createGroup({ name: 'Marketing', userIds: [2] })).rejects.toBe(failure)
+  })
+})
+
+describe('updateGroup', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('renames the group before saving its users', async () => {
+    const put = vi.spyOn(api, 'PUT').mockResolvedValue({ data: {}, response: new Response() })
+    vi.spyOn(api, 'GET').mockResolvedValue({ data: [], response: new Response() })
+    const post = vi.spyOn(api, 'POST').mockResolvedValue({ data: {}, response: new Response() })
+
+    await updateGroup(sales, { name: 'Sales Team', userIds: [1, 2, 3] })
+
+    expect(put).toHaveBeenCalledWith('/cti/groups/{id}', {
+      params: { path: { id: '7' } },
+      body: { name: 'Sales Team' },
+    })
+    expect(put.mock.invocationCallOrder[0]).toBeLessThan(post.mock.invocationCallOrder[0])
+    expect(post).toHaveBeenCalledWith('/cti/groups/users/{id}', {
+      params: { path: { id: '3' } },
+      body: { groups: [7] },
+    })
+  })
+
+  it('does not rename a group whose name did not change', async () => {
+    const put = vi.spyOn(api, 'PUT')
+
+    await updateGroup(sales, { name: 'Sales', userIds: [1, 2] })
+
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it('does not save the users when the rename is refused', async () => {
+    const failure = new ApiError({ status: 409, method: 'PUT', url: '/cti/groups/7', body: null })
+    vi.spyOn(api, 'PUT').mockRejectedValueOnce(failure)
+    const post = vi.spyOn(api, 'POST')
+
+    await expect(updateGroup(sales, { name: 'Sales Team', userIds: [1] })).rejects.toBe(failure)
+    expect(post).not.toHaveBeenCalled()
   })
 })

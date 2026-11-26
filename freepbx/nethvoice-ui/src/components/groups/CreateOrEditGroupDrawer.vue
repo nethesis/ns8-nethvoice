@@ -7,7 +7,7 @@
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
-import { useMutation } from '@pinia/colada'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import {
   focusElement,
   NeButton,
@@ -23,10 +23,12 @@ import {
   createGroup,
   GROUP_NAME_MAX_LENGTH,
   GroupMembersError,
-  saveGroupMembers,
+  updateGroup,
   type Group,
   type GroupForm,
 } from '@/lib/groups/groups'
+import { PHONEBOOK_IMPORTS_KEY } from '@/lib/integrations/phonebookImports'
+import { PHONEBOOK_SOURCES_KEY } from '@/lib/integrations/phonebookSources'
 import { hasMainExtension, type User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
@@ -47,12 +49,12 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 const invalidateUsers = useInvalidateUsers()
+const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 
 const name = ref('')
 const nameRef = useTemplateRef<InstanceType<typeof NeTextInput>>('nameRef')
 const selectedUsers = ref<NeMultiselectComboboxOption[]>([])
-const usersRef = useTemplateRef<{ focus: () => void }>('usersRef')
 const nameIssue = ref('')
 const isShownUnsavedModal = ref(false)
 
@@ -110,26 +112,31 @@ const {
   reset: editGroupReset,
   error: editGroupError,
 } = useMutation({
-  mutation: ({ group, userIds }: { group: Group; userIds: number[] }) =>
-    saveGroupMembers(group.id, group.userIds, userIds),
-  onSuccess(_data, { group }) {
+  mutation: ({ group, form }: { group: Group; form: GroupForm }) => updateGroup(group, form),
+  onSuccess(_data, { form }) {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
         title: t('groups.group_saved'),
-        description: t('groups.group_updated_description', { name: group.name }),
+        description: t('groups.group_updated_description', { name: form.name }),
       })
     }, 500)
     emit('close')
   },
-  onSettled: () => {
+  onSettled: (_data, _error, { group, form }) => {
     invalidateUsers()
+    if (form.name !== group.name) {
+      queryCache.invalidateQueries({ key: [PHONEBOOK_SOURCES_KEY] })
+      queryCache.invalidateQueries({ key: [PHONEBOOK_IMPORTS_KEY] })
+    }
   },
 })
 
 const saving = computed(() => createGroupLoading.value || editGroupLoading.value)
 
 const selectedUserIds = computed(() => selectedUsers.value.map((option) => Number(option.id)))
+
+const isRenaming = computed(() => !!currentGroup && name.value.trim() !== currentGroup.name)
 
 const isDirty = computed(() => {
   const initialUserIds = currentGroup?.userIds ?? []
@@ -155,7 +162,7 @@ watch(
     selectedUsers.value = userOptions.value.filter((option) =>
       currentGroup?.userIds.includes(Number(option.id)),
     )
-    focusElement(currentGroup ? usersRef : nameRef)
+    focusElement(nameRef)
   },
 )
 
@@ -165,11 +172,14 @@ function saveGroup() {
   nameIssue.value = ''
   const userIds = selectedUserIds.value
 
-  if (currentGroup) {
-    editGroupMutate({ group: currentGroup, userIds })
+  if (currentGroup && !isRenaming.value) {
+    editGroupMutate({ group: currentGroup, form: { name: currentGroup.name, userIds } })
     return
   }
-  const validation = v.safeParse(buildGroupFormSchema(groups.map((group) => group.name)), {
+  const otherGroupNames = groups
+    .filter((group) => group.id !== currentGroup?.id)
+    .map((group) => group.name)
+  const validation = v.safeParse(buildGroupFormSchema(otherGroupNames), {
     name: name.value,
     userIds,
   })
@@ -177,6 +187,10 @@ function saveGroup() {
   if (!validation.success) {
     nameIssue.value = validation.issues[0].message
     focusElement(nameRef)
+    return
+  }
+  if (currentGroup) {
+    editGroupMutate({ group: currentGroup, form: validation.output })
     return
   }
   createGroupMutate(validation.output)
@@ -214,13 +228,17 @@ function discardChanges() {
           v-model="name"
           :label="t('groups.name')"
           :placeholder="t('groups.name_placeholder')"
-          :helper-text="currentGroup ? t('groups.rename_not_available') : ''"
           :invalid-message="nameIssue ? t(nameIssue, { max: GROUP_NAME_MAX_LENGTH }) : ''"
-          :disabled="saving || !!currentGroup"
+          :disabled="saving"
           @blur="name = name.trim()"
         />
+        <NeInlineNotification
+          v-if="isRenaming"
+          kind="warning"
+          :title="t('groups.rename_group_title')"
+          :description="t('groups.rename_group_description')"
+        />
         <NeMultiselectCombobox
-          ref="usersRef"
           v-model="selectedUsers"
           :label="t('groups.users')"
           :options="userOptions"
