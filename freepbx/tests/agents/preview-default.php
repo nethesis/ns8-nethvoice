@@ -9,6 +9,7 @@ use NethVoice\Agents\Service;
 assert(Preview::enabled() && !Preview::sipEnabled());
 putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-disposable-key');
 putenv('OPENAI_API_KEY=synthetic-preview-key');
+putenv('NETHVOICE_HOST=pbx.example');
 $db=new PDO(getenv('M0_TEST_DSN').';dbname=asterisk','root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
 $native=new class {
     public function defaultLanguage(): string { return 'en'; }
@@ -20,7 +21,9 @@ $native=new class {
 };
 $catalog=new ProviderCatalog(fn()=>['data'=>[['id'=>'gpt-live-1'],['id'=>'gpt-realtime-2']]]);
 $service=new Service($db,$native,$catalog);
-assert($service->catalog()['providers']===['openai']);
+$previewCatalog=$service->catalog();
+assert($previewCatalog['providers']===['openai'] && $previewCatalog['grok_webhook_url']===null);
+assert($previewCatalog['openai_webhook_url']==='https://pbx.example/satellite-webhooks/openai');
 assert(array_column($service->models(['provider'=>'openai'])['items'],'id')===['gpt-live-1']);
 $trunk=$service->saveTrunk(null,['name'=>'Default preview trunk','provider'=>'openai'],0,'preview-default');
 assert($trunk['freepbx_trunk_id']===null && $trunk['sync_status']==='synced');
