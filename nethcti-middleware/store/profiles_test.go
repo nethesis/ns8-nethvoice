@@ -198,6 +198,30 @@ func TestReloadProfiles_PartialFailures(t *testing.T) {
 	}
 }
 
+func TestReloadNullRecords(t *testing.T) {
+	const current = `{"full":{"macro_permissions":{"nethvoice_cti":{"value":true}}}}`
+	profilesFile := writeTempFile(t, "profiles.json", current)
+	usersFile := writeTempFile(t, "users.json", `{"alice":{"profile_id":"full","endpoints":{"mainextension":{"100":{}}}}}`)
+	if err := InitProfiles(profilesFile, usersFile); err != nil {
+		t.Fatal(err)
+	}
+	for _, update := range []struct{ path, data string }{
+		{profilesFile, `{"full":null,"other":{"macro_permissions":{"unused":null,"also_unused":{"permissions":[null]}}}}`},
+		{usersFile, `{"alice":null}`},
+	} {
+		if err := os.WriteFile(update.path, []byte(update.data), 0600); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := ReloadProfiles(); err != nil {
+			t.Fatal(err)
+		}
+		caps, extensions, err := GetUserExtensionAccess("alice")
+		if err != nil || len(caps) != 0 || len(extensions) != 0 {
+			t.Fatalf("malformed record retained access: %v, %v, %v", caps, extensions, err)
+		}
+	}
+}
+
 func TestReloadProfiles_Concurrent(t *testing.T) {
 	// Prepare valid profiles and users
 	profilesJSON := `{
@@ -277,7 +301,11 @@ func TestReloadProfilesPublishesExtensionAccessTogether(t *testing.T) {
 	}()
 
 	for {
-		capabilities, extensions := GetUserExtensionAccess("alice")
+		capabilities, extensions, err := GetUserExtensionAccess("alice")
+		if err != nil {
+			<-done
+			t.Fatal(err)
+		}
 		want := []string{"201"}
 		if capabilities["nethvoice_cti"] {
 			want = []string{"202"}
@@ -340,7 +368,7 @@ func TestInitProfiles_UsesEmbeddedDefaults(t *testing.T) {
 func TestLoadProfiles_FallbackPopulatesProfiles(t *testing.T) {
 	// Call loadProfiles with a missing file path and verify profiles are populated
 	missing := filepath.Join(t.TempDir(), "no-such-file.json")
-	if _, err := loadProfiles(missing); err != nil {
+	if _, _, err := loadProfiles(missing); err != nil {
 		t.Fatalf("loadProfiles failed when falling back to embedded defaults: %v", err)
 	}
 

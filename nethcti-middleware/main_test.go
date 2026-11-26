@@ -237,7 +237,7 @@ func TestLogout(t *testing.T) {
 }
 
 func TestCreateRouter_IncludesLegacyPhonebookTrailingSlashRoutes(t *testing.T) {
-	router := createRouter(methods.NewScreenShareRooms(nil, "", ""))
+	router := createRouter(methods.NewScreenShareRooms(db.GetDBContext, "", ""))
 	routes := router.Routes()
 	expectedRoutes := map[string]bool{
 		"GET /phonebook/search/":       false,

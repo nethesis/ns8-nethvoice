@@ -8,6 +8,7 @@ package store
 import (
 	_ "embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -88,12 +89,13 @@ type ReloadStats struct {
 }
 
 var (
-	profiles         map[string]*ProfileData
-	users            map[string]*UserProfile
-	profileMutex     sync.RWMutex
-	profileReloadMu  sync.Mutex
-	profilesFilePath string
-	usersFilePath    string
+	profiles               map[string]*ProfileData
+	users                  map[string]*UserProfile
+	profileMutex           sync.RWMutex
+	profileReloadMu        sync.Mutex
+	profilesFilePath       string
+	usersFilePath          string
+	extensionAccessCurrent bool
 )
 
 //go:embed default_profiles.json
@@ -103,6 +105,10 @@ var defaultProfilesJSON []byte
 func InitProfiles(profilesPath, usersPath string) error {
 	profileReloadMu.Lock()
 	defer profileReloadMu.Unlock()
+
+	profileMutex.Lock()
+	extensionAccessCurrent = false
+	profileMutex.Unlock()
 
 	profAbs, err := filepath.Abs(profilesPath)
 	if err != nil {
@@ -119,7 +125,7 @@ func InitProfiles(profilesPath, usersPath string) error {
 	usersFilePath = usersAbs
 
 	// Load profiles using temp function
-	newProfiles, err := loadProfiles(profAbs)
+	newProfiles, fromFile, err := loadProfiles(profAbs)
 	if err != nil {
 		return err
 	}
@@ -134,6 +140,7 @@ func InitProfiles(profilesPath, usersPath string) error {
 	profileMutex.Lock()
 	profiles = newProfiles
 	users = newUsers
+	extensionAccessCurrent = fromFile
 	profileMutex.Unlock()
 
 	return nil
@@ -158,16 +165,19 @@ func GetUserCapabilities(username string) (map[string]bool, error) {
 }
 
 // GetUserExtensionAccess returns capabilities and owned extensions from the same profile snapshot.
-func GetUserExtensionAccess(username string) (map[string]bool, []string) {
+func GetUserExtensionAccess(username string) (map[string]bool, []string, error) {
 	profileMutex.RLock()
 	defer profileMutex.RUnlock()
 
+	if !extensionAccessCurrent {
+		return nil, nil, errors.New("extension ownership and permissions are unavailable")
+	}
 	user := users[strings.ToLower(username)]
 	if user == nil || profiles[user.ProfileID] == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	// PhoneNumbers is the union of the caller's configured primary and secondary extensions.
-	return profiles[user.ProfileID].Capabilities, append([]string(nil), user.PhoneNumbers...)
+	return profiles[user.ProfileID].Capabilities, append([]string(nil), user.PhoneNumbers...), nil
 }
 
 // UserExists reports whether the username is a configured user (exact name,
@@ -225,7 +235,7 @@ func ReloadProfiles() (*ReloadStats, error) {
 	defer profileReloadMu.Unlock()
 
 	// Load new profiles and users into temporary variables
-	newProfiles, profilesErr := loadProfiles(profilesFilePath)
+	newProfiles, fromFile, profilesErr := loadProfiles(profilesFilePath)
 
 	// If profiles failed to load, attempt to reload users against the currently loaded profiles
 	var usersTarget map[string]*ProfileData
@@ -238,6 +248,12 @@ func ReloadProfiles() (*ReloadStats, error) {
 	}
 
 	newUsers, usersErr := loadUsers(usersFilePath, usersTarget)
+
+	// Other callers can continue using partial or fallback data. Room creation
+	// requires current ownership and permissions from both configured files.
+	profileMutex.Lock()
+	defer profileMutex.Unlock()
+	extensionAccessCurrent = profilesErr == nil && fromFile && usersErr == nil
 
 	// If both failed, return error and keep old data in memory
 	if profilesErr != nil && usersErr != nil {
@@ -253,9 +269,6 @@ func ReloadProfiles() (*ReloadStats, error) {
 		logs.Log(fmt.Sprintf("[WARNING][AUTH] Failed to reload users (keeping previous data): %v", usersErr))
 	}
 
-	// Publish the matching profile and ownership maps together.
-	profileMutex.Lock()
-	defer profileMutex.Unlock()
 	if profilesErr == nil {
 		profiles = newProfiles
 	}
@@ -266,8 +279,9 @@ func ReloadProfiles() (*ReloadStats, error) {
 }
 
 // loadProfiles loads profiles into a temporary map without modifying global state
-func loadProfiles(path string) (map[string]*ProfileData, error) {
+func loadProfiles(path string) (map[string]*ProfileData, bool, error) {
 	data, err := os.ReadFile(path)
+	fromFile := err == nil
 	if err != nil {
 		// If the provided profiles file cannot be read, fall back to the embedded
 		// default. This is a degraded state: the embedded defaults only contain the
@@ -280,11 +294,14 @@ func loadProfiles(path string) (map[string]*ProfileData, error) {
 
 	raw := make(map[string]*rawProfile)
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, fmt.Errorf("parse profiles: %w", err)
+		return nil, false, fmt.Errorf("parse profiles: %w", err)
 	}
 
 	result := make(map[string]*ProfileData)
 	for key, rp := range raw {
+		if rp == nil {
+			continue
+		}
 		profID := rp.ID
 		if profID == "" {
 			profID = key
@@ -296,8 +313,14 @@ func loadProfiles(path string) (map[string]*ProfileData, error) {
 
 		capMap := make(map[string]bool)
 		for macroName, macro := range rp.MacroPermissions {
+			if macro == nil {
+				continue
+			}
 			capMap[macroName] = macro.Value
 			for _, permission := range macro.Permissions {
+				if permission == nil {
+					continue
+				}
 				key := fmt.Sprintf("%s.%s", macroName, permission.Name)
 				capMap[key] = permission.Value
 			}
@@ -310,7 +333,7 @@ func loadProfiles(path string) (map[string]*ProfileData, error) {
 		}
 	}
 
-	return result, nil
+	return result, fromFile, nil
 }
 
 // loadUsers loads users into a temporary map without modifying global state
@@ -331,7 +354,7 @@ func loadUsers(path string, profilesMap map[string]*ProfileData) (map[string]*Us
 		// user: skip it with a loud warning and keep loading the valid ones.
 		// Otherwise one bad record blacks out all capability-gated features
 		// (e.g. the phonebook) for the entire instance.
-		if ru.ProfileID == "" {
+		if ru == nil || ru.ProfileID == "" {
 			logs.Log(fmt.Sprintf("[WARNING][AUTH] Skipping user %s: missing profile reference", username))
 			continue
 		}

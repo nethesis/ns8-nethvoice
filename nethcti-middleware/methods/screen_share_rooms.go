@@ -16,6 +16,7 @@ import (
 	"math/big"
 	"net"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -38,12 +39,12 @@ var screenShareHTTP = &http.Client{
 }
 
 type ScreenShareRooms struct {
-	db    *sql.DB
+	getDB func(context.Context) *sql.DB
 	janus screenShareJanus
 }
 
-func NewScreenShareRooms(db *sql.DB, port, adminKey string) *ScreenShareRooms {
-	rooms := &ScreenShareRooms{db: db}
+func NewScreenShareRooms(getDB func(context.Context) *sql.DB, port, adminKey string) *ScreenShareRooms {
+	rooms := &ScreenShareRooms{getDB: getDB}
 	if portNumber, err := strconv.Atoi(port); err == nil && portNumber > 0 && portNumber <= 65535 && adminKey != "" {
 		rooms.janus = screenShareJanus{
 			url:      "http://" + net.JoinHostPort("127.0.0.1", strconv.Itoa(portNumber)) + "/janus",
@@ -65,25 +66,36 @@ func (rooms *ScreenShareRooms) Create(c *gin.Context) {
 	}
 
 	username, _ := jwt.ExtractClaims(c)["id"].(string)
-	caps, extensions := store.GetUserExtensionAccess(username)
-	if !caps["nethvoice_cti"] || !caps["nethvoice_cti.screen_sharing"] {
-		c.JSON(http.StatusForbidden, gin.H{"message": "Screen sharing permission is required"})
+	extensions, allowed := screenShareExtensions(c, username)
+	if !allowed {
 		return
 	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 20*time.Second)
 	defer cancel()
-	connected, err := screenShareCallConnected(ctx, username, extensions, input.ConversationID)
+	connectedExtension, err := screenShareCallExtension(ctx, username, extensions, input.ConversationID)
 	if err != nil {
 		screenShareUnavailable(c, "could not verify call state")
 		return
 	}
-	if !connected {
+	if connectedExtension == "" {
 		c.JSON(http.StatusNotFound, gin.H{"message": "Connected conversation not found"})
 		return
 	}
-	if rooms.db == nil || rooms.janus.url == "" {
+	database := rooms.getDB(ctx)
+	if database == nil || rooms.janus.url == "" {
 		screenShareUnavailable(c, "configuration unavailable")
+		return
+	}
+
+	// The live CTI lookup and a database reconnect can span a configuration
+	// reload. Recheck the exact connected extension before reserving a room.
+	extensions, allowed = screenShareExtensions(c, username)
+	if !allowed {
+		return
+	}
+	if !slices.Contains(extensions, connectedExtension) {
+		c.JSON(http.StatusNotFound, gin.H{"message": "Connected conversation not found"})
 		return
 	}
 
@@ -97,7 +109,7 @@ func (rooms *ScreenShareRooms) Create(c *gin.Context) {
 	rand.Read(markerBytes[:])
 	marker := hex.EncodeToString(markerBytes[:])
 	// Keep the reservation even if the response from Janus or to the client is lost.
-	_, err = rooms.db.ExecContext(ctx, `INSERT INTO screen_share_pending_rooms (room_id, marker, cleanup_at)
+	_, err = database.ExecContext(ctx, `INSERT INTO screen_share_pending_rooms (room_id, marker, cleanup_at)
 		VALUES (?, ?, UTC_TIMESTAMP(6) + INTERVAL 2 MINUTE)`, room, marker)
 	if err != nil {
 		screenShareUnavailable(c, "could not reserve room")
@@ -121,20 +133,33 @@ func screenShareUnavailable(c *gin.Context, reason string) {
 	c.JSON(http.StatusServiceUnavailable, gin.H{"message": "Screen sharing is temporarily unavailable"})
 }
 
-func screenShareCallConnected(ctx context.Context, username string, extensions []string, conversationID string) (bool, error) {
+func screenShareExtensions(c *gin.Context, username string) ([]string, bool) {
+	caps, extensions, err := store.GetUserExtensionAccess(username)
+	if err != nil {
+		screenShareUnavailable(c, "could not verify extension permissions")
+		return nil, false
+	}
+	if !caps["nethvoice_cti"] || !caps["nethvoice_cti.screen_sharing"] {
+		c.JSON(http.StatusForbidden, gin.H{"message": "Screen sharing permission is required"})
+		return nil, false
+	}
+	return extensions, true
+}
+
+func screenShareCallExtension(ctx context.Context, username string, extensions []string, conversationID string) (string, error) {
 	if len(extensions) == 0 {
-		return false, nil
+		return "", nil
 	}
 	session, ok := store.GetSession(username)
 	if !ok || session.NethCTIToken == "" || configuration.Config.V1ApiEndpoint == "" {
-		return false, errors.New("NethCTI session unavailable")
+		return "", errors.New("NethCTI session unavailable")
 	}
 
 	cfg := &configuration.Config
 	url := cfg.V1Protocol + "://" + cfg.V1ApiEndpoint + cfg.V1ApiPath + "/astproxy/extensions"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 	req.Header.Set("Authorization", session.NethCTIToken)
 	var states map[string]struct {
@@ -143,10 +168,10 @@ func screenShareCallConnected(ctx context.Context, username string, extensions [
 		} `json:"conversations"`
 	}
 	if err := readScreenShareResponse(req, &states); err != nil {
-		return false, err
+		return "", err
 	}
 	if states == nil {
-		return false, errors.New("missing extension state")
+		return "", errors.New("missing extension state")
 	}
 	var incomplete bool
 	for _, extension := range extensions {
@@ -159,14 +184,14 @@ func screenShareCallConnected(ctx context.Context, username string, extensions [
 			if conversation.Connected == nil {
 				incomplete = true
 			} else if *conversation.Connected {
-				return true, nil
+				return extension, nil
 			}
 		}
 	}
 	if incomplete {
-		return false, errors.New("incomplete extension state")
+		return "", errors.New("incomplete extension state")
 	}
-	return false, nil
+	return "", nil
 }
 
 func readScreenShareResponse(req *http.Request, dest any) error {

@@ -185,7 +185,7 @@ func (s screenShareJanusSession) destroyRoom(ctx context.Context, room uint64) e
 
 // Reconcile runs a sweep at startup and then every 30 seconds.
 func (rooms *ScreenShareRooms) Reconcile(ctx context.Context) {
-	if rooms.janus.url == "" || rooms.db == nil {
+	if rooms.janus.url == "" {
 		return
 	}
 	ticker := time.NewTicker(30 * time.Second)
@@ -205,7 +205,11 @@ func (rooms *ScreenShareRooms) Reconcile(ctx context.Context) {
 }
 
 func (rooms *ScreenShareRooms) reconcileExpired(ctx context.Context) error {
-	rows, err := rooms.db.QueryContext(ctx, `SELECT room_id, marker FROM screen_share_pending_rooms
+	database := rooms.getDB(ctx)
+	if database == nil {
+		return errors.New("screen share database unavailable")
+	}
+	rows, err := database.QueryContext(ctx, `SELECT room_id, marker FROM screen_share_pending_rooms
 		WHERE cleanup_at <= UTC_TIMESTAMP(6) ORDER BY cleanup_at`)
 	if err != nil {
 		return err
@@ -245,7 +249,7 @@ func (rooms *ScreenShareRooms) reconcileExpired(ctx context.Context) error {
 		}
 		gone, err := session.cleanupRoom(ctx, pending.id, pending.marker, list)
 		if gone {
-			_, err = rooms.db.ExecContext(ctx, "DELETE FROM screen_share_pending_rooms WHERE room_id = ? AND marker = ?", pending.id, pending.marker)
+			_, err = database.ExecContext(ctx, "DELETE FROM screen_share_pending_rooms WHERE room_id = ? AND marker = ?", pending.id, pending.marker)
 		}
 		if firstError == nil {
 			firstError = err

@@ -84,7 +84,7 @@ func main() {
 	})
 
 	// Create router
-	screenShareRooms := methods.NewScreenShareRooms(db.DB, os.Getenv("JANUS_TRANSPORT_PORT"), os.Getenv("JANUS_ADMIN_SECRET"))
+	screenShareRooms := methods.NewScreenShareRooms(db.GetDBContext, os.Getenv("JANUS_TRANSPORT_PORT"), os.Getenv("JANUS_ADMIN_SECRET"))
 	go screenShareRooms.Reconcile(context.Background())
 	router := createRouter(screenShareRooms)
 

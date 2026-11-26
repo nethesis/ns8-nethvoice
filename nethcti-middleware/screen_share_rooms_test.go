@@ -21,6 +21,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	jwtv5 "github.com/golang-jwt/jwt/v5"
@@ -78,10 +79,18 @@ func TestScreenShareRoomsRoute(t *testing.T) {
 
 	var callStateUnavailable atomic.Bool
 	var emptyCallState atomic.Bool
+	reloadUsersDuringLookup := make(chan string, 1)
 	v1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/webrest/astproxy/extensions", r.URL.Path)
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, authToken, r.Header.Get("Authorization"))
+		select {
+		case contents := <-reloadUsersDuringLookup:
+			assert.NoError(t, os.WriteFile(users, []byte(contents), 0600))
+			_, err := store.ReloadProfiles()
+			assert.NoError(t, err)
+		default:
+		}
 		if callStateUnavailable.Load() {
 			http.Error(w, "private upstream failure", http.StatusBadGateway)
 			return
@@ -162,7 +171,8 @@ func TestScreenShareRoomsRoute(t *testing.T) {
 	}))
 	defer janus.Close()
 	port := janus.Listener.Addr().String()[len("127.0.0.1:"):]
-	router := createRouter(methods.NewScreenShareRooms(db.DB, port, key))
+	var roomDatabase *sql.DB
+	router := createRouter(methods.NewScreenShareRooms(func(context.Context) *sql.DB { return roomDatabase }, port, key))
 	post := func(token, body string) *httptest.ResponseRecorder {
 		response := httptest.NewRecorder()
 		router.ServeHTTP(response, screenShareTestRequest(token, body, ""))
@@ -218,13 +228,54 @@ func TestScreenShareRoomsRoute(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, closedDB.Close())
 	reservationFailure := httptest.NewRecorder()
-	createRouter(methods.NewScreenShareRooms(closedDB, port, key)).ServeHTTP(
+	createRouter(methods.NewScreenShareRooms(func(context.Context) *sql.DB { return closedDB }, port, key)).ServeHTTP(
 		reservationFailure, screenShareTestRequest(tokens["share-full"], validBody, ""),
 	)
 	assert.Equal(t, http.StatusServiceUnavailable, reservationFailure.Code)
 	assert.Zero(t, janusCalls.Load())
 	assert.Equal(t, post(tokens["share-full"], `{"conversationId":"foreign"}`).Body.String(),
 		post(tokens["share-full"], `{"conversationId":"ended"}`).Body.String())
+
+	// The same router recovers when MariaDB becomes available after startup.
+	require.Equal(t, http.StatusServiceUnavailable, post(tokens["share-full"], validBody).Code)
+	require.Zero(t, janusCalls.Load())
+	roomDatabase = db.GetDB()
+	require.NotNil(t, roomDatabase)
+
+	// Partial reloads still serve cached profiles elsewhere. Room creation
+	// stays unavailable until the configured users and permissions reload.
+	for _, file := range []string{users, profiles} {
+		contents, err := os.ReadFile(file)
+		require.NoError(t, err)
+		require.NoError(t, os.Remove(file))
+		_, err = store.ReloadProfiles()
+		require.NoError(t, err)
+		require.Equal(t, http.StatusServiceUnavailable, post(tokens["share-full"], validBody).Code)
+		require.Zero(t, janusCalls.Load())
+		require.NoError(t, os.WriteFile(file, contents, 0600))
+		_, err = store.ReloadProfiles()
+		require.NoError(t, err)
+	}
+
+	// Reassigning the connected extension, revoking permission, or a failed
+	// reload during the CTI lookup must invalidate the in-flight authorization.
+	userConfig, err := os.ReadFile(users)
+	require.NoError(t, err)
+	for _, change := range []struct {
+		users  string
+		status int
+	}{
+		{`{"share-full":{"profile_id":"full","endpoints":{"extension":{"100":{}}}}}`, http.StatusNotFound},
+		{`{"share-full":{"profile_id":"no-share","endpoints":{"extension":{"101":{}}}}}`, http.StatusForbidden},
+		{"{", http.StatusServiceUnavailable},
+	} {
+		reloadUsersDuringLookup <- change.users
+		require.Equal(t, change.status, post(tokens["share-full"], validBody).Code)
+		require.Zero(t, janusCalls.Load())
+		require.NoError(t, os.WriteFile(users, userConfig, 0600))
+		_, err := store.ReloadProfiles()
+		require.NoError(t, err)
+	}
 
 	created := post(tokens["share-full"], validBody)
 	require.Equal(t, http.StatusCreated, created.Code, created.Body.String())
@@ -248,6 +299,20 @@ func TestScreenShareRoomsRoute(t *testing.T) {
 
 	t.Run("pinned Janus lifecycle", func(t *testing.T) {
 		verifyScreenShareLifecycle(t, tokens["share-full"], validBody, key)
+	})
+}
+
+func TestScreenShareCleanupRetriesUnavailableDatabase(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		attempts := 0
+		rooms := methods.NewScreenShareRooms(func(context.Context) *sql.DB {
+			attempts++
+			return nil
+		}, "8089", "testKey")
+		ctx, cancel := context.WithTimeout(context.Background(), 31*time.Second)
+		defer cancel()
+		rooms.Reconcile(ctx)
+		require.Equal(t, 2, attempts, "sweep at startup and again after 30 seconds")
 	})
 }
 
@@ -321,7 +386,7 @@ func verifyScreenShareLifecycle(t *testing.T, token, body, key string) {
 		assert.Equal(t, "destroyed", result["videoroom"], result)
 	}
 
-	rooms := methods.NewScreenShareRooms(db.DB, port, key)
+	rooms := methods.NewScreenShareRooms(db.GetDBContext, port, key)
 	router := createRouter(rooms)
 	created := httptest.NewRecorder()
 	router.ServeHTTP(created, screenShareTestRequest(token, body, ""))
@@ -383,7 +448,7 @@ func verifyScreenShareLifecycle(t *testing.T, token, body, key string) {
 	proxyURL, err := url.Parse(dropJanusResponse.URL)
 	require.NoError(t, err)
 	lostInJanus := httptest.NewRecorder()
-	createRouter(methods.NewScreenShareRooms(db.DB, proxyURL.Port(), key)).ServeHTTP(
+	createRouter(methods.NewScreenShareRooms(db.GetDBContext, proxyURL.Port(), key)).ServeHTTP(
 		lostInJanus, screenShareTestRequest(token, body, ""),
 	)
 	require.Equal(t, http.StatusServiceUnavailable, lostInJanus.Code)
@@ -427,7 +492,7 @@ func verifyScreenShareLifecycle(t *testing.T, token, body, key string) {
 		done := make(chan struct{})
 		go func() {
 			defer close(done)
-			methods.NewScreenShareRooms(db.DB, port, key).Reconcile(ctx)
+			methods.NewScreenShareRooms(db.GetDBContext, port, key).Reconcile(ctx)
 		}()
 		defer func() {
 			cancel()
