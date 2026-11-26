@@ -186,7 +186,7 @@ class Storage:
         with database('monitor') as db:
             with db.cursor() as cursor:
                 cursor.execute('UPDATE asterisk.voice_agent_webhook_verification SET webhook_verified_at=NOW() '
-                               'WHERE binding_id=%s AND SHA2(secrets_encrypted,256)=%s',
+                               'WHERE binding_id=%s AND signing_generation=%s',
                                (binding['binding_id'], binding['_signing_generation']))
 
     def media_ownership(self):

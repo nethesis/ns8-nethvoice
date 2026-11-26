@@ -18,6 +18,11 @@ final class SecretStore
         $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
         return base64_encode($nonce . sodium_crypto_secretbox($plaintext, $nonce, $this->key()));
     }
+    public function encryptRuntimeCredentials(array $secrets): string
+    {
+        $credentials=array_intersect_key($secrets,['api_key'=>true,'webhook_secret'=>true]);
+        return $this->encryptSecret(json_encode((object)$credentials,JSON_THROW_ON_ERROR));
+    }
     public function decryptSecret(?string $encoded): string
     {
         if (!$encoded) return '';

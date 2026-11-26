@@ -234,6 +234,11 @@ def main():
     try:
         while not apply():
             time.sleep(5)
+        # Use the applied generation. A newer request can be queued while this
+        # worker is running and has its own drain before disabling Agents.
+        if STATE.exists() and json.loads(STATE.read_text()).get('agents') is False:
+            run('podman', 'exec', 'freepbx', 'php',
+                '/var/www/html/freepbx/rest/lib/agents/install-runtime.php', '--disable-accounts')
         FAILED.unlink(missing_ok=True)
     except Exception as error:
         # Existence still means failed; the content is only a stable reason code.
