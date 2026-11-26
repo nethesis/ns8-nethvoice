@@ -232,7 +232,8 @@ class _RealtimeAdapter:
             self._provider_warning = None
         while not self._observation_queue.empty():
             event = self._observation_queue.get_nowait()
-            if event.get('type') in ('usage', 'monitoring_gap', 'response_started'):
+            kind = event.get('type')
+            if kind in ('usage', 'monitoring_gap', 'response_started', 'transcript_failed', 'transcript'):
                 result.append(event)
         while not self._queue.empty():
             event = self._queue.get_nowait()

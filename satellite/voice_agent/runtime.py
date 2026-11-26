@@ -70,6 +70,7 @@ class Call:
     started_at: object = field(default_factory=lambda: datetime.now(timezone.utc))
     transcript_keys: set = field(default_factory=set)
     transcript_bytes: int = 0
+    transcript_pending: dict | None = field(default=None, repr=False)
     caller_number: str | None = field(default=None, repr=False)
     caller_name: str = field(default='', repr=False)
     recent: object | None = field(default=None, repr=False)
@@ -787,7 +788,7 @@ class Runtime:
             profile['prompt'] += '\n\n' + call.tools.hangup_context()
             if call.binding.get('adapter') in ('live', 'live_ws'):
                 profile['_routing_context'] += '\n\n' + call.tools.hangup_context()
-            profile['_capture_transcripts'] = call.snapshot.get('debug', {}).get('transcription_enabled') is True
+            profile['_capture_transcripts'] = self.transcripts.enabled(call)
             if call.binding.get('adapter') == 'live_ws':
                 from .media import AudioBridge
                 stage = 'media_prepare'
@@ -856,9 +857,9 @@ class Runtime:
             stage='provider_stream'
             stream_span = trace.start('provider_stream')
             async for event in call.adapter.events():
+                self.observe(call, event)
                 if call.terminal:
                     break
-                self.observe(call, event)
                 if event.get('type') == 'input_speech' and call.private_consultation:
                     call.private_consultation.colleague_spoke = True
                 if event.get('type') == 'closed':
@@ -873,15 +874,6 @@ class Runtime:
                     failure = ProviderError(safe_error(event.get('code')))
                     failure.provider_code = event.get('provider_code')
                     raise failure
-                if event.get('type') == 'transcript':
-                    try:
-                        self.transcripts.capture(call, event)
-                    except Exception:
-                        self.transcripts.failed(call)
-                if event.get('type') == 'monitoring_gap':
-                    trace.gap()
-                if event.get('type') in ('transcript_failed', 'monitoring_gap') and profile['_capture_transcripts']:
-                    self.transcripts.failed(call)
                 if event.get('type') == 'tool_call':
                     if len(call.tasks)>=32 or len(self.tasks)>=512:
                         raise ValueError('tool_capacity_exceeded')
@@ -918,8 +910,16 @@ class Runtime:
         elif kind in ('response_started','response_done'):
             trace.response(event.get('response_id'), started=kind=='response_started',
                            status=event.get('status'), at=event.get('_observed_at'))
-        elif kind == 'monitoring_gap':
-            trace.gap()
+        elif kind == 'transcript':
+            try:
+                self.transcripts.capture(call, event)
+            except Exception:
+                self.transcripts.failed(call)
+        elif kind in ('transcript_failed', 'monitoring_gap'):
+            if kind == 'monitoring_gap':
+                trace.gap()
+            if self.transcripts.enabled(call):
+                self.transcripts.failed(call)
 
     async def greet(self,call,instructions):
         try:
@@ -1137,6 +1137,10 @@ class Runtime:
                         self.observe(call, observation)
             except Exception:
                 trace.gap()
+        try:
+            self.transcripts.flush(call)
+        except Exception:
+            self.transcripts.failed(call)
         trace.end(cleanup_span, 'failed' if cleanup_failed else 'completed',error='cleanup_failed' if cleanup_failed else None)
         details = trace.finish()
         kind = outcome if outcome in ('completed','fallback','failed','interrupted') else 'completed'

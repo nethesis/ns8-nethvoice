@@ -383,8 +383,8 @@ class OpenAILiveAdapter(_RealtimeAdapter):
             self._capture = False
             return
         self._observed.add(event_id)
-        # Live has no item IDs or final-turn transcript events. Each received
-        # fragment is an immutable history item, preserving its text verbatim.
+        # Live has no final-turn transcript events. Pass each distinct fragment
+        # verbatim to the transcript sink, which groups adjacent speaker text.
         await self._observation({"type": "transcript", "item_id": event_id[:128],
             "content_index": 0, "text": text, "position": len(self._observed),
             "role": "caller" if raw["type"] == "session.input_transcript.delta" else "assistant",

@@ -210,7 +210,7 @@ async def test_live_rejects_unadvertised_wire_tools_and_redacts_command_errors()
 async def test_live_input_rate_limit_is_not_fatal_and_other_errors_keep_their_code(caplog):
     async with connected() as (adapter,emulator):
         for _ in range(adapter._observation_queue.maxsize):
-            await adapter._observation({'type': 'transcript'})
+            await adapter._observation({'type': 'unrelated_observation'})
         dropped={'type':'error','error':{'type':'invalid_request_error','code':'input_audio_rate_limit_exceeded',
                  'message':'PRIVATE Input audio is arriving too quickly. This append was dropped.'}}
         for _ in range(3):
