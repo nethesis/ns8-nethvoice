@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 root=Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(root/'imageroot/pypkg'))
 from video_gateway import TCP_PORT_VARS
+from voice_preview import TCP_PORT_VARS as AGENT_TCP_PORT_VARS
 
 state={'environment':{'NETHVOICE_HOST':'synthetic.example','NETHVOICE_RECIPIENT_SERVICE_PORT':'30001','VOICE_AGENT_CHAT_PORT':'30002'},'passwords.env':{
     'SATELLITE_ARI_PASSWORD':'synthetic-ari','MARIADB_ROOT_PASSWORD':'synthetic-root',
@@ -42,10 +43,10 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
             assert state['environment']['VOICE_AGENT_HTTP_PORT']=='31042'
             agent.allocate_ports.assert_not_called()
         # Older or differently laid-out installations need a new allocation.
-        for total in (39,40,42,44):
+        for total in (39,40,42,43):
             state['environment'].pop('VOICE_AGENT_HTTP_PORT',None)
             state['environment']['TCP_PORTS_RANGE']='31000-'+str(31000+total-1)
-            if total==44:
+            if total==43:
                 state['environment']['CHAT_GW_PORT']='31042'
             agent.allocate_ports.reset_mock()
             agent.allocate_ports.side_effect=None
@@ -92,11 +93,11 @@ with tempfile.TemporaryDirectory() as temporary, patch.dict('sys.modules',{'agen
         agent.allocate_ports.side_effect=[(40000,40999), (41000,41000), (41001,41001)]
         with patch.dict(os.environ,{'TCP_PORTS_RANGE':'32000-32049','UDP_PORTS_RANGE':'40000-42999'}):
             runpy.run_path(str(root/'imageroot/actions/create-module/05setenvs'))
-        assert state['environment']['VOICE_AGENT_HTTP_PORT']==32042
+        assert [state['environment'][name] for name in AGENT_TCP_PORT_VARS]==list(range(32046,32049))
         assert state['environment']['OAUTH2_PROXY_PORT']==32037
         assert [state['environment'][name] for name in
             ('CHAT_C2S_PORT','CHAT_HTTP_PORT','CHAT_COMPONENT_PORT','CHAT_GW_PORT')]==list(range(32038,32042))
-        assert [state['environment'][name] for name in TCP_PORT_VARS]==list(range(32045,32049))
+        assert [state['environment'][name] for name in TCP_PORT_VARS]==list(range(32042,32046))
         assert [call.args for call in agent.allocate_ports.call_args_list]==[(1000,'udp'), (1,'udp')]
         assert agent.allocate_ports.call_args.kwargs=={'keep_existing':True}
         source = dict(state['passwords.env'])

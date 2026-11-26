@@ -52,8 +52,10 @@ class VideoGatewayApiPasswordTest(unittest.TestCase):
                 self.assertIn(ex.code, (0, None))
 
     def test_new_install_generates_it(self):
+        containerfile = (REPO / "Containerfile").read_text()
+        tcp_demand = int(re.search(r'^LABEL org\.nethserver\.tcp-ports-demand="(\d+)"$', containerfile, re.MULTILINE)[1])
         self.run_script("actions/create-module/05setenvs", {
-            "TCP_PORTS_RANGE": "20000-20046", "UDP_PORTS_RANGE": "30000-32999",
+            "TCP_PORTS_RANGE": f"20000-{20000 + tcp_demand - 1}", "UDP_PORTS_RANGE": "30000-32999",
         })
         password = self.files["passwords.env"].get("MEDIAMTX_API_PASSWORD", "")
         self.assertRegex(password, r"^[A-Za-z0-9]{32}$")

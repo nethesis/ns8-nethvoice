@@ -24,7 +24,7 @@ TCP_PORT_VARS = (
 )
 UDP_PORT_VAR = "MEDIAMTX_ICE_UDP_PORT"
 # First index of TCP_PORT_VARS in the TCP_PORTS_RANGE of a new install
-TCP_RANGE_OFFSET = 45
+TCP_RANGE_OFFSET = 42
 
 
 def ice_env(srv):
