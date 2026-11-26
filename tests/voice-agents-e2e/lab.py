@@ -25,9 +25,11 @@ class Lab:
         self.state = {}
         self.metadata = {}
         self.versions = {}
+        self.agent_ids = {}
         self._configured = {}
         self.cti = None
         self._cti_ready = False
+        self._cti_login_ready = False
         self._helper = Path(__file__).with_name("fixture.php").read_text().removeprefix("<?php")
         start = 8_000_000 + secrets.randbelow(900_000)
         roles = ["caller", "colleague", "alternate", "denied"]
@@ -148,6 +150,7 @@ class Lab:
                           attended=attended, chat=chat, fallback=fallback, callbacks=callbacks,
                           exclude_callback=exclude_callback, direct=direct, queues=queues)
         self.versions[transport] = agent["workflow_version"]
+        self.agent_ids[transport] = agent["agent_id"]
         route = self.state["routes"][transport]
         if agent["new_route"] or fallback:
             self._reload()
@@ -180,9 +183,15 @@ class Lab:
         return self._php("mailbox_count")["count"]
 
     def ensure_cti_login(self):
-        if self.state.get("directory_provider") and self._php("directory_owner")["owned"]:
+        owned = self.state.get("directory_provider") and self._php("directory_owner")["owned"]
+        if owned and self._cti_login_ready:
             return
-        self._add_directory_identity()
+        self._cti_login_ready = False
+        if not owned:
+            self._add_directory_identity()
+        self._reload_cti_profiles(present=True)
+        self._ssh(["systemctl", "--user", "reload", "nethcti-server.service"])
+        self._cti_login_ready = True
 
     def _add_directory_identity(self):
         if not self.cti:
@@ -208,7 +217,6 @@ class Lab:
                                         password=self.cti["password"],locked=False)))
         if not self._php("directory_owner")["owned"]:
             raise LabError("directory did not confirm owned colleague")
-        self._reload_cti_profiles(present=True)
 
     def _reload_cti_profiles(self, *, present):
         self._php("cti_config", present=present)

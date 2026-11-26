@@ -75,3 +75,17 @@ runner. That key is used only for the synthetic caller audio and transcription.
 Select `--transport live` on a preview instance. The SIP comparison requires
 an isolated instance with `VOICE_AGENT_SIP_LAB_ENABLED=true`, a configured
 OpenAI signing secret, and a reachable webhook.
+
+Run `python3 tests/voice-agents-e2e/run.py private-greeting --transport live`
+to isolate the private GPT-Live opening. The probe originates the normal private
+consultation leg to its temporary extension and starts the published consultation
+assistant without waiting for a transfer decision from the public agent. It
+compares a silent answer, a spoken greeting from the test phone, and a delayed
+provider activation prompt. The parent modes keep a real public caller session
+open and originate the consultation with that channel as its originator.
+Use `--case silent` for the unattended baseline or `--calls-per-mode 3` to repeat.
+The `parent-recovery` control records the production greeting timeout and keeps
+that provider session open briefly to test whether an activation prompt wakes it.
+The report records provider readiness, input and output timing, and the synthetic
+phrase heard at the phone. The probe uses an isolated ARI application and skips
+Activity persistence for the synthetic parent and child.

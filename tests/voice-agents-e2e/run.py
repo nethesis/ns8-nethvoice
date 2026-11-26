@@ -17,7 +17,7 @@ from lab import Lab
 from latency import latency_summary, measure_greeting
 from media import RemotePhone
 from phone_cleanup import recover_phones
-from scenarios import Call, matrix, require
+from scenarios import BRIDGE_MARKERS, Call, matches, matrix, require
 from speech import LabSpeech, SatelliteSpeech, prepare
 
 
@@ -55,12 +55,12 @@ def calibration(phones, fixture, clips, speech):
     peer.answer()
     caller.wait("CONFIRMED", 15)
     peer.wait("CONFIRMED", 15)
-    for sender, receiver, phrase, word in ((caller, peer, "caller_marker", "tulipano"),
-                                            (peer, caller, "colleague_marker", "castagna")):
+    for sender, receiver, phrase in ((caller, peer, "caller_marker"),
+                                     (peer, caller, "colleague_marker")):
         mark = receiver.mark()
         sender.play(clips[phrase])
         text = speech.transcribe(receiver.listen(mark, 12), "it")
-        require(word in text.casefold(), "SIP calibration failed for received marker " + word)
+        require(matches(text, BRIDGE_MARKERS[phrase]), "SIP calibration failed for " + phrase)
     disconnect(phones)
 
 
@@ -104,34 +104,34 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--speech-backend", choices=("satellite", "deepgram"), default="satellite",
                         help="deepgram uses the runner-owned NVAGENT_LAB_DEEPGRAM_KEY")
-    parser.add_argument("profile", nargs="?", choices=["functional", "smoke", "recovery", "latency", "audio", "preflight", "list", "cleanup"],
+    parser.add_argument("profile", nargs="?", choices=["functional", "smoke", "recovery", "latency", "private-greeting", "audio", "preflight", "list", "cleanup"],
                         default="functional")
     parser.add_argument("--host", default="root@makako.sf.nethserver.net")
     parser.add_argument("--domain", default="voice2.makako.sf.nethserver.net")
     parser.add_argument("--module", default="nethvoice70")
-    parser.add_argument("--calls-per-mode", type=int, help="Fresh calls for each latency caller mode (default 20)")
+    parser.add_argument("--calls-per-mode", type=int, help="Fresh calls per mode (default 20 for latency, 1 for private greeting)")
     parser.add_argument("--case", dest="cases", action="append", help="Scenario name; repeat to select several")
     parser.add_argument("--transport", choices=["realtime", "live"])
     parser.add_argument("--sip-helper")
     parser.add_argument("--run-dir", type=Path, help="New private results directory, or existing directory for cleanup")
     args = parser.parse_args(argv)
-    if args.calls_per_mode is not None and (args.profile != "latency" or not 1 <= args.calls_per_mode <= 20):
-        parser.error("--calls-per-mode requires latency and a count between 1 and 20")
+    if args.calls_per_mode is not None and (args.profile not in ("latency", "private-greeting")
+                                           or not 1 <= args.calls_per_mode <= 20):
+        parser.error("--calls-per-mode requires latency or private-greeting and a count between 1 and 20")
     launch = Path.cwd()
     if args.profile == "list":
-        for profile in ("smoke", "functional", "recovery", "latency"):
+        for profile in ("smoke", "functional", "recovery", "latency", "private-greeting"):
             print(profile, " ".join(f"{t}/{c}" for t, c in matrix(profile)))
         return 0
     eligible = matrix(args.profile)
-    if args.profile == "latency":
-        if args.cases:
-            parser.error("latency measures both caller modes; select the batch size with --calls-per-mode")
-        eligible = [row for _ in range(args.calls_per_mode or 20) for row in eligible]
+    if args.profile == "latency" and args.cases:
+        parser.error("latency measures both caller modes; select the batch size with --calls-per-mode")
     eligible = [(t, c) for t, c in eligible if not args.transport or args.transport == t]
     missing = set(args.cases or ()) - {c for _, c in eligible}
     if missing:
         parser.error("cases unavailable for selected profile and transport: " + ", ".join(sorted(missing)))
     cases = [(t, c) for t, c in eligible if not args.cases or c in args.cases]
+    cases *= args.calls_per_mode or (20 if args.profile == "latency" else 1)
     if not cases:
         parser.error("no scenario matches this profile and selection")
     os.umask(0o077)
@@ -206,6 +206,9 @@ def main(argv=None):
                 try:
                     if args.profile == "latency":
                         measure_greeting(case, row)
+                    elif args.profile == "private-greeting":
+                        from private_greeting import measure_private_greeting
+                        measure_private_greeting(case, row)
                     else:
                         case.run()
                     row["status"] = "passed"
