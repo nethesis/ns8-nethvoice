@@ -19,7 +19,7 @@ const summary = {coverage:{total_runs:180,instrumented_runs:180,partial_runs:2,i
   errors:[{phase:'provider_sideband',error_code:'provider_http_503',count:2}]};
 
 type Seen = {summary: URLSearchParams[]; runs: URLSearchParams[]; searches: Record<string, unknown>[]};
-async function mock(page: Page, language: string, options: {timezoneUnavailable?: boolean} = {}) {
+async function mock(page: Page, language: string, options: {timezoneUnavailable?: boolean; paged?: boolean} = {}) {
   page.on('pageerror', error => {throw error;});
   await page.addInitScript(language => {
     localStorage.setItem('secretkey', JSON.stringify({user:'administrator',hash:'synthetic'}));
@@ -49,6 +49,9 @@ async function mock(page: Page, language: string, options: {timezoneUnavailable?
       : path==='/profiles' ? {items:[{agent_id:'receptionist',name:'Receptionist'},{agent_id:'sales',name:'Sales'}]}
       : path==='/monitoring/summary' ? summary
       : path==='/monitoring/health' ? {stale:false,degraded:true,ari_connected:true,queue_depth:2,oldest_pending_seconds:5,dropped:1,retries:3,last_write_at:'2026-10-20 12:00:00'}
+      : path==='/runs' && options.paged ? (url.searchParams.get('page')==='2'
+        ? {items:Array.from({length:3},(_,i)=>({...olderRun,run_id:'p2-'+i})),has_more:false}
+        : {items:Array.from({length:25},(_,i)=>({...olderRun,run_id:'p1-'+i})),has_more:true})
       : path==='/runs' ? {items:[run, olderRun],has_more:false}
       : {};
     await route.fulfill({json});
@@ -159,3 +162,23 @@ test('unavailable metrics show errors rather than fabricated zero counts', async
   await page.getByRole('button',{name:'Diagnostics',exact:true}).click();
   await expect(page.getByText('The status of the agent service is not available.',{exact:false})).toBeVisible();
 });
+
+for (const language of ['en', 'it']) {
+  test(`calls pagination reads without a total (${language})`, async ({page}) => {
+    const en = language === 'en';
+    const seen = await mock(page, language, {paged: true});
+    await page.goto('./#/activity');
+    const pagination = page.getByTestId('calls-pagination');
+    await expect(pagination).toContainText(en ? 'Calls 1–25' : 'Chiamate 1–25');
+    await expect(pagination).not.toContainText(en ? ' of' : ' di');
+    const previous = pagination.getByRole('button', {name: en ? 'Previous' : 'Precedente', exact: true});
+    const next = pagination.getByRole('button', {name: en ? 'Next' : 'Successiva', exact: true});
+    await expect(previous).toBeDisabled();
+    await next.click();
+    await expect(pagination).toContainText(en ? 'Calls 26–28' : 'Chiamate 26–28');
+    expect(seen.runs.at(-1)!.get('page')).toBe('2');
+    await expect(next).toBeDisabled();
+    await previous.click();
+    await expect(pagination).toContainText(en ? 'Calls 1–25' : 'Chiamate 1–25');
+  });
+}
