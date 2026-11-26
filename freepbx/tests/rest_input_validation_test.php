@@ -158,7 +158,7 @@ $patch("$sandbox/rest/lib/libCTI.php", "include_once '/etc/freepbx.conf';", '', 
 $patch("$sandbox/rest/lib/libCTI.php", "include_once '/var/www/html/freepbx/admin/modules/customcontexts/functions.inc.php';", '', 1);
 $patch("$sandbox/rest/lib/libCTI.php", "include_once '/var/www/html/freepbx/rest/config.inc.php';", '', 1);
 $patch("$sandbox/rest/lib/libCTI.php", "include_once '/var/www/html/freepbx/rest/lib/context_default_permissions.php';", '', 1);
-foreach (['webrtc.php' => 2, 'nethlink.php' => 2, 'physicalextensions.php' => 7, 'devices.php' => 1, 'routes.php' => 4, 'bulk.php' => 1, 'cti.php' => 22, 'trunks.php' => 3, 'settings.php' => 1, 'mainextensions.php' => 3] as $module => $helpers) {
+foreach (['webrtc.php' => 2, 'nethlink.php' => 2, 'physicalextensions.php' => 7, 'devices.php' => 1, 'routes.php' => 4, 'bulk.php' => 1, 'cti.php' => 23, 'trunks.php' => 3, 'settings.php' => 1, 'mainextensions.php' => 3] as $module => $helpers) {
     copy("$rest/modules/$module", "$sandbox/rest/modules/$module");
     $patch("$sandbox/rest/modules/$module", "system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');", 'null;', $helpers);
 }
