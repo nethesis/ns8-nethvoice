@@ -347,6 +347,7 @@ const multiselectLabels = computed(() => ({
         :model-value="recentOn"
         :label="t('agentTools.recent')"
         :tip="t('agentEditor.recentTip')"
+        :helper-text="t('agentEditor.recentRequires')"
         :disabled="!transfer.enabled"
         @update:model-value="
           form.clearError('lookback');

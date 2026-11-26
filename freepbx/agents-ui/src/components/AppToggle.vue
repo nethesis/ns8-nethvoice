@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue";
+import { onMounted, ref, useId, watch } from "vue";
 import { NeToggle } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
 import InfoTip from "./InfoTip.vue";
@@ -10,17 +10,23 @@ const props = defineProps<{
   label: string;
   tip?: string;
   disabled?: boolean;
+  // Shown under the switch, for what the user needs to know.
+  helperText?: string;
 }>();
 const emit = defineEmits<{ "update:modelValue": [value: boolean] }>();
 const { t } = useI18n();
 const root = ref<HTMLElement>();
+const helperId = useId();
 // NeToggle names the switch with its side label (Enabled or Disabled), not
 // with the top label: name it after the setting for screen readers.
 function name() {
-  root.value?.querySelector("input")?.setAttribute("aria-label", props.label);
+  const input = root.value?.querySelector("input");
+  input?.setAttribute("aria-label", props.label);
+  if (props.helperText) input?.setAttribute("aria-describedby", helperId);
+  else input?.removeAttribute("aria-describedby");
 }
 onMounted(name);
-watch(() => props.label, name, { flush: "post" });
+watch(() => [props.label, props.helperText], name, { flush: "post" });
 </script>
 <template>
   <div ref="root">
@@ -38,5 +44,8 @@ watch(() => props.label, name, { flush: "post" });
         />
       </template>
     </NeToggle>
+    <p v-if="helperText" :id="helperId" class="text-muted mt-2 text-sm">
+      {{ helperText }}
+    </p>
   </div>
 </template>

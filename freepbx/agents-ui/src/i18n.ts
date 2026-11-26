@@ -1067,7 +1067,8 @@ const en = {
     routingLater:
       "After creating the agent, you can add a routing description to each destination.",
     recentTip:
-      "Offer the people who recently called or spoke with the caller. The caller confirms or chooses the contact. Requires @:{'agentTools.transfer'}.",
+      "Offer the people who recently called or spoke with the caller. The caller confirms or chooses the contact.",
+    recentRequires: "Requires @:{'agentTools.transfer'}.",
     lookbackPlaceholder: "e.g. 7",
     goodbyePlaceholder: "e.g. 5",
     cannotSave: "Cannot save agent",
@@ -2259,7 +2260,8 @@ const it: typeof en = {
     routingLater:
       "Dopo aver creato l'agente, puoi aggiungere una descrizione di instradamento a ogni destinazione.",
     recentTip:
-      "Proponi le persone che hanno chiamato o parlato di recente con il chiamante. Il chiamante conferma o sceglie il contatto. Richiede @:{'agentTools.transfer'}.",
+      "Proponi le persone che hanno chiamato o parlato di recente con il chiamante. Il chiamante conferma o sceglie il contatto.",
+    recentRequires: "Richiede @:{'agentTools.transfer'}.",
     lookbackPlaceholder: "es. 7",
     goodbyePlaceholder: "es. 5",
     cannotSave: "Impossibile salvare l'agente",

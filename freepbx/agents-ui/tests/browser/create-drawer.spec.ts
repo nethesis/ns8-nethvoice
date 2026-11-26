@@ -40,7 +40,11 @@ test("basic voice agent: three steps, Next checks the step, Publish jumps to the
   await expect(drawer(page).getByText("Step 3/3")).toBeVisible();
   // Transfer starts off for new agents.
   await expect(toggle(page, "Transfer calls")).not.toBeChecked();
+  // Recent contacts says why it is off.
+  await expect(toggle(page, "Recent contacts")).toBeDisabled();
+  await expect(toggle(page, "Recent contacts")).toHaveAccessibleDescription("Requires Transfer calls.");
   await flip(page, "Transfer calls");
+  await expect(toggle(page, "Recent contacts")).toBeEnabled();
   await button(page, "Publish").click();
   await expect(page.getByText("Select at least one queue or extension", { exact: true })).toBeVisible();
   await page.getByRole("combobox", { name: "Queues", exact: true }).click();
