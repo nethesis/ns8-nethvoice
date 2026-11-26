@@ -25,7 +25,7 @@ import {
 import { faAiSpark } from "../aiSpark";
 import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
-import { request, queryClient } from "../api";
+import { request, queryClient, openVisualplan, visualplanUrl } from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import { agentStatus } from "../agentStatus";
@@ -156,15 +156,12 @@ const setupSteps = computed<SetupStep[]>(() => {
     steps.push({
       id: "route",
       label: t("agentsList.setup.route"),
-      href: "/freepbx/visualplan/",
+      href: visualplanUrl,
       link: t("openVisualplan"),
     });
   return steps;
 });
 
-function openVisualplan() {
-  window.open("/freepbx/visualplan/", "_blank", "noopener");
-}
 const removing = ref<Agent>();
 function menu(row: JsonObject): NeDropdownItem[] {
   const agent = row as unknown as Agent;
@@ -274,6 +271,7 @@ onBeforeRouteUpdate(async (to, from) => {
             target="_blank"
             rel="noopener"
             class="font-medium underline"
+            @click.prevent="openVisualplan"
             >{{ item.link }}</a
           >
         </li>

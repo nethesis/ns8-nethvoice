@@ -57,6 +57,37 @@ test("setup notice asks for a VisualPlan route from the in_use of the agents", a
   await expect(notice(page)).toHaveCount(0);
 });
 
+test("Open VisualPlan opens the FreePBX session first, so that the first click reaches VisualPlan", async ({ page, context }) => {
+  await mockApi(page, {
+    profiles: { receptionist: profile({ workflow_version: 1, enabled: true, in_use: false }) },
+  });
+  const order: string[] = [];
+  await context.route("**/freepbx/rest/login", async (route) => {
+    order.push("login " + route.request().headers()["user"]);
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    await route.fulfill({ json: { success: true } });
+  });
+  await context.route("**/freepbx/visualplan/", async (route) => {
+    order.push("visualplan");
+    await route.fulfill({ contentType: "text/html", body: "<title>VisualPlan</title>" });
+  });
+  await page.goto("./#/agents");
+  for (const open of [
+    () => page.getByRole("button", { name: "Open VisualPlan", exact: true }).click(),
+    () => notice(page).getByRole("link", { name: "Open VisualPlan" }).click(),
+  ]) {
+    order.length = 0;
+    const popup = context.waitForEvent("page");
+    await open();
+    const tab = await popup;
+    await expect(tab).toHaveURL(/\/freepbx\/visualplan\/$/);
+    expect(order).toEqual(["login administrator", "visualplan"]);
+    // The new tab cannot reach the agents page.
+    expect(await tab.evaluate(() => window.opener)).toBeNull();
+    await tab.close();
+  }
+});
+
 test("list shows built-in badge, filters and row menus", async ({ page }) => {
   await mockApi(page, {
     profiles: {
