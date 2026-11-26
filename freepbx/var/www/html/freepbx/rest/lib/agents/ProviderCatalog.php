@@ -88,7 +88,8 @@ final class ProviderCatalog
 
     private static function openAiModelsResponse(bool $received, int $status, string $body,bool $projectScoped=false): array
     {
-        if ($received && $status === 200) return json_decode($body, true, 32, JSON_THROW_ON_ERROR);
+        if (!$received) throw new \RuntimeException('provider_catalog_unavailable',503);
+        if ($status === 200) return json_decode($body, true, 32, JSON_THROW_ON_ERROR);
         if ($status === 403) throw new \RuntimeException('provider_permission_denied', 422);
         if ($status === 401) {
             $error = json_decode($body, true, 32)['error'] ?? [];

@@ -36,12 +36,24 @@ ensure(end($keys)==='synthetic-environment-key','environment_discovery');
 $input=['name'=>'Model test','provider'=>'openai','openai_project_id'=>'proj_models','api_key'=>'synthetic-stored-key','webhook_secret'=>'whsec_'.base64_encode('synthetic-webhook-secret')];
 rejected(fn()=>$service->saveTrunk(null,$input+['model'=>'gpt-realtime-2'],0,'synthetic-admin'),'invalid_fields');
 $trunk=$service->saveTrunk(null,$input,0,'synthetic-admin');
+ensure($trunk['project_validation']==='verified' && end($projects)==='proj_models','validates_project_during_save');
+$savedBefore=count($service->trunks());$provisionedBefore=count($native->provisions);
+rejected(fn()=>$service->saveTrunk(null,array_replace($input,['openai_project_id'=>'proj_unknown']),0,'synthetic-admin'),'provider_project_unverified');
+ensure(count($service->trunks())===$savedBefore && count($native->provisions)===$provisionedBefore,'rejected_project_does_not_write_or_provision');
+$discoveryError='provider_permission_denied';
+$restricted=$service->saveTrunk(null,array_replace($input,['name'=>'Restricted catalog key','openai_project_id'=>'proj_restricted']),0,'synthetic-admin');
+ensure($restricted['project_validation']==='scope_unavailable','restricted_catalog_scope_does_not_falsely_validate_project');
+$discoveryError='provider_catalog_unavailable';
+$offline=$service->saveTrunk(null,array_replace($input,['name'=>'Offline during save','openai_project_id'=>'proj_offline']),0,'synthetic-admin');
+ensure($offline['project_validation']==='unavailable','provider_outage_does_not_falsely_validate_project');
+$discoveryError=null;
 ensure(!array_key_exists('model',$trunk) && !isset($trunk['effective_model']),'trunk_has_no_conversation_model');
 $service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id']]);
 ensure(end($keys)==='synthetic-stored-key','stored_discovery');
 ensure(end($projects)===null,'ordinary_catalog_has_no_project_dependency');
 $tested=$service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'test'=>true]);
 ensure($tested['project_checked'] && end($projects)==='proj_models','credential_test_scoped_to_saved_project');
+ensure($tested['webhook_check']==='signed_call_required','manual_secret_requires_real_proof');
 rejected(fn()=>$service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'test'=>true,'openai_project_id'=>'proj_unknown']),'provider_project_unverified');
 $service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'test'=>true,'openai_project_id'=>'']);
 ensure(end($projects)===null,'explicit_blank_project_tests_live_key');
@@ -87,8 +99,24 @@ $readProjection=function(string $id) use ($projection): array {
     return $projection->fetch(PDO::FETCH_ASSOC);
 };
 $markVerified($trunk['binding_id'],'synthetic-stored-key');
+$testInput=['provider'=>'openai','binding_id'=>$trunk['binding_id'],'test'=>true];
+ensure($service->models($testInput)['webhook_check']==='verified_by_call','scope_reports_matching_signed_call');
+foreach (['provider_permission_denied','provider_catalog_unavailable'] as $reason) {
+    $discoveryError=$reason;
+    try { $service->models($testInput); throw new LogicException('expected_provider_error'); }
+    catch (\NethVoice\Agents\FieldError $error) {
+        ensure($error->getMessage()===$reason && $error->webhookCheck==='verified_by_call','saved_signed_proof_is_independent_of_catalog_result');
+    }
+}
+$discoveryError=null;
+ensure($service->models($testInput+['webhook_secret'=>'whsec_'.base64_encode('different-signing-secret')])['webhook_check']==='signed_call_required','staged_secret_invalidates_saved_proof');
+ensure($service->models($testInput+['api_key'=>'synthetic-unsaved-key'])['webhook_check']==='signed_call_required','staged_key_invalidates_saved_proof');
+ensure($service->models($testInput+['openai_project_id'=>'proj_different'])['webhook_check']==='signed_call_required','staged_project_invalidates_saved_proof');
+rejected(fn()=>$service->models($testInput+['webhook_secret'=>'invalid-secret']),'invalid_secret');
 $input['api_key']='';$reloads=$native->reloads;
+$previousChecks=count($projects);
 $trunk=$service->saveTrunk($trunk['binding_id'],$input,$trunk['revision'],'synthetic-admin');
+ensure(count($projects)===$previousChecks,'unchanged_project_and_key_do_not_repeat_network_validation');
 ensure($native->reloads===$reloads,'credential_edit_not_model_edit');
 ensure($trunk['webhook_status']==='verified','unchanged_key_stays_verified');
 $service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id'],'credential_mode'=>'dedicated','test'=>true]);

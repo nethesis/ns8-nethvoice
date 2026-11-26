@@ -49,6 +49,8 @@ foreach ([400,401,404] as $status) {
 }
 try { $decode->invoke(null,true,401,'{"error":{"code":"invalid_api_key"}}',true); assert(false); }
 catch (RuntimeException $error) { ensure($error->getMessage()==='provider_project_unverified','scoped_authentication_can_reject_key_or_project'); }
+try { $decode->invoke(null,false,401,'{"error":{"message":"incomplete response',true); assert(false); }
+catch (RuntimeException $error) { ensure($error->getMessage()==='provider_catalog_unavailable','partial_transport_failure_cannot_reject_project'); }
 $checked=new ProviderCatalog(function($provider,$key,$project) {
     ensure($provider==='openai' && $key==='synthetic-key' && $project==='proj_verified','project_forwarded');
     return ['data'=>[]];
