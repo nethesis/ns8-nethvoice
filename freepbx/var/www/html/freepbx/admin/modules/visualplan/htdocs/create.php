@@ -69,9 +69,14 @@ try {
     foreach ($widgetArray as $widget) $hasAgent=$hasAgent || str_starts_with($widget['id']??'', 'satellite-agent-destination%');
     foreach ($connectionArray as $connection) foreach (['source','target'] as $end) $hasAgent=$hasAgent || str_starts_with($connection[$end]['node']??'', 'satellite-agent-destination%');
     if ($hasAgent) {
+        $user = $_SESSION['AMP_user'];
+        if ($user->getMode() !== 'database' || !$user->checkSection('*')) throw new RuntimeException('forbidden', 403);
         if (!\NethVoice\Agents\Preview::enabled()) throw new RuntimeException('agent_preview_disabled',409);
         if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['visualplan_agent_csrf']) ||
             !hash_equals($_SESSION['visualplan_agent_csrf'], $_SERVER['HTTP_X_VISUALPLAN_AGENT_CSRF'] ?? '')) throw new RuntimeException('forbidden', 403);
+        // Fallback changes can publish a revision, so verify the current ampusers grant.
+        $sections = $user->getAmpUser($user->username)['sections'] ?? [];
+        if (!in_array('*', $sections, true)) throw new RuntimeException('forbidden', 403);
         foreach ($widgetArray as $widget) {
             if (!str_starts_with($widget['id']??'','satellite-agent-destination%')) continue;
             $agent=(new \NethVoice\Agents\Service(FreePBX::Database()))->get($widget['userData']['agent_id']??'');
