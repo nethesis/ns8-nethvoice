@@ -113,6 +113,9 @@ function satellite_agent_destination_key($id) {
     if (!is_string($id) || !preg_match('/^[a-z][a-z0-9_-]{0,47}$/D', $id)) throw new InvalidArgumentException('invalid_identifier');
     return 'voice-agent-' . $id . ',s,1';
 }
+function satellite_agent_destination_id($destination): ?string {
+    return preg_match('/^voice-agent-([a-z][a-z0-9_-]{0,47}),s,1$/D',(string)$destination,$match) ? $match[1] : null;
+}
 function satellite_selectable_agents() {
     if (!\NethVoice\Agents\Preview::enabled()) return [];
     try { return FreePBX::Satellite()->agentDestinations(); }
@@ -128,9 +131,16 @@ function satellite_destinations() {
 }
 function satellite_getdest($id) { return [satellite_agent_destination_key($id)]; }
 function satellite_getdestinfo($dest) {
-    if (!preg_match('/^voice-agent-([a-z][a-z0-9_-]{0,47}),s,1$/D', (string)$dest, $match)) return false;
+    $id=satellite_agent_destination_id($dest);
+    if ($id===null) return false;
+    if (!\NethVoice\Agents\Preview::enabled()) {
+        if (array_key_exists($id,satellite_saved_agent_fallbacks()) || isset(satellite_referenced_agent_ids()[$id])) {
+            return ['description'=>'Agent: '.$id];
+        }
+        return [];
+    }
     foreach (satellite_selectable_agents() as $agent) {
-        if ($agent['agent_id']===$match[1]) return ['description'=>'Agent: '.htmlspecialchars($agent['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($match[1])];
+        if ($agent['agent_id']===$id) return ['description'=>'Agent: '.htmlspecialchars($agent['name'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),'edit_url'=>'/freepbx/agents-ui/#/agents/'.rawurlencode($id)];
     }
     return [];
 }
@@ -145,10 +155,37 @@ function satellite_check_destinations($dest = true) {
     }
     return $result;
 }
-function satellite_build_saved_agent_fallbacks(string $cache): void {
+function satellite_agent_fallback_cache(): string {
+    global $amp_conf;
+    return ($amp_conf['ASTETCDIR'] ?? '/etc/asterisk') . '/voice-agent-fallbacks.json';
+}
+
+function satellite_saved_agent_fallbacks(): array {
+    $saved = json_decode((string)@file_get_contents(satellite_agent_fallback_cache()), true);
+    return is_array($saved) ? $saved : [];
+}
+
+function satellite_referenced_agent_ids(bool $refresh = false): array {
+    static $ids;
+    if (isset($ids) && !$refresh) return $ids;
+    $ids=[];
+    try {
+        foreach (FreePBX::Destinations()->getAllInUseDestinations() as $destinations) {
+            foreach ($destinations as $destination) {
+                $id=satellite_agent_destination_id($destination['dest'] ?? '');
+                if ($id!==null) $ids[$id]=true;
+            }
+        }
+    } catch (Throwable $error) {
+        error_log('Voice agent native destination references unavailable');
+    }
+    return $ids;
+}
+
+function satellite_build_saved_agent_fallbacks(bool $previewOff = false): void {
     global $ext;
-    $saved = json_decode((string)@file_get_contents($cache), true);
-    foreach (is_array($saved) ? $saved : [] as $id => $target) {
+    $saved=satellite_saved_agent_fallbacks();
+    foreach ($saved as $id => $target) {
         if (!is_string($id) || !preg_match('/^[a-z][a-z0-9_-]{0,47}$/D',$id)) continue;
         $safe = is_string($target) && preg_match('/^[a-zA-Z0-9_-]{1,80},[a-zA-Z0-9_*#.-]{1,64},1$/D',$target)
             && !str_starts_with($target,'voice-agent-');
@@ -159,15 +196,21 @@ function satellite_build_saved_agent_fallbacks(string $cache): void {
         }
         $ext->add($context,'s','',$safe ? new ext_goto($target) : new ext_hangup());
     }
+    if ($previewOff) {
+        foreach (array_diff_key(satellite_referenced_agent_ids(true),$saved) as $id=>$_) {
+            // An orphan has no destination to forward to. Report it as unallocated.
+            $ext->add('voice-agent-'.$id,'s','',new ext_hangup('1'));
+        }
+    }
 }
 
 function satellite_build_agent_dialplan() {
-    global $ext, $amp_conf;
-    $cache = ($amp_conf['ASTETCDIR'] ?? '/etc/asterisk') . '/voice-agent-fallbacks.json';
+    global $ext;
     if (!\NethVoice\Agents\Preview::enabled()) {
-        if (is_file($cache)) satellite_build_saved_agent_fallbacks($cache);
+        satellite_build_saved_agent_fallbacks(true);
         return;
     }
+    $cache=satellite_agent_fallback_cache();
     try {
         $satellite = FreePBX::Satellite();
         $agents = $satellite->agentDestinations();
@@ -201,7 +244,7 @@ function satellite_build_agent_dialplan() {
         }
     } catch (Throwable $error) {
         error_log('Voice agent routing unavailable; using saved native fallbacks');
-        satellite_build_saved_agent_fallbacks($cache);
+        satellite_build_saved_agent_fallbacks();
         return;
     }
     $ext->add('voice-agent-trunk-hangup','s','',new ext_hangup());
@@ -314,7 +357,7 @@ function satellite_build_agent_dialplan() {
             }
         } else {
             $ext->add($context,'s','',new ext_set('__VOICE_AGENT_FALLBACK',satellite_agent_fallback_context($agent['agent_id'],$agent['published']['fallback_destination_id'])));
-            if ($agent['enabled']) {
+            if ($agent['routable']) {
                 $ext->add($context,'s','',new ext_answer());
                 $ext->add($context,'s','',new ext_set('TIMEOUT(absolute)','35'));
                 $ext->add($context,'s','',new ext_stasis('voice-agent','caller,'.$agent['agent_id']));
