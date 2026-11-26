@@ -81,10 +81,13 @@ onMounted(() => {
     auth.ready = true;
   });
 });
+const viewKey = ref(0);
 watch(
   () => route.path,
-  () => {
+  (path) => {
     mobileMenu.value = false;
+    if (path !== ui.keepView) viewKey.value++;
+    ui.keepView = "";
   },
 );
 </script>
@@ -242,7 +245,7 @@ watch(
             ></AppEmptyState
           >
           <RouterView v-if="auth.authorized" v-slot="{ Component }">
-            <component :is="Component" :key="auth.user + ':' + $route.path" />
+            <component :is="Component" :key="auth.user + ':' + viewKey" />
           </RouterView>
         </template>
       </main>
