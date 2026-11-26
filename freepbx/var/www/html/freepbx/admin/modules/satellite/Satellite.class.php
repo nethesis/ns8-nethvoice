@@ -81,7 +81,10 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     public function applyAgentDialplan(): bool {
         needreload();
         // PBX-wide reloads are queued by the shared helper, without completion reporting.
-        system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        // From a root CLI, run it as asterisk: a root-owned lock would make the
+        // web-owned helper reload forever.
+        $user = posix_geteuid() === 0 ? 'runuser -u asterisk -- ' : '';
+        system($user . '/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
         return true;
     }
 
