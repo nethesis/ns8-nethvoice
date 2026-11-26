@@ -135,7 +135,11 @@ def apply(*, transcription_only=False):
     digest = hashlib.sha256(to_env(runtime) + unit.encode() + to_env(external) + image).hexdigest()
     running = active('satellite.service')
     route = env['NETHVOICE_HOST'] if sip else ''
-    desired = {'digest': digest, 'agents': agents, 'route': route, 'flags': flags}
+    recipient_port = settings.get('NETHVOICE_RECIPIENT_SERVICE_PORT')
+    chat_port = settings.get('VOICE_AGENT_CHAT_PORT')
+    inherited_key = bool(settings.get('OPENAI_API_KEY'))
+    desired = {'digest': digest, 'agents': agents, 'route': route, 'flags': flags,
+               'recipient_port': recipient_port, 'chat_port': chat_port, 'inherited_key': inherited_key}
     if (previous == desired and running == needed and not Path('transcription-refresh.pending').exists()
             and (not agents or EFFECTIVE.exists())):
         return True
@@ -201,11 +205,16 @@ def apply(*, transcription_only=False):
         if agents:
             visible.touch(mode=0o644)
             visible.chmod(0o644)
-        if agents or (previous.get('agents') and not consumers):
+        recipient_changed = (previous.get('agents', False) != agents
+                             or previous.get('recipient_port') != recipient_port
+                             or (agents and consumers))
+        if recipient_changed:
             run('podman', 'exec', 'freepbx', '/usr/local/bin/configure-agent-recipient')
             run('podman', 'exec', 'freepbx', 'apache2ctl', '-k', 'graceful')
+        if recipient_changed or (agents and (previous.get('route') != route
+                                            or previous.get('inherited_key') != inherited_key)):
             run('podman', 'exec', 'freepbx', 'fwconsole', 'reload')
-        if (previous.get('agents', False) != agents or not previous) and enabled(env, 'CHAT_ENABLED'):
+        if (recipient_changed or previous.get('chat_port') != chat_port) and enabled(env, 'CHAT_ENABLED'):
             ctl('try-restart', 'chat-gateway.service')
         ctl('enable' if agents else 'disable', '--now', 'voice-agent-retention.timer')
         instance = os.environ['MODULE_ID'] + '-voice-agent-webhooks'

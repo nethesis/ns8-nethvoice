@@ -1,5 +1,7 @@
 """Run the configure/Integrations entry points and the systemd apply job against a disposable state."""
+import io
 import json
+import os
 from pathlib import Path
 import runpy
 import subprocess
@@ -231,6 +233,48 @@ def test_worker_recovers_a_transient_readiness_failure(installation, monkeypatch
     assert len(attempts) == 2 and delays == [5]
     assert Path('voice-preview/enabled').exists()
     assert not Path('satellite-apply.failed').exists()
+
+
+def test_inherited_key_rotation_only_restarts_satellite(installation):
+    s = installation
+    s.env.update(VOICE_AGENT_ENABLED='true', CHAT_ENABLED='true')
+    assert s.apply()
+    s.calls.clear()
+    s.secrets['OPENAI_API_KEY'] = 'rotated'
+    assert s.apply()
+    assert ['systemctl', '--user', 'stop', 'satellite.service'] in s.calls
+    assert not any({'apache2ctl', 'fwconsole', 'chat-gateway.service', 'freepbx.service'}.intersection(call)
+                   or call[-1].endswith('configure-agent-recipient') for call in s.calls)
+    s.secrets['OPENAI_API_KEY'] = ''
+    assert s.apply()
+    assert ['podman', 'exec', 'freepbx', 'fwconsole', 'reload'] in s.calls
+
+
+def test_integrations_only_runs_chat_actions_for_chat_changes(tmp_path, monkeypatch):
+    env, passwords = {'CHAT_ENABLED':'true'}, {}
+    agent = SimpleNamespace(read_envfile=lambda name: dict(env if name=='environment' else passwords),
+                            set_env=env.__setitem__, write_envfile=lambda name, data: passwords.update(data))
+    monkeypatch.setitem(sys.modules, 'agent', agent)
+    monkeypatch.chdir(tmp_path)
+    commands = tmp_path / 'actions' / 'configure-module'
+    commands.mkdir(parents=True)
+    for path in (commands / '45chat_routes', commands / '46chat', tmp_path / 'systemctl'):
+        path.write_text('#!/bin/sh\nprintf "%s\\n" "${0##*/}" >> calls\n')
+        path.chmod(0o755)
+    monkeypatch.setenv('AGENT_INSTALL_DIR', str(tmp_path))
+    monkeypatch.setenv('PATH', str(tmp_path), prepend=os.pathsep)
+
+    def save(**values):
+        monkeypatch.setattr(sys, 'stdin', io.StringIO(json.dumps(values)))
+        runpy.run_path(str(ROOT / 'actions/set-integrations/20setenvs'))
+        subprocess.run(['/bin/bash', str(ROOT / 'actions/set-integrations/60chat')], check=True)
+
+    save(voice_agent_enabled=True, chat_enabled=True, chat_retention_days=365)
+    assert not Path('calls').exists()
+    save(chat_retention_days=42)
+    assert Path('calls').read_text().splitlines() == ['46chat']
+    save(chat_enabled=False)
+    assert Path('calls').read_text().splitlines() == ['46chat', '45chat_routes', '46chat', 'systemctl']
 
 
 def test_legacy_empty_failure_flag_is_reported_generically(installation, capsys):
