@@ -47,6 +47,7 @@ def test_idempotent_projection_and_hourly_histograms(monitor_database):
     span = trace.start('tool', tool_id='pbx.transfer')
     trace.end(span)
     trace.usage({'scope':'latest_provider_response','input_tokens':12,'output_tokens':4},'synthetic-response')
+    monitor.emit(call.run_id,'provider_warning',provider_code='input_audio_rate_limit_exceeded',elapsed_ms=500)
     details = trace.finish()
     monitor.emit(call.run_id,'completed',outcome='completed',**details)
     for kind in EVENTS:
@@ -65,6 +66,8 @@ def test_idempotent_projection_and_hourly_histograms(monitor_database):
         assert cursor.fetchone()['samples']==1
         cursor.execute('SELECT COUNT(*) count FROM asteriskcdrdb.voice_agent_run_events WHERE run_id=%s',(call.run_id,))
         assert cursor.fetchone()['count']==len(monitor.pending)
+        cursor.execute("SELECT provider_code FROM asteriskcdrdb.voice_agent_run_events WHERE run_id=%s AND event_type='provider_warning'",(call.run_id,))
+        assert cursor.fetchall()==[{'provider_code':'input_audio_rate_limit_exceeded'}]
         cursor.execute("SELECT event_type,error_code FROM asteriskcdrdb.voice_agent_run_events WHERE run_id=%s AND event_type LIKE 'consultation_%%'",(call.run_id,))
         consultation_events=cursor.fetchall()
         assert {row['event_type'] for row in consultation_events}=={kind for kind in EVENTS if kind.startswith('consultation_')}

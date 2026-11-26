@@ -25,6 +25,7 @@ ERRORS = frozenset(('other', 'timeout', 'cancelled', 'transport', 'provider_erro
     'recent_lookup_overflow', 'voicemail_unavailable', 'transfer_unavailable', 'transfer_unconfirmed',
     'transfer_cancelled', 'transfer_failed', 'transfer_uncertain', 'provider_disconnected',
     'provider_event_error', 'provider_sideband_error', 'provider_unavailable', 'provider_sideband_failed', 'provider_accept_failed', 'provider_stream_failed',
+    'provider_event_queue_full', 'provider_response_capacity_exceeded', 'provider_invocation_capacity_exceeded',
     'provider_answer_failed', 'media_bridge_failed', 'media_prepare_failed', 'setup_timeout', 'duration_exceeded',
     'runtime_restarted', 'runtime_stopped', 'ari_disconnected', 'caller_cancelled_before_connect',
     'setup_cancelled', 'tool_execution_failed', 'provider_live_error', 'provider_live_backend_failed',
