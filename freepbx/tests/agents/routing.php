@@ -32,6 +32,7 @@ assert($agent['draft']['contract_version']===8);
 assert($agent['draft']['tool_bindings'][1]['config']['extension_allowlist']===['extension:203']);
 assert($agent['draft']['tool_bindings'][0]['enabled']);
 $draft=$agent['draft']; foreach ($draft['tool_bindings'] as &$binding) $binding['enabled']=true; unset($binding);
+$draft['fallback_destination_id']='hangup';
 $draft['tool_bindings'][1]['config']['queue_allowlist']=['queue:600','queue:999'];
 $draft['tool_bindings'][1]['config']['ivrs_enabled']=true;
 $one=$service->save(null,['name'=>'Routing one','draft'=>$draft],0,'synthetic-admin');

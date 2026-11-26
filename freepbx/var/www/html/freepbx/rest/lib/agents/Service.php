@@ -10,6 +10,11 @@ require_once __DIR__ . '/ProviderCatalog.php';
 require_once __DIR__ . '/OpenAiWebhook.php';
 require_once __DIR__ . '/Monitoring.php';
 
+final class FieldError extends \RuntimeException
+{
+    public function __construct(string $reason,int $status,public readonly string $field) { parent::__construct($reason,$status); }
+}
+
 /** PHP owns drafts, immutable publication, grants and configuration auditing. */
 final class Service
 {
@@ -33,15 +38,15 @@ final class Service
     }
     private function query(string $sql, array $args = []): \PDOStatement
     { $q = $this->db->prepare($sql); $q->execute($args); return $q; }
-    private static function fail(string $code, int $status = 422): never
-    { throw new \RuntimeException($code, $status); }
+    private static function fail(string $code, int $status = 422, ?string $field = null): never
+    { throw $field===null ? new \RuntimeException($code,$status) : new FieldError($code,$status,$field); }
     private static function id(string $id): void
     { if (!preg_match('/^[a-z][a-z0-9_-]{0,47}$/D', $id)) self::fail('invalid_identifier'); }
     private static function fields(array $input, array $allowed): void
     { if (array_diff(array_keys($input), $allowed)) self::fail('invalid_fields'); }
-    private static function text($value, int $max, bool $required = false): string
+    private static function text($value, int $max, bool $required = false, ?string $field = null): string
     {
-        if (!is_string($value) || mb_strlen($value, 'UTF-8') > $max || ($required && trim($value) === '') || str_contains($value, "\0")) self::fail('invalid_field');
+        if (!is_string($value) || mb_strlen($value, 'UTF-8') > $max || ($required && trim($value) === '') || str_contains($value, "\0")) self::fail('invalid_field',field:$field);
         return $value;
     }
     private static function uuid(): string
@@ -198,22 +203,26 @@ PROMPT;
     {
         if (($draft['execution']??null)==='cleverai') {
             self::fields($draft,['execution','provider_binding_id','fallback_destination_id']);
-            $id=self::text($draft['provider_binding_id']??null,48,true);
+            $id=self::text($draft['provider_binding_id']??null,48,true,'draft.provider_binding_id');
             if ($this->safeBinding($this->binding($id))['provider']!=='cleverai') self::fail('incompatible_trunk');
             $this->destination($draft['fallback_destination_id']);
             return $draft;
         }
         $version=$draft['contract_version']??null;
-        if (!in_array($version,[8,9],true)) self::fail('invalid_configuration');
+        if (!in_array($version,[8,9],true)) self::fail('invalid_configuration',field:'draft.contract_version');
         self::fields($draft,array_merge(array_keys(self::emptyDraft()),$version===9?['role','consultation','chat_model']:[]));
-        if (array_diff(array_keys(self::emptyDraft()),array_keys($draft))) self::fail('invalid_fields');
-        if (!is_array($draft['conversation']??null) || array_diff(['language','voice','greeting','instructions','model','options'],array_keys($draft['conversation']))) self::fail('invalid_configuration');
+        $missing=array_values(array_diff(array_keys(self::emptyDraft()),array_keys($draft)));
+        if ($missing) self::fail('invalid_fields',field:'draft.'.$missing[0]);
+        if (!is_array($draft['conversation']??null)) self::fail('invalid_configuration',field:'draft.conversation');
+        $missing=array_values(array_diff(['language','voice','greeting','instructions','model','options'],array_keys($draft['conversation'])));
+        if ($missing) self::fail('invalid_configuration',field:'draft.conversation.'.$missing[0]);
         // Validate the same contract with placeholders for optional incomplete draft fields.
+        if ($draft['provider_binding_id']!==null && !is_string($draft['provider_binding_id'])) self::fail('invalid_configuration',field:'draft.provider_binding_id');
         $provider=$draft['provider_binding_id']!==null?$this->safeBinding($this->binding($draft['provider_binding_id']))['provider']:'openai';
         if ($provider==='cleverai') self::fail('incompatible_trunk');
         $snapshot = $draft + ['contract_version'=>$version,'agent_id'=>'validation','destination_id'=>'agent:validation','workflow_version'=>1,'provider'=>$provider];
         if ($snapshot['conversation']['model']===null) {
-            if ($snapshot['conversation']['options']!==null) self::fail('invalid_model_options');
+            if ($snapshot['conversation']['options']!==null) self::fail('invalid_model_options',field:'draft.conversation.options');
             $snapshot['conversation']['model']=ProviderCatalog::capabilities($provider)['default'];
         }
         if ($snapshot['conversation']['voice']==='') $snapshot['conversation']['voice']=$provider==='openai'?'marin':'ara';
@@ -221,7 +230,15 @@ PROMPT;
         if ($snapshot['fallback_destination_id'] === null) $snapshot['fallback_destination_id']='hangup';
         $draft['fallback_destination_id']=$snapshot['fallback_destination_id'];
         try { PublishedContract::validate($snapshot); }
-        catch (\Throwable $error) { self::fail('invalid_configuration'); }
+        catch (\Throwable $error) {
+            $field=$error instanceof InvalidSnapshotField?$error->field:match($error->getMessage()) {
+                'invalid_provider_model'=>'draft.conversation.model',
+                'invalid_voice'=>'draft.conversation.voice',
+                'invalid_model_options'=>'draft.conversation.options',
+                default=>'draft',
+            };
+            self::fail('invalid_configuration',field:$field);
+        }
         if ($draft['provider_binding_id'] !== null) $this->binding($draft['provider_binding_id']);
         if ($publishing) {
             $available=array_column(array_filter($this->native->directory()['items'],fn($row)=>$row['available']),'id');
@@ -248,18 +265,23 @@ PROMPT;
     {
         return $this->locked(function() use ($id,$input,$revision,$actor) {
             self::fields($input,['name','draft']);
-            $name=self::text($input['name']??null,100,true);
-            if (!is_array($input['draft']??null)) self::fail('invalid_configuration');
-            $input['draft']['fallback_destination_id']=$id===null?'hangup':$this->get($id)['draft']['fallback_destination_id'];
+            $name=self::text($input['name']??null,100,true,'name');
+            if (!is_array($input['draft']??null)) self::fail('invalid_configuration',field:'draft');
+            $creating=$id===null;
+            $current=$creating?null:$this->get($id);
+            if ($creating && $revision!==0) self::fail('revision_conflict',409);
+            if (!$creating) self::revision($current,$revision);
             $external=($input['draft']['execution']??null)==='cleverai';
             if ($external && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
-            if ($id!==null && ($this->get($id)['agent_type']==='cleverai')!==$external) self::fail('invalid_agent_type');
-            if ($id!==null && (($this->get($id)['draft']['role']??'public')==='consultation')!== (($input['draft']['role']??'public')==='consultation')) self::fail('invalid_agent_type');
+            if (!$creating && ($current['agent_type']==='cleverai')!==$external) self::fail('invalid_agent_type',field:'draft.execution');
+            if (!$creating && (($current['draft']['role']??'public')==='consultation')!== (($input['draft']['role']??'public')==='consultation')) self::fail('invalid_agent_type',field:'draft.role');
+            $fallback=$current['draft']['fallback_destination_id']??'hangup';
+            if (isset($input['draft']['fallback_destination_id']) && $input['draft']['fallback_destination_id']!==$fallback) {
+                self::fail('fallback_managed_by_visualplan',field:'draft.fallback_destination_id');
+            }
+            $input['draft']['fallback_destination_id']=$fallback;
             $draft=$this->validateDraft($input['draft']);
-            $creating=$id===null;
-            if ($creating && $revision!==0) self::fail('revision_conflict',409);
             $id=$id ?? 'agent_'.bin2hex(random_bytes(8));
-            if (!$creating) self::revision($this->get($id),$revision);
             $this->db->beginTransaction();
             if ($creating) $this->query('INSERT INTO asterisk.voice_agent_agents (agent_id,name,destination_id) VALUES (?,?,?)',[$id,$name,'agent:'.$id]);
             else $this->query('UPDATE asterisk.voice_agent_agents SET name=?,revision=revision+1 WHERE agent_id=?',[$name,$id]);
@@ -282,22 +304,23 @@ PROMPT;
                 if ($assistant['agent_type']!=='consultation' || !$assistant['enabled'] || !$assistant['published'] || $assistant['sync_status']!=='synced' || !$this->bindingReady(self::encode($assistant['published']))) self::fail('consultation_assistant_unavailable');
                 if ($draft['consultation']['chat'] && !$assistant['published']['chat_model'] && $assistant['published']['conversation']['model']!=='gpt-live-1') self::fail('consultation_chat_model_required');
             }
-            if (!$draft['provider_binding_id']) self::fail('provider_required');
+            if (!$draft['provider_binding_id']) self::fail('provider_required',field:'draft.provider_binding_id');
             $binding=$this->binding($draft['provider_binding_id']);
             $secrets=json_decode($this->crypto->decryptSecret($binding['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
-            if (empty($secrets['api_key']) && ProviderCatalog::environmentKey($binding['provider'])==='') self::fail('provider_credentials_unavailable');
-            if ($draft['conversation']['model']!==null && $draft['conversation']['model']!=='gpt-live-1' && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
+            if (empty($secrets['api_key']) && ProviderCatalog::environmentKey($binding['provider'])==='') self::fail('provider_credentials_unavailable',field:'draft.provider_binding_id');
+            if ($draft['conversation']['model']!==null && $draft['conversation']['model']!=='gpt-live-1' && !Preview::sipEnabled()) self::fail('sip_lab_required',409,'draft.conversation.model');
             if ($binding['provider']==='openai' && ($draft['conversation']['model']??null)!=='gpt-live-1') {
-                if (!self::requiresNativeTrunk($binding)) self::fail('openai_project_required');
+                if (!self::requiresNativeTrunk($binding)) self::fail('openai_project_required',field:'draft.provider_binding_id');
                 if (($secrets['openai_webhook']['state']??null)==='recovery') self::fail('webhook_secret_recovery_required',409);
-                if (empty($secrets['webhook_secret'])) self::fail('webhook_not_configured');
+                if (empty($secrets['webhook_secret'])) self::fail('webhook_not_configured',field:'draft.provider_binding_id');
             }
             if ($binding['sync_status']!=='synced' || !$this->nativeTrunkReady($binding)) self::fail('trunk_not_ready',409);
-            if (trim($draft['conversation']['voice'])==='' || trim($draft['conversation']['instructions'])==='') self::fail('conversation_required');
+            if (trim($draft['conversation']['voice'])==='') self::fail('conversation_required',field:'draft.conversation.voice');
+            if (trim($draft['conversation']['instructions'])==='') self::fail('conversation_required',field:'draft.conversation.instructions');
             $version=(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
             if ($draft['debug']['transcription_enabled'] && $binding['provider']!=='openai') self::fail('transcription_provider_unsupported');
             $snapshot=$draft+['contract_version'=>$draft['contract_version'],'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
-            if ($draft['conversation']['model']===null) self::fail('model_required');
+            if ($draft['conversation']['model']===null) self::fail('model_required',field:'draft.conversation.model');
             if ($binding['provider']==='grok' && !in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice');
             PublishedContract::validate($snapshot);
             $changed=!$agent['enabled'] || !$agent['published'] || $agent['published']['fallback_destination_id']!==$snapshot['fallback_destination_id'] || $agent['published']['provider_binding_id']!==$snapshot['provider_binding_id'];
@@ -711,13 +734,14 @@ PROMPT;
             if ($provider!=='openai' && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
             $external=$provider==='cleverai';
             if ($external) self::fields($input,['name','provider','openai_project_id']);
-            $name=self::text($input['name']??null,100,true);
+            $name=self::text($input['name']??null,100,true,'name');
             $settings=['sip_auth_mode'=>$input['sip_auth_mode']??'none'];
             $previousSettings=$previous?json_decode($previous['settings_json'],true,512,JSON_THROW_ON_ERROR):[];
             if ($external) $settings['execution']='cleverai';
             if ($provider==='openai' || $external) {
-                $settings['openai_project_id']=self::text($input['openai_project_id']??$previousSettings['openai_project_id']??'',128,$external);
-                if (($settings['openai_project_id']!=='' && !preg_match('/^proj_[A-Za-z0-9_-]+$/D',$settings['openai_project_id'])) || $settings['sip_auth_mode']!=='none') self::fail('invalid_provider_configuration');
+                $settings['openai_project_id']=self::text($input['openai_project_id']??$previousSettings['openai_project_id']??'',128,$external,'openai_project_id');
+                if ($settings['openai_project_id']!=='' && !preg_match('/^proj_[A-Za-z0-9_-]+$/D',$settings['openai_project_id'])) self::fail('invalid_provider_configuration',field:'openai_project_id');
+                if ($settings['sip_auth_mode']!=='none') self::fail('invalid_provider_configuration',field:'sip_auth_mode');
             } else {
                 $settings['grok_phone_number']=self::text($input['grok_phone_number']??null,32,true);
                 if (!preg_match('/^\+[1-9][0-9]{1,14}$/D',$settings['grok_phone_number']) || !in_array($settings['sip_auth_mode'],['none','digest'],true)) self::fail('invalid_provider_configuration');
@@ -739,13 +763,13 @@ PROMPT;
             }
             foreach (['api_key','webhook_secret','sip_password'] as $field) {
                 if (isset($input[$field]) && $input[$field]!=='') {
-                    $secrets[$field]=self::text($input[$field],4096,true);
-                    if (preg_match('/[\r\n\x00]/',$secrets[$field])) self::fail('invalid_secret');
+                    $secrets[$field]=self::text($input[$field],4096,true,$field);
+                    if (preg_match('/[\r\n\x00]/',$secrets[$field])) self::fail('invalid_secret',field:$field);
                 }
             }
             if ($mode==='dedicated' && empty($secrets['api_key'])) self::fail('credentials_required');
             if (!$external && ((empty($secrets['api_key']) && $moduleKey==='') || ($provider==='grok' && empty($secrets['webhook_secret'])) || ($settings['sip_auth_mode']==='digest' && empty($secrets['sip_password'])))) self::fail('credentials_required');
-            if (!$external && isset($secrets['webhook_secret']) && !OpenAiWebhook::validSecret($secrets['webhook_secret'])) self::fail('invalid_secret');
+            if (!$external && isset($secrets['webhook_secret']) && !OpenAiWebhook::validSecret($secrets['webhook_secret'])) self::fail('invalid_secret',field:'webhook_secret');
             if (!$external && !empty($input['webhook_secret']) && isset($secrets['openai_webhook']['endpoint_id'])) {
                 $secrets['openai_webhook']['state']='manual';
                 unset($secrets['openai_webhook']['automatic'],$secrets['openai_webhook']['secret_hint'],$secrets['openai_webhook']['endpoint_updated_at']);

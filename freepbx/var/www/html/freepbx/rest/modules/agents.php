@@ -75,7 +75,9 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
             $status=$known && in_array($error->getCode(),[403,404,409,413,422,503],true) ? $error->getCode() : 503;
             $code=$error instanceof InvalidArgumentException && $error->getMessage()==='csrf_invalid' ? 'csrf_invalid' : ($known ? $error->getMessage() : 'request_unavailable');
             if ($code==='csrf_invalid') $status=403;
-            return jsonResponse($response,['error'=>$code],$status)->withHeader('Cache-Control','no-store');
+            $body=['error'=>$code];
+            if ($error instanceof \NethVoice\Agents\FieldError) $body['field']=$error->field;
+            return jsonResponse($response,$body,$status)->withHeader('Cache-Control','no-store');
         }
     });
 };

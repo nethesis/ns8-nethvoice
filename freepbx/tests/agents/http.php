@@ -45,6 +45,8 @@ $csrf=['X-Agents-CSRF'=>$access['csrf']];
 [$status]=api('POST','/trunks/models',['provider'=>'grok','unexpected'=>true],$csrf); assert($status===422);
 [$status,$models]=api('POST','/trunks/models',['provider'=>'grok'],$csrf); assert($status===200 && $models['source']==='provider_managed');
 assert(!str_contains(json_encode($models),'api_key'));
+[$status,$error]=api('POST','/trunks',['expected_revision'=>0,'trunk'=>['name'=>'HTTP trunk','provider'=>'openai','openai_project_id'=>'submitted-project']],$csrf);
+assert($status===422 && $error===['error'=>'invalid_provider_configuration','field'=>'openai_project_id']);
 // The configuration action uses the same administrator, CSRF and envelope protections.
 $webhookPath='/trunks/trunk_unknown/configure-webhook';
 foreach ([[],['Secretkey'=>'wrong'],['Origin'=>'https://cross-site.example']] as $headers) {
@@ -68,8 +70,22 @@ try { api('POST','/profiles/receptionist/enabled',['expected_revision'=>1,'enabl
 $draft=\NethVoice\Agents\Service::emptyDraft();
 $draft['conversation']=['language'=>'en','voice'=>'marin','greeting'=>'Hello','instructions'=>'Synthetic HTTP test','model'=>'gpt-realtime-2.1','options'=>null];
 $draft['max_call_duration_seconds']=60;
+[$status,$error]=api('POST','/profiles',['expected_revision'=>0,'profile'=>['name'=>'','draft'=>$draft]],$csrf);
+assert($status===422 && $error===['error'=>'invalid_field','field'=>'name']);
+$badDraft=$draft;$badDraft['conversation']['language']='submitted-language';
+[$status,$error]=api('POST','/profiles',['expected_revision'=>0,'profile'=>['name'=>'HTTP agent','draft'=>$badDraft]],$csrf);
+assert($status===422 && $error===['error'=>'invalid_configuration','field'=>'draft.conversation.language']);
+$badDraft=$draft;$badDraft['conversation']['private-input']='private-value';
+[$status,$error]=api('POST','/profiles',['expected_revision'=>0,'profile'=>['name'=>'HTTP agent','draft'=>$badDraft]],$csrf);
+assert($status===422 && $error===['error'=>'invalid_configuration','field'=>'draft.conversation']);
 [$status,$created]=api('POST','/profiles',['expected_revision'=>0,'profile'=>['name'=>'HTTP agent','draft'=>$draft]],$csrf); assert($status===200 && $created['kind']==='custom');
-[$status]=api('POST','/profiles/'.$created['agent_id'].'/publish',['expected_revision'=>$created['revision']],$csrf); assert($status===422);
+[$status,$error]=api('POST','/profiles/'.$created['agent_id'].'/publish',['expected_revision'=>$created['revision']],$csrf);
+assert($status===422 && $error===['error'=>'provider_required','field'=>'draft.provider_binding_id']);
+$badDraft=array_replace($draft,['fallback_destination_id'=>'extension:203']);
+[$status,$error]=api('PUT','/profiles/'.$created['agent_id'],['expected_revision'=>$created['revision'],'profile'=>['name'=>'HTTP agent','draft'=>$badDraft]],$csrf);
+assert($status===422 && $error===['error'=>'fallback_managed_by_visualplan','field'=>'draft.fallback_destination_id']);
+[$status,$savedProfile]=api('GET','/profiles/'.$created['agent_id']);
+assert($status===200 && $savedProfile['revision']===$created['revision'] && $savedProfile['draft']['fallback_destination_id']==='hangup');
 [$status]=api('PUT','/profiles/'.$created['agent_id'],['expected_revision'=>0,'profile'=>['name'=>'Stale','draft'=>$draft]],$csrf); assert($status===409);
 [$status]=api('GET','/destinations',null,['Secretkey'=>'wrong']); assert($status===403);
 [$status,$destinations]=api('GET','/destinations?limit=1'); assert($status===200 && count($destinations['items'])===1);

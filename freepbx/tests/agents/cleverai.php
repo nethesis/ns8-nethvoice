@@ -14,6 +14,7 @@ denied(fn()=>$service->saveTrunk(null,['name'=>'Secrets forbidden','provider'=>'
 denied(fn()=>$service->models(['provider'=>'openai','binding_id'=>$clever['binding_id']]),'invalid_provider');
 denied(fn()=>$service->voices($clever['binding_id']),'incompatible_trunk');
 $local=$service->get('receptionist');$bad=$local['draft'];$bad['provider_binding_id']=$clever['binding_id'];
+$bad['fallback_destination_id']='hangup';
 denied(fn()=>$service->save(null,['name'=>'Bad local','draft'=>$bad],0,'test-admin'),'incompatible_trunk');
 $config=['execution'=>'cleverai','provider_binding_id'=>$clever['binding_id'],'fallback_destination_id'=>'hangup'];
 $native->applyOk=false;

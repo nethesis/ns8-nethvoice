@@ -195,6 +195,7 @@ function publishAgent(Service $service, array $r, bool $internal = false): array
         $opts['backend_model'] = $catalog['backend_models'][0]['id'];
     }
     $draft = $internal ? Service::consultationDraft() : Service::emptyDraft();
+    $draft['fallback_destination_id'] = $existing['draft']['fallback_destination_id'] ?? $draft['fallback_destination_id'];
     $draft['provider_binding_id'] = $binding;
     $draft['conversation'] = array_replace($draft['conversation'], [
         'model'=>$model['id'], 'options'=>$opts, 'voice'=>'marin', 'language'=>$r['language'],

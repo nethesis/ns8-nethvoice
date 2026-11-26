@@ -3,6 +3,11 @@
 namespace NethVoice\Agents;
 require_once __DIR__.'/ProviderCatalog.php';
 
+final class InvalidSnapshotField extends \InvalidArgumentException
+{
+    public function __construct(public readonly string $field) { parent::__construct('invalid_snapshot'); }
+}
+
 /** Standalone validator for the supported JSON Schema vocabulary. */
 final class PublishedContract
 {
@@ -11,11 +16,11 @@ final class PublishedContract
         $version=$snapshot['contract_version']??0;
         if (!in_array($version,[8,9],true)) throw new \InvalidArgumentException('invalid_snapshot');
         $schema = json_decode(file_get_contents(__DIR__ . '/contracts/published-v'.$version.'.schema.json'), true, 512, JSON_THROW_ON_ERROR);
-        if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > 65536 ||
-            !self::matches($snapshot, $schema) ||
-            $snapshot['destination_id'] !== 'agent:' . $snapshot['agent_id']) {
+        if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > 65536) {
             throw new \InvalidArgumentException('invalid_snapshot');
         }
+        if (!self::matches($snapshot,$schema)) throw new InvalidSnapshotField(self::mismatchedField($snapshot,$schema,'draft'));
+        if ($snapshot['destination_id'] !== 'agent:' . $snapshot['agent_id']) throw new \InvalidArgumentException('invalid_snapshot');
         $ids=array_column($snapshot['tool_bindings'],'tool_id');
         if ($version===9) {
             $config=$snapshot['consultation'];
@@ -35,6 +40,17 @@ final class PublishedContract
             if (count(array_column($descriptions,'destination_id'))!==count(array_unique(array_column($descriptions,'destination_id')))) throw new \InvalidArgumentException('invalid_snapshot');
         }
         return $snapshot;
+    }
+
+    /** Field paths come from the schema, never from submitted property names. */
+    private static function mismatchedField($value,array $schema,string $path): string
+    {
+        if (($schema['type']??null)!=='object' || !is_array($value) || array_is_list($value)) return $path;
+        foreach ($schema['required']??[] as $key) if (!array_key_exists($key,$value)) return $path.'.'.$key;
+        foreach ($schema['properties']??[] as $key=>$definition) {
+            if (array_key_exists($key,$value) && !self::matches($value[$key],$definition)) return self::mismatchedField($value[$key],$definition,$path.'.'.$key);
+        }
+        return $path;
     }
 
     public static function matches($value, array $schema): bool
