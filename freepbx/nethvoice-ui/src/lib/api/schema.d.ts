@@ -7272,6 +7272,15 @@ export interface operations {
         headers: {
           [name: string]: unknown
         }
+        content: {
+          'application/json': components['schemas']['VideoSourceError']
+        }
+      }
+      /** @description Too many reachability checks in the last minute */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
         content?: never
       }
       /** @description Internal server error */
@@ -7388,6 +7397,8 @@ export interface operations {
           tls_skip_verify?: boolean
           /** @description Return a VideoSourceCheck also for HTTP sources */
           details?: boolean
+          /** @description MAC of the door phone of the source; without `secret` and with the door phone user name its generated password is used, only for an address the door phone registers from (400, field `secret`, otherwise) */
+          door_phone?: string
         }
       }
     }
@@ -7401,12 +7412,14 @@ export interface operations {
           'application/json': components['schemas']['VideoSourceCheck'] | string
         }
       }
-      /** @description Invalid URL */
+      /** @description Invalid URL, or invalid door phone (field `door_phone` or `secret`) */
       400: {
         headers: {
           [name: string]: unknown
         }
-        content?: never
+        content: {
+          'application/json': components['schemas']['VideoSourceError']
+        }
       }
       /** @description Internal server error */
       500: {

@@ -379,15 +379,13 @@
     },
     "GET /cti/streaming/doorphones": {
       "intent": "integrations",
-      "callers": ["legacy"],
-      "reason": "Lists the provisioned door phones that can become a video source (MAC, model, extension, registered address, suggested RTSP URL, relays); passwords are never returned.",
-      "note": "Part of the video source form; the new UI calls only the routes it already used, the intent follows the Integrations screen that will adopt it."
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Lists the provisioned door phones that can become a video source (MAC, model, extension, registered address, suggested RTSP URL, relays); passwords are never returned."
     },
     "POST /cti/streaming/doorphones/{mac}": {
       "intent": "integrations",
-      "callers": ["legacy"],
-      "reason": "Prepares a video source for a door phone: generates its RTSP password in Tancredi when missing, asks the device to fetch its configuration and returns the form prefill without the password.",
-      "note": "Part of the video source form; the new UI calls only the routes it already used, the intent follows the Integrations screen that will adopt it."
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Prepares a video source for a door phone: generates its RTSP password in Tancredi when missing, asks the device to fetch its configuration and returns the form prefill without the password."
     },
     "POST /cti/streaming/doorphones/{mac}/sync": {
       "intent": "integrations",
@@ -397,15 +395,13 @@
     },
     "POST /cti/streaming/reachability": {
       "intent": "integrations",
-      "callers": ["legacy"],
-      "reason": "Opens a TCP connection from the PBX to the host and port of a source URL, sending nothing; loopback and link-local addresses, the addresses of the node and the cluster VPN networks are never contacted, at most 30 checks a minute.",
-      "note": "Part of the video source form; the new UI calls only the routes it already used, the intent follows the Integrations screen that will adopt it."
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Opens a TCP connection from the PBX to the host and port of a source URL, sending nothing; loopback and link-local addresses, the addresses of the node and the cluster VPN networks are never contacted, at most 30 checks a minute."
     },
     "GET /cti/sources/gateway": {
       "intent": "integrations",
-      "callers": ["legacy"],
-      "reason": "Network facts of the video gateway (public address, ICE hosts and ports) shown in the video source form.",
-      "note": "Part of the video source form; the new UI calls only the routes it already used, the intent follows the Integrations screen that will adopt it."
+      "callers": ["ui:integrations", "legacy"],
+      "reason": "Network facts of the video gateway (public address, ICE hosts and ports) shown in the video source form."
     },
     "GET /dashboard/calls": {
       "intent": "dashboard",

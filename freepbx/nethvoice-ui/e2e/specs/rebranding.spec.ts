@@ -141,6 +141,7 @@ test.describe('rebranding: CTI product name', () => {
       .on('GET', '/freepbx/rest/cti/profiles', { json: [] })
       .on('GET', '/freepbx/rest/physicalextensions', { json: [] })
       .on('GET', '/freepbx/rest/cti/streaming', { json: [] })
+      .on('GET', '/freepbx/rest/cti/streaming/doorphones', { json: [] })
   })
 
   test('names the configured CTI product', async ({ page }) => {
