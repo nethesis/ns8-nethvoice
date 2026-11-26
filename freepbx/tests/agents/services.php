@@ -43,6 +43,19 @@ check($internal['kind'] === 'builtin' && !$internal['enabled'], 'seed_disabled')
 check($internal['draft']['contract_version']===8,'receptionist_latest_routing');
 check(str_contains($internal['draft']['conversation']['instructions'],'You are the Receptionist'),'receptionist_prompt_seeded');
 check($internal['draft']['conversation']['instructions']===Service::receptionistDraft()['conversation']['instructions'],'shared_receptionist_prompt');
+$seed=Service::receptionistDraft();
+$legacy=$seed;
+$legacy['conversation']['instructions']=str_replace(
+    'An explicit request for one exact destination confirms the choice. Ask once if you suggest a destination. Claim success only after the tool confirms the transfer.',
+    'Ask the caller to confirm the named destination before attempting the transfer, and claim it succeeded only after the tool confirms success.',
+    $seed['conversation']['instructions']);
+$writeSeed=$db->prepare("UPDATE asterisk.voice_agent_drafts SET definition_json=? WHERE agent_id='receptionist'");
+$writeSeed->execute([json_encode($legacy,JSON_THROW_ON_ERROR)]);
+$legacyReceptionist=$service->get('receptionist');
+check($legacy!==$seed && $legacy['conversation']['language']==='en','historical_receptionist_fixture');
+check($legacyReceptionist['revision']===$internal['revision'] && $legacyReceptionist['draft']['conversation']['language']==='it' &&
+    $legacyReceptionist['draft']['conversation']['instructions']===$legacy['conversation']['instructions'],'historical_seed_follows_native_language');
+$writeSeed->execute([json_encode($seed,JSON_THROW_ON_ERROR)]);
 check($external['draft']['tool_bindings'][1]['enabled'] && $external['draft']['tool_bindings'][0]['enabled'], 'default_transfer_enabled');
 check($external['draft']['conversation']['language']==='it','freepbx_language_default');
 putenv('OPENAI_API_KEY=synthetic-environment-key');
@@ -56,6 +69,7 @@ $draft = $internal['draft'];
 $draft['conversation']['voice'] = 'ash';
 $draft['conversation']['model'] = 'gpt-realtime-2.1';
 $draft['conversation']['instructions'] = 'Synthetic test agent';
+$draft['conversation']['language'] = 'fr';
 $draft['provider_binding_id'] = $trunk['binding_id'];
 $draft['tool_bindings'][0]['enabled']=true;
 $draft['tool_bindings'][0]['config']['max_results']=5;
@@ -69,6 +83,7 @@ denied(fn() => $service->save('receptionist', ['name'=>'Stale','draft'=>$draft],
 Schema::install($db);
 check($service->get('receptionist')['name'] === 'Test Receptionist', 'seed_does_not_reset');
 check($service->get('receptionist')['draft']['conversation']['instructions']==='Synthetic test agent','seed_preserves_custom_prompt');
+check($service->get('receptionist')['draft']['conversation']['language']==='fr','seed_preserves_explicit_language');
 $published = $service->publish('receptionist', $saved['revision'], 'test-admin');
 $enabled = $published;
 check($published['enabled'] && $published['draft_version']===$published['workflow_version'],'publication_activates');
