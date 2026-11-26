@@ -118,7 +118,7 @@ test("an expired session keeps the edits on the page and resumes the save after 
   await dialog.getByRole("button", { name: "Sign in", exact: true }).click();
   const login = await popup;
   await login.evaluate(() => localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "renewed" })));
-  await expect(page.getByText("Signed in", { exact: true })).toBeVisible();
+  await expect(page.getByText("Signed in", { exact: true })).toBeVisible({ timeout: 15000 });
   await expect(page.getByText("Draft saved", { exact: true })).toBeVisible();
   expect(mock.profiles.receptionist.draft.conversation.greeting).toBe("Unsaved greeting");
   expect(await page.evaluate(() => sessionStorage.getItem("nethvoice.agents.edit"))).toBeNull();

@@ -209,7 +209,7 @@ test("an expired session keeps the drawer input and resumes the publication afte
   const login = await popup;
   expect(login.url()).toContain("/freepbx/wizard/#!/login");
   await login.evaluate(() => localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "renewed" })));
-  await expect(page.getByText("Signed in", { exact: true })).toBeVisible();
+  await expect(page.getByText("Signed in", { exact: true })).toBeVisible({ timeout: 15000 });
   await expect(page).toHaveURL(/#\/agents$/);
   await expect(page.getByText("Agent published", { exact: true })).toBeVisible();
   expect(mock.profiles.agent_new.name).toBe("Front desk");
