@@ -296,10 +296,10 @@ onBeforeRouteUpdate(async (to, from) => {
     :columns="[
       { key: 'name', label: t('name') },
       { key: 'typeLabel', label: t('kind') },
-      { key: 'trunk', label: t('trunk') },
-      { key: 'status', label: t('state') },
+      { key: 'trunk', label: t('trunk'), nowrap: true },
+      { key: 'status', label: t('state'), nowrap: true },
       { key: 'workflow_version', label: t('publishedVersion') },
-      { key: 'actions', label: '' },
+      { key: 'actions', label: '', nowrap: true },
     ]"
   >
     <template #empty>

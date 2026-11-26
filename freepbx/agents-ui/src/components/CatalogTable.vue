@@ -19,7 +19,8 @@ import type { JsonObject } from "../types";
 type Option = { id: string; label: string };
 const props = defineProps<{
   rows: JsonObject[];
-  columns: { key: string; label: string }[];
+  // nowrap keeps short values and the header on one line.
+  columns: { key: string; label: string; nowrap?: boolean }[];
   rowKey: string;
   loading?: boolean;
   searchKeys?: string[];
@@ -116,9 +117,12 @@ watch(
       card-breakpoint="xl"
     >
       <NeTableHead
-        ><NeTableHeadCell v-for="column in columns" :key="column.key">{{
-          column.label
-        }}</NeTableHeadCell></NeTableHead
+        ><NeTableHeadCell
+          v-for="column in columns"
+          :key="column.key"
+          class="whitespace-nowrap"
+          >{{ column.label }}</NeTableHeadCell
+        ></NeTableHead
       >
       <NeTableBody
         ><NeTableRow v-for="row in visible" :key="String(row[rowKey])">
@@ -126,6 +130,7 @@ watch(
             v-for="column in columns"
             :key="column.key"
             :data-label="column.label || t('actions')"
+            :class="column.nowrap ? 'xl:whitespace-nowrap' : ''"
             ><slot :name="column.key" :row="row">{{
               row[column.key]
             }}</slot></NeTableCell

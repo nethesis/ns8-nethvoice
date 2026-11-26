@@ -127,3 +127,23 @@ test("list shows built-in badge, filters and row menus", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test("agents list keeps headers and trunk names on one line at 1440px", async ({ page }) => {
+  const sip = { ...openaiTrunk, binding_id: "trunk_sip", name: "OpenAI SIP lab" };
+  const draft = (binding: string) => ({ ...profile().draft, provider_binding_id: binding });
+  await mockApi(page, {
+    trunks: [openaiTrunk, sip],
+    profiles: {
+      receptionist: profile({ draft: draft("trunk_sip") }),
+      assistant: profile({ agent_id: "assistant", name: "Consultation assistant", agent_type: "consultation", draft: draft("trunk_openai") }),
+    },
+  });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("./#/agents");
+  const table = page.locator("main table");
+  const trunk = table.locator("td", { hasText: "OpenAI SIP lab" });
+  await expect(trunk).toBeVisible();
+  await expect(trunk).toHaveCSS("white-space", "nowrap");
+  for (const header of await table.locator("thead th").all()) expect((await header.boundingBox())!.height).toBeLessThan(60);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
