@@ -282,9 +282,10 @@ PROMPT;
             }
             if (!$draft['provider_binding_id']) self::fail('provider_required');
             $binding=$this->binding($draft['provider_binding_id']);
+            $secrets=json_decode($this->crypto->decryptSecret($binding['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
+            if (empty($secrets['api_key']) && ProviderCatalog::environmentKey($binding['provider'])==='') self::fail('provider_credentials_unavailable');
             if ($draft['conversation']['model']!==null && $draft['conversation']['model']!=='gpt-live-1' && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
             if ($binding['provider']==='openai' && ($draft['conversation']['model']??null)!=='gpt-live-1') {
-                $secrets=json_decode($this->crypto->decryptSecret($binding['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
                 if (($secrets['openai_webhook']['state']??null)==='recovery') self::fail('webhook_secret_recovery_required',409);
                 if (empty($secrets['webhook_secret'])) self::fail('webhook_not_configured');
             }
@@ -294,10 +295,6 @@ PROMPT;
             if ($draft['debug']['transcription_enabled'] && $binding['provider']!=='openai') self::fail('transcription_provider_unsupported');
             $snapshot=$draft+['contract_version'=>$draft['contract_version'],'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
             if ($draft['conversation']['model']===null) self::fail('model_required');
-            $models=$this->models(['provider'=>$binding['provider'],'binding_id'=>$binding['binding_id']]);
-            if (isset($models['discovery_error'])) self::fail($models['discovery_error'],503);
-            if (!in_array($draft['conversation']['model'],array_column($models['items'],'id'),true)) self::fail('provider_model_unavailable');
-            if ($draft['conversation']['model']==='gpt-live-1' && !in_array($draft['conversation']['options']['backend_model'],array_column($models['backend_models'],'id'),true)) self::fail('backend_model_unavailable');
             if ($binding['provider']==='grok' && !in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice');
             PublishedContract::validate($snapshot);
             $changed=!$agent['enabled'] || !$agent['published'] || $agent['published']['fallback_destination_id']!==$snapshot['fallback_destination_id'] || $agent['published']['provider_binding_id']!==$snapshot['provider_binding_id'];
