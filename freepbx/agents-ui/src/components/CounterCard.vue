@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { NeCard, NeHeading, NeTooltip } from "@nethesis/vue-components";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 defineProps<{
   title: string;
   value: string | number;
-  icon?: string;
+  icon?: string | IconDefinition;
   tooltip?: string;
   note?: string;
   testid?: string;
@@ -46,7 +47,10 @@ defineProps<{
       </div>
     </template>
     <template #topRight>
-      <div class="text-counter text-4xl font-medium" :data-testid="testid">
+      <div
+        class="text-counter text-4xl font-medium whitespace-nowrap"
+        :data-testid="testid"
+      >
         {{ value }}
       </div>
     </template>

@@ -1,10 +1,35 @@
 import type { TraceEvent } from "./types";
 
-export function duration(value: number | null | undefined): string {
+export function formatNumber(
+  value: number,
+  locale = "en",
+  maximumFractionDigits = 0,
+): string {
+  return new Intl.NumberFormat(dateLocale(locale), {
+    maximumFractionDigits,
+  }).format(value);
+}
+
+export function formatPercent(part: number, total: number, locale = "en") {
+  return new Intl.NumberFormat(dateLocale(locale), {
+    style: "percent",
+    maximumFractionDigits: 0,
+  }).format(total ? part / total : 0);
+}
+
+export function duration(
+  value: number | null | undefined,
+  locale = "en",
+): string {
   if (value == null) return "—";
   return value < 1000
-    ? `${Math.round(value)} ms`
-    : `${Number((value / 1000).toFixed(2))} s`;
+    ? `${formatNumber(Math.round(value), locale)} ms`
+    : `${formatNumber(value / 1000, locale, 2)} s`;
+}
+
+/** Phone numbers are shown exactly as stored; older runs have none. */
+export function phoneNumber(value: unknown): string {
+  return typeof value === "string" && value.trim() ? value : "—";
 }
 
 function dateLocale(locale: string): string {
@@ -100,21 +125,20 @@ type Exists = (key: string) => boolean;
 function described(text: string, code: string) {
   return text ? text + " (" + code + ")" : code;
 }
-export function runErrorText(code: string, t: Translate, te: Exists): string {
+/** Readable text of a run error code, or null when the code is unknown. */
+export function runErrorReason(
+  code: string,
+  t: Translate,
+  te: Exists,
+): string | null {
   if (te("monitoring.runErrors." + code))
-    return described(t("monitoring.runErrors." + code), code);
+    return t("monitoring.runErrors." + code);
   const http = /^provider_http_([0-9]+)$/.exec(code);
   if (http)
-    return described(
-      t("monitoring.errorPatterns.providerHttp", { status: http[1] }),
-      code,
-    );
+    return t("monitoring.errorPatterns.providerHttp", { status: http[1] });
   const hangup = /^provider_hangup_([0-9]+)$/.exec(code);
   if (hangup)
-    return described(
-      t("monitoring.errorPatterns.providerHangup", { cause: hangup[1] }),
-      code,
-    );
+    return t("monitoring.errorPatterns.providerHangup", { cause: hangup[1] });
   const setup = /^setup_([a-z_]+)_failed$/.exec(code);
   if (setup) {
     const phase =
@@ -125,26 +149,24 @@ export function runErrorText(code: string, t: Translate, te: Exists): string {
           : te("monitoring.phasesMap." + setup[1])
             ? t("monitoring.phasesMap." + setup[1])
             : setup[1];
-    return described(
-      t("monitoring.errorPatterns.setupFailed", { phase }),
-      code,
-    );
+    return t("monitoring.errorPatterns.setupFailed", { phase });
   }
   const consultation = /^consultation_([a-z]+)_(failed|timeout)$/.exec(code);
   if (consultation && te("monitoring.consultationStages." + consultation[1]))
-    return described(
-      t(
-        consultation[2] === "failed"
-          ? "monitoring.errorPatterns.consultationFailed"
-          : "monitoring.errorPatterns.consultationTimeout",
-        { stage: t("monitoring.consultationStages." + consultation[1]) },
-      ),
-      code,
+    return t(
+      consultation[2] === "failed"
+        ? "monitoring.errorPatterns.consultationFailed"
+        : "monitoring.errorPatterns.consultationTimeout",
+      { stage: t("monitoring.consultationStages." + consultation[1]) },
     );
-  return code;
+  return null;
+}
+export function runErrorText(code: string, t: Translate, te: Exists): string {
+  const reason = runErrorReason(code, t, te);
+  return reason ? described(reason, code) : code;
 }
 export function providerCodeText(code: string, t: Translate, te: Exists) {
-  return te("monitoring.providerCodes." + code)
-    ? described(t("monitoring.providerCodes." + code), code)
-    : code;
+  for (const group of ["runDetail.providerCodes.", "monitoring.providerCodes."])
+    if (te(group + code)) return described(t(group + code), code);
+  return code;
 }

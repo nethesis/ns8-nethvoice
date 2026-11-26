@@ -123,6 +123,8 @@ export interface Run extends JsonObject {
   workflow_version: number;
   started_at: string;
   ended_at: string | null;
+  caller_number?: string | null;
+  called_number?: string | null;
   outcome: string;
   error_code: string | null;
   monitoring_version: 2;

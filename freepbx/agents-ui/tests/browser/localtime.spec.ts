@@ -24,9 +24,9 @@ test("monitoring shows local times and sends local day boundaries", async ({page
     await route.fulfill({json});
   });
   await page.goto("./#/activity");
-  await expect(page.getByRole("gridcell", {name: /14:00:00/})).toBeVisible();
+  await expect(page.getByRole("gridcell", {name: "20 Oct 2026, 14:00:00", exact: true})).toBeVisible();
   await expect(page.getByText(/UTC\b(?! day)/)).toHaveCount(0);
-  await page.getByRole("button", {name: "Details", exact: true}).click();
+  await page.getByRole("button", {name: /^Details/}).click();
   await expect(page.getByText(/20 Oct 2026.*14:00:00/).first()).toBeVisible();
   await expect(page.getByText(/12:00:00/)).toHaveCount(0);
   await page.getByRole("link", {name: /Monitoring/}).first().click();

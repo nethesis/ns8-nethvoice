@@ -590,6 +590,48 @@ const en = {
     caller: "Caller",
     assistant: "Agent",
   },
+  monitoringPage: {
+    description: "Calls handled by your agents and how they ended.",
+    attentionTitle: "Monitoring needs attention",
+    attentionDescription:
+      "Some calls may have incomplete details, because of a problem of the agent service or a disconnection from the PBX.",
+    staleDescription:
+      "The agent service has not reported its status for more than 60 seconds. Recent calls may be missing.",
+    showDiagnostics: "Show diagnostics",
+    overview: "Call overview",
+    calls: "Calls",
+    completed: "Completed",
+    transferred: "Transferred",
+    fallbacksFailures: "Fallbacks and failures",
+    shareOfCalls: "{percent} of calls",
+    search: "Filter by number, agent or run ID",
+    started: "Started",
+    caller: "Caller",
+    calledNumber: "Called number",
+    agent: "Agent",
+    outcome: "Outcome",
+    duration: "Duration",
+    noCalls: "No calls found",
+    daily: "Daily outcomes",
+    dailyUtc:
+      "Days are grouped in UTC, because the server cannot use the time zone of your browser.",
+    date: "Date",
+    diagnostics: "Diagnostics",
+    deliveryDescription:
+      "How the agent service records calls. Useful to troubleshoot with technical support.",
+    healthUnavailable:
+      "The status of the agent service is not available. Check that the service is running.",
+    partialCalls: "Calls with partial traces",
+    unfinishedCalls: "Calls without a final outcome",
+    metrics: {
+      run_duration: "Call duration",
+      setup_duration: "Time to connect audio",
+      first_output: "Time to first answer",
+    },
+    firstAnswerHelp:
+      "Reported by the provider. It does not confirm that the caller heard the audio.",
+    measuredCalls: "{count} measured call | {count} measured calls",
+  },
   monitoring: {
     columns: {
       completed: "Completed",
@@ -1641,6 +1683,48 @@ const it: typeof en = {
   transcriptRole: {
     caller: "Chiamante",
     assistant: "Agente",
+  },
+  monitoringPage: {
+    description: "Chiamate gestite dagli agenti e il loro esito.",
+    attentionTitle: "Il monitoraggio richiede attenzione",
+    attentionDescription:
+      "Alcune chiamate potrebbero avere dettagli incompleti, a causa di un problema del servizio degli agenti o di una disconnessione dal PBX.",
+    staleDescription:
+      "Il servizio degli agenti non comunica il proprio stato da più di 60 secondi. Le chiamate recenti potrebbero mancare.",
+    showDiagnostics: "Mostra diagnostica",
+    overview: "Panoramica chiamate",
+    calls: "Chiamate",
+    completed: "Completate",
+    transferred: "Trasferite",
+    fallbacksFailures: "Destinazioni alternative ed errori",
+    shareOfCalls: "{percent} delle chiamate",
+    search: "Filtra per numero, agente o ID esecuzione",
+    started: "Inizio",
+    caller: "Chiamante",
+    calledNumber: "Numero chiamato",
+    agent: "Agente",
+    outcome: "Esito",
+    duration: "Durata",
+    noCalls: "Nessuna chiamata trovata",
+    daily: "Esiti giornalieri",
+    dailyUtc:
+      "I giorni sono raggruppati in UTC, perché il server non può usare il fuso orario del browser.",
+    date: "Data",
+    diagnostics: "Diagnostica",
+    deliveryDescription:
+      "Come il servizio degli agenti registra le chiamate. Utile per la risoluzione dei problemi con l'assistenza tecnica.",
+    healthUnavailable:
+      "Lo stato del servizio degli agenti non è disponibile. Controlla che il servizio sia in esecuzione.",
+    partialCalls: "Chiamate con tracce parziali",
+    unfinishedCalls: "Chiamate senza esito finale",
+    metrics: {
+      run_duration: "Durata della chiamata",
+      setup_duration: "Tempo di connessione audio",
+      first_output: "Tempo alla prima risposta",
+    },
+    firstAnswerHelp:
+      "Riportato dal provider. Non conferma che il chiamante abbia sentito l'audio.",
+    measuredCalls: "{count} chiamata misurata | {count} chiamate misurate",
   },
   monitoring: {
     columns: {

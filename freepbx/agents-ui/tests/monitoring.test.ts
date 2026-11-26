@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { duration, timeline } from "../src/monitoring";
+import {
+  duration,
+  formatPercent,
+  phoneNumber,
+  timeline,
+} from "../src/monitoring";
 import type { TraceEvent } from "../src/types";
 
 const start: TraceEvent = {
@@ -41,5 +46,17 @@ describe("monitoring presentation", () => {
     expect(duration(null)).toBe("—");
     expect(duration(0)).toBe("0 ms");
     expect(duration(2500)).toBe("2.5 s");
+  });
+  it("formats numbers for the language of the interface", () => {
+    expect(duration(2500, "it")).toBe("2,5 s");
+    expect(duration(1234567, "it")).toBe("1234,57 s");
+    expect(formatPercent(1, 3, "en")).toBe("33%");
+    expect(formatPercent(0, 0, "it")).toBe("0%");
+  });
+  it("shows phone numbers as stored and a dash when absent", () => {
+    expect(phoneNumber("+39 0721 405500")).toBe("+39 0721 405500");
+    expect(phoneNumber(null)).toBe("—");
+    expect(phoneNumber("")).toBe("—");
+    expect(phoneNumber(undefined)).toBe("—");
   });
 });
