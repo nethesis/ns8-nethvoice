@@ -470,8 +470,8 @@ test.describe('users', () => {
     await expect(drawer.getByText('Enter the password')).toBeVisible()
 
     await drawer.getByRole('textbox', { name: 'Username' }).fill('a.miller')
-    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByRole('textbox', { name: 'First name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson')
     await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
     await drawer.getByLabel('Confirm password').fill('Secret,124')
     await drawer.getByRole('textbox', { name: 'Extension' }).fill('300')
@@ -524,10 +524,10 @@ test.describe('users', () => {
     await page.goto('./users/users')
     await page.getByRole('button', { name: 'Create user' }).first().click()
     const drawer = page.getByRole('dialog', { name: 'Create user' })
-    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
+    const name = drawer.getByRole('textbox', { name: 'First name', exact: true })
     await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
     await name.fill('Emma\tJane')
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson')
     await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
     await drawer.getByLabel('Confirm password').fill('Secret,123')
     await drawer.getByRole('button', { name: 'Create' }).click()
@@ -545,8 +545,8 @@ test.describe('users', () => {
     await page.getByRole('button', { name: 'Create user' }).first().click()
     const drawer = page.getByRole('dialog', { name: 'Create user' })
     await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
-    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByRole('textbox', { name: 'First name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson')
     await drawer.getByLabel('Password', { exact: true }).fill('Secret,123 ')
     await drawer.getByLabel('Confirm password').fill('Secret,123 ')
     await drawer.getByRole('button', { name: 'Create' }).click()
@@ -567,8 +567,8 @@ test.describe('users', () => {
     const drawer = page.getByRole('dialog', { name: 'Create user' })
     await expect(drawer.getByRole('textbox', { name: 'Username' })).toBeFocused()
     await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
-    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByRole('textbox', { name: 'First name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson')
     await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
     await drawer.getByLabel('Confirm password').fill('Secret,123')
     await drawer.getByRole('button', { name: 'Create' }).click()
@@ -1578,7 +1578,7 @@ test.describe('user accounts', () => {
     await page.getByRole('button', { name: 'Edit c.davis' }).click()
 
     const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
-    await expect(drawer.getByRole('textbox', { name: 'Name', exact: true })).toBeFocused()
+    await expect(drawer.getByRole('textbox', { name: 'First name', exact: true })).toBeFocused()
     const status = drawer.getByTestId('user-status-toggle')
     await expect(status).toContainText('Enabled')
     await expect(drawer.getByTestId('user-status-helper')).toHaveText(
@@ -1650,8 +1650,8 @@ test.describe('user accounts', () => {
     await page.getByRole('button', { name: 'Edit a.miller' }).click()
 
     const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
-    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
-    const surname = drawer.getByRole('textbox', { name: 'Surname' })
+    const name = drawer.getByRole('textbox', { name: 'First name', exact: true })
+    const surname = drawer.getByRole('textbox', { name: 'Last name' })
     const email = drawer.getByRole('textbox', { name: 'Email' })
     await expect(name).toHaveValue('Anna')
     await expect(surname).toHaveValue('Miller')
@@ -1659,7 +1659,7 @@ test.describe('user accounts', () => {
     await expect(email).toHaveAttribute('placeholder', 'e.g. jane.doe@example.com')
 
     const labels = await drawer.locator('label').allTextContents()
-    const order = ['Status', 'Name', 'Surname', 'Email', 'Extension'].map((label) =>
+    const order = ['Status', 'First name', 'Last name', 'Email', 'Extension'].map((label) =>
       labels.findIndex((text) => text.trim().startsWith(label)),
     )
     expect(order).toEqual([...order].sort((a, b) => a - b))
@@ -1667,7 +1667,7 @@ test.describe('user accounts', () => {
     await name.fill('')
     await email.fill('anna.white')
     await drawer.getByRole('button', { name: 'Save' }).click()
-    await expect(drawer.getByText('Enter the name')).toBeVisible()
+    await expect(drawer.getByText('Enter the first name')).toBeVisible()
     await expect(drawer.getByText('Enter a valid email address')).toBeVisible()
     await expect(name).toBeFocused()
     expect(mockApi.callsTo('PATCH', `${REST}/users/:username/account`)).toHaveLength(0)
@@ -1691,8 +1691,8 @@ test.describe('user accounts', () => {
     await page.goto('./users/users')
     await page.getByRole('button', { name: 'Edit a.miller' }).click()
     const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
-    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
-    const surname = drawer.getByRole('textbox', { name: 'Surname' })
+    const name = drawer.getByRole('textbox', { name: 'First name', exact: true })
+    const surname = drawer.getByRole('textbox', { name: 'Last name' })
     const message = 'Remove tabs, line breaks and other invisible characters'
 
     await name.fill('Anna\tMaria')
@@ -1729,7 +1729,7 @@ test.describe('user accounts', () => {
     await page.goto('./users/users')
     await page.getByRole('button', { name: 'Edit a.miller' }).click()
     const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
-    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
+    const name = drawer.getByRole('textbox', { name: 'First name', exact: true })
     await name.fill('Anna Maria')
     await drawer.getByRole('button', { name: 'Save' }).click()
 
@@ -1785,8 +1785,8 @@ test.describe('user accounts', () => {
     await page.getByRole('button', { name: 'Create user' }).first().click()
     const drawer = page.getByRole('dialog', { name: 'Create user' })
     await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
-    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByRole('textbox', { name: 'First name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson')
     await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
     await drawer.getByLabel('Confirm password').fill('Secret,123')
     await drawer.getByRole('textbox', { name: 'Email' }).fill('emma.johnson@example.org')
@@ -1927,7 +1927,7 @@ test.describe('user accounts', () => {
 
     await page.getByRole('button', { name: 'Edit a.miller' }).click()
     const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('White')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('White')
     await drawer.getByRole('button', { name: 'Save' }).click()
     await expect(toasts.getByText('User updated').first()).toBeVisible()
     await expect(toasts.getByText('Cannot synchronize the users')).toBeVisible()
@@ -1969,7 +1969,7 @@ test.describe('user accounts', () => {
       await page.goto('./users/users')
       await page.getByRole('button', { name: 'Edit a.miller' }).click()
       const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
-      await drawer.getByRole('textbox', { name: 'Surname' }).fill('White')
+      await drawer.getByRole('textbox', { name: 'Last name' }).fill('White')
       const before = mockApi.callsTo('GET', `${REST}/users/:all`).length
       await drawer.getByRole('button', { name: 'Save' }).click()
 
@@ -2067,7 +2067,7 @@ test.describe('user accounts', () => {
     await page.getByRole('button', { name: 'Create user' }).first().click()
     const drawer = page.getByRole('dialog', { name: 'Create user' })
     const username = drawer.getByRole('textbox', { name: 'Username' })
-    const name = drawer.getByRole('textbox', { name: 'Name', exact: true })
+    const name = drawer.getByRole('textbox', { name: 'First name', exact: true })
 
     await username.fill('emma.josephine.alexandra.johnson.w')
     await drawer.getByRole('button', { name: 'Create' }).click()
@@ -2077,13 +2077,13 @@ test.describe('user accounts', () => {
 
     await username.fill('e.johnson')
     await name.fill('Emma Josephine Alexandra Margaret')
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson-Whitfield')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson-Whitfield')
     await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
     await drawer.getByLabel('Confirm password').fill('Secret,123')
     await drawer.getByRole('button', { name: 'Create' }).click()
 
     await expect(
-      drawer.getByText('Name and surname can be at most 50 characters long in total'),
+      drawer.getByText('First and last name can be at most 50 characters long in total'),
     ).toBeVisible()
     await expect(name).toBeFocused()
     expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
@@ -2104,8 +2104,8 @@ test.describe('user accounts', () => {
     await page.getByRole('button', { name: 'Create user' }).first().click()
     const drawer = page.getByRole('dialog', { name: 'Create user' })
     await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
-    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByRole('textbox', { name: 'First name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson')
     await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
     await drawer.getByLabel('Confirm password').fill('Secret,123')
     await drawer.getByRole('textbox', { name: 'Extension' }).fill('305')
@@ -2113,7 +2113,7 @@ test.describe('user accounts', () => {
 
     await expect(
       drawer.getByText(
-        'Some values are longer than the PBX allows, so the extension has not been created. Shorten the name and surname, then add the extension with Edit.',
+        'Some values are longer than the PBX allows, so the extension has not been created. Shorten the first and last name, then add the extension with Edit.',
       ),
     ).toBeVisible(IMPORT_TIMEOUT)
     await expect(drawer.getByText('SQLSTATE')).toHaveCount(0)
@@ -2161,8 +2161,10 @@ test.describe('user accounts', () => {
 
     await expect(drawer.getByTestId('user-account-skeleton')).toBeHidden()
     await expect(drawer.getByTestId('user-status-toggle').getByRole('checkbox')).toBeEnabled()
-    await expect(drawer.getByRole('textbox', { name: 'Name', exact: true })).toBeEnabled()
-    await expect(drawer.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Anna')
+    await expect(drawer.getByRole('textbox', { name: 'First name', exact: true })).toBeEnabled()
+    await expect(drawer.getByRole('textbox', { name: 'First name', exact: true })).toHaveValue(
+      'Anna',
+    )
     await expect(drawer.getByRole('textbox', { name: 'Email' })).toHaveValue(
       'anna.miller@example.org',
     )
@@ -2262,7 +2264,7 @@ test.describe('user accounts', () => {
     await page.getByRole('button', { name: 'Edit a.miller' }).click()
     const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
     await expect(drawer.getByTestId('user-status-toggle').getByRole('checkbox')).toBeDisabled()
-    for (const field of [/^Name$/, /^Surname$/, /^Email/]) {
+    for (const field of [/^First name$/, /^Last name$/, /^Email/]) {
       await expect(drawer.getByRole('textbox', { name: field })).toBeDisabled()
     }
     await drawer.getByRole('button', { name: 'Cancel' }).click()
@@ -2297,7 +2299,7 @@ test.describe('user accounts', () => {
       await page.getByRole('button', { name: 'Edit c.davis' }).click()
       const drawer = page.getByRole('dialog', { name: 'Edit user c.davis' })
       await drawer.getByTestId('user-status-toggle').getByText('Enabled').click()
-      await drawer.getByRole('textbox', { name: 'Surname' }).fill('Brown')
+      await drawer.getByRole('textbox', { name: 'Last name' }).fill('Brown')
       await drawer.getByRole('button', { name: 'Save' }).click()
       await expect(page.getByTestId('disabled-badge-c.davis')).toBeVisible()
 
@@ -2385,7 +2387,7 @@ test.describe('user accounts', () => {
         const drawer = page.getByRole('dialog', { name: `Edit user ${username}` })
         await expect(drawer.getByTestId('user-status-toggle').getByRole('checkbox')).toBeDisabled()
         await expect(drawer.getByTestId('user-status-helper')).toHaveText(reason)
-        for (const field of [/^Name$/, /^Surname$/, /^Email/]) {
+        for (const field of [/^First name$/, /^Last name$/, /^Email/]) {
           const textbox = drawer.getByRole('textbox', { name: field })
           if (username === 'helpdesk') {
             await expect(textbox).toBeEnabled()
@@ -2432,7 +2434,7 @@ test.describe('user accounts', () => {
         await page.getByRole('button', { name: `Edit ${username}` }).click()
         const drawer = page.getByRole('dialog', { name: `Edit user ${username}` })
         await expect(drawer.getByTestId('user-status-helper')).toHaveText(reason)
-        for (const field of [/^Name$/, /^Surname$/, /^Email/]) {
+        for (const field of [/^First name$/, /^Last name$/, /^Email/]) {
           await expect(drawer.getByRole('textbox', { name: field })).toBeDisabled()
         }
         await expect(drawer.getByRole('textbox', { name: /^Extension/ })).toBeFocused()
@@ -2567,12 +2569,14 @@ test.describe('user accounts', () => {
       const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
       await expect(drawer.getByRole('textbox', { name: 'Extension' })).toBeFocused()
       await expect(drawer.getByTestId('user-status-toggle')).toHaveCount(0)
-      for (const field of ['Name', 'Surname', 'Email']) {
+      for (const field of ['First name', 'Last name', 'Email']) {
         await expect(
-          drawer.getByRole('textbox', { name: field, exact: field === 'Name' }),
+          drawer.getByRole('textbox', { name: field, exact: field === 'First name' }),
         ).toBeDisabled()
       }
-      await expect(drawer.getByRole('textbox', { name: 'Name', exact: true })).toHaveValue('Anna')
+      await expect(drawer.getByRole('textbox', { name: 'First name', exact: true })).toHaveValue(
+        'Anna',
+      )
       await drawer.getByRole('button', { name: 'Cancel' }).click()
       expect(mockApi.callsTo('GET', `${REST}/users/domain/accounts`)).toHaveLength(0)
     })
@@ -2662,8 +2666,8 @@ test.describe('assigning physical phones', () => {
     await page.getByRole('button', { name: 'Create user' }).first().click()
     const drawer = page.getByRole('dialog', { name: 'Create user' })
     await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
-    await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill('Emma')
-    await drawer.getByRole('textbox', { name: 'Surname' }).fill('Johnson')
+    await drawer.getByRole('textbox', { name: 'First name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson')
     await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
     await drawer.getByLabel('Confirm password').fill('Secret,123')
     await expect(drawer.getByText('Assign an extension to add physical phones')).toBeVisible()

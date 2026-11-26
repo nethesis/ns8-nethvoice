@@ -169,7 +169,7 @@ function setDraft(username: string, value: string) {
 }
 
 const sortOptions = computed(() => [
-  { id: 'displayName', label: t('users.name') },
+  { id: 'displayName', label: t('common.name') },
   { id: 'username', label: t('users.username') },
   { id: 'mainExtension', label: t('users.extension') },
 ])

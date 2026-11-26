@@ -174,8 +174,8 @@ const fillNewUser = async (
   > = {},
 ) => {
   await drawer.getByRole('textbox', { name: 'Username' }).fill(values.username ?? 'z.hart')
-  await drawer.getByRole('textbox', { name: 'Name', exact: true }).fill(values.name ?? 'Zoe')
-  await drawer.getByRole('textbox', { name: 'Surname' }).fill(values.surname ?? 'Hart')
+  await drawer.getByRole('textbox', { name: 'First name', exact: true }).fill(values.name ?? 'Zoe')
+  await drawer.getByRole('textbox', { name: 'Last name' }).fill(values.surname ?? 'Hart')
   await drawer.getByRole('textbox', { name: /^Email/ }).fill(values.email ?? '')
   await drawer.getByLabel('Password', { exact: true }).fill(values.password ?? NEW_PASSWORD)
   await drawer.getByLabel('Confirm password').fill(values.confirm ?? NEW_PASSWORD)
@@ -353,8 +353,8 @@ test.describe('admin control', () => {
     await add.click()
 
     await expect(drawer.getByText('Enter the username')).toBeVisible()
-    await expect(drawer.getByText('Enter the name')).toBeVisible()
-    await expect(drawer.getByText('Enter the surname')).toBeVisible()
+    await expect(drawer.getByText('Enter the first name')).toBeVisible()
+    await expect(drawer.getByText('Enter the last name')).toBeVisible()
     await expect(drawer.getByText('Enter the password')).toBeVisible()
     await expect(drawer.getByText('Confirm the password')).toBeVisible()
     await expect(drawer.getByText('Choose at least one section')).toBeVisible()
