@@ -81,3 +81,18 @@ else:
                             env=env, capture_output=True, text=True, timeout=5)
     assert result.returncode == status, result.stderr
     assert not (tmp_path / 'restarted').exists()
+
+
+def test_agents_library_is_not_served_over_http():
+    import re
+    config = (ROOT / 'freepbx/etc/apache2/sites-enabled/000-default.conf').read_text()
+    blocks = re.findall(r'<DirectoryMatch "([^"]+)">\s*Require all denied\s*</DirectoryMatch>', config)
+    assert len(blocks) == 1
+    denied = re.compile(blocks[0])
+    for path in ('/var/www/html/freepbx/rest/lib/agents', '/var/www/html/freepbx/rest/lib/agents/',
+                 '/var/www/html/freepbx/rest/lib/agents/contracts/', '/var/www/html/freepbx/rest/lib/agents/schema'):
+        assert denied.search(path), path
+    for path in ('/var/www/html/freepbx/rest/lib/', '/var/www/html/freepbx/rest/lib/agentsx/', '/var/www/html/freepbx/rest/'):
+        assert not denied.search(path), path
+    library = ROOT / 'freepbx/var/www/html/freepbx/rest/lib/agents'
+    assert (library / 'contracts').is_dir() and (library / 'schema').is_dir()
