@@ -7,13 +7,13 @@ final class OpenAiWebhook
 {
     private $transport;
     public function __construct(?callable $transport = null) { $this->transport=$transport; }
-    public static function callbackUrl(): string
+    public static function callbackUrl(string $provider='openai'): string
     {
         $host=getenv('NETHVOICE_HOST');
-        if (!is_string($host) || !str_contains($host,'.') || !filter_var($host,FILTER_VALIDATE_DOMAIN,FILTER_FLAG_HOSTNAME)) {
+        if (!in_array($provider,['openai','grok'],true) || !is_string($host) || !str_contains($host,'.') || !filter_var($host,FILTER_VALIDATE_DOMAIN,FILTER_FLAG_HOSTNAME)) {
             throw new \RuntimeException('webhook_url_unavailable',422);
         }
-        return 'https://'.strtolower($host).'/satellite-webhooks/openai';
+        return 'https://'.strtolower($host).'/satellite-webhooks/'.$provider;
     }
     public static function validSecret($secret): bool
     {

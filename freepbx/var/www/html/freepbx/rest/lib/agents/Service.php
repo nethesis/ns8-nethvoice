@@ -91,8 +91,12 @@ final class Service
             if ($tool['id']==='pbx.transfer') $tool['editor']['categories'][]=['enabled_field'=>'recent_callers_enabled','destinations_field'=>'recent_caller_denylist','inventory'=>'extensions','selection'=>'denylist','fields'=>['recent_caller_lookback_days'],'descriptions'=>false];
         }
         unset($tool);
-        try { $webhookUrl=OpenAiWebhook::callbackUrl(); } catch (\RuntimeException $error) { $webhookUrl=null; }
-        return ['sip_lab_enabled'=>Preview::sipEnabled(),'openai_webhook_url'=>$webhookUrl,'agent_types'=>[['id'=>'basic_voice','name'=>'Basic Voice'],['id'=>'consultation','name'=>'Internal consultation assistant'],['id'=>'cleverai','name'=>'CleverAI']],
+        $webhookUrl=$grokWebhookUrl=null;
+        try {
+            $webhookUrl=OpenAiWebhook::callbackUrl();
+            if (Preview::sipEnabled()) $grokWebhookUrl=OpenAiWebhook::callbackUrl('grok');
+        } catch (\RuntimeException $error) {}
+        return ['sip_lab_enabled'=>Preview::sipEnabled(),'openai_webhook_url'=>$webhookUrl,'grok_webhook_url'=>$grokWebhookUrl,'agent_types'=>[['id'=>'basic_voice','name'=>'Basic Voice'],['id'=>'consultation','name'=>'Internal consultation assistant'],['id'=>'cleverai','name'=>'CleverAI']],
             'tools'=>$tools,'draft_defaults'=>self::emptyDraft(),
             'consultation_defaults'=>self::consultationDraft(),
             'consultation_assistants'=>array_values(array_map(fn($row)=>['agent_id'=>$row['agent_id'],'name'=>$row['name'],'workflow_version'=>$row['workflow_version']],array_filter($this->all(),fn($row)=>$row['agent_type']==='consultation' && $row['enabled'] && $row['published'] && $row['sync_status']==='synced'))),

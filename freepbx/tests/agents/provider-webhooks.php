@@ -48,4 +48,7 @@ foreach (['','http://pbx.example','pbx.example/path','pbx.example:8443',"pbx.exa
     putenv('NETHVOICE_HOST='.$host);denied(fn()=>OpenAiWebhook::callbackUrl(),'webhook_url_unavailable');
 }
 putenv('NETHVOICE_HOST=PBX.example');ensure(OpenAiWebhook::callbackUrl()===$url,'server_configuration_url');
+$_SERVER['HTTP_HOST']='untrusted.example';
+ensure(OpenAiWebhook::callbackUrl('grok')==='https://pbx.example/satellite-webhooks/grok','grok_uses_only_server_host');
+denied(fn()=>OpenAiWebhook::callbackUrl('../grok'),'webhook_url_unavailable');
 echo "OpenAI webhook API validation, pagination, permissions, timeouts and redaction passed\n";
