@@ -58,7 +58,13 @@ assert($render($sipFallback)===['Set(TIMEOUT(absolute)=0)','StopMusicOnHold()','
 // Existing route references must remain safe when publications are cleared.
 assert($render('voice-agent-draft_test')===['Hangup()']);
 assert(array_column(satellite_destinations(),'destination')===['voice-agent-receptionist,s,1','voice-agent-clever_test,s,1']);
-assert($render('voice-agent-transfer','203')===['Set(TIMEOUT(absolute)=0)','UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:203)','Goto(from-did-direct,203,1)']);
+assert($render('voice-agent-transfer','203')===['Goto(voice-agent-transfer-extension,203,1)']);
+$transfer=$render('voice-agent-transfer-extension','_X!');
+assert(str_contains($transfer[0],'DIALPLAN_EXISTS(voice-agent-transfer,${EXTEN},1)'));
+assert($transfer[1]==='Set(TIMEOUT(absolute)=0)');
+assert($transfer[2]==='UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:${EXTEN})');
+assert($transfer[3]==='Goto(from-did-direct,${EXTEN},1)' && $transfer[4]==='Hangup(1)');
+assert(!isset($ext->lines['voice-agent-transfer']['999']));
 assert(count($render('voice-agent-headers'))===5);
 // isTrunk marks an RTP-only destination in the NethVoice proxy, disabling SRTP.
 assert(!str_contains(implode('\n',$render('voice-agent-headers')),'isTrunk'));
@@ -74,14 +80,17 @@ assert(str_contains($consult[0],'DB(DND/203)') && str_contains($consult[0],'DB(C
 assert($consult[1]==='Dial(${PJSIP_DIAL_CONTACTS(203)}&${PJSIP_DIAL_CONTACTS(91203)},20,i)');
 assert($consult[2]==='Hangup()');
 assert(!preg_match('/from-internal|from-did-direct|[Vv]oice[Mm]ail/',implode("\n",$consult)));
-$voicemail=$render('voice-agent-voicemail','203');
-assert(str_contains($voicemail[0],'DB(AMPUSER/203/voicemail)'));
-assert(str_contains($voicemail[1],'VM_INFO(203@${VOICE_AGENT_MAILBOX_CONTEXT},exists)'));
-assert(str_contains($voicemail[1],'DIALPLAN_EXISTS(ext-local,vmu203,1)'));
-assert($voicemail[3]==='StopMusicOnHold()');
-assert($voicemail[4]==='UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:203,mode:voicemail)');
-assert($voicemail[5]==='Goto(ext-local,vmu203,1)');
-assert(str_contains($voicemail[7],'Stasis(voice-agent,voicemail_failed,'));
+assert($render('voice-agent-voicemail','203')===['Goto(voice-agent-voicemail-extension,203,1)']);
+$voicemail=$render('voice-agent-voicemail-extension','_X!');
+assert(str_contains($voicemail[0],'DIALPLAN_EXISTS(voice-agent-voicemail,${EXTEN},1)'));
+assert(str_contains($voicemail[1],'DB(AMPUSER/${EXTEN}/voicemail)'));
+assert(str_contains($voicemail[2],'VM_INFO(${EXTEN}@${VOICE_AGENT_MAILBOX_CONTEXT},exists)'));
+assert(str_contains($voicemail[2],'DIALPLAN_EXISTS(ext-local,vmu${EXTEN},1)'));
+assert($voicemail[4]==='StopMusicOnHold()');
+assert($voicemail[5]==='UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:${EXTEN},mode:voicemail)');
+assert($voicemail[6]==='Goto(ext-local,vmu${EXTEN},1)');
+assert(str_contains($voicemail[8],'Stasis(voice-agent,voicemail_failed,'));
+assert(end($voicemail)==='Hangup(1)');
 assert(!preg_match('/Dial\(|from-internal|from-did-direct/',implode("\n",$voicemail)));
 $handoff=$render('voice-agent-handoff');
 assert(in_array('Set(TIMEOUT(absolute)=0)',$handoff));

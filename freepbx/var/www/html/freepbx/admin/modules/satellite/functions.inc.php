@@ -293,21 +293,31 @@ function satellite_build_agent_dialplan() {
     $ext->add('voice-agent-cleverai-headers','s','',new ext_return());
     foreach ($extensions as $target) {
         $number=substr($target['id'],strlen('extension:'));
-        $ext->add('voice-agent-transfer',$number,'',new ext_set('TIMEOUT(absolute)','0'));
-        $ext->add('voice-agent-transfer',$number,'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:'.$number));
-        $ext->add('voice-agent-transfer',$number,'',new ext_goto('1',$number,'from-did-direct'));
-        // Only an explicitly confirmed, call-bound offer enters this wrapper.
-        $context='voice-agent-voicemail';
-        $ext->add($context,$number,'',new ext_set('VOICE_AGENT_MAILBOX_CONTEXT','${DB(AMPUSER/'.$number.'/voicemail)}'));
-        $ext->add($context,$number,'',new ext_gotoif('$["${VOICE_AGENT_TRANSFER_TOKEN}" = "" | "${VM_INFO('.$number.'@${VOICE_AGENT_MAILBOX_CONTEXT},exists)}" != "1" | "${DIALPLAN_EXISTS(ext-local,vmu'.$number.',1)}" != "1"]','failed'));
-        $ext->add($context,$number,'',new ext_set('TIMEOUT(absolute)','0'));
-        $ext->add($context,$number,'',new ext_stopmusiconhold());
-        $ext->add($context,$number,'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:'.$number.',mode:voicemail'));
-        $ext->add($context,$number,'',new ext_goto('1','vmu'.$number,'ext-local'));
-        $ext->add($context,$number,'failed',new ext_set('TIMEOUT(absolute)','10'));
-        $ext->add($context,$number,'',new ext_stasis('voice-agent','voicemail_failed,${AGENT_SESSION_ID},${VOICE_AGENT_TRANSFER_TOKEN}'));
-        $ext->add($context,$number,'',new ext_hangup());
+        $ext->add('voice-agent-transfer',$number,'',new ext_goto('1',$number,'voice-agent-transfer-extension'));
+        $ext->add('voice-agent-voicemail',$number,'',new ext_goto('1',$number,'voice-agent-voicemail-extension'));
     }
+    // Keep exact entry points per main extension and share the execution priorities.
+    $extensionPattern='_X!';
+    $context='voice-agent-transfer-extension';
+    $ext->add($context,$extensionPattern,'',new ext_gotoif('$["${DIALPLAN_EXISTS(voice-agent-transfer,${EXTEN},1)}" != "1"]','denied'));
+    $ext->add($context,$extensionPattern,'',new ext_set('TIMEOUT(absolute)','0'));
+    $ext->add($context,$extensionPattern,'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:${EXTEN}'));
+    $ext->add($context,$extensionPattern,'',new ext_goto('1','${EXTEN}','from-did-direct'));
+    $ext->add($context,$extensionPattern,'denied',new ext_hangup('1'));
+
+    // Only an explicitly confirmed, call-bound offer enters the voicemail wrapper.
+    $context='voice-agent-voicemail-extension';
+    $ext->add($context,$extensionPattern,'',new ext_gotoif('$["${DIALPLAN_EXISTS(voice-agent-voicemail,${EXTEN},1)}" != "1"]','denied'));
+    $ext->add($context,$extensionPattern,'',new ext_set('VOICE_AGENT_MAILBOX_CONTEXT','${DB(AMPUSER/${EXTEN}/voicemail)}'));
+    $ext->add($context,$extensionPattern,'',new ext_gotoif('$["${VOICE_AGENT_TRANSFER_TOKEN}" = "" | "${VM_INFO(${EXTEN}@${VOICE_AGENT_MAILBOX_CONTEXT},exists)}" != "1" | "${DIALPLAN_EXISTS(ext-local,vmu${EXTEN},1)}" != "1"]','failed'));
+    $ext->add($context,$extensionPattern,'',new ext_set('TIMEOUT(absolute)','0'));
+    $ext->add($context,$extensionPattern,'',new ext_stopmusiconhold());
+    $ext->add($context,$extensionPattern,'',new ext_userevent('VoiceAgentTransfer','token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:${EXTEN},mode:voicemail'));
+    $ext->add($context,$extensionPattern,'',new ext_goto('1','vmu${EXTEN}','ext-local'));
+    $ext->add($context,$extensionPattern,'failed',new ext_set('TIMEOUT(absolute)','10'));
+    $ext->add($context,$extensionPattern,'',new ext_stasis('voice-agent','voicemail_failed,${AGENT_SESSION_ID},${VOICE_AGENT_TRANSFER_TOKEN}'));
+    $ext->add($context,$extensionPattern,'',new ext_hangup());
+    $ext->add($context,$extensionPattern,'denied',new ext_hangup('1'));
     foreach ($directory as $target) {
         if (!$target['available'] || !preg_match('/^queue:([0-9]{1,20})$/D',$target['id'],$match)) continue;
         [$nativeContext,$nativeExtension,$priority]=explode(',',$target['native_destination']);
