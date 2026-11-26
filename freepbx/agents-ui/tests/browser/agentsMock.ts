@@ -261,6 +261,10 @@ export async function choose(page: Page, label: string, option: string | RegExp)
   await field.click();
   await field.fill("");
   await page.getByRole("option", { name: option, exact: typeof option === "string" }).click();
+  // The combobox takes the focus back a moment after the choice: wait for
+  // it, so that the next fill does not type into the combobox.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
+  await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute("role"))).toBe("combobox");
 }
 export const drawer = (page: Page) =>
   page.getByRole("dialog").filter({ hasText: "Create agent" });

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { drawer, mockApi } from "./agentsMock";
+import { choose, drawer, mockApi } from "./agentsMock";
 
 // A rejected publication from the Create agent drawer is covered by
 // create-drawer.spec.ts: the agent is created once and its page shows the
@@ -42,6 +42,8 @@ for (const expired of [false, true])
     await expect(drawer(page).getByRole("button", { name: "Next", exact: true })).toBeEnabled();
     // Publish and Save draft are blocked: Cancel closes without asking.
     await drawer(page).getByRole("button", { name: "Next", exact: true }).click();
+    await choose(page, "Voice", "Coral");
+    await page.getByLabel("Conversation instructions").fill("Greet.");
     await drawer(page).getByRole("button", { name: "Next", exact: true }).click();
     await expect(drawer(page).getByRole("button", { name: "Publish", exact: true })).toBeDisabled();
     expect(creates).toBe(1);
