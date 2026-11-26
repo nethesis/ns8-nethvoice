@@ -23,10 +23,12 @@ WIRE_IDS = {item['wire_name']: item['id'] for item in SUPPORTED.values()}
 CONTEXT_BYTES = 16384
 CAPABILITY_RESERVE = 2048
 TRANSFER_CONFIRMATION = (
-    'When the caller asks to reach one exact permitted destination, their request confirms that choice. '
-    'Proceed without asking them to confirm again. '
-    'If you suggested or inferred a destination, ask once and wait for the caller to choose or agree. '
-    'Never transfer unless the caller requested to be connected and chose or agreed to that destination. '
+    'A request such as "Connect me with Alice Rossi" already confirms that destination. '
+    'Once you find the exact permitted match and have any required details, invoke the transfer tool with confirmed=true in the same turn. '
+    'Do not ask to confirm the named destination. If a required consultation reason is missing, ask only for the reason. '
+    'If the requested name is ambiguous or you inferred or suggested a destination, ask once and wait for the caller to choose or agree. '
+    'A single search result alone does not establish the caller’s choice. Transfer only when the caller asked to be connected '
+    'and explicitly chose or agreed to the destination. '
 )
 CONSULTATION_TOOLS = json.loads(Path(__file__).with_name('consultation-tools-v1.json').read_text())
 VOICEMAIL_TOOL = {'type': 'function', 'name': 'nv_consultation_voicemail_v1',
@@ -86,8 +88,14 @@ class ToolRegistry:
                     'Ask the caller to select or confirm a contact before transferring by candidate_ref.')
             if key == 'pbx.transfer':
                 manifest = self.manifests[key]
-                manifest['description'] += (' Set confirmed=true only when the caller explicitly asks to reach this exact permitted destination '
-                    'or explicitly agrees to a proposed destination. Ask once if a destination was inferred, and never transfer an unsolicited call.')
+                manifest['description'] = (TRANSFER_CONFIRMATION +
+                    'Use destination_id for that permitted extension or queue. Use candidate_ref only when the caller '
+                    'selects or agrees to a recent contact from the recent-caller lookup. Never guess references. '
+                    'Report success only after confirmed native handoff.')
+                if binding['tool_version'] == 3:
+                    manifest['description'] += (' Supply the reason already learned from the caller. The colleague must agree '
+                        'before an attended connection. Never replace a declined or unavailable consultation with direct transfer. '
+                        'Relay any colleague message accurately with attribution.')
                 manifest['parameters'] = transfer_parameters(manifest['parameters'])
         self.routing_capabilities = {'extensions': False, 'departments': False}
         self.targets = targets
@@ -194,8 +202,9 @@ class ToolRegistry:
         if not self.bindings['pbx.transfer']['enabled']:
             return ''
         if self.snapshot.get('consultation', {}).get('mode') == 'attended':
-            return TRANSFER_CONFIRMATION + 'The backend announces the private consultation before hold. Do not make a separate announcement before calling the transfer tool. '
-        return TRANSFER_CONFIRMATION + 'Announce a direct transfer once before calling the transfer tool. '
+            return TRANSFER_CONFIRMATION + 'The consultation coordinator announces the private call before hold. Do not make a separate announcement. '
+        return TRANSFER_CONFIRMATION + ('The speaking assistant gives one brief announcement before the direct handoff. '
+                                        'The delegated backend must continue directly to the tool after lookup. ')
 
     async def _pbx_context(self):
         from .routing import RoutingPolicy

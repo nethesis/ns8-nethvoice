@@ -219,7 +219,7 @@ function publishAgent(Service $service, array $r, bool $internal = false): array
                     'recent_callers_enabled'=>$r['callbacks'],
                     'recent_caller_denylist'=>array_values(array_diff($extensions, $allowedCallbacks)),
                     'descriptions'=>[
-                        ['destination_id'=>$extensionIds[0],'description'=>'Giulia Ferri, referente collaudo e assistenza clienti'],
+                        ['destination_id'=>$extensionIds[0],'description'=>'Giulia Ferri, referente collaudo e assistenza clienti, responsabile delle spedizioni'],
                         ['destination_id'=>$extensionIds[1],'description'=>'Luca Riva, referente collaudo e assistenza clienti'],
                         ['destination_id'=>'queue:'.$r['queue'],'description'=>'Assistenza Collaudo, supporto tecnico']
                     ]
