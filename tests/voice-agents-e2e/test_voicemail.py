@@ -5,7 +5,7 @@ import unittest
 import wave
 from unittest.mock import Mock
 
-from scenarios import Call, VOICEMAIL_RETURN_MARKER, matches, voicemail_beep_ended
+from scenarios import Call, REMEMBER_PHRASE, matches, voicemail_beep_ended
 
 
 def prompt(hz, duration, *, rate=8000, tail=0.1):
@@ -77,9 +77,10 @@ class VoicemailBeepTests(unittest.TestCase):
         call.recipient_alternative(0)
 
         call.play.assert_called_once_with(call.caller, "vm_no")
-        call.hear_until.assert_called_with(call.caller, 100, VOICEMAIL_RETURN_MARKER, "returned to agent", timeout=25)
+        call.hear_until.assert_called_with(call.caller, 100, REMEMBER_PHRASE, "returned to agent", timeout=25)
         call.finish.assert_called_once_with()
         self.assertIn("mailbox unchanged after explicit refusal", call.evidence)
-        self.assertTrue(matches("Girasole.", VOICEMAIL_RETURN_MARKER))
-        self.assertTrue(matches("Girazone.", VOICEMAIL_RETURN_MARKER))
-        self.assertFalse(matches("Va bene, arrivederci.", VOICEMAIL_RETURN_MARKER))
+        self.assertTrue(matches("Il girasole cresce in giardino.", REMEMBER_PHRASE))
+        self.assertTrue(matches("Il girazone cresce in giardino.", REMEMBER_PHRASE))
+        self.assertFalse(matches("Girasole.", REMEMBER_PHRASE))
+        self.assertFalse(matches("Va bene, arrivederci.", REMEMBER_PHRASE))

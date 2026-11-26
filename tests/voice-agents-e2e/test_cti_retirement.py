@@ -117,3 +117,20 @@ class CTIRetirementTests(unittest.TestCase):
             submission = lab._root.call_args_list[-1]
             self.assertEqual(submission.args[0], ["api-cli", "run", "module/openldap6/add-user", "--data", "-"])
             self.assertEqual(json.loads(submission.kwargs["data"])["password"], "test")
+            lab._reload_cti_profiles.assert_called_once_with(present=True)
+            lab._ssh.assert_called_with(["systemctl", "--user", "reload", "nethcti-server.service"])
+
+    def test_directory_reload_failure_retries_without_recreating_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lab = Lab(workdir=directory)
+            lab.state["directory_provider"] = "openldap6"
+            lab._php = Mock(return_value={"owned": True})
+            lab._add_directory_identity = Mock()
+            lab._reload_cti_profiles = Mock()
+            lab._ssh = Mock(side_effect=[LabError("server reload failed"), ""])
+            with self.assertRaisesRegex(LabError, "server reload failed"):
+                lab.ensure_cti_login()
+            lab.ensure_cti_login()
+            lab.ensure_cti_login()
+            lab._add_directory_identity.assert_not_called()
+            self.assertEqual(lab._ssh.call_count, 2)

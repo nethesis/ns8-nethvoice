@@ -1,6 +1,7 @@
 """Live scenarios. Each assertion uses the receiving endpoint or the PBX's own evidence."""
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from contextlib import ExitStack
+from difflib import SequenceMatcher
 from functools import partial
 import io
 import math
@@ -18,18 +19,37 @@ def require(condition, message):
         raise AssertionError(message)
 
 
+class Phrase(str):
+    """Expected spoken text, with tolerance for narrowband transcription errors."""
+
+
+def normalized_text(text):
+    return "".join(c for c in unicodedata.normalize("NFKD", text.casefold()) if not unicodedata.combining(c))
+
+
 def matches(text, pattern):
-    normalized = unicodedata.normalize("NFKD", text.casefold())
-    return re.search(pattern, "".join(c for c in normalized if not unicodedata.combining(c))) is not None
+    text = normalized_text(text)
+    if not isinstance(pattern, Phrase):
+        return re.search(pattern, text) is not None
+    expected = re.findall(r"[^\W_]+", normalized_text(pattern))
+    words = re.findall(r"[^\W_]+", text)
+    # Compare local windows only. Joining words also handles splits like “piano forte”.
+    target = "".join(expected)
+    return any(SequenceMatcher(None, target, "".join(words[start:start + width]), autojunk=False).ratio() >= .84
+               for width in range(max(2, len(expected) - 1), len(expected) + 2)
+               for start in range(len(words) - width + 1))
 
 
 REFUSAL = (r"\bnessun|\bnon\b.{0,55}(?:trov|posso|riesco|risult|dispon|consent|"
            r"autorizz|permess|rubrica|abilitat|presente|access|vedo)|impossibil|indisponibil|vietat")
 
-# Deepgram also hears the synthetic lab name as “Corello” on narrowband SIP audio.
-CORALLO = r"\bcorallo\b|\blaboratorio corello\b"
-# The voicemail follow-up marker can be transcribed as “Girazone”.
-VOICEMAIL_RETURN_MARKER = r"\bgira(?:sole|zone)\b"
+CORALLO = Phrase("laboratorio corallo")
+REMEMBER_PHRASE = Phrase("il girasole cresce in giardino")
+INTERRUPTION_PHRASE = Phrase("il limone e giallo")
+BRIDGE_MARKERS = {
+    "caller_marker": Phrase("questa e una prova con il tulipano"),
+    "colleague_marker": Phrase("ho trovato una castagna nel bosco"),
+}
 CALLBACK_SELECTION = (
     r"(?:\b(?:chi|quale|vuoi|vuole|posso|desider[ai]|preferisc[ei]|conferm[ai]|"
     r"intende(?:vi)?|intendi|procedo|collego|passo)\b[^.!?]{0,100}\?"
@@ -44,11 +64,14 @@ FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "si
         "denied", "denied-queue", "unknown", "ambiguous", "callback-empty",
         "callback-excluded", "callback-multiple", "callback-inbound", "callback-other-caller",
         "attended-decline", "attended-question", "chat-busy", "chat-no-answer",
-        "chat-expired", "publication", "deadline", "fallback", "overload")
+        "chat-expired", "publication", "deadline", "fallback")
 RECOVERY = ("restart-during-call", "restart-after-transfer")
 
 
 def matrix(profile):
+    if profile == "private-greeting":
+        return [("live", mode) for mode in
+                ("silent", "hello", "activation", "parent-silent", "parent-activation", "parent-recovery")]
     if profile == "latency":
         return [("live", mode) for mode in ("vad", "continuous")]
     if profile == "recovery":
@@ -56,6 +79,8 @@ def matrix(profile):
     primary = ("conversation",) if profile == "smoke" else BOTH
     cases = [(transport, name) for name in primary for transport in ("realtime", "live")]
     if profile == "functional":
+        # The overload caller must retain its plain dialing context before CTI setup.
+        cases.insert(0, ("live", "overload"))
         cases.extend(("live", name) for name in FULL)
     return cases
 
@@ -130,9 +155,9 @@ class Call:
     def configure(self, **overrides):
         options = dict(language=self.language, greeting=(
             "Welcome to Coral Laboratory." if self.language == "en" else "Benvenuti al laboratorio Corallo."),
-            instructions=("Follow the caller's request and repeat requested words. End a call only upon request."
+            instructions=("Follow the caller's request and repeat requested phrases. End a call only upon request."
                           if self.language == "en" else
-                          "Segui la richiesta del chiamante. Ripeti le parole richieste. "
+                          "Segui la richiesta del chiamante. Ripeti le frasi richieste. "
                           "Per trasferire usa la rubrica e gli strumenti disponibili. "
                           "Non inventare recapiti. Se serve un chiarimento, chiedilo. "
                           "Termina la chiamata soltanto su richiesta."))
@@ -148,8 +173,8 @@ class Call:
         self.caller.dial(route)
         self.caller.wait("CONFIRMED", 25)
         self.evidence.append("caller SIP confirmed")
-        self.expect(self.caller.listen(mark, 25), marker or ("coral" if self.language == "en" else CORALLO),
-                    "configured greeting")
+        greeting = Phrase("coral laboratory") if self.language == "en" else CORALLO
+        self.expect(self.caller.listen(mark, 25), marker or greeting, "configured greeting")
 
     def expect(self, audio, pattern, label):
         # Score captured windows after time-critical handoffs and the 60-second consultation.
@@ -162,7 +187,7 @@ class Call:
                     r"|\b(?:posso|vuoi che|vuole che)\b.{0,55}(?:trasfer|pass[ao]|colleg|metta in contatto)")
         if (not self.confirmed_recipient and matches(text, destination) and matches(text, question)
                 and not matches(text, r"segreteria|messaggio|oppure|\bluca\b|\briva\b")):
-            self.play(self.caller, "confirm")
+            self.play(self.caller, "confirm_queue" if self.case == "queue" else "confirm")
             self.confirmed_recipient = True
             self.evidence.append("caller confirmed the requested destination when asked")
 
@@ -293,11 +318,11 @@ class Call:
         return self.outcome("completed")
 
     def exchange(self, peer):
-        for sender, receiver, key, word in ((self.caller, peer, "caller_marker", "tulipano"),
-                                            (peer, self.caller, "colleague_marker", "castagna")):
+        for sender, receiver, key in ((self.caller, peer, "caller_marker"),
+                                      (peer, self.caller, "colleague_marker")):
             start = receiver.mark()
             self.play(sender, key)
-            self.expect(receiver.listen(start, 10), word, f"bridged marker {word}")
+            self.expect(receiver.listen(start, 12), BRIDGE_MARKERS[key], f"bridged {key.replace('_', ' ')}")
 
     def answer_ringing_peer(self, peer):
         mark = peer.mark()
@@ -335,28 +360,29 @@ class Call:
             self.play(self.caller, "interrupt")
             # Counting audio received during the interruption belongs to the prior turn.
             after_input = self.caller.mark()
-            self.expect(self.caller.listen(after_input, 20), r"\bl[ie]mone\b", "barge-in response")
+            self.expect(self.caller.listen(after_input, 20), INTERRUPTION_PHRASE, "barge-in response")
             self.expect(self.caller.received(mark),
-                        r"(?s)^(?!.*(?:cinquanta|\b50\b)).*(?:\b[123]\b|uno|due|tre).*\bl[ie]mone\b",
+                        r"(?s)^(?!.*(?:cinquanta|\b50\b)).*(?:\b[123]\b|uno|due|tre)",
                         "counting started and stopped before fifty when interrupted")
             self.finish()
         elif case == "silence":
             time.sleep(5)
             require(self.caller.status()["call"] == "CONFIRMED", "Call dropped during silence")
-            self.turn(self.caller, "hello", r"\bsi\b|sent[oi]|ascolt|aiut", "agent heard caller after silence")
+            self.turn(self.caller, "after_silence", Phrase("la prova continua senza problemi"),
+                      "agent heard caller after silence")
             self.finish()
         elif case == "hangup-disabled":
             self.turn(self.caller, "bye", r"\w+", "agent responded to the request to end the call")
             self.turn(self.caller, "hello", r"\bsi\b|sent[oi]|ascolt|aiut", "continued conversation")
             self.finish()
         else:
-            turns = (("remember", "girasole", "first turn"),
-                     ("recall", "girasole", "second turn recalled the word")) if self.language == "it" else (
-                         ("hello_en", "sunflower", "English response"),)
-            for clip, word, label in turns:
+            turns = (("remember", REMEMBER_PHRASE, "first turn"),
+                     ("recall", REMEMBER_PHRASE, "second turn recalled the phrase")) if self.language == "it" else (
+                         ("hello_en", Phrase("a sunflower grows in the garden"), "English response"),)
+            for clip, phrase, label in turns:
                 start = self.caller.mark()
                 self.play(self.caller, clip)
-                self.hear_until(self.caller, start, word, label, timeout=25)
+                self.hear_until(self.caller, start, phrase, label, timeout=25)
             mark = self.caller.mark()
             self.play(self.caller, "bye_en" if self.language == "en" else "bye")
             self.caller.wait("DISCONNECTED", 25)
@@ -395,7 +421,7 @@ class Call:
                     time.sleep(0.4)
             self.transferred()
         else:
-            pattern = ("quale|chi|nome|specific|intende|dettagli" if case == "ambiguous" else
+            pattern = (r"quale|chi|nome|specific|intende|dettagli|\bpreferisc[ei]\b[^.!?]{0,35}\?" if case == "ambiguous" else
                        REFUSAL)
             try:
                 self.hear_until(self.caller, start, pattern, "clarification or refusal")
@@ -474,17 +500,17 @@ class Call:
             return
         self.wait_for_recipient(partial(self.peer.wait, "RINGING", 40), held)
         mark = self.answer_ringing_peer(self.peer)
-        self.hear_until(self.peer, mark, r"\bpianoforte\b",
+        self.hear_until(self.peer, mark, Phrase("consegna del pianoforte"),
                         "private call reason reached colleague", timeout=20)
         # A colleague-only token tests isolation without asking the agent to invent an opening detail.
         self.play(self.peer, "private")
         if case == "attended-question":
             mark = self.caller.mark()
             self.play(self.peer, "question")
-            self.hear_until(self.caller, mark, r"\bcolore\b", "clarification reached caller", timeout=20)
+            self.hear_until(self.caller, mark, Phrase("colore del pianoforte"), "clarification reached caller", timeout=20)
             mark = self.peer.mark()
             self.play(self.caller, "answer")
-            self.hear_until(self.peer, mark, r"\bverde\b", "answer reached colleague", timeout=20)
+            self.hear_until(self.peer, mark, Phrase("il pianoforte e verde"), "answer reached colleague", timeout=20)
         caller_audio = self.caller.received(held)
         self.expect(caller_audio, r"attend|attes|colleg|contatt|verific|giulia|linea",
                     "audible consultation announcement on caller leg")
@@ -493,7 +519,7 @@ class Call:
             mark = self.caller.mark()
             self.play(self.peer, "decline")
             self.peer.wait("DISCONNECTED", 12)
-            self.hear_until(self.caller, mark, r"\bvenerdi\b", "attributed refusal message", timeout=15)
+            self.hear_until(self.caller, mark, Phrase("richiamare venerdi"), "attributed refusal message", timeout=15)
             self.finish()
         else:
             self.play(self.peer, "accept")
@@ -556,7 +582,7 @@ class Call:
                 require(count == self.mail_count + 1, "Expected exactly one new message in fixture mailbox")
                 self.evidence.append("one new message saved in the colleague's mailbox")
             else:
-                self.hear_until(self.caller, cursor, VOICEMAIL_RETURN_MARKER, "returned to agent", timeout=25)
+                self.hear_until(self.caller, cursor, REMEMBER_PHRASE, "returned to agent", timeout=25)
                 self.finish()
                 require(self.lab.mailbox_count() == self.mail_count, "Message left despite refusal")
                 self.evidence.append("mailbox unchanged after explicit refusal")
@@ -581,7 +607,7 @@ class Call:
                 self.cti.reply(ref, "Ora sono disponibile, accetto la chiamata.")
                 self.evidence.append("DND handset stayed silent and colleague reconfirmed after returning online")
             if case == "chat-expired":
-                self.turn(self.caller, "remember", "girasole", "resumed after chat timeout")
+                self.turn(self.caller, "remember", REMEMBER_PHRASE, "resumed after chat timeout")
                 self.finish()
                 require(self.peer.incoming == self.recipient_invites, "Late acceptance rang a handset")
             else:
@@ -642,7 +668,7 @@ class Call:
             old = self.caller
             previous = self.baseline
             route = self.configure(greeting="Benvenuti al laboratorio Rubino.")
-            self.start(route, self.phones["alternate"], "rubino")
+            self.start(route, self.phones["alternate"], Phrase("laboratorio rubino"))
             # Runs overlap. Identify the new publication by its later admission.
             self.caller.hangup()
             new = self.outcome("completed")

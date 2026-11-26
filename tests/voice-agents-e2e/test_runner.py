@@ -10,7 +10,7 @@ import wave
 from latency import latency_summary, score_greeting
 from media import MediaError, MediaPhone, pcm_window
 from run import claim_run, cleanup
-from scenarios import CALLBACK_SELECTION, CORALLO, REFUSAL, Call, matches, matrix
+from scenarios import BRIDGE_MARKERS, CALLBACK_SELECTION, CORALLO, REFUSAL, Call, Phrase, matches, matrix
 from speech import prepare, valid_wav
 
 
@@ -85,6 +85,8 @@ class HarnessTests(unittest.TestCase):
         self.assertTrue(set(matrix("smoke")) <= full)
         self.assertTrue(full.isdisjoint(matrix("recovery")))
         self.assertEqual(len(full), len(matrix("functional")))
+        self.assertLess(matrix("functional").index(("live", "overload")),
+                        matrix("functional").index(("live", "attended-accept")))
         self.assertTrue(matches("Richiami venerdì.", r"venerdi"))
         self.assertFalse(matches("la parola è zafferano", r"(?s)^(?!.*zafferano).+$"))
 
@@ -94,6 +96,21 @@ class HarnessTests(unittest.TestCase):
         self.assertTrue(matches("Non trovo la coda richiesta. Vuole parlare con Assistenza Collaudo?", REFUSAL))
         self.assertFalse(matches("Intende la coda di assistenza collaudo?", REFUSAL))
         self.assertFalse(matches("La passo alla coda di assistenza collaudo.", REFUSAL))
+
+    def test_spoken_phrase_allows_transcription_variation_and_keeps_context(self):
+        self.assertTrue(matches("Benvenuti al laboratorio Curallo.", CORALLO))
+        self.assertFalse(matches("Corallo.", CORALLO))
+        self.assertTrue(matches("Per la consenia del pleno forte, voy que te la passi.",
+                                Phrase("consegna del pianoforte")))
+        self.assertFalse(matches("Chiamo per la consegna del pacco.", Phrase("consegna del pianoforte")))
+        self.assertTrue(matches("Ciao, questa e' una prova con il tulipanno!", BRIDGE_MARKERS["caller_marker"]))
+        self.assertFalse(matches("Questa è una prova con il basilico.", BRIDGE_MARKERS["caller_marker"]))
+
+    def test_queue_confirmation_names_the_queue(self):
+        phones = {role: Mock() for role in ("caller", "colleague", "denied")}
+        call = Call(Mock(), phones, {}, {"confirm_queue": "queue.wav"}, Mock(), "live", "queue", [])
+        call.confirm_destination("Posso passarti la coda Assistenza Collaudo?", r"\bassistenza\b")
+        phones["caller"].play.assert_called_once_with("queue.wav")
 
     def test_callback_waits_for_selection_question(self):
         speech = Mock()

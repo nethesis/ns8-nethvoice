@@ -3,6 +3,10 @@
     "text": "Buongiorno, mi sente?",
     "model": "aura-2-cesare-it"
   },
+  "after_silence": {
+    "text": "Mi sente ancora? Ripeta questa frase: la prova continua senza problemi.",
+    "model": "aura-2-cesare-it"
+  },
   "name": {
     "text": "Mi passa Giulia Ferri, per favore?",
     "model": "aura-2-cesare-it"
@@ -39,6 +43,10 @@
     "text": "Sì, confermo. Mi metta in contatto con Giulia Ferri.",
     "model": "aura-2-cesare-it"
   },
+  "confirm_queue": {
+    "text": "Sì, confermo. Mi passi la coda Assistenza Collaudo, per favore.",
+    "model": "aura-2-cesare-it"
+  },
   "reason": {
     "text": "Chiamo per la consegna di un pianoforte.",
     "model": "aura-2-cesare-it"
@@ -64,7 +72,7 @@
     "model": "aura-2-cesare-it"
   },
   "vm_no": {
-    "text": "No, non voglio lasciare un messaggio in segreteria. Puoi ripetere la parola girasole?",
+    "text": "No, non voglio lasciare un messaggio in segreteria. Puoi ripetere questa frase? Il girasole cresce in giardino.",
     "model": "aura-2-cesare-it"
   },
   "vm_message": {
@@ -76,19 +84,19 @@
     "model": "aura-2-cinzia-it"
   },
   "caller_marker": {
-    "text": "La mia parola è tulipano.",
+    "text": "Ciao, questa è una prova con il tulipano.",
     "model": "aura-2-cesare-it"
   },
   "colleague_marker": {
-    "text": "La mia parola è castagna.",
+    "text": "Ho trovato una castagna nel bosco.",
     "model": "aura-2-cinzia-it"
   },
   "remember": {
-    "text": "Ricorda la parola girasole. Ripeti la parola per confermare.",
+    "text": "Ricorda questa frase e ripetila per conferma: il girasole cresce in giardino.",
     "model": "aura-2-cesare-it"
   },
   "recall": {
-    "text": "Qual era la parola che ti ho chiesto di ricordare?",
+    "text": "Qual era la frase che ti ho chiesto di ricordare?",
     "model": "aura-2-cesare-it"
   },
   "long": {
@@ -96,7 +104,7 @@
     "model": "aura-2-cesare-it"
   },
   "interrupt": {
-    "text": "Interrompi il conteggio e ripeti la parola limone.",
+    "text": "Interrompi il conteggio e ripeti questa frase: il limone è giallo.",
     "model": "aura-2-cesare-it"
   },
   "bye": {
@@ -104,7 +112,7 @@
     "model": "aura-2-cesare-it"
   },
   "hello_en": {
-    "text": "Please repeat the word sunflower.",
+    "text": "Please repeat this sentence: a sunflower grows in the garden.",
     "model": "aura-2-thalia-en"
   },
   "bye_en": {
