@@ -18,7 +18,7 @@ STATUSES = frozenset(('running', 'completed', 'failed', 'cancelled'))
 PROVIDER_CODES = frozenset(('other', 'invalid_value', 'unknown_parameter', 'unsupported_value',
     'invalid_request_error', 'invalid_function_parameters', 'model_not_found', 'invalid_api_key', 'insufficient_quota',
     'invalid_session_id', 'decision_already_made', 'unsupported_parameter', 'invalid_model',
-    'model_not_supported', 'srtp_required', 'rate_limit_exceeded', 'server_error'))
+    'model_not_supported', 'srtp_required', 'rate_limit_exceeded', 'input_audio_rate_limit_exceeded', 'server_error'))
 ERRORS = frozenset(('other', 'timeout', 'cancelled', 'transport', 'provider_error',
     'tool_denied', 'destination_denied', 'invalid_arguments', 'invalid_invocation',
     'hangup_unavailable', 'hangup_failed', 'tool_unavailable', 'tool_capacity_exceeded', 'recent_lookup_unavailable',

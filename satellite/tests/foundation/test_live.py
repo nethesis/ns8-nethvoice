@@ -203,6 +203,38 @@ async def test_live_rejects_unadvertised_wire_tools_and_redacts_command_errors()
 
 
 @pytest.mark.asyncio
+async def test_live_input_rate_limit_is_not_fatal_and_other_errors_keep_their_code(caplog):
+    async with connected() as (adapter,emulator):
+        dropped={'type':'error','error':{'type':'invalid_request_error','code':'input_audio_rate_limit_exceeded',
+                 'message':'PRIVATE Input audio is arriving too quickly. This append was dropped.'}}
+        for _ in range(3):
+            await emulator.ws.send_json(dropped)
+        await eventually(lambda:adapter._nonfatal_errors==3)
+        assert not any(e.get('type') in ('error','closed') for e in list(adapter._queue._queue))
+        assert caplog.text.count('input_audio_rate_limit_exceeded')==1 and 'PRIVATE' not in caplog.text
+        await adapter.respond('Greet the caller now.')
+        assert not adapter._closed and emulator.received[-1]['type']=='session.commentary.append'
+        await emulator.ws.send_json({'type':'error','error':{'type':'invalid_request_error','code':'rate_limit_exceeded','message':'PRIVATE'}})
+        await eventually(lambda:any(e.get('type')=='error' for e in list(adapter._queue._queue)))
+        error=next(e for e in list(adapter._queue._queue) if e.get('type')=='error')
+        assert error=={'type':'error','code':'provider_live_error','provider_code':'rate_limit_exceeded'}
+        assert 'provider_code=rate_limit_exceeded provider_type=invalid_request_error' in caplog.text
+        await adapter._handle({'type':'error','error':{'code':'PRIVATE caller text','type':None}})
+        assert list(adapter._queue._queue)[-1]['provider_code']=='other'
+        assert 'PRIVATE' not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_sideband_read_failure_logs_its_cause(caplog):
+    async with connected() as (adapter,emulator):
+        adapter._handle=AsyncMock(side_effect=ProviderError('missing\nfield'+'x'*200))
+        await emulator.ws.send_json({'type':'session.usage.updated'})
+        await eventually(lambda:any(e and e.get('code')=='provider_sideband_error' for e in list(adapter._queue._queue)))
+        assert 'sideband read failed error_class=ProviderError detail=missing field' in caplog.text
+        assert 'x'*120 not in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_live_transcripts_default_off_and_capture_positions_are_bounded():
     async with connected() as (adapter,emulator):
         await adapter._handle({'type':'session.input_transcript.delta','event_id':'turn-1','delta':'PRIVATE TEST TEXT','start_ms':0})
