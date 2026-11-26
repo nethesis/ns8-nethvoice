@@ -238,6 +238,7 @@ function publishAgent(Service $service, array $r, bool $internal = false): array
             $draft['consultation'] = ['mode'=>'attended','phone'=>true,'chat'=>$r['chat'],'assistant_id'=>$assistant['agent_id']];
         }
         $draft['max_call_duration_seconds'] = $r['duration'];
+        if ($r['debug']??false) $draft['debug']=['transcription_enabled'=>true,'retention_hours'=>1];
     }
     $agent = $service->save($existing['agent_id'] ?? null, ['name'=>$name,'draft'=>$draft], $existing['revision'] ?? 0, $r['owner']);
     $agent = $service->publish($agent['agent_id'], $agent['revision'], $r['owner']);
@@ -414,7 +415,7 @@ try {
             needreload();
         } else demand(count($match)===1 && $match[0]['description']===$label && $match[0]['dest']===$dest, 'route_owner_mismatch');
         $result = ['agent_id'=>$a['agent_id'],'workflow_version'=>$a['workflow_version'],'new_route'=>!$match];
-    } elseif ($op === 'runs' || $op === 'trace' || $op === 'children' || $op === 'search_runs') {
+    } elseif (in_array($op,['runs','trace','children','search_runs','debug_summary'],true)) {
         $agent = ownedAgent($service, $owner.'-'.$r['transport']);
         demand($agent, 'fixture_agent_missing');
         if ($op==='runs') $result=$service->runs($agent['agent_id'])['items'];
@@ -425,7 +426,11 @@ try {
         else {
             $run = (new Monitoring(FreePBX::Database()))->run($r['run_id']);
             demand($run['agent_id'] === $agent['agent_id'], 'run_owner_mismatch');
-            if ($op==='trace') {
+            if ($op==='debug_summary') {
+                $detail=$service->run($r['run_id']);
+                $result=['turns'=>(object)array_count_values(array_column($detail['transcripts'],'role')),
+                    'errors'=>array_values(array_intersect(['debug_transcription_unavailable','transcription_failed'],array_column($detail['events'],'error_code')))];
+            } elseif ($op==='trace') {
                 $run['events'] = [];
                 $query = [];
                 for ($page=0; $page<10; $page++) {
