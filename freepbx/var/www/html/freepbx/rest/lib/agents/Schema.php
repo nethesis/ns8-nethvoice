@@ -48,6 +48,12 @@ final class Schema
                 self::runtimeCredentials($db);
                 $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=5 WHERE singleton=1");
             }
+            if ($version<6) {
+                $db->exec("ALTER TABLE asteriskcdrdb.voice_agent_runs
+                    ADD COLUMN IF NOT EXISTS caller_number VARCHAR(21) CHARACTER SET ascii COLLATE ascii_bin NULL,
+                    ADD COLUMN IF NOT EXISTS called_number VARCHAR(21) CHARACTER SET ascii COLLATE ascii_bin NULL");
+                $db->exec("UPDATE asterisk.voice_agent_preview_schema SET schema_version=6 WHERE singleton=1");
+            }
             self::directoryViews($db);
             RecentCallerViews::install($db);
         } finally {
@@ -66,7 +72,7 @@ final class Schema
         }
         $version=$db->query("SELECT schema_version FROM $marker WHERE singleton=1")->fetchColumn();
         if ($version===false && count($objects)===1) return 0; // Interrupted immediately after CREATE.
-        if ($version===false || !in_array((string)$version,['0','1','2','3','4','5'],true)) throw new \RuntimeException('unsupported_schema_version');
+        if ($version===false || !in_array((string)$version,['0','1','2','3','4','5','6'],true)) throw new \RuntimeException('unsupported_schema_version');
         return (int)$version;
     }
 
