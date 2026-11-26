@@ -26,10 +26,11 @@ class TancrediKeyLabelsClient {
     private $url;
     private $headers;
 
-    public function __construct() {
+    public function __construct($restConfigFile = '/var/www/html/freepbx/rest/config.inc.php') {
         global $config;
-        $port = getenv('TANCREDIPORT');
-        $secret = $config['settings']['secretkey'] ?? ($_ENV['NETHVOICESECRETKEY'] ?? getenv('NETHVOICESECRETKEY'));
+        $settings = is_array($config['settings'] ?? null) ? $config['settings'] : tancrediRestSettings($restConfigFile);
+        $port = getenv('TANCREDIPORT') ?: ($settings['tancredi_port'] ?? '');
+        $secret = $settings['secretkey'] ?? ($_ENV['NETHVOICESECRETKEY'] ?? getenv('NETHVOICESECRETKEY'));
         if (empty($port) || empty($secret)) {
             throw new RuntimeException('Missing Tancredi credentials');
         }
@@ -107,6 +108,15 @@ class TancrediKeyLabelsClient {
             throw new RuntimeException('Cannot write '.$path.' to Tancredi: HTTP '.$code);
         }
     }
+}
+
+function tancrediRestSettings($file) {
+    if (!is_readable($file)) {
+        return array();
+    }
+    $config = null;
+    include $file;
+    return is_array($config['settings'] ?? null) ? $config['settings'] : array();
 }
 
 function isCustomPhoneModelName($name) {

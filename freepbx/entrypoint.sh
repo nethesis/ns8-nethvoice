@@ -311,6 +311,7 @@ cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
 \$config = [
     'settings' => [
         'secretkey' => '${NETHVOICESECRETKEY}',
+        'tancredi_port' => '${TANCREDIPORT}',
         'cti_config_path' => '/etc/nethcti'
     ],
     'nethctidb' => [
