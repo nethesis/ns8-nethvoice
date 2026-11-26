@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[2] / "imageroot"
 sys.path.insert(0, str(ROOT / "pypkg"))
 
 import video_gateway  # noqa: E402
+import voice_preview  # noqa: E402
 
 MODULE = "nethvoice1"
 
@@ -38,6 +39,8 @@ class FakePorts:
 
     def allocate(self, count, protocol, keep_existing=False, module=MODULE):
         self.calls.append((count, protocol, keep_existing))
+        if protocol == "tcp" and keep_existing and len(self.ports("tcp", module)) + count > 50:
+            raise RuntimeError("max_ports_exceeded")
         rows = self.rows[protocol]
         if not keep_existing:
             rows[:] = [row for row in rows if row[2] != module]
@@ -61,6 +64,7 @@ class VideoGatewayPortsTest(unittest.TestCase):
         self.agent.tasks = types.ModuleType("agent.tasks")
         self.agent.allocate_ports = mock.Mock(side_effect=self.ports.allocate)
         self.agent.set_env = lambda key, value: self.env.update({key: str(value)})
+        self.agent.mset_env = self.env.update
         self.agent.unset_env = lambda key: self.env.pop(key, None)
         self.agent.read_envfile = lambda _name: dict(self.env)
         self.agent.write_envfile = mock.Mock()
@@ -81,8 +85,8 @@ class VideoGatewayPortsTest(unittest.TestCase):
 
     def install(self):
         """create-module/05setenvs on a new instance: ns8-core allocated the
-        label demands (47 TCP, 3000 UDP) before the action runs."""
-        tcp = self.ports.allocate(47, "tcp")
+        label demands (50 TCP, 3000 UDP) before the action runs."""
+        tcp = self.ports.allocate(50, "tcp")
         udp = self.ports.allocate(3000, "udp")
         self.ports.calls.clear()
         self.run_script("actions/create-module/05setenvs", {
@@ -93,9 +97,9 @@ class VideoGatewayPortsTest(unittest.TestCase):
         self.env["TCP_PORTS_RANGE"] = f"{tcp[0]}-{tcp[1]}"
         self.env.setdefault("UDP_PORTS_RANGE", f"{udp[0]}-{udp[1]}")
 
-    def existing_18_instance(self):
-        """An instance installed by 1.8.x: 43 TCP ports, 1000 UDP ports."""
-        tcp = self.ports.allocate(43, "tcp")
+    def existing_18_instance(self, tcp_count=43):
+        """An instance installed by 1.8.x with its original TCP and UDP ranges."""
+        tcp = self.ports.allocate(tcp_count, "tcp")
         udp = self.ports.allocate(1000, "udp")
         base = udp[0]
         self.env.update({
@@ -119,6 +123,10 @@ class VideoGatewayPortsTest(unittest.TestCase):
         for name in ("20allocate_ports", "20allocate_video_gateway_ports"):
             self.run_script("update-module.d/" + name)
 
+    def enable_agents(self):
+        with mock.patch.dict(sys.modules, {"agent": self.agent}):
+            voice_preview.allocate_agent_ports(self.env)
+
     def assert_gateway_ports(self):
         tcp = [int(self.env[name]) for name in video_gateway.TCP_PORT_VARS]
         udp = int(self.env[video_gateway.UDP_PORT_VAR])
@@ -132,8 +140,9 @@ class VideoGatewayPortsTest(unittest.TestCase):
     def test_new_install(self):
         self.install()
         self.assert_gateway_ports()
-        tcp = list(range(*(int(v) for v in self.env["TCP_PORTS_RANGE"].split("-")))) + [int(self.env["TCP_PORTS_RANGE"].split("-")[1])]
-        self.assertEqual([self.env[name] for name in video_gateway.TCP_PORT_VARS], [str(p) for p in tcp[42:46]])
+        start = int(self.env["TCP_PORTS_RANGE"].split("-")[0])
+        self.assertEqual([self.env[name] for name in video_gateway.TCP_PORT_VARS], [str(start + i) for i in range(42, 46)])
+        self.assertEqual([self.env[name] for name in voice_preview.TCP_PORT_VARS], [str(start + i) for i in range(46, 49)])
         # The ICE port is allocated after the UDP block has been shrunk, and
         # without dropping it
         self.assertEqual(self.ports.calls, [(1000, "udp", False), (1, "udp", True)])
@@ -170,6 +179,65 @@ class VideoGatewayPortsTest(unittest.TestCase):
         self.update()
         self.assertEqual(self.ports.calls, [])
         self.assertNotIn("PORTS_MIGRATION_REPORT", self.env)
+
+    def test_agents_and_gateway_fit_pre_mediatmx_ranges(self):
+        for count in range(43, 47):
+            with self.subTest(tcp_count=count):
+                self.env.clear()
+                self.existing_18_instance(count)
+                self.update()
+                original_ports = dict(self.env)
+                self.enable_agents()
+                self.assert_gateway_ports()
+                for name, port in original_ports.items():
+                    self.assertEqual(self.env[name], port)
+                agent_ports = [int(self.env[name]) for name in voice_preview.TCP_PORT_VARS]
+                reused = min(3, count - 42)
+                self.assertEqual(agent_ports[:reused], list(range(20042, 20042 + reused)))
+                self.assertEqual(len(set(agent_ports)), 3)
+                self.assertTrue(set(agent_ports) <= set(self.ports.ports("tcp")))
+                gateway_ports = {int(self.env[name]) for name in video_gateway.TCP_PORT_VARS}
+                self.assertTrue(gateway_ports.isdisjoint(agent_ports))
+                calls = self.ports.calls.copy()
+                self.update()
+                self.enable_agents()
+                self.assertEqual(self.ports.calls, calls)
+
+    def test_agents_upgrade_keeps_main_gateway_slots(self):
+        self.existing_18_instance(47)
+        original_gateway = dict(zip(video_gateway.TCP_PORT_VARS, map(str, range(20042, 20046))))
+        ice_udp = self.ports.allocate(1, "udp", keep_existing=True)[0]
+        self.env.update(original_gateway, MEDIAMTX_ICE_UDP_PORT=str(ice_udp))
+        self.ports.calls.clear()
+
+        self.update()
+        self.enable_agents()
+
+        self.assertEqual({name: self.env[name] for name in original_gateway}, original_gateway)
+        self.assertEqual([self.env[name] for name in voice_preview.TCP_PORT_VARS], ["20046", "20047", "20048"])
+        self.assertEqual(self.ports.calls, [(2, "tcp", True)])
+
+    def test_upgrade_keeps_existing_agents_and_gateway_slots(self):
+        self.install()
+        old_ports = dict(zip(voice_preview.TCP_PORT_VARS, map(str, range(20042, 20045))))
+        old_ports.update(zip(video_gateway.TCP_PORT_VARS, map(str, range(20045, 20049))))
+        self.env.update(old_ports)
+        self.ports.calls.clear()
+
+        self.update()
+        self.enable_agents()
+
+        self.assertEqual({name: self.env[name] for name in old_ports}, old_ports)
+        self.assertEqual(self.ports.calls, [])
+
+    def test_tcp_ports_can_overlap_the_udp_block(self):
+        self.ports.allocate(956, "tcp", module="other")
+        self.existing_18_instance(46)
+        self.update()
+        self.enable_agents()
+
+        self.assertEqual(self.env["VOICE_AGENT_HTTP_PORT"], self.env["ASTERISK_IAX_PORT"])
+        self.assertEqual(self.env["NETHVOICE_RECIPIENT_SERVICE_PORT"], self.env["ASTERISK_SIP_UDP_PORT"])
 
     def test_full_udp_migration_reallocates_the_ice_port(self):
         # A 1.7.10 instance with the 2003 ports block: 20allocate_ports moves
