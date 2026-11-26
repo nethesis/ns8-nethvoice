@@ -13,9 +13,12 @@ import {
 } from "@nethesis/vue-components";
 import {
   faArrowRightFromBracket,
+  faBars,
+  faCircleInfo,
   faLock,
   faMoon,
   faSun,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { access, auth, signIn, signOut } from "./api";
 import { useUi } from "./stores/ui";
@@ -138,7 +141,7 @@ watch(
           class="mt-2 mr-2 lg:hidden"
           :aria-label="t('closeNavigation')"
           @click="mobileMenu = false"
-          ><FontAwesomeIcon icon="xmark" class="size-5" aria-hidden="true"
+          ><FontAwesomeIcon :icon="faXmark" class="size-5" aria-hidden="true"
         /></NeButton>
       </div>
       <ul role="list" class="flex flex-col gap-2 px-2 pb-4">
@@ -191,15 +194,16 @@ watch(
           :aria-expanded="mobileMenu ? 'true' : 'false'"
           @click="mobileMenu = true"
         >
-          <FontAwesomeIcon icon="bars" class="size-4" aria-hidden="true" />
+          <FontAwesomeIcon :icon="faBars" class="size-4" aria-hidden="true" />
         </button>
         <span class="bg-line -my-px h-16 w-px lg:hidden" aria-hidden="true" />
         <div class="flex-1" />
         <div class="flex items-center gap-6">
           <a
             href="/freepbx/wizard/"
-            class="text-secondary-neutral hover:underline"
-            >Wizard</a
+            class="text-secondary-neutral hover:text-primary-neutral focus-visible:outline-primary-500 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+            data-testid="wizard-link"
+            >{{ t("wizard") }}</a
           >
           <NeTooltip trigger-event="mouseenter focus" placement="bottom">
             <template #trigger>
@@ -211,7 +215,7 @@ watch(
                 :aria-label="t('documentation')"
                 data-testid="documentation-link"
                 ><FontAwesomeIcon
-                  icon="circle-info"
+                  :icon="faCircleInfo"
                   class="size-5"
                   aria-hidden="true"
               /></a>
