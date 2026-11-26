@@ -697,7 +697,9 @@ class Runtime:
             except ValueError:
                 pass
         if envelope is None:
-            self.invalid_webhook_signatures += 1
+            # Unsigned requests are noise from anyone; count only signature failures.
+            if {'webhook-id','webhook-timestamp','webhook-signature'} <= {str(k).lower() for k in headers}:
+                self.invalid_webhook_signatures += 1
             raise ValueError('invalid_webhook')
         kind=envelope.get('type')
         if kind not in ('realtime.call.incoming','live.transport.incoming','live.call.incoming'):

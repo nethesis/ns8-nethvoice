@@ -104,10 +104,17 @@ async def test_signed_webhook_requires_live_pinned_pending_call_and_deduplicates
     with pytest.raises(ValueError):
         await runtime.webhook('openai',stale,stale_headers)
     assert runtime.invalid_webhook_signatures == 3
+    for unsigned in ({}, {'Content-Type':'application/json'}, {k:v for k,v in headers.items() if k!='webhook-signature'}):
+        with pytest.raises(ValueError):
+            await runtime.webhook('openai',body+b' ',unsigned)
+    assert runtime.invalid_webhook_signatures == 3
+    with pytest.raises(ValueError):
+        await runtime.webhook('openai',body+b' ',{k.upper():v for k,v in headers.items()})
+    assert runtime.invalid_webhook_signatures == 4
     assert not any(e['error_code'] == 'invalid_signature' for e in runtime.monitoring.pending.values())
     signed_notice, auth = sign(call, {}, event_type='response.completed')
     assert await runtime.webhook('openai', signed_notice, auth) == {'status': 'ignored'}
-    assert runtime.invalid_webhook_signatures == 3
+    assert runtime.invalid_webhook_signatures == 4
     storage.verify_signing_secret.assert_not_called()  # Signed claim alone is insufficient.
     unrelated = copy.deepcopy(data)
     unrelated['sip_headers'][0]['value'] = 'unrelated-session'
