@@ -60,7 +60,7 @@ COLLEAGUE_NAME = r"\b(?:giulia|julia|ferri|ferry)\b"
 
 # Every name here is dispatched below. The second transport repeats its riskiest handoffs.
 BOTH = ("conversation", "name", "callback", "attended-accept", "chat-dnd", "voicemail-yes", "voicemail-no")
-FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "silence", "long-conversation", "activity-numbers", "queue",
+FULL = ("english", "known-name", "hangup-disabled", "anonymous", "barge-in", "silence", "long-conversation", "activity-numbers", "debug-transcript", "queue",
         "denied", "denied-queue", "unknown", "ambiguous", "callback-empty",
         "callback-excluded", "callback-multiple", "callback-inbound", "callback-other-caller",
         "attended-decline", "attended-question", "chat-busy", "chat-no-answer",
@@ -674,6 +674,19 @@ class Call:
                 require(row[field] == expected, f"{field} does not match the fixture")
                 require(row["run_id"] in self.lab.search_activity(self.transport, expected), f"Activity search missed {field}")
                 self.evidence.append(f"Activity records and finds the synthetic {field}")
+        elif case == "debug-transcript":
+            self.start(self.configure(debug=True))
+            self.turn(self.caller, "remember", REMEMBER_PHRASE, "synthetic caller phrase repeated")
+            row = self.finish()
+            deadline = time.monotonic() + 12
+            while True:
+                debug = self.lab.debug_summary(self.transport, row["run_id"])
+                require(not debug["errors"], "Debug transcription error in Activity")
+                if debug["turns"].get("caller") and debug["turns"].get("assistant"):
+                    self.evidence.append("both synthetic conversation roles are present in debug transcript")
+                    break
+                require(time.monotonic() < deadline, "Missing caller or assistant debug transcript")
+                time.sleep(0.4)
         elif case in ("name", "queue", "denied", "denied-queue", "unknown", "ambiguous"):
             self.routing()
         elif case.startswith("callback"):

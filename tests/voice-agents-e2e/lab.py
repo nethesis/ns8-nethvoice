@@ -126,10 +126,10 @@ class Lab:
 
     def configure(self, transport, *, language="it", greeting="Benvenuti al laboratorio Corallo.",
                   instructions="", hangup=True, duration=180, attended=False, chat=False,
-                  fallback=False, callbacks=True, exclude_callback=False, direct=True, queues=False):
+                  fallback=False, callbacks=True, exclude_callback=False, direct=True, queues=False, debug=False):
         if not self.manifest.exists() or transport not in self.state["routes"]:
             raise LabError("missing run-owned fixture or unknown transport")
-        key=(language, greeting, instructions, hangup, duration, attended, chat, fallback, callbacks, exclude_callback, direct, queues)
+        key=(language, greeting, instructions, hangup, duration, attended, chat, fallback, callbacks, exclude_callback, direct, queues, debug)
         if self._configured.get(transport)==key:
             self._php("verify_links")
             return self.state["routes"][transport]
@@ -148,7 +148,7 @@ class Lab:
         agent = self._php("configure", transport=transport, binding=self.metadata["binding"], language=language,
                           greeting=greeting, instructions=instructions, hangup=hangup, duration=duration,
                           attended=attended, chat=chat, fallback=fallback, callbacks=callbacks,
-                          exclude_callback=exclude_callback, direct=direct, queues=queues)
+                          exclude_callback=exclude_callback, direct=direct, queues=queues, debug=debug)
         self.versions[transport] = agent["workflow_version"]
         self.agent_ids[transport] = agent["agent_id"]
         route = self.state["routes"][transport]
@@ -175,6 +175,9 @@ class Lab:
 
     def search_activity(self, transport, number):
         return self._php("search_runs", transport=transport, term=number)
+
+    def debug_summary(self, transport, run_id):
+        return self._php("debug_summary", transport=transport, run_id=run_id)
 
     def trace(self, run_id, transport):
         return self._php("trace", run_id=run_id, transport=transport)
