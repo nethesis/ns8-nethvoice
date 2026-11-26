@@ -146,23 +146,23 @@ final class Service
         if (!$row) self::fail('agent_not_found',404);
         $draft = $this->query('SELECT definition_json FROM asterisk.voice_agent_drafts WHERE agent_id=?',[$id])->fetchColumn();
         $published = $row['active_workflow_version'] ? $this->query('SELECT definition_json FROM asterisk.voice_agent_versions WHERE agent_id=? AND workflow_version=?',[$id,$row['active_workflow_version']])->fetchColumn() : false;
-        $draft=$draft?json_decode($draft,true,512,JSON_THROW_ON_ERROR):self::emptyDraft();
+        $draft=$draft?PublishedContract::effectiveLegacyQueues(json_decode($draft,true,512,JSON_THROW_ON_ERROR)):self::emptyDraft();
+        $published=$published?PublishedContract::effectiveLegacyQueues(json_decode($published,true,512,JSON_THROW_ON_ERROR)):null;
         $external=($draft['execution']??null)==='cleverai';
         $internal=($draft['role']??null)==='consultation';
         if (!$external && (int)$row['revision']===1 && !$draft['provider_binding_id'] && ($draft['conversation']['instructions']==='' ||
             ($id==='receptionist' && $draft['conversation']['instructions']===ReceptionistDefaults::INSTRUCTIONS) ||
             ($id==='consultation_assistant' && $draft['conversation']['instructions']===self::consultationDraft()['conversation']['instructions']))) $draft['conversation']['language']=$this->native->defaultLanguage();
-        $same=$published && $draft==array_intersect_key(json_decode($published,true,512,JSON_THROW_ON_ERROR),$draft);
+        $same=$published && $draft==array_intersect_key($published,$draft);
         $draftVersion=$same?(int)$row['active_workflow_version']:(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
         return ['agent_id'=>$id,'agent_type'=>$external?'cleverai':($internal?'consultation':'basic_voice'),'draft_version'=>$external?null:$draftVersion,'name'=>$row['name'],'kind'=>$row['kind'],'destination_id'=>$row['destination_id'],
             'enabled'=>(bool)$row['enabled'],'revision'=>(int)$row['revision'], 'workflow_version'=>$row['active_workflow_version'] ? (int)$row['active_workflow_version'] : null,
-            'sync_status'=>$row['sync_status'],'routable'=>!$internal && (bool)$row['enabled'] && ($external || (bool)$published) && $row['sync_status']==='synced' && $this->bindingReady($external?self::encode($draft):$published),
+            'sync_status'=>$row['sync_status'],'routable'=>!$internal && (bool)$row['enabled'] && ($external || (bool)$published) && $row['sync_status']==='synced' && $this->bindingReady($external?$draft:$published),
             'draft'=>$draft,
-            'published'=>$published ? json_decode($published,true,512,JSON_THROW_ON_ERROR) : null];
+            'published'=>$published];
     }
-    private function bindingReady(string $published): bool
+    private function bindingReady(array $snapshot): bool
     {
-        $snapshot=json_decode($published,true,512,JSON_THROW_ON_ERROR);
         $live=($snapshot['conversation']['model']??null)==='gpt-live-1';
         if (!$live && !Preview::sipEnabled()) return false;
         try { $binding=$this->binding($snapshot['provider_binding_id']); }
@@ -301,7 +301,7 @@ PROMPT;
             $draft=$this->validateDraft($agent['draft'],true);
             if (($draft['consultation']['mode']??null)==='attended') {
                 $assistant=$this->get($draft['consultation']['assistant_id']);
-                if ($assistant['agent_type']!=='consultation' || !$assistant['enabled'] || !$assistant['published'] || $assistant['sync_status']!=='synced' || !$this->bindingReady(self::encode($assistant['published']))) self::fail('consultation_assistant_unavailable');
+                if ($assistant['agent_type']!=='consultation' || !$assistant['enabled'] || !$assistant['published'] || $assistant['sync_status']!=='synced' || !$this->bindingReady($assistant['published'])) self::fail('consultation_assistant_unavailable');
                 if ($draft['consultation']['chat'] && !$assistant['published']['chat_model'] && $assistant['published']['conversation']['model']!=='gpt-live-1') self::fail('consultation_chat_model_required');
             }
             if (!$draft['provider_binding_id']) self::fail('provider_required',field:'draft.provider_binding_id');
@@ -679,6 +679,14 @@ PROMPT;
         });
     }
 
+    /** A fallback-only update keeps the stored shape when projection exceeds the row budget. */
+    private function fallbackDefinition(array $current,array $changes,callable $readOriginal): array
+    {
+        $updated=array_replace($current,$changes);
+        if (strlen(self::encode($updated))<=PublishedContract::MAX_BYTES) return $updated;
+        return array_replace(json_decode($readOriginal(),true,512,JSON_THROW_ON_ERROR),$changes);
+    }
+
     public function setFallbacks(array $changes,string $actor): void
     {
         $this->locked(function() use ($changes,$actor) {
@@ -706,12 +714,16 @@ PROMPT;
             foreach ($changes as $id=>$change) {
                 $agent=$agents[$id];$target=$change['destination_id'];
                 if ($agent['draft']['fallback_destination_id']===$target && (!$agent['published'] || $agent['published']['fallback_destination_id']===$target)) continue;
-                $changed=true;$draft=$agent['draft'];$draft['fallback_destination_id']=$target;
+                $changed=true;
+                $fallback=['fallback_destination_id'=>$target];
+                $draft=$this->fallbackDefinition($agent['draft'],$fallback,
+                    fn()=>$this->query('SELECT definition_json FROM asterisk.voice_agent_drafts WHERE agent_id=?',[$id])->fetchColumn());
                 $this->query('UPDATE asterisk.voice_agent_drafts SET definition_json=?,revision=revision+1 WHERE agent_id=?',[self::encode($draft),$id]);
                 if ($agent['published']) {
                     $version=(int)$this->query('SELECT MAX(workflow_version)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
-                    $snapshot=$agent['published'];$snapshot['workflow_version']=$version;$snapshot['fallback_destination_id']=$target;
-                    PublishedContract::validate($snapshot);
+                    $snapshot=$this->fallbackDefinition($agent['published'],$fallback+['workflow_version'=>$version],
+                        fn()=>$this->query('SELECT definition_json FROM asterisk.voice_agent_versions WHERE agent_id=? AND workflow_version=?',[$id,$agent['workflow_version']])->fetchColumn());
+                    PublishedContract::validate($snapshot,allowHistoricalQueues:true);
                     $this->query('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json,published_by) VALUES (?,?,?,?,?)',[$id,$version,$snapshot['contract_version'],self::encode($snapshot),self::text($actor,100,true)]);
                     $this->query("UPDATE asterisk.voice_agent_agents SET active_workflow_version=?,sync_status='pending' WHERE agent_id=?",[$version,$id]);
                 }
