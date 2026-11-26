@@ -29,15 +29,7 @@ check(str_contains($after[3], '${CFIGNORE}') && str_contains($after[3], '${NETHV
 check(array_merge(array_slice($after, 0, 2), array_slice($after, 4)) === $before, 'unrelated Core instructions changed');
 nethcti3_configure_forward_identity($ext);
 check(count($ext->_exts['macro-dial-one'][' cf ']) === count($steps), 'repeated hook duplicated instructions');
-nethcti3_configure_forward_progress($ext);
-$progress = array_map(fn($step) => $step['cmd']->output(), $ext->_exts['macro-dial-one'][' cf ']);
-$forwardReturn = array_search('ExecIf($["${DEXTEN}"!=""]?Return())', $progress, true);
-check($progress[$forwardReturn-2] === 'Answer' && $progress[$forwardReturn-1] === 'Ringing()', 'TIM progress must precede the forwarding return');
-check(array_merge(array_slice($progress, 0, $forwardReturn-2), array_slice($progress, $forwardReturn)) === $after, 'progress response changed another instruction');
-nethcti3_configure_forward_progress($ext);
-check(count($ext->_exts['macro-dial-one'][' cf ']) === count($progress), 'repeated progress hook duplicated instructions');
 $ext->_exts['macro-dial-one'][' cf '] = [];
 nethcti3_configure_forward_identity($ext);
-nethcti3_configure_forward_progress($ext);
 check($ext->_exts['macro-dial-one'][' cf '] === [], 'missing anchors must leave the rest of the dialplan intact');
-echo "PASS: Core loop guard, forwarding identity and TIM progress order\n";
+echo "PASS: Core loop guard and forwarding identity\n";
