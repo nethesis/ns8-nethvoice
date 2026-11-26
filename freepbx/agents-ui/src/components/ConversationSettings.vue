@@ -242,10 +242,10 @@ const option = (key: string) => String(props.modelValue.options?.[key] ?? "");
           @click="voices.refetch()"
           >{{ t("retry") }}</NeButton
         >
-        <span v-if="models.data.value" class="text-muted text-xs">{{
-          t("modelSources." + models.data.value.source)
-        }}</span>
       </div>
+      <p v-if="models.data.value" class="text-muted mt-1 text-sm">
+        {{ t("modelSources." + models.data.value.source) }}
+      </p>
       <AppExpandable
         v-if="selected && Object.keys(schema).length"
         boxed
