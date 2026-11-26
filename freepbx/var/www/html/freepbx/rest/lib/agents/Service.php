@@ -12,7 +12,8 @@ require_once __DIR__ . '/Monitoring.php';
 
 final class FieldError extends \RuntimeException
 {
-    public function __construct(string $reason,int $status,public readonly string $field) { parent::__construct($reason,$status); }
+    public function __construct(string $reason,int $status,public readonly string $field,public readonly ?string $webhookCheck=null)
+    { parent::__construct($reason,$status); }
 }
 
 /** PHP owns drafts, immutable publication, grants and configuration auditing. */
@@ -418,9 +419,7 @@ PROMPT;
     {
         if ($row['provider']==='openai' && empty($settings['openai_project_id'])) return 'not_configured';
         $key=$secrets['api_key']??ProviderCatalog::environmentKey($row['provider']);
-        $generation=$this->crypto->webhookKeyGeneration($row['provider'],$key);
-        $manual=$key!=='' && !empty($row['webhook_verified_at'])
-            && ($row['webhook_verified_key_generation']??null)===$generation?'verified':'manual';
+        $manual=$this->webhookKeyVerified($row,$key)?'verified':'manual';
         $setup=$secrets['openai_webhook']??null;
         $attempts=self::webhookAttempts($secrets);
         if ($row['provider']!=='openai' || (!$setup && !$attempts)) return empty($secrets['webhook_secret'])?'not_configured':$manual;
@@ -434,6 +433,11 @@ PROMPT;
             if (self::sameWebhookScope($attempt,$scope)) return 'recovery_required';
         }
         return $setup?'needs_setup':(empty($secrets['webhook_secret'])?'not_configured':$manual);
+    }
+    private function webhookKeyVerified(array $row,string $key): bool
+    {
+        return $key!=='' && !empty($row['webhook_verified_at'])
+            && ($row['webhook_verified_key_generation']??null)===$this->crypto->webhookKeyGeneration($row['provider'],$key);
     }
     private static function webhookAttempts(array $secrets): array
     {
@@ -620,14 +624,18 @@ PROMPT;
     /** POST avoids putting unsaved credentials into URLs, caches or browser history. */
     public function models(array $input): array
     {
-        self::fields($input,['provider','binding_id','api_key','credential_mode','test','openai_project_id']);
+        self::fields($input,['provider','binding_id','api_key','credential_mode','test','openai_project_id','webhook_secret']);
         $mode=$input['credential_mode']??null;
         if ($mode!==null && !in_array($mode,['inherit','dedicated'],true)) self::fail('invalid_field');
         $provider=self::text($input['provider']??null,16,true);
         ProviderCatalog::capabilities($provider);
         $test=($input['test']??false)===true;
-        if (array_key_exists('openai_project_id',$input) && (!$test || $provider!=='openai')) self::fail('invalid_fields',field:'openai_project_id');
+        foreach (['openai_project_id','webhook_secret'] as $field) {
+            if (array_key_exists($field,$input) && (!$test || $provider!=='openai')) self::fail('invalid_fields',field:$field);
+        }
         $project=$input['openai_project_id']??null;
+        $webhook=$input['webhook_secret']??'';
+        if ($webhook!=='' && !OpenAiWebhook::validSecret($webhook)) self::fail('invalid_secret',field:'webhook_secret');
         $key=isset($input['api_key'])?self::text($input['api_key'],4096):'';
         if ($key!=='' && preg_match('/[\r\n\x00]/',$key)) self::fail('invalid_secret');
         if (isset($input['binding_id'])) {
@@ -643,12 +651,30 @@ PROMPT;
             $project=self::text($project,128,false,'openai_project_id');
             if ($project!=='' && !preg_match('/^proj_[A-Za-z0-9_-]+$/D',$project)) self::fail('invalid_provider_configuration',field:'openai_project_id');
         }
+        $webhookCheck=null;
+        if ($test && $provider==='openai') {
+            $savedSecret=$secrets['webhook_secret']??'';
+            $sameCredentials=isset($row,$binding) && ($binding['openai_project_id']??null)===$project
+                && hash_equals($secrets['api_key']??ProviderCatalog::environmentKey('openai'),$key)
+                && ($webhook==='' || hash_equals($savedSecret,$webhook))
+                && in_array($binding['webhook_status'],['manual','configured','verified'],true);
+            $webhookCheck=match (true) {
+                !$project => 'not_required',
+                $webhook==='' && $savedSecret==='' => 'not_configured',
+                $sameCredentials && $this->webhookKeyVerified($row,$key) => 'verified_by_call',
+                default => 'signed_call_required',
+            };
+        }
         try { $result=$this->providerCatalog->models($provider,$key,$test,$project?:null); }
         catch (\RuntimeException $error) {
-            if ($error->getMessage()==='provider_project_unverified') self::fail('provider_project_unverified',422,'openai_project_id');
+            $reason=$error->getMessage();
+            if ($webhookCheck!==null && in_array($reason,['provider_project_unverified','provider_credentials_unavailable','provider_credentials_rejected','provider_permission_denied'],true)) {
+                throw new FieldError($reason,422,$reason==='provider_project_unverified'?'openai_project_id':'api_key',$webhookCheck);
+            }
             throw $error;
         }
-        if ($test && isset($result['discovery_error'])) self::fail($result['discovery_error'],503);
+        if ($test && isset($result['discovery_error'])) throw new FieldError($result['discovery_error'],503,'api_key',$webhookCheck);
+        if ($webhookCheck!==null) $result['webhook_check']=$webhookCheck;
         if ($provider==='openai' && !Preview::sipEnabled()) {
             $result['items']=array_values(array_filter($result['items'],fn($item)=>$item['id']==='gpt-live-1'));
             $result['default_model']='gpt-live-1';
@@ -809,15 +835,34 @@ PROMPT;
             if ($mode==='dedicated' && empty($secrets['api_key'])) self::fail('credentials_required');
             if (!$external && ((empty($secrets['api_key']) && $moduleKey==='') || ($provider==='grok' && empty($secrets['webhook_secret'])) || ($settings['sip_auth_mode']==='digest' && empty($secrets['sip_password'])))) self::fail('credentials_required');
             if (!$external && isset($secrets['webhook_secret']) && !OpenAiWebhook::validSecret($secrets['webhook_secret'])) self::fail('invalid_secret',field:'webhook_secret');
+            $projectValidation=[];
+            $key=$secrets['api_key']??$moduleKey;
+            $generation=$external?null:$this->crypto->webhookKeyGeneration($provider,$key);
+            if ($provider==='openai' && $settings['openai_project_id']!=='') {
+                $project=$settings['openai_project_id'];
+                $proof=['project'=>$project,'key_generation'=>$generation];
+                $projectValidation=['project_validation'=>'verified'];
+                if (($secrets['project_validation']??null)!==$proof) {
+                    unset($secrets['project_validation']);
+                    try {
+                        $checked=$this->providerCatalog->models('openai',$key,true,$project);
+                        if (!empty($checked['project_checked'])) $secrets['project_validation']=$proof;
+                        else $projectValidation=['project_validation'=>'unavailable'];
+                    } catch (\RuntimeException $error) {
+                        if ($error->getMessage()==='provider_project_unverified') self::fail('provider_project_unverified',422,'openai_project_id');
+                        if ($error->getMessage()!=='provider_permission_denied') throw $error;
+                        $projectValidation=['project_validation'=>'scope_unavailable'];
+                    }
+                }
+            } else unset($secrets['project_validation']);
             if (!$external && !empty($input['webhook_secret']) && isset($secrets['openai_webhook']['endpoint_id'])) {
                 $secrets['openai_webhook']['state']='manual';
                 unset($secrets['openai_webhook']['automatic'],$secrets['openai_webhook']['secret_hint'],$secrets['openai_webhook']['endpoint_updated_at']);
             }
-            $generation=$external?null:$this->crypto->webhookKeyGeneration($provider,$secrets['api_key']??$moduleKey);
             if ($generation!==null) $secrets['webhook_key_generation']=$generation;
             $invalidateVerification=$previousWebhook!==($secrets['webhook_secret']??'')
                 || ($previousSettings['openai_project_id']??null)!==($settings['openai_project_id']??null)
-                || $previousKey!==($secrets['api_key']??$moduleKey);
+                || $previousKey!==$key;
             $resetProof=$invalidateVerification && $previous && array_key_exists('webhook_verified_key_generation',$previous)?',webhook_verified_key_generation=NULL':'';
             $encrypted=$external?'':$this->crypto->encryptSecret(json_encode($secrets,JSON_THROW_ON_ERROR));
             $runtimeEncrypted=$external?null:$this->crypto->encryptRuntimeCredentials($secrets);
@@ -833,7 +878,7 @@ PROMPT;
             $this->audit($id,$actor,$previous?'updated':'created',$revision+1,true);
             $this->db->commit();
             $row=$this->binding($id);
-            if (!$nativeChanged) return $this->safeBinding($row);
+            if (!$nativeChanged) return $this->safeBinding($row)+$projectValidation;
             try {
                 $nativeId=$this->provisionNativeTrunk($row,$previous);
                 $row['freepbx_trunk_id']=$nativeId;
@@ -846,7 +891,7 @@ PROMPT;
             }
             $result=$this->binding($id);
             $this->audit($id,$actor,$result['sync_status']==='synced'?'native_synced':'native_sync_failed',(int)$result['revision'],true);
-            return $this->safeBinding($result);
+            return $this->safeBinding($result)+$projectValidation;
         });
     }
     public function removeTrunk(string $id, int $revision, string $actor): array

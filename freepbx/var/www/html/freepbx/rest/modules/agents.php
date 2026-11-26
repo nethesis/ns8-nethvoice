@@ -52,7 +52,7 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
                         if (!isset($input['expected_revision']) || !is_int($input['expected_revision']) || $input['expected_revision'] < 0) throw new RuntimeException('invalid_revision',422);
                     }
                     $allowed=['expected_revision'];
-                    if ($modelDiscovery) $allowed=['provider','binding_id','api_key','credential_mode','test','openai_project_id'];
+                    if ($modelDiscovery) $allowed=['provider','binding_id','api_key','credential_mode','test','openai_project_id','webhook_secret'];
                     elseif (str_ends_with($path,'/synchronize')) $allowed=['retry'];
                     elseif ($method==='PUT' || ($method==='POST' && !str_ends_with($path,'/publish') && !str_ends_with($path,'/configure-webhook'))) {
                         $field=str_contains($path,'/trunks')?'trunk':'profile';
@@ -76,7 +76,10 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
             $code=$error instanceof InvalidArgumentException && $error->getMessage()==='csrf_invalid' ? 'csrf_invalid' : ($known ? $error->getMessage() : 'request_unavailable');
             if ($code==='csrf_invalid') $status=403;
             $body=['error'=>$code];
-            if ($error instanceof \NethVoice\Agents\FieldError) $body['field']=$error->field;
+            if ($error instanceof \NethVoice\Agents\FieldError) {
+                $body['field']=$error->field;
+                if ($error->webhookCheck!==null) $body['webhook_check']=$error->webhookCheck;
+            }
             return jsonResponse($response,$body,$status)->withHeader('Cache-Control','no-store');
         }
     });
