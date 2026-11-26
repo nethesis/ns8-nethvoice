@@ -73,6 +73,7 @@ def installation(tmp_path, monkeypatch):
 
     monkeypatch.setattr(subprocess, 'run', command)
     state.apply = runpy.run_path(str(ROOT / 'bin/satellite-reconcile'))['apply']
+    state.wait_for_agents = state.apply.__globals__['wait_for_agents']
     monkeypatch.setitem(state.apply.__globals__, 'wait_for_agents',
                         lambda port, token: calls.append(['ready', port, token]))
     return state
@@ -218,24 +219,39 @@ def test_failed_apply_records_a_stable_reason(installation, monkeypatch, capsys,
     assert output['satellite_apply_status'] == 'applied' and output['satellite_apply_error'] is None
 
 
-def test_worker_recovers_a_transient_readiness_failure(installation, monkeypatch):
+def test_update_waits_for_the_started_generation_without_replacing_it(installation, monkeypatch):
     s = installation
     s.env['VOICE_AGENT_ENABLED'] = 'true'
-    attempts = []
-    delays = []
+    command = s.apply.__globals__
+    elapsed = 0
 
-    def wait_for_agents(port, token):
-        attempts.append(port)
-        if len(attempts) == 1:
-            raise RuntimeError('voice_agent_runtime_not_ready')
+    def sleep(seconds):
+        nonlocal elapsed
+        elapsed += seconds
+        if elapsed == 25:
+            assert not Path('voice-preview/enabled').exists()
+            s.secrets['OPENAI_API_KEY'] = 'queued-key'
+            Path('satellite-apply.pending').touch()
 
-    monkeypatch.setitem(s.apply.__globals__, 'wait_for_agents', wait_for_agents)
-    monkeypatch.setattr(s.apply.__globals__['time'], 'sleep', delays.append)
-    Path('satellite-apply.pending').touch()
-    s.apply.__globals__['main']()
-    assert len(attempts) == 2 and delays == [5]
+    monkeypatch.setitem(command, 'wait_for_agents', s.wait_for_agents)
+    monkeypatch.setitem(command, 'time', SimpleNamespace(monotonic=lambda: elapsed, sleep=sleep))
+    monkeypatch.setitem(command, 'urlopen', lambda *args, **kwargs:
+                        io.BytesIO(json.dumps({'voice_calls_enabled': elapsed >= 30}).encode()))
+    runpy.run_path(str(ROOT / 'actions/configure-module/94voice_agents'))
+    command['main']()
+    start = ['systemctl', '--user', 'enable', '--now', 'satellite.service']
+    stop = ['systemctl', '--user', 'stop', 'satellite.service']
+    assert elapsed == 30
+    assert s.calls.count(start) == 1 and stop not in s.calls
+    assert sum(args[-1].endswith('install-runtime.php') for args in s.calls) == 1
     assert Path('voice-preview/enabled').exists()
     assert not Path('satellite-apply.failed').exists()
+    assert 'OPENAI_API_KEY=first' in Path('voice-preview/effective.env').read_text()
+    assert Path('satellite-apply.pending').exists()
+    command['main']()
+    assert s.calls.count(start) == 2 and s.calls.count(stop) == 1
+    assert 'OPENAI_API_KEY=queued-key' in Path('voice-preview/effective.env').read_text()
+    assert not Path('satellite-apply.pending').exists()
 
 
 def test_optional_postgresql_stops_without_disabling_cti(installation):
