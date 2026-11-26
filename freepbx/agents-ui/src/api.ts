@@ -193,6 +193,11 @@ export function errorCode(error: unknown): string {
     ? error.message
     : "request_failed";
 }
+/** Extra fields of an error response, such as the field it refers to. */
+export function errorDetails(error: unknown): Record<string, unknown> {
+  const data = axios.isAxiosError(error) ? error.response?.data : null;
+  return data && typeof data === "object" ? data : {};
+}
 export function loadErrorCode(
   error: unknown,
   known: (code: string) => boolean = () => false,

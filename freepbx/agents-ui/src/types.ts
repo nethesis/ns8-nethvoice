@@ -64,6 +64,7 @@ export interface Trunk extends JsonObject {
 export interface Catalog {
   sip_lab_enabled?: boolean;
   openai_webhook_url?: string | null;
+  grok_webhook_url?: string | null;
   agent_types?: { id: string; name: string }[];
   tools: ToolDefinition[];
   draft_defaults: Draft;

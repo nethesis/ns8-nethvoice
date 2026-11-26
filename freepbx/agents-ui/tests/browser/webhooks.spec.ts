@@ -82,7 +82,7 @@ test("OpenAI creation needs a key and project but no signing secret; manual inpu
   await page.goto("./#/trunks");
   await page.getByRole("button", { name: "Create trunk", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("OpenAI SIP");
-  await page.getByLabel("OpenAI project ID", { exact: true }).fill("proj_explicit");
+  await page.getByLabel(/^OpenAI project ID/).fill("proj_explicit");
   await page.getByText("Dedicated key", { exact: true }).click();
   await expect(page.getByRole("group", { name: "API key source", exact: true })).toBeVisible();
   await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
@@ -148,7 +148,7 @@ test("trunk credentials and webhook action follow the real trunk state", async (
   await expect(row("Changed project").getByRole("button", { name: "Configure webhook" })).toBeVisible();
   await expect(page.getByText(/webhook secret/i)).toHaveCount(0);
   await page.getByRole("button", { name: "Create trunk" }).first().click();
-  await expect(page.getByText(/the ID starts with proj_/)).toBeVisible();
+  await expect(page.getByText(/Settings > Project > General/)).toBeVisible();
 });
 
 test("a dedicated key is required unless the trunk already stores one", async ({ page }) => {

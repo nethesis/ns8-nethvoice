@@ -96,7 +96,7 @@ test("provider credentials are write-only and cleared after saving", async ({pag
   await page.goto("./#/trunks");
   await page.getByRole("button",{name:"Create trunk",exact:true}).click();
   await page.getByLabel("Name",{exact:true}).fill("Test provider");
-  await page.getByLabel("OpenAI project ID",{exact:true}).fill("proj_test");
+  await page.getByLabel(/^OpenAI project ID/).fill("proj_test");
   await page.getByText("Dedicated key",{exact:true}).click();
   await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
   await page.getByLabel(/^Webhook signing secret/).fill("whsec_c3ludGhldGljLXNpZ25pbmctc2VjcmV0");

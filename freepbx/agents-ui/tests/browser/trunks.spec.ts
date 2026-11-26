@@ -81,3 +81,78 @@ test("deleting a trunk in use names its agents and is blocked", async ({ page })
   await expect.poll(() => deleted).toBe("/trunks/trunk_spare");
   await expect(page.getByText("Trunk Spare has been deleted")).toBeVisible();
 });
+
+test("without the SIP lab the drawer is an OpenAI key and sends no hidden field", async ({ page }) => {
+  const posts: { path: string; body: any }[] = [];
+  await mockTrunks(page, { lab: false, trunks: [{ ...openai, openai_project_id: "proj_kept" }], handle: (path, body) => {
+    posts.push({ path, body });
+    return path === "/trunks/models" ? { items: [{ id: "gpt-live-1" }], webhook_check: "signed_call_required" } : openai;
+  } });
+  await page.goto("./#/trunks");
+  await page.getByRole("button", { name: "Create trunk" }).click();
+  await expect(page.getByTestId("trunk-provider")).toContainText("OpenAI");
+  await expect(page.getByRole("combobox", { name: "Voice provider" })).toHaveCount(0);
+  await expect(page.getByLabel(/OpenAI project ID/)).toHaveCount(0);
+  await expect(page.getByLabel(/Webhook signing secret/)).toHaveCount(0);
+  await expect(page.getByText("Provider webhook endpoint")).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "API key source" })).toBeVisible();
+  await page.getByRole("button", { name: "Test credential" }).click();
+  await expect(page.getByTestId("credential-test-result")).toContainText("Credential verified");
+  await expect(page.getByTestId("credential-test-result")).not.toContainText("Webhook");
+  expect(posts[0].body).toEqual({ provider: "openai", credential_mode: "inherit", test: true, api_key: "" });
+  await page.getByLabel("Name", { exact: true }).fill("Live trunk");
+  await page.getByRole("button", { name: "Create", exact: true }).click();
+  await expect(page.getByText("Trunk Live trunk has been created")).toBeVisible();
+  const created = posts.find(post => post.path === "/trunks")!.body.trunk;
+  expect(created).not.toHaveProperty("openai_project_id");
+  expect(created).not.toHaveProperty("webhook_secret");
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(page.getByText("Trunk OpenAI production has been updated")).toBeVisible();
+  const updated = posts.find(post => post.path === "/trunks/trunk_openai")!.body.trunk;
+  expect(updated).not.toHaveProperty("openai_project_id");
+});
+
+test("in the SIP lab the drawer has provider fields, the endpoint and the webhook check", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  const tests: any[] = [];
+  let reject = false;
+  await mockTrunks(page, { lab: true, trunks: [sip], handle: (path, body) => {
+    if (path !== "/trunks/models") return sip;
+    tests.push(body);
+    return reject ? { status: 422, json: { error: "provider_project_unverified", field: "openai_project_id", webhook_check: "not_configured" } }
+      : { items: [{ id: "gpt-realtime-2.1" }], webhook_check: "signed_call_required" };
+  } });
+  await page.goto("./#/trunks");
+  await page.getByRole("button", { name: "Create trunk" }).click();
+  await page.getByRole("combobox", { name: "Voice provider" }).click();
+  await expect(page.getByRole("option", { name: "Grok" })).toBeVisible();
+  await expect(page.getByRole("option", { name: "CleverAI" })).toBeVisible();
+  await page.getByRole("option", { name: "Grok" }).click();
+  await expect(page.getByLabel("Grok Direct SIP number")).toBeVisible();
+  await expect(page.getByRole("group", { name: "SIP authentication" })).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Provider webhook endpoint" })).toHaveValue("https://pbx.example.org/satellite-webhooks/grok");
+  await expect(page.getByRole("button", { name: "Test credential" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(page.getByRole("combobox", { name: "Voice provider" })).toBeDisabled();
+  await expect(page.getByLabel(/^OpenAI project ID/)).toHaveValue("proj_sip");
+  await expect(page.getByRole("textbox", { name: "Provider webhook endpoint" })).toHaveValue("https://pbx.example.org/satellite-webhooks/openai");
+  await page.getByRole("button", { name: "Copy endpoint" }).click();
+  await expect(page.getByText("The webhook endpoint has been copied to the clipboard")).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("https://pbx.example.org/satellite-webhooks/openai");
+  await page.getByRole("button", { name: "Test credential" }).click();
+  const result = page.getByTestId("credential-test-result");
+  await expect(result).toContainText("Credential verified");
+  await expect(result).toContainText("Webhook not verified yet: place a test call to verify the signing secret.");
+  expect(tests[0]).toMatchObject({ provider: "openai", test: true, binding_id: "trunk_sip", openai_project_id: "proj_sip" });
+  expect(tests[0]).not.toHaveProperty("webhook_secret");
+  reject = true;
+  await page.getByLabel(/^OpenAI project ID/).fill("proj_other");
+  await expect(result).toBeEmpty();
+  await page.getByRole("button", { name: "Test credential" }).click();
+  await expect(result).toContainText("Credential not verified");
+  await expect(result).toContainText("The API key cannot access this OpenAI project.");
+  await expect(result).toContainText("Webhook not configured");
+  await expect(page.getByText("The API key cannot access this OpenAI project. Check the project ID.")).toHaveCount(2);
+});

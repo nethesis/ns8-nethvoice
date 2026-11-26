@@ -689,6 +689,28 @@ const en = {
     inUse:
       "Agent {names} uses this trunk. Select another provider trunk in the agent, then delete this trunk. | Agents {names} use this trunk. Select another provider trunk in these agents, then delete this trunk.",
   },
+  trunkDrawer: {
+    projectPlaceholder: "e.g. proj_A1b2C3d4",
+    projectHelp: "In the OpenAI platform, under Settings > Project > General.",
+    projectSipHelp:
+      "Needed for SIP voice models and the webhook. In the OpenAI platform, under Settings > Project > General.",
+    numberPlaceholder: "e.g. +390721405516",
+    numberHelp: "In international format, without spaces.",
+    testFailed: "Credential not verified",
+    webhookCheck: {
+      not_configured:
+        "Webhook not configured: enter the signing secret, or save the trunk and select Configure webhook.",
+      verified_by_call: "Webhook verified by a signed call.",
+      signed_call_required:
+        "Webhook not verified yet: place a test call to verify the signing secret.",
+    },
+    errors: {
+      provider_project_unverified:
+        "The API key cannot access this OpenAI project. Check the project ID.",
+      invalid_provider_configuration:
+        "Check the project ID, the number and the SIP authentication.",
+    },
+  },
   monitoring: {
     columns: {
       completed: "Completed",
@@ -1840,6 +1862,28 @@ const it: typeof en = {
     deleteHelp: "Il trunk {name} verrà eliminato.",
     inUse:
       "L'agente {names} usa questo trunk. Seleziona un altro trunk del provider nell'agente, poi elimina questo trunk. | Gli agenti {names} usano questo trunk. Seleziona un altro trunk del provider in questi agenti, poi elimina questo trunk.",
+  },
+  trunkDrawer: {
+    projectPlaceholder: "es. proj_A1b2C3d4",
+    projectHelp: "Nella piattaforma OpenAI, in Settings > Project > General.",
+    projectSipHelp:
+      "Necessario per i modelli vocali SIP e per il webhook. Nella piattaforma OpenAI, in Settings > Project > General.",
+    numberPlaceholder: "es. +390721405516",
+    numberHelp: "In formato internazionale, senza spazi.",
+    testFailed: "Credenziale non verificata",
+    webhookCheck: {
+      not_configured:
+        "Webhook non configurato: inserisci il segreto di firma, oppure salva il trunk e seleziona Configura webhook.",
+      verified_by_call: "Webhook verificato da una chiamata firmata.",
+      signed_call_required:
+        "Webhook non ancora verificato: effettua una chiamata di prova per verificare il segreto di firma.",
+    },
+    errors: {
+      provider_project_unverified:
+        "La chiave API non può accedere a questo progetto OpenAI. Controlla l'ID progetto.",
+      invalid_provider_configuration:
+        "Controlla l'ID progetto, il numero e l'autenticazione SIP.",
+    },
   },
   monitoring: {
     columns: {
