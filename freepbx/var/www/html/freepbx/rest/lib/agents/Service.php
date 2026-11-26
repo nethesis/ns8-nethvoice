@@ -155,9 +155,9 @@ final class Service
         $published=$published?PublishedContract::effectiveLegacyQueues(json_decode($published,true,512,JSON_THROW_ON_ERROR)):null;
         $external=($draft['execution']??null)==='cleverai';
         $internal=($draft['role']??null)==='consultation';
-        if (!$external && (int)$row['revision']===1 && !$draft['provider_binding_id'] && ($draft['conversation']['instructions']==='' ||
-            ($id==='receptionist' && $draft['conversation']['instructions']===ReceptionistDefaults::INSTRUCTIONS) ||
-            ($id==='consultation_assistant' && $draft['conversation']['instructions']===self::consultationDraft()['conversation']['instructions']))) $draft['conversation']['language']=$this->native->defaultLanguage();
+        // Built-in drafts stay at their seed revision until an administrator edits them.
+        if (!$external && (int)$row['revision']===1 && !$draft['provider_binding_id'] &&
+            ($row['kind']==='builtin' || $draft['conversation']['instructions']==='')) $draft['conversation']['language']=$this->native->defaultLanguage();
         $same=$published && $draft==array_intersect_key($published,$draft);
         $draftVersion=$same?(int)$row['active_workflow_version']:(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
         return ['agent_id'=>$id,'agent_type'=>$external?'cleverai':($internal?'consultation':'basic_voice'),'draft_version'=>$external?null:$draftVersion,'name'=>$row['name'],'kind'=>$row['kind'],'destination_id'=>$row['destination_id'],
