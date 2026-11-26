@@ -670,6 +670,25 @@ const en = {
         "The provider dropped some caller audio because it arrived too fast",
     },
   },
+  trunksPage: {
+    descriptionOpenAi: "Connections to OpenAI used by your agents.",
+    emptyOpenAi: "Agents need a provider trunk to connect to OpenAI.",
+    webhook: {
+      configured: "Configured",
+      verified: "Verified",
+      manual: "Not verified",
+      manualHelp: "Place a signed test call to verify it.",
+      not_configured: "Not configured",
+      needs_setup: "Check setup",
+      recovery_required: "Recovery required",
+      notRequired: "Not required",
+      manualSetup: "Manual setup",
+      externalSetup: "Configured in OpenAI",
+    },
+    deleteHelp: "Trunk {name} will be deleted.",
+    inUse:
+      "Agent {names} uses this trunk. Select another provider trunk in the agent, then delete this trunk. | Agents {names} use this trunk. Select another provider trunk in these agents, then delete this trunk.",
+  },
   monitoring: {
     columns: {
       completed: "Completed",
@@ -1801,6 +1820,26 @@ const it: typeof en = {
       input_audio_rate_limit_exceeded:
         "Il provider ha scartato parte dell'audio del chiamante perché arrivava troppo velocemente",
     },
+  },
+  trunksPage: {
+    descriptionOpenAi: "Connessioni a OpenAI usate dagli agenti.",
+    emptyOpenAi:
+      "Gli agenti hanno bisogno di un trunk del provider per collegarsi a OpenAI.",
+    webhook: {
+      configured: "Configurato",
+      verified: "Verificato",
+      manual: "Non verificato",
+      manualHelp: "Effettua una chiamata di prova firmata per verificarlo.",
+      not_configured: "Non configurato",
+      needs_setup: "Verifica configurazione",
+      recovery_required: "Recupero richiesto",
+      notRequired: "Non richiesto",
+      manualSetup: "Configurazione manuale",
+      externalSetup: "Configurato in OpenAI",
+    },
+    deleteHelp: "Il trunk {name} verrà eliminato.",
+    inUse:
+      "L'agente {names} usa questo trunk. Seleziona un altro trunk del provider nell'agente, poi elimina questo trunk. | Gli agenti {names} usano questo trunk. Seleziona un altro trunk del provider in questi agenti, poi elimina questo trunk.",
   },
   monitoring: {
     columns: {
