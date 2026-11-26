@@ -1,13 +1,24 @@
 """Allowlisted v0.1 tools. Prompts and SIP headers never grant permissions."""
 import asyncio
 import copy
+import hashlib
 import json
 import unicodedata
 from pathlib import Path
 
+
+def _manifest_digest(definition):
+    canonical = json.dumps(definition, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
 DEFINITIONS = json.loads(Path(__file__).with_name('tools-v5.json').read_text())
 DEFINITIONS9 = json.loads(Path(__file__).with_name('tools-v6.json').read_text())
 SUPPORTED = {(item['id'], item['version']): item for item in DEFINITIONS + DEFINITIONS9}
+SUPPORTED_DIGESTS = {key: {_manifest_digest(item)} for key, item in SUPPORTED.items()}
+# Immutable transfer definitions shipped before explicit queue grants.
+SUPPORTED_DIGESTS['pbx.transfer', 2].add('34b71fac41fb62623c16a6f435e8f8094034027d6d10c3bbf1a50077bcce8c3e')
+SUPPORTED_DIGESTS['pbx.transfer', 3].add('cec31fc9cc1266867129d086df1fe74b9e5d187945241ba70aad12ddf17a5d38')
 WIRE_IDS = {item['wire_name']: item['id'] for item in SUPPORTED.values()}
 CONTEXT_BYTES = 16384
 CAPABILITY_RESERVE = 2048
@@ -37,17 +48,21 @@ def transfer_parameters(canonical):
 
 class ToolRegistry:
     def __init__(self, snapshot, targets, controller, definitions=None, *, recent=None):
-        self.snapshot = copy.deepcopy(snapshot)
         from .contract import validate_snapshot
-        validate_snapshot(snapshot)
-        self.bindings = {b['tool_id']: copy.deepcopy(b) for b in snapshot['tool_bindings']}
+        self.snapshot = validate_snapshot(snapshot, project_legacy=True)
+        self.bindings = {b['tool_id']: copy.deepcopy(b) for b in self.snapshot['tool_bindings']}
         catalog = SUPPORTED if definitions is None else {}
         if definitions is not None:
             for item in definitions:
-                key = (item.get('id'), item.get('version'))
-                if key not in SUPPORTED or key in catalog or item != SUPPORTED[key]:
+                try:
+                    key = (item['id'], item['version'])
+                    digests = SUPPORTED_DIGESTS.get(key)
+                    supported = digests and key not in catalog and _manifest_digest(item) in digests
+                except (KeyError, TypeError, UnicodeError) as exc:
+                    raise ValueError('unsupported_tool_definition') from exc
+                if not supported:
                     raise ValueError('unsupported_tool_definition')
-                catalog[key] = item
+                catalog[key] = SUPPORTED[key]
         self.manifests = {}
         for key, binding in self.bindings.items():
             definition = catalog.get((key, binding['tool_version']))

@@ -135,4 +135,57 @@ $db->exec("DELETE FROM asterisk.queues_config WHERE extension='600'");
 assert(!$db->query("SELECT id FROM asterisk.voice_agent_queue_directory WHERE id='queue:600'")->fetchColumn());
 $q=$db->prepare('SELECT agent_id,workflow_version,definition_json FROM asterisk.voice_agent_versions WHERE agent_id<>? ORDER BY agent_id,workflow_version');
 $q->execute([$one['agent_id']]);assert($q->fetchAll(PDO::FETCH_ASSOC)===$before);
+
+// Store a historical draft and publication as an old preview would have done.
+$legacyDraft=$one['draft'];
+$legacyAgent=$service->save(null,['name'=>'Legacy queue policy','draft'=>$legacyDraft],0,'synthetic-admin');
+$legacyId=$legacyAgent['agent_id'];
+$transfer=&$legacyDraft['tool_bindings'][1]['config'];
+unset($transfer['queue_allowlist']);
+$transfer['queue_denylist']=['queue:600'];
+unset($transfer);
+$legacySnapshot=$legacyDraft+['agent_id'=>$legacyId,'destination_id'=>'agent:'.$legacyId,'workflow_version'=>1,'provider'=>'openai'];
+$encodedSnapshot=json_encode($legacySnapshot,JSON_THROW_ON_ERROR);
+$db->prepare('UPDATE asterisk.voice_agent_drafts SET definition_json=? WHERE agent_id=?')->execute([json_encode($legacyDraft,JSON_THROW_ON_ERROR),$legacyId]);
+$db->prepare('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,1,8,?)')->execute([$legacyId,$encodedSnapshot]);
+$db->prepare("UPDATE asterisk.voice_agent_agents SET active_workflow_version=1,enabled=1,sync_status='synced' WHERE agent_id=?")->execute([$legacyId]);
+$view=$service->get($legacyId);
+assert($view['draft_version']===1 && $view['routable']);
+foreach (['draft','published'] as $viewKind) {
+    assert($view[$viewKind]['tool_bindings'][1]['config']['queue_allowlist']===[]);
+    assert(!isset($view[$viewKind]['tool_bindings'][1]['config']['queue_denylist']));
+    assert(\NethVoice\Agents\RoutingPolicy::permits($view[$viewKind],'extension:203'));
+    foreach (['queue:600','queue:601','queue:999'] as $queue) assert(!\NethVoice\Agents\RoutingPolicy::permits($view[$viewKind],$queue));
+}
+try { $service->save($legacyId,['name'=>$view['name'],'draft'=>$legacyDraft],$view['revision'],'synthetic-admin');assert(false); }
+catch (RuntimeException $error) { assert($error->getMessage()==='invalid_configuration'); }
+$service->setFallbacks([$legacyId=>['expected_revision'=>$view['revision'],'destination_id'=>'extension:203']],'synthetic-admin');
+$view=$service->get($legacyId);
+assert($view['published']['workflow_version']===2 && $view['published']['fallback_destination_id']==='extension:203');
+assert($view['published']['tool_bindings'][1]['config']['queue_allowlist']===[]);
+$newDraft=$view['draft'];$newDraft['tool_bindings'][1]['config']['queue_allowlist']=['queue:600'];
+$edited=$service->save($legacyId,['name'=>$view['name'],'draft'=>$newDraft],$view['revision'],'synthetic-admin');
+$updated=$service->publish($legacyId,$edited['revision'],'synthetic-admin');
+assert(\NethVoice\Agents\RoutingPolicy::permits($updated['published'],'queue:600'));
+assert(!\NethVoice\Agents\RoutingPolicy::permits($updated['published'],'queue:601'));
+$q=$db->prepare('SELECT definition_json FROM asterisk.voice_agent_versions WHERE agent_id=? AND workflow_version=1');
+$q->execute([$legacyId]);assert($q->fetchColumn()===$encodedSnapshot);
+
+$boundary=$service->save(null,['name'=>'Historical row at the storage limit','draft'=>$one['draft']],0,'synthetic-admin');
+$boundaryId=$boundary['agent_id'];
+$snapshot=array_replace($legacySnapshot,['agent_id'=>$boundaryId,'destination_id'=>'agent:'.$boundaryId,'fallback_destination_id'=>'extension:203']);
+$snapshot['tool_bindings'][1]['config']['queue_denylist']=[];
+$snapshot['conversation']['instructions']='';
+$flags=JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES;
+$available=\NethVoice\Agents\PublishedContract::MAX_BYTES-strlen(json_encode($snapshot,$flags));
+$snapshot['conversation']['instructions']=str_repeat('é',intdiv($available,2)).str_repeat('x',$available%2);
+$raw=json_encode($snapshot,$flags);
+assert(strlen($raw)===65536);
+$db->prepare('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,1,8,?)')->execute([$boundaryId,$raw]);
+$db->prepare("UPDATE asterisk.voice_agent_agents SET active_workflow_version=1,enabled=1,sync_status='synced' WHERE agent_id=?")->execute([$boundaryId]);
+$service->setFallbacks([$boundaryId=>['expected_revision'=>$boundary['revision'],'destination_id'=>'extension:204']],'synthetic-admin');
+$after=$service->get($boundaryId);
+assert($after['published']['workflow_version']===2 && $after['published']['fallback_destination_id']==='extension:204');
+assert($after['published']['tool_bindings'][1]['config']['queue_allowlist']===[]);
+$q->execute([$boundaryId]);assert($q->fetchColumn()===$raw);
 echo "Typed routing defaults, isolation, inventory, authoritative views and repeatable setup passed\n";

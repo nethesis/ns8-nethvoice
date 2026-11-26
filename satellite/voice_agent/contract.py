@@ -14,7 +14,8 @@ VALIDATOR9 = StrictValidator(json.loads(Path(__file__).with_name('published-v9.s
 MAX_SNAPSHOT_BYTES = 64 * 1024
 
 
-def validate_snapshot(snapshot: dict) -> dict:
+def validate_snapshot(snapshot: dict, *, project_legacy: bool = False) -> dict:
+    """Keep the validated input form for downstream checks of its byte bound."""
     try:
         if not isinstance(snapshot, dict):
             raise ValueError("invalid_snapshot")
@@ -24,7 +25,21 @@ def validate_snapshot(snapshot: dict) -> dict:
         if len(json.dumps(snapshot, ensure_ascii=False, separators=(",", ":")).encode()) > MAX_SNAPSHOT_BYTES:
             raise ValueError("invalid_snapshot")
         version = snapshot.get('contract_version')
-        if version not in (8, 9) or not (VALIDATOR9 if version == 9 else VALIDATOR).is_valid(snapshot):
+        if version not in (8, 9):
+            raise ValueError("invalid_snapshot")
+        snapshot = copy.deepcopy(snapshot)
+        legacy_queue_configs = []
+        bindings = snapshot.get('tool_bindings')
+        if isinstance(bindings, list):
+            for binding in bindings:
+                if not isinstance(binding, dict) or binding.get('tool_id') != 'pbx.transfer':
+                    continue
+                config = binding.get('config')
+                if isinstance(config, dict) and 'queue_denylist' in config and 'queue_allowlist' not in config:
+                    # Both fields share the same value schema.
+                    config['queue_allowlist'] = config.pop('queue_denylist')
+                    legacy_queue_configs.append(config)
+        if not (VALIDATOR9 if version == 9 else VALIDATOR).is_valid(snapshot):
             raise ValueError("invalid_snapshot")
         if version == 9:
             config = snapshot['consultation']
@@ -42,7 +57,6 @@ def validate_snapshot(snapshot: dict) -> dict:
                 raise ValueError('invalid_snapshot')
         if snapshot["destination_id"] != "agent:" + snapshot["agent_id"]:
             raise ValueError("invalid_snapshot")
-        bindings = snapshot['tool_bindings']
         if len({b['tool_id'] for b in bindings}) != len(bindings) or any(type(b['tool_version']) is not int for b in bindings):
             raise ValueError('invalid_snapshot')
         if snapshot['debug']['transcription_enabled'] and snapshot['provider'] != 'openai':
@@ -53,6 +67,12 @@ def validate_snapshot(snapshot: dict) -> dict:
             descriptions = binding['config'].get('descriptions', [])
             if len({d['destination_id'] for d in descriptions}) != len(descriptions):
                 raise ValueError('invalid_snapshot')
-        return copy.deepcopy(snapshot)
+        for config in legacy_queue_configs:
+            if project_legacy:
+                # A historical denylist cannot establish an explicit queue grant.
+                config['queue_allowlist'] = []
+            else:
+                config['queue_denylist'] = config.pop('queue_allowlist')
+        return snapshot
     except (TypeError, OverflowError, UnicodeError) as exc:
         raise ValueError("invalid_snapshot") from exc

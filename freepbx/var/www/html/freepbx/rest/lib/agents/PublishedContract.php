@@ -11,14 +11,16 @@ final class InvalidSnapshotField extends \InvalidArgumentException
 /** Standalone validator for the supported JSON Schema vocabulary. */
 final class PublishedContract
 {
-    public static function validate(array $snapshot): array
+    public const MAX_BYTES=65536;
+    public static function validate(array $snapshot,bool $allowHistoricalQueues=false): array
     {
         $version=$snapshot['contract_version']??0;
         if (!in_array($version,[8,9],true)) throw new \InvalidArgumentException('invalid_snapshot');
         $schema = json_decode(file_get_contents(__DIR__ . '/contracts/published-v'.$version.'.schema.json'), true, 512, JSON_THROW_ON_ERROR);
-        if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > 65536) {
+        if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > self::MAX_BYTES) {
             throw new \InvalidArgumentException('invalid_snapshot');
         }
+        if ($allowHistoricalQueues) $snapshot=self::effectiveLegacyQueues($snapshot);
         if (!self::matches($snapshot,$schema)) throw new InvalidSnapshotField(self::mismatchedField($snapshot,$schema,'draft'));
         if ($snapshot['destination_id'] !== 'agent:' . $snapshot['agent_id']) throw new \InvalidArgumentException('invalid_snapshot');
         $ids=array_column($snapshot['tool_bindings'],'tool_id');
@@ -40,6 +42,28 @@ final class PublishedContract
             if (count(array_column($descriptions,'destination_id'))!==count(array_unique(array_column($descriptions,'destination_id')))) throw new \InvalidArgumentException('invalid_snapshot');
         }
         return $snapshot;
+    }
+
+    /** Present historical queue policy safely when reading an existing row. */
+    public static function effectiveLegacyQueues(array $definition): array
+    {
+        foreach ($definition['tool_bindings']??[] as $index=>$binding) {
+            if (($binding['tool_id']??null)!=='pbx.transfer' || !is_array($binding['config']??null)
+                || !array_key_exists('queue_denylist',$binding['config'])) continue;
+            $config=$binding['config'];
+            $expectedVersion=[8=>2,9=>3][$definition['contract_version']??0]??null;
+            $legacyList=['type'=>'array','maxItems'=>100,'uniqueItems'=>true,
+                'items'=>['type'=>'string','pattern'=>'^queue:[0-9]{1,20}$']];
+            if ($expectedVersion===null || ($binding['tool_version']??null)!==$expectedVersion
+                || array_key_exists('queue_allowlist',$config) || !self::matches($config['queue_denylist'],$legacyList)) {
+                throw new InvalidSnapshotField('draft.tool_bindings');
+            }
+            unset($config['queue_denylist']);
+            // A historical exception list grants no queue under explicit selection.
+            $config['queue_allowlist']=[];
+            $definition['tool_bindings'][$index]['config']=$config;
+        }
+        return $definition;
     }
 
     /** Field paths come from the schema, never from submitted property names. */

@@ -62,6 +62,10 @@ final class Schema
                     WITH CASCADED CHECK OPTION");
                 $db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version=7 WHERE singleton=1');
             }
+            if ($version<8) {
+                self::seedTools($db);
+                $db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version=8 WHERE singleton=1');
+            }
             self::directoryViews($db);
             RecentCallerViews::install($db);
         } finally {
@@ -80,7 +84,7 @@ final class Schema
         }
         $version=$db->query("SELECT schema_version FROM $marker WHERE singleton=1")->fetchColumn();
         if ($version===false && count($objects)===1) return 0; // Interrupted immediately after CREATE.
-        if ($version===false || !in_array((string)$version,['0','1','2','3','4','5','6','7'],true)) throw new \RuntimeException('unsupported_schema_version');
+        if ($version===false || !in_array((string)$version,['0','1','2','3','4','5','6','7','8'],true)) throw new \RuntimeException('unsupported_schema_version');
         return (int)$version;
     }
 
@@ -119,16 +123,23 @@ final class Schema
         }
     }
 
+    private static function seedTools(\PDO $db): void
+    {
+        $insert=$db->prepare('INSERT IGNORE INTO asterisk.voice_agent_builtin_tools (tool_id,tool_version,manifest_json) VALUES (?,?,?)');
+        foreach (['tools-v5.json','tools-v6.json'] as $file) {
+            $tools=json_decode(file_get_contents(__DIR__.'/contracts/'.$file),true,512,JSON_THROW_ON_ERROR);
+            foreach ($tools as $tool) {
+                $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
+            }
+        }
+    }
+
     private static function seed(\PDO $db): void
     {
         require_once __DIR__.'/Service.php';
         $db->beginTransaction();
         try {
-            $insert=$db->prepare('INSERT IGNORE INTO asterisk.voice_agent_builtin_tools (tool_id,tool_version,manifest_json) VALUES (?,?,?)');
-            foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v5.json'),true,512,JSON_THROW_ON_ERROR) as $tool) {
-                $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
-            }
-            foreach (json_decode(file_get_contents(__DIR__.'/contracts/tools-v6.json'),true,512,JSON_THROW_ON_ERROR) as $tool) $insert->execute([$tool['id'],$tool['version'],json_encode($tool,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);
+            self::seedTools($db);
             $agentSeed=$db->prepare("INSERT IGNORE INTO asterisk.voice_agent_agents (agent_id,name,destination_id,kind) VALUES (?,?,?,'builtin')");
             $draftSeed=$db->prepare('INSERT IGNORE INTO asterisk.voice_agent_drafts (agent_id,definition_json) VALUES (?,?)');
             foreach (['receptionist'=>['Receptionist',Service::receptionistDraft()],

@@ -90,12 +90,34 @@ foreach ([1,2,4,9,15,20,27,33] as $boundary) {
     catch (RuntimeException $e) { assert($e->getMessage()==='simulated_interruption'); }
     unset($interrupted);
     Schema::install($db);Schema::install($db);
-    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===7);
+    assert((int)$db->query('SELECT schema_version FROM asterisk.voice_agent_preview_schema')->fetchColumn()===8);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_agents')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_drafts')->fetchColumn()===2);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_versions')->fetchColumn()===0);
     assert((int)$db->query("SELECT enabled FROM asterisk.voice_agent_agents WHERE agent_id='receptionist'")->fetchColumn()===0);
     assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_builtin_tools')->fetchColumn()===5);
 }
+$catalog=$db->query("SELECT manifest_json FROM asterisk.voice_agent_builtin_tools WHERE tool_id='pbx.transfer' AND tool_version=2")->fetchColumn();
+$legacy=json_decode($catalog,true,512,JSON_THROW_ON_ERROR);
+$legacy['defaults']['queue_denylist']=$legacy['defaults']['queue_allowlist'];
+unset($legacy['defaults']['queue_allowlist']);
+$fields=&$legacy['configuration_schema'];
+$fields['required']=array_map(fn($key)=>$key==='queue_allowlist'?'queue_denylist':$key,$fields['required']);
+$fields['properties']['queue_denylist']=array_replace($fields['properties']['queue_allowlist'],['title'=>'Excluded queues']);
+unset($fields['properties']['queue_allowlist']);
+$legacy=json_encode($legacy,JSON_THROW_ON_ERROR|JSON_UNESCAPED_SLASHES);
+// Emulate a populated v7 database with a historical transfer manifest and a missing tool.
+$db->exec('DROP TRIGGER asterisk.voice_agent_tools_no_update');
+$db->exec('DROP TRIGGER asterisk.voice_agent_tools_no_delete');
+$db->prepare("UPDATE asterisk.voice_agent_builtin_tools SET manifest_json=? WHERE tool_id='pbx.transfer' AND tool_version=2")->execute([$legacy]);
+$db->exec("DELETE FROM asterisk.voice_agent_builtin_tools WHERE tool_id='pbx.find_recent_callers'");
+$db->exec("CREATE TRIGGER asterisk.voice_agent_tools_no_update BEFORE UPDATE ON asterisk.voice_agent_builtin_tools FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='immutable_builtin_tool'");
+$db->exec("CREATE TRIGGER asterisk.voice_agent_tools_no_delete BEFORE DELETE ON asterisk.voice_agent_builtin_tools FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='immutable_builtin_tool'");
+$db->exec('UPDATE asterisk.voice_agent_preview_schema SET schema_version=7 WHERE singleton=1');
+Schema::install($db);Schema::install($db);
+assert((int)$db->query('SELECT COUNT(*) FROM asterisk.voice_agent_builtin_tools')->fetchColumn()===5);
+assert($db->query("SELECT manifest_json FROM asterisk.voice_agent_builtin_tools WHERE tool_id='pbx.transfer' AND tool_version=2")->fetchColumn()===$legacy);
+try { $db->exec("UPDATE asterisk.voice_agent_builtin_tools SET manifest_json=manifest_json WHERE tool_id='pbx.transfer'"); assert(false); }
+catch (PDOException $error) { assert($error->getCode()==='45000'); }
 $db->exec('DROP DATABASE asterisk');$db->exec('DROP DATABASE asteriskcdrdb');
 echo "Fresh baseline rejects development databases unchanged and resumes interrupted setup\n";
