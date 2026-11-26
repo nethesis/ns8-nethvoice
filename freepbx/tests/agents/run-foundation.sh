@@ -43,6 +43,7 @@ agent_php "$freepbx_dir/tests/agents/provider-models.php"
 agent_php "$freepbx_dir/tests/agents/provider-webhooks.php"
 agent_php "$freepbx_dir/tests/agents/webhooks.php"
 agent_php "$freepbx_dir/tests/agents/model-settings.php"
+(unset VOICE_AGENT_SIP_LAB_ENABLED; agent_php "$freepbx_dir/tests/agents/preview-default.php")
 agent_php "$freepbx_dir/tests/agents/routing.php"
 agent_php "$freepbx_dir/tests/agents/transcripts.php"
 agent_php "$freepbx_dir/tests/agents/visualplan.php"
