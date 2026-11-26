@@ -348,6 +348,34 @@ $app->post('/devices/gateways', function (Request $request, Response $response, 
     }
 });
 
+$app->put('/devices/gateways/{id}', function (Request $request, Response $response, $args) {
+    $result = array('status' => false, 'errors' => array('Unable to save gateway'));
+    try {
+        $id = $request->getAttribute('route')->getArgument('id');
+        if (preg_match('/^[0-9]+$/D', (string) $id) !== 1) {
+            return jsonResponse($response, array('status' => false, 'errors' => array('Gateway configuration not found'), 'warnings' => array(), 'infos' => array()), 404);
+        }
+        $params = $request->getParsedBody();
+        if (!is_array($params)) {
+            return jsonResponse($response, array('status' => false, 'errors' => array('Invalid gateway configuration'), 'warnings' => array(), 'infos' => array()), 400);
+        }
+        $controls = false;
+        array_walk_recursive($params, function ($value) use (&$controls) {
+            $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+        });
+        if ($controls) {
+            return jsonResponse($response, array('status' => false, 'errors' => array('Invalid control character'), 'warnings' => array(), 'infos' => array()), 400);
+        }
+        $result = updateGateway($id, $params, !nethvoiceRequestIsSuperadmin($request));
+        $httpStatus = $result['status'] ? 200 : ($result['http_status'] ?? 500);
+        unset($result['http_status']);
+        return jsonResponse($response, $result, $httpStatus);
+    } catch (Throwable $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, $result, 500);
+    }
+});
+
 /*
 * Send gateway configuration to the device
 */

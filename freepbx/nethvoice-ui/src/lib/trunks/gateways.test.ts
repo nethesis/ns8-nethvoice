@@ -19,6 +19,7 @@ import {
   getManufacturers,
   getModelLabel,
   getPortNumber,
+  getRemovedFxsExtensions,
   hasGatewayValidationIssues,
   isIpv4Address,
   isNetmask,
@@ -724,5 +725,18 @@ describe('describeGatewayError', () => {
   it('should be empty for other errors', () => {
     expect(describeGatewayError(apiError(null))).toBe('')
     expect(describeGatewayError(new Error('network'))).toBe('')
+  })
+})
+
+describe('getRemovedFxsExtensions', () => {
+  it('lists the users whose FXS port is cleared or reassigned', () => {
+    expect(getRemovedFxsExtensions(['201', '202', '203'], ['201', '204', ''])).toEqual([
+      '202',
+      '203',
+    ])
+    expect(getRemovedFxsExtensions(['201', '202'], ['202', '201'])).toEqual(['201', '202'])
+    expect(getRemovedFxsExtensions(['201'], ['201', '202'])).toEqual([])
+    expect(getRemovedFxsExtensions(['', ''], ['201', ''])).toEqual([])
+    expect(getRemovedFxsExtensions(['201', '202'], ['201'])).toEqual(['202'])
   })
 })

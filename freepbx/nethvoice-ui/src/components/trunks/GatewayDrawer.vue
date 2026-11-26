@@ -27,8 +27,10 @@ import {
   getManufacturers,
   getModelLabel,
   getPortNumber,
+  getRemovedFxsExtensions,
   hasGatewayValidationIssues,
   postGateway,
+  putGateway,
   toGatewaySaveRequest,
   validateGatewayForm,
   withModelPorts,
@@ -51,16 +53,14 @@ import { useSetupGuard } from '@/composables/useSetupGuard'
 const {
   isShown = false,
   gateway = undefined,
-  label = '',
   existingMacAddresses = [],
 } = defineProps<{
   isShown: boolean
   gateway?: Gateway
-  label?: string
   existingMacAddresses?: string[]
 }>()
 
-const emit = defineEmits<{ close: []; download: [gateway: Gateway] }>()
+const emit = defineEmits<{ close: [] }>()
 
 const FOCUS_DELAY = 300
 
@@ -102,10 +102,16 @@ const fxoRefs = useTemplateRef<Focusable[]>('fxoRefs')
 const fxsRefs = useTemplateRef<Focusable[]>('fxsRefs')
 const formRef = useTemplateRef<HTMLFormElement>('formRef')
 
-const isReadOnly = computed(() => gateway !== undefined)
+const isEditing = computed(() => gateway !== undefined)
 
-const isDirty = computed(
-  () => !isReadOnly.value && JSON.stringify(form.value) !== initialSnapshot.value,
+const isDirty = computed(() => JSON.stringify(form.value) !== initialSnapshot.value)
+
+const otherMacAddresses = computed(() =>
+  gateway
+    ? existingMacAddresses.filter(
+        (macAddress) => formatMacAddress(macAddress) !== formatMacAddress(gateway.macAddress),
+      )
+    : existingMacAddresses,
 )
 
 const models = computed<GatewayModel[]>(() => modelsState.value.data ?? [])
@@ -137,24 +143,54 @@ const fxsUserOptions = computed(() =>
   })),
 )
 
+const removedFxsUsers = computed(() =>
+  gateway
+    ? getRemovedFxsExtensions(gateway.fxsExtensions, form.value.fxsExtensions).map(
+        (extension) =>
+          fxsUserOptions.value.find((option) => option.id === extension)?.label ?? extension,
+      )
+    : [],
+)
+
+const saveErrorTitle = computed(() =>
+  isEditing.value ? t('trunks.cannot_save_trunk') : t('trunks.cannot_create_trunk'),
+)
+
 const {
-  mutate: createGateway,
+  mutate: saveGateway,
   isLoading: saving,
-  reset: resetCreate,
+  reset: resetSave,
   error: saveError,
 } = useMutation({
-  mutation: async ({ values, model }: { values: GatewayForm; model: GatewayModel }) => {
+  mutation: async ({
+    values,
+    model,
+    gatewayId,
+  }: {
+    values: GatewayForm
+    model: GatewayModel
+    gatewayId?: number
+  }) => {
     await ensureSetupInProgress()
-    await postGateway(toGatewaySaveRequest(values, model))
+    const request = toGatewaySaveRequest(values, model)
+
+    if (gatewayId === undefined) {
+      await postGateway(request)
+    } else {
+      await putGateway(gatewayId, request)
+    }
   },
-  onSuccess(_data, { model }) {
+  onSuccess(_data, { model, gatewayId }) {
+    const name = `${model.manufacturer} ${model.description}`
+
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: t('trunks.trunk_created'),
-        description: t('trunks.physical.trunk_created_description', {
-          name: `${model.manufacturer} ${model.description}`,
-        }),
+        title: gatewayId === undefined ? t('trunks.trunk_created') : t('trunks.trunk_updated'),
+        description:
+          gatewayId === undefined
+            ? t('trunks.physical.trunk_created_description', { name })
+            : t('trunks.physical.trunk_updated_description', { name }),
       })
     }, 500)
     emit('close')
@@ -163,7 +199,7 @@ const {
     if (!isShown) {
       notificationsStore.createNotification({
         kind: 'error',
-        title: t('trunks.cannot_create_trunk'),
+        title: saveErrorTitle.value,
         description: describeGatewayError(error) || describeError(error),
       })
     }
@@ -183,10 +219,15 @@ function getDefaultForm(): GatewayForm {
   return getEmptyGatewayForm(firstModel?.defaultPbxAddress ?? '', network)
 }
 
+function getEditForm(item: Gateway): GatewayForm {
+  const values = { ...getGatewayForm(item), macAddress: formatMacAddress(item.macAddress) }
+  const model = findGatewayModel(models.value, item.modelId)
+
+  return model ? { ...values, fxsExtensions: withModelPorts(values, model).fxsExtensions } : values
+}
+
 function initForm() {
-  form.value = gateway
-    ? { ...getGatewayForm(gateway), macAddress: formatMacAddress(gateway.macAddress) }
-    : getDefaultForm()
+  form.value = gateway ? getEditForm(gateway) : getDefaultForm()
   initialSnapshot.value = JSON.stringify(form.value)
 }
 
@@ -197,23 +238,24 @@ watch(
       isShownDiscardModal.value = false
       return
     }
-    resetCreate()
+    resetSave()
     validationIssues.value = {}
     initForm()
-
-    if (!gateway) {
-      setTimeout(
-        () => focusUnlessFocusedWithin(formRef.value, fieldRefs.manufacturer.value),
-        FOCUS_DELAY,
-      )
-    }
+    setTimeout(
+      () =>
+        focusUnlessFocusedWithin(
+          formRef.value,
+          gateway ? fieldRefs.macAddress.value : fieldRefs.manufacturer.value,
+        ),
+      FOCUS_DELAY,
+    )
   },
 )
 
 watch(
   () => [models.value, networksState.value.data] as const,
   () => {
-    if (isShown && !gateway && !isDirty.value) {
+    if (isShown && !isDirty.value) {
       initForm()
     }
   },
@@ -283,21 +325,18 @@ function focusFirstInvalidField() {
 }
 
 function save() {
-  if (isReadOnly.value) {
-    return
-  }
-  resetCreate()
+  resetSave()
   const model = selectedModel.value
   validationIssues.value = validateGatewayForm(form.value, {
     model,
-    existingMacAddresses,
+    existingMacAddresses: otherMacAddresses.value,
   })
 
   if (hasGatewayValidationIssues(validationIssues.value) || !model) {
     focusFirstInvalidField()
     return
   }
-  createGateway({ values: { ...form.value }, model })
+  saveGateway({ values: { ...form.value }, model, gatewayId: gateway?.id })
 }
 
 function requestClose() {
@@ -321,18 +360,14 @@ function discardChanges() {
 <template>
   <NeSideDrawer
     :is-shown="isShown"
-    :title="isReadOnly ? label : t('trunks.physical.add_physical_trunk')"
+    :title="
+      isEditing ? t('trunks.physical.edit_physical_trunk') : t('trunks.physical.add_physical_trunk')
+    "
     :close-aria-label="t('shell.close_side_drawer')"
     @close="requestClose"
   >
     <form ref="formRef" novalidate @submit.prevent="save">
       <div class="flex flex-col gap-6">
-        <NeInlineNotification
-          v-if="isReadOnly"
-          kind="info"
-          :title="t('trunks.physical.read_only_title')"
-          :description="t('trunks.physical.read_only_description')"
-        />
         <NeInlineNotification
           v-if="modelsState.status === 'error'"
           kind="error"
@@ -347,7 +382,7 @@ function discardChanges() {
           :label="t('trunks.physical.manufacturer')"
           :options="manufacturerOptions"
           :invalid-message="issue('manufacturer')"
-          :disabled="saving || isReadOnly"
+          :disabled="saving || isEditing"
           @update:model-value="selectManufacturer"
         />
         <NeCombobox
@@ -360,8 +395,9 @@ function discardChanges() {
               ? t('trunks.physical.choose_model')
               : t('trunks.physical.choose_manufacturer_first')
           "
+          :helper-text="isEditing ? t('trunks.physical.model_edit_helper') : ''"
           :invalid-message="issue('modelId')"
-          :disabled="saving || isReadOnly || !form.manufacturer"
+          :disabled="saving || isEditing || !form.manufacturer"
           :no-results-label="t('ne_combobox.no_results')"
           :limited-options-label="t('ne_combobox.limited_options_label')"
           :no-options-label="t('ne_combobox.no_options_label')"
@@ -376,7 +412,7 @@ function discardChanges() {
           :label="t('trunks.physical.mac_address')"
           :placeholder="t('trunks.physical.mac_address_placeholder')"
           :invalid-message="issue('macAddress')"
-          :disabled="saving || isReadOnly"
+          :disabled="saving"
           @blur="form.macAddress = form.macAddress.trim()"
         />
         <NeTextInput
@@ -386,7 +422,7 @@ function discardChanges() {
           :helper-text="t('trunks.physical.ip_address_helper')"
           :placeholder="t('trunks.physical.ip_address_placeholder')"
           :invalid-message="issue('ipAddress')"
-          :disabled="saving || isReadOnly"
+          :disabled="saving"
           @blur="form.ipAddress = form.ipAddress.trim()"
         />
         <NeTextInput
@@ -395,7 +431,7 @@ function discardChanges() {
           :label="t('trunks.physical.netmask')"
           :placeholder="t('trunks.physical.netmask_placeholder')"
           :invalid-message="issue('netmask')"
-          :disabled="saving || isReadOnly"
+          :disabled="saving"
           @blur="form.netmask = form.netmask.trim()"
         />
         <NeTextInput
@@ -404,7 +440,7 @@ function discardChanges() {
           :label="t('trunks.physical.network_gateway')"
           :placeholder="t('trunks.physical.network_gateway_placeholder')"
           :invalid-message="issue('networkGateway')"
-          :disabled="saving || isReadOnly"
+          :disabled="saving"
           @blur="form.networkGateway = form.networkGateway.trim()"
         />
         <NeTextInput
@@ -414,7 +450,7 @@ function discardChanges() {
           :helper-text="t('trunks.physical.pbx_address_helper')"
           :placeholder="t('trunks.physical.pbx_address_placeholder')"
           :invalid-message="issue('pbxAddress')"
-          :disabled="saving || isReadOnly"
+          :disabled="saving"
           @blur="form.pbxAddress = form.pbxAddress.trim()"
         />
         <NeRadioSelection
@@ -428,7 +464,7 @@ function discardChanges() {
               : t('trunks.physical.isdn_port_mode')
           "
           :options="isdnModeOptions"
-          :disabled="saving || isReadOnly"
+          :disabled="saving"
           @update:model-value="(value: string) => setIsdnMode(index, value)"
         />
         <NeTextInput
@@ -441,7 +477,7 @@ function discardChanges() {
           optional
           :optional-label="t('common.optional')"
           :invalid-message="portIssue('fxoNumbers', index)"
-          :disabled="saving || isReadOnly"
+          :disabled="saving"
         />
         <NeCombobox
           v-for="(_extension, index) in form.fxsExtensions"
@@ -454,7 +490,7 @@ function discardChanges() {
           optional
           :optional-label="t('common.optional')"
           :invalid-message="portIssue('fxsExtensions', index)"
-          :disabled="saving || isReadOnly || fxsUsersState.status === 'pending'"
+          :disabled="saving || fxsUsersState.status === 'pending'"
           :no-results-label="t('ne_combobox.no_results')"
           :limited-options-label="t('ne_combobox.limited_options_label')"
           :no-options-label="t('ne_combobox.no_options_label')"
@@ -468,30 +504,30 @@ function discardChanges() {
           :description="describeError(fxsUsersState.error)"
         />
         <NeInlineNotification
+          v-if="removedFxsUsers.length > 0"
+          kind="warning"
+          :title="t('trunks.physical.fxs_extensions_removed_title')"
+          :description="
+            t('trunks.physical.fxs_extensions_removed_description', {
+              users: removedFxsUsers.join(', '),
+            })
+          "
+        />
+        <NeInlineNotification
           v-if="saveError"
           kind="error"
-          :title="t('trunks.cannot_create_trunk')"
+          :title="saveErrorTitle"
           :description="describeGatewayError(saveError) || describeError(saveError)"
         />
       </div>
       <hr class="my-8" />
       <div class="flex justify-end gap-3">
-        <template v-if="gateway">
-          <NeButton kind="tertiary" size="lg" @click.prevent="emit('download', gateway)">
-            {{ t('trunks.physical.download_configuration') }}
-          </NeButton>
-          <NeButton kind="primary" size="lg" @click.prevent="requestClose">
-            {{ t('common.close') }}
-          </NeButton>
-        </template>
-        <template v-else>
-          <NeButton kind="tertiary" size="lg" :disabled="saving" @click.prevent="requestClose">
-            {{ t('common.cancel') }}
-          </NeButton>
-          <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
-            {{ t('common.create') }}
-          </NeButton>
-        </template>
+        <NeButton kind="tertiary" size="lg" :disabled="saving" @click.prevent="requestClose">
+          {{ t('common.cancel') }}
+        </NeButton>
+        <NeButton type="submit" kind="primary" size="lg" :disabled="saving" :loading="saving">
+          {{ isEditing ? t('common.save') : t('common.create') }}
+        </NeButton>
       </div>
     </form>
   </NeSideDrawer>

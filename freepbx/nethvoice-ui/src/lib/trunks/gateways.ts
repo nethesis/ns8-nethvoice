@@ -569,19 +569,29 @@ export const toGatewaySaveRequest = (
   }
 }
 
-export const postGateway = async (request: GatewaySaveRequest): Promise<void> => {
-  const { data, response } = await api.POST(GATEWAYS_SAVE_PATH, { body: request })
+const checkGatewaySaveResult = (data: unknown, status: number, method: string, url: string) => {
   const result = v.parse(GatewaySaveResultSchema, data)
 
   if (!result.status) {
-    throw new ApiError({
-      status: response.status,
-      method: 'POST',
-      url: GATEWAYS_SAVE_PATH,
-      body: { errors: result.errors },
-    })
+    throw new ApiError({ status, method, url, body: { errors: result.errors } })
   }
 }
+
+export const postGateway = async (request: GatewaySaveRequest): Promise<void> => {
+  const { data, response } = await api.POST(GATEWAYS_SAVE_PATH, { body: request })
+  checkGatewaySaveResult(data, response.status, 'POST', GATEWAYS_SAVE_PATH)
+}
+
+export const putGateway = async (gatewayId: number, request: GatewaySaveRequest): Promise<void> => {
+  const { data, response } = await api.PUT('/devices/gateways/{id}', {
+    params: { path: { id: String(gatewayId) } },
+    body: request,
+  })
+  checkGatewaySaveResult(data, response.status, 'PUT', `${GATEWAYS_SAVE_PATH}/${gatewayId}`)
+}
+
+export const getRemovedFxsExtensions = (previous: string[], current: string[]): string[] =>
+  previous.filter((extension, index) => extension !== '' && current[index] !== extension)
 
 export const deleteGateway = async (gatewayId: number): Promise<void> => {
   await api.DELETE('/devices/gateways/{id}', { params: { path: { id: String(gatewayId) } } })

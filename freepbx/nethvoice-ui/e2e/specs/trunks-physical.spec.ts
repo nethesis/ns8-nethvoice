@@ -279,21 +279,135 @@ test.describe('trunks: physical', () => {
     })
   })
 
-  test('shows the configuration of a gateway without saving it', async ({ page, mockApi }) => {
+  test('edits a gateway and warns before deleting the extension of an FXS port', async ({
+    page,
+    mockApi,
+  }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('PUT', '/freepbx/rest/devices/gateways/:id', { json: { status: true, id: 4 } })
+    await page.goto('./trunks/physical')
+
+    await page.getByRole('button', { name: /Open the menu of Grandstream/ }).click()
+    await page.getByRole('menuitem', { name: 'Edit', exact: true }).click()
+
+    await expect(page.getByRole('heading', { name: 'Edit physical trunk' })).toBeVisible()
+    await expect(page.getByRole('combobox', { name: 'Device model' })).toBeDisabled()
+    await expect(
+      page.getByText('To use another model, delete the trunk and create it again'),
+    ).toBeVisible()
+    const macAddress = page.getByRole('textbox', { name: 'MAC address' })
+    await expect(macAddress).toHaveValue('02:2A:3B:4C:5D:6E')
+    await expect(macAddress).toBeEnabled()
+    await expect(macAddress).toBeFocused()
+    await expect(page.getByRole('combobox', { name: 'Port FXS 1' })).toHaveValue(/c\.davis/)
+    await expect(page.getByText('Some FXS extensions will be deleted')).toHaveCount(0)
+
+    await page.getByRole('textbox', { name: 'Device IP address' }).fill('192.168.10.30')
+    await page.getByRole('combobox', { name: 'Port FXS 1' }).click()
+    await page.getByRole('option', { name: /a\.miller \(300\)/ }).click()
+    await expect(page.getByText('Some FXS extensions will be deleted')).toBeVisible()
+    await expect(
+      page.getByText('Saving deletes the FXS port extensions of these users: c.davis (301).'),
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    await expect(
+      page.getByText('Physical trunk Grandstream HT802 SIP 2 Porte FXS has been updated.'),
+    ).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Edit physical trunk' })).toBeHidden()
+    const [call] = mockApi.callsTo('PUT', '/freepbx/rest/devices/gateways/:id')
+    expect(call.path).toBe('/freepbx/rest/devices/gateways/4')
+    expect(call.body).toEqual({
+      name: 'Grandstream-HT802 SIP 2 Porte FXS',
+      model: 33,
+      manufacturer: 'Grandstream',
+      mac: '02:2A:3B:4C:5D:6E',
+      ipv4: '',
+      ipv4_new: '192.168.10.30',
+      netmask_green: '255.255.255.0',
+      gateway: '192.168.10.1',
+      ipv4_green: 'voice.example.org',
+      proxy: 'sip:10.5.4.1:5060;lr',
+      trunks_isdn: [],
+      trunks_pri: [],
+      trunks_fxo: [],
+      trunks_fxs: [{ name: 1, linked_extension: '300' }],
+    })
+    expect(mockApi.callsTo('POST', '/freepbx/rest/devices/gateways')).toHaveLength(0)
+  })
+
+  test('edits the ISDN ports of a gateway keeping its trunks', async ({ page, mockApi }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('PUT', '/freepbx/rest/devices/gateways/:id', { json: { status: true, id: 3 } })
+    await page.goto('./trunks/physical')
+
+    await page.getByRole('button', { name: /Open the menu of Patton/ }).click()
+    await page.getByRole('menuitem', { name: 'Edit', exact: true }).click()
+    await page.getByText('Point-to-point', { exact: true }).click()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    await expect(page.getByText('Trunk updated')).toBeVisible()
+    const [call] = mockApi.callsTo('PUT', '/freepbx/rest/devices/gateways/:id')
+    expect(call.path).toBe('/freepbx/rest/devices/gateways/3')
+    expect(call.body).toMatchObject({
+      mac: '00:A0:BA:0B:1C:DD',
+      ipv4_new: '192.168.10.20',
+      trunks_isdn: [{ name: 0, type: 'pp' }],
+    })
+  })
+
+  test('validates the changes of a gateway before calling the API', async ({ page, mockApi }) => {
     mockTrunksApi(mockApi)
     await page.goto('./trunks/physical')
 
     await page.getByRole('button', { name: /Open the menu of Grandstream/ }).click()
-    await page.getByRole('menuitem', { name: 'Show configuration' }).click()
+    await page.getByRole('menuitem', { name: 'Edit', exact: true }).click()
+    await page.getByRole('textbox', { name: 'MAC address' }).fill('00:a0:ba:0b:1c:dd')
+    await page.getByRole('textbox', { name: 'Device IP address' }).fill('192.168.10.300')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
 
-    await expect(page.getByText('Configuration cannot be changed here')).toBeVisible()
-    await expect(page.getByRole('textbox', { name: 'MAC address' })).toHaveValue(
-      '02:2A:3B:4C:5D:6E',
-    )
-    await expect(page.getByRole('textbox', { name: 'MAC address' })).toBeDisabled()
-    await expect(page.getByRole('combobox', { name: 'Port FXS 1' })).toHaveValue(/c\.davis/)
-    await expect(page.getByRole('button', { name: 'Create', exact: true })).toHaveCount(0)
-    expect(mockApi.callsTo('POST', '/freepbx/rest/devices/gateways')).toHaveLength(0)
+    await expect(page.getByText('Another gateway already uses this MAC address')).toBeVisible()
+    await expect(page.getByText('Enter a valid IPv4 address')).toBeVisible()
+    await expect(page.getByRole('textbox', { name: 'MAC address' })).toBeFocused()
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/devices/gateways/:id')).toHaveLength(0)
+
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await expect(page.getByRole('heading', { name: 'Edit physical trunk' })).toBeHidden()
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/devices/gateways/:id')).toHaveLength(0)
+  })
+
+  test('shows the error of a failed gateway update inside the drawer', async ({
+    page,
+    mockApi,
+  }) => {
+    mockTrunksApi(mockApi)
+    mockApi.on('PUT', '/freepbx/rest/devices/gateways/:id', {
+      status: 409,
+      json: {
+        status: false,
+        errors: ['Another gateway already uses this MAC address'],
+        warnings: [],
+        infos: [],
+      },
+    })
+    await page.goto('./trunks/physical')
+
+    await page.getByRole('button', { name: /Open the menu of Grandstream/ }).click()
+    await page.getByRole('menuitem', { name: 'Edit', exact: true }).click()
+    await page.getByRole('textbox', { name: 'MAC address' }).fill('02:2a:3b:4c:5d:6f')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    await expect(page.getByText('Cannot save the trunk')).toBeVisible()
+    await expect(
+      page.getByText('Another gateway already uses this MAC address', { exact: true }),
+    ).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Edit physical trunk' })).toBeVisible()
+
+    mockApi.on('PUT', '/freepbx/rest/devices/gateways/:id', { status: 500 })
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await expect(page.getByText('Cannot save the trunk')).toBeVisible()
+    await expect(page.getByText(/error 500/)).toBeVisible()
   })
 
   test('downloads the configuration file', async ({ page, mockApi }) => {
