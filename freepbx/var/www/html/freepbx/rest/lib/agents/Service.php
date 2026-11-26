@@ -158,10 +158,12 @@ final class Service
     private function bindingReady(string $published): bool
     {
         $snapshot=json_decode($published,true,512,JSON_THROW_ON_ERROR);
-        if (!Preview::sipEnabled() && ($snapshot['conversation']['model']??null)!=='gpt-live-1') return false;
+        $live=($snapshot['conversation']['model']??null)==='gpt-live-1';
+        if (!$live && !Preview::sipEnabled()) return false;
         try { $binding=$this->binding($snapshot['provider_binding_id']); }
         catch (\RuntimeException $error) { if ($error->getCode()===404) return false; throw $error; }
-        return $binding['sync_status']==='synced' && $this->native->trunkReady($binding);
+        return $binding['sync_status']==='synced' && ($live || self::requiresNativeTrunk($binding))
+            && $this->nativeTrunkReady($binding);
     }
     /** Canonical fresh defaults shared by installation and creation. */
     public static function emptyDraft(): array
@@ -286,10 +288,11 @@ PROMPT;
             if (empty($secrets['api_key']) && ProviderCatalog::environmentKey($binding['provider'])==='') self::fail('provider_credentials_unavailable');
             if ($draft['conversation']['model']!==null && $draft['conversation']['model']!=='gpt-live-1' && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
             if ($binding['provider']==='openai' && ($draft['conversation']['model']??null)!=='gpt-live-1') {
+                if (!self::requiresNativeTrunk($binding)) self::fail('openai_project_required');
                 if (($secrets['openai_webhook']['state']??null)==='recovery') self::fail('webhook_secret_recovery_required',409);
                 if (empty($secrets['webhook_secret'])) self::fail('webhook_not_configured');
             }
-            if ($binding['sync_status']!=='synced' || !$this->native->trunkReady($binding)) self::fail('trunk_not_ready',409);
+            if ($binding['sync_status']!=='synced' || !$this->nativeTrunkReady($binding)) self::fail('trunk_not_ready',409);
             if (trim($draft['conversation']['voice'])==='' || trim($draft['conversation']['instructions'])==='') self::fail('conversation_required');
             $version=(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
             if ($draft['debug']['transcription_enabled'] && $binding['provider']!=='openai') self::fail('transcription_provider_unsupported');
@@ -329,15 +332,13 @@ PROMPT;
     {
         $bindings=[];
         foreach ($this->query("SELECT * FROM asterisk.voice_agent_bindings WHERE removed=0")->fetchAll(\PDO::FETCH_ASSOC) as $row) {
-            if ($row['sync_status']==='synced' && $this->native->trunkReady($row)) continue;
+            if ($row['sync_status']==='synced' && $this->nativeTrunkReady($row)) continue;
             $success=false;
             try {
-                $nativeId=$this->native->provision($this->native->trunkExists($row)?'update':'create',$this->nativeBinding($row),$this->nativeBinding($row));
-                if ($nativeId>0) {
-                    $this->query('UPDATE asterisk.voice_agent_bindings SET freepbx_trunk_id=? WHERE binding_id=?',[$nativeId,$row['binding_id']]);
-                    $row['freepbx_trunk_id']=$nativeId;
-                    $success=true;
-                }
+                $nativeId=$this->provisionNativeTrunk($row,$row);
+                $this->query('UPDATE asterisk.voice_agent_bindings SET freepbx_trunk_id=? WHERE binding_id=?',[$nativeId,$row['binding_id']]);
+                $row['freepbx_trunk_id']=$nativeId;
+                $success=true;
             } catch (\Throwable $error) { /* Safe persisted status below; no secrets in responses. */ }
             $bindings[]=['row'=>$row,'success'=>$success];
         }
@@ -388,6 +389,7 @@ PROMPT;
     }
     private function webhookStatus(array $row,array $settings,array $secrets): string
     {
+        if ($row['provider']==='openai' && empty($settings['openai_project_id'])) return 'not_configured';
         $manual=empty($row['webhook_verified_at'])?'manual':'verified';
         $setup=$secrets['openai_webhook']??null;
         $attempts=self::webhookAttempts($secrets);
@@ -438,6 +440,7 @@ PROMPT;
             $row=$this->binding($id);self::revision($row,$revision);
             $settings=json_decode($row['settings_json'],true,512,JSON_THROW_ON_ERROR);
             if ($row['provider']!=='openai' || isset($settings['execution']) || $row['runtime_owner']!=='builtin') self::fail('webhook_unsupported');
+            if (empty($settings['openai_project_id'])) self::fail('webhook_unsupported');
             $models=[];
             foreach ($this->query('SELECT d.definition_json FROM asterisk.voice_agent_drafts d JOIN asterisk.voice_agent_agents a USING (agent_id) WHERE a.removed=0 UNION ALL SELECT v.definition_json FROM asterisk.voice_agent_versions v JOIN asterisk.voice_agent_agents a ON a.agent_id=v.agent_id AND a.active_workflow_version=v.workflow_version WHERE a.removed=0')->fetchAll(\PDO::FETCH_COLUMN) as $definition) {
                 $snapshot=json_decode($definition,true,512,JSON_THROW_ON_ERROR);
@@ -526,6 +529,26 @@ PROMPT;
         $settings=json_decode($row['settings_json'],true,512,JSON_THROW_ON_ERROR);
         $secrets=$row['secrets_encrypted']===''?[]:json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
         return $settings+$row+['sip_auth_password_encrypted'=>$this->crypto->encryptSecret($secrets['sip_password']??'')];
+    }
+    private static function requiresNativeTrunk(array $row): bool
+    {
+        return $row['provider']!=='openai'
+            || !empty(json_decode($row['settings_json'],true,512,JSON_THROW_ON_ERROR)['openai_project_id']);
+    }
+    private function nativeTrunkReady(array $row): bool
+    {
+        return self::requiresNativeTrunk($row) ? $this->native->trunkReady($row) : empty($row['freepbx_trunk_id']);
+    }
+    private function provisionNativeTrunk(array $row, ?array $previous): ?int
+    {
+        if (!self::requiresNativeTrunk($row)) {
+            if ($row['freepbx_trunk_id']) $this->native->provision('delete',$this->nativeBinding($row),null);
+            return null;
+        }
+        $operation=$previous && $this->native->trunkExists($row)?'update':'create';
+        $id=$this->native->provision($operation,$this->nativeBinding($row),$previous?$this->nativeBinding($previous):null);
+        if ($id<=0) self::fail('native_sync_failed',503);
+        return $id;
     }
     public function voices(string $id): array
     {
@@ -660,8 +683,8 @@ PROMPT;
             $previousSettings=$previous?json_decode($previous['settings_json'],true,512,JSON_THROW_ON_ERROR):[];
             if ($external) $settings['execution']='cleverai';
             if ($provider==='openai' || $external) {
-                $settings['openai_project_id']=self::text($input['openai_project_id']??null,128,true);
-                if (!preg_match('/^proj_[A-Za-z0-9_-]+$/D',$settings['openai_project_id']) || $settings['sip_auth_mode']!=='none') self::fail('invalid_provider_configuration');
+                $settings['openai_project_id']=self::text($input['openai_project_id']??$previousSettings['openai_project_id']??'',128,$external);
+                if (($settings['openai_project_id']!=='' && !preg_match('/^proj_[A-Za-z0-9_-]+$/D',$settings['openai_project_id'])) || $settings['sip_auth_mode']!=='none') self::fail('invalid_provider_configuration');
             } else {
                 $settings['grok_phone_number']=self::text($input['grok_phone_number']??null,32,true);
                 if (!preg_match('/^\+[1-9][0-9]{1,14}$/D',$settings['grok_phone_number']) || !in_array($settings['sip_auth_mode'],['none','digest'],true)) self::fail('invalid_provider_configuration');
@@ -696,21 +719,23 @@ PROMPT;
             $runtimeEncrypted=$external?null:$this->crypto->encryptRuntimeCredentials($secrets);
             $id=$id??'trunk_'.bin2hex(random_bytes(8));
             $nativeSettings=$settings;$previousNativeSettings=$previousSettings;
-            $nativeChanged=!$previous || $previous['sync_status']!=='synced' || !$this->native->trunkReady($previous)
-                || $previous['name']!==$name || $nativeSettings!=$previousNativeSettings || ($secrets['sip_password']??'')!==$previousSipPassword;
+            $needsSip=$provider!=='openai' || $settings['openai_project_id']!=='';
+            $nativeChanged=$needsSip ? (!$previous || $previous['sync_status']!=='synced' || !$this->native->trunkReady($previous)
+                || $previous['name']!==$name || $nativeSettings!=$previousNativeSettings || ($secrets['sip_password']??'')!==$previousSipPassword
+                ) : !empty($previous['freepbx_trunk_id']);
             $this->db->beginTransaction();
-            if (!$previous) $this->query('INSERT INTO asterisk.voice_agent_bindings (binding_id,name,provider,settings_json,secrets_encrypted,runtime_secrets_encrypted) VALUES (?,?,?,?,?,?)',[$id,$name,$external?'openai':$provider,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$runtimeEncrypted]);
+            if (!$previous) $this->query('INSERT INTO asterisk.voice_agent_bindings (binding_id,name,provider,settings_json,secrets_encrypted,runtime_secrets_encrypted,sync_status) VALUES (?,?,?,?,?,?,?)',[$id,$name,$external?'openai':$provider,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$runtimeEncrypted,$nativeChanged?'pending':'synced']);
             else $this->query("UPDATE asterisk.voice_agent_bindings SET name=?,settings_json=?,secrets_encrypted=?,runtime_secrets_encrypted=?,webhook_verified_at=IF(?,NULL,webhook_verified_at),revision=revision+1,sync_status=? WHERE binding_id=?",[$name,json_encode($settings,JSON_THROW_ON_ERROR),$encrypted,$runtimeEncrypted,(int)($previousWebhook!==($secrets['webhook_secret']??'') || ($previousSettings['openai_project_id']??null)!==($settings['openai_project_id']??null)),$nativeChanged?'pending':'synced',$id]);
             $this->audit($id,$actor,$previous?'updated':'created',$revision+1,true);
             $this->db->commit();
             $row=$this->binding($id);
             if (!$nativeChanged) return $this->safeBinding($row);
             try {
-                $nativeId=$this->native->provision($previous && $this->native->trunkExists($row)?'update':'create',$this->nativeBinding($row),$previous?$this->nativeBinding($previous):null);
+                $nativeId=$this->provisionNativeTrunk($row,$previous);
                 $row['freepbx_trunk_id']=$nativeId;
                 // Keep ownership recoverable even when reload or AMI fails.
                 $this->query('UPDATE asterisk.voice_agent_bindings SET freepbx_trunk_id=? WHERE binding_id=?',[$nativeId?:null,$id]);
-                $ok=$nativeId>0 && $this->native->apply();
+                $ok=$this->native->apply();
                 $this->query('UPDATE asterisk.voice_agent_bindings SET freepbx_trunk_id=?,sync_status=? WHERE binding_id=?',[$nativeId?:null,$ok?'synced':'error',$id]);
             } catch (\Throwable $error) {
                 $this->query("UPDATE asterisk.voice_agent_bindings SET sync_status='error' WHERE binding_id=?",[$id]);
@@ -727,7 +752,7 @@ PROMPT;
             foreach ($this->all() as $agent) {
                 if ($agent['draft']['provider_binding_id']===$id || ($agent['published']['provider_binding_id']??null)===$id) self::fail('trunk_in_use',409);
             }
-            try { $this->native->provision('delete',$this->nativeBinding($row),null); }
+            try { if (self::requiresNativeTrunk($row) || $row['freepbx_trunk_id']) $this->native->provision('delete',$this->nativeBinding($row),null); }
             catch (\Throwable $error) { self::fail('native_sync_failed',503); }
             $this->db->beginTransaction();
             $this->query("UPDATE asterisk.voice_agent_bindings SET removed=1,revision=revision+1,sync_status='pending' WHERE binding_id=?",[$id]);

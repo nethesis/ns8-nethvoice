@@ -8,10 +8,11 @@ putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-disposable-key');
 putenv('OPENAI_API_KEY=synthetic-environment-key');
 $native=new class {
     public int $reloads=0;
+    public array $provisions=[];
     public function defaultLanguage(): string { return 'en'; }
     public function trunkReady(array $row): bool { return true; }
-    public function trunkExists(array $row): bool { return true; }
-    public function provision(string $operation,array $binding,?array $previous): int { return 9003; }
+    public function trunkExists(array $row): bool { return !empty($row['freepbx_trunk_id']); }
+    public function provision(string $operation,array $binding,?array $previous): int { $this->provisions[]=$operation; return 9003; }
     public function apply(): bool { $this->reloads++;return true; }
     public function directory(): array { return ['items'=>[]]; }
     public function extensions(): array { return [['id'=>'extension:203','name'=>'Test extension']]; }
@@ -87,4 +88,20 @@ putenv('OPENAI_API_KEY=synthetic-environment-key');
 putenv('VOICE_AGENT_SIP_LAB_ENABLED=false');
 ensure(array_column($service->models(['provider'=>'openai','binding_id'=>$trunk['binding_id']])['items'],'id')===['gpt-live-1'],'preview_catalog_only_live');
 rejected(fn()=>$service->configureWebhook($trunk['binding_id'],$trunk['revision'],'test-admin'),'sip_lab_required');
+$provisioned=$native->provisions;
+$liveTrunk=$service->saveTrunk(null,['name'=>'Live only','provider'=>'openai'],0,'synthetic-admin');
+ensure($liveTrunk['sync_status']==='synced' && !$liveTrunk['freepbx_trunk_id'],'live_binding_without_native_trunk');
+ensure($native->provisions===$provisioned,'live_trunk_does_not_provision_sip');
+$liveDraft=$edited['draft'];$liveDraft['provider_binding_id']=$liveTrunk['binding_id'];
+$live=$service->save(null,['name'=>'Live without project','draft'=>$liveDraft],0,'synthetic-admin');
+$live=$service->publish($live['agent_id'],$live['revision'],'synthetic-admin');
+ensure($live['routable'] && $native->provisions===$provisioned,'live_publish_without_project');
+putenv('VOICE_AGENT_SIP_LAB_ENABLED=true');
+$sipDraft=$second['draft'];$sipDraft['provider_binding_id']=$liveTrunk['binding_id'];
+$sip=$service->save(null,['name'=>'SIP requires project','draft'=>$sipDraft],0,'synthetic-admin');
+rejected(fn()=>$service->publish($sip['agent_id'],$sip['revision'],'synthetic-admin'),'openai_project_required');
+rejected(fn()=>$service->configureWebhook($liveTrunk['binding_id'],$liveTrunk['revision'],'test-admin'),'webhook_unsupported');
+$updated=$service->saveTrunk($trunk['binding_id'],array_replace($input,['openai_project_id'=>'']),$trunk['revision'],'synthetic-admin');
+ensure($updated['sync_status']==='synced' && !$updated['freepbx_trunk_id'] && end($native->provisions)==='delete','retire_old_sip_trunk');
+ensure(!$service->get($second['agent_id'])['routable'],'existing_sip_route_uses_fallback_without_project');
 echo "Agent conversation isolation, publication, discovery, permissions and no-reload behavior passed\n";
