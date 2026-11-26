@@ -58,6 +58,19 @@ $observed=$monitor->trace($id,[])['items'];
 assert(count($observed)===1 && $observed[0]['event_type']==='provider_warning' && $observed[0]['provider_code']==='input_audio_rate_limit_exceeded');
 $db->prepare('DELETE FROM asteriskcdrdb.voice_agent_run_events WHERE event_id=?')->execute([$warning]);
 assert($monitor->summary([])['coverage']['instrumented_runs']>=0);
+$utc=new DateTimeZone('UTC');
+$nearMidnight=(new DateTimeImmutable('now',$utc))->modify('-2 days')->setTime(0,30);
+$calendarRun='78787878-7878-4787-a787-787878787878';
+$db->prepare("INSERT INTO asteriskcdrdb.voice_agent_runs (run_id,agent_id,workflow_version,started_at,outcome,retention_until)
+    VALUES (?,'monitoring_calendar',1,?,'completed',NOW()+INTERVAL 90 DAY)")->execute([$calendarRun,$nearMidnight->format('Y-m-d H:i:s')]);
+foreach (['UTC','Europe/Rome','America/Los_Angeles'] as $zone) {
+    $result=$monitor->summary(['agent_id'=>'monitoring_calendar','timezone'=>$zone]);
+    assert($result['coverage']['total_runs']===1 && count($result['trends'])===1);
+    assert($result['trends'][0]['day']===$nearMidnight->setTimezone(new DateTimeZone($zone))->format('Y-m-d'));
+}
+try { $monitor->summary(['timezone'=>"Europe/Rome' --"]); assert(false); }
+catch (RuntimeException $error) { assert($error->getMessage()==='invalid_monitoring_timezone'); }
+$db->prepare('DELETE FROM asteriskcdrdb.voice_agent_runs WHERE run_id=?')->execute([$calendarRun]);
 assert($monitor->health()['stale']===true);
 try { $monitor->trace($id,['cursor'=>'not-a-cursor']); assert(false); } catch (RuntimeException $e) { assert($e->getCode()===422); }
 echo "Monitoring history filters, current format, retention and health passed\n";

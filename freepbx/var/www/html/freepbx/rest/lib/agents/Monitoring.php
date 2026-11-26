@@ -33,7 +33,7 @@ final class Monitoring
     /** Shared typed filters; hour-aligned windows keep lists and rollups consistent. */
     public static function filters(array $query, bool $summary=false): array
     {
-        $allowed=$summary?['from','to','agent_id','provider','adapter']:['from','to','agent_id','provider','adapter','outcome','error_code','tool_id','phase','query','page'];
+        $allowed=$summary?['from','to','agent_id','provider','adapter','timezone']:['from','to','agent_id','provider','adapter','outcome','error_code','tool_id','phase','query','page'];
         if (array_diff(array_keys($query),$allowed)) self::fail();
         foreach ($query as $value) if (!is_string($value) && !is_int($value)) self::fail();
         $now=new \DateTimeImmutable('now',new \DateTimeZone('UTC'));
@@ -45,6 +45,10 @@ final class Monitoring
         $from=$from->setTime((int)$from->format('H'),0);
         if ($to->format('i:s.u')!=='00:00.000000') $to=$to->modify('+1 hour')->setTime((int)$to->modify('+1 hour')->format('H'),0);
         $result=['from'=>$from->format('Y-m-d H:i:s'),'to'=>$to->format('Y-m-d H:i:s')];
+        if (isset($query['timezone'])) {
+            if (!is_string($query['timezone']) || !in_array($query['timezone'],\DateTimeZone::listIdentifiers(\DateTimeZone::ALL_WITH_BC),true)) self::fail('invalid_monitoring_timezone');
+            $result['timezone']=$query['timezone'];
+        }
         foreach (['query','error_code'] as $key) {
             if (!isset($query[$key]) || $query[$key]==='') continue;
             if (!is_string($query[$key]) || mb_strlen($query[$key])>($key==='query'?100:64)) self::fail();
@@ -192,7 +196,15 @@ final class Monitoring
         $outcomes=$this->query('SELECT outcome,COUNT(*) count FROM asteriskcdrdb.voice_agent_runs r WHERE '.$where.' GROUP BY outcome',$args)->fetchAll(\PDO::FETCH_ASSOC);
         $long=(strtotime($f['to'])-strtotime($f['from']))>366*86400;
         $format=$long?'%Y-%m-01':'%Y-%m-%d';
-        $trends=$this->query("SELECT DATE_FORMAT(started_at,'$format') day,outcome,COUNT(*) count FROM asteriskcdrdb.voice_agent_runs r WHERE ".$where." GROUP BY day,outcome ORDER BY day",$args)->fetchAll(\PDO::FETCH_ASSOC);
+        $timezone=$f['timezone']??'UTC';
+        $localTime='r.started_at';
+        $trendArgs=$args;
+        if ($timezone!=='UTC') {
+            if ($this->query("SELECT CONVERT_TZ('2020-01-01 00:00:00','+00:00',?)",[$timezone])->fetchColumn()===null) self::fail('monitoring_timezone_unavailable');
+            $localTime="CONVERT_TZ(r.started_at,'+00:00',?)";
+            array_unshift($trendArgs,$timezone);
+        }
+        $trends=$this->query("SELECT DATE_FORMAT($localTime,'$format') day,outcome,COUNT(*) count FROM asteriskcdrdb.voice_agent_runs r WHERE ".$where." GROUP BY day,outcome ORDER BY day",$trendArgs)->fetchAll(\PDO::FETCH_ASSOC);
         [$metricWhere,$metricArgs]=self::where($f,'m',true);
         $rows=$this->query('SELECT metric,dimension,result,bucket,SUM(samples) samples,SUM(total) total FROM asteriskcdrdb.voice_agent_metric_hours m WHERE '.$metricWhere.' GROUP BY metric,dimension,result,bucket',$metricArgs)->fetchAll(\PDO::FETCH_ASSOC);
         $groups=[]; $errors=[];
