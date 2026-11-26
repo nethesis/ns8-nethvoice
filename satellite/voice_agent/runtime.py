@@ -29,6 +29,7 @@ from .tools import ToolRegistry, WIRE_IDS, bounded_caller_name
 
 
 LOG=logging.getLogger(__name__)
+SIP_WEBHOOK_TIMEOUT = 10
 
 
 @dataclass
@@ -493,8 +494,12 @@ class Runtime:
             else:
                 reason='provider_disconnected'
                 cause=event.get('cause')
-                if isinstance(cause,int) and 0<cause<128: reason=f'provider_hangup_{cause}'
-                LOG.warning('Voice agent phase=provider_channel error_code=%s',reason)
+                cause = cause if type(cause) is int and 0 < cause < 128 else None
+                if call.webhook_signature_rejected and not call.provider_call_id:
+                    reason = 'provider_webhook_signature_rejected'
+                elif cause is not None:
+                    reason = f'provider_hangup_{cause}'
+                LOG.warning('Voice agent phase=provider_channel error_code=%s sip_cause=%s', reason, cause)
                 self.spawn(self.finish(call, 'fallback', reason, fallback=True), call)
 
     def capacity_available(self, adapter):
@@ -679,6 +684,17 @@ class Runtime:
     async def deadline(self, call, seconds, setup=False):
         if not setup and seconds > 0 and not call.private_consultation:
             self.spawn(self.duration_notice(call, max(0, seconds - 10)), call)
+        if setup and call.binding.get('adapter') != 'live_ws':
+            claim_window = min(seconds, SIP_WEBHOOK_TIMEOUT)
+            await asyncio.sleep(claim_window)
+            if call.terminal:
+                return
+            if not call.provider_call_id:
+                reason = ('provider_webhook_signature_rejected' if call.webhook_signature_rejected
+                          else 'provider_webhook_timeout')
+                await self.finish(call, 'fallback', reason, fallback=True)
+                return
+            seconds -= claim_window
         await asyncio.sleep(seconds)
         if not call.terminal and (not setup or not call.media_connected):
             await self.finish(call, 'fallback', 'setup_timeout' if setup else 'duration_exceeded', fallback=True)
