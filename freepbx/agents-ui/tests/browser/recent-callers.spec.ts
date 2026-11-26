@@ -160,9 +160,12 @@ test("recent callbacks default on with seven days and independent extension excl
   await expect(
     page.getByRole("button", { name: "Remove Alice (203)", exact: true }),
   ).toBeVisible();
+  // The combobox takes the focus back a moment after Escape.
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 50)));
   await page
     .getByLabel("Lookback period", { exact: true })
     .fill("10");
+  await expect(page.getByLabel("Lookback period", { exact: true })).toHaveValue("10");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Save draft", exact: true }),
