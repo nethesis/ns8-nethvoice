@@ -7,44 +7,49 @@ import {
   NeMultiselectCombobox,
   NeRadioSelection,
   NeTextInput,
-  NeToggle,
 } from "@nethesis/vue-components";
+import { faListCheck } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
 import { useDestinations } from "../composables/useDestinations";
+import AppToggle from "./AppToggle.vue";
+import TransferToPeople from "./TransferToPeople.vue";
 import DestinationsDrawer, {
   type DestinationSelection,
 } from "./DestinationsDrawer.vue";
+import type { AgentForm } from "../composables/useAgentForm";
 import type {
+  Agent,
+  Catalog,
   ConfigurationValue,
   DescriptionOverride,
   ToolBinding,
 } from "../types";
 const props = defineProps<{
-  modelValue: ToolBinding[];
-  errors?: Record<string, string>;
+  form: AgentForm;
+  mode: "create" | "edit";
+  catalog?: Catalog;
+  agents?: Agent[];
 }>();
-const emit = defineEmits<{ "update:modelValue": [value: ToolBinding[]] }>();
 const { t } = useI18n();
 const loadError = useLoadError();
+const form = props.form;
 const extensions = useDestinations("extension");
 const queues = useDestinations("queue");
+const bindings = computed(() => form.draft.value.tool_bindings);
 const transfer = computed(() =>
-  props.modelValue.find((b) => b.tool_id === "pbx.transfer"),
+  bindings.value.find((b) => b.tool_id === "pbx.transfer"),
 );
 const hangup = computed(() =>
-  props.modelValue.find((b) => b.tool_id === "telephony.hangup"),
+  bindings.value.find((b) => b.tool_id === "telephony.hangup"),
 );
 function update(toolId: string, patch: Partial<ToolBinding>) {
-  emit(
-    "update:modelValue",
-    props.modelValue.map((binding) =>
-      binding.tool_id === toolId ? { ...binding, ...patch } : binding,
-    ),
+  form.draft.value.tool_bindings = bindings.value.map((binding) =>
+    binding.tool_id === toolId ? { ...binding, ...patch } : binding,
   );
 }
 function configure(toolId: string, config: Record<string, ConfigurationValue>) {
-  const binding = props.modelValue.find((b) => b.tool_id === toolId);
+  const binding = bindings.value.find((b) => b.tool_id === toolId);
   if (binding) update(toolId, { config: { ...binding.config, ...config } });
 }
 const list = (value: ConfigurationValue | undefined) =>
@@ -72,11 +77,12 @@ const unavailable = computed(() =>
 const descriptions = computed(
   () => (config.value.descriptions || []) as DescriptionOverride[],
 );
+function label(id: string, inventory: { id: string; name: string }[]) {
+  const item = inventory.find((i) => i.id === id);
+  return (item ? item.name + " " : "") + "(" + id.split(":")[1] + ")";
+}
 function badges(ids: string[], inventory: { id: string; name: string }[]) {
-  const names = ids.map((id) => {
-    const item = inventory.find((i) => i.id === id);
-    return (item ? item.name + " " : "") + "(" + id.split(":")[1] + ")";
-  });
+  const names = ids.map((id) => label(id, inventory));
   return names.length > 6
     ? [
         ...names.slice(0, 6),
@@ -93,6 +99,53 @@ const extensionBadges = computed(() =>
 const queueBadges = computed(() =>
   badges(permittedQueues.value, queues.data.value || []),
 );
+const clearDestinations = () => form.clearError("destinations");
+function toggleTransfer(value: boolean) {
+  clearDestinations();
+  form.clearError("lookback");
+  update("pbx.transfer", { enabled: value });
+}
+// Create drawer: the destinations are chosen with two lists; routing
+// descriptions are added later in the agent page.
+const queueOptions = computed(() =>
+  (queues.data.value || []).map((item) => ({
+    id: item.id,
+    label: item.name,
+    description: t("destinations.queueNumber", { number: item.number }),
+  })),
+);
+const extensionOptions = computed(() =>
+  (extensions.data.value || []).map((item) => ({
+    id: item.id,
+    label: item.name,
+    description: t("destinations.extensionNumber", { number: item.number }),
+  })),
+);
+const selectedQueues = computed(() =>
+  queueOptions.value.filter((o) => permittedQueues.value.includes(o.id)),
+);
+const selectedExtensions = computed(() =>
+  extensionOptions.value.filter((o) =>
+    permittedExtensions.value.includes(o.id),
+  ),
+);
+function selectQueues(items: { id: string }[]) {
+  clearDestinations();
+  const ids = items.map((item) => item.id);
+  configure("pbx.transfer", {
+    queues_enabled: ids.length > 0,
+    queue_allowlist: ids,
+  });
+}
+function selectExtensions(items: { id: string }[]) {
+  clearDestinations();
+  const ids = items.map((item) => item.id);
+  configure("pbx.transfer", {
+    extensions_enabled: ids.length > 0,
+    extension_allowlist: ids,
+  });
+}
+// Agent page: summary and Manage destinations drawer.
 const drawer = ref(false);
 const selection = computed<DestinationSelection>(() => {
   const text = (id: string) =>
@@ -109,15 +162,16 @@ const selection = computed<DestinationSelection>(() => {
   };
 });
 function saveDestinations(value: DestinationSelection) {
-  const selectedExtensions = (extensions.data.value || [])
+  clearDestinations();
+  const chosenExtensions = (extensions.data.value || [])
     .map((e) => e.id)
     .filter((id) => id in value.extensions);
-  const selectedQueues = Object.keys(value.queues);
+  const chosenQueues = Object.keys(value.queues);
   configure("pbx.transfer", {
-    extensions_enabled: selectedExtensions.length > 0,
-    extension_allowlist: selectedExtensions,
-    queues_enabled: selectedQueues.length > 0,
-    queue_allowlist: selectedQueues,
+    extensions_enabled: chosenExtensions.length > 0,
+    extension_allowlist: chosenExtensions,
+    queues_enabled: chosenQueues.length > 0,
+    queue_allowlist: chosenQueues,
     descriptions: Object.entries({ ...value.extensions, ...value.queues })
       .filter(([, text]) => text.trim())
       .map(([destination_id, description]) => ({
@@ -137,7 +191,7 @@ const scope = computed({
       configure("pbx.transfer", { recent_caller_denylist: [] });
   },
 });
-const extensionOptions = computed(() =>
+const callbackOptions = computed(() =>
   (extensions.data.value || []).map((e) => ({
     id: e.id,
     label: e.name + " (" + e.number + ")",
@@ -147,8 +201,7 @@ const excludedOptions = computed(() =>
   excluded.value.map((id) => ({
     id,
     label:
-      extensionOptions.value.find((o) => o.id === id)?.label ||
-      id.split(":")[1],
+      callbackOptions.value.find((o) => o.id === id)?.label || id.split(":")[1],
   })),
 );
 function exclude(items: { id: string }[]) {
@@ -157,128 +210,165 @@ function exclude(items: { id: string }[]) {
   });
 }
 function number(key: string, value: string) {
-  configure(
-    key === "playback_timeout_seconds" ? "telephony.hangup" : "pbx.transfer",
-    {
-      [key]: Number(value),
-    },
-  );
+  const goodbye = key === "playback_timeout_seconds";
+  form.clearError(goodbye ? "goodbye" : "lookback");
+  configure(goodbye ? "telephony.hangup" : "pbx.transfer", {
+    [key]: Number(value),
+  });
 }
+const recentOn = computed(
+  () =>
+    !!transfer.value?.enabled && config.value.recent_callers_enabled === true,
+);
+const multiselectLabels = computed(() => ({
+  noResultsLabel: t("noResults"),
+  noOptionsLabel: t("noOptions"),
+  userInputLabel: t("userInput"),
+  optionalLabel: t("optional"),
+  limitedOptionsLabel: t("moreOptions"),
+}));
 </script>
 <template>
-  <div class="divide-divider flex flex-col divide-y">
-    <div v-if="transfer" data-tool="transfer" class="flex flex-col gap-4 pb-6">
-      <div>
-        <NeToggle
-          :model-value="transfer.enabled"
-          :label="t('agentTools.transfer')"
-          @update:model-value="update('pbx.transfer', { enabled: $event })"
-        />
-        <p class="text-muted mt-1 ml-14">
-          {{ t("agentTools.transferHelp") }}
-        </p>
-      </div>
-      <div v-if="transfer.enabled" class="ml-14 flex flex-col gap-6">
-        <div class="border-divider bg-elevation-1 rounded-lg border p-4">
-          <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <span class="text-primary-neutral font-medium">{{
-              t("destinations.permitted")
-            }}</span>
-            <NeButton
-              kind="secondary"
-              size="sm"
-              :disabled="!extensions.data.value || !queues.data.value"
-              :loading="extensions.isLoading.value || queues.isLoading.value"
-              @click="drawer = true"
-              ><template #prefix
-                ><FontAwesomeIcon
-                  icon="list-check"
-                  aria-hidden="true" /></template
-              >{{ t("destinations.manage") }}</NeButton
-            >
-          </div>
-          <dl
-            class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-2"
+  <div class="flex flex-col gap-8">
+    <div
+      v-if="transfer"
+      data-tool="transfer"
+      data-field="destinations"
+      class="flex flex-col gap-6"
+    >
+      <AppToggle
+        :model-value="transfer.enabled"
+        :label="t('agentTools.transfer')"
+        :tip="t('agentEditor.transferTip')"
+        @update:model-value="toggleTransfer"
+      />
+      <template v-if="transfer.enabled">
+        <template v-if="mode === 'create'">
+          <NeMultiselectCombobox
+            :model-value="selectedQueues"
+            :options="queueOptions"
+            :label="t('destinations.queues')"
+            :placeholder="t('agentEditor.selectQueues')"
+            :invalid-message="form.errors.value.destinations"
+            :max-options-shown="50"
+            v-bind="multiselectLabels"
+            @update:model-value="selectQueues"
+          />
+          <NeMultiselectCombobox
+            :model-value="selectedExtensions"
+            :options="extensionOptions"
+            :label="t('destinations.extensions')"
+            :placeholder="t('agentEditor.selectExtensions')"
+            :helper-text="t('agentEditor.routingLater')"
+            :max-options-shown="50"
+            v-bind="multiselectLabels"
+            @update:model-value="selectExtensions"
+          />
+        </template>
+        <div v-else>
+          <div
+            :class="[
+              'bg-elevation-1 rounded-lg border p-4',
+              form.errors.value.destinations
+                ? 'border-rose-500 dark:border-rose-300'
+                : 'border-divider',
+            ]"
           >
-            <dt class="text-muted">
-              {{ t("destinations.extensions") }}
-            </dt>
-            <dd class="flex flex-wrap items-center gap-1.5">
-              <span v-if="!extensionBadges.length">{{
-                t("destinations.none")
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <span class="text-primary-neutral font-medium">{{
+                t("destinations.permitted")
               }}</span>
-              <NeBadgeV2
-                v-for="badge in extensionBadges"
-                :key="badge"
-                kind="gray"
-                >{{ badge }}</NeBadgeV2
+              <NeButton
+                kind="secondary"
+                size="sm"
+                :disabled="!extensions.data.value || !queues.data.value"
+                :loading="extensions.isLoading.value || queues.isLoading.value"
+                @click="drawer = true"
+                ><template #prefix
+                  ><FontAwesomeIcon
+                    :icon="faListCheck"
+                    aria-hidden="true" /></template
+                >{{ t("destinations.manage") }}</NeButton
               >
-            </dd>
-            <dt class="text-muted">
-              {{ t("destinations.queues") }}
-            </dt>
-            <dd class="flex flex-wrap items-center gap-1.5">
-              <span v-if="!queueBadges.length">{{
-                t("destinations.none")
-              }}</span>
-              <NeBadgeV2
-                v-for="badge in queueBadges"
-                :key="badge"
-                kind="gray"
-                >{{ badge }}</NeBadgeV2
-              >
-            </dd>
-          </dl>
-          <NeInlineNotification
-            v-if="unavailable.length"
-            class="mt-4"
-            kind="warning"
-            :title="t('destinations.unavailable', unavailable.length)"
-            :description="t('destinations.unavailableHelp')"
-          />
-          <NeInlineNotification
-            v-if="extensions.isError.value || queues.isError.value"
-            class="mt-4"
-            kind="error"
-            :title="loadError(extensions.error.value, queues.error.value)"
-          />
+            </div>
+            <dl
+              class="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-6 gap-y-2"
+            >
+              <dt class="text-muted">{{ t("destinations.queues") }}</dt>
+              <dd class="flex flex-wrap items-center gap-1.5">
+                <span v-if="!queueBadges.length">{{
+                  t("destinations.none")
+                }}</span>
+                <NeBadgeV2
+                  v-for="badge in queueBadges"
+                  :key="badge"
+                  kind="gray"
+                  >{{ badge }}</NeBadgeV2
+                >
+              </dd>
+              <dt class="text-muted">{{ t("destinations.extensions") }}</dt>
+              <dd class="flex flex-wrap items-center gap-1.5">
+                <span v-if="!extensionBadges.length">{{
+                  t("destinations.none")
+                }}</span>
+                <NeBadgeV2
+                  v-for="badge in extensionBadges"
+                  :key="badge"
+                  kind="gray"
+                  >{{ badge }}</NeBadgeV2
+                >
+              </dd>
+            </dl>
+            <NeInlineNotification
+              v-if="unavailable.length"
+              class="mt-4"
+              kind="warning"
+              :title="t('destinations.unavailable', unavailable.length)"
+              :description="t('destinations.unavailableHelp')"
+            />
+          </div>
+          <p
+            v-if="form.errors.value.destinations"
+            class="mt-2 text-sm text-rose-700 dark:text-rose-400"
+          >
+            {{ form.errors.value.destinations }}
+          </p>
         </div>
-      </div>
-    </div>
-    <div v-if="transfer" data-tool="recent" class="flex flex-col gap-4 py-6">
-      <div>
-        <NeToggle
-          :model-value="
-            transfer.enabled && config.recent_callers_enabled === true
-          "
-          :label="t('agentTools.recent')"
-          :disabled="!transfer.enabled"
-          @update:model-value="
-            configure('pbx.transfer', { recent_callers_enabled: $event })
-          "
+        <NeInlineNotification
+          v-if="extensions.isError.value || queues.isError.value"
+          kind="error"
+          :title="loadError(extensions.error.value, queues.error.value)"
         />
-        <p class="text-muted mt-1 ml-14">
-          {{ t("agentTools.recentHelp") }}
-        </p>
-      </div>
-      <div
-        v-if="transfer.enabled && config.recent_callers_enabled === true"
-        class="ml-14 max-w-xs"
-      >
+        <TransferToPeople :form="form" :catalog="catalog" :agents="agents" />
+      </template>
+    </div>
+    <div v-if="transfer" data-tool="recent" class="flex flex-col gap-6">
+      <AppToggle
+        :model-value="recentOn"
+        :label="t('agentTools.recent')"
+        :tip="t('agentEditor.recentTip')"
+        :disabled="!transfer.enabled"
+        @update:model-value="
+          form.clearError('lookback');
+          configure('pbx.transfer', { recent_callers_enabled: $event });
+        "
+      />
+      <div v-if="recentOn" data-field="lookback" class="max-w-xs">
         <NeTextInput
           :model-value="String(config.recent_caller_lookback_days ?? '')"
           :label="t('agentTools.lookback')"
+          :placeholder="t('agentEditor.lookbackPlaceholder')"
           :helper-text="t('agentTools.lookbackHelp')"
           type="number"
           min="1"
           max="90"
-          :invalid-message="errors?.lookback"
+          :invalid-message="form.errors.value.lookback"
           @update:model-value="number('recent_caller_lookback_days', $event)"
         />
       </div>
       <div
-        v-if="transfer.enabled && config.recent_callers_enabled === true"
-        class="ml-14 flex max-w-xl flex-col gap-6"
+        v-if="recentOn && mode === 'edit'"
+        class="flex max-w-xl flex-col gap-6"
       >
         <NeRadioSelection
           v-model="scope"
@@ -298,45 +388,42 @@ function number(key: string, value: string) {
         <NeMultiselectCombobox
           v-if="restricted"
           :model-value="excludedOptions"
-          :options="extensionOptions"
+          :options="callbackOptions"
           :label="t('destinationPicker.recent_caller_denylist')"
           :placeholder="t('destinationPickerPlaceholder')"
           :max-options-shown="50"
-          :limited-options-label="t('moreOptions')"
-          :no-results-label="t('noResults')"
-          :no-options-label="t('noOptions')"
-          :user-input-label="t('userInput')"
-          :optional-label="t('optional')"
+          v-bind="multiselectLabels"
           @update:model-value="exclude"
         />
       </div>
     </div>
-    <div v-if="hangup" data-tool="hangup" class="flex flex-col gap-4 pt-6">
-      <div>
-        <NeToggle
-          :model-value="hangup.enabled"
-          :label="t('agentTools.endCall')"
-          @update:model-value="update('telephony.hangup', { enabled: $event })"
-        />
-        <p class="text-muted mt-1 ml-14">
-          {{ t("agentTools.endCallHelp") }}
-        </p>
-      </div>
-      <div v-if="hangup.enabled" class="ml-14 max-w-xs">
+    <div v-if="hangup" data-tool="hangup" class="flex flex-col gap-6">
+      <AppToggle
+        :model-value="hangup.enabled"
+        :label="t('agentTools.endCall')"
+        :tip="t('agentTools.endCallHelp')"
+        @update:model-value="
+          form.clearError('goodbye');
+          update('telephony.hangup', { enabled: $event });
+        "
+      />
+      <div v-if="hangup.enabled" data-field="goodbye" class="max-w-xs">
         <NeTextInput
           :model-value="String(hangup.config.playback_timeout_seconds ?? '')"
           :label="t('agentTools.goodbye')"
+          :placeholder="t('agentEditor.goodbyePlaceholder')"
           :helper-text="t('agentTools.goodbyeHelp')"
           type="number"
           min="1"
           max="10"
-          :invalid-message="errors?.goodbye"
+          :invalid-message="form.errors.value.goodbye"
           @update:model-value="number('playback_timeout_seconds', $event)"
         />
       </div>
     </div>
   </div>
   <DestinationsDrawer
+    v-if="mode === 'edit'"
     :is-shown="drawer"
     :selection="selection"
     :extensions="extensions.data.value || []"

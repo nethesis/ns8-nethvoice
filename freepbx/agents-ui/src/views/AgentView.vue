@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import {
   useRoute,
   useRouter,
@@ -8,16 +8,18 @@ import {
 } from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import {
-  NeTextInput,
-  NeTextArea,
+  NeBadgeV2,
   NeButton,
+  NeExpandable,
   NeInlineNotification,
   NeSkeleton,
-  NeToggle,
-  NeBadgeV2,
+  NeTextInput,
 } from "@nethesis/vue-components";
+import { faCheck, faFloppyDisk } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
+import { useAgentForm } from "../composables/useAgentForm";
+import { useSessionResume } from "../composables/useSessionResume";
 import {
   request,
   queryClient,
@@ -25,120 +27,82 @@ import {
   errorCode,
   draftRecoveryKey,
 } from "../api";
-import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import { agentStatus } from "../agentStatus";
+import { clone, mergeChanges, savedState } from "../agentForm";
+import { publishHandoff } from "../handoff";
 import PageHeader from "../components/PageHeader.vue";
 import SettingsSection from "../components/SettingsSection.vue";
-import FieldCombobox from "../components/FieldCombobox.vue";
-import ConversationSettings from "../components/ConversationSettings.vue";
+import AgentGeneralFields from "../components/AgentGeneralFields.vue";
+import AgentConversationFields from "../components/AgentConversationFields.vue";
 import AgentTools from "../components/AgentTools.vue";
+import AppToggle from "../components/AppToggle.vue";
 import TrunkDrawer from "../components/TrunkDrawer.vue";
 import StatusBadge from "../components/StatusBadge.vue";
+import UnsavedChangesModal from "../components/UnsavedChangesModal.vue";
+import SessionExpiredModal from "../components/SessionExpiredModal.vue";
+import ConflictModal from "../components/ConflictModal.vue";
 import type {
   Agent,
   Catalog,
+  CleverAiConfiguration,
   Draft,
   Trunk,
-  CleverAiConfiguration,
 } from "../types";
 const { t } = useI18n();
 const loadError = useLoadError();
 const route = useRoute(),
   router = useRouter(),
-  task = useTask(),
   ui = useUi();
 const id = computed(() => String(route.params.id || ""));
+const agent = useQuery({
+  queryKey: ["agent", id],
+  enabled: computed(() => !!id.value),
+  queryFn: () =>
+    request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value)),
+  refetchOnWindowFocus: false,
+});
+const catalog = useQuery({
+  queryKey: ["catalog"],
+  queryFn: () => request<Catalog>("GET", "/catalog"),
+});
+const trunks = useQuery({
+  queryKey: ["trunks"],
+  queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
+});
+const agents = useQuery({
+  queryKey: ["agents"],
+  queryFn: () => request<{ items: Agent[] }>("GET", "/profiles"),
+});
+const form = useAgentForm(computed(() => catalog.data.value));
 const record = ref<Agent>();
-const agentId = computed(() => id.value || record.value?.agent_id || "");
-const creating = computed(() => !agentId.value);
-const name = ref("");
-const agentType = ref("basic_voice");
-const external = computed(() => agentType.value === "cleverai");
-const internal = computed(() => agentType.value === "consultation");
-const externalConfig = ref<CleverAiConfiguration>({
-  execution: "cleverai",
-  provider_binding_id: null,
-  fallback_destination_id: "hangup",
-});
-const configuration = computed(() =>
-  external.value ? externalConfig.value : draft.value,
-);
-const draft = ref<Draft>({
-  contract_version: 8,
-  provider_binding_id: null,
-  conversation: {
-    language: "en",
-    voice: "",
-    greeting: "",
-    instructions: "",
-    model: null,
-    options: null,
-  },
-  tool_bindings: [],
-  fallback_destination_id: null,
-  max_call_duration_seconds: 600,
-  debug: { transcription_enabled: false, retention_hours: 24 },
-});
-const baseline = ref("");
-watch(
-  agentType,
-  (value) => {
-    if (
-      creating.value &&
-      catalog.data.value &&
-      (value === "consultation"
-        ? catalog.data.value.consultation_defaults
-        : catalog.data.value.draft_defaults)
-    ) {
-      draft.value = JSON.parse(
-        JSON.stringify(
-          value === "consultation"
-            ? catalog.data.value.consultation_defaults
-            : catalog.data.value.draft_defaults,
-        ),
-      );
-      draft.value.conversation.language = catalog.data.value.default_language;
-    }
-  },
-  { flush: "sync" },
-);
-function transferMode(mode: string) {
-  if ((draft.value.consultation?.mode || "direct") === mode) return;
-  draft.value.contract_version = 9;
-  draft.value.role = "public";
-  draft.value.chat_model = null;
-  draft.value.consultation = {
-    mode: mode === "attended" ? "attended" : "direct",
-    phone: mode === "attended",
-    chat: false,
-    assistant_id: null,
-  };
-  for (const binding of draft.value.tool_bindings)
-    if (binding.tool_id === "pbx.transfer") binding.tool_version = 3;
+const external = form.isExternal;
+const internal = computed(() => form.agentType.value === "consultation");
+const sipLab = computed(() => catalog.data.value?.sip_lab_enabled === true);
+const root = ref<HTMLElement>();
+const troubleshooting = ref(false);
+// An error that is not about a field, shown above the form.
+const failure = ref<{ title: string; description: string }>();
+
+function accept(value: Agent) {
+  record.value = value;
+  form.load(value);
+  queryClient.setQueryData(["agent", value.agent_id], value);
 }
-const snapshot = () =>
-  JSON.stringify({ name: name.value, draft: configuration.value });
-if (creating.value) baseline.value = snapshot();
-const dirty = computed(() => !!baseline.value && snapshot() !== baseline.value);
-const conflict = ref<Agent>();
-const createUncertain = ref(false);
-let creatingRequest = false;
-function rememberDraft(event: Event) {
-  const rejected = (event as CustomEvent<{ createRejected: boolean }>).detail
-    ?.createRejected;
-  if (dirty.value)
+
+// Recovery of unsaved changes when the page is reloaded while the session is
+// expired.
+function rememberDraft() {
+  if (form.dirty.value)
     sessionStorage.setItem(
       draftRecoveryKey,
       JSON.stringify({
         user: auth.user,
         path: route.path,
         revision: record.value?.revision ?? 0,
-        type: agentType.value,
-        name: name.value,
-        draft: configuration.value,
-        createUncertain:
-          createUncertain.value || (creatingRequest && !rejected),
+        type: form.agentType.value,
+        name: form.name.value,
+        draft: form.configuration.value,
       }),
     );
 }
@@ -158,20 +122,18 @@ function recoverDraft() {
   }
   if (saved.path !== route.path) return;
   sessionStorage.removeItem(draftRecoveryKey);
-  createUncertain.value = saved.createUncertain === true;
-  if (record.value && record.value.revision !== saved.revision)
-    conflict.value = record.value;
-  agentType.value = saved.type;
-  name.value = saved.name;
-  if (external.value) externalConfig.value = saved.draft;
-  else draft.value = saved.draft;
+  form.name.value = saved.name;
+  if (form.isExternal.value)
+    form.external.value = saved.draft as CleverAiConfiguration;
+  else form.draft.value = saved.draft as Draft;
 }
 function warnUnload(event: BeforeUnloadEvent) {
-  if (dirty.value) {
+  if (form.dirty.value) {
     event.preventDefault();
     event.returnValue = "";
   }
 }
+const session = useSessionResume(() => form.dirty.value || !!saving.value);
 onMounted(() => {
   window.addEventListener("agents-auth-expired", rememberDraft);
   window.addEventListener("beforeunload", warnUnload);
@@ -180,117 +142,32 @@ onUnmounted(() => {
   window.removeEventListener("agents-auth-expired", rememberDraft);
   window.removeEventListener("beforeunload", warnUnload);
 });
-const errors = ref<Record<string, string>>({});
-const agent = useQuery({
-  queryKey: ["agent", id],
-  enabled: computed(() => !!id.value),
-  queryFn: () =>
-    request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value)),
-  refetchOnWindowFocus: false,
-});
-const catalog = useQuery({
-  queryKey: ["catalog"],
-  queryFn: () => request<Catalog>("GET", "/catalog"),
-});
-const trunks = useQuery({
-  queryKey: ["trunks"],
-  queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
-});
 watch(
-  () => catalog.data.value,
+  () => auth.authorized,
   (value) => {
-    if (value && creating.value) {
-      const pristine = snapshot() === baseline.value;
-      if (pristine) draft.value.conversation.language = value.default_language;
-      if (!draft.value.tool_bindings.length && value.draft_defaults) {
-        const defaults = JSON.parse(
-          JSON.stringify(
-            internal.value ? value.consultation_defaults : value.draft_defaults,
-          ),
-        ) as Draft;
-        draft.value = defaults;
-        draft.value.conversation.language = value.default_language;
-      }
-      if (pristine) baseline.value = snapshot();
-      recoverDraft();
+    if (value) {
+      const raw = sessionStorage.getItem(draftRecoveryKey);
+      if (raw?.includes('"path":"' + route.path + '"'))
+        sessionStorage.removeItem(draftRecoveryKey);
     }
   },
-  { immediate: true },
 );
-const languageOptions = computed(() => {
-  const options = catalog.data.value?.languages || [];
-  const selected = draft.value.conversation.language;
-  return options.some((v) => v.id === selected)
-    ? options
-    : [...options, { id: selected, label: selected }];
-});
-const providers: Record<string, string> = {
-  openai: "OpenAI",
-  grok: "Grok",
-  cleverai: "CleverAI",
-};
-const compatibleTrunks = computed(() =>
-  (trunks.data.value?.items || []).filter(
-    (v) => (v.provider === "cleverai") === external.value,
-  ),
-);
-const trunkOptions = computed(() =>
-  compatibleTrunks.value.map((v) => ({
-    id: v.binding_id,
-    label: v.name,
-    description: providers[v.provider] || v.provider,
-  })),
-);
-const selectedTrunk = computed(() =>
-  trunks.data.value?.items.find(
-    (item) => item.binding_id === draft.value.provider_binding_id,
-  ),
-);
-function changeBinding(value: string) {
-  errors.value.trunk = "";
-  const binding = value || null;
-  if (external.value) {
-    externalConfig.value.provider_binding_id = binding;
-    return;
-  }
-  if (binding === draft.value.provider_binding_id) return;
-  draft.value.provider_binding_id = binding;
-  draft.value.conversation.model = null;
-  draft.value.conversation.options = null;
-  draft.value.conversation.voice = "";
-}
-const trunkDrawer = ref(false);
-function trunkCreated(trunk: Trunk) {
-  if ((trunk.provider === "cleverai") === external.value)
-    changeBinding(trunk.binding_id);
-}
-function accept(value: Agent) {
-  record.value = value;
-  name.value = value.name;
-  agentType.value = value.agent_type || "basic_voice";
-  if ("execution" in value.draft)
-    externalConfig.value = JSON.parse(JSON.stringify(value.draft));
-  else draft.value = JSON.parse(JSON.stringify(value.draft));
-  baseline.value = snapshot();
-  queryClient.setQueryData(["agent", value.agent_id], value);
-}
 watch(
   () => agent.data.value,
   (value) => {
     if (
       value &&
       (!record.value ||
-        (!dirty.value && value.revision > record.value.revision))
+        (!form.dirty.value && value.revision > record.value.revision))
     ) {
       accept(value);
       recoverDraft();
+      showHandoff();
     }
   },
   { immediate: true },
 );
-const confirmNavigation = () => (dirty.value ? ui.confirmLeave() : true);
-onBeforeRouteLeave(confirmNavigation);
-onBeforeRouteUpdate((to, from) => to.path === from.path || confirmNavigation());
+
 const status = computed(() =>
   record.value ? agentStatus(record.value) : "draft",
 );
@@ -299,8 +176,7 @@ const draftVersion = computed(
   () => record.value?.draft_version ?? published.value + 1,
 );
 const subtitle = computed(() => {
-  if (external.value) return t("cleverAiAgentHelp");
-  if (!record.value) return t("agentForm.createHelp");
+  if (external.value) return t("agentEditor.cleverAiHelp");
   if (status.value === "draft")
     return t("agentForm.notPublished", { draft: draftVersion.value });
   if (status.value === "modified")
@@ -308,222 +184,262 @@ const subtitle = computed(() => {
       published: published.value,
       draft: draftVersion.value,
     });
+  if (!published.value)
+    return t("agentForm.notPublished", { draft: draftVersion.value });
   return t("agentForm.published", { published: published.value });
 });
 const footer = computed(() => {
+  if (form.dirty.value) return t("unsavedHint");
+  if (external.value || !record.value) return "";
   const parts: string[] = [];
-  if (!record.value) parts.push(t("agentForm.notSaved"));
-  else if (!external.value) {
-    if (status.value !== "published" && status.value !== "pending")
-      parts.push(t("agentForm.draftVersion", { draft: draftVersion.value }));
-    parts.push(
-      published.value
-        ? t("agentForm.publishedVersion", { published: published.value })
-        : t("agentForm.unpublished"),
-    );
-  }
-  if (record.value && dirty.value) parts.push(t("unsavedHint"));
+  if (status.value !== "published" && status.value !== "pending")
+    parts.push(t("agentForm.draftVersion", { draft: draftVersion.value }));
+  parts.push(
+    published.value
+      ? t("agentForm.publishedVersion", { published: published.value })
+      : t("agentForm.unpublished"),
+  );
   return parts.join(" · ");
 });
+const saving = ref<"" | "draft" | "publish">("");
 const canPublish = computed(
   () =>
     !external.value &&
-    !task.pending.value &&
-    (dirty.value ||
-      !record.value ||
-      !record.value.workflow_version ||
+    !saving.value &&
+    (form.dirty.value ||
+      !record.value?.workflow_version ||
       (record.value.draft_version != null &&
         record.value.draft_version !== record.value.workflow_version)),
 );
-watch(
-  () => draft.value.tool_bindings,
-  () => {
-    if (errors.value.lookback || errors.value.goodbye)
-      errors.value = { ...errors.value, lookback: "", goodbye: "" };
-  },
-  { deep: true },
-);
-function validate(publishing: boolean) {
-  const next: Record<string, string> = {};
-  if (!name.value.trim()) next.name = t("agentForm.enterName");
-  if (publishing && !configuration.value.provider_binding_id)
-    next.trunk = t("agentForm.selectTrunk");
-  if (!external.value) {
-    if (publishing && !draft.value.conversation.instructions.trim())
-      next.instructions = t("requiredField");
-    if (publishing && !draft.value.conversation.voice)
-      next.voice = t("requiredField");
-    if (publishing && !draft.value.conversation.model)
-      next.model = t("requiredField");
-  }
-  if (!external.value && draft.value.conversation.model === "gpt-live-1") {
-    const options = draft.value.conversation.options;
-    const tokens = Number(options?.max_output_tokens);
-    if (!Number.isInteger(tokens) || tokens < 16 || tokens > 8192)
-      next.max_output_tokens = t("wholeNumberRange", { min: 16, max: 8192 });
-    if (!String(options?.backend_instructions ?? "").trim())
-      next.backend_instructions = t("requiredField");
-  }
-  const retention = draft.value.debug.retention_hours;
-  if (
-    !external.value &&
-    draft.value.debug.transcription_enabled &&
-    !(Number.isInteger(retention) && retention >= 1 && retention <= 24)
-  )
-    next.retention = t("agentForm.retentionRange");
-  if (!external.value) {
-    const range = (value: unknown, min: number, max: number) =>
-      Number.isInteger(value) && Number(value) >= min && Number(value) <= max
-        ? ""
-        : t("agentForm.numberRange", { min, max });
-    const tool = (toolId: string) =>
-      draft.value.tool_bindings.find((b) => b.tool_id === toolId);
-    const transfer = tool("pbx.transfer"),
-      hangup = tool("telephony.hangup");
-    const checks = {
-      duration: range(draft.value.max_call_duration_seconds, 30, 3600),
-      lookback:
-        transfer?.enabled && transfer.config.recent_callers_enabled === true
-          ? range(transfer.config.recent_caller_lookback_days, 1, 90)
-          : "",
-      goodbye: hangup?.enabled
-        ? range(hangup.config.playback_timeout_seconds, 1, 10)
-        : "",
-    };
-    for (const [key, message] of Object.entries(checks))
-      if (message) next[key] = message;
-  }
-  errors.value = next;
-  return !Object.keys(next).length;
+
+const errorText = (error: unknown) => form.errorMessage(error);
+async function showFieldErrors() {
+  await form.focusFirstError(root.value);
 }
-const saving = ref<"" | "draft" | "publish">("");
-async function persist(): Promise<Agent> {
-  if (conflict.value) throw new Error("revision_conflict");
-  const wasCreating = creating.value;
-  let value: Agent;
-  creatingRequest = wasCreating;
-  try {
-    value = await request<Agent>(
-      wasCreating ? "POST" : "PUT",
-      wasCreating
-        ? "/profiles"
-        : "/profiles/" + encodeURIComponent(agentId.value),
-      {
-        profile: { name: name.value.trim(), draft: configuration.value },
-        expected_revision: record.value?.revision || 0,
-      },
-    );
-  } catch (error) {
-    if (wasCreating && errorCode(error) === "request_uncertain")
-      createUncertain.value = true;
-    if (errorCode(error) === "revision_conflict" && agentId.value)
+/** Shows a failed request where it belongs: a field, a dialog or a notice. */
+async function handleFailure(
+  error: unknown,
+  action: "draft" | "publish",
+  retry: () => unknown,
+) {
+  const code = errorCode(error);
+  // A rejected session ends the authorization, whatever the error code.
+  if (code === "authentication_required" || !auth.authorized) {
+    session.interrupted(retry);
+    return;
+  }
+  if (code === "revision_conflict") {
+    try {
       conflict.value = await request<Agent>(
         "GET",
-        "/profiles/" + encodeURIComponent(agentId.value),
+        "/profiles/" + encodeURIComponent(id.value),
       );
-    throw error;
-  } finally {
-    creatingRequest = false;
+      conflictAction = action;
+    } catch (reload) {
+      failure.value = {
+        title: t("agentEditor.cannotSave"),
+        description: errorText(reload),
+      };
+    }
+    return;
   }
+  if (form.serverError(error)) {
+    await showFieldErrors();
+    return;
+  }
+  failure.value = {
+    title: t(
+      action === "publish"
+        ? "agentEditor.cannotPublish"
+        : "agentEditor.cannotSave",
+    ),
+    description: errorText(error),
+  };
+  await nextTick();
+  root.value?.scrollIntoView({ block: "start" });
+}
+async function persist(): Promise<Agent> {
+  const sent = form.snapshot();
+  const value = await request<Agent>(
+    "PUT",
+    "/profiles/" + encodeURIComponent(id.value),
+    {
+      profile: {
+        name: form.name.value.trim(),
+        draft: form.configuration.value,
+      },
+      expected_revision: record.value?.revision || 0,
+    },
+  );
+  // Changes typed while the request was running stay on the page, unsaved.
+  const edited = form.snapshot() !== sent;
+  const name = form.name.value;
+  const configuration = clone(form.configuration.value);
   accept(value);
-  if (wasCreating) {
-    ui.keepView = "/agents/" + value.agent_id;
-    await router.replace(ui.keepView);
+  if (edited) {
+    form.name.value = name;
+    if (form.isExternal.value)
+      form.external.value = configuration as CleverAiConfiguration;
+    else form.draft.value = configuration as Draft;
   }
   return value;
 }
 async function refreshLists() {
   await queryClient.invalidateQueries({ queryKey: ["destinations"] });
   await queryClient.invalidateQueries({ queryKey: ["agents"] });
+  await queryClient.invalidateQueries({ queryKey: ["catalog"] });
 }
-async function save() {
-  if (createUncertain.value || !validate(false)) return;
-  const wasCreating = creating.value;
+/** Saves the draft. Returns true when it was saved. */
+async function save(): Promise<boolean> {
+  if (saving.value) return false;
+  failure.value = undefined;
+  if (!form.validate(false)) {
+    await showFieldErrors();
+    return false;
+  }
   saving.value = "draft";
-  await task.run(
-    async () => {
-      await persist();
-      await refreshLists();
-    },
-    {
-      title: t(
-        wasCreating
-          ? "agentCreated"
-          : external.value
-            ? "agentSaved"
-            : "draftSaved",
-      ),
-      description: t(
-        wasCreating
-          ? "agentCreatedHelp"
-          : external.value
-            ? "agentSavedHelp"
-            : "draftSavedHelp",
-        { name: name.value.trim() },
-      ),
-    },
-  );
-  saving.value = "";
+  try {
+    await persist();
+    await refreshLists();
+    ui.notify(
+      t(external.value ? "agentSaved" : "draftSaved"),
+      t(external.value ? "agentSavedHelp" : "agentEditor.draftSavedHelp", {
+        name: form.name.value.trim(),
+      }),
+    );
+    return true;
+  } catch (error) {
+    await handleFailure(error, "draft", save);
+    return false;
+  } finally {
+    saving.value = "";
+  }
 }
 async function publish() {
-  if (createUncertain.value || !canPublish.value || !validate(true)) return;
+  if (saving.value || !canPublish.value) return;
+  failure.value = undefined;
+  if (!form.validate(true)) {
+    await showFieldErrors();
+    return;
+  }
   saving.value = "publish";
-  await task.run(
-    async () => {
-      let value = record.value;
-      if (dirty.value || !value) value = await persist();
-      try {
-        value = await request<Agent>(
-          "POST",
-          "/profiles/" + encodeURIComponent(value.agent_id) + "/publish",
-          { expected_revision: value.revision },
-        );
-      } catch (failure) {
-        if (errorCode(failure) === "revision_conflict")
-          conflict.value = await request<Agent>(
-            "GET",
-            "/profiles/" + value.agent_id,
-          );
-        throw failure;
-      }
-      accept(value);
-      await refreshLists();
-    },
-    {
-      title: t("agentPublished"),
-      description: t("agentPublishedHelp", { name: name.value.trim() }),
-    },
-  );
-  saving.value = "";
-}
-async function reload() {
-  await task.run(async () => {
-    conflict.value = undefined;
-    accept(
-      await request<Agent>(
-        "GET",
-        "/profiles/" + encodeURIComponent(agentId.value),
-      ),
+  try {
+    let value = record.value!;
+    if (form.dirty.value) value = await persist();
+    value = await request<Agent>(
+      "POST",
+      "/profiles/" + encodeURIComponent(value.agent_id) + "/publish",
+      { expected_revision: value.revision },
     );
-  }, false);
-}
-async function synchronize() {
-  await task.run(async () => {
-    await request("POST", "/synchronize", { retry: true });
-    accept(
-      await request<Agent>(
-        "GET",
-        "/profiles/" + encodeURIComponent(agentId.value),
-      ),
+    accept(value);
+    await refreshLists();
+    ui.notify(
+      t("agentPublished"),
+      t("agentPublishedHelp", { name: form.name.value.trim() }),
     );
+    await router.push("/agents");
+  } catch (error) {
+    await handleFailure(error, "publish", publish);
+  } finally {
+    saving.value = "";
+  }
+}
+
+// Agent changed elsewhere.
+const conflict = ref<Agent>();
+let conflictAction: "draft" | "publish" = "draft";
+async function keepMine() {
+  const theirs = conflict.value;
+  if (!theirs || !record.value) return;
+  // Apply only the values changed on this page to the version saved
+  // elsewhere, so that its other changes are kept.
+  const merged = mergeChanges(
+    savedState(record.value),
+    { name: form.name.value, draft: clone(form.configuration.value) },
+    savedState(theirs),
+  ) as { name: string; draft: Draft | CleverAiConfiguration };
+  conflict.value = undefined;
+  accept(theirs);
+  form.name.value = merged.name;
+  if (form.isExternal.value)
+    form.external.value = merged.draft as CleverAiConfiguration;
+  else form.draft.value = merged.draft as Draft;
+  if (conflictAction === "publish") await publish();
+  else await save();
+}
+function discardMine() {
+  const theirs = conflict.value;
+  conflict.value = undefined;
+  if (!theirs) return;
+  accept(theirs);
+  form.errors.value = {};
+  ui.notify(t("conflictDialog.loaded"), t("conflictDialog.loadedHelp"));
+}
+
+// Leaving with unsaved changes.
+const leaving = ref(false);
+let leaveResolve: ((value: boolean) => void) | undefined;
+function confirmLeave(): Promise<boolean> | boolean {
+  if (!form.dirty.value) return true;
+  leaving.value = true;
+  return new Promise<boolean>((resolve) => {
+    leaveResolve = resolve;
   });
 }
+function resolveLeave(value: boolean) {
+  leaving.value = false;
+  leaveResolve?.(value);
+  leaveResolve = undefined;
+}
+async function saveAndLeave() {
+  leaving.value = false;
+  const saved = await save();
+  resolveLeave(saved);
+}
+onBeforeRouteLeave(() => confirmLeave());
+onBeforeRouteUpdate((to, from) => to.path === from.path || confirmLeave());
+
+function showHandoff() {
+  const handoff = publishHandoff.value;
+  if (!handoff || handoff.agentId !== record.value?.agent_id) return;
+  publishHandoff.value = null;
+  if (form.serverError(handoff.error)) void showFieldErrors();
+  else
+    failure.value = {
+      title: t("agentEditor.cannotPublish"),
+      description:
+        errorText(handoff.error) + " " + t("agentEditor.savedAsDraft"),
+    };
+}
+
+async function synchronize() {
+  try {
+    await request("POST", "/synchronize", { retry: true });
+    accept(
+      await request<Agent>("GET", "/profiles/" + encodeURIComponent(id.value)),
+    );
+  } catch (error) {
+    failure.value = {
+      title: t("agentEditor.cannotSynchronize"),
+      description: errorText(error),
+    };
+  }
+}
+const trunkDrawer = ref(false);
+function trunkCreated(trunk: Trunk) {
+  if ((trunk.provider === "cleverai") === external.value) {
+    if (external.value)
+      form.external.value.provider_binding_id = trunk.binding_id;
+    else form.draft.value.provider_binding_id = trunk.binding_id;
+  }
+}
+const debug = computed(() => form.draft.value.debug);
 </script>
 <template>
-  <div class="pb-24">
+  <div ref="root" class="pb-24">
     <PageHeader
-      :title="creating ? t('newAgent') : name"
-      :description="subtitle"
+      :title="record ? record.name : ''"
+      :description="record ? subtitle : undefined"
       back="/agents"
     >
       <template v-if="record" #badges
@@ -532,20 +448,8 @@ async function synchronize() {
         }}</NeBadgeV2
         ><StatusBadge :status="status"
       /></template>
-      <template
-        v-if="trunks.isSuccess.value && !compatibleTrunks.length"
-        #notice
-      >
-        <NeInlineNotification
-          kind="info"
-          :title="t('agentForm.noTrunks')"
-          :description="t('agentForm.noTrunksHelp')"
-          :primary-button-label="t('newTrunk')"
-          @primary-click="trunkDrawer = true"
-        />
-      </template>
     </PageHeader>
-    <NeSkeleton v-if="!creating && agent.isLoading.value" :lines="10" />
+    <NeSkeleton v-if="agent.isLoading.value" :lines="10" />
     <NeInlineNotification
       v-if="
         agent.isError.value || catalog.isError.value || trunks.isError.value
@@ -557,100 +461,27 @@ async function synchronize() {
       class="mb-6"
     />
     <form
-      v-if="creating || record"
+      v-if="record"
       class="flex max-w-2xl flex-col gap-10"
       novalidate
       @submit.prevent="save"
     >
-      <section v-if="conflict" class="grid gap-3">
-        <h3>{{ t("compareRevisions") }}</h3>
-        <details>
-          <summary>{{ t("savedRevision") }} {{ conflict.revision }}</summary>
-          <pre class="overflow-auto whitespace-pre-wrap">{{
-            JSON.stringify(
-              { name: conflict.name, draft: conflict.draft },
-              null,
-              2,
-            )
-          }}</pre>
-        </details>
-        <details>
-          <summary>{{ t("yourEdits") }}</summary>
-          <pre class="overflow-auto whitespace-pre-wrap">{{
-            JSON.stringify({ name, draft: configuration }, null, 2)
-          }}</pre>
-        </details>
-        <NeButton
-          kind="secondary"
-          @click="
-            record = conflict;
-            conflict = undefined;
-          "
-          >{{ t("keepEdits") }}</NeButton
-        >
-      </section>
-      <section
-        v-if="!external && !record?.published"
-        class="grid gap-1"
-        :aria-label="t('publishReadiness')"
-      >
-        <h3>{{ t("publishReadiness") }}</h3>
-        <ul class="list-inside list-disc">
-          <li
-            v-for="item in [
-              [t('trunk'), !!draft.provider_binding_id],
-              [t('voiceModel'), !!draft.conversation.model],
-              [t('voiceName'), !!draft.conversation.voice],
-              [t('instructions'), !!draft.conversation.instructions.trim()],
-            ]"
-            :key="String(item[0])"
-          >
-            {{ item[0] }} · {{ t(item[1] ? "status.ready" : "requiredField") }}
-          </li>
-        </ul>
-      </section>
       <NeInlineNotification
-        v-if="task.error.value || createUncertain"
+        v-if="failure"
         kind="error"
-        :title="task.error.value || t('error.request_uncertain')"
-        :description="
-          creating && createUncertain
-            ? t('agentForm.createUncertainHelp')
-            : undefined
-        "
-        :primary-button-label="
-          creating && createUncertain ? t('agentForm.openAgents') : undefined
-        "
-        @primary-click="router.push('/agents')"
-        ><template v-if="!creating" #description
-          ><NeButton
-            kind="tertiary"
-            size="sm"
-            class="-ml-2.5"
-            @click="reload"
-            >{{ t("reloadSaved") }}</NeButton
-          ></template
-        ></NeInlineNotification
-      >
+        :title="failure.title"
+        :description="failure.description"
+      />
       <NeInlineNotification
         v-if="
-          record &&
           record.sync_status !== 'synced' &&
           (record.workflow_version || external)
         "
         :kind="record.sync_status === 'error' ? 'error' : 'warning'"
         :title="t('sync.' + record.sync_status)"
-        ><template #description
-          ><NeButton
-            kind="tertiary"
-            size="sm"
-            class="-ml-2.5"
-            :loading="task.pending.value"
-            @click="synchronize"
-            >{{ t("retrySync") }}</NeButton
-          ></template
-        ></NeInlineNotification
-      >
+        :primary-button-label="t('retrySync')"
+        @primary-click="synchronize"
+      />
       <NeInlineNotification
         v-if="status === 'modified'"
         kind="info"
@@ -663,219 +494,109 @@ async function synchronize() {
         :title="t('generalSettings')"
         :description="t('generalSettingsHelp')"
       >
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div class="grid grid-cols-1 gap-6 lg:col-span-2 lg:grid-cols-2">
-            <FieldCombobox
-              v-if="creating"
-              :model-value="agentType"
-              :label="t('agentType')"
-              :options="[
-                { id: 'basic_voice', label: t('agentTypes.basic_voice') },
-                { id: 'consultation', label: t('internalAssistant') },
-                ...(catalog.data.value?.sip_lab_enabled
-                  ? [{ id: 'cleverai', label: t('agentTypes.cleverai') }]
-                  : []),
-              ]"
-              @update:model-value="agentType = $event || agentType"
-            />
-            <NeTextInput
-              v-else
-              :label="t('agentType')"
-              :model-value="t('agentTypes.' + agentType)"
-              readonly
-              :helper-text="t('agentForm.typeLocked')"
-            />
-          </div>
-          <NeTextInput
-            v-model="name"
-            :label="t('name')"
-            :placeholder="t('agentForm.namePlaceholder')"
-            maxlength="100"
-            :invalid-message="errors.name"
-            @update:model-value="errors.name = ''"
-          />
-          <FieldCombobox
-            :model-value="configuration.provider_binding_id || ''"
-            :label="t('trunk')"
-            :options="trunkOptions"
-            :placeholder="t('agentForm.trunkPlaceholder')"
-            :disabled="!compatibleTrunks.length"
-            :helper-text="t('agentForm.trunkHelp')"
-            :invalid-message="errors.trunk"
-            @update:model-value="changeBinding"
-          />
-          <template v-if="!external">
-            <FieldCombobox
-              v-model="draft.conversation.language"
-              :label="t('defaultLanguage')"
-              :options="languageOptions"
-              :helper-text="t('agentForm.languageHelp')"
-            />
-            <NeTextInput
-              :model-value="String(draft.max_call_duration_seconds)"
-              :label="t('maxDuration')"
-              :helper-text="t('agentForm.durationHelp')"
-              type="number"
-              min="30"
-              max="3600"
-              :invalid-message="errors.duration"
-              @update:model-value="
-                draft.max_call_duration_seconds = Number($event);
-                errors.duration = '';
-              "
-            />
-          </template>
-        </div>
+        <AgentGeneralFields
+          :form="form"
+          mode="edit"
+          :trunks="trunks.data.value?.items"
+          :catalog="catalog.data.value"
+          @create-trunk="trunkDrawer = true"
+        />
       </SettingsSection>
-      <template v-if="!external">
-        <SettingsSection
-          divider
-          :title="t('conversationSettings')"
-          :description="t('conversationSettingsHelp')"
+      <SettingsSection
+        v-if="!external"
+        divider
+        :title="t('conversationSettings')"
+        :description="
+          t(
+            internal
+              ? 'agentEditor.consultationConversationHelp'
+              : 'conversationSettingsHelp',
+          )
+        "
+      >
+        <AgentConversationFields
+          :form="form"
+          :trunks="trunks.data.value?.items"
+          :sip-lab="sipLab"
+        />
+      </SettingsSection>
+      <SettingsSection
+        v-if="form.agentType.value === 'basic_voice'"
+        divider
+        :title="t('tools')"
+        :description="t('agentEditor.toolsHelp')"
+      >
+        <AgentTools
+          :form="form"
+          mode="edit"
+          :catalog="catalog.data.value"
+          :agents="agents.data.value?.items"
+        />
+      </SettingsSection>
+      <section
+        v-if="!external"
+        class="border-divider border-t pt-10"
+        data-section="troubleshooting"
+      >
+        <NeExpandable
+          :label="t('agentEditor.troubleshooting')"
+          :is-expanded="troubleshooting || !!form.errors.value.retention"
+          @set-expanded="troubleshooting = $event"
         >
-          <div class="grid grid-cols-1 gap-6">
-            <ConversationSettings
-              v-model="draft.conversation"
-              :binding="selectedTrunk"
-              :errors="errors"
+          <div class="flex flex-col gap-6 pt-2">
+            <p class="text-muted">{{ t("agentEditor.troubleshootingHelp") }}</p>
+            <AppToggle
+              v-model="debug.transcription_enabled"
+              :label="t('debugTranscription')"
+              :tip="t('agentEditor.transcriptionTip')"
             />
-            <NeTextArea
-              v-model="draft.conversation.greeting"
-              :label="t('greeting')"
-              :helper-text="t('agentForm.greetingHelp')"
-              :rows="3"
-              maxlength="4096"
-            />
-            <NeTextArea
-              v-model="draft.conversation.instructions"
-              :invalid-message="errors.instructions"
-              :label="t('instructions')"
-              :helper-text="t('agentForm.instructionsHelp')"
-              :rows="8"
-              maxlength="32768"
-            />
-          </div>
-        </SettingsSection>
-        <SettingsSection
-          v-if="!internal"
-          divider
-          :title="t('consultationSettings')"
-          :description="t('consultationHelp')"
-        >
-          <div class="flex flex-col gap-6">
-            <FieldCombobox
-              :model-value="draft.consultation?.mode || 'direct'"
-              :label="t('peopleTransferMode')"
-              :options="[
-                { id: 'direct', label: t('directTransfer') },
-                { id: 'attended', label: t('attendedTransfer') },
-              ]"
-              @update:model-value="transferMode"
-            />
-            <template v-if="draft.consultation?.mode === 'attended'">
-              <NeToggle
-                v-model="draft.consultation.phone"
-                :label="t('allowPhoneConsultation')"
-              />
-              <NeToggle
-                v-model="draft.consultation.chat"
-                :label="t('allowChatConsultation')"
-              />
-              <FieldCombobox
-                :model-value="draft.consultation.assistant_id || ''"
-                :label="t('internalAssistant')"
-                :options="[
-                  { id: '', label: t('choose') },
-                  ...(catalog.data.value?.consultation_assistants || []).map(
-                    (a) => ({ id: a.agent_id, label: a.name }),
-                  ),
-                ]"
-                @update:model-value="
-                  draft.consultation.assistant_id = $event || null
-                "
-              />
-            </template>
-          </div>
-        </SettingsSection>
-        <SettingsSection
-          v-else
-          divider
-          :title="t('internalAssistant')"
-          :description="t('internalAssistantHelp')"
-        >
-          <NeTextInput
-            :model-value="draft.chat_model || ''"
-            :label="t('consultationChatModel')"
-            maxlength="128"
-            @update:model-value="
-              draft.chat_model = String($event).trim() || null
-            "
-          />
-          <p class="text-muted">{{ t("consultationChatModelHelp") }}</p>
-        </SettingsSection>
-        <SettingsSection
-          v-if="!internal"
-          divider
-          :title="t('tools')"
-          :description="t('toolGrantsHelp')"
-        >
-          <AgentTools v-model="draft.tool_bindings" :errors="errors" />
-        </SettingsSection>
-        <SettingsSection
-          divider
-          :title="t('debugSettings')"
-          :description="t('agentForm.debugHelp')"
-        >
-          <div class="flex flex-col gap-4">
-            <div>
-              <NeToggle
-                v-model="draft.debug.transcription_enabled"
-                :label="t('debugTranscription')"
-              />
-              <p class="text-muted mt-1 ml-14">
-                {{ t("debugTranscriptionHelp") }}
-              </p>
-            </div>
             <div
-              v-if="draft.debug.transcription_enabled"
-              class="ml-14 max-w-xs"
+              v-if="debug.transcription_enabled"
+              data-field="retention"
+              class="max-w-xs"
             >
               <NeTextInput
-                :model-value="String(draft.debug.retention_hours)"
+                :model-value="String(debug.retention_hours)"
                 :label="t('transcriptRetention')"
+                :placeholder="t('agentEditor.retentionPlaceholder')"
                 :helper-text="t('agentForm.retentionHelp')"
                 type="number"
                 min="1"
                 max="24"
-                :invalid-message="errors.retention"
+                :invalid-message="form.errors.value.retention"
                 @update:model-value="
-                  draft.debug.retention_hours = Number($event);
-                  errors.retention = '';
+                  debug.retention_hours = Number($event);
+                  form.clearError('retention');
                 "
               />
             </div>
           </div>
-        </SettingsSection>
-      </template>
+        </NeExpandable>
+      </section>
       <div
         class="bg-elevation-0 border-divider fixed right-0 bottom-0 left-0 z-10 border-t px-4 py-4 sm:px-8 lg:left-75"
       >
         <div
           class="flex max-w-2xl flex-wrap items-center justify-between gap-4"
         >
-          <span class="text-muted">{{ footer }}</span>
+          <span class="text-muted" data-testid="agent-footer">{{
+            footer
+          }}</span>
           <div class="flex flex-wrap gap-3">
-            <NeButton kind="tertiary" @click="router.push('/agents')">{{
-              t("cancel")
-            }}</NeButton>
+            <NeButton
+              kind="tertiary"
+              :disabled="!!saving"
+              @click="router.push('/agents')"
+              >{{ t("cancel") }}</NeButton
+            >
             <NeButton
               type="submit"
               :kind="external ? 'primary' : 'secondary'"
               :loading="saving === 'draft'"
-              :disabled="!!saving || createUncertain || (!dirty && !creating)"
+              :disabled="!!saving || !form.dirty.value"
               ><template #prefix
                 ><FontAwesomeIcon
-                  :icon="external ? 'check' : 'floppy-disk'"
+                  :icon="external ? faCheck : faFloppyDisk"
                   aria-hidden="true" /></template
               >{{ t(external ? "saveExternal" : "saveDraft") }}</NeButton
             >
@@ -883,10 +604,12 @@ async function synchronize() {
               v-if="!external"
               kind="primary"
               :loading="saving === 'publish'"
-              :disabled="!!saving || createUncertain || !canPublish"
+              :disabled="!!saving || !canPublish"
               @click="publish"
               ><template #prefix
-                ><FontAwesomeIcon icon="check" aria-hidden="true" /></template
+                ><FontAwesomeIcon
+                  :icon="faCheck"
+                  aria-hidden="true" /></template
               >{{ t("publish") }}</NeButton
             >
           </div>
@@ -897,6 +620,28 @@ async function synchronize() {
       :is-shown="trunkDrawer"
       @close="trunkDrawer = false"
       @saved="trunkCreated"
+    />
+    <UnsavedChangesModal
+      :visible="leaving"
+      :description="t('unsavedDialog.pageHelp')"
+      :saving="saving === 'draft'"
+      :no-draft="external"
+      @cancel="resolveLeave(false)"
+      @discard="resolveLeave(true)"
+      @save="saveAndLeave"
+    />
+    <SessionExpiredModal
+      :visible="session.dialog.value"
+      @cancel="session.cancel"
+      @sign-in="session.signInAgain"
+    />
+    <ConflictModal
+      :visible="!!conflict"
+      :name="record?.name || ''"
+      :saving="!!saving"
+      @cancel="conflict = undefined"
+      @discard="discardMine"
+      @keep="keepMine"
     />
   </div>
 </template>

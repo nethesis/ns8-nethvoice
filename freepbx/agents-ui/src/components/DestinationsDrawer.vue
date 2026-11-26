@@ -24,14 +24,14 @@ const emit = defineEmits<{ close: []; save: [value: DestinationSelection] }>();
 const { t } = useI18n();
 const MAX_EXTENSIONS = 100;
 const draft = ref<DestinationSelection>({ extensions: {}, queues: {} });
-const tab = ref<"extensions" | "queues">("extensions");
+const tab = ref<"extensions" | "queues">("queues");
 const search = ref("");
 watch(
   () => props.isShown,
   (shown) => {
     if (!shown) return;
     draft.value = JSON.parse(JSON.stringify(props.selection));
-    tab.value = "extensions";
+    tab.value = "queues";
     search.value = "";
   },
   { immediate: true },
@@ -52,15 +52,15 @@ const visible = computed(() => {
 });
 const tabs = computed(() => [
   {
-    name: "extensions",
-    label: t("destinations.extensionsTab", {
-      count: Object.keys(draft.value.extensions).length,
-    }),
-  },
-  {
     name: "queues",
     label: t("destinations.queuesTab", {
       count: Object.keys(draft.value.queues).length,
+    }),
+  },
+  {
+    name: "extensions",
+    label: t("destinations.extensionsTab", {
+      count: Object.keys(draft.value.extensions).length,
     }),
   },
 ]);

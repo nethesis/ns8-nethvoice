@@ -833,6 +833,219 @@ const en = {
       route: "Use an agent in a VisualPlan route",
     },
   },
+  // Create agent drawer
+  createWizard: {
+    step: "Step",
+    previous: "Previous",
+    next: "Next",
+    savedAsDraft: "Agent saved as draft",
+    savedAsDraftHelp: "Agent {name} has been saved as a draft",
+    publishRejectedHelp:
+      "Agent {name} has been saved as a draft. Fix the error, then publish it.",
+    checkAgents: "Go to the Agents list",
+    cannotCreate: "Cannot create agent",
+  },
+  // Agent fields, shared by the Create agent drawer and the agent page
+  agentEditor: {
+    enabled: "Enabled",
+    disabled: "Disabled",
+    moreInfo: "More information about {name}",
+    typeHelp: {
+      basic_voice:
+        "Answers the call, talks with the caller and can transfer the call.",
+      consultation:
+        "Asks a colleague whether to take the call before another agent transfers it.",
+      cleverai:
+        "Agent configured in CleverAI. NethVoice sends the calls to it.",
+    },
+    typeLocked: "The type can’t be changed after the agent is created.",
+    noTrunksHelp:
+      "Create a provider trunk in @:{'trunks'} to connect the agent to OpenAI, Grok or CleverAI. You can save the agent as a draft and select the trunk later.",
+    noTrunksExternalHelp:
+      "Create a CleverAI trunk in @:{'trunks'} to connect the agent to CleverAI.",
+    trunkHelp: "Connection to the AI provider.",
+    durationPlaceholder: "e.g. 600",
+    greetingHelp:
+      "What the agent says when it answers. Leave empty to let the agent greet the caller in its own words.",
+    chatModel: "Chat model ID",
+    chatModelPlaceholder: "e.g. gpt-6-luna",
+    chatModelHelp:
+      "Text model of this provider that answers chat consultations. Leave empty to use the text model of GPT Live 1. Voice-only models need a separate text model for chat.",
+    selectTrunkTitle: "Select a provider trunk",
+    selectTrunkHelp:
+      "Voice models and voices depend on the provider trunk. Select it in @:{'generalSettings'}.",
+    liveExperimental:
+      "Experimental: calls use the WebSocket connection of the agent service.",
+    sipModelUnavailable:
+      "The saved model needs the SIP media lab, which is off. Select GPT Live 1 to publish the agent.",
+    advancedSettings: "Advanced settings",
+    modelHints: {
+      gpt_realtime_2_1: "Best quality, highest cost",
+      gpt_realtime_2_1_mini: "Good quality, lower cost",
+      gpt_realtime_2: "Previous version",
+      gpt_realtime_1_5: "Older version",
+      gpt_live_1: "Fastest answers, text model for complex requests",
+      grok: "Grok chooses the model",
+    },
+    live: {
+      backend_model: "Text model",
+      backend_modelHelp:
+        "Model that handles complex requests and tool calls. It doesn’t produce the voice of the call.",
+      reasoning_effort: "Reasoning effort",
+      reasoning_effortHelp:
+        "How much the text model reasons before answering a complex request. More reasoning gives better answers, but the caller waits longer.",
+      verbosity: "Answer detail",
+      verbosityHelp:
+        "How detailed the answers of the text model are. Short answers suit phone calls.",
+      service_tier: "Service tier",
+      service_tierHelp: "Speed and cost of the text model.",
+      max_output_tokens: "Maximum answer length",
+      max_output_tokensPlaceholder: "e.g. 2048",
+      max_output_tokensHelp:
+        "In tokens, from 16 to 8192. Limits the length of each answer of the text model.",
+      backend_instructions: "Text model instructions",
+      backend_instructionsHelp:
+        "How the text model handles complex requests and uses the tools of the agent.",
+    },
+    liveOptions: {
+      reasoning_effort: {
+        none: "None",
+        low: "Low",
+        medium: "Medium",
+        high: "High",
+        xhigh: "Very high",
+      },
+      verbosity: { low: "Low", medium: "Medium", high: "High" },
+      service_tier: {
+        auto: "Automatic",
+        autoHelp: "The provider chooses",
+        default: "Standard",
+        defaultHelp: "Standard speed and cost",
+        flex: "Flex",
+        flexHelp: "Lower cost, answers can be slower",
+        priority: "Priority",
+        priorityHelp: "Faster answers, at a higher cost",
+      },
+    },
+    cleverAiHelp:
+      "CleverAI manages the conversation, the tools and the monitoring. Saving makes the agent available for VisualPlan routes.",
+    consultationConversationHelp:
+      "Voice and instructions the assistant uses to call the colleague. It handles private consultations only, with no public destination or PBX routing tools.",
+    toolsHelp:
+      "Actions the agent can perform during a call. Disabled tools keep their settings.",
+    troubleshooting: "Troubleshooting",
+    troubleshootingHelp:
+      "Data to find out why a call didn’t go as expected. Off by default.",
+    transcriptionTip:
+      "Save the text of what the caller and the agent say, for calls made after publishing. Transcripts are encrypted and visible to administrators only. The provider may charge for the transcription.",
+    retentionPlaceholder: "e.g. 24",
+    transferTip:
+      "The agent transfers the caller to the queues and extensions you select. It can’t transfer to any other destination.",
+    selectQueues: "Select queues",
+    selectExtensions: "Select extensions",
+    routingLater:
+      "After creating the agent, you can add a routing description to each destination.",
+    recentTip:
+      "Offer the people who recently called or spoke with the caller. The caller confirms or chooses the contact. Requires @:{'agentTools.transfer'}.",
+    lookbackPlaceholder: "e.g. 7",
+    goodbyePlaceholder: "e.g. 5",
+    cannotSave: "Cannot save agent",
+    cannotPublish: "Cannot publish agent",
+    cannotSynchronize: "Cannot synchronize agent",
+    savedAsDraft: "The changes have been saved as a draft.",
+    draftSavedHelp: "The draft of agent {name} has been saved",
+    consultation: {
+      directHelp: "The agent connects the caller to the person right away.",
+      attended: "Consult before connecting",
+      attendedHelp:
+        "An internal consultation assistant asks the colleague first. Queues always use direct transfer.",
+      noneTitle: "No published internal consultation assistant",
+      noneHelp:
+        "Create and publish an internal consultation assistant, then select it here.",
+      unpublishedHelp:
+        "Publish the internal consultation assistant {name}, then select it here.",
+      goToAssistant: "Go to the assistant",
+      createAssistant: "Create assistant",
+      single: "Colleagues are consulted by {name}.",
+      notPublished: "not published",
+      assistantPlaceholder: "Select an assistant",
+      assistantHelp:
+        "Published assistant that calls or messages the colleague.",
+      channels: "Consult the colleague by",
+      phone: "Phone call",
+      chat: "Chat message",
+      chatHelp: "The assistant needs a chat model ID or GPT Live 1.",
+    },
+    errors: {
+      name: "Enter a name",
+      trunk: "Select a provider trunk",
+      range: "Enter a value from {min} to {max}",
+      model: "Select a voice model",
+      voice: "Select a voice",
+      instructions: "Enter the conversation instructions",
+      backendInstructions: "Enter the text model instructions",
+      destinations: "Select at least one queue or extension",
+      assistant: "Select an internal consultation assistant",
+      channels: "Select at least one way to consult the colleague",
+      assistantUnavailable:
+        "The selected assistant is not published. Select a published assistant.",
+    },
+    // Validation errors that the server reports on a field
+    fieldErrors: {
+      invalid_field: "Check this value",
+      invalid_fields: "Check this value",
+      invalid_configuration: "Check this value",
+      invalid_field_name: "Enter a name of at most 100 characters",
+      invalid_model_options:
+        "Check the options supported by the selected voice model",
+      provider_required: "Select a provider trunk",
+      provider_credentials_unavailable:
+        "The trunk has no API key. Add one in @:{'trunks'} or in the OpenAI integration.",
+      openai_project_required:
+        "Enter the OpenAI project ID of this trunk in @:{'trunks'}.",
+      webhook_not_configured:
+        "The webhook of this trunk is not configured, so the provider can’t send calls to NethVoice. Configure it in @:{'trunks'}, then publish the agent again.",
+      conversation_required_voice: "Select a voice",
+      conversation_required_instructions: "Enter the conversation instructions",
+      model_required: "Select a voice model",
+      sip_lab_required:
+        "SIP Realtime models need the SIP media lab. Select GPT Live 1.",
+    },
+    // Server errors that are not about a field of the form
+    serverErrors: {
+      fallback_managed_by_visualplan:
+        "The fallback destination is managed in VisualPlan.",
+      agent_not_found:
+        "The agent doesn’t exist anymore. Go back to the Agents list.",
+    },
+  },
+  // Leaving an editor with unsaved changes
+  unsavedDialog: {
+    title: "Unsaved changes",
+    discard: "Don’t save",
+    pageHelp: "Save the changes as a draft to continue editing them later.",
+    createHelp: "Save the agent as a draft to continue editing it later.",
+    noDraftHelp: "CleverAI agents have no draft: your changes will be lost.",
+  },
+  // Session expired while editing
+  sessionDialog: {
+    title: "Session expired",
+    description:
+      "Sign in again to save your changes. They stay on this page until you save them.",
+    signIn: "Sign in",
+    signedIn: "Signed in",
+    signedInHelp: "You can continue where you left off",
+  },
+  // Agent saved elsewhere since it was opened
+  conflictDialog: {
+    title: "Agent changed elsewhere",
+    description:
+      "Agent {name} was saved somewhere else after you opened it. Save your changes to apply them to that version, or discard them to load it.",
+    keep: "Save my changes",
+    discard: "Discard my changes",
+    loaded: "Saved settings loaded",
+    loadedHelp: "Your changes have been discarded",
+  },
 };
 const it: typeof en = {
   wizard: "Wizard",
@@ -1687,6 +1900,226 @@ const it: typeof en = {
       publish: "Pubblica un agente",
       route: "Usa un agente in una rotta di VisualPlan",
     },
+  },
+  // Create agent drawer
+  createWizard: {
+    step: "Passaggio",
+    previous: "Indietro",
+    next: "Avanti",
+    savedAsDraft: "Agente salvato come bozza",
+    savedAsDraftHelp: "L'agente {name} è stato salvato come bozza",
+    publishRejectedHelp:
+      "L'agente {name} è stato salvato come bozza. Correggi l'errore, poi pubblicalo.",
+    checkAgents: "Vai all'elenco degli agenti",
+    cannotCreate: "Impossibile creare l'agente",
+  },
+  // Agent fields, shared by the Create agent drawer and the agent page
+  agentEditor: {
+    enabled: "Abilitato",
+    disabled: "Disabilitato",
+    moreInfo: "Altre informazioni su {name}",
+    typeHelp: {
+      basic_voice:
+        "Risponde alla chiamata, parla con il chiamante e può trasferire la chiamata.",
+      consultation:
+        "Chiede a un collega se vuole prendere la chiamata prima che un altro agente la trasferisca.",
+      cleverai:
+        "Agente configurato in CleverAI. NethVoice gli invia le chiamate.",
+    },
+    typeLocked:
+      "Il tipo non può essere modificato dopo la creazione dell'agente.",
+    noTrunksHelp:
+      "Crea un trunk del provider in @:{'trunks'} per collegare l'agente a OpenAI, Grok o CleverAI. Puoi salvare l'agente come bozza e selezionare il trunk in seguito.",
+    noTrunksExternalHelp:
+      "Crea un trunk CleverAI in @:{'trunks'} per collegare l'agente a CleverAI.",
+    trunkHelp: "Connessione al provider AI.",
+    durationPlaceholder: "es. 600",
+    greetingHelp:
+      "Cosa dice l'agente quando risponde. Lascia vuoto per far salutare il chiamante con parole sue.",
+    chatModel: "ID del modello per la chat",
+    chatModelPlaceholder: "es. gpt-6-luna",
+    chatModelHelp:
+      "Modello di testo di questo provider che risponde alle consultazioni in chat. Lascia vuoto per usare il modello di testo di GPT Live 1. I modelli solo voce richiedono un modello di testo separato per la chat.",
+    selectTrunkTitle: "Seleziona un trunk del provider",
+    selectTrunkHelp:
+      "I modelli vocali e le voci dipendono dal trunk del provider. Selezionalo in @:{'generalSettings'}.",
+    liveExperimental:
+      "Sperimentale: le chiamate usano la connessione WebSocket del servizio degli agenti.",
+    sipModelUnavailable:
+      "Il modello salvato richiede il laboratorio media SIP, che è disattivato. Seleziona GPT Live 1 per pubblicare l'agente.",
+    advancedSettings: "Impostazioni avanzate",
+    modelHints: {
+      gpt_realtime_2_1: "Qualità migliore, costo più alto",
+      gpt_realtime_2_1_mini: "Buona qualità, costo inferiore",
+      gpt_realtime_2: "Versione precedente",
+      gpt_realtime_1_5: "Versione meno recente",
+      gpt_live_1:
+        "Risposte più rapide, modello di testo per le richieste complesse",
+      grok: "Il modello lo sceglie Grok",
+    },
+    live: {
+      backend_model: "Modello di testo",
+      backend_modelHelp:
+        "Modello che gestisce le richieste complesse e l'uso degli strumenti. Non produce la voce della chiamata.",
+      reasoning_effort: "Livello di ragionamento",
+      reasoning_effortHelp:
+        "Quanto ragiona il modello di testo prima di rispondere a una richiesta complessa. Più ragionamento dà risposte migliori, ma il chiamante attende di più.",
+      verbosity: "Dettaglio delle risposte",
+      verbosityHelp:
+        "Quanto sono dettagliate le risposte del modello di testo. Le risposte brevi sono adatte alle telefonate.",
+      service_tier: "Livello di servizio",
+      service_tierHelp: "Velocità e costo del modello di testo.",
+      max_output_tokens: "Lunghezza massima della risposta",
+      max_output_tokensPlaceholder: "es. 2048",
+      max_output_tokensHelp:
+        "In token, da 16 a 8192. Limita la lunghezza di ogni risposta del modello di testo.",
+      backend_instructions: "Istruzioni del modello di testo",
+      backend_instructionsHelp:
+        "Come il modello di testo gestisce le richieste complesse e usa gli strumenti dell'agente.",
+    },
+    liveOptions: {
+      reasoning_effort: {
+        none: "Nessuno",
+        low: "Basso",
+        medium: "Medio",
+        high: "Alto",
+        xhigh: "Molto alto",
+      },
+      verbosity: { low: "Basso", medium: "Medio", high: "Alto" },
+      service_tier: {
+        auto: "Automatico",
+        autoHelp: "Lo sceglie il provider",
+        default: "Standard",
+        defaultHelp: "Velocità e costo standard",
+        flex: "Flex",
+        flexHelp: "Costo inferiore, risposte a volte più lente",
+        priority: "Priorità",
+        priorityHelp: "Risposte più rapide, a un costo più alto",
+      },
+    },
+    cleverAiHelp:
+      "CleverAI gestisce la conversazione, gli strumenti e il monitoraggio. Il salvataggio rende l'agente disponibile per le rotte di VisualPlan.",
+    consultationConversationHelp:
+      "Voce e istruzioni che l'assistente usa per chiamare il collega. Gestisce solo consultazioni private, senza destinazione pubblica né strumenti di instradamento PBX.",
+    toolsHelp:
+      "Azioni che l'agente può eseguire durante una chiamata. Gli strumenti disabilitati mantengono le impostazioni.",
+    troubleshooting: "Risoluzione dei problemi",
+    troubleshootingHelp:
+      "Dati per capire perché una chiamata non è andata come previsto. Disabilitati per impostazione predefinita.",
+    transcriptionTip:
+      "Salva il testo di quello che dicono il chiamante e l'agente, per le chiamate effettuate dopo la pubblicazione. Le trascrizioni sono cifrate e visibili solo agli amministratori. Il provider può addebitare la trascrizione.",
+    retentionPlaceholder: "es. 24",
+    transferTip:
+      "L'agente trasferisce il chiamante alle code e agli interni che selezioni. Non può trasferire verso altre destinazioni.",
+    selectQueues: "Seleziona le code",
+    selectExtensions: "Seleziona gli interni",
+    routingLater:
+      "Dopo aver creato l'agente, puoi aggiungere una descrizione di instradamento a ogni destinazione.",
+    recentTip:
+      "Proponi le persone che hanno chiamato o parlato di recente con il chiamante. Il chiamante conferma o sceglie il contatto. Richiede @:{'agentTools.transfer'}.",
+    lookbackPlaceholder: "es. 7",
+    goodbyePlaceholder: "es. 5",
+    cannotSave: "Impossibile salvare l'agente",
+    cannotPublish: "Impossibile pubblicare l'agente",
+    cannotSynchronize: "Impossibile sincronizzare l'agente",
+    savedAsDraft: "Le modifiche sono state salvate come bozza.",
+    draftSavedHelp: "La bozza dell'agente {name} è stata salvata",
+    consultation: {
+      directHelp: "L'agente collega subito il chiamante alla persona.",
+      attended: "Consulta prima di collegare",
+      attendedHelp:
+        "Un assistente di consulenza interna chiede prima al collega. Le code usano sempre il trasferimento diretto.",
+      noneTitle: "Nessun assistente di consulenza interna pubblicato",
+      noneHelp:
+        "Crea e pubblica un assistente di consulenza interna, poi selezionalo qui.",
+      unpublishedHelp:
+        "Pubblica l'assistente di consulenza interna {name}, poi selezionalo qui.",
+      goToAssistant: "Vai all'assistente",
+      createAssistant: "Crea assistente",
+      single: "I colleghi vengono consultati da {name}.",
+      notPublished: "non pubblicato",
+      assistantPlaceholder: "Seleziona un assistente",
+      assistantHelp:
+        "Assistente pubblicato che chiama il collega o gli scrive.",
+      channels: "Consulta il collega tramite",
+      phone: "Telefonata",
+      chat: "Messaggio in chat",
+      chatHelp:
+        "L'assistente richiede un ID del modello per la chat o GPT Live 1.",
+    },
+    errors: {
+      name: "Inserisci un nome",
+      trunk: "Seleziona un trunk del provider",
+      range: "Inserisci un valore da {min} a {max}",
+      model: "Seleziona un modello vocale",
+      voice: "Seleziona una voce",
+      instructions: "Inserisci le istruzioni di conversazione",
+      backendInstructions: "Inserisci le istruzioni del modello di testo",
+      destinations: "Seleziona almeno una coda o un interno",
+      assistant: "Seleziona un assistente di consulenza interna",
+      channels: "Seleziona almeno un modo per consultare il collega",
+      assistantUnavailable:
+        "L'assistente selezionato non è pubblicato. Seleziona un assistente pubblicato.",
+    },
+    // Validation errors that the server reports on a field
+    fieldErrors: {
+      invalid_field: "Controlla questo valore",
+      invalid_fields: "Controlla questo valore",
+      invalid_configuration: "Controlla questo valore",
+      invalid_field_name: "Inserisci un nome di massimo 100 caratteri",
+      invalid_model_options:
+        "Controlla le opzioni supportate dal modello vocale selezionato",
+      provider_required: "Seleziona un trunk del provider",
+      provider_credentials_unavailable:
+        "Il trunk non ha una chiave API. Aggiungila in @:{'trunks'} o nell'integrazione OpenAI.",
+      openai_project_required:
+        "Inserisci l'ID progetto OpenAI di questo trunk in @:{'trunks'}.",
+      webhook_not_configured:
+        "Il webhook di questo trunk non è configurato, quindi il provider non può inviare chiamate a NethVoice. Configuralo in @:{'trunks'}, poi pubblica di nuovo l'agente.",
+      conversation_required_voice: "Seleziona una voce",
+      conversation_required_instructions:
+        "Inserisci le istruzioni di conversazione",
+      model_required: "Seleziona un modello vocale",
+      sip_lab_required:
+        "I modelli SIP Realtime richiedono il laboratorio media SIP. Seleziona GPT Live 1.",
+    },
+    // Server errors that are not about a field of the form
+    serverErrors: {
+      fallback_managed_by_visualplan:
+        "La destinazione alternativa si gestisce in VisualPlan.",
+      agent_not_found:
+        "L'agente non esiste più. Torna all'elenco degli agenti.",
+    },
+  },
+  // Leaving an editor with unsaved changes
+  unsavedDialog: {
+    title: "Modifiche non salvate",
+    discard: "Non salvare",
+    pageHelp:
+      "Salva le modifiche come bozza per continuare a modificarle in seguito.",
+    createHelp:
+      "Salva l'agente come bozza per continuare a modificarlo in seguito.",
+    noDraftHelp:
+      "Gli agenti CleverAI non hanno una bozza: le modifiche andranno perse.",
+  },
+  // Session expired while editing
+  sessionDialog: {
+    title: "Sessione scaduta",
+    description:
+      "Accedi di nuovo per salvare le modifiche. Restano in questa pagina finché non le salvi.",
+    signIn: "Accedi",
+    signedIn: "Accesso effettuato",
+    signedInHelp: "Puoi continuare da dove eri rimasto",
+  },
+  // Agent saved elsewhere since it was opened
+  conflictDialog: {
+    title: "Agente modificato altrove",
+    description:
+      "L'agente {name} è stato salvato altrove dopo che lo hai aperto. Salva le tue modifiche per applicarle a quella versione, o scartale per caricarla.",
+    keep: "Salva le mie modifiche",
+    discard: "Scarta le mie modifiche",
+    loaded: "Impostazioni salvate caricate",
+    loadedHelp: "Le tue modifiche sono state scartate",
   },
 };
 

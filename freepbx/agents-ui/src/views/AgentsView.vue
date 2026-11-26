@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
-import { useRouter } from "vue-router";
+import {
+  onBeforeRouteLeave,
+  onBeforeRouteUpdate,
+  useRoute,
+  useRouter,
+} from "vue-router";
 import { useQuery } from "@tanstack/vue-query";
 import {
   NeBadgeV2,
@@ -22,17 +27,21 @@ import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
 import { request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
+import { useUi } from "../stores/ui";
 import { agentStatus } from "../agentStatus";
 import PageHeader from "../components/PageHeader.vue";
 import CatalogTable from "../components/CatalogTable.vue";
 import AppEmptyState from "../components/AppEmptyState.vue";
+import CreateAgentDrawer from "../components/CreateAgentDrawer.vue";
 import { menuIcon } from "../menuIcon";
 import StatusBadge from "../components/StatusBadge.vue";
 import type { Agent, Catalog, JsonObject, Trunk } from "../types";
 const { t } = useI18n();
 const loadError = useLoadError();
-const router = useRouter(),
-  task = useTask();
+const route = useRoute(),
+  router = useRouter(),
+  task = useTask(),
+  ui = useUi();
 const query = useQuery({
   queryKey: ["agents"],
   queryFn: () => request<{ items: Agent[] }>("GET", "/profiles"),
@@ -203,6 +212,31 @@ async function remove() {
     },
   );
 }
+
+// Create agent drawer, also reachable at #/agents/new.
+const creating = computed(() => route.path === "/agents/new");
+const initialType = computed(() =>
+  typeof route.query.type === "string" ? route.query.type : undefined,
+);
+const drawer = ref<InstanceType<typeof CreateAgentDrawer>>();
+function openCreate() {
+  void router.push("/agents/new");
+}
+function closeCreate() {
+  void router.push("/agents");
+}
+// Leaving the drawer by navigation (browser Back, menu) asks to save its
+// changes like its Cancel button.
+const guard = () =>
+  creating.value ? (drawer.value?.confirmClose() ?? true) : true;
+onBeforeRouteLeave(guard);
+onBeforeRouteUpdate(async (to, from) => {
+  if (to.path === from.path) return true;
+  const allowed = await guard();
+  // Opening and closing the drawer keeps the list mounted.
+  if (allowed) ui.keepView = to.path;
+  return allowed;
+});
 </script>
 <template>
   <PageHeader :title="t('agents')" :description="t('agentsHelp')">
@@ -213,7 +247,7 @@ async function remove() {
           aria-hidden="true" /></template
       >{{ t("openVisualplan") }}</NeButton
     >
-    <NeButton kind="primary" size="lg" @click="router.push('/agents/new')"
+    <NeButton kind="primary" size="lg" @click="openCreate"
       ><template #prefix
         ><FontAwesomeIcon :icon="faCirclePlus" aria-hidden="true" /></template
       >{{ t("newAgent") }}</NeButton
@@ -321,6 +355,15 @@ async function remove() {
         /></div
     ></template>
   </CatalogTable>
+  <CreateAgentDrawer
+    ref="drawer"
+    :is-shown="creating"
+    :initial-type="initialType"
+    :catalog="catalog.data.value"
+    :trunks="trunks.data.value?.items"
+    :agents="query.data.value?.items"
+    @close="closeCreate"
+  />
   <NeModal
     :visible="!!removing"
     kind="warning"

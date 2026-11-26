@@ -62,19 +62,9 @@ export const useUi = defineStore("ui", () => {
   }
   // Path the next navigation reaches without remounting the current view.
   const keepView = ref("");
-  const leaveDialog = ref(false);
-  let leaveResolve: ((value: boolean) => void) | undefined;
-  function confirmLeave() {
-    leaveDialog.value = true;
-    return new Promise<boolean>((resolve) => {
-      leaveResolve = resolve;
-    });
-  }
-  function resolveLeave(value: boolean) {
-    leaveDialog.value = false;
-    leaveResolve?.(value);
-    leaveResolve = undefined;
-  }
+  // An editor with unsaved changes keeps the view mounted while the session
+  // is expired, so that the changes stay on the page until sign-in.
+  const sessionHold = ref(0);
   applyTheme();
   return {
     dark,
@@ -82,8 +72,6 @@ export const useUi = defineStore("ui", () => {
     toggleTheme,
     notify,
     keepView,
-    leaveDialog,
-    confirmLeave,
-    resolveLeave,
+    sessionHold,
   };
 });

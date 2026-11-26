@@ -60,6 +60,8 @@ test("routing editor uses permitted destinations, routing descriptions and publi
   await expect(page.getByText("None permitted",{exact:true})).toHaveCount(1);
   await expect(page.getByText("Customer Support (600)",{exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Manage destinations",exact:true}).click();
+  await expect(drawer(page).getByText("1 of 1 selected",{exact:true})).toBeVisible();
+  await drawer(page).getByText("Extensions (0)",{exact:true}).filter({visible:true}).click();
   await expect(drawer(page).getByText("0 of 1 selected",{exact:true})).toBeVisible();
   await drawer(page).getByRole("checkbox",{name:"Alice",exact:true}).check();
   await drawer(page).getByLabel(/^Routing description/).fill("He is a very cool guy");
@@ -85,6 +87,8 @@ test("routing editor uses permitted destinations, routing descriptions and publi
   expect(config.descriptions).toEqual([{destination_id:"extension:203",description:"He is a very cool guy"},{destination_id:"queue:600",description:"Technical support team"}]);
   await page.screenshot({path:"/tmp/voice-agent-routing-editor.png",fullPage:true});
   await publish.click();
+  await expect(page).toHaveURL(/#\/agents$/);
+  await page.goto("./#/agents/receptionist");
   await expect(page.getByText("Published version 5",{exact:true})).toBeVisible();
   await expect(publish).toBeDisabled();
   await page.getByLabel("Name",{exact:true}).fill("Receptionist changed");
@@ -92,7 +96,6 @@ test("routing editor uses permitted destinations, routing descriptions and publi
   await page.getByLabel("Name",{exact:true}).fill("Receptionist");
   await expect(publish).toBeDisabled();
   await page.getByRole("button",{name:"Manage destinations",exact:true}).click();
-  await drawer(page).getByText("Queues (1)",{exact:true}).filter({visible:true}).click();
   await drawer(page).getByRole("checkbox",{name:"Customer Support",exact:true}).uncheck();
   await drawer(page).getByRole("button",{name:"Save",exact:true}).click();
   await expect(page.getByText("None permitted",{exact:true})).toHaveCount(1);
@@ -125,6 +128,7 @@ test("destinations load every inventory page and unavailable grants can be remov
   await expect(page.getByText("(999)",{exact:true})).toHaveCount(0);
   await page.getByRole("button",{name:"Manage destinations",exact:true}).click();
   expect(offsets).toEqual(["0","10","20"]);
+  await drawer(page).getByText("Extensions (0)",{exact:true}).filter({visible:true}).click();
   await expect(drawer(page).getByText("0 of 21 selected",{exact:true})).toBeVisible();
   await drawer(page).getByPlaceholder("Filter extensions").fill("Person 20");
   await drawer(page).getByRole("checkbox",{name:"Person 20",exact:true}).check();

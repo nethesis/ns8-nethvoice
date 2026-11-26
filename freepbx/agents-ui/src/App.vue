@@ -6,7 +6,6 @@ import {
   NeAvatar,
   NeButton,
   NeDropdown,
-  NeModal,
   NeSkeleton,
   NeToastNotificationV2,
   NeTooltip,
@@ -82,6 +81,15 @@ onMounted(() => {
   });
 });
 const viewKey = ref(0);
+// The signed-in user names the view: it stays while the session is
+// expired, so a held editor is not remounted.
+const viewUser = ref(auth.user);
+watch(
+  () => auth.user,
+  (user) => {
+    if (user) viewUser.value = user;
+  },
+);
 watch(
   () => route.path,
   (path) => {
@@ -231,7 +239,7 @@ watch(
         <NeSkeleton v-if="!auth.ready" :lines="8" />
         <template v-else>
           <AppEmptyState
-            v-if="!auth.authorized"
+            v-if="!auth.authorized && !ui.sessionHold"
             :title="t('authenticationRequired')"
             :description="
               t(everAuthorized ? 'sessionExpiredHelp' : 'authenticationHelp')
@@ -244,8 +252,11 @@ watch(
               >{{ t("signIn") }}</NeButton
             ></AppEmptyState
           >
-          <RouterView v-if="auth.authorized" v-slot="{ Component }">
-            <component :is="Component" :key="auth.user + ':' + viewKey" />
+          <RouterView
+            v-if="auth.authorized || ui.sessionHold"
+            v-slot="{ Component }"
+          >
+            <component :is="Component" :key="viewUser + ':' + viewKey" />
           </RouterView>
         </template>
       </main>
@@ -265,16 +276,4 @@ watch(
       />
     </div>
   </div>
-  <NeModal
-    :visible="ui.leaveDialog"
-    kind="warning"
-    :title="t('unsavedTitle')"
-    :primary-label="t('leave')"
-    primary-button-kind="danger"
-    :cancel-label="t('cancel')"
-    :close-aria-label="t('close')"
-    @primary-click="ui.resolveLeave(true)"
-    @close="ui.resolveLeave(false)"
-    ><p>{{ t("unsavedHelp") }}</p></NeModal
-  >
 </template>

@@ -143,9 +143,10 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
                 : profile,
     });
   });
-  await page.goto("./#/agents/new");
+  await page.goto("./#/agents");
+  await page.getByRole("button", { name: "Create agent", exact: true }).click();
   await page.getByRole("combobox", { name: "Agent type" }).click();
-  await page.getByRole("option", { name: "CleverAI", exact: true }).click();
+  await page.getByRole("option", { name: /^CleverAI/ }).click();
   for (const label of [
     "Conversation instructions",
     "Greeting",
@@ -153,17 +154,20 @@ test("CleverAI creates and edits through Save, filters trunks and exposes no loc
     "Call transcription",
   ])
     await expect(page.getByLabel(label, { exact: true })).toHaveCount(0);
-  await expect(
-    page.getByRole("heading", { name: "Tools", exact: true }),
-  ).toHaveCount(0);
+  await expect(page.getByText(/Step \d/)).toHaveCount(0);
   await page.getByLabel("Name", { exact: true }).fill("External agent");
   await page.getByRole("combobox", { name: "Provider trunk" }).click();
   await expect(page.getByRole("option", { name: /Local OpenAI/ })).toHaveCount(
     0,
   );
   await page.getByRole("option", { name: /CleverAI transport/ }).click();
-  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByRole("button", { name: "Create", exact: true }).click();
+  await expect(page).toHaveURL(/#\/agents$/);
+  await page.getByRole("link", { name: "External agent", exact: true }).click();
   await expect(page).toHaveURL(/#\/agents\/agent_external$/);
+  await expect(
+    page.getByRole("heading", { name: "Tools", exact: true }),
+  ).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Publish", exact: true }),
   ).toHaveCount(0);
