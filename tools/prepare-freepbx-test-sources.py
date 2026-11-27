@@ -34,6 +34,7 @@ for module in ('core', 'framework', 'paging', 'iaxsettings', 'sipsettings', 'use
         root / 'freepbx/patches/freepbx-core-trunks-hook.patch',
         root / 'freepbx/patches/freepbx-core-bindaddress.patch',
         root / 'freepbx/patches/freepbx-core-disabled-trunk-return.patch',
+        root / 'freepbx/patches/freepbx-core-callerid-language.patch',
     ] if module == 'core' else {
         'paging': [root / 'freepbx/patches/freepbx-paging-transfers.patch'],
         'iaxsettings': [root / 'freepbx/patches/freepbx-iaxsettings-preserve.patch'],
