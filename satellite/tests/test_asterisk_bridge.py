@@ -314,3 +314,42 @@ async def test_sweep_drops_pending_continue_of_channel_gone():
 
     assert ("POST", "/channels/chan-1/continue") not in _requests(bridge)
     assert bridge.pending_continues == set()
+
+
+@pytest.mark.asyncio
+async def test_stasis_end_of_original_drops_pending_continue():
+    bridge = _bridge()
+    await _start_call(bridge)
+    # Asterisk processed the continue, but the answer timed out
+    bridge._ari_request = _asterisk(SETUP_CHANNELS, continue_errors=[asyncio.TimeoutError()])
+
+    await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "snoop-out-chan-1"}})
+
+    assert bridge.pending_continues == {"chan-1"}
+
+    await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "chan-1"}})
+
+    assert bridge.pending_continues == set()
+
+    bridge._ari_request = _asterisk(("chan-1",))
+    await bridge.sweep_orphans()
+
+    assert ("POST", "/channels/chan-1/continue") not in _requests(bridge)
+
+
+@pytest.mark.asyncio
+async def test_sweep_skips_continue_of_channel_back_in_stasis():
+    bridge = _bridge()
+    bridge.pending_continues.add("chan-1")
+    asterisk = _asterisk(("chan-1",))
+
+    async def ari(method, endpoint, params=None, json_data=None):
+        if (method, endpoint) == ("GET", "/channels"):
+            # The channel enters Stasis again while the sweep lists channels
+            bridge.pending_continues.discard("chan-1")
+        return await asterisk(method, endpoint, params, json_data)
+
+    bridge._ari_request = AsyncMock(side_effect=ari)
+    await bridge.sweep_orphans()
+
+    assert ("POST", "/channels/chan-1/continue") not in _requests(bridge)

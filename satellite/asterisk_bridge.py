@@ -535,6 +535,8 @@ class AsteriskBridge:
         """Handle channel hangup event"""
         channel = event['channel']
         channel_id = channel['id']
+        # The channel left Stasis, so a continue still to retry is not needed
+        self.pending_continues.discard(channel_id)
         if channel_id in self.channels:
             logger.debug(f"Channel {channel_id} snooped and continue to dialplan")
             return
@@ -637,6 +639,9 @@ class AsteriskBridge:
         pending = list(self.pending_continues)
         channel_ids = {c['id'] for c in await self._ari_request('GET', "/channels")}
         for channel_id in pending:
+            # The channel may have entered Stasis again while listing
+            if channel_id not in self.pending_continues:
+                continue
             if channel_id in channel_ids:
                 await self._continue_channel(channel_id)
             else:
