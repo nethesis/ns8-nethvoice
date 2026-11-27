@@ -313,11 +313,16 @@ function setCompUtil(comp) {
        */
       preview: function(req, res, next) {
         try {
+          if (req.headers.authorization_freepbx_admin !== 'true') {
+            compUtil.net.sendHttp403(IDLOG, res);
+            return;
+          }
           if (typeof req.params.dbconn_id !== 'string' ||
             typeof req.params.query !== 'string' ||
             typeof req.params.template !== 'string') {
 
             compUtil.net.sendHttp400(IDLOG, res);
+            return;
           }
 
           // authorization_user header field was added in the authentication step
