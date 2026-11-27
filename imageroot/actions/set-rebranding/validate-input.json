@@ -42,7 +42,7 @@
             "description": "NethVoice brand name",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^(?![\"'])[^\\x00-\\x1f\\x7f\\\\]*$"
+            "pattern": "^([^\"'\\x00-\\x1f\\x7f\\\\][^\\x00-\\x1f\\x7f\\\\]*)?$"
         },
         "rebranding_navbar_logo_url": {
             "description": "NethVoice rebranding link to navbar logo",
@@ -84,7 +84,7 @@
             "description": "NethVoice Wizard brand name",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^(?![\"'])[^\\x00-\\x1f\\x7f\\\\]*$"
+            "pattern": "^([^\"'\\x00-\\x1f\\x7f\\\\][^\\x00-\\x1f\\x7f\\\\]*)?$"
         },
         "rebranding_wizard_login_logo_url": {
             "description": "NethVoice Wizard rebranding link to login logo",
@@ -126,7 +126,7 @@
             "description": "NethVoice Reports brand name",
             "type": "string",
             "maxLength": 64,
-            "pattern": "^(?![\"'])[^\\x00-\\x1f\\x7f\\\\]*$"
+            "pattern": "^([^\"'\\x00-\\x1f\\x7f\\\\][^\\x00-\\x1f\\x7f\\\\]*)?$"
         },
         "rebranding_reports_login_logo_url": {
             "description": "NethVoice Reports rebranding link to login logo",
@@ -150,7 +150,7 @@
             "description": "NethLink About company name",
             "type": "string",
             "maxLength": 128,
-            "pattern": "^(?![\"'])[^\\x00-\\x1f\\x7f\\\\]*$"
+            "pattern": "^([^\"'\\x00-\\x1f\\x7f\\\\][^\\x00-\\x1f\\x7f\\\\]*)?$"
         },
         "rebranding_nethlink_company_url": {
             "description": "NethLink About company URL",
