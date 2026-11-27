@@ -268,7 +268,6 @@ test.describe('integrations: customer cards', () => {
       'Name',
       'Type',
       'Address',
-      'Username',
       'Used by',
       'Status',
       'Actions',
@@ -277,7 +276,6 @@ test.describe('integrations: customer cards', () => {
       cell('crm'),
       cell('PostgreSQL'),
       cell('crm.example.com:5432'),
-      cell('reader'),
       cell('Open invoices'),
       cell('Connected'),
       /Edit/,
@@ -286,7 +284,6 @@ test.describe('integrations: customer cards', () => {
       cell('erp'),
       cell('SQL Server 2012/2014'),
       cell('erp.example.com:1433'),
-      cell('erp'),
       cell('Late payments'),
       cell('Not connected'),
       /Edit/,
@@ -295,7 +292,6 @@ test.describe('integrations: customer cards', () => {
       cell('phonebookBuilt-in'),
       cell('MySQL'),
       cell('localhost:3306'),
-      cell('ctiuser'),
       cell('Not used'),
       cell('Connected'),
       'Actions',
@@ -318,7 +314,7 @@ test.describe('integrations: customer cards', () => {
     await expect(page.getByRole('menu').getByRole('menuitem')).toHaveText(['Test connection'])
     await page.getByRole('menuitem', { name: 'Test connection' }).click()
     await expect.poll(() => mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test').length).toBe(4)
-    await expect(rows.nth(1).getByRole('gridcell').nth(5)).toHaveText(cell('Connected'))
+    await expect(rows.nth(1).getByRole('gridcell').nth(4)).toHaveText(cell('Connected'))
   })
 
   test('does not test the databases again when the window gets the focus back', async ({
@@ -440,18 +436,26 @@ test.describe('integrations: customer cards', () => {
     await expect(name).toBeFocused()
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/customer_card')).toHaveLength(0)
 
-    await name.fill('Open Invoices!')
+    await name.fill(' open invoices ')
     await createButton(page).click()
     await expect(
       drawer(page).getByText('A customer card with this name already exists. Enter another name.'),
     ).toBeVisible()
 
     await name.fill('Orders')
+    await expect(drawer(page).getByRole('combobox', { name: 'Database' })).toHaveAttribute(
+      'placeholder',
+      'Choose database',
+    )
+    await expect(drawer(page).getByRole('combobox', { name: 'Template' })).toHaveAttribute(
+      'placeholder',
+      'Choose template',
+    )
     await drawer(page).getByRole('combobox', { name: 'Database' }).click()
     await expect(page.getByRole('option')).toHaveText([
-      /crmPostgreSQL/,
-      /erpNot connected/,
-      /phonebookMySQL/,
+      /^crmcrm\.example\.com:5432 · PostgreSQL$/,
+      /^erperp\.example\.com:1433 · Not connected$/,
+      /^phonebooklocalhost:3306 · MySQL$/,
     ])
     await page.getByRole('option', { name: /crm/ }).click()
     await drawer(page).getByRole('combobox', { name: 'Template' }).click()
@@ -603,6 +607,96 @@ test.describe('integrations: customer cards', () => {
       ),
     ).toBeVisible()
     await expect(drawer(page).getByText('ERROR 1064')).toHaveCount(0)
+  })
+
+  test('shows the database error of a query that cannot run', async ({ page, mockApi }) => {
+    const shortError = "ER_PARSE_ERROR: syntax error near 'FORM invoices'"
+    const longError = `ER_BAD_FIELD_ERROR: Unknown column 'totale' in 'field list'\n${'at line 1 '.repeat(20)}`
+    let error = shortError
+    mockApi.on('POST', '/freepbx/rest/cti/customer_card/preview', () => ({
+      status: 422,
+      json: { message: 'The query cannot be run', error },
+    }))
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit Open invoices' }).click()
+    await drawer(page).getByRole('button', { name: 'Show preview' }).click()
+
+    await expect(drawer(page).getByText('Cannot run query')).toBeVisible()
+    await expect(
+      drawer(page).getByText('The database returned an error. Check the query.'),
+    ).toBeVisible()
+    await expect(drawer(page).getByText(shortError)).toBeVisible()
+    await expect(drawer(page).getByRole('button', { name: 'Show details' })).toHaveCount(0)
+
+    error = longError
+    await drawer(page).getByRole('button', { name: 'Show preview' }).click()
+    await expect(drawer(page).getByText(/Unknown column 'totale'/)).toBeHidden()
+    await drawer(page).getByRole('button', { name: 'Show details' }).click()
+    await expect(drawer(page).getByText(/Unknown column 'totale'/)).toBeVisible()
+  })
+
+  test('lets a wide table of the preview scroll instead of cutting its columns', async ({
+    page,
+    mockApi,
+  }) => {
+    const header = ['Order', 'Customer', 'Date', 'Total', 'Status', 'Agent']
+      .map((name) => `<th class="py-3.5 px-3 whitespace-nowrap">${name} column</th>`)
+      .join('')
+    mockApi.on('POST', '/freepbx/rest/cti/customer_card/preview', {
+      json: {
+        html: b64(
+          `<div class="overflow-hidden rounded-lg"><table class="min-w-full"><thead><tr>${header}</tr></thead></table></div>`,
+        ),
+      },
+    })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit Open invoices' }).click()
+    await drawer(page).getByRole('button', { name: 'Show preview' }).click()
+
+    const wrapper = drawer(page)
+      .frameLocator('iframe[title="Preview of Open invoices"]')
+      .locator('.overflow-hidden')
+    await expect(wrapper).toHaveCSS('overflow-x', 'auto')
+    expect(
+      await wrapper.evaluate((element) => {
+        element.scrollLeft = element.scrollWidth
+        return element.scrollLeft > 0
+      }),
+    ).toBe(true)
+  })
+
+  test('refuses a card name the database cannot store and shows the server refusals on the name', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('PUT', '/freepbx/rest/cti/customer_card/:id', {
+      status: 409,
+      json: { message: 'Customer card name already in use', field: 'name' },
+    })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit Open invoices' }).click()
+    const name = drawer(page).getByRole('textbox', { name: 'Name', exact: true })
+
+    await name.fill('a'.repeat(129))
+    await drawer(page).getByRole('button', { name: 'Save' }).click()
+    await expect(drawer(page).getByText('Use at most 128 characters')).toBeVisible()
+    await name.fill('\u{1F4DE} Invoices')
+    await drawer(page).getByRole('button', { name: 'Save' }).click()
+    await expect(
+      drawer(page).getByText('Remove emoji and other symbols that the PBX cannot store'),
+    ).toBeVisible()
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/:id')).toHaveLength(0)
+
+    await name.fill('Invoices 2026')
+    await drawer(page).getByRole('button', { name: 'Save' }).click()
+    await expect(
+      drawer(page).getByText('A customer card with this name already exists. Enter another name.'),
+    ).toBeVisible()
+    await expect(name).toBeFocused()
+    await expect(drawer(page).getByText('Cannot save the customer card')).toHaveCount(0)
   })
 
   test('asks before discarding the changes to a card', async ({ page }) => {
@@ -922,6 +1016,91 @@ test.describe('integrations: customer cards', () => {
     await expect(toasts(page).getByText('Template notes has been deleted.')).toBeVisible()
   })
 
+  test('shows why a template cannot be deleted in the language of the interface', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('DELETE', '/freepbx/rest/cti/customer_card/template/:name', {
+      status: 409,
+      json: { message: 'The template is used by customer cards', field: 'name' },
+    })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Open the menu of notes' }).click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
+
+    await expect(
+      page
+        .getByRole('dialog')
+        .getByText(
+          'This template is used by customer cards. Change their template, then try again.',
+        ),
+    ).toBeVisible()
+    await expect(page.getByText('The template is used by customer cards')).toHaveCount(0)
+  })
+
+  test('limits the database fields and refuses a duplicate before testing', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Add database' }).click()
+    const testsBefore = mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test').length
+
+    await drawer(page).getByRole('textbox', { name: 'Name', exact: true }).fill('crm')
+    await drawer(page).getByRole('combobox', { name: 'Type' }).click()
+    await page.getByRole('option', { name: 'PostgreSQL' }).click()
+    await drawer(page).getByRole('textbox', { name: 'Address' }).fill('h'.repeat(129))
+    await drawer(page).getByRole('textbox', { name: 'Username' }).fill('reader')
+    await drawer(page).getByLabel('Password', { exact: true }).fill('p'.repeat(65))
+    await drawer(page).getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(drawer(page).getByText('Use at most 128 characters')).toBeVisible()
+    await expect(drawer(page).getByText('Use at most 64 characters')).toBeVisible()
+
+    await drawer(page).getByRole('textbox', { name: 'Address' }).fill('CRM.example.com')
+    await drawer(page).getByLabel('Password', { exact: true }).fill('crm-secret')
+    await drawer(page).getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(
+      drawer(page).getByText('Another database has the same address, port, username and name'),
+    ).toBeVisible()
+    await expect(drawer(page).getByRole('textbox', { name: 'Name', exact: true })).toBeFocused()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/cti/dbconn/test')).toHaveLength(testsBefore)
+  })
+
+  test('saves a database only into the drawer that started the save', async ({ page, mockApi }) => {
+    let release = () => {}
+    const held = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    mockApi
+      .on('POST', '/freepbx/rest/cti/dbconn/test', async (request) => {
+        if ((request.body as { user?: string }).user === 'slow') {
+          await held
+        }
+        return connectionTest(request)
+      })
+      .on('PUT', '/freepbx/rest/cti/dbconn/:id', { status: 200 })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit crm' }).click()
+    await drawer(page).getByRole('textbox', { name: 'Username' }).fill('slow')
+    await drawer(page).getByRole('button', { name: 'Save' }).click()
+    await drawer(page).getByRole('button', { name: 'Cancel' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'Discard changes' }).click()
+    await expect(page.getByRole('dialog', { name: 'Edit database' })).toBeHidden()
+
+    await page.getByRole('button', { name: 'Edit erp' }).click()
+    await expect(drawer(page).getByRole('textbox', { name: 'Name', exact: true })).toHaveValue(
+      'erp',
+    )
+    release()
+    await page.waitForTimeout(1000)
+
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/dbconn/:id')).toHaveLength(0)
+    await expect(drawer(page).getByRole('textbox', { name: 'Username' })).toHaveValue('erp')
+  })
+
   test('validates a database and saves it only after a successful test', async ({
     page,
     mockApi,
@@ -1157,7 +1336,7 @@ test.describe('integrations: customer cards', () => {
     const firstCard = cardsGrid(page).getByRole('row').nth(0)
     await expect(firstCard).toContainText('Profiles')
     await expect(firstCard).toContainText('Not set')
-    await expect(databasesGrid(page).getByRole('row').nth(0)).toContainText('Username')
+    await expect(databasesGrid(page).getByRole('row').nth(0)).toContainText('Address')
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
     expect(scrollWidth).toBeLessThanOrEqual(390)
   })
@@ -1234,7 +1413,10 @@ test.describe('integrations: customer cards', () => {
 
     await page.getByRole('button', { name: 'Create customer card' }).click()
     await drawer(page).getByRole('combobox', { name: 'Database' }).click()
-    await expect(page.getByRole('option')).toHaveText([/crmPostgreSQL/, /erpNot connected/])
+    await expect(page.getByRole('option')).toHaveText([
+      /^crmcrm\.example\.com:5432 · PostgreSQL$/,
+      /^erperp\.example\.com:1433 · Not connected$/,
+    ])
   })
 
   test('does not test the built-in databases for an administrator with only Integrations', async ({
@@ -1377,6 +1559,100 @@ test.describe('integrations: customer cards', () => {
     })
   })
 
+  test('shows the refusal of a PBX address on the address field for an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi.on('POST', '/freepbx/rest/cti/dbconn/test', (request) =>
+      (request.body as { host?: string }).host === 'pbx.example.com'
+        ? { status: 403, json: { message: 'Forbidden: missing permission', field: 'host' } }
+        : connectionTest(request),
+    )
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Add database' }).click()
+    await drawer(page).getByRole('textbox', { name: 'Name', exact: true }).fill('orders')
+    await drawer(page).getByRole('textbox', { name: 'Address' }).fill('pbx.example.com')
+    await drawer(page).getByRole('textbox', { name: 'Username' }).fill('reader')
+    await drawer(page).getByLabel('Password', { exact: true }).fill('orders-secret')
+    await drawer(page).getByRole('button', { name: 'Test connection' }).click()
+
+    await expect(drawer(page).getByText('Enter a server other than the PBX')).toBeVisible()
+    await expect(drawer(page).getByRole('textbox', { name: 'Address' })).toBeFocused()
+    await expect(drawer(page).getByText(/Forbidden/)).toHaveCount(0)
+    await expect(drawer(page).getByText('Cannot connect to the database')).toHaveCount(0)
+  })
+
+  test('uses the server answer on which databases are the PBX for an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi.on('GET', '/freepbx/rest/cti/dbconn', {
+      json: CONNECTIONS.map((connection) => ({
+        ...connection,
+        pass: undefined,
+        pbx_server: connection.id !== 6,
+      })),
+    })
+
+    await page.goto('./integrations/customer-cards')
+
+    await expect(databasesGrid(page).getByRole('button', { name: 'Edit erp' })).toBeVisible()
+    await expect(databasesGrid(page).getByRole('button', { name: 'Edit crm' })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Create customer card' }).click()
+    await drawer(page).getByRole('combobox', { name: 'Database' }).click()
+    await expect(page.getByRole('option')).toHaveText([
+      /^erperp\.example\.com:1433 · Not connected$/,
+    ])
+  })
+
+  test('restores the stored query when a PBX database is chosen again for an administrator with only Integrations', async ({
+    page,
+    mockApi,
+  }) => {
+    const stored = 'SELECT * FROM phonebook'
+    mockPermissions(mockApi, ['integrations'], 'integrator')
+    mockApi
+      .on('GET', '/freepbx/rest/cti/customer_card', {
+        json: [
+          {
+            id: 1,
+            name: 'Identity',
+            creation: '2026-01-10 09:00:00',
+            query: b64(stored),
+            template: { name: 'table', custom: false },
+            dbconn_id: 1,
+            permission_id: 30,
+            profiles: [1],
+          },
+        ],
+      })
+      .on('PUT', '/freepbx/rest/cti/customer_card/:id', { status: 200 })
+
+    await page.goto('./integrations/customer-cards')
+    await page.getByRole('button', { name: 'Edit Identity' }).click()
+    const query = drawer(page).getByRole('textbox', { name: 'Query' })
+    const database = drawer(page).getByRole('combobox', { name: 'Database' })
+
+    await database.click()
+    await page.getByRole('option', { name: /^crm/ }).click()
+    await expect(query).not.toHaveAttribute('readonly')
+    await query.fill('SELECT * FROM users')
+    await database.click()
+    await page.getByRole('option', { name: /^phonebook/ }).click()
+
+    await expect(query).toHaveAttribute('readonly')
+    await expect(query).toHaveValue(stored)
+    await drawer(page).getByRole('button', { name: 'Save' }).click()
+    await expect(drawer(page)).toBeHidden()
+    expect(mockApi.callsTo('PUT', '/freepbx/rest/cti/customer_card/:id')[0].body).toMatchObject({
+      query: b64(stored),
+      dbconn_id: 1,
+    })
+  })
+
   test('does not offer the PBX databases to an administrator with only Integrations', async ({
     page,
     mockApi,
@@ -1401,7 +1677,10 @@ test.describe('integrations: customer cards', () => {
     await page.goto('./integrations/customer-cards')
     await page.getByRole('button', { name: 'Create customer card' }).click()
     await drawer(page).getByRole('combobox', { name: 'Database' }).click()
-    await expect(page.getByRole('option')).toHaveText([/crmPostgreSQL/, /erpNot connected/])
+    await expect(page.getByRole('option')).toHaveText([
+      /^crmcrm\.example\.com:5432 · PostgreSQL$/,
+      /^erperp\.example\.com:1433 · Not connected$/,
+    ])
     await page.keyboard.press('Escape')
     await expect(drawer(page).getByRole('textbox', { name: 'Query' })).not.toHaveAttribute(
       'readonly',

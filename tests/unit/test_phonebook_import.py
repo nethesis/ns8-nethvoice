@@ -494,8 +494,23 @@ class PhonebookImportTest(ImporterCase):
         preview = json.loads(result.stdout)
         self.assertEqual((len(preview['rows']), preview['total']), (3, 1234))
         result = self.run_import(source, '--check', '--with-total', queries={QUERY: {'columns': ['name', 'workphone'], 'rows': []}})
-        self.assertEqual(json.loads(result.stdout), {'rows': [{'name': '', 'workphone': ''}], 'total': 0})
+        self.assertEqual(json.loads(result.stdout), {'rows': [{'name': '', 'workphone': ''}], 'total': 0, 'columns': ['name', 'workphone']})
         self.assertEqual(self.statuses(), [])
+
+    def test_csv_preview_lists_every_header_column(self):
+        csv = self.root / 'qa.csv'
+        csv.write_text('name,company,phone,email\nQA Contact,QA Company,0123\n')
+        source = self.source(dbtype='csv', url='file://' + str(csv))
+        result = self.run_import(source, '--check', '--with-total')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        preview = json.loads(result.stdout)
+        self.assertEqual(preview['columns'], ['name', 'company', 'phone', 'email'])
+        self.assertEqual(preview['rows'], [{'name': 'QA Contact', 'company': 'QA Company', 'phone': '0123'}])
+        result = self.run_import(source, '--check')
+        self.assertEqual(json.loads(result.stdout), [{'name': 'QA Contact', 'company': 'QA Company', 'phone': '0123'}])
+        csv.write_text('name,company\n')
+        result = self.run_import(source, '--check', '--with-total')
+        self.assertEqual(json.loads(result.stdout), {'rows': [], 'total': 0, 'columns': ['name', 'company']})
 
     def test_csv_and_infinity_previews_count_every_row(self):
         csv = self.root / 'qa.csv'

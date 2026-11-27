@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import {
@@ -23,6 +23,7 @@ import type { Focusable } from '@/lib/common'
 import {
   buildDbConnectionPayload,
   buildDbConnectionTestPayload,
+  DB_CONNECTION_MAX_LENGTHS,
   DB_CONNECTION_STATUSES_KEY,
   DB_CONNECTIONS_KEY,
   type DbConnection,
@@ -36,9 +37,14 @@ import {
   toDbConnectionForm,
   validateDbConnectionForm,
 } from '@/lib/integrations/dbConnections'
-import { getLegacyStatusMessage } from '@/lib/integrations/errors'
+import {
+  describeIntegrationError,
+  getServerErrorField,
+  getServerMessageKey,
+} from '@/lib/integrations/errors'
 import { PORT_RANGE, type FieldIssues } from '@/lib/integrations/validation'
-import { useDbConnectionTypes } from '@/queries/integrations/customerCards'
+import { useDbConnections, useDbConnectionTypes } from '@/queries/integrations/customerCards'
+import { isApiError } from '@/lib/api/errors'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
 const {
@@ -57,11 +63,24 @@ const { t, locale } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { state: typesState } = useDbConnectionTypes()
+const { state: connectionsState } = useDbConnections()
 
 const form = ref<DbConnectionForm>(emptyDbConnectionForm())
 const validationIssues = ref<FieldIssues>({})
 const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
+let openCount = 0
+
+type DbConnectionSave = { connectionForm: DbConnectionForm; connectionId?: string }
+
+const SERVER_FIELDS: Record<string, keyof DbConnectionForm> = {
+  host: 'host',
+  port: 'port',
+  type: 'type',
+  user: 'user',
+  pass: 'password',
+  name: 'name',
+}
 
 useFocusReturn(() => isShown)
 
@@ -119,10 +138,13 @@ const {
   reset: saveReset,
   error: saveError,
 } = useMutation({
-  mutation: (connectionForm: DbConnectionForm) =>
-    saveDbConnection(buildDbConnectionPayload(connectionForm), currentConnection?.id),
-  onSuccess(_data, connectionForm) {
-    const edited = !!currentConnection
+  mutation: ({ connectionForm, connectionId }: DbConnectionSave) =>
+    saveDbConnection(buildDbConnectionPayload(connectionForm), connectionId),
+  onError(error) {
+    showServerFieldError(error)
+  },
+  onSuccess(_data, { connectionForm, connectionId }) {
+    const edited = !!connectionId
 
     setTimeout(() => {
       notificationsStore.createNotification({
@@ -155,13 +177,28 @@ const {
 } = useMutation({
   mutation: (connectionForm: DbConnectionForm) =>
     testDbConnection(buildDbConnectionTestPayload(connectionForm, currentConnection)),
+  onError(error) {
+    showServerFieldError(error)
+  },
 })
 
 const busy = computed(() => saving.value || testing.value)
 
+const fieldToFocus = ref('')
+
+watch(busy, async (isBusy) => {
+  if (!isBusy && fieldToFocus.value) {
+    await nextTick()
+    fieldRefs[fieldToFocus.value]?.value?.focus()
+    fieldToFocus.value = ''
+  }
+})
+
 watch(
   () => isShown,
   () => {
+    openCount++
+
     if (!isShown) {
       isShownDiscardModal.value = false
       return
@@ -185,8 +222,32 @@ watch(
   { deep: true },
 )
 
+const serverFieldError = (error: unknown): keyof DbConnectionForm | undefined =>
+  SERVER_FIELDS[getServerErrorField(error)]
+
+function showServerFieldError(error: unknown) {
+  const field = serverFieldError(error)
+
+  if (!field) {
+    return
+  }
+  validationIssues.value = {
+    [field]:
+      field === 'host' && isApiError(error) && error.status === 403
+        ? 'integrations.cards.database_address_pbx_not_allowed'
+        : getServerMessageKey(error) || 'integrations.invalid_fields',
+  }
+  fieldToFocus.value = field
+}
+
 function validate(): boolean {
-  validationIssues.value = validateDbConnectionForm(form.value, currentConnection)
+  validationIssues.value = validateDbConnectionForm(
+    form.value,
+    currentConnection,
+    (connectionsState.value.data ?? []).filter(
+      (connection) => connection.id !== currentConnection?.id,
+    ),
+  )
   const [firstInvalidField] = Object.keys(validationIssues.value)
 
   if (firstInvalidField) {
@@ -235,9 +296,12 @@ async function save() {
   if (!validate()) {
     return
   }
+  const session = openCount
+  const connectionForm = { ...form.value }
+  const connectionId = currentConnection?.id
 
-  if ((testSucceeded.value === true || (await runTest())) && isShown) {
-    saveMutate({ ...form.value })
+  if ((testSucceeded.value === true || (await runTest())) && isShown && session === openCount) {
+    saveMutate({ connectionForm, connectionId })
   }
 }
 </script>
@@ -264,7 +328,11 @@ async function save() {
           :label="t('integrations.name')"
           :placeholder="t('integrations.cards.database_name_placeholder')"
           :helper-text="t('integrations.cards.database_name_helper')"
-          :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
+          :invalid-message="
+            validationIssues.name
+              ? t(validationIssues.name, { max: DB_CONNECTION_MAX_LENGTHS.name })
+              : ''
+          "
           :disabled="busy"
           @blur="form.name = form.name.trim()"
         />
@@ -295,7 +363,11 @@ async function save() {
           :label="t('integrations.cards.database_address')"
           :placeholder="t('integrations.cards.database_address_placeholder')"
           :helper-text="t('integrations.cards.database_address_helper')"
-          :invalid-message="validationIssues.host ? t(validationIssues.host) : ''"
+          :invalid-message="
+            validationIssues.host
+              ? t(validationIssues.host, { max: DB_CONNECTION_MAX_LENGTHS.host })
+              : ''
+          "
           :disabled="busy"
           @blur="form.host = form.host.trim()"
         />
@@ -321,7 +393,11 @@ async function save() {
           v-model="form.user"
           :label="t('integrations.cards.database_username')"
           autocomplete="off"
-          :invalid-message="validationIssues.user ? t(validationIssues.user) : ''"
+          :invalid-message="
+            validationIssues.user
+              ? t(validationIssues.user, { max: DB_CONNECTION_MAX_LENGTHS.user })
+              : ''
+          "
           :disabled="busy"
           @blur="form.user = form.user.trim()"
         />
@@ -334,7 +410,11 @@ async function save() {
           :show-password-label="t('ne_text_input.show_password')"
           :hide-password-label="t('ne_text_input.hide_password')"
           :helper-text="passwordHelper"
-          :invalid-message="validationIssues.password ? t(validationIssues.password) : ''"
+          :invalid-message="
+            validationIssues.password
+              ? t(validationIssues.password, { max: DB_CONNECTION_MAX_LENGTHS.password })
+              : ''
+          "
           :disabled="busy"
         />
         <div class="flex flex-col gap-4">
@@ -356,10 +436,10 @@ async function save() {
             </p>
           </div>
           <NeInlineNotification
-            v-if="testError"
+            v-if="testError && !serverFieldError(testError)"
             kind="error"
             :title="t('integrations.cards.test_failed')"
-            :description="getLegacyStatusMessage(testError) || describeError(testError)"
+            :description="describeIntegrationError(testError)"
           />
           <NeInlineNotification
             v-else-if="testSucceeded === false"
@@ -377,14 +457,14 @@ async function save() {
           </p>
         </div>
         <NeInlineNotification
-          v-if="saveError"
+          v-if="saveError && !serverFieldError(saveError)"
           kind="error"
           :title="
             currentConnection
               ? t('integrations.cards.cannot_save_connection')
               : t('integrations.cards.cannot_create_connection')
           "
-          :description="getLegacyStatusMessage(saveError) || describeError(saveError)"
+          :description="describeIntegrationError(saveError)"
         />
       </div>
       <hr class="my-8" />

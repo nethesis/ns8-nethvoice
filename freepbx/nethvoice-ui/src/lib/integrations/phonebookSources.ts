@@ -31,6 +31,8 @@ export const PREVIEW_ROWS = 3
 
 export const CSV_MAX_SIZE = 8 * 1024 * 1024
 
+export const PHONEBOOK_TEXT_MAX_LENGTH = 255
+
 const CSV_EXTENSIONS = ['.csv', '.txt']
 
 export const UPLOADED_CSV_PREFIX = 'file:///var/lib/nethvoice/phonebook/uploads/'
@@ -143,7 +145,11 @@ const RowsSchema = v.array(v.record(v.string(), v.unknown()))
 
 const TestResponseSchema = v.union([
   RowsSchema,
-  v.object({ rows: RowsSchema, total: v.pipe(v.number(), v.integer(), v.minValue(0)) }),
+  v.object({
+    rows: RowsSchema,
+    total: v.pipe(v.number(), v.integer(), v.minValue(0)),
+    columns: v.optional(v.array(v.string())),
+  }),
 ])
 
 const READ_ERROR_KINDS = [
@@ -363,19 +369,90 @@ export const parsePhonebookTestResult = (raw: unknown): PhonebookTestResult => {
   if (!result.success) {
     return { ok: false, kind: 'unknown', details: '' }
   }
-  const [rawRows, total] = Array.isArray(result.output)
-    ? [result.output, undefined]
-    : [result.output.rows, result.output.total]
+  const [rawRows, total, header] = Array.isArray(result.output)
+    ? [result.output, undefined, undefined]
+    : [result.output.rows, result.output.total, result.output.columns]
   const rows = rawRows.map((row) =>
     Object.fromEntries(Object.entries(row).map(([column, value]) => [column, toText(value)])),
   )
 
   return {
     ok: true,
-    columns: Object.keys(rows[0] ?? {}),
+    columns: [...new Set([...(header ?? []), ...rows.flatMap((row) => Object.keys(row))])],
     rows: total === 0 ? [] : rows.slice(0, PREVIEW_ROWS),
     ...(total === undefined ? {} : { total }),
   }
+}
+
+export type PhonebookText = { key: string; params?: Record<string, string | number> }
+
+const SERVER_MESSAGES: [RegExp, (match: RegExpMatchArray) => PhonebookText][] = [
+  [
+    /^none of the selected sharing groups exist$/i,
+    () => ({ key: 'integrations.phonebook.server_groups_missing' }),
+  ],
+  [/^invalid source url$/i, () => ({ key: 'integrations.phonebook.server_url_not_allowed' })],
+  [
+    /^enter the password to connect to a different server$/i,
+    () => ({ key: 'integrations.password_server_changed_helper' }),
+  ],
+  [/^missing value: /i, () => ({ key: 'integrations.phonebook.server_missing_value' })],
+  [/^csv separator must be a comma$/i, () => ({ key: 'integrations.phonebook.server_csv_comma' })],
+  [
+    /^phonebook source not found$/i,
+    () => ({ key: 'integrations.phonebook.server_source_not_found' }),
+  ],
+  [
+    /^source name too long$/i,
+    () => ({
+      key: 'integrations.phonebook.name_too_long',
+      params: { max: PHONEBOOK_TEXT_MAX_LENGTH },
+    }),
+  ],
+  [
+    /^sharing groups too long$/i,
+    () => ({
+      key: 'integrations.phonebook.groups_too_long',
+      params: { max: PHONEBOOK_TEXT_MAX_LENGTH },
+    }),
+  ],
+  [/^invalid or missing owner$/i, () => ({ key: 'integrations.phonebook.server_owner_invalid' })],
+  [/^mapping must include /i, () => ({ key: 'integrations.phonebook.no_name_column_import' })],
+  [/^csv file not found$/i, () => ({ key: 'integrations.phonebook.server_file_missing' })],
+  [/^empty csv file$/i, () => ({ key: 'integrations.phonebook.csv_file_empty' })],
+  [
+    /^no mapped columns found in csv$/i,
+    () => ({ key: 'integrations.phonebook.server_no_mapped_columns' }),
+  ],
+  [
+    /^file upload (is required|error)$/i,
+    () => ({ key: 'integrations.phonebook.server_upload_failed' }),
+  ],
+  [
+    /^(the sync was interrupted|interrupted by sig\w+)$/i,
+    () => ({ key: 'integrations.phonebook.server_sync_interrupted' }),
+  ],
+  [
+    /^the source did not answer within (the time limit|\d+ seconds)$/i,
+    () => ({ key: 'integrations.phonebook.server_time_limit' }),
+  ],
+  [
+    /^the file exceeds the maximum size of (\d+) mb$/i,
+    (match) => ({ key: 'integrations.phonebook.csv_file_too_large', params: { size: match[1] } }),
+  ],
+]
+
+export const getPhonebookServerText = (message: string): PhonebookText | undefined => {
+  const text = message.trim()
+
+  for (const [pattern, toText] of SERVER_MESSAGES) {
+    const match = text.match(pattern)
+
+    if (match) {
+      return toText(match)
+    }
+  }
+  return undefined
 }
 
 export const getReadErrorTexts = (
@@ -581,6 +658,8 @@ export const hasNameColumn = (mapping: Record<string, string>): boolean =>
 export const hasAnyNameColumn = (mapping: Record<string, string>): boolean =>
   Object.values(mapping).some((field) => NAME_FIELDS.includes(field))
 
+const isTooLong = (text: string): boolean => [...text].length > PHONEBOOK_TEXT_MAX_LENGTH
+
 export const isNameTaken = (name: string, otherNames: string[]): boolean => {
   const wanted = name.trim().toLowerCase()
   return wanted !== '' && otherNames.some((other) => other.trim().toLowerCase() === wanted)
@@ -593,6 +672,9 @@ const OptionalPortSchema = v.pipe(
 )
 
 const HTTP_URL = /^https?:\/\/\S+$/i
+
+const isInfinityUrl = (url: string): boolean =>
+  url.includes('://') ? HTTP_URL.test(url) : /^[^\s/]\S*$/.test(url)
 
 const buildSourceSchema = (passwordRequired: boolean) => {
   const name = requiredText('integrations.phonebook.name_required')
@@ -639,7 +721,7 @@ const buildSourceSchema = (passwordRequired: boolean) => {
       name,
       url: v.pipe(
         requiredText('integrations.url_required'),
-        v.regex(HTTP_URL, 'integrations.url_invalid'),
+        v.check(isInfinityUrl, 'integrations.url_invalid'),
       ),
       username: requiredText('integrations.phonebook.username_required'),
       password,
@@ -700,6 +782,10 @@ export const validatePhonebookSourceFields = (
     form,
   )
 
+  if (!issues.name && isTooLong(form.name.trim())) {
+    issues.name = 'integrations.phonebook.name_too_long'
+  }
+
   if (!issues.name && isNameTaken(form.name, otherNames)) {
     issues.name = 'integrations.phonebook.name_taken'
   }
@@ -730,10 +816,18 @@ export const validatePhonebookSourceFields = (
 export const validatePhonebookVisibility = (form: {
   sharing: 'public' | 'groups'
   groups: string[]
-}): FieldIssues =>
-  form.sharing === 'groups' && form.groups.length === 0
-    ? { groups: 'integrations.phonebook.groups_required' }
+}): FieldIssues => {
+  if (form.sharing !== 'groups') {
+    return {}
+  }
+
+  if (form.groups.length === 0) {
+    return { groups: 'integrations.phonebook.groups_required' }
+  }
+  return isTooLong(buildAccess(form.groups))
+    ? { groups: 'integrations.phonebook.groups_too_long' }
     : {}
+}
 
 const buildConnection = (form: PhonebookSourceForm) => {
   const password = form.password ? { password: form.password } : {}
@@ -761,6 +855,26 @@ const buildConnection = (form: PhonebookSourceForm) => {
 
 export const isLocalHostRefusal = (error: unknown, form: PhonebookSourceForm): boolean =>
   isDatabaseKind(form.kind) && isApiError(error) && error.status === 403
+
+const RefusedFieldSchema = v.object({ field: v.literal('url') })
+
+export const isUrlRefusal = (error: unknown, form: PhonebookSourceForm): boolean =>
+  (form.kind === 'infinity' || (form.kind === 'csv' && form.csvFrom === 'url')) &&
+  isApiError(error) &&
+  error.status === 400 &&
+  v.is(RefusedFieldSchema, error.body)
+
+export const getFieldRefusal = (
+  error: unknown,
+  form: PhonebookSourceForm,
+): { field: string; issue: string } | undefined => {
+  if (isLocalHostRefusal(error, form)) {
+    return { field: 'host', issue: 'integrations.phonebook.host_local' }
+  }
+  return isUrlRefusal(error, form)
+    ? { field: 'url', issue: 'integrations.phonebook.server_url_not_allowed' }
+    : undefined
+}
 
 export const buildPhonebookTestPayload = (
   form: PhonebookSourceForm,

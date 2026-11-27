@@ -79,6 +79,7 @@ export type VideoSource = {
   tlsUnpinned: boolean
   doorPhone: string
   profileIds: string[]
+  pbxServer: boolean
 }
 
 export type VideoStreams = { main: string; sub: string; mainLabel: string; subLabel: string }
@@ -137,6 +138,7 @@ export type Reachability = {
   port: number
   private: boolean
   reachable: boolean
+  skipped: boolean
   publicAddress: string
 }
 
@@ -153,6 +155,7 @@ export type GateForm = {
   username: string
   password: string
   hasPassword: boolean
+  relay: number | null
 }
 
 export type VideoSourceForm = {
@@ -212,6 +215,7 @@ const SourceSchema = v.object({
   tls_unpinned: FlagSchema,
   door_phone: TextSchema,
   profiles: v.optional(v.nullable(v.array(IdSchema)), []),
+  pbx_server: FlagSchema,
 })
 
 const StreamsSchema = v.nullish(
@@ -305,6 +309,7 @@ const ReachabilitySchema = v.object({
   port: v.number(),
   private: FlagSchema,
   reachable: FlagSchema,
+  skipped: FlagSchema,
   public_address: TextSchema,
 })
 
@@ -352,6 +357,7 @@ export const parseVideoSources = (raw: unknown): VideoSource[] =>
       tlsUnpinned: source.tls_unpinned,
       doorPhone: source.door_phone,
       profileIds: source.profiles ?? [],
+      pbxServer: source.pbx_server,
     }))
     .sort((a, b) => compareNatural(a.name, b.name))
 
@@ -437,6 +443,7 @@ export const parseReachability = (raw: unknown): Reachability => {
     port: reachability.port,
     private: reachability.private,
     reachable: reachability.reachable,
+    skipped: reachability.skipped,
     publicAddress: reachability.public_address,
   }
 }
@@ -549,6 +556,7 @@ export const newGateForm = (name = ''): GateForm => ({
   username: '',
   password: '',
   hasPassword: false,
+  relay: null,
 })
 
 export const findProfileIdByName = (profiles: ProfileOption[], name: string): string =>
@@ -593,15 +601,43 @@ export const emptyVideoSourceForm = (profileIds: string[] = []): VideoSourceForm
   gates: [],
 })
 
-export const relayOf = (relays: DoorRelay[], index: number): DoorRelay | undefined =>
-  relays.find((relay) => relay.relay === index + 1)
+export const relayOfGate = (gate: GateForm, relays: DoorRelay[]): DoorRelay | undefined =>
+  gate.relay === null ? undefined : relays.find((relay) => relay.relay === gate.relay)
 
-export const isGateCodeLocked = (gate: GateForm, index: number, relays: DoorRelay[]): boolean =>
-  gate.type === 'dtmf' && !!relayOf(relays, index)?.code
+export const isGateCodeLocked = (gate: GateForm, relays: DoorRelay[]): boolean =>
+  gate.type === 'dtmf' && !!relayOfGate(gate, relays)?.code
 
-export const syncDoorGates = (gates: GateForm[], relays: DoorRelay[]): GateForm[] =>
-  gates.map((gate, index) => {
-    const relay = relayOf(relays, index)
+const matchesRelay = (gate: GateForm, relay: DoorRelay): boolean =>
+  gate.type === 'dtmf'
+    ? !!relay.code && gate.code.trim() === relay.code
+    : !!relay.url && gate.url.trim() === relay.url
+
+const assignRelays = (gates: GateForm[], relays: DoorRelay[]): (number | null)[] => {
+  const assigned: (number | null)[] = gates.map(() => null)
+  const claimed = new Set<number>()
+  const pick = (choose: (gate: GateForm) => DoorRelay | undefined) =>
+    gates.forEach((gate, index) => {
+      const relay = assigned[index] === null ? choose(gate) : undefined
+
+      if (relay) {
+        assigned[index] = relay.relay
+        claimed.add(relay.relay)
+      }
+    })
+  const free = (relay: DoorRelay) => !claimed.has(relay.relay)
+
+  pick((gate) => relays.find((relay) => free(relay) && relay.relay === gate.relay))
+  pick((gate) => relays.find((relay) => free(relay) && matchesRelay(gate, relay)))
+  pick(() => relays.find(free))
+  return assigned
+}
+
+export const syncDoorGates = (gates: GateForm[], relays: DoorRelay[]): GateForm[] => {
+  const assigned = assignRelays(gates, relays)
+
+  return gates.map((item, index) => {
+    const gate = { ...item, relay: assigned[index] ?? null }
+    const relay = relayOfGate(gate, relays)
 
     if (!relay) {
       return gate
@@ -619,6 +655,7 @@ export const syncDoorGates = (gates: GateForm[], relays: DoorRelay[]): GateForm[
     }
     return gate
   })
+}
 
 export const toVideoSourceForm = (
   source: VideoSource,
@@ -643,7 +680,7 @@ export const toVideoSourceForm = (
     doorPhone: source.doorPhone,
     ownCredentials: false,
     gates: syncDoorGates(
-      source.gates.map((gate) => ({ ...gate, uid: newGateUid(), password: '' })),
+      source.gates.map((gate) => ({ ...gate, uid: newGateUid(), password: '', relay: null })),
       source.doorPhone ? (context?.relays ?? []) : [],
     ),
   }
@@ -707,7 +744,30 @@ export const getVideoSourcePermissionName = (name: string): string =>
 
 const byteLength = (text: string) => new TextEncoder().encode(text).length
 
-export const validateConnection = (form: VideoSourceForm): FieldIssues => {
+export const urlEndpoint = (url: string): string => {
+  const match = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)/i.exec(url.trim())
+  const scheme = match?.[1]?.toLowerCase() ?? ''
+  const authority = match?.[2] ?? ''
+  const host = authority.slice(authority.lastIndexOf('@') + 1)
+  const parts =
+    /^\[([0-9a-f:.]+)\](?::(\d{1,5}))?$/i.exec(host) ??
+    /^([a-z0-9._-]+)(?::(\d{1,5}))?$/i.exec(host)
+
+  if (!parts || DEFAULT_PORTS[scheme] === undefined) {
+    return ''
+  }
+  return `${scheme}://${parts[1]?.toLowerCase()}:${parts[2] ?? DEFAULT_PORTS[scheme]}`
+}
+
+export const isStoredPasswordKept = (
+  form: Pick<VideoSourceForm, 'url'>,
+  current: Pick<VideoSource, 'url' | 'hasSecret'> | undefined,
+): boolean => !!current?.hasSecret && urlEndpoint(current.url) === urlEndpoint(form.url)
+
+export const validateConnection = (
+  form: VideoSourceForm,
+  current?: Pick<VideoSource, 'url' | 'hasSecret'>,
+): FieldIssues => {
   const issues: FieldIssues = {}
   const url = form.url.trim()
 
@@ -721,13 +781,20 @@ export const validateConnection = (form: VideoSourceForm): FieldIssues => {
   if (usesDoorPhoneCredentials(form)) {
     return issues
   }
-  if (form.user.trim().length > VIDEO_CREDENTIAL_MAX_LENGTH) {
+  if (byteLength(form.user.trim()) > VIDEO_CREDENTIAL_MAX_LENGTH) {
     issues.user = 'integrations.video.credential_too_long'
   }
-  if (form.password.length > VIDEO_CREDENTIAL_MAX_LENGTH) {
+  if (byteLength(form.password) > VIDEO_CREDENTIAL_MAX_LENGTH) {
     issues.password = 'integrations.video.credential_too_long'
   } else if (form.doorPhone && form.user.trim() && !form.password) {
     issues.password = 'integrations.video.door_phone_password_required'
+  } else if (
+    current?.hasSecret &&
+    form.user.trim() &&
+    !form.password &&
+    !isStoredPasswordKept(form, current)
+  ) {
+    issues.password = 'integrations.video.password_address_changed'
   }
   return issues
 }
@@ -735,6 +802,7 @@ export const validateConnection = (form: VideoSourceForm): FieldIssues => {
 export const validateSourceFields = (
   form: VideoSourceForm,
   otherSources: Pick<VideoSource, 'name'>[],
+  current?: Pick<VideoSource, 'url' | 'hasSecret'>,
 ): FieldIssues => {
   const issues: FieldIssues = {}
   const name = form.name.trim()
@@ -757,7 +825,7 @@ export const validateSourceFields = (
   if (form.profileIds.length === 0) {
     issues.profileIds = 'integrations.profiles_required'
   }
-  return { ...issues, ...validateConnection(form) }
+  return { ...issues, ...validateConnection(form, current) }
 }
 
 export const gateIssueKey = (uid: string, field: string) => `gates.${uid}.${field}`
@@ -818,10 +886,10 @@ export const validateGates = (form: VideoSourceForm, limit: number): FieldIssues
     } else if (url.length > VIDEO_GATE_URL_MAX_LENGTH) {
       issues[gateIssueKey(gate.uid, 'url')] = 'integrations.video.url_too_long'
     }
-    if (gate.username.trim().length > VIDEO_CREDENTIAL_MAX_LENGTH) {
+    if (byteLength(gate.username.trim()) > VIDEO_CREDENTIAL_MAX_LENGTH) {
       issues[gateIssueKey(gate.uid, 'username')] = 'integrations.video.credential_too_long'
     }
-    if (gate.password.length > VIDEO_CREDENTIAL_MAX_LENGTH) {
+    if (byteLength(gate.password) > VIDEO_CREDENTIAL_MAX_LENGTH) {
       issues[gateIssueKey(gate.uid, 'password')] = 'integrations.video.credential_too_long'
     }
   })
@@ -989,6 +1057,9 @@ const MESSAGE_KEYS: [RegExp, string][] = [
   [/extension must be a number/, 'integrations.video.extension_invalid'],
   [/is too long$/, 'integrations.video.value_too_long'],
   [/invalid profile id/, 'integrations.video.profiles_invalid'],
+  [/^Invalid source URL$/, 'integrations.video.url_invalid'],
+  [/contains control characters$/, 'integrations.video.control_characters'],
+  [/^too many .* checks/, 'integrations.video.too_many_checks'],
 ]
 
 const FIELD_NAMES: Record<string, string> = {
@@ -1014,8 +1085,6 @@ const GATE_FIELDS: Record<string, string> = {
 
 export type SaveErrorMapping = { issues: FieldIssues; message: string }
 
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
-
 export const isDoorPasswordRequest = (issues: FieldIssues): boolean =>
   issues.password === 'integrations.video.door_phone_password_not_allowed'
 
@@ -1032,8 +1101,13 @@ export const mapSaveError = (error: unknown, gates: GateForm[]): SaveErrorMappin
     typeof body === 'object' && body !== null && 'field' in body && typeof body.field === 'string'
       ? body.field
       : ''
-  const text = MESSAGE_KEYS.find(([pattern]) => pattern.test(status))?.[1] ?? capitalize(status)
   const gateMatch = /^gates\[(\d+)\](?:\.(\w+))?$/.exec(field)
+  const formField = FIELD_NAMES[field]
+  const text =
+    MESSAGE_KEYS.find(([pattern]) => pattern.test(status))?.[1] ??
+    (gateMatch || formField
+      ? 'integrations.video.invalid_value'
+      : 'integrations.video.request_refused')
 
   if (gateMatch) {
     const gate = gates[Number(gateMatch[1])]
@@ -1043,8 +1117,6 @@ export const mapSaveError = (error: unknown, gates: GateForm[]): SaveErrorMappin
       ? { issues: { [gateIssueKey(gate.uid, gateField)]: text }, message: '' }
       : { issues: {}, message: text }
   }
-  const formField = FIELD_NAMES[field]
-
   return formField ? { issues: { [formField]: text }, message: '' } : { issues: {}, message: text }
 }
 

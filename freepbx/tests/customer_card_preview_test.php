@@ -74,6 +74,14 @@ foreach ([
     check(!str_contains($json, 'ampusers') && !str_contains($json, 'ER_'), "$label passed the CTI error text: $json");
 }
 
+$queryError = "ER_PARSE_ERROR: You have an error in your SQL syntax near 'FORM crm'";
+[$status, $json] = preview($valid, ['status' => 422, 'body' => json_encode(['error' => "  $queryError\n"])]);
+check($status === 422 && $json === json_encode(['message' => CTI_PREVIEW_QUERY_FAILED, 'error' => $queryError]), "a query error answered $status $json");
+[$status, $json] = preview($valid, ['status' => 422, 'body' => json_encode(['error' => str_repeat('è', CTI_PREVIEW_ERROR_MAX_LENGTH + 10)])]);
+check($status === 422 && json_decode($json, true)['error'] === str_repeat('è', CTI_PREVIEW_ERROR_MAX_LENGTH), "a long query error was not cut: $status");
+[$status, $json] = preview($valid, ['status' => 422, 'body' => json_encode(['message' => SQL_ERROR])]);
+check($status === 502 && $json === json_encode(['message' => CTI_PREVIEW_FAILED]), "a query error without text answered $status $json");
+
 [$status, $json] = preview($valid, null);
 check($status === 503 && $json === json_encode(['message' => CTI_PREVIEW_UNREACHABLE]), "an unreachable CTI server answered $status $json");
 

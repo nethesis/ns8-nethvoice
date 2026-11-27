@@ -40,9 +40,9 @@ import {
   toDuplicatedCardTemplateForm,
   validateCardTemplateForm,
 } from '@/lib/integrations/cardTemplates'
-import { getLegacyStatusMessage } from '@/lib/integrations/errors'
+import { describeIntegrationError } from '@/lib/integrations/errors'
 import type { FieldIssues } from '@/lib/integrations/validation'
-import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const EJS_DOCS_URL = 'https://ejs.co/#docs'
 
@@ -337,7 +337,7 @@ function save() {
               ? t('integrations.cards.cannot_save_template')
               : t('integrations.cards.cannot_create_template')
           "
-          :description="getLegacyStatusMessage(saveError) || describeError(saveError)"
+          :description="describeIntegrationError(saveError)"
         />
       </div>
       <hr class="my-8" />

@@ -205,6 +205,11 @@ export const useVideoSourceChecks = (sources: () => VideoSource[], enabled: () =
   }
 
   const seed = (name: string, check: VideoSourceCheck) => {
+    const entry = queryCache.get<StoredCheck>(videoSourceCheckKey(name))
+
+    if (entry) {
+      queryCache.cancel(entry)
+    }
     queryCache.setQueryData<StoredCheck>(videoSourceCheckKey(name), { signature: '', check })
   }
 

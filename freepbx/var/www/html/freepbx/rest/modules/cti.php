@@ -40,6 +40,147 @@ const CTI_TEMPLATE_PREVIEW_ERROR = 'The template cannot be rendered with these r
 const CTI_TEMPLATE_PREVIEW_MAX_BYTES = 262144;
 const CTI_TEMPLATE_PREVIEW_MAX_RESULTS_BYTES = 65536;
 const CTI_CUSTOMER_CARD_COLUMNS = ['id', 'name', 'creation', 'query', 'template', 'dbconn_id', 'permission_id'];
+const CTI_PREVIEW_QUERY_FAILED = 'The query cannot be run';
+const CTI_PREVIEW_ERROR_MAX_LENGTH = 4000;
+const CTI_CARD_NAME_MAX_LENGTH = 128;
+const CTI_CARD_NAME_IN_USE = 'Customer card name already in use';
+const CTI_DBCONN_MAX_LENGTHS = ['host' => 128, 'port' => 64, 'type' => 32, 'user' => 64, 'pass' => 64, 'name' => 64];
+const CTI_DBCONN_DUPLICATE = 'A database connection with the same server, user and database already exists';
+const CTI_TEMPLATE_BUILT_IN = 'Built-in templates cannot be deleted';
+const CTI_TEMPLATE_IN_USE = 'The template is used by customer cards';
+
+function ctiIsStorableText(string $value, int $maxLength): bool
+{
+    return preg_match('/^[\x{0}-\x{FFFF}]{0,' . $maxLength . '}$/uD', $value) === 1;
+}
+
+function ctiCustomerCardNameIssue($name): ?string
+{
+    if (!is_string($name) || trim($name) === '') {
+        return 'Missing value: name';
+    }
+    if (!ctiIsStorableText($name, CTI_CARD_NAME_MAX_LENGTH)) {
+        return 'Invalid customer card name';
+    }
+
+    return null;
+}
+
+function ctiCustomerCardNameInUse($dbh, string $name, $exceptId = null): bool
+{
+    $sth = $dbh->prepare('SELECT COUNT(*) FROM customer_card WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) AND id != ?');
+    $sth->execute([$name, $exceptId === null ? 0 : (int) $exceptId]);
+
+    return (int) $sth->fetchColumn() > 0;
+}
+
+function ctiCustomerCardPermissionName($dbi, string $name): string
+{
+    $base = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)));
+    $sth = $dbi->prepare('SELECT COUNT(*) FROM rest_cti_permissions WHERE name = ?');
+    $candidate = $base;
+    for ($suffix = 2; ; $suffix++) {
+        $sth->execute([$candidate]);
+        if ((int) $sth->fetchColumn() === 0) {
+            return $candidate;
+        }
+        $candidate = $base . '_' . $suffix;
+    }
+}
+
+function ctiCreateCustomerCardPermission($dbi, string $name): int
+{
+    $permname = ctiCustomerCardPermissionName($dbi, $name);
+    $sth = $dbi->prepare('INSERT INTO rest_cti_permissions(name, displayname, description) VALUES (?, ?, ?)');
+    if ($sth->execute(array($permname, $name, 'Enable the customer card for this profile')) === FALSE) {
+        throw new Exception($sth->errorInfo()[2]);
+    }
+    $sth = $dbi->prepare('SELECT id FROM rest_cti_permissions WHERE name = ?');
+    $sth->execute(array($permname));
+    $res = $sth->fetchObject();
+    if (!$res) {
+        throw new Exception('no permission stored for customer card');
+    }
+
+    return (int) $res->id;
+}
+
+function ctiDeleteCustomerCardPermission($dbi, int $permissionId): void
+{
+    foreach (['rest_cti_profiles_permissions', 'rest_cti_macro_permissions_permissions', 'rest_cti_permissions'] as $table) {
+        $column = $table === 'rest_cti_permissions' ? 'id' : 'permission_id';
+        $dbi->prepare("DELETE FROM $table WHERE $column = ?")->execute([$permissionId]);
+    }
+}
+
+function ctiDbConnectionIssue($data): ?string
+{
+    if (!is_array($data)) {
+        return null;
+    }
+    foreach (CTI_DBCONN_MAX_LENGTHS as $field => $maxLength) {
+        if (isset($data[$field]) && is_scalar($data[$field]) && !ctiIsStorableText((string) $data[$field], $maxLength)) {
+            return $field;
+        }
+    }
+
+    return null;
+}
+
+function ctiDbConnectionDuplicated($dbh, array $connection, $exceptId = null): bool
+{
+    foreach (['host', 'port', 'user', 'name'] as $field) {
+        if (!isset($connection[$field]) || !is_scalar($connection[$field])) {
+            return false;
+        }
+    }
+    $sth = $dbh->prepare('SELECT COUNT(*) FROM user_dbconn WHERE host = ? AND port = ? AND user = ? AND name = ? AND id != ?');
+    $sth->execute([(string) $connection['host'], (string) $connection['port'], (string) $connection['user'], (string) $connection['name'], $exceptId === null ? 0 : (int) $exceptId]);
+
+    return (int) $sth->fetchColumn() > 0;
+}
+
+function ctiDbConnectionSaveError($dbh, $data, $exceptId = null): ?array
+{
+    $field = ctiDbConnectionIssue($data);
+    if ($field !== null) {
+        return [400, ['message' => "Value too long or invalid: $field", 'field' => $field]];
+    }
+    $connection = is_array($data) ? $data : [];
+    if ($exceptId !== null) {
+        $connection = array_merge(ctiStoredDbConnection($dbh, $exceptId) ?? [], $connection);
+    }
+    if (ctiDbConnectionDuplicated($dbh, $connection, $exceptId)) {
+        return [409, ['message' => CTI_DBCONN_DUPLICATE, 'field' => 'name']];
+    }
+
+    return null;
+}
+
+function ctiWithPbxServerFlags(array $connections): array
+{
+    return array_map(fn($connection) => is_array($connection)
+        ? $connection + ['pbx_server' => nethvoiceTargetsBuiltinDbConnection($connection)]
+        : $connection, $connections);
+}
+
+function ctiCardTemplateDeleteStatus(string $dir, string $name, callable $cti): ?array
+{
+    if (file_exists($dir . '/' . $name . '_custom.ejs')) {
+        $sth = $cti()->prepare('SELECT COUNT(*) FROM customer_card WHERE template = ?');
+        $sth->execute([$name . '_custom']);
+        if ((int) $sth->fetchColumn() > 0) {
+            return [409, ['message' => CTI_TEMPLATE_IN_USE, 'field' => 'name']];
+        }
+
+        return null;
+    }
+    if (file_exists($dir . '/' . $name . '.ejs')) {
+        return [403, ['message' => CTI_TEMPLATE_BUILT_IN]];
+    }
+
+    return null;
+}
 
 function ctiCustomerCardFilters(array $params): ?array
 {
@@ -149,8 +290,13 @@ function ctiCustomerCardPreviewResponse($data, callable $send, callable $templat
     if ($answer === null) {
         return [503, ['message' => CTI_PREVIEW_UNREACHABLE]];
     }
-    $preview = $answer['status'] === 200 ? json_decode((string) $answer['body'], true) : null;
-    if (!is_array($preview) || !is_string($preview['html'] ?? null)) {
+    $preview = json_decode((string) $answer['body'], true);
+    if ($answer['status'] === 422 && is_array($preview) && is_string($preview['error'] ?? null)) {
+        $error = trim(mb_substr($preview['error'], 0, CTI_PREVIEW_ERROR_MAX_LENGTH, 'UTF-8'));
+
+        return [422, ['message' => CTI_PREVIEW_QUERY_FAILED, 'error' => $error]];
+    }
+    if ($answer['status'] !== 200 || !is_array($preview) || !is_string($preview['html'] ?? null)) {
         error_log('customer card preview: unexpected answer from the CTI server, HTTP ' . $answer['status']);
         return [502, ['message' => CTI_PREVIEW_FAILED]];
     }
@@ -600,6 +746,10 @@ $app->post('/cti/dbconn', function (Request $request, Response $response, $args)
 
         // Delete previous assignments
         $dbh = NethCTI::Database();
+        $saveError = ctiDbConnectionSaveError($dbh, $data);
+        if ($saveError !== null) {
+            return jsonResponse($response, $saveError[1], $saveError[0]);
+        }
         $sql = 'INSERT INTO user_dbconn(host, port, type, user, pass, name, creation)'.
             ' VALUES (?, ?, ?, ?, ?, ?, NOW())';
         $sth = $dbh->prepare($sql);
@@ -701,6 +851,10 @@ $app->put('/cti/dbconn/{id}', function (Request $request, Response $response, $a
         }
 
         $dbh = NethCTI::Database();
+        $saveError = ctiDbConnectionSaveError($dbh, $data, $id);
+        if ($saveError !== null) {
+            return jsonResponse($response, $saveError[1], $saveError[0]);
+        }
         $data = nethvoiceKeepStoredPassword($data, ctiStoredDbConnection($dbh, $id), 'pass', CTI_DBCONN_TARGET_FIELDS);
         if ($data === null) {
             return jsonResponse($response, ['message' => CTI_DBCONN_PASSWORD_REQUIRED], 400);
@@ -806,7 +960,10 @@ $app->get('/cti/dbconn', function (Request $request, Response $response, $args) 
 
         $res = $sth->fetchAll(PDO::FETCH_ASSOC);
 
-        return jsonResponse($response, nethvoiceWithoutStoredPasswords($res, 'pass', nethvoiceRequestIsSuperadmin($request)));
+        $superadmin = nethvoiceRequestIsSuperadmin($request);
+        $res = nethvoiceWithoutStoredPasswords($res, 'pass', $superadmin);
+
+        return jsonResponse($response, $superadmin ? $res : ctiWithPbxServerFlags($res));
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -1007,6 +1164,11 @@ $app->delete('/cti/customer_card/template/{name}', function (Request $request, R
 
         $tpl_path = '/var/lib/nethserver/nethcti/templates/customer_card';
 
+        $deleteStatus = ctiCardTemplateDeleteStatus($tpl_path, $name, fn() => NethCTI::Database());
+        if ($deleteStatus !== null) {
+            return jsonResponse($response, $deleteStatus[1], $deleteStatus[0]);
+        }
+
         if (file_exists($tpl_path. '/'. $name. '_custom'. '.ejs')) {
             unlink($tpl_path. '/'. $name. '_custom'. '.ejs');
         }
@@ -1110,6 +1272,8 @@ $app->get('/cti/customer_card', function (Request $request, Response $response, 
  * POST /cti/customer_card { name: string, query: string, template: string, dbconn_id: integer, profiles: [int, ...] }
 */
 $app->post('/cti/customer_card', function (Request $request, Response $response, $args) {
+    $dbi = null;
+    $permission_id = null;
     try {
         $route = $request->getAttribute('route');
         $data = $request->getParsedBody();
@@ -1120,28 +1284,18 @@ $app->post('/cti/customer_card', function (Request $request, Response $response,
         $dbconn_id = $data['dbconn_id'];
         $profiles = $data['profiles'];
 
+        $nameIssue = ctiCustomerCardNameIssue($name);
+        if ($nameIssue !== null) {
+            return jsonResponse($response, ['message' => $nameIssue, 'field' => 'name'], 400);
+        }
+        $dbh = NethCTI::Database();
+        if (ctiCustomerCardNameInUse($dbh, $name)) {
+            return jsonResponse($response, ['message' => CTI_CARD_NAME_IN_USE, 'field' => 'name'], 409);
+        }
+
         $dbi = FreePBX::Database();
         // Insert into cti permissions
-        $permname = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)));
-        $sql = 'INSERT INTO rest_cti_permissions(name, displayname, description) VALUES (?, ?, ?)';
-        $sth = $dbi->prepare($sql);
-        $res = $sth->execute(array($permname, $name, 'Enable the customer card for this profile'));
-
-        if ($res === FALSE) {
-            throw new Exception($sth->errorInfo()[2]);
-        }
-
-        $sql = 'SELECT id FROM rest_cti_permissions WHERE name = ?';
-        $sth = $dbi->prepare($sql);
-        $sth->execute(array($permname));
-        $res = $sth->fetchObject();
-        $permission_id = null;
-
-        if ($res) {
-            $permission_id = $res->id;
-        } else {
-            throw new Exception('no permission stored for customer card');
-        }
+        $permission_id = ctiCreateCustomerCardPermission($dbi, $name);
 
         // Add permission to customer card macro permission
         $sql = 'INSERT INTO rest_cti_macro_permissions_permissions'.
@@ -1164,24 +1318,26 @@ $app->post('/cti/customer_card', function (Request $request, Response $response,
             }
         }
 
-        $dbh = NethCTI::Database();
         $sql = 'INSERT INTO customer_card(name, creation, query, template, dbconn_id, permission_id)'.
             ' VALUES (?, NOW(), ?, ?, ?, ?)';
         $sth = $dbh->prepare($sql);
         $res = $sth->execute(array($name, $query, $template, $dbconn_id, $permission_id));
 
         if ($res === FALSE) {
-            $sql = 'DELETE FROM rest_cti_permissions WHERE id = ?';
-            $sth = $dbi->prepare($sql);
-            $res = $sth->execute(array($permission_id));
-
             throw new Exception($sth->errorInfo()[2]);
         }
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 
         return $response->withStatus(200);
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         error_log($e->getMessage());
+        if ($permission_id !== null) {
+            try {
+                ctiDeleteCustomerCardPermission($dbi, $permission_id);
+            } catch (Throwable $cleanup) {
+                error_log($cleanup->getMessage());
+            }
+        }
         return $response->withStatus(500);
     }
 });
@@ -1209,54 +1365,28 @@ $app->put('/cti/customer_card/{id}', function (Request $request, Response $respo
 
         $name = $res[0]['name'];
         $permission_id = $res[0]['permission_id'];
+        $renamed = isset($data['name']) && $data['name'] !== $name;
+
+        if ($renamed) {
+            $nameIssue = ctiCustomerCardNameIssue($data['name']);
+            if ($nameIssue !== null) {
+                return jsonResponse($response, ['message' => $nameIssue, 'field' => 'name'], 400);
+            }
+            if (!nethvoiceRequestIsSuperadmin($request) && ctiCustomerCardNameInUse($dbh, $data['name'], $id)) {
+                return jsonResponse($response, ['message' => CTI_CARD_NAME_IN_USE, 'field' => 'name'], 409);
+            }
+        }
 
         if(!$permission_id) {
             $dbi = FreePBX::Database();
             // Insert into cti permissions
-            $permname = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$name)));
-            $sql = 'INSERT INTO rest_cti_permissions(name, displayname, description) VALUES (?, ?, ?)';
+            $permission_id = ctiCreateCustomerCardPermission($dbi, $name);
+            $data['permission_id'] = $permission_id;
+            // Add permission to customer card macro permission
+            $sql = 'INSERT INTO rest_cti_macro_permissions_permissions'.
+                ' SELECT id, ? FROM rest_cti_macro_permissions WHERE name = ?';
             $sth = $dbi->prepare($sql);
-            $res = $sth->execute(array($permname, $name, 'Enable the customer card for this profile'));
-
-            if ($res === FALSE) {
-                throw new Exception($sth->errorInfo()[2]);
-            }
-
-            $sql = 'SELECT id FROM rest_cti_permissions WHERE name = ?';
-            $sth = $dbi->prepare($sql);
-            $sth->execute(array($permname));
-            $res = $sth->fetchObject();
-            $permission_id = null;
-
-            if ($res) {
-                $permission_id = $res->id;
-                $data['permission_id'] = $permission_id;
-                 // Add permission to customer card macro permission
-                $sql = 'INSERT INTO rest_cti_macro_permissions_permissions'.
-                    ' SELECT id, ? FROM rest_cti_macro_permissions WHERE name = ?';
-                $sth = $dbi->prepare($sql);
-                $res = $sth->execute(array($permission_id, 'customer_card'));
-
-                if ($res === FALSE) {
-                    throw new Exception($sth->errorInfo()[2]);
-                }
-            } else {
-                throw new Exception('no permission stored for customer card');
-            }
-        }
-
-        if (isset($data['name']) && $data['name'] !== $name) {
-            $dbi = FreePBX::Database();
-            $permname = 'cc_'. strtolower(str_replace(' ', '_', preg_replace('/[^a-zA-Z0-9\s]/','',$data['name'])));
-            $sth = $dbi->prepare('SELECT COUNT(*) FROM rest_cti_permissions WHERE name = ? AND id != ?');
-            $sth->execute(array($permname, $permission_id));
-            if ($sth->fetchColumn() > 0) {
-                $sth = $dbi->prepare('UPDATE rest_cti_permissions SET displayname = ? WHERE id = ?');
-                $res = $sth->execute(array($data['name'], $permission_id));
-            } else {
-                $sth = $dbi->prepare('UPDATE rest_cti_permissions SET name = ?, displayname = ? WHERE id = ?');
-                $res = $sth->execute(array($permname, $data['name'], $permission_id));
-            }
+            $res = $sth->execute(array($permission_id, 'customer_card'));
 
             if ($res === FALSE) {
                 throw new Exception($sth->errorInfo()[2]);
@@ -1281,6 +1411,13 @@ $app->put('/cti/customer_card/{id}', function (Request $request, Response $respo
 
         if ($res === FALSE) {
             throw new Exception($sth->errorInfo()[2]);
+        }
+
+        if ($renamed) {
+            $sth = FreePBX::Database()->prepare('UPDATE rest_cti_permissions SET displayname = ? WHERE id = ?');
+            if ($sth->execute(array($data['name'], $permission_id)) === FALSE) {
+                throw new Exception($sth->errorInfo()[2]);
+            }
         }
 
         if (array_key_exists('profiles', $data)) {
@@ -1363,14 +1500,20 @@ $app->delete('/cti/customer_card/{id}', function (Request $request, Response $re
  * GET /cti/streaming
  * Return the video sources: [{ descr, type, url, user, has_secret, frame-rate, exten, open, gates, tls_skip_verify, tls_fingerprint, permission, gateway_path, profiles }]
  * Secrets (source and gate passwords) are never returned.
+ * Limited administrators also get "pbx_server": true when the URL or a gate URL
+ * points to an address of the PBX node, a source they cannot save.
  */
 $app->get('/cti/streaming', function (Request $request, Response $response, $args) {
     try {
         $dbh = FreePBX::Database();
         $res = [];
+        $networks = nethvoiceRequestIsSuperadmin($request) ? null : streaming_node_networks();
         $sth = $dbh->prepare('SELECT `profile_id` FROM `rest_cti_profiles_permissions` JOIN `rest_cti_permissions` ON `rest_cti_permissions`.`id` = `rest_cti_profiles_permissions`.`permission_id` WHERE `rest_cti_permissions`.`name` = ?');
         foreach (streaming_load_sources($dbh) as $source) {
             $item = streaming_public_source($source);
+            if ($networks !== null) {
+                $item['pbx_server'] = ctiStreamingNodeSource($source, null, $networks);
+            }
             $item['profiles'] = [];
             $sth->execute([$item['permission']]);
             foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $pid) {
@@ -1608,6 +1751,17 @@ function ctiStreamingCheckNodeDestinations(array $source, ?callable $resolve = n
             throw new StreamingValidationException($field, 'the device address is not allowed: the addresses of the PBX node are refused');
         }
     }
+}
+
+function ctiStreamingNodeSource(array $source, ?callable $resolve = null, ?array $networks = null): bool
+{
+    try {
+        ctiStreamingCheckNodeDestinations($source, $resolve, $networks);
+    } catch (StreamingValidationException $e) {
+        return true;
+    }
+
+    return false;
 }
 
 function ctiStreamingGuardAddresses(bool $superadmin, array $source, ?array $current = null): int

@@ -123,13 +123,16 @@ test.describe('trunks: VoIP', () => {
       .getByText('demo_example', { exact: true })
       .first()
     await expect(name).toBeVisible()
-    expect(
-      await name.evaluate(
-        (element) =>
-          element.getBoundingClientRect().height <=
-          parseFloat(getComputedStyle(element).lineHeight),
-      ),
-    ).toBe(true)
+    await page.evaluate(() => document.fonts.ready)
+    await expect
+      .poll(() =>
+        name.evaluate(
+          (element) =>
+            element.getBoundingClientRect().height <=
+            parseFloat(getComputedStyle(element).lineHeight),
+        ),
+      )
+      .toBe(true)
   })
 
   test('keeps the trunks and shows the error above them when a refresh fails', async ({

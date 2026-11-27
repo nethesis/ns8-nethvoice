@@ -210,8 +210,11 @@ def infinitySession(guarded):
 def httpErrorKind(status):
   return 'auth' if status in AUTH_HTTP_STATUSES else 'http'
 
-def writePreview(rows, total):
-  json.dump({'rows': rows, 'total': total} if previewTotal else rows, sys.stdout, default=str)
+def writePreview(rows, total, columns=None):
+  preview = {'rows': rows, 'total': total}
+  if columns is not None:
+    preview['columns'] = list(dict.fromkeys(str(column) for column in columns))
+  json.dump(preview if previewTotal else rows, sys.stdout, default=str)
 
 def writeSyncStatus(sid, status, imported=None, message=None):
   connection = None
@@ -367,7 +370,7 @@ def syncSourceDB(path, output, deleteonly):
       for x in cols:
         temp[x] = ''
       res.append(temp)
-    writePreview(res, total)
+    writePreview(res, total, cols)
     logger.info('write ' + str(len(rows)) + ' entries to std output')
     logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
     curSource.close()
@@ -536,7 +539,7 @@ def syncSourceCsv(path, output, deleteonly):
     sys.exit(1)
 
   if output == True:
-    writePreview(df[:PREVIEW_ROWS], len(df))
+    writePreview(df[:PREVIEW_ROWS], len(df), header or [])
     logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
     return
 

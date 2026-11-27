@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import {
@@ -27,10 +27,13 @@ import {
   buildCustomerCardPayload,
   buildCustomerCardPreviewPayload,
   CALLER_NUMBER_PLACEHOLDER,
+  CUSTOMER_CARD_NAME_MAX_LENGTH,
   CUSTOMER_CARDS_KEY,
   type CustomerCard,
   type CustomerCardForm,
   emptyCustomerCardForm,
+  getCustomerCardPreviewQueryError,
+  isLongPreviewError,
   previewCustomerCard,
   saveCustomerCard,
   toCustomerCardForm,
@@ -38,7 +41,11 @@ import {
   validateCustomerCardForm,
 } from '@/lib/integrations/customerCards'
 import { getDbConnectionTypeLabel } from '@/lib/integrations/dbConnections'
-import { getLegacyStatusMessage } from '@/lib/integrations/errors'
+import {
+  describeIntegrationError,
+  getServerErrorField,
+  getServerMessageKey,
+} from '@/lib/integrations/errors'
 import { PROFILES_KEY } from '@/lib/profiles/profiles'
 import type { FieldIssues } from '@/lib/integrations/validation'
 import { useProfileOptions } from '@/queries/integrations/lookups'
@@ -133,10 +140,13 @@ const connectionOptions = computed(() =>
     .map((connection) => ({
       id: connection.id,
       label: connection.name,
-      description:
-        getStatus(connection.id) === 'notConnected'
-          ? t('integrations.cards.not_connected')
-          : getDbConnectionTypeLabel(connection.type, typesState.value.data ?? []),
+      description: t('integrations.cards.connection_option_description', {
+        address: connection.port ? `${connection.host}:${connection.port}` : connection.host,
+        detail:
+          getStatus(connection.id) === 'notConnected'
+            ? t('integrations.cards.not_connected')
+            : getDbConnectionTypeLabel(connection.type, typesState.value.data ?? []),
+      }),
     })),
 )
 
@@ -171,6 +181,16 @@ const {
 } = useMutation({
   mutation: (cardForm: CustomerCardForm) =>
     saveCustomerCard(buildCustomerCardPayload(cardForm, queryLocked.value), editing.value?.id),
+  onError(error) {
+    const field = getServerErrorField(error)
+
+    if (field === 'name') {
+      validationIssues.value = {
+        name: getServerMessageKey(error) || 'integrations.cards.card_name_invalid',
+      }
+      fieldToFocus.value = 'name'
+    }
+  },
   onSuccess(_data, cardForm) {
     const edited = !!editing.value
 
@@ -207,6 +227,16 @@ const {
 
 const busy = computed(() => saving.value || previewing.value)
 
+const fieldToFocus = ref('')
+
+watch(busy, async (isBusy) => {
+  if (!isBusy && fieldToFocus.value) {
+    await nextTick()
+    focusFirstInvalidField([fieldToFocus.value])
+    fieldToFocus.value = ''
+  }
+})
+
 watch(
   () => isShown,
   () => {
@@ -221,6 +251,15 @@ watch(
     form.value = initialForm()
     initialSnapshot.value = JSON.stringify(form.value)
     focusElement(nameRef)
+  },
+)
+
+watch(
+  () => form.value.dbConnectionId,
+  (connectionId) => {
+    if (queryLocked.value && editing.value && connectionId === editing.value.dbConnectionId) {
+      form.value.query = editing.value.query
+    }
   },
 )
 
@@ -280,13 +319,18 @@ function preview() {
   }
 }
 
+const previewQueryError = computed(() => getCustomerCardPreviewQueryError(previewError.value))
+
 function describePreviewError(error: unknown): string {
-  return (
-    getLegacyStatusMessage(error) ||
-    (isApiError(error) && error.status >= 500
-      ? t('integrations.cards.preview_failed_description')
-      : describeError(error))
-  )
+  return isApiError(error) && error.status >= 500 && !getServerMessageKey(error)
+    ? t('integrations.cards.preview_failed_description')
+    : describeIntegrationError(error)
+}
+
+function keepDetailsButtonFromSubmitting(event: MouseEvent) {
+  if (event.target instanceof Element && event.target.closest('button:not([type])')) {
+    event.preventDefault()
+  }
 }
 
 function requestClose() {
@@ -338,7 +382,11 @@ function save() {
               cti: runtimeConfigStore.config.ctiProductName,
             })
           "
-          :invalid-message="validationIssues.name ? t(validationIssues.name) : ''"
+          :invalid-message="
+            validationIssues.name
+              ? t(validationIssues.name, { max: CUSTOMER_CARD_NAME_MAX_LENGTH })
+              : ''
+          "
           :disabled="busy"
           @blur="form.name = form.name.trim()"
         />
@@ -347,7 +395,7 @@ function save() {
           v-model="form.dbConnectionId"
           :label="t('integrations.database')"
           :options="connectionOptions"
-          :placeholder="t('ne_combobox.choose')"
+          :placeholder="t('integrations.cards.choose_database')"
           :invalid-message="
             validationIssues.dbConnectionId ? t(validationIssues.dbConnectionId) : ''
           "
@@ -364,7 +412,7 @@ function save() {
           v-model="form.templateId"
           :label="t('integrations.cards.template')"
           :options="templateOptions"
-          :placeholder="t('ne_combobox.choose')"
+          :placeholder="t('integrations.cards.choose_template')"
           :invalid-message="validationIssues.templateId ? t(validationIssues.templateId) : ''"
           :disabled="busy || templatesState.status !== 'success'"
           :no-results-label="t('ne_combobox.no_results')"
@@ -440,8 +488,28 @@ function save() {
               {{ t('integrations.cards.show_preview') }}
             </NeButton>
           </div>
+          <div v-if="previewQueryError !== undefined" @click="keepDetailsButtonFromSubmitting">
+            <NeInlineNotification
+              kind="error"
+              :title="t('integrations.cards.preview_query_failed')"
+              :show-details-label="t('common.show_details')"
+            >
+              <template #description>
+                <p>{{ t('integrations.cards.preview_query_failed_description') }}</p>
+                <pre
+                  v-if="previewQueryError && !isLongPreviewError(previewQueryError)"
+                  class="mt-2 font-mono text-xs wrap-anywhere whitespace-pre-wrap"
+                  >{{ previewQueryError }}</pre>
+              </template>
+              <template v-if="isLongPreviewError(previewQueryError)" #details>
+                <pre class="font-mono text-xs wrap-anywhere whitespace-pre-wrap">{{
+                  previewQueryError
+                }}</pre>
+              </template>
+            </NeInlineNotification>
+          </div>
           <NeInlineNotification
-            v-if="previewError"
+            v-else-if="previewError"
             kind="error"
             :title="t('integrations.cards.preview_failed')"
             :description="describePreviewError(previewError)"
@@ -477,14 +545,14 @@ function save() {
           </div>
         </section>
         <NeInlineNotification
-          v-if="saveError"
+          v-if="saveError && getServerErrorField(saveError) !== 'name'"
           kind="error"
           :title="
             editing
               ? t('integrations.cards.cannot_save_card')
               : t('integrations.cards.cannot_create_card')
           "
-          :description="getLegacyStatusMessage(saveError) || describeError(saveError)"
+          :description="describeIntegrationError(saveError)"
         />
       </div>
       <hr class="my-8" />

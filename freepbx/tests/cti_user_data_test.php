@@ -30,6 +30,14 @@ class FakeCtiDatabase {
 
 $tests = [];
 
+$tests['gives a large CTI phonebook import the time to finish'] = function () {
+    $options = ctiPhonebookImportCurlOptions('qa-token', ['username' => 'qa_user']);
+    check($options[CURLOPT_TIMEOUT] >= 600, 'the import is cut before the middleware finishes');
+    check($options[CURLOPT_CONNECTTIMEOUT] === 2, 'the connect timeout changed');
+    check($options[CURLOPT_POSTFIELDS] === ['username' => 'qa_user'], 'the upload changed');
+    check($options[CURLOPT_HTTPHEADER] === ['Authorization: Bearer qa-token'], 'the token changed');
+};
+
 $tests['deletes the settings, the NethLink state and the tokens of the user'] = function () {
     $db = new FakeCtiDatabase();
     $revoked = [];

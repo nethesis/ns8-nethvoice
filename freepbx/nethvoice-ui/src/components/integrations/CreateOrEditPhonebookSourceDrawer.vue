@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import {
@@ -37,9 +37,9 @@ import PhonebookReadError from './PhonebookReadError.vue'
 import PhonebookVisibilityFields from './PhonebookVisibilityFields.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { usePhonebookFieldLabel } from '@/composables/usePhonebookFieldLabel'
+import { usePhonebookServerMessage } from '@/composables/usePhonebookServerMessage'
 import type { Focusable } from '@/lib/common'
 import { isApiError } from '@/lib/api/errors'
-import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import { countCsvRows } from '@/lib/integrations/phonebookImports'
 import {
   buildPhonebookSourcePayload,
@@ -58,11 +58,13 @@ import {
   INFINITY_FIELD_MAPPING,
   isCsvUploadRejected,
   isDatabaseKind,
-  isLocalHostRefusal,
+  getFieldRefusal,
   isPhonebookPasswordKept,
   isPhonebookSourceKind,
+  isUrlRefusal,
   NOT_IMPORTED,
   PHONEBOOK_SOURCE_KINDS,
+  PHONEBOOK_TEXT_MAX_LENGTH,
   PHONEBOOK_SOURCES_KEY,
   type PhonebookPreview as Preview,
   type PhonebookSource,
@@ -101,13 +103,14 @@ const {
   sources?: PhonebookSource[]
 }>()
 
-const emit = defineEmits<{ close: []; created: [id: string, name: string] }>()
+const emit = defineEmits<{ close: []; saved: [id: string, name: string] }>()
 
 const { t } = useI18n()
 const { isSuperadmin } = usePermissions()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const fieldLabel = usePhonebookFieldLabel()
+const { describeStatus } = usePhonebookServerMessage()
 const { state: fieldsState } = usePhonebookFields(() => isShown)
 const formId = useId()
 
@@ -119,7 +122,7 @@ const csvFile = ref<File | null>(null)
 const csvFileIssue = ref('')
 const uploadedFileKey = ref('')
 const lastRead = ref<LastRead | undefined>()
-const isHostRefused = ref(false)
+const refusedField = ref('')
 const hasNoColumns = ref(false)
 const initialSnapshot = ref('')
 const isShownDiscardModal = ref(false)
@@ -276,7 +279,7 @@ const {
 } = useMutation({
   mutation: (sourceForm: PhonebookSourceForm) =>
     testPhonebookSource(buildPhonebookTestPayload(sourceForm, currentSource)),
-  onError: (error, sourceForm) => showLocalHostRefusal(error, sourceForm),
+  onError: (error, sourceForm) => showFieldRefusal(error, sourceForm),
 })
 
 const {
@@ -308,13 +311,13 @@ const {
       })
     }, 500)
 
-    if (!edited && id) {
-      emit('created', id, name)
+    if (id) {
+      emit('saved', id, name)
     }
     emit('close')
   },
   onError(error, sourceForm) {
-    if (showLocalHostRefusal(error, sourceForm)) {
+    if (showFieldRefusal(error, sourceForm)) {
       step.value = 1
     }
   },
@@ -333,13 +336,13 @@ const readError = computed<ReadError | undefined>(() => {
       title: t('integrations.phonebook.cannot_upload_file'),
       description: isCsvUploadRejected(uploadError.value)
         ? t('integrations.phonebook.csv_upload_rejected', { size: CSV_MAX_SIZE_MB })
-        : getLegacyStatusMessage(uploadError.value) || describeError(uploadError.value),
+        : describeStatus(uploadError.value) || describeError(uploadError.value),
       details: '',
     }
   }
 
   if (testError.value) {
-    return isLocalHostRefusal(testError.value, form.value)
+    return getFieldRefusal(testError.value, form.value)
       ? undefined
       : {
           title: t('integrations.phonebook.cannot_read_source'),
@@ -406,6 +409,13 @@ watch(
   },
 )
 
+onBeforeUnmount(() => {
+  void deletePhonebookUploads(
+    saving.value ? pendingUploads.filter((url) => url !== form.value.uploadedUrl) : pendingUploads,
+  )
+  pendingUploads = []
+})
+
 watch(signature, () => {
   if (!reading.value) {
     resetRead()
@@ -415,9 +425,11 @@ watch(signature, () => {
 watch(
   busy,
   (isBusy) => {
-    if (!isBusy && isHostRefused.value) {
-      isHostRefused.value = false
-      focusElement(hostRef)
+    const ref = fieldRefs[refusedField.value]
+
+    if (!isBusy && ref) {
+      refusedField.value = ''
+      focusElement(ref)
     }
   },
   { flush: 'post' },
@@ -456,12 +468,14 @@ function resetRead() {
   hasNoColumns.value = false
 }
 
-function showLocalHostRefusal(error: unknown, sourceForm: PhonebookSourceForm): boolean {
-  if (!isLocalHostRefusal(error, sourceForm)) {
+function showFieldRefusal(error: unknown, sourceForm: PhonebookSourceForm): boolean {
+  const refusal = getFieldRefusal(error, sourceForm)
+
+  if (!refusal) {
     return false
   }
-  issues.value = { ...issues.value, host: 'integrations.phonebook.host_local' }
-  isHostRefused.value = true
+  issues.value = { ...issues.value, [refusal.field]: refusal.issue }
+  refusedField.value = refusal.field
   return true
 }
 
@@ -562,41 +576,44 @@ function validateVisibility(): boolean {
 
 function describeReadException(error: unknown): string {
   return (
-    getLegacyStatusMessage(error) ||
+    describeStatus(error) ||
     (isApiError(error) && error.status < 500
       ? describeError(error)
       : t('integrations.phonebook.read_error_unknown'))
   )
 }
 
-async function uploadFileIfNeeded(): Promise<boolean> {
-  const file = csvFile.value
-
+async function uploadFileIfNeeded(file: File | null, key: string): Promise<boolean> {
   if (form.value.kind !== 'csv' || form.value.csvFrom !== 'upload' || !file) {
     return true
   }
 
-  if (uploadedFileKey.value === fileKey.value) {
+  if (uploadedFileKey.value === key) {
     return true
   }
 
   try {
-    form.value.uploadedUrl = await uploadMutateAsync(file)
-    pendingUploads = [...pendingUploads, form.value.uploadedUrl]
-    uploadedFileKey.value = fileKey.value
+    const url = await uploadMutateAsync(file)
+    pendingUploads = [...pendingUploads, url]
+
+    if (fileKey.value !== key) {
+      return false
+    }
+    form.value.uploadedUrl = url
+    uploadedFileKey.value = key
     return true
   } catch {
     return false
   }
 }
 
-async function countUploadedRows(): Promise<number | undefined> {
-  if (form.value.kind !== 'csv' || form.value.csvFrom !== 'upload' || !csvFile.value) {
+async function countUploadedRows(file: File | null): Promise<number | undefined> {
+  if (form.value.kind !== 'csv' || form.value.csvFrom !== 'upload' || !file) {
     return undefined
   }
 
   try {
-    return countCsvRows(await csvFile.value.text())
+    return countCsvRows(await file.text())
   } catch {
     return undefined
   }
@@ -605,8 +622,18 @@ async function countUploadedRows(): Promise<number | undefined> {
 async function readSource(): Promise<boolean> {
   resetRead()
   const readSignature = signature.value
+  const file = csvFile.value
+  const isStale = () => {
+    if (signature.value === readSignature) {
+      return false
+    }
+    resetRead()
+    return true
+  }
 
-  if (!(await uploadFileIfNeeded())) {
+  const uploaded = await uploadFileIfNeeded(file, fileKey.value)
+
+  if (isStale() || !uploaded) {
     return false
   }
   let result: PhonebookTestResult
@@ -614,6 +641,11 @@ async function readSource(): Promise<boolean> {
   try {
     result = await testMutateAsync({ ...form.value })
   } catch {
+    isStale()
+    return false
+  }
+
+  if (isStale()) {
     return false
   }
 
@@ -629,7 +661,11 @@ async function readSource(): Promise<boolean> {
     hasNoColumns.value = true
     return false
   }
-  const localTotal = await countUploadedRows()
+  const localTotal = await countUploadedRows(file)
+
+  if (isStale()) {
+    return false
+  }
   const preview: Preview = {
     columns:
       form.value.kind === 'infinity' ? getInfinityPreviewColumns(result.rows) : result.columns,
@@ -814,7 +850,7 @@ function discardChanges() {
           :label="t('integrations.name')"
           :placeholder="t('integrations.phonebook.name_placeholder')"
           :helper-text="t('integrations.phonebook.name_helper')"
-          :invalid-message="issues.name ? t(issues.name) : ''"
+          :invalid-message="issues.name ? t(issues.name, { max: PHONEBOOK_TEXT_MAX_LENGTH }) : ''"
           :disabled="busy"
           @update:model-value="clearIssue('name')"
           @blur="form.name = form.name.trim()"
@@ -1045,7 +1081,9 @@ function discardChanges() {
           ref="visibilityRef"
           v-model:sharing="form.sharing"
           v-model:groups="form.groups"
-          :invalid-message="issues.groups ? t(issues.groups) : ''"
+          :invalid-message="
+            issues.groups ? t(issues.groups, { max: PHONEBOOK_TEXT_MAX_LENGTH }) : ''
+          "
           :disabled="busy"
         />
         <NeHeading v-if="isEdit" tag="h6">{{ t('integrations.phonebook.sync') }}</NeHeading>
@@ -1057,14 +1095,14 @@ function discardChanges() {
         />
       </div>
       <NeInlineNotification
-        v-if="saveError"
+        v-if="saveError && !isUrlRefusal(saveError, form)"
         kind="error"
         :title="
           isEdit
             ? t('integrations.phonebook.cannot_save_source')
             : t('integrations.phonebook.cannot_create_source')
         "
-        :description="getLegacyStatusMessage(saveError) || describeError(saveError)"
+        :description="describeStatus(saveError) || describeError(saveError)"
       />
     </div>
     <hr class="my-8" />

@@ -168,7 +168,7 @@ export const validateCardTemplateForm = (
     !issues.name &&
     otherTemplates.some((template) => normalizeTemplateName(template.name) === name)
   ) {
-    issues.name = 'integrations.cards.template_name_already_used'
+    return { name: 'integrations.cards.template_name_already_used', ...issues }
   }
   return issues
 }
@@ -205,8 +205,14 @@ export const deleteCardTemplate = async (name: string): Promise<void> => {
 export const formatSampleResults = (rows: SampleRow[]): string =>
   `[\n${rows.map((row) => `  ${JSON.stringify(row)}`).join(',\n')}\n]`
 
+const hasOnlyListKeys = (value: object): boolean => {
+  const keys = Object.keys(value)
+
+  return keys.length > 0 && keys.every((key, index) => key === String(index))
+}
+
 const isRow = (value: unknown): value is SampleRow =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+  typeof value === 'object' && value !== null && !Array.isArray(value) && !hasOnlyListKeys(value)
 
 export type SampleResultsCheck =
   { results: SampleRow[]; issue?: undefined } | { results?: undefined; issue: string }
@@ -235,7 +241,7 @@ export const parseSampleResults = (text: string): SampleResultsCheck => {
 }
 
 export const buildCardPreviewDocument = (html: string): string =>
-  `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${CARD_PREVIEW_STYLESHEET}"><style>body{padding:8px;}</style></head><body>${html}</body></html>`
+  `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${CARD_PREVIEW_STYLESHEET}"><style>body{padding:8px;}.overflow-hidden{overflow-x:auto;}</style></head><body>${html}</body></html>`
 
 export const previewCardTemplate = async (
   code: string,

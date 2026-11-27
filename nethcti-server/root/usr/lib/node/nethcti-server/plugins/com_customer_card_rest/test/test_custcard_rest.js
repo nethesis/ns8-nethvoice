@@ -5,9 +5,14 @@ var quiet = { info: function() {}, warn: function() {}, error: function() {} };
 rest.setLogger({ log: quiet });
 
 var previews = [];
+var previewError = null;
 rest.setCompCustomerCard({
   getCustomerCardPreview: function(query, dbconnId, template, cb) {
     previews.push({ query: query, dbconnId: dbconnId, template: template });
+    if (previewError) {
+      cb(previewError);
+      return;
+    }
     cb(null, [{ name: 'QA' }]);
   }
 });
@@ -61,4 +66,12 @@ console.log('ok - preview of the FreePBX admin');
 assert.strictEqual(previews.length, 0, 'preview run with invalid parameters');
 console.log('ok - invalid preview parameters');
 
-console.log('\n3 groups passed');
+previewError = "Error: ER_PARSE_ERROR: You have an error in your SQL syntax near 'FORM qa_table'";
+var failed = preview(admin, valid);
+previewError = null;
+assert.strictEqual(failed.status, 422, 'query error answered ' + failed.status);
+assert.strictEqual(failed.sent, 1);
+assert.deepStrictEqual(failed.body, { error: "Error: ER_PARSE_ERROR: You have an error in your SQL syntax near 'FORM qa_table'" });
+console.log('ok - query error of the preview');
+
+console.log('\n4 groups passed');

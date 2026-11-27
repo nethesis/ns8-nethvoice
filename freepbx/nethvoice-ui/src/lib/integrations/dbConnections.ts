@@ -5,7 +5,13 @@ import * as v from 'valibot'
 import { api } from '@/lib/api/client'
 import type { components } from '@/lib/api/schema'
 import { compareNatural } from '@/lib/common'
-import { type FieldIssues, isValidPort, requiredText, validateForm } from './validation'
+import {
+  type FieldIssues,
+  isValidPort,
+  requiredText,
+  storableText,
+  validateForm,
+} from './validation'
 
 export const DB_CONNECTIONS_KEY = 'customerCardDbConnections'
 export const DB_CONNECTION_TYPES_KEY = 'customerCardDbConnectionTypes'
@@ -14,6 +20,8 @@ export const DB_CONNECTION_STATUSES_KEY = 'customerCardDbConnectionStatuses'
 export const DB_CONNECTION_STATUS_STALE_TIME = 5 * 60_000
 
 export const BUILT_IN_DB_CONNECTION_IDS = ['1', '2']
+
+export const DB_CONNECTION_MAX_LENGTHS = { name: 64, host: 128, user: 64, password: 64 } as const
 
 const LOCAL_NAMES = ['', 'localhost']
 
@@ -44,6 +52,7 @@ const DbConnectionsResponseSchema = v.array(
     user: TextSchema,
     pass: TextSchema,
     has_password: v.optional(v.boolean()),
+    pbx_server: v.optional(v.boolean()),
   }),
 )
 
@@ -172,10 +181,14 @@ export const parseDbConnections = (raw: unknown): DbConnection[] => {
     user: connection.user,
     hasPassword: connection.has_password ?? connection.pass !== '',
     builtIn: BUILT_IN_DB_CONNECTION_IDS.includes(connection.id) && isLocalHost(connection.host),
+    pbx_server: connection.pbx_server,
   }))
 
   return connections
-    .map((connection) => ({ ...connection, pbxServer: isLocalHost(connection.host) }))
+    .map(({ pbx_server, ...connection }) => ({
+      ...connection,
+      pbxServer: pbx_server ?? isLocalHost(connection.host),
+    }))
     .sort((a, b) => compareNatural(a.name, b.name))
 }
 
@@ -214,14 +227,30 @@ export const toDbConnectionForm = (connection: DbConnection): DbConnectionForm =
   password: '',
 })
 
-export const isDbConnectionPasswordKept = (
-  form: DbConnectionForm,
-  existing?: DbConnection,
-): boolean =>
-  !!existing?.hasPassword &&
+const isSameDbServer = (form: DbConnectionForm, existing: DbConnection): boolean =>
   form.type === existing.type &&
   form.host.trim() === existing.host.trim() &&
   getDbConnectionPort(form) === existing.port.trim()
+
+export const isDbConnectionPasswordKept = (
+  form: DbConnectionForm,
+  existing?: DbConnection,
+): boolean => !!existing?.hasPassword && isSameDbServer(form, existing)
+
+const isDbConnectionPasswordRequired = (form: DbConnectionForm, existing?: DbConnection): boolean =>
+  !existing || (existing.hasPassword && !isSameDbServer(form, existing))
+
+const sameText = (a: string, b: string): boolean =>
+  a.trim().toLowerCase() === b.trim().toLowerCase()
+
+export const isDbConnectionDuplicated = (form: DbConnectionForm, others: DbConnection[]): boolean =>
+  others.some(
+    (connection) =>
+      sameText(connection.host, form.host) &&
+      sameText(connection.port, getDbConnectionPort(form)) &&
+      sameText(connection.user, form.user) &&
+      sameText(connection.name, form.name),
+  )
 
 const OptionalPortSchema = v.pipe(
   v.string(),
@@ -229,21 +258,46 @@ const OptionalPortSchema = v.pipe(
   v.check((port) => port === '' || isValidPort(port), 'integrations.port_invalid'),
 )
 
+const storableField = (field: keyof typeof DB_CONNECTION_MAX_LENGTHS) =>
+  storableText(
+    DB_CONNECTION_MAX_LENGTHS[field],
+    'integrations.cards.database_value_too_long',
+    'integrations.cards.database_value_invalid_characters',
+  )
+
 const buildDbConnectionSchema = (passwordRequired: boolean) =>
   v.object({
-    name: requiredText('integrations.cards.database_name_required'),
+    name: v.pipe(requiredText('integrations.cards.database_name_required'), storableField('name')),
     type: requiredText('integrations.cards.database_type_required'),
-    host: requiredText('integrations.cards.database_address_required'),
+    host: v.pipe(
+      requiredText('integrations.cards.database_address_required'),
+      storableField('host'),
+    ),
     port: OptionalPortSchema,
-    user: requiredText('integrations.cards.database_username_required'),
-    password: passwordRequired ? requiredText('integrations.password_required') : v.string(),
+    user: v.pipe(
+      requiredText('integrations.cards.database_username_required'),
+      storableField('user'),
+    ),
+    password: passwordRequired
+      ? v.pipe(requiredText('integrations.password_required'), storableField('password'))
+      : storableField('password'),
   })
 
 export const validateDbConnectionForm = (
   form: DbConnectionForm,
   existing?: DbConnection,
-): FieldIssues =>
-  validateForm(buildDbConnectionSchema(!isDbConnectionPasswordKept(form, existing)), form)
+  others: DbConnection[] = [],
+): FieldIssues => {
+  const issues = validateForm(
+    buildDbConnectionSchema(isDbConnectionPasswordRequired(form, existing)),
+    form,
+  )
+
+  if (!issues.name && isDbConnectionDuplicated(form, others)) {
+    return { name: 'integrations.cards.database_connection_duplicate', ...issues }
+  }
+  return issues
+}
 
 export const buildDbConnectionPayload = (form: DbConnectionForm): DbConnectionInput => ({
   type: form.type,

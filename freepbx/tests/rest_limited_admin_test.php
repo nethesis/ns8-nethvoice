@@ -244,6 +244,12 @@ foreach ([['127.0.0.1', '20011'], ['127.0.0.1', '020011'], ['127.0.0.1', ' 20011
     expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', ['host' => $host, 'port' => $port] + $connection);
     expectStatus($app, 200, $superadmins, 'POST', '/cti/dbconn', ['host' => $host, 'port' => $port] + $connection);
 }
+foreach ([['POST', '/cti/dbconn'], ['PUT', '/cti/dbconn/5'], ['POST', '/cti/dbconn/test']] as [$method, $path]) {
+    $response = send($app, 'integrator', $method, $path, ['host' => '127.0.0.1', 'port' => '20011'] + $connection);
+    check($response->getStatusCode() === 403 && json_decode((string) $response->getBody(), true) === ['message' => 'Forbidden: missing permission', 'field' => 'host'], "$method $path did not name the host field: " . $response->getBody());
+}
+$response = send($app, 'integrator', 'POST', '/cti/customer_card', ['dbconn_id' => 1] + $card);
+check(json_decode((string) $response->getBody(), true) === ['message' => 'Forbidden: missing permission'], 'a customer card refusal named a field: ' . $response->getBody());
 expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', array_diff_key($connection, ['host' => 1]));
 expectStatus($app, 403, ['integrator'], 'POST', '/cti/dbconn', ['host' => ['192.0.2.10']] + $connection);
 expectStatus($app, 400, ['integrator'], 'POST', '/cti/dbconn', 'not json');

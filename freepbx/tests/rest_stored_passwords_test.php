@@ -32,6 +32,9 @@ class ConnectionsStatement {
             $this->result = array_values($this->table->rows);
         } elseif ($this->sql === 'SELECT * FROM user_dbconn WHERE id = ?') {
             $this->result = isset($this->table->rows[$args[0]]) ? [$this->table->rows[$args[0]]] : [];
+        } elseif ($this->sql === 'SELECT COUNT(*) FROM user_dbconn WHERE host = ? AND port = ? AND user = ? AND name = ? AND id != ?') {
+            [$host, $port, $user, $name, $except] = $args;
+            $this->result = [[count(array_filter($this->table->rows, fn($row) => [$row['host'], $row['port'], $row['user'], $row['name']] === [$host, $port, $user, $name] && $row['id'] !== $except))]];
         } elseif (preg_match('/^UPDATE user_dbconn SET (.+) WHERE id = \?$/', $this->sql, $match)) {
             $id = array_pop($args);
             foreach (explode(', ', $match[1]) as $i => $assignment) {
@@ -45,6 +48,7 @@ class ConnectionsStatement {
     }
     public function fetch($mode = null) { return $this->result[0] ?? false; }
     public function fetchAll($mode = null) { return $this->result; }
+    public function fetchColumn() { return $this->result[0][0] ?? false; }
 }
 
 class RouteCollector {

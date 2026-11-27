@@ -43,6 +43,8 @@ import {
   syncDoorGates,
   testVideoSource,
   toVideoSourceForm,
+  urlEndpoint,
+  isStoredPasswordKept,
   validateConnection,
   validateGates,
   validateSourceFields,
@@ -145,7 +147,9 @@ describe('parseVideoSources', () => {
       tlsUnpinned: true,
       doorPhone: '0C-38-3E-32-6B-84',
       profileIds: [],
+      pbxServer: false,
     })
+    expect(parseVideoSources([{ ...RAW_SOURCES[0], pbx_server: true }])[0]?.pbxServer).toBe(true)
     expect(warehouse?.extension).toBe('302')
     expect(warehouse?.profileIds).toEqual(['1', '3'])
     expect(warehouse?.gates).toEqual([
@@ -425,6 +429,66 @@ describe('validation', () => {
     expect(issueParams('integrations.video.url_required')).toEqual({})
   })
 
+  it('counts the credential limits in bytes, as the server does', () => {
+    const gateWithLongCredentials = gate({
+      type: 'url',
+      url: 'http://192.0.2.1/open',
+      username: 'à'.repeat(128),
+      password: 'é'.repeat(128),
+    })
+
+    expect(validateConnection(form({ user: 'à'.repeat(128), password: 'é'.repeat(128) }))).toEqual({
+      user: 'integrations.video.credential_too_long',
+      password: 'integrations.video.credential_too_long',
+    })
+    expect(validateConnection(form({ user: 'à'.repeat(127), password: 'é'.repeat(127) }))).toEqual(
+      {},
+    )
+    expect(validateGates(form({ gates: [gateWithLongCredentials] }), 10)).toEqual({
+      [gateIssueKey(gateWithLongCredentials.uid, 'username')]:
+        'integrations.video.credential_too_long',
+      [gateIssueKey(gateWithLongCredentials.uid, 'password')]:
+        'integrations.video.credential_too_long',
+    })
+  })
+
+  it('compares the device endpoints as the server does', () => {
+    expect(urlEndpoint('rtsp://admin:p@ss@CAM.example.org/live')).toBe('rtsp://cam.example.org:554')
+    expect(urlEndpoint('RTSPS://[2001:DB8::1]/live')).toBe('rtsps://2001:db8::1:322')
+    expect(urlEndpoint('http://192.0.2.1:8080/snap.jpg')).toBe('http://192.0.2.1:8080')
+    expect(urlEndpoint('ftp://192.0.2.1/')).toBe('')
+  })
+
+  it('asks for the password again only when a stored one cannot follow the new address', () => {
+    const current = { url: 'rtsp://192.0.2.30:554/stream1', hasSecret: true }
+    const edited = form({ user: 'admin' })
+
+    expect(validateConnection({ ...edited, url: 'rtsp://192.0.2.30/stream2' }, current)).toEqual({})
+    expect(validateConnection({ ...edited, url: 'rtsp://192.0.2.31/stream1' }, current)).toEqual({
+      password: 'integrations.video.password_address_changed',
+    })
+    expect(
+      validateConnection({ ...edited, url: 'rtsps://192.0.2.30:554/stream1' }, current),
+    ).toEqual({ password: 'integrations.video.password_address_changed' })
+    expect(
+      validateConnection({ ...edited, url: 'rtsp://192.0.2.31/stream1', password: 'pw' }, current),
+    ).toEqual({})
+    expect(
+      validateConnection({ ...edited, url: 'rtsp://192.0.2.31/stream1', user: '' }, current),
+    ).toEqual({})
+    expect(
+      validateConnection(
+        { ...edited, url: 'rtsp://192.0.2.31/stream1' },
+        { ...current, hasSecret: false },
+      ),
+    ).toEqual({})
+    expect(
+      validateSourceFields({ ...edited, url: 'rtsp://192.0.2.31/stream1' }, [], current).password,
+    ).toBe('integrations.video.password_address_changed')
+    expect(isStoredPasswordKept({ url: 'rtsp://192.0.2.30/x' }, current)).toBe(true)
+    expect(isStoredPasswordKept({ url: 'rtsp://192.0.2.30/x' }, undefined)).toBe(false)
+  })
+
   it('asks for the password of a door phone source only when the PBX refused its own', () => {
     const doorForm = form({ user: 'rtsp', doorPhone: '0C-38-3E-32-7C-01' })
 
@@ -689,11 +753,21 @@ describe('devices and door phones', () => {
       port: 554,
       private: true,
       reachable: false,
+      skipped: false,
       publicAddress: '203.0.113.7',
     })
     expect(
       parseReachability({ host: 'cam', port: 80, private: false, reachable: true }).publicAddress,
     ).toBe('')
+    expect(
+      parseReachability({
+        host: '10.5.4.1',
+        port: 80,
+        private: true,
+        reachable: false,
+        skipped: true,
+      }).skipped,
+    ).toBe(true)
     expect(replaceUrlHost('rtsp://192.168.5.218:554/h264/stream.live0', '203.0.113.7')).toBe(
       'rtsp://203.0.113.7:554/h264/stream.live0',
     )
@@ -765,7 +839,7 @@ describe('devices and door phones', () => {
     expect(sourceForm.gates.map(({ name, code }) => ({ name, code }))).toEqual([
       { name: 'Door 1', code: '*' },
     ])
-    expect(isGateCodeLocked(sourceForm.gates[0]!, 0, prefill.relays)).toBe(true)
+    expect(isGateCodeLocked(sourceForm.gates[0]!, prefill.relays)).toBe(true)
 
     const synced = syncDoorGates(
       [sourceForm.gates[0]!, gate({ type: 'url', url: '', username: '' })],
@@ -775,10 +849,41 @@ describe('devices and door phones', () => {
       url: 'http://192.0.2.218/relay?output=2',
       username: 'admin',
       method: 'GET',
+      relay: 2,
     })
     const moved = syncDoorGates([gate({ code: '9' }), synced[0]!], prefill.relays)
-    expect(moved[0]?.code).toBe('*')
-    expect(isGateCodeLocked(moved[1]!, 1, prefill.relays)).toBe(false)
+    expect(moved[0]).toMatchObject({ code: '9', relay: 2 })
+    expect(moved[1]).toMatchObject({ code: '*', relay: 1 })
+    expect(isGateCodeLocked(moved[0]!, prefill.relays)).toBe(false)
+    expect(isGateCodeLocked(moved[1]!, prefill.relays)).toBe(true)
+  })
+
+  it('keeps the relay of each door phone gate when gates are removed or moved', () => {
+    const relays = [
+      { relay: 1, code: '*1', url: '', user: '' },
+      { relay: 2, code: '*2', url: '', user: '' },
+    ]
+    const [pedestrian, garage] = syncDoorGates(
+      [gate({ name: 'Pedestrian', code: '' }), gate({ name: 'Garage', code: '' })],
+      relays,
+    )
+
+    expect(pedestrian).toMatchObject({ code: '*1', relay: 1 })
+    expect(garage).toMatchObject({ code: '*2', relay: 2 })
+    expect(syncDoorGates([garage!], relays)[0]).toMatchObject({ code: '*2', relay: 2 })
+    expect(syncDoorGates([garage!, pedestrian!], relays)).toMatchObject([
+      { name: 'Garage', code: '*2', relay: 2 },
+      { name: 'Pedestrian', code: '*1', relay: 1 },
+    ])
+    expect(syncDoorGates([garage!, gate({ name: 'New', code: '' })], relays)).toMatchObject([
+      { name: 'Garage', code: '*2', relay: 2 },
+      { name: 'New', code: '*1', relay: 1 },
+    ])
+    expect(syncDoorGates([gate({ name: 'Stored garage', code: '*2' })], relays)[0]).toMatchObject({
+      code: '*2',
+      relay: 2,
+    })
+    expect(syncDoorGates([garage!], [])[0]).toMatchObject({ code: '*2', relay: null })
   })
 
   it('chooses the default profiles', () => {
@@ -838,7 +943,39 @@ describe('mapSaveError', () => {
     })
     expect(
       mapSaveError(apiError(400, { status: 'frame rate is odd', field: 'frame-rate' }), gates),
-    ).toEqual({ issues: {}, message: 'Frame rate is odd' })
+    ).toEqual({ issues: {}, message: 'integrations.video.request_refused' })
+  })
+
+  it('never shows the English text of the server', () => {
+    expect(
+      mapSaveError(
+        apiError(400, { status: 'descr contains control characters', field: 'descr' }),
+        gates,
+      ),
+    ).toEqual({ issues: { name: 'integrations.video.control_characters' }, message: '' })
+    expect(
+      mapSaveError(
+        apiError(400, { status: 'method must be GET or POST', field: 'gates[0].method' }),
+        gates,
+      ),
+    ).toEqual({
+      issues: { [gateIssueKey(gates[0]!.uid, 'method')]: 'integrations.video.invalid_value' },
+      message: '',
+    })
+    expect(mapSaveError(apiError(400, { status: 'Invalid source URL' }), gates)).toEqual({
+      issues: {},
+      message: 'integrations.video.url_invalid',
+    })
+    expect(
+      mapSaveError(
+        apiError(429, { status: 'too many source checks, try again in a minute' }),
+        gates,
+      ),
+    ).toEqual({ issues: {}, message: 'integrations.video.too_many_checks' })
+    expect(mapSaveError(apiError(400, { status: 'Invalid request' }), gates)).toEqual({
+      issues: {},
+      message: 'integrations.video.request_refused',
+    })
   })
 
   it('maps the address checks of limited administrators and of door phones', () => {

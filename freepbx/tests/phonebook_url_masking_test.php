@@ -106,4 +106,15 @@ check($status === 400 && stored('custom_2')['url'] === $erpUrl, "stored password
 [$status, $body] = call($app, 'POST /phonebook/config[/{id}]', $superadmin, ['url' => $csvMasked] + $csv, ['id' => 'custom_1']);
 check($status === 200 && stored('custom_1')['url'] === $csvMasked, "the superadmin cannot save a URL of their choice: $status $body");
 
+$before = stored('custom_1');
+[$status, $body] = call($app, 'POST /phonebook/config[/{id}]', $integrator, ['url' => 'http://127.0.0.1/contacts.csv'] + $csv, ['id' => 'custom_1']);
+check($status === 400 && json_decode($body, true) === ['status' => 'Invalid source URL', 'field' => 'url'] && stored('custom_1') === $before, "local URL of a limited administrator not refused on the URL field: $status $body");
+[$status, $body] = call($app, 'POST /phonebook/test', $integrator, ['dbtype' => 'csv', 'url' => 'http://127.0.0.1/contacts.csv', 'with_total' => true]);
+check($status === 400 && json_decode($body, true) === ['status' => 'Invalid source URL', 'field' => 'url'], "local URL tested by a limited administrator not refused on the URL field: $status $body");
+
+[$status, $body] = call($app, 'POST /phonebook/config[/{id}]', $superadmin, ['type' => str_repeat('è', 256)] + $csv, ['id' => 'custom_1']);
+check($status === 400 && json_decode($body, true)['status'] === 'Source name too long' && stored('custom_1') === $before, "name longer than 255 characters saved: $status $body");
+[$status, $body] = call($app, 'POST /phonebook/config[/{id}]', $superadmin, ['type' => str_repeat('è', 255), 'url' => $csvUrl] + $csv, ['id' => 'custom_1']);
+check($status === 200 && stored('custom_1')['type'] === str_repeat('è', 255), "name of 255 characters refused: $status $body");
+
 echo "PASS: phonebook source URLs masked for limited administrators and kept when saved back\n";

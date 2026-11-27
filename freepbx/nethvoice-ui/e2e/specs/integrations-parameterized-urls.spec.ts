@@ -267,7 +267,9 @@ test.describe('integrations: parameterized URLs', () => {
     await urlField(page).fill('crm.example.com/reception?caller=$CALLER_NUMBER')
     await drawer(page).getByRole('button', { name: 'Create', exact: true }).click()
     await expect(
-      drawer(page).getByText('Enter a URL starting with http:// or https://, without spaces'),
+      drawer(page).getByText(
+        'Enter a URL that starts with http:// or https://, e.g. https://crm.example.com',
+      ),
     ).toBeVisible()
 
     await urlField(page).fill(`https://crm.example.com/${'a'.repeat(240)}`)

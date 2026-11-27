@@ -1213,6 +1213,13 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
+        '409':
+          description: Another connection has the same host, port, user and database
+            name; `field` is `name`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '400': &id004
           description: 'Bad request: invalid parameters'
           content:
@@ -1232,7 +1239,10 @@ paths:
                   message:
                     type: string
       description: Body includes host, port, type, credentials and database name;
-        credentials are stored for later use by customer cards. For administrators
+        credentials are stored for later use by customer cards. A value longer than
+        its column (host 128, port 64, type 32, user, pass and name 64 characters)
+        or with characters outside the Basic Multilingual Plane returns 400 with
+        `field`. The 403 of a built-in database names the `host` field. For administrators
         who are not superadmin, a body that is not a JSON or form object returns 400,
         and a connection to the built-in NethVoice databases returns 403. Built-in
         means connection 1 or 2 on a local host, or any connection to a local host
@@ -1305,14 +1315,22 @@ paths:
         are not superadmin, a non-numeric `id` or a body that is not a JSON or form
         object returns 400, and 403 is returned when the stored connection or the
         result of the update is a built-in NethVoice database (see `POST /cti/dbconn`).
+        Values are checked as in `POST /cti/dbconn`.
       tags:
       - CTI
       responses:
         '200':
           description: Successful response
         '400':
-          description: Bad request, invalid parameters, or the password is missing
-            for a different server
+          description: Bad request, invalid parameters, a value that cannot be stored
+            (with `field`), or the password is missing for a different server
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Another connection has the same host, port, user and database
+            name; `field` is `name`
           content:
             application/json:
               schema:
@@ -1532,10 +1550,23 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
-        '403': *id001
-      description: 'Deletes `<name>_custom.ejs`, or `<name>.ejs` when there is no
-        custom template with that name. Requires the superadmin permission: templates
-        are rendered by the CTI server.'
+        '403':
+          description: 'Forbidden: missing permission, or the template is built-in
+            (`<name>.ejs` without a custom template with that name)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: The custom template is used by customer cards; `field` is
+            `name`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      description: 'Deletes `<name>_custom.ejs`. A built-in template cannot be deleted
+        (403) and a custom template used by a card cannot be deleted (409). Requires
+        the superadmin permission: templates are rendered by the CTI server.'
       operationId: delete_cti_customer_card_template_name
       parameters:
       - name: name
@@ -1600,9 +1631,11 @@ paths:
     post:
       summary: Show a customer card rendered by nethcti-server, without saving it.
       description: nethcti-server runs the query on the connection and renders the
-        template. Only `html` is returned; an error of nethcti-server is never passed
-        to the client. For administrators who are not superadmin, a card on a built-in
-        NethVoice database (see `POST /cti/dbconn`) returns 403.
+        template. Only `html` is returned. When the database refuses the query, 422
+        returns its error text in `error` (at most 4000 characters); any other error
+        of nethcti-server is never passed to the client. For administrators who are
+        not superadmin, a card on a built-in NethVoice database (see `POST /cti/dbconn`)
+        returns 403.
       tags:
       - CTI
       responses:
@@ -1620,6 +1653,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '403': *id001
+        '422':
+          description: The database refused the query; `error` holds its message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal server error
         '502':
@@ -1694,10 +1733,25 @@ paths:
           description: Successful response
         '500':
           description: Internal server error
-        '400': *id004
+        '400':
+          description: Bad request, or a name that is empty, longer than 128 characters
+            or with characters outside the Basic Multilingual Plane (`field` is `name`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403': *id001
+        '409':
+          description: Another card has the same name, ignoring case and surrounding
+            spaces; `field` is `name`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       description: Body includes name, Base64 encoded query, template name, DB connection
-        id and profile ids. Generates a permission entry automatically. For administrators
+        id and profile ids. Generates a permission entry automatically, named cc_<sanitized
+        name> with a numeric suffix when that name is taken; nothing is left behind
+        when the card cannot be stored. For administrators
         who are not superadmin, a missing or non-numeric `dbconn_id` returns 400 and
         a card on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
       operationId: post_cti_customer_card
@@ -1710,8 +1764,11 @@ paths:
   /cti/customer_card/{id}:
     put:
       summary: Update a customer card.
-      description: When the name changes, the related CTI permission is renamed too
-        (name cc_<sanitized name>, displayname <name>). For administrators who are
+      description: When the name changes, only the displayname of the related CTI
+        permission changes; its name stays the same, so the order of the cards saved
+        by CTI users keeps working. A new name is checked as in `POST /cti/customer_card`;
+        a name used by another card returns 409 only to administrators who are not
+        superadmin. For administrators who are
         not superadmin, 400 is returned for a non-numeric `id`, an empty body, a key
         other than `name`, `query`, `template`, `dbconn_id` and `profiles`, a value
         of those fields that is not a scalar (an array for `profiles`) or a non-numeric
@@ -1726,8 +1783,20 @@ paths:
           description: Not found
         '500':
           description: Internal server error
-        '400': *id004
+        '400':
+          description: 'Bad request: invalid parameters, or a name that cannot be stored
+            (`field` is `name`)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403': *id001
+        '409':
+          description: Another card has the same name; `field` is `name`
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
       operationId: put_cti_customer_card_id
       parameters:
       - name: id
@@ -2018,7 +2087,9 @@ paths:
         address belongs to a private network. With `door_phone`, when the
         device is not reachable, the public address the door phone registers
         from is returned in `public_address` and `public_url` if the PBX
-        reaches it on the same port.
+        reaches it on the same port. `skipped` tells that the address was
+        never contacted (loopback, link-local, the PBX node or the cluster
+        VPN), so `reachable` false says nothing about the device.
       tags:
       - CTI
       requestBody:
@@ -2047,6 +2118,8 @@ paths:
                   private:
                     type: boolean
                   reachable:
+                    type: boolean
+                  skipped:
                     type: boolean
                   public_address:
                     type: string
@@ -3693,6 +3766,8 @@ paths:
                 type: object
                 properties:
                   status:
+                    type: string
+                  field:
                     type: string
         '500':
           description: Internal server error
@@ -6161,6 +6236,9 @@ components:
           type: string
         message:
           type: string
+        field:
+          type: string
+          description: Request field the error refers to, when known
     VideoSourceGate:
       type: object
       properties:
@@ -6308,6 +6386,12 @@ components:
           type: array
           items:
             type: string
+        pbx_server:
+          type: boolean
+          readOnly: true
+          description: Only for limited administrators, true when the URL or a
+            gate URL points to an address of the PBX node, so they cannot save
+            the source
     VideoSourceCheck:
       type: object
       properties:
@@ -7641,6 +7725,10 @@ components:
           oneOf:
           - type: string
           - type: boolean
+        field:
+          type: string
+          description: Request field the error refers to, when known (`url` for a
+            source URL that an administrator who is not superadmin cannot use)
     IntegrationsPhonebookSource:
       type: object
       description: One external phonebook source stored under /etc/phonebook/sources.d.
@@ -7805,6 +7893,12 @@ components:
             type: integer
             minimum: 0
             description: Rows the source returns
+          columns:
+            type: array
+            items:
+              type: string
+            description: Column names of the database query or of the CSV header,
+              also those without a value in the first rows
       - $ref: '#/components/schemas/IntegrationsPhonebookTestFailure'
     IntegrationsPhonebookTestFailure:
       type: object
@@ -8074,6 +8168,12 @@ components:
         has_password:
           type: boolean
           description: Whether a password is stored
+        pbx_server:
+          type: boolean
+          readOnly: true
+          description: Returned only to administrators who are not superadmin. True
+            when the connection targets the PBX itself (see `POST /cti/dbconn`), so
+            they cannot change it or use it for queries.
         name:
           type: string
           description: Database name

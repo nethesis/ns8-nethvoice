@@ -150,6 +150,7 @@ function describeVisibility(item: PhonebookImport): string {
                   <template #trigger>
                     <button
                       type="button"
+                      @mousedown="($event.currentTarget as HTMLElement).focus()"
                       class="focus:ring-primary-500 dark:focus:ring-primary-300 flex rounded-sm focus:ring-2 focus:outline-hidden"
                       :aria-label="
                         t(

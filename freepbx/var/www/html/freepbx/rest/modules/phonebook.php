@@ -201,6 +201,9 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         if ($sourceName === '') {
             return jsonResponse($response, array("status"=>"Missing value: type"), 400);
         }
+        if (phonebookTextTooLong($sourceName)) {
+            return jsonResponse($response, array("status"=>"Source name too long"), 400);
+        }
         $newsource['type'] = $sourceName;
         // Sharing goes in the dedicated `access` field: 'public' or
         // 'group:<comma-separated group names>', validated against the existing CTI
@@ -213,6 +216,9 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             error_log($e->getMessage());
             return jsonResponse($response, array("status"=>"Cannot validate sharing groups"), 500);
         }
+        if (phonebookTextTooLong($newsource['access'])) {
+            return jsonResponse($response, array("status"=>"Sharing groups too long"), 400);
+        }
         $newsource['enabled'] = empty($data['enabled']) ? false : $data['enabled'];
 
         $file = $config_dir.'/'.$id.'.json';
@@ -223,7 +229,7 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
         }
         $knownUrls = is_array($oldsource) && isset($oldsource['url']) ? array($oldsource['url']) : array();
         if (!nethvoiceRequestIsSuperadmin($request) && !phonebookSourceUrlAllowed($newsource['dbtype'], $newsource['url'] ?? null, $knownUrls)) {
-            return jsonResponse($response, array("status"=>"Invalid source URL"), 400);
+            return jsonResponse($response, array("status"=>"Invalid source URL", "field"=>"url"), 400);
         }
         $newsource = phonebookGuardedSource($newsource, $oldsource, nethvoiceRequestIsSuperadmin($request));
         $res = file_put_contents($file, json_encode(array($id => $newsource)));
@@ -328,7 +334,7 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
             $newsource[$id][$var] = $data[$var];
         }
         if (!nethvoiceRequestIsSuperadmin($request) && !phonebookSourceUrlAllowed($data['dbtype'], $data['url'] ?? null, phonebookConfiguredUrls())) {
-            return jsonResponse($response, array("status"=>"Invalid source URL"), 400);
+            return jsonResponse($response, array("status"=>"Invalid source URL", "field"=>"url"), 400);
         }
         $newsource[$id]['dbtype'] = $data['dbtype'];
         $newsource[$id]['enabled'] = true;
@@ -457,6 +463,9 @@ $app->post('/phonebook/import-cti', function (Request $request, Response $respon
         } catch (Exception $e) {
             error_log($e->getMessage());
             return jsonResponse($response, array("status"=>"Cannot validate sharing groups"), 500);
+        }
+        if (phonebookTextTooLong($sharing)) {
+            return jsonResponse($response, array("status"=>"Sharing groups too long"), 400);
         }
 
         // Column mapping source->destination; must map to 'name' or to 'firstname'/'lastname',

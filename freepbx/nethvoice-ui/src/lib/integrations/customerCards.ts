@@ -3,14 +3,17 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
+import { isApiError } from '@/lib/api/errors'
 import type { components } from '@/lib/api/schema'
 import { compareNatural } from '@/lib/common'
 import { decodeBase64Utf8, encodeBase64Utf8 } from './base64'
 import { getCardTemplateId } from './cardTemplates'
 import { toProfileIdNumbers } from './lookups'
-import { type FieldIssues, requiredText, validateForm } from './validation'
+import { type FieldIssues, requiredText, storableText, validateForm } from './validation'
 
 export const CUSTOMER_CARDS_KEY = 'customerCards'
+
+export const CUSTOMER_CARD_NAME_MAX_LENGTH = 128
 
 type CustomerCardInput = components['schemas']['IntegrationsCustomerCardInput']
 
@@ -94,31 +97,31 @@ export const toDuplicatedCustomerCardForm = (
 ): CustomerCardForm => ({ ...toCustomerCardForm(card), name })
 
 const CustomerCardFormSchema = v.object({
-  name: requiredText('integrations.cards.card_name_required'),
+  name: v.pipe(
+    requiredText('integrations.cards.card_name_required'),
+    storableText(
+      CUSTOMER_CARD_NAME_MAX_LENGTH,
+      'integrations.cards.card_name_too_long',
+      'integrations.cards.card_name_invalid_characters',
+    ),
+  ),
   dbConnectionId: requiredText('integrations.cards.card_database_required'),
   templateId: requiredText('integrations.cards.card_template_required'),
   profileIds: v.pipe(v.array(v.string()), v.minLength(1, 'integrations.profiles_required')),
   query: requiredText('integrations.query_required'),
 })
 
-export const getCustomerCardPermissionName = (name: string): string =>
-  `cc_${name
-    .replace(/[^a-zA-Z0-9\s]/g, '')
-    .replace(/ /g, '_')
-    .toLowerCase()}`
+const normalizeCardName = (name: string): string => name.trim().toLowerCase()
 
 export const validateCustomerCardForm = (
   form: CustomerCardForm,
   otherCards: CustomerCard[],
 ): FieldIssues => {
   const issues = validateForm(CustomerCardFormSchema, form)
-  const permissionName = getCustomerCardPermissionName(form.name.trim())
+  const name = normalizeCardName(form.name)
 
-  if (
-    !issues.name &&
-    otherCards.some((card) => getCustomerCardPermissionName(card.name) === permissionName)
-  ) {
-    issues.name = 'integrations.cards.card_name_in_use'
+  if (!issues.name && otherCards.some((card) => normalizeCardName(card.name) === name)) {
+    return { name: 'integrations.cards.card_name_in_use', ...issues }
   }
   return issues
 }
@@ -149,6 +152,22 @@ export const buildCustomerCardPreviewPayload = (
     query: encodeBase64Utf8(number ? query.replaceAll(CALLER_NUMBER_PLACEHOLDER, number) : query),
   }
 }
+
+export const CUSTOMER_CARD_PREVIEW_ERROR_INLINE_LENGTH = 120
+
+export const getCustomerCardPreviewQueryError = (error: unknown): string | undefined => {
+  if (!isApiError(error) || error.status !== 422) {
+    return undefined
+  }
+  const body = error.body
+  const message =
+    typeof body === 'object' && body !== null && 'error' in body ? body.error : undefined
+
+  return typeof message === 'string' ? message.trim() : undefined
+}
+
+export const isLongPreviewError = (text: string): boolean =>
+  text.length > CUSTOMER_CARD_PREVIEW_ERROR_INLINE_LENGTH || text.includes('\n')
 
 export const parseCustomerCardPreview = (raw: unknown): string =>
   decodeBase64Utf8(v.parse(PreviewResponseSchema, raw).html)

@@ -30,6 +30,7 @@ const source = (name: string, url = `rtsp://192.0.2.1/${name}`): VideoSource => 
   tlsUnpinned: false,
   doorPhone: '',
   profileIds: [],
+  pbxServer: false,
 })
 
 const check = (success: boolean): VideoSourceCheck => ({
@@ -144,6 +145,22 @@ describe('useVideoSourceChecks', () => {
 
     sources.value = [source('Front door', 'rtsp://192.0.2.7/moved')]
     await flush()
+    expect(checkStoredVideoSource).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps a seeded result when an older check of the same source ends later', async () => {
+    const { checks, sources } = setup([source('a', 'rtsp://192.0.2.1/old')])
+    await flush()
+    expect(checks.statusOf('a')).toBe('testing')
+
+    checks.seed('a', check(true))
+    sources.value = [source('a', 'rtsp://192.0.2.1/new')]
+    await flush()
+    expect(checks.statusOf('a')).toBe('connected')
+
+    pending.shift()?.(check(false))
+    await flush()
+    expect(checks.statusOf('a')).toBe('connected')
     expect(checkStoredVideoSource).toHaveBeenCalledTimes(1)
   })
 

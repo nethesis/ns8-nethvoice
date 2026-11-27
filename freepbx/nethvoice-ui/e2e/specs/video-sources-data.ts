@@ -92,6 +92,7 @@ export type CheckResult = {
   warnings?: string[]
   image?: string | null
   mime?: string | null
+  secret?: string
 }
 
 export type DoorPhoneSeed = {
@@ -327,6 +328,13 @@ export class VideoBackend {
       tls_unpinned: source.tlsUnpinned,
       permission,
       gateway_path: type === 'rtsp' ? `streaming-gw/${permission}` : null,
+      ...(this.limited
+        ? {
+            pbx_server: [source.url, ...source.gates.map((gate) => gate.url ?? '')].some((url) =>
+              this.nodeHosts.has(parseUrl(url)?.host ?? ''),
+            ),
+          }
+        : {}),
       door_phone: source.doorPhone,
       profiles: source.profiles,
     }
@@ -670,7 +678,33 @@ export class VideoBackend {
       reason: 'timeout',
       message: `${url}: Connection timed out`,
     }
+    if (result.secret !== undefined && this.testSecret(body, url) !== result.secret) {
+      return {
+        json: this.checkBody(type, {
+          success: false,
+          reason: 'auth_failed',
+          message: '401 Unauthorized',
+        }),
+      }
+    }
     return { json: this.checkBody(type, result) }
+  }
+
+  private testSecret(body: Record<string, unknown>, url: string): string {
+    const user = typeof body.user === 'string' ? body.user : ''
+    const secret = typeof body.secret === 'string' ? body.secret : ''
+    const stored = this.sources.find((source) => source.descr === body.descr)
+
+    if (
+      secret ||
+      !user ||
+      !stored ||
+      stored.user !== user ||
+      deviceOf(stored.url) !== deviceOf(url)
+    ) {
+      return secret
+    }
+    return stored.secret
   }
 
   private checkBody(type: string, result: CheckResult) {
@@ -753,10 +787,8 @@ export class VideoBackend {
         if (body.door_phone !== undefined && !MAC.test(String(body.door_phone))) {
           return { status: 400, json: { status: 'invalid door phone', field: 'door_phone' } }
         }
-        const reachable =
-          !isRefusedHost(parsed.host) &&
-          !this.nodeHosts.has(parsed.host) &&
-          !this.unreachableHosts.has(parsed.host)
+        const skipped = isRefusedHost(parsed.host) || this.nodeHosts.has(parsed.host)
+        const reachable = !skipped && !this.unreachableHosts.has(parsed.host)
         const publicAddress =
           !reachable && body.door_phone !== undefined
             ? (this.publicAddresses.get(parsed.host) ?? null)
@@ -767,6 +799,7 @@ export class VideoBackend {
             port: parsed.port,
             private: isPrivateHost(parsed.host),
             reachable,
+            skipped,
             public_address: publicAddress,
             public_url: publicAddress
               ? String(body.url).trim().replace(parsed.host, publicAddress)

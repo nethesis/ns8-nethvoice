@@ -23,7 +23,7 @@ import { faCircleInfo } from '@fortawesome/free-solid-svg-icons'
 import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import type { Focusable } from '@/lib/common'
-import { getLegacyStatusMessage } from '@/lib/integrations/errors'
+import { describeIntegrationError } from '@/lib/integrations/errors'
 import {
   emptyParameterizedUrlForm,
   getAvailableProfiles,
@@ -342,7 +342,7 @@ function save() {
               ? t('integrations.param_urls.cannot_save_url')
               : t('integrations.param_urls.cannot_create_url')
           "
-          :description="getLegacyStatusMessage(saveError) || describeError(saveError)"
+          :description="describeIntegrationError(saveError)"
         />
       </div>
       <hr class="my-8" />

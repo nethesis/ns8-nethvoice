@@ -62,6 +62,9 @@ test.describe('integrations: video sources', () => {
     backend.hold('test')
     await page.goto('./integrations/video-sources')
 
+    await expect(
+      page.getByText('Show IP camera and intercom streams to users in NethVoice CTI.'),
+    ).toBeVisible()
     await expect(grid(page).getByRole('row')).toHaveCount(4)
     await expect(row(page, 'Main entrance')).toContainText('Main entrance (300)')
     await expect(row(page, 'Main entrance')).toContainText('Main gate, Pedestrian gate')
@@ -240,16 +243,19 @@ test.describe('integrations: video sources', () => {
 
     await expect(row(page, 'Warehouse')).toContainText('Testing connection…')
     await openRowMenu(page, 'Warehouse')
-    await expect(page.getByRole('menuitem', { name: 'Test connection' })).toBeDisabled()
+    await expect(page.getByRole('menuitem', { name: 'Preview' })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: 'Test connection' })).toHaveCount(0)
     await page.keyboard.press('Escape')
     await expect(
       row(page, 'Warehouse').getByRole('button', { name: 'Edit Warehouse' }),
     ).toBeEnabled()
 
     backend.release('test')
-    await expect(page.getByText('Cannot connect to video source Warehouse')).toBeVisible()
+    await expect(page.getByText('Connection failed', { exact: true })).toBeVisible()
     await expect(
-      page.getByText('The device does not answer. Check the address and the firewall.'),
+      page.getByText(
+        'Cannot connect to video source Warehouse. The device does not answer. Check the address and the firewall.',
+      ),
     ).toBeVisible()
     await expect(row(page, 'Warehouse')).toContainText('Not connected')
 
@@ -273,7 +279,7 @@ test.describe('integrations: video sources', () => {
 
     await openRowMenu(page, 'Warehouse')
     await page.getByRole('menuitem', { name: 'Preview' }).click()
-    await expect(page.getByText('Video not available')).toBeVisible()
+    await expect(page.getByText('Video feed not available')).toBeVisible()
     await expect(
       page
         .getByRole('dialog', { name: 'Warehouse' })
@@ -421,6 +427,10 @@ test.describe('integrations: video sources', () => {
     await expect(drawer.getByText('Step 2/2')).toBeVisible()
     await expect(drawer.getByText('Connection verified')).toBeVisible()
     await expect(drawer.getByRole('img', { name: 'Image from Front door' })).toBeVisible()
+    await expect(drawer.getByRole('img', { name: 'Image from Front door' })).toHaveCSS(
+      'object-fit',
+      'contain',
+    )
     await expect(drawer.getByText('H264, 1280 × 720')).toBeVisible()
 
     await drawer.getByRole('button', { name: 'Add gate' }).click()
@@ -679,6 +689,45 @@ test.describe('integrations: video sources', () => {
     await expect(row(page, 'Main door')).toContainText('Connected')
   })
 
+  test('keeps the relay of each door phone gate and the focus when gates are removed or moved', async ({
+    page,
+    mockApi,
+  }) => {
+    await openTab(page)
+    await page.getByRole('button', { name: 'Edit Main entrance' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit video source' })
+
+    await drawer.getByRole('button', { name: 'Expand Pedestrian gate' }).click()
+    await chooseOption(page, 'Type', 'DTMF')
+    await expect(drawer.getByRole('textbox', { name: 'DTMF code' })).toHaveValue('#')
+
+    await drawer.getByRole('button', { name: 'Expand Main gate' }).click()
+    await drawer.getByRole('button', { name: 'Delete gate Main gate' }).click()
+    await expect(drawer.getByRole('button', { name: 'Pedestrian gate', exact: true })).toBeFocused()
+    await expect(drawer.getByRole('textbox', { name: 'DTMF code' })).toHaveValue('#')
+    await expect(
+      drawer.getByText('Code of relay 2 of the door phone, set by its provisioning.'),
+    ).toBeVisible()
+
+    await drawer.getByRole('button', { name: 'Add gate' }).click()
+    await drawer.getByRole('textbox', { name: 'Name', exact: true }).last().fill('Main gate')
+    await expect(drawer.getByRole('textbox', { name: 'DTMF code' }).last()).toHaveValue('*')
+    await drawer.getByRole('button', { name: 'Move Main gate up' }).click()
+    await expect(drawer.getByRole('button', { name: 'Move Main gate down' })).toBeFocused()
+    await drawer.getByRole('button', { name: 'Move Main gate down' }).click()
+    await expect(drawer.getByRole('button', { name: 'Move Main gate up' })).toBeFocused()
+    await drawer.getByRole('button', { name: 'Move Main gate up' }).click()
+
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(drawer.getByRole('heading')).toHaveCount(0)
+    expect(mockApi.callsTo('PUT', `${STREAMING_PATH}/:descr`)[0]?.body).toMatchObject({
+      gates: [
+        { name: 'Main gate', type: 'dtmf', code: '*' },
+        { id: 2, name: 'Pedestrian gate', type: 'dtmf', code: '#' },
+      ],
+    })
+  })
+
   test('tests the connection in edit and saves only after a passing test', async ({
     page,
     mockApi,
@@ -725,19 +774,44 @@ test.describe('integrations: video sources', () => {
     await expect(row(page, 'Warehouse')).toContainText('Connected')
   })
 
-  test('asks for the password again when the device changes', async ({ page }) => {
-    backend.check('rtsp://192.168.7.52:554/stream1', { success: true })
+  test('asks for the password again when the device changes', async ({ page, mockApi }) => {
+    backend.check('rtsp://192.168.7.52:554/stream1', { success: true, secret: 'Warehouse-1' })
     await openTab(page)
     await page.getByRole('button', { name: 'Edit Warehouse' }).click()
     const drawer = page.getByRole('dialog', { name: 'Edit video source' })
 
+    await expect(drawer.getByText('Leave empty to keep the current password.')).toBeVisible()
     await drawer.getByRole('textbox', { name: 'URL' }).fill('rtsp://192.168.7.52:554/stream1')
+    await expect(
+      drawer.getByText('Enter the password again to connect to a different device.'),
+    ).toBeVisible()
+    const tests = mockApi.callsTo('POST', TEST_PATH).length
     await drawer.getByRole('button', { name: 'Save' }).click()
 
     await expect(
       drawer.getByText('Enter the password again: the device address has changed'),
     ).toBeVisible()
     await expect(drawer.getByLabel(/^Password/)).toBeFocused()
+    await expect(drawer.getByText(/authentication/i)).toHaveCount(0)
+    expect(mockApi.callsTo('POST', TEST_PATH)).toHaveLength(tests)
+
+    await drawer.getByLabel(/^Password/).fill('Warehouse-1')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(drawer.getByRole('heading')).toHaveCount(0)
+    await expect(row(page, 'Warehouse')).toContainText('Connected')
+  })
+
+  test('keeps the stored password for another path on the same device', async ({ page }) => {
+    backend.check('rtsp://192.168.1.52/stream2', { success: true, secret: 'Warehouse-1' })
+    await openTab(page)
+    await page.getByRole('button', { name: 'Edit Warehouse' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit video source' })
+
+    await drawer.getByRole('textbox', { name: 'URL' }).fill('rtsp://192.168.1.52/stream2')
+    await expect(drawer.getByText('Leave empty to keep the current password.')).toBeVisible()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(drawer.getByRole('heading')).toHaveCount(0)
+    await expect(row(page, 'Warehouse')).toContainText('Connected')
   })
 
   test('shows a fixed text when saving fails on the server', async ({ page, mockApi }) => {
@@ -924,6 +998,38 @@ test.describe('integrations: video sources', () => {
     await expect(gateUrl).toBeFocused()
     await expect(editDrawer.getByText('Cannot save the video source')).toHaveCount(0)
     expect(mockApi.callsTo('PUT', `${STREAMING_PATH}/:descr`)).toHaveLength(1)
+  })
+
+  test('shows a source of the PBX node read-only to a limited administrator', async ({
+    page,
+    mockApi,
+  }) => {
+    mockPermissions(mockApi, ['integrations'], 'operator')
+    backend.limited = true
+    backend.nodeHosts.add('192.168.1.51')
+    await page.goto('./integrations/video-sources')
+    await expect(row(page, 'Parking gate')).toContainText('Not connected')
+
+    await expect(row(page, 'Parking gate').getByRole('button', { name: /^Edit/ })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Edit Warehouse' })).toBeVisible()
+    await openRowMenu(page, 'Parking gate')
+    await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeVisible()
+  })
+
+  test('does not ask to forward a port for an address the PBX never contacts', async ({ page }) => {
+    backend.nodeHosts.add('192.0.2.200')
+    backend.check('rtsp://192.0.2.200:554/live', { success: true })
+    await openTab(page)
+    await page.getByRole('button', { name: 'Create video source' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Create video source' })
+    await fillStep1(page, 'rtsp://192.0.2.200:554/live', 'Node camera')
+    await drawer.getByRole('button', { name: 'Next' }).click()
+
+    await expect(drawer.getByText('Step 2/2')).toBeVisible()
+    await expect(drawer.getByText('The PBX cannot reach the device at this address')).toHaveCount(0)
+    await drawer.getByRole('button', { name: 'Previous' }).click()
+    await expect(drawer.getByText('The PBX reaches the device at this address.')).toHaveCount(0)
+    await expect(drawer.getByText('The PBX cannot reach the device at this address')).toHaveCount(0)
   })
 
   test('asks for the password when a door phone source points to another address', async ({

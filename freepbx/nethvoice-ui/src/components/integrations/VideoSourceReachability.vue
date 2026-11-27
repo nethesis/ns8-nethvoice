@@ -63,7 +63,7 @@ const publicUrl = computed(() =>
     <FontAwesomeIcon :icon="faCircleCheck" class="text-icon-enabled size-4" aria-hidden="true" />
     {{ t('integrations.video.address_reachable') }}
   </p>
-  <div v-else-if="result" role="status">
+  <div v-else-if="result && !result.skipped" role="status">
     <NeInlineNotification
       v-if="publicUrl"
       kind="warning"

@@ -52,6 +52,7 @@ import {
   useDbConnectionTypes,
 } from '@/queries/integrations/customerCards'
 import { usePermissions } from '@/queries/permissions/me'
+import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
 const { t } = useI18n()
 const { state, refetch } = useDbConnections()
@@ -59,6 +60,7 @@ const { state: typesState } = useDbConnectionTypes()
 const { state: cardsState } = useCustomerCards()
 const { getStatus, retest } = useDbConnectionStatuses()
 const { isSuperadmin } = usePermissions()
+const runtimeConfigStore = useRuntimeConfigStore()
 
 const isReadOnly = (connection: DbConnection) =>
   connection.builtIn || (!isSuperadmin.value && connection.pbxServer)
@@ -162,14 +164,13 @@ function deleteCurrentConnection() {
         :aria-label="t('integrations.cards.connections')"
         card-breakpoint="xl"
         :loading="state.status === 'pending'"
-        :skeleton-columns="7"
+        :skeleton-columns="6"
         :skeleton-rows="3"
       >
         <NeTableHead>
           <NeTableHeadCell>{{ t('integrations.name') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('integrations.cards.database_type') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('integrations.cards.database_address') }}</NeTableHeadCell>
-          <NeTableHeadCell>{{ t('integrations.cards.database_username') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('integrations.cards.used_by') }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t('common.status') }}</NeTableHeadCell>
           <NeTableHeadCell>
@@ -191,9 +192,6 @@ function deleteCurrentConnection() {
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.cards.database_address')">
               <span class="wrap-break-word">{{ connection.host }}:{{ connection.port }}</span>
-            </NeTableCell>
-            <NeTableCell :data-label="t('integrations.cards.database_username')">
-              <span class="wrap-break-word">{{ connection.user || '-' }}</span>
             </NeTableCell>
             <NeTableCell :data-label="t('integrations.cards.used_by')">
               <span class="wrap-break-word">
@@ -291,6 +289,7 @@ function deleteCurrentConnection() {
       :confirmation-message="
         t('integrations.cards.delete_connection_confirmation', {
           name: currentConnection?.name ?? '',
+          brand: runtimeConfigStore.config.brandName,
         })
       "
       :success-title="t('integrations.cards.connection_deleted')"

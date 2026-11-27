@@ -212,9 +212,13 @@ function nethvoiceKeepsFreepbxSession($sections): bool
     return nethvoiceParseSections($sections) === [NETHVOICE_SUPERADMIN];
 }
 
-function nethvoiceForbidden(ResponseInterface $response): ResponseInterface
+function nethvoiceForbidden(ResponseInterface $response, ?string $field = null): ResponseInterface
 {
-    $response->getBody()->write(json_encode(['message' => 'Forbidden: missing permission']));
+    $body = ['message' => 'Forbidden: missing permission'];
+    if ($field !== null) {
+        $body['field'] = $field;
+    }
+    $response->getBody()->write(json_encode($body));
 
     return $response->withStatus(403)->withHeader('Content-Type', 'application/json;charset=utf-8');
 }
@@ -498,6 +502,14 @@ function nethvoiceLimitedAdminRequestStatus(ServerRequestInterface $request, str
     return null;
 }
 
+function nethvoiceLimitedAdminForbiddenField(string $method, string $pattern): ?string
+{
+    return match (nethvoiceRuleMethod($method) . ' ' . $pattern) {
+        'POST /cti/dbconn', 'PUT /cti/dbconn/{id}', 'POST /cti/dbconn/test' => 'host',
+        default => null,
+    };
+}
+
 function nethvoiceLimitedAdminResponseFilter(string $method, string $pattern): ?callable
 {
     return match (nethvoiceRuleMethod($method) . ' ' . $pattern) {
@@ -532,7 +544,7 @@ class PermissionMiddleware implements MiddlewareInterface
         $pattern = $route->getPattern();
         $status = nethvoiceLimitedAdminRequestStatus($request, $pattern, $route->getArguments(), $this->lookup);
         if ($status === 403) {
-            return nethvoiceForbidden($this->responseFactory->createResponse());
+            return nethvoiceForbidden($this->responseFactory->createResponse(), nethvoiceLimitedAdminForbiddenField($request->getMethod(), $pattern));
         }
         if ($status !== null) {
             return nethvoiceBadRequest($this->responseFactory->createResponse());

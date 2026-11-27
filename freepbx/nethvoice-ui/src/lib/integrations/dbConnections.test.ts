@@ -183,6 +183,21 @@ describe('parseDbConnections', () => {
     ])
   })
 
+  it('should use the PBX server flag of the server when it is sent', () => {
+    const parsed = parseDbConnections([
+      { id: 3, name: 'lan', type: 'mysql', host: '192.0.2.5', port: '', pbx_server: true },
+      { id: 4, name: 'local', type: 'mysql', host: 'localhost', port: '', pbx_server: false },
+      { id: 5, name: 'old', type: 'mysql', host: 'localhost', port: '' },
+    ])
+
+    expect(parsed.map(({ name, pbxServer }) => ({ name, pbxServer }))).toEqual([
+      { name: 'lan', pbxServer: true },
+      { name: 'local', pbxServer: false },
+      { name: 'old', pbxServer: true },
+    ])
+    expect(Object.keys(parsed[0]!)).not.toContain('pbx_server')
+  })
+
   it('should flag a local connection also when there is no built-in connection', () => {
     expect(
       parseDbConnections([{ id: 3, name: 'orders', type: 'mysql', host: 'localhost', port: '' }])[0]
@@ -290,12 +305,59 @@ describe('validateDbConnectionForm', () => {
     ).toEqual({})
   })
 
-  it('should require a password when none is stored', () => {
+  it('should edit a connection without a stored password without asking for one', () => {
     const erp = connections()[1]!
 
-    expect(validateDbConnectionForm({ ...toDbConnectionForm(erp) }, erp)).toEqual({
-      password: 'integrations.password_required',
+    expect(validateDbConnectionForm({ ...toDbConnectionForm(erp), name: 'erp2' }, erp)).toEqual({})
+    expect(
+      validateDbConnectionForm({ ...toDbConnectionForm(erp), host: 'erp2.example.com' }, erp),
+    ).toEqual({})
+  })
+
+  it('should limit each field to what the database stores', () => {
+    expect(
+      validateDbConnectionForm(
+        form({
+          name: 'n'.repeat(64),
+          host: 'h'.repeat(128),
+          user: 'u'.repeat(64),
+          password: 'è'.repeat(64),
+        }),
+      ),
+    ).toEqual({})
+    expect(
+      validateDbConnectionForm(
+        form({
+          name: 'n'.repeat(65),
+          host: 'h'.repeat(129),
+          user: 'u'.repeat(65),
+          password: 'p'.repeat(65),
+        }),
+      ),
+    ).toEqual({
+      name: 'integrations.cards.database_value_too_long',
+      host: 'integrations.cards.database_value_too_long',
+      user: 'integrations.cards.database_value_too_long',
+      password: 'integrations.cards.database_value_too_long',
     })
+    expect(validateDbConnectionForm(form({ password: 'pass\u{1F511}' }))).toEqual({
+      password: 'integrations.cards.database_value_invalid_characters',
+    })
+  })
+
+  it('should reject a connection with the same server, user and database as another one', () => {
+    const others = connections()
+
+    expect(validateDbConnectionForm(form({ name: 'CRM ', port: '' }), undefined, others)).toEqual({
+      name: 'integrations.cards.database_connection_duplicate',
+    })
+    expect(
+      Object.keys(
+        validateDbConnectionForm(form({ user: 'READER', password: '' }), undefined, others),
+      ),
+    ).toEqual(['name', 'password'])
+    expect(validateDbConnectionForm(form({ user: 'writer' }), undefined, others)).toEqual({})
+    expect(validateDbConnectionForm(form({ port: '5433' }), undefined, others)).toEqual({})
   })
 })
 

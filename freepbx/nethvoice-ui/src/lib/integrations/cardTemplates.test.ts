@@ -93,6 +93,16 @@ describe('validateCardTemplateForm', () => {
       name: 'integrations.cards.template_name_already_used',
     })
   })
+
+  it('should report a name in use before the code', () => {
+    expect(
+      Object.keys(validateCardTemplateForm({ name: 'Table', code: ' ' }, templates())),
+    ).toEqual(['name', 'code'])
+  })
+
+  it('should accept rows whose keys are numbers out of list order', () => {
+    expect(parseSampleResults('[{"1":"Ana"},{}]')).toEqual({ results: [{ 1: 'Ana' }, {}] })
+  })
 })
 
 describe('forms and payload', () => {
@@ -193,6 +203,8 @@ describe('sample results', () => {
       '[["Ana","Rossi"]]',
       '[{"a":1},2]',
       '[null]',
+      '[{"0":"Ana"}]',
+      '{"0":"Ana","1":"Rossi"}',
     ]) {
       expect(parseSampleResults(text)).toEqual({
         issue: 'integrations.cards.sample_results_not_rows',
@@ -241,6 +253,12 @@ describe('template preview', () => {
     expect(document).toContain('<meta charset="utf-8">')
     expect(document).toContain('<body><p>città</p></body>')
     expect(document).not.toContain('<script')
+  })
+
+  it('should let wide built-in tables scroll instead of cutting their columns', () => {
+    expect(buildCardPreviewDocument('<table></table>')).toContain(
+      '.overflow-hidden{overflow-x:auto;}',
+    )
   })
 
   it('should offer indigo, the default color of the design', () => {

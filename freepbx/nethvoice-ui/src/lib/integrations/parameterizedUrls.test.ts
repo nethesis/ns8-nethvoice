@@ -190,7 +190,7 @@ describe('validateParameterizedUrlForm', () => {
   it('should reject malformed and oversized URLs', () => {
     for (const url of ['crm.example.com', 'ftp://crm.example.com', 'https://crm.example.com/a b']) {
       expect(validateParameterizedUrlForm(form({ url }), rows())).toEqual({
-        url: 'integrations.url_invalid',
+        url: 'integrations.param_urls.url_invalid',
       })
     }
     expect(

@@ -611,7 +611,7 @@ export interface paths {
     put?: never
     /**
      * Create a database connection.
-     * @description Body includes host, port, type, credentials and database name; credentials are stored for later use by customer cards. For administrators who are not superadmin, a body that is not a JSON or form object returns 400, and a connection to the built-in NethVoice databases returns 403. Built-in means connection 1 or 2 on a local host, or any connection to a local host (empty, localhost, loopback, link-local or unspecified address, or an address of the PBX node) without a port or on the port of connection 1 or 2.
+     * @description Body includes host, port, type, credentials and database name; credentials are stored for later use by customer cards. A value longer than its column (host 128, port 64, type 32, user, pass and name 64 characters) or with characters outside the Basic Multilingual Plane returns 400 with `field`. The 403 of a built-in database names the `host` field. For administrators who are not superadmin, a body that is not a JSON or form object returns 400, and a connection to the built-in NethVoice databases returns 403. Built-in means connection 1 or 2 on a local host, or any connection to a local host (empty, localhost, loopback, link-local or unspecified address, or an address of the PBX node) without a port or on the port of connection 1 or 2.
      */
     post: operations['post_cti_dbconn']
     delete?: never
@@ -650,7 +650,7 @@ export interface paths {
     get?: never
     /**
      * Update the given fields of a database connection.
-     * @description Reloads nethcti-server so the customer cards use the new parameters. An empty or omitted `pass` keeps the stored password, unless `host`, `port` or `type` change, which requires the password again. For administrators who are not superadmin, a non-numeric `id` or a body that is not a JSON or form object returns 400, and 403 is returned when the stored connection or the result of the update is a built-in NethVoice database (see `POST /cti/dbconn`).
+     * @description Reloads nethcti-server so the customer cards use the new parameters. An empty or omitted `pass` keeps the stored password, unless `host`, `port` or `type` change, which requires the password again. For administrators who are not superadmin, a non-numeric `id` or a body that is not a JSON or form object returns 400, and 403 is returned when the stored connection or the result of the update is a built-in NethVoice database (see `POST /cti/dbconn`). Values are checked as in `POST /cti/dbconn`.
      */
     put: operations['put_cti_dbconn_id']
     post?: never
@@ -772,7 +772,7 @@ export interface paths {
     post?: never
     /**
      * Delete a customer card template.
-     * @description Deletes `<name>_custom.ejs`, or `<name>.ejs` when there is no custom template with that name. Requires the superadmin permission: templates are rendered by the CTI server.
+     * @description Deletes `<name>_custom.ejs`. A built-in template cannot be deleted (403) and a custom template used by a card cannot be deleted (409). Requires the superadmin permission: templates are rendered by the CTI server.
      */
     delete: operations['delete_cti_customer_card_template_name']
     options?: never
@@ -811,7 +811,7 @@ export interface paths {
     put?: never
     /**
      * Show a customer card rendered by nethcti-server, without saving it.
-     * @description nethcti-server runs the query on the connection and renders the template. Only `html` is returned; an error of nethcti-server is never passed to the client. For administrators who are not superadmin, a card on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
+     * @description nethcti-server runs the query on the connection and renders the template. Only `html` is returned. When the database refuses the query, 422 returns its error text in `error` (at most 4000 characters); any other error of nethcti-server is never passed to the client. For administrators who are not superadmin, a card on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
      */
     post: operations['post_cti_customer_card_preview']
     delete?: never
@@ -835,7 +835,7 @@ export interface paths {
     put?: never
     /**
      * Create a customer card.
-     * @description Body includes name, Base64 encoded query, template name, DB connection id and profile ids. Generates a permission entry automatically. For administrators who are not superadmin, a missing or non-numeric `dbconn_id` returns 400 and a card on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
+     * @description Body includes name, Base64 encoded query, template name, DB connection id and profile ids. Generates a permission entry automatically, named cc_<sanitized name> with a numeric suffix when that name is taken; nothing is left behind when the card cannot be stored. For administrators who are not superadmin, a missing or non-numeric `dbconn_id` returns 400 and a card on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
      */
     post: operations['post_cti_customer_card']
     delete?: never
@@ -854,7 +854,7 @@ export interface paths {
     get?: never
     /**
      * Update a customer card.
-     * @description When the name changes, the related CTI permission is renamed too (name cc_<sanitized name>, displayname <name>). For administrators who are not superadmin, 400 is returned for a non-numeric `id`, an empty body, a key other than `name`, `query`, `template`, `dbconn_id` and `profiles`, a value of those fields that is not a scalar (an array for `profiles`) or a non-numeric `dbconn_id`. Changing the query or the connection of a card that ends up on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
+     * @description When the name changes, only the displayname of the related CTI permission changes; its name stays the same, so the order of the cards saved by CTI users keeps working. A new name is checked as in `POST /cti/customer_card`; a name used by another card returns 409 only to administrators who are not superadmin. For administrators who are not superadmin, 400 is returned for a non-numeric `id`, an empty body, a key other than `name`, `query`, `template`, `dbconn_id` and `profiles`, a value of those fields that is not a scalar (an array for `profiles`) or a non-numeric `dbconn_id`. Changing the query or the connection of a card that ends up on a built-in NethVoice database (see `POST /cti/dbconn`) returns 403.
      */
     put: operations['put_cti_customer_card_id']
     post?: never
@@ -960,7 +960,7 @@ export interface paths {
     put?: never
     /**
      * Check whether the PBX reaches the device of a source URL.
-     * @description Opens a TCP connection to the host and port of a rtsp, rtsps, http or https URL (default ports 554, 322, 80, 443; 2 seconds), nothing is sent to the device. `private` tells that the address belongs to a private network. With `door_phone`, when the device is not reachable, the public address the door phone registers from is returned in `public_address` and `public_url` if the PBX reaches it on the same port.
+     * @description Opens a TCP connection to the host and port of a rtsp, rtsps, http or https URL (default ports 554, 322, 80, 443; 2 seconds), nothing is sent to the device. `private` tells that the address belongs to a private network. With `door_phone`, when the device is not reachable, the public address the door phone registers from is returned in `public_address` and `public_url` if the PBX reaches it on the same port. `skipped` tells that the address was never contacted (loopback, link-local, the PBX node or the cluster VPN), so `reachable` false says nothing about the device.
      */
     post: operations['post_cti_streaming_reachability']
     delete?: never
@@ -3368,6 +3368,8 @@ export interface components {
     Error: {
       error?: string
       message?: string
+      /** @description Request field the error refers to, when known */
+      field?: string
     }
     VideoSourceGate: {
       /** @description Identifier of a stored gate (omit for a new one) */
@@ -3429,6 +3431,8 @@ export interface components {
       /** @example streaming-gw/vs_front_door */
       gateway_path?: string | null
       profiles?: string[]
+      /** @description Only for limited administrators, true when the URL or a gate URL points to an address of the PBX node, so they cannot save the source */
+      readonly pbx_server?: boolean
     }
     VideoSourceCheck: {
       success?: boolean
@@ -4086,6 +4090,8 @@ export interface components {
     /** @description Legacy error body: `status` carries the message, or `false` when an import or a test failed. */
     IntegrationsStatusError: {
       status?: string | boolean
+      /** @description Request field the error refers to, when known (`url` for a source URL that an administrator who is not superadmin cannot use) */
+      field?: string
     }
     /** @description One external phonebook source stored under /etc/phonebook/sources.d. The fields that are present depend on `dbtype`. */
     IntegrationsPhonebookSource: {
@@ -4170,6 +4176,8 @@ export interface components {
           }[]
           /** @description Rows the source returns */
           total: number
+          /** @description Column names of the database query or of the CSV header, also those without a value in the first rows */
+          columns?: string[]
         }
       | components['schemas']['IntegrationsPhonebookTestFailure']
     IntegrationsPhonebookTestFailure: {
@@ -4284,6 +4292,8 @@ export interface components {
       pass?: string
       /** @description Whether a password is stored */
       has_password?: boolean
+      /** @description Returned only to administrators who are not superadmin. True when the connection targets the PBX itself (see `POST /cti/dbconn`), so they cannot change it or use it for queries. */
+      readonly pbx_server?: boolean
       /** @description Database name */
       name: string
       creation?: string
@@ -6207,6 +6217,15 @@ export interface operations {
           }
         }
       }
+      /** @description Another connection has the same host, port, user and database name; `field` is `name` */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -6278,7 +6297,7 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request, invalid parameters, or the password is missing for a different server */
+      /** @description Bad request, invalid parameters, a value that cannot be stored (with `field`), or the password is missing for a different server */
       400: {
         headers: {
           [name: string]: unknown
@@ -6296,6 +6315,15 @@ export interface operations {
           'application/json': {
             message?: string
           }
+        }
+      }
+      /** @description Another connection has the same host, port, user and database name; `field` is `name` */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
         }
       }
       /** @description Internal server error */
@@ -6655,15 +6683,22 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Forbidden: missing permission */
+      /** @description Forbidden: missing permission, or the template is built-in (`<name>.ejs` without a custom template with that name) */
       403: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            message?: string
-          }
+          'application/json': components['schemas']['Error']
+        }
+      }
+      /** @description The custom template is used by customer cards; `field` is `name` */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
         }
       }
       /** @description Internal server error */
@@ -6795,6 +6830,15 @@ export interface operations {
           }
         }
       }
+      /** @description The database refused the query; `error` holds its message */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -6885,15 +6929,13 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request: invalid parameters */
+      /** @description Bad request, or a name that is empty, longer than 128 characters or with characters outside the Basic Multilingual Plane (`field` is `name`) */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            message?: string
-          }
+          'application/json': components['schemas']['Error']
         }
       }
       /** @description Forbidden: missing permission */
@@ -6905,6 +6947,15 @@ export interface operations {
           'application/json': {
             message?: string
           }
+        }
+      }
+      /** @description Another card has the same name, ignoring case and surrounding spaces; `field` is `name` */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
         }
       }
       /** @description Internal server error */
@@ -6938,15 +6989,13 @@ export interface operations {
         }
         content?: never
       }
-      /** @description Bad request: invalid parameters */
+      /** @description Bad request: invalid parameters, or a name that cannot be stored (`field` is `name`) */
       400: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': {
-            message?: string
-          }
+          'application/json': components['schemas']['Error']
         }
       }
       /** @description Forbidden: missing permission */
@@ -6966,6 +7015,15 @@ export interface operations {
           [name: string]: unknown
         }
         content?: never
+      }
+      /** @description Another card has the same name; `field` is `name` */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['Error']
+        }
       }
       /** @description Internal server error */
       500: {
@@ -7262,6 +7320,7 @@ export interface operations {
             port?: number
             private?: boolean
             reachable?: boolean
+            skipped?: boolean
             public_address?: string | null
             public_url?: string | null
           }
@@ -9365,6 +9424,7 @@ export interface operations {
         content: {
           'application/json': {
             status?: string
+            field?: string
           }
         }
       }

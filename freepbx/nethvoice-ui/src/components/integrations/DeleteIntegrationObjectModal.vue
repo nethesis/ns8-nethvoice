@@ -9,8 +9,8 @@ import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import { NeModal } from '@nethesis/vue-components'
 import DeleteObjectModal from '@/components/common/DeleteObjectModal.vue'
-import { getLegacyStatusMessage } from '@/lib/integrations/errors'
-import { describeError, useNotificationsStore } from '@/stores/notifications'
+import { describeIntegrationError } from '@/lib/integrations/errors'
+import { useNotificationsStore } from '@/stores/notifications'
 
 const {
   visible = false,
@@ -108,7 +108,7 @@ watch(
     :deleting="deleting"
     :confirmation-message="confirmationMessage"
     :error-title="deleteError ? errorTitle : ''"
-    :error-description="getLegacyStatusMessage(deleteError) || describeError(deleteError)"
+    :error-description="describeIntegrationError(deleteError)"
     @close="emit('close')"
     @primary-click="deleteMutate(objectName)"
   />

@@ -347,15 +347,22 @@ foreach ([['7', '2'], ['7', '2"OR"1'], ['7', "2\";DELETE FROM ampusers;#"], ['x'
     check(FreePBX::$db->log === [['prepare', 'DELETE FROM `outbound_route_trunks` WHERE `route_id`=? AND `trunk_id`=?', [$route, $trunk]]], 'the route trunk did not travel as a bound parameter: ' . json_encode(FreePBX::$db->log));
 }
 
+$cards = new PDO('sqlite::memory:');
+$cards->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$cards->exec("CREATE TABLE customer_card (id INTEGER PRIMARY KEY, name TEXT, template TEXT)");
+$cards->exec("INSERT INTO customer_card VALUES (1, 'Orders', 'orders_custom')");
+(new ReflectionProperty('NethCTI', 'db'))->setValue(null, $cards);
 $deleteTemplate = function ($name, $files) use ($app, $templates) {
     foreach (array_diff(scandir($templates), ['.', '..']) as $file) { unlink("$templates/$file"); }
     foreach ($files as $file) { file_put_contents("$templates/$file", 'x'); }
     $result = call($app, 'DELETE', '/cti/customer_card/template/' . $name);
     return [$result[0], array_values(array_diff(scandir($templates), ['.', '..']))];
 };
-check($deleteTemplate('mycard', ['mycard.ejs', 'table.ejs']) === [200, ['table.ejs']], 'a template was not deleted');
+check($deleteTemplate('mycard', ['mycard_custom.ejs', 'table.ejs']) === [200, ['table.ejs']], 'a template was not deleted');
 check($deleteTemplate('mycard', ['mycard.ejs', 'mycard_custom.ejs']) === [200, ['mycard.ejs']], 'a customized template was not deleted first');
-check($deleteTemplate('table2', ['table2.ejs']) === [200, []], 'a template with digits was not deleted');
+check($deleteTemplate('table2', ['table2_custom.ejs']) === [200, []], 'a template with digits was not deleted');
+check($deleteTemplate('mycard', ['mycard.ejs', 'table.ejs']) === [403, ['mycard.ejs', 'table.ejs']], 'a built-in template was deleted');
+check($deleteTemplate('orders', ['orders_custom.ejs']) === [409, ['orders_custom.ejs']], 'a template used by a card was deleted');
 check($deleteTemplate('nocard', ['table.ejs']) === [500, ['table.ejs']], 'a missing template changed answer');
 foreach (['My_Card' => ['My_Card.ejs'], 'MyCard' => ['MyCard.ejs'], '..' => ['...ejs'], 'my%20card' => ['my card.ejs'], 'card%0A' => ["card\n.ejs"]] as $name => $files) {
     check($deleteTemplate($name, $files) === [500, $files], "the template name $name was not refused");

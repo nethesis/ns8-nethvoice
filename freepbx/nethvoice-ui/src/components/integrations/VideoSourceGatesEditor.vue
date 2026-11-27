@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NeButton,
@@ -30,7 +30,7 @@ import {
   isGateCodeLocked,
   issueParams,
   newGateForm,
-  relayOf,
+  relayOfGate,
   syncDoorGates,
   type DoorRelay,
   type GateForm,
@@ -59,6 +59,7 @@ const emit = defineEmits<{ clearIssue: [key: string] }>()
 const { t, te } = useI18n()
 const expanded = ref<string[]>([])
 const fieldRefs = new Map<string, Focusable>()
+const sectionRef = useTemplateRef<HTMLElement>('sectionRef')
 
 const typeOptions = computed(() => [
   { id: 'dtmf', label: t('integrations.video.gate_type_dtmf') },
@@ -134,6 +135,11 @@ function addGate() {
   void focusField(gate.uid, 'name')
 }
 
+async function focusControl(id: string) {
+  await nextTick()
+  sectionRef.value?.querySelector<HTMLElement>(`#${id}`)?.focus()
+}
+
 function removeGate(index: number) {
   const gate = gates.value[index]
 
@@ -143,10 +149,15 @@ function removeGate(index: number) {
     }
   }
   emit('clearIssue', 'gates')
-  gates.value = syncDoorGates(
+  const next = syncDoorGates(
     gates.value.filter((_gate, position) => position !== index),
     relays,
   )
+  const neighbour = next[index] ?? next[index - 1]
+
+  gates.value = next
+
+  void focusControl(neighbour ? `gate-toggle-${neighbour.uid}` : 'gate-add')
 }
 
 function move(index: number, delta: number) {
@@ -159,15 +170,19 @@ function move(index: number, delta: number) {
   }
   next.splice(target, 0, gate)
   gates.value = syncDoorGates(next, relays)
+  const atEdge = target === 0 || target === next.length - 1
+  const direction = delta < 0 !== atEdge ? 'up' : 'down'
+
+  void focusControl(`gate-${direction}-${gate.uid}`)
 }
 
-function usernameHelper(index: number): string {
-  return relayOf(relays, index)?.url ? t('integrations.video.relay_username_helper') : ''
+function usernameHelper(gate: GateForm): string {
+  return relayOfGate(gate, relays)?.url ? t('integrations.video.relay_username_helper') : ''
 }
 
-function codeHelper(gate: GateForm, index: number): string {
-  return isGateCodeLocked(gate, index, relays)
-    ? t('integrations.video.relay_code_helper', { n: index + 1 })
+function codeHelper(gate: GateForm): string {
+  return isGateCodeLocked(gate, relays)
+    ? t('integrations.video.relay_code_helper', { n: gate.relay })
     : t('integrations.video.dtmf_helper')
 }
 
@@ -175,7 +190,7 @@ defineExpose({ expand, focusField })
 </script>
 
 <template>
-  <section>
+  <section ref="sectionRef">
     <div class="mb-2 flex items-center justify-between">
       <h3 class="flex items-center gap-2 text-sm font-medium">
         {{ t('integrations.video.gates') }}
@@ -226,6 +241,7 @@ defineExpose({ expand, focusField })
       >
         <div class="flex items-center justify-between gap-2">
           <button
+            :id="`gate-toggle-${gate.uid}`"
             type="button"
             class="focus:ring-primary-500 dark:focus:ring-primary-300 min-w-0 flex-1 truncate rounded-sm text-left text-sm font-medium focus:ring-2 focus:outline-hidden"
             :aria-expanded="isExpanded(gate.uid)"
@@ -238,6 +254,7 @@ defineExpose({ expand, focusField })
             <NeTooltip trigger-event="mouseenter focus">
               <template #trigger>
                 <NeButton
+                  :id="`gate-up-${gate.uid}`"
                   kind="tertiary"
                   :disabled="disabled || index === 0"
                   @click="move(index, -1)"
@@ -253,6 +270,7 @@ defineExpose({ expand, focusField })
             <NeTooltip trigger-event="mouseenter focus">
               <template #trigger>
                 <NeButton
+                  :id="`gate-down-${gate.uid}`"
                   kind="tertiary"
                   :disabled="disabled || index === gates.length - 1"
                   @click="move(index, 1)"
@@ -325,9 +343,9 @@ defineExpose({ expand, focusField })
             :model-value="gate.code"
             :label="t('integrations.video.dtmf_code')"
             :placeholder="t('integrations.video.dtmf_placeholder')"
-            :helper-text="codeHelper(gate, index)"
+            :helper-text="codeHelper(gate)"
             :invalid-message="issueText(gateIssueKey(gate.uid, 'code'))"
-            :readonly="isGateCodeLocked(gate, index, relays)"
+            :readonly="isGateCodeLocked(gate, relays)"
             :disabled="disabled"
             @update:model-value="update(index, { code: String($event) })"
           />
@@ -358,7 +376,7 @@ defineExpose({ expand, focusField })
               :model-value="gate.username"
               :label="t('integrations.video.username')"
               :placeholder="t('integrations.video.username_placeholder')"
-              :helper-text="usernameHelper(index)"
+              :helper-text="usernameHelper(gate)"
               :invalid-message="issueText(gateIssueKey(gate.uid, 'username'))"
               :disabled="disabled"
               optional
@@ -408,7 +426,7 @@ defineExpose({ expand, focusField })
       </template>
       <template #content>{{ t('integrations.video.gate_limit', { max: limit }) }}</template>
     </NeTooltip>
-    <NeButton v-else kind="secondary" :disabled="disabled" @click="addGate">
+    <NeButton v-else id="gate-add" kind="secondary" :disabled="disabled" @click="addGate">
       <template #prefix>
         <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
       </template>

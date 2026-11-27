@@ -43,6 +43,7 @@ import {
   getAddressIssue,
   hasQualityChoice,
   isDoorPasswordRequest,
+  isStoredPasswordKept,
   isTlsRelevant,
   isTlsUrl,
   issueParams,
@@ -182,6 +183,21 @@ const shownCheck = computed(() =>
     ? currentCheck.value
     : null,
 )
+const testErrorText = computed(() => {
+  const message = unexpectedTestError.value
+    ? mapSaveError(unexpectedTestError.value, []).message
+    : ''
+
+  return message ? issueTextOf(message) : describeError(unexpectedTestError.value)
+})
+const passwordHelper = computed(() => {
+  if (!currentSource?.hasSecret || !form.value.user.trim() || form.value.doorPhone) {
+    return ''
+  }
+  return isStoredPasswordKept(form.value, currentSource)
+    ? t('integrations.password_keep_helper')
+    : t('integrations.video.password_device_changed_helper')
+})
 const unexpectedTestError = computed(() =>
   testError.value && Object.keys(mapSaveError(testError.value, []).issues).length === 0
     ? testError.value
@@ -414,7 +430,7 @@ async function runTest(origin: 'button' | 'submit'): Promise<VideoSourceCheck | 
 }
 
 async function testButton() {
-  const urlIssues = validateConnection(form.value)
+  const urlIssues = validateConnection(form.value, currentSource)
 
   if (Object.keys(urlIssues).length > 0) {
     issues.value = { ...issues.value, ...urlIssues }
@@ -465,6 +481,7 @@ async function save() {
     ...validateSourceFields(
       form.value,
       sources.filter((source) => source.name !== currentSource?.name),
+      currentSource,
     ),
     ...validateGates(form.value, limit.value),
   }
@@ -723,11 +740,7 @@ const saveFailed = computed(() => !!saveMessage.value || (!!saveError.value && !
             ref="passwordRef"
             v-model="form.password"
             :label="t('integrations.password')"
-            :helper-text="
-              currentSource?.hasSecret && form.user.trim() && !form.doorPhone
-                ? t('integrations.password_keep_helper')
-                : ''
-            "
+            :helper-text="passwordHelper"
             :invalid-message="issueText('password')"
             :disabled="busy"
             is-password
@@ -779,7 +792,7 @@ const saveFailed = computed(() => !!saveMessage.value || (!!saveError.value && !
           v-if="unexpectedTestError"
           kind="error"
           :title="t('integrations.video.cannot_test_source')"
-          :description="describeError(unexpectedTestError)"
+          :description="testErrorText"
         />
         <div v-if="shownCheck && (isEdit || !shownCheck.success)" ref="resultRef">
           <VideoSourceCheckResult

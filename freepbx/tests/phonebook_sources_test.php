@@ -52,6 +52,11 @@ $stored = (object) ($csvSource + ['guard_addresses' => true]);
 phonebookPublicSource($stored);
 check($stored->guard_addresses === true, 'listing changed the stored source');
 
+check(!phonebookTextTooLong(str_repeat('è', 255)), 'name of 255 characters refused');
+check(phonebookTextTooLong(str_repeat('è', 256)), 'name longer than 255 characters accepted');
+check(!phonebookTextTooLong('group:' . str_repeat('a', 249)), 'sharing of 255 characters refused');
+check(phonebookTextTooLong('group:' . str_repeat('a', 250)), 'sharing longer than 255 characters accepted');
+
 check(phonebookSyncCommand('custom_1', false) === "timeout -s ALRM -k 10 900 /usr/share/phonebooks/phonebook-import '/etc/phonebook/sources.d/custom_1.json'", 'sync command of the previous wizard changed');
 check(phonebookSyncCommand('custom_1', true) === "timeout -s ALRM -k 10 900 /usr/share/phonebooks/phonebook-import --force '/etc/phonebook/sources.d/custom_1.json'", 'force not passed');
 
@@ -62,6 +67,8 @@ check(phonebookTestResult(0, ['{"rows":[],"total":0}'], false) === ['status' => 
 check(phonebookTestResult(0, [], false) === ['status' => false], 'missing output accepted');
 check(json_encode(phonebookTestResult(0, ['{"rows":' . $rows . ',"total":1234}'], true)) === '{"rows":[{"name":"Ada","1":"x"},{"name":"Bob"},{"name":"Cy"}],"total":1234}', 'total not returned');
 check(phonebookTestResult(0, [$rows], true) === ['status' => false], 'array accepted with with_total');
+check(json_encode(phonebookTestResult(0, ['{"rows":[{"name":"Ada"}],"total":1,"columns":["name","email"]}'], true)) === '{"rows":[{"name":"Ada"}],"total":1,"columns":["name","email"]}', 'header columns not returned');
+check(!array_key_exists('columns', phonebookTestResult(0, ['{"rows":[],"total":0,"columns":["name",3]}'], true)), 'invalid header columns returned');
 check(phonebookTestResult(0, ['{"rows":[],"total":"3"}'], true) === ['status' => false], 'total that is not an integer accepted');
 
 check(phonebookTestResult(1, [], false) === ['status' => false], 'failure without cause changed');

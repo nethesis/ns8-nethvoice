@@ -156,7 +156,7 @@ const ParameterizedUrlFormSchema = v.object({
     v.check((name) => !hasControlCharacters(name), 'integrations.param_urls.name_invalid'),
   ),
   url: v.pipe(
-    HttpUrlSchema('integrations.url_required', 'integrations.url_invalid'),
+    HttpUrlSchema('integrations.url_required', 'integrations.param_urls.url_invalid'),
     v.maxLength(PARAMETERIZED_URL_MAX_LENGTH, 'integrations.param_urls.url_too_long'),
   ),
   profileId: v.pipe(v.string(), v.nonEmpty('integrations.param_urls.profile_required')),

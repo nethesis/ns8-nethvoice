@@ -265,8 +265,8 @@ async function testSource(source: VideoSource) {
   } else {
     notificationsStore.createNotification({
       kind: 'error',
-      title: t('integrations.video.cannot_connect_name', { name: source.name }),
-      description: t(getFailureKey(check)),
+      title: t('integrations.video.connection_failed'),
+      description: `${t('integrations.video.cannot_connect_name', { name: source.name })} ${t(getFailureKey(check))}`,
     })
   }
 }
@@ -290,13 +290,16 @@ function getKebabMenuItems(source: VideoSource): NeDropdownItem[] {
       icon: faEye,
       action: () => showPreview(source),
     },
-    {
-      id: 'test',
-      label: t('integrations.video.test_connection'),
-      icon: faArrowRightArrowLeft,
-      disabled: testing,
-      action: () => void testSource(source),
-    },
+    ...(testing
+      ? []
+      : [
+          {
+            id: 'test',
+            label: t('integrations.video.test_connection'),
+            icon: faArrowRightArrowLeft,
+            action: () => void testSource(source),
+          },
+        ]),
     { id: 'divider' },
     {
       id: 'delete',
@@ -549,7 +552,7 @@ async function deleteCurrentSource() {
             </NeTableCell>
             <NeTableCell :data-label="t('common.actions')">
               <div class="-ml-2.5 flex gap-2 xl:ml-0 xl:justify-end">
-                <NeButton kind="tertiary" @click="showEditDrawer(source)">
+                <NeButton v-if="!source.pbxServer" kind="tertiary" @click="showEditDrawer(source)">
                   <template #prefix>
                     <FontAwesomeIcon :icon="faPenToSquare" class="size-4" aria-hidden="true" />
                   </template>

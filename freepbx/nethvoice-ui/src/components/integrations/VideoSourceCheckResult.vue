@@ -77,7 +77,7 @@ function readSize(event: Event) {
           ? t('integrations.video.snapshot_alt', { name })
           : t('integrations.video.snapshot_alt_unnamed')
       "
-      class="aspect-video w-full rounded-md object-cover"
+      class="aspect-video w-full rounded-md object-contain"
       @load="readSize"
     />
     <p v-if="videoInfo" class="flex gap-2 text-sm">

@@ -5,6 +5,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+const CTI_PHONEBOOK_IMPORT_TIMEOUT = 900;
+
 function triggerMiddlewareProfilesReload() {
     $token = isset($_ENV['NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN']) ? $_ENV['NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN'] : null;
     $portEnv = isset($_ENV['NETHVOICE_MIDDLEWARE_PORT']) ? $_ENV['NETHVOICE_MIDDLEWARE_PORT'] : null;
@@ -99,12 +101,7 @@ function importCtiPhonebookCsv($owner, $csvPath) {
         'file' => new CURLFile($csvPath, 'text/csv', basename($csvPath)),
     );
 
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 60);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Authorization: Bearer ' . $token));
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $post);
+    curl_setopt_array($ch, ctiPhonebookImportCurlOptions($token, $post));
 
     $body = curl_exec($ch);
     $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -116,6 +113,17 @@ function importCtiPhonebookCsv($owner, $csvPath) {
         return false;
     }
     return array('httpCode' => $httpCode, 'body' => $body);
+}
+
+function ctiPhonebookImportCurlOptions($token, array $post) {
+    return array(
+        CURLOPT_POST => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => CTI_PHONEBOOK_IMPORT_TIMEOUT,
+        CURLOPT_HTTPHEADER => array('Authorization: Bearer ' . $token),
+        CURLOPT_POSTFIELDS => $post,
+    );
 }
 
 function revokeMiddlewareUser($username) {

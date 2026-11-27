@@ -9,6 +9,7 @@ const PHONEBOOK_IMPORTER = '/usr/share/phonebooks/phonebook-import';
 const PHONEBOOK_ERROR_KINDS = ['connection', 'auth', 'query', 'file', 'http', 'format', 'unknown'];
 const PHONEBOOK_ERROR_DETAILS_MAX_LENGTH = 500;
 const PHONEBOOK_IMPORT_FILENAME_MAX_LENGTH = 255;
+const PHONEBOOK_TEXT_MAX_LENGTH = 255;
 const PHONEBOOK_UPLOADS_DIR = '/var/lib/nethvoice/phonebook/uploads/';
 const PHONEBOOK_CONTAINER_STARTED = '/var/run/nethvoice/freepbx-started';
 const PHONEBOOK_SOURCES_DIR = '/etc/phonebook/sources.d';
@@ -23,6 +24,11 @@ function phonebookDatabase(): PDO
         'mysql:host='.$_ENV['PHONEBOOK_DB_HOST'].';port='.$_ENV['PHONEBOOK_DB_PORT'].';dbname='.$_ENV['PHONEBOOK_DB_NAME'],
         $_ENV['PHONEBOOK_DB_USER'],
         $_ENV['PHONEBOOK_DB_PASS']);
+}
+
+function phonebookTextTooLong(string $value): bool
+{
+    return mb_strlen($value, 'UTF-8') > PHONEBOOK_TEXT_MAX_LENGTH;
 }
 
 function phonebookTimeLimit(int $seconds): string
@@ -91,7 +97,12 @@ function phonebookTestResult(int $return, array $output, bool $withTotal): array
         if (!is_object($res) || !is_array($res->rows ?? null) || !is_int($res->total ?? null)) {
             return ['status' => false];
         }
-        return ['rows' => array_slice($res->rows, 0, 3), 'total' => $res->total];
+        $result = ['rows' => array_slice($res->rows, 0, 3), 'total' => $res->total];
+        $columns = $res->columns ?? null;
+        if (is_array($columns) && array_filter($columns, 'is_string') === $columns) {
+            $result['columns'] = array_values($columns);
+        }
+        return $result;
     }
     if (!is_array($res)) {
         return ['status' => false];

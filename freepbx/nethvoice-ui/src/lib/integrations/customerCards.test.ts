@@ -10,7 +10,6 @@ import {
   type CustomerCardForm,
   getCardsUsingConnection,
   getCardsUsingTemplate,
-  getCustomerCardPermissionName,
   parseCustomerCardPreview,
   parseCustomerCards,
   previewCustomerCard,
@@ -101,22 +100,39 @@ describe('dependencies', () => {
   })
 })
 
-describe('getCustomerCardPermissionName', () => {
-  it('should mirror the permission name built by the server', () => {
-    expect(getCustomerCardPermissionName('Open invoices #2')).toBe('cc_open_invoices_2')
-  })
-})
-
 describe('validateCustomerCardForm', () => {
   it('should accept a complete card', () => {
     expect(validateCustomerCardForm(form(), [])).toEqual({})
   })
 
-  it('should reject a name whose permission collides with another card', () => {
-    expect(validateCustomerCardForm(form({ name: 'identity!' }), cards())).toEqual({
+  it('should reject the name of another card, ignoring case and spaces', () => {
+    expect(validateCustomerCardForm(form({ name: ' identity ' }), cards())).toEqual({
       name: 'integrations.cards.card_name_in_use',
     })
+    expect(validateCustomerCardForm(form({ name: 'identity!' }), cards())).toEqual({})
     expect(validateCustomerCardForm(form({ name: 'Identity card' }), cards())).toEqual({})
+  })
+
+  it('should accept names in any script that differ only outside Latin letters', () => {
+    const others = cards().map((card) => ({ ...card, name: 'Клиенты' }))
+
+    expect(validateCustomerCardForm(form({ name: 'Заказы' }), others)).toEqual({})
+  })
+
+  it('should limit the name to what the database stores', () => {
+    expect(validateCustomerCardForm(form({ name: 'è'.repeat(128) }), [])).toEqual({})
+    expect(validateCustomerCardForm(form({ name: 'a'.repeat(129) }), [])).toEqual({
+      name: 'integrations.cards.card_name_too_long',
+    })
+    expect(validateCustomerCardForm(form({ name: '\u{1F4DE} CRM' }), [])).toEqual({
+      name: 'integrations.cards.card_name_invalid_characters',
+    })
+  })
+
+  it('should report a name in use before the other fields', () => {
+    expect(
+      Object.keys(validateCustomerCardForm(form({ name: 'Identity', query: ' ' }), cards())),
+    ).toEqual(['name', 'query'])
   })
 
   it('should require every field, profiles included', () => {

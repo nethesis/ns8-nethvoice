@@ -7,6 +7,18 @@ export type FieldIssues = Record<string, string>
 
 export const requiredText = (message: string) => v.pipe(v.string(), v.trim(), v.nonEmpty(message))
 
+export const hasUnstorableCharacters = (value: string): boolean =>
+  /[\u{10000}-\u{10FFFF}]/u.test(value)
+
+export const getTextLength = (value: string): number => [...value].length
+
+export const storableText = (maxLength: number, tooLongMessage: string, invalidMessage: string) =>
+  v.pipe(
+    v.string(),
+    v.check((value) => !hasUnstorableCharacters(value), invalidMessage),
+    v.check((value) => getTextLength(value) <= maxLength, tooLongMessage),
+  )
+
 export const PORT_RANGE = { min: 1, max: 65535 } as const
 
 export const isValidPort = (port: string): boolean =>

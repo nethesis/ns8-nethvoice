@@ -20,6 +20,7 @@ import {
   hasNameColumn,
   isCsvUploadRejected,
   isLocalHostRefusal,
+  getFieldRefusal,
   isNameTaken,
   isPbxDatabaseSource,
   isUploadedCsv,
@@ -27,6 +28,7 @@ import {
   orderPhonebookFields,
   parsePhonebookSources,
   parsePhonebookSyncStatuses,
+  getPhonebookServerText,
   parsePhonebookTestResult,
   parseSharingGroups,
   PHONEBOOK_FIELD_ORDER,
@@ -213,6 +215,30 @@ describe('parsePhonebookTestResult', () => {
 
   it('should accept a source without rows', () => {
     expect(parsePhonebookTestResult([])).toEqual({ ok: true, rows: [], columns: [] })
+  })
+
+  it('should keep the header columns that have no value in the first rows', () => {
+    expect(
+      parsePhonebookTestResult({
+        rows: [{ name: 'Anna Miller', company: 'Example Ltd' }],
+        total: 1,
+        columns: ['name', 'company', 'phone', 'email'],
+      }),
+    ).toEqual({
+      ok: true,
+      columns: ['name', 'company', 'phone', 'email'],
+      rows: [{ name: 'Anna Miller', company: 'Example Ltd' }],
+      total: 1,
+    })
+  })
+
+  it('should list the columns of every row when the header is missing', () => {
+    expect(
+      parsePhonebookTestResult({
+        rows: [{ name: 'Anna Miller' }, { name: 'Chris Davis', email: 'chris@example.com' }],
+        total: 2,
+      }),
+    ).toMatchObject({ columns: ['name', 'email'] })
   })
 
   it('should report a failed read with its cause', () => {
@@ -485,6 +511,13 @@ describe('validatePhonebookSourceFields', () => {
     expect(validatePhonebookSourceFields(databaseForm({ port: '' }))).toEqual({})
   })
 
+  it('should refuse a name longer than 255 characters', () => {
+    expect(validatePhonebookSourceFields(databaseForm({ name: 'è'.repeat(255) }))).toEqual({})
+    expect(validatePhonebookSourceFields(databaseForm({ name: 'è'.repeat(256) }))).toEqual({
+      name: 'integrations.phonebook.name_too_long',
+    })
+  })
+
   it('should require the connection fields of a database source', () => {
     expect(
       validatePhonebookSourceFields(
@@ -590,6 +623,37 @@ describe('validatePhonebookSourceFields', () => {
     ).toEqual({})
   })
 
+  it('should read a refused URL as an error of the URL field', () => {
+    const refused = new ApiError({
+      status: 400,
+      method: 'POST',
+      url: '/phonebook/test',
+      body: { status: 'Invalid source URL', field: 'url' },
+    })
+    const other = new ApiError({
+      status: 400,
+      method: 'POST',
+      url: '/phonebook/test',
+      body: { status: 'Invalid source URL' },
+    })
+    const url = { field: 'url', issue: 'integrations.phonebook.server_url_not_allowed' }
+
+    expect(
+      getFieldRefusal(refused, databaseForm({ kind: 'csv', url: 'http://10.0.0.1/a.csv' })),
+    ).toEqual(url)
+    expect(getFieldRefusal(refused, databaseForm({ kind: 'infinity' }))).toEqual(url)
+    expect(
+      getFieldRefusal(refused, databaseForm({ kind: 'csv', csvFrom: 'upload' })),
+    ).toBeUndefined()
+    expect(getFieldRefusal(other, databaseForm({ kind: 'csv' }))).toBeUndefined()
+    expect(
+      getFieldRefusal(
+        new ApiError({ status: 403, method: 'POST', url: '/phonebook/test', body: {} }),
+        databaseForm(),
+      ),
+    ).toEqual({ field: 'host', issue: 'integrations.phonebook.host_local' })
+  })
+
   it('should read a refused database source as a host on the PBX', () => {
     const refused = new ApiError({
       status: 403,
@@ -629,12 +693,24 @@ describe('validatePhonebookSourceFields', () => {
   it('should validate the Infinity fields', () => {
     expect(
       validatePhonebookSourceFields(
-        databaseForm({ kind: 'infinity', url: 'infinity.example.com', username: '' }),
+        databaseForm({ kind: 'infinity', url: 'ftp://infinity.example.com', username: '' }),
       ),
     ).toEqual({
       url: 'integrations.url_invalid',
       username: 'integrations.phonebook.username_required',
     })
+  })
+
+  it('should accept an Infinity address without a scheme, as the importer does', () => {
+    const infinity = (url: string) =>
+      validatePhonebookSourceFields(databaseForm({ kind: 'infinity', url, username: 'api' }))
+
+    expect(infinity('infinity.example.com')).toEqual({})
+    expect(infinity('infinity.example.com:8443/jsp/home.jsp')).toEqual({})
+    expect(infinity('https://infinity.example.com')).toEqual({})
+    expect(infinity('file:///etc/passwd')).toEqual({ url: 'integrations.url_invalid' })
+    expect(infinity('infinity example.com')).toEqual({ url: 'integrations.url_invalid' })
+    expect(infinity('/servlet')).toEqual({ url: 'integrations.url_invalid' })
   })
 
   it('should accept only http and https addresses for a CSV file to download', () => {
@@ -685,6 +761,18 @@ describe('validatePhonebookVisibility', () => {
     })
     expect(validatePhonebookVisibility({ sharing: 'groups', groups: ['Sales'] })).toEqual({})
     expect(validatePhonebookVisibility({ sharing: 'public', groups: [] })).toEqual({})
+  })
+
+  it('should refuse groups that do not fit in 255 characters', () => {
+    const groups = ['a'.repeat(62), 'b'.repeat(62), 'c'.repeat(62), 'd'.repeat(60)]
+
+    expect(validatePhonebookVisibility({ sharing: 'groups', groups })).toEqual({})
+    expect(validatePhonebookVisibility({ sharing: 'groups', groups: [...groups, 'e'] })).toEqual({
+      groups: 'integrations.phonebook.groups_too_long',
+    })
+    expect(
+      validatePhonebookVisibility({ sharing: 'public', groups: [...groups, 'e'.repeat(65)] }),
+    ).toEqual({})
   })
 })
 
@@ -971,5 +1059,47 @@ describe('translations', () => {
       key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown>)?.[part], en)
 
     expect(keys.filter((key) => typeof lookup(key) !== 'string')).toEqual([])
+  })
+})
+
+describe('getPhonebookServerText', () => {
+  it('should translate the messages of the server', () => {
+    expect(getPhonebookServerText('None of the selected sharing groups exist')).toEqual({
+      key: 'integrations.phonebook.server_groups_missing',
+    })
+    expect(getPhonebookServerText('Invalid source URL')).toEqual({
+      key: 'integrations.phonebook.server_url_not_allowed',
+    })
+    expect(getPhonebookServerText('Enter the password to connect to a different server')).toEqual({
+      key: 'integrations.password_server_changed_helper',
+    })
+    expect(getPhonebookServerText('Missing value: mapping')).toEqual({
+      key: 'integrations.phonebook.server_missing_value',
+    })
+    expect(getPhonebookServerText('CSV separator must be a comma')).toEqual({
+      key: 'integrations.phonebook.server_csv_comma',
+    })
+    expect(getPhonebookServerText('The sync was interrupted')).toEqual({
+      key: 'integrations.phonebook.server_sync_interrupted',
+    })
+    expect(getPhonebookServerText('Interrupted by SIGTERM')).toEqual({
+      key: 'integrations.phonebook.server_sync_interrupted',
+    })
+    expect(getPhonebookServerText('The source did not answer within 60 seconds')).toEqual({
+      key: 'integrations.phonebook.server_time_limit',
+    })
+    expect(getPhonebookServerText('The file exceeds the maximum size of 100 MB')).toEqual({
+      key: 'integrations.phonebook.csv_file_too_large',
+      params: { size: '100' },
+    })
+    expect(getPhonebookServerText('Sharing groups too long')).toEqual({
+      key: 'integrations.phonebook.groups_too_long',
+      params: { max: 255 },
+    })
+  })
+
+  it('should leave the details of the source as they are', () => {
+    expect(getPhonebookServerText("1045 (28000): Access denied for user 'reader'")).toBeUndefined()
+    expect(getPhonebookServerText('')).toBeUndefined()
   })
 })

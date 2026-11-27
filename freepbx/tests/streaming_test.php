@@ -881,13 +881,16 @@ check(streaming_url_with_host('rtsp://192.168.5.218/live', 'evil.example') === n
 $connected = [];
 $fakeConnect = function (string $address, int $port, float $timeout) use (&$connected) { $connected[] = "$address:$port"; return $address === '2.119.67.174'; };
 $reach = streaming_tcp_reachability('rtsp://192.168.5.218:554/h264/stream.live1', $fakeConnect);
-check($reach === ['host' => '192.168.5.218', 'port' => 554, 'private' => true, 'reachable' => false], 'LAN address not reachable from the cloud');
+check($reach === ['host' => '192.168.5.218', 'port' => 554, 'private' => true, 'reachable' => false, 'skipped' => false], 'LAN address not reachable from the cloud');
 $reach = streaming_tcp_reachability('rtsp://2.119.67.174/h264/stream.live1', $fakeConnect);
 check($reach['reachable'] && !$reach['private'] && $reach['port'] === 554, 'public address reachable, default RTSP port');
 check(streaming_tcp_reachability('rtsps://2.119.67.174/x', $fakeConnect)['port'] === 322, 'default RTSPS port');
 $connected = [];
 check(streaming_tcp_reachability('rtsp://127.0.0.1:554/x', $fakeConnect)['reachable'] === false && $connected === [], 'loopback never contacted');
+check(streaming_tcp_reachability('rtsp://127.0.0.1:554/x', $fakeConnect)['skipped'] === true, 'loopback not reported as skipped');
 check(streaming_tcp_reachability('rtsp://door.invalid:554/x', $fakeConnect, function () { return []; })['reachable'] === false, 'unresolved name');
+check(streaming_tcp_reachability('rtsp://door.invalid:554/x', $fakeConnect, function () { return []; })['skipped'] === false, 'unresolved name reported as skipped');
+check(streaming_tcp_reachability('rtsp://2.119.67.174/x', $fakeConnect, null, 2.0, [])['skipped'] === false, 'contacted device reported as skipped');
 $reach = streaming_tcp_reachability('http://192.168.5.218/snapshot.jpg', $fakeConnect);
 check($reach['port'] === 80 && $reach['private'] && !$reach['reachable'], 'JPEG source on a private address, default HTTP port');
 check(streaming_tcp_reachability('https://2.119.67.174/snapshot.jpg', $fakeConnect)['port'] === 443, 'default HTTPS port');
@@ -905,6 +908,7 @@ $vpn = ['10.5.4.1/32', '10.5.4.2/32', '192.168.122.0/24', '10.5.4.3', 'fd00:1::/
 $connected = [];
 foreach (['rtsp://10.5.4.2:554/x', 'http://10.5.4.1/x', 'rtsp://192.168.122.77/x', 'rtsp://10.5.4.3/x', 'rtsp://[fd00:1::9]/x', 'rtsp://[::ffff:10.5.4.2]/x'] as $node) {
     check(streaming_tcp_reachability($node, $fakeConnect, null, 2.0, $vpn)['reachable'] === false, "node or VPN address refused: $node");
+    check(streaming_tcp_reachability($node, $fakeConnect, null, 2.0, $vpn)['skipped'] === true, "node or VPN address not reported as skipped: $node");
 }
 check(streaming_tcp_reachability('rtsp://vpn.example/x', $fakeConnect, function () { return ['192.168.5.1', '10.5.4.2']; }, 2.0, $vpn)['reachable'] === false, 'a name with a VPN address is refused');
 check($connected === [], 'node and VPN addresses are never contacted');

@@ -677,6 +677,19 @@ test.describe('integrations: phonebook', () => {
     expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/config')).toHaveLength(0)
   })
 
+  test('refuses a source name longer than 255 characters', async ({ page, mockApi }) => {
+    mockApi.on('POST', '/freepbx/rest/phonebook/test', { json: { rows: DB_ROWS, total: 3 } })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Create phonebook source' }).click()
+    await fillDatabaseStep(page, 'x'.repeat(256))
+    await button(page, 'Next').click()
+
+    await expect(drawer(page).getByText('Use at most 255 characters')).toBeVisible()
+    await expect(field(page, 'Name')).toBeFocused()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/test')).toHaveLength(0)
+  })
+
   test('validates the name, the port, the query and the MS SQL Server address', async ({
     page,
     mockApi,
@@ -886,6 +899,118 @@ test.describe('integrations: phonebook', () => {
     )
   })
 
+  test('reads the CSV file chosen while the previous one is uploading', async ({
+    page,
+    mockApi,
+  }) => {
+    const firstUpload = 'file:///var/lib/nethvoice/phonebook/uploads/old111.csv'
+    let releaseUpload = () => {}
+    const uploadGate = new Promise<void>((resolve) => {
+      releaseUpload = resolve
+    })
+    let uploads = 0
+
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/uploadfile', async () => {
+        uploads++
+
+        if (uploads === 1) {
+          await uploadGate
+          return { json: { status: true, uri: firstUpload } }
+        }
+        return { json: { status: true, uri: UPLOADED } }
+      })
+      .on('POST', '/freepbx/rest/phonebook/test', (request) =>
+        (request.body as { url: string }).url === firstUpload
+          ? { json: { rows: [{ Supplier: 'Old Supplier' }], total: 1 } }
+          : {
+              json: {
+                rows: [{ Name: 'Anna Miller', Company: 'Example Ltd', Phone: '300', Birthday: '' }],
+                total: 5,
+              },
+            },
+      )
+      .on('POST', '/freepbx/rest/phonebook/config', { json: { id: 'custom_6' } })
+      .on('POST', '/freepbx/rest/phonebook/syncnow/:id', { json: { status: true } })
+      .on('DELETE', '/freepbx/rest/phonebook/uploadfile/:name', { json: { status: true } })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Create phonebook source' }).click()
+    await field(page, 'Name').fill('Resellers')
+    await choose(page, 'Type', 'CSV')
+    await drawer(page).getByRole('radio', { name: 'Upload file' }).check()
+    const input = drawer(page).locator('input[type=file]')
+    await input.setInputFiles({
+      name: 'suppliers.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from('Supplier\nOld Supplier\n'),
+    })
+    await button(page, 'Next').click()
+    await expect.poll(() => uploads).toBe(1)
+    await input.setInputFiles({
+      name: 'resellers.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(CONTACTS_CSV),
+    })
+    releaseUpload()
+
+    await expect(drawer(page).getByText('Step 1/3')).toBeVisible()
+    await expect(button(page, 'Next')).toBeEnabled()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/test')).toHaveLength(0)
+    await button(page, 'Next').click()
+
+    await expect(drawer(page).getByText('First 1 of 5 rows.')).toBeVisible()
+    await expect(combobox(page, 'Name')).toBeVisible()
+    await expect(combobox(page, 'Supplier')).toHaveCount(0)
+    await choose(page, 'Phone', 'Work phone')
+    await choose(page, 'Birthday', 'Not imported')
+    await button(page, 'Next').click()
+    await button(page, 'Create').click()
+
+    await expect(drawer(page)).toBeHidden()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/config')[0].body).toMatchObject({
+      dbtype: 'csv',
+      url: UPLOADED,
+    })
+  })
+
+  test('deletes the uploaded file of a source closed in any way', async ({ page, mockApi }) => {
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/uploadfile', { json: { status: true, uri: UPLOADED } })
+      .on('POST', '/freepbx/rest/phonebook/test', { json: { rows: DB_ROWS, total: 3 } })
+      .on('DELETE', '/freepbx/rest/phonebook/uploadfile/:name', { json: { status: true } })
+      .allowUnmockedCalls()
+    const deletes = () => mockApi.callsTo('DELETE', '/freepbx/rest/phonebook/uploadfile/:name')
+    const uploadAndRead = async () => {
+      await page.getByRole('button', { name: 'Create phonebook source' }).click()
+      await field(page, 'Name').fill('Resellers')
+      await choose(page, 'Type', 'CSV')
+      await drawer(page).getByRole('radio', { name: 'Upload file' }).check()
+      await drawer(page)
+        .locator('input[type=file]')
+        .setInputFiles({
+          name: 'resellers.csv',
+          mimeType: 'text/csv',
+          buffer: Buffer.from(CONTACTS_CSV),
+        })
+      await button(page, 'Next').click()
+      await expect(drawer(page).getByText('Step 2/3')).toBeVisible()
+    }
+
+    await page.goto('./integrations/video-sources')
+    await page.getByRole('link', { name: 'Phonebook' }).click()
+    await uploadAndRead()
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await expect.poll(() => deletes().length).toBe(1)
+
+    await uploadAndRead()
+    await page.goBack()
+    await expect(page).toHaveURL(/\/integrations\/video-sources$/)
+    await expect.poll(() => deletes().length).toBe(2)
+    expect(deletes()[1].path).toBe('/freepbx/rest/phonebook/uploadfile/abc123.csv')
+  })
+
   test('creates an Infinity Zucchetti source with the fixed mapping', async ({ page, mockApi }) => {
     mockApi
       .on('POST', '/freepbx/rest/phonebook/test', {
@@ -992,7 +1117,22 @@ test.describe('integrations: phonebook', () => {
   })
 
   test('edits a source in sections and keeps the stored password', async ({ page, mockApi }) => {
-    mockApi.on('POST', '/freepbx/rest/phonebook/config/:id', { json: { id: 'custom_2' } })
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/config/:id', { json: { id: 'custom_2' } })
+      .on('POST', '/freepbx/rest/phonebook/syncnow/:id', () => {
+        state.statuses = state.statuses.map((status) =>
+          status.id === 'custom_2'
+            ? {
+                ...status,
+                status: 'ok',
+                started_at: `${TODAY}T11:40:00Z`,
+                finished_at: `${TODAY}T11:40:00Z`,
+                message: null,
+              }
+            : status,
+        )
+        return { json: { status: true } }
+      })
 
     await page.goto('./integrations/phonebook')
     await page.getByRole('button', { name: 'Edit ERP suppliers' }).click()
@@ -1047,6 +1187,14 @@ test.describe('integrations: phonebook', () => {
     await expect(
       toasts(page).getByText('Phonebook source ERP vendors has been updated'),
     ).toBeVisible()
+    await expect
+      .poll(() => mockApi.callsTo('POST', '/freepbx/rest/phonebook/syncnow/:id').length)
+      .toBe(1)
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/syncnow/:id')[0]).toMatchObject({
+      path: '/freepbx/rest/phonebook/syncnow/custom_2',
+      body: { force: true },
+    })
+    await expect(sourceRow(page, 'ERP suppliers')).toContainText('Today at 11:40 AM')
   })
 
   test('shows the preview of an edited source and its read errors', async ({ page, mockApi }) => {
@@ -1093,6 +1241,7 @@ test.describe('integrations: phonebook', () => {
         json: { rows: [{ contact_name: 'Mario Rossi', phone: '300', mobile: '333' }], total: 1 },
       })
       .on('POST', '/freepbx/rest/phonebook/config/:id', { json: { id: 'custom_1' } })
+      .on('POST', '/freepbx/rest/phonebook/syncnow/:id', { json: { status: true } })
 
     await page.goto('./integrations/phonebook')
     await page.getByRole('button', { name: 'Edit CRM contacts' }).click()
@@ -1221,6 +1370,39 @@ test.describe('integrations: phonebook', () => {
     await expect(toasts(page).getByText('Invalid source id')).toBeVisible()
   })
 
+  test('reports a failed sync that left no status and a source removed meanwhile', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('POST', '/freepbx/rest/phonebook/syncnow/:id', (request) => {
+      if (request.path.endsWith('/custom_4')) {
+        state.sources = Object.fromEntries(
+          Object.entries(state.sources).filter(([id]) => id !== 'custom_4'),
+        )
+      }
+      return { status: 500, json: { status: false } }
+    })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Open the menu of CRM contacts' }).click()
+    await page.getByRole('menuitem', { name: 'Sync now' }).click()
+
+    await expect(toasts(page).getByText('Cannot sync phonebook source')).toBeVisible()
+    await expect(
+      toasts(page).getByText('The sync of CRM contacts failed. Try again later.'),
+    ).toBeVisible()
+
+    await page.getByRole('button', { name: 'Open the menu of HR directory' }).click()
+    await page.getByRole('menuitem', { name: 'Sync now' }).click()
+
+    await expect(
+      toasts(page).getByText(
+        'The phonebook source HR directory no longer exists. The list has been updated.',
+      ),
+    ).toBeVisible()
+    await expect(sourceRow(page, 'HR directory')).toHaveCount(0)
+  })
+
   test('ends the syncing state when the sync status cannot be read again', async ({
     page,
     mockApi,
@@ -1338,9 +1520,17 @@ test.describe('integrations: phonebook', () => {
     await expect(cause.locator('svg')).toHaveAttribute('data-icon', 'circle-info')
     await expect(page.getByText('The database server does not answer')).toBeHidden()
     await cause.focus()
+    await expect(
+      page.getByText('The source could not be read. Check the source and try again.'),
+    ).toBeVisible()
     await expect(page.getByText('The database server does not answer')).toBeVisible()
     await page.keyboard.press('Tab')
     await expect(page.getByText('The database server does not answer')).toBeHidden()
+    await page.evaluate(() =>
+      document.addEventListener('mousedown', (event) => event.preventDefault(), true),
+    )
+    await cause.click()
+    await expect(page.getByText('The database server does not answer')).toBeVisible()
 
     await expect(sourceRow(page, 'HR directory')).toContainText('Failed today at 3:00 AM')
     await expect(
@@ -1572,6 +1762,36 @@ test.describe('integrations: phonebook', () => {
     )
   })
 
+  test('deletes the uploaded file of an import left for another page', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/uploadfile', { json: { status: true, uri: UPLOADED } })
+      .on('POST', '/freepbx/rest/phonebook/test', { json: DB_ROWS })
+      .on('DELETE', '/freepbx/rest/phonebook/uploadfile/:name', { json: { status: true } })
+      .allowUnmockedCalls()
+
+    await page.goto('./integrations/video-sources')
+    await page.getByRole('link', { name: 'Phonebook' }).click()
+    await page.getByRole('button', { name: 'Import contacts' }).click()
+    await drawer(page)
+      .locator('input[type=file]')
+      .setInputFiles({
+        name: 'contacts.csv',
+        mimeType: 'text/csv',
+        buffer: Buffer.from(CONTACTS_CSV),
+      })
+    await button(page, 'Next').click()
+    await expect(drawer(page).getByText('Step 2/3')).toBeVisible()
+    await page.goBack()
+
+    await expect(page).toHaveURL(/\/integrations\/video-sources$/)
+    await expect
+      .poll(() => mockApi.callsTo('DELETE', '/freepbx/rest/phonebook/uploadfile/:name').length)
+      .toBe(1)
+  })
+
   test('explains the errors of a contact import', async ({ page, mockApi }) => {
     let failure: unknown = {
       status: false,
@@ -1643,13 +1863,124 @@ test.describe('integrations: phonebook', () => {
     await button(page, 'Import').click()
 
     await expect(drawer(page).getByText('Cannot import contacts')).toBeVisible()
-    await expect(drawer(page).getByText('None of the selected sharing groups exist')).toBeVisible()
+    await expect(
+      drawer(page).getByText('The selected groups no longer exist. Choose the groups again.'),
+    ).toBeVisible()
     expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/import-cti')[0].body).toMatchObject({
       type: 'group:Sales',
       owner: 'lbianchi',
       mapping: { Company: 'lastname', Phone: 'workphone' },
       filename: 'companies.csv',
     })
+  })
+
+  test('does not import a file where no row has a name', async ({ page, mockApi }) => {
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/uploadfile', { json: { status: true, uri: UPLOADED } })
+      .on('POST', '/freepbx/rest/phonebook/test', {
+        json: [
+          { Name: '', Phone: '300' },
+          { Name: '', Phone: '301' },
+        ],
+      })
+      .on('POST', '/freepbx/rest/phonebook/import-cti', { json: {} })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Import contacts' }).click()
+    await drawer(page)
+      .locator('input[type=file]')
+      .setInputFiles({
+        name: 'contacts.csv',
+        mimeType: 'text/csv',
+        buffer: Buffer.from('Name,Phone\n,300\n,301\n'),
+      })
+    await expect(drawer(page).getByText('Reading file…')).toHaveCount(0)
+    await button(page, 'Next').click()
+    await expect(combobox(page, 'Name')).toHaveValue('Name')
+    await button(page, 'Next').click()
+
+    await expect(drawer(page).getByText('No contacts to import')).toBeVisible()
+    await expect(
+      drawer(page).getByText(
+        'None of the rows has a name, so no contacts would be imported. Choose the columns with the names of the contacts.',
+      ),
+    ).toBeVisible()
+    await expect(drawer(page).getByText('Step 2/3')).toBeVisible()
+    await choose(page, 'Phone', 'Last name')
+    await expect(drawer(page).getByText('No contacts to import')).toHaveCount(0)
+    await button(page, 'Next').click()
+    await expect(drawer(page).getByText('Step 3/3')).toBeVisible()
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/import-cti')).toHaveLength(0)
+  })
+
+  test('does not import a file without contacts', async ({ page, mockApi }) => {
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/uploadfile', { json: { status: true, uri: UPLOADED } })
+      .on('POST', '/freepbx/rest/phonebook/test', { json: [] })
+      .on('DELETE', '/freepbx/rest/phonebook/uploadfile/:name', { json: { status: true } })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Import contacts' }).click()
+    await drawer(page)
+      .locator('input[type=file]')
+      .setInputFiles({ name: 'contacts.csv', mimeType: 'text/csv', buffer: Buffer.from('Name\n') })
+
+    await expect(
+      drawer(page).getByText(
+        'The file has no contacts. Add at least one row below the column names.',
+      ),
+    ).toBeVisible()
+    await button(page, 'Next').click()
+    await expect(drawer(page).getByText('Step 1/3')).toBeVisible()
+    await expect
+      .poll(() => mockApi.callsTo('DELETE', '/freepbx/rest/phonebook/uploadfile/:name').length)
+      .toBe(1)
+  })
+
+  test('shows only the read error of the file chosen last', async ({ page, mockApi }) => {
+    let releaseUpload = () => {}
+    const uploadGate = new Promise<void>((resolve) => {
+      releaseUpload = resolve
+    })
+    let uploads = 0
+
+    mockApi
+      .on('POST', '/freepbx/rest/phonebook/uploadfile', async () => {
+        uploads++
+
+        if (uploads === 1) {
+          await uploadGate
+          return { status: 400, json: { status: 'File upload error' } }
+        }
+        return { json: { status: true, uri: UPLOADED } }
+      })
+      .on('POST', '/freepbx/rest/phonebook/test', {
+        json: [{ Name: 'Anna Miller', Phone: '300' }],
+      })
+
+    await page.goto('./integrations/phonebook')
+    await page.getByRole('button', { name: 'Import contacts' }).click()
+    const input = drawer(page).locator('input[type=file]')
+    await input.setInputFiles({
+      name: 'old.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from('Name\nOld Contact\n'),
+    })
+    await expect.poll(() => uploads).toBe(1)
+    await input.setInputFiles({
+      name: 'contacts.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from('Name,Phone\nAnna Miller,300\n'),
+    })
+    await expect.poll(() => mockApi.callsTo('POST', '/freepbx/rest/phonebook/test').length).toBe(1)
+    releaseUpload()
+    await expect.poll(() => uploads).toBe(2)
+
+    await expect(drawer(page).getByText('Reading file…')).toHaveCount(0)
+    await expect(drawer(page).getByText('Cannot upload file')).toHaveCount(0)
+    await expect(drawer(page).getByText('Cannot read file')).toHaveCount(0)
+    await button(page, 'Next').click()
+    await expect(combobox(page, 'Phone')).toHaveValue('Work phone')
   })
 
   test('shows the rows skipped by an import in a tooltip', async ({ page }) => {
@@ -1662,6 +1993,17 @@ test.describe('integrations: phonebook', () => {
       page.getByText("7 rows have been skipped because they have no name or aren't valid"),
     ).toBeVisible()
     await expect(info.locator('svg')).toHaveAttribute('data-icon', 'circle-info')
+    await page.keyboard.press('Tab')
+    await expect(
+      page.getByText("7 rows have been skipped because they have no name or aren't valid"),
+    ).toBeHidden()
+    await page.evaluate(() =>
+      document.addEventListener('mousedown', (event) => event.preventDefault(), true),
+    )
+    await info.click()
+    await expect(
+      page.getByText("7 rows have been skipped because they have no name or aren't valid"),
+    ).toBeVisible()
   })
 
   test('creates a source with the keyboard only', async ({ page, mockApi }) => {
@@ -1785,11 +2127,16 @@ test.describe('integrations: phonebook', () => {
   }) => {
     mockPermissions(mockApi, ['integrations'], 'integrator')
     mockApi
-      .on('POST', '/freepbx/rest/phonebook/test', (request) =>
-        (request.body as { host?: string }).host === '127.0.0.1'
-          ? { status: 403, json: { message: 'Forbidden: missing permission' } }
-          : { json: { rows: DB_ROWS, total: 3 } },
-      )
+      .on('POST', '/freepbx/rest/phonebook/test', (request) => {
+        const body = request.body as { host?: string; url?: string }
+
+        if (body.host === '127.0.0.1') {
+          return { status: 403, json: { message: 'Forbidden: missing permission' } }
+        }
+        return body.url === 'http://192.168.5.1/contacts.csv'
+          ? { status: 400, json: { status: 'Invalid source URL', field: 'url' } }
+          : { json: { rows: DB_ROWS, total: 3 } }
+      })
       .on('POST', '/freepbx/rest/phonebook/config/:id', { json: { id: 'custom_1' } })
       .on('POST', '/freepbx/rest/phonebook/syncnow/:id', { json: { status: true } })
 
@@ -1805,6 +2152,18 @@ test.describe('integrations: phonebook', () => {
     await expect(drawer(page).getByText('Enter a server other than the PBX')).toBeVisible()
     await expect(field(page, 'Address')).toBeFocused()
     await expect(drawer(page).getByText('Step 1/3')).toBeVisible()
+    await choose(page, 'Type', 'CSV')
+    await field(page, 'URL').fill('http://192.168.5.1/contacts.csv')
+    await button(page, 'Next').click()
+    await expect(
+      drawer(page).getByText(
+        'This URL cannot be used. Enter a public address starting with http:// or https://.',
+      ),
+    ).toBeVisible()
+    await expect(field(page, 'URL')).toBeFocused()
+    await expect(drawer(page).getByText('Cannot read phonebook source')).toHaveCount(0)
+    await expect(drawer(page).getByText('Invalid source URL')).toHaveCount(0)
+    await expect(drawer(page).getByText('Step 1/3')).toBeVisible()
     await button(page, 'Cancel').click()
     await page.getByRole('button', { name: 'Discard changes' }).click()
 
@@ -1818,7 +2177,7 @@ test.describe('integrations: phonebook', () => {
     ).toBeVisible()
     await button(page, 'Save').click()
     await expect(drawer(page).getByText('Enter the password', { exact: true })).toBeVisible()
-    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/test')).toHaveLength(1)
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/test')).toHaveLength(2)
 
     await drawer(page).getByLabel('Password', { exact: true }).fill('crm-secret')
     await button(page, 'Save').click()
@@ -1833,6 +2192,6 @@ test.describe('integrations: phonebook', () => {
     await page.getByRole('button', { name: 'Open the menu of CRM contacts' }).click()
     await page.getByRole('menuitem', { name: 'Sync now' }).click()
     await expect(sourceRow(page, 'CRM contacts')).toContainText('Today at 10:00 AM')
-    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/syncnow/:id')).toHaveLength(1)
+    expect(mockApi.callsTo('POST', '/freepbx/rest/phonebook/syncnow/:id')).toHaveLength(2)
   })
 })

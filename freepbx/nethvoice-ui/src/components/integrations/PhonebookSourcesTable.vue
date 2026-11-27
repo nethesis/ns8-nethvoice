@@ -42,11 +42,11 @@ import DeleteIntegrationObjectModal from './DeleteIntegrationObjectModal.vue'
 import IntegrationsPaginator from './IntegrationsPaginator.vue'
 import PhonebookUpdating from './PhonebookUpdating.vue'
 import { useClientPagination } from '@/composables/useClientPagination'
+import { usePhonebookServerMessage } from '@/composables/usePhonebookServerMessage'
 import { usePolling } from '@/composables/usePolling'
 import { useUpdatingIndicator } from '@/composables/useUpdatingIndicator'
 import { isApiError } from '@/lib/api/errors'
 import { PAGE_SIZES } from '@/lib/common'
-import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import {
   deletePhonebookSource,
   getLastSyncDisplay,
@@ -74,6 +74,7 @@ const runtimeConfigStore = useRuntimeConfigStore()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
 const { isSuperadmin } = usePermissions()
+const { translate, describeStatus } = usePhonebookServerMessage()
 const { state, asyncStatus, refetch } = usePhonebookSources()
 const {
   state: statusState,
@@ -123,26 +124,58 @@ watch(statuses, () => {
   now.value = new Date()
 })
 
+const isSyncFailure = (error: unknown) => isApiError(error) && error.status === 500
+
+const getSyncStatus = (id: string) => statuses.value.find((status) => status.id === id)
+
 const { mutate: syncMutate } = useMutation({
   mutation: (source: SyncTarget) => syncPhonebookSource(source.id),
   onMutate(source) {
     syncingIds.value = [...syncingIds.value, source.id]
+    return { previousStatus: JSON.stringify(getSyncStatus(source.id) ?? null) }
   },
   onError(error) {
-    if (isApiError(error) && error.status === 500) {
+    if (isSyncFailure(error)) {
       return
     }
     notificationsStore.createNotification({
       kind: 'error',
       title: t('integrations.phonebook.cannot_sync_source'),
-      description: getLegacyStatusMessage(error) || describeError(error),
+      description: describeStatus(error) || describeError(error),
     })
   },
-  async onSettled(_data, _error, source) {
+  async onSettled(_data, error, source, context) {
     await queryCache.invalidateQueries({ key: [PHONEBOOK_STATUS_KEY] }).catch(() => undefined)
     syncingIds.value = syncingIds.value.filter((id) => id !== source.id)
+
+    if (isSyncFailure(error)) {
+      await reportSyncFailure(source, context?.previousStatus)
+    }
   },
 })
+
+async function reportSyncFailure(source: SyncTarget, previousStatus: string | undefined) {
+  await queryCache.invalidateQueries({ key: [PHONEBOOK_SOURCES_KEY] }).catch(() => undefined)
+
+  if (state.value.status === 'success' && !sources.value.some((item) => item.id === source.id)) {
+    notificationsStore.createNotification({
+      kind: 'error',
+      title: t('integrations.phonebook.cannot_sync_source'),
+      description: t('integrations.phonebook.sync_source_removed', { name: source.name }),
+    })
+    return
+  }
+  const status = getSyncStatus(source.id)
+
+  if (status?.status === 'failed' && JSON.stringify(status) !== previousStatus) {
+    return
+  }
+  notificationsStore.createNotification({
+    kind: 'error',
+    title: t('integrations.phonebook.cannot_sync_source'),
+    description: t('integrations.phonebook.sync_failed_description', { name: source.name }),
+  })
+}
 
 function isReadOnly(source: PhonebookSource): boolean {
   return !isSuperadmin.value && isPbxDatabaseSource(source)
@@ -164,9 +197,17 @@ function getLastSync(source: PhonebookSource): LastSyncDisplay {
   )
 }
 
-function getSyncErrorMessage(source: PhonebookSource): string {
+function getSyncError(source: PhonebookSource): { message: string; details: string } | undefined {
   const message = statuses.value.find((status) => status.id === source.id)?.message?.trim()
-  return message ? capitalizeFirst(message) : ''
+
+  if (!message) {
+    return undefined
+  }
+  const text = translate(message)
+
+  return text === message
+    ? { message: t('integrations.phonebook.sync_error_generic'), details: message }
+    : { message: capitalizeFirst(text), details: '' }
 }
 
 function describeLastSync(display: LastSyncDisplay): string {
@@ -202,7 +243,7 @@ function showEditDrawer(source: PhonebookSource) {
   isShownDrawer.value = true
 }
 
-function syncCreatedSource(id: string, name: string) {
+function syncSavedSource(id: string, name: string) {
   syncMutate({ id, name })
 }
 
@@ -353,10 +394,11 @@ function deleteCurrentSource() {
                   aria-hidden="true"
                 />
                 {{ describeLastSync(getLastSync(source)) }}
-                <NeTooltip v-if="getSyncErrorMessage(source)" trigger-event="focusin">
+                <NeTooltip v-if="getSyncError(source)" trigger-event="focusin">
                   <template #trigger>
                     <button
                       type="button"
+                      @mousedown="($event.currentTarget as HTMLElement).focus()"
                       class="focus:ring-primary-500 dark:focus:ring-primary-300 flex rounded-sm focus:ring-2 focus:outline-hidden"
                       :aria-label="
                         t('integrations.phonebook.show_sync_error', { name: source.name })
@@ -370,7 +412,13 @@ function deleteCurrentSource() {
                     </button>
                   </template>
                   <template #content>
-                    <span class="wrap-break-word">{{ getSyncErrorMessage(source) }}</span>
+                    <p class="wrap-break-word">{{ getSyncError(source)?.message }}</p>
+                    <p
+                      v-if="getSyncError(source)?.details"
+                      class="mt-1 font-mono text-xs wrap-anywhere"
+                    >
+                      {{ getSyncError(source)?.details }}
+                    </p>
                   </template>
                 </NeTooltip>
               </span>
@@ -413,7 +461,7 @@ function deleteCurrentSource() {
       :current-source="currentSource"
       :sources="sources"
       @close="isShownDrawer = false"
-      @created="syncCreatedSource"
+      @saved="syncSavedSource"
     />
     <DeleteIntegrationObjectModal
       :visible="isShownDeleteModal"

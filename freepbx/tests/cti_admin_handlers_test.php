@@ -142,18 +142,158 @@ $tests['GET /cti/customer_card filters on the card columns only, joined by AND']
     }
 };
 
-$tests['renaming a customer card keeps a working permission when the new name is taken'] = function () use ($app, $superadmin, $integrator) {
+function prepareCardWrites(): void {
+    resetDatabases();
+    FreePBX::$pdo->exec('CREATE TABLE rest_cti_macro_permissions (id INTEGER PRIMARY KEY, name TEXT NOT NULL)');
+    FreePBX::$pdo->exec("INSERT INTO rest_cti_macro_permissions VALUES (7, 'customer_card')");
+    NethCTI::$pdo->sqliteCreateFunction('NOW', fn() => '2026-02-01 00:00:00', 0);
+}
+
+function cardPermission(string $card): ?array {
+    $sth = NethCTI::$pdo->prepare('SELECT permission_id FROM customer_card WHERE name = ?');
+    $sth->execute([$card]);
+    $id = $sth->fetchColumn();
+    if ($id === false || $id === null) {
+        return null;
+    }
+    $sth = FreePBX::$pdo->prepare('SELECT id, name, displayname FROM rest_cti_permissions WHERE id = ?');
+    $sth->execute([$id]);
+
+    return $sth->fetch(PDO::FETCH_ASSOC) ?: null;
+}
+
+$tests['renaming a customer card keeps its permission key and updates only the display name'] = function () use ($app, $superadmin, $integrator) {
+    foreach ([$superadmin, $integrator] as $permissions) {
+        prepareCardWrites();
+        foreach (['Shop!', 'Big Customers'] as $name) {
+            [$status] = call($app, 'PUT /cti/customer_card/{id}', $permissions, ['name' => $name], ['id' => '1']);
+            check($status === 200, "the rename to $name must succeed, got $status");
+            check(NethCTI::$pdo->query('SELECT name FROM customer_card WHERE id = 1')->fetchColumn() === $name, 'the card was not renamed');
+            $rows = permissions();
+            check($rows[1] === ['id' => 4001, 'name' => 'cc_crm', 'displayname' => $name] && $rows[2] === ['id' => 4002, 'name' => 'cc_shop', 'displayname' => 'Shop'], 'the permission key changed: ' . json_encode($rows));
+        }
+        $links = FreePBX::$pdo->query('SELECT profile_id FROM rest_cti_profiles_permissions WHERE permission_id = 4001 ORDER BY profile_id')->fetchAll(PDO::FETCH_COLUMN);
+        check($links == [1, 3], 'the profiles of the renamed card changed: ' . json_encode($links));
+
+        [$status] = call($app, 'POST /cti/customer_card', $permissions, ['name' => 'CRM', 'query' => base64_encode('select 1'), 'template' => 'identity', 'dbconn_id' => 5, 'profiles' => [3]]);
+        check($status === 200, "a card with the old name of a renamed card must be created, got $status");
+        $created = cardPermission('CRM');
+        check($created !== null && $created['name'] === 'cc_crm_2' && $created['displayname'] === 'CRM', 'the new card took a used permission: ' . json_encode($created));
+        check(cardPermission('Big Customers')['name'] === 'cc_crm', 'the renamed card lost its permission');
+    }
+};
+
+$tests['the superadmin keeps renaming a card to a name in use, a limited administrator gets 409'] = function () use ($app, $superadmin, $integrator) {
+    prepareCardWrites();
+    [$status, $body] = call($app, 'PUT /cti/customer_card/{id}', $integrator, ['name' => ' shop '], ['id' => '1']);
+    check($status === 409 && json_decode($body, true) === ['message' => CTI_CARD_NAME_IN_USE, 'field' => 'name'], "a limited administrator renamed a card to a name in use: $status $body");
+    check(NethCTI::$pdo->query('SELECT name FROM customer_card WHERE id = 1')->fetchColumn() === 'CRM', 'the refused rename changed the card');
+    [$status] = call($app, 'PUT /cti/customer_card/{id}', $superadmin, ['name' => 'Shop'], ['id' => '1']);
+    check($status === 200 && permissions()[1]['name'] === 'cc_crm', "the superadmin rename changed as on main: $status");
+};
+
+$tests['a customer card name that cannot be stored is refused before any write'] = function () use ($app, $superadmin, $integrator) {
+    foreach ([$superadmin, $integrator] as $permissions) {
+        foreach ([str_repeat('a', CTI_CARD_NAME_MAX_LENGTH + 1), "\u{1F4DE} CRM", '   ', "bad\xC3"] as $name) {
+            prepareCardWrites();
+            $before = permissions();
+            [$status, $body] = call($app, 'POST /cti/customer_card', $permissions, ['name' => $name, 'query' => base64_encode('select 1'), 'template' => 'identity', 'dbconn_id' => 5, 'profiles' => [1]]);
+            check($status === 400 && json_decode($body, true)['field'] === 'name', 'the name ' . json_encode(mb_convert_encoding($name, 'UTF-8', 'UTF-8')) . " was not refused: $status $body");
+            check(permissions() === $before, 'a refused card left a permission');
+            [$status, $body] = call($app, 'PUT /cti/customer_card/{id}', $permissions, ['name' => $name], ['id' => '1']);
+            check($status === 400 && json_decode($body, true)['field'] === 'name', "the rename was not refused: $status $body");
+            check(permissions() === $before && NethCTI::$pdo->query('SELECT name FROM customer_card WHERE id = 1')->fetchColumn() === 'CRM', 'a refused rename changed the card');
+        }
+    }
+    prepareCardWrites();
+    [$status] = call($app, 'POST /cti/customer_card', $superadmin, ['name' => str_repeat('è', CTI_CARD_NAME_MAX_LENGTH), 'query' => base64_encode('select 1'), 'template' => 'identity', 'dbconn_id' => 5, 'profiles' => [1]]);
+    check($status === 200, "a name of the maximum length was refused: $status");
+};
+
+$tests['a customer card that cannot be stored leaves no permission behind'] = function () use ($app, $superadmin) {
+    prepareCardWrites();
+    $before = permissions();
+    NethCTI::$pdo->exec('DROP TABLE customer_card');
+    NethCTI::$pdo->exec('CREATE TABLE customer_card (id INTEGER PRIMARY KEY, name TEXT NOT NULL, creation TEXT NOT NULL, query TEXT, template TEXT, dbconn_id INTEGER, permission_id INTEGER, CHECK (dbconn_id < 100))');
+    [$status] = call($app, 'POST /cti/customer_card', $superadmin, ['name' => 'Orders', 'query' => base64_encode('select 1'), 'template' => 'identity', 'dbconn_id' => 500, 'profiles' => [1, 3]]);
+    check($status === 500, "the failed insert answered $status");
+    check(permissions() === $before, 'the failed card left a permission: ' . json_encode(permissions()));
+    $links = (int) FreePBX::$pdo->query('SELECT COUNT(*) FROM rest_cti_profiles_permissions WHERE permission_id > 4003')->fetchColumn()
+        + (int) FreePBX::$pdo->query('SELECT COUNT(*) FROM rest_cti_macro_permissions_permissions')->fetchColumn();
+    check($links === 0, 'the failed card left profile or macro permission links');
+    [$status] = call($app, 'POST /cti/customer_card', $superadmin, ['name' => 'Orders', 'query' => base64_encode('select 1'), 'template' => 'identity', 'dbconn_id' => 5, 'profiles' => [1]]);
+    check($status === 200 && cardPermission('Orders')['name'] === 'cc_orders', "the retry was not created with the same permission name: $status");
+};
+
+$tests['creating a customer card refuses a name in use and suffixes a taken permission key'] = function () use ($app, $superadmin, $integrator) {
+    foreach ([$superadmin, $integrator] as $permissions) {
+        prepareCardWrites();
+        [$status, $body] = call($app, 'POST /cti/customer_card', $permissions, ['name' => 'crm ', 'query' => base64_encode('select 1'), 'template' => 'identity', 'dbconn_id' => 5, 'profiles' => [1]]);
+        check($status === 409 && json_decode($body, true) === ['message' => CTI_CARD_NAME_IN_USE, 'field' => 'name'], "a card name in use was accepted: $status $body");
+        foreach (['Клиенты' => 'cc_', 'Заказы' => 'cc__2', 'C-R-M' => 'cc_crm_2'] as $name => $key) {
+            [$status] = call($app, 'POST /cti/customer_card', $permissions, ['name' => $name, 'query' => base64_encode('select 1'), 'template' => 'identity', 'dbconn_id' => 5, 'profiles' => [1]]);
+            check($status === 200 && cardPermission($name)['name'] === $key, "the card $name was not created with $key: $status " . json_encode(cardPermission($name)));
+        }
+        [$status] = call($app, 'PUT /cti/customer_card/{id}', $permissions, ['query' => base64_encode('select 3')], ['id' => '3']);
+        check($status === 200 && cardPermission('Invoices')['name'] === 'cc_invoices', 'a card without permission did not get one');
+    }
+};
+
+$tests['DB connections refuse values that cannot be stored and duplicates'] = function () use ($app, $superadmin, $integrator) {
+    $connection = ['host' => '198.51.100.7', 'port' => '3306', 'type' => 'mysql', 'user' => 'crm', 'pass' => 'secret', 'name' => 'crm'];
     foreach ([$superadmin, $integrator] as $permissions) {
         resetDatabases();
-        [$status] = call($app, 'PUT /cti/customer_card/{id}', $permissions, ['name' => 'Shop!'], ['id' => '1']);
-        check($status === 200, "a rename whose permission name is taken must succeed, got $status");
-        check(NethCTI::$pdo->query('SELECT name FROM customer_card WHERE id = 1')->fetchColumn() === 'Shop!', 'the card was not renamed');
-        $rows = permissions();
-        check($rows[1] === ['id' => 4001, 'name' => 'cc_crm', 'displayname' => 'Shop!'] && $rows[2] === ['id' => 4002, 'name' => 'cc_shop', 'displayname' => 'Shop'], 'unexpected permissions: ' . json_encode($rows));
+        NethCTI::$pdo->exec('CREATE TABLE user_dbconn (id INTEGER PRIMARY KEY AUTOINCREMENT, host TEXT NOT NULL, port TEXT NOT NULL, type TEXT NOT NULL, user TEXT NOT NULL, pass TEXT NOT NULL, name TEXT NOT NULL, creation TEXT NOT NULL)');
+        NethCTI::$pdo->exec("INSERT INTO user_dbconn VALUES (10, '198.51.100.7', '3306', 'mysql', 'crm', 'secret', 'crm', '2026-01-01'), (11, '198.51.100.8', '3306', 'mysql', 'crm', 'secret', 'crm', '2026-01-01')");
+        NethCTI::$pdo->sqliteCreateFunction('NOW', fn() => '2026-02-01 00:00:00', 0);
+        foreach (['host' => 129, 'port' => 65, 'type' => 33, 'user' => 65, 'pass' => 65, 'name' => 65] as $field => $length) {
+            [$status, $body] = call($app, 'POST /cti/dbconn', $permissions, [$field => str_repeat('a', $length)] + $connection);
+            check($status === 400 && json_decode($body, true)['field'] === $field, "a $field of $length characters was accepted: $status $body");
+            [$status, $body] = call($app, 'PUT /cti/dbconn/{id}', $permissions, [$field => str_repeat('a', $length)], ['id' => '11']);
+            check($status === 400 && json_decode($body, true)['field'] === $field, "an update with a $field of $length characters was accepted: $status $body");
+        }
+        [$status, $body] = call($app, 'POST /cti/dbconn', $permissions, ['name' => "crm\u{1F4DE}"] + $connection);
+        check($status === 400 && json_decode($body, true)['field'] === 'name', "an emoji was accepted: $status $body");
+        [$status, $body] = call($app, 'POST /cti/dbconn', $permissions, $connection);
+        check($status === 409 && json_decode($body, true) === ['message' => CTI_DBCONN_DUPLICATE, 'field' => 'name'], "a duplicate connection was accepted: $status $body");
+        [$status, $body] = call($app, 'PUT /cti/dbconn/{id}', $permissions, ['host' => '198.51.100.7'], ['id' => '11']);
+        check($status === 409, "an update to a duplicate was accepted: $status $body");
+        [$status] = call($app, 'PUT /cti/dbconn/{id}', $permissions, ['user' => 'crm', 'name' => 'crm'], ['id' => '10']);
+        check($status === 200, "an update that keeps its own values was refused: $status");
+        [$status] = call($app, 'POST /cti/dbconn', $permissions, ['pass' => str_repeat('è', 64), 'name' => 'orders'] + $connection);
+        check($status === 200 && (int) NethCTI::$pdo->query('SELECT COUNT(*) FROM user_dbconn')->fetchColumn() === 3, "a valid connection was not created: $status");
+    }
+};
 
-        [$status] = call($app, 'PUT /cti/customer_card/{id}', $permissions, ['name' => 'Big Customers'], ['id' => '1']);
-        $rows = permissions();
-        check($status === 200 && $rows[1] === ['id' => 4001, 'name' => 'cc_big_customers', 'displayname' => 'Big Customers'], 'a free permission name must follow the card: ' . json_encode($rows));
+$tests['DB connections tell limited administrators which ones are the PBX server'] = function () use ($app, $superadmin, $integrator) {
+    resetDatabases();
+    NethCTI::$pdo->exec('CREATE TABLE user_dbconn (id INTEGER PRIMARY KEY, host TEXT, port TEXT, type TEXT, user TEXT, pass TEXT, name TEXT, creation TEXT)');
+    NethCTI::$pdo->exec("INSERT INTO user_dbconn VALUES (1, 'localhost', '3306', 'mysql', 'pbx', 'secret', 'asterisk', ''), (10, '198.51.100.7', '3306', 'mysql', 'crm', 'secret', 'crm', ''), (11, '127.0.0.2', '3306', 'mysql', 'crm', '', 'crm', '')");
+    [$status, $body] = call($app, 'GET /cti/dbconn', $integrator);
+    $flags = array_column(json_decode($body, true), 'pbx_server', 'id');
+    check($status === 200 && $flags === [1 => true, 10 => false, 11 => true], "unexpected flags: $status $body");
+    check(!str_contains($body, 'secret'), 'a limited administrator received a password');
+    [$status, $body] = call($app, 'GET /cti/dbconn', $superadmin);
+    $rows = json_decode($body, true);
+    check($status === 200 && !array_key_exists('pbx_server', $rows[0]) && $rows[1]['pass'] === 'secret', "the superadmin answer changed: $body");
+};
+
+$tests['built-in and used card templates cannot be deleted'] = function () {
+    resetDatabases();
+    NethCTI::$pdo->exec("INSERT INTO customer_card VALUES (4, 'Orders', '2026-01-04 00:00:00', 'select 4', 'orders_custom', 6, NULL)");
+    $dir = sys_get_temp_dir() . '/cti-templates-' . getmypid();
+    mkdir($dir);
+    foreach (['identity.ejs', 'orders_custom.ejs', 'spare_custom.ejs', 'orders.ejs'] as $file) {
+        touch("$dir/$file");
+    }
+    try {
+        check(ctiCardTemplateDeleteStatus($dir, 'identity', fn() => NethCTI::$pdo) === [403, ['message' => CTI_TEMPLATE_BUILT_IN]], 'a built-in template can be deleted');
+        check(ctiCardTemplateDeleteStatus($dir, 'orders', fn() => NethCTI::$pdo) === [409, ['message' => CTI_TEMPLATE_IN_USE, 'field' => 'name']], 'a template in use can be deleted');
+        check(ctiCardTemplateDeleteStatus($dir, 'spare', fn() => NethCTI::$pdo) === null, 'an unused custom template cannot be deleted');
+        check(ctiCardTemplateDeleteStatus($dir, 'missing', fn() => NethCTI::$pdo) === null, 'a missing template changed the answer');
+    } finally {
+        array_map('unlink', glob("$dir/*.ejs"));
+        rmdir($dir);
     }
 };
 
@@ -227,6 +367,9 @@ $tests['video sources of limited administrators never reach the PBX node'] = fun
     check($refused($source('http://vpn.example.test/snap.jpg')) === 'url', 'a name with a cluster VPN address was accepted');
     $gates = [['type' => 'dtmf', 'code' => '*1', 'url' => null], ['type' => 'url', 'url' => 'http://198.51.100.7/open'], ['type' => 'url', 'url' => 'https://camera.example.test/relay']];
     check($refused($source('rtsp://198.51.100.7/live', $gates)) === 'gates[2].url', 'a gate of the node was accepted');
+    check(ctiStreamingNodeSource($source('rtsp://198.51.100.7/live', $gates), $resolve, $node), 'a source with a gate of the node is not flagged for the list');
+    check(ctiStreamingNodeSource($source('http://192.0.2.5/snap.jpg'), $resolve, $node), 'a source of the node is not flagged for the list');
+    check(!ctiStreamingNodeSource($source('rtsp://yard.example.test/live', array_slice($gates, 0, 2)), $resolve, $node), 'a LAN source is flagged for the list');
 
     $nodeAddress = null;
     foreach (streaming_node_networks() as $network) {

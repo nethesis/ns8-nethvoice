@@ -335,7 +335,7 @@ function setCompUtil(comp) {
           compCustomerCard.getCustomerCardPreview(query, dbconnId, templateName, function(err, results) {
             try {
               if (err) {
-                compUtil.net.sendHttp500(IDLOG, res, err.toString());
+                res.send(422, { error: err.toString() });
 
               } else {
                 logger.log.info(IDLOG, 'send customer card preview to user "' + username + '" to ' + res.connection.remoteAddress);

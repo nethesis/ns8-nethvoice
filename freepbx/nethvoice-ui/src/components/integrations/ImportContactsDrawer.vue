@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, nextTick, ref, useId, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, useId, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMutation, useQueryCache } from '@pinia/colada'
 import {
@@ -25,8 +25,8 @@ import PhonebookPreview from './PhonebookPreview.vue'
 import PhonebookReadError from './PhonebookReadError.vue'
 import PhonebookVisibilityFields from './PhonebookVisibilityFields.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
+import { usePhonebookServerMessage } from '@/composables/usePhonebookServerMessage'
 import type { Focusable } from '@/lib/common'
-import { getLegacyStatusMessage } from '@/lib/integrations/errors'
 import {
   buildImportPayload,
   type CsvContent,
@@ -42,6 +42,7 @@ import {
   getReadErrorTexts,
   hasAnyNameColumn,
   isCsvUploadRejected,
+  PHONEBOOK_TEXT_MAX_LENGTH,
   type PhonebookPreview as Preview,
   type PhonebookTestResult,
   suggestMapping,
@@ -75,6 +76,7 @@ const notificationsStore = useNotificationsStore()
 const { state: fieldsState } = usePhonebookFields(() => isShown)
 const { state: ownersState } = useImportOwners()
 const formId = useId()
+const { translate, describeStatus } = usePhonebookServerMessage()
 
 const step = ref(1)
 const csvFile = ref<File | null>(null)
@@ -84,6 +86,7 @@ const readFile = ref<File | null>(null)
 const mapping = ref<Record<string, string>>({})
 const mappingIssues = ref<FieldIssues>({})
 const isNameErrorShown = ref(false)
+const isNoContactsErrorShown = ref(false)
 const sharing = ref<'public' | 'groups'>('public')
 const groups = ref<string[]>([])
 const owner = ref('')
@@ -179,7 +182,7 @@ const readError = computed<ReadError | undefined>(() => {
         uploadError.value && !isCsvUploadRejected(uploadError.value)
           ? t('integrations.phonebook.cannot_upload_file')
           : t('integrations.phonebook.cannot_read_file'),
-      description: getLegacyStatusMessage(error) || describeError(error),
+      description: describeStatus(error) || describeError(error),
       details: '',
     }
   }
@@ -222,6 +225,7 @@ watch(
     mapping.value = {}
     mappingIssues.value = {}
     isNameErrorShown.value = false
+    isNoContactsErrorShown.value = false
     sharing.value = 'public'
     groups.value = []
     owner.value = ''
@@ -229,6 +233,13 @@ watch(
     importReset()
   },
 )
+
+onBeforeUnmount(() => {
+  void deletePhonebookUploads(
+    importing.value ? pendingUploads.filter((url) => url !== fileRead.value?.url) : pendingUploads,
+  )
+  pendingUploads = []
+})
 
 watch(csvFile, (file) => {
   fileRead.value = undefined
@@ -279,6 +290,13 @@ async function readCsvFile(file: File) {
   if (csvFile.value !== file) {
     return
   }
+
+  if (csv.records.length === 0) {
+    pendingUploads = pendingUploads.filter((pending) => pending !== url)
+    void deletePhonebookUploads([url])
+    fileIssue.value = 'integrations.phonebook.csv_no_contacts'
+    return
+  }
   fileRead.value = {
     url,
     csv,
@@ -321,6 +339,10 @@ function setMapping(column: string, field: string) {
   if (isNameErrorShown.value && hasAnyNameColumn(mapping.value)) {
     isNameErrorShown.value = false
   }
+
+  if (isNoContactsErrorShown.value && skippedRows.value < totalRows.value) {
+    isNoContactsErrorShown.value = false
+  }
 }
 
 function validateFile(): boolean {
@@ -340,6 +362,8 @@ function validateFile(): boolean {
 function validateMapping(): boolean {
   mappingIssues.value = validatePhonebookMapping(columns.value, mapping.value)
 
+  isNoContactsErrorShown.value = false
+
   if (Object.keys(mappingIssues.value).length > 0) {
     isNameErrorShown.value = false
     void nextTick(() => mappingRef.value?.focusFirstInvalid())
@@ -348,6 +372,12 @@ function validateMapping(): boolean {
 
   if (!hasAnyNameColumn(mapping.value)) {
     isNameErrorShown.value = true
+    void nextTick(() => nameErrorRef.value?.scrollIntoView?.({ block: 'nearest' }))
+    return false
+  }
+
+  if (skippedRows.value >= totalRows.value) {
+    isNoContactsErrorShown.value = true
     void nextTick(() => nameErrorRef.value?.scrollIntoView?.({ block: 'nearest' }))
     return false
   }
@@ -491,11 +521,18 @@ function discardChanges() {
               @change="setMapping"
             />
             <PhonebookPreview :preview="fileRead.preview" />
-            <div v-if="isNameErrorShown" ref="nameErrorRef">
+            <div v-if="isNameErrorShown || isNoContactsErrorShown" ref="nameErrorRef">
               <NeInlineNotification
+                v-if="isNameErrorShown"
                 kind="error"
                 :title="t('integrations.phonebook.no_name_column')"
                 :description="t('integrations.phonebook.no_name_column_import')"
+              />
+              <NeInlineNotification
+                v-else
+                kind="error"
+                :title="t('integrations.phonebook.no_contacts_to_import')"
+                :description="t('integrations.phonebook.no_contacts_to_import_description')"
               />
             </div>
           </template>
@@ -510,7 +547,9 @@ function discardChanges() {
             ref="visibilityRef"
             v-model:sharing="sharing"
             v-model:groups="groups"
-            :invalid-message="issues.groups ? t(issues.groups) : ''"
+            :invalid-message="
+              issues.groups ? t(issues.groups, { max: PHONEBOOK_TEXT_MAX_LENGTH }) : ''
+            "
             :disabled="busy"
           />
           <NeCombobox
@@ -561,7 +600,7 @@ function discardChanges() {
         v-if="importError"
         kind="error"
         :title="t('integrations.phonebook.cannot_import_contacts')"
-        :description="getImportErrorMessage(importError) || describeError(importError)"
+        :description="translate(getImportErrorMessage(importError)) || describeError(importError)"
       />
     </div>
     <hr class="my-8" />
