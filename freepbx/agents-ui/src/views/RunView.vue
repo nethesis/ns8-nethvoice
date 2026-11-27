@@ -407,6 +407,7 @@ const partial = computed(
     <section data-testid="run-diagnostics">
       <AppExpandable
         v-model="diagnosticsOpen"
+        reveal
         :label="t('monitoringPage.diagnostics')"
       >
         <div class="mt-6 flex flex-col gap-12">

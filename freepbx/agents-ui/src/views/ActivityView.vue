@@ -99,6 +99,8 @@ const agentFilter = ref<Option[]>(
 const providerFilter = ref<Option[]>([]);
 const outcomeFilter = ref<Option[]>([]);
 const page = ref(1);
+// The API pages the calls by 25 unless it supports page_size.
+const pageSize = ref(25);
 const search = ref(""),
   debouncedSearch = ref("");
 watch(search, (value, _, cleanup) => {
@@ -140,11 +142,12 @@ const pageFiltersChanged = computed(
 const runFilters = computed(() => ({
   ...common.value,
   page: page.value,
+  ...(pageSize.value !== 25 ? { page_size: String(pageSize.value) } : {}),
   ...(debouncedSearch.value ? { query: debouncedSearch.value } : {}),
   ...(outcomeFilter.value.length ? { outcome: ids(outcomeFilter.value) } : {}),
 }));
 watch(
-  [common, debouncedSearch, outcomeFilter],
+  [common, debouncedSearch, outcomeFilter, pageSize],
   () => {
     page.value = 1;
   },
@@ -213,20 +216,35 @@ const runs = useQuery({
   queryKey: ["runs", runFilters],
   queryFn: () =>
     runFilters.value.query
-      ? request<{ items: Run[]; has_more: boolean }>(
-          "POST",
-          "/runs/search",
-          runFilters.value,
-        )
-      : request<{ items: Run[]; has_more: boolean }>(
-          "GET",
-          "/runs",
-          undefined,
-          runFilters.value,
-        ),
+      ? request<RunPage>("POST", "/runs/search", runFilters.value)
+      : request<RunPage>("GET", "/runs", undefined, runFilters.value),
   enabled: validRange,
   refetchInterval: 30000,
 });
+
+type RunPage = {
+  items: Run[];
+  has_more: boolean;
+  total?: number;
+  page_size?: number;
+};
+// NePaginator needs the number of calls. The API returns it as `total`
+// when it can; otherwise the summary counts the same filters, except the
+// search terms, so a search without a total keeps Previous and Next.
+const runsTotal = computed<number | undefined>(() => {
+  const data = runs.data.value;
+  if (typeof data?.total === "number") return data.total;
+  const counts = summary.data.value;
+  if (!counts?.coverage || debouncedSearch.value) return undefined;
+  if (!outcomeFilter.value.length) return counts.coverage.total_runs;
+  const wanted = outcomeFilter.value.map((o) => o.id);
+  return counts.outcomes
+    .filter((o) => wanted.includes(o.outcome))
+    .reduce((sum, o) => sum + o.count, 0);
+});
+const pageSizes = computed(() =>
+  typeof runs.data.value?.page_size === "number" ? [10, 25, 50, 100] : [25],
+);
 
 const agentOptions = computed<Option[]>(() =>
   (profiles.data.value?.items || [])
@@ -543,12 +561,15 @@ const healthWarning = computed(
     health.data.value?.ari_connected === false,
 );
 const diagnosticsOpen = ref(false);
+// Opening Diagnostics scrolls to it, also from the health notice.
 async function showDiagnostics() {
+  if (diagnosticsOpen.value) {
+    document
+      .getElementById("diagnostics")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
   diagnosticsOpen.value = true;
-  await nextTick();
-  document
-    .getElementById("diagnostics")
-    ?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 function reason(run: Run) {
   if (!run.error_code) return "";
@@ -802,8 +823,26 @@ function refresh() {
             >
           </NeTableRow>
         </NeTableBody>
-        <template v-if="page > 1 || runs.data.value?.has_more" #paginator>
-          <!-- The API pages the calls without a total: NePaginator needs one. -->
+        <template v-if="runsTotal !== undefined && runsTotal > 0" #paginator>
+          <!-- On a phone the page buttons can be wider than the screen. -->
+          <div class="max-sm:relative max-sm:overflow-x-auto">
+            <NePaginator
+              :current-page="page"
+              :page-size="pageSize"
+              :total-rows="runsTotal"
+              :page-sizes="pageSizes"
+              :previous-label="t('previousPage')"
+              :next-label="t('nextPage')"
+              :nav-pagination-label="t('pagination')"
+              :page-size-label="t('pageSize')"
+              :range-of-total-label="t('rangeOfTotal')"
+              data-testid="calls-pagination"
+              @select-page="page = $event"
+              @select-page-size="pageSize = $event"
+            />
+          </div>
+        </template>
+        <template v-else-if="page > 1 || runs.data.value?.has_more" #paginator>
           <nav
             :aria-label="t('pagination')"
             data-testid="calls-pagination"
@@ -811,9 +850,9 @@ function refresh() {
           >
             <span>{{
               t("monitoring.range", {
-                from: formatNumber((page - 1) * 25 + 1, lang),
+                from: formatNumber((page - 1) * pageSize + 1, lang),
                 to: formatNumber(
-                  (page - 1) * 25 + (runs.data.value?.items?.length || 0),
+                  (page - 1) * pageSize + (runs.data.value?.items?.length || 0),
                   lang,
                 ),
               })
@@ -896,6 +935,7 @@ function refresh() {
     <section id="diagnostics" class="scroll-mt-20" data-testid="diagnostics">
       <AppExpandable
         v-model="diagnosticsOpen"
+        reveal
         :label="t('monitoringPage.diagnostics')"
       >
         <div class="mt-6 flex flex-col gap-12">

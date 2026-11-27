@@ -19,7 +19,7 @@ const summary = {coverage:{total_runs:180,instrumented_runs:180,partial_runs:2,i
   errors:[{phase:'provider_sideband',error_code:'provider_http_503',count:2}]};
 
 type Seen = {summary: URLSearchParams[]; runs: URLSearchParams[]; searches: Record<string, unknown>[]};
-async function mock(page: Page, language: string, options: {timezoneUnavailable?: boolean; paged?: boolean} = {}) {
+async function mock(page: Page, language: string, options: {timezoneUnavailable?: boolean; paged?: boolean; total?: boolean; pagedSearch?: boolean} = {}) {
   page.on('pageerror', error => {throw error;});
   await page.addInitScript(language => {
     localStorage.setItem('secretkey', JSON.stringify({user:'administrator',hash:'synthetic'}));
@@ -33,7 +33,7 @@ async function mock(page: Page, language: string, options: {timezoneUnavailable?
       expect(route.request().headers()['x-agents-csrf']).toBe('synthetic-csrf');
       const body = route.request().postDataJSON();
       seen.searches.push(body);
-      await route.fulfill({json:{items:String(body.query).includes('333')?[run]:[],has_more:false}});
+      await route.fulfill({json: options.pagedSearch ? {items:Array.from({length:25},(_,i)=>({...olderRun,run_id:'s-'+i})),has_more:true} : {items:String(body.query).includes('333')?[run]:[],has_more:false}});
       return;
     }
     if(path==='/monitoring/summary') {
@@ -47,11 +47,11 @@ async function mock(page: Page, language: string, options: {timezoneUnavailable?
     const json = path==='/access' ? {csrf:'synthetic-csrf'}
       : path==='/catalog' ? {sip_lab_enabled:false}
       : path==='/profiles' ? {items:[{agent_id:'receptionist',name:'Receptionist'},{agent_id:'sales',name:'Sales'}]}
-      : path==='/monitoring/summary' ? summary
+      : path==='/monitoring/summary' ? (options.paged ? {...summary, coverage:{...summary.coverage, total_runs:28}} : summary)
       : path==='/monitoring/health' ? {stale:false,degraded:true,ari_connected:true,queue_depth:2,oldest_pending_seconds:5,dropped:1,retries:3,last_write_at:'2026-10-20 12:00:00'}
       : path==='/runs' && options.paged ? (url.searchParams.get('page')==='2'
         ? {items:Array.from({length:3},(_,i)=>({...olderRun,run_id:'p2-'+i})),has_more:false}
-        : {items:Array.from({length:25},(_,i)=>({...olderRun,run_id:'p1-'+i})),has_more:true})
+        : {items:Array.from({length:25},(_,i)=>({...olderRun,run_id:'p1-'+i})),has_more:true,...(options.total ? {total:60,page_size:Number(url.searchParams.get('page_size')||25)} : {})})
       : path==='/runs' ? {items:[run, olderRun],has_more:false}
       : {};
     await route.fulfill({json});
@@ -164,32 +164,50 @@ test('unavailable metrics show errors rather than fabricated zero counts', async
 });
 
 for (const language of ['en', 'it']) {
-  test(`calls pagination reads without a total (${language})`, async ({page}) => {
+  test(`calls pagination uses the Nebula paginator with the summary total (${language})`, async ({page}) => {
     const en = language === 'en';
     const seen = await mock(page, language, {paged: true});
     await page.goto('./#/activity');
     const pagination = page.getByTestId('calls-pagination');
-    await expect(pagination).toContainText(en ? 'Calls 1–25' : 'Chiamate 1–25');
-    await expect(pagination).not.toContainText(en ? ' of' : ' di');
-    const previous = pagination.getByRole('button', {name: en ? 'Previous' : 'Precedente', exact: true});
-    const next = pagination.getByRole('button', {name: en ? 'Next' : 'Successiva', exact: true});
-    await expect(previous).toBeDisabled();
-    await next.click();
-    await expect(pagination).toContainText(en ? 'Calls 26–28' : 'Chiamate 26–28');
+    // The summary counts 28 calls for the same filters.
+    await expect(pagination).toContainText(en ? '1 - 25 of 28' : '1 - 25 di 28');
+    await pagination.getByRole('button', {name: '2', exact: true}).click();
+    await expect(pagination).toContainText(en ? '26 - 28 of 28' : '26 - 28 di 28');
     expect(seen.runs.at(-1)!.get('page')).toBe('2');
-    await expect(next).toBeDisabled();
-    await previous.click();
-    await expect(pagination).toContainText(en ? 'Calls 1–25' : 'Chiamate 1–25');
+    expect(seen.runs.at(-1)!.has('page_size')).toBe(false);
   });
 }
 
-test('counter values line up when a title wraps', async ({page}) => {
+test('calls pagination offers page sizes when the API returns a total', async ({page}) => {
+  const seen = await mock(page, 'en', {paged: true, total: true});
+  await page.goto('./#/activity');
+  const pagination = page.getByTestId('calls-pagination');
+  await expect(pagination).toContainText('1 - 25 of 60');
+  await pagination.getByLabel('Show').getByRole('button').click();
+  await page.getByRole('option', {name: '50', exact: true}).click();
+  await expect.poll(() => seen.runs.at(-1)?.get('page_size')).toBe('50');
+});
+
+test('a search without a total keeps Previous and Next', async ({page}) => {
+  await mock(page, 'en', {paged: true, pagedSearch: true});
+  await page.goto('./#/activity');
+  await page.getByPlaceholder('Filter by number, agent or run ID').fill('Receptionist');
+  const pagination = page.getByTestId('calls-pagination');
+  await expect(pagination).toContainText('Calls 1–25');
+  await expect(pagination.getByRole('button', {name: 'Next', exact: true})).toBeEnabled();
+});
+
+test('counter values sit on the right of their title', async ({page}) => {
   await page.setViewportSize({width: 1440, height: 1000});
   await mock(page, 'it');
   await page.goto('./#/activity');
   const values = ['total', 'completed', 'transferred', 'failures'].map(id => page.getByTestId('monitoring-' + id));
   await expect(values[3]).toBeVisible();
-  const tops = await Promise.all(values.map(async value => Math.round((await value.boundingBox())!.y)));
-  expect(new Set(tops).size).toBe(1);
+  // As in My Nethesis, each value sits on the right of its title.
+  for (const value of values) {
+    const box = (await value.boundingBox())!;
+    const card = (await value.locator('xpath=ancestor::div[contains(@class,"rounded")][1]').boundingBox())!;
+    expect(card.x + card.width - (box.x + box.width)).toBeLessThan(40);
+  }
   await page.screenshot({path: '/tmp/voice-agent-monitoring-cards-it.png'});
 });
