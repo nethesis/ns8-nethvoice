@@ -48,11 +48,33 @@ class GeneratorTest(unittest.TestCase):
         return json.loads(result.stdout)
 
 
+CTI_ASSETS = {
+    'NAVBAR_LOGO_URL': 'navbar_logo.svg',
+    'NAVBAR_LOGO_DARK_URL': 'navbar_logo_dark.svg',
+    'LOGIN_LOGO_URL': 'login_logo.svg',
+    'LOGIN_LOGO_DARK_URL': 'login_logo_dark.svg',
+    'FAVICON_URL': 'favicon.ico',
+    'LOGIN_BACKGROUND_URL': 'login_background.svg',
+}
+
+FAKE_WGET = '''#!/bin/sh
+printf "%s\\n" "$@" >> "$(dirname "$0")/wget.log"
+url="$2"
+output="$4"
+case "$url" in
+  *missing*) printf 'partial' > "$output"; exit 1 ;;
+  *refused*) exit 4 ;;
+esac
+[ -e "$(dirname "$0")/public/config/config.production.js" ] && echo "$url" >> "$(dirname "$0")/late.log"
+printf 'custom %s' "$url" > "$output"
+'''
+
+
 class CtiEntrypointTest(GeneratorTest):
     def render(self, **environment):
-        (self.dir / 'public' / 'config').mkdir(parents=True)
+        (self.dir / 'public' / 'config').mkdir(parents=True, exist_ok=True)
         wget = self.dir / 'wget'
-        wget.write_text('#!/bin/sh\nprintf "%s\\n" "$@" >> "$(dirname "$0")/wget.log"\n')
+        wget.write_text(FAKE_WGET)
         wget.chmod(0o755)
         script = (ROOT / 'nethvoice-cti/entrypoint.sh').read_text()
         script = script.replace('/app/public', str(self.dir / 'public')).replace('/usr/bin/wget', str(wget))
@@ -62,10 +84,60 @@ class CtiEntrypointTest(GeneratorTest):
     def test_defaults_are_unchanged(self):
         config = self.render()
         self.assertEqual((config['BRAND_NAME'], config['PRODUCT_NAME'], config['COMPANY_NAME'],
-                          config['COMPANY_SUBNAME'], config['COMPANY_URL'], config['LOGIN_PEOPLE']),
-                         ('NethVoice', 'NethVoice CTI', 'Nethesis', 'CTI', 'https://www.nethesis.it/', 'show'))
+                          config['COMPANY_SUBNAME'], config['COMPANY_URL']),
+                         ('NethVoice', 'NethVoice CTI', 'Nethesis', 'CTI', 'https://www.nethesis.it/'))
         self.assertEqual(config['NAVBAR_LOGO_URL'], '')
+        self.assertNotIn('LOGIN_PEOPLE', config)
         self.assertFalse((self.dir / 'wget.log').exists())
+
+    def test_an_old_login_people_value_is_ignored(self):
+        self.assertNotIn('LOGIN_PEOPLE', self.render(LOGIN_PEOPLE='hide'))
+
+    def write_stock_assets(self):
+        (self.dir / 'public').mkdir(exist_ok=True)
+        for name in CTI_ASSETS.values():
+            (self.dir / 'public' / name).write_text('stock')
+
+    def test_downloaded_assets_replace_the_stock_files(self):
+        self.write_stock_assets()
+        urls = {key: f'https://cdn.example.org/{name}' for key, name in CTI_ASSETS.items()}
+        config = self.render(**urls)
+        for key, name in CTI_ASSETS.items():
+            with self.subTest(key=key):
+                self.assertEqual(config[key], urls[key])
+                self.assertEqual((self.dir / 'public' / name).read_text(), f'custom {urls[key]}')
+                self.assertFalse((self.dir / 'public' / f'{name}.download').exists())
+
+    def test_failed_downloads_clear_the_key(self):
+        for reason in ('missing', 'refused'):
+            for key, name in CTI_ASSETS.items():
+                with self.subTest(reason=reason, key=key):
+                    shutil.rmtree(self.dir / 'public', ignore_errors=True)
+                    self.write_stock_assets()
+                    config = self.render(**{key: f'https://cdn.example.org/{reason}/{name}'})
+                    self.assertEqual(config[key], '')
+                    self.assertFalse((self.dir / 'public' / f'{name}.download').exists())
+                    if name == 'favicon.ico':
+                        self.assertEqual((self.dir / 'public' / name).read_text(), 'stock')
+                    else:
+                        self.assertFalse((self.dir / 'public' / name).exists())
+                    for other in set(CTI_ASSETS.values()) - {name}:
+                        self.assertEqual((self.dir / 'public' / other).read_text(), 'stock')
+
+    def test_one_failed_download_keeps_the_others(self):
+        self.write_stock_assets()
+        config = self.render(LOGIN_LOGO_URL='https://cdn.example.org/missing/logo.svg',
+                             LOGIN_BACKGROUND_URL='https://cdn.example.org/background.svg')
+        self.assertEqual(config['LOGIN_LOGO_URL'], '')
+        self.assertEqual(config['LOGIN_BACKGROUND_URL'], 'https://cdn.example.org/background.svg')
+        self.assertFalse((self.dir / 'public' / 'login_logo.svg').exists())
+        self.assertEqual((self.dir / 'public' / 'login_background.svg').read_text(),
+                         'custom https://cdn.example.org/background.svg')
+
+    def test_assets_are_downloaded_before_the_configuration_is_written(self):
+        self.render(**{key: f'https://cdn.example.org/{name}' for key, name in CTI_ASSETS.items()})
+        self.assertEqual(len((self.dir / 'wget.log').read_text().splitlines()), 4 * len(CTI_ASSETS))
+        self.assertFalse((self.dir / 'late.log').exists())
 
     def test_normal_values_are_written_as_before(self):
         self.render(BRAND_NAME='Acme', PRODUCT_NAME='Acme CTI', NAVBAR_LOGO_URL=URL)
@@ -76,8 +148,8 @@ class CtiEntrypointTest(GeneratorTest):
 
     def test_quotes_and_backslashes_are_escaped(self):
         config = self.render(BRAND_NAME=NAME, PRODUCT_NAME=NAME, COMPANY_NAME=NAME, COMPANY_URL=NAME,
-                             LOGIN_PEOPLE=NAME, FAVICON_URL=NAME, NAVBAR_LOGO_URL=NAME, NAVBAR_LOGO_DARK_URL=NAME)
-        for key in ('BRAND_NAME', 'PRODUCT_NAME', 'COMPANY_NAME', 'COMPANY_URL', 'LOGIN_PEOPLE', 'FAVICON_URL',
+                             FAVICON_URL=NAME, NAVBAR_LOGO_URL=NAME, NAVBAR_LOGO_DARK_URL=NAME)
+        for key in ('BRAND_NAME', 'PRODUCT_NAME', 'COMPANY_NAME', 'COMPANY_URL', 'FAVICON_URL',
                     'NAVBAR_LOGO_URL', 'NAVBAR_LOGO_DARK_URL'):
             with self.subTest(key=key):
                 self.assertEqual(config[key], NAME)

@@ -26,10 +26,6 @@
             "description": "NethVoice brand name",
             "type": "string"
         },
-        "rebranding_login_people": {
-            "description": "NethVoice rebranding show/hide people on login",
-            "type": "string"
-        },
         "rebranding_navbar_logo_url": {
             "description": "NethVoice rebranding link to navbar logo",
             "type": "string"

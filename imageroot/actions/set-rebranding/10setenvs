@@ -41,8 +41,6 @@ if not status['active']:
 setName(request, 'rebranding_brand_name', 'BRAND_NAME', 'NethVoice')
 setName(request, 'rebranding_brand_name', 'NETHCTI_UI_PRODUCT_NAME', 'NethVoice CTI')
 
-getFromRequest(request, 'rebranding_login_people', 'LOGIN_PEOPLE', '')
-
 getFromRequest(request, 'rebranding_navbar_logo_url', 'NAVBAR_LOGO_URL', '')
 getFromRequest(request, 'rebranding_navbar_logo_dark_url', 'NAVBAR_LOGO_DARK_URL', '')
 getFromRequest(request, 'rebranding_login_logo_url', 'LOGIN_LOGO_URL', '')

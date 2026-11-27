@@ -288,23 +288,6 @@
                             $t('rebranding.public_url_image_helper')
                           "
                         />
-                        <NsToggle
-                          :label="$t('rebranding.login_illustration')"
-                          value="loginIllustration"
-                          :form-item="true"
-                          v-model="rebranding_login_people"
-                          :disabled="loading.setRebranding"
-                        >
-                          <template slot="tooltip">
-                            {{ $t("rebranding.login_illustration_tooltip") }}
-                          </template>
-                          <template slot="text-left">{{
-                            $t("common.disabled")
-                          }}</template>
-                          <template slot="text-right">{{
-                            $t("common.enabled")
-                          }}</template>
-                        </NsToggle>
                         <div class="rebranding-save-actions">
                           <NsButton
                             kind="ghost"
@@ -425,16 +408,6 @@
                                       </button>
                                     </div>
                                   </div>
-                                </div>
-                                <div
-                                  class="login-svg"
-                                  v-if="rebranding_login_people"
-                                >
-                                  <img
-                                    src="../assets/action_voice-cti.svg"
-                                    alt="Login illustration"
-                                    class="svg-image"
-                                  />
                                 </div>
                               </div>
                             </div>
@@ -1045,7 +1018,6 @@ export default {
       rebranding_favicon_url: "",
       rebranding_login_logo_url: "",
       rebranding_login_logo_dark_url: "",
-      rebranding_login_people: false,
       rebranding_reports_brand_name: "",
       rebranding_reports_login_background_url: "",
       rebranding_reports_favicon_url: "",
@@ -1300,7 +1272,6 @@ export default {
       this.rebranding_login_logo_url = config.rebranding_login_logo_url;
       this.rebranding_login_logo_dark_url =
         config.rebranding_login_logo_dark_url;
-      this.rebranding_login_people = config.rebranding_login_people !== "hide";
       this.rebranding_reports_brand_name = sharedBrandName;
       this.rebranding_reports_login_background_url =
         config.rebranding_reports_login_background_url;
@@ -1325,7 +1296,6 @@ export default {
       this.rebranding_nethlink_company_url =
         config.rebranding_nethlink_company_url;
       this.savedRebrandingConfig = this.getPayloadDefaults({
-        rebranding_login_people: config.rebranding_login_people,
         rebranding_brand_name: sharedBrandName,
         rebranding_navbar_logo_url: config.rebranding_navbar_logo_url,
         rebranding_navbar_logo_dark_url: config.rebranding_navbar_logo_dark_url,
@@ -1383,7 +1353,6 @@ export default {
     },
     getPayloadDefaults(overrides = {}) {
       return {
-        rebranding_login_people: "show",
         rebranding_brand_name: "",
         rebranding_navbar_logo_url: "",
         rebranding_navbar_logo_dark_url: "",
@@ -1436,7 +1405,6 @@ export default {
           this.rebranding_navbar_logo_dark_url = "";
           this.rebranding_favicon_url = "";
           this.rebranding_login_background_url = "";
-          this.rebranding_login_people = false;
           this.clearTabErrors([
             "rebranding_login_logo_url",
             "rebranding_login_logo_dark_url",
@@ -1556,9 +1524,6 @@ export default {
       await this.submitRebranding(
         {
           ...snapshot,
-          rebranding_login_people: this.rebranding_login_people
-            ? "show"
-            : "hide",
           rebranding_navbar_logo_url: this.rebranding_navbar_logo_url,
           rebranding_navbar_logo_dark_url: this.rebranding_navbar_logo_dark_url,
           rebranding_login_logo_url: this.rebranding_login_logo_url,
@@ -1852,7 +1817,7 @@ export default {
 
 .login-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   height: 100%;
   padding: 1.5rem 2rem;
@@ -1871,17 +1836,6 @@ export default {
   border-radius: 4px;
   width: 100%;
   max-width: 220px;
-}
-
-.login-svg {
-  width: 40%;
-  min-width: 160px;
-}
-
-.svg-image {
-  width: 100%;
-  height: auto;
-  margin-left: 0;
 }
 
 .login-logo {

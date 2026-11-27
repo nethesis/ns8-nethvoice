@@ -19,7 +19,6 @@ SUBSCRIPTION = {'provider': 'nsent', 'system_id': 'NETH-0000-1111-2222', 'auth_t
                 'collect_url': 'https://collect.example.org/collect/api/systems'}
 REQUEST = {
     'rebranding_brand_name': "L'Azienda \"Voce\"",
-    'rebranding_login_people': 'hide',
     'rebranding_navbar_logo_url': '',
     'rebranding_navbar_logo_dark_url': '',
     'rebranding_login_logo_url': 'https://cdn.example.org/logo.svg',
@@ -108,6 +107,10 @@ class GetRebrandingTest(unittest.TestCase):
         _, _, output, _ = run_action(self.path, {'active': True},
                                      environment={'WIZARD_LOGO_LIGHT_URL': 'https://cdn.example.org/light.svg'})
         self.assertEqual(json.loads(output)['rebranding_wizard_logo_light_url'], 'https://cdn.example.org/light.svg')
+
+    def test_does_not_report_the_login_people_option(self):
+        _, _, output, _ = run_action(self.path, {'active': True}, environment={'LOGIN_PEOPLE': 'hide'})
+        self.assertNotIn('rebranding_login_people', json.loads(output))
 
     def test_output_matches_the_schema(self):
         import jsonschema
@@ -198,6 +201,11 @@ class SetRebrandingTest(unittest.TestCase):
         self.assertEqual(agent.env['WIZARD_BRAND_NAME'], 'Acme Voice')
         self.assertEqual(agent.env['REPORTS_UI_APP_NAME'], 'NethVoice Reports')
 
+    def test_an_old_login_people_field_is_ignored(self):
+        agent, _, _, code = run_action(self.path, {'active': True}, dict(REQUEST, rebranding_login_people='hide'))
+        self.assertEqual(code, 0)
+        self.assertNotIn('LOGIN_PEOPLE', agent.env)
+
     def test_missing_light_background_logo_keeps_the_current_value(self):
         request = {key: value for key, value in REQUEST.items() if key != 'rebranding_wizard_logo_light_url'}
         agent, _, _, _ = run_action(self.path, {'active': True}, request,
@@ -236,12 +244,11 @@ class SetRebrandingSchemaTest(unittest.TestCase):
         self.assertEqual(self.errors(rebranding_reports_brand_name='A' * 65), ['rebranding_reports_brand_name'])
         self.assertEqual(self.errors(rebranding_brand_name='A' * 64), [])
 
-    def test_login_people_accepts_only_its_values(self):
+    def test_an_old_login_people_field_is_still_accepted(self):
         for value in ('show', 'hide', ''):
-            self.assertEqual(self.errors(rebranding_login_people=value), [])
-        for value in ('show\nNETHVOICE_X=y', 'yes', 'Show'):
             with self.subTest(value=value):
-                self.assertEqual(self.errors(rebranding_login_people=value), ['rebranding_login_people'])
+                self.assertEqual(self.errors(rebranding_login_people=value), [])
+        self.assertNotIn('rebranding_login_people', self.example)
 
     def test_every_url_field_accepts_only_plain_http_urls(self):
         url_fields = sorted(key for key in self.validator.schema['properties'] if key.endswith('_url'))
@@ -256,6 +263,26 @@ class SetRebrandingSchemaTest(unittest.TestCase):
         for value in ('http://cdn.example.org/logo.svg', 'https://cdn.example.org/a/logo.svg?v=2&x=%20#top'):
             with self.subTest(value=value):
                 self.assertEqual(self.errors(**{field: value for field in url_fields}), [])
+
+
+
+class LoginPeopleRemovalTest(unittest.TestCase):
+    def test_restoring_an_old_backup_skips_login_people(self):
+        agent = FakeAgent()
+        environment = {'LOGIN_PEOPLE': 'hide', 'BRAND_NAME': 'Acme Voice',
+                       'LOGIN_LOGO_URL': 'https://cdn.example.org/logo.svg'}
+        path = ACTIONS / 'restore-module' / '20copyenv'
+        with mock.patch('sys.stdin', io.StringIO(json.dumps({'environment': environment}))):
+            load_script(path.name, path, {'agent': agent})
+        self.assertNotIn('LOGIN_PEOPLE', agent.env)
+        self.assertEqual(agent.env['BRAND_NAME'], 'Acme Voice')
+        self.assertEqual(agent.env['LOGIN_LOGO_URL'], 'https://cdn.example.org/logo.svg')
+
+    def test_the_cti_no_longer_receives_login_people(self):
+        root = ACTIONS.parent
+        self.assertNotIn('LOGIN_PEOPLE', (root / 'systemd' / 'user' / 'nethcti-ui.service').read_text())
+        self.assertNotIn('LOGIN_PEOPLE', (ACTIONS / 'create-module' / '05setenvs').read_text())
+        self.assertIn("agent.unset_env('LOGIN_PEOPLE')", (root / 'update-module.d' / '10env').read_text())
 
 
 if __name__ == '__main__':

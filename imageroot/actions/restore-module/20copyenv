@@ -45,7 +45,6 @@ restore_envs = [
 
     'LOGIN_BACKGROUND_URL',
     'LOGIN_LOGO_URL',
-    'LOGIN_PEOPLE',
     'NAVBAR_LOGO_URL',
     'NAVBAR_LOGO_DARK_URL',
     'WIZARD_BRAND_NAME',

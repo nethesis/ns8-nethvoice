@@ -303,8 +303,6 @@
     "rebranding_company_url_invalid": "Must start with http:// or https://",
     "shared_save_notice": "Save applies all pending changes across the CTI, Admin, Report and NethLink tabs.",
     "public_url_image_helper": "Public URL of the image, recommended SVG format",
-    "login_illustration": "Login illustration",
-    "login_illustration_tooltip": "Show or hide the illustration over the login page background",
     "username": "Username",
     "password": "Password",
     "sign_in": "Sign in",
