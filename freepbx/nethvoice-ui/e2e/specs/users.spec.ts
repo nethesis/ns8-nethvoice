@@ -151,6 +151,7 @@ test.describe('users', () => {
     await page.goto('./users/users')
 
     await expect(page.getByText('No users configured', { exact: true })).toBeVisible()
+    await expect(page.getByText('Create users or import them from a CSV file.')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Create user' })).toHaveCount(1)
     await expect(page.getByRole('button', { name: 'Import users from CSV' })).toBeVisible()
     await expect(page.getByTestId('users-counter')).toHaveCount(0)
@@ -1058,6 +1059,57 @@ test.describe('users', () => {
     })
   })
 
+  test('shows only the errors and Close when no row can be imported', async ({ page, mockApi }) => {
+    csvImportMock(mockApi, { status: 200, json: { result: 100 } })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'users.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        [
+          'username,name,surname,extension',
+          'b.boone,Bob,Boone,xxx',
+          'c.wolf,Carl,Wolf,yyy',
+          'e.ross,Emma,Ross,zzz',
+          'f.hart,Fred,Hart,www',
+          'g.cole,Gina,Cole,vvv',
+        ].join('\n'),
+      ),
+    })
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
+
+    const modal = page.getByTestId('import-no-valid-rows')
+    await expect(modal.getByTestId('import-summary')).toContainText(
+      '5 users detected in the selected file:',
+    )
+    await expect(modal.getByTestId('import-summary')).toContainText('0 valid')
+    await expect(modal.getByTestId('import-summary')).toContainText('5 with errors')
+    await expect(modal).toContainText('No valid rows to import')
+    await expect(modal).toContainText('Fix the errors in the CSV file and try uploading it again.')
+    await expect(modal).toContainText('Row 2 (b.boone): invalid extension')
+    await expect(modal).not.toContainText('Row 5 (f.hart)')
+    const more = modal.getByRole('button', { name: '+ 2 more' })
+    expect(await more.evaluate((element) => getComputedStyle(element).fontWeight)).toBe('400')
+    await more.click()
+    await expect(modal).toContainText('Row 6 (g.cole): invalid extension')
+    await expect(modal).toContainText('Ensure the file follows the required format or')
+
+    const download = page.waitForEvent('download')
+    await modal.getByRole('button', { name: 'download the template file' }).click()
+    expect((await download).suggestedFilename()).toBe('users-template.csv')
+
+    const dialog = page.getByRole('dialog', { name: 'Import users' })
+    await expect(dialog.getByRole('button', { name: 'Import', exact: true })).toHaveCount(0)
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toHaveCount(0)
+    await dialog.getByRole('button', { name: 'Close', exact: true }).last().click()
+    await expect(dialog).toHaveCount(0)
+    expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
+  })
+
   test('imports users from a CSV with a preview of the errors', async ({ page, mockApi }) => {
     csvImportMock(mockApi, { status: 200, json: { result: 100 } })
     await page.goto('./users/users')
@@ -1065,7 +1117,7 @@ test.describe('users', () => {
     await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
 
     const drawer = page.getByRole('dialog', { name: 'Import users' })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
     await expect(drawer.getByText('Choose a CSV file')).toBeVisible()
 
     await drawer.locator('input[type=file]').setInputFiles({
@@ -1081,7 +1133,7 @@ test.describe('users', () => {
         ].join('\n'),
       ),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
 
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
@@ -1099,34 +1151,36 @@ test.describe('users', () => {
       '1 existing user (will be skipped)',
     )
     await expect(modal.getByTestId('import-summary')).toContainText('1 valid')
-    await expect(modal.getByTestId('import-summary')).toContainText(
-      '2 with errors (will be skipped)',
-    )
+    await expect(modal.getByTestId('import-summary')).toContainText('2 with errors')
     await expect(modal).toContainText('This user already exists:')
     await expect(modal).not.toContainText('1 existing user will be skipped')
     await expect(modal).toContainText('Row 2 (a.miller)')
-    await expect(modal.getByRole('button', { name: 'Import 1 user' })).toBeVisible()
-    await expect(modal.getByTestId('import-summary')).toContainText('Import summary')
+    await expect(modal.getByRole('button', { name: 'Import', exact: true })).toBeVisible()
+    await expect(modal.getByTestId('import-summary')).not.toContainText('Import summary')
+    await expect(modal.getByRole('button', { name: 'Previous' })).toHaveCount(0)
+    await expect(modal.getByRole('button', { name: 'Cancel' })).toBeVisible()
     const summaryBox = await modal.getByTestId('import-summary').boundingBox()
+    const errorsBox = await modal.getByText('2 users contain errors').boundingBox()
     const previewBox = await modal.getByRole('grid', { name: 'File preview' }).boundingBox()
     const radiosBox = await modal.getByRole('radio', { name: 'Skip existing users' }).boundingBox()
     const overwriteBox = await modal
       .getByRole('radio', { name: 'Overwrite existing users' })
       .boundingBox()
+    expect(summaryBox?.y ?? 0).toBeLessThan(errorsBox?.y ?? 0)
+    expect(errorsBox?.y ?? 0).toBeLessThan(previewBox?.y ?? 0)
     expect(previewBox?.y ?? 0).toBeLessThan(radiosBox?.y ?? 0)
     expect(radiosBox?.y ?? 0).toBeLessThan(overwriteBox?.y ?? 0)
-    expect(overwriteBox?.y ?? 0).toBeLessThan(summaryBox?.y ?? 0)
 
     await modal.getByRole('radio', { name: 'Overwrite existing users' }).check()
     await expect(modal).toContainText(
       'Mobile number, groups and profile of the existing users are updated, together with the voicemail and the devices set in the file. Their names are kept. A different extension recreates all their devices.',
     )
-    await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeVisible()
+    await expect(modal.getByRole('button', { name: 'Import', exact: true })).toBeVisible()
     await expect(modal).not.toContainText('This user already exists:')
 
     await modal.getByRole('radio', { name: 'Skip existing users' }).check()
     await expect(modal).toContainText('Row 2 (a.miller)')
-    await modal.getByRole('button', { name: 'Import 1 user' }).click()
+    await modal.getByRole('button', { name: 'Import', exact: true }).click()
 
     await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
     const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as { file: string }
@@ -1167,11 +1221,11 @@ test.describe('users', () => {
         ].join('\n'),
       ),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
-    await modal.getByRole('button', { name: 'Import 2 users' }).click()
+    await modal.getByRole('button', { name: 'Import', exact: true }).click()
 
     await expect(modal).toContainText(
       'Row 4 (n.ray): extension 311 could not be assigned.',
@@ -1207,7 +1261,7 @@ test.describe('users', () => {
         ].join('\n'),
       ),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
 
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
@@ -1219,10 +1273,8 @@ test.describe('users', () => {
       'Row 4 (o.dean): tabs, line breaks or other invisible characters in a field',
     )
     await expect(modal.getByTestId('import-summary')).toContainText('2 valid')
-    await expect(modal.getByTestId('import-summary')).toContainText(
-      '2 with errors (will be skipped)',
-    )
-    await modal.getByRole('button', { name: 'Import 2 users' }).click()
+    await expect(modal.getByTestId('import-summary')).toContainText('2 with errors')
+    await modal.getByRole('button', { name: 'Import', exact: true }).click()
 
     await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
     const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as { file: string }
@@ -1276,11 +1328,11 @@ test.describe('users', () => {
         ].join('\n'),
       ),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
     await page
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
-      .getByRole('button', { name: 'Import 1 user' })
+      .getByRole('button', { name: 'Import', exact: true })
       .click()
 
     await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
@@ -1316,7 +1368,7 @@ test.describe('users', () => {
         ].join('\n'),
       ),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
 
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
@@ -1328,7 +1380,7 @@ test.describe('users', () => {
     )
     await expect(modal).not.toContainText('Only the first')
     await expect(modal.getByRole('grid', { name: 'File preview' })).toContainText('Desktop app')
-    await modal.getByRole('button', { name: 'Import 1 user' }).click()
+    await modal.getByRole('button', { name: 'Import', exact: true }).click()
 
     await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
     const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as { file: string }
@@ -1355,7 +1407,7 @@ test.describe('users', () => {
       mimeType: 'text/csv',
       buffer: Buffer.from('Nome;Cognome;Interno\nMario;Rossi;201'),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
     await expect(drawer.getByText('no username column')).toBeVisible()
 
     const rows = Array.from(
@@ -1367,13 +1419,13 @@ test.describe('users', () => {
       mimeType: 'text/csv',
       buffer: Buffer.from(['username,fullname,extension', ...rows].join('\n')),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
 
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
     await expect(modal.getByText('File too large')).toBeVisible()
-    await expect(modal.getByRole('button', { name: 'Import 5000 users' })).toBeDisabled()
+    await expect(modal.getByRole('button', { name: 'Import', exact: true })).toBeDisabled()
   })
 
   test('keeps backslashes and refuses spaces around the passwords of the CSV', async ({
@@ -1398,7 +1450,7 @@ test.describe('users', () => {
         ].join('\n'),
       ),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
@@ -1408,7 +1460,7 @@ test.describe('users', () => {
     await expect(
       modal.getByText('Row 4 (n.ray): spaces at the start or end of the password'),
     ).toBeVisible()
-    await modal.getByRole('button', { name: 'Import 1 user' }).click()
+    await modal.getByRole('button', { name: 'Import', exact: true }).click()
 
     await expect(page.getByText('Users imported')).toBeVisible(IMPORT_TIMEOUT)
     const file = mockApi.callsTo('POST', `${REST}/csv/csvimport`)[0].body as {
@@ -1441,21 +1493,21 @@ test.describe('users', () => {
         ),
       ),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
     const warning = modal.getByTestId('import-directory-warning')
     await expect(warning).toContainText('Cannot retrieve: Mobile number')
-    await expect(modal.getByRole('button', { name: 'Import 1 user' })).toBeDisabled()
+    await expect(modal.getByRole('button', { name: 'Import', exact: true })).toBeDisabled()
     await modal.getByText('Overwrite existing users').click()
-    await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeDisabled()
+    await expect(modal.getByRole('button', { name: 'Import', exact: true })).toBeDisabled()
 
     mobilesLoaded = true
     await warning.getByRole('button', { name: 'Retry' }).click()
 
     await expect(warning).toBeHidden()
-    await expect(modal.getByRole('button', { name: 'Import 2 users' })).toBeEnabled()
+    await expect(modal.getByRole('button', { name: 'Import', exact: true })).toBeEnabled()
     expect(mockApi.callsTo('POST', `${REST}/csv/csvimport`)).toHaveLength(0)
   })
 
@@ -1479,12 +1531,12 @@ test.describe('users', () => {
       mimeType: 'text/csv',
       buffer: Buffer.from(['username,name,surname', 'a.miller,Anna,Miller'].join('\n')),
     })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
     const modal = page
       .getByRole('dialog', { name: 'Import users' })
       .filter({ hasText: 'File preview' })
     await modal.getByText('Overwrite existing users').click()
-    await modal.getByRole('button', { name: 'Import 1 user' }).click()
+    await modal.getByRole('button', { name: 'Import', exact: true }).click()
 
     await expect(page.getByText('Created: 0 · Updated: 1 · Skipped: 0')).toBeVisible(IMPORT_TIMEOUT)
   })
@@ -2406,7 +2458,7 @@ test.describe('user accounts', () => {
     await page.getByRole('button', { name: 'Actions', exact: true }).click()
     await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
     const drawer = page.getByRole('dialog', { name: 'Import users' })
-    await drawer.getByRole('button', { name: 'Next' }).click()
+    await drawer.getByRole('button', { name: 'Import', exact: true }).click()
 
     await expect(drawer.getByText('Choose a CSV file')).toBeVisible()
     await expect(drawer.locator('input[type=file]')).toBeFocused()

@@ -98,14 +98,6 @@ export const isRemovingExtension = (saved: string, draft: string): boolean =>
 export const isChangingExtension = (saved: string, draft: string): boolean =>
   saved !== '' && draft.trim() !== '' && draft.trim() !== saved
 
-export const getChangedExtensions = (
-  users: User[],
-  drafts: Record<string, string>,
-): ExtensionStep[] =>
-  users
-    .filter((user) => isChangingExtension(user.mainExtension, drafts[user.username] ?? ''))
-    .map((user) => ({ user, extension: drafts[user.username].trim() }))
-
 export const validateExtensionDrafts = (
   drafts: Record<string, string>,
   savedExtensions: Record<string, string> = {},

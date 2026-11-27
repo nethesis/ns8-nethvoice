@@ -7,11 +7,11 @@
 import { computed, nextTick, onMounted, ref, useTemplateRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
+  NeAvatar,
   NeButton,
   NeDropdown,
   NeEmptyState,
   NeInlineNotification,
-  NeModal,
   NeSkeleton,
   NeSortDropdown,
   NeSpinner,
@@ -20,25 +20,29 @@ import {
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
+  faCheck,
   faCircleArrowDown,
   faCircleArrowUp,
   faCircleMinus,
   faCirclePlus,
-  faCircleUser,
   faGear,
   faMagnifyingGlass,
   faPenToSquare,
+  faTrash,
   faUserGroup,
 } from '@fortawesome/free-solid-svg-icons'
 import SetupStepLayout from './SetupStepLayout.vue'
 import LoadError from '@/components/common/LoadError.vue'
 import CreateOrEditUserDrawer from '@/components/users/CreateOrEditUserDrawer.vue'
+import DeleteUserModal from '@/components/users/DeleteUserModal.vue'
 import ImportUsersFlow from '@/components/users/ImportUsersFlow.vue'
 import RemoveExtensionModal from '@/components/users/RemoveExtensionModal.vue'
 import UsersActionsDropdown from '@/components/users/UsersActionsDropdown.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { useSetupNavigation } from '@/composables/useSetupNavigation'
 import { matchesText } from '@/lib/common'
+import { getInitials } from '@/lib/overview/overview'
+import { findAccount, getAccountRestriction } from '@/lib/users/accounts'
 import { buildExportFileName, downloadTextFile, getCsvExport } from '@/lib/users/csv'
 import {
   buildUserRows,
@@ -49,7 +53,6 @@ import {
 import {
   countConfiguredDrafts,
   EXTENSION_ISSUE_MESSAGES,
-  getChangedExtensions,
   getExtensionErrorKind,
   validateExtensionDrafts,
 } from '@/lib/users/extensions'
@@ -62,10 +65,13 @@ import {
 } from '@/lib/users/provisioning'
 import { sortUsers, type UserSortKey } from '@/lib/users/userFilters'
 import type { User } from '@/lib/users/users'
+import { usePermissions } from '@/queries/permissions/me'
+import { useUserAccounts, useUsersDomain } from '@/queries/users/accounts'
 import { useUserLimits } from '@/queries/users/userLimits'
 import { useInvalidateUsers, useUsers } from '@/queries/users/users'
 import { useUsersDirectory } from '@/queries/users/usersDirectory'
 import { useUsersProviderSync } from '@/queries/users/usersSync'
+import { useLoginStore } from '@/stores/login'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useSetupStore } from '@/stores/setup'
 
@@ -78,27 +84,31 @@ const directoryQuery = useUsersDirectory()
 const { state: limitsState } = useUserLimits()
 const { syncing, syncError, sync } = useUsersProviderSync()
 const { advancing, goToNextStep } = useSetupNavigation('users')
+const loginStore = useLoginStore()
+const { isSuperadmin } = usePermissions()
+const domainQuery = useUsersDomain()
+const accountsQuery = useUserAccounts()
 
 const edits = ref<Record<string, string>>({})
 const serverIssues = ref<Record<string, string>>({})
+const missingExtensionFor = ref('')
 const provisioning = ref(false)
-const provisioningError = ref<unknown>(null)
 const textFilter = ref('')
-const sortKey = ref<UserSortKey>('displayName')
+const sortKey = ref<UserSortKey | undefined>()
 const sortDescending = ref(false)
 const currentUser = ref<UserRow | undefined>()
 const isShownUserDrawer = ref(false)
 const isShownImport = ref(false)
 const isShownRemoveExtension = ref(false)
-const isShownChangeWarning = ref(false)
+const isShownDeleteUser = ref(false)
 const removingUser = ref<User | undefined>()
+const deletingUser = ref<User | undefined>()
 const exporting = ref(false)
 const progress = ref({ done: 0, total: 0 })
-const errorRef = useTemplateRef<HTMLElement>('errorRef')
+const limitRef = useTemplateRef<HTMLElement>('limitRef')
 
 useFocusReturn(() => isShownUserDrawer.value)
 useFocusReturn(() => isShownImport.value)
-useFocusReturn(() => isShownChangeWarning.value)
 
 async function syncUsers() {
   if (await sync()) {
@@ -129,7 +139,6 @@ const savedExtensions = computed<Record<string, string>>(() =>
   Object.fromEntries(users.value.map((user) => [user.username, user.mainExtension])),
 )
 const draftIssues = computed(() => validateExtensionDrafts(drafts.value, savedExtensions.value))
-const changedExtensions = computed(() => getChangedExtensions(users.value, drafts.value))
 const configuredCount = computed(() => countConfiguredDrafts(drafts.value))
 const usersLimit = computed(() => limitsState.value.data?.limit ?? null)
 const overLimit = computed(
@@ -138,6 +147,21 @@ const overLimit = computed(
 
 const reservedExtensions = computed(() => Object.values(drafts.value).filter(Boolean))
 
+const accountsManageable = computed(() => domainQuery.state.value.data?.manageable === true)
+const accounts = computed(() =>
+  accountsManageable.value ? (accountsQuery.state.value.data ?? []) : [],
+)
+
+const restrictionOf = (user: User) =>
+  getAccountRestriction({
+    username: user.username,
+    signedInUsername: loginStore.username,
+    isSuperadmin: isSuperadmin.value,
+    account: findAccount(accounts.value, user.username),
+    accountsLoaded: accountsQuery.state.value.status === 'success',
+    mainExtension: user.mainExtension,
+  })
+
 const visibleUsers = computed(() =>
   sortUsers(
     users.value
@@ -145,7 +169,7 @@ const visibleUsers = computed(() =>
       .filter((user) =>
         matchesText(textFilter.value, user.displayName, user.username, user.mainExtension),
       ),
-    sortKey.value,
+    sortKey.value ?? 'displayName',
     sortDescending.value,
   ),
 )
@@ -156,13 +180,24 @@ const issueFor = (username: string): string => {
   if (issue) {
     return t(EXTENSION_ISSUE_MESSAGES[issue])
   }
-  return serverIssues.value[username] ? t(serverIssues.value[username]) : ''
+
+  if (serverIssues.value[username]) {
+    return t(serverIssues.value[username])
+  }
+  return missingExtensionFor.value === username ? t('setup.users.extension_required') : ''
+}
+
+const isConfigured = (username: string) => {
+  const draft = drafts.value[username]?.trim() ?? ''
+
+  return draft !== '' && !issueFor(username)
 }
 
 const hasIssues = computed(() => Object.keys(draftIssues.value).length > 0)
 
 function setDraft(username: string, value: string) {
   edits.value = { ...edits.value, [username]: value }
+  missingExtensionFor.value = ''
   serverIssues.value = Object.fromEntries(
     Object.entries(serverIssues.value).filter(([key]) => key !== username),
   )
@@ -175,7 +210,8 @@ const sortOptions = computed(() => [
 ])
 
 function setSortKey(key: string | undefined) {
-  sortKey.value = key === 'username' || key === 'mainExtension' ? key : 'displayName'
+  sortKey.value =
+    key === 'displayName' || key === 'username' || key === 'mainExtension' ? key : undefined
 }
 
 function showEditUser(username: string) {
@@ -186,21 +222,58 @@ function showEditUser(username: string) {
   isShownUserDrawer.value = true
 }
 
-function showRemoveExtension(username: string) {
-  removingUser.value = users.value.find((user) => user.username === username)
-  isShownRemoveExtension.value = true
+function openFromMenu(open: () => void) {
+  const buttonId = document.activeElement?.closest('[role="menu"]')?.getAttribute('aria-labelledby')
+  const button = buttonId ? document.getElementById(buttonId) : null
+
+  setTimeout(() => {
+    button?.focus()
+    open()
+  })
 }
 
-const rowMenuItems = (username: string): NeDropdownItem[] => [
-  {
-    id: 'remove-extension',
-    label: t('users.remove_extension'),
-    icon: faCircleMinus,
-    danger: true,
-    disabled: !savedExtensions.value[username],
-    action: () => showRemoveExtension(username),
-  },
-]
+const findUser = (username: string) => users.value.find((user) => user.username === username)
+
+const rowMenuItems = (username: string): NeDropdownItem[] => {
+  const user = findUser(username)
+
+  return [
+    {
+      id: 'remove-extension',
+      label: t('users.remove_extension'),
+      icon: faCircleMinus,
+      danger: true,
+      disabled: !savedExtensions.value[username],
+      action: () =>
+        openFromMenu(() => {
+          removingUser.value = findUser(username)
+          isShownRemoveExtension.value = true
+        }),
+    },
+    ...(accountsManageable.value && user
+      ? [
+          {
+            id: 'delete-user',
+            label: t('common.delete'),
+            icon: faTrash,
+            danger: true,
+            disabled: restrictionOf(user) !== null,
+            action: () =>
+              openFromMenu(() => {
+                deletingUser.value = findUser(username)
+                isShownDeleteUser.value = true
+              }),
+          },
+        ]
+      : []),
+  ]
+}
+
+const menuRestriction = (username: string) => {
+  const user = findUser(username)
+
+  return accountsManageable.value && user ? restrictionOf(user) : null
+}
 
 function showCreateUser() {
   currentUser.value = undefined
@@ -243,9 +316,7 @@ const actionItems = computed<NeDropdownItem[]>(() => [
   },
 ])
 
-const provisioningErrorDescription = computed(() => {
-  const error = provisioningError.value
-
+function describeProvisioningError(error: unknown) {
   if (!(error instanceof ProvisioningError)) {
     return describeError(error, { serverDetail: false })
   }
@@ -258,20 +329,35 @@ const provisioningErrorDescription = computed(() => {
         : t(`users.extension_error_${kind}`, { limit: usersLimit.value ?? '' })
 
   return t('setup.users.provisioning_failed_for', {
-    username: error.username,
+    name: findUser(error.username)?.displayName || error.username,
     detail: !detail || /[.!?]$/.test(detail) ? detail : `${detail}.`,
   })
-})
+}
 
-async function focusFirstIssue() {
+const focusExtension = (username: string) =>
+  document.getElementById(`extension-${username}`)?.focus()
+
+async function focusFirstIssue(fallbackUsername = '') {
   await nextTick()
   const username = visibleUsers.value.find((user) => issueFor(user.username))?.username
 
-  if (username) {
-    document.getElementById(`extension-${username}`)?.focus()
-    return
+  if (username || fallbackUsername) {
+    focusExtension(username || fallbackUsername)
   }
-  errorRef.value?.focus()
+}
+
+async function requireExtension() {
+  if (visibleUsers.value.length === 0) {
+    textFilter.value = ''
+    await nextTick()
+  }
+  const username = visibleUsers.value[0]?.username
+
+  if (username) {
+    missingExtensionFor.value = username
+    await nextTick()
+    focusExtension(username)
+  }
 }
 
 function saveAndContinue() {
@@ -280,20 +366,20 @@ function saveAndContinue() {
     return
   }
 
-  if (changedExtensions.value.length > 0) {
-    isShownChangeWarning.value = true
+  if (configuredCount.value === 0) {
+    requireExtension()
+    return
+  }
+
+  if (overLimit.value) {
+    limitRef.value?.focus()
     return
   }
   provisionAndContinue()
 }
 
-function confirmExtensionChanges() {
-  isShownChangeWarning.value = false
-  provisionAndContinue()
-}
-
 function provisionAndContinue() {
-  provisioningError.value = null
+  let failedUsername: string | null = null
 
   goToNextStep(async () => {
     provisioning.value = true
@@ -308,7 +394,7 @@ function provisionAndContinue() {
       edits.value = {}
       return true
     } catch (error) {
-      provisioningError.value = error
+      failedUsername = error instanceof ProvisioningError ? error.username : ''
 
       if (error instanceof ProvisioningError && error.phase === 'extension') {
         const kind = getExtensionErrorKind(error.cause)
@@ -317,14 +403,19 @@ function provisionAndContinue() {
           serverIssues.value = { ...serverIssues.value, [error.username]: 'users.extension_in_use' }
         }
       }
+      notificationsStore.createNotification({
+        kind: 'error',
+        title: t('setup.users.provisioning_failed'),
+        description: describeProvisioningError(error),
+      })
       return false
     } finally {
       provisioning.value = false
       await invalidateUsers()
     }
   }).then(() => {
-    if (provisioningError.value) {
-      focusFirstIssue()
+    if (failedUsername !== null) {
+      focusFirstIssue(failedUsername)
     }
   })
 }
@@ -336,13 +427,22 @@ function provisionAndContinue() {
     :title="t('setup.users.title')"
     :hide-header="provisioning"
     :next-loading="advancing"
-    :next-disabled="loading || syncing || !!loadError || configuredCount === 0 || overLimit"
+    :next-disabled="loading || syncing || !!loadError || users.length === 0"
     @next="saveAndContinue"
   >
     <template #description>
       <p class="text-secondary-neutral max-w-3xl">
         {{ t('setup.users.description_line_1') }}<br />{{ t('setup.users.description_line_2') }}
       </p>
+    </template>
+    <template v-if="!provisioning && !loading && users.length > 0" #actions>
+      <UsersActionsDropdown :items="actionItems" kind="tertiary" />
+      <NeButton kind="secondary" @click="showCreateUser">
+        <template #prefix>
+          <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+        </template>
+        {{ t('users.create_user') }}
+      </NeButton>
     </template>
     <NeInlineNotification
       v-if="syncError && !provisioning"
@@ -393,14 +493,14 @@ function provisionAndContinue() {
         </div>
         <NeEmptyState
           v-else-if="users.length === 0"
-          :title="t('users.no_users_yet')"
-          :description="t('users.no_users_yet_description')"
+          :title="t('users.no_users')"
+          :description="t('users.no_users_description')"
           :icon="faUserGroup"
           class="elevation-2"
         >
           <div class="flex flex-col items-center gap-4">
             <NeSpinner v-if="syncing" />
-            <NeButton kind="secondary" @click="showCreateUser">
+            <NeButton kind="primary" @click="showCreateUser">
               <template #prefix>
                 <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
               </template>
@@ -415,56 +515,39 @@ function provisionAndContinue() {
           </div>
         </NeEmptyState>
         <template v-else>
-          <div v-if="provisioningError" ref="errorRef" tabindex="-1" class="focus:outline-none">
+          <div v-if="overLimit" ref="limitRef" tabindex="-1" class="focus:outline-none">
             <NeInlineNotification
-              kind="error"
-              :title="t('setup.users.provisioning_failed')"
-              :description="provisioningErrorDescription"
+              kind="warning"
+              :title="t('setup.users.users_limit_title')"
+              :description="t('setup.users.users_limit_description', { limit: usersLimit ?? 0 })"
             />
           </div>
-          <NeInlineNotification
-            v-if="overLimit"
-            kind="warning"
-            :title="t('setup.users.users_limit_title')"
-            :description="t('setup.users.users_limit_description', { limit: usersLimit ?? 0 })"
-          />
-          <div class="flex flex-wrap items-center justify-between gap-4">
-            <div class="flex flex-wrap items-center gap-4">
-              <NeTextInput
-                v-model="textFilter"
-                is-search
-                :placeholder="t('users.filter_users')"
-                :clear-search-label="t('ne_text_input.clear_search')"
-                :aria-label="t('users.filter_users')"
-                class="w-full max-w-xs"
-              />
-              <NeSortDropdown
-                :sort-key="sortKey"
-                :sort-descending="sortDescending"
-                :label="t('sort.sort_by')"
-                :options="sortOptions"
-                :open-menu-aria-label="t('ne_dropdown.open_menu')"
-                :sort-by-label="t('sort.sort_by')"
-                :sort-direction-label="t('sort.direction')"
-                :ascending-label="t('sort.ascending')"
-                :descending-label="t('sort.descending')"
-                @update:sort-key="setSortKey"
-                @update:sort-descending="sortDescending = $event ?? false"
-              />
-              <span v-if="syncing" class="text-secondary-neutral flex items-center gap-2 text-sm">
-                <NeSpinner />
-                {{ t('setup.users.syncing_users') }}
-              </span>
-            </div>
-            <div class="flex items-center gap-4">
-              <UsersActionsDropdown :items="actionItems" kind="tertiary" />
-              <NeButton kind="secondary" @click="showCreateUser">
-                <template #prefix>
-                  <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-                </template>
-                {{ t('users.create_user') }}
-              </NeButton>
-            </div>
+          <div class="flex flex-wrap items-center gap-4">
+            <NeTextInput
+              v-model="textFilter"
+              is-search
+              :placeholder="t('users.filter_users')"
+              :clear-search-label="t('ne_text_input.clear_search')"
+              :aria-label="t('users.filter_users')"
+              class="w-full max-w-xs"
+            />
+            <NeSortDropdown
+              :sort-key="sortKey"
+              :sort-descending="sortDescending"
+              :label="t('sort.sort_by')"
+              :options="sortOptions"
+              :open-menu-aria-label="t('ne_dropdown.open_menu')"
+              :sort-by-label="t('sort.sort_by')"
+              :sort-direction-label="t('sort.direction')"
+              :ascending-label="t('sort.ascending')"
+              :descending-label="t('sort.descending')"
+              @update:sort-key="setSortKey"
+              @update:sort-descending="sortDescending = $event ?? false"
+            />
+            <span v-if="syncing" class="text-secondary-neutral flex items-center gap-2 text-sm">
+              <NeSpinner />
+              {{ t('setup.users.syncing_users') }}
+            </span>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 class="text-primary-neutral text-sm font-medium">
@@ -494,11 +577,9 @@ function provisionAndContinue() {
               :data-testid="`setup-user-${user.username}`"
             >
               <div class="flex min-w-48 flex-1 items-center gap-3">
-                <FontAwesomeIcon
-                  :icon="faCircleUser"
-                  class="size-8 shrink-0 text-gray-700 dark:text-gray-100"
-                  aria-hidden="true"
-                />
+                <div class="shrink-0" aria-hidden="true">
+                  <NeAvatar size="sm" :initials="getInitials(user.displayName)" />
+                </div>
                 <div class="flex min-w-0 flex-col">
                   <span class="text-primary-neutral truncate text-sm font-medium">
                     {{ user.displayName }}
@@ -516,7 +597,15 @@ function provisionAndContinue() {
                   :disabled="advancing"
                   inputmode="numeric"
                   @update:model-value="setDraft(user.username, $event)"
-                />
+                >
+                  <template v-if="isConfigured(user.username)" #suffix>
+                    <FontAwesomeIcon
+                      :icon="faCheck"
+                      class="text-icon-enabled size-4"
+                      aria-hidden="true"
+                    />
+                  </template>
+                </NeTextInput>
               </div>
               <div class="flex items-center gap-2">
                 <NeButton kind="tertiary" @click="showEditUser(user.username)">
@@ -530,7 +619,16 @@ function provisionAndContinue() {
                   :items="rowMenuItems(user.username)"
                   :align-to-right="true"
                   :open-menu-aria-label="t('users.user_actions', { name: user.username })"
-                />
+                >
+                  <template v-if="menuRestriction(user.username)" #menuHeader>
+                    <p
+                      class="text-secondary-neutral max-w-xs px-4 py-2 text-sm"
+                      :data-testid="`account-restriction-${user.username}`"
+                    >
+                      {{ t(`users.${menuRestriction(user.username)}_restricted`) }}
+                    </p>
+                  </template>
+                </NeDropdown>
               </div>
             </li>
           </ul>
@@ -558,28 +656,10 @@ function provisionAndContinue() {
       :user="removingUser"
       @close="isShownRemoveExtension = false"
     />
-    <NeModal
-      :visible="isShownChangeWarning"
-      kind="warning"
-      :title="t('setup.users.change_extensions')"
-      :primary-label="t('common.change')"
-      :cancel-label="t('common.cancel')"
-      :close-aria-label="t('common.close')"
-      @close="isShownChangeWarning = false"
-      @primary-click="confirmExtensionChanges"
-    >
-      <p>{{ t('setup.users.extension_change_warning_description') }}</p>
-      <ul class="mt-2 list-inside list-disc" data-testid="changed-extensions">
-        <li v-for="change in changedExtensions" :key="change.user.username">
-          {{
-            t('setup.users.changed_extension', {
-              name: change.user.displayName,
-              from: change.user.mainExtension,
-              to: change.extension,
-            })
-          }}
-        </li>
-      </ul>
-    </NeModal>
+    <DeleteUserModal
+      :visible="isShownDeleteUser"
+      :user="deletingUser"
+      @close="isShownDeleteUser = false"
+    />
   </SetupStepLayout>
 </template>

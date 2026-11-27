@@ -6,7 +6,6 @@ import { api } from '@/lib/api/client'
 import { ApiError } from '@/lib/api/errors'
 import {
   countConfiguredDrafts,
-  getChangedExtensions,
   getExtensionErrorKind,
   getReassignTargets,
   isChangingExtension,
@@ -92,16 +91,6 @@ describe('extension drafts', () => {
     expect(isChangingExtension('300', ' 300 ')).toBe(false)
     expect(isChangingExtension('', '301')).toBe(false)
     expect(isChangingExtension('300', '')).toBe(false)
-  })
-
-  it('lists the users whose extension changes', () => {
-    const users = [user('a', '300'), user('b', ''), user('c', '302'), user('d', '303')]
-
-    expect(
-      getChangedExtensions(users, { a: '310 ', b: '311', c: '', d: '303' }).map(
-        (step) => `${step.user.username}:${step.extension}`,
-      ),
-    ).toEqual(['a:310'])
   })
 
   it('counts only the users with a valid extension', () => {

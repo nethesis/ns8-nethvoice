@@ -5,7 +5,7 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, useTemplateRef, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { I18nT, useI18n } from 'vue-i18n'
 import { useMutation } from '@pinia/colada'
 import {
   NeButton,
@@ -101,6 +101,12 @@ const analysis = computed(() =>
 )
 
 const previewRows = computed(() => rows.value.slice(0, IMPORT_PREVIEW_ROWS))
+
+const noValidRows = computed(() => {
+  const skipping = analyzeImport(rows.value, users, directory, 'skip')
+
+  return rows.value.length > 0 && skipping.valid.length === 0 && skipping.existing.length === 0
+})
 
 const fileTooLarge = computed(() =>
   exceedsImportSizeLimit(toLegacyCsv(analysis.value.valid, users, directory)),
@@ -360,31 +366,209 @@ const formatDevices = (row: ImportRow) => {
       </div>
       <div class="flex justify-end gap-4 border-t border-gray-200 pt-6 dark:border-gray-700">
         <NeButton kind="tertiary" @click="close">{{ t('common.cancel') }}</NeButton>
-        <NeButton kind="primary" type="submit">{{ t('common.next') }}</NeButton>
+        <NeButton kind="primary" type="submit">{{ t('common.import') }}</NeButton>
       </div>
     </form>
   </NeSideDrawer>
   <NeModal
-    :visible="isShown && visiblePanel === 'preview'"
+    :visible="isShown && visiblePanel === 'preview' && noValidRows"
+    :title="t('users.import_users')"
+    :primary-label="t('common.close')"
+    :close-aria-label="t('common.close')"
+    @close="close"
+    @primary-click="close"
+  >
+    <div class="flex flex-col gap-6" data-testid="import-no-valid-rows">
+      <div class="text-primary-neutral flex flex-col gap-1 text-sm" data-testid="import-summary">
+        <span>{{
+          t('users.import_users_detected', { count: analysis.total }, analysis.total)
+        }}</span>
+        <ul class="list-inside list-disc">
+          <li>{{ t('users.import_valid', { count: 0 }, 0) }}</li>
+          <li>
+            {{
+              t(
+                'users.import_with_errors',
+                { count: analysis.errors.length },
+                analysis.errors.length,
+              )
+            }}
+          </li>
+        </ul>
+      </div>
+      <NeInlineNotification kind="error" :title="t('users.import_no_valid_rows')">
+        <template #description>
+          <p>{{ t('users.import_no_valid_rows_description') }}</p>
+          <ul class="mt-2 list-inside list-disc">
+            <li v-for="item in shownErrors" :key="item.row.line">
+              {{
+                t('users.import_row_issue', {
+                  row: item.row.line,
+                  username: item.row.username || '-',
+                  issue: issuesLabel(item),
+                })
+              }}
+            </li>
+          </ul>
+          <button
+            v-if="hiddenErrorsCount > 0"
+            type="button"
+            class="mt-1 underline"
+            @click="showAllErrors = true"
+          >
+            {{ t('common.plus_n_more', { count: hiddenErrorsCount }) }}
+          </button>
+        </template>
+      </NeInlineNotification>
+      <I18nT keypath="users.import_check_format" tag="p" class="text-primary-neutral text-sm">
+        <template #link>
+          <button
+            type="button"
+            class="text-primary-700 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-300 font-medium"
+            @click="downloadTemplate"
+          >
+            {{ t('users.download_template_file') }}
+          </button>
+        </template>
+      </I18nT>
+    </div>
+  </NeModal>
+  <NeModal
+    :visible="isShown && visiblePanel === 'preview' && !noValidRows"
     :title="t('users.import_users')"
     size="xxl"
-    :primary-label="
-      t('users.import_n_users', { count: analysis.valid.length }, analysis.valid.length)
-    "
+    :primary-label="t('common.import')"
     :primary-button-disabled="
       importing || analysis.valid.length === 0 || fileTooLarge || directoryIncomplete
     "
     :primary-button-loading="importing"
-    :secondary-label="t('common.previous')"
-    secondary-button-kind="tertiary"
-    :secondary-button-disabled="importing"
     :cancel-label="t('common.cancel')"
     :close-aria-label="t('common.close')"
     @close="close"
     @primary-click="startImport()"
-    @secondary-click="showStep('file')"
   >
     <div class="flex flex-col gap-6">
+      <div class="text-primary-neutral flex flex-col gap-1 text-sm" data-testid="import-summary">
+        <template v-if="analysis.errors.length === 0 && analysis.existing.length === 0">
+          <span>{{
+            t('users.import_summary_detected', {
+              users: t('users.import_summary_users', { count: analysis.total }, analysis.total),
+              groups: t(
+                'users.import_summary_groups',
+                { count: analysis.groups.length },
+                analysis.groups.length,
+              ),
+            })
+          }}</span>
+        </template>
+        <template v-else>
+          <span>{{
+            t('users.import_users_detected', { count: analysis.total }, analysis.total)
+          }}</span>
+          <ul class="list-inside list-disc">
+            <li>
+              {{ t('users.import_valid', { count: analysis.valid.length }, analysis.valid.length) }}
+            </li>
+            <li v-if="analysis.errors.length">
+              {{
+                t(
+                  'users.import_with_errors',
+                  { count: analysis.errors.length },
+                  analysis.errors.length,
+                )
+              }}
+            </li>
+            <li v-if="analysis.existing.length">
+              {{
+                t(
+                  'users.import_existing_skipped',
+                  { count: analysis.existing.length },
+                  analysis.existing.length,
+                )
+              }}
+            </li>
+          </ul>
+        </template>
+        <span v-if="analysis.newGroups.length" data-testid="import-new-groups">
+          {{
+            t(
+              'users.import_new_groups',
+              { count: analysis.newGroups.length, names: analysis.newGroups.join(', ') },
+              analysis.newGroups.length,
+            )
+          }}
+        </span>
+      </div>
+      <NeInlineNotification
+        v-if="unavailableDirectoryLabels"
+        kind="warning"
+        :title="t('users.directory_partially_loaded')"
+        :description="
+          t('users.import_directory_partially_loaded_description', {
+            parts: unavailableDirectoryLabels,
+          })
+        "
+        :primary-button-label="t('common.retry')"
+        data-testid="import-directory-warning"
+        @primary-click="directoryQuery.refetch()"
+      />
+      <NeInlineNotification
+        v-if="fileTooLarge"
+        kind="error"
+        :title="t('users.import_file_too_large')"
+        :description="t('users.import_error_file_too_large')"
+      />
+      <NeInlineNotification
+        v-if="analysis.errors.length"
+        kind="error"
+        :title="
+          t('users.import_errors_title', { count: analysis.errors.length }, analysis.errors.length)
+        "
+      >
+        <template #description>
+          <ul class="list-inside list-disc">
+            <li v-for="item in shownErrors" :key="item.row.line">
+              {{
+                t('users.import_row_issue', {
+                  row: item.row.line,
+                  username: item.row.username || '-',
+                  issue: issuesLabel(item),
+                })
+              }}
+            </li>
+          </ul>
+          <button
+            v-if="hiddenErrorsCount > 0"
+            type="button"
+            class="mt-1 underline"
+            @click="showAllErrors = true"
+          >
+            {{ t('common.plus_n_more', { count: hiddenErrorsCount }) }}
+          </button>
+        </template>
+      </NeInlineNotification>
+      <NeInlineNotification
+        v-if="analysis.existing.length"
+        kind="warning"
+        :title="
+          t(
+            'users.import_existing_title',
+            { count: analysis.existing.length },
+            analysis.existing.length,
+          )
+        "
+      >
+        <template #description>
+          <ul class="list-inside list-disc">
+            <li v-for="row in analysis.existing.slice(0, IMPORT_ISSUES_SHOWN)" :key="row.line">
+              {{ t('users.import_row', { row: row.line, username: row.username }) }}
+            </li>
+          </ul>
+          <span v-if="analysis.existing.length > IMPORT_ISSUES_SHOWN">
+            {{ t('common.plus_n_more', { count: analysis.existing.length - IMPORT_ISSUES_SHOWN }) }}
+          </span>
+        </template>
+      </NeInlineNotification>
       <div class="flex flex-col gap-2">
         <div class="flex flex-wrap items-end justify-between gap-2">
           <span
@@ -455,128 +639,6 @@ const formatDevices = (row: ImportRow) => {
           {{ t('users.import_overwrite_helper') }}
         </p>
       </div>
-      <div class="text-primary-neutral flex flex-col gap-1 text-sm" data-testid="import-summary">
-        <span class="font-medium">{{ t('users.import_summary') }}</span>
-        <template v-if="analysis.errors.length === 0 && analysis.existing.length === 0">
-          <span>{{
-            t('users.import_summary_detected', {
-              users: t('users.import_summary_users', { count: analysis.total }, analysis.total),
-              groups: t(
-                'users.import_summary_groups',
-                { count: analysis.groups.length },
-                analysis.groups.length,
-              ),
-            })
-          }}</span>
-        </template>
-        <template v-else>
-          <span>{{
-            t('users.import_users_detected', { count: analysis.total }, analysis.total)
-          }}</span>
-          <ul class="list-inside list-disc">
-            <li>
-              {{ t('users.import_valid', { count: analysis.valid.length }, analysis.valid.length) }}
-            </li>
-            <li v-if="analysis.errors.length" class="text-danger">
-              {{
-                t(
-                  'users.import_with_errors',
-                  { count: analysis.errors.length },
-                  analysis.errors.length,
-                )
-              }}
-            </li>
-            <li v-if="analysis.existing.length" class="text-amber-700 dark:text-amber-500">
-              {{
-                t(
-                  'users.import_existing_skipped',
-                  { count: analysis.existing.length },
-                  analysis.existing.length,
-                )
-              }}
-            </li>
-          </ul>
-        </template>
-        <span v-if="analysis.newGroups.length" data-testid="import-new-groups">
-          {{
-            t(
-              'users.import_new_groups',
-              { count: analysis.newGroups.length, names: analysis.newGroups.join(', ') },
-              analysis.newGroups.length,
-            )
-          }}
-        </span>
-      </div>
-      <NeInlineNotification
-        v-if="unavailableDirectoryLabels"
-        kind="warning"
-        :title="t('users.directory_partially_loaded')"
-        :description="
-          t('users.import_directory_partially_loaded_description', {
-            parts: unavailableDirectoryLabels,
-          })
-        "
-        :primary-button-label="t('common.retry')"
-        data-testid="import-directory-warning"
-        @primary-click="directoryQuery.refetch()"
-      />
-      <NeInlineNotification
-        v-if="fileTooLarge"
-        kind="error"
-        :title="t('users.import_file_too_large')"
-        :description="t('users.import_error_file_too_large')"
-      />
-      <NeInlineNotification
-        v-if="analysis.errors.length"
-        kind="error"
-        :title="
-          t('users.import_errors_title', { count: analysis.errors.length }, analysis.errors.length)
-        "
-      >
-        <template #description>
-          <ul class="list-inside list-disc">
-            <li v-for="item in shownErrors" :key="item.row.line">
-              {{
-                t('users.import_row_issue', {
-                  row: item.row.line,
-                  username: item.row.username || '-',
-                  issue: issuesLabel(item),
-                })
-              }}
-            </li>
-          </ul>
-          <button
-            v-if="hiddenErrorsCount > 0"
-            type="button"
-            class="mt-1 font-medium underline"
-            @click="showAllErrors = true"
-          >
-            {{ t('common.plus_n_more', { count: hiddenErrorsCount }) }}
-          </button>
-        </template>
-      </NeInlineNotification>
-      <NeInlineNotification
-        v-if="analysis.existing.length"
-        kind="warning"
-        :title="
-          t(
-            'users.import_existing_title',
-            { count: analysis.existing.length },
-            analysis.existing.length,
-          )
-        "
-      >
-        <template #description>
-          <ul class="list-inside list-disc">
-            <li v-for="row in analysis.existing.slice(0, IMPORT_ISSUES_SHOWN)" :key="row.line">
-              {{ t('users.import_row', { row: row.line, username: row.username }) }}
-            </li>
-          </ul>
-          <span v-if="analysis.existing.length > IMPORT_ISSUES_SHOWN">
-            {{ t('common.plus_n_more', { count: analysis.existing.length - IMPORT_ISSUES_SHOWN }) }}
-          </span>
-        </template>
-      </NeInlineNotification>
       <NeProgressBar
         v-if="importing"
         :progress="progress"

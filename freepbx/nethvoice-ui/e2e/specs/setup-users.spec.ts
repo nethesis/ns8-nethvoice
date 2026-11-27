@@ -9,8 +9,8 @@ import { csvImportMock, mockUsersApi, mockWrites, RAW_USERS, REST } from './user
 const extensionInput = (page: Page, name: string) =>
   page.getByRole('textbox', { name: `Extension of ${name}` })
 
-const mockStep = (mockApi: MockApi, users: unknown = RAW_USERS) => {
-  mockUsersApi(mockApi, { users })
+const mockStep = (mockApi: MockApi, users: unknown = RAW_USERS, accounts?: unknown) => {
+  mockUsersApi(mockApi, { users, accounts })
   mockTrunksApi(mockApi, { gateways: [] })
   mockApi.on('GET', `${REST}/users/:all`, { json: users })
 }
@@ -40,6 +40,19 @@ test.describe('setup: users and extensions', () => {
       '2 out of 3 users configured with an extension',
     )
     expect(mockApi.callsTo('POST', `${REST}/users/sync`)).toHaveLength(1)
+
+    const header = page.getByRole('main').locator('div', {
+      has: page.getByRole('heading', { name: 'Users and extensions', level: 1 }),
+    })
+    await expect(header.last().getByRole('button', { name: 'Create user' })).toBeVisible()
+    await expect(header.last().getByRole('button', { name: 'Actions', exact: true })).toBeVisible()
+    await expect(page.getByTestId('setup-user-a.miller')).toContainText('AM')
+    await expect(
+      page.getByTestId('setup-user-a.miller').locator('svg[data-icon="check"]'),
+    ).toBeVisible()
+    await expect(
+      page.getByTestId('setup-user-d.jones').locator('svg[data-icon="check"]'),
+    ).toHaveCount(0)
 
     await page.getByPlaceholder('Filter users').fill('jones')
     await expect(page.locator('[data-testid^="setup-user-"]')).toHaveCount(1)
@@ -83,8 +96,11 @@ test.describe('setup: users and extensions', () => {
     mockStep(mockApi, [])
     await page.goto('./setup/users')
 
-    await expect(page.getByText('No users yet')).toBeVisible()
+    await expect(page.getByText('No users configured')).toBeVisible()
+    await expect(page.getByText('Create users or import them from a CSV file.')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create user' })).toHaveCount(1)
     await expect(page.getByRole('button', { name: 'Import users from CSV' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Actions', exact: true })).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
   })
 
@@ -94,6 +110,7 @@ test.describe('setup: users and extensions', () => {
     await page.goto('./setup/users')
 
     await expect(page.getByText('Cannot retrieve users')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
   })
 
@@ -130,14 +147,54 @@ test.describe('setup: users and extensions', () => {
 
     await expect(extensionInput(page, 'Daniel Jones')).toBeFocused()
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+  })
 
-    await extensionInput(page, 'Anna Miller').fill('')
-    await extensionInput(page, 'Christopher Davis').fill('')
-    await extensionInput(page, 'Daniel Jones').fill('')
+  test('asks for at least one extension on Next', async ({ page, mockApi }) => {
+    mockStep(mockApi, [
+      { ...RAW_USERS[0], default_extension: 'none' },
+      { ...RAW_USERS[1], default_extension: 'none' },
+      RAW_USERS[2],
+    ])
+    await page.goto('./setup/users')
+
     await expect(page.getByTestId('users-counter')).toHaveText(
       '0 out of 3 users configured with an extension',
     )
-    await expect(page.getByRole('button', { name: 'Next' })).toBeDisabled()
+    await page.getByPlaceholder('Filter users').fill('nothing matches')
+    const next = page.getByRole('button', { name: 'Next' })
+    await expect(next).toBeEnabled()
+    await next.click()
+
+    await expect(page.getByPlaceholder('Filter users')).toHaveValue('')
+    await expect(page.getByText('Assign at least one extension to continue')).toHaveCount(1)
+    await expect(
+      page
+        .getByTestId('setup-user-a.miller')
+        .getByText('Assign at least one extension to continue'),
+    ).toBeVisible()
+    await expect(extensionInput(page, 'Anna Miller')).toBeFocused()
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+    expect(mockApi.callsTo('POST', `${REST}/configuration/wizard`)).toHaveLength(0)
+
+    await extensionInput(page, 'Daniel Jones').fill('302')
+    await expect(page.getByText('Assign at least one extension to continue')).toHaveCount(0)
+  })
+
+  test('points to the users limit on Next instead of disabling it', async ({ page, mockApi }) => {
+    mockStep(mockApi)
+    mockApi.on('GET', `${REST}/mainextensions/userlimits`, {
+      json: { configured: 2, limit: 2, configurable: 0 },
+    })
+    await page.goto('./setup/users')
+
+    await extensionInput(page, 'Daniel Jones').fill('302')
+    await expect(page.getByText('Too many users with an extension')).toBeVisible()
+    const next = page.getByRole('button', { name: 'Next' })
+    await expect(next).toBeEnabled()
+    await next.click()
+
+    await expect(page.locator(':focus')).toContainText('Too many users with an extension')
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
   })
 
   test('configures the changed extensions with the defaults on Next', async ({ page, mockApi }) => {
@@ -195,10 +252,14 @@ test.describe('setup: users and extensions', () => {
     await extensionInput(page, 'Daniel Jones').fill('302')
     await page.getByRole('button', { name: 'Next' }).click()
 
-    await expect(page.getByText('Cannot configure the users')).toBeVisible()
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('Cannot configure users')).toBeVisible()
     await expect(
-      page.getByText('Configuration stopped at d.jones: The Base profile could not be found'),
+      toasts.getByText(
+        'Configuration stopped at Daniel Jones: The Base profile could not be found',
+      ),
     ).toBeVisible()
+    await expect(extensionInput(page, 'Daniel Jones')).toBeFocused()
     await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
     expect(mockApi.callsTo('POST', `${REST}/cti/profiles/users/:id`)).toHaveLength(0)
     expect(mockApi.callsTo('POST', `${REST}/configuration/wizard`)).toHaveLength(0)
@@ -239,7 +300,7 @@ test.describe('setup: users and extensions', () => {
     ])
   })
 
-  test('warns that changing an extension deletes the devices', async ({ page, mockApi }) => {
+  test('changes the extension of a configured user without asking', async ({ page, mockApi }) => {
     mockStep(mockApi)
     mockWrites(mockApi)
     await page.goto('./setup/users')
@@ -247,42 +308,64 @@ test.describe('setup: users and extensions', () => {
     await extensionInput(page, 'Anna Miller').fill('310')
     await page.getByRole('button', { name: 'Next' }).click()
 
-    const modal = page.getByRole('dialog', { name: 'Change extensions' })
-    await expect(modal).toContainText('removes the user from all the groups')
-    await expect(modal).toContainText('Only the Web phone is created again')
-    await expect(modal).not.toContainText('are kept')
-    await expect(modal.getByTestId('changed-extensions')).toHaveText('Anna Miller: 300 → 310')
-    await modal.getByRole('button', { name: 'Cancel' }).click()
-
-    await expect(modal).toBeHidden()
-    expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
-
-    await page.getByRole('button', { name: 'Next' }).click()
-    await modal.getByRole('button', { name: 'Change', exact: true }).click()
-
     await expect(page).toHaveURL(/\/nethvoice\/setup\/physical-trunks$/)
     expect(mockApi.callsTo('POST', `${REST}/mainextensions`).map((call) => call.body)).toEqual([
       { username: 'a.miller', extension: '310' },
     ])
   })
 
-  test('returns the focus to Next when the devices dialog is closed with Esc', async ({
+  test('deletes a user from the card menu', async ({ page, mockApi }) => {
+    let users = RAW_USERS
+    mockStep(mockApi)
+    mockApi
+      .on('GET', `${REST}/users/:all`, () => ({ json: users }))
+      .on('DELETE', `${REST}/users/:username/account`, () => {
+        users = users.filter((user) => user.username !== 'd.jones')
+        return { json: { synchronized: true, cleaned: true } }
+      })
+    await page.goto('./setup/users')
+
+    await page.getByRole('button', { name: 'Actions for d.jones' }).click()
+    await expect(page.getByRole('menuitem')).toHaveText(['Remove extension', 'Delete'])
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
+
+    const modal = page.getByRole('dialog', { name: 'Delete user' })
+    await expect(modal.getByTestId('delete-user-confirmation')).toContainText(
+      'User Daniel Jones (d.jones) will be permanently deleted.',
+    )
+    await modal.getByRole('button', { name: 'Delete', exact: true }).click()
+
+    await expect(page.getByTestId('toast-notifications').getByText('User deleted')).toBeVisible()
+    await expect(page.getByTestId('setup-user-d.jones')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Actions for d.jones' })).toHaveCount(0)
+    expect(mockApi.callsTo('DELETE', `${REST}/users/d.jones/account`)).toHaveLength(1)
+    expect(mockApi.callsTo('POST', `${REST}/mainextensions`)).toHaveLength(0)
+  })
+
+  test('follows the account restrictions of the users page for Delete', async ({
     page,
     mockApi,
   }) => {
-    mockStep(mockApi)
+    mockStep(mockApi, RAW_USERS, [
+      {
+        username: 'c.davis',
+        display_name: 'Christopher Davis',
+        mail: '',
+        locked: false,
+        domain_admin: true,
+      },
+    ])
     await page.goto('./setup/users')
 
-    await extensionInput(page, 'Anna Miller').fill('310')
-    const next = page.getByRole('button', { name: 'Next' })
-    await next.click()
-
-    const modal = page.getByRole('dialog', { name: 'Change extensions' })
-    await expect(modal.getByRole('heading', { name: 'Change extensions' })).toBeVisible()
+    await page.getByRole('button', { name: 'Actions for c.davis' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
+    await expect(page.getByTestId('account-restriction-c.davis')).toBeVisible()
     await page.keyboard.press('Escape')
 
-    await expect(modal).toHaveCount(0)
-    await expect(next).toBeFocused()
+    mockApi.on('GET', `${REST}/users/domain`, { json: { manageable: false, reason: 'external' } })
+    await page.reload()
+    await page.getByRole('button', { name: 'Actions for c.davis' }).click()
+    await expect(page.getByRole('menuitem')).toHaveText(['Remove extension'])
   })
 
   test('blocks the help and sign out controls while the users are configured', async ({
@@ -360,11 +443,14 @@ test.describe('setup: users and extensions', () => {
     await expect(page.getByRole('heading', { name: 'Users and extensions' })).toHaveCount(0)
     release()
 
-    await expect(page.getByText('Cannot configure the users')).toBeVisible()
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('Cannot configure users')).toBeVisible()
+    await expect(toasts.getByText('Configuration stopped at Daniel Jones:')).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Users and extensions' })).toBeVisible()
     await expect(page.getByText('Request failed')).toHaveCount(0)
     await expect(page.getByText('This extension is already in use')).toBeVisible()
     await expect(extensionInput(page, 'Daniel Jones')).toHaveValue('302')
+    await expect(extensionInput(page, 'Daniel Jones')).toBeFocused()
     await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
     expect(mockApi.callsTo('POST', `${REST}/configuration/wizard`)).toHaveLength(0)
   })
@@ -380,7 +466,7 @@ test.describe('setup: users and extensions', () => {
     await page.getByRole('button', { name: 'Next' }).click()
 
     await expect(page.getByText('Cannot save the setup progress')).toBeVisible()
-    await expect(page.getByText('Cannot configure the users')).toHaveCount(0)
+    await expect(page.getByText('Cannot configure users')).toHaveCount(0)
     await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
   })
 
