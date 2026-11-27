@@ -30,6 +30,13 @@ class AriError(Exception):
         self.status = status
 
 
+class _ContinueAttempt:
+    """A continue request; failed once it got no answer or a server error"""
+
+    def __init__(self):
+        self.failed = False
+
+
 class AsteriskBridge:
     """
     Manages the interface between Asterisk PBX and speech recognition services.
@@ -61,8 +68,10 @@ class AsteriskBridge:
         self.is_shutting_down = False
         self.max_reconnect_delay = 30  # Maximum seconds between reconnection attempts
         self.pending_transcription_requests = set()
-        # Original channels still owed a continue that did not reach Asterisk
-        self.pending_continues = set()
+        # Original channel ID -> its continue still in flight or to retry.
+        # Popped when the channel leaves or enters Stasis, so that the result
+        # of an older attempt is ignored.
+        self.pending_continues = {}
         self.sweep_task = None
 
     def _build_connector(self, channel_id):
@@ -270,16 +279,21 @@ class AsteriskBridge:
         Return a channel to the dialplan. If the request gets no answer or a
         server error from Asterisk, the sweep retries it.
         """
+        # Registered before the request, as events may arrive meanwhile
+        attempt = _ContinueAttempt()
+        self.pending_continues[channel_id] = attempt
         try:
             await self._ari_request('POST', f"/channels/{channel_id}/continue", params={})
             logger.info(f"Channel {channel_id} returned to dialplan")
         except Exception as e:
             # A client error means the channel is gone or no longer in Stasis
             if not isinstance(e, AriError) or e.status >= 500:
-                logger.warning(f"Failed to return channel {channel_id} to dialplan, will retry: {e}")
-                self.pending_continues.add(channel_id)
+                if self.pending_continues.get(channel_id) is attempt:
+                    logger.warning(f"Failed to return channel {channel_id} to dialplan, will retry: {e}")
+                    attempt.failed = True
                 return
-        self.pending_continues.discard(channel_id)
+        if self.pending_continues.get(channel_id) is attempt:
+            del self.pending_continues[channel_id]
 
     async def _setup_channel(self, event):
         """
@@ -300,7 +314,7 @@ class AsteriskBridge:
 
         if not channel_id.startswith("snoop-") and not channel_id.startswith("ext-media-"):
             # Normal channel entered Stasis, so any earlier continue reached it
-            self.pending_continues.discard(channel_id)
+            self.pending_continues.pop(channel_id, None)
             # waiting: the channel waits in Stasis until it is continued
             self.channels[channel_id] = {'waiting': True}
             self.channels[channel_id]['language'] = channel.get('language', 'en')
@@ -536,7 +550,7 @@ class AsteriskBridge:
         channel = event['channel']
         channel_id = channel['id']
         # The channel left Stasis, so a continue still to retry is not needed
-        self.pending_continues.discard(channel_id)
+        self.pending_continues.pop(channel_id, None)
         if channel_id in self.channels:
             logger.debug(f"Channel {channel_id} snooped and continue to dialplan")
             return
@@ -639,13 +653,15 @@ class AsteriskBridge:
         pending = list(self.pending_continues)
         channel_ids = {c['id'] for c in await self._ari_request('GET', "/channels")}
         for channel_id in pending:
-            # The channel may have entered Stasis again while listing
-            if channel_id not in self.pending_continues:
+            # Gone if the channel left or entered Stasis while listing, and
+            # not failed if still in flight
+            attempt = self.pending_continues.get(channel_id)
+            if attempt is None or not attempt.failed:
                 continue
             if channel_id in channel_ids:
                 await self._continue_channel(channel_id)
             else:
-                self.pending_continues.discard(channel_id)
+                del self.pending_continues[channel_id]
         for channel_id in tracked:
             call = self.channels.get(channel_id)
             if call is None:

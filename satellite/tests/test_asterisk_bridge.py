@@ -205,6 +205,12 @@ async def test_helper_destroyed_after_setup_does_not_continue_again():
     assert _requests(bridge) == [("DELETE", "/channels/ext-media-in-chan-1")]
 
 
+async def _fail_continue(bridge, channel_id):
+    """Leave a continue of channel_id to retry."""
+    bridge._ari_request = AsyncMock(side_effect=asyncio.TimeoutError())
+    await bridge._continue_channel(channel_id)
+
+
 def _asterisk(channels, continue_errors=()):
     """ARI mock: Asterisk has these channels and no bridge. Continue requests
     raise the given errors in turn, then succeed."""
@@ -266,13 +272,13 @@ async def test_failed_continue_is_retried_by_sweep(error):
     await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "snoop-out-chan-1"}})
 
     assert "chan-1" not in bridge.channels
-    assert bridge.pending_continues == {"chan-1"}
+    assert set(bridge.pending_continues) == {"chan-1"}
 
     bridge._ari_request = _asterisk(SETUP_CHANNELS)
     await bridge.sweep_orphans()
 
     assert _requests(bridge).count(("POST", "/channels/chan-1/continue")) == 1
-    assert bridge.pending_continues == set()
+    assert set(bridge.pending_continues) == set()
 
 
 @pytest.mark.asyncio
@@ -284,7 +290,7 @@ async def test_continue_refused_by_asterisk_is_not_retried():
     await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "snoop-out-chan-1"}})
 
     assert "chan-1" not in bridge.channels
-    assert bridge.pending_continues == set()
+    assert set(bridge.pending_continues) == set()
 
 
 @pytest.mark.asyncio
@@ -296,24 +302,24 @@ async def test_continue_server_error_is_retried_by_sweep():
     await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "snoop-out-chan-1"}})
 
     assert "chan-1" not in bridge.channels
-    assert bridge.pending_continues == {"chan-1"}
+    assert set(bridge.pending_continues) == {"chan-1"}
 
     await bridge.sweep_orphans()
 
     assert _requests(bridge).count(("POST", "/channels/chan-1/continue")) == 2
-    assert bridge.pending_continues == set()
+    assert set(bridge.pending_continues) == set()
 
 
 @pytest.mark.asyncio
 async def test_sweep_drops_pending_continue_of_channel_gone():
     bridge = _bridge()
-    bridge.pending_continues.add("chan-1")
+    await _fail_continue(bridge, "chan-1")
     bridge._ari_request = _asterisk(("1795684039.1",))
 
     await bridge.sweep_orphans()
 
     assert ("POST", "/channels/chan-1/continue") not in _requests(bridge)
-    assert bridge.pending_continues == set()
+    assert set(bridge.pending_continues) == set()
 
 
 @pytest.mark.asyncio
@@ -325,11 +331,11 @@ async def test_stasis_end_of_original_drops_pending_continue():
 
     await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "snoop-out-chan-1"}})
 
-    assert bridge.pending_continues == {"chan-1"}
+    assert set(bridge.pending_continues) == {"chan-1"}
 
     await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "chan-1"}})
 
-    assert bridge.pending_continues == set()
+    assert set(bridge.pending_continues) == set()
 
     bridge._ari_request = _asterisk(("chan-1",))
     await bridge.sweep_orphans()
@@ -340,16 +346,85 @@ async def test_stasis_end_of_original_drops_pending_continue():
 @pytest.mark.asyncio
 async def test_sweep_skips_continue_of_channel_back_in_stasis():
     bridge = _bridge()
-    bridge.pending_continues.add("chan-1")
+    await _fail_continue(bridge, "chan-1")
     asterisk = _asterisk(("chan-1",))
 
     async def ari(method, endpoint, params=None, json_data=None):
         if (method, endpoint) == ("GET", "/channels"):
             # The channel enters Stasis again while the sweep lists channels
-            bridge.pending_continues.discard("chan-1")
+            bridge.pending_continues.pop("chan-1", None)
         return await asterisk(method, endpoint, params, json_data)
 
     bridge._ari_request = AsyncMock(side_effect=ari)
     await bridge.sweep_orphans()
 
     assert ("POST", "/channels/chan-1/continue") not in _requests(bridge)
+
+
+def _holding_asterisk(channels, sent, answer):
+    """ARI mock: Asterisk has these channels and no bridge, and sets up
+    calls. The first continue request sets sent and waits for answer."""
+    async def ari(method, endpoint, params=None, json_data=None):
+        if (method, endpoint) == ("GET", "/channels"):
+            return [{"id": i} for i in channels]
+        if (method, endpoint) == ("GET", "/bridges"):
+            return []
+        if endpoint.endswith("/snoop"):
+            return {"id": params["snoopId"]}
+        if endpoint == "/channels/externalMedia":
+            return {"id": params["channelId"], "channelvars": {"UNICASTRTP_LOCAL_PORT": "4000"}}
+        if endpoint.endswith("/continue") and not sent.is_set():
+            sent.set()
+            return await answer
+        return None
+    return AsyncMock(side_effect=ari)
+
+
+@pytest.mark.asyncio
+async def test_late_failure_of_old_continue_does_not_retry_new_call():
+    bridge = _bridge()
+    await _start_call(bridge)
+    bridge._ari_request = _asterisk(SETUP_CHANNELS, continue_errors=[asyncio.TimeoutError()])
+    await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "snoop-out-chan-1"}})
+    assert set(bridge.pending_continues) == {"chan-1"}
+
+    sent, answer = asyncio.Event(), asyncio.get_running_loop().create_future()
+    bridge._ari_request = _holding_asterisk(SETUP_CHANNELS, sent, answer)
+    sweep = asyncio.create_task(bridge.sweep_orphans())
+    await sent.wait()
+    # Asterisk processed the retry: the channel left Stasis and entered it again
+    await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "chan-1"}})
+    await bridge._handle_ari_event({"type": "StasisStart", "channel": {
+        "id": "chan-1", "caller": {}, "connected": {}, "linkedid": "chan-1",
+    }})
+    await bridge._handle_ari_event({"type": "StasisStart", "channel": {"id": "snoop-in-chan-1"}})
+    # Then the answer to the retry timed out
+    answer.set_exception(asyncio.TimeoutError())
+    await sweep
+
+    assert "chan-1" not in bridge.pending_continues
+    assert bridge.channels["chan-1"]["waiting"]
+
+    await bridge.sweep_orphans()
+
+    assert _requests(bridge).count(("POST", "/channels/chan-1/continue")) == 1
+    assert "chan-1" in bridge.channels
+
+
+@pytest.mark.asyncio
+async def test_sweep_does_not_repeat_continue_in_flight():
+    bridge = _bridge()
+    await _start_call(bridge)
+    sent, answer = asyncio.Event(), asyncio.get_running_loop().create_future()
+    bridge._ari_request = _holding_asterisk(SETUP_CHANNELS, sent, answer)
+    release = asyncio.create_task(
+        bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "snoop-out-chan-1"}})
+    )
+    await sent.wait()
+
+    await bridge.sweep_orphans()
+    answer.set_result(None)
+    await release
+
+    assert _requests(bridge).count(("POST", "/channels/chan-1/continue")) == 1
+    assert set(bridge.pending_continues) == set()
