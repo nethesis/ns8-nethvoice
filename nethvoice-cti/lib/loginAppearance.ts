@@ -99,3 +99,29 @@ export const getLoginBackgrounds = (config: BrandingConfig): ThemedImages => {
   }
   return { ...DEFAULT_LOGIN_BACKGROUNDS }
 }
+
+const backgroundLayers = (image: string, fallback: string): string =>
+  image === fallback ? `url('${image}')` : `url('${image}'), url('${fallback}')`
+
+export const getLoginBackgroundLayers = (config: BrandingConfig): ThemedImages => {
+  const backgrounds = getLoginBackgrounds(config)
+  return {
+    light: backgroundLayers(backgrounds.light, DEFAULT_LOGIN_BACKGROUNDS.light),
+    dark: backgroundLayers(backgrounds.dark, DEFAULT_LOGIN_BACKGROUNDS.dark),
+  }
+}
+
+const configValue = (config: BrandingConfig, key: string): string =>
+  hasValue(config?.[key]) ? (config?.[key] as string) : ''
+
+export const getNavbarLogos = (config: BrandingConfig): ThemedImages | null => {
+  const light = configValue(config, 'NAVBAR_LOGO_URL')
+  const dark = configValue(config, 'NAVBAR_LOGO_DARK_URL')
+  if (light || dark) {
+    return { light: light || dark, dark: dark || light }
+  }
+  if (!config || hasCustomName(config)) {
+    return null
+  }
+  return { ...CUSTOM_NAVBAR_LOGOS }
+}

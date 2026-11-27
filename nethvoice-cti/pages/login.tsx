@@ -42,7 +42,7 @@ import {
   setJSONItem,
   setStringItem,
 } from '../lib/storage'
-import { getLoginBackgrounds, getLoginLogos } from '../lib/loginAppearance'
+import { getLoginBackgroundLayers, getLoginLogos } from '../lib/loginAppearance'
 import {
   UsernameStorage,
   loadRememberedUsername,
@@ -257,6 +257,8 @@ export default function Login() {
   }, [variableCheck])
 
   const [userNotAuthorized, setUserNotAuthorized] = useState(false)
+  const [logoFailed, setLogoFailed] = useState(false)
+  const [passwordTooltipHidden, setPasswordTooltipHidden] = useState(false)
 
   let errorAlert = onError ? (
     <InlineNotification
@@ -299,6 +301,7 @@ export default function Login() {
   const usernameRef = useRef() as React.MutableRefObject<HTMLInputElement>
   const passwordRef = useRef() as React.MutableRefObject<HTMLInputElement>
   const otpInputRef = useRef() as React.MutableRefObject<OTPInputRef>
+  const signingInRef = useRef(false)
 
   const suppress2faToastPreferenceKey = 'suppress-2fa-toast'
   const openSetupDrawerStorageKey = 'open-2fa-setup-drawer'
@@ -351,14 +354,24 @@ export default function Login() {
     }
   }
 
+  const showSignInError = (message: string) => {
+    setUserNotAuthorized(false)
+    setOnError(true)
+    setMessaggeError(message)
+  }
+
   const doLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (signingInRef.current) {
+      return
+    }
+    signingInRef.current = true
     setLoading(true)
+    setOnError(false)
 
-    if (window !== undefined) {
+    try {
       const username = usernameRef?.current?.value?.toLowerCase()
       const password = passwordRef?.current?.value
-      setOnError(false)
 
       const res = await fetch(
         // @ts-ignore
@@ -395,13 +408,12 @@ export default function Login() {
 
         if (jwtClaims && jwtClaims['2fa']) {
           setShowOTPVerification(true)
-          setLoading(false)
           // Focus OTP input after showing it
           setTimeout(() => otpInputRef.current?.focus(), 100)
           return
-        } else {          
+        } else {
           // No 2FA required, proceed with login
-          handleLogin(token, username)
+          await handleLogin(token, username)
         }
       } else {
         const data = await res.json().catch(() => null)
@@ -411,14 +423,28 @@ export default function Login() {
           setExpiredPasswordPolicy(data?.data?.policy || null)
           setShowPasswordChange(true)
         } else if (callStatus === 401) {
-          setOnError(true)
-          setMessaggeError(`${t('Login.Wrong username or password')}`)
+          showSignInError(`${t('Login.Wrong username or password')}`)
         } else if (callStatus === 404) {
-          setOnError(true)
-          setMessaggeError(`${t('Login.Network connection is lost')}`)
+          showSignInError(`${t('Login.Network connection is lost')}`)
+        } else if (callStatus === 429) {
+          showSignInError(
+            `${t('Login.Too many failed attempts. Wait a few minutes and try again.')}`,
+          )
+        } else {
+          showSignInError(
+            `${t('Login.The server did not answer as expected. Try again in a moment.')}`,
+          )
         }
-        setLoading(false)
       }
+    } catch (error) {
+      showSignInError(
+        error instanceof TypeError
+          ? `${t('Login.Network connection is lost')}`
+          : `${t('Login.The server did not answer as expected. Try again in a moment.')}`,
+      )
+    } finally {
+      signingInRef.current = false
+      setLoading(false)
     }
   }
 
@@ -491,11 +517,11 @@ export default function Login() {
 
   const runtimeConfig = getRuntimeConfig()
   const loginLogos = getLoginLogos(runtimeConfig)
-  const loginBackgrounds = getLoginBackgrounds(runtimeConfig)
+  const loginBackgrounds = getLoginBackgroundLayers(runtimeConfig)
   const brandName = getBrandName() || 'NethVoice'
   const backgroundStyle = {
-    '--login-bg-light': `url('${loginBackgrounds.light}')`,
-    '--login-bg-dark': `url('${loginBackgrounds.dark}')`,
+    '--login-bg-light': loginBackgrounds.light,
+    '--login-bg-dark': loginBackgrounds.dark,
   } as CSSProperties
 
   const signInIcon = (
@@ -537,6 +563,7 @@ export default function Login() {
           fullWidth={true}
           variant='primary'
           type='submit'
+          className='h-9'
           disabled={loading || otpCode.length !== 6}
         >
           {signInIcon}
@@ -549,31 +576,39 @@ export default function Login() {
   const logoClassName = 'h-10 w-auto max-w-full object-contain'
   const logoAlt = t('Common.Brand logo', { brand: brandName }) || ''
 
+  const onLogoError = () => setLogoFailed(true)
+
   const productHeader = () => (
     <div className='mb-6 flex flex-col items-center gap-5 text-center'>
-      {!loginLogos ? (
-        <span className='text-3xl font-medium text-primary dark:text-primaryDark'>
-          {brandName}
-        </span>
+      {!loginLogos || logoFailed ? (
+        <span className='text-2xl font-medium text-primary dark:text-primaryDark'>{brandName}</span>
       ) : loginLogos.light === loginLogos.dark ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className={logoClassName} src={loginLogos.light} alt={logoAlt} />
+        <img className={logoClassName} src={loginLogos.light} alt={logoAlt} onError={onLogoError} />
       ) : (
         <>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className={`${logoClassName} dark:hidden`} src={loginLogos.light} alt={logoAlt} />
+          <img
+            className={`${logoClassName} dark:hidden`}
+            src={loginLogos.light}
+            alt={logoAlt}
+            onError={onLogoError}
+          />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className={`${logoClassName} hidden dark:block`}
             src={loginLogos.dark}
             alt={logoAlt}
+            onError={onLogoError}
           />
         </>
       )}
-      {productSubname && (
+      {productSubname ? (
         <h1 className='text-2xl font-normal text-primary dark:text-primaryDark'>
           {productSubname}
         </h1>
+      ) : (
+        <h1 className='sr-only'>{productTabTitle}</h1>
       )}
     </div>
   )
@@ -653,9 +688,13 @@ export default function Login() {
     <button
       type='button'
       onClick={() => setPwdVisible(!pwdVisible)}
+      onFocus={() => setPasswordTooltipHidden(false)}
+      onMouseEnter={() => setPasswordTooltipHidden(false)}
+      onBlur={() => setPasswordTooltipHidden(true)}
       aria-label={passwordToggleLabel}
       data-tooltip-id='tooltip-login-password-visibility'
       data-tooltip-content={passwordToggleLabel}
+      data-tooltip-hidden={passwordTooltipHidden}
       className='flex items-center justify-center rounded text-inputIcon focus:outline-none focus-visible:ring-2 focus-visible:ring-primaryLight dark:text-inputIconDark dark:focus-visible:ring-primaryDark'
     >
       <FontAwesomeIcon icon={pwdVisible ? faEyeSlash : faEye} className='h-4 w-4' aria-hidden='true' />
@@ -681,6 +720,7 @@ export default function Login() {
               size='large'
               fullWidth={true}
               variant='primary'
+              className='h-9'
               onClick={() => {
                 window.location.href = ssoLoginUrl
               }}
@@ -727,6 +767,7 @@ export default function Login() {
                 autoFocus={!rememberedUsername}
                 defaultValue={rememberedUsername}
                 id='username'
+                className='[&_input]:h-9'
               />
             </div>
           </div>
@@ -747,10 +788,11 @@ export default function Login() {
                   autoComplete='current-password'
                   autoFocus={!!rememberedUsername}
                   id='password'
+                  className='[&_input]:h-9'
                 />
               </div>
             </div>
-            <div className='flex items-center'>
+            <div className='flex h-6 items-center'>
               <input
                 id='remember-username'
                 name='remember-username'
@@ -761,14 +803,21 @@ export default function Login() {
               />
               <label
                 htmlFor='remember-username'
-                className='ml-3 text-sm font-medium leading-6 text-gray-700 dark:text-gray-200'
+                className='ml-2.5 text-sm font-normal leading-5 text-gray-700 dark:text-gray-200'
               >
                 {t('Login.Remember username')}
               </label>
             </div>
           </div>
         </div>
-        <Button size='large' fullWidth={true} variant='primary' type='submit'>
+        <Button
+          size='large'
+          fullWidth={true}
+          variant='primary'
+          type='submit'
+          className='h-9'
+          disabled={loading}
+        >
           {signInIcon}
           <span>{t('Login.Sign in')}</span>
         </Button>

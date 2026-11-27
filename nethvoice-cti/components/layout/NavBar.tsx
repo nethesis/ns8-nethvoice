@@ -18,7 +18,8 @@ import { CustomThemedTooltip } from '../common/CustomThemedTooltip'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
 import { useTranslation } from 'react-i18next'
-import { customScrollbarClass, getConfiguredNavbarLogoUrl } from '../../lib/utils'
+import { customScrollbarClass } from '../../lib/utils'
+import { NavbarLogo } from './NavbarLogo'
 import { chatEnabled } from '../chat'
 
 interface NavBarProps {
@@ -67,15 +68,13 @@ export const NavBar: FC<NavBarProps> = ({ items }) => {
           <Link href='/operators'>
             <div>
               {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className='h-[calc(3.1875rem*var(--density))] max-w-[calc(3.1875rem*var(--density))] w-auto cursor-pointer object-contain object-center'
-                src={getConfiguredNavbarLogoUrl(
+              <NavbarLogo
+                dark={
                   theme === 'dark' ||
-                    (theme === 'system' &&
-                      window.matchMedia('(prefers-color-scheme: dark)').matches),
-                )}
-                alt='logo'
+                  (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                }
+                imageClassName='h-[calc(3.1875rem*var(--density))] max-w-[calc(3.1875rem*var(--density))] w-auto cursor-pointer object-contain object-center'
+                textClassName='w-16 cursor-pointer text-xs leading-4 text-primary dark:text-primaryDark'
               />
             </div>
           </Link>

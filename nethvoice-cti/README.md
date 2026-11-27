@@ -132,7 +132,6 @@ PRODUCT_NAME (default: "NethVoice CTI")
 COMPANY_NAME (default: "Nethesis")
 COMPANY_SUBNAME (default: "CTI")
 COMPANY_URL (default: "https://www.nethesis.it/")
-LOGIN_PEOPLE (rebranding of the login people image: it can be shown or hidden based on the value (show or hide string value))
 NAVBAR_LOGO_URL (rebranding of navbar logo: specify a URL to a SVG image)
 NAVBAR_LOGO_DARK_URL (rebranding of navbar logo: specify a URL to a SVG image)
 LOGIN_LOGO_URL (rebranding of login logo: specify a URL to a SVG image)
@@ -149,7 +148,6 @@ SIP_PORT (default: "5060")
 
 To change the logos and background of application you have to set these enviroment variables (reference of variables type above):
 
-- LOGIN_PEOPLE
 - NAVBAR_LOGO_URL
 - NAVBAR_LOGO_DARK_URL
 - LOGIN_LOGO_URL
@@ -171,7 +169,6 @@ Run the container with custom logos and background :
 podman run --tz='Europe/Rome' --rm --name nethvoice-cti \
   --env='API_ENDPOINT=cti.nethesis.it' \
   --env='API_SCHEME=https://' \
-  --env='LOGIN_PEOPLE=hide' \
   --env="TIMEZONE=Europe/Rome" \
   --env="HOST=127.0.0.1" \
   --env='LOGIN_BACKGROUND_URL=https://upload.wikimedia.org/wikipedia/commons/6/6b/Bitmap_VS_SVG.svg' \

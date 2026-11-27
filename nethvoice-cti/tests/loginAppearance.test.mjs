@@ -7,8 +7,10 @@ import {
   CUSTOM_LOGIN_BACKGROUND,
   DEFAULT_LOGIN_BACKGROUNDS,
   STOCK_LOGIN_LOGOS,
+  getLoginBackgroundLayers,
   getLoginBackgrounds,
   getLoginLogos,
+  getNavbarLogos,
   isRebranded,
 } from '../lib/loginAppearance.ts'
 
@@ -142,4 +144,67 @@ test('returned images are copies of the defaults', () => {
   const backgrounds = getLoginBackgrounds(stockConfig)
   backgrounds.dark = '/changed.webp'
   assert.equal(DEFAULT_LOGIN_BACKGROUNDS.dark, '/nethvoice-login-bg-dark.svg')
+})
+
+test('default background layers are a single image per theme', () => {
+  assert.deepEqual(getLoginBackgroundLayers(stockConfig), {
+    light: "url('/nethvoice-login-bg-light.svg')",
+    dark: "url('/nethvoice-login-bg-dark.svg')",
+  })
+  assert.deepEqual(getLoginBackgroundLayers(undefined), getLoginBackgroundLayers(stockConfig))
+})
+
+test('a custom background is layered over the default of each theme', () => {
+  assert.deepEqual(
+    getLoginBackgroundLayers({
+      ...stockConfig,
+      LOGIN_BACKGROUND_URL: 'https://example.com/bg.png',
+    }),
+    {
+      light: "url('/login_background.svg'), url('/nethvoice-login-bg-light.svg')",
+      dark: "url('/login_background.svg'), url('/nethvoice-login-bg-dark.svg')",
+    },
+  )
+})
+
+test('a background whose download failed is not layered', () => {
+  assert.deepEqual(
+    getLoginBackgroundLayers({ ...stockConfig, BRAND_NAME: 'Acme', LOGIN_BACKGROUND_URL: '' }),
+    getLoginBackgroundLayers(stockConfig),
+  )
+})
+
+test('stock configuration shows the stock navbar logos per theme', () => {
+  assert.deepEqual(getNavbarLogos(stockConfig), {
+    light: '/navbar_logo.svg',
+    dark: '/navbar_logo_dark.svg',
+  })
+})
+
+test('custom navbar logos are used directly, one logo serving both themes', () => {
+  const light = 'https://example.com/navbar.svg'
+  const dark = 'https://example.com/navbar-dark.svg'
+  assert.deepEqual(getNavbarLogos({ ...stockConfig, NAVBAR_LOGO_URL: light }), {
+    light,
+    dark: light,
+  })
+  assert.deepEqual(getNavbarLogos({ ...stockConfig, NAVBAR_LOGO_DARK_URL: dark }), {
+    light: dark,
+    dark,
+  })
+  assert.deepEqual(
+    getNavbarLogos({
+      ...stockConfig,
+      BRAND_NAME: 'Acme',
+      NAVBAR_LOGO_URL: light,
+      NAVBAR_LOGO_DARK_URL: dark,
+    }),
+    { light, dark },
+  )
+})
+
+test('a rebranding without navbar logos shows the brand name instead of the stock logo', () => {
+  assert.equal(getNavbarLogos({ ...stockConfig, BRAND_NAME: 'Acme' }), null)
+  assert.equal(getNavbarLogos({ ...stockConfig, BRAND_NAME: 'Acme', NAVBAR_LOGO_URL: '  ' }), null)
+  assert.equal(getNavbarLogos(undefined), null)
 })

@@ -19,7 +19,8 @@ import Link from 'next/link'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faXmark } from '@fortawesome/free-solid-svg-icons'
 import Logo from '../../public/navbar_logo.svg'
-import { customScrollbarClass, getConfiguredNavbarLogoUrl } from '../../lib/utils'
+import { customScrollbarClass } from '../../lib/utils'
+import { NavbarLogo } from './NavbarLogo'
 import { useTranslation } from 'react-i18next'
 import { useChatAllowed } from '../chat'
 interface MobileNavBarProps {
@@ -85,11 +86,9 @@ export const MobileNavBar: FC<MobileNavBarProps> = ({ closeMobileMenu, show, ite
                   </div>
                 </TransitionChild>
                 <div className='flex flex-shrink-0 items-center px-4'>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className='h-8 max-w-[calc(3.5rem*var(--density))] w-auto cursor-pointer object-contain object-center'
-                    src={getConfiguredNavbarLogoUrl()}
-                    alt='logo'
+                  <NavbarLogo
+                    imageClassName='h-8 max-w-[calc(3.5rem*var(--density))] w-auto cursor-pointer object-contain object-center'
+                    textClassName='text-base text-white'
                   />
                 </div>
                 <div className={`mt-4 h-0 flex-1 ${customScrollbarClass} px-4`}>

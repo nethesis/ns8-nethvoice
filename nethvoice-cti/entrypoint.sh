@@ -9,6 +9,38 @@ js_quote() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e "s/'/\\\\'/g"
 }
 
+download_asset() {
+  if /usr/bin/wget --timeout=60 "$1" -O "$2.download" && mv -f "$2.download" "$2"; then
+    return 0
+  fi
+  rm -f "$2.download"
+  return 1
+}
+
+if [ -n "$NAVBAR_LOGO_URL" ]; then
+  download_asset "$NAVBAR_LOGO_URL" /app/public/navbar_logo.svg || { rm -f /app/public/navbar_logo.svg; NAVBAR_LOGO_URL=; }
+fi
+
+if [ -n "$NAVBAR_LOGO_DARK_URL" ]; then
+  download_asset "$NAVBAR_LOGO_DARK_URL" /app/public/navbar_logo_dark.svg || { rm -f /app/public/navbar_logo_dark.svg; NAVBAR_LOGO_DARK_URL=; }
+fi
+
+if [ -n "$LOGIN_LOGO_URL" ]; then
+  download_asset "$LOGIN_LOGO_URL" /app/public/login_logo.svg || { rm -f /app/public/login_logo.svg; LOGIN_LOGO_URL=; }
+fi
+
+if [ -n "$LOGIN_LOGO_DARK_URL" ]; then
+  download_asset "$LOGIN_LOGO_DARK_URL" /app/public/login_logo_dark.svg || { rm -f /app/public/login_logo_dark.svg; LOGIN_LOGO_DARK_URL=; }
+fi
+
+if [ -n "$FAVICON_URL" ]; then
+  download_asset "$FAVICON_URL" /app/public/favicon.ico || FAVICON_URL=
+fi
+
+if [ -n "$LOGIN_BACKGROUND_URL" ]; then
+  download_asset "$LOGIN_BACKGROUND_URL" /app/public/login_background.svg || { rm -f /app/public/login_background.svg; LOGIN_BACKGROUND_URL=; }
+fi
+
 cat > /app/public/config/config.production.js<<EOF
 window.CONFIG = {
   BRAND_NAME: '$(js_quote "${BRAND_NAME:-NethVoice}")',
@@ -80,11 +112,6 @@ cat >> /app/public/config/config.production.js<<EOF
   SIP_PORT: '${SIP_PORT:-5060}',
 EOF
 
-#login people icon rebrandind ( show or hide string )
-cat >> /app/public/config/config.production.js<<EOF
-  LOGIN_PEOPLE: '$(js_quote "${LOGIN_PEOPLE:-show}")',
-EOF
-
 # Authentication method + SSO entry (provider-agnostic): with an external SSO
 # method the login page shows a button navigating to SSO_LOGIN_URL.
 cat >> /app/public/config/config.production.js<<EOF
@@ -109,37 +136,5 @@ cat >> /app/public/config/config.production.js<<EOF
 }
 
 EOF
-
-
-
-if [ -n "$NAVBAR_LOGO_URL" ]; then
-  # navbar logo rebranding
-  /usr/bin/wget --timeout=60 "$NAVBAR_LOGO_URL" -O /app/public/navbar_logo.svg
-fi
-
-if [ -n "$NAVBAR_LOGO_DARK_URL" ]; then
-  # navbar logo rebranding
-  /usr/bin/wget --timeout=60 "$NAVBAR_LOGO_DARK_URL" -O /app/public/navbar_logo_dark.svg
-fi
-
-if [ -n "$LOGIN_LOGO_URL" ]; then
-  # login logo rebranding
-  /usr/bin/wget --timeout=60 "$LOGIN_LOGO_URL" -O /app/public/login_logo.svg
-fi
-
-if [ -n "$LOGIN_LOGO_DARK_URL" ]; then
-  # login logo rebranding
-  /usr/bin/wget --timeout=60 "$LOGIN_LOGO_DARK_URL" -O /app/public/login_logo_dark.svg
-fi
-
-if [ -n "$FAVICON_URL" ]; then
-  # favicon rebranding
-  /usr/bin/wget --timeout=60 "$FAVICON_URL" -O /app/public/favicon.ico
-fi
-
-if [ -n "$LOGIN_BACKGROUND_URL" ]; then
-  # login background image rebranding
-  /usr/bin/wget --timeout=60 "$LOGIN_BACKGROUND_URL" -O /app/public/login_background.svg
-fi
 
 exec "$@"
