@@ -28,7 +28,7 @@ import {
 } from "../api";
 import { useUi } from "../stores/ui";
 import { agentStatus } from "../agentStatus";
-import { clone, mergeChanges, savedState } from "../agentForm";
+import { changesOverlap, clone, mergeChanges, savedState } from "../agentForm";
 import { publishHandoff } from "../handoff";
 import PageHeader from "../components/PageHeader.vue";
 import SettingsSection from "../components/SettingsSection.vue";
@@ -223,12 +223,16 @@ const errorText = (error: unknown) => form.errorMessage(error);
 async function showFieldErrors() {
   await form.focusFirstError(root.value);
 }
-/** Shows a failed request where it belongs: a field, a dialog or a notice. */
+/**
+ * Shows a failed request where it belongs: a field, a dialog or a notice.
+ * Returns the version saved elsewhere when the user's changes can be applied
+ * to it without asking, such as a fallback changed in VisualPlan.
+ */
 async function handleFailure(
   error: unknown,
   action: "draft" | "publish",
   retry: () => unknown,
-) {
+): Promise<Agent | undefined> {
   const code = errorCode(error);
   // A rejected session ends the authorization, whatever the error code.
   if (code === "authentication_required" || !auth.authorized) {
@@ -237,11 +241,20 @@ async function handleFailure(
   }
   if (code === "revision_conflict") {
     try {
-      conflict.value = await request<Agent>(
+      const theirs = await request<Agent>(
         "GET",
         "/profiles/" + encodeURIComponent(id.value),
       );
       conflictAction = action;
+      // Only a value changed both here and elsewhere needs a choice; one
+      // automatic merge per save, so that a busy agent ends in the dialog.
+      if (
+        !merging &&
+        record.value &&
+        !changesOverlap(savedState(record.value), mine(), savedState(theirs))
+      )
+        return theirs;
+      conflict.value = theirs;
     } catch (reload) {
       failure.value = {
         title: t("agentEditor.cannotSave"),
@@ -298,6 +311,7 @@ async function refreshLists() {
 }
 /** Saves the draft. Returns true when it was saved. */
 async function save(): Promise<boolean> {
+  let theirs: Agent | undefined;
   if (saving.value) return false;
   failure.value = undefined;
   if (!form.validate(false)) {
@@ -316,11 +330,11 @@ async function save(): Promise<boolean> {
     );
     return true;
   } catch (error) {
-    await handleFailure(error, "draft", save);
-    return false;
+    theirs = await handleFailure(error, "draft", save);
   } finally {
     saving.value = "";
   }
+  return theirs ? mergeAndRetry(theirs) : false;
 }
 async function publish() {
   if (saving.value || !canPublish.value) return;
@@ -330,6 +344,7 @@ async function publish() {
     return;
   }
   saving.value = "publish";
+  let theirs: Agent | undefined;
   try {
     let value = record.value!;
     if (form.dirty.value) value = await persist();
@@ -346,23 +361,28 @@ async function publish() {
     );
     await router.push("/agents");
   } catch (error) {
-    await handleFailure(error, "publish", publish);
+    theirs = await handleFailure(error, "publish", publish);
   } finally {
     saving.value = "";
   }
+  if (theirs) await mergeAndRetry(theirs);
 }
 
 // Agent changed elsewhere.
 const conflict = ref<Agent>();
 let conflictAction: "draft" | "publish" = "draft";
-async function keepMine() {
-  const theirs = conflict.value;
-  if (!theirs || !record.value) return;
+let merging = false;
+const mine = () => ({
+  name: form.name.value,
+  draft: clone(form.configuration.value),
+});
+async function keepMine(theirs = conflict.value): Promise<boolean> {
+  if (!theirs || !record.value) return false;
   // Apply only the values changed on this page to the version saved
   // elsewhere, so that its other changes are kept.
   const merged = mergeChanges(
     savedState(record.value),
-    { name: form.name.value, draft: clone(form.configuration.value) },
+    mine(),
     savedState(theirs),
   ) as { name: string; draft: Draft | CleverAiConfiguration };
   conflict.value = undefined;
@@ -371,8 +391,19 @@ async function keepMine() {
   if (form.isExternal.value)
     form.external.value = merged.draft as CleverAiConfiguration;
   else form.draft.value = merged.draft as Draft;
-  if (conflictAction === "publish") await publish();
-  else await save();
+  if (conflictAction === "publish") {
+    await publish();
+    return true;
+  }
+  return save();
+}
+async function mergeAndRetry(theirs: Agent) {
+  merging = true;
+  try {
+    return await keepMine(theirs);
+  } finally {
+    merging = false;
+  }
 }
 function discardMine() {
   const theirs = conflict.value;

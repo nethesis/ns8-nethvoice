@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   firstInvalid,
   formField,
+  changesOverlap,
   mergeChanges,
   newDraft,
   stepOf,
@@ -106,5 +107,26 @@ describe("agent form", () => {
     expect(mergeChanges({ v: 1 }, { v: 2 }, { v: 3 })).toEqual({ v: 2 });
     // Other lists are replaced as a whole.
     expect(mergeChanges({ l: [1] }, { l: [1, 2] }, { l: [3] })).toEqual({ l: [1, 2] });
+  });
+
+  it("asks only when the same value changed on both sides", () => {
+    const base = { name: "A", draft: { fallback_destination_id: "hangup", conversation: { greeting: "Hi" }, tool_bindings: [{ tool_id: "t1", enabled: false }] } };
+    const mine = { name: "A", draft: { fallback_destination_id: "hangup", conversation: { greeting: "Mine" }, tool_bindings: [{ tool_id: "t1", enabled: true }] } };
+    // VisualPlan changed only the fallback: no question.
+    expect(changesOverlap(base, mine, { ...base, draft: { ...base.draft, fallback_destination_id: "ext-201" } })).toBe(false);
+    // The same value, changed the same way: no question.
+    expect(changesOverlap(base, mine, mine)).toBe(false);
+    // The same value, changed differently: ask.
+    expect(changesOverlap(base, mine, { ...base, draft: { ...base.draft, conversation: { greeting: "Theirs" } } })).toBe(true);
+    // A tool binding matched by ID.
+    expect(changesOverlap(
+      { tools: [{ tool_id: "t1", config: { a: 1 } }] },
+      { tools: [{ tool_id: "t1", config: { a: 2 } }] },
+      { tools: [{ tool_id: "t1", config: { a: 3 } }] },
+    )).toBe(true);
+    // Another value of the same tool binding: no question.
+    expect(changesOverlap(base, mine, { ...base, draft: { ...base.draft, tool_bindings: [{ tool_id: "t1", enabled: false, config: { a: 1 } }] } })).toBe(false);
+    // Nothing changed here.
+    expect(changesOverlap(base, base, mine)).toBe(false);
   });
 });

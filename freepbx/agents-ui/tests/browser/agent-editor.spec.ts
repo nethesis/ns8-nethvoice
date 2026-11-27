@@ -124,7 +124,7 @@ test("an expired session keeps the edits on the page and resumes the save after 
   expect(await page.evaluate(() => sessionStorage.getItem("nethvoice.agents.edit"))).toBeNull();
 });
 
-test("agent changed elsewhere: Save my changes keeps the other changes, Discard loads them", async ({ page }) => {
+test("agent changed elsewhere: other fields merge by themselves, Discard loads the saved version", async ({ page }) => {
   const mock = await mockApi(page, { profiles: { receptionist: ready() } });
   await page.goto("./#/agents/receptionist");
   await expect(page.getByLabel("Greeting")).toHaveValue("Hello");
@@ -133,21 +133,23 @@ test("agent changed elsewhere: Save my changes keeps the other changes, Discard 
   mock.profiles.receptionist = { ...other, revision: 2, draft: { ...other.draft, conversation: { ...other.draft.conversation, greeting: "Saved elsewhere", language: "it" } } };
   await page.getByLabel("Conversation instructions").fill("My instructions");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
-  const dialog = page.getByRole("dialog").filter({ hasText: "Agent changed elsewhere" });
-  await expect(dialog).toContainText("Agent Receptionist was saved somewhere else after you opened it.");
-  await dialog.getByRole("button", { name: "Save my changes", exact: true }).click();
+  // No value changed on both sides: the changes merge without asking.
   await expect(page.getByText("Draft saved", { exact: true })).toBeVisible();
+  const dialog = page.getByRole("dialog").filter({ hasText: "Agent changed elsewhere" });
+  await expect(dialog).toHaveCount(0);
   expect(mock.profiles.receptionist.revision).toBe(3);
   expect(mock.profiles.receptionist.draft.conversation).toMatchObject({ greeting: "Saved elsewhere", language: "it", instructions: "My instructions" });
   await expect(page.getByLabel("Greeting")).toHaveValue("Saved elsewhere");
-  // Discard: the saved version replaces the edits.
-  mock.profiles.receptionist = { ...mock.profiles.receptionist, revision: 4, name: "Front desk" };
+  // The greeting changed on both sides: Discard loads the saved version.
+  const saved = mock.profiles.receptionist;
+  mock.profiles.receptionist = { ...saved, revision: 4, name: "Front desk", draft: { ...saved.draft, conversation: { ...saved.draft.conversation, greeting: "Front desk greeting" } } };
   await page.getByLabel("Greeting").fill("Lost edit");
   await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(dialog).toContainText("Agent Receptionist was saved somewhere else after you opened it.");
   await dialog.getByRole("button", { name: "Discard my changes", exact: true }).click();
   await expect(page.getByText("Saved settings loaded", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Name", { exact: true })).toHaveValue("Front desk");
-  await expect(page.getByLabel("Greeting")).toHaveValue("Saved elsewhere");
+  await expect(page.getByLabel("Greeting")).toHaveValue("Front desk greeting");
   await expect(footer(page)).not.toHaveText("Unsaved changes");
 });
 
@@ -219,3 +221,32 @@ for (const scenario of ["one", "several", "none"] as const)
     const transfer = mock.profiles.receptionist.draft.tool_bindings.find((b: { tool_id: string }) => b.tool_id === "pbx.transfer");
     expect(transfer.tool_version).toBe(3);
   });
+
+test("a change saved elsewhere to other fields is merged without asking", async ({ page }) => {
+  const mock = await mockApi(page, { profiles: { receptionist: ready() } });
+  await page.goto("./#/agents/receptionist");
+  await page.getByLabel(/^Greeting/).fill("Welcome to the office");
+  // VisualPlan changes the fallback of the route, and the revision.
+  const opened = mock.profiles.receptionist;
+  mock.profiles.receptionist = { ...opened, revision: 2, draft: { ...opened.draft, fallback_destination_id: "ext-201" } };
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  await expect(page.getByText("Draft saved", { exact: true })).toBeVisible();
+  await expect(page.getByText("Agent changed elsewhere")).toHaveCount(0);
+  expect(mock.profiles.receptionist.draft.conversation.greeting).toBe("Welcome to the office");
+  expect(mock.profiles.receptionist.draft.fallback_destination_id).toBe("ext-201");
+  expect(mock.profiles.receptionist.revision).toBe(3);
+});
+
+test("the same field changed elsewhere asks before saving", async ({ page }) => {
+  const mock = await mockApi(page, { profiles: { receptionist: ready() } });
+  await page.goto("./#/agents/receptionist");
+  await page.getByLabel(/^Greeting/).fill("Welcome to the office");
+  const opened = mock.profiles.receptionist;
+  mock.profiles.receptionist = { ...opened, revision: 2, draft: { ...opened.draft, conversation: { ...opened.draft.conversation, greeting: "Good morning" } } };
+  await page.getByRole("button", { name: "Save draft", exact: true }).click();
+  const dialog = page.getByRole("dialog").filter({ hasText: "Agent changed elsewhere" });
+  await expect(dialog).toContainText("Agent Receptionist was saved somewhere else after you opened it.");
+  expect(mock.profiles.receptionist.draft.conversation.greeting).toBe("Good morning");
+  await dialog.getByRole("button", { name: "Save my changes" }).click();
+  await expect.poll(() => mock.profiles.receptionist.draft.conversation.greeting).toBe("Welcome to the office");
+});

@@ -317,6 +317,27 @@ export function mergeChanges(base: Json, mine: Json, theirs: Json): Json {
   return clone(mine);
 }
 
+/**
+ * Whether the user and someone else changed the same value in different
+ * ways, with the rules of mergeChanges: only then the user has to choose.
+ */
+export function changesOverlap(base: Json, mine: Json, theirs: Json): boolean {
+  if (same(base, mine) || same(base, theirs) || same(mine, theirs))
+    return false;
+  if (isObject(base) && isObject(mine) && isObject(theirs))
+    return [...new Set([...Object.keys(mine), ...Object.keys(theirs)])].some(
+      (key) => changesOverlap(base[key], mine[key], theirs[key]),
+    );
+  if (keyed(base) && keyed(mine) && keyed(theirs)) {
+    const find = (list: { tool_id: string }[], id: string) =>
+      list.find((item) => item.tool_id === id);
+    return [...new Set([...mine, ...theirs].map((item) => item.tool_id))].some(
+      (id) => changesOverlap(find(base, id), find(mine, id), find(theirs, id)),
+    );
+  }
+  return true;
+}
+
 // Draft as the server last stored it, for the conflict merge.
 export function savedState(agent: Agent) {
   return { name: agent.name, draft: clone(agent.draft) };
