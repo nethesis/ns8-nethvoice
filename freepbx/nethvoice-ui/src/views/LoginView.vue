@@ -188,12 +188,9 @@ async function signIn() {
               autocomplete="current-password"
             />
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <NeCheckbox
-                id="remember-username"
-                v-model="rememberUsername"
-                :label="$t('login.remember_username')"
-                :disabled="loading"
-              />
+              <NeCheckbox id="remember-username" v-model="rememberUsername" :disabled="loading">
+                <span class="font-normal">{{ $t('login.remember_username') }}</span>
+              </NeCheckbox>
               <NeLink
                 v-if="runtimeConfigStore.showDocs"
                 :href="runtimeConfigStore.docsUrl"
