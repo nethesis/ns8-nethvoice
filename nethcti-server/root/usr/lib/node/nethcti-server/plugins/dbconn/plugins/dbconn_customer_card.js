@@ -132,6 +132,11 @@ function removeEmptySpaces(num) {
   }
 }
 
+function escapeQuotedValue(type, value) {
+  var escaped = String(value).replace(/\u0000/g, '').replace(/'/g, "''");
+  return type === 'postgres' ? escaped.replace(/\\/g, '\\\\') : escaped;
+}
+
 /**
  * Get the customer card of the specified type.
  *
@@ -179,7 +184,7 @@ function getCustomerCardByNum(permissionId, ccName, num, cb) {
       }
 
       // replace the key of the query with parameter
-      query = compDbconnMain.getCustCardTemplatesData()[permissionId].query.replace(/\$NUMBER/g, num);
+      query = compDbconnMain.getCustCardTemplatesData()[permissionId].query.replace(/\$NUMBER/g, function() { return num; });
       compDbconnMain.dbConnCustCard[dbConnId].query(query).then(function(results) {
 
         logger.log.info(IDLOG, results[0].length + ' results by searching cust card "' + ccName +
@@ -195,7 +200,8 @@ function getCustomerCardByNum(permissionId, ccName, num, cb) {
 
     } else if ((compDbconnMain.getDbConfigCustCardData())[dbConnId].type === 'postgres') {
 
-      query = compDbconnMain.getCustCardTemplatesData()[permissionId].query.replace(/\$NUMBER/g, num);
+      num = escapeQuotedValue('postgres', num);
+      query = compDbconnMain.getCustCardTemplatesData()[permissionId].query.replace(/\$NUMBER/g, function() { return num; });
       compDbconnMain.dbConnCustCard[dbConnId].query(query, function(err2, results) {
         if (err2) {
           logger.log.error(IDLOG, 'searching cust card "' + ccName + '" (permission_id: ' + permissionId + ') by num ' +
@@ -212,7 +218,8 @@ function getCustomerCardByNum(permissionId, ccName, num, cb) {
     } else if (compDbconnMain.isMssqlType((compDbconnMain.getDbConfigCustCardData())[dbConnId].type)) {
 
       var request = new mssql.Request(compDbconnMain.dbConnCustCard[dbConnId]);
-      query = compDbconnMain.getCustCardTemplatesData()[permissionId].query.replace(/\$NUMBER/g, num);
+      num = escapeQuotedValue('mssql', num);
+      query = compDbconnMain.getCustCardTemplatesData()[permissionId].query.replace(/\$NUMBER/g, function() { return num; });
       request.query(query, function(err2, recordset) {
         try {
           if (err2) {

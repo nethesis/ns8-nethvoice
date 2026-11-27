@@ -1,5 +1,6 @@
 {
   "Common": {
+    "Brand logo": "{{brand}} logo",
     "None": "None",
     "Select all": "Select all",
     "Deselect all": "Deselect all",
@@ -60,7 +61,7 @@
     "You have made login in another tab": "You have made login in another tab",
     "Click to redirect": "Click to redirect",
     "": "Login",
-    "Login": "Login",
+    "Login": "Sign in",
     "Intrude": "Intrude",
     "Listen": "Listen",
     "ago": "ago",
@@ -118,17 +119,20 @@
   "Login": {
     "User": "Username",
     "Password": "Password",
+    "Remember username": "Remember username",
     "Sign in": "Sign in",
     "Sign in with SSO": "Sign in with SSO",
     "SSO login failed": "Single Sign-On failed. Please try again.",
     "SSO user not enabled": "You signed in on the identity provider, but this user is not enabled to use the CTI. Contact your administrator.",
     "The application is open in another window": "The application is open in another window",
-    "Session expired, log in again": "Session expired, log in again",
+    "Session expired, log in again": "Session expired, sign in again",
     "User not autorized": "User not autorized",
     "Contact administrator for access": "Contact administrator for access",
     "Wrong username or password": "Wrong username or password",
     "Network connection is lost": "Network connection is lost",
-    "Login failed": "Login failed",
+    "Too many failed attempts. Wait a few minutes and try again.": "Too many failed attempts. Wait a few minutes and try again.",
+    "The server did not answer as expected. Try again in a moment.": "The server did not answer as expected. Try again in a moment.",
+    "Login failed": "Cannot sign in",
     "Two-Factor Authentication": "Two-Factor Authentication",
     "Enter the 6-digit code (OTP code) from your authenticator app. If you cannot access the app, you can use one recovery OTP code.": "Enter the 6-digit code (OTP code) from your authenticator app. If you cannot access the app, you can use one recovery OTP code.",
     "OTP code": "OTP code",
@@ -623,6 +627,8 @@
     "Activate voicemail": "Activate voicemail",
     "Cellphone": "Cellphone",
     "Forward incoming calls to cellphone": "Forward incoming calls to cellphone",
+    "Switch to compact view": "Switch to compact view",
+    "Switch to standard view": "Switch to standard view",
     "Sign out": "Sign out"
   },
   "OperatorDrawer": {

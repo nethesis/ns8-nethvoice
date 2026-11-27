@@ -10,7 +10,7 @@ for test in "$repo_root"/freepbx/tests/*.php; do
         unknown_peer_rejection_test.php) php "$test" "$sources/core" ;;
         sip_nat_upgrade_test.php) php "$test" "$sources/sipsettings" "$sources/core" ;;
         userman_sync_test.php) php "$test" "$sources/userman" "$sources/framework" ;;
-        transfer_profile_test.php|returnontransfer_settings_test.php) php "$test" "$sources/framework" ;;
+        adminphone_trunk_call_test.php|transfer_profile_test.php|returnontransfer_settings_test.php) php "$test" "$sources/framework" ;;
         *) php "$test" ;;
     esac
 done

@@ -510,7 +510,7 @@ export const QueueManagement: FC<QueueManagementProps> = ({ className }): JSX.El
             {expandedWaitingCall && (
               <CallsTable
                 isEmpty={isWaitingCallsEmpty}
-                maxHeightClassName='max-h-[12.7rem]'
+                maxHeightClassName='max-h-[calc(12.7rem*var(--density))]'
                 headers={[t('Queues.Caller'), t('Queues.Position'), t('Queues.Wait')]}
               >
                 {selectedQueueData?.waitingCallersList &&
@@ -547,7 +547,7 @@ export const QueueManagement: FC<QueueManagementProps> = ({ className }): JSX.El
             {expandedConnectedCall && (
               <CallsTable
                 isEmpty={isConnectedCallsEmpty}
-                maxHeightClassName='max-h-[17rem]'
+                maxHeightClassName='max-h-[calc(17rem*var(--density))]'
                 headers={[t('Queues.Caller'), t('Queues.Operator'), t('Queues.Duration')]}
               >
                 {selectedQueueData?.connectedCalls &&

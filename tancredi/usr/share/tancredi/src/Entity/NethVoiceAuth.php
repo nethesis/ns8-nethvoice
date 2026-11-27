@@ -24,10 +24,19 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Slim\Psr7\Factory\StreamFactory;
 use Slim\Psr7\Response;
 
 class NethVoiceAuth implements MiddlewareInterface
 {
+    private const SUPERADMIN_FIELDS = ['ldap_password', 'tok1', 'tok2', 'provisioning_url1', 'provisioning_url2'];
+    private const PHONES_FIELDS = ['adminpw', 'userpw'];
+    private const SUPERADMIN_WRITE_FIELDS = ['hostname', 'lcd_logo_url', 'ldap_server', 'ldap_port', 'ldap_tls'];
+    private const SUPERADMIN_WRITE_PATTERN = '/^outbound_proxy2?_\d+$/D';
+    private const USERS_READABLE_PATHS = ['/phones', '/models', '/defaults', '/macvendors'];
+    private const SUPERADMIN_WRITE_PATHS = '#^/templates(/|$)#';
+    private const ADMIN_KEY_LIFETIME = 43200;
+
     private $config;
 
     /**
@@ -58,22 +67,27 @@ class NethVoiceAuth implements MiddlewareInterface
                 return $this->createForbiddenResponse();
             }
         } elseif ($request->hasHeader('Secretkey') && $request->hasHeader('User')) {
-            $dbh = new \PDO(
-                'mysql:dbname=asterisk;host='.($this->config['auth_nethvoice_dbhost'] ?? 'localhost').';port='.($this->config['auth_nethvoice_dbport'] ?? '3306'),
-                ($this->config['auth_nethvoice_dbuser'] ?? 'tancredi'),
-                $this->config['auth_nethvoice_dbpass']
-            );
-            $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
-            $stmt->execute(array($request->getHeaderLine('User')));
-            $user = $stmt->fetchAll();
+            $user = $this->findUser($request->getHeaderLine('User'));
 
-            if (!empty($user)) {
+            if (!empty($user) && self::isPhonesAdministrator($user[0]['sections'] ?? '')) {
                 $password_sha1 = $user[0]['password_sha1'];
                 $username = $user[0]['username'];
 
-                // check the user is valid and is an admin (sections = *)
-                if (isset($username, $password_sha1) && $request->getHeaderLine('Secretkey') === sha1($username . $password_sha1 . $this->config['secret'])) {
-                    return $handler->handle($request);
+                if (isset($username, $password_sha1) && hash_equals(sha1($username . $password_sha1 . $this->config['secret']), $request->getHeaderLine('Secretkey'))
+                    && !self::isExpiredDomainAdministrator($user[0], time())) {
+                    $sections = $user[0]['sections'] ?? '';
+                    if (self::isSuperAdministrator($sections)) {
+                        return $handler->handle($request);
+                    }
+                    if (!self::sectionMayRequest($sections, $request->getMethod(), $request->getUri()->getPath())) {
+                        return $this->createForbiddenResponse('Missing permission for this resource');
+                    }
+                    $hidden = self::hiddenFields($sections);
+                    if (self::refusedFields(self::requestFields($request), $hidden)) {
+                        return $this->createForbiddenResponse('Missing permission for this field');
+                    }
+
+                    return self::withoutFields($handler->handle($request), $hidden);
                 }
             }
 
@@ -83,6 +97,160 @@ class NethVoiceAuth implements MiddlewareInterface
         } else {
             return $this->createForbiddenResponse('Invalid NethVoiceAuth authentication headers');
         }
+    }
+
+    protected function findUser(string $username): array
+    {
+        $dbh = new \PDO(
+            'mysql:dbname=asterisk;host='.($this->config['auth_nethvoice_dbhost'] ?? 'localhost').';port='.($this->config['auth_nethvoice_dbport'] ?? '3306'),
+            ($this->config['auth_nethvoice_dbuser'] ?? 'tancredi'),
+            $this->config['auth_nethvoice_dbpass']
+        );
+        $stmt = $dbh->prepare("SELECT a.*, d.username AS nethvoice_managed, d.key_issued_at AS nethvoice_key_issued_at FROM ampusers a LEFT JOIN rest_domain_admins d ON d.username = a.username WHERE a.username = ?");
+        $stmt->execute(array($username));
+
+        return $stmt->fetchAll();
+    }
+
+    public static function isExpiredDomainAdministrator(array $user, int $now): bool
+    {
+        if (($user['nethvoice_managed'] ?? null) === null) {
+            return false;
+        }
+        $issuedAt = $user['nethvoice_key_issued_at'] ?? null;
+        $issued = is_string($issuedAt) && $issuedAt !== '' ? strtotime($issuedAt . ' UTC') : false;
+
+        return $issued === false || $now - $issued >= self::ADMIN_KEY_LIFETIME;
+    }
+
+    public static function isPhonesAdministrator($sections): bool
+    {
+        $entries = self::sectionEntries($sections);
+        if (in_array('*', $entries, true)) {
+            return true;
+        }
+
+        return (bool) array_intersect(['nethvoice:superadmin', 'nethvoice:phones', 'nethvoice:users'], $entries);
+    }
+
+    public static function isSuperAdministrator($sections): bool
+    {
+        return (bool) array_intersect(['*', 'nethvoice:superadmin'], self::sectionEntries($sections));
+    }
+
+    public static function sectionMayRequest($sections, string $method, string $path): bool
+    {
+        $method = strtoupper($method);
+        $resource = self::resourcePath($path);
+        if (in_array('nethvoice:phones', self::sectionEntries($sections), true)) {
+            return in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)
+                || (!preg_match('#^/phones/[^/]+/tok1$#', $resource)
+                    && !preg_match(self::SUPERADMIN_WRITE_PATHS, $resource)
+                    && !preg_match('#/\.\.?(/|$)#', $resource));
+        }
+
+        return in_array($method, ['GET', 'HEAD', 'OPTIONS'], true) && in_array($resource, self::USERS_READABLE_PATHS, true);
+    }
+
+    private static function resourcePath(string $path): string
+    {
+        $path = rtrim(preg_replace('#/+#', '/', rawurldecode($path)), '/');
+
+        return preg_match('#^.*?/api/v1(/.*)?$#D', $path, $matches) ? ($matches[1] ?? '') : $path;
+    }
+
+    public static function refusedFields(array $fields, array $hidden): array
+    {
+        return array_values(array_filter($fields, fn($field) => in_array($field, $hidden, true)
+            || in_array($field, self::SUPERADMIN_WRITE_FIELDS, true)
+            || preg_match(self::SUPERADMIN_WRITE_PATTERN, $field) === 1));
+    }
+
+    public static function hiddenFields($sections): array
+    {
+        if (in_array('nethvoice:phones', self::sectionEntries($sections), true)) {
+            return self::SUPERADMIN_FIELDS;
+        }
+
+        return array_merge(self::SUPERADMIN_FIELDS, self::PHONES_FIELDS);
+    }
+
+    public static function requestFields(ServerRequestInterface $request): array
+    {
+        $bodies = [$request->getParsedBody()];
+        $stream = $request->getBody();
+        $contents = (string) $stream;
+        if ($stream->isSeekable()) {
+            $stream->rewind();
+        }
+        $type = strtolower(trim(explode(';', $request->getHeaderLine('Content-Type'))[0]));
+        if ($type === 'application/x-www-form-urlencoded') {
+            parse_str($contents, $form);
+            $bodies[] = $form;
+        } else {
+            $bodies[] = json_decode($contents, true);
+        }
+        $fields = [];
+        foreach ($bodies as $body) {
+            self::collectFields($body, $fields);
+        }
+
+        return array_keys($fields);
+    }
+
+    private static function collectFields($data, array &$fields): void
+    {
+        if (is_object($data)) {
+            $data = get_object_vars($data);
+        }
+        if (!is_array($data)) {
+            return;
+        }
+        foreach ($data as $key => $value) {
+            $fields[(string) $key] = true;
+            self::collectFields($value, $fields);
+        }
+    }
+
+    public static function withoutFields(ResponseInterface $response, array $hidden): ResponseInterface
+    {
+        $contents = (string) $response->getBody();
+        if ($contents === '') {
+            return $response;
+        }
+        $data = json_decode($contents);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $response;
+        }
+        $flags = defined('JSON_FLAGS') ? JSON_FLAGS : (JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+        return $response
+            ->withoutHeader('Content-Length')
+            ->withBody((new StreamFactory())->createStream(json_encode(self::stripFields($data, $hidden), $flags)));
+    }
+
+    private static function stripFields($data, array $hidden)
+    {
+        if (is_array($data)) {
+            foreach ($data as $key => $value) {
+                $data[$key] = self::stripFields($value, $hidden);
+            }
+        } elseif (is_object($data)) {
+            foreach (get_object_vars($data) as $key => $value) {
+                if (str_starts_with((string) $key, 'account_password_') || in_array((string) $key, $hidden, true)) {
+                    unset($data->$key);
+                } else {
+                    $data->$key = self::stripFields($value, $hidden);
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    private static function sectionEntries($sections): array
+    {
+        return array_map('trim', explode(';', (string) $sections));
     }
 
     private function createForbiddenResponse($detail = 'Invalid client credentials'): ResponseInterface

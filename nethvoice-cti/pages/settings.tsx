@@ -212,14 +212,14 @@ const Settings: NextPage = () => {
 
   return (
     <>
-      <div className='flex flex-col lg:h-[calc(100dvh-8rem)]'>
+      <div className='flex flex-col lg:h-[calc(100dvh_-_var(--spacing)*32)]'>
         <div className='mx-auto flex w-full flex-1 flex-col min-h-0'>
           <h1 className='text-2xl font-medium mb-6 text-primaryNeutral dark:text-primaryNeutralDark'>
             {t('Settings.Settings')}
           </h1>
           <div className='flex flex-1 flex-col min-h-0'>
             <div className='lg:flex lg:items-stretch lg:flex-1 lg:min-h-0'>
-              <aside className='lg:h-full lg:w-[21rem] lg:shrink-0 lg:border-r lg:border-layoutDivider dark:lg:border-layoutDividerDark'>
+              <aside className='lg:h-full lg:w-[calc(21rem*var(--density))] lg:shrink-0 lg:border-r lg:border-layoutDivider dark:lg:border-layoutDividerDark'>
                 <nav className='space-y-1 lg:pr-4'>
                   {items
                     .filter((item) => !item?.hidden)
@@ -231,7 +231,7 @@ const Settings: NextPage = () => {
                           item?.current
                             ? 'text-primaryNeutral dark:text-primaryNeutralDark bg-elevationL2 dark:bg-elevationL2Dark border-l-4 border-iconPrimary dark:border-iconPrimaryDark'
                             : 'text-secondaryNeutral dark:text-secondaryNeutralDark hover:text-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-50',
-                          'group rounded-md flex items-center text-sm font-medium justify-start space-x-2 w-full h-[3rem] cursor-pointer',
+                          'group rounded-md flex items-center text-sm font-medium justify-start space-x-2 w-full h-[calc(3rem*var(--density))] cursor-pointer',
                         )}
                         aria-current={item?.current ? 'page' : undefined}
                       >

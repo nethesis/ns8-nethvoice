@@ -407,7 +407,7 @@ export const LinesView: FC<LinesViewProps> = ({ className }): JSX.Element => {
         </div>
       ),
       className:
-        'py-3.5 pl-4 pr-3 text-left text-sm font-semibold sm:pl-6 text-gray-700 dark:text-gray-200 min-w-[12rem]',
+        'py-3.5 pl-4 pr-3 text-left text-sm font-semibold sm:pl-6 text-gray-700 dark:text-gray-200 min-w-[calc(12rem*var(--density))]',
     },
     {
       header: t('Lines.Line number'),
@@ -505,7 +505,7 @@ export const LinesView: FC<LinesViewProps> = ({ className }): JSX.Element => {
                     `${line.calledIdNum}_${line.callerIdNum || ''}_${line.description || ''}`
                   }
                   scrollable={true}
-                  trClassName='h-[84px]'
+                  trClassName='h-[calc(84px*var(--density))]'
                   theadClassName='sticky top-0 bg-gray-100 dark:bg-gray-800 z-[1]'
                   tbodyClassName='text-sm divide-y divide-gray-200 bg-white dark:bg-gray-950 text-gray-700 dark:divide-gray-700 dark:text-gray-200'
                   footer={

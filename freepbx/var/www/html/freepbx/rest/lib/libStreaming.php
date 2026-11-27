@@ -1081,6 +1081,7 @@ function streaming_cti_config(array $sources): array
             // With tls_skip_verify, the certificate the https:// image device must present
             'tls_fingerprint' => (!$isRtsp && streaming_needs_fingerprint($source)) ? streaming_normalize_fingerprint($source['tls_fingerprint'] ?? null) : null,
             'gates' => $gates,
+            'guard_addresses' => !empty($source['guard_addresses']),
         ];
     }
     return $out;
@@ -2147,10 +2148,10 @@ function streaming_rate_limit(string $file, int $max, int $window, ?int $now = n
 /*
  * Whether the PBX can open a TCP connection to the device of a source URL
  * (rtsp, rtsps, http, https): a plain TCP connect with a short timeout,
- * nothing is sent to the device. Return { reachable, private, host, port };
- * loopback and link-local addresses, the addresses of the node and the
- * cluster VPN networks ($refused, streaming_node_networks() by default) are
- * never contacted (reachable false). Any port is checked: devices behind NAT
+ * nothing is sent to the device. Return { reachable, private, host, port,
+ * skipped }; loopback and link-local addresses, the addresses of the node and
+ * the cluster VPN networks ($refused, streaming_node_networks() by default)
+ * are never contacted (reachable false, skipped true). Any port is checked: devices behind NAT
  * are often published on other ports (e.g. 1554, 2554 for several door
  * phones of the same site), so the services of the node and of the cluster
  * are protected by the refused addresses and by the rate limit of the API.
@@ -2169,13 +2170,19 @@ function streaming_tcp_reachability(string $url, ?callable $connect = null, ?cal
         'port' => $port,
         'private' => $addresses !== [] && streaming_ip_is_private($addresses[0]),
         'reachable' => false,
+        'skipped' => false,
     ];
-    if ($addresses === [] || streaming_host_blocked($parsed['host'], function () use ($addresses) { return $addresses; })) {
+    if ($addresses === []) {
+        return $result;
+    }
+    if (streaming_host_blocked($parsed['host'], function () use ($addresses) { return $addresses; })) {
+        $result['skipped'] = true;
         return $result;
     }
     $refused = $refused ?? streaming_node_networks();
     foreach ($addresses as $address) {
         if (streaming_ip_in_networks((string) $address, $refused)) {
+            $result['skipped'] = true;
             return $result;
         }
     }

@@ -26,6 +26,24 @@ At render time Tancredi loads templates in this order:
 1. `rw_dir/templates-custom/`
 2. `ro_dir/templates/`
 
+The API manages the custom templates that have a new name:
+
+- `GET /templates` lists the `.tmpl` files of `templates-custom/` with their
+  `name`, `size` and `mtime`.
+- `POST /templates` stores a template from a JSON object with `name`, `content`
+  and, to overwrite a custom template with the same name, `"replace": true`.
+  The name contains letters, numbers, `-`, `_` and `.`, ends with `.tmpl` and
+  is not the name of a shipped template. The content is UTF-8 text up to
+  512 KiB. Tancredi parses the template with the provisioning Twig environment
+  before saving it, and returns `400` with the `template-syntax-error` problem,
+  its `detail` and `line` when it does not compile.
+- `DELETE /templates/{name}` removes a custom template, and returns `409` with
+  the `used_by` scopes while a model or a phone selects it in a `tmpl_*`
+  variable.
+
+A model or a phone selects a custom template by its name in `tmpl_phone`, so a
+template that fails at render time affects only the phones that use it.
+
 ## Template/Request binding: the `patterns.d` directory
 
 When a phone requests a file, Tancredi establishes what template has to be

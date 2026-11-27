@@ -388,7 +388,7 @@ export const AnnouncementView: FC<AnnouncementViewProps> = ({ className }): JSX.
               {t('Common.Edit')}
             </Button>
           ) : (
-            <div className='w-[88px]'></div>
+            <div className='w-[calc(88px*var(--density))]'></div>
           )}
           <Dropdown items={announcementMenuItems(announcement)} position='left'>
             <Button variant='ghost' className='py-2 px-2 h-9 w-9'>
@@ -441,7 +441,7 @@ export const AnnouncementView: FC<AnnouncementViewProps> = ({ className }): JSX.
                         }
                   }
                   rowKey={(announcement: any) => announcement.id}
-                  trClassName='h-[84px]'
+                  trClassName='h-[calc(84px*var(--density))]'
                   scrollable={true}
                   theadClassName='sticky top-0 bg-gray-100 dark:bg-gray-800 z-[1]'
                   tbodyClassName='text-sm divide-y divide-gray-200 bg-white dark:bg-gray-950 text-gray-700 dark:divide-gray-700 dark:text-gray-200'

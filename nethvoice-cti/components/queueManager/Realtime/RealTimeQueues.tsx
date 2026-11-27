@@ -201,7 +201,7 @@ export const RealTimeQueues: FC<RealTimeQueuesProps> = ({
               icon={textFilter.length ? faCircleXmark : undefined}
               onIconClick={() => clearTextFilter()}
               trailingIcon={true}
-              className='max-w-xs sm:min-w-[20rem] mb-6 mt-8'
+              className='max-w-xs sm:min-w-[calc(20rem*var(--density))] mb-6 mt-8'
             />
             {/* no search results */}
             {queueManagerStore.isLoaded && isEmpty(filteredQueues) && (

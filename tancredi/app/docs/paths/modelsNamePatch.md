@@ -33,9 +33,13 @@ Success response:
     "variables": {
         "var1": "value1-changed",
         "var2": "value2"
-    }
+    },
+    "last_edit_time": 1795167778
 }
 ```
+
+`last_edit_time` is set to the time of this change. See [GET
+/models]({{ "/paths/modelsGet" | relative_url }}).
 
 ## Read only attributes
 

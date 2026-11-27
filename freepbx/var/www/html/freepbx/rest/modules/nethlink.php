@@ -64,6 +64,9 @@ $app->post('/nethlink', function (Request $request, Response $response, $args) {
     try {
         $params = $request->getParsedBody();
         $extensionnumber = $params['extension'];
+        if (!nethvoiceRequestIsSuperadmin($request) && !isExtensionNumber($extensionnumber)) {
+            return jsonResponse($response, array("status"=>"Invalid extension"), 400);
+        }
         $fpbx = FreePBX::create();
 
         $extension = createExtension($extensionnumber,false);
@@ -90,7 +93,7 @@ $app->delete('/nethlink/{mainextension}', function (Request $request, Response $
         $mainextension = $route->getArgument('mainextension');
         $extension = getNethLinkExtension($mainextension);
         $mobile_extension = getNethLinkMobileExtension($mainextension);
-        if (deleteExtension($extension) && (empty($mobile_extension) || deleteExtension($mobile_extension))) {
+        if ((empty($extension) || deleteExtension($extension)) && (empty($mobile_extension) || deleteExtension($mobile_extension))) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
             return $response->withStatus(200);
         } else {
@@ -98,6 +101,6 @@ $app->delete('/nethlink/{mainextension}', function (Request $request, Response $
         }
     } catch (Exception $e) {
         error_log($e->getMessage());
-        return $response->withStatus(500);
+        return jsonResponse($response, array("status"=>"Error deleting extension"), 500);
     }
 });

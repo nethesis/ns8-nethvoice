@@ -1,5 +1,6 @@
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import { decodeCustomerCardHtml } from '../../lib/customerCardTabs'
 
 interface CustomerCardsDynamicTabProps {
   htmlContent?: string
@@ -13,7 +14,7 @@ const CustomerCardsDynamicTab: React.FC<CustomerCardsDynamicTabProps> = ({
   // Convert from 64 base formatto html
   const base64ToHtml = (base64String: string) => {
     try {
-      const decodedString = atob(base64String)
+      const decodedString = decodeCustomerCardHtml(base64String)
       return { __html: decodedString }
     } catch (error) {
       console.error('Error during conversion', error)

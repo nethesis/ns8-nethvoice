@@ -20,6 +20,7 @@ class FreepbxEntrypointTest(unittest.TestCase):
         self.target.parent.mkdir()
         self.target.write_text('[from-internal]\n')
         self.started = self.root / 'started'
+        (self.root / 'runtime').mkdir()
         # Run the real startup checks before any container configuration writes.
         script = (ROOT / 'freepbx/entrypoint.sh').read_text().split('# Configure asterisk manager', 1)[0]
         script = script.replace('/etc/asterisk/extensions.conf', str(self.link))
@@ -27,6 +28,10 @@ class FreepbxEntrypointTest(unittest.TestCase):
         script = script.replace('/var/run/nethvoice/', str(self.root / 'runtime') + '/')
         self.script = self.root / 'entrypoint.sh'
         self.script.write_text(script + f'\ntouch "{self.started}"\n')
+
+    def test_records_when_the_container_started(self):
+        self.assertEqual(self.run_startup().returncode, 0)
+        self.assertTrue((self.root / 'runtime' / 'freepbx-started').is_file())
 
     def run_startup(self, **environment):
         return subprocess.run(['bash', str(self.script)],

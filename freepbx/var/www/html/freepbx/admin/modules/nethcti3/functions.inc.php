@@ -158,8 +158,36 @@ function nethcti3_get_config($engine) {
             $ext->add($context, '_.', '', new ext_set('PPI_DID', '${CUT(CUT(PJSIP_HEADER(read,P-Preferred-Identity),@,1),:,2)}'));
             $ext->add($context, '_.', '', new ext_gotoif('$["${PPI_DID}"=""]', 'from-pstn,${EXTEN},1'));
             $ext->add($context, '_.', '', new ext_goto('from-pstn,${PPI_DID},1'));
+            nethcti3_configure_adminphone_context($ext, FreePBX::Nethcti3()->getConfig('extension', 'adminphone'));
         break;
     }
+}
+
+function nethcti3_configure_adminphone_context($ext, $extension) {
+    if (preg_match('/^[0-9]+$/D', (string) $extension) !== 1) {
+        return;
+    }
+    $context = 'nethvoice-adminphone';
+    $ext->addInclude($context, 'from-internal');
+    $exten = '_***X.';
+    $call = 'NETHVOICE_TRUNK_CALL';
+    $trunk = 'NETHVOICE_TRUNK_CALL_TRUNK';
+    $number = 'NETHVOICE_TRUNK_CALL_NUMBER';
+    $ext->add($context, $exten, '', new ext_gotoif('$["${CHANNEL(channeltype)}" != "PJSIP"]', 'reject'));
+    $ext->add($context, $exten, '', new ext_gotoif('$["${CHANNEL(endpoint)}" != "' . $extension . '"]', 'reject'));
+    $ext->add($context, $exten, '', new ext_set($call, '${EXTEN:3}'));
+    $ext->add($context, $exten, '', new ext_gotoif('$[${REGEX("^[0-9]+[*][+]?[0-9]+$" ${' . $call . '})} = 0]', 'reject'));
+    $ext->add($context, $exten, '', new ext_set($trunk, '${CUT(' . $call . ',*,1)}'));
+    $ext->add($context, $exten, '', new ext_set($number, '${CUT(' . $call . ',*,2)}'));
+    $ext->add($context, $exten, '', new ext_gotoif('$["${OUT_${' . $trunk . '}}" = "" | ${REGEX("^(ENUM|DUNDI)/" ${OUT_${' . $trunk . '}})} = 1 | ${DIALPLAN_EXISTS(macro-dialout-trunk,s,1)} = 0]', 'reject'));
+    $ext->add($context, $exten, '', new ext_macro('user-callerid', 'LIMIT,EXTERNAL'));
+    $ext->add($context, $exten, '', new ext_gosub('1', 's', 'sub-record-check', 'out,${' . $number . '},dontcare'));
+    $ext->add($context, $exten, '', new ext_set('_CALLERIDNAMEINTERNAL', '${CALLERID(name)}'));
+    $ext->add($context, $exten, '', new ext_set('_CALLERIDNUMINTERNAL', '${CALLERID(num)}'));
+    $ext->add($context, $exten, '', new ext_set('_NODEST', ''));
+    $ext->add($context, $exten, '', new ext_macro('dialout-trunk', '${' . $trunk . '},${' . $number . '},,off'));
+    $ext->add($context, $exten, '', new ext_macro('outisbusy'));
+    $ext->add($context, $exten, 'reject', new ext_hangup('21'));
 }
 
 /** Add the forwarding identity without replacing Core's loop check. */
@@ -1060,10 +1088,69 @@ function nethcti3_get_config_early($engine) {
         $user_variables['account_voicemail_1'] = $featurecodes['voicemailmyvoicemail'] ?? '';
         $res = nethcti_tancredi_patch($tancrediUrl . 'phones/' . str_replace(':','-',$deviceMac), $username, $secretkey, array("variables" => $user_variables));
     }
+    nethcti3_release_unassigned_phones($dbh, $tancrediUrl, $username, $secretkey);
+
     /***********************************
     * call Tancredi /defaults REST API *
     ************************************/
     $res = nethcti_tancredi_patch($tancrediUrl . 'defaults', $username, $secretkey, $variables);
+}
+
+function nethcti3_unassigned_phone_macs($dbh) {
+    $sql = "SELECT DISTINCT UPPER(REPLACE(p.mac, '-', ':')) FROM rest_devices_phones p".
+        " WHERE p.mac IS NOT NULL AND p.mac != ''".
+        " AND NOT EXISTS (SELECT 1 FROM rest_devices_phones q JOIN devices d ON d.id = q.extension".
+        " WHERE UPPER(REPLACE(q.mac, '-', ':')) = UPPER(REPLACE(p.mac, '-', ':')) AND q.extension IS NOT NULL AND q.extension != '')";
+    $stmt = $dbh->prepare($sql);
+    $stmt->execute(array());
+    return $stmt->fetchAll(\PDO::FETCH_COLUMN);
+}
+
+function nethcti3_release_unassigned_phones($dbh, $tancrediUrl, $username, $secretkey) {
+    $accountVariables = array(
+        'account_extension_1',
+        'account_username_1',
+        'account_password_1',
+        'account_display_name_1',
+        'account_dnd_allow_1',
+        'account_fwd_allow_1',
+        'account_encryption_1',
+        'account_dtmf_type_1',
+        'account_voicemail_1',
+    );
+    foreach (nethcti3_unassigned_phone_macs($dbh) as $mac) {
+        $url = $tancrediUrl.'phones/'.str_replace(':', '-', strtoupper($mac));
+        $phone = nethcti_tancredi_request('GET', $url, $username, $secretkey);
+        if ($phone['code'] !== 200) {
+            continue;
+        }
+        $variables = json_decode($phone['response'], true)['variables'] ?? array();
+        if (!is_array($variables) || (empty($variables['account_username_1']) && empty($variables['account_extension_1']))) {
+            continue;
+        }
+        $res = nethcti_tancredi_patch($url, $username, $secretkey, array('variables' => array_fill_keys($accountVariables, null)));
+        if ($res['code'] < 200 || $res['code'] >= 300) {
+            error_log('Failed to release the account of the unassigned phone '.$mac.' in Tancredi: HTTP '.$res['code']);
+        }
+    }
+}
+
+function nethcti_tancredi_request($method, $url, $username, $secretkey) {
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
+    curl_setopt($ch, CURLOPT_HEADER, FALSE);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+        "Accept: application/json;charset=utf-8",
+        "User: $username",
+        "SecretKey: $secretkey",
+    ));
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return array('code'=>$httpCode, 'response' => $response);
 }
 
 function nethcti_tancredi_patch($url, $username, $secretkey, $data) {

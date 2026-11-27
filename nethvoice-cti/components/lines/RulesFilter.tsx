@@ -66,7 +66,7 @@ export const RulesFilter = forwardRef<HTMLButtonElement, RulesFilterProps>(
                 <div className='items-center'>
                   <TextInput
                     placeholder={t('Lines.Filter roules') || ''}
-                    className='max-w-xs sm:min-w-[20rem]'
+                    className='max-w-xs sm:min-w-[calc(20rem*var(--density))]'
                     value={textFilter}
                     onChange={changeTextFilter}
                     ref={textFilterRef}

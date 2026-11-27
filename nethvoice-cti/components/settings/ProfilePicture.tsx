@@ -33,7 +33,7 @@ export const ProfilePicture: FC = () => {
 
   return (
     <AccountSection title={t('Settings.Profile picture')}>
-      <div className='flex items-center justify-between gap-4 rounded-lg bg-elevationL2Invert dark:bg-elevationL2InvertDark px-5 py-4 shadow max-w-[28.125rem]'>
+      <div className='flex items-center justify-between gap-4 rounded-lg bg-elevationL2Invert dark:bg-elevationL2InvertDark px-5 py-4 shadow max-w-[calc(28.125rem*var(--density))]'>
         <Avatar
           size='extra_large'
           placeholderType='person'

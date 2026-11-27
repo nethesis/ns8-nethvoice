@@ -41,7 +41,47 @@
           />
         </cv-column>
       </cv-row>
-      <cv-row v-if="!rebranding_active && !loading.getRebranding">
+      <cv-row
+        v-if="
+          rebranding_check_failed && rebranding_cached && !loading.getRebranding
+        "
+      >
+        <cv-column>
+          <NsInlineNotification
+            kind="warning"
+            :title="$t('rebranding.rebranding_check_failed')"
+            :description="
+              $t('rebranding.rebranding_cached_description', {
+                date: formatCheckedAt(rebranding_checked_at),
+              })
+            "
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row
+        v-if="
+          rebranding_check_failed &&
+          !rebranding_cached &&
+          !loading.getRebranding
+        "
+      >
+        <cv-column>
+          <NsInlineNotification
+            kind="error"
+            :title="$t('rebranding.rebranding_check_failed')"
+            :description="$t('rebranding.rebranding_check_failed_description')"
+            :showCloseButton="false"
+          />
+        </cv-column>
+      </cv-row>
+      <cv-row
+        v-if="
+          !rebranding_active &&
+          !rebranding_check_failed &&
+          !loading.getRebranding
+        "
+      >
         <cv-column>
           <NsInlineNotification
             kind="info"
@@ -248,23 +288,6 @@
                             $t('rebranding.public_url_image_helper')
                           "
                         />
-                        <NsToggle
-                          :label="$t('rebranding.login_illustration')"
-                          value="loginIllustration"
-                          :form-item="true"
-                          v-model="rebranding_login_people"
-                          :disabled="loading.setRebranding"
-                        >
-                          <template slot="tooltip">
-                            {{ $t("rebranding.login_illustration_tooltip") }}
-                          </template>
-                          <template slot="text-left">{{
-                            $t("common.disabled")
-                          }}</template>
-                          <template slot="text-right">{{
-                            $t("common.enabled")
-                          }}</template>
-                        </NsToggle>
                         <div class="rebranding-save-actions">
                           <NsButton
                             kind="ghost"
@@ -386,16 +409,6 @@
                                     </div>
                                   </div>
                                 </div>
-                                <div
-                                  class="login-svg"
-                                  v-if="rebranding_login_people"
-                                >
-                                  <img
-                                    src="../assets/action_voice-cti.svg"
-                                    alt="Login illustration"
-                                    class="svg-image"
-                                  />
-                                </div>
                               </div>
                             </div>
                           </div>
@@ -432,6 +445,29 @@
                           "
                           :helper-text="
                             $t('rebranding.public_url_image_helper')
+                          "
+                        />
+                        <NsTextInput
+                          :label="
+                            $t(
+                              'rebranding.rebranding_wizard_logo_light_url_label'
+                            ) +
+                            ' (' +
+                            $t('common.optional') +
+                            ')'
+                          "
+                          v-model="rebranding_wizard_logo_light_url"
+                          :placeholder="
+                            $t('common.eg_value', {
+                              value: 'https://mydomain.com/path/to/image.svg',
+                            })
+                          "
+                          :disabled="loading.setRebranding"
+                          :invalid-message="
+                            error.rebranding_wizard_logo_light_url
+                          "
+                          :helper-text="
+                            $t('rebranding.wizard_logo_light_url_helper')
                           "
                         />
                         <NsTextInput
@@ -935,6 +971,7 @@ import {
   TaskService,
   IconService,
   PageTitleService,
+  DateTimeService,
 } from "@nethserver/ns8-ui-lib";
 import ResumeConfigNotification from "@/components/first-configuration/ResumeConfigNotification.vue";
 import Sun20 from "@carbon/icons-vue/es/sun/20";
@@ -957,6 +994,7 @@ export default {
     UtilService,
     QueryParamService,
     PageTitleService,
+    DateTimeService,
   ],
   pageTitle() {
     return this.$t("rebranding.title") + " - " + this.appName;
@@ -970,6 +1008,9 @@ export default {
       Reset20,
       Save20,
       rebranding_active: false,
+      rebranding_cached: false,
+      rebranding_check_failed: false,
+      rebranding_checked_at: "",
       rebranding_brand_name: "",
       rebranding_navbar_logo_url: "",
       rebranding_navbar_logo_dark_url: "",
@@ -977,7 +1018,6 @@ export default {
       rebranding_favicon_url: "",
       rebranding_login_logo_url: "",
       rebranding_login_logo_dark_url: "",
-      rebranding_login_people: false,
       rebranding_reports_brand_name: "",
       rebranding_reports_login_background_url: "",
       rebranding_reports_favicon_url: "",
@@ -986,6 +1026,7 @@ export default {
       rebranding_wizard_login_background_url: "",
       rebranding_wizard_favicon_url: "",
       rebranding_wizard_login_logo_url: "",
+      rebranding_wizard_logo_light_url: "",
       rebranding_freepbx_admin_logo_url: "",
       rebranding_freepbx_admin_favicon_url: "",
       rebranding_nethlink_company_name: "",
@@ -1214,6 +1255,9 @@ export default {
     getRebrandingCompleted(taskContext, taskAction) {
       const config = taskAction.output;
       this.rebranding_active = config.rebranding_active;
+      this.rebranding_cached = !!config.rebranding_cached;
+      this.rebranding_check_failed = !!config.rebranding_check_failed;
+      this.rebranding_checked_at = config.rebranding_checked_at || "";
       const sharedBrandName =
         this.normalizeBrandName(config.rebranding_brand_name) ||
         this.normalizeBrandName(config.rebranding_wizard_brand_name) ||
@@ -1228,7 +1272,6 @@ export default {
       this.rebranding_login_logo_url = config.rebranding_login_logo_url;
       this.rebranding_login_logo_dark_url =
         config.rebranding_login_logo_dark_url;
-      this.rebranding_login_people = config.rebranding_login_people !== "hide";
       this.rebranding_reports_brand_name = sharedBrandName;
       this.rebranding_reports_login_background_url =
         config.rebranding_reports_login_background_url;
@@ -1242,6 +1285,8 @@ export default {
       this.rebranding_wizard_favicon_url = config.rebranding_wizard_favicon_url;
       this.rebranding_wizard_login_logo_url =
         config.rebranding_wizard_login_logo_url;
+      this.rebranding_wizard_logo_light_url =
+        config.rebranding_wizard_logo_light_url || "";
       this.rebranding_freepbx_admin_logo_url =
         config.rebranding_freepbx_admin_logo_url;
       this.rebranding_freepbx_admin_favicon_url =
@@ -1251,7 +1296,6 @@ export default {
       this.rebranding_nethlink_company_url =
         config.rebranding_nethlink_company_url;
       this.savedRebrandingConfig = this.getPayloadDefaults({
-        rebranding_login_people: config.rebranding_login_people,
         rebranding_brand_name: sharedBrandName,
         rebranding_navbar_logo_url: config.rebranding_navbar_logo_url,
         rebranding_navbar_logo_dark_url: config.rebranding_navbar_logo_dark_url,
@@ -1268,6 +1312,8 @@ export default {
         rebranding_wizard_brand_name: sharedBrandName,
         rebranding_wizard_login_logo_url:
           config.rebranding_wizard_login_logo_url,
+        rebranding_wizard_logo_light_url:
+          config.rebranding_wizard_logo_light_url || "",
         rebranding_wizard_favicon_url: config.rebranding_wizard_favicon_url,
         rebranding_wizard_login_background_url:
           config.rebranding_wizard_login_background_url,
@@ -1307,7 +1353,6 @@ export default {
     },
     getPayloadDefaults(overrides = {}) {
       return {
-        rebranding_login_people: "show",
         rebranding_brand_name: "",
         rebranding_navbar_logo_url: "",
         rebranding_navbar_logo_dark_url: "",
@@ -1321,6 +1366,7 @@ export default {
         rebranding_reports_login_background_url: "",
         rebranding_wizard_brand_name: "",
         rebranding_wizard_login_logo_url: "",
+        rebranding_wizard_logo_light_url: "",
         rebranding_wizard_favicon_url: "",
         rebranding_wizard_login_background_url: "",
         rebranding_freepbx_admin_logo_url: "",
@@ -1359,7 +1405,6 @@ export default {
           this.rebranding_navbar_logo_dark_url = "";
           this.rebranding_favicon_url = "";
           this.rebranding_login_background_url = "";
-          this.rebranding_login_people = false;
           this.clearTabErrors([
             "rebranding_login_logo_url",
             "rebranding_login_logo_dark_url",
@@ -1371,12 +1416,14 @@ export default {
           break;
         case "wizard":
           this.rebranding_wizard_login_logo_url = "";
+          this.rebranding_wizard_logo_light_url = "";
           this.rebranding_wizard_favicon_url = "";
           this.rebranding_wizard_login_background_url = "";
           this.rebranding_freepbx_admin_logo_url = "";
           this.rebranding_freepbx_admin_favicon_url = "";
           this.clearTabErrors([
             "rebranding_wizard_login_logo_url",
+            "rebranding_wizard_logo_light_url",
             "rebranding_wizard_favicon_url",
             "rebranding_wizard_login_background_url",
             "rebranding_freepbx_admin_logo_url",
@@ -1477,9 +1524,6 @@ export default {
       await this.submitRebranding(
         {
           ...snapshot,
-          rebranding_login_people: this.rebranding_login_people
-            ? "show"
-            : "hide",
           rebranding_navbar_logo_url: this.rebranding_navbar_logo_url,
           rebranding_navbar_logo_dark_url: this.rebranding_navbar_logo_dark_url,
           rebranding_login_logo_url: this.rebranding_login_logo_url,
@@ -1493,6 +1537,8 @@ export default {
             this.rebranding_reports_login_background_url,
           rebranding_wizard_login_logo_url:
             this.rebranding_wizard_login_logo_url,
+          rebranding_wizard_logo_light_url:
+            this.rebranding_wizard_logo_light_url,
           rebranding_wizard_favicon_url: this.rebranding_wizard_favicon_url,
           rebranding_wizard_login_background_url:
             this.rebranding_wizard_login_background_url,
@@ -1525,8 +1571,22 @@ export default {
       for (const validationError of validationErrors) {
         const param = validationError.parameter;
 
+        if (param === "rebranding_active") {
+          this.error[submissionKey] = this.$t(
+            "rebranding." + validationError.error
+          );
+          continue;
+        }
+
         // set i18n error message
-        this.error[param] = this.$t("settings." + validationError.error);
+        const errorKey = "settings." + validationError.error;
+        if (this.$te(errorKey)) {
+          this.error[param] = this.$t(errorKey);
+        } else if (param.endsWith("_url")) {
+          this.error[param] = this.$t("rebranding.invalid_image_url");
+        } else {
+          this.error[param] = this.$t("rebranding.invalid_name");
+        }
       }
     },
     setRebrandingCompleted(submissionKey = "setRebranding") {
@@ -1535,6 +1595,10 @@ export default {
           this.savedRebrandingConfig
       );
       this.loading[submissionKey] = false;
+    },
+    formatCheckedAt(checkedAt) {
+      const date = new Date(checkedAt);
+      return isNaN(date) ? checkedAt : this.formatDate(date, "Pp");
     },
     openMailtoLink() {
       const encodedSubject = encodeURIComponent(
@@ -1753,7 +1817,7 @@ export default {
 
 .login-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   height: 100%;
   padding: 1.5rem 2rem;
@@ -1772,17 +1836,6 @@ export default {
   border-radius: 4px;
   width: 100%;
   max-width: 220px;
-}
-
-.login-svg {
-  width: 40%;
-  min-width: 160px;
-}
-
-.svg-image {
-  width: 100%;
-  height: auto;
-  margin-left: 0;
 }
 
 .login-logo {

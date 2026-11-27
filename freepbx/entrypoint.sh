@@ -7,6 +7,7 @@
 
 # A restarted container must not advertise readiness from a previous start.
 rm -f /var/run/nethvoice/freepbx-ready /var/run/nethvoice/freepbx-failed || exit $?
+touch /var/run/nethvoice/freepbx-started || exit $?
 
 # Migration can turn the image's absolute dialplan link into a relative link.
 extensions_link=/etc/asterisk/extensions.conf
@@ -162,6 +163,7 @@ EOF
 
 mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
 chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
+find /var/lib/nethserver/nethcti/templates/customer_card -maxdepth 1 -type f -name '*.ejs' ! -user asterisk -exec chown asterisk:asterisk {} +
 
 # Make sure /etc/nethcti exists and is writable and the config directory is
 # writable from nethcti and freepbx containers
@@ -201,7 +203,7 @@ fi
 
 # Customized wizard page
 cat > /etc/apache2/sites-available/wizard.conf <<EOF
-AliasMatch ^/(?!freepbx)(.+)$ /var/www/html/freepbx/wizard/\$1
+AliasMatch ^/(?!freepbx|nethvoice(?:/|\$))(.+)$ /var/www/html/freepbx/wizard/\$1
 EOF
 
 # Link rewrite configuration
@@ -230,12 +232,13 @@ if [[ -z "${WIZARD_LOGIN_BACKGROUND_URL+x}" ]]; then
 fi
 
 wizard_navbar_logo_url="${wizard_login_logo_url}"
+wizard_logo_light_url="${WIZARD_LOGO_LIGHT_URL:-}"
 
 # Serialize configuration values as JavaScript strings instead of interpolating
 # them into quoted literals. Rebranding values are operator-controlled and may
 # contain quotes or other characters with special meaning in JavaScript.
 js_string() {
-	php -r 'echo json_encode($argv[1], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);' "$1"
+	php -r 'echo json_encode($argv[1], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);' -- "$1"
 }
 
 # Serialize a value as a PHP string literal for config.inc.php
@@ -243,16 +246,58 @@ php_string() {
 	php -r 'var_export($argv[1]);' "$1"
 }
 
+BRAND_NAME_VALUE="${wizard_brand_name}" \
+BRAND_SITE_VALUE="${BRAND_SITE:-https://www.nethesis.it/soluzioni/nethvoice}" \
+BRAND_DOCS_VALUE="${BRAND_DOCS:-https://docs.nethvoice.com/it/}" \
+NAVBAR_LOGO_URL_VALUE="${wizard_navbar_logo_url}" \
+LOGO_LIGHT_URL_VALUE="${wizard_logo_light_url}" \
+LOGIN_LOGO_URL_VALUE="${wizard_login_logo_url}" \
+LOGIN_BACKGROUND_URL_VALUE="${wizard_login_background_url}" \
+FAVICON_URL_VALUE="${wizard_favicon_url}" \
+CTI_PRODUCT_NAME_VALUE="${NETHCTI_UI_PRODUCT_NAME:-NethVoice CTI}" \
+HOSTNAME_VALUE="${NETHVOICE_HOST:-}" \
+INSTANCE_NAME_VALUE="${NETHVOICE_UI_NAME:-}" \
+TIMEZONE_VALUE="${TIMEZONE:-}" \
+php -r 'echo json_encode([
+	"BRAND_NAME" => getenv("BRAND_NAME_VALUE"),
+	"BRAND_SITE" => getenv("BRAND_SITE_VALUE"),
+	"BRAND_DOCS" => getenv("BRAND_DOCS_VALUE"),
+	"NAVBAR_LOGO_URL" => getenv("NAVBAR_LOGO_URL_VALUE"),
+	"LOGO_LIGHT_URL" => getenv("LOGO_LIGHT_URL_VALUE"),
+	"LOGIN_LOGO_URL" => getenv("LOGIN_LOGO_URL_VALUE"),
+	"LOGIN_BACKGROUND_URL" => getenv("LOGIN_BACKGROUND_URL_VALUE"),
+	"FAVICON_URL" => getenv("FAVICON_URL_VALUE"),
+	"CTI_PRODUCT_NAME" => getenv("CTI_PRODUCT_NAME_VALUE"),
+	"HOSTNAME" => getenv("HOSTNAME_VALUE"),
+	"INSTANCE_NAME" => getenv("INSTANCE_NAME_VALUE"),
+	"TIMEZONE" => getenv("TIMEZONE_VALUE"),
+], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT), "\n";' > /var/www/html/freepbx/nethvoice-ui/config.json
+
+BRAND_NAME_VALUE="${wizard_brand_name}" \
+FAVICON_URL_VALUE="${wizard_favicon_url}" \
+php -r '$index = $argv[1];
+$html = file_get_contents($index);
+if ($html === false) {
+	exit(0);
+}
+$title = htmlspecialchars(trim(getenv("BRAND_NAME_VALUE")) ?: "NethVoice", ENT_QUOTES);
+$html = preg_replace_callback("~<title>[^<]*</title>~", fn() => "<title>" . $title . "</title>", $html, 1);
+$favicon = getenv("FAVICON_URL_VALUE");
+if (preg_match("~^https?://[^\\s\"<>]+$~i", $favicon)) {
+	$html = preg_replace_callback("~<link rel=\"icon\" href=\"[^\"]*\"~", fn() => "<link rel=\"icon\" href=\"" . htmlspecialchars($favicon, ENT_QUOTES) . "\"", $html, 1);
+}
+file_put_contents($index, $html);' /var/www/html/freepbx/nethvoice-ui/index.html
+
 # Write wizard and restapi configuration
 cat > /var/www/html/freepbx/wizard/scripts/custom.js <<EOF
 var customConfig = {
   BRAND_NAME: $(js_string "${wizard_brand_name}"),
   BRAND_SITE: '${BRAND_SITE:=https://www.nethesis.it/soluzioni/nethvoice}',
   BRAND_DOCS: '${BRAND_DOCS:=https://docs.nethvoice.com/it/}',
-  NAVBAR_LOGO_URL: '${wizard_navbar_logo_url}',
-  LOGIN_LOGO_URL: '${wizard_login_logo_url}',
-  FAVICON_URL: '${wizard_favicon_url}',
-  LOGIN_BACKGROUND_URL: '${wizard_login_background_url}',
+  NAVBAR_LOGO_URL: $(js_string "${wizard_navbar_logo_url}"),
+  LOGIN_LOGO_URL: $(js_string "${wizard_login_logo_url}"),
+  FAVICON_URL: $(js_string "${wizard_favicon_url}"),
+  LOGIN_BACKGROUND_URL: $(js_string "${wizard_login_background_url}"),
   BASE_API_URL: '/freepbx/rest',
   BASE_API_URL_CTI: '/api',
   VPLAN_URL: '/freepbx/visualplan',
@@ -267,6 +312,7 @@ cat > /var/www/html/freepbx/rest/config.inc.php <<EOF
 \$config = [
     'settings' => [
         'secretkey' => '${NETHVOICESECRETKEY}',
+        'tancredi_port' => '${TANCREDIPORT}',
         'cti_config_path' => '/etc/nethcti'
     ],
     'nethctidb' => [
@@ -615,8 +661,11 @@ url_encode() {
 }
 
 # customize voicemail branding
-sed 's/FreePBX/'"${BRAND_NAME}"'/' -i /etc/asterisk/voicemail.conf*
-sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"${NETHCTI_UI_HOST}"'\/history/' -i /etc/asterisk/voicemail.conf*
+sed_replacement() {
+	printf '%s' "$1" | tr -d '\r\n' | sed -e 's/[\/&\\]/\\&/g'
+}
+sed 's/FreePBX/'"$(sed_replacement "${BRAND_NAME}")"'/' -i /etc/asterisk/voicemail.conf*
+sed 's/http:\/\/AMPWEBADDRESS\/ucp/https:\/\/'"$(sed_replacement "${NETHCTI_UI_HOST}")"'\/history/' -i /etc/asterisk/voicemail.conf*
 
 # translate FREEPBX_LOG_LEVEL into the supervisord level
 case "${FREEPBX_LOG_LEVEL:-warn}" in

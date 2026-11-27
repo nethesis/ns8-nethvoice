@@ -28,7 +28,8 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
     protected $FreePBX;
     protected $db;
     protected $astman;
-    private static $displayNameReloadScheduled = false;
+    protected $phoneKeyLabelsClient = null;
+    private static $reloadScheduled = false;
 
     public function __construct($freepbx = null) {
         if ($freepbx == null)
@@ -119,10 +120,12 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
             $extensions = array_merge($extensions, $stmt->fetchAll(\PDO::FETCH_COLUMN));
 
             $displayname = isset($user['displayname']) ? $user['displayname'] : '';
+            $previousName = $this->extensionDisplayName($user['default_extension']);
             $changed = $this->setExtensionsDisplayName($extensions, $displayname, $user['default_extension']);
             if ($changed) {
-                $this->scheduleDisplayNameReload();
+                $this->scheduleReload();
             }
+            $this->updateMainExtensionKeyLabels($user['default_extension'], $previousName, $displayname);
             return $changed;
         } catch (\Throwable $e) {
             error_log('Unable to synchronize display name for Userman user '.$id.': '.$e->getMessage());
@@ -130,12 +133,68 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
         }
     }
 
-    private function scheduleDisplayNameReload() {
-        if (self::$displayNameReloadScheduled) {
+    private function extensionDisplayName($extension) {
+        $stmt = $this->db->prepare('SELECT `name` FROM `users` WHERE `extension` = ?');
+        $stmt->execute(array($extension));
+        $name = $stmt->fetchColumn();
+        return $name === false ? null : (string) $name;
+    }
+
+    private function updateMainExtensionKeyLabels($mainextension, $previousName, $displayname) {
+        $previousName = trim((string) $previousName);
+        $displayname = trim((string) $displayname);
+        $storedName = iconv_substr($displayname, 0, self::DISPLAY_NAME_MAX_LENGTH, 'UTF-8');
+        if ($previousName === '' || $displayname === '' || $storedName === false || $previousName === trim($storedName)) {
+            return;
+        }
+        try {
+            include_once __DIR__.'/../../../rest/lib/libPhoneKeyLabels.php';
+            $result = updateReassignedKeyLabels($mainextension, $previousName, $displayname, $this->phoneKeyLabelsClient);
+            if ($result['key_labels_incomplete']) {
+                error_log('Phone key labels of extension '.$mainextension.' not fully updated to the new display name');
+            }
+        } catch (\Throwable $e) {
+            error_log('Unable to update the phone key labels of extension '.$mainextension.': '.$e->getMessage());
+        }
+    }
+
+    public function usermanDelUser($id, $display, $data) {
+        try {
+            include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
+            $data = is_array($data) ? $data : array();
+            $prepared = userRemovalPrepared($id, isset($data['username']) ? trim((string) $data['username']) : '');
+            if (!$prepared && !hasMainExtension($data)) {
+                return true;
+            }
+            orphanUserExtensions($id, $data, $prepared);
+            $this->scheduleReload();
+            return true;
+        } catch (\Throwable $e) {
+            error_log('Unable to keep the extensions of deleted Userman user '.$id.': '.$e->getMessage());
+            return false;
+        }
+    }
+
+    public function usermanAddUser($id, $display, $data) {
+        try {
+            include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
+            if (reattachOrphanExtension($this->FreePBX->Userman->getUserByID($id)) === false) {
+                return false;
+            }
+            $this->scheduleReload();
+            return true;
+        } catch (\Throwable $e) {
+            error_log('Unable to restore the extensions of Userman user '.$id.': '.$e->getMessage());
+            return false;
+        }
+    }
+
+    private function scheduleReload() {
+        if (self::$reloadScheduled) {
             return;
         }
 
-        self::$displayNameReloadScheduled = true;
+        self::$reloadScheduled = true;
         register_shutdown_function(function () {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null 2>&1 &');
         });

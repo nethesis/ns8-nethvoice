@@ -40,7 +40,8 @@ module.exports = function(options, imports, register) {
       getCustomerCardByNum: customerCard.getCustomerCardByNum,
       getCustomerCardsList: customerCard.getCustomerCardsList,
       setCompAuthorization: customerCard.setCompAuthorization,
-      getCustomerCardPreview: customerCard.getCustomerCardPreview
+      getCustomerCardPreview: customerCard.getCustomerCardPreview,
+      renderCustomerCardTemplate: customerCard.renderCustomerCardTemplate
     }
   });
 

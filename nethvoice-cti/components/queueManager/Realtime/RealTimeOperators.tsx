@@ -309,6 +309,7 @@ export const RealTimeOperators: FC<RealTimeOperatorsProps> = ({
                                                   <LoggedStatus
                                                     loggedIn={queue?.loggedIn}
                                                     paused={queue?.paused}
+                                                    pauseReason={queue?.lastPausedInReason}
                                                   />
                                                 </div>
                                               </div>

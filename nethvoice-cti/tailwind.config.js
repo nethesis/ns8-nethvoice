@@ -1,6 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 
 const { icon } = require('@fortawesome/fontawesome-svg-core')
+const defaultTheme = require('tailwindcss/defaultTheme')
+
+const spacing = Object.fromEntries(
+  Object.entries(defaultTheme.spacing).map(([key, value]) => [
+    key,
+    value.endsWith('rem') ? `calc(var(--spacing) * ${key})` : value,
+  ]),
+)
 
 module.exports = {
   mode: 'jit',
@@ -17,6 +25,7 @@ module.exports = {
   ],
   darkMode: 'selector',
   theme: {
+    spacing,
     extend: {
       colors: {
         primaryFocus: 'var(--color-primary-focus)',

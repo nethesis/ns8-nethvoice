@@ -1,0 +1,6 @@
+/*
+  Copyright (C) 2026 Nethesis S.r.l.
+  SPDX-License-Identifier: GPL-3.0-or-later
+*/
+
+@import '@nethesis/phone-island/dist/index.css' layer(components.phone-island);

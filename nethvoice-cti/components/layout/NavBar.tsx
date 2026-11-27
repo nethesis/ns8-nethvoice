@@ -18,7 +18,8 @@ import { CustomThemedTooltip } from '../common/CustomThemedTooltip'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
 import { useTranslation } from 'react-i18next'
-import { customScrollbarClass, getConfiguredNavbarLogoUrl } from '../../lib/utils'
+import { customScrollbarClass } from '../../lib/utils'
+import { NavbarLogo } from './NavbarLogo'
 import { chatEnabled } from '../chat'
 
 interface NavBarProps {
@@ -26,10 +27,10 @@ interface NavBarProps {
 }
 
 const activeStyles = {
-  width: '.25rem',
-  height: '2.25rem',
+  width: 'calc(.25rem * var(--density))',
+  height: 'calc(2.25rem * var(--density))',
   left: '0',
-  top: '.44rem',
+  top: 'calc(.44rem * var(--density))',
   borderRadius: '0rem .375rem .375rem 0rem',
   position: 'absolute',
 } as React.CSSProperties
@@ -67,15 +68,13 @@ export const NavBar: FC<NavBarProps> = ({ items }) => {
           <Link href='/operators'>
             <div>
               {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className='h-[3.1875rem] max-w-[3.1875rem] w-auto cursor-pointer object-contain object-center'
-                src={getConfiguredNavbarLogoUrl(
+              <NavbarLogo
+                dark={
                   theme === 'dark' ||
-                    (theme === 'system' &&
-                      window.matchMedia('(prefers-color-scheme: dark)').matches),
-                )}
-                alt='logo'
+                  (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+                }
+                imageClassName='h-[calc(3.1875rem*var(--density))] max-w-[calc(3.1875rem*var(--density))] w-auto cursor-pointer object-contain object-center'
+                textClassName='w-16 cursor-pointer text-xs leading-4 text-primary dark:text-primaryDark'
               />
             </div>
           </Link>
@@ -95,8 +94,8 @@ export const NavBar: FC<NavBarProps> = ({ items }) => {
                   data-tooltip-id={`tooltip-${item.name}`}
                   data-tooltip-content={t('Common.' + item.name)}
                   style={{
-                    height: '3.125rem',
-                    width: '3.125rem',
+                    height: 'calc(3.125rem * var(--density))',
+                    width: 'calc(3.125rem * var(--density))',
                   }}
                   aria-current={item.current ? 'page' : undefined}
                 >

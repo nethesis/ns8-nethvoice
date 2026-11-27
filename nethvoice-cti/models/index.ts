@@ -8,6 +8,7 @@ import { sideDrawer } from './sideDrawer'
 import { phonebook } from './phonebook'
 import { speedDial } from './speedDial'
 import { darkTheme } from './darkTheme'
+import { density } from './density'
 import { operators } from './operators'
 import { notifications } from './notifications'
 import { globalSearch } from './globalSearch'
@@ -30,6 +31,7 @@ import { voicemail } from './voicemail'
 import { incomingCall } from './incomingCall'
 import { ringtones } from './ringtones'
 import { chat } from './chat'
+import { signInSplash } from './signInSplash'
 
 export interface RootModel extends Models<RootModel> {
   authentication: typeof authentication
@@ -38,6 +40,7 @@ export interface RootModel extends Models<RootModel> {
   phonebook: typeof phonebook
   speedDial: typeof speedDial
   darkTheme: typeof darkTheme
+  density: typeof density
   operators: typeof operators
   notifications: typeof notifications
   globalSearch: typeof globalSearch
@@ -60,6 +63,7 @@ export interface RootModel extends Models<RootModel> {
   incomingCall: typeof incomingCall
   ringtones: typeof ringtones
   chat: typeof chat
+  signInSplash: typeof signInSplash
 }
 
 export const models: RootModel = {
@@ -69,6 +73,7 @@ export const models: RootModel = {
   phonebook,
   speedDial,
   darkTheme,
+  density,
   operators,
   notifications,
   globalSearch,
@@ -91,4 +96,5 @@ export const models: RootModel = {
   incomingCall,
   ringtones,
   chat,
+  signInSplash,
 }

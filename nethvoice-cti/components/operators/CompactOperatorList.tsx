@@ -34,7 +34,7 @@ const CompactOperatorList = ({ operators, hasMore, showMore, isLoading = false }
     'grid grid-cols-1 gap-x-5 gap-y-4 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 5xl:grid-cols-5 6xl:grid-cols-6'
   // The chat panel is wider than the other tabs: columns follow the space left, not the window.
   const classNameChatOpen =
-    'grid gap-x-5 gap-y-4 grid-cols-[repeat(auto-fill,minmax(min(384px,100%),1fr))]'
+    'grid gap-x-5 gap-y-4 grid-cols-[repeat(auto-fill,minmax(min(calc(384px*var(--density)),100%),1fr))]'
 
   const [currentCols, setCurrentCols] = useState(1)
   const gridRef = useRef<HTMLUListElement>(null)
@@ -70,7 +70,7 @@ const CompactOperatorList = ({ operators, hasMore, showMore, isLoading = false }
         className={`${chatOpen ? classNameChatOpen : isSidebarOpen ? classNameSidebarOpen : classNameSidebarClosed}`}
       >
         {Array.from(Array(skeletonItemsCount)).map((_, index) => (
-          <li key={`skeleton-${index}`} className='min-w-[384px] w-full'>
+          <li key={`skeleton-${index}`} className='min-w-[calc(384px*var(--density))] w-full'>
             <div className='group flex w-full items-center justify-between rounded-lg py-2 px-3 h-16 gap-3 text-left focus:outline-none focus:ring-2 focus:ring-offset-2 bg-cardBackgroud dark:bg-cardBackgroudDark focus:ring-primary dark:focus:ring-primary'>
               {/* Avatar skeleton */}
               <span className='flex-shrink-0'>
@@ -123,7 +123,7 @@ const CompactOperatorList = ({ operators, hasMore, showMore, isLoading = false }
         className={`${chatOpen ? classNameChatOpen : isSidebarOpen ? classNameSidebarOpen : classNameSidebarClosed}`}
       >
         {filteredOperators?.map((operator, index) => (
-          <li key={operator?.username || `compact-op-${index}`} className='min-w-[384px]'>
+          <li key={operator?.username || `compact-op-${index}`} className='min-w-[calc(384px*var(--density))]'>
             <CompactOperatorCard
               operator={operator}
               authUsername={authUsername}

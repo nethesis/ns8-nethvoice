@@ -7,6 +7,7 @@ import { RootState } from '../store'
 import { CustomerCardsCustomerData } from '../components/customerCards/CustomerCards'
 import { getCustomerCards } from '../lib/customerCard'
 import CustomerCardsDynamicTab from '../components/customerCards/CustomerCardsDynamicTab'
+import { orderCustomerCards } from '../lib/customerCardTabs'
 import { isEmpty } from 'lodash'
 import { getPhonebook } from '../lib/phonebook'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -123,12 +124,7 @@ const CustomerCards: NextPage = () => {
         try {
           const res = await getCustomerCards(companyExtension)
           setCustomerCardsList(res)
-          if (userInformation?.settings?.ccard_order?.length > 0) {
-            setCCardList(userInformation?.settings?.ccard_order)
-          } else {
-            const initialOrder = Object.keys(res)
-            setCCardList(initialOrder)
-          }
+          setCCardList(orderCustomerCards(userInformation?.settings?.ccard_order, res || {}))
         } catch (e) {
           console.error(e)
         }

@@ -45,6 +45,9 @@ $app->post('/physicalextensions', function (Request $request, Response $response
     try {
         $params = $request->getParsedBody();
         $mac = str_replace('-',':',$params['mac']);
+        if (!nethvoiceRequestIsSuperadmin($request) && !empty($mac) && (!is_string($mac) || preg_match('/^[0-9A-Fa-f]{12}$/', str_replace(array(':', '.'), '', $mac)) !== 1)) {
+            return jsonResponse($response, array("status"=>"Invalid MAC address"), 400);
+        }
         $model = $params['model'];
         $web_user = $params['web_user'];
         $web_password = $params['web_password'];
@@ -65,6 +68,15 @@ $app->post('/physicalextensions', function (Request $request, Response $response
             }
         }
 
+        if (!nethvoiceRequestIsSuperadmin($request) && !isExtensionNumber($params['mainextension'])) {
+            return jsonResponse($response, array("status"=>"Invalid extension"), 400);
+        }
+        if (!nethvoiceRequestHasSection($request, 'phones')) {
+            $web_password = getDefaultPhoneWebPassword();
+            if ($web_password === '') {
+                return jsonResponse($response, array("status"=>"Default phone web password not available"), 500);
+            }
+        }
         $extension = createExtension($params['mainextension'],$delete);
         if ($extension === false ) {
             return jsonResponse($response, array("status"=>"Error creating extension"), 500);
@@ -174,6 +186,9 @@ $app->post('/mobileapp', function (Request $request, Response $response, $args) 
     try {
         $params = $request->getParsedBody();
         $mainextension = $params['mainextension'];
+        if (!nethvoiceRequestIsSuperadmin($request) && !isExtensionNumber($mainextension)) {
+            return jsonResponse($response, array("status"=>"Invalid extension"), 400);
+        }
         $fpbx = FreePBX::create();
 
         $extension = createExtension($mainextension,false);
@@ -210,6 +225,10 @@ $app->delete('/mobileapp/{extension}', function (Request $request, Response $res
     try {
         $route = $request->getAttribute('route');
         $extension = $route->getArgument('extension');
+        $mainextension = getMainExtension($extension);
+        if (!is_string($extension) || $mainextension === -1 || (string) getMobileAppExtension($mainextension) !== $extension) {
+            return jsonResponse($response, array('message' => 'Mobile app extension not found'), 404);
+        }
         if (deleteExtension($extension)) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
             return $response->withStatus(204);
@@ -229,6 +248,9 @@ $app->post('/extension/{mainextension}', function (Request $request, Response $r
         $mainextension = $route->getArgument('mainextension');
         $params = $request->getParsedBody();
         $displayname = $params['displayname'];
+        if (!nethvoiceRequestIsSuperadmin($request) && is_string($displayname) && preg_match('/[\x00-\x1F\x7F]/', $displayname) === 1) {
+            return $response->withStatus(400);
+        }
         //get extensions
         $extensions = [$mainextension];
         foreach (FreePBX::create()->Core->getAllUsers() as $ext) {

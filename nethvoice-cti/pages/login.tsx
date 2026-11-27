@@ -2,28 +2,30 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { saveCredentials } from '../lib/login'
-import { useState, useRef, useEffect } from 'react'
+import { navigateAfterSignIn } from '../lib/signInSplash'
+import { CSSProperties, useState, useRef, useEffect } from 'react'
 import { TextInput, InlineNotification, Button, OTPInput } from '../components/common'
 import { useRouter } from 'next/router'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
+  faArrowRightToBracket,
   faCircleCheck,
   faCircleNotch,
   faEye,
   faEyeSlash,
-  faArrowLeft,
 } from '@fortawesome/free-solid-svg-icons'
 import { checkDarkTheme } from '../lib/darkTheme'
+import { checkDensity } from '../lib/density'
 import { useTranslation } from 'react-i18next'
 import { store } from '../store'
 import { useSelector } from 'react-redux'
 import { RootState } from '../store'
 import { axiosSetup } from '../config/axios'
 import {
+  getBrandName,
   getBrandedTabTitle,
   getConfiguredFaviconUrl,
   getHtmlFaviconElement,
-  getPeopleImageVisibilityValue,
   getProductName,
   getProductSubname,
   getSavedQueryParams,
@@ -32,7 +34,21 @@ import {
   reloadPage,
 } from '../lib/utils'
 import { getTwoFactorStatus } from '../services/twoFactor'
-import { loadPreference, savePreference, setJSONItem } from '../lib/storage'
+import {
+  getStringItem,
+  loadPreference,
+  removeItem,
+  savePreference,
+  setJSONItem,
+  setStringItem,
+} from '../lib/storage'
+import { getLoginBackgroundLayers, getLoginLogos } from '../lib/loginAppearance'
+import {
+  UsernameStorage,
+  loadRememberedUsername,
+  updateRememberedUsername,
+} from '../lib/rememberedUsername'
+import { CustomThemedTooltip } from '../components/common/CustomThemedTooltip'
 import Head from 'next/head'
 import { capitalize } from 'lodash'
 import { loginBeforeDashboard } from '../services/user'
@@ -43,6 +59,15 @@ import { isSsoAuthentication } from '../lib/password'
 import { PasswordChangeForm } from '../components/settings/password/PasswordChangeForm'
 import { changeExpiredPassword } from '../services/password'
 import { PasswordPolicy } from '../services/types/password'
+
+const usernameStorage: UsernameStorage = {
+  getItem: getStringItem,
+  setItem: setStringItem,
+  removeItem,
+}
+
+const getRuntimeConfig = (): Record<string, unknown> | undefined =>
+  typeof window !== 'undefined' ? (window as any).CONFIG : undefined
 
 export default function Login() {
   const [pwdVisible, setPwdVisible] = useState(false)
@@ -60,6 +85,8 @@ export default function Login() {
     password: string
     token?: string
   } | null>(null)
+  const [rememberedUsername] = useState(() => loadRememberedUsername(usernameStorage))
+  const [rememberUsername, setRememberUsername] = useState(!!rememberedUsername)
   const ctiStatus = useSelector((state: RootState) => state.ctiStatus)
 
   const { t } = useTranslation()
@@ -179,12 +206,6 @@ export default function Login() {
     window.document.title = cleanTitlePageName
   }
 
-  let iconSelect = loading ? (
-    <FontAwesomeIcon icon={faCircleNotch} className='fa-spin loader fa-lg' />
-  ) : (
-    <></>
-  )
-
   useEffect(() => {
     function showNotification() {
       if (document.visibilityState !== 'visible' && variableCheck) {
@@ -236,63 +257,51 @@ export default function Login() {
   }, [variableCheck])
 
   const [userNotAuthorized, setUserNotAuthorized] = useState(false)
+  const [logoFailed, setLogoFailed] = useState(false)
+  const [passwordTooltipHidden, setPasswordTooltipHidden] = useState(false)
 
   let errorAlert = onError ? (
-    <div className='relative w-full mt-2'>
-      <InlineNotification
-        type='error'
-        title={userNotAuthorized ? t('Login.User not autorized') : t('Login.Login failed')}
-      >
-        <p>{messageError}</p>
-      </InlineNotification>
-    </div>
+    <InlineNotification
+      type='error'
+      title={userNotAuthorized ? t('Login.User not autorized') : t('Login.Login failed')}
+    >
+      <p>{messageError}</p>
+    </InlineNotification>
   ) : ctiStatus.webRtcError || window.location.href.includes('?error') ? (
     window.location.href.includes('ssoUserNotEnabled') ? (
-      <div className='relative w-full mt-6'>
-        <InlineNotification type='error' title={t('Common.Warning')}>
-          <p>{t('Login.SSO user not enabled')}</p>
-        </InlineNotification>
-      </div>
+      <InlineNotification type='error' title={t('Common.Warning')}>
+        <p>{t('Login.SSO user not enabled')}</p>
+      </InlineNotification>
     ) : window.location.href.includes('error=sso') ? (
-      <div className='relative w-full mt-6'>
-        <InlineNotification type='error' title={t('Common.Warning')}>
-          <p>{t('Login.SSO login failed')}</p>
-        </InlineNotification>
-      </div>
+      <InlineNotification type='error' title={t('Common.Warning')}>
+        <p>{t('Login.SSO login failed')}</p>
+      </InlineNotification>
     ) : ctiStatus.isUserInformationMissing || window.location.href.includes('sessionExpired') ? (
-      <div className='relative w-full mt-6'>
-        <InlineNotification type='error' title={t('Common.Warning')}>
-          <p>{t('Login.Session expired, log in again')}</p>
-        </InlineNotification>
-      </div>
+      <InlineNotification type='error' title={t('Common.Warning')}>
+        <p>{t('Login.Session expired, log in again')}</p>
+      </InlineNotification>
     ) : (
-      <div className='relative w-full mt-6'>
-        <InlineNotification type='error' title={t('Common.Warning')}>
-          <p>{t('Login.The application is open in another window')}</p>
-        </InlineNotification>
-      </div>
+      <InlineNotification type='error' title={t('Common.Warning')}>
+        <p>{t('Login.The application is open in another window')}</p>
+      </InlineNotification>
     )
-  ) : (
-    <></>
-  )
+  ) : null
 
   let errorOTPAlert = onOTPError ? (
-    <div className='relative w-full mt-2'>
-      <InlineNotification
-        type='error'
-        title={t('Login.OTP verification failed')}
-      >
-        <p>{t('Login.The code you entered is invalid or has expired. Please check your authenticator app and try again.') || ''}</p>
-      </InlineNotification>
-    </div>
-  ) : (
-    <></>
-  )
+    <InlineNotification type='error' title={t('Login.OTP verification failed')}>
+      <p>
+        {t(
+          'Login.The code you entered is invalid or has expired. Please check your authenticator app and try again.',
+        ) || ''}
+      </p>
+    </InlineNotification>
+  ) : null
 
   const router = useRouter()
   const usernameRef = useRef() as React.MutableRefObject<HTMLInputElement>
   const passwordRef = useRef() as React.MutableRefObject<HTMLInputElement>
   const otpInputRef = useRef() as React.MutableRefObject<OTPInputRef>
+  const signingInRef = useRef(false)
 
   const suppress2faToastPreferenceKey = 'suppress-2fa-toast'
   const openSetupDrawerStorageKey = 'open-2fa-setup-drawer'
@@ -345,14 +354,24 @@ export default function Login() {
     }
   }
 
+  const showSignInError = (message: string) => {
+    setUserNotAuthorized(false)
+    setOnError(true)
+    setMessaggeError(message)
+  }
+
   const doLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (signingInRef.current) {
+      return
+    }
+    signingInRef.current = true
     setLoading(true)
+    setOnError(false)
 
-    if (window !== undefined) {
+    try {
       const username = usernameRef?.current?.value?.toLowerCase()
       const password = passwordRef?.current?.value
-      setOnError(false)
 
       const res = await fetch(
         // @ts-ignore
@@ -389,13 +408,12 @@ export default function Login() {
 
         if (jwtClaims && jwtClaims['2fa']) {
           setShowOTPVerification(true)
-          setLoading(false)
           // Focus OTP input after showing it
           setTimeout(() => otpInputRef.current?.focus(), 100)
           return
-        } else {          
+        } else {
           // No 2FA required, proceed with login
-          handleLogin(token, username)
+          await handleLogin(token, username)
         }
       } else {
         const data = await res.json().catch(() => null)
@@ -405,14 +423,28 @@ export default function Login() {
           setExpiredPasswordPolicy(data?.data?.policy || null)
           setShowPasswordChange(true)
         } else if (callStatus === 401) {
-          setOnError(true)
-          setMessaggeError(`${t('Login.Wrong username or password')}`)
+          showSignInError(`${t('Login.Wrong username or password')}`)
         } else if (callStatus === 404) {
-          setOnError(true)
-          setMessaggeError(`${t('Login.Network connection is lost')}`)
+          showSignInError(`${t('Login.Network connection is lost')}`)
+        } else if (callStatus === 429) {
+          showSignInError(
+            `${t('Login.Too many failed attempts. Wait a few minutes and try again.')}`,
+          )
+        } else {
+          showSignInError(
+            `${t('Login.The server did not answer as expected. Try again in a moment.')}`,
+          )
         }
-        setLoading(false)
       }
+    } catch (error) {
+      showSignInError(
+        error instanceof TypeError
+          ? `${t('Login.Network connection is lost')}`
+          : `${t('Login.The server did not answer as expected. Try again in a moment.')}`,
+      )
+    } finally {
+      signingInRef.current = false
+      setLoading(false)
     }
   }
 
@@ -427,8 +459,9 @@ export default function Login() {
         userPreferenceOnLogin?.profile?.macro_permissions?.nethvoice_cti?.value
       ) {
         setUserNotAuthorized(false)
+        updateRememberedUsername(usernameStorage, username, rememberUsername)
         await showTwoFactorToastIfNeeded(username)
-        router.push('/')
+        navigateAfterSignIn(() => router.push('/'))
       } else {
         setUserNotAuthorized(true)
         setOnError(true)
@@ -448,6 +481,7 @@ export default function Login() {
     }
     setLoading(false)
     checkDarkTheme()
+    checkDensity()
   }
 
   const verifyOTP = async (e: React.FormEvent) => {
@@ -481,86 +515,101 @@ export default function Login() {
   const productSubname = getProductSubname()
   const productTabTitle = getBrandedTabTitle(productSubname || 'CTI')
 
-  const [isFirsThemeControl, setIsFirsThemeControl] = useState(true)
-  const [isDarkTheme, setIsDarkTheme] = useState(false)
+  const runtimeConfig = getRuntimeConfig()
+  const loginLogos = getLoginLogos(runtimeConfig)
+  const loginBackgrounds = getLoginBackgroundLayers(runtimeConfig)
+  const brandName = getBrandName() || 'NethVoice'
+  const backgroundStyle = {
+    '--login-bg-light': loginBackgrounds.light,
+    '--login-bg-dark': loginBackgrounds.dark,
+  } as CSSProperties
 
-  useEffect(() => {
-    if (isFirsThemeControl) {
-      setIsFirsThemeControl(false)
-      return
-    }
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setIsDarkTheme(true)
-    } else {
-      setIsDarkTheme(false)
-    }
-  }, [isFirsThemeControl])
+  const signInIcon = (
+    <FontAwesomeIcon
+      icon={loading ? faCircleNotch : faArrowRightToBracket}
+      className={loading ? 'fa-spin mr-2 h-4 w-4' : 'mr-2 h-4 w-4'}
+      aria-hidden='true'
+    />
+  )
 
-  const showPeopleImage = getPeopleImageVisibilityValue()
-
-  const otpVerificationTemplate = () => {
-    return (
-      <div className='max-w-sm sm:w-96'>
-        <div>
-          <h3 className='text-lg font-medium text-gray-900 dark:text-gray-100 mb-2'>
-            {t('Login.Two-Factor Authentication')}
-          </h3>
-          <p className='text-sm text-gray-600 dark:text-gray-400'>
-            {t(
-              'Login.Enter the 6-digit code (OTP code) from your authenticator app. If you cannot access the app, you can use one recovery OTP code.',
-            )}
-          </p>
-        </div>
-
-        <div className='pt-6'>{errorOTPAlert}</div>
-
-        {/* OTP input section */}
-        <div className='pt-6'>
-          <form onSubmit={verifyOTP} className='space-y-6'>
-            <div className='flex flex-col space-y-2 text-center'>
-              <p className='text-sm text-gray-600 dark:text-gray-200 mb-2'>{t('Login.OTP code')}</p>
-              <OTPInput
-                ref={otpInputRef}
-                value={otpCode}
-                onChange={setOtpCode}
-                length={6}
-                disabled={loading}
-                className='justify-center'
-                error={onOTPError}
-              />
-            </div>
-
-            <div className='space-y-4'>
-              <Button
-                size='large'
-                fullHeight={true}
-                fullWidth={true}
-                variant='primary'
-                type='submit'
-                disabled={loading || otpCode.length !== 6}
-              >
-                <span className='font-medium leading-5 text-sm'>{t('Login.Sign in')}</span>
-                {loading && <FontAwesomeIcon icon={faCircleNotch} className='fa-spin ml-2' />}
-              </Button>
-            </div>
-          </form>
-        </div>
+  const otpVerificationTemplate = () => (
+    <div className='flex flex-col gap-6'>
+      <div className='flex flex-col gap-2'>
+        <h2 className='text-lg font-medium text-gray-900 dark:text-gray-100'>
+          {t('Login.Two-Factor Authentication')}
+        </h2>
+        <p className='text-sm text-gray-600 dark:text-gray-400'>
+          {t(
+            'Login.Enter the 6-digit code (OTP code) from your authenticator app. If you cannot access the app, you can use one recovery OTP code.',
+          )}
+        </p>
       </div>
-    )
-  }
+      {errorOTPAlert}
+      <form onSubmit={verifyOTP} className='flex flex-col gap-6'>
+        <div className='flex flex-col gap-2 text-center'>
+          <p className='text-sm text-gray-600 dark:text-gray-200'>{t('Login.OTP code')}</p>
+          <OTPInput
+            ref={otpInputRef}
+            value={otpCode}
+            onChange={setOtpCode}
+            length={6}
+            disabled={loading}
+            className='justify-center'
+            error={onOTPError}
+          />
+        </div>
+        <Button
+          size='large'
+          fullWidth={true}
+          variant='primary'
+          type='submit'
+          className='h-9'
+          disabled={loading || otpCode.length !== 6}
+        >
+          {signInIcon}
+          <span>{t('Login.Sign in')}</span>
+        </Button>
+      </form>
+    </div>
+  )
+
+  const logoClassName = 'h-10 w-auto max-w-full object-contain'
+  const logoAlt = t('Common.Brand logo', { brand: brandName }) || ''
+
+  const onLogoError = () => setLogoFailed(true)
 
   const productHeader = () => (
-    <div className='flex flex-col items-center justify-center'>
-      {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        className='mx-auto w-auto max-h-[70px] items-center object-contain object-bottom fill-current text-primary dark:text-primaryDark'
-        src={!isDarkTheme ? '/login_logo.svg' : '/login_logo_dark.svg'}
-        alt='logo'
-      />
-      <div className='text-primary dark:text-primaryDark pt-5 text-lg font-regular'>
-        {productSubname}
-      </div>
+    <div className='mb-6 flex flex-col items-center gap-5 text-center'>
+      {!loginLogos || logoFailed ? (
+        <span className='text-2xl font-medium text-primary dark:text-primaryDark'>{brandName}</span>
+      ) : loginLogos.light === loginLogos.dark ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className={logoClassName} src={loginLogos.light} alt={logoAlt} onError={onLogoError} />
+      ) : (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className={`${logoClassName} dark:hidden`}
+            src={loginLogos.light}
+            alt={logoAlt}
+            onError={onLogoError}
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className={`${logoClassName} hidden dark:block`}
+            src={loginLogos.dark}
+            alt={logoAlt}
+            onError={onLogoError}
+          />
+        </>
+      )}
+      {productSubname ? (
+        <h1 className='text-2xl font-normal text-primary dark:text-primaryDark'>
+          {productSubname}
+        </h1>
+      ) : (
+        <h1 className='sr-only'>{productTabTitle}</h1>
+      )}
     </div>
   )
 
@@ -582,46 +631,37 @@ export default function Login() {
   const passwordChangeTemplate = () => {
     if (isPasswordUpdated) {
       return (
-        <div className='max-w-sm sm:w-[26.25rem] flex flex-col gap-8'>
-          {productHeader()}
+        <div className='flex flex-col gap-8'>
           <div className='flex flex-col items-center gap-3 text-center'>
             <div className='flex h-12 w-12 items-center justify-center rounded-full bg-surfaceToastSuccess dark:bg-surfaceToastSuccessDark'>
               <FontAwesomeIcon
                 icon={faCircleCheck}
                 className='h-6 w-6 text-iconSuccess dark:text-iconSuccessDark'
+                aria-hidden='true'
               />
             </div>
             <div className='flex flex-col gap-1'>
-              <h3 className='text-2xl font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
+              <h2 className='text-2xl font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
                 {t('Password.Password updated')}
-              </h3>
+              </h2>
               <p className='text-sm text-tertiaryNeutral dark:text-tertiaryNeutralDark'>
                 {t('Password.Sign in with your new password to continue.')}
               </p>
             </div>
           </div>
-          <Button
-            size='large'
-            fullHeight={true}
-            fullWidth={true}
-            variant='primary'
-            onClick={continueToSignIn}
-          >
-            <span className='font-medium leading-5 text-sm'>
-              {t('Password.Continue to sign in')}
-            </span>
+          <Button size='large' fullWidth={true} variant='primary' onClick={continueToSignIn}>
+            <span>{t('Password.Continue to sign in')}</span>
           </Button>
         </div>
       )
     }
 
     return (
-      <div className='max-w-sm sm:w-[26.25rem] flex flex-col gap-8'>
-        {productHeader()}
+      <div className='flex flex-col gap-8'>
         <div className='flex flex-col gap-1'>
-          <h3 className='text-xl font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
+          <h2 className='text-xl font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
             {t('Password.Update your password')}
-          </h3>
+          </h2>
           <p className='text-sm text-tertiaryNeutral dark:text-tertiaryNeutralDark'>
             {t('Password.Your password has expired, create a new one to continue')}
           </p>
@@ -642,75 +682,98 @@ export default function Login() {
     )
   }
 
+  const passwordToggleLabel = pwdVisible ? t('Password.Hide password') : t('Password.Show password')
+
+  const passwordToggle = (
+    <button
+      type='button'
+      onClick={() => setPwdVisible(!pwdVisible)}
+      onFocus={() => setPasswordTooltipHidden(false)}
+      onMouseEnter={() => setPasswordTooltipHidden(false)}
+      onBlur={() => setPasswordTooltipHidden(true)}
+      aria-label={passwordToggleLabel}
+      data-tooltip-id='tooltip-login-password-visibility'
+      data-tooltip-content={passwordToggleLabel}
+      data-tooltip-hidden={passwordTooltipHidden}
+      className='flex items-center justify-center rounded text-inputIcon focus:outline-none focus-visible:ring-2 focus-visible:ring-primaryLight dark:text-inputIconDark dark:focus-visible:ring-primaryDark'
+    >
+      <FontAwesomeIcon icon={pwdVisible ? faEyeSlash : faEye} className='h-4 w-4' aria-hidden='true' />
+    </button>
+  )
+
+  const fieldLabelClassName = 'block text-sm font-medium text-gray-700 dark:text-gray-200'
+
   const loginTemplate = () => {
-    // SSO mode: with an external authentication method the login page offers
-    // an SSO button instead of the password form.
-    const ssoConfig: any = (typeof window !== 'undefined' && (window as any).CONFIG) || {}
+    const ssoConfig: any = runtimeConfig || {}
     const isSsoMethod = isSsoAuthentication(ssoConfig)
     const ssoLoginUrl = isSsoMethod ? ssoConfig.SSO_LOGIN_URL || '/sso' : ''
-    const ssoButtonLabel =
-      ssoConfig.SSO_BUTTON_LABEL || t('Login.Sign in with SSO')
+    const ssoButtonLabel = ssoConfig.SSO_BUTTON_LABEL || t('Login.Sign in with SSO')
     const ssoIdpName = ssoConfig.SSO_IDP_NAME || ''
     const ssoIdpLogo = ssoConfig.SSO_IDP_LOGO || ''
 
-    return (
-      <div className='max-w-sm sm:w-96'>
-        {productHeader()}
-        {errorAlert}
-        {ssoLoginUrl ? (
-          <div className='pt-6'>
+    if (ssoLoginUrl) {
+      return (
+        <div className='flex flex-col gap-6'>
+          {errorAlert}
+          <div className='flex flex-col gap-4'>
             <Button
               size='large'
-              fullHeight={true}
               fullWidth={true}
               variant='primary'
+              className='h-9'
               onClick={() => {
                 window.location.href = ssoLoginUrl
               }}
             >
-              <span className='font-medium leading-5 text-sm'>{ssoButtonLabel}</span>
+              <FontAwesomeIcon
+                icon={faArrowRightToBracket}
+                className='mr-2 h-4 w-4'
+                aria-hidden='true'
+              />
+              <span>{ssoButtonLabel}</span>
             </Button>
             {(ssoIdpName || ssoIdpLogo) && (
-              <div className='flex items-center justify-center gap-2 pt-4'>
+              <div className='flex items-center justify-center gap-2'>
                 {ssoIdpLogo && (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={ssoIdpLogo} alt='' className='h-5 w-auto' />
                 )}
                 {ssoIdpName && (
-                  <span className='text-sm text-gray-700 dark:text-gray-200'>
-                    {ssoIdpName}
-                  </span>
+                  <span className='text-sm text-gray-700 dark:text-gray-200'>{ssoIdpName}</span>
                 )}
               </div>
             )}
           </div>
-        ) : (
-        <div className='pt-6'>
-          <form action='#' method='POST' onSubmit={doLogin} className='space-y-8'>
-            <div>
-              <label
-                htmlFor='username'
-                className='block text-sm font-medium text-gray-700 dark:text-gray-200'
-              >
-                {t('Login.User')}
-              </label>
-              <div className='mt-2'>
-                <TextInput
-                  placeholder=''
-                  name='username'
-                  ref={usernameRef}
-                  error={onError ? true : false}
-                  required
-                  autoComplete='username'
-                  autoFocus
-                  id='username'
-                ></TextInput>
-              </div>
+        </div>
+      )
+    }
+
+    return (
+      <form action='#' method='POST' onSubmit={doLogin} className='flex flex-col gap-6'>
+        {errorAlert}
+        <div className='flex flex-col gap-8'>
+          <div>
+            <label htmlFor='username' className={fieldLabelClassName}>
+              {t('Login.User')}
+            </label>
+            <div className='mt-2'>
+              <TextInput
+                placeholder=''
+                name='username'
+                ref={usernameRef}
+                error={onError}
+                required
+                autoComplete='username'
+                autoFocus={!rememberedUsername}
+                defaultValue={rememberedUsername}
+                id='username'
+                className='[&_input]:h-9'
+              />
             </div>
+          </div>
+          <div className='flex flex-col gap-3'>
             <div>
-              <label
-                htmlFor='password'
-                className='block text-sm font-medium text-gray-700 dark:text-gray-200'
-              >
+              <label htmlFor='password' className={fieldLabelClassName}>
                 {t('Login.Password')}
               </label>
               <div className='mt-2'>
@@ -718,77 +781,68 @@ export default function Login() {
                   placeholder=''
                   name='password'
                   type={pwdVisible ? 'text' : 'password'}
-                  icon={pwdVisible ? faEye : faEyeSlash}
-                  onIconClick={() => setPwdVisible(!pwdVisible)}
-                  trailingIcon={true}
-                  error={onError ? true : false}
+                  trailingComponent={passwordToggle}
+                  error={onError}
                   ref={passwordRef}
                   required
                   autoComplete='current-password'
+                  autoFocus={!!rememberedUsername}
                   id='password'
+                  className='[&_input]:h-9'
                 />
               </div>
             </div>
-            <div>
-              <Button
-                size='large'
-                fullHeight={true}
-                fullWidth={true}
-                variant='primary'
-                type='submit'
+            <div className='flex h-6 items-center'>
+              <input
+                id='remember-username'
+                name='remember-username'
+                type='checkbox'
+                checked={rememberUsername}
+                onChange={(event) => setRememberUsername(event.target.checked)}
+                className='h-4 w-4 rounded border-gray-300 text-primary focus:ring-primaryLight focus:ring-offset-gray-50 dark:border-gray-600 dark:bg-bgInputDark dark:text-primaryDark dark:checked:bg-primaryDark dark:focus:ring-primaryDark dark:focus:ring-offset-gray-900'
+              />
+              <label
+                htmlFor='remember-username'
+                className='ml-2.5 text-sm font-normal leading-5 text-gray-700 dark:text-gray-200'
               >
-                <span className='font-medium leading-5 text-sm'>{t('Login.Sign in')}</span>
-                {iconSelect}
-              </Button>
+                {t('Login.Remember username')}
+              </label>
             </div>
-          </form>
+          </div>
         </div>
-        )}
-      </div>
+        <Button
+          size='large'
+          fullWidth={true}
+          variant='primary'
+          type='submit'
+          className='h-9'
+          disabled={loading}
+        >
+          {signInIcon}
+          <span>{t('Login.Sign in')}</span>
+        </Button>
+        <CustomThemedTooltip id='tooltip-login-password-visibility' place='top' />
+      </form>
     )
   }
 
   return (
-    <div className='relative min-h-screen'>
+    <div
+      className='fixed inset-0 overflow-y-auto bg-body bg-cover bg-center bg-no-repeat text-gray-700 [--density:1] [--spacing:0.25rem] bg-[image:var(--login-bg-light)] dark:bg-bodyDark dark:bg-[image:var(--login-bg-dark)] dark:text-gray-100'
+      style={backgroundStyle}
+    >
       <Head>
         <title>{productTabTitle}</title>
       </Head>
-
-      {/* Background image */}
-      {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        className='absolute inset-0 w-full h-full object-cover z-[-1]'
-        src='/login_background.svg'
-        alt='background'
-      />
-      <div className='text-gray-700 dark:text-gray-100'>
-        <div className='absolute inset-0 z-[1000rem] hidden lg:block'>
-          {showPeopleImage === 'show' && (
-            <>
-              {/* Nextjs <Image> is not suitable for rebranding: it always uses the aspect ratio of the original logo  */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className='w-full h-full object-contain transform -translate-x-[-20rem] xl:-translate-x-[-16rem] lg:scale-[40%] xl:scale-[60%] 2xl:scale-75'
-                src='/action_voice-cti.svg'
-                alt='image'
-              />
-            </>
-          )}
-        </div>
-
-        {/* login card */}
-        <div className='w-1/2'>
-          <div className='absolute top-1/2 left-1/2 lg:left-40 transform -translate-y-1/2 -translate-x-1/2 lg:-translate-x-0'>
-            <div className='border-b border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-900 p-10'>
-              {showOTPVerification
-                ? otpVerificationTemplate()
-                : showPasswordChange
-                ? passwordChangeTemplate()
-                : loginTemplate()}
-            </div>
-          </div>
-        </div>
+      <div className='flex min-h-full items-center justify-center p-4'>
+        <main className='w-full max-w-[31.25rem] rounded-xl bg-gray-50 px-6 py-14 shadow-lg dark:bg-gray-900 sm:px-10'>
+          {productHeader()}
+          {showOTPVerification
+            ? otpVerificationTemplate()
+            : showPasswordChange
+            ? passwordChangeTemplate()
+            : loginTemplate()}
+        </main>
       </div>
     </div>
   )

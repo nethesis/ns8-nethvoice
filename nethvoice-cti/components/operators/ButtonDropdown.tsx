@@ -66,7 +66,7 @@ export const ButtonDropdown: React.FC<ButtonDropdownProps> = ({
         <FontAwesomeIcon icon={isTransfer ? faRightLeft : faPhone} className='mr-2 h-4 w-4' />
         <span>{t(isTransfer ? 'Operators.Transfer' : 'Operators.Call')}</span>
         {!isTransfer && (
-          <span className='absolute right-0 top-1/2 -translate-y-1/2 w-[2.5px] h-5 bg-white dark:bg-gray-950'></span>
+          <span className='absolute right-0 top-1/2 -translate-y-1/2 w-[calc(2.5px*var(--density))] h-5 bg-white dark:bg-gray-950'></span>
         )}
       </button>
 
@@ -89,7 +89,7 @@ export const ButtonDropdown: React.FC<ButtonDropdownProps> = ({
             leaveFrom='transform opacity-100 scale-100'
             leaveTo='transform opacity-0 scale-95'
           >
-            <MenuItems className='absolute right-[-7.5rem] z-10 -mr-1 mt-2 w-56 origin-top-right bg-white shadow-lg rounded-md ring-1 ring-black ring-opacity-5 focus:outline-none'>
+            <MenuItems className='absolute right-[calc(-7.5rem*var(--density))] z-10 -mr-1 mt-2 w-56 origin-top-right bg-white shadow-lg rounded-md ring-1 ring-black ring-opacity-5 focus:outline-none'>
               <div className='py-1 flex-col overflow-hidden shadow-lg ring-1 ring-gray-200 dark:ring-gray-700 ring-opacity-1 rounded-md dark:border-gray-700 dark:bg-gray-900'>
                 {Object.entries(operatorDevices)
                   .filter(([key, value]) => value !== undefined && value !== null)

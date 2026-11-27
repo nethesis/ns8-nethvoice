@@ -110,6 +110,55 @@ if ((int)$db->query($sql)->fetchColumn() === 0) {
 	$db->exec('ALTER TABLE `roomsdb`.`room_groups` ADD UNIQUE KEY `unique_fias_guest_group_number` (`fias_guest_group_number`)');
 }
 
+$sql = "SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_cti_profiles_paramurl'
+          AND COLUMN_NAME = 'name'";
+if ((int)$db->query($sql)->fetchColumn() === 0) {
+	$db->exec("ALTER TABLE `asterisk`.`rest_cti_profiles_paramurl` ADD COLUMN `name` varchar(50) NOT NULL DEFAULT '' AFTER `only_queues`");
+}
+require_once '/var/www/html/freepbx/rest/lib/libParamUrls.php';
+nethvoiceFillParamUrlNames($db);
+
+$sql = "SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_cti_streaming'
+          AND COLUMN_NAME = 'guard_addresses'";
+if ((int)$db->query($sql)->fetchColumn() === 0) {
+	$db->exec("ALTER TABLE `asterisk`.`rest_cti_streaming` ADD COLUMN `guard_addresses` tinyint(1) NOT NULL DEFAULT '0' AFTER `open`");
+}
+
+$db->exec("CREATE TABLE IF NOT EXISTS `asterisk`.`rest_phonebook_imports` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` int(10) unsigned NOT NULL,
+  `owner` varchar(255) NOT NULL,
+  `filename` varchar(255) DEFAULT NULL,
+  `type` varchar(1024) NOT NULL,
+  `total` int(10) unsigned NOT NULL DEFAULT '0',
+  `imported` int(10) unsigned NOT NULL DEFAULT '0',
+  `skipped` int(10) unsigned NOT NULL DEFAULT '0',
+  `failed` int(10) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `created_at_key` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$db->exec("CREATE TABLE IF NOT EXISTS `asterisk`.`rest_domain_admins` (
+  `username` varchar(190) NOT NULL,
+  `domain` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `synced_at` datetime DEFAULT NULL,
+  `key_issued_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+$sql = "SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_domain_admins'
+          AND COLUMN_NAME = 'key_issued_at'";
+if ((int)$db->query($sql)->fetchColumn() === 0) {
+	$db->exec("ALTER TABLE `asterisk`.`rest_domain_admins` ADD COLUMN `key_issued_at` datetime DEFAULT NULL AFTER `synced_at`");
+}
+
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
 $sql = 'SELECT id FROM `asterisk`.`rest_cti_profiles` WHERE name = "Hotel"';

@@ -57,7 +57,7 @@ const GroupedOperatorList = ({
     'grid grid-cols-1 gap-x-5 gap-y-4 lg:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 5xl:grid-cols-5 6xl:grid-cols-6'
   // The chat panel is wider than the other tabs: columns follow the space left, not the window.
   const classNameChatOpen =
-    'grid gap-x-5 gap-y-4 grid-cols-[repeat(auto-fill,minmax(min(384px,100%),1fr))]'
+    'grid gap-x-5 gap-y-4 grid-cols-[repeat(auto-fill,minmax(min(calc(384px*var(--density)),100%),1fr))]'
 
   const [currentCols, setCurrentCols] = useState(1)
   const gridRef = useRef<HTMLUListElement>(null)
@@ -108,7 +108,7 @@ const GroupedOperatorList = ({
               className={`${chatOpen ? classNameChatOpen : isSidebarOpen ? classNameSidebarOpen : classNameSidebarClosed}`}
             >
               {Array.from(Array(skeletonItemsCount)).map((e, operatorIndex) => (
-                <li key={operatorIndex} className='min-w-[384px]'>
+                <li key={operatorIndex} className='min-w-[calc(384px*var(--density))]'>
                   <div className='group flex w-full items-center justify-between rounded-lg py-2 px-3 h-16 gap-3 text-left focus:outline-none focus:ring-2 focus:ring-offset-2 bg-cardBackgroud dark:bg-cardBackgroudDark focus:ring-primary dark:focus:ring-primary'>
                     {/* Avatar skeleton */}
                     <span className='flex-shrink-0'>
@@ -168,7 +168,7 @@ const GroupedOperatorList = ({
               className='overflow-hidden ml-1 mb-5 mt-4'
               icon={<FontAwesomeIcon icon={faUserGroup} className='h-4 w-4' />}
             >
-              <div className='text-xs font-medium leading-4 w-auto max-w-[150px] px-1 truncate'>
+              <div className='text-xs font-medium leading-4 w-auto max-w-[calc(150px*var(--density))] px-1 truncate'>
                 {upperCaseFirstLetter(category?.category)}
               </div>
             </Badge>
@@ -182,7 +182,7 @@ const GroupedOperatorList = ({
             {category?.members?.map((operator: any, operatorIndex: number) => (
               <li
                 key={operator?.username || `${categoryIndex}-${operatorIndex}`}
-                className='min-w-[384px]'
+                className='min-w-[calc(384px*var(--density))]'
               >
                 <CompactOperatorCard
                   operator={operator}

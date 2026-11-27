@@ -5,7 +5,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 #
 
+import json
+import sys
+
 import agent
+
+request = json.loads(sys.stdin.read() or '{}')
 
 
 # Cleanup the environment
@@ -15,6 +20,8 @@ agent.mset_env({
     'NETHVOICE_USER_PORTAL_NODE': '',
 })
 agent.unset_env('RESTART_SERVICES')
+if not request.get('replace'):
+    agent.unset_env('NETHVOICE_ADMIN_GROUP_PREFIX')
 # per-install SSO secrets (stored in passwords.env): drop them so the clone
 # regenerates its own at configure
 passwords = agent.read_envfile('passwords.env')

@@ -1,0 +1,11 @@
+[Unit]
+Description=Re-read the NethVoice administrators from the user domain
+After=freepbx.service
+
+[Service]
+Type=oneshot
+ExecCondition=/usr/bin/systemctl --user --quiet is-active freepbx.service
+ExecStart=/usr/bin/podman exec --user asterisk freepbx php /var/www/html/freepbx/rest/lib/domainAdminsSync.php
+SyslogIdentifier=%u/%N
+StandardOutput=null
+LogLevelMax=warning

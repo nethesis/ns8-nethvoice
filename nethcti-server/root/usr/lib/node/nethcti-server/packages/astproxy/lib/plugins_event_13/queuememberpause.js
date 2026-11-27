@@ -63,7 +63,7 @@ var astProxy;
             // extract the queue member identifier. e.g. data.interface is: "Local/214@from-queue/n"
             var memberId = data.interface.split('@')[0].split('/')[1];
             var paused = (data.paused === '1' ? true : false);
-            var reason = (data.reason ? data.reason : '');
+            var reason = data.pausedreason || data.reason || '';
 
             astProxy.proxyLogic.evtQueueMemberPausedChanged(data.queue, memberId, paused, reason);
 

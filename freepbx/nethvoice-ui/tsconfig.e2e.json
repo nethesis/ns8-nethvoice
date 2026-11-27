@@ -1,0 +1,17 @@
+{
+  // The Playwright suite runs in Node, not the browser: it reads the apitool
+  // registry off disk and drives a real browser out of process, so it is checked
+  // against the Node config rather than tsconfig.app.json (which is DOM-typed and
+  // scoped to src/). Same base and rationale as tsconfig.node.json.
+  "extends": "@tsconfig/node24/tsconfig.json",
+  "include": ["e2e/**/*", "playwright.config.*"],
+  "compilerOptions": {
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.e2e.tsbuildinfo",
+
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ESNext", "DOM"],
+    "types": ["node"]
+  }
+}

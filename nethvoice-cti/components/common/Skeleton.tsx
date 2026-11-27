@@ -56,7 +56,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
 export const CallSkeleton: React.FC = () => {
   return (
     <div className='flex justify-between gap-3'>
-      <div className='flex shrink-0 h-min items-center min-w-[48px]'>
+      <div className='flex shrink-0 h-min items-center min-w-[calc(48px*var(--density))]'>
         <div className='h-2 w-2 flex'>
           <span className='h-2 w-2'></span>
         </div>

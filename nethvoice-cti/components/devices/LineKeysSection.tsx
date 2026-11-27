@@ -485,7 +485,7 @@ export const LineKeysSection: FC<LineKeysSectionProps> = ({ deviceId, phoneName 
                     icon={faGripVertical}
                     className='h-4 w-4 shrink-0 cursor-grab text-secondaryNeutral dark:text-secondaryNeutralDark'
                   />
-                  <span className='w-[30px] shrink-0 text-base font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
+                  <span className='w-[calc(30px*var(--density))] shrink-0 text-base font-medium text-secondaryNeutral dark:text-secondaryNeutralDark'>
                     {key.position}-
                   </span>
                   {key.type ? (

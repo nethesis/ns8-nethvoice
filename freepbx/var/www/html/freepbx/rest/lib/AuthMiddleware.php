@@ -26,6 +26,8 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 
+require_once __DIR__ . '/Permissions.php';
+
 class AuthMiddleware implements MiddlewareInterface
 {
     private $secret = NULL;
@@ -46,7 +48,7 @@ class AuthMiddleware implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $isTestAuthPath = $request->getUri()->getPath() === '/freepbx/rest/testauth';
+        $isTestAuthPath = in_array($request->getUri()->getPath(), ['/freepbx/rest/testauth', '/freepbx/rest/signin'], true);
         if (strtoupper($request->getMethod()) === 'OPTIONS') {
             return $this->responseFactory->createResponse(204);
         }
@@ -62,22 +64,29 @@ class AuthMiddleware implements MiddlewareInterface
         $given_user = $request->getHeaderLine('User');
         $given_secret = $request->getHeaderLine('Secretkey');
 
-        $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE sections LIKE '%*%' AND username = ?");
+        $stmt = $dbh->prepare("SELECT a.*, d.username AS nethvoice_managed, d.key_issued_at AS nethvoice_key_issued_at FROM ampusers a LEFT JOIN rest_domain_admins d ON d.username = a.username WHERE a.username = ?");
         $stmt->execute(array($given_user));
         $user = $stmt->fetch(\PDO::FETCH_ASSOC) ?: array();
         $password_sha1 = $user['password_sha1'] ?? '';
         $username = $user['username'] ?? '';
+        $permissions = $username ? nethvoicePermissionsFor($user) : [];
 
-        # check the user is valid and is an admin (sections = *)
-        if (!$username) {
+        if (!$username || !$permissions) {
             return $this->jsonResponse(['error' => 'Forbidden: invalid user'], 403);
         }
         $hash = sha1($username . $password_sha1 . $this->secret);
         if (!hash_equals($hash, $given_secret)) {
             return $this->jsonResponse(['error' => 'Forbidden: wrong secret key'], 403);
         }
+        if (($user['nethvoice_managed'] ?? null) !== null && nethvoiceAdminKeyExpired($user['nethvoice_key_issued_at'] ?? null, time())) {
+            return $this->jsonResponse(['error' => 'Unauthorized: session expired', 'code' => 'session_expired'], 401);
+        }
 
-        return $handler->handle($request);
+        return $handler->handle(
+            $request
+                ->withAttribute(NETHVOICE_USERNAME_ATTRIBUTE, $username)
+                ->withAttribute(NETHVOICE_PERMISSIONS_ATTRIBUTE, $permissions)
+        );
     }
 
     private function jsonResponse(array $payload, int $status): ResponseInterface

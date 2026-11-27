@@ -11,7 +11,8 @@ import unittest
 from pathlib import Path
 
 
-IMPORTER = Path(__file__).resolve().parents[2] / "freepbx/var/www/html/freepbx/rest/lib/csvimport.php"
+LIB = Path(__file__).resolve().parents[2] / "freepbx/var/www/html/freepbx/rest/lib"
+IMPORTER = LIB / "csvimport.php"
 
 
 @unittest.skipUnless(shutil.which("php"), "PHP CLI is required")
@@ -35,8 +36,9 @@ function getUserID($username) {
 }
 function triggerMiddlewareProfilesReload() {}
 ''')
-        for name in ("libExtensions.php", "libCTI.php", "libMiddleware.php", "libMigration.php"):
+        for name in ("libExtensions.php", "libCTI.php", "libMiddleware.php", "libMigration.php", "libCTIGroups.php"):
             (self.root / name).write_text("<?php\n")
+        shutil.copy(LIB / "libCsvImport.php", self.root / "libCsvImport.php")
         sync = self.root / "fwconsole"
         sync.write_text('''#!/bin/sh
 sleep 0.2
@@ -49,6 +51,11 @@ touch "$TEST_SYNCED"
         retrieve = self.root / "retrieveHelper.sh"
         retrieve.write_text("#!/bin/sh\nexit 0\n")
         retrieve.chmod(0o755)
+        (self.root / "libUsersAdmin.php").write_text(
+            (LIB / "libUsersAdmin.php").read_text()
+            .replace("/usr/bin/fwconsole", str(sync))
+            .replace("/var/run/nethvoice/", str(self.root) + "/")
+        )
         self.script = self.root / "csvimport.php"
         self.script.write_text(
             IMPORTER.read_text()
@@ -78,7 +85,8 @@ touch "$TEST_SYNCED"
         self.assertEqual(result.returncode, 1)
         self.assertFalse(self.lookup.exists())
         self.assertEqual(status["exitcode"], 1)
-        self.assertIn("FreePBX user synchronization failed (exit 7)", status["errors"])
+        self.assertIn("FreePBX user synchronization failed", status["errors"])
+        self.assertEqual(status["problems"], [{"code": "sync_failed"}])
 
 
 if __name__ == "__main__":

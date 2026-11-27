@@ -2,7 +2,7 @@
   <rawname>nethcti3</rawname>
   <repo>unsupported</repo>
   <name>NethCTI 3 Configuration Module</name>
-  <version>1.5.1</version>
+  <version>1.5.3</version>
   <category>Applications</category>
   <Publisher>Nethesis</Publisher>
   <info></info>
@@ -20,10 +20,14 @@
 <hooks>
     <userman class="Userman" namespace="FreePBX\modules">
         <method callingMethod="updateUser" class="Nethcti3" namespace="FreePBX\modules">usermanUpdateUser</method>
+        <method callingMethod="addUser" class="Nethcti3" namespace="FreePBX\modules">usermanAddUser</method>
+        <method callingMethod="delUser" class="Nethcti3" namespace="FreePBX\modules">usermanDelUser</method>
     </userman>
 </hooks>
 <description>Generate NethCTI 3 Configuration hooking apply config</description>
 <changelog>
+  *1.5.3* Keep the extensions of deleted Userman users until they are restored or deleted
+  *1.5.2* Release the extensions and phones of deleted Userman users
   *1.5.1* Synchronize Userman display names with linked extensions
 </changelog>
 </module>

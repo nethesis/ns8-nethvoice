@@ -161,6 +161,10 @@ function setCompUtil(comp) {
        */
       test: function(req, res, next) {
         try {
+          if (req.headers.authorization_freepbx_admin !== 'true') {
+            compUtil.net.sendHttp403(IDLOG, res);
+            return;
+          }
           if (typeof req.params.host !== 'string' ||
             typeof req.params.port !== 'string' ||
             typeof req.params.type !== 'string' ||
@@ -174,15 +178,22 @@ function setCompUtil(comp) {
 
           var username = req.headers.authorization_user;
           logger.log.info(IDLOG, 'user "' + username + '" requested db connection test');
+          var logged = JSON.stringify({
+            host: req.params.host,
+            port: req.params.port,
+            type: req.params.type,
+            user: req.params.user,
+            name: req.params.name
+          });
 
           compDbConn.testConnection(req.params.host, req.params.port, req.params.type,
             req.params.user, req.params.pass, req.params.name,
             function(err) {
               if (err) {
-                logger.log.warn(IDLOG, 'test db connection failed: ' + JSON.stringify(req.params));
+                logger.log.warn(IDLOG, 'test db connection failed: ' + logged);
                 res.send(503);
               } else {
-                logger.log.info(IDLOG, 'test db connection success: ' + JSON.stringify(req.params));
+                logger.log.info(IDLOG, 'test db connection success: ' + logged);
                 res.send(200);
               }
             });

@@ -298,20 +298,6 @@ export function getConfiguredFaviconUrl() {
   return window.CONFIG.FAVICON_URL || '/favicon.ico'
 }
 
-export function getConfiguredNavbarLogoUrl(preferDarkTheme: boolean = false) {
-  if (typeof window === 'undefined') {
-    return preferDarkTheme ? '/navbar_logo_dark.svg' : '/navbar_logo.svg'
-  }
-
-  // @ts-ignore
-  const { NAVBAR_LOGO_URL, NAVBAR_LOGO_DARK_URL } = window.CONFIG
-  const lightLogoUrl = NAVBAR_LOGO_URL || '/navbar_logo.svg'
-  // a custom logo without a dark variant is used in both themes
-  const darkLogoUrl = NAVBAR_LOGO_DARK_URL || NAVBAR_LOGO_URL || '/navbar_logo_dark.svg'
-
-  return preferDarkTheme ? darkLogoUrl : lightLogoUrl
-}
-
 export function convertToCSV(objArray: any) {
   const array = typeof objArray !== 'object' ? JSON.parse(objArray) : objArray
   let str = ''
@@ -486,14 +472,6 @@ export function getNethvoiceUrl() {
   }
   // @ts-ignore
   return `${window.CONFIG.API_SCHEME + window.CONFIG.VOICE_ENDPOINT}`
-}
-
-export function getPeopleImageVisibilityValue() {
-  if (typeof window === 'undefined') {
-    return ''
-  }
-  // @ts-ignore
-  return `${window.CONFIG.LOGIN_PEOPLE}`
 }
 
 

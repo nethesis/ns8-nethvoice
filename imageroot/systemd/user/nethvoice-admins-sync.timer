@@ -1,0 +1,10 @@
+[Unit]
+Description=Re-read the NethVoice administrators from the user domain every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=5s
+Unit=nethvoice-admins-sync.service
+
+[Install]
+WantedBy=timers.target

@@ -22,6 +22,8 @@
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
 
+require_once __DIR__ . '/../lib/libDomainAdmins.php';
+
 /*
 * /login - POST
 *
@@ -38,12 +40,14 @@ $app->get('/login', function (Request $request, Response $response) {
     if (!isset($_SESSION['AMP_user'])) {
         $_SESSION['AMP_user'] = new ampuser('admin');
     }
+    @session_regenerate_id(true);
     return jsonResponse($response, ['success' => true]);
 });
 
 $app->get('/logout', function (Request $request, Response $response) {
     session_start();
     unset($_SESSION['AMP_user']);
+    domainAdminsDefault()->signOut((string) $request->getAttribute(NETHVOICE_USERNAME_ATTRIBUTE, ''));
     return jsonResponse($response, ['success' => true]);
 });
 
@@ -53,19 +57,45 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
     $password = $params['password'];
 
     if(!empty($username)) {
+        if (!is_string($username)) {
+            return $response->withStatus(401);
+        }
+        $throttle = domainAdminsSignInThrottle();
+        if (!$throttle->available()) {
+            return jsonResponse($response, ['code' => 'throttle_unavailable', 'message' => DOMAIN_ADMINS_SIGNIN_MESSAGES['throttle_unavailable']], 503);
+        }
+        $address = domainAdminsClientAddress($request);
+        $account = domainAdminsAccountKey(FreePBX::Database(), $username);
+        $retry = $throttle->retryAfter($address, $account);
+        if ($retry !== null) {
+            return jsonResponse($response->withHeader('Retry-After', (string) $retry), ['code' => 'too_many_attempts', 'message' => DOMAIN_ADMINS_SIGNIN_MESSAGES['too_many_attempts']], 429);
+        }
         // not logged in, and have provided a user/pass
         include_once(__DIR__.'/../../admin/libraries/ampuser.class.php');
         session_start();
         $_SESSION['AMP_user'] = new ampuser($username);
-        if ($_SESSION['AMP_user']->checkPassword($password) && $_SESSION['AMP_user']->checkSection('*')) {
+        if ($_SESSION['AMP_user']->checkPassword($password) && ($_SESSION['AMP_user']->checkSection('*') || nethvoiceParseSections($_SESSION['AMP_user']->getSections()))) {
+            $throttle->succeed($address, $account);
+            if (!$_SESSION['AMP_user']->checkSection('*') && !nethvoiceKeepsFreepbxSession($_SESSION['AMP_user']->getSections())) {
+                unset($_SESSION['AMP_user']);
+                return $response->withStatus(401);
+            }
+            @session_regenerate_id(true);
             unset($no_auth);
             require(__DIR__.'/../config.inc.php');
             $secret = $config['settings']['secretkey'];
             return jsonResponse($response, ['result' => $secret], 200);
         }
+        $throttle->fail($address, $account);
     }
     unset($_SESSION['AMP_user']);
     $no_auth = true;
     return $response->withStatus(401);
 });
 
+$app->get('/me', function (Request $request, Response $response) {
+    return jsonResponse($response, [
+        'username' => $request->getAttribute(NETHVOICE_USERNAME_ATTRIBUTE),
+        'permissions' => $request->getAttribute(NETHVOICE_PERMISSIONS_ATTRIBUTE),
+    ]);
+});

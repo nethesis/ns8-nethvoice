@@ -24,7 +24,9 @@ require_once('/etc/freepbx.conf');
 try {
     # Initialize FreePBX environment
     $bootstrap_settings['freepbx_error_handler'] = false;
-    define('FREEPBX_IS_AUTH',1);
+    if (!defined('FREEPBX_IS_AUTH')) {
+        define('FREEPBX_IS_AUTH',1);
+    }
     $tftpdir = "/var/lib/tftpboot";
     $name = $argv[1] ?? '';
     if ($name === '') {

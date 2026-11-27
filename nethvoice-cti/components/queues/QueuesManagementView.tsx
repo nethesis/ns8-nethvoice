@@ -341,7 +341,11 @@ export const QueuesManagementView: FC<QueuesManagementViewProps> = ({ className 
           </div>
         </div>
         <div className='shrink-0'>
-          <LoggedStatus loggedIn={queueOperator?.loggedIn} paused={queueOperator?.paused} />
+          <LoggedStatus
+            loggedIn={queueOperator?.loggedIn}
+            paused={queueOperator?.paused}
+            pauseReason={queueOperator?.lastPausedInReason}
+          />
         </div>
       </div>
     )
@@ -402,7 +406,7 @@ export const QueuesManagementView: FC<QueuesManagementViewProps> = ({ className 
           icon={textFilter.length ? faCircleXmark : undefined}
           onIconClick={() => clearTextFilter()}
           trailingIcon={true}
-          className='max-w-xs sm:min-w-[20rem] mb-4'
+          className='max-w-xs sm:min-w-[calc(20rem*var(--density))] mb-4'
         />
         {/* login/logout and pause buttons */}
         <div className='flex flex-col md:items-end mb-3 shrink-0'>
@@ -630,6 +634,7 @@ export const QueuesManagementView: FC<QueuesManagementViewProps> = ({ className 
                           <LoggedStatus
                               loggedIn={currentQueueMember?.loggedIn}
                               paused={currentQueueMember?.paused}
+                              pauseReason={currentQueueMember?.lastPausedInReason}
                             />
                           </div>
                         </div>
@@ -754,7 +759,7 @@ export const QueuesManagementView: FC<QueuesManagementViewProps> = ({ className 
                                   ) : (
                                     <div className='-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8'>
                                       <div className='inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8'>
-                                        <div className='sm:rounded-md max-h-[12.7rem] overflow-auto  scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-thumb-opacity-50 scrollbar-track-gray-200 dark:scrollbar-track-gray-900 scrollbar-track-rounded-full scrollbar-track-opacity-25'>
+                                        <div className='sm:rounded-md max-h-[calc(12.7rem*var(--density))] overflow-auto  scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-thumb-opacity-50 scrollbar-track-gray-200 dark:scrollbar-track-gray-900 scrollbar-track-rounded-full scrollbar-track-opacity-25'>
                                           <table className='min-w-full divide-y divide-gray-300 dark:divide-gray-600'>
                                             <thead className='bg-gray-100 dark:bg-gray-800'>
                                               <tr>
@@ -838,7 +843,7 @@ export const QueuesManagementView: FC<QueuesManagementViewProps> = ({ className 
                                   ) : (
                                     <div className='-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8'>
                                       <div className='inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8'>
-                                        <div className='sm:rounded-md max-h-[17rem] overflow-auto  scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-thumb-opacity-50 scrollbar-track-gray-200 dark:scrollbar-track-gray-900 scrollbar-track-rounded-full scrollbar-track-opacity-25'>
+                                        <div className='sm:rounded-md max-h-[calc(17rem*var(--density))] overflow-auto  scrollbar-thin scrollbar-thumb-gray-400 dark:scrollbar-thumb-gray-400 scrollbar-thumb-rounded-full scrollbar-thumb-opacity-50 scrollbar-track-gray-200 dark:scrollbar-track-gray-900 scrollbar-track-rounded-full scrollbar-track-opacity-25'>
                                           <table className='min-w-full divide-y divide-gray-300 dark:divide-gray-600'>
                                             <thead className='bg-gray-100 dark:bg-gray-800'>
                                               <tr>

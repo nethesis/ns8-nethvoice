@@ -9,6 +9,7 @@ var ejs = require('ejs');
 var path = require('path');
 var async = require('async');
 var EventEmitter = require('events').EventEmitter;
+var renderTemplate = require('./render_template').renderTemplate;
 
 /**
  * Fired when the componente has been reloaded.
@@ -247,6 +248,18 @@ function getCustomerCardPreview(query, dbconnId, templateName, cb) {
         }
       });
     }
+  } catch (err) {
+    logger.log.error(IDLOG, err.stack);
+    cb(err);
+  }
+}
+
+function renderCustomerCardTemplate(template, results, cb) {
+  try {
+    if (typeof template !== 'string' || !(results instanceof Array) || typeof cb !== 'function') {
+      throw new Error('wrong parameters');
+    }
+    renderTemplate(template, results, cb);
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
     cb(err);
@@ -710,3 +723,4 @@ exports.getCustomerCardByNum = getCustomerCardByNum;
 exports.getCustomerCardsList = getCustomerCardsList;
 exports.setCompAuthorization = setCompAuthorization;
 exports.getCustomerCardPreview = getCustomerCardPreview;
+exports.renderCustomerCardTemplate = renderCustomerCardTemplate;

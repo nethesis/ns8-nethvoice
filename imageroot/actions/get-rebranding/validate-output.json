@@ -10,12 +10,20 @@
             "description": "Show if rebranding is active or not",
             "type": "boolean"
         },
-        "rebranding_brand_name": {
-            "description": "NethVoice brand name",
+        "rebranding_cached": {
+            "description": "True when my could not be reached and rebranding_active comes from the last successful check",
+            "type": "boolean"
+        },
+        "rebranding_check_failed": {
+            "description": "True when the last check on my failed",
+            "type": "boolean"
+        },
+        "rebranding_checked_at": {
+            "description": "UTC time of the successful check that rebranding_active comes from, empty if none",
             "type": "string"
         },
-        "rebranding_login_people": {
-            "description": "NethVoice rebranding show/hide people on login",
+        "rebranding_brand_name": {
+            "description": "NethVoice brand name",
             "type": "string"
         },
         "rebranding_navbar_logo_url": {
@@ -48,6 +56,10 @@
         },
         "rebranding_wizard_login_logo_url": {
             "description": "NethVoice Wizard rebranding link to login logo",
+            "type": "string"
+        },
+        "rebranding_wizard_logo_light_url": {
+            "description": "NethVoice Wizard rebranding link to the logo for light backgrounds",
             "type": "string"
         },
         "rebranding_wizard_favicon_url": {

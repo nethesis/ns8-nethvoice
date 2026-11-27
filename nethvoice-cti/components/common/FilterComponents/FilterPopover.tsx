@@ -128,7 +128,7 @@ export const FilterPopover: React.FC<FilterPopoverProps> = ({
                     icon={search.length ? faCircleXmark : undefined}
                     onIconClick={clearSearch}
                     trailingIcon={true}
-                    className='min-w-[10rem]'
+                    className='min-w-[calc(10rem*var(--density))]'
                   />
                 )}
                 {!filteredOptions.length && (

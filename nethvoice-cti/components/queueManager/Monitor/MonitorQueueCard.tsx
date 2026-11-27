@@ -68,7 +68,7 @@ export const MonitorQueueCard: FC<MonitorQueueCardProps> = ({
                     <div className='relative min-w-0'>
                       <ListboxButton
                         className={`relative max-w-full cursor-default rounded-md py-1.5 pr-10 text-left text-gray-950 dark:text-gray-300 focus:outline-none sm:text-sm sm:leading-6 ${
-                          isFullscreen ? 'w-96' : 'w-48'
+                          isFullscreen ? 'w-96' : 'w-[12rem]'
                         }  `}
                       >
                         <span className={`block truncate mr-1 font-semibold ${textSize}  `}>

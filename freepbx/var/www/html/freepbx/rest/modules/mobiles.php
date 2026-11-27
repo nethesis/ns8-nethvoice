@@ -46,8 +46,10 @@ $app->get('/mobiles/{username}', function (Request $request, Response $response,
         $sql = 'SELECT rest_users.mobile'.
           ' FROM rest_users'.
           ' JOIN userman_users ON userman_users.id = rest_users.user_id'.
-          ' WHERE userman_users.username = \''. $username. '\'';
-        $mobile = $dbh->sql($sql, 'getOne', \PDO::FETCH_ASSOC);
+          ' WHERE userman_users.username = ?';
+        $sth = $dbh->prepare($sql);
+        $sth->execute(array($username));
+        $mobile = $sth->fetchColumn();
         if ($mobile == false) {
             return jsonResponse($response, null,200);
         }

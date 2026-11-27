@@ -55,7 +55,7 @@ export const PresenceMenu: React.FC<PresenceMenuProps> = ({
             leaveTo='opacity-0 translate-y-1'
           >
             <PopoverPanel
-              className='absolute sm:mr-[4.788rem] sm:-mt-10 right-0 z-10 w-screen max-w-xs sm:-translate-x-1/2 transform px-0.5 sm:px-1 xs:mr-[6rem]'
+              className='absolute sm:-mt-10 right-0 sm:right-full sm:-mr-1 z-10 w-screen max-w-xs transform px-0.5 sm:px-1 xs:mr-[calc(6rem*var(--density))] whitespace-normal'
               onMouseEnter={() => setPresenceMenuOpen(true)}
               onMouseLeave={() => setPresenceMenuOpen(false)}
             >

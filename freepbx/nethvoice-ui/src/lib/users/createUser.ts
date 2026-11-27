@@ -1,0 +1,140 @@
+//  Copyright (C) 2026 Nethesis S.r.l.
+//  SPDX-License-Identifier: GPL-3.0-or-later
+
+import * as v from 'valibot'
+import {
+  DISPLAY_NAME_MAX_LENGTH,
+  hasSurroundingWhitespace,
+  runCsvImport,
+  serializeCsv,
+  USERNAME_MAX_LENGTH,
+  USERNAME_REGEX,
+} from '@/lib/users/csv'
+import { isValidExtension } from '@/lib/users/extensions'
+import { isValidPassword } from '@/lib/users/password'
+import {
+  applyUserSettingsSteps,
+  planUserSettingsUpdate,
+  type UserSettings,
+} from '@/lib/users/userSettings'
+import {
+  findUserByExtension,
+  findUserByUsername,
+  getSoftwareDeviceTypes,
+  getUsers,
+  type User,
+} from '@/lib/users/users'
+
+export {
+  isValidPassword,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_RULES,
+  type PasswordRuleKey,
+} from '@/lib/users/password'
+
+const MOBILE_NUMBER_REGEX = /^\+?[0-9 ().-]*$/
+
+export const NEW_ACCOUNT_ENTRIES = {
+  username: v.pipe(
+    v.string(),
+    v.trim(),
+    v.toLowerCase(),
+    v.nonEmpty('users.username_required'),
+    v.maxLength(USERNAME_MAX_LENGTH, 'users.username_too_long'),
+    v.regex(USERNAME_REGEX, 'users.username_invalid'),
+  ),
+  name: v.pipe(v.string(), v.trim(), v.nonEmpty('users.name_required')),
+  surname: v.pipe(v.string(), v.trim(), v.nonEmpty('users.surname_required')),
+  password: v.pipe(
+    v.string(),
+    v.nonEmpty('users.password_required'),
+    v.check((value) => !hasSurroundingWhitespace(value), 'users.password_surrounding_spaces'),
+    v.check(isValidPassword, 'users.password_invalid'),
+  ),
+  confirmPassword: v.pipe(v.string(), v.nonEmpty('users.confirm_password_required')),
+}
+
+export const NewUserSchema = v.pipe(
+  v.object({
+    ...NEW_ACCOUNT_ENTRIES,
+    extension: v.pipe(
+      v.string(),
+      v.trim(),
+      v.check((value) => value === '' || isValidExtension(value), 'users.extension_invalid'),
+    ),
+    mobile: v.pipe(v.string(), v.trim(), v.regex(MOBILE_NUMBER_REGEX, 'users.mobile_invalid')),
+  }),
+  v.forward(
+    v.partialCheck(
+      [['password'], ['confirmPassword']],
+      (input) => input.password === input.confirmPassword,
+      'users.passwords_do_not_match',
+    ),
+    ['confirmPassword'],
+  ),
+  v.forward(
+    v.partialCheck(
+      [['name'], ['surname']],
+      (input) => getFullName(input).length <= DISPLAY_NAME_MAX_LENGTH,
+      'users.full_name_too_long',
+    ),
+    ['name'],
+  ),
+)
+
+export type NewUser = v.InferOutput<typeof NewUserSchema>
+
+export type NewUserField = keyof NewUser
+
+export class CreatedUserNotFoundError extends Error {
+  constructor(username: string) {
+    super(username)
+    this.name = 'CreatedUserNotFoundError'
+  }
+}
+
+export const getNewUserConflicts = (
+  newUser: Pick<NewUser, 'username' | 'extension'>,
+  users: User[],
+  reservedExtensions: string[] = [],
+): Partial<Record<NewUserField, string>> => {
+  const conflicts: Partial<Record<NewUserField, string>> = {}
+
+  if (findUserByUsername(users, newUser.username)) {
+    conflicts.username = 'users.username_already_exists'
+  }
+
+  if (
+    newUser.extension !== '' &&
+    (findUserByExtension(users, newUser.extension) ||
+      reservedExtensions.includes(newUser.extension))
+  ) {
+    conflicts.extension = 'users.extension_already_assigned'
+  }
+  return conflicts
+}
+
+export const getFullName = (newUser: { name: string; surname: string }): string =>
+  [newUser.name.trim(), newUser.surname.trim()].filter(Boolean).join(' ')
+
+export const buildNewUserCsv = (newUser: NewUser, extension: string): string =>
+  serializeCsv([[newUser.username, getFullName(newUser), extension, newUser.password]])
+
+export const createUser = async (newUser: NewUser, settings: UserSettings): Promise<User> => {
+  await runCsvImport(buildNewUserCsv(newUser, settings.extension))
+  const user = findUserByUsername(await getUsers(), newUser.username)
+
+  if (!user) {
+    throw new CreatedUserNotFoundError(newUser.username)
+  }
+  const current: UserSettings = {
+    extension: user.mainExtension,
+    mobile: '',
+    voicemail: false,
+    profileId: user.profileId,
+    groupIds: [],
+    devices: getSoftwareDeviceTypes(user),
+  }
+  await applyUserSettingsSteps(user, planUserSettingsUpdate(current, settings))
+  return user
+}

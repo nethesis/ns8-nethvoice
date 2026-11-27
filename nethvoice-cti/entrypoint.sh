@@ -5,13 +5,49 @@
 # SPDX-License-Identifier: GPL-2.0-only
 #
 
+js_quote() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e "s/'/\\\\'/g"
+}
+
+download_asset() {
+  if /usr/bin/wget --timeout=60 "$1" -O "$2.download" && mv -f "$2.download" "$2"; then
+    return 0
+  fi
+  rm -f "$2.download"
+  return 1
+}
+
+if [ -n "$NAVBAR_LOGO_URL" ]; then
+  download_asset "$NAVBAR_LOGO_URL" /app/public/navbar_logo.svg || { rm -f /app/public/navbar_logo.svg; NAVBAR_LOGO_URL=; }
+fi
+
+if [ -n "$NAVBAR_LOGO_DARK_URL" ]; then
+  download_asset "$NAVBAR_LOGO_DARK_URL" /app/public/navbar_logo_dark.svg || { rm -f /app/public/navbar_logo_dark.svg; NAVBAR_LOGO_DARK_URL=; }
+fi
+
+if [ -n "$LOGIN_LOGO_URL" ]; then
+  download_asset "$LOGIN_LOGO_URL" /app/public/login_logo.svg || { rm -f /app/public/login_logo.svg; LOGIN_LOGO_URL=; }
+fi
+
+if [ -n "$LOGIN_LOGO_DARK_URL" ]; then
+  download_asset "$LOGIN_LOGO_DARK_URL" /app/public/login_logo_dark.svg || { rm -f /app/public/login_logo_dark.svg; LOGIN_LOGO_DARK_URL=; }
+fi
+
+if [ -n "$FAVICON_URL" ]; then
+  download_asset "$FAVICON_URL" /app/public/favicon.ico || FAVICON_URL=
+fi
+
+if [ -n "$LOGIN_BACKGROUND_URL" ]; then
+  download_asset "$LOGIN_BACKGROUND_URL" /app/public/login_background.svg || { rm -f /app/public/login_background.svg; LOGIN_BACKGROUND_URL=; }
+fi
+
 cat > /app/public/config/config.production.js<<EOF
 window.CONFIG = {
-  BRAND_NAME: '${BRAND_NAME:=NethVoice}',
-  PRODUCT_NAME: '${PRODUCT_NAME:=NethVoice CTI}',
-  COMPANY_NAME: '${COMPANY_NAME:=Nethesis}',
-  COMPANY_SUBNAME: '${COMPANY_SUBNAME:=CTI}',
-  COMPANY_URL: '${COMPANY_URL:=https://www.nethesis.it/}',
+  BRAND_NAME: '$(js_quote "${BRAND_NAME:-NethVoice}")',
+  PRODUCT_NAME: '$(js_quote "${PRODUCT_NAME:-NethVoice CTI}")',
+  COMPANY_NAME: '$(js_quote "${COMPANY_NAME:-Nethesis}")',
+  COMPANY_SUBNAME: '$(js_quote "${COMPANY_SUBNAME:-CTI}")',
+  COMPANY_URL: '$(js_quote "${COMPANY_URL:-https://www.nethesis.it/}")',
   NUMERIC_TIMEZONE: '$(date +'%z')',
   TIMEZONE: '${TIMEZONE:=UTC}',
   CHAT_ENABLED: '${CHAT_ENABLED:=false}',
@@ -76,11 +112,6 @@ cat >> /app/public/config/config.production.js<<EOF
   SIP_PORT: '${SIP_PORT:-5060}',
 EOF
 
-#login people icon rebrandind ( show or hide string )
-cat >> /app/public/config/config.production.js<<EOF
-  LOGIN_PEOPLE: '${LOGIN_PEOPLE:-show}',
-EOF
-
 # Authentication method + SSO entry (provider-agnostic): with an external SSO
 # method the login page shows a button navigating to SSO_LOGIN_URL.
 cat >> /app/public/config/config.production.js<<EOF
@@ -92,9 +123,12 @@ cat >> /app/public/config/config.production.js<<EOF
 EOF
 
 cat >> /app/public/config/config.production.js<<EOF
-  FAVICON_URL: '${FAVICON_URL:-}',
-  NAVBAR_LOGO_URL: '${NAVBAR_LOGO_URL:-}',
-  NAVBAR_LOGO_DARK_URL: '${NAVBAR_LOGO_DARK_URL:-}',
+  FAVICON_URL: '$(js_quote "${FAVICON_URL:-}")',
+  NAVBAR_LOGO_URL: '$(js_quote "${NAVBAR_LOGO_URL:-}")',
+  NAVBAR_LOGO_DARK_URL: '$(js_quote "${NAVBAR_LOGO_DARK_URL:-}")',
+  LOGIN_LOGO_URL: '$(js_quote "${LOGIN_LOGO_URL:-}")',
+  LOGIN_LOGO_DARK_URL: '$(js_quote "${LOGIN_LOGO_DARK_URL:-}")',
+  LOGIN_BACKGROUND_URL: '$(js_quote "${LOGIN_BACKGROUND_URL:-}")',
 EOF
 
 
@@ -102,37 +136,5 @@ cat >> /app/public/config/config.production.js<<EOF
 }
 
 EOF
-
-
-
-if [ ! -z $NAVBAR_LOGO_URL ]; then
-  # navbar logo rebranding
-  /usr/bin/wget --timeout=60 $NAVBAR_LOGO_URL -O /app/public/navbar_logo.svg
-fi
-
-if [ ! -z $NAVBAR_LOGO_DARK_URL ]; then
-  # navbar logo rebranding
-  /usr/bin/wget --timeout=60 $NAVBAR_LOGO_DARK_URL -O /app/public/navbar_logo_dark.svg
-fi
-
-if [ ! -z $LOGIN_LOGO_URL ]; then
-  # login logo rebranding
-  /usr/bin/wget --timeout=60 $LOGIN_LOGO_URL -O /app/public/login_logo.svg
-fi
-
-if [ ! -z $LOGIN_LOGO_DARK_URL ]; then
-  # login logo rebranding
-  /usr/bin/wget --timeout=60 $LOGIN_LOGO_DARK_URL -O /app/public/login_logo_dark.svg
-fi
-
-if [ ! -z $FAVICON_URL ]; then
-  # favicon rebranding
-  /usr/bin/wget --timeout=60 $FAVICON_URL -O /app/public/favicon.ico
-fi
-
-if [ ! -z $LOGIN_BACKGROUND_URL ]; then
-  # login background image rebranding
-  /usr/bin/wget --timeout=60 $LOGIN_BACKGROUND_URL -O /app/public/login_background.svg
-fi
 
 exec "$@"

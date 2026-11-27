@@ -64,3 +64,13 @@ CREATE TABLE IF NOT EXISTS `sync_metadata` (
   `last_sync_at` datetime DEFAULT NULL,
   PRIMARY KEY (`scope`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `sync_status` (
+  `sid` varchar(255) NOT NULL,
+  `status` varchar(16) NOT NULL,
+  `started_at` datetime NOT NULL,
+  `finished_at` datetime DEFAULT NULL,
+  `imported` int(10) unsigned DEFAULT NULL,
+  `message` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`sid`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8;

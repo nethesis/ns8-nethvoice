@@ -28,7 +28,7 @@ set filename [lindex $argv 2]
 set username [lindex $argv 3]
 set password [lindex $argv 4]
 
-spawn /usr/bin/telnet $gatewayip
+spawn /usr/bin/telnet -- $gatewayip
 expect "login:"
 send "$username\r"
 expect "Password:"

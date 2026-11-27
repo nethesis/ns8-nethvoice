@@ -956,7 +956,8 @@ function openGate(streamId, gateId, callerid, fromExten, username, cb) {
       // only this source: devices with a self-signed certificate, whose
       // certificate is pinned when the source is saved
       tlsSkipVerify: streamings[streamId].getTlsSkipVerify(),
-      tlsFingerprint: gate.tlsFingerprint
+      tlsFingerprint: gate.tlsFingerprint,
+      guardAddresses: streamings[streamId].getGuardAddresses()
     }, gate.username !== '' ? { username: gate.username, password: gate.password } : null,
     gateAuthMemos[memoKey], function(err, res) {
       try {

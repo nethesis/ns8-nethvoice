@@ -18,6 +18,19 @@ allowed upload endpoints from a PHP parser vulnerability. Session upload
 progress remains disabled. Rebuild and deploy the Tancredi image to apply the
 filter, and install a patched PHP runtime when available.
 
+## Custom provisioning templates
+
+The `/templates` API stores custom Twig templates in `templates-custom/`, and
+`tmpl_phone` of a model selects one. A template is code that runs on the server
+when phones download their configuration, so `NethVoiceAuth` lets only the
+superadmin create, replace or delete templates; the phones section can list them
+and choose one for a model. Templates cannot replace a shipped template, and the
+API checks the Twig syntax before saving (see `app/docs/templates.md`).
+
+```bash
+TANCREDI_ROOT=/path/to/tancredi php tests/unit/test_tancredi_templates.php
+```
+
 ## Environment variables
 
 - `AMPDBPASS` password of asterisk database

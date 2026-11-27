@@ -4,19 +4,269 @@ import pyodbc
 import pycurl
 import csv
 import io
+import re
+import socket
+import ipaddress
+import urllib.parse
 import requests
 
 SYNC_METADATA_SCOPE = 'centralized_phonebook'
 PREVIEW_ROWS = 3
+ERROR_DETAILS_MAX_LENGTH = 500
+AUTH_MYSQL_ERRORS = (1044, 1045, 1698)
+AUTH_HTTP_STATUSES = (401, 403)
+CONNECT_TIMEOUT = 10
+QUERY_TIMEOUT = 300
+DOWNLOAD_TIMEOUT = 120
+DOWNLOAD_MAX_BYTES = 100 * 1024 * 1024
+NODE_ADDRESS_FILES = ('/proc/net/fib_trie', '/proc/net/if_inet6')
+lastError = None
+previewTotal = False
+guardAddresses = False
+
+
+class SourceError(Exception):
+  def __init__(self, kind, message):
+    super().__init__(message)
+    self.kind = kind
+
+
+def errorText(err):
+  args = getattr(err, 'args', ())
+  if len(args) > 1 and isinstance(args[0], (int, str)) and isinstance(args[1], str):
+    return args[1]
+  return str(err)
+
+def scrubDetails(text, config):
+  text = re.sub(r'([A-Za-z][A-Za-z0-9+.-]*://)[^/@\s]*@', r'\1***@', str(text))
+  for secret in ((config or {}).get('password'), os.environ.get('PHONEBOOK_DB_PASS')):
+    if isinstance(secret, str) and secret:
+      text = text.replace(secret, '***')
+  lines = text.strip().splitlines()
+  return (lines[0].strip() if lines else '')[:ERROR_DETAILS_MAX_LENGTH]
+
+def recordError(kind, err, config):
+  global lastError
+  lastError = {'kind': kind, 'details': scrubDetails(errorText(err), config)}
+
+def dbErrorKind(err):
+  args = getattr(err, 'args', ())
+  if getattr(err, 'errno', None) in AUTH_MYSQL_ERRORS:
+    return 'auth'
+  if args and isinstance(args[0], str) and args[0].startswith('28'):
+    return 'auth'
+  if 'login failed' in errorText(err).lower():
+    return 'auth'
+  return 'connection'
+
+def curlErrorKind(err, crl):
+  code = err.args[0] if getattr(err, 'args', ()) else None
+  if code == pycurl.E_HTTP_RETURNED_ERROR:
+    return 'auth' if crl.getinfo(pycurl.RESPONSE_CODE) in AUTH_HTTP_STATUSES else 'http'
+  if code == pycurl.E_FILE_COULDNT_READ_FILE:
+    return 'file'
+  return 'connection'
+
+def infinityErrorKind(err):
+  if isinstance(err, SourceError):
+    return err.kind
+  if isinstance(err, ValueError):
+    return 'format'
+  if isinstance(err, requests.exceptions.RequestException):
+    return 'connection'
+  return 'unknown'
+
+def isForbiddenAddress(address):
+  try:
+    ip = ipaddress.ip_address(str(address).split('%')[0])
+  except ValueError:
+    return True
+  packed = ip.packed
+  if ip.version == 6:
+    if packed[:12] in (bytes(10) + b'\xff\xff', bytes(12)):
+      packed = packed[12:]
+    else:
+      return packed[0] == 0xfe and (packed[1] & 0xc0) == 0x80
+  return packed[0] in (0, 127) or (packed[0] == 169 and packed[1] == 254)
+
+def comparableAddress(address):
+  try:
+    ip = ipaddress.ip_address(str(address).split('%')[0])
+  except ValueError:
+    return None
+  return ip.ipv4_mapped if ip.version == 6 and ip.ipv4_mapped else ip
+
+def readNodeAddresses(fibTrie, ifInet6):
+  addresses = set()
+  try:
+    with open(fibTrie) as trie:
+      last = None
+      for line in trie:
+        fields = line.split()
+        if fields[:1] == ['|--'] and len(fields) > 1:
+          last = comparableAddress(fields[1])
+        elif fields[:3] == ['/32', 'host', 'LOCAL'] and last is not None:
+          addresses.add(last)
+  except OSError:
+    pass
+  try:
+    with open(ifInet6) as inet6:
+      for line in inet6:
+        fields = line.split()
+        if fields and re.fullmatch(r'[0-9a-fA-F]{32}', fields[0]):
+          addresses.add(comparableAddress(ipaddress.ip_address(bytes.fromhex(fields[0]))))
+  except OSError:
+    pass
+  return addresses
+
+nodeAddressesCache = None
+
+def nodeAddresses():
+  global nodeAddressesCache
+  if nodeAddressesCache is None:
+    nodeAddressesCache = readNodeAddresses(*NODE_ADDRESS_FILES)
+  return nodeAddressesCache
+
+def isBlockedAddress(address):
+  return isForbiddenAddress(address) or comparableAddress(address) in nodeAddresses()
+
+def isLocalHost(host):
+  host = (host or '').strip('[]').rstrip('.').lower()
+  if host == 'localhost' or host.endswith('.localhost'):
+    return True
+  try:
+    ipaddress.ip_address(host.split('%')[0])
+  except ValueError:
+    return False
+  return isBlockedAddress(host)
+
+def urlHost(url):
+  try:
+    return urllib.parse.urlsplit(url).hostname
+  except ValueError:
+    return None
+
+def forbiddenConnection():
+  return SourceError('connection', 'Connections to local addresses are not allowed for this source')
+
+def curlOpenSocket(blocked):
+  def openSocket(purpose, address):
+    family, socktype, protocol, sockaddr = address
+    if isBlockedAddress(sockaddr[0]):
+      blocked.append(True)
+      return pycurl.SOCKET_BAD
+    return socket.socket(family, socktype, protocol)
+  return openSocket
+
+def limitedWriter(buffer, limit, exceeded):
+  def write(data):
+    if buffer.tell() + len(data) > limit:
+      exceeded.append(True)
+      return 0
+    buffer.write(data)
+  return write
+
+def infinitySession(guarded):
+  session = requests.Session()
+  if guarded:
+    from urllib3 import connection, connectionpool, exceptions
+
+    def guardedConnection(base):
+      class GuardedConnection(base):
+        def _new_conn(self):
+          host = self._dns_host
+          resolved = [info[4][0] for info in socket.getaddrinfo(host, self.port, 0, socket.SOCK_STREAM)]
+          allowed = [address for address in dict.fromkeys(resolved) if not isBlockedAddress(address)]
+          if not allowed:
+            raise forbiddenConnection()
+          try:
+            for index, address in enumerate(allowed):
+              self._dns_host = address
+              try:
+                return super()._new_conn()
+              except (OSError, exceptions.HTTPError):
+                if index == len(allowed) - 1:
+                  raise
+          finally:
+            self._dns_host = host
+      GuardedConnection.__name__ = GuardedConnection.__qualname__ = base.__name__
+      return GuardedConnection
+
+    class HTTPConnectionPool(connectionpool.HTTPConnectionPool):
+      ConnectionCls = guardedConnection(connection.HTTPConnection)
+
+    class HTTPSConnectionPool(connectionpool.HTTPSConnectionPool):
+      ConnectionCls = guardedConnection(connection.HTTPSConnection)
+
+    class GuardedAdapter(requests.adapters.HTTPAdapter):
+      def init_poolmanager(self, *args, **kwargs):
+        super().init_poolmanager(*args, **kwargs)
+        self.poolmanager.pool_classes_by_scheme = {'http': HTTPConnectionPool, 'https': HTTPSConnectionPool}
+
+    session.mount('http://', GuardedAdapter())
+    session.mount('https://', GuardedAdapter())
+  return session
+
+def httpErrorKind(status):
+  return 'auth' if status in AUTH_HTTP_STATUSES else 'http'
+
+def writePreview(rows, total, columns=None):
+  preview = {'rows': rows, 'total': total}
+  if columns is not None:
+    preview['columns'] = list(dict.fromkeys(str(column) for column in columns))
+  json.dump(preview if previewTotal else rows, sys.stdout, default=str)
+
+def writeSyncStatus(sid, status, imported=None, message=None):
+  connection = None
+  try:
+    connection = mysql.connector.connect(host=os.environ['PHONEBOOK_DB_HOST'], port=int(os.environ['PHONEBOOK_DB_PORT']), user=os.environ['PHONEBOOK_DB_USER'], password=os.environ['PHONEBOOK_DB_PASS'], database=os.environ['PHONEBOOK_DB_NAME'], charset='utf8')
+    cursor = connection.cursor()
+    if status == 'running':
+      cursor.execute('INSERT INTO sync_status (sid, status, started_at, finished_at, imported, message) VALUES (%s, %s, UTC_TIMESTAMP(), NULL, NULL, NULL) ON DUPLICATE KEY UPDATE status = VALUES(status), started_at = VALUES(started_at), finished_at = NULL, imported = NULL, message = NULL', (sid, status))
+    else:
+      cursor.execute('INSERT INTO sync_status (sid, status, started_at, finished_at, imported, message) VALUES (%s, %s, UTC_TIMESTAMP(), UTC_TIMESTAMP(), %s, %s) ON DUPLICATE KEY UPDATE status = VALUES(status), finished_at = VALUES(finished_at), imported = VALUES(imported), message = VALUES(message)', (sid, status, imported, message))
+    connection.commit()
+    cursor.close()
+  except Exception as err:
+    logger.warning('writing sync status "' + status + '" of source "' + sid + '" failed: ' + scrubDetails(errorText(err), None))
+  finally:
+    if connection is not None:
+      try:
+        connection.close()
+      except Exception:
+        pass
+
+def reportFailure(sid, errorJson):
+  error = lastError or {'kind': 'unknown', 'details': ''}
+  if sid is not None:
+    writeSyncStatus(sid, 'failed', None, error['details'] or None)
+  if errorJson:
+    print(json.dumps(error))
 
 
 def signalHandler(sig, frame):
-  logger.critical('interrupted by SIGINT')
-  sys.exit(0)
+  name = signal.Signals(sig).name
+  logger.critical('interrupted by ' + name)
+  recordError('unknown', Exception('Interrupted by ' + name), None)
+  sys.exit(1)
+
+def timeLimitHandler(sig, frame):
+  logger.critical('time limit reached')
+  recordError('connection', Exception('The source did not answer within the time limit'), None)
+  sys.exit(1)
 
 signal.signal(signal.SIGINT, signalHandler)
+signal.signal(signal.SIGTERM, signalHandler)
+signal.signal(signal.SIGALRM, timeLimitHandler)
 
-def getDbConn(config):
+def guardedHost(host, port):
+  name, separator, instance = str(host).strip().partition('\\')
+  resolved = [info[4][0] for info in socket.getaddrinfo(name.strip('[]'), port, 0, socket.SOCK_STREAM)]
+  if not resolved or any(isBlockedAddress(address) for address in resolved):
+    raise forbiddenConnection()
+  return resolved[0] + separator + instance
+
+def getDbConn(config, guarded=False):
   if config['dbtype'] == 'mysql':
     port = unixSocket = None
     try:
@@ -25,17 +275,23 @@ def getDbConn(config):
       port = None
       unixSocket = config['port']
     try:
-      return mysql.connector.connect(host=config['host'], port=port, user=config['user'], password=config['password'], database=config['dbname'],charset='utf8')
+      host = guardedHost(config['host'], port) if guarded else config['host']
+      return mysql.connector.connect(host=host, port=port, user=config['user'], password=config['password'], database=config['dbname'],charset='utf8', connection_timeout=CONNECT_TIMEOUT, read_timeout=QUERY_TIMEOUT)
     except Exception as err:
       logger.error(str(err))
+      recordError(dbErrorKind(err), err, config)
       return None
   elif(config['dbtype'] == 'mssql'):
     try:
       port = int(config['port'])
       driver = config.get('driver') or 'FreeTDS'
-      return pyodbc.connect('', driver=driver, server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'])
+      host = guardedHost(config['host'], port) if guarded else config['host']
+      connection = pyodbc.connect('', driver=driver, server=host, port=port, uid=config['user'], pwd=config['password'], database=config['dbname'], timeout=CONNECT_TIMEOUT)
+      connection.timeout = QUERY_TIMEOUT
+      return connection
     except Exception as err:
       logger.error(str(err))
+      recordError(dbErrorKind(err), err, config)
       return None
 
 def getPhonebookDestConfig():
@@ -81,7 +337,7 @@ def syncSourceDB(path, output, deleteonly):
   with open(path, 'r') as sourceFile:
     sConfig = json.load(sourceFile)
   sid = next(iter(sConfig))
-  dbSource = getDbConn(sConfig[sid])
+  dbSource = getDbConn(sConfig[sid], guardAddresses)
   if dbSource is not None:
     logger.debug('source "' + sid + '" connection (' + sConfig[sid]['dbname'] + '): ok')
   else:
@@ -89,11 +345,20 @@ def syncSourceDB(path, output, deleteonly):
     sys.exit(1)
   curSource = dbSource.cursor()
   if output == True:
-    curSource.execute(sConfig[sid]['query'])
-    rows = curSource.fetchmany(PREVIEW_ROWS)
-    cols = tuple([i[0] for i in curSource.description])
-    while curSource.fetchmany(1000):
-      pass
+    try:
+      curSource.execute(sConfig[sid]['query'])
+      rows = curSource.fetchmany(PREVIEW_ROWS)
+      cols = tuple([i[0] for i in curSource.description])
+      total = len(rows)
+      chunk = curSource.fetchmany(1000)
+      while chunk:
+        total += len(chunk)
+        chunk = curSource.fetchmany(1000)
+    except Exception as err:
+      logger.error('source "' + sid + '" query failed')
+      logger.error(str(err))
+      recordError('query', err, sConfig[sid])
+      sys.exit(1)
     res = []
     for row in rows:
       temp = {}
@@ -105,7 +370,7 @@ def syncSourceDB(path, output, deleteonly):
       for x in cols:
         temp[x] = ''
       res.append(temp)
-    json.dump(res, sys.stdout, default=str)
+    writePreview(res, total, cols)
     logger.info('write ' + str(len(rows)) + ' entries to std output')
     logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
     curSource.close()
@@ -119,6 +384,18 @@ def syncSourceDB(path, output, deleteonly):
     logger.error('destination db connection ("phonebook"): failed')
     sys.exit(1)
   curDest = dbDest.cursor()
+  sourceRows = []
+  columns = []
+  if deleteonly != True:
+    try:
+      curSource.execute(sConfig[sid]['query'])
+      sourceRows = curSource.fetchall()
+      columns = [col[0] for col in curSource.description]
+    except Exception as err:
+      logger.error('source "' + sid + '" query failed')
+      logger.error(str(err))
+      recordError('query', err, sConfig[sid])
+      sys.exit(1)
   try:
     delcount = curDest.execute('DELETE FROM ' + dConfig['dbtable'] + ' WHERE sid_imported="{}"'.format(sid))
     logger.info('clean destination: removed ' + str(delcount) + ' entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
@@ -127,9 +404,7 @@ def syncSourceDB(path, output, deleteonly):
   except Exception as err:
     logger.error('cleaning destination: removing entries from ' + dConfig['dbname'] + '.' + dConfig['dbtable'] + ' with sid_imported="' + sid + '"')
     logger.error(str(err))
-  curSource.execute(sConfig[sid]['query'])
-  toTransfer = curSource.rowcount
-  curSource.fetchall()
+  toTransfer = len(sourceRows)
 
   curSource.close()
   logger.debug('synchronizing source "' + sid + '" (' + str(toTransfer) + ' entries)...')
@@ -138,9 +413,6 @@ def syncSourceDB(path, output, deleteonly):
   destCols = list(sConfig[sid]['mapping'].values())
   destCols.append('sid_imported')
 
-  curSource = dbSource.cursor()
-  curSource.execute(sConfig[sid]['query'])
-  row=curSource.fetchone()
   importedCount=0
   errCount=0
 
@@ -154,9 +426,7 @@ def syncSourceDB(path, output, deleteonly):
   destCols.append('access')
   percents = ('%s, ' * len(destCols))[:-2]
 
-  columns = [col[0] for col in curSource.description]
-
-  while row is not None:
+  for row in sourceRows:
     values = []
     row = {columns[i]: row[i] for i in range(len(columns))}
 
@@ -185,15 +455,14 @@ def syncSourceDB(path, output, deleteonly):
       logger.error('copying entry "' + str(row) + '"')
       logger.error(str(err))
     dbDest.commit()
-    row = curSource.fetchone()
   end = datetime.datetime.now().replace(microsecond=0)
   percent = str(importedCount*100/toTransfer) if toTransfer > 0 else '0'
   logger.info('source "' + sid + '" imported ' + percent + '%: ' + str(importedCount) + ' imported - ' + str(errCount) + ' errors - ' + str(toTransfer) + ' tot - duration ' + str(end-start))
-  curSource.close()
   curDest.close()
   dbSource.close()
   dbDest.close()
   logger.info('end source import of ' + path + ' into phonebook.phonebook')
+  return importedCount
 
 def extractArgsDbParams(data):
   result = {}
@@ -208,14 +477,23 @@ def syncSourceCsv(path, output, deleteonly):
   sid = next(iter(sConfig))
   crl = pycurl.Curl()
 
-  crl.setopt(crl.URL, str(sConfig[sid]['url']))
+  url = str(sConfig[sid]['url'])
+  crl.setopt(crl.URL, url)
 
   b_obj = io.BytesIO()
-  crl.setopt(crl.WRITEFUNCTION, b_obj.write)
+  exceeded = []
+  crl.setopt(crl.WRITEFUNCTION, limitedWriter(b_obj, DOWNLOAD_MAX_BYTES, exceeded))
 
   crl.setopt(crl.FAILONERROR, 1)
   crl.setopt(crl.FOLLOWLOCATION, 1)
   crl.setopt(crl.MAXREDIRS, 5)
+  crl.setopt(crl.REDIR_PROTOCOLS, pycurl.PROTO_HTTP | pycurl.PROTO_HTTPS)
+  crl.setopt(pycurl.CONNECTTIMEOUT, CONNECT_TIMEOUT)
+  crl.setopt(pycurl.TIMEOUT, DOWNLOAD_TIMEOUT)
+  crl.setopt(pycurl.MAXFILESIZE_LARGE, DOWNLOAD_MAX_BYTES)
+  blocked = []
+  if guardAddresses and not isLocalHost(urlHost(url)):
+    crl.setopt(pycurl.OPENSOCKETFUNCTION, curlOpenSocket(blocked))
 
   try:
     crl.perform()
@@ -224,6 +502,15 @@ def syncSourceCsv(path, output, deleteonly):
   except Exception as err:
     logger.error('source "' + sid + '" connection (' + sConfig[sid]['url'] + '): failed')
     logger.error(str(err))
+    if isinstance(err, pycurl.error) and blocked:
+      err = forbiddenConnection()
+      kind = 'connection'
+    elif isinstance(err, pycurl.error) and (exceeded or err.args[0] == pycurl.E_FILESIZE_EXCEEDED):
+      err = Exception('The file exceeds the maximum size of ' + str(DOWNLOAD_MAX_BYTES // (1024 * 1024)) + ' MB')
+      kind = 'format'
+    else:
+      kind = 'format' if isinstance(err, UnicodeDecodeError) else curlErrorKind(err, crl)
+    recordError(kind, err, sConfig[sid])
     sys.exit(1)
   finally:
     crl.close()
@@ -231,22 +518,28 @@ def syncSourceCsv(path, output, deleteonly):
   s_obj.seek(0)
 
   df = []
-  sample = s_obj.readline()
-  s_obj.seek(0)
-  dialect = csv.Sniffer().sniff(sample)
-  if (not csv.Sniffer().has_header(sample)):
-    logger.warning('CSV doesn\'t have a valid header!')
-  csvr = csv.reader(s_obj, dialect=dialect)
-  header = next(csvr, None)
-  for row in csvr:
-    r = {}
-    for idx,item in enumerate(row):
-        if idx < len(header):
-            r[header[idx]] = item
-    df.append(r)
+  try:
+    sample = s_obj.readline()
+    s_obj.seek(0)
+    dialect = csv.Sniffer().sniff(sample)
+    if (not csv.Sniffer().has_header(sample)):
+      logger.warning('CSV doesn\'t have a valid header!')
+    csvr = csv.reader(s_obj, dialect=dialect)
+    header = next(csvr, None)
+    for row in csvr:
+      r = {}
+      for idx,item in enumerate(row):
+          if idx < len(header):
+              r[header[idx]] = item
+      df.append(r)
+  except csv.Error as err:
+    logger.error('source "' + sid + '" is not a valid CSV file')
+    logger.error(str(err))
+    recordError('format', err, sConfig[sid])
+    sys.exit(1)
 
   if output == True:
-    json.dump(df[:PREVIEW_ROWS], sys.stdout)
+    writePreview(df[:PREVIEW_ROWS], len(df), header or [])
     logger.info('end ' + ('check of' if output == True else '') + ' source import of ' + path + ' into phonebook.phonebook')
     return
 
@@ -317,6 +610,7 @@ def syncSourceCsv(path, output, deleteonly):
   curDest.close()
   dbDest.close()
   logger.info('end source import of ' + path + ' into phonebook.phonebook')
+  return importedCount
 
 # Sync contacts from the Zucchetti Infinity API into the centralized phonebook.
 def normalizeInfinityContact(contact, sid, source_type, access):
@@ -426,26 +720,27 @@ def syncSourceInfinity(path, output, deleteonly):
   try:
     if not base_url or not username or not password:
       raise Exception('Infinity source requires a url, username and password')
+    session = infinitySession(guardAddresses and not isLocalHost(urlHost(base_url)))
     token_url = base_url + '/servlet/oauth/token'
-    token_response = requests.post(token_url, auth=(username, password), data={'scope': 'logintoken'}, timeout=30)
+    token_response = session.post(token_url, auth=(username, password), data={'scope': 'logintoken'}, timeout=(CONNECT_TIMEOUT, 30))
     if token_response.status_code != 200:
-      raise Exception('Failed to get token from ' + token_url + ' with status code ' + str(token_response.status_code))
+      raise SourceError(httpErrorKind(token_response.status_code), 'Failed to get token from ' + token_url + ' with status code ' + str(token_response.status_code))
     token = token_response.json().get('access_token')
     if not token:
-      raise Exception('No token found in response from ' + token_url)
+      raise SourceError('format', 'No token found in response from ' + token_url)
     logger.debug('Got bearer token from ' + base_url)
     contact_url = base_url + '/servlet/api/gsfr_fgetaddress_wsapi'
-    contact_response = requests.get(contact_url, headers={'Authorization': 'Bearer ' + token}, timeout=120)
+    contact_response = session.get(contact_url, headers={'Authorization': 'Bearer ' + token}, timeout=(CONNECT_TIMEOUT, DOWNLOAD_TIMEOUT))
     if contact_response.status_code != 200:
-      raise Exception('Failed to get contacts from ' + contact_url + ' with status code ' + str(contact_response.status_code))
+      raise SourceError(httpErrorKind(contact_response.status_code), 'Failed to get contacts from ' + contact_url + ' with status code ' + str(contact_response.status_code))
     contacts = contact_response.json().get('data', [])
     if not isinstance(contacts, list):
-      raise Exception('Unexpected response schema from ' + contact_url)
+      raise SourceError('format', 'Unexpected response schema from ' + contact_url)
     logger.debug('Got ' + str(len(contacts)) + ' contacts from ' + base_url)
     pb_contacts = [normalizeInfinityContact(c, sid, source_type, access) for c in contacts]
     if output == True:
       # check mode: emit a preview to stdout, do not touch the database
-      json.dump(pb_contacts[:3], sys.stdout)
+      writePreview(pb_contacts[:3], len(pb_contacts))
       logger.info('end check of source import of ' + path + ' into phonebook.phonebook')
       return
     dConfig = getPhonebookDestConfig()
@@ -480,8 +775,10 @@ def syncSourceInfinity(path, output, deleteonly):
     end = datetime.datetime.now().replace(microsecond=0)
     logger.info('source "' + sid + '" imported: ' + str(importedCount) + ' imported - ' + str(errCount) + ' errors - ' + str(len(pb_contacts)) + ' tot - duration ' + str(end-start))
     logger.info('end source import of ' + path + ' into phonebook.phonebook')
+    return importedCount
   except Exception as err:
     logger.error(str(err))
+    recordError(infinityErrorKind(err), err, config)
     sys.exit(1)
 
 if __name__ == '__main__':
@@ -494,6 +791,10 @@ if __name__ == '__main__':
   parser.add_argument('-c', '--check', action='store_true', help='it causes the writing of query results to standard output in JSON format instead of executing the database synchronization. Has more priority than deleteonly')
   parser.add_argument('-d', '--deleteonly', action='store_true', help='just delete entries from this configuration')
   parser.add_argument('--skip-sync-metadata-update', action='store_true', help='skip centralized phonebook sync metadata update after a successful import')
+  parser.add_argument('--with-total', action='store_true', help='with --check, write {"rows": [...], "total": <rows read>} instead of the rows')
+  parser.add_argument('--error-json', action='store_true', help='on failure, write {"kind": ..., "details": ...} to standard output')
+  parser.add_argument('--force', action='store_true', help='import the source even when it is disabled')
+  parser.add_argument('--guard-addresses', action='store_true', help='refuse connections of database, CSV and Infinity sources to local addresses and to the addresses of the node, as for sources saved with "guard_addresses": true')
   args = parser.parse_args()
   logger = logging.getLogger(__name__)
   logger.setLevel(logging.DEBUG)
@@ -509,25 +810,48 @@ if __name__ == '__main__':
   logger.addHandler(syslogHandler)
   if args.source_path:
     logger.info('start ' + ('check of' if args.check == True else '') + ' source import of ' + args.source_path + ' into phonebook.phonebook')
+    previewTotal = args.with_total
+    sConfig = {}
+    tracked = None
     try:
-      logger.debug('reading ' + args.source_path)
-      with open(args.source_path, 'r') as sourceFile:
-        sConfig = json.load(sourceFile)
+      try:
+        logger.debug('reading ' + args.source_path)
+        with open(args.source_path, 'r') as sourceFile:
+          sConfig = json.load(sourceFile)
+      except Exception as err:
+        logger.error('reading ' + args.source_path)
+        logger.error(str(err))
+        recordError('unknown', err, None)
+        sys.exit(1)
+      sid = next(iter(sConfig))
+      logger.debug(args.source_path + ' has "' + sid + '" source')
+      guardAddresses = args.guard_addresses or sConfig[sid].get('guard_addresses') is True
+      if not sConfig[sid]['enabled'] and not args.force:
+        logger.info(sid + ' is disabled')
+        sys.exit(0)
+      if not args.check and not args.deleteonly:
+        tracked = sid
+        writeSyncStatus(sid, 'running')
+      imported = None
+      if sConfig[sid]['dbtype'] == 'mysql' or sConfig[sid]['dbtype'] == 'mssql':
+        imported = syncSourceDB(args.source_path, args.check, args.deleteonly)
+      elif sConfig[sid]['dbtype'] == 'csv':
+        imported = syncSourceCsv(args.source_path, args.check, args.deleteonly)
+      elif sConfig[sid]['dbtype'] == 'infinity':
+          imported = syncSourceInfinity(args.source_path, args.check, args.deleteonly)
+      if tracked is not None:
+        writeSyncStatus(sid, 'ok', imported)
+    except SystemExit as err:
+      if err.code not in (None, 0):
+        reportFailure(tracked, args.error_json)
+      raise
     except Exception as err:
-      logger.error('reading ' + args.source_path)
       logger.error(str(err))
+      if lastError is None:
+        config = next(iter(sConfig.values()), None) if isinstance(sConfig, dict) else None
+        recordError('unknown', err, config if isinstance(config, dict) else None)
+      reportFailure(tracked, args.error_json)
       sys.exit(1)
-    sid = next(iter(sConfig))
-    logger.debug(args.source_path + ' has "' + sid + '" source')
-    if not sConfig[sid]['enabled']:
-      logger.info(sid + ' is disabled')
-      sys.exit(0)
-    if sConfig[sid]['dbtype'] == 'mysql' or sConfig[sid]['dbtype'] == 'mssql':
-      syncSourceDB(args.source_path, args.check, args.deleteonly)
-    elif sConfig[sid]['dbtype'] == 'csv':
-      syncSourceCsv(args.source_path, args.check, args.deleteonly)
-    elif sConfig[sid]['dbtype'] == 'infinity':
-        syncSourceInfinity(args.source_path, args.check, args.deleteonly)
     if not args.check and not args.deleteonly and not args.skip_sync_metadata_update:
       updateSyncMetadata()
   else:

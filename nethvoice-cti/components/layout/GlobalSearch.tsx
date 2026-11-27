@@ -279,7 +279,7 @@ export const GlobalSearch: FC<GlobalSearchProps> = () => {
       <div
         id='globalSearch'
         className={classNames(
-          'absolute left-[53px] md:left-0 sm:w-[70%] md:w-[75%] 2xl:w-[50vw] transform divide-y overflow-hidden transition-all rounded-lg z-[60] bg-topbar dark:bg-topbarDark divide-gray-200  dark:divide-gray-700',
+          'absolute left-[calc(53px*var(--density))] md:left-0 sm:w-[70%] md:w-[75%] 2xl:w-[50vw] transform divide-y overflow-hidden transition-all rounded-lg z-[60] bg-topbar dark:bg-topbarDark divide-gray-200  dark:divide-gray-700',
           globalSearchStore?.isFocused ? 'w-[calc(100vw - 52px)]' : 'w-[50%]',
         )}
       >
@@ -293,7 +293,7 @@ export const GlobalSearch: FC<GlobalSearchProps> = () => {
                   aria-hidden='true'
                 />
                 <ComboboxInput
-                  className='h-[63px] w-full border-0 bg-transparent pl-12 pr-4 focus:ring-0 sm:text-sm text-gray-800 dark:text-gray-100 placeholder-topBarText  dark:placeholder-topBarTextDark'
+                  className='h-[calc(var(--spacing)*16_-_1px)] w-full border-0 bg-transparent pl-12 pr-4 focus:ring-0 sm:text-sm text-gray-800 dark:text-gray-100 placeholder-topBarText  dark:placeholder-topBarTextDark'
                   placeholder={t('Devices.Search or compose') + '...' || ''}
                   onChange={handleInputChange}
                   onKeyDown={(e: any) => {

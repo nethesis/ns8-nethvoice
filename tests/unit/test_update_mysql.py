@@ -83,6 +83,12 @@ fi
                                  "UPDATE pjsip SET data = '90'"]:
                     self.assertEqual(mutation in calls, '--migrate' in options, mutation)
                 self.assertIn('INSERT INTO sipsettings', calls)
+                self.assertIn('CREATE TABLE IF NOT EXISTS `sync_status`', calls)
+                stale = 'phonebook -e UPDATE `sync_status` SET `status` = "failed", `finished_at` = UTC_TIMESTAMP(), `message` = "The sync was interrupted" WHERE `status` = "running"'
+                lines = calls.splitlines()
+                self.assertEqual([line for line in lines if '`sync_status`' in line and 'UPDATE' in line], [line for line in lines if line.endswith(stale)])
+                self.assertEqual(len([line for line in lines if line.endswith(stale)]), 1)
+                self.assertLess(calls.index('CREATE TABLE IF NOT EXISTS `sync_status`'), calls.index(stale))
 
     def test_first_sql_failure_stops_preparation(self):
         result = self.run_init()

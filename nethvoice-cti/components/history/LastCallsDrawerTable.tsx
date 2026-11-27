@@ -288,7 +288,7 @@ export const LastCallsDrawerTable = forwardRef<HTMLButtonElement, LastCallsDrawe
                               lastCalls.rows.map((call: any, index: number) => (
                                 <tr key={index}>
                                   {/* Date */}
-                                  <td className='w-[7.5rem] py-4 pr-3 align-top'>
+                                  <td className='w-[calc(7.5rem*var(--density))] py-4 pr-3 align-top'>
                                     {/* Date column */}
                                     <CallsDate call={call} />
                                   </td>

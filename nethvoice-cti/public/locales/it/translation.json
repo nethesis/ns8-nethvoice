@@ -1,5 +1,6 @@
 {
   "Common": {
+    "Brand logo": "Logo di {{brand}}",
     "None": "Nessuna",
     "Select all": "Seleziona tutte",
     "Deselect all": "Deseleziona tutte",
@@ -111,8 +112,9 @@
     "You have made login in another tab": "Hai effettuato il login in un'altra scheda"
   },
   "Login": {
-    "User": "Utente",
+    "User": "Nome utente",
     "Password": "Password",
+    "Remember username": "Ricorda nome utente",
     "Sign in": "Accedi",
     "Sign in with SSO": "Accedi con SSO",
     "SSO login failed": "Single Sign-On non riuscito. Riprova.",
@@ -122,7 +124,9 @@
     "Contact administrator for access": "Contatta l' amministratore per l' accesso",
     "Wrong username or password": "Nome utente o password errati",
     "Network connection is lost": "Connessione di rete persa",
-    "Login failed": "Accesso fallito",
+    "Too many failed attempts. Wait a few minutes and try again.": "Troppi tentativi non riusciti. Attendi qualche minuto e riprova.",
+    "The server did not answer as expected. Try again in a moment.": "Il server non ha risposto come previsto. Riprova tra poco.",
+    "Login failed": "Impossibile accedere",
     "Two-Factor Authentication": "Autenticazione a Due Fattori",
     "Enter the 6-digit code (OTP code) from your authenticator app. If you cannot access the app, you can use one recovery OTP code.": "Inserisci il codice a 6 cifre (codice OTP) dalla tua app di autenticazione. Se non puoi accedere all'app, puoi utilizzare un codice OTP di recupero.",
     "OTP code": "Codice OTP",
@@ -130,7 +134,7 @@
     "The code you entered is invalid or has expired. Please check your authenticator app and try again.": "Il codice inserito non è valido o è scaduto. Controlla la tua app di autenticazione e riprova.",
     "Enable 2FA to improve account security": "Abilita 2FA per migliorare la sicurezza dell'account",
     "Two-factor authentication is disabled": "L'autenticazione a due fattori è disabilitata",
-    "Session expired, log in again": "Sessione scaduta, effettua di nuovo il login"
+    "Session expired, log in again": "Sessione scaduta, accedi di nuovo"
   },
   "Phonebook": {
     "No contacts found": "Nessun contatto trovato",
@@ -617,6 +621,8 @@
     "Activate voicemail": "Attiva voicemail",
     "Cellphone": "Cellulare",
     "Forward incoming calls to cellphone": "Inoltra le chiamate in entrata al cellulare",
+    "Switch to compact view": "Passa alla vista compatta",
+    "Switch to standard view": "Passa alla vista standard",
     "Sign out": "Esci"
   },
   "OperatorDrawer": {

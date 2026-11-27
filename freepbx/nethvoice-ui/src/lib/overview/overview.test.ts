@@ -1,0 +1,437 @@
+//  Copyright (C) 2026 Nethesis S.r.l.
+//  SPDX-License-Identifier: GPL-3.0-or-later
+
+import { describe, expect, it, vi } from 'vitest'
+import { api } from '@/lib/api/client'
+import {
+  buildModelLabels,
+  buildOverviewUsers,
+  FAVORITES_FILTER_ID,
+  filterOverviewUsers,
+  formatPhoneModel,
+  getInitials,
+  getOverviewCallStatus,
+  getOverviewLiveState,
+  getPhoneModelLabel,
+  normalizeOverviewView,
+  hasOnlineDevice,
+  isDeviceCallable,
+  isOverviewCallBlocked,
+  type OverviewCallContext,
+  parseOverviewEndpointUsers,
+  parseOverviewExtensions,
+  sortOverviewUsers,
+  toOverviewStatus,
+  type OverviewUser,
+} from './overview'
+import type { User } from '@/lib/users/users'
+
+vi.mock('@/lib/api/client', () => ({ api: { GET: vi.fn() } }))
+
+const extensionsResponse = {
+  '300': { status: 'online', dnd: false, cf: '', codecs: ['opus', 'alaw'], name: 'Anna Miller' },
+  '91300': { status: 'online', dnd: true, cf: '', codecs: [] },
+  '92300': { status: 'busy_ringing', dnd: false, cf: '0612345678' },
+  '301': { status: 'offline', dnd: false, cf: null, codecs: null },
+  '93300': {
+    status: 'offline',
+    dnd: false,
+    cf: '',
+    codecs: [],
+    ip: '192.0.2.20',
+    port: 5062,
+    sipuseragent: ' Fanvil X4U 2.12.1 ',
+    chanType: 'pjsip',
+  },
+}
+
+const endpointsResponse = {
+  'a.miller': {
+    name: 'Anna Miller',
+    username: 'a.miller',
+    mainPresence: 'busy',
+    endpoints: {
+      mainextension: [{ id: '300' }],
+      extension: [
+        { id: '93300', type: 'physical' },
+        { id: '300', type: 'webrtc' },
+        { id: '92300', type: 'mobile' },
+        { id: '91300', type: 'nethlink' },
+      ],
+    },
+  },
+  'b.lee': {
+    name: 'Bruce Lee',
+    username: 'b.lee',
+    mainPresence: 'online',
+    endpoints: { mainextension: [{ id: '301' }], extension: [{ id: '301', type: 'webrtc' }] },
+  },
+  'no.ext': {
+    name: '',
+    username: 'no.ext',
+    mainPresence: 'offline',
+    endpoints: { mainextension: [], extension: [] },
+  },
+}
+
+const users: User[] = [
+  {
+    id: 2,
+    username: 'a.miller',
+    displayName: 'Anna Miller',
+    mainExtension: '300',
+    profileId: 3,
+    email: '',
+    devices: [
+      {
+        id: 9,
+        type: 'physical',
+        extension: '93300',
+        mac: '',
+        vendor: 'Fanvil',
+        model: 'fanvil-X4U',
+        line: 1,
+        registered: false,
+      },
+    ],
+  },
+]
+
+const liveState = {
+  extensions: parseOverviewExtensions(extensionsResponse),
+  users: parseOverviewEndpointUsers(endpointsResponse),
+}
+
+const overviewUsers = buildOverviewUsers(liveState, users, [
+  { id: 1, name: 'Sales', userIds: [2] },
+  { id: 2, name: 'Support', userIds: [] },
+])
+
+describe('toOverviewStatus', () => {
+  it('should map astproxy and presence values', () => {
+    expect(toOverviewStatus('online')).toBe('online')
+    expect(toOverviewStatus('callforward')).toBe('forward')
+    expect(toOverviewStatus('voicemail')).toBe('forward')
+    expect(toOverviewStatus('cellphone')).toBe('forward')
+    expect(toOverviewStatus('onhold')).toBe('busy')
+    expect(toOverviewStatus('busy_ringing')).toBe('ringing')
+    expect(toOverviewStatus('DND')).toBe('dnd')
+    expect(toOverviewStatus('')).toBe('offline')
+  })
+})
+
+describe('parseOverviewExtensions', () => {
+  it('should show DND on an idle extension that has it enabled', () => {
+    expect(liveState.extensions['91300'].status).toBe('dnd')
+    expect(liveState.extensions['91300'].doNotDisturb).toBe(true)
+  })
+
+  it('should default missing values', () => {
+    expect(liveState.extensions['301']).toEqual({
+      status: 'offline',
+      doNotDisturb: false,
+      callForward: '',
+      codecs: [],
+      userAgent: '',
+      ip: '',
+      port: '',
+      channelType: '',
+    })
+  })
+
+  it('should read the registration of the extension', () => {
+    expect(liveState.extensions['93300']).toMatchObject({
+      userAgent: 'Fanvil X4U 2.12.1',
+      ip: '192.0.2.20',
+      port: '5062',
+      channelType: 'pjsip',
+    })
+  })
+})
+
+describe('parseOverviewEndpointUsers', () => {
+  it('should fall back to the username', () => {
+    expect(liveState.users.find((user) => user.username === 'no.ext')?.name).toBe('no.ext')
+  })
+})
+
+describe('buildOverviewUsers', () => {
+  it('should skip users without a main extension', () => {
+    expect(overviewUsers.map((user) => user.username)).toEqual(['a.miller', 'b.lee'])
+  })
+
+  it('should order the devices and attach their live state', () => {
+    const [anna] = overviewUsers
+
+    expect(anna.groups).toEqual(['Sales'])
+    expect(anna.presence).toBe('busy')
+    expect(anna.devices.map((device) => [device.type, device.extension, device.status])).toEqual([
+      ['webrtc', '300', 'online'],
+      ['nethlink', '91300', 'dnd'],
+      ['mobile', '92300', 'ringing'],
+      ['physical', '93300', 'offline'],
+    ])
+    expect(anna.devices[3].model).toBe('Fanvil X4U')
+    expect(anna.devices[3]).toMatchObject({ ip: '192.0.2.20', userAgent: 'Fanvil X4U 2.12.1' })
+    expect(anna.devices[2].callForward).toBe('0612345678')
+  })
+
+  it('should name the phones as the phones page does', () => {
+    const [anna] = buildOverviewUsers(
+      liveState,
+      users,
+      [],
+      buildModelLabels([{ name: 'fanvil-X4U', displayName: 'Fanvil X4U Pro' }]),
+    )
+
+    expect(anna.devices[3].model).toBe('Fanvil X4U Pro')
+  })
+
+  it('should leave the groups empty for users unknown to the PBX list', () => {
+    expect(overviewUsers[1].groups).toEqual([])
+  })
+})
+
+describe('formatPhoneModel', () => {
+  it('should avoid repeating the vendor', () => {
+    expect(formatPhoneModel('Fanvil', 'fanvil-X4U')).toBe('Fanvil X4U')
+    expect(formatPhoneModel('Yealink', 'T54W')).toBe('Yealink T54W')
+    expect(formatPhoneModel('', 'X4U')).toBe('X4U')
+  })
+})
+
+describe('getPhoneModelLabel', () => {
+  it('should prefer the name of the model and fall back to vendor and model', () => {
+    const labels = buildModelLabels([{ name: 'yealink-T43', displayName: 'Yealink T43U' }])
+
+    expect(getPhoneModelLabel('Yealink/Dreamwave', 'yealink-T43', labels)).toBe('Yealink T43U')
+    expect(getPhoneModelLabel('Fanvil', 'fanvil-X4U', labels)).toBe('Fanvil X4U')
+    expect(getPhoneModelLabel('Fanvil', 'fanvil-X4U')).toBe('Fanvil X4U')
+  })
+})
+
+describe('filterOverviewUsers', () => {
+  const filter = (text: string, statuses: OverviewUser['presence'][], groups: string[] = []) =>
+    filterOverviewUsers(overviewUsers, { text, statuses, groups }).map((user) => user.username)
+
+  it('should match name, username and extensions', () => {
+    expect(filter('bruce', [])).toEqual(['b.lee'])
+    expect(filter('92300', [])).toEqual(['a.miller'])
+  })
+
+  it('should match the group names', () => {
+    expect(filter('sales', [])).toEqual(['a.miller'])
+    expect(filter('support', [])).toEqual([])
+  })
+
+  it('should filter by presence and group', () => {
+    expect(filter('', ['online'])).toEqual(['b.lee'])
+    expect(filter('', [], ['Sales'])).toEqual(['a.miller'])
+    expect(filter('', [], ['Support'])).toEqual([])
+  })
+
+  it('should keep the favorites with the favorites filter', () => {
+    const favorites = new Set(['b.lee'])
+    const shown = (groups: string[]) =>
+      filterOverviewUsers(overviewUsers, { text: '', statuses: [], groups, favorites }).map(
+        (user) => user.username,
+      )
+
+    expect(shown([FAVORITES_FILTER_ID])).toEqual(['b.lee'])
+    expect(shown([FAVORITES_FILTER_ID, 'Sales'])).toEqual(['a.miller', 'b.lee'])
+  })
+})
+
+describe('sortOverviewUsers', () => {
+  it('should sort by name, extension or status in both directions', () => {
+    const sorted = (key: 'name' | 'extension' | 'status', descending = false) =>
+      sortOverviewUsers(overviewUsers, key, descending).map((user) => user.username)
+
+    expect(sorted('name')).toEqual(['a.miller', 'b.lee'])
+    expect(sorted('name', true)).toEqual(['b.lee', 'a.miller'])
+    expect(sorted('extension', true)).toEqual(['b.lee', 'a.miller'])
+    expect(sorted('status')).toEqual(['b.lee', 'a.miller'])
+  })
+
+  it('should put the favorites first in any order', () => {
+    const favorites = new Set(['b.lee'])
+    const sorted = (descending: boolean) =>
+      sortOverviewUsers(overviewUsers, 'name', descending, favorites).map((user) => user.username)
+
+    expect(sorted(false)).toEqual(['b.lee', 'a.miller'])
+    expect(sorted(true)).toEqual(['b.lee', 'a.miller'])
+  })
+})
+
+describe('getInitials', () => {
+  it('should use the first two words', () => {
+    expect(getInitials('anna maria miller')).toBe('AM')
+    expect(getInitials('  Bruce ')).toBe('B')
+  })
+})
+
+describe('getOverviewCallStatus', () => {
+  const ready: OverviewCallContext = {
+    mainExtension: '300',
+    devices: [{ status: 'offline' }, { status: 'online' }],
+    phoneState: 'ready',
+    phoneEnabled: true,
+    inCall: false,
+    otherTabInCall: false,
+  }
+
+  it('should allow the call when the phone is ready and a device is online', () => {
+    expect(getOverviewCallStatus(ready)).toBe('ready')
+    expect(isOverviewCallBlocked('ready')).toBe(false)
+  })
+
+  it('should report a missing main extension first', () => {
+    expect(getOverviewCallStatus({ ...ready, mainExtension: '', inCall: true, devices: [] })).toBe(
+      'no_extension',
+    )
+  })
+
+  it('should report the call in progress before the device status', () => {
+    expect(getOverviewCallStatus({ ...ready, inCall: true, devices: [{ status: 'busy' }] })).toBe(
+      'in_call',
+    )
+  })
+
+  it('should report the call in another tab before the device status', () => {
+    expect(
+      getOverviewCallStatus({
+        ...ready,
+        phoneState: 'elsewhere',
+        otherTabInCall: true,
+        devices: [{ status: 'ringing' }],
+      }),
+    ).toBe('in_call_elsewhere')
+  })
+
+  it('should report the lost connection before the device status', () => {
+    expect(getOverviewCallStatus({ ...ready, phoneState: 'error', devices: [] })).toBe(
+      'connection_lost',
+    )
+  })
+
+  it('should report a busy or ringing device as not callable', () => {
+    expect(getOverviewCallStatus({ ...ready, devices: [{ status: 'busy' }] })).toBe(
+      'no_online_device',
+    )
+    expect(getOverviewCallStatus({ ...ready, devices: [{ status: 'ringing' }] })).toBe(
+      'no_online_device',
+    )
+  })
+
+  it('should keep the call available when the phone can retry or move here', () => {
+    expect(getOverviewCallStatus({ ...ready, phoneState: 'error', phoneEnabled: false })).toBe(
+      'phone_error',
+    )
+    expect(getOverviewCallStatus({ ...ready, phoneState: 'elsewhere' })).toBe('elsewhere')
+    expect(getOverviewCallStatus({ ...ready, phoneState: 'inactive' })).toBe('connecting')
+    expect(isOverviewCallBlocked('phone_error')).toBe(false)
+    expect(isOverviewCallBlocked('elsewhere')).toBe(false)
+    expect(isOverviewCallBlocked('connecting')).toBe(false)
+  })
+
+  it('should block every reason that prevents the call', () => {
+    for (const status of [
+      'no_extension',
+      'in_call',
+      'in_call_elsewhere',
+      'connection_lost',
+      'no_online_device',
+    ] as const) {
+      expect(isOverviewCallBlocked(status)).toBe(true)
+    }
+  })
+})
+
+describe('hasOnlineDevice', () => {
+  it('should consider only online devices', () => {
+    expect(hasOnlineDevice([{ status: 'busy' }, { status: 'dnd' }])).toBe(false)
+    expect(hasOnlineDevice([{ status: 'busy' }, { status: 'online' }])).toBe(true)
+  })
+})
+
+describe('isDeviceCallable', () => {
+  it('should allow the call only to an online device while the phone is free', () => {
+    expect(isDeviceCallable({ status: 'online' }, false)).toBe(true)
+    expect(isDeviceCallable({ status: 'online' }, true)).toBe(false)
+    for (const status of ['offline', 'busy', 'ringing', 'dnd', 'forward'] as const) {
+      expect(isDeviceCallable({ status }, false)).toBe(false)
+    }
+  })
+})
+
+describe('normalizeOverviewView', () => {
+  it('should keep a known view and fall back to the grid', () => {
+    expect(normalizeOverviewView('list')).toBe('list')
+    expect(normalizeOverviewView('compact')).toBe('compact')
+    expect(normalizeOverviewView('table')).toBe('grid')
+    expect(normalizeOverviewView(undefined)).toBe('grid')
+  })
+})
+
+describe('getOverviewLiveState', () => {
+  it('should combine the live extensions and users routes', async () => {
+    vi.mocked(api.GET).mockImplementation(((path: string) =>
+      Promise.resolve({
+        data:
+          path === '/dashboard/live/extensions'
+            ? {
+                '201': {
+                  exten: '201',
+                  name: 'Alice Example',
+                  status: 'online',
+                  conversations: {},
+                  dnd: true,
+                  cf: '0200000000',
+                  codecs: ['alaw'],
+                  ip: '192.0.2.10',
+                  port: '5060',
+                  sipuseragent: 'Yealink T46U',
+                  chanType: 'pjsip',
+                },
+              }
+            : {
+                alice: {
+                  name: 'Alice Example',
+                  username: 'alice',
+                  mainPresence: 'online',
+                  endpoints: {
+                    mainextension: [{ id: '201' }],
+                    extension: [{ id: '201', type: 'physical' }],
+                  },
+                },
+              },
+        response: new Response(),
+      })) as never)
+
+    await expect(getOverviewLiveState()).resolves.toEqual({
+      extensions: {
+        '201': {
+          status: 'dnd',
+          doNotDisturb: true,
+          callForward: '0200000000',
+          codecs: ['alaw'],
+          userAgent: 'Yealink T46U',
+          ip: '192.0.2.10',
+          port: '5060',
+          channelType: 'pjsip',
+        },
+      },
+      users: [
+        {
+          username: 'alice',
+          name: 'Alice Example',
+          presence: 'online',
+          mainExtension: '201',
+          endpoints: [{ extension: '201', type: 'physical' }],
+        },
+      ],
+    })
+    expect(api.GET).toHaveBeenCalledWith('/dashboard/live/extensions')
+    expect(api.GET).toHaveBeenCalledWith('/dashboard/live/users')
+  })
+})

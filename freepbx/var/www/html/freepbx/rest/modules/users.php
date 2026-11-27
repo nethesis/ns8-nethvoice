@@ -22,9 +22,59 @@
 include_once('lib/libUsers.php');
 include_once('lib/libExtensions.php');
 include_once('lib/libMiddleware.php');
+include_once('lib/libSecurity.php');
+include_once('lib/libUsersAdmin.php');
+include_once('lib/libDomainAdmins.php');
+include_once('lib/libCsvImport.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
+
+function usersAdminResponse(Response $response, array $result): Response {
+    [$status, $payload] = $result;
+    return $payload === null ? $response->withStatus($status) : jsonResponse($response, $payload, $status);
+}
+
+function usersAdminCaller(Request $request): array {
+    return [
+        'username' => (string) $request->getAttribute(NETHVOICE_USERNAME_ATTRIBUTE, ''),
+        'superadmin' => nethvoiceRequestIsSuperadmin($request),
+    ];
+}
+
+$app->get('/users/domain', function (Request $request, Response $response, $args) {
+    return jsonResponse($response, usersAdminDomainStatus(usersAdminDefaultClient()), 200);
+});
+
+$app->get('/users/domain/accounts', function (Request $request, Response $response, $args) {
+    return usersAdminResponse($response, usersAdminListAccounts(usersAdminDefaultClient()));
+});
+
+$app->put('/users/{username}/account/password', function (Request $request, Response $response, $args) {
+    return usersAdminResponse($response, usersAdminChangePassword(usersAdminDefaultClient(), (string) $args['username'], nethvoiceRequestBody($request), usersAdminCaller($request)));
+});
+
+$app->patch('/users/{username}/account', function (Request $request, Response $response, $args) {
+    $body = nethvoiceRequestBody($request);
+    $result = usersAdminUpdateAccount(usersAdminDefaultClient(), (string) $args['username'], $body, usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminApplyDisplayName');
+    if ($result[0] === 200 && is_array($body) && ($body['locked'] ?? null) === true) {
+        domainAdminsDefault()->sync();
+        revokeMiddlewareUser((string) $args['username']);
+    }
+    return usersAdminResponse($response, $result);
+});
+
+$app->delete('/users/{username}/account', function (Request $request, Response $response, $args) {
+    $username = (string) $args['username'];
+    $prepared = preg_match(USERS_ADMIN_USERNAME_PATTERN, $username) === 1 && prepareUserRemoval($username);
+    $result = usersAdminDeleteAccount(usersAdminDefaultClient(), $username, usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminDeleteNethvoiceData');
+    if ($result[0] === 200) {
+        domainAdminsDefault()->sync();
+    } elseif ($prepared) {
+        discardUserRemoval($username);
+    }
+    return usersAdminResponse($response, $result);
+});
 
 # Get final wizard report for created users
 $app->get('/final', function (Request $request, Response $response, $args) {
@@ -80,10 +130,18 @@ $app->get('/users/sync', function (Request $request, Response $response, $args) 
 $app->get('/users/{all}', function (Request $request, Response $response, $args) {
     $all = $args['all'];
     if($all == "true") {
-        system('fwconsole userman --syncall --force > /dev/null &'); // force FreePBX user sync
-        triggerMiddlewareProfilesReloadAfterUserSync();
+        if (!nethvoiceRequestHasSection($request, 'users')) {
+            return nethvoiceForbidden($response);
+        }
+        if (usersAdminStartSynchronization()) {
+            triggerMiddlewareProfilesReloadAfterUserSync();
+        }
     }
-    return jsonResponse($response, array_values(getAllUsers($all)),200);
+    $users = array_values(getAllUsers($all));
+    if (!nethvoiceRequestIsSuperadmin($request)) {
+        $users = nethvoiceWithoutUserSecrets($users);
+    }
+    return jsonResponse($response, $users, 200);
 });
 
 
@@ -99,7 +157,9 @@ $app->post('/users', function (Request $request, Response $response, $args) {
     $params = $request->getParsedBody();
     $username = $params['username'];
     $fullname = $params['fullname'];
-    if ( ! $username || ! $fullname || preg_match('/^[0-9]/',$username)) {
+    if ( ! $username || ! $fullname || preg_match('/^[0-9]/',$username)
+        || (!nethvoiceRequestIsSuperadmin($request) && is_string($username) && preg_match('/[\x00-\x1F\x7F]/', $username) === 1)
+        || (!nethvoiceRequestIsSuperadmin($request) && is_string($fullname) && preg_match('/[\x00-\x1F\x7F]/', $fullname) === 1)) {
         return jsonResponse($response, ['result' => 'User name or full name invalid'], 422);
     }
     $username = strtolower($username);
@@ -142,7 +202,7 @@ $app->post('/users/{username}/password', function (Request $request, Response $r
             $tmp = tempnam("/tmp","ASTPWD");
             file_put_contents($tmp, $password);
 
-            exec("/usr/bin/sudo /sbin/e-smith/signal-event password-modify '".$username."' $tmp", $out, $ret);
+            exec("/usr/bin/sudo /sbin/e-smith/signal-event password-modify ".escapeshellarg($username)." ".escapeshellarg($tmp), $out, $ret);
             if ($ret === 0) {
                 setPassword($username, $password);
                 return $response->withStatus(201);
@@ -174,8 +234,9 @@ $app->get('/users/{username}/password', function (Request $request, Response $re
 #
 
 $app->post('/users/sync', function (Request $request, Response $response, $args) {
-    system('fwconsole userman --syncall --force > /dev/null &');
-    triggerMiddlewareProfilesReloadAfterUserSync();
+    if (usersAdminStartSynchronization()) {
+        triggerMiddlewareProfilesReloadAfterUserSync();
+    }
     return $response->withStatus(200);
 });
 
@@ -186,13 +247,19 @@ $app->post('/users/sync', function (Request $request, Response $response, $args)
 $app->post('/csv/csvimport', function (Request $request, Response $response, $args) {
     try {
         $params = $request->getParsedBody();
-        $base64csv = preg_replace('/^data:[a-z\.\-\/]*;base64,/','',$params['file']);
-        $statusfile = '/var/run/nethvoice/csvimport.code';
-        if (file_exists($statusfile)) {
-            unlink($statusfile);
+        $base64csv = is_array($params) && is_string($params['file'] ?? null) ? preg_replace('/^data:[a-z\.\-\/]*;base64,/','',$params['file']) : '';
+        $options = array();
+        if (!nethvoiceRequestIsSuperadmin($request)) {
+            $options[] = '--caller=' . (string) $request->getAttribute(NETHVOICE_USERNAME_ATTRIBUTE, '');
+            $options[] = 'restricted';
         }
-        system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ".escapeshellarg($base64csv)." &> /dev/null &");
-        return $response->withStatus(200);
+        if (is_array($params) && ($params['rfc4180'] ?? false) === true) {
+            $options[] = 'rfc4180';
+        }
+        [$status, $payload] = csvImportStart($base64csv, $options, function ($arguments) {
+            system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ".$arguments." > /dev/null 2>&1 &");
+        }, '/var/run/nethvoice/csvimport.code');
+        return jsonResponse($response, $payload, $status);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -201,20 +268,9 @@ $app->post('/csv/csvimport', function (Request $request, Response $response, $ar
 
 $app->get('/csv/csvimport', function (Request $request, Response $response, $args) {
     try {
-        $statusfile = '/var/run/nethvoice/csvimport.code';
-        if (file_exists($statusfile)) {
-            $status = json_decode(file_get_contents($statusfile));
-            if (isset($status->exitcode) && $status->exitcode != 0) {
-                unlink($statusfile);
-                return jsonResponse($response, ['status' => $status->errors],500);
-            } elseif (isset($status->exitcode) && $status->exitcode == 0) {
-                unlink($statusfile);
-                return jsonResponse($response, ['result' => $status->progress],200);
-            }
-            return jsonResponse($response, ['result' => $status->progress],200);
-        } else {
-            return jsonResponse($response, ['status' => 'No csv import active'],422);
-        }
+        $id = $request->getQueryParams()['id'] ?? null;
+        [$status, $payload] = csvImportStatus($id, '/var/run/nethvoice/csvimport.code');
+        return jsonResponse($response, $payload, $status);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -273,7 +329,7 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
             // mobile cellphone
             $mobile = NULL;
             foreach ($mobiles as $m) {
-                if ($m['id'] === $u['id']) {
+                if ((string) $m['id'] === (string) $u['id']) {
                     $mobile = $m['mobile'];
                     break;
                 }
@@ -307,19 +363,16 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
             } else {
                 $row[] = '';
             }
-            // ad " string delimiters
-            foreach ($row as $key => $value) {
-                $row[$key] = "\"$value\"";
-            }
-
             $csvarray[] = $row;
         }
 
-        $csvstring = '';
+        $handle = fopen('php://temp', 'r+');
         foreach ($csvarray as $row) {
-            $csvstring .= implode(',',$row);
-            $csvstring .= "\r\n";
+            fputcsv($handle, array_map('csvExportCell', $row), ',', '"', '', "\r\n");
         }
+        rewind($handle);
+        $csvstring = stream_get_contents($handle);
+        fclose($handle);
         return jsonResponse($response, base64_encode($csvstring),200);
     } catch (Exception $e) {
         error_log($e->getMessage());

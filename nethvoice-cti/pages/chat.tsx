@@ -183,7 +183,7 @@ const Chat: NextPage = () => {
       header: t('Chat.Last message'),
       cell: (c: ChatConversation) => (
         // the table grows with its content: a max width lets truncate cut a long message
-        <div className='flex items-center gap-3 min-w-0 max-w-[14rem] sm:max-w-xs md:max-w-md lg:max-w-xl 2xl:max-w-3xl'>
+        <div className='flex items-center gap-3 min-w-0 max-w-[calc(14rem*var(--density))] sm:max-w-xs md:max-w-md lg:max-w-xl 2xl:max-w-3xl'>
           <span
             className={`truncate text-sm ${
               c.unread
@@ -231,7 +231,7 @@ const Chat: NextPage = () => {
     },
     {
       header: t('Chat.Date'),
-      width: '16rem',
+      width: 'calc(16rem * var(--density))',
       // As the last calls: how long ago, then the date.
       cell: (c: ChatConversation) =>
         found[c.peer] || c.last ? (
@@ -245,7 +245,7 @@ const Chat: NextPage = () => {
     },
     {
       header: '',
-      width: '13rem',
+      width: 'calc(13rem * var(--density))',
       className: 'text-right',
       // The menu is not the row: it does not open the chat.
       cell: (c: ChatConversation) => (
@@ -388,7 +388,7 @@ const Chat: NextPage = () => {
           ),
         }}
         rowKey={(c: ChatConversation) => c.peer}
-        trClassName='h-[68px]'
+        trClassName='h-[calc(68px*var(--density))]'
         scrollable={true}
         maxHeight='calc(100vh - 18rem)'
         footer={

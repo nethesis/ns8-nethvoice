@@ -940,6 +940,7 @@ export const Summary: FC<SummaryProps> = ({ className }): JSX.Element => {
                                                       <LoggedStatus
                                                         loggedIn={queue?.loggedIn}
                                                         paused={queue?.paused}
+                                                        pauseReason={queue?.lastPausedInReason}
                                                       />
                                                     </div>
                                                   </div>

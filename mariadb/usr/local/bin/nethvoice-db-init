@@ -79,6 +79,8 @@ if [[ -n "$devices_collation" && "$devices_collation" != utf8mb4_unicode_ci ]]; 
     db -e 'ALTER TABLE asterisk.rest_devices_phones CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
 fi
 db phonebook -e 'CREATE TABLE IF NOT EXISTS `sync_metadata` (`scope` varchar(255) NOT NULL, `last_sync_at` datetime DEFAULT NULL, PRIMARY KEY (`scope`)) ENGINE=MyISAM DEFAULT CHARSET=utf8'
+db phonebook -e 'CREATE TABLE IF NOT EXISTS `sync_status` (`sid` varchar(255) NOT NULL, `status` varchar(16) NOT NULL, `started_at` datetime NOT NULL, `finished_at` datetime DEFAULT NULL, `imported` int(10) unsigned DEFAULT NULL, `message` varchar(500) DEFAULT NULL, PRIMARY KEY (`sid`)) ENGINE=MyISAM DEFAULT CHARSET=utf8'
+db phonebook -e 'UPDATE `sync_status` SET `status` = "failed", `finished_at` = UTC_TIMESTAMP(), `message` = "The sync was interrupted" WHERE `status` = "running"'
 db asterisk -e 'INSERT INTO `rest_cti_permissions` (`id`,`name`,`displayname`,`description`) VALUES (10,"phonebook_level_0","Phonebook read only","View phonebook contacts"),(11,"phonebook_level_1","Phonebook private contacts","Create, edit and delete owned private contacts"),(12,"ad_phonebook","Advanced Phonebook","Read and write all contacts"),(14,"phonebook_level_2","Phonebook public and shared contacts","Create, edit and delete public and shared contacts") ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `displayname`=VALUES(`displayname`), `description`=VALUES(`description`)'
 db asterisk -e 'INSERT INTO `rest_cti_macro_permissions_permissions` (`macro_permission_id`,`permission_id`) VALUES (2,10),(2,11),(2,12),(2,14) ON DUPLICATE KEY UPDATE `permission_id`=VALUES(`permission_id`)'
 if $migrate; then

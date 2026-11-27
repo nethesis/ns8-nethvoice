@@ -20,6 +20,9 @@
   }
 }
 :root {
+  --density: 1;
+  --spacing: calc(0.25rem * var(--density));
+
   /* react tooltip opacity */
   --rt-opacity: 1;
   --autofill-bg: white;
@@ -460,11 +463,13 @@
   --color-text-inline-notification-information-description-dark: #C7D2FE;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --autofill-bg: #030712;
-    --autofill-text: white;
-  }
+html.compact {
+  --density: 0.8;
+}
+
+html.dark {
+  --autofill-bg: #030712;
+  --autofill-text: white;
 }
 
 /* fix browser autofill color */

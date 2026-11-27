@@ -26,6 +26,7 @@ require_once(__DIR__. '/../lib/modelRetrieve.php');
 require_once(__DIR__. '/../../admin/modules/core/functions.inc.php');
 include_once(__DIR__. '/../lib/gateway/functions.inc.php');
 include_once(__DIR__. '/../lib/libExtensions.php');
+include_once(__DIR__. '/../lib/libSecurity.php');
 
 /*
 *  Launch a scan: POST/devices/scan
@@ -78,8 +79,10 @@ $app->get('/devices/gateways/list/{id}', function (Request $request, Response $r
                     $sql = 'SELECT '. implode(',', $trunksMeta[$trunkPrefix]).
                            ' FROM `gateway_config`'.
                            ' JOIN `gateway_config_'. $trunkPrefix. '` ON `gateway_config_'. $trunkPrefix. '`.config_id = `gateway_config`.id'.
-                           ' WHERE `gateway_config`.mac = "' . $gateway['mac'] . '"';
-                    $obj = sql($sql, "getAll", \PDO::FETCH_ASSOC);
+                           ' WHERE `gateway_config`.mac = ?';
+                    $sth = FreePBX::Database()->prepare($sql);
+                    $sth->execute(array($gateway['mac']));
+                    $obj = $sth->fetchAll(\PDO::FETCH_ASSOC);
 
                     if ($obj) {
                         $gateway['trunks_'. $trunkPrefix] = $obj;
@@ -206,6 +209,9 @@ $app->get('/devices/phones/list', function (Request $request, Response $response
             );
             $res[] = $phone;
         }
+        if (!nethvoiceRequestIsSuperadmin($request)) {
+            $res = nethvoiceWithoutLineSecrets($res);
+        }
         return jsonResponse($response, $res,200);
     } catch (Exception $e) {
         error_log($e->getMessage());
@@ -320,7 +326,16 @@ $app->post('/devices/gateways', function (Request $request, Response $response, 
     $result = array('status' => false, 'errors' => array('Unable to save gateway'));
     try {
         $params = $request->getParsedBody();
-        $result = addEditGateway($params);
+        $controls = false;
+        if (is_array($params)) {
+            array_walk_recursive($params, function ($value) use (&$controls) {
+                $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+            });
+        }
+        if ($controls && !nethvoiceRequestIsSuperadmin($request)) {
+            return jsonResponse($response, array('status' => false, 'errors' => array('Invalid control character'), 'warnings' => array(), 'infos' => array()), 400);
+        }
+        $result = addEditGateway($params, !nethvoiceRequestIsSuperadmin($request));
         if ($result['status']) {
             return jsonResponse($response, $result,200);
         }
@@ -330,6 +345,34 @@ $app->post('/devices/gateways', function (Request $request, Response $response, 
     } catch (Throwable $e) {
         error_log($e->getMessage());
         return jsonResponse($response, $result,500);
+    }
+});
+
+$app->put('/devices/gateways/{id}', function (Request $request, Response $response, $args) {
+    $result = array('status' => false, 'errors' => array('Unable to save gateway'));
+    try {
+        $id = $request->getAttribute('route')->getArgument('id');
+        if (preg_match('/^[0-9]+$/D', (string) $id) !== 1) {
+            return jsonResponse($response, array('status' => false, 'errors' => array('Gateway configuration not found'), 'warnings' => array(), 'infos' => array()), 404);
+        }
+        $params = $request->getParsedBody();
+        if (!is_array($params)) {
+            return jsonResponse($response, array('status' => false, 'errors' => array('Invalid gateway configuration'), 'warnings' => array(), 'infos' => array()), 400);
+        }
+        $controls = false;
+        array_walk_recursive($params, function ($value) use (&$controls) {
+            $controls = $controls || (is_string($value) && preg_match('/[\x00-\x1F\x7F]/', $value) === 1);
+        });
+        if ($controls) {
+            return jsonResponse($response, array('status' => false, 'errors' => array('Invalid control character'), 'warnings' => array(), 'infos' => array()), 400);
+        }
+        $result = updateGateway($id, $params, !nethvoiceRequestIsSuperadmin($request));
+        $httpStatus = $result['status'] ? 200 : ($result['http_status'] ?? 500);
+        unset($result['http_status']);
+        return jsonResponse($response, $result, $httpStatus);
+    } catch (Throwable $e) {
+        error_log($e->getMessage());
+        return jsonResponse($response, $result, 500);
     }
 });
 

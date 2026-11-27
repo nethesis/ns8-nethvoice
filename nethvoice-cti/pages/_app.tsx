@@ -13,12 +13,14 @@ import { useRouter } from 'next/router'
 import { RouteGuard } from '../config/router'
 import { Service } from '../config/service'
 import { checkDarkTheme } from '../lib/darkTheme'
+import { checkDensity } from '../lib/density'
 import { getBrandedTabTitle, getConfiguredFaviconUrl, getProductSubname } from '../lib/utils'
 import Head from 'next/head'
 import { loadI18n } from '../lib/i18n'
 import { isSsoAuthentication } from '../lib/password'
 import { Island } from '../components/island'
 import { ChatIslandMount } from '../components/chat'
+import { SignInSplash } from '../components/layout/SignInSplash'
 
 function MyApp({ Component, pageProps }: AppProps) {
   const [isLoading, setIsLoading] = useState<boolean>(true)
@@ -115,6 +117,7 @@ function MyApp({ Component, pageProps }: AppProps) {
   // check if dark theme should be enabled
   useEffect(() => {
     checkDarkTheme()
+    checkDensity()
   }, [])
 
   useEffect(() => {
@@ -153,6 +156,7 @@ function MyApp({ Component, pageProps }: AppProps) {
             // Render the Login page
             <Component {...pageProps} />
           )}
+          <SignInSplash />
         </Provider>
       )}
     </>
