@@ -21,7 +21,7 @@
  * Copyright 2006-2014 Schmooze Com Inc.
  */
 namespace FreePBX;
-use Symfony\Component\Lock\Factory;
+use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\Store\SemaphoreStore;
 class Cron {
 
@@ -265,7 +265,7 @@ class Cron {
 			return $this->lock;
 		}
 		$lockStore = new SemaphoreStore();
-		$factory = new Factory($lockStore);
+		$factory = new LockFactory($lockStore);
 		$this->lock = $factory->createLock('crontab-'.$this->user,60);
 		return $this->lock;
 	}
