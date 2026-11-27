@@ -241,9 +241,20 @@ class AsteriskBridge:
         except Exception as e:
             original_channel_id = original_channel_id or channel_id
             logger.warning(f"Failed to set up channel {original_channel_id}: {e}")
-            await self.close_channel(original_channel_id)
+            await self._release_call(original_channel_id)
+
+    async def _release_call(self, channel_id):
+        """
+        Close a call. If its original channel still waits in Stasis, or the
+        call is not tracked, return the original channel to the dialplan.
+        """
+        call = self.channels.get(channel_id)
+        waiting = call is None or call.get('waiting', False)
+        await self.close_channel(channel_id)
+        if waiting:
             try:
-                await self._ari_request('POST', f"/channels/{original_channel_id}/continue", params={})
+                await self._ari_request('POST', f"/channels/{channel_id}/continue", params={})
+                logger.info(f"Channel {channel_id} returned to dialplan")
             except Exception:
                 pass  # the call is gone
 
@@ -272,7 +283,8 @@ class AsteriskBridge:
 
         if not channel_id.startswith("snoop-") and not channel_id.startswith("ext-media-"):
             # Normal channel entered Stasis
-            self.channels[channel_id] = {}
+            # waiting: the channel waits in Stasis until it is continued
+            self.channels[channel_id] = {'waiting': True}
             self.channels[channel_id]['language'] = channel.get('language', 'en')
             self.channels[channel_id]['caller_name'] = channel['caller'].get('name', 'caller')
             self.channels[channel_id]['caller_number'] = channel['caller'].get('number', 'unknown')
@@ -380,6 +392,7 @@ class AsteriskBridge:
 
             # if both bridge are created, start the deepgram connector
             if 'bridge_in' in self.channels[original_channel_id] and 'bridge_out' in self.channels[original_channel_id]:
+                call = self.channels[original_channel_id]
                 try:
                     # get external media channel port and create a stream
                     rtp_stream_in = await self.rtp_server.create_stream(self.channels[original_channel_id]['rtp_source_port_in'])
@@ -414,13 +427,15 @@ class AsteriskBridge:
                         asyncio.create_task(self._start_connector(original_channel_id))
                 except Exception as e:
                     logger.error(f"Failed to start connector for channel {original_channel_id}: {e}")
-                    await self.close_channel(original_channel_id)
+                    await self._release_call(original_channel_id)
+                    return
                 # Return control of original channel to dialplan
                 await self._ari_request(
                     'POST',
                     f"/channels/{original_channel_id}/continue",
                     params={}
                 )
+                call['waiting'] = False
                 logger.info(f"Channel {original_channel_id} returned to dialplan")
 
     async def _start_connector(self, channel_id):
@@ -505,6 +520,10 @@ class AsteriskBridge:
         if channel_id in self.channels:
             logger.debug(f"Channel {channel_id} snooped and continue to dialplan")
             return
+        original_channel_id = _original_channel_id(channel_id, HELPER_CHANNEL_PREFIXES)
+        if original_channel_id in self.channels:
+            logger.info(f"Helper channel {channel_id} left Stasis, closing channel {original_channel_id}")
+            await self._release_call(original_channel_id)
 
     async def _handle_channel_left_bridge(self, event):
         """Handle channel left bridge event"""
@@ -524,7 +543,7 @@ class AsteriskBridge:
                 original_channel_id = id
                 break
         if original_channel_id is not None:
-            await self.close_channel(original_channel_id)
+            await self._release_call(original_channel_id)
 
     async def close_channel(self, channel_id):
         """Close a channel"""
@@ -635,7 +654,7 @@ class AsteriskBridge:
                 original_channel_id = id
                 break
         if original_channel_id is not None:
-            await self.close_channel(original_channel_id)
+            await self._release_call(original_channel_id)
 
     async def _ari_request(self, method, endpoint, params=None, json_data=None):
         """Make a request to the Asterisk ARI"""

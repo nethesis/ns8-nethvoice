@@ -73,6 +73,7 @@ async def test_helper_channel_without_call_is_hung_up(channel_id):
 async def test_setup_failure_cleans_up_and_continues_call():
     bridge = _bridge()
     bridge.channels["chan-1"] = {
+        "waiting": True,
         "snoop_channel_in": "snoop-in-chan-1",
         "external_media_channel_in": "ext-media-in-chan-1",
     }
@@ -155,3 +156,50 @@ async def test_sweep_removes_orphans_and_keeps_active_calls():
         "/bridges/bridge-out-old",
     }
     assert list(bridge.channels) == ["live"]
+
+
+async def _start_call(bridge):
+    """Set up call chan-1 up to the external media channel of the in direction."""
+    async def ari(method, endpoint, params=None, json_data=None):
+        if endpoint.endswith("/snoop"):
+            return {"id": params["snoopId"]}
+        if endpoint == "/channels/externalMedia":
+            return {"id": params["channelId"], "channelvars": {"UNICASTRTP_LOCAL_PORT": "4000"}}
+        return None
+
+    bridge._ari_request = AsyncMock(side_effect=ari)
+    bridge._get_channel_variable = AsyncMock(return_value=None)
+    await bridge._handle_ari_event({"type": "StasisStart", "channel": {
+        "id": "chan-1", "caller": {}, "connected": {}, "linkedid": "chan-1",
+    }})
+    await bridge._handle_ari_event({"type": "StasisStart", "channel": {"id": "snoop-in-chan-1"}})
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("event_type", ["ChannelDestroyed", "StasisEnd"])
+async def test_helper_gone_during_setup_continues_call(event_type):
+    bridge = _bridge()
+    await _start_call(bridge)
+
+    await bridge._handle_ari_event({"type": event_type, "channel": {"id": "snoop-out-chan-1"}})
+
+    assert "chan-1" not in bridge.channels
+    assert ("DELETE", "/channels/ext-media-in-chan-1") in _requests(bridge)
+    assert _requests(bridge).count(("POST", "/channels/chan-1/continue")) == 1
+
+
+@pytest.mark.asyncio
+async def test_helper_destroyed_after_setup_does_not_continue_again():
+    bridge = _bridge()
+    bridge._ari_request = AsyncMock(return_value=None)
+    bridge.channels["chan-1"] = {
+        "waiting": False,
+        "snoop_channel_in": "snoop-in-chan-1",
+        "external_media_channel_in": "ext-media-in-chan-1",
+    }
+
+    await bridge._handle_ari_event({"type": "ChannelDestroyed", "channel": {"id": "ext-media-in-chan-1"}})
+    await bridge._handle_ari_event({"type": "StasisEnd", "channel": {"id": "snoop-in-chan-1"}})
+
+    assert "chan-1" not in bridge.channels
+    assert _requests(bridge) == [("DELETE", "/channels/ext-media-in-chan-1")]
