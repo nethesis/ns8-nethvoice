@@ -21,6 +21,7 @@ const NETHVOICE_SECTIONS = ['dashboard', 'users', 'trunks', 'routes', 'phones', 
 const NETHVOICE_SECTION_PREFIX = 'nethvoice:';
 const NETHVOICE_USERNAME_ATTRIBUTE = 'nethvoice_username';
 const NETHVOICE_PERMISSIONS_ATTRIBUTE = 'nethvoice_permissions';
+const NETHVOICE_ADMIN_KEY_LIFETIME = 43200;
 
 const NETHVOICE_ROUTE_RULES = [
     'GET /me' => NETHVOICE_LOOKUP,
@@ -139,6 +140,13 @@ function nethvoiceParseSections($sections): array
 function nethvoicePermissionsFor(array $user): array
 {
     return nethvoiceParseSections($user['sections'] ?? '');
+}
+
+function nethvoiceAdminKeyExpired($issuedAt, int $now): bool
+{
+    $issued = is_string($issuedAt) && $issuedAt !== '' ? strtotime($issuedAt . ' UTC') : false;
+
+    return $issued === false || $now - $issued >= NETHVOICE_ADMIN_KEY_LIFETIME;
 }
 
 function nethvoiceNormalizeAccess($rule): array

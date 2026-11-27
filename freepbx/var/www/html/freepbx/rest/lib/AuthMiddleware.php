@@ -64,7 +64,7 @@ class AuthMiddleware implements MiddlewareInterface
         $given_user = $request->getHeaderLine('User');
         $given_secret = $request->getHeaderLine('Secretkey');
 
-        $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE username = ?");
+        $stmt = $dbh->prepare("SELECT a.*, d.username AS nethvoice_managed, d.key_issued_at AS nethvoice_key_issued_at FROM ampusers a LEFT JOIN rest_domain_admins d ON d.username = a.username WHERE a.username = ?");
         $stmt->execute(array($given_user));
         $user = $stmt->fetch(\PDO::FETCH_ASSOC) ?: array();
         $password_sha1 = $user['password_sha1'] ?? '';
@@ -77,6 +77,9 @@ class AuthMiddleware implements MiddlewareInterface
         $hash = sha1($username . $password_sha1 . $this->secret);
         if (!hash_equals($hash, $given_secret)) {
             return $this->jsonResponse(['error' => 'Forbidden: wrong secret key'], 403);
+        }
+        if (($user['nethvoice_managed'] ?? null) !== null && nethvoiceAdminKeyExpired($user['nethvoice_key_issued_at'] ?? null, time())) {
+            return $this->jsonResponse(['error' => 'Unauthorized: session expired', 'code' => 'session_expired'], 401);
         }
 
         return $handler->handle(

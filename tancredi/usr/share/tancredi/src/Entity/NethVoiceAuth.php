@@ -35,6 +35,7 @@ class NethVoiceAuth implements MiddlewareInterface
     private const SUPERADMIN_WRITE_PATTERN = '/^outbound_proxy2?_\d+$/D';
     private const USERS_READABLE_PATHS = ['/phones', '/models', '/defaults', '/macvendors'];
     private const SUPERADMIN_WRITE_PATHS = '#^/templates(/|$)#';
+    private const ADMIN_KEY_LIFETIME = 43200;
 
     private $config;
 
@@ -72,7 +73,8 @@ class NethVoiceAuth implements MiddlewareInterface
                 $password_sha1 = $user[0]['password_sha1'];
                 $username = $user[0]['username'];
 
-                if (isset($username, $password_sha1) && hash_equals(sha1($username . $password_sha1 . $this->config['secret']), $request->getHeaderLine('Secretkey'))) {
+                if (isset($username, $password_sha1) && hash_equals(sha1($username . $password_sha1 . $this->config['secret']), $request->getHeaderLine('Secretkey'))
+                    && !self::isExpiredDomainAdministrator($user[0], time())) {
                     $sections = $user[0]['sections'] ?? '';
                     if (self::isSuperAdministrator($sections)) {
                         return $handler->handle($request);
@@ -104,10 +106,21 @@ class NethVoiceAuth implements MiddlewareInterface
             ($this->config['auth_nethvoice_dbuser'] ?? 'tancredi'),
             $this->config['auth_nethvoice_dbpass']
         );
-        $stmt = $dbh->prepare("SELECT * FROM ampusers WHERE username = ?");
+        $stmt = $dbh->prepare("SELECT a.*, d.username AS nethvoice_managed, d.key_issued_at AS nethvoice_key_issued_at FROM ampusers a LEFT JOIN rest_domain_admins d ON d.username = a.username WHERE a.username = ?");
         $stmt->execute(array($username));
 
         return $stmt->fetchAll();
+    }
+
+    public static function isExpiredDomainAdministrator(array $user, int $now): bool
+    {
+        if (($user['nethvoice_managed'] ?? null) === null) {
+            return false;
+        }
+        $issuedAt = $user['nethvoice_key_issued_at'] ?? null;
+        $issued = is_string($issuedAt) && $issuedAt !== '' ? strtotime($issuedAt . ' UTC') : false;
+
+        return $issued === false || $now - $issued >= self::ADMIN_KEY_LIFETIME;
     }
 
     public static function isPhonesAdministrator($sections): bool

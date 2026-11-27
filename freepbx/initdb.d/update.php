@@ -147,8 +147,17 @@ $db->exec("CREATE TABLE IF NOT EXISTS `asterisk`.`rest_domain_admins` (
   `domain` varchar(255) NOT NULL,
   `created_at` datetime NOT NULL,
   `synced_at` datetime DEFAULT NULL,
+  `key_issued_at` datetime DEFAULT NULL,
   PRIMARY KEY (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+$sql = "SELECT COUNT(*)
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = 'asterisk' AND TABLE_NAME = 'rest_domain_admins'
+          AND COLUMN_NAME = 'key_issued_at'";
+if ((int)$db->query($sql)->fetchColumn() === 0) {
+	$db->exec("ALTER TABLE `asterisk`.`rest_domain_admins` ADD COLUMN `key_issued_at` datetime DEFAULT NULL AFTER `synced_at`");
+}
 
 # Create hotel cti context if not exist and NETHVOICE_HOTEL environment variable is set
 # check if hotel profile exists
