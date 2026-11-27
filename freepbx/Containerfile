@@ -517,6 +517,7 @@ RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-trunks-hook.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-bindaddress.patch && \
     patch --batch --forward --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-disabled-trunk-return.patch && \
+    patch --batch --forward --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/core < /tmp/nethvoice-core-patches/freepbx-core-callerid-language.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/iaxsettings < /tmp/nethvoice-core-patches/freepbx-iaxsettings-preserve.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/queues < /tmp/nethvoice-core-patches/freepbx-queues-join-announcement.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
@@ -653,8 +654,10 @@ RUN for asset in $(find /var/www/html/freepbx/admin/modules/ -type d -name asset
 	ln -s $asset /var/www/html/freepbx/admin/assets/$module; \
 done
 
-# Replace FreepBX cron implementation with noop
+# Replace FreepBX cron implementation with noop. The framework module copy
+# is replaced too, because a framework install copies it over the live one.
 COPY var/www/html/freepbx/admin/libraries/BMO/Cron.class.php /var/www/html/freepbx/admin/libraries/BMO/Cron.class.php
+COPY var/www/html/freepbx/admin/libraries/BMO/Cron.class.php /var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/admin/libraries/BMO/Cron.class.php
 
 # PHP 8.2 compatibility: suppress Cron dynamic property deprecation in both
 # the framework source tree and the final admin library copy.

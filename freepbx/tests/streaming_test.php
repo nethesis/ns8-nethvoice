@@ -840,6 +840,10 @@ expect_validation(function () use ($doorRequest, $doorVars, $doorAddresses) {
 expect_validation(function () use ($doorRequest, $doorVars) {
     door_phone_request_secret($doorRequest, 'rtsp://192.168.5.218:554/x', null, $doorVars, function () { return []; });
 }, 'secret', 'unregistered door phone: the password must be typed');
+check(door_phone_request_secret(array_merge($doorRequest, ['door_phone_confirm_address' => true]), 'rtsp://203.0.113.9:555/h264/stream.live0', null, $doorVars, $doorAddresses) === 'Stored1', 'confirmed address (port forward on another public address): door phone password');
+expect_validation(function () use ($doorRequest, $doorVars, $doorAddresses) {
+    door_phone_request_secret(array_merge($doorRequest, ['door_phone_confirm_address' => 'true']), 'rtsp://203.0.113.9:555/x', null, $doorVars, $doorAddresses);
+}, 'secret', 'the confirmation is a boolean');
 check(door_phone_request_secret(array_merge($doorRequest, ['secret' => 'typed']), 'rtsp://203.0.113.9/x', null, $doorVars, $doorAddresses) === null, 'typed password: no door phone password, no error');
 check(door_phone_request_secret(['user' => 'admin'], 'rtsp://203.0.113.9/x', null, $doorVars, $doorAddresses) === null, 'no door phone in the request');
 $linkedStored = ['url' => 'rtsp://192.168.5.10:554/h264/stream.live0', 'door_phone' => '0C-38-3E-32-6B-84'];
