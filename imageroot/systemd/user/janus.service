@@ -6,12 +6,17 @@
 Description=janus server
 Wants=get-certificate.service
 After=get-certificate.service
+# Janus exits at startup if the STUN server name cannot be resolved, for
+# example when the node boots before the network is ready: keep retrying
+# instead of hitting the start rate limit
+StartLimitIntervalSec=0
 
 [Service]
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
 WorkingDirectory=%E/state
 Restart=always
+RestartSec=10s
 ExecStartPre=/bin/rm -f %t/janus.pid %t/janus.ctr-id
 ExecStartPre=-runagent install-certificate janus
 
