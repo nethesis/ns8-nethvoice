@@ -1797,6 +1797,13 @@ function ctiStreamingGuardAddresses(bool $superadmin, array $source, ?array $cur
     return 1;
 }
 
+function ctiStreamingCheckDoorPhoneConfirmation(array $data, bool $superadmin): void
+{
+    if (!$superadmin && !empty($data['door_phone_confirm_address'])) {
+        throw new StreamingValidationException('door_phone_confirm_address', 'only the superadmin can confirm the address of a door phone: type the password');
+    }
+}
+
 function ctiStoreStreamingSource(\PDO $db, array $source, array $profiles, int $guardAddresses, ?string $currentDescr = null): void
 {
     $db->beginTransaction();
@@ -1826,6 +1833,8 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
         if (!is_array($data)) {
             return jsonResponse($response, ['status' => 'Invalid request'], 400);
         }
+        $superadmin = nethvoiceRequestIsSuperadmin($request);
+        ctiStreamingCheckDoorPhoneConfirmation($data, $superadmin);
         $currentDescr = isset($data['currentDescr']) && is_string($data['currentDescr']) && $data['currentDescr'] !== '' ? $data['currentDescr'] : (string) $args['descr'];
         $dbh = FreePBX::Database();
         $sources = streaming_load_sources($dbh);
@@ -1838,7 +1847,6 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
             $data['secret'] = $doorSecret;
         }
         $source = streaming_normalize_source($data, $sources[$currentDescr]);
-        $superadmin = nethvoiceRequestIsSuperadmin($request);
         if (!$superadmin) {
             ctiStreamingCheckNodeDestinations($source);
         }
@@ -1886,13 +1894,14 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
         if (!is_array($data)) {
             return jsonResponse($response, ['status' => 'Invalid request'], 400);
         }
+        $superadmin = nethvoiceRequestIsSuperadmin($request);
+        ctiStreamingCheckDoorPhoneConfirmation($data, $superadmin);
         // Created from a door phone: its generated password, never sent to the client
         $doorSecret = door_phone_request_secret($data, is_string($data['url'] ?? null) ? trim($data['url']) : '');
         if ($doorSecret !== null) {
             $data['secret'] = $doorSecret;
         }
         $source = streaming_normalize_source($data);
-        $superadmin = nethvoiceRequestIsSuperadmin($request);
         if (!$superadmin) {
             ctiStreamingCheckNodeDestinations($source);
         }
@@ -1946,6 +1955,11 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         $parsed = streaming_parse_url(trim($data['url']));
         if ($parsed === null) {
             return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
+        }
+        try {
+            ctiStreamingCheckDoorPhoneConfirmation($data, nethvoiceRequestIsSuperadmin($request));
+        } catch (StreamingValidationException $e) {
+            return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
         }
         if (!nethvoiceRequestIsSuperadmin($request)
             && !streaming_rate_limit(sys_get_temp_dir() . '/nethvoice-streaming-source-test.json', STREAMING_REACHABILITY_LIMIT, STREAMING_REACHABILITY_WINDOW)) {

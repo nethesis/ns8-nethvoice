@@ -395,6 +395,28 @@ $tests['video sources of limited administrators never reach the PBX node'] = fun
     }
 };
 
+$tests['only the superadmin sends the door phone password to a confirmed address'] = function () use ($app, $superadmin, $integrator) {
+    $refused = ['status' => 'only the superadmin can confirm the address of a door phone: type the password', 'field' => 'door_phone_confirm_address'];
+    $source = ['descr' => 'Door', 'url' => 'rtsp://203.0.113.9:555/h264/stream.live0', 'user' => 'admin', 'door_phone' => '0C-38-3E-32-6B-84', 'door_phone_confirm_address' => true, 'profiles' => []];
+    $check = ['url' => $source['url'], 'user' => 'admin', 'door_phone' => $source['door_phone'], 'door_phone_confirm_address' => true, 'details' => true];
+    foreach ([true, 'true', 1] as $confirm) {
+        [$status, $body] = call($app, 'POST /cti/streaming', $integrator, array_merge($source, ['door_phone_confirm_address' => $confirm]));
+        check($status === 400 && json_decode($body, true) === $refused, 'a limited administrator confirmed the address of a door phone with ' . json_encode($confirm) . ": $status $body");
+    }
+    [$status, $body] = call($app, 'PUT /cti/streaming/{descr}', $integrator, $source, ['descr' => 'Door']);
+    check($status === 400 && json_decode($body, true) === $refused, "a limited administrator confirmed the address of a door phone on a change: $status $body");
+    [$status, $body] = call($app, 'POST /cti/sources/test', $integrator, $check);
+    check($status === 400 && json_decode($body, true) === $refused, "a limited administrator confirmed the address of a door phone in a check: $status $body");
+
+    $invalid = ['door_phone' => 'not-a-mac'];
+    [$status, $body] = call($app, 'POST /cti/streaming', $integrator, array_merge($source, $invalid, ['door_phone_confirm_address' => false]));
+    check($status === 400 && json_decode($body, true)['field'] === 'door_phone', "a limited administrator without the confirmation was refused: $status $body");
+    [$status, $body] = call($app, 'POST /cti/streaming', $superadmin, array_merge($source, $invalid));
+    check($status === 400 && json_decode($body, true)['field'] === 'door_phone', "the superadmin cannot confirm the address of a door phone: $status $body");
+    [$status, $body] = call($app, 'POST /cti/sources/test', $superadmin, array_merge($check, $invalid));
+    check($status === 400 && json_decode($body, true)['field'] === 'door_phone', "the superadmin cannot confirm the address of a door phone in a check: $status $body");
+};
+
 $tests['source checks of limited administrators are rate limited'] = function () use ($app, $superadmin, $integrator) {
     $file = sys_get_temp_dir() . '/nethvoice-streaming-source-test.json';
     $saved = is_file($file) ? file_get_contents($file) : null;
