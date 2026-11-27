@@ -3,25 +3,19 @@ import logging
 import aiohttp
 import json
 import os
-import time
 from deepgram_connector import DeepgramConnector
 
 logger = logging.getLogger("asterisk_bridge")
 
-# Prefixes of the helper channels and bridges that Satellite creates for each
-# snooped channel. The rest of the ID is the ID of the original channel.
+# Satellite names its helper channels and bridges <prefix><original channel ID>
 HELPER_CHANNEL_PREFIXES = ('snoop-in-', 'snoop-out-', 'ext-media-in-', 'ext-media-out-')
 HELPER_BRIDGE_PREFIXES = ('bridge-in-', 'bridge-out-')
-
-# Seconds between two sweeps of orphaned helper channels and bridges.
+# Seconds between two sweeps of orphaned helper channels and bridges
 SWEEP_INTERVAL = 60
-# A tracked channel younger than this is never closed by the sweep, so that a
-# call that is still being set up is not mistaken for a gone one.
-SWEEP_GRACE_PERIOD = 30
 
 
 def _original_channel_id(resource_id, prefixes):
-    """Return the original channel ID of a helper resource, or None."""
+    """Return the original channel ID of a helper channel or bridge, or None."""
     for prefix in prefixes:
         if resource_id.startswith(prefix):
             return resource_id[len(prefix):]
@@ -158,8 +152,7 @@ class AsteriskBridge:
         # Connect to ARI WebSocket
         await self._connect_websocket()
         logger.info(f"Connected to Asterisk ARI at {self.url}")
-        if self.sweep_task is None or self.sweep_task.done():
-            self.sweep_task = asyncio.create_task(self._sweep_loop())
+        self.sweep_task = asyncio.create_task(self._sweep_loop())
 
     async def _connect_websocket(self):
         """Connect to Asterisk ARI WebSocket"""
@@ -172,9 +165,8 @@ class AsteriskBridge:
         """Disconnect from Asterisk ARI"""
         logger.debug(f"Disconnect from Asterisk ARI")
         self.is_shutting_down = True
-        if self.sweep_task is not None:
+        if self.sweep_task:
             self.sweep_task.cancel()
-            self.sweep_task = None
         for channel_id in list(self.channels.keys()):
             await self.close_channel(channel_id)
         if self.ws:
@@ -187,12 +179,10 @@ class AsteriskBridge:
         try:
             async for msg in self.ws:
                 if msg.type == aiohttp.WSMsgType.TEXT:
-                    # An error on a single event must not drop the WebSocket:
-                    # events sent while reconnecting are lost and leave
-                    # helper channels behind.
+                    # A failed event must not drop the WebSocket: the events
+                    # sent while reconnecting would be lost.
                     try:
-                        event = json.loads(msg.data)
-                        await self._handle_ari_event(event)
+                        await self._handle_ari_event(json.loads(msg.data))
                     except Exception as e:
                         logger.error(f"Error handling ARI event: {e}")
                 elif msg.type in (aiohttp.WSMsgType.CLOSED, aiohttp.WSMsgType.ERROR):
@@ -215,8 +205,6 @@ class AsteriskBridge:
                 await asyncio.sleep(delay)
                 await self._connect_websocket()
                 logger.info("Successfully reconnected to Asterisk ARI")
-                # Events may have been lost while disconnected
-                asyncio.create_task(self.sweep_orphans())
                 return
             except Exception as e:
                 logger.error(f"Failed to reconnect: {e}")
@@ -229,7 +217,7 @@ class AsteriskBridge:
         event_type = event.get('type')
         if event_type == 'StasisStart':
             await self._handle_stasis_start(event)
-        elif event_type in ('ChannelHangupRequest', 'ChannelDestroyed'):
+        elif event_type == 'ChannelDestroyed':
             await self._handle_channel_hangup(event)
         elif event_type == 'StasisEnd':
             await self._handle_stasis_end(event)
@@ -237,6 +225,29 @@ class AsteriskBridge:
             await self._handle_channel_left_bridge(event)
 
     async def _handle_stasis_start(self, event):
+        """
+        Set up the channel that entered Stasis. If the call it belongs to is
+        gone or the setup fails, leave no helper channel behind and return
+        the call to the dialplan.
+        """
+        channel_id = event['channel']['id']
+        original_channel_id = _original_channel_id(channel_id, HELPER_CHANNEL_PREFIXES)
+        if original_channel_id is not None and original_channel_id not in self.channels:
+            logger.info(f"Channel {channel_id} has no active call, hanging it up")
+            await self._hangup_channel(channel_id)
+            return
+        try:
+            await self._setup_channel(event)
+        except Exception as e:
+            original_channel_id = original_channel_id or channel_id
+            logger.warning(f"Failed to set up channel {original_channel_id}: {e}")
+            await self.close_channel(original_channel_id)
+            try:
+                await self._ari_request('POST', f"/channels/{original_channel_id}/continue", params={})
+            except Exception:
+                pass  # the call is gone
+
+    async def _setup_channel(self, event):
         """
         Launched when a Stasis start event is received
         - create the bridge to the rtp server
@@ -261,7 +272,7 @@ class AsteriskBridge:
 
         if not channel_id.startswith("snoop-") and not channel_id.startswith("ext-media-"):
             # Normal channel entered Stasis
-            self.channels[channel_id] = {'created_at': time.monotonic()}
+            self.channels[channel_id] = {}
             self.channels[channel_id]['language'] = channel.get('language', 'en')
             self.channels[channel_id]['caller_name'] = channel['caller'].get('name', 'caller')
             self.channels[channel_id]['caller_number'] = channel['caller'].get('number', 'unknown')
@@ -283,27 +294,20 @@ class AsteriskBridge:
             self.pending_transcription_requests.discard(channel_id)
             logger.debug(f"Channel {channel_id} entered Satellite. Details: {channel}")
             # Create a snoop channel for in and one for out
-            try:
-                for direction in ['in', 'out']:
-                    snoop_data = await self._ari_request(
-                        'POST',
-                        f"/channels/{channel_id}/snoop",
-                        params={
-                        'spy': direction,
-                        'app': self.app,
-                        'subscribeAll': 'yes',
-                        'snoopId': f'snoop-{direction}-{channel_id}'
-                        }
-                    )
-                    snoop_channel_id = snoop_data['id']
-                    self.channels[channel_id][f'snoop_channel_{direction}'] = snoop_channel_id
-                    logger.debug(f"Snoop channel {snoop_channel_id} created")
-            except Exception as e:
-                # Most likely the call was hung up in the meantime
-                logger.warning(f"Failed to snoop channel {channel_id}: {e}")
-                await self.close_channel(channel_id)
-                await self._continue_channel(channel_id)
-                return
+            for direction in ['in', 'out']:
+                snoop_data = await self._ari_request(
+                    'POST',
+                    f"/channels/{channel_id}/snoop",
+                    params={
+                    'spy': direction,
+                    'app': self.app,
+                    'subscribeAll': 'yes',
+                    'snoopId': f'snoop-{direction}-{channel_id}'
+                    }
+                )
+                snoop_channel_id = snoop_data['id']
+                self.channels[channel_id][f'snoop_channel_{direction}'] = snoop_channel_id
+                logger.debug(f"Snoop channel {snoop_channel_id} created")
             try:
                 # Get connected info using ARI
                 connected_number = await self._get_channel_variable(channel_id, "CALLERIDNUMINTERNAL")
@@ -319,98 +323,60 @@ class AsteriskBridge:
         if channel_id.startswith("snoop-"):
             # Snoop channel entered Stasis, create an external media channel for it
             snoop_channel_id = channel_id
-            original_channel_id = None
             for id,values in self.channels.items():
                 if values.get('snoop_channel_in') == snoop_channel_id or values.get('snoop_channel_out') == snoop_channel_id:
                     # Find the original channel that created this snoop channel
                     original_channel_id = id
                     break
-            if original_channel_id is None:
-                # The call is already gone: do not leave the snoop channel up
-                logger.info(f"Snoop channel {snoop_channel_id} has no active call, hanging it up")
-                await self._hangup_channel(snoop_channel_id)
-                return
             direction = 'in' if 'snoop-in' in snoop_channel_id else 'out'
-            ext_media_channel_id = f'ext-media-{direction}-{original_channel_id}'
-            # Track the external media channel before creating it, so that it
-            # is hung up by close_channel() even if the request fails halfway.
-            self.channels[original_channel_id][f'external_media_channel_{direction}'] = ext_media_channel_id
-            try:
-                ext_media_response = await self._ari_request(
-                    'POST',
-                    f"/channels/externalMedia",
-                    params={
-                    'app': self.app,
-                    'external_host': f"{self.rtp_server.host}:{self.rtp_server.port}",
-                    'format': 'slin16',
-                    'channelId': ext_media_channel_id,
-                    }
-                )
-            except Exception as e:
-                logger.warning(f"Failed to create external media channel for {original_channel_id}: {e}")
-                await self.close_channel(original_channel_id)
-                await self._continue_channel(original_channel_id)
-                return
+            ext_media_response = await self._ari_request(
+                'POST',
+                f"/channels/externalMedia",
+                params={
+                'app': self.app,
+                'external_host': f"{self.rtp_server.host}:{self.rtp_server.port}",
+                'format': 'slin16',
+                'channelId': f'ext-media-{direction}-{original_channel_id}',
+                }
+            )
             #logger.debug(f"External media channel created: {ext_media_response}")
-            if original_channel_id not in self.channels:
-                # Closed while waiting for the external media channel
-                await self._hangup_channel(ext_media_response['id'])
-                return
             self.channels[original_channel_id][f'external_media_channel_{direction}'] = ext_media_response['id']
             self.channels[original_channel_id][f'rtp_source_port_{direction}'] = ext_media_response['channelvars']['UNICASTRTP_LOCAL_PORT']
 
         if channel_id.startswith("ext-media-"):
             # External media channel entered Stasis
-            original_channel_id = None
             for id,values in self.channels.items():
                 if values.get('external_media_channel_in') == channel_id or values.get('external_media_channel_out') == channel_id:
                     # Find the original channel that created this external media channel
                     original_channel_id = id
                     break
-            if original_channel_id is None:
-                # The call is already gone: do not leave the channel up
-                logger.info(f"External media channel {channel_id} has no active call, hanging it up")
-                await self._hangup_channel(channel_id)
-                return
             direction = 'in' if 'ext-media-in' in channel_id else 'out'
             snoop_channel_id = self.channels[original_channel_id][f'snoop_channel_{direction}']
             external_media_channel_id = channel_id
-            bridge_id = f'bridge-{direction}-{original_channel_id}'
-            # Track the bridge before creating it, so that it is deleted by
-            # close_channel() even if one of the requests below fails.
+            # Create bridge
+            bridge_data = await self._ari_request(
+                'POST',
+                "/bridges",
+                params={
+                'type': 'mixing',
+                'bridgeId': f'bridge-{direction}-{original_channel_id}',
+                }
+            )
+            bridge_id = bridge_data['id']
             self.channels[original_channel_id][f'bridge_{direction}'] = bridge_id
-            try:
-                # Create bridge
-                await self._ari_request(
-                    'POST',
-                    "/bridges",
-                    params={
-                    'type': 'mixing',
-                    'bridgeId': bridge_id,
-                    }
-                )
-                # Add channels to the bridge
-                logger.debug(f"Adding channel {snoop_channel_id} to bridge {bridge_id}")
-                await self._ari_request(
-                    'POST',
-                    f"/bridges/{bridge_id}/addChannel",
-                    params={'channel': snoop_channel_id}
-                )
-                logger.debug(f"Adding channel {external_media_channel_id} to bridge {bridge_id}")
-                await self._ari_request(
-                    'POST',
-                    f"/bridges/{bridge_id}/addChannel",
-                    params={'channel': external_media_channel_id}
-                )
-            except Exception as e:
-                # Most likely the call was hung up in the meantime
-                logger.warning(f"Failed to bridge channel {original_channel_id}: {e}")
-                await self.close_channel(original_channel_id)
-                await self._continue_channel(original_channel_id)
-                return
-            if original_channel_id not in self.channels:
-                # Closed while the bridge was being set up
-                return
+            # Add channels to the bridge
+            logger.debug(f"Adding channel {snoop_channel_id} to bridge {bridge_id}")
+            await self._ari_request(
+                'POST',
+                f"/bridges/{bridge_id}/addChannel",
+                params={'channel': snoop_channel_id}
+            )
+            logger.debug(f"Adding channel {external_media_channel_id} to bridge {bridge_id}")
+            await self._ari_request(
+                'POST',
+                f"/bridges/{bridge_id}/addChannel",
+                params={'channel': external_media_channel_id}
+            )
 
             # if both bridge are created, start the deepgram connector
             if 'bridge_in' in self.channels[original_channel_id] and 'bridge_out' in self.channels[original_channel_id]:
@@ -563,8 +529,7 @@ class AsteriskBridge:
     async def close_channel(self, channel_id):
         """Close a channel"""
         logger.debug(f"close_channel(channel_id={channel_id})")
-        # Take the call out of the tracked ones first, so that events and
-        # tasks running while this awaits ARI do not use or close it again.
+        # Stop tracking the call first, so that it is not closed twice
         channel = self.channels.pop(channel_id, None)
         if channel is not None:
             # Close the deepgram connector
@@ -588,13 +553,14 @@ class AsteriskBridge:
             for direction in ['in', 'out']:
                 # Remove the external media channel
                 if f'external_media_channel_{direction}' in channel:
-                    await self._hangup_channel(channel[f'external_media_channel_{direction}'])
+                    try:
+                        await self._ari_request(
+                            'DELETE',
+                            f"/channels/{channel[f'external_media_channel_{direction}']}"
+                        )
+                    except Exception as e:
+                        logger.debug(f"Failed to delete external media channel {channel[f'external_media_channel_{direction}']}: {e}")
                     del channel[f'external_media_channel_{direction}']
-                # Remove the snoop channel, it is still up if the original
-                # call is still up (e.g. the setup failed)
-                if f'snoop_channel_{direction}' in channel:
-                    await self._hangup_channel(channel[f'snoop_channel_{direction}'])
-                    del channel[f'snoop_channel_{direction}']
             for direction in ['in', 'out']:
                 # Remove the RTP stream
                 if f'rtp_source_port_{direction}' in channel:
@@ -604,13 +570,6 @@ class AsteriskBridge:
                     del channel[f'rtp_stream_{direction}']
         self.pending_transcription_requests.discard(channel_id)
 
-    async def _continue_channel(self, channel_id):
-        """Return a channel to the dialplan, ignoring the error if it is gone"""
-        try:
-            await self._ari_request('POST', f"/channels/{channel_id}/continue", params={})
-        except Exception as e:
-            logger.debug(f"Failed to return channel {channel_id} to dialplan: {e}")
-
     async def _hangup_channel(self, channel_id):
         """Hang up a channel, ignoring the error if it is already gone"""
         try:
@@ -619,51 +578,40 @@ class AsteriskBridge:
             logger.debug(f"Failed to hang up channel {channel_id}: {e}")
 
     async def _sweep_loop(self):
-        """Periodically remove helper channels and bridges left behind"""
-        while not self.is_shutting_down:
+        """Periodically run sweep_orphans()"""
+        while True:
             try:
                 await self.sweep_orphans()
-            except asyncio.CancelledError:
-                raise
             except Exception as e:
                 logger.error(f"Failed to sweep orphaned channels: {e}")
             await asyncio.sleep(SWEEP_INTERVAL)
 
     async def sweep_orphans(self):
         """
-        Hang up the helper channels and delete the bridges that belong to no
-        tracked call, and close the tracked calls that no longer exist in
-        Asterisk. Without this, a helper channel whose call was lost (missed
-        event, failed request, Satellite restart) stays up forever.
+        Remove what a lost event or a restart left behind: helper channels
+        and bridges of calls that are not tracked, and tracked calls that are
+        no longer in Asterisk. A helper channel never hangs up by itself.
         """
-        asterisk_channels = await self._ari_request('GET', "/channels") or []
-        channel_ids = {c.get('id') for c in asterisk_channels}
-
+        # Calls tracked before listing the channels, as newer ones may not be in the list
+        tracked = list(self.channels)
+        channel_ids = {c['id'] for c in await self._ari_request('GET', "/channels")}
         for channel_id in channel_ids:
-            original_channel_id = _original_channel_id(channel_id or '', HELPER_CHANNEL_PREFIXES)
+            original_channel_id = _original_channel_id(channel_id, HELPER_CHANNEL_PREFIXES)
             if original_channel_id is not None and original_channel_id not in self.channels:
                 logger.warning(f"Hanging up orphaned channel {channel_id}")
                 await self._hangup_channel(channel_id)
-
-        now = time.monotonic()
-        for original_channel_id, values in list(self.channels.items()):
-            if original_channel_id in channel_ids:
-                continue
-            if now - values.get('created_at', now) < SWEEP_GRACE_PERIOD:
-                continue
-            logger.warning(f"Closing channel {original_channel_id}: no longer in Asterisk")
-            await self.close_channel(original_channel_id)
-
-        bridges = await self._ari_request('GET', "/bridges") or []
-        for bridge in bridges:
-            bridge_id = bridge.get('id') or ''
-            original_channel_id = _original_channel_id(bridge_id, HELPER_BRIDGE_PREFIXES)
+        for channel_id in tracked:
+            if channel_id not in channel_ids:
+                logger.warning(f"Closing channel {channel_id}: no longer in Asterisk")
+                await self.close_channel(channel_id)
+        for bridge in await self._ari_request('GET', "/bridges"):
+            original_channel_id = _original_channel_id(bridge['id'], HELPER_BRIDGE_PREFIXES)
             if original_channel_id is not None and original_channel_id not in self.channels:
-                logger.warning(f"Deleting orphaned bridge {bridge_id}")
+                logger.warning(f"Deleting orphaned bridge {bridge['id']}")
                 try:
-                    await self._ari_request('DELETE', f"/bridges/{bridge_id}")
+                    await self._ari_request('DELETE', f"/bridges/{bridge['id']}")
                 except Exception as e:
-                    logger.debug(f"Failed to delete bridge {bridge_id}: {e}")
+                    logger.debug(f"Failed to delete bridge {bridge['id']}: {e}")
 
     async def _handle_channel_hangup(self, event):
         """Handle channel hangup event"""
