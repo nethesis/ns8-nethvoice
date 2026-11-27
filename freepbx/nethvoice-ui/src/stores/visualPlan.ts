@@ -31,7 +31,13 @@ import {
   undo as undoHistory,
   type History,
 } from '@/lib/visualplan/history'
-import { layoutFlow, NODE_WIDTH, nodeHeight, offsetPositions } from '@/lib/visualplan/layout'
+import {
+  layoutFlow,
+  NODE_WIDTH,
+  nodeHeight,
+  offsetPositions,
+  type NodeSize,
+} from '@/lib/visualplan/layout'
 import {
   destinationOfNode,
   entryOutputId,
@@ -623,7 +629,7 @@ export const useVisualPlanStore = defineStore('visualPlan', () => {
     moveNodes(moves)
   }
 
-  const arrangeSelected = () => {
+  const arrangeSelected = (sizes?: Record<string, NodeSize>) => {
     const items = selectionPositions()
     if (items.length < 2) {
       return
@@ -631,6 +637,7 @@ export const useVisualPlanStore = defineStore('visualPlan', () => {
     const local = layoutFlow(
       flow.value,
       items.map((item) => item.id),
+      sizes,
     )
     const minX = Math.min(...items.map((item) => item.position.x))
     const minY = Math.min(...items.map((item) => item.position.y))
@@ -646,11 +653,10 @@ export const useVisualPlanStore = defineStore('visualPlan', () => {
     )
   }
 
-  const autoLayout = () => {
+  const autoLayout = (sizes?: Record<string, NodeSize>) => {
     commit(() => {
-      positions.value = layoutFlow(flow.value)
+      positions.value = layoutFlow(flow.value, undefined, sizes)
     })
-    fitRequest.value += 1
   }
 
   const addTimeGroup = (group: TimeGroupData): string => {

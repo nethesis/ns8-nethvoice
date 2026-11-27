@@ -12,7 +12,15 @@ const OUTPUT_HEIGHT = 32
 export const nodeHeight = (node: FlowNode): number =>
   HEADER_HEIGHT + getOutputs(node).length * OUTPUT_HEIGHT
 
-export const layoutFlow = (state: FlowState, ids?: string[]): Record<string, Position> => {
+export type NodeSize = { width: number; height: number }
+
+export const layoutFlow = (
+  state: FlowState,
+  ids?: string[],
+  sizes: Record<string, NodeSize> = {},
+): Record<string, Position> => {
+  const sizeOf = (id: string, node: FlowNode): NodeSize =>
+    sizes[id] ?? { width: NODE_WIDTH, height: nodeHeight(node) }
   const graph = new dagre.graphlib.Graph()
   const included = new Set(ids ?? Object.keys(state.nodes))
 
@@ -22,7 +30,7 @@ export const layoutFlow = (state: FlowState, ids?: string[]): Record<string, Pos
   for (const id of included) {
     const node = state.nodes[id]
     if (node) {
-      graph.setNode(id, { width: NODE_WIDTH, height: nodeHeight(node) })
+      graph.setNode(id, sizeOf(id, node))
     }
   }
   for (const edge of state.edges) {
@@ -37,9 +45,10 @@ export const layoutFlow = (state: FlowState, ids?: string[]): Record<string, Pos
     const point = graph.node(id)
     const node = state.nodes[id]
     if (point && node) {
+      const size = sizeOf(id, node)
       positions[id] = {
-        x: Math.round(point.x - NODE_WIDTH / 2),
-        y: Math.round(point.y - nodeHeight(node) / 2),
+        x: Math.round(point.x - size.width / 2),
+        y: Math.round(point.y - size.height / 2),
       }
     }
   }

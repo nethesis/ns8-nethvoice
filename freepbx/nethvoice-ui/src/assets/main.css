@@ -382,6 +382,6 @@
   @apply motion-reduce:animate-none;
 }
 
-.visual-plan-canvas.is-animating .vue-flow__node {
-  @apply motion-safe:transition-transform motion-safe:duration-300 motion-safe:ease-out;
+.visual-plan-canvas.is-hidden-view .vue-flow__viewport {
+  visibility: hidden;
 }

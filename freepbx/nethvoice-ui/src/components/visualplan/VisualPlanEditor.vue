@@ -153,7 +153,7 @@ const showMinimap = ref(true)
 const paletteOpen = ref(true)
 const paletteDrawerShown = ref(false)
 const selectedEdgeId = ref<string | null>(null)
-const animating = ref(false)
+const viewReady = ref(false)
 const snap = ref<Snap | null>(null)
 const quickAdd = ref<QuickAdd | null>(null)
 let pendingConnection: { source: string; output: string } | null = null
@@ -552,12 +552,70 @@ function viewportCenter() {
   return { x: point.x - NODE_WIDTH / 2, y: point.y - 40 }
 }
 
-function withAnimation(action: () => void) {
-  animating.value = true
+const MOVE_MS = 300
+
+let moveFrame = 0
+let moveTarget: Record<string, XYPosition> | null = null
+let moveRevision = -1
+
+function finishMove() {
+  if (moveFrame) {
+    cancelAnimationFrame(moveFrame)
+    moveFrame = 0
+  }
+  const target = moveTarget
+  moveTarget = null
+  if (target && store.revision === moveRevision) {
+    for (const [id, point] of Object.entries(target)) {
+      if (store.positions[id]) store.positions[id] = point
+    }
+  }
+}
+
+// Moves the items from where they were to where the action put them, a frame at
+// a time, so that the links follow the items while they move. Returns where the
+// items end up.
+function withAnimation(action: () => void): Record<string, XYPosition> {
+  finishMove()
+  const before = cloneDeep(toRaw(store.positions))
   action()
-  window.setTimeout(() => {
-    animating.value = false
-  }, 350)
+  const after = cloneDeep(toRaw(store.positions))
+  if (reducedMotion.value) return after
+  const moving = Object.keys(after).filter((id) => {
+    const from = before[id]
+    const to = after[id]
+    return from && to && (from.x !== to.x || from.y !== to.y)
+  })
+  if (!moving.length) return after
+  moveTarget = Object.fromEntries(moving.map((id) => [id, after[id] as XYPosition]))
+  moveRevision = store.revision
+  const start = performance.now()
+  const frame = (now: number) => {
+    if (store.revision !== moveRevision) {
+      moveFrame = 0
+      moveTarget = null
+      return
+    }
+    const progress = Math.min(1, (now - start) / MOVE_MS)
+    const eased = 1 - (1 - progress) ** 3
+    for (const id of moving) {
+      const from = before[id]
+      const to = after[id]
+      if (!from || !to || !store.positions[id]) continue
+      store.positions[id] =
+        progress === 1
+          ? to
+          : { x: from.x + (to.x - from.x) * eased, y: from.y + (to.y - from.y) * eased }
+    }
+    if (progress < 1) {
+      moveFrame = requestAnimationFrame(frame)
+    } else {
+      moveFrame = 0
+      moveTarget = null
+    }
+  }
+  frame(start)
+  return after
 }
 
 function addFromPalette(item: PaletteItem, position?: { x: number; y: number }) {
@@ -754,6 +812,7 @@ const rectOf = (id: string): Rect | null => {
 }
 
 function onNodeDrag(event: NodeDragEvent) {
+  finishMove()
   dragActive = true
   if (store.readOnly || event.nodes.length !== 1) {
     snap.value = null
@@ -1004,11 +1063,14 @@ function onBeforeUnload(event: BeforeUnloadEvent) {
 }
 
 onMounted(() => {
+  // never keep the canvas hidden if the first view cannot be computed
+  window.setTimeout(() => (viewReady.value = true), 1500)
   window.addEventListener('keydown', onKeydown)
   window.addEventListener('beforeunload', onBeforeUnload)
 })
 
 onBeforeUnmount(() => {
+  finishMove()
   window.removeEventListener('keydown', onKeydown)
   window.removeEventListener('beforeunload', onBeforeUnload)
 })
@@ -1017,33 +1079,89 @@ const fitPending = ref(true)
 
 const MIN_READABLE_ZOOM = 0.7
 
-function initialView() {
+const VIEW_MARGIN = 80
+const LARGE_FLOW_ZOOM = 0.8
+
+const boundsOf = (boxes: Rect[]): Rect => {
+  const left = Math.min(...boxes.map((box) => box.x))
+  const top = Math.min(...boxes.map((box) => box.y))
+  const right = Math.max(...boxes.map((box) => box.x + box.width))
+  const bottom = Math.max(...boxes.map((box) => box.y + box.height))
+  return { x: left, y: top, width: right - left, height: bottom - top }
+}
+
+// The whole flow when it fits at a readable zoom, otherwise its start on the left.
+function viewOf(boxes: Rect[]): { x: number; y: number; zoom: number } | null {
   const rect = canvasRef.value?.getBoundingClientRect()
+  if (!rect || !rect.width || !boxes.length) {
+    return null
+  }
+  const bounds = boundsOf(boxes)
+  const fit = Math.min(
+    (rect.width - 2 * VIEW_MARGIN) / bounds.width,
+    (rect.height - 2 * VIEW_MARGIN) / bounds.height,
+  )
+  if (fit >= MIN_READABLE_ZOOM) {
+    const zoom = Math.min(1, fit)
+    return {
+      x: rect.width / 2 - (bounds.x + bounds.width / 2) * zoom,
+      y: rect.height / 2 - (bounds.y + bounds.height / 2) * zoom,
+      zoom,
+    }
+  }
+  const zoom = LARGE_FLOW_ZOOM
+  const fitsHeight = bounds.height * zoom <= rect.height - 2 * VIEW_MARGIN
+  const root = boxes[0]
+  const middle = fitsHeight || !root ? bounds.y + bounds.height / 2 : root.y + root.height / 2
+  return { x: VIEW_MARGIN / 2 - bounds.x * zoom, y: rect.height / 2 - middle * zoom, zoom }
+}
+
+// Boxes of the visible items at the given positions, the inbound route first.
+function visibleBoxes(at: (id: string) => XYPosition | undefined): Rect[] {
+  const ids = Object.keys(store.flow.nodes).filter((id) => !store.hidden.has(id))
+  ids.sort((a, b) => Number(b === store.flow.rootId) - Number(a === store.flow.rootId))
+  const boxes: Rect[] = []
+  for (const id of ids) {
+    const point = at(id)
+    const node = findNode(id)
+    if (point && node?.dimensions.width) {
+      boxes.push({ x: point.x, y: point.y, ...node.dimensions })
+    }
+  }
+  return boxes
+}
+
+const measuredSizes = () =>
+  Object.fromEntries(
+    getNodes.value
+      .filter((node) => node.dimensions.width)
+      .map((node) => [node.id, { ...node.dimensions }]),
+  )
+
+function initialView() {
   const nodes = getNodes.value
-  if (!rect || !nodes.length) {
+  if (!nodes.length || nodes.some((node) => !node.dimensions.width)) {
     return
   }
-  if (nodes.some((node) => !node.dimensions.width)) {
+  const view = viewOf(visibleBoxes((id) => findNode(id)?.computedPosition))
+  if (!view) {
     return
   }
   fitPending.value = false
-  const bounds = getRectOfNodes(nodes)
-  const fit = Math.min(rect.width / (bounds.width + 160), rect.height / (bounds.height + 160))
-  if (fit >= MIN_READABLE_ZOOM) {
-    fitView({ padding: 0.2, maxZoom: 1, duration: motion(200) })
-    return
+  viewReady.value = true
+  setViewport(view)
+}
+
+function arrangeAll() {
+  const after = withAnimation(() => store.autoLayout(measuredSizes()))
+  const view = viewOf(visibleBoxes((id) => after[id]))
+  if (view) {
+    setViewport(view, { duration: motion(MOVE_MS) })
   }
-  const root = findNode(store.flow.rootId)
-  if (!root) {
-    fitView({ padding: 0.2, minZoom: MIN_READABLE_ZOOM, maxZoom: 1 })
-    return
-  }
-  const zoom = 0.8
-  setViewport({
-    x: 48 - root.computedPosition.x * zoom,
-    y: rect.height / 2 - (root.computedPosition.y + root.dimensions.height / 2) * zoom,
-    zoom,
-  })
+}
+
+function arrangeSelection() {
+  withAnimation(() => store.arrangeSelected(measuredSizes()))
 }
 
 watch(
@@ -1266,7 +1384,7 @@ function goBack() {
           </NeTooltip>
           <NeTooltip trigger-event="mouseenter focus" placement="bottom">
             <template #trigger>
-              <NeButton kind="tertiary" size="sm" @click="withAnimation(() => store.autoLayout())">
+              <NeButton kind="tertiary" size="sm" @click="arrangeAll">
                 <FontAwesomeIcon :icon="faSitemap" aria-hidden="true" />
                 <span class="sr-only">{{ t('visual_plan.auto_layout') }}</span>
               </NeButton>
@@ -1358,7 +1476,7 @@ function goBack() {
         tabindex="-1"
         :class="[
           'visual-plan-canvas relative min-w-0 flex-1 focus:outline-none',
-          { 'is-animating': animating },
+          { 'is-hidden-view': !viewReady },
         ]"
         @dragover.prevent
         @drop.prevent="onDrop"
@@ -1503,10 +1621,7 @@ function goBack() {
           @center="centerOn"
           @close="store.simulation = null"
         />
-        <SelectionPanel
-          v-else-if="panelMode === 'selection'"
-          @arrange="withAnimation(() => store.arrangeSelected())"
-        />
+        <SelectionPanel v-else-if="panelMode === 'selection'" @arrange="arrangeSelection" />
         <NodeInspector v-else @center="centerOn" />
       </aside>
     </div>
@@ -1521,11 +1636,7 @@ function goBack() {
       @close="closePanel"
     >
       <SimulationPanel v-if="panelMode === 'simulation'" in-drawer @center="centerOn" />
-      <SelectionPanel
-        v-else-if="panelMode === 'selection'"
-        in-drawer
-        @arrange="withAnimation(() => store.arrangeSelected())"
-      />
+      <SelectionPanel v-else-if="panelMode === 'selection'" in-drawer @arrange="arrangeSelection" />
       <NodeInspector v-else in-drawer @center="centerOn" />
     </NeSideDrawer>
     <NeSideDrawer

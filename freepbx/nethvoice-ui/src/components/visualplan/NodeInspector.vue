@@ -16,8 +16,6 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import {
   faCircleMinus,
-  faCircleXmark,
-  faTriangleExclamation,
   faCrosshairs,
   faDiagramProject,
   faXmark,
@@ -46,6 +44,19 @@ const generalIssues = computed(() =>
     return !issue.field || (!issue.field.startsWith('entry:') && !FORM_FIELDS.has(issue.field))
   }),
 )
+
+const issueGroups = computed(() => {
+  const current = node.value
+  if (!current) return []
+  return (['error', 'warning'] as const)
+    .map((level) => ({
+      level,
+      texts: generalIssues.value
+        .filter((issue) => issue.level === level)
+        .map((issue) => issueText(current, issue)),
+    }))
+    .filter((group) => group.texts.length)
+})
 
 const form = useTemplateRef<HTMLElement>('form')
 
@@ -136,39 +147,21 @@ const menuItems = computed(() => {
           :title="t('visual_plan.read_only_title')"
           :description="t('visual_plan.read_only_description')"
         />
+        <template v-for="group in issueGroups" :key="group.level">
+          <NeInlineNotification
+            :kind="group.level"
+            :title="t(`visual_plan.inspector_${group.level}s`)"
+          >
+            <template #description>
+              <p v-if="group.texts.length === 1">{{ group.texts[0] }}</p>
+              <ul v-else class="list-disc space-y-1 pl-4">
+                <li v-for="(text, index) in group.texts" :key="index">{{ text }}</li>
+              </ul>
+            </template>
+          </NeInlineNotification>
+        </template>
         <NodeFields :key="node.id" :node="node" />
         <NodeOutputs v-if="hasOutputs || hasEntries" :key="`${node.id}-outputs`" :node="node" />
-        <ul
-          v-if="generalIssues.length"
-          class="space-y-2 border-t border-gray-200 pt-4 dark:border-gray-700"
-        >
-          <li
-            v-for="(issue, index) in generalIssues"
-            :key="index"
-            class="flex items-start gap-2 text-sm"
-          >
-            <FontAwesomeIcon
-              :icon="issue.level === 'error' ? faCircleXmark : faTriangleExclamation"
-              :class="[
-                'mt-0.5 size-4 shrink-0',
-                issue.level === 'error'
-                  ? 'text-rose-700 dark:text-rose-500'
-                  : 'text-amber-700 dark:text-amber-500',
-              ]"
-              aria-hidden="true"
-            />
-            <span class="text-secondary-neutral">
-              <span class="sr-only">
-                {{
-                  issue.level === 'error'
-                    ? t('visual_plan.has_errors')
-                    : t('visual_plan.has_warnings')
-                }}:
-              </span>
-              {{ issueText(node, issue) }}
-            </span>
-          </li>
-        </ul>
       </div>
     </template>
     <div v-else class="flex h-full items-center justify-center p-6">

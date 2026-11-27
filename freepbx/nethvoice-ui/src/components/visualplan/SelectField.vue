@@ -5,6 +5,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
+import { useEventListener } from '@vueuse/core'
 import { NeCombobox, type NeComboboxOption } from '@nethesis/vue-components'
 
 defineProps<{
@@ -20,11 +21,39 @@ defineProps<{
 const model = defineModel<string>({ required: true })
 
 const { t } = useI18n()
+
+// An option is chosen on mouse down. Applying it then can move the fields (an issue
+// disappears) and put another option under the pointer, so the list misses the click
+// that closes it. Apply the choice once the click is over.
+let pointerDown = false
+let pending: string | null = null
+
+useEventListener(window, 'pointerdown', () => (pointerDown = true), { capture: true })
+useEventListener(
+  window,
+  ['pointerup', 'pointercancel'],
+  () => {
+    pointerDown = false
+    if (pending === null) return
+    const value = pending
+    pending = null
+    setTimeout(() => (model.value = value))
+  },
+  { capture: true },
+)
+
+function select(value: string) {
+  if (pointerDown) {
+    pending = value
+  } else {
+    model.value = value
+  }
+}
 </script>
 
 <template>
   <NeCombobox
-    v-model="model"
+    :model-value="model"
     :label="label"
     :options="options"
     :placeholder="t('ne_combobox.choose')"
@@ -39,5 +68,6 @@ const { t } = useI18n()
     :user-input-label="t('ne_combobox.user_input_label')"
     :optional-label="t('common.optional')"
     :custom-options-width="optionsWidth"
+    @update:model-value="select"
   />
 </template>

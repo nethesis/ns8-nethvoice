@@ -2279,6 +2279,8 @@
     "quick_add_no_results": "Nessun elemento trovato",
     "quick_add_existing": "Elementi esistenti",
     "quick_add_new": "Nuovi elementi",
-    "link_role": "Collegamento"
+    "link_role": "Collegamento",
+    "inspector_errors": "Da correggere prima di salvare",
+    "inspector_warnings": "Da controllare"
   }
 }

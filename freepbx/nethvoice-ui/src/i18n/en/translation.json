@@ -2279,6 +2279,8 @@
     "quick_add_no_results": "No items found",
     "quick_add_existing": "Existing items",
     "quick_add_new": "New items",
-    "link_role": "Link"
+    "link_role": "Link",
+    "inspector_errors": "Fix before saving",
+    "inspector_warnings": "Check this item"
   }
 }
