@@ -21,6 +21,11 @@ def _original_channel_id(resource_id, prefixes):
             return resource_id[len(prefix):]
     return None
 
+
+class AriError(Exception):
+    """Asterisk answered an ARI request with an error status"""
+
+
 class AsteriskBridge:
     """
     Manages the interface between Asterisk PBX and speech recognition services.
@@ -52,6 +57,8 @@ class AsteriskBridge:
         self.is_shutting_down = False
         self.max_reconnect_delay = 30  # Maximum seconds between reconnection attempts
         self.pending_transcription_requests = set()
+        # Original channels still owed a continue that did not reach Asterisk
+        self.pending_continues = set()
         self.sweep_task = None
 
     def _build_connector(self, channel_id):
@@ -252,11 +259,23 @@ class AsteriskBridge:
         waiting = call is None or call.get('waiting', False)
         await self.close_channel(channel_id)
         if waiting:
-            try:
-                await self._ari_request('POST', f"/channels/{channel_id}/continue", params={})
-                logger.info(f"Channel {channel_id} returned to dialplan")
-            except Exception:
-                pass  # the call is gone
+            await self._continue_channel(channel_id)
+
+    async def _continue_channel(self, channel_id):
+        """
+        Return a channel to the dialplan. If the request gets no answer from
+        Asterisk, the sweep retries it.
+        """
+        try:
+            await self._ari_request('POST', f"/channels/{channel_id}/continue", params={})
+            logger.info(f"Channel {channel_id} returned to dialplan")
+        except AriError:
+            pass  # the channel is gone or no longer in Stasis
+        except Exception as e:
+            logger.warning(f"Failed to return channel {channel_id} to dialplan, will retry: {e}")
+            self.pending_continues.add(channel_id)
+            return
+        self.pending_continues.discard(channel_id)
 
     async def _setup_channel(self, event):
         """
@@ -272,17 +291,12 @@ class AsteriskBridge:
         #logger.debug(f"Channel data: {channel}")
         if channel_id in self.channels:
             logger.debug(f"Channel {channel_id} already in channels")
-            # continue the channel
-            await self._ari_request(
-                'POST',
-                f"/channels/{channel_id}/continue",
-                params={}
-            )
-            logger.info(f"Channel {channel_id} returned to dialplan")
+            await self._continue_channel(channel_id)
             return
 
         if not channel_id.startswith("snoop-") and not channel_id.startswith("ext-media-"):
-            # Normal channel entered Stasis
+            # Normal channel entered Stasis, so any earlier continue reached it
+            self.pending_continues.discard(channel_id)
             # waiting: the channel waits in Stasis until it is continued
             self.channels[channel_id] = {'waiting': True}
             self.channels[channel_id]['language'] = channel.get('language', 'en')
@@ -610,19 +624,38 @@ class AsteriskBridge:
         Remove what a lost event or a restart left behind: helper channels
         and bridges of calls that are not tracked, and tracked calls that are
         no longer in Asterisk. A helper channel never hangs up by itself.
+        Retry the continues that did not reach Asterisk and release the calls
+        still waiting in Stasis since the previous sweep: setup takes
+        milliseconds, so they are stuck.
         """
-        # Calls tracked before listing the channels, as newer ones may not be in the list
+        # Taken before listing the channels, as newer ones may not be in the list
         tracked = list(self.channels)
+        pending = list(self.pending_continues)
         channel_ids = {c['id'] for c in await self._ari_request('GET', "/channels")}
+        for channel_id in pending:
+            if channel_id in channel_ids:
+                await self._continue_channel(channel_id)
+            else:
+                self.pending_continues.discard(channel_id)
+        for channel_id in tracked:
+            call = self.channels.get(channel_id)
+            if call is None:
+                continue
+            if channel_id not in channel_ids:
+                logger.warning(f"Closing channel {channel_id}: no longer in Asterisk")
+                await self.close_channel(channel_id)
+            elif call.get('waiting'):
+                if call.get('waiting_at_sweep'):
+                    logger.warning(f"Releasing channel {channel_id}: stuck in setup")
+                    await self._release_call(channel_id)
+                else:
+                    call['waiting_at_sweep'] = True
+        # After the passes above, so that the helpers of the calls they closed go too
         for channel_id in channel_ids:
             original_channel_id = _original_channel_id(channel_id, HELPER_CHANNEL_PREFIXES)
             if original_channel_id is not None and original_channel_id not in self.channels:
                 logger.warning(f"Hanging up orphaned channel {channel_id}")
                 await self._hangup_channel(channel_id)
-        for channel_id in tracked:
-            if channel_id not in channel_ids:
-                logger.warning(f"Closing channel {channel_id}: no longer in Asterisk")
-                await self.close_channel(channel_id)
         for bridge in await self._ari_request('GET', "/bridges"):
             original_channel_id = _original_channel_id(bridge['id'], HELPER_BRIDGE_PREFIXES)
             if original_channel_id is not None and original_channel_id not in self.channels:
@@ -670,7 +703,7 @@ class AsteriskBridge:
             if response.status >= 400:
                 error_text = await response.text()
                 logger.error(f"ARI request failed: {response.status} - {error_text}")
-                raise Exception(f"ARI request failed: {response.status}")
+                raise AriError(f"ARI request failed: {response.status}")
 
             # Handle 204 No Content responses
             if response.status == 204:
