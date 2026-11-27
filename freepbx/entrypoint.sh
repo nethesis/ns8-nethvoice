@@ -163,6 +163,7 @@ EOF
 
 mkdir -p /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
 chown asterisk:asterisk /var/lib/asterisk/db /var/spool/asterisk/outgoing /var/spool/asterisk/tmp /var/spool/asterisk/uploads /var/lib/nethserver/nethcti/templates/customer_card
+find /var/lib/nethserver/nethcti/templates/customer_card -maxdepth 1 -type f -name '*.ejs' ! -user asterisk -exec chown asterisk:asterisk {} +
 
 # Make sure /etc/nethcti exists and is writable and the config directory is
 # writable from nethcti and freepbx containers

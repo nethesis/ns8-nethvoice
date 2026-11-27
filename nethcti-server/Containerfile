@@ -38,7 +38,7 @@ COPY usr/local/bin/import-certificate /usr/local/bin/import-certificate
 ENTRYPOINT ["/entrypoint"]
 CMD ["node", "nethcti.js"]
 # copy application
-COPY root/var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
+COPY --chown=asterisk:asterisk root/var/lib/nethserver/nethcti/templates/customer_card /var/lib/nethserver/nethcti/templates/customer_card
 COPY root/usr/lib/node/nethcti-server/packages packages
 COPY root/usr/lib/node/nethcti-server/plugins plugins
 COPY root/usr/lib/node/nethcti-server/scripts scripts
