@@ -16,4 +16,6 @@ bypass that logger may still appear at lower levels.
 - `ICEIGNORE` list of interfaces to ignore. Default is 'vmnet,tap,tun,virb,vb-' https://github.com/meetecho/janus-gateway#configure-and-start
 - `STUNSERVER` STUN server. Default is stun1.l.google.com
 - `STUNPORT` STUN port. Default is 19302
-- `JANUS_DEBUG_LEVEL` Debug/logging level (0=disable debugging, 7=maximum debug level; default=3, which is warnings and errors). Level 5 and above logs every API request, session lookup and keep-alive
+- `JANUS_DEBUG_LEVEL` defaults to 3 (warnings and errors). With `JANUS_ADMIN_SECRET` set, levels 5–7 emit a startup warning because they can log the key.
+- `JANUS_ADMIN_SECRET` is the per-instance `admin_key` for creating AudioBridge and TextRoom rooms and Streaming mountpoints. NethVoice supplies it through `passwords.env`.
+  Starts with this key use the image's configuration folder at `/usr/local/etc/janus`.
