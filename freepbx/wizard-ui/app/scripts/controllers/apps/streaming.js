@@ -225,6 +225,7 @@ angular.module('nethvoiceWizardUiApp')
         tls_skip_verify: $scope.tlsSkipVerify(s),
         profiles: s.profiles,
         door_phone: s.door_phone ? s.door_phone : undefined,
+        door_phone_confirm_address: $scope.doorAddressConfirmed(s) ? true : undefined,
         gates: (s.gates || []).map(function (gate) {
           var item = {
             id: gate.id,
@@ -365,6 +366,11 @@ angular.module('nethvoiceWizardUiApp')
 
     var saveFailed = function (s, err) {
       s.onSave = false;
+      // Keep the form open to confirm the address or type the password
+      if (doorAddressRefused(s, err)) {
+        $scope.sourceChanged(s);
+        return;
+      }
       $scope.onSaveSuccessSource = false;
       $scope.onSaveErrorSource = true;
       $scope.onSaveErrorMessage = err && err.data && err.data.status ? err.data.status : '';
@@ -480,6 +486,9 @@ angular.module('nethvoiceWizardUiApp')
       if (s.door_phone) {
         // Linked to a door phone: the API uses the password of the door phone
         request.door_phone = s.door_phone;
+        if ($scope.doorAddressConfirmed(s)) {
+          request.door_phone_confirm_address = true;
+        }
       }
       ApplicationService.checkConnectionVideoSource(request).then(function (res) {
         var check = res.data || {};
@@ -493,20 +502,56 @@ angular.module('nethvoiceWizardUiApp')
         s.isChecking = false;
         s.verified = false;
         s.check = { success: false, reason: 'unknown', message: err && err.data && err.data.status ? err.data.status : '' };
-        // The stored password of a door phone goes only to the address the
-        // door phone registers from: for another address it must be typed
-        if (s.door_phone && err && err.status === 400 && err.data && err.data.field === 'secret') {
-          s.doorPasswordRequired = true;
-        }
+        doorAddressRefused(s, err);
         console.log(err);
       });
     };
 
+    // The stored password of a door phone goes only to the address the door
+    // phone registers from: for another address (e.g. a port forward on
+    // another public address of the site) the administrator confirms the
+    // address or types the password
+    var doorAddressRefused = function (s, err) {
+      if (s.door_phone && err && err.status === 400 && err.data && err.data.field === 'secret') {
+        s.doorPasswordRequired = true;
+        s.doorRefusedKey = reachabilityKey(s);
+        s.doorConfirmedKey = null;
+        return true;
+      }
+      return false;
+    };
+
+    // Confirmation for the device of the current URL only
+    $scope.doorAddressConfirmed = function (s) {
+      return !!(s && s.door_phone && s.doorConfirmedKey && s.doorConfirmedKey === reachabilityKey(s));
+    };
+
+    // Ask to confirm the address of the URL: refused for the current device,
+    // no password typed
+    $scope.doorAddressToConfirm = function (s) {
+      return !!(s && s.door_phone && s.doorRefusedKey && s.doorRefusedKey === reachabilityKey(s) && !s.secret);
+    };
+
+    $scope.doorUrlAddress = function (s) {
+      var key = reachabilityKey(s || {});
+      return key ? key.replace(/:\d+$/, '') : '';
+    };
+
+    $scope.confirmDoorAddress = function (s) {
+      s.doorConfirmedKey = reachabilityKey(s);
+      s.doorRefusedKey = null;
+      s.doorPasswordRequired = false;
+      s.secret = '';
+      $scope.sourceChanged(s);
+      $scope.checkConnection(s);
+    };
+
     // Credential fields of a source linked to a door phone: hidden while the
-    // PBX can use the door phone password, shown when it must be typed (the
-    // door phone is not registered, or the URL is not its address)
+    // PBX can use the door phone password or the administrator can confirm
+    // the address of the URL, shown when the password must be typed (the
+    // door phone is not registered)
     $scope.showCredentials = function (s) {
-      return !s.door_phone || !!s.doorPasswordRequired || (!s.onMod && !s.doorPhoneRegistered);
+      return !s.door_phone || (!!s.doorPasswordRequired && !$scope.doorAddressToConfirm(s)) || (!s.onMod && !s.doorPhoneRegistered);
     };
 
     // Can the PBX open a TCP connection to the device of the URL? A LAN

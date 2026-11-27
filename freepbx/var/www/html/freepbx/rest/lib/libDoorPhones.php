@@ -208,8 +208,11 @@ function door_phone_addresses(string $mac): array
  * request does not use it. The stored password goes only to the door phone:
  * the host of the URL must be an address of its current registration
  * (door_phone_addresses), or the URL must keep the device of the stored
- * source $current already linked to the same door phone. Otherwise the
- * administrator must type the password (validation error on "secret").
+ * source $current already linked to the same door phone, or the
+ * administrator must confirm the address of the URL
+ * ("door_phone_confirm_address": true), for example a port forward on
+ * another public address of the site. Otherwise the administrator must
+ * confirm the address or type the password (validation error on "secret").
  */
 function door_phone_request_secret(array $data, string $url, ?array $current = null, ?callable $variables = null, ?callable $addresses = null): ?string
 {
@@ -232,8 +235,11 @@ function door_phone_request_secret(array $data, string $url, ?array $current = n
         && streaming_url_endpoint((string) $current['url']) === streaming_url_endpoint($url)) {
         return $secret;
     }
+    if (($data['door_phone_confirm_address'] ?? false) === true) {
+        return $secret;
+    }
     if (!streaming_url_host_in($url, ($addresses ?? 'door_phone_addresses')($mac))) {
-        throw new StreamingValidationException('secret', 'the door phone password is sent only to the address the door phone registers from: type the password', "door phone $mac, URL host not allowed");
+        throw new StreamingValidationException('secret', 'the door phone password is sent only to the address the door phone registers from: confirm the address or type the password', "door phone $mac, URL host not allowed");
     }
     return $secret;
 }

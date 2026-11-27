@@ -1222,6 +1222,9 @@
   "door_phone_duration_invalid": "Usa un numero di secondi da 1 a 600",
   "door_phone_label_invalid": "L'etichetta non può contenere a capo o altri caratteri di controllo",
   "The PBX sends the door phone password only to the address the door phone registers from. For another address, type the RTSP password of the door phone: you find it in the door phone settings": "Il centralino invia la password del citofono solo all'indirizzo da cui il citofono si registra. Per un altro indirizzo inserisci la password RTSP del citofono: la trovi nelle impostazioni del citofono",
-  "the door phone password is sent only to the address the door phone registers from: type the password": "la password del citofono viene inviata solo all'indirizzo da cui il citofono si registra: inserisci la password",
+  "the door phone password is sent only to the address the door phone registers from: confirm the address or type the password": "La password del citofono viene inviata solo all'indirizzo da cui il citofono si registra: conferma l'indirizzo o scrivi la password",
+  "The PBX sends the door phone password only to the address the door phone registers from. If this is the address of the door phone, for example a port forward on another public IP address of its site, confirm it": "Il centralino invia la password del citofono solo all'indirizzo da cui il citofono si registra. Se questo è l'indirizzo del citofono, per esempio un port forward su un altro indirizzo IP pubblico della sua sede, confermalo",
+  "Send the door phone password to": "Invia la password del citofono a",
+  "The PBX sends the door phone password to this address": "Il centralino invia la password del citofono a questo indirizzo",
   "The connection is RTSP without TLS: the username, the password and the video travel in clear text. Use rtsps:// if the device supports it, otherwise use it only in a trusted network or through a VPN": "Il collegamento è RTSP senza TLS: nome utente, password e video viaggiano in chiaro. Usa rtsps:// se il dispositivo lo supporta, altrimenti usalo solo in una rete fidata o tramite una VPN"
 }

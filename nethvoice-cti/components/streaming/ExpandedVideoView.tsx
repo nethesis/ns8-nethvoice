@@ -60,10 +60,10 @@ export const ExpandedVideoView: React.FC<ExpandedVideoViewProps> = ({
         {/* Header */}
         <div className='py-2 px-6 flex justify-between items-center font-medium text-base text-secondaryNeutral dark:text-secondaryNeutralDark'>
           <span>{capitalizeFirstLetter(source?.description)}</span>
-          {source?.extension && (
+          {source?.mainExtension && (
             <div className='flex items-center gap-1'>
               <FontAwesomeIcon icon={faPhone} className='w-4 h-4 mr-2' />
-              <span>{source.extension}</span>
+              <span>{source.mainExtension}</span>
             </div>
           )}
         </div>

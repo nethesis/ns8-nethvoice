@@ -173,6 +173,9 @@ function setCompConfigManager(comp) {
         * through WHEP, see [`streaming/token`](#tokenpost)). "whep" is the
         * relative WHEP URL of "rtsp" sources, null otherwise. "gates" are the
         * gates that can be opened with [`streaming/open`](#openpost).
+        * "extension" is the extension of the device (e.g. a door phone
+        * 91609), "mainExtension" the main extension of its user (609): the
+        * number to show and to call, and the caller number of its calls.
         * "cmdOpen" is never the DTMF code of a source with gates: it is "*"
         * (the open door button of the older clients) or empty without gates;
         * only the configurations without gates (older FreePBX) have the code.
@@ -187,7 +190,8 @@ function setCompConfigManager(comp) {
               "cmdOpen": "*",
               "password": "",
               "frameRate": "1000",
-              "extension": "609",
+              "extension": "91609",
+              "mainExtension": "609",
               "description": "door",
               "type": "rtsp",
               "whep": "/streaming-gw/vs_door/whep",

@@ -23,7 +23,11 @@ export interface VideoSource {
   cmdOpen: string
   password: string
   frameRate: string
+  // extension of the device (e.g. a door phone 91242), used by the server for the DTMF gates
   extension: string | null
+  // main extension of the user of the device (242): the number shown and called.
+  // Older servers do not send it: the extension
+  mainExtension: string | null
   description: string
   // "image": JPEG frames sampled by the server, "rtsp": WebRTC stream from the video gateway
   type: 'image' | 'rtsp'
@@ -50,6 +54,11 @@ const normalizeSource = (key: string, raw: any): VideoSource => {
     id: raw?.id || key,
     url: type === 'image' ? raw?.url || '' : '',
     extension: raw?.extension ? String(raw.extension) : null,
+    mainExtension: raw?.mainExtension
+      ? String(raw.mainExtension)
+      : raw?.extension
+        ? String(raw.extension)
+        : null,
     type,
     whep: type === 'rtsp' ? raw?.whep || null : null,
     gates,
@@ -136,8 +145,8 @@ export const useVideoSources = () => {
 
   // Handle call source action
   const handleCallSource = useCallback((source: VideoSource) => {
-    if (source?.extension) {
-      callPhoneNumber(source.extension)
+    if (source?.mainExtension) {
+      callPhoneNumber(source.mainExtension)
     }
   }, [])
 
