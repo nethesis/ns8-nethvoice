@@ -25,23 +25,6 @@ use \Psr\Http\Message\ResponseInterface as Response;
 
 include_once('lib/libAdminPhone.php');
 
-function adminPhoneLocked(callable $callback) {
-    $lock = fopen('/var/run/nethvoice/adminphone.lock', 'c');
-    if ($lock === false || !flock($lock, LOCK_EX)) {
-        throw new RuntimeException('Cannot lock the administrator phone');
-    }
-    try {
-        return $callback();
-    } finally {
-        flock($lock, LOCK_UN);
-        fclose($lock);
-    }
-}
-
-function adminPhoneReload() {
-    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
-}
-
 $app->get('/adminphone', function (Request $request, Response $response, $args) {
     try {
         return jsonResponse($response, adminPhoneStatus(), 200);

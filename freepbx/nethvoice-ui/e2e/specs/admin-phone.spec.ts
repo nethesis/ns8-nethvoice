@@ -21,6 +21,10 @@ const EXPECTED_CONFIG = Buffer.from(
   'cti.example.org:::770000:e2e-sip-secret:127.0.0.1:5060',
 ).toString('base64')
 
+const RENEWED_CONFIG = Buffer.from(
+  'cti.example.org:::770000:e2e-renewed-secret:127.0.0.1:5060',
+).toString('base64')
+
 const mockOverview = (mockApi: MockApi) =>
   mockApi
     .on('GET', '/freepbx/rest/dashboard/live/extensions', {
@@ -100,6 +104,31 @@ test.describe('administrator phone', () => {
       'The phone cannot connect to the PBX and keeps trying',
     )
     await expect(page.getByRole('button', { name: 'Call', exact: true })).toBeDisabled()
+  })
+
+  test('asks for new credentials when the old ones are refused', async ({ page, mockApi }) => {
+    await page.addInitScript(
+      (config) => Reflect.set(window, 'phoneIslandStubRejectedConfig', config),
+      EXPECTED_CONFIG,
+    )
+    let sessions = 0
+    mockOverview(mockApi).on('POST', SESSION_PATH, () => {
+      sessions += 1
+      return {
+        json: { ...SESSION, secret: sessions === 1 ? SESSION.secret : 'e2e-renewed-secret' },
+      }
+    })
+    await page.goto('./users/overview')
+
+    await expect(island(page)).toHaveAttribute('data-config', RENEWED_CONFIG)
+    expect(mockApi.callsTo('POST', SESSION_PATH)).toHaveLength(2)
+
+    await page.getByRole('button', { name: 'Show details of Anna Miller' }).click()
+    const callButton = page.getByRole('button', { name: 'Call', exact: true })
+    await expect(callButton).toBeEnabled()
+    await callButton.click()
+    await expect(island(page)).toHaveAttribute('data-calls', '300')
+    expect(mockApi.callsTo('POST', SESSION_PATH)).toHaveLength(2)
   })
 
   test('calls the operator from the overview', async ({ page, mockApi }) => {

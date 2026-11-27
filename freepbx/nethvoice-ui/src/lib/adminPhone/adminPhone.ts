@@ -8,6 +8,8 @@ export const ADMIN_PHONE_STATUS_KEY = 'adminPhoneStatus'
 
 export const ADMIN_PHONE_RELOAD_DELAY = 5000
 
+export const ADMIN_PHONE_RENEW_LIMIT = 3
+
 export const ADMIN_PHONE_UA_TYPE = 'desktop'
 
 export const ADMIN_PHONE_STATES = [

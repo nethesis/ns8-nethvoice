@@ -28,6 +28,25 @@ define('ADMINPHONE_DEFAULT_NAME', 'Admin (test)');
 define('ADMINPHONE_NAME_MAX_LENGTH', 50);
 define('ADMINPHONE_SIP_HOST', '127.0.0.1');
 define('ADMINPHONE_CONTEXT', 'nethvoice-adminphone');
+define('ADMINPHONE_LOCK', '/var/run/nethvoice/adminphone.lock');
+define('ADMINPHONE_AUTH_CONF', '/etc/asterisk/pjsip.auth.conf');
+
+function adminPhoneLocked(callable $callback, $lockFile = ADMINPHONE_LOCK) {
+    $lock = fopen($lockFile, 'c');
+    if ($lock === false || !flock($lock, LOCK_EX)) {
+        throw new RuntimeException('Cannot lock the administrator phone');
+    }
+    try {
+        return $callback();
+    } finally {
+        flock($lock, LOCK_UN);
+        fclose($lock);
+    }
+}
+
+function adminPhoneReload() {
+    system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+}
 
 function adminPhoneCandidates() {
     $candidates = array();
@@ -181,8 +200,70 @@ function adminPhoneEnsure($name = null) {
     return array(
         'extension' => $extension,
         'display_name' => $name,
+        'created' => $created,
         'changed' => $created || $changed,
     );
+}
+
+function adminPhoneWriteAuthSecret($extension, $secret, $file = ADMINPHONE_AUTH_CONF) {
+    $config = @file_get_contents($file);
+    if (!is_string($config)) {
+        return false;
+    }
+    $header = '/^\['.preg_quote($extension.'-auth', '/').'\][ \t]*\R/m';
+    if (preg_match($header, $config, $match, PREG_OFFSET_CAPTURE) !== 1) {
+        return false;
+    }
+    $start = $match[0][1] + strlen($match[0][0]);
+    $end = preg_match('/^\[/m', $config, $next, PREG_OFFSET_CAPTURE, $start) === 1 ? $next[0][1] : strlen($config);
+    $section = substr($config, $start, $end - $start);
+    $updated = preg_replace('/^password=.*$/m', 'password='.$secret, $section, 1, $count);
+    if ($count !== 1) {
+        return false;
+    }
+    if ($updated === $section) {
+        return true;
+    }
+    return file_put_contents($file, substr($config, 0, $start).$updated.substr($config, $end), LOCK_EX) !== false;
+}
+
+function adminPhoneReloadSip() {
+    global $astman;
+    $result = $astman->send_request('Command', array('Command' => 'module reload res_pjsip.so'));
+    return is_array($result) && ($result['Response'] ?? '') !== 'Error';
+}
+
+function adminPhoneDropContacts($extension) {
+    global $astman;
+    $prefix = '/registrar/contact/'.$extension.';@';
+    $dropped = 0;
+    foreach ((array) $astman->database_show('registrar/contact') as $key => $value) {
+        if (strpos((string) $key, $prefix) === 0 && $astman->database_del('registrar', substr((string) $key, strlen('/registrar/')))) {
+            $dropped++;
+        }
+    }
+    return $dropped;
+}
+
+function adminPhoneRotateSecret($extension, $authFile = ADMINPHONE_AUTH_CONF) {
+    $secret = adminPhoneNewSecret();
+    setSipData($extension, 'secret', $secret);
+    $live = adminPhoneWriteAuthSecret($extension, $secret, $authFile) && adminPhoneReloadSip();
+    adminPhoneDropContacts($extension);
+    return $live;
+}
+
+function adminPhoneRevoke($lockFile = ADMINPHONE_LOCK, $authFile = ADMINPHONE_AUTH_CONF, ?callable $reload = null) {
+    return adminPhoneLocked(function () use ($authFile, $reload) {
+        $extension = adminPhoneStoredExtension();
+        if (!adminPhoneExtensionExists($extension)) {
+            return false;
+        }
+        if (!adminPhoneRotateSecret($extension, $authFile)) {
+            ($reload ?? 'adminPhoneReload')();
+        }
+        return true;
+    }, $lockFile);
 }
 
 function adminPhoneSecret($extension) {
@@ -190,12 +271,15 @@ function adminPhoneSecret($extension) {
     return isset($data['secret']) ? $data['secret'] : null;
 }
 
-function adminPhoneSession($env, $name = null) {
+function adminPhoneSession($env, $name = null, $authFile = ADMINPHONE_AUTH_CONF) {
     $port = isset($env['ASTERISK_SIP_UDP_PORT']) ? (int) $env['ASTERISK_SIP_UDP_PORT'] : 0;
     if ($port <= 0) {
         throw new RuntimeException('ASTERISK_SIP_UDP_PORT is not set');
     }
     $state = adminPhoneEnsure($name);
+    if (!$state['created'] && !adminPhoneRotateSecret($state['extension'], $authFile)) {
+        $state['changed'] = true;
+    }
     return array(
         'session' => array(
             'extension' => $state['extension'],

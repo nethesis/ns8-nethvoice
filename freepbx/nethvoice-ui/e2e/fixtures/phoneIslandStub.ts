@@ -41,7 +41,10 @@ export const mountPhoneIsland = (element: HTMLElement, options: PhoneIslandOptio
   window.addEventListener('phone-island-call-end', onCallEnd)
 
   const timer = setTimeout(() => {
-    if (Reflect.get(window, 'phoneIslandStubFailure') === true) {
+    if (
+      Reflect.get(window, 'phoneIslandStubFailure') === true ||
+      Reflect.get(window, 'phoneIslandStubRejectedConfig') === options.dataConfig
+    ) {
       dispatch('phone-island-alert-set', { type: 'webrtc_down' })
     } else {
       dispatch('phone-island-webrtc-registered')

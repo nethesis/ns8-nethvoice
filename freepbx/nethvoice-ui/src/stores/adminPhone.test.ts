@@ -10,6 +10,7 @@ import {
   ADMIN_PHONE_CHANNEL_NAME,
   ADMIN_PHONE_HOLDER_TIMEOUT,
   ADMIN_PHONE_RELOAD_DELAY,
+  ADMIN_PHONE_RENEW_LIMIT,
   getServiceExtension,
 } from '@/lib/adminPhone/adminPhone'
 import { api } from '@/lib/api/client'
@@ -277,17 +278,107 @@ describe('useAdminPhoneStore', () => {
     )
   })
 
-  it('reports a lost connection and recovers when the extension registers again', async () => {
+  it('asks for new credentials when the registration is lost and recovers', async () => {
+    mockSession()
+    const store = createStore()
+
+    await store.enable()
+    mockSession({ ...SESSION, secret: 'beefcafe' })
+    store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+    expect(store.state).toBe('error')
+    expect(store.isEnabled).toBe(true)
+    await vi.runAllTimersAsync()
+
+    expect(api.POST).toHaveBeenCalledTimes(2)
+    expect(atob(store.dataConfig)).toBe('cti2.example.org:::770000:beefcafe:127.0.0.1:5060')
+    expect(store.state).toBe('registering')
+
+    store.handleIslandEvent('phone-island-webrtc-registered', {})
+    expect(store.state).toBe('ready')
+  })
+
+  it('stops asking for new credentials after repeated failures until the phone registers', async () => {
+    let sessions = 0
+    vi.mocked(api.POST).mockImplementation(async () => ({
+      data: { ...SESSION, secret: `f00d${++sessions}` },
+      response: new Response(),
+    }))
+    const store = createStore()
+
+    await store.enable()
+    for (let failure = 0; failure < ADMIN_PHONE_RENEW_LIMIT; failure++) {
+      store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+      await vi.runAllTimersAsync()
+      expect(store.state).toBe('registering')
+    }
+    store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+    await vi.runAllTimersAsync()
+    expect(store.state).toBe('error')
+    expect(store.isEnabled).toBe(true)
+    expect(api.POST).toHaveBeenCalledTimes(1 + ADMIN_PHONE_RENEW_LIMIT)
+
+    store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+    await vi.runAllTimersAsync()
+    expect(api.POST).toHaveBeenCalledTimes(1 + ADMIN_PHONE_RENEW_LIMIT)
+
+    store.handleIslandEvent('phone-island-webrtc-registered', {})
+    store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+    await vi.runAllTimersAsync()
+    expect(api.POST).toHaveBeenCalledTimes(2 + ADMIN_PHONE_RENEW_LIMIT)
+    expect(store.state).toBe('registering')
+  })
+
+  it('keeps the phone in error when the new credentials are the same', async () => {
     mockSession()
     const store = createStore()
 
     await store.enable()
     store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+    await vi.runAllTimersAsync()
+    expect(api.POST).toHaveBeenCalledTimes(2)
     expect(store.state).toBe('error')
-    expect(store.isEnabled).toBe(true)
+
+    store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+    await vi.runAllTimersAsync()
+    expect(api.POST).toHaveBeenCalledTimes(2)
 
     store.handleIslandEvent('phone-island-webrtc-registered', {})
     expect(store.state).toBe('ready')
+  })
+
+  it('keeps the credentials when the connection is lost during a call', async () => {
+    mockSession()
+    const store = createStore()
+
+    await store.enable()
+    store.handleIslandEvent('phone-island-webrtc-registered', {})
+    store.handleIslandEvent('phone-island-call-started', {})
+    store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+    await vi.runAllTimersAsync()
+
+    expect(api.POST).toHaveBeenCalledTimes(1)
+    expect(store.state).toBe('error')
+  })
+
+  it('turns the phone off when new credentials are refused', async () => {
+    mockSession()
+    const store = createStore()
+
+    await store.enable()
+    vi.mocked(api.POST).mockRejectedValue(
+      new ApiError({
+        status: 403,
+        method: 'POST',
+        url: '/freepbx/rest/adminphone/session',
+        body: { message: 'Forbidden' },
+      }),
+    )
+    store.handleIslandEvent('phone-island-alert-set', { type: 'webrtc_down' })
+    await vi.runAllTimersAsync()
+
+    expect(store.state).toBe('error')
+    expect(store.isEnabled).toBe(false)
+    expect(store.dataConfig).toBe('')
   })
 
   it('enables the phone and then calls the pending number', async () => {

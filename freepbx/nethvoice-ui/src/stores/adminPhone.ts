@@ -9,6 +9,7 @@ import {
   ADMIN_PHONE_HOLDER_TIMEOUT,
   ADMIN_PHONE_LOCK_NAME,
   ADMIN_PHONE_RELOAD_DELAY,
+  ADMIN_PHONE_RENEW_LIMIT,
   ADMIN_PHONE_STATUS_KEY,
   applyPhoneIslandSignal,
   buildPhoneIslandConfig,
@@ -43,6 +44,7 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
   const pendingNumber = ref('')
   const otherTabInCall = ref(false)
   let attempt = 0
+  let renewals = 0
 
   const extension = computed(() => session.value?.extension ?? '')
   const displayName = computed(() => session.value?.displayName ?? '')
@@ -71,16 +73,7 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     errorMessage.value = message
   }
 
-  const enable = async () => {
-    if (isEnabled.value) {
-      return
-    }
-    const current = ++attempt
-    const number = pendingNumber.value
-
-    reset('starting')
-    pendingNumber.value = number
-
+  const requestSession = async (current: number) => {
     try {
       const newSession = await postAdminPhoneSession()
 
@@ -97,6 +90,12 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
           return
         }
       }
+      if (
+        session.value &&
+        buildPhoneIslandConfig(session.value) === buildPhoneIslandConfig(newSession)
+      ) {
+        return
+      }
       session.value = newSession
       state.value = 'registering'
     } catch (error) {
@@ -104,6 +103,24 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
         reset('error', describeError(error))
       }
     }
+  }
+
+  const enable = async () => {
+    if (isEnabled.value) {
+      return
+    }
+    const current = ++attempt
+    const number = pendingNumber.value
+
+    renewals = 0
+    reset('starting')
+    pendingNumber.value = number
+    await requestSession(current)
+  }
+
+  const renew = async () => {
+    renewals += 1
+    await requestSession(++attempt)
   }
 
   const disable = () => {
@@ -361,15 +378,26 @@ export const useAdminPhoneStore = defineStore('adminPhone', () => {
     if (signal === null || session.value === null) {
       return
     }
-    const next = applyPhoneIslandSignal({ state: state.value, inCall: inCall.value }, signal)
+    const previous = { state: state.value, inCall: inCall.value }
+    const next = applyPhoneIslandSignal(previous, signal)
 
     state.value = next.state
     inCall.value = next.inCall
 
     if (next.state === 'error') {
       pendingNumber.value = ''
+
+      if (
+        signal === 'connection_lost' &&
+        previous.state !== 'error' &&
+        !previous.inCall &&
+        renewals < ADMIN_PHONE_RENEW_LIMIT
+      ) {
+        void renew()
+      }
     }
     if (next.state === 'ready') {
+      renewals = 0
       errorMessage.value = ''
 
       if (pendingNumber.value) {
