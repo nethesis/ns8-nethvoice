@@ -25,6 +25,10 @@ def _original_channel_id(resource_id, prefixes):
 class AriError(Exception):
     """Asterisk answered an ARI request with an error status"""
 
+    def __init__(self, status):
+        super().__init__(f"ARI request failed: {status}")
+        self.status = status
+
 
 class AsteriskBridge:
     """
@@ -263,18 +267,18 @@ class AsteriskBridge:
 
     async def _continue_channel(self, channel_id):
         """
-        Return a channel to the dialplan. If the request gets no answer from
-        Asterisk, the sweep retries it.
+        Return a channel to the dialplan. If the request gets no answer or a
+        server error from Asterisk, the sweep retries it.
         """
         try:
             await self._ari_request('POST', f"/channels/{channel_id}/continue", params={})
             logger.info(f"Channel {channel_id} returned to dialplan")
-        except AriError:
-            pass  # the channel is gone or no longer in Stasis
         except Exception as e:
-            logger.warning(f"Failed to return channel {channel_id} to dialplan, will retry: {e}")
-            self.pending_continues.add(channel_id)
-            return
+            # A client error means the channel is gone or no longer in Stasis
+            if not isinstance(e, AriError) or e.status >= 500:
+                logger.warning(f"Failed to return channel {channel_id} to dialplan, will retry: {e}")
+                self.pending_continues.add(channel_id)
+                return
         self.pending_continues.discard(channel_id)
 
     async def _setup_channel(self, event):
@@ -703,7 +707,7 @@ class AsteriskBridge:
             if response.status >= 400:
                 error_text = await response.text()
                 logger.error(f"ARI request failed: {response.status} - {error_text}")
-                raise AriError(f"ARI request failed: {response.status}")
+                raise AriError(response.status)
 
             # Handle 204 No Content responses
             if response.status == 204:
