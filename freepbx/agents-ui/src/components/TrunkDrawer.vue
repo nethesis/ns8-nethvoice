@@ -2,7 +2,6 @@
 import { computed, ref, watch } from "vue";
 import { useQuery } from "@tanstack/vue-query";
 import {
-  NeBadgeV2,
   NeButton,
   NeFormItemLabel,
   NeInlineNotification,
@@ -11,11 +10,7 @@ import {
   NeTextInput,
   NeTooltip,
 } from "@nethesis/vue-components";
-import {
-  faCheck,
-  faCopy,
-  faTriangleExclamation,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCopy } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
 import FieldCombobox from "./FieldCombobox.vue";
 import StatusBadge from "./StatusBadge.vue";
@@ -127,6 +122,22 @@ const environmentKey = computed(
   () =>
     catalog.data.value?.provider_credentials?.[form.value.provider]
       ?.environment_available || false,
+);
+// The state of the Integrations key goes with its option, before how to set it.
+const integrationKeyDescription = computed(
+  () =>
+    [
+      catalog.data.value
+        ? t(
+            environmentKey.value
+              ? "trunkForm.integrationKeySet"
+              : "trunkForm.integrationKeyNotSet",
+          )
+        : "",
+      form.value.provider === "openai" ? t("trunkForm.integrationKeyHelp") : "",
+    ]
+      .filter(Boolean)
+      .join(" ") || undefined,
 );
 const storedKey = computed(() => props.trunk?.api_key_source === "stored");
 const apiKeyHelper = computed(() =>
@@ -410,33 +421,11 @@ function close() {
             {
               id: 'inherit',
               label: t('integrationKey'),
-              description:
-                form.provider === 'openai'
-                  ? t('trunkForm.integrationKeyHelp')
-                  : undefined,
+              description: integrationKeyDescription,
             },
             { id: 'dedicated', label: t('dedicatedKey') },
           ]"
         />
-        <div
-          v-if="form.credential_mode === 'inherit' && catalog.data.value"
-          data-testid="integration-key-status"
-          class="-mt-2"
-        >
-          <NeBadgeV2 :kind="environmentKey ? 'green' : 'amber'"
-            ><FontAwesomeIcon
-              :icon="environmentKey ? faCheck : faTriangleExclamation"
-              class="size-3"
-              aria-hidden="true"
-            />{{
-              t(
-                environmentKey
-                  ? "trunkForm.integrationKeySet"
-                  : "trunkForm.integrationKeyNotSet",
-              )
-            }}</NeBadgeV2
-          >
-        </div>
         <NeTextInput
           v-if="form.credential_mode === 'dedicated'"
           v-model="form.api_key"

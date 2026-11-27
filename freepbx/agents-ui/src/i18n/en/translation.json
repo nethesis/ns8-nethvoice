@@ -41,9 +41,9 @@
     "enterSipPassword": "Enter the SIP password",
     "enterApiKey": "Enter the provider API key",
     "integrationKeyMissing": "Set the OpenAI API Key in Integrations, or use a dedicated key",
-    "integrationKeyHelp": "Set it in the NethServer 8 cluster admin: open the NethVoice application, then Integrations, OpenAI API Key.",
-    "integrationKeySet": "Key set in Integrations",
-    "integrationKeyNotSet": "No key in Integrations",
+    "integrationKeyHelp": "It is in the NethServer 8 cluster admin: open the NethVoice application, then Integrations, OpenAI API Key.",
+    "integrationKeySet": "Already set.",
+    "integrationKeyNotSet": "Not set yet.",
     "enterSecret": "Enter the webhook signing secret"
   },
   "destinations": {

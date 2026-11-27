@@ -167,23 +167,25 @@ for (const language of ["en", "it"]) {
     const drawer = page.getByRole("dialog");
     await expect(drawer.getByRole("radio", { name: en ? "NethVoice integrations key" : "Chiave delle integrazioni NethVoice" })).toBeChecked();
     await expect(drawer).toContainText(en
-      ? "Set it in the NethServer 8 cluster admin: open the NethVoice application, then Integrations, OpenAI API Key."
-      : "Si imposta nell'amministrazione del cluster NethServer 8: apri l'applicazione NethVoice, poi Integrazioni, API Key OpenAI.");
-    await expect(drawer.getByTestId("integration-key-status")).toHaveText(en ? "No key in Integrations" : "Nessuna chiave in Integrazioni");
+      ? "It is in the NethServer 8 cluster admin: open the NethVoice application, then Integrations, OpenAI API Key."
+      : "Si trova nell'amministrazione del cluster NethServer 8: apri l'applicazione NethVoice, poi Integrazioni, API Key OpenAI.");
+    // The state of the key is part of its option, before how to set it.
+    await expect(drawer.getByRole("radio", { name: en ? "NethVoice integrations key" : "Chiave delle integrazioni NethVoice" })).toHaveAccessibleName(en
+      ? /^NethVoice integrations key\s*Not set yet\. It is in/
+      : /^Chiave delle integrazioni NethVoice\s*Non ancora impostata\. Si trova/);
     await drawer.getByLabel(en ? "Name" : "Nome", { exact: true }).fill("OpenAI production");
     await drawer.getByRole("button", { name: en ? "Create" : "Crea", exact: true }).click();
     await expect(drawer.getByRole("alert")).toHaveText(en
       ? "Set the OpenAI API Key in Integrations, or use a dedicated key"
       : "Imposta la API Key OpenAI in Integrazioni o usa una chiave dedicata");
     expect(posted).toEqual([]);
-    // A dedicated key hides the status of the integrations key.
     await drawer.getByRole("radio", { name: en ? "Dedicated key" : /dedicata/ }).check();
-    await expect(drawer.getByTestId("integration-key-status")).toHaveCount(0);
+    await expect(drawer.getByLabel(en ? "Provider API key" : "Chiave API del provider")).toBeVisible();
   });
 }
 test("an available integrations key shows as set", async ({ page }) => {
   await mockTrunks(page, { lab: false, trunks: [] });
   await page.goto("./#/trunks");
   await page.getByRole("button", { name: "Create trunk" }).first().click();
-  await expect(page.getByRole("dialog").getByTestId("integration-key-status")).toHaveText("Key set in Integrations");
+  await expect(page.getByRole("dialog").getByRole("radio", { name: "NethVoice integrations key" })).toHaveAccessibleName(/^NethVoice integrations key\s*Already set\. It is in/);
 });
