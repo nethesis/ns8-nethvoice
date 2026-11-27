@@ -343,23 +343,16 @@ function close() {
     @close="close"
   >
     <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
+      <!-- With one provider the combobox shows it, disabled. -->
       <FieldCombobox
-        v-if="providers.length > 1"
         :model-value="provider"
         :label="t('provider')"
         :options="providers"
-        :disabled="editing"
+        :disabled="editing || providers.length < 2"
         :helper-text="editing ? t('trunkForm.providerLocked') : ''"
+        data-testid="trunk-provider"
         @update:model-value="provider = $event || provider"
       />
-      <div v-else data-testid="trunk-provider">
-        <p class="text-secondary-neutral text-sm font-medium">
-          {{ t("provider") }}
-        </p>
-        <p class="text-primary-neutral mt-1">
-          {{ providerNames[form.provider] || form.provider }}
-        </p>
-      </div>
       <NeInlineNotification
         v-if="form.provider === 'cleverai'"
         kind="info"
@@ -528,19 +521,7 @@ function close() {
             </p>
           </div>
         </template>
-        <div
-          v-if="form.provider === 'openai'"
-          class="flex flex-col items-start gap-2"
-        >
-          <NeButton
-            kind="tertiary"
-            size="sm"
-            class="-ml-2"
-            :loading="testing"
-            :disabled="testing || task.pending.value"
-            @click="testCredential"
-            >{{ t("testCredential") }}</NeButton
-          >
+        <div v-if="form.provider === 'openai'">
           <div
             role="status"
             data-testid="credential-test-result"
@@ -573,12 +554,21 @@ function close() {
         kind="error"
         :title="task.error.value"
       />
-      <div class="border-divider flex justify-end gap-4 border-t pt-6">
+      <div
+        class="border-divider flex flex-wrap justify-end gap-4 border-t pt-6"
+      >
         <NeButton
           kind="tertiary"
           :disabled="task.pending.value"
           @click="close"
           >{{ t("cancel") }}</NeButton
+        ><NeButton
+          v-if="form.provider === 'openai'"
+          kind="secondary"
+          :loading="testing"
+          :disabled="testing || task.pending.value"
+          @click="testCredential"
+          >{{ t("testCredential") }}</NeButton
         ><NeButton type="submit" kind="primary" :loading="task.pending.value">{{
           t(editing ? "saveAction" : "create")
         }}</NeButton>

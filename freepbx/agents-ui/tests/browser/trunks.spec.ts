@@ -90,8 +90,9 @@ test("without the SIP lab the drawer is an OpenAI key and sends no hidden field"
   } });
   await page.goto("./#/trunks");
   await page.getByRole("button", { name: "Create trunk" }).click();
-  await expect(page.getByTestId("trunk-provider")).toContainText("OpenAI");
-  await expect(page.getByRole("combobox", { name: "Voice provider" })).toHaveCount(0);
+  // One provider: the combobox shows it, disabled.
+  await expect(page.getByRole("combobox", { name: "Voice provider" })).toHaveValue("OpenAI");
+  await expect(page.getByRole("combobox", { name: "Voice provider" })).toBeDisabled();
   await expect(page.getByLabel(/OpenAI project ID/)).toHaveCount(0);
   await expect(page.getByLabel(/Webhook signing secret/)).toHaveCount(0);
   await expect(page.getByText("Provider webhook endpoint")).toHaveCount(0);
