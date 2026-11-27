@@ -132,7 +132,7 @@ function chooseTrunk(value: string) {
           @update:model-value="chooseLanguage"
         />
       </div>
-      <div data-field="duration" class="max-w-xs">
+      <div data-field="duration">
         <NeTextInput
           :model-value="String(form.draft.value.max_call_duration_seconds)"
           :label="t('maxDuration')"

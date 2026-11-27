@@ -248,20 +248,18 @@ const option = (key: string) => String(props.modelValue.options?.[key] ?? "");
       </p>
       <AppExpandable
         v-if="selected && Object.keys(schema).length"
-        boxed
         class="mt-4"
         data-testid="advanced-settings"
         :label="t('agentEditor.advancedSettingsOf', { model: selected.label })"
         :model-value="advancedOpen"
         @update:model-value="emit('update:advancedOpen', $event)"
       >
-        <div class="flex flex-col gap-6">
+        <div class="mt-4 flex flex-col gap-6">
           <div v-if="schema.backend_model" data-field="backend_model">
             <FieldCombobox
               :model-value="option('backend_model')"
               :label="t('agentEditor.live.backend_model')"
               :options="choices('backend_model')"
-              :helper-text="t('agentEditor.live.backend_modelHelp')"
               :invalid-message="errors?.backend_model"
               @update:model-value="setOption('backend_model', $event)"
             />
@@ -271,23 +269,17 @@ const option = (key: string) => String(props.modelValue.options?.[key] ?? "");
               :model-value="option(key)"
               :label="t('agentEditor.live.' + key)"
               :options="choices(key)"
-              :helper-text="t('agentEditor.live.' + key + 'Help')"
               :invalid-message="errors?.[key]"
               :no-options-label="t('noOptions')"
               :optional-label="t('optional')"
               @update:model-value="setOption(key, String($event))"
             />
           </div>
-          <div
-            v-if="schema.max_output_tokens"
-            data-field="max_output_tokens"
-            class="max-w-xs"
-          >
+          <div v-if="schema.max_output_tokens" data-field="max_output_tokens">
             <NeTextInput
               :model-value="option('max_output_tokens')"
               :label="t('agentEditor.live.max_output_tokens')"
               :placeholder="t('agentEditor.live.max_output_tokensPlaceholder')"
-              :helper-text="t('agentEditor.live.max_output_tokensHelp')"
               type="number"
               :min="schema.max_output_tokens.minimum"
               :max="schema.max_output_tokens.maximum"
@@ -304,7 +296,6 @@ const option = (key: string) => String(props.modelValue.options?.[key] ?? "");
             <NeTextArea
               :model-value="option('backend_instructions')"
               :label="t('agentEditor.live.backend_instructions')"
-              :helper-text="t('agentEditor.live.backend_instructionsHelp')"
               :maxlength="schema.backend_instructions.maxLength"
               :rows="5"
               :invalid-message="errors?.backend_instructions"

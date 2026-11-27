@@ -4,14 +4,9 @@ import { NeButton, NeExpandable } from "@nethesis/vue-components";
 import { faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons";
 // Every collapsible of the app: NeExpandable with a trigger that tells
 // screen readers whether the content is shown. Chevron down expands,
-// chevron up collapses. `boxed` draws a border around the trigger and the
-// content, for settings that belong to the field above. `reveal` scrolls
-// the page to the content when it opens, for long sections at the bottom.
-const props = defineProps<{
-  label: string;
-  boxed?: boolean;
-  reveal?: boolean;
-}>();
+// chevron up collapses. `reveal` scrolls the page to the content when it
+// opens, for long sections at the bottom.
+const props = defineProps<{ label: string; reveal?: boolean }>();
 const expanded = defineModel<boolean>({ required: true });
 const id = useId();
 const root = ref<HTMLElement>();
@@ -26,18 +21,8 @@ watch(expanded, async (open) => {
 });
 </script>
 <template>
-  <div
-    ref="root"
-    :class="[
-      boxed ? 'border-line rounded-lg border px-4 py-3' : '',
-      reveal ? 'scroll-mt-20' : '',
-    ]"
-  >
-    <NeExpandable
-      :is-expanded="expanded"
-      :full-width="boxed"
-      @set-expanded="expanded = $event"
-    >
+  <div ref="root" :class="reveal ? 'scroll-mt-20' : ''">
+    <NeExpandable :is-expanded="expanded" @set-expanded="expanded = $event">
       <template #trigger>
         <NeButton
           kind="tertiary"
@@ -53,7 +38,7 @@ watch(expanded, async (open) => {
               aria-hidden="true" /></template
         ></NeButton>
       </template>
-      <div :id="id" :class="boxed ? 'border-divider border-t pt-6 pb-3' : ''">
+      <div :id="id">
         <slot />
       </div>
     </NeExpandable>
