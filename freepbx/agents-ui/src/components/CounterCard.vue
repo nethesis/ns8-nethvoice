@@ -14,35 +14,38 @@ defineProps<{
 const { t } = useI18n();
 </script>
 <template>
-  <!-- Title on top, value and note at the bottom: in a row of cards the
-       values line up even when a title wraps. -->
+  <!-- The counter card of My Nethesis: icon and title on the left, the
+       counter on the top right, the note below. -->
   <NeCard class="flex h-full flex-col">
-    <div class="flex h-full flex-col gap-4">
+    <template #title>
       <div class="flex items-start gap-3">
         <FontAwesomeIcon
           v-if="icon"
           :icon="icon"
-          class="text-tertiary-neutral size-5 shrink-0"
+          class="text-secondary-neutral size-5 shrink-0"
           aria-hidden="true"
         />
-        <NeHeading tag="h6" class="text-tertiary-neutral uppercase">{{
-          title
-        }}</NeHeading>
-        <InfoTip
-          v-if="tooltip"
-          :text="tooltip"
-          :label="t('agentEditor.moreInfo', { name: title })"
-        />
-      </div>
-      <div class="mt-auto flex flex-col gap-2">
-        <div
-          class="text-counter text-4xl font-medium whitespace-nowrap"
-          :data-testid="testid"
-        >
-          {{ value }}
+        <div class="min-w-0">
+          <NeHeading tag="h6" class="text-secondary-neutral inline uppercase">{{
+            title
+          }}</NeHeading>
+          <InfoTip
+            v-if="tooltip"
+            class="ml-2 align-middle"
+            :text="tooltip"
+            :label="t('agentEditor.moreInfo', { name: title })"
+          />
         </div>
-        <p class="text-tertiary-neutral min-h-5 text-sm">{{ note }}</p>
       </div>
-    </div>
+    </template>
+    <template #topRight>
+      <div
+        class="text-counter text-4xl font-medium whitespace-nowrap"
+        :data-testid="testid"
+      >
+        {{ value }}
+      </div>
+    </template>
+    <p v-if="note" class="text-tertiary-neutral pt-2 text-sm">{{ note }}</p>
   </NeCard>
 </template>
