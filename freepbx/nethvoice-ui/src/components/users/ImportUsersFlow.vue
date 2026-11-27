@@ -54,6 +54,7 @@ import {
   type DirectoryPart,
   type UsersDirectory,
 } from '@/lib/users/directory'
+import { describeImportProblems } from '@/lib/users/importErrors'
 import { UserSettingsStepError } from '@/lib/users/userSettings'
 import { findUserByUsername, MAX_DEVICES_PER_USER, type User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
@@ -253,9 +254,11 @@ const importErrorDescription = computed(() => {
       error: describeError(cause instanceof UserSettingsStepError ? cause.cause : cause),
     })
   }
-  return error.code === 'import_failed' && error.message
-    ? error.message
-    : t(`users.import_error_${error.code}`)
+  if (error.code === 'import_failed' && error.problems.length > 0) {
+    const imported = analysis.value.valid
+    return describeImportProblems(error.problems, t, (line) => imported[line - 1]?.line)
+  }
+  return t(`users.import_error_${error.code}`)
 })
 
 async function readFile() {

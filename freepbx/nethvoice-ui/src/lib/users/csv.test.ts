@@ -14,6 +14,7 @@ import {
   DEFAULT_EXISTING_USERS_MODE,
   decodeBase64,
   encodeBase64,
+  escapeSpreadsheetFormula,
   exceedsImportSizeLimit,
   getCsvImportFailure,
   hasControlCharacters,
@@ -26,6 +27,7 @@ import {
   parseImportFile,
   planImportFollowUps,
   postCsvImport,
+  runCsvImport,
   serializeCsv,
   toLegacyCsvRow,
 } from './csv'
@@ -550,6 +552,29 @@ describe('templates and export', () => {
     })
   })
 
+  it('keeps a spreadsheet from running the cells of the export as formulas', () => {
+    const csv = convertExportedCsv(
+      'a.miller,"=HYPERLINK(""http://example.org"")",300,,,TRUE,FALSE,+Sales|-Support,@Base\r\n',
+      USERS,
+    )
+
+    expect(parseCsv(csv)[1].slice(0, 5)).toEqual([
+      'a.miller',
+      `'=HYPERLINK("http://example.org")`,
+      '300',
+      "'+Sales|-Support",
+      "'@Base",
+    ])
+    expect(escapeSpreadsheetFormula('\tChristopher')).toBe("'\tChristopher")
+    expect(escapeSpreadsheetFormula('\rOps')).toBe("'\rOps")
+    expect(escapeSpreadsheetFormula("Anna O'Neil")).toBe("Anna O'Neil")
+  })
+
+  it('sends the cells of an import unchanged', () => {
+    const rows = [['a.miller', '=Anna', '300', '-Secret,1', '+390000000']]
+    expect(parseCsv(serializeCsv(rows))).toEqual(rows)
+  })
+
   it('names the export after the date', () => {
     expect(buildExportFileName(new Date(2026, 0, 5))).toBe('users-2026-01-05.csv')
   })
@@ -562,17 +587,94 @@ describe('templates and export', () => {
 
 describe('postCsvImport', () => {
   it('asks the server to parse the rows as RFC 4180, keeping backslashes', async () => {
-    const post = vi.spyOn(api, 'POST').mockResolvedValue({ data: '', response: new Response() })
+    const post = vi
+      .spyOn(api, 'POST')
+      .mockResolvedValue({ data: { id: '0123456789abcdef' }, response: new Response() })
     const csv = serializeCsv([['k.lee', 'Kevin Lee\\', '305', 'Secret,123\\']])
 
-    await postCsvImport(csv)
+    expect(await postCsvImport(csv)).toBe('0123456789abcdef')
 
     expect(post).toHaveBeenCalledWith('/csv/csvimport', {
       body: { file: encodeBase64(csv), rfc4180: true },
-      parseAs: 'text',
     })
     expect(csv).toBe('"k.lee","Kevin Lee\\","305","Secret,123\\"\r\n')
     post.mockRestore()
+  })
+})
+
+describe('runCsvImport', () => {
+  it('follows only the import it started', async () => {
+    const post = vi
+      .spyOn(api, 'POST')
+      .mockResolvedValue({ data: { id: '0123456789abcdef' }, response: new Response() })
+    const get = vi
+      .spyOn(api, 'GET')
+      .mockResolvedValueOnce({ data: { result: 40 }, response: new Response() })
+      .mockResolvedValueOnce({ data: { result: 100 }, response: new Response() })
+    const progress: number[] = []
+
+    await runCsvImport('a.b,Anna\r\n', (value) => progress.push(value), 0)
+
+    expect(get).toHaveBeenCalledTimes(2)
+    expect(get).toHaveBeenCalledWith('/csv/csvimport', {
+      params: { query: { id: '0123456789abcdef' } },
+    })
+    expect(progress).toEqual([40, 100])
+    post.mockRestore()
+    get.mockRestore()
+  })
+
+  it('keeps polling the latest import when the server gives no id', async () => {
+    const post = vi.spyOn(api, 'POST').mockResolvedValue({ data: '', response: new Response() })
+    const get = vi
+      .spyOn(api, 'GET')
+      .mockResolvedValue({ data: { result: 100 }, response: new Response() })
+
+    await runCsvImport('a.b,Anna\r\n', () => undefined, 0)
+
+    expect(get).toHaveBeenCalledWith('/csv/csvimport', { params: { query: {} } })
+    post.mockRestore()
+    get.mockRestore()
+  })
+
+  it('tells that another import is running and that the file is too large', async () => {
+    const refusal = (status: number, body: unknown) =>
+      new ApiError({ status, method: 'POST', url: '/freepbx/rest/csv/csvimport', body })
+    const post = vi
+      .spyOn(api, 'POST')
+      .mockRejectedValueOnce(refusal(409, { code: 'import_running', message: 'busy' }))
+      .mockRejectedValueOnce(refusal(413, { code: 'file_too_large', message: 'big' }))
+      .mockRejectedValueOnce(refusal(500, null))
+
+    await expect(runCsvImport('a.b,Anna\r\n', () => undefined, 0)).rejects.toMatchObject({
+      name: 'CsvImportError',
+      code: 'import_running',
+    })
+    await expect(runCsvImport('a.b,Anna\r\n', () => undefined, 0)).rejects.toMatchObject({
+      name: 'CsvImportError',
+      code: 'file_too_large',
+    })
+    await expect(runCsvImport('a.b,Anna\r\n', () => undefined, 0)).rejects.toBeInstanceOf(ApiError)
+    post.mockRestore()
+  })
+
+  it('keeps the problems of a failed import', async () => {
+    const post = vi
+      .spyOn(api, 'POST')
+      .mockResolvedValue({ data: { id: '0123456789abcdef' }, response: new Response() })
+    const get = vi.spyOn(api, 'GET').mockRejectedValue(
+      apiError(500, {
+        status: 'Error importing user a.b',
+        problems: [{ code: 'protected_account', line: 1, username: 'a.b' }],
+      }),
+    )
+
+    await expect(runCsvImport('a.b,Anna\r\n', () => undefined, 0)).rejects.toMatchObject({
+      code: 'import_failed',
+      problems: [{ code: 'protected_account', line: 1, username: 'a.b' }],
+    })
+    post.mockRestore()
+    get.mockRestore()
   })
 })
 
@@ -584,9 +686,15 @@ describe('import status', () => {
   })
 
   it('tells a failed import from one that is not running', () => {
-    expect(getCsvImportFailure(apiError(500, { status: 'Error creating user x\n' }))).toBe(
-      'Error creating user x',
-    )
+    expect(getCsvImportFailure(apiError(500, { status: 'Error creating user x\n' }))).toEqual({
+      status: 'Error creating user x',
+      problems: [],
+    })
+    expect(
+      getCsvImportFailure(
+        apiError(500, { status: 'x', problems: [{ code: 'missing_name', line: 2 }] }),
+      ),
+    ).toEqual({ status: 'x', problems: [{ code: 'missing_name', line: 2 }] })
     expect(getCsvImportFailure(apiError(500, null))).toBeNull()
     expect(getCsvImportFailure(apiError(422, { status: 'No csv import active' }))).toBeNull()
     expect(isCsvImportNotRunning(apiError(422, { status: 'No csv import active' }))).toBe(true)

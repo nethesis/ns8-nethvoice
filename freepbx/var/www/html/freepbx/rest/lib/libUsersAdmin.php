@@ -7,6 +7,7 @@
 
 const USERS_ADMIN_PROTECTED_ACCOUNTS = ['admin', 'administrator', 'guest', 'krbtgt', 'ldapservice'];
 const USERS_ADMIN_DOMAIN_ADMINS_GROUP = 'domain admins';
+const USERS_ADMIN_PRIVILEGED_GROUPS = ['administrators', 'account operators', 'enterprise admins', 'schema admins', 'server operators', 'print operators', 'backup operators'];
 const USERS_ADMIN_USERNAME_PATTERN = '/^[A-Za-z0-9._@-]+$/D';
 const USERS_ADMIN_MAX_LENGTH = 256;
 const USERS_ADMIN_STATUS_CACHE = '/var/run/nethvoice/users-domain.json';
@@ -42,6 +43,8 @@ const USERS_ADMIN_MESSAGES = [
     'invalid_mail' => 'Invalid email address',
     'invalid_display_name' => 'The display name contains control characters',
     'user_not_found' => 'The user does not exist in the user domain',
+    'display_name_too_long' => 'The display name is too long',
+    'not_instance_user' => 'Only the superadmin can change the account of a user without an extension of this NethVoice',
 ];
 
 class UsersAdminTokenCache
@@ -219,6 +222,29 @@ function usersAdminSynchronize(?callable $run = null, ?callable $sleep = null, s
     }
 }
 
+function usersAdminSynchronizationRunning(string $lockFile = USERS_ADMIN_SYNC_LOCK): bool
+{
+    $lock = @fopen($lockFile, 'c');
+    if ($lock === false) {
+        return false;
+    }
+    $free = @flock($lock, LOCK_EX | LOCK_NB);
+    if ($free) {
+        flock($lock, LOCK_UN);
+    }
+    fclose($lock);
+    return !$free;
+}
+
+function usersAdminStartSynchronization(?callable $system = null, string $lockFile = USERS_ADMIN_SYNC_LOCK): bool
+{
+    if (usersAdminSynchronizationRunning($lockFile)) {
+        return false;
+    }
+    ($system ?? 'system')('/usr/bin/flock -n ' . escapeshellarg($lockFile) . ' /usr/bin/fwconsole userman --syncall --force > /dev/null 2>&1 &');
+    return true;
+}
+
 function usersAdminScheduleReload(): void
 {
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null 2>&1 &');
@@ -277,13 +303,15 @@ function usersAdminDomainStatus(UsersAdminClient $client, ?string $cacheFile = U
     }
     $now = $now ?? time();
     $cached = $cacheFile !== null && is_file($cacheFile) ? json_decode((string) @file_get_contents($cacheFile), true) : null;
-    if (is_array($cached) && is_bool($cached['manageable'] ?? null) && is_int($cached['checked_at'] ?? null)
+    if (is_array($cached) && ($cached['manageable'] ?? null) === true && is_int($cached['checked_at'] ?? null)
         && $now >= $cached['checked_at'] && $now - $cached['checked_at'] < USERS_ADMIN_STATUS_CACHE_SECONDS) {
         $manageable = $cached['manageable'];
     } else {
         $manageable = $client->token() !== '';
-        if ($cacheFile !== null) {
+        if ($cacheFile !== null && $manageable) {
             @file_put_contents($cacheFile, json_encode(['manageable' => $manageable, 'checked_at' => $now]));
+        } elseif ($cacheFile !== null) {
+            @unlink($cacheFile);
         }
     }
     return ['manageable' => $manageable, 'reason' => $manageable ? null : 'unavailable'];
@@ -338,10 +366,12 @@ function usersAdminGroups(UsersAdminClient $client): ?array
 function usersAdminRoles(array $groups, ?string $prefix): array
 {
     $own = array_flip(array_map('strtolower', usersAdminOwnGroups($prefix)));
-    $roles = ['domain' => [], 'superadmin' => [], 'sections' => [], 'other' => []];
+    $roles = ['domain' => [], 'superadmin' => [], 'sections' => [], 'other' => [], 'privileged' => []];
     foreach ($groups as $group) {
         $name = strtolower($group['group']);
-        if ($name === USERS_ADMIN_DOMAIN_ADMINS_GROUP) {
+        if (in_array($name, USERS_ADMIN_PRIVILEGED_GROUPS, true)) {
+            $role = 'privileged';
+        } elseif ($name === USERS_ADMIN_DOMAIN_ADMINS_GROUP) {
             $role = 'domain';
         } elseif ($name === $prefix . '-admins') {
             $role = 'superadmin';
@@ -439,7 +469,7 @@ function usersAdminProtectedTargetError(UsersAdminClient $client, string $userna
     }
     $roles = usersAdminRoles($groups, usersAdminGroupPrefix());
     $username = strtolower($username);
-    if (isset($roles['domain'][$username])) {
+    if (isset($roles['domain'][$username]) || isset($roles['privileged'][$username])) {
         return usersAdminError(403, 'domain_admin');
     }
     if (isset($roles['superadmin'][$username]) || isset($roles['other'][$username])) {
@@ -451,13 +481,35 @@ function usersAdminProtectedTargetError(UsersAdminClient $client, string $userna
     return null;
 }
 
-function usersAdminChangePassword(UsersAdminClient $client, string $username, $body, array $caller): array
+function usersAdminIsInstanceUser(string $username): bool
+{
+    $stmt = FreePBX::Database()->prepare('SELECT default_extension FROM userman_users WHERE LOWER(username) = LOWER(?)');
+    $stmt->execute([$username]);
+    foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $extension) {
+        $extension = trim((string) $extension);
+        if ($extension !== '' && $extension !== 'none') {
+            return true;
+        }
+    }
+    return false;
+}
+
+function usersAdminInstanceError(string $username, array $caller, ?callable $isInstanceUser): ?array
+{
+    if (!empty($caller['superadmin']) || strcasecmp($username, (string) ($caller['username'] ?? '')) === 0) {
+        return null;
+    }
+    return ($isInstanceUser ?? 'usersAdminIsInstanceUser')($username) ? null : usersAdminError(403, 'not_instance_user');
+}
+
+function usersAdminChangePassword(UsersAdminClient $client, string $username, $body, array $caller, ?callable $isInstanceUser = null): array
 {
     $password = is_array($body) ? ($body['password'] ?? null) : null;
     if (!is_string($password) || $password === '' || strlen($password) > USERS_ADMIN_MAX_LENGTH || array_diff(array_keys($body), ['password'])) {
         return usersAdminError(400, 'invalid_request');
     }
     $error = usersAdminTargetError($username, $caller, false)
+        ?? usersAdminInstanceError($username, $caller, $isInstanceUser)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
         ?? usersAdminProtectedTargetError($client, $username, $caller);
@@ -506,7 +558,7 @@ function usersAdminAccountChanges($body): ?array
     return $changes;
 }
 
-function usersAdminUpdateAccount(UsersAdminClient $client, string $username, $body, array $caller, callable $synchronize, ?callable $renamed = null): array
+function usersAdminUpdateAccount(UsersAdminClient $client, string $username, $body, array $caller, callable $synchronize, ?callable $renamed = null, ?callable $isInstanceUser = null): array
 {
     $changes = usersAdminAccountChanges($body);
     if ($changes === null) {
@@ -515,11 +567,15 @@ function usersAdminUpdateAccount(UsersAdminClient $client, string $username, $bo
     if (isset($changes['display_name']) && preg_match('/[\x00-\x1F\x7F]/', $body['display_name']) === 1) {
         return usersAdminError(422, 'invalid_display_name');
     }
+    if (isset($changes['display_name']) && empty($caller['superadmin']) && mb_strlen($changes['display_name'], 'UTF-8') > USERS_ADMIN_DISPLAY_NAME_MAX_LENGTH) {
+        return usersAdminError(422, 'display_name_too_long');
+    }
     if (isset($changes['mail']) && $changes['mail'] !== '' && (strlen($changes['mail']) > USERS_ADMIN_MAX_LENGTH || filter_var($changes['mail'], FILTER_VALIDATE_EMAIL) === false)) {
         return usersAdminError(422, 'invalid_mail');
     }
     $locking = array_key_exists('locked', $changes);
     $error = usersAdminTargetError($username, $caller, !$locking)
+        ?? usersAdminInstanceError($username, $caller, $isInstanceUser)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
         ?? usersAdminProtectedTargetError($client, $username, $caller);
@@ -544,9 +600,10 @@ function usersAdminUpdateAccount(UsersAdminClient $client, string $username, $bo
     return [200, ['synchronized' => $synchronized]];
 }
 
-function usersAdminDeleteAccount(UsersAdminClient $client, string $username, array $caller, callable $synchronize, ?callable $cleanup = null): array
+function usersAdminDeleteAccount(UsersAdminClient $client, string $username, array $caller, callable $synchronize, ?callable $cleanup = null, ?callable $isInstanceUser = null): array
 {
     $error = usersAdminTargetError($username, $caller, false)
+        ?? usersAdminInstanceError($username, $caller, $isInstanceUser)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
         ?? usersAdminProtectedTargetError($client, $username, $caller);

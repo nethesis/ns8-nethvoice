@@ -26,11 +26,7 @@ function domainAdminsCaller(Request $request): string
 
 function domainAdminsClientAddress(Request $request): string
 {
-    $address = trim($request->getHeaderLine('X-Real-Ip'));
-    if (filter_var($address, FILTER_VALIDATE_IP) !== false) {
-        return $address;
-    }
-    return (string) ($request->getServerParams()['REMOTE_ADDR'] ?? '');
+    return domainAdminsTrustedAddress((string) ($request->getServerParams()['REMOTE_ADDR'] ?? ''), $request->getHeaderLine('X-Real-Ip'));
 }
 
 $app->post('/signin', function (Request $request, Response $response) {

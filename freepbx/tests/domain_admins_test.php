@@ -48,7 +48,7 @@ class Fixture {
         $this->db = new PDO('sqlite::memory:');
         $this->db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $this->db->exec("CREATE TABLE ampusers (username TEXT NOT NULL COLLATE NOCASE PRIMARY KEY, password_sha1 TEXT NOT NULL, extension_low TEXT NOT NULL DEFAULT '', extension_high TEXT NOT NULL DEFAULT '', deptname TEXT NOT NULL DEFAULT '', sections BLOB NOT NULL, email TEXT DEFAULT '', extension TEXT DEFAULT '')");
-        $this->db->exec("CREATE TABLE rest_domain_admins (username TEXT NOT NULL COLLATE NOCASE PRIMARY KEY, domain TEXT NOT NULL, created_at TEXT NOT NULL, synced_at TEXT NULL)");
+        $this->db->exec("CREATE TABLE rest_domain_admins (username TEXT NOT NULL COLLATE NOCASE PRIMARY KEY, domain TEXT NOT NULL, created_at TEXT NOT NULL, synced_at TEXT NULL, key_issued_at TEXT NULL)");
         $this->local('admin', 'Admin-Password-1', '*');
         $this->local('qa_trunks', 'Trunks-Password-1', 'nethvoice:trunks');
         $this->local('support-abc123', 'Support-Password-1', '*');
@@ -308,6 +308,22 @@ $tests['a full failure table drops the oldest entries instead of new failures'] 
     $stored = json_decode((string) file_get_contents($f->directory . '/signin-failures.json'), true);
     check(count($stored) === DOMAIN_ADMINS_FAILURES_TRACKED && !isset($stored['x0']) && isset($stored['x' . (DOMAIN_ADMINS_FAILURES_TRACKED - 1)]), 'the oldest entries must be dropped first: ' . count($stored));
     $f->cleanup();
+};
+
+$tests['sign-in is refused when the failures cannot be recorded'] = function () {
+    $f = new Fixture();
+    mkdir($f->directory . '/signin-failures.json');
+    check(signIn($f, 'admin', 'Admin-Password-1') === domainAdminsSignInError(503, 'throttle_unavailable'), 'sign-in must fail closed without the failure file');
+    rmdir($f->directory . '/signin-failures.json');
+    check(signIn($f, 'admin', 'Admin-Password-1')[0] === 200, 'sign-in must work again with the failure file');
+    $f->cleanup();
+};
+
+$tests['only the proxy on the node can set the client address'] = function () {
+    check(domainAdminsTrustedAddress('127.0.0.1', '198.51.100.7') === '198.51.100.7', 'the address from the local proxy was ignored');
+    check(domainAdminsTrustedAddress('::1', ' 2001:db8::7 ') === '2001:db8::7', 'the IPv6 address from the local proxy was ignored');
+    check(domainAdminsTrustedAddress('203.0.113.9', '198.51.100.7') === '203.0.113.9', 'a remote client chose its own address');
+    check(domainAdminsTrustedAddress('127.0.0.1', 'not-an-address') === '127.0.0.1', 'an invalid forwarded address was used');
 };
 
 $tests['invalid sign-in requests are refused before any check'] = function () {
@@ -570,6 +586,35 @@ $tests['the re-read job revokes and updates the domain administrators'] = functi
     check($f->row('admin') !== null && $f->row('qa_trunks') !== null && $f->row('support-abc123') !== null, 'local rows must never be touched');
     $f->url = '';
     check($f->admins()->sync() === true && count($f->managed()) === 2, 'an external domain must change nothing');
+    $f->cleanup();
+};
+
+$tests['removing, locking or withdrawing an administrator rotates the administrator phone once'] = function () {
+    $f = new Fixture();
+    $revoked = 0;
+    $count = function () use (&$revoked) { $revoked++; };
+    $admins = fn() => $f->admins()->onRevoke($count);
+    signIn($f, 'alice', PASSWORD);
+    signIn($f, 'bob', PASSWORD);
+    check($revoked === 0, 'signing in must not rotate');
+    check($admins()->sync() === true && $revoked === 0, 'a re-read that keeps everyone must not rotate');
+    check($admins()->remove('carol', 'admin')[1]['code'] === 'user_not_found' && $revoked === 0, 'a refused removal must not rotate');
+    check($admins()->remove('qa_trunks', 'admin') === [204, null] && $revoked === 1, 'removing a local administrator must rotate');
+    check($admins()->remove('alice', 'admin') === [204, null] && $revoked === 2, 'removing a domain administrator must rotate');
+
+    signIn($f, 'alice', PASSWORD);
+    $f->responses['list-users'] = users(['alice', ['user' => 'Bob', 'locked' => true], 'administrator']);
+    check($admins()->sync() === true && $f->row('Bob') === null && $revoked === 3, 'locking an administrator must rotate once');
+    check($admins()->sync() === true && $revoked === 3, 'a re-read without changes must not rotate again');
+
+    $f->responses['list-groups'] = reply(500, ['code' => 500]);
+    $f->now += 3600;
+    check($admins()->sync() === false && $f->row('alice')['sections'] === '' && $revoked === 4, 'withdrawing the sections of a stale administrator must rotate');
+    check($admins()->sync() === false && $revoked === 4, 'an administrator already withdrawn must not rotate again');
+
+    $f->local('qa_phones', 'Phones-Password-1', 'nethvoice:phones');
+    $failing = $f->admins()->onRevoke(function () { throw new RuntimeException('Asterisk is down'); });
+    check($failing->remove('qa_phones', 'admin') === [204, null] && $f->row('qa_phones') === null, 'a failed rotation must not block the removal');
     $f->cleanup();
 };
 

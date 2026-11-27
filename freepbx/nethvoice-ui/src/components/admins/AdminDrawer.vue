@@ -608,9 +608,8 @@ function discardChanges() {
           :description="errorDescription"
         />
       </div>
-      <hr class="my-8" />
-      <div class="flex justify-end gap-3">
-        <NeButton kind="tertiary" size="lg" :disabled="isLoading" @click.prevent="emit('close')">
+      <div class="mt-8 flex justify-end gap-3 border-t border-gray-200 pt-8 dark:border-gray-700">
+        <NeButton kind="tertiary" size="lg" :disabled="isLoading" @click.prevent="requestClose">
           {{ t('common.cancel') }}
         </NeButton>
         <NeButton type="submit" kind="primary" size="lg" :disabled="isLoading" :loading="isLoading">

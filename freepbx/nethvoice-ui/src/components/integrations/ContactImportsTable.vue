@@ -56,7 +56,12 @@ const isEmpty = computed(() => state.value.status === 'success' && imports.value
 const isTableShown = computed(() => state.value.status === 'pending' || imports.value.length > 0)
 
 function describeVisibility(item: PhonebookImport): string {
-  return item.groups.length > 0 ? item.groups.join(', ') : t('integrations.phonebook.everyone')
+  if (item.groups.length > 0) {
+    return item.groups.join(', ')
+  }
+  return item.sharedWithNoGroup
+    ? t('integrations.phonebook.no_group')
+    : t('integrations.phonebook.everyone')
 }
 </script>
 

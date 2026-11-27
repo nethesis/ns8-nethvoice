@@ -50,12 +50,19 @@ export const ACCOUNT_ERROR_CODES = [
   'user_not_found',
   'superadmin_account',
   'nethvoice_admin',
+  'not_instance_user',
+  'display_name_too_long',
 ] as const
 
 export type AccountErrorCode = (typeof ACCOUNT_ERROR_CODES)[number]
 
 export type AccountRestriction =
-  'own_account' | 'accounts_unavailable' | 'domain_admin' | 'superadmin_account' | 'nethvoice_admin'
+  | 'own_account'
+  | 'accounts_unavailable'
+  | 'domain_admin'
+  | 'superadmin_account'
+  | 'nethvoice_admin'
+  | 'not_instance_user'
 
 export type DeleteAccountResult = {
   synchronized: boolean
@@ -170,12 +177,14 @@ export const getAccountRestriction = ({
   isSuperadmin,
   account,
   accountsLoaded = true,
+  mainExtension,
 }: {
   username: string
   signedInUsername: string
   isSuperadmin: boolean
   account?: UserAccount
   accountsLoaded?: boolean
+  mainExtension?: string
 }): AccountRestriction | null => {
   if (username.toLowerCase() === signedInUsername.toLowerCase()) {
     return 'own_account'
@@ -191,6 +200,9 @@ export const getAccountRestriction = ({
   }
   if (!isSuperadmin && account?.adminAccess === 'sections') {
     return 'nethvoice_admin'
+  }
+  if (!isSuperadmin && mainExtension === '') {
+    return 'not_instance_user'
   }
   return null
 }

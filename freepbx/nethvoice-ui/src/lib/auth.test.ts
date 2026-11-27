@@ -49,6 +49,8 @@ describe('toSignInError', () => {
     expect(failure(apiError(403, 'Forbidden'))).toBe('generic')
     expect(failure(apiError(429, { code: 'too_many_attempts' }))).toBe('too_many_attempts')
     expect(failure(apiError(503, { code: 'domain_unavailable' }))).toBe('domain_unavailable')
+    expect(failure(apiError(503, { code: 'throttle_unavailable' }))).toBe('throttle_unavailable')
+    expect(failure(apiError(503, null))).toBe('domain_unavailable')
     expect(failure(apiError(400, { code: 'invalid_request' }))).toBe('generic')
     expect(failure(apiError(500))).toBe('generic')
     expect(failure(new TypeError('Failed to fetch'))).toBe('generic')

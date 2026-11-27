@@ -74,6 +74,7 @@ import {
   getPhonesWithoutMac,
   PhoneChangeError,
 } from '@/lib/users/userPhones'
+import { describeImportProblems } from '@/lib/users/importErrors'
 import {
   applyUserSettingsSteps,
   getUserSettings,
@@ -504,7 +505,7 @@ const {
   },
   onSuccess() {
     const displayName = user
-      ? user.displayName
+      ? ((accountEditable.value ? accountChanges().display_name : undefined) ?? user.displayName)
       : getFullName({ name: name.value, surname: surname.value })
     const accountError = createdAccountError.value
     createdAccountError.value = null
@@ -688,8 +689,8 @@ const getErrorDescription = (error: unknown): string => {
     return t('users.create_error_value_too_long')
   }
   if (isCsvImportError(error)) {
-    return error.code === 'import_failed' && error.message
-      ? error.message
+    return error.code === 'import_failed' && error.problems.length > 0
+      ? describeImportProblems(error.problems, t, () => undefined)
       : t(`users.import_error_${error.code}`)
   }
 
@@ -749,12 +750,15 @@ function validate(): boolean {
       }
     }
   } else if (!isSetup.value) {
-    if (
-      accountEditable.value &&
-      accountChanges().display_name !== undefined &&
-      name.value.trim() === ''
-    ) {
+    const changedDisplayName = accountEditable.value ? accountChanges().display_name : undefined
+
+    if (changedDisplayName !== undefined && name.value.trim() === '') {
       issues.name = 'users.name_required'
+    } else if (
+      changedDisplayName !== undefined &&
+      changedDisplayName.length > DISPLAY_NAME_MAX_LENGTH
+    ) {
+      issues.name = 'users.full_name_too_long'
     }
     const owner = findUserByExtension(users, extension.value.trim())
 

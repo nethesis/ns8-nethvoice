@@ -29,6 +29,7 @@ export const SIGN_IN_FAILURES = [
   'account_conflict',
   'too_many_attempts',
   'domain_unavailable',
+  'throttle_unavailable',
   'storage_unavailable',
   'generic',
 ] as const
@@ -105,6 +106,9 @@ export const toSignInError = (error: unknown, retryAfter: string | null): SignIn
   }
   if (error.status === 429) {
     return new SignInError('too_many_attempts', parseRetryAfter(retryAfter), error)
+  }
+  if (error.status === 503 && code === 'throttle_unavailable') {
+    return new SignInError('throttle_unavailable', null, error)
   }
   if (error.status === 503) {
     return new SignInError('domain_unavailable', null, error)

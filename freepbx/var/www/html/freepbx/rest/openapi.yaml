@@ -16,6 +16,11 @@ info:
     secret
 
 
+    The key of a user domain administrator (returned by `/signin` with `source: domain`)
+    expires 12 hours after it was issued: requests with an expired key are rejected
+    with 401 and `{ "code": "session_expired" }`.
+
+
     Authentication endpoints (`/login`, `/logout`, `/testauth`) do not require these
     headers.
 
@@ -66,7 +71,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/SuccessFlag'
       description: 'Clears the `AMP_user` session entry and returns `{ "success":
-        true }`.'
+        true }`. For a user domain administrator it also replaces the key, which
+        ends every session of that administrator.'
       operationId: get_logout
       security: []
   /me:
@@ -114,6 +120,12 @@ paths:
               description: Seconds to wait before the next attempt.
               schema:
                 type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SignInError'
+        '503':
+          description: '`throttle_unavailable`: the failed attempts cannot be recorded'
           content:
             application/json:
               schema:
@@ -181,7 +193,8 @@ paths:
                 $ref: '#/components/schemas/SignInError'
         '503':
           description: '`domain_unavailable`: the credentials match no local administrator
-            and the user domain is not reachable'
+            and the user domain is not reachable; `throttle_unavailable`: the failed
+            attempts cannot be recorded'
           content:
             application/json:
               schema:
@@ -1045,6 +1058,20 @@ paths:
                 oneOf:
                 - type: integer
                 - type: string
+        '400':
+          description: For administrators who are not superadmin, the name is empty,
+            too long, has commas or has no letter or digit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiGroupRenameError'
+        '409':
+          description: For administrators who are not superadmin, a group with the
+            same or a similar name exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiGroupRenameError'
         '500':
           description: Internal server error
       description: 'Body: `{ "name": "<group name>" }`. Returns the created group
@@ -1185,6 +1212,9 @@ paths:
               $ref: '#/components/schemas/CtiGroupRenameRequest'
     delete:
       summary: Remove a CTI group and its dynamic permission artifacts.
+      description: The group is also removed from the sharing of phonebook sources,
+        contacts and imports. A CTI contact shared only with it becomes private; other
+        values shared only with it are shared with no group.
       tags:
       - CTI
       responses:
@@ -1194,6 +1224,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CtiStatusFlag'
+        '404':
+          description: Group not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiGroupRenameError'
+        '409':
+          description: A phonebook source cannot be read or written
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CtiGroupRenameError'
         '500':
           description: Internal server error
       operationId: delete_cti_groups_id
@@ -2865,6 +2907,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UsersMessage'
+        '403':
+          description: For administrators who are not superadmin, the current owner
+            or the new user is a protected account (`protected_account`, `domain_admin`,
+            `superadmin_account` or `nethvoice_admin`)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersAccountError'
         '404':
           description: Main extension or user not found
           content:
@@ -4351,6 +4401,12 @@ paths:
             application/json:
               schema:
                 type: object
+        '404':
+          description: The extension is not the mobile app extension of a user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersMessage'
         '500':
           description: Internal server error
       operationId: delete_mobileapp_extension
@@ -5727,8 +5783,10 @@ paths:
           description: Missing permission, or `protected_account`, `own_account`
             (locking the caller's account), `domain_admin` (a limited administrator
             locking a domain administrator), `superadmin_account` (locking another
-            superadmin or an administrator of another NethVoice) or `nethvoice_admin`
-            (a limited administrator locking an administrator)
+            superadmin or an administrator of another NethVoice), `nethvoice_admin`
+            (a limited administrator locking an administrator) or `not_instance_user`
+            (a limited administrator changing a user without an extension of this
+            NethVoice)
           content:
             application/json:
               schema:
@@ -5746,8 +5804,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/UsersAccountError'
         '422':
-          description: '`invalid_mail` or `invalid_display_name` (the display name
-            contains control characters)'
+          description: '`invalid_mail`, `invalid_display_name` (the display name
+            contains control characters) or `display_name_too_long` (more than 50
+            characters, for administrators who are not superadmin)'
           content:
             application/json:
               schema:
@@ -5801,7 +5860,7 @@ paths:
                 $ref: '#/components/schemas/UsersAccountError'
         '403':
           description: Missing permission, or `protected_account`, `own_account`,
-            `domain_admin`, `superadmin_account` or `nethvoice_admin`
+            `domain_admin`, `superadmin_account`, `nethvoice_admin` or `not_instance_user`
           content:
             application/json:
               schema:
@@ -5857,7 +5916,7 @@ paths:
                 $ref: '#/components/schemas/UsersAccountError'
         '403':
           description: Missing permission, or `protected_account`, `own_account`,
-            `domain_admin`, `superadmin_account` or `nethvoice_admin`
+            `domain_admin`, `superadmin_account`, `nethvoice_admin` or `not_instance_user`
           content:
             application/json:
               schema:
@@ -5910,11 +5969,36 @@ paths:
   /csv/csvimport:
     post:
       summary: Start the import of users from a CSV in background.
+      description: Only one import runs at a time. For administrators who are not
+        superadmin, rows of protected accounts are refused and new group names are
+        checked like POST /cti/groups.
       tags:
       - Users
       responses:
         '200':
-          description: Successful response
+          description: The import started; poll GET /csv/csvimport with this id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersCsvImportStarted'
+        '400':
+          description: Missing CSV
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersCsvImportRefusal'
+        '409':
+          description: Another import is running (code import_running)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersCsvImportRefusal'
+        '413':
+          description: The CSV is too large (code file_too_large)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsersCsvImportRefusal'
         '500':
           description: Internal server error
       operationId: post_csv_csvimport
@@ -5926,8 +6010,18 @@ paths:
               $ref: '#/components/schemas/UsersCsvImportRequest'
     get:
       summary: Progress of the running CSV import.
+      description: Without id, the progress of the latest import. An import whose
+        process ended without a result is reported as failed.
       tags:
       - Users
+      parameters:
+      - name: id
+        in: query
+        required: false
+        description: Id returned when the import started.
+        schema:
+          type: string
+          pattern: ^[a-f0-9]{16}$
       responses:
         '200':
           description: Successful response
@@ -5942,11 +6036,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/UsersStatusMessage'
         '500':
-          description: Import ended with errors, listed in status
+          description: Import ended with errors, listed in status and problems
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UsersStatusMessage'
+                $ref: '#/components/schemas/UsersCsvImportFailure'
       operationId: get_csv_csvimport
   /csv/csvexport:
     get:
@@ -6159,9 +6253,14 @@ paths:
         settings and returns the credentials for the Phone Island in SIP only mode.
         No Userman user, CTI user or device row is created, so the extension is not
         listed among users or operators and does not count in the user limit. Calls
-        use the accountcode `nv-admin`. FreePBX is reloaded in the background only
-        when something changed: `reloading` is then true and registration may fail
-        until the reload completes. The secret must be kept in memory only.'
+        use the accountcode `nv-admin`. Every call generates a new secret, loads
+        it into Asterisk with a PJSIP reload and removes the registrations made with
+        the previous one, so a client whose registration is refused asks for a new
+        session. The secret also changes when an administrator is removed, locked or
+        loses all sections. FreePBX is reloaded in the background only when something
+        changed that a PJSIP reload cannot apply: `reloading` is then true and
+        registration may fail until the reload completes. The secret must be kept
+        in memory only.'
       tags:
       - AdminPhone
       requestBody:
@@ -6657,6 +6756,7 @@ components:
           - account_conflict
           - too_many_attempts
           - domain_unavailable
+          - throttle_unavailable
         message:
           type: string
     AdminGroups:
@@ -8707,6 +8807,8 @@ components:
           - user_not_found
           - superadmin_account
           - nethvoice_admin
+          - not_instance_user
+          - display_name_too_long
         message:
           type: string
     UsersStatusMessage:
@@ -8729,6 +8831,75 @@ components:
           description: When true the rows are parsed as RFC 4180, where a backslash
             has no special meaning. Otherwise a backslash before a double quote escapes
             it, as in the previous interface.
+    UsersCsvImportStarted:
+      type: object
+      required:
+      - id
+      properties:
+        id:
+          type: string
+    UsersCsvImportRefusal:
+      type: object
+      required:
+      - code
+      - message
+      properties:
+        code:
+          type: string
+          enum:
+          - invalid_request
+          - import_running
+          - file_too_large
+          - import_failed
+        message:
+          type: string
+    UsersCsvImportFailure:
+      type: object
+      properties:
+        status:
+          type: string
+        problems:
+          type: array
+          items:
+            $ref: '#/components/schemas/UsersCsvImportProblem'
+    UsersCsvImportProblem:
+      type: object
+      required:
+      - code
+      properties:
+        code:
+          type: string
+          enum:
+          - control_characters
+          - missing_name
+          - provider_unavailable
+          - protected_account
+          - create_failed
+          - sync_failed
+          - user_not_found
+          - extension_failed
+          - device_failed
+          - mobile_failed
+          - voicemail_failed
+          - webrtc_failed
+          - groups_failed
+          - group_name_invalid
+          - profile_failed
+          - nethlink_failed
+          - invalid_input
+          - import_failed
+          - stopped
+        line:
+          type: integer
+          description: Row of the imported CSV, starting from 1.
+        username:
+          type: string
+        extension:
+          type: string
+        group:
+          type: string
+        profile:
+          type: string
     UsersCsvImportProgress:
       type: object
       required:

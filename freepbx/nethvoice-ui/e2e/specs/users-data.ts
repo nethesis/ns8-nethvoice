@@ -198,11 +198,13 @@ export const mockWrites = (mockApi: MockApi) =>
     .on('DELETE', `${REST}/mobileapp/:ext`, { status: 204 })
     .on('POST', `${REST}/bulk/:exts`, { json: { status: true } })
 
+export const CSV_IMPORT_ID = '0123456789abcdef'
+
 export const csvImportMock = (mockApi: MockApi, finalStatus: { status: number; json: unknown }) => {
   let polls = 0
 
   return mockApi
-    .on('POST', `${REST}/csv/csvimport`, { status: 200 })
+    .on('POST', `${REST}/csv/csvimport`, { status: 200, json: { id: CSV_IMPORT_ID } })
     .on('GET', `${REST}/csv/csvimport`, () => {
       polls += 1
       return polls === 1 ? { json: { result: 50 } } : finalStatus

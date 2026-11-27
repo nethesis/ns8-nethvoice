@@ -136,4 +136,19 @@ check(testauth($app, 'qa_users', 'Users-Password-1', '198.51.100.7')->getStatusC
 check(testauth($app, ['admin'], 'Admin-Password-1', '198.51.100.9')->getStatusCode() === 401, 'a username that is not a string must be refused');
 check(testauth($app, '', 'x', '198.51.100.9')->getStatusCode() === 401, 'an empty username must be refused');
 
+session_id('qafixatedsession0123456789');
+$level = error_reporting(E_ALL & ~E_WARNING);
+$fixated = $app->routes['POST /testauth']((new ServerRequestFactory())->createServerRequest('POST', '/freepbx/rest/testauth', ['REMOTE_ADDR' => '192.0.2.40'])->withParsedBody(['username' => 'admin', 'password' => 'Admin-Password-1']), new Response(), []);
+$regenerated = session_id();
+session_destroy();
+error_reporting($level);
+check($fixated->getStatusCode() === 200 && $regenerated !== '' && $regenerated !== 'qafixatedsession0123456789', 'the session id chosen before the sign-in was kept: ' . $regenerated);
+
+rename(FAILURES_FILE, FAILURES_FILE . '.saved');
+mkdir(FAILURES_FILE);
+$closed = testauth($app, 'admin', 'Admin-Password-1', '192.0.2.41');
+rmdir(FAILURES_FILE);
+rename(FAILURES_FILE . '.saved', FAILURES_FILE);
+check($closed->getStatusCode() === 503 && json_decode((string) $closed->getBody(), true)['code'] === 'throttle_unavailable', 'a sign-in without the failure file must be refused: ' . $closed->getStatusCode());
+
 echo "PASS: POST /testauth throttles failures per address and account and per address, keeps successful sign-ins, gives the secret only to superadmins\n";

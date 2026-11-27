@@ -225,6 +225,10 @@ $app->delete('/mobileapp/{extension}', function (Request $request, Response $res
     try {
         $route = $request->getAttribute('route');
         $extension = $route->getArgument('extension');
+        $mainextension = getMainExtension($extension);
+        if (!is_string($extension) || $mainextension === -1 || (string) getMobileAppExtension($mainextension) !== $extension) {
+            return jsonResponse($response, array('message' => 'Mobile app extension not found'), 404);
+        }
         if (deleteExtension($extension)) {
             system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
             return $response->withStatus(204);

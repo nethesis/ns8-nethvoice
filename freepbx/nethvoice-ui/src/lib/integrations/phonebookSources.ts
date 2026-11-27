@@ -206,6 +206,7 @@ export type PhonebookSource = {
   mapping: Record<string, string>
   interval: number
   groups: string[]
+  sharedWithNoGroup?: boolean
   enabled: boolean
 }
 
@@ -312,6 +313,9 @@ export const parseSharingGroups = (access: string): string[] =>
         .filter((group) => group !== '')
     : []
 
+export const isSharedWithNoGroup = (access: string): boolean =>
+  access.startsWith('group:') && parseSharingGroups(access).length === 0
+
 export const buildAccess = (groups: string[]): string =>
   groups.length > 0 ? `group:${groups.join(',')}` : 'public'
 
@@ -346,6 +350,7 @@ export const parsePhonebookSources = (raw: unknown): PhonebookSource[] => {
         mapping: Array.isArray(source.mapping) ? {} : cleanMapping(source.mapping),
         interval: Number.isFinite(interval) && interval > 0 ? interval : DEFAULT_SYNC_INTERVAL,
         groups: parseSharingGroups(source.access),
+        sharedWithNoGroup: isSharedWithNoGroup(source.access),
         enabled: [true, 'true', '1', 1].includes(source.enabled),
       }
     })
@@ -551,7 +556,7 @@ export const toPhonebookSourceForm = (source: PhonebookSource): PhonebookSourceF
     username: source.username,
     mapping: { ...source.mapping },
     interval: source.interval,
-    sharing: source.groups.length > 0 ? 'groups' : 'public',
+    sharing: source.groups.length > 0 || source.sharedWithNoGroup ? 'groups' : 'public',
     groups: [...source.groups],
     enabled: source.enabled,
   }

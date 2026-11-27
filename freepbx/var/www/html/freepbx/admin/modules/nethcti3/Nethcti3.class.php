@@ -161,7 +161,11 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
     public function usermanDelUser($id, $display, $data) {
         try {
             include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
-            orphanUserExtensions($id, is_array($data) ? $data : array());
+            $data = is_array($data) ? $data : array();
+            if (!userRemovalPrepared($id, isset($data['username']) ? trim((string) $data['username']) : '')) {
+                return true;
+            }
+            orphanUserExtensions($id, $data);
             $this->scheduleReload();
             return true;
         } catch (\Throwable $e) {

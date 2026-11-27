@@ -33,7 +33,7 @@ export interface paths {
     }
     /**
      * Invalidate the current FreePBX admin session.
-     * @description Clears the `AMP_user` session entry and returns `{ "success": true }`.
+     * @description Clears the `AMP_user` session entry and returns `{ "success": true }`. For a user domain administrator it also replaces the key, which ends every session of that administrator.
      */
     get: operations['get_logout']
     put?: never
@@ -589,7 +589,10 @@ export interface paths {
      */
     put: operations['put_cti_groups_id']
     post?: never
-    /** Remove a CTI group and its dynamic permission artifacts. */
+    /**
+     * Remove a CTI group and its dynamic permission artifacts.
+     * @description The group is also removed from the sharing of phonebook sources, contacts and imports. A CTI contact shared only with it becomes private; other values shared only with it are shared with no group.
+     */
     delete: operations['delete_cti_groups_id']
     options?: never
     head?: never
@@ -3193,10 +3196,16 @@ export interface paths {
       path?: never
       cookie?: never
     }
-    /** Progress of the running CSV import. */
+    /**
+     * Progress of the running CSV import.
+     * @description Without id, the progress of the latest import. An import whose process ended without a result is reported as failed.
+     */
     get: operations['get_csv_csvimport']
     put?: never
-    /** Start the import of users from a CSV in background. */
+    /**
+     * Start the import of users from a CSV in background.
+     * @description Only one import runs at a time. For administrators who are not superadmin, rows of protected accounts are refused and new group names are checked like POST /cti/groups.
+     */
     post: operations['post_csv_csvimport']
     delete?: never
     options?: never
@@ -3335,7 +3344,7 @@ export interface paths {
     put?: never
     /**
      * Prepare the administrator phone and return its SIP credentials.
-     * @description Creates the service extension when missing (first free number from 770000 to 770099, then kept in the module kvstore), repairs its WebRTC settings and returns the credentials for the Phone Island in SIP only mode. No Userman user, CTI user or device row is created, so the extension is not listed among users or operators and does not count in the user limit. Calls use the accountcode `nv-admin`. FreePBX is reloaded in the background only when something changed: `reloading` is then true and registration may fail until the reload completes. The secret must be kept in memory only.
+     * @description Creates the service extension when missing (first free number from 770000 to 770099, then kept in the module kvstore), repairs its WebRTC settings and returns the credentials for the Phone Island in SIP only mode. No Userman user, CTI user or device row is created, so the extension is not listed among users or operators and does not count in the user limit. Calls use the accountcode `nv-admin`. Every call generates a new secret, loads it into Asterisk with a PJSIP reload and removes the registrations made with the previous one, so a client whose registration is refused asks for a new session. The secret also changes when an administrator is removed, locked or loses all sections. FreePBX is reloaded in the background only when something changed that a PJSIP reload cannot apply: `reloading` is then true and registration may fail until the reload completes. The secret must be kept in memory only.
      */
     post: operations['post_adminphone_session']
     delete?: never
@@ -3583,6 +3592,7 @@ export interface components {
         | 'account_conflict'
         | 'too_many_attempts'
         | 'domain_unavailable'
+        | 'throttle_unavailable'
       message?: string
     }
     /** @description Name of the user domain group of each permission. */
@@ -4532,6 +4542,8 @@ export interface components {
         | 'user_not_found'
         | 'superadmin_account'
         | 'nethvoice_admin'
+        | 'not_instance_user'
+        | 'display_name_too_long'
       message?: string
     }
     UsersStatusMessage: {
@@ -4542,6 +4554,47 @@ export interface components {
       file: string
       /** @description When true the rows are parsed as RFC 4180, where a backslash has no special meaning. Otherwise a backslash before a double quote escapes it, as in the previous interface. */
       rfc4180?: boolean
+    }
+    UsersCsvImportStarted: {
+      id: string
+    }
+    UsersCsvImportRefusal: {
+      /** @enum {string} */
+      code: 'invalid_request' | 'import_running' | 'file_too_large' | 'import_failed'
+      message: string
+    }
+    UsersCsvImportFailure: {
+      status?: string
+      problems?: components['schemas']['UsersCsvImportProblem'][]
+    }
+    UsersCsvImportProblem: {
+      /** @enum {string} */
+      code:
+        | 'control_characters'
+        | 'missing_name'
+        | 'provider_unavailable'
+        | 'protected_account'
+        | 'create_failed'
+        | 'sync_failed'
+        | 'user_not_found'
+        | 'extension_failed'
+        | 'device_failed'
+        | 'mobile_failed'
+        | 'voicemail_failed'
+        | 'webrtc_failed'
+        | 'groups_failed'
+        | 'group_name_invalid'
+        | 'profile_failed'
+        | 'nethlink_failed'
+        | 'invalid_input'
+        | 'import_failed'
+        | 'stopped'
+      /** @description Row of the imported CSV, starting from 1. */
+      line?: number
+      username?: string
+      extension?: string
+      group?: string
+      profile?: string
     }
     UsersCsvImportProgress: {
       /** @description Progress percentage, 100 when the import is over. */
@@ -4784,6 +4837,15 @@ export interface operations {
           'application/json': components['schemas']['SignInError']
         }
       }
+      /** @description `throttle_unavailable`: the failed attempts cannot be recorded */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SignInError']
+        }
+      }
     }
   }
   post_signin: {
@@ -4846,7 +4908,7 @@ export interface operations {
           'application/json': components['schemas']['SignInError']
         }
       }
-      /** @description `domain_unavailable`: the credentials match no local administrator and the user domain is not reachable */
+      /** @description `domain_unavailable`: the credentials match no local administrator and the user domain is not reachable; `throttle_unavailable`: the failed attempts cannot be recorded */
       503: {
         headers: {
           [name: string]: unknown
@@ -5961,6 +6023,24 @@ export interface operations {
           'application/json': number | string
         }
       }
+      /** @description For administrators who are not superadmin, the name is empty, too long, has commas or has no letter or digit */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiGroupRenameError']
+        }
+      }
+      /** @description For administrators who are not superadmin, a group with the same or a similar name exists */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiGroupRenameError']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -6137,6 +6217,24 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['CtiStatusFlag']
+        }
+      }
+      /** @description Group not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiGroupRenameError']
+        }
+      }
+      /** @description A phonebook source cannot be read or written */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['CtiGroupRenameError']
         }
       }
       /** @description Internal server error */
@@ -8205,6 +8303,15 @@ export interface operations {
           'application/json': components['schemas']['UsersMessage']
         }
       }
+      /** @description For administrators who are not superadmin, the current owner or the new user is a protected account (`protected_account`, `domain_admin`, `superadmin_account` or `nethvoice_admin`) */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersAccountError']
+        }
+      }
       /** @description Main extension or user not found */
       404: {
         headers: {
@@ -10188,6 +10295,15 @@ export interface operations {
         }
         content?: never
       }
+      /** @description The extension is not the mobile app extension of a user */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersMessage']
+        }
+      }
       /** @description Internal server error */
       500: {
         headers: {
@@ -11967,7 +12083,7 @@ export interface operations {
           'application/json': components['schemas']['UsersAccountError']
         }
       }
-      /** @description Missing permission, or `protected_account`, `own_account`, `domain_admin`, `superadmin_account` or `nethvoice_admin` */
+      /** @description Missing permission, or `protected_account`, `own_account`, `domain_admin`, `superadmin_account`, `nethvoice_admin` or `not_instance_user` */
       403: {
         headers: {
           [name: string]: unknown
@@ -12047,7 +12163,7 @@ export interface operations {
           'application/json': components['schemas']['UsersAccountError']
         }
       }
-      /** @description Missing permission, or `protected_account`, `own_account` (locking the caller's account), `domain_admin` (a limited administrator locking a domain administrator), `superadmin_account` (locking another superadmin or an administrator of another NethVoice) or `nethvoice_admin` (a limited administrator locking an administrator) */
+      /** @description Missing permission, or `protected_account`, `own_account` (locking the caller's account), `domain_admin` (a limited administrator locking a domain administrator), `superadmin_account` (locking another superadmin or an administrator of another NethVoice), `nethvoice_admin` (a limited administrator locking an administrator) or `not_instance_user` (a limited administrator changing a user without an extension of this NethVoice) */
       403: {
         headers: {
           [name: string]: unknown
@@ -12074,7 +12190,7 @@ export interface operations {
           'application/json': components['schemas']['UsersAccountError']
         }
       }
-      /** @description `invalid_mail` or `invalid_display_name` (the display name contains control characters) */
+      /** @description `invalid_mail`, `invalid_display_name` (the display name contains control characters) or `display_name_too_long` (more than 50 characters, for administrators who are not superadmin) */
       422: {
         headers: {
           [name: string]: unknown
@@ -12134,7 +12250,7 @@ export interface operations {
           'application/json': components['schemas']['UsersAccountError']
         }
       }
-      /** @description Missing permission, or `protected_account`, `own_account`, `domain_admin`, `superadmin_account` or `nethvoice_admin` */
+      /** @description Missing permission, or `protected_account`, `own_account`, `domain_admin`, `superadmin_account`, `nethvoice_admin` or `not_instance_user` */
       403: {
         headers: {
           [name: string]: unknown
@@ -12192,7 +12308,10 @@ export interface operations {
   }
   get_csv_csvimport: {
     parameters: {
-      query?: never
+      query?: {
+        /** @description Id returned when the import started. */
+        id?: string
+      }
       header?: never
       path?: never
       cookie?: never
@@ -12217,13 +12336,13 @@ export interface operations {
           'application/json': components['schemas']['UsersStatusMessage']
         }
       }
-      /** @description Import ended with errors, listed in status */
+      /** @description Import ended with errors, listed in status and problems */
       500: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['UsersStatusMessage']
+          'application/json': components['schemas']['UsersCsvImportFailure']
         }
       }
     }
@@ -12241,12 +12360,41 @@ export interface operations {
       }
     }
     responses: {
-      /** @description Successful response */
+      /** @description The import started; poll GET /csv/csvimport with this id */
       200: {
         headers: {
           [name: string]: unknown
         }
-        content?: never
+        content: {
+          'application/json': components['schemas']['UsersCsvImportStarted']
+        }
+      }
+      /** @description Missing CSV */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersCsvImportRefusal']
+        }
+      }
+      /** @description Another import is running (code import_running) */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersCsvImportRefusal']
+        }
+      }
+      /** @description The CSV is too large (code file_too_large) */
+      413: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UsersCsvImportRefusal']
+        }
       }
       /** @description Internal server error */
       500: {

@@ -95,7 +95,9 @@
     "domain_unavailable_description": "Users of the domain can't sign in now. Try again in a few minutes.",
     "storage_unavailable": "Cannot sign in",
     "storage_unavailable_description": "The browser does not let this site save data. Allow cookies and site data for this site, then sign in again.",
-    "product_label": "PBX administration"
+    "product_label": "PBX administration",
+    "throttle_unavailable": "Cannot sign in",
+    "throttle_unavailable_description": "Sign-in is temporarily unavailable. Try again in a few minutes."
   },
   "notifications": {
     "title": "Notifications",
@@ -565,7 +567,33 @@
     "cannot_assign_phone": "Cannot assign phone {phone}",
     "cannot_release_phone": "Cannot release phone {phone}",
     "phones_already_updated": "These phones are already updated: {phones}.",
-    "assign_missing_phones": "Assign the missing phones with @:{'common.edit'}."
+    "assign_missing_phones": "Assign the missing phones with @:{'common.edit'}.",
+    "import_error_import_running": "Another import or user creation is running. Wait for it to end, then try again.",
+    "import_problem_row_user": "Row {row} ({username}): {reason}.",
+    "import_problem_row": "Row {row}: {reason}.",
+    "import_problem_user": "{username}: {reason}.",
+    "import_problem_import_failed": "the import ended with an error",
+    "import_problem_control_characters": "the row contains tabs, line breaks or other invisible characters",
+    "import_problem_missing_name": "username and name are required",
+    "import_problem_provider_unavailable": "the account provider can't be reached",
+    "import_problem_protected_account": "this account can't be managed here",
+    "import_problem_create_failed": "the account provider did not create the user",
+    "import_problem_sync_failed": "the users could not be synchronized with the PBX, try again",
+    "import_problem_user_not_found": "the user was not found in the PBX after the synchronization",
+    "import_problem_extension_failed": "extension {extension} could not be assigned",
+    "import_problem_device_failed": "the phone could not be assigned",
+    "import_problem_mobile_failed": "the mobile number could not be saved",
+    "import_problem_voicemail_failed": "the voicemail could not be changed",
+    "import_problem_webrtc_failed": "the web phone could not be changed",
+    "import_problem_groups_failed": "the groups could not be saved",
+    "import_problem_group_name_invalid": "group \"{group}\" has a name that is not valid or too similar to an existing group",
+    "import_problem_profile_failed": "profile \"{profile}\" could not be assigned",
+    "import_problem_nethlink_failed": "NethLink could not be changed",
+    "import_problem_invalid_input": "the file could not be read",
+    "import_problem_stopped": "the import stopped unexpectedly, check the users and try again",
+    "account_error_not_instance_user": "Only the superadmin can change the account of a user who has no extension on this PBX.",
+    "account_error_display_name_too_long": "First and last name can be at most 50 characters long in total.",
+    "not_instance_user_restricted": "Only the superadmin can change the password, the name or the status of a user who has no extension on this PBX, or delete it."
   },
   "trunks": {
     "title": "Trunks",
@@ -1417,7 +1445,8 @@
       "sync_source_removed": "The phonebook source {name} no longer exists. The list has been updated.",
       "sync_failed_description": "The sync of {name} failed. Try again later.",
       "server_url_not_allowed": "This URL cannot be used. Enter a public address starting with http:// or https://.",
-      "sync_error_generic": "The source could not be read. Check the source and try again."
+      "sync_error_generic": "The source could not be read. Check the source and try again.",
+      "no_group": "No group (deleted)"
     },
     "video": {
       "description": "Show IP camera and intercom streams to users in {cti}.",
@@ -2044,7 +2073,9 @@
     "cannot_retrieve_groups": "Cannot retrieve groups",
     "name_cannot_contain_commas": "The name cannot contain commas",
     "rename_group_title": "Renaming the group",
-    "rename_group_description": "Phonebook sources and contacts shared with this group and the operator presence panel of the profiles will use the new name."
+    "rename_group_description": "Phonebook sources and contacts shared with this group and the operator presence panel of the profiles will use the new name.",
+    "name_makes_sharing_too_long": "With this name, the list of groups that share some phonebook contacts or sources would be too long. Choose a shorter name",
+    "delete_group_sharing": "Phonebook sources and contacts shared with this group will no longer be shared with it, also if you create a group with the same name later."
   },
   "profiles": {
     "description_line_1": "Configure permission profiles and default communication settings assigned to users.",

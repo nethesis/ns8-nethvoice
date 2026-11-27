@@ -64,6 +64,18 @@ function groups(array $groups): array {
     return reply(200, ['status' => 'success', 'message' => 'groups_listed', 'groups' => $groups]);
 }
 
+class FreePBX {
+    public static ?PDO $pdo = null;
+    public static function Database() {
+        if (self::$pdo === null) {
+            self::$pdo = new PDO('sqlite::memory:');
+            self::$pdo->exec('CREATE TABLE userman_users (id INTEGER PRIMARY KEY, username TEXT, default_extension TEXT)');
+            self::$pdo->exec("INSERT INTO userman_users (username, default_extension) VALUES ('alice', '201'), ('Bob', '202'), ('carol', '203'), ('helpdesk', '204'), ('dave', '206'), ('erin', '205'), ('frank', '207'), ('nora', 'none'), ('olga', ''), ('ghost', '299')");
+        }
+        return self::$pdo;
+    }
+}
+
 const SUPERADMIN = ['username' => 'admin', 'superadmin' => true];
 const LIMITED = ['username' => 'helpdesk', 'superadmin' => false];
 
@@ -97,7 +109,72 @@ $tests['the domain status is cached briefly and holds no secret'] = function () 
     $provider->token = '';
     check(usersAdminDomainStatus($provider->client(), $cache, 1000 + USERS_ADMIN_STATUS_CACHE_SECONDS)['manageable'] === false && $provider->logins === 2, 'an expired cache must be refreshed');
     check(usersAdminDomainStatus($provider->client(), $cache, 500)['manageable'] === false && $provider->logins === 3, 'a cache from the future must be ignored');
-    unlink($cache);
+    check(usersAdminDomainStatus($provider->client(), $cache, 501)['manageable'] === false && $provider->logins === 4, 'an unavailable domain must be checked again at once');
+    $provider->token = 'invented-token';
+    check(usersAdminDomainStatus($provider->client(), $cache, 502) === ['manageable' => true, 'reason' => null] && $provider->logins === 5, 'a domain back online must be seen at the next check');
+    file_put_contents($cache, json_encode(['manageable' => false, 'checked_at' => 502]));
+    $provider->token = 'invented-token';
+    check(usersAdminDomainStatus($provider->client(), $cache, 503)['manageable'] === true && $provider->logins === 6, 'a cached unavailable status must be ignored');
+    @unlink($cache);
+};
+
+$tests['administrators with sections change only the accounts of users of this instance'] = function () {
+    foreach (['nora', 'olga', 'zed'] as $username) {
+        $provider = new FakeProvider();
+        check(usersAdminChangePassword($provider->client(), $username, ['password' => PASSWORD], LIMITED) === usersAdminError(403, 'not_instance_user'), "$username: the password of a user without extension was changed");
+        check(usersAdminUpdateAccount($provider->client(), $username, ['display_name' => 'Someone Else'], LIMITED, fn() => true) === usersAdminError(403, 'not_instance_user'), "$username: the name of a user without extension was changed");
+        check(usersAdminUpdateAccount($provider->client(), $username, ['locked' => true], LIMITED, fn() => true) === usersAdminError(403, 'not_instance_user'), "$username: a user without extension was disabled");
+        check(usersAdminDeleteAccount($provider->client(), $username, LIMITED, fn() => true) === usersAdminError(403, 'not_instance_user'), "$username: a user without extension was deleted");
+        check($provider->calls === [], "$username: a refused request reached the provider");
+    }
+    $provider = new FakeProvider();
+    $provider->responses['list-users'] = reply(200, ['status' => 'success', 'users' => [['user' => 'nora'], ['user' => 'helpdesk'], ['user' => 'alice']]]);
+    check(usersAdminChangePassword($provider->client(), 'nora', ['password' => PASSWORD], SUPERADMIN) === [204, null], 'the superadmin must still change every account');
+    check(usersAdminDeleteAccount($provider->client(), 'nora', SUPERADMIN, fn() => true)[0] === 200, 'the superadmin must still delete every account');
+    check(usersAdminUpdateAccount($provider->client(), 'helpdesk', ['display_name' => 'Help Desk'], LIMITED, fn() => true, null, fn() => false)[0] === 200, 'the own name must be changed without an extension');
+    check(usersAdminChangePassword($provider->client(), 'ALICE', ['password' => PASSWORD], LIMITED) === [204, null], 'a user of this instance must be managed whatever the case');
+    $asked = [];
+    usersAdminChangePassword($provider->client(), 'alice', ['password' => PASSWORD], LIMITED, function ($username) use (&$asked) { $asked[] = $username; return true; });
+    check($asked === ['alice'], 'the instance check was not asked: ' . json_encode($asked));
+};
+
+$tests['administrators with sections keep the display name within the extension limit'] = function () {
+    $provider = new FakeProvider();
+    $long = str_repeat('è', USERS_ADMIN_DISPLAY_NAME_MAX_LENGTH + 1);
+    check(usersAdminUpdateAccount($provider->client(), 'alice', ['display_name' => $long], LIMITED, fn() => true) === usersAdminError(422, 'display_name_too_long'), 'a long display name was accepted');
+    check($provider->calls === [], 'a long display name reached the provider');
+    check(usersAdminUpdateAccount($provider->client(), 'alice', ['display_name' => '  ' . str_repeat('è', USERS_ADMIN_DISPLAY_NAME_MAX_LENGTH) . ' '], LIMITED, fn() => true)[0] === 200, 'a display name at the limit was refused');
+    check(usersAdminUpdateAccount($provider->client(), 'alice', ['display_name' => $long], SUPERADMIN, fn() => true)[0] === 200, 'the superadmin limit changed');
+};
+
+$tests['builtin privileged groups of the domain are protected'] = function () {
+    $_ENV['NETHVOICE_ADMIN_GROUP_PREFIX'] = 'nethvoice3';
+    foreach (['Account Operators', 'administrators', 'Enterprise Admins', 'Schema Admins', 'Server Operators', 'Print Operators', 'Backup Operators'] as $group) {
+        foreach ([SUPERADMIN, LIMITED] as $caller) {
+            $provider = new FakeProvider();
+            $provider->responses['list-groups'] = groups([['group' => $group, 'users' => ['alice']]]);
+            check(usersAdminChangePassword($provider->client(), 'alice', ['password' => PASSWORD], $caller) === usersAdminError(403, 'domain_admin'), "$group: the password of a privileged account was changed");
+            check($provider->writes() === [], "$group: a privileged account reached a write");
+        }
+        $roles = usersAdminRoles([['group' => $group, 'users' => ['alice']]], 'nethvoice3');
+        check(isset($roles['privileged']['alice']) && $roles['domain'] === [] && usersAdminAccess($roles, 'alice') === null, "$group: a privileged group gave administrator access");
+    }
+    unset($_ENV['NETHVOICE_ADMIN_GROUP_PREFIX']);
+};
+
+$tests['starts a background synchronization only when none runs'] = function () {
+    $lock = tempnam(sys_get_temp_dir(), 'users-sync');
+    $commands = [];
+    $record = function ($command) use (&$commands) { $commands[] = $command; };
+    $holder = fopen($lock, 'c');
+    flock($holder, LOCK_EX);
+    check(usersAdminSynchronizationRunning($lock) === true, 'a running synchronization was not seen');
+    check(usersAdminStartSynchronization($record, $lock) === false && $commands === [], 'a synchronization started while another one runs');
+    flock($holder, LOCK_UN);
+    fclose($holder);
+    check(usersAdminSynchronizationRunning($lock) === false, 'a finished synchronization is still seen as running');
+    check(usersAdminStartSynchronization($record, $lock) === true && $commands === ['/usr/bin/flock -n ' . escapeshellarg($lock) . ' /usr/bin/fwconsole userman --syncall --force > /dev/null 2>&1 &'], 'the synchronization was not started under the lock: ' . json_encode($commands));
+    unlink($lock);
 };
 
 $tests['changes the password with must_change_password false'] = function () {

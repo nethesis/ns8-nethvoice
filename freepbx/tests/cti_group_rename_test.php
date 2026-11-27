@@ -132,7 +132,7 @@ $module = file_get_contents($rest . '/modules/cti.php');
 $module = str_replace('phonebookDatabase(),', 'testPhonebookDatabase(),', $module, $foundDb);
 $module = str_replace('PHONEBOOK_SOURCES_DIR,', "\$GLOBALS['sourcesDir'],", $module, $foundDir);
 $module = str_replace("system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');", 'testRetrieveHelper();', $module);
-check($foundDb === 1 && $foundDir === 1, "expected one phonebook database and one sources directory in cti.php, found $foundDb and $foundDir");
+check($foundDb === 2 && $foundDir === 2, "expected two phonebook databases and two sources directories in cti.php, found $foundDb and $foundDir");
 file_put_contents("$sandbox/cti.php", $module);
 register_shutdown_function(function () use ($sandbox, $sources) {
     foreach (array_diff(scandir($sources), ['.', '..']) as $file) {
@@ -265,6 +265,62 @@ $tests['a permission shared with a similar group stays with it and an unused one
     check($status === 200, "rename over an unused permission failed: $status $body");
     check(column(FreePBX::$pdo, "SELECT id FROM rest_cti_permissions WHERE name = 'grp_team'") === [5002], 'group permission not renamed over the unused one');
     check(column(FreePBX::$pdo, 'SELECT profile_id FROM rest_cti_profiles_permissions WHERE permission_id IN (5002, 5009) ORDER BY profile_id') === [1], 'profiles of the unused permission kept');
+};
+
+$created = [];
+function ctiCreateGroup($name) { $GLOBALS['created'][] = $name; return 77; }
+
+$tests['sharing values lose the deleted group only'] = function () {
+    check(phonebookRemoveSharingGroup('group:Sales', 'sales', 'private') === 'private', 'the only group not replaced');
+    check(phonebookRemoveSharingGroup('group:Support, sales ,Other', 'Sales', 'private') === 'group:Support,Other', 'group in a list not removed');
+    foreach (['public', 'private', 'group:Salesforce', 'Sales', ''] as $value) {
+        check(phonebookRemoveSharingGroup($value, 'Sales', 'private') === $value, 'unrelated value changed: ' . $value);
+    }
+};
+
+$tests['deleting a group removes it from the sources and the contacts shared with it'] = function () use ($app, $userer, $sources) {
+    resetState($sources);
+    [$status, $body] = call($app, 'DELETE /cti/groups/{id}', $userer, null, ['id' => '1']);
+    check($status === 200, "delete failed: $status $body");
+    check(column(FreePBX::$pdo, 'SELECT name FROM rest_cti_groups') === ['Support'], 'group not deleted');
+    check(column(FreePBX::$pdo, "SELECT id FROM rest_cti_permissions WHERE name = 'grp_sales'") === [], 'group permission kept');
+    check(column(FreePBX::$pdo, 'SELECT type FROM rest_phonebook_imports ORDER BY id') === ['group:', 'public', 'group:Support'], 'imports still shared with the deleted group');
+    check(column(testPhonebookDatabase(), 'SELECT access FROM phonebook ORDER BY id') === ['group:', 'group:', 'group:Support', 'public', 'group:Salesforce'], 'contacts still shared with the deleted group');
+    check(column(NethCTI::$pdo, 'SELECT type FROM cti_phonebook ORDER BY id') === ['private', 'private', 'group:Support'], 'CTI contacts still shared with the deleted group');
+    check(json_decode(file_get_contents("$sources/custom_1.json"), true)['custom_1']['access'] === 'group:', 'source still shared with the deleted group');
+    check(json_decode(file_get_contents("$sources/custom_3.json"), true)['custom_3']['access'] === 'group:Support', 'source list still has the deleted group');
+    check(json_decode(file_get_contents("$sources/custom_2.json"), true)['custom_2']['access'] === 'public', 'public source changed');
+};
+
+$tests['a group deletion that cannot update the sources changes nothing'] = function () use ($app, $userer, $sources) {
+    resetState($sources);
+    file_put_contents("$sources/custom_9.json", '{"broken": "Sales"');
+    $before = snapshot($sources);
+    [$status] = call($app, 'DELETE /cti/groups/{id}', $userer, null, ['id' => '1']);
+    check($status === 409 && snapshot($sources) === $before, "an unreadable source did not stop the deletion: $status");
+    [$status] = call($app, 'DELETE /cti/groups/{id}', $userer, null, ['id' => '42']);
+    check($status === 404, "an unknown group was not reported: $status");
+};
+
+$tests['a deleted group keeps the sharing of another group with the same name'] = function () use ($app, $userer, $sources) {
+    resetState($sources);
+    FreePBX::$pdo->exec("INSERT INTO rest_cti_groups (id, name) VALUES (3, ' Sales')");
+    [$status] = call($app, 'DELETE /cti/groups/{id}', $userer, null, ['id' => '1']);
+    check($status === 200 && column(testPhonebookDatabase(), 'SELECT access FROM phonebook ORDER BY id')[0] === 'group:Sales', "the sharing of the remaining group was removed: $status");
+};
+
+$tests['new groups are checked for admins with sections only'] = function () use ($app, $userer, $sources) {
+    global $created;
+    resetState($sources);
+    foreach ([['Sales, North', 400], ['support', 409], ['Sup-port', 409], ['', 400]] as [$name, $expected]) {
+        $created = [];
+        [$status, $body] = call($app, 'POST /cti/groups', $userer, ['name' => $name]);
+        check($status === $expected && $created === [] && isset(json_decode($body, true)['message']), json_encode($name) . " must be refused with $expected: $status $body");
+    }
+    $created = [];
+    check(call($app, 'POST /cti/groups', $userer, ['name' => ' North '])[0] === 200 && $created === ['North'], 'a valid group was not created with the trimmed name');
+    $created = [];
+    check(call($app, 'POST /cti/groups', ['superadmin'], ['name' => 'Sales, North'])[0] === 200 && $created === ['Sales, North'], 'the superadmin must keep creating groups as before');
 };
 
 $failures = 0;

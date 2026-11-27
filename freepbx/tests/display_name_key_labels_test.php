@@ -170,4 +170,16 @@ check(in_array('SecretKey: ' . sha1('adminhashqa-secret'), $headers, true), 'sec
 unlink($restConfig);
 unlink($log);
 
+$removals = [];
+$orphaned = [];
+function userRemovalPrepared($uid, $username) { return in_array([$uid, $username], $GLOBALS['removals'], true); }
+function orphanUserExtensions($uid, $user) { $GLOBALS['orphaned'][] = [$uid, $user['username'] ?? null]; return true; }
+$display = ini_set('display_errors', '0');
+$hook = new TestNethcti3($freepbx, null);
+check($hook->usermanDelUser(7, 'userman', ['username' => 'qa_alice', 'default_extension' => '201']) === true && $orphaned === [], 'a user removed outside the admin interface lost the extensions');
+$removals[] = [7, 'qa_alice'];
+check($hook->usermanDelUser(8, 'userman', ['username' => 'qa_alice']) === true && $orphaned === [], 'the removal mark of another user was used');
+check($hook->usermanDelUser(7, 'userman', ['username' => 'qa_alice', 'default_extension' => '201']) === true && $orphaned === [[7, 'qa_alice']], 'a user removed from the admin interface kept the extensions');
+ini_set('display_errors', (string) $display);
+
 echo "PASS: display name changes update the phone key labels of the main extension\n";

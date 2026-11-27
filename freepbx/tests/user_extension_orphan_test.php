@@ -447,6 +447,22 @@ namespace {
     Pbx::$orphanTable = false;
     check(deleteRemovedUserExtensions('alice') === true && count(Pbx::$extensions) === 6, 'a missing table must not delete anything');
 
+    Pbx::reset();
+    @unlink(NETHVOICE_REMOVED_USER_GROUPS);
+    check(userRemovalPrepared(1, 'alice') === false, 'a removal was reported as prepared without a mark');
+    check(prepareUserRemoval('nobody') === false, 'the removal of a user missing from the PBX was marked');
+    keepRemovedUserGroups('carol', [3 => [30]]);
+    check(prepareUserRemoval('alice') === true && userRemovalPrepared(1, 'alice') === true, 'the removal of alice was not marked');
+    check(userRemovalPrepared(1, 'bob') === false && userRemovalPrepared(4, 'alice') === false && userRemovalPrepared(3, 'carol') === false, 'the mark of alice matched another user');
+    discardUserRemoval('alice');
+    check(userRemovalPrepared(1, 'alice') === false, 'a discarded removal is still marked');
+    $pending = json_decode((string) file_get_contents(NETHVOICE_REMOVED_USER_GROUPS), true);
+    check(array_keys($pending) === [3], 'discarding the removal of alice dropped other pending groups: '.json_encode($pending));
+    check(prepareUserRemoval('alice') === true, 'the removal of alice was not marked again');
+    orphanUserExtensions(1, $removeWithCascade(1));
+    check(json_decode(Pbx::$orphans[0]['cti_groups'], true) === [10, 20], 'groups captured before the removal were not recorded on the orphan');
+    check(userRemovalPrepared(1, 'alice') === false, 'the mark of a removal was not consumed');
+
     unlink(NETHVOICE_REMOVED_USER_GROUPS);
     rmdir($pendingDirectory);
 

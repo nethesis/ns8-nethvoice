@@ -4,7 +4,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, ref, useTemplateRef, watch } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import * as v from 'valibot'
 import { useMutation, useQueryCache } from '@pinia/colada'
@@ -21,6 +21,7 @@ import {
 import {
   buildGroupFormSchema,
   createGroup,
+  getGroupNameIssue,
   GROUP_NAME_MAX_LENGTH,
   GroupMembersError,
   updateGroup,
@@ -87,6 +88,7 @@ const {
   },
   onError(error, group) {
     if (!(error instanceof GroupMembersError)) {
+      showNameIssue(error)
       return
     }
     setTimeout(() => {
@@ -123,6 +125,9 @@ const {
     }, 500)
     emit('close')
   },
+  onError(error) {
+    showNameIssue(error)
+  },
   onSettled: (_data, _error, { group, form }) => {
     invalidateUsers()
     if (form.name !== group.name) {
@@ -132,7 +137,23 @@ const {
   },
 })
 
+function showNameIssue(error: unknown) {
+  const issue = getGroupNameIssue(error)
+
+  if (issue) {
+    nameIssue.value = issue
+  }
+}
+
 const saving = computed(() => createGroupLoading.value || editGroupLoading.value)
+
+watch(saving, async (isSaving) => {
+  if (isSaving || !nameIssue.value) {
+    return
+  }
+  await nextTick()
+  focusElement(nameRef)
+})
 
 const selectedUserIds = computed(() => selectedUsers.value.map((option) => Number(option.id)))
 
@@ -253,13 +274,13 @@ function discardChanges() {
           :remove-label="t('common.remove')"
         />
         <NeInlineNotification
-          v-if="createGroupError && !(createGroupError instanceof GroupMembersError)"
+          v-if="createGroupError && !(createGroupError instanceof GroupMembersError) && !nameIssue"
           kind="error"
           :title="t('groups.cannot_create_group')"
           :description="describeError(createGroupError)"
         />
         <NeInlineNotification
-          v-if="editGroupError"
+          v-if="editGroupError && !nameIssue"
           kind="error"
           :title="t('groups.cannot_save_group')"
           :description="describeError(editGroupError)"

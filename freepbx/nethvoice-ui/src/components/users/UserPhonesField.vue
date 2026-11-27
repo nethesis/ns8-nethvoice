@@ -116,8 +116,8 @@ function removePhone(index: number) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-2">
-    <NeFormItemLabel class="!mb-0 flex justify-between">
+  <div class="flex flex-col">
+    <NeFormItemLabel class="flex justify-between">
       <span class="flex items-center gap-2">
         {{ t('users.physical_phones') }}
         <NeTooltip trigger-event="mouseenter focus" placement="top">
@@ -140,89 +140,91 @@ function removePhone(index: number) {
       </span>
       <span class="text-secondary-neutral font-normal">{{ t('common.optional') }}</span>
     </NeFormItemLabel>
-    <NeSkeleton v-if="loading" :lines="2" />
-    <NeInlineNotification
-      v-else-if="error"
-      kind="error"
-      :title="t('users.cannot_load_phones')"
-      :description="describeError(error)"
-    />
-    <template v-else>
-      <p v-if="disabled && disabledReason" class="text-secondary-neutral text-sm">
-        {{ disabledReason }}
-      </p>
-      <template v-if="phonesWithoutMac.length > 0">
-        <p
-          v-for="device in phonesWithoutMac"
-          :key="device.id"
-          class="text-primary-neutral flex items-center gap-2"
-          data-testid="user-phone-without-mac"
-        >
-          <FontAwesomeIcon :icon="faOfficePhone" class="size-4 shrink-0" aria-hidden="true" />
-          {{ t('users.phone_without_mac', { extension: device.extension }) }}
+    <div class="flex flex-col gap-2">
+      <NeSkeleton v-if="loading" :lines="2" />
+      <NeInlineNotification
+        v-else-if="error"
+        kind="error"
+        :title="t('users.cannot_load_phones')"
+        :description="describeError(error)"
+      />
+      <template v-else>
+        <p v-if="disabled && disabledReason" class="text-secondary-neutral text-sm">
+          {{ disabledReason }}
         </p>
-        <p class="text-secondary-neutral text-sm">{{ t('users.phones_without_mac_helper') }}</p>
-      </template>
-      <div
-        v-for="(mac, index) in selectedMacs"
-        :key="rowIds[index] ?? `row-${index}`"
-        class="flex items-start gap-2"
-        data-testid="user-phone-row"
-      >
-        <NeCombobox
-          :model-value="mac"
-          :options="optionsByRow[index] ?? []"
-          :placeholder="t('users.choose_phone')"
-          :disabled="disabled"
-          :aria-label="t('users.physical_phone_n', { n: index + 1 })"
-          class="grow"
-          :no-results-label="t('ne_combobox.no_results')"
-          :limited-options-label="t('ne_combobox.limited_options_label')"
-          :no-options-label="t('users.no_phones_available')"
-          :selected-label="t('ne_combobox.selected')"
-          :user-input-label="t('ne_combobox.user_input_label')"
-          :optional-label="t('common.optional')"
-          @update:model-value="setPhone(index, $event)"
-        />
-        <NeTooltip trigger-event="mouseenter focus" placement="top">
-          <template #trigger>
-            <NeButton
-              kind="tertiary"
-              size="sm"
-              class="mt-1"
-              :disabled="disabled"
-              @click="removePhone(index)"
-            >
-              <FontAwesomeIcon :icon="faTrash" class="size-4" aria-hidden="true" />
-              <span class="sr-only">{{ t('users.remove_phone_n', { n: index + 1 }) }}</span>
-            </NeButton>
-          </template>
-          <template #content>{{ t('common.remove') }}</template>
-        </NeTooltip>
-      </div>
-      <div>
-        <NeTooltip v-if="limitReached && !disabled" trigger-event="mouseenter focus">
-          <template #trigger>
-            <span tabindex="0" class="inline-flex rounded-md" data-testid="add-phone-limit">
-              <NeButton kind="tertiary" size="sm" disabled>
-                <template #prefix>
-                  <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-                </template>
-                {{ t('users.add_phone') }}
+        <template v-if="phonesWithoutMac.length > 0">
+          <p
+            v-for="device in phonesWithoutMac"
+            :key="device.id"
+            class="text-primary-neutral flex items-center gap-2"
+            data-testid="user-phone-without-mac"
+          >
+            <FontAwesomeIcon :icon="faOfficePhone" class="size-4 shrink-0" aria-hidden="true" />
+            {{ t('users.phone_without_mac', { extension: device.extension }) }}
+          </p>
+          <p class="text-secondary-neutral text-sm">{{ t('users.phones_without_mac_helper') }}</p>
+        </template>
+        <div
+          v-for="(mac, index) in selectedMacs"
+          :key="rowIds[index] ?? `row-${index}`"
+          class="flex items-start gap-2"
+          data-testid="user-phone-row"
+        >
+          <NeCombobox
+            :model-value="mac"
+            :options="optionsByRow[index] ?? []"
+            :placeholder="t('users.choose_phone')"
+            :disabled="disabled"
+            :aria-label="t('users.physical_phone_n', { n: index + 1 })"
+            class="grow"
+            :no-results-label="t('ne_combobox.no_results')"
+            :limited-options-label="t('ne_combobox.limited_options_label')"
+            :no-options-label="t('users.no_phones_available')"
+            :selected-label="t('ne_combobox.selected')"
+            :user-input-label="t('ne_combobox.user_input_label')"
+            :optional-label="t('common.optional')"
+            @update:model-value="setPhone(index, $event)"
+          />
+          <NeTooltip trigger-event="mouseenter focus" placement="top">
+            <template #trigger>
+              <NeButton
+                kind="tertiary"
+                size="sm"
+                class="mt-1"
+                :disabled="disabled"
+                @click="removePhone(index)"
+              >
+                <FontAwesomeIcon :icon="faTrash" class="size-4" aria-hidden="true" />
+                <span class="sr-only">{{ t('users.remove_phone_n', { n: index + 1 }) }}</span>
               </NeButton>
-            </span>
-          </template>
-          <template #content>
-            {{ t('users.device_limit_reached', { max: MAX_DEVICES_PER_USER }) }}
-          </template>
-        </NeTooltip>
-        <NeButton v-else kind="tertiary" size="sm" :disabled="disabled" @click="addPhone">
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
-          </template>
-          {{ t('users.add_phone') }}
-        </NeButton>
-      </div>
-    </template>
+            </template>
+            <template #content>{{ t('common.remove') }}</template>
+          </NeTooltip>
+        </div>
+        <div>
+          <NeTooltip v-if="limitReached && !disabled" trigger-event="mouseenter focus">
+            <template #trigger>
+              <span tabindex="0" class="inline-flex rounded-md" data-testid="add-phone-limit">
+                <NeButton kind="tertiary" size="sm" disabled>
+                  <template #prefix>
+                    <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+                  </template>
+                  {{ t('users.add_phone') }}
+                </NeButton>
+              </span>
+            </template>
+            <template #content>
+              {{ t('users.device_limit_reached', { max: MAX_DEVICES_PER_USER }) }}
+            </template>
+          </NeTooltip>
+          <NeButton v-else kind="tertiary" size="sm" :disabled="disabled" @click="addPhone">
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+            </template>
+            {{ t('users.add_phone') }}
+          </NeButton>
+        </div>
+      </template>
+    </div>
   </div>
 </template>

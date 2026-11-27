@@ -7,7 +7,12 @@ import type { components } from '@/lib/api/schema'
 import { isApiError } from '@/lib/api/errors'
 import { compareNatural } from '@/lib/common'
 import { getLegacyStatusMessage } from './errors'
-import { buildAccess, NOT_IMPORTED, parseSharingGroups } from './phonebookSources'
+import {
+  buildAccess,
+  isSharedWithNoGroup,
+  NOT_IMPORTED,
+  parseSharingGroups,
+} from './phonebookSources'
 
 export const PHONEBOOK_IMPORTS_KEY = 'phonebookImports'
 export const IMPORT_OWNERS_KEY = 'phonebookImportOwners'
@@ -56,6 +61,7 @@ export type PhonebookImport = {
   owner: string
   filename: string | null
   groups: string[]
+  sharedWithNoGroup?: boolean
   total: number
   imported: number
   notImported: number
@@ -149,6 +155,7 @@ export const parsePhonebookImports = (raw: unknown): PhonebookImport[] =>
     owner: item.owner,
     filename: item.filename,
     groups: parseSharingGroups(item.type),
+    sharedWithNoGroup: isSharedWithNoGroup(item.type),
     total: item.total,
     imported: item.imported,
     notImported: item.skipped + item.failed,

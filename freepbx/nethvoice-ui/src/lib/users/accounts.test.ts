@@ -234,6 +234,26 @@ describe('getAccountRestriction', () => {
   })
 })
 
+describe('getAccountRestriction for users of other applications', () => {
+  const base = { username: 'c.davis', signedInUsername: 'helpdesk' }
+
+  it('leaves the accounts of users without an extension to the superadmin', () => {
+    expect(getAccountRestriction({ ...base, isSuperadmin: false, mainExtension: '' })).toBe(
+      'not_instance_user',
+    )
+    expect(getAccountRestriction({ ...base, isSuperadmin: true, mainExtension: '' })).toBeNull()
+    expect(getAccountRestriction({ ...base, isSuperadmin: false, mainExtension: '201' })).toBeNull()
+    expect(
+      getAccountRestriction({
+        ...base,
+        username: 'helpdesk',
+        isSuperadmin: false,
+        mainExtension: '',
+      }),
+    ).toBe('own_account')
+  })
+})
+
 describe('splitDisplayName', () => {
   it('takes the last word as surname', () => {
     expect(splitDisplayName('Anna Maria  Rossi ')).toEqual({ name: 'Anna Maria', surname: 'Rossi' })

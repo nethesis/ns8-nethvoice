@@ -188,3 +188,39 @@ function ctiRenameGroup(PDO $db, PDO $phonebook, PDO $cti, string $sourcesDir, $
     $result['contacts'] = count($contacts['changes']) + count($ctiContacts['changes']);
     return array(200, $result, true);
 }
+
+function ctiDeleteGroupSharing(PDO $db, PDO $phonebook, PDO $cti, string $sourcesDir, string $name): array
+{
+    $sources = phonebookSourcesSharingRemove($sourcesDir, $name);
+    if (!empty($sources['problems'])) {
+        return array(409, array('message' => 'The group cannot be deleted: ' . implode('; ', $sources['problems']), 'errors' => $sources['problems']));
+    }
+    $contacts = phonebookSharingRemoveRows($phonebook, 'phonebook', 'access', $name, PHONEBOOK_SHARING_PREFIX);
+    $ctiContacts = phonebookSharingRemoveRows($cti, 'cti_phonebook', 'type', $name, 'private');
+    try {
+        $imports = phonebookSharingRemoveRows($db, 'rest_phonebook_imports', 'type', $name, PHONEBOOK_SHARING_PREFIX);
+    } catch (PDOException $e) {
+        if (!phonebookIsMissingTable($e)) {
+            throw $e;
+        }
+        $imports = array();
+    }
+    $applied = array();
+    try {
+        foreach (array(array($db, 'rest_phonebook_imports', 'type', $imports), array($phonebook, 'phonebook', 'access', $contacts), array($cti, 'cti_phonebook', 'type', $ctiContacts)) as $step) {
+            phonebookApplySharingRows($step[0], $step[1], $step[2], $step[3], 'new');
+            $applied[] = $step;
+        }
+        phonebookWriteFiles($sources['files'], 'new');
+    } catch (Throwable $e) {
+        foreach (array_reverse($applied) as list($pdo, $table, $column, $changes)) {
+            try {
+                phonebookApplySharingRows($pdo, $table, $column, $changes, 'old');
+            } catch (Throwable $restoreError) {
+                error_log('Cannot restore the sharing of ' . $table . ': ' . $restoreError->getMessage());
+            }
+        }
+        throw $e;
+    }
+    return array(200, array('phonebook_sources' => count($sources['files']), 'contacts' => count($contacts) + count($ctiContacts), 'imports' => count($imports)));
+}

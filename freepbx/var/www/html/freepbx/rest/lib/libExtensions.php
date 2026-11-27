@@ -851,6 +851,24 @@ function hasMainExtension($user) {
     return is_array($user) && !empty($user['default_extension']) && $user['default_extension'] !== 'none';
 }
 
+function mainExtensionReassignRefusal($mainextension, $username, $caller, $client = null) {
+    include_once __DIR__ . '/libUsersAdmin.php';
+    $caller = array('username' => (string) $caller, 'superadmin' => false);
+    $source = FreePBX::create()->Userman->getUserByDefaultExtension(trim((string) $mainextension));
+    $usernames = array((string) $username);
+    if (is_array($source) && !empty($source['username'])) {
+        array_unshift($usernames, (string) $source['username']);
+    }
+    $client = $client ?? usersAdminDefaultClient();
+    foreach (array_unique($usernames) as $target) {
+        $error = usersAdminTargetError($target, $caller, true) ?? ($client->isConfigured() ? usersAdminProtectedTargetError($client, $target, $caller) : null);
+        if ($error !== null) {
+            return $error;
+        }
+    }
+    return null;
+}
+
 function reassignMainExtension($mainextension, $username, &$keyLabels = null, $tancredi = null) {
     $fpbx = FreePBX::create();
     $dbh = FreePBX::Database();
@@ -977,6 +995,41 @@ function keepRemovedUserGroups($username, $groups) {
             $pending[(string) (int) $uid] = array('username' => (string) $username, 'groups' => array_values(array_map('intval', $ids)));
         }
     });
+}
+
+function prepareUserRemoval($username) {
+    $user = FreePBX::create()->Userman->getUserByUsername($username);
+    if (!is_array($user) || !isset($user['id'])) {
+        return false;
+    }
+    $uid = (int) $user['id'];
+    $groups = getUserCtiGroups($username)[$uid] ?? array();
+    return updateRemovedUserGroups(function (&$pending) use ($uid, $username, $groups) {
+        $pending[(string) $uid] = array('username' => (string) $username, 'groups' => array_values(array_map('intval', $groups)), 'removing' => true);
+        return true;
+    }) === true;
+}
+
+function discardUserRemoval($username) {
+    if (!is_file(NETHVOICE_REMOVED_USER_GROUPS)) {
+        return;
+    }
+    updateRemovedUserGroups(function (&$pending) use ($username) {
+        foreach ($pending as $uid => $entry) {
+            if (is_array($entry) && ($entry['username'] ?? null) === (string) $username && !empty($entry['removing'])) {
+                unset($pending[$uid]);
+            }
+        }
+    });
+}
+
+function userRemovalPrepared($uid, $username) {
+    if (!is_file(NETHVOICE_REMOVED_USER_GROUPS)) {
+        return false;
+    }
+    $pending = json_decode((string) @file_get_contents(NETHVOICE_REMOVED_USER_GROUPS), true);
+    $entry = is_array($pending) ? ($pending[(string) (int) $uid] ?? null) : null;
+    return is_array($entry) && ($entry['username'] ?? null) === (string) $username && !empty($entry['removing']);
 }
 
 function takeRemovedUserGroups($uid, $username) {

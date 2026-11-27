@@ -11,6 +11,7 @@ import {
   GroupMembersError,
   diffGroupMembers,
   filterGroups,
+  getGroupNameIssue,
   getGroupUsernames,
   groupPermissionName,
   parseGroups,
@@ -228,5 +229,52 @@ describe('updateGroup', () => {
 
     await expect(updateGroup(sales, { name: 'Sales Team', userIds: [1] })).rejects.toBe(failure)
     expect(post).not.toHaveBeenCalled()
+  })
+})
+
+describe('getGroupNameIssue', () => {
+  const failure = (status: number, body: unknown) =>
+    new ApiError({ status, method: 'PUT', url: '/cti/groups/7', body })
+
+  it('tells that the new name makes the phonebook sharing too long', () => {
+    expect(
+      getGroupNameIssue(
+        failure(409, {
+          message: 'The group cannot be renamed: ...',
+          errors: [
+            'The sharing of 2 phonebook contacts would be longer than 255 characters',
+            'The sharing of the phonebook source custom_3 would be longer than 255 characters',
+          ],
+        }),
+      ),
+    ).toBe('groups.name_makes_sharing_too_long')
+  })
+
+  it('keeps the other refusals of a rename as they are', () => {
+    expect(
+      getGroupNameIssue(
+        failure(409, {
+          message: 'The group cannot be renamed: ...',
+          errors: [
+            'The sharing of 2 phonebook contacts would be longer than 255 characters',
+            'The phonebook source custom_3 cannot be written',
+          ],
+        }),
+      ),
+    ).toBeNull()
+    expect(getGroupNameIssue(failure(500, null))).toBeNull()
+    expect(getGroupNameIssue(new Error('boom'))).toBeNull()
+  })
+
+  it('maps the name checks of the server to the messages of the form', () => {
+    expect(
+      getGroupNameIssue(failure(409, { message: 'A group with a similar name already exists' })),
+    ).toBe('groups.name_too_similar')
+    expect(
+      getGroupNameIssue(failure(400, { message: 'The group name cannot contain commas' })),
+    ).toBe('groups.name_cannot_contain_commas')
+    expect(
+      getGroupNameIssue(failure(400, { message: 'The group name must be at most 65 characters' })),
+    ).toBe('groups.name_too_long')
   })
 })

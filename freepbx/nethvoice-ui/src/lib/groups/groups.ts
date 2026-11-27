@@ -3,6 +3,7 @@
 
 import * as v from 'valibot'
 import { api } from '@/lib/api/client'
+import { isApiError } from '@/lib/api/errors'
 import { compareNatural, matchesText } from '@/lib/common'
 import type { User } from '@/lib/users/users'
 
@@ -76,6 +77,38 @@ export const buildGroupFormSchema = (otherGroupNames: string[]) =>
     ),
     userIds: v.array(v.number()),
   })
+
+const GROUP_NAME_SERVER_ISSUES: [RegExp, string][] = [
+  [/^Enter the group name$/, 'groups.name_required'],
+  [/^The group name must be at most \d+ characters$/, 'groups.name_too_long'],
+  [/^The group name cannot contain commas$/, 'groups.name_cannot_contain_commas'],
+  [/^The group name must contain a letter or a digit$/, 'groups.name_needs_letter_or_digit'],
+  [/^A group with this name already exists$/, 'groups.name_already_exists'],
+  [/^A group with a similar name already exists$/, 'groups.name_too_similar'],
+]
+
+const SHARING_TOO_LONG_REGEX = /^The sharing of .+ would be longer than \d+ characters$/
+
+export const getGroupNameIssue = (error: unknown): string | null => {
+  if (!isApiError(error) || typeof error.body !== 'object' || error.body === null) {
+    return null
+  }
+  const body = error.body as { message?: unknown; errors?: unknown }
+  const errors = Array.isArray(body.errors) ? body.errors : []
+
+  if (
+    error.status === 409 &&
+    errors.length > 0 &&
+    errors.every((item) => typeof item === 'string' && SHARING_TOO_LONG_REGEX.test(item))
+  ) {
+    return 'groups.name_makes_sharing_too_long'
+  }
+  if (typeof body.message !== 'string') {
+    return null
+  }
+  const message = body.message
+  return GROUP_NAME_SERVER_ISSUES.find(([pattern]) => pattern.test(message))?.[1] ?? null
+}
 
 export const diffGroupMembers = (current: number[], next: number[]): GroupMembersChange => ({
   added: next.filter((userId) => !current.includes(userId)),

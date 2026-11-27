@@ -259,6 +259,81 @@ function phonebookRenameSharingGroup(string $sharing, string $oldName, string $n
     return $renamed ? PHONEBOOK_SHARING_PREFIX . implode(',', $groups) : $sharing;
 }
 
+function phonebookRemoveSharingGroup(string $sharing, string $name, string $empty): string
+{
+    if (strpos($sharing, PHONEBOOK_SHARING_PREFIX) !== 0) {
+        return $sharing;
+    }
+    $removed = false;
+    $groups = array();
+    foreach (explode(',', substr($sharing, strlen(PHONEBOOK_SHARING_PREFIX))) as $group) {
+        $group = trim($group);
+        if ($group === '') {
+            continue;
+        }
+        if (mb_strtolower($group) === mb_strtolower($name)) {
+            $removed = true;
+            continue;
+        }
+        $groups[] = $group;
+    }
+    if (!$removed) {
+        return $sharing;
+    }
+    return $groups === array() ? $empty : PHONEBOOK_SHARING_PREFIX . implode(',', $groups);
+}
+
+function phonebookSourcesSharingRemove(string $dir, string $name): array
+{
+    $files = array();
+    $problems = array();
+    foreach (glob(rtrim($dir, '/') . '/*.json') ?: array() as $path) {
+        $id = basename($path, '.json');
+        $content = is_readable($path) ? file_get_contents($path) : false;
+        $config = is_string($content) ? json_decode($content) : null;
+        if (!is_object($config)) {
+            if (!is_string($content) || mb_stripos($content, $name) !== false) {
+                $problems[] = 'The phonebook source ' . $id . ' cannot be read';
+            }
+            continue;
+        }
+        $changed = false;
+        foreach ($config as $source) {
+            if (!is_object($source) || !isset($source->access) || !is_string($source->access)) {
+                continue;
+            }
+            $sharing = phonebookRemoveSharingGroup($source->access, $name, PHONEBOOK_SHARING_PREFIX);
+            if ($sharing !== $source->access) {
+                $source->access = $sharing;
+                $changed = true;
+            }
+        }
+        if (!$changed) {
+            continue;
+        }
+        if (!is_writable($path) || !is_writable(dirname($path))) {
+            $problems[] = 'The phonebook source ' . $id . ' cannot be written';
+            continue;
+        }
+        $files[$path] = array('old' => $content, 'new' => json_encode($config));
+    }
+    return array('files' => $files, 'problems' => $problems);
+}
+
+function phonebookSharingRemoveRows(PDO $db, string $table, string $column, string $name, string $empty): array
+{
+    $sth = $db->prepare('SELECT `id`, `' . $column . '` AS `sharing` FROM `' . $table . '` WHERE `' . $column . '` LIKE ?');
+    $sth->execute(array(PHONEBOOK_SHARING_PREFIX . '%'));
+    $changes = array();
+    foreach ($sth->fetchAll(PDO::FETCH_ASSOC) as $row) {
+        $sharing = phonebookRemoveSharingGroup((string) $row['sharing'], $name, $empty);
+        if ($sharing !== (string) $row['sharing']) {
+            $changes[] = array('id' => $row['id'], 'old' => (string) $row['sharing'], 'new' => $sharing);
+        }
+    }
+    return $changes;
+}
+
 function phonebookSourcesSharingRename(string $dir, string $oldName, string $newName, int $maxLength): array
 {
     $files = array();

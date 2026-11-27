@@ -85,6 +85,12 @@ $app->post('/mainextensions/{extension:[0-9]+}/reassign', function (Request $req
             return jsonResponse($response, array('message' => 'Missing username'), 400);
         }
         $extension = $request->getAttribute('route')->getArgument('extension');
+        if (!nethvoiceRequestIsSuperadmin($request)) {
+            $refusal = mainExtensionReassignRefusal($extension, $username, (string) $request->getAttribute(NETHVOICE_USERNAME_ATTRIBUTE, ''));
+            if ($refusal !== null) {
+                return jsonResponse($response, $refusal[1], $refusal[0]);
+            }
+        }
         $keyLabels = null;
         $ret = reassignMainExtension($extension, $username, $keyLabels);
         if ($ret !== true) {

@@ -95,7 +95,9 @@
     "domain_unavailable_description": "Ora gli utenti del dominio non possono accedere. Riprova tra qualche minuto.",
     "storage_unavailable": "Impossibile accedere",
     "storage_unavailable_description": "Il browser non consente a questo sito di salvare dati. Consenti cookie e dati dei siti per questo sito, poi accedi di nuovo.",
-    "product_label": "Amministrazione PBX"
+    "product_label": "Amministrazione PBX",
+    "throttle_unavailable": "Impossibile accedere",
+    "throttle_unavailable_description": "L'accesso non è disponibile al momento. Riprova tra qualche minuto."
   },
   "notifications": {
     "title": "Notifiche",
@@ -565,7 +567,33 @@
     "cannot_assign_phone": "Impossibile assegnare il telefono {phone}",
     "cannot_release_phone": "Impossibile rilasciare il telefono {phone}",
     "phones_already_updated": "Questi telefoni sono già aggiornati: {phones}.",
-    "assign_missing_phones": "Assegna i telefoni mancanti con @:{'common.edit'}."
+    "assign_missing_phones": "Assegna i telefoni mancanti con @:{'common.edit'}.",
+    "import_error_import_running": "È in corso un'altra importazione o la creazione di un utente. Attendi che finisca, poi riprova.",
+    "import_problem_row_user": "Riga {row} ({username}): {reason}.",
+    "import_problem_row": "Riga {row}: {reason}.",
+    "import_problem_user": "{username}: {reason}.",
+    "import_problem_import_failed": "l'importazione è terminata con un errore",
+    "import_problem_control_characters": "la riga contiene tabulazioni, a capo o altri caratteri invisibili",
+    "import_problem_missing_name": "nome utente e nome sono obbligatori",
+    "import_problem_provider_unavailable": "il provider di account non è raggiungibile",
+    "import_problem_protected_account": "questo account non può essere gestito qui",
+    "import_problem_create_failed": "il provider di account non ha creato l'utente",
+    "import_problem_sync_failed": "non è stato possibile sincronizzare gli utenti con il centralino, riprova",
+    "import_problem_user_not_found": "l'utente non è stato trovato nel centralino dopo la sincronizzazione",
+    "import_problem_extension_failed": "non è stato possibile assegnare l'interno {extension}",
+    "import_problem_device_failed": "non è stato possibile assegnare il telefono",
+    "import_problem_mobile_failed": "non è stato possibile salvare il numero di cellulare",
+    "import_problem_voicemail_failed": "non è stato possibile modificare la casella vocale",
+    "import_problem_webrtc_failed": "non è stato possibile modificare il telefono web",
+    "import_problem_groups_failed": "non è stato possibile salvare i gruppi",
+    "import_problem_group_name_invalid": "il gruppo \"{group}\" ha un nome non valido o troppo simile a un gruppo esistente",
+    "import_problem_profile_failed": "non è stato possibile assegnare il profilo \"{profile}\"",
+    "import_problem_nethlink_failed": "non è stato possibile modificare NethLink",
+    "import_problem_invalid_input": "non è stato possibile leggere il file",
+    "import_problem_stopped": "l'importazione si è interrotta, controlla gli utenti e riprova",
+    "account_error_not_instance_user": "Solo il superadmin può modificare l'account di un utente che non ha un interno su questo centralino.",
+    "account_error_display_name_too_long": "Nome e cognome possono contenere al massimo 50 caratteri in totale.",
+    "not_instance_user_restricted": "Solo il superadmin può cambiare la password, il nome o lo stato di un utente che non ha un interno su questo centralino, o eliminarlo."
   },
   "trunks": {
     "title": "Fasci",
@@ -1417,7 +1445,8 @@
       "sync_source_removed": "La sorgente della rubrica {name} non esiste più. L'elenco è stato aggiornato.",
       "sync_failed_description": "La sincronizzazione di {name} non è riuscita. Riprova più tardi.",
       "server_url_not_allowed": "Questo URL non può essere usato. Inserisci un indirizzo pubblico che inizi con http:// o https://.",
-      "sync_error_generic": "Impossibile leggere la sorgente. Controlla la sorgente e riprova."
+      "sync_error_generic": "Impossibile leggere la sorgente. Controlla la sorgente e riprova.",
+      "no_group": "Nessun gruppo (eliminato)"
     },
     "video": {
       "description": "Mostra agli utenti in {cti} i flussi di telecamere IP e citofoni.",
@@ -2044,7 +2073,9 @@
     "cannot_retrieve_groups": "Impossibile recuperare i gruppi",
     "name_cannot_contain_commas": "Il nome non può contenere virgole",
     "rename_group_title": "Rinomina del gruppo",
-    "rename_group_description": "Le sorgenti e i contatti della rubrica condivisi con questo gruppo e il pannello presenze operatore dei profili useranno il nuovo nome."
+    "rename_group_description": "Le sorgenti e i contatti della rubrica condivisi con questo gruppo e il pannello presenze operatore dei profili useranno il nuovo nome.",
+    "name_makes_sharing_too_long": "Con questo nome, l'elenco dei gruppi con cui sono condivisi alcuni contatti o sorgenti della rubrica sarebbe troppo lungo. Scegli un nome più corto",
+    "delete_group_sharing": "Le sorgenti e i contatti della rubrica condivisi con questo gruppo non saranno più condivisi con esso, anche se in seguito crei un gruppo con lo stesso nome."
   },
   "profiles": {
     "description_line_1": "Configura i profili di permessi e le impostazioni di comunicazione predefinite assegnate agli utenti.",

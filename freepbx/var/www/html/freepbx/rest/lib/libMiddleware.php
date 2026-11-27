@@ -128,7 +128,7 @@ function ctiPhonebookImportCurlOptions($token, array $post) {
 
 function revokeMiddlewareUser($username) {
     $username = strtolower((string) $username);
-    if (preg_match('/^[a-z0-9][a-z0-9._-]*$/D', $username) !== 1 || strpos($username, '..') !== false) {
+    if (preg_match('/^[a-z0-9][a-z0-9._@-]*$/D', $username) !== 1 || strpos($username, '..') !== false) {
         return true;
     }
     $token = null;

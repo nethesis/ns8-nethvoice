@@ -307,6 +307,34 @@ test.describe('groups', () => {
     expect(mockApi.callsTo('POST', '/freepbx/rest/cti/groups/users/:id')).toHaveLength(0)
   })
 
+  test('tells on the name field when the new name makes the phonebook sharing too long', async ({
+    page,
+    mockApi,
+  }) => {
+    mockGroups(mockApi).on('PUT', '/freepbx/rest/cti/groups/:id', {
+      status: 409,
+      json: {
+        message:
+          'The group cannot be renamed: The sharing of 2 phonebook contacts would be longer than 255 characters',
+        errors: ['The sharing of 2 phonebook contacts would be longer than 255 characters'],
+      },
+    })
+    await page.goto('./users/groups')
+    await rows(page).nth(1).getByRole('button', { name: 'Edit' }).click()
+    const name = page.getByRole('textbox', { name: 'Name' })
+
+    await name.fill('Sales and customer care')
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(
+      page.getByText(
+        'With this name, the list of groups that share some phonebook contacts or sources would be too long. Choose a shorter name',
+      ),
+    ).toBeVisible()
+    await expect(name).toBeFocused()
+    await expect(page.getByText('Cannot save group')).toBeHidden()
+    await expect(page.getByText(/would be longer than 255 characters/)).toBeHidden()
+  })
+
   test('saves the members of a group whose name the new rules refuse', async ({
     page,
     mockApi,
@@ -359,6 +387,11 @@ test.describe('groups', () => {
     await rows(page).nth(1).getByRole('button', { name: 'Sales actions' }).click()
     await page.getByRole('menuitem', { name: 'Delete' }).click()
     await expect(page.getByText('Group Sales will be permanently deleted.')).toBeVisible()
+    await expect(
+      page.getByText(
+        'Phonebook sources and contacts shared with this group will no longer be shared with it, also if you create a group with the same name later.',
+      ),
+    ).toBeVisible()
     await page.getByRole('button', { name: 'Delete' }).click()
 
     await expect(page.getByText('Group Sales will be permanently deleted.')).toBeHidden()

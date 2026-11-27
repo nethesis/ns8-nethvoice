@@ -151,6 +151,7 @@ const restrictionOf = (row: UserRow) =>
     isSuperadmin: isSuperadmin.value,
     account: findAccount(accounts.value, row.username),
     accountsLoaded: accountsLoaded.value,
+    mainExtension: row.mainExtension,
   })
 
 const creationBlocked = computed(() => {
@@ -733,7 +734,10 @@ const filterLabels = computed(() => ({
                   </NeBadgeV2>
                   <NeTooltip v-if="row.voicemail" trigger-event="mouseenter focus" placement="top">
                     <template #trigger>
-                      <span tabindex="0" class="text-secondary flex">
+                      <span
+                        tabindex="0"
+                        class="text-secondary focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex rounded-sm focus:outline-hidden focus-visible:ring-2"
+                      >
                         <FontAwesomeIcon :icon="faVoicemail" class="size-4" aria-hidden="true" />
                         <span class="sr-only">{{ t('users.voicemail_enabled') }}</span>
                       </span>
@@ -772,7 +776,7 @@ const filterLabels = computed(() => ({
                   <template #trigger>
                     <button
                       type="button"
-                      class="text-primary-700 dark:text-primary-500 text-left font-medium"
+                      class="text-primary-700 dark:text-primary-500 focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 rounded-sm text-left font-medium focus:outline-hidden focus-visible:ring-2"
                     >
                       {{ t('common.plus_n_more', { count: row.groups.length - MAX_GROUPS_SHOWN }) }}
                     </button>

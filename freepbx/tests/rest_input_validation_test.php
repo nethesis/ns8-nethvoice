@@ -164,7 +164,7 @@ foreach (['webrtc.php' => 2, 'nethlink.php' => 2, 'physicalextensions.php' => 7,
 }
 copy("$rest/modules/users.php", "$sandbox/rest/modules/users.php");
 $patch("$sandbox/rest/modules/users.php", 'exec("/usr/bin/sudo', 'recordExec("/usr/bin/sudo', 3);
-$patch("$sandbox/rest/modules/users.php", "system('fwconsole userman --syncall --force > /dev/null &');", 'null;', 3);
+$patch("$sandbox/rest/modules/users.php", "system('fwconsole userman --syncall --force > /dev/null &');", 'null;', 1);
 $patch("$sandbox/rest/modules/users.php", 'system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ', 'recordSystem("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ', 1);
 $routeImportStatus = "$sandbox/csvimport-route.code";
 $patch("$sandbox/rest/modules/users.php", "'/var/run/nethvoice/csvimport.code'", var_export($routeImportStatus, true), 2);
@@ -681,16 +681,37 @@ foreach ([
 $caller = ['users', 'trunks', 'routes', 'phones', 'integrations', 'settings'];
 error_reporting(E_ALL);
 
+$mobileRows = function ($sql, $params) {
+    if (str_contains($sql, 'FROM `userman_users` WHERE `default_extension` = ?')) {
+        return in_array($params[0], ['201', '202'], true) ? [['username' => 'qa_owner' . $params[0]]] : [];
+    }
+    if (str_contains($sql, 'FROM `rest_devices_phones` WHERE user_id = (')) {
+        return $params === ['201', 'mobile'] ? [['extension' => '93201']] : [];
+    }
+    return [];
+};
+foreach (['201', '91201', '92201', '93202', '94201', '7701'] as $extension) {
+    resetFakes();
+    FreePBX::$db->rows = $mobileRows;
+    check(call($app, 'DELETE', "/mobileapp/$extension") === [404, '{"message":"Mobile app extension not found"}'], "DELETE /mobileapp accepted the extension $extension");
+    check(array_filter(FreePBX::$db->log, fn($entry) => str_starts_with($entry[1], 'UPDATE') || str_starts_with($entry[1], 'DELETE')) === [], "DELETE /mobileapp changed the extension $extension");
+}
+resetFakes();
+FreePBX::$db->rows = $mobileRows;
+$astman = new class { public function database_get($family, $key) { return false; } public function database_put($family, $key, $value) { return true; } };
+check(call($app, 'DELETE', '/mobileapp/93201')[0] === 204, 'the mobile app extension of a user was not deleted');
+check(in_array(['prepare', 'UPDATE rest_devices_phones SET user_id = NULL, extension = NULL, secret = NULL WHERE extension = ?', ['93201']], FreePBX::$db->log, true), 'the mobile app extension was not released: ' . json_encode(FreePBX::$db->log));
+
 $importer = "$sandbox/rest/lib/csvimport.php";
 $importLog = "$sandbox/csvimport.log";
 $importStatus = "$sandbox/csvimport.code";
 $patch($importer, "include_once('/var/www/html/freepbx/rest/lib/libUsers.php');", 'require ' . var_export("$sandbox/csvimport_fakes.php", true) . ';', 1);
-foreach (['libExtensions.php', 'libCTI.php', 'libMiddleware.php'] as $lib) {
+foreach (['libExtensions.php', 'libCTI.php', 'libMiddleware.php', 'libUsersAdmin.php'] as $lib) {
     $patch($importer, "include_once('/var/www/html/freepbx/rest/lib/$lib');", '', 1);
 }
+$patch($importer, "include_once('/var/www/html/freepbx/rest/lib/libCTIGroups.php');", "require_once(__DIR__ . '/libCTIGroups.php');", 1);
 $patch($importer, "if (file_exists('/var/www/html/freepbx/rest/lib/libMigration.php')) {", 'if (false) {', 1);
 $patch($importer, "'/var/run/nethvoice/csvimport.code'", var_export($importStatus, true), 1);
-$patch($importer, "system('/usr/bin/fwconsole userman --syncall --force >/dev/null 2>&1', \$syncStatus);", "\$syncStatus = 0; \$GLOBALS['events'][] = ['sync'];", 1);
 $patch($importer, "system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');", 'null;', 1);
 $patch($importer, 'curl_', 'fake_curl_', 6);
 file_put_contents("$sandbox/csvimport_fakes.php", '<?php
@@ -702,7 +723,13 @@ function getUserPortalUrl() { return "https://users-admin.example.org/api"; }
 function setUserPortalCurlDefaults($ch, $headers) {}
 function generateRandomPassword() { return "Generated-42!"; }
 function triggerMiddlewareProfilesReload() {}
-function userExists($username, $token) { $GLOBALS["events"][] = ["userExists", $username]; return false; }
+function userExists($username, $token) { $GLOBALS["events"][] = ["userExists", $username]; return in_array($username, explode(",", (string) getenv("QA_EXISTING")), true); }
+function usersAdminSynchronize() { $GLOBALS["events"][] = ["sync"]; return getenv("QA_SYNC_FAILS") !== "1"; }
+function usersAdminDefaultClient() { return "client"; }
+function usersAdminTargetError($username, $caller, $selfAllowed) { return $username === "admin" ? [403, ["code" => "protected_account"]] : null; }
+function usersAdminProtectedTargetError($client, $username, $caller) { $GLOBALS["events"][] = ["protected", $username, $caller]; return in_array($username, explode(",", (string) getenv("QA_PROTECTED")), true) ? [403, ["code" => "domain_admin"]] : null; }
+function ctiCreateGroup($name) { $GLOBALS["events"][] = ["group", $name]; return 5; }
+function getProfileID($name) { return null; }
 function getUserID($username) { $GLOBALS["events"][] = ["getUserID", $username]; return 7; }
 function createMainExtensionForUser($username, $extension) { $GLOBALS["events"][] = ["createMainExtensionForUser", $username, $extension]; return true; }
 function fake_curl_init($url) { return ["url" => $url]; }
@@ -712,7 +739,7 @@ function fake_curl_error($ch) { return ""; }
 function fake_curl_getinfo($ch, $info) { return 200; }
 function fake_curl_close($ch) {}
 class FakeImportStatement { public function execute($params) { $GLOBALS["events"][] = ["sql", $params]; return true; } }
-class FreePBX { public static function Database() { return new class { public function prepare($sql) { return new FakeImportStatement(); } }; } }
+class FreePBX { public static function Database() { return new class { public function prepare($sql) { return new FakeImportStatement(); } public function query($sql) { return new class { public function fetchAll($mode = null) { return [["id" => 1, "name" => "Sales"]]; } }; } }; } }
 ');
 $import = function ($csv, $restricted = true, $rfc4180 = false) use ($importer, $importLog, $importStatus) {
     @unlink($importLog);
@@ -778,32 +805,111 @@ foreach ([true, false] as $restricted) {
 check($addedUsers($events)[0]['password'] === 'Invented-Pass-1!\\"' && !in_array(['createMainExtensionForUser', 'bob', '202'], $events, true), 'the CSV import without the RFC 4180 option no longer parses backslashes as before: ' . json_encode($events));
 
 $systemCalls = [];
-$importStatusAtLaunch = [];
 function recordSystem($command, &$status = null) {
     $GLOBALS['systemCalls'][] = $command;
-    $GLOBALS['importStatusAtLaunch'][] = is_file($GLOBALS['routeImportStatus']) ? file_get_contents($GLOBALS['routeImportStatus']) : null;
     $status = 0;
 }
+$launchArguments = function (string $command): array {
+    preg_match_all("/'([^']*)'/", $command, $matches);
+    return $matches[1];
+};
 foreach ([
-    [['users'], ['file' => 'ZmFrZQ=='], " 'ZmFrZQ==' restricted > /dev/null 2>&1 &"],
-    [['users'], ['file' => 'ZmFrZQ==', 'rfc4180' => true], " 'ZmFrZQ==' restricted rfc4180 > /dev/null 2>&1 &"],
-    [['users'], ['file' => 'ZmFrZQ==', 'rfc4180' => 'true'], " 'ZmFrZQ==' restricted > /dev/null 2>&1 &"],
-    [['superadmin'], ['file' => 'ZmFrZQ=='], " 'ZmFrZQ==' > /dev/null 2>&1 &"],
-    [['superadmin'], ['file' => 'ZmFrZQ==', 'rfc4180' => true], " 'ZmFrZQ==' rfc4180 > /dev/null 2>&1 &"],
-] as [$caller, $body, $suffix]) {
+    [['users'], ['file' => 'ZmFrZQ=='], ['--caller=', 'restricted']],
+    [['users'], ['file' => 'ZmFrZQ==', 'rfc4180' => true], ['--caller=', 'restricted', 'rfc4180']],
+    [['users'], ['file' => 'ZmFrZQ==', 'rfc4180' => 'true'], ['--caller=', 'restricted']],
+    [['superadmin'], ['file' => 'ZmFrZQ=='], []],
+    [['superadmin'], ['file' => 'ZmFrZQ==', 'rfc4180' => true], ['rfc4180']],
+] as [$caller, $body, $options]) {
     $systemCalls = [];
-    check(call($app, 'POST', '/csv/csvimport', $body)[0] === 200 && count($systemCalls) === 1 && str_ends_with($systemCalls[0], "/csvimport.php$suffix"), 'the CSV import route did not pass the options ' . json_encode([$caller, $body]) . ': ' . json_encode($systemCalls));
+    @unlink($routeImportStatus);
+    [$status, $started] = call($app, 'POST', '/csv/csvimport', $body);
+    $id = json_decode($started, true)['id'] ?? '';
+    $arguments = count($systemCalls) === 1 ? $launchArguments($systemCalls[0]) : [];
+    check($status === 200 && preg_match('/^[a-f0-9]{16}$/', $id) === 1 && str_starts_with($systemCalls[0] ?? '', '/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ') && str_ends_with($systemCalls[0], ' > /dev/null 2>&1 &'), 'the CSV import route did not start ' . json_encode([$caller, $body, $started, $systemCalls]));
+    check(array_slice($arguments, 1) === array_merge(['--id=' . $id], $options) && $arguments[0] === "--file=$routeImportStatus.$id.csv" && file_get_contents("$routeImportStatus.$id.csv") === 'ZmFrZQ==' && (fileperms("$routeImportStatus.$id.csv") & 0777) === 0600, 'the CSV import route did not pass the payload in a private file and the options ' . json_encode([$caller, $body, $arguments]));
+    check(!str_contains($systemCalls[0], 'ZmFrZQ=='), 'the CSV payload is still passed on the command line');
+    unlink("$routeImportStatus.$id.csv");
 }
 foreach ([['superadmin'], ['users']] as $caller) {
-    file_put_contents($routeImportStatus, json_encode(['exitcode' => 1, 'errors' => 'previous import', 'progress' => -1]));
-    $importStatusAtLaunch = [];
-    check(call($app, 'POST', '/csv/csvimport', ['file' => 'ZmFrZQ=='])[0] === 200, 'the CSV import did not start');
-    check($importStatusAtLaunch === ['{"progress":0}'], 'the CSV import started without an initial status: ' . json_encode($importStatusAtLaunch));
+    @unlink($routeImportStatus);
+    $systemCalls = [];
+    [, $started] = call($app, 'POST', '/csv/csvimport', ['file' => 'ZmFrZQ==']);
+    $id = json_decode($started, true)['id'];
+    @unlink("$routeImportStatus.$id.csv");
+    check(json_decode(file_get_contents($routeImportStatus), true)['id'] === $id, 'the CSV import started without an initial status');
     check(call($app, 'GET', '/csv/csvimport') === [200, '{"result":0}'], 'a CSV import that has not read its first row is not reported as running');
-    file_put_contents($routeImportStatus, json_encode(['exitcode' => 0, 'errors' => '', 'progress' => 100]));
-    check(call($app, 'GET', '/csv/csvimport') === [200, '{"result":100}'], 'a finished CSV import is not reported as finished');
-    check(call($app, 'GET', '/csv/csvimport') === [422, '{"status":"No csv import active"}'], 'a reported CSV import is still active');
+    check(call($app, 'GET', "/csv/csvimport?id=$id") === [200, '{"result":0}'], 'a CSV import is not reported to the client that started it');
+    check(call($app, 'POST', '/csv/csvimport', ['file' => 'ZmFrZQ=='])[0] === 409 && count($systemCalls) === 1, 'a second CSV import started while one is running');
+    file_put_contents($routeImportStatus, json_encode(['id' => $id, 'pid' => getmypid(), 'progress' => 40]));
+    check(call($app, 'POST', '/csv/csvimport', ['file' => 'ZmFrZQ=='])[0] === 409, 'a second CSV import started while the first process runs');
+    check(call($app, 'GET', '/csv/csvimport?id=0123456789abcdef') === [422, '{"status":"No csv import active"}'], 'another client read the status of a CSV import it did not start');
+    file_put_contents($routeImportStatus, json_encode(['id' => $id, 'exitcode' => 0, 'errors' => '', 'progress' => 100]));
+    [$status, $second] = call($app, 'POST', '/csv/csvimport', ['file' => 'ZmFrZQ==']);
+    $secondId = json_decode($second, true)['id'] ?? '';
+    @unlink("$routeImportStatus.$secondId.csv");
+    check($status === 200 && $secondId !== $id, 'a CSV import did not start after the previous one ended');
+    check(call($app, 'GET', "/csv/csvimport?id=$id") === [200, '{"result":100}'], 'the result of a finished CSV import was lost when another one started');
+    check(call($app, 'GET', "/csv/csvimport?id=$id") === [422, '{"status":"No csv import active"}'], 'a reported CSV import is still kept');
+    check(call($app, 'GET', "/csv/csvimport?id=$secondId") === [200, '{"result":0}'], 'reading the previous CSV import removed the running one');
+    file_put_contents($routeImportStatus, json_encode(['id' => $secondId, 'exitcode' => 0, 'errors' => '', 'progress' => 100]));
+    check(call($app, 'GET', '/csv/csvimport') === [200, '{"result":100}'], 'a finished CSV import is not reported as finished to the old wizard');
+    check(call($app, 'GET', '/csv/csvimport') === [422, '{"status":"No csv import active"}'], 'a CSV import reported to the old wizard is still active');
+    check(call($app, 'GET', "/csv/csvimport?id=$secondId") === [200, '{"result":100}'], 'the old wizard took the result of a CSV import from the client that started it');
+    file_put_contents($routeImportStatus, json_encode(['id' => $secondId, 'progress' => 0, 'started_at' => time() - 60]));
+    check(call($app, 'GET', '/csv/csvimport') === [500, '{"status":"CSV import stopped unexpectedly","problems":[{"code":"stopped"}]}'], 'a CSV import that never started is still reported as running');
+    check(call($app, 'GET', '/csv/csvimport') === [422, '{"status":"No csv import active"}'], 'a CSV import that never started is still active');
+    file_put_contents($routeImportStatus, json_encode(['id' => $secondId, 'pid' => 999999999, 'progress' => 30]));
+    check(call($app, 'GET', "/csv/csvimport?id=$secondId")[0] === 500, 'a CSV import whose process ended is still reported as running');
+    check(call($app, 'POST', '/csv/csvimport', ['file' => str_repeat('A', CSV_IMPORT_MAX_BASE64_LENGTH + 4)])[0] === 413, 'a CSV payload over the limit was accepted');
+    check(call($app, 'POST', '/csv/csvimport', [])[0] === 400, 'a CSV import without a file was accepted');
+    foreach (glob("$routeImportStatus.*") as $file) { unlink($file); }
+    @unlink($routeImportStatus);
 }
+check(csvExportCell('=HYPERLINK("http://x")') === '\'=HYPERLINK("http://x")' && csvExportCell('+HYPERLINK("http://x")') === '\'+HYPERLINK("http://x")' && csvExportCell('-cmd') === "'-cmd" && csvExportCell('@SUM(A1)') === "'@SUM(A1)" && csvExportCell("\tx") === "'\tx" && csvExportCell("\rx") === "'\rx", 'formulas are exported as they are');
+check(csvExportCell('Anna Rossi') === 'Anna Rossi' && csvExportCell(201) === '201' && csvExportCell(null) === '' && csvExportCell('a=b') === 'a=b', 'plain values are changed in the export');
+check(csvExportCell('+39 333 1234567') === '+39 333 1234567' && csvExportCell('+393331234567') === '+393331234567' && csvExportCell('-1') === '-1' && csvExportCell('0039 (02) 123-45') === '0039 (02) 123-45', 'phone numbers are changed in the export');
+check(csvImportCell("'=SUM(A1)") === '=SUM(A1)' && csvImportCell("'+x") === '+x' && csvImportCell("'@a") === '@a' && csvImportCell("'abc") === "'abc" && csvImportCell('Anna') === 'Anna' && csvImportCell(csvExportCell('=x')) === '=x', 'exported formula cells do not import back unchanged');
+
+$importWith = function (array $arguments, array $environment = []) use ($importer, $importLog, $importStatus) {
+    @unlink($importLog);
+    @unlink($importStatus);
+    $command = implode(' ', array_map(fn($name, $value) => $name . '=' . escapeshellarg($value), array_keys($environment), $environment)) . ' ' . escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg($importer) . ' ' . implode(' ', array_map('escapeshellarg', $arguments));
+    exec($command, $output, $exitCode);
+    return [$exitCode, json_decode((string) file_get_contents($importStatus), true), json_decode((string) file_get_contents($importLog), true)];
+};
+$payload = "$sandbox/csvimport.payload.csv";
+file_put_contents($payload, base64_encode(serializeRows([$validRows[0]])));
+[$exitCode, $status, $events] = $importWith(["--file=$payload", '--id=0123456789abcdef']);
+check($exitCode === 0 && $status['id'] === '0123456789abcdef' && is_int($status['pid']) && $status['exitcode'] === 0 && $status['progress'] === 100 && in_array(['createMainExtensionForUser', 'alice', '201'], $events, true), 'a CSV import from a file failed: ' . json_encode([$status, $events]));
+check(!file_exists($payload), 'the CSV payload file was not removed');
+file_put_contents($payload, base64_encode(serializeRows([$validRows[0]])));
+[$exitCode, $status, $events] = $importWith(["--file=$payload", '--id=0123456789abcdef'], ['QA_SYNC_FAILS' => '1']);
+check($exitCode === 1 && $status['problems'] === [['code' => 'sync_failed']] && !in_array(['getUserID', 'alice'], $events, true), 'a failed user synchronization was not reported: ' . json_encode([$status, $events]));
+$protectedRows = serializeRows([['qa_boss', 'Boss Example', '205'], ['qa_plain', 'Plain Example', '206'], ['admin', 'Admin', '207'], ['qa_new', 'New Example', '208']]);
+foreach ([true, false] as $restricted) {
+    file_put_contents($payload, base64_encode($protectedRows));
+    [$exitCode, $status, $events] = $importWith(array_merge(["--file=$payload", '--id=0123456789abcdef'], $restricted ? ['--caller=qa_helper', 'restricted'] : []), ['QA_EXISTING' => 'qa_boss,qa_plain,admin', 'QA_PROTECTED' => 'qa_boss']);
+    $touched = array_values(array_unique(array_map(fn($event) => $event[1], array_filter($events, fn($event) => in_array($event[0], ['getUserID', 'createMainExtensionForUser'], true)))));
+    if ($restricted) {
+        check($exitCode === 1 && $status['problems'] === [['code' => 'protected_account', 'line' => 1, 'username' => 'qa_boss'], ['code' => 'protected_account', 'line' => 3, 'username' => 'admin']], 'protected accounts were not refused to an administrator with sections: ' . json_encode($status));
+        check($touched === ['qa_plain', 'qa_new'], 'the telephony of a protected account was changed: ' . json_encode($events));
+        check(in_array(['protected', 'qa_plain', ['username' => 'qa_helper', 'superadmin' => false]], $events, true) && !in_array('qa_new', array_column(array_filter($events, fn($event) => $event[0] === 'protected'), 1), true), 'the protection was not checked for existing users only: ' . json_encode($events));
+    } else {
+        check($exitCode === 0 && $touched === ['qa_boss', 'qa_plain', 'admin', 'qa_new'] && !in_array('protected', array_column($events, 0), true), 'the superadmin CSV import changed: ' . json_encode([$status, $events]));
+    }
+}
+foreach ([true, false] as $restricted) {
+    file_put_contents($payload, base64_encode(serializeRows([['qa_grp', 'Group Example', '209', '', '', '', '', 'sales|Sales, North|North']])));
+    [$exitCode, $status, $events] = $importWith(array_merge(["--file=$payload", '--id=0123456789abcdef'], $restricted ? ['--caller=qa_helper', 'restricted'] : []));
+    $groups = array_column(array_filter($events, fn($event) => $event[0] === 'group'), 1);
+    if ($restricted) {
+        check($exitCode === 1 && $groups === ['sales', 'North'] && $status['problems'] === [['code' => 'group_name_invalid', 'line' => 1, 'username' => 'qa_grp', 'group' => 'Sales, North']], 'an invalid group name was created by an administrator with sections: ' . json_encode([$status, $events]));
+    } else {
+        check($exitCode === 0 && $groups === ['sales', 'Sales, North', 'North'], 'the superadmin CSV import changed the groups: ' . json_encode([$status, $events]));
+    }
+}
+[$exitCode, $status] = $import("\"bad\",\"\"\r\n");
+check($exitCode === 1 && $status['problems'] === [['code' => 'missing_name', 'line' => 1]] && !isset($status['id']), 'a legacy CSV import did not report the row: ' . json_encode($status));
 $caller = ['users', 'trunks', 'routes', 'phones', 'integrations', 'settings'];
 
 echo "PASS: invalid extensions, MACs, ring times, template names, CTI profile names and control characters in bulk, trunk, route, language, display name and gateway values never reach SQL, AMI or FreePBX; valid values reach them unchanged\n";

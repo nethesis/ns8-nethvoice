@@ -4,6 +4,7 @@
 import { expect, mockPermissions, test, type MockApi } from '../fixtures/mockApi'
 import {
   ACCOUNTS,
+  CSV_IMPORT_ID,
   csvImportMock,
   GROUP_MEMBERS,
   GROUPS,
@@ -71,6 +72,24 @@ test.describe('users', () => {
 
     const daniel = page.getByTestId('user-d.jones')
     await expect(daniel.locator('td').nth(1)).toHaveText(/-$/)
+  })
+
+  test('shows a focus ring on the voicemail icon and on the other groups', async ({ page }) => {
+    await page.goto('./users/users')
+    const ring = (element: Element) => getComputedStyle(element).boxShadow
+
+    const voicemail = page
+      .getByTestId('user-a.miller')
+      .getByText('Voicemail enabled')
+      .locator('xpath=..')
+    await voicemail.focus()
+    await expect(voicemail).toBeFocused()
+    await expect.poll(() => voicemail.evaluate(ring)).not.toBe('none')
+
+    const more = page.getByTestId('user-c.davis').getByRole('button', { name: '+ 1 more' })
+    await more.focus()
+    await expect(more).toBeFocused()
+    await expect.poll(() => more.evaluate(ring)).not.toBe('none')
   })
 
   test('filters by text, voicemail, groups and devices', async ({ page }) => {
@@ -558,10 +577,23 @@ test.describe('users', () => {
   })
 
   test('reports a failed creation inside the drawer', async ({ page, mockApi }) => {
-    csvImportMock(mockApi, {
-      status: 500,
-      json: { status: 'Error creating user e.johnson: users-admin is unavailable\n' },
-    })
+    const polledIds: (string | null)[] = []
+    csvImportMock(mockApi, { status: 200, json: { result: 0 } }).on(
+      'GET',
+      `${REST}/csv/csvimport`,
+      (request) => {
+        polledIds.push(request.query.get('id'))
+        return polledIds.length === 1
+          ? { json: { result: 50 } }
+          : {
+              status: 500,
+              json: {
+                status: 'Error creating user e.johnson: users-admin is unavailable\n',
+                problems: [{ code: 'provider_unavailable', line: 1, username: 'e.johnson' }],
+              },
+            }
+      },
+    )
     await page.goto('./users/users')
     await page.getByRole('button', { name: 'Create user' }).first().click()
     const drawer = page.getByRole('dialog', { name: 'Create user' })
@@ -573,8 +605,38 @@ test.describe('users', () => {
     await drawer.getByLabel('Confirm password').fill('Secret,123')
     await drawer.getByRole('button', { name: 'Create' }).click()
 
-    await expect(drawer.getByText('users-admin is unavailable')).toBeVisible(IMPORT_TIMEOUT)
+    await expect(drawer.getByText("e.johnson: the account provider can't be reached.")).toBeVisible(
+      IMPORT_TIMEOUT,
+    )
     await expect(drawer.getByText('Cannot create the user')).toBeVisible()
+    await expect(drawer.getByText('users-admin is unavailable')).toHaveCount(0)
+    expect(polledIds.length).toBeGreaterThan(1)
+    expect(polledIds.every((id) => id === CSV_IMPORT_ID)).toBe(true)
+  })
+
+  test('tells that another import is running when a user is created', async ({ page, mockApi }) => {
+    mockWrites(mockApi)
+    mockApi.on('POST', `${REST}/csv/csvimport`, {
+      status: 409,
+      json: { code: 'import_running', message: 'Another CSV import is running' },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Create user' }).first().click()
+    const drawer = page.getByRole('dialog', { name: 'Create user' })
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('e.johnson')
+    await drawer.getByRole('textbox', { name: 'First name', exact: true }).fill('Emma')
+    await drawer.getByRole('textbox', { name: 'Last name' }).fill('Johnson')
+    await drawer.getByLabel('Password', { exact: true }).fill('Secret,123')
+    await drawer.getByLabel('Confirm password').fill('Secret,123')
+    await drawer.getByRole('button', { name: 'Create' }).click()
+
+    await expect(
+      drawer.getByText(
+        'Another import or user creation is running. Wait for it to end, then try again.',
+      ),
+    ).toBeVisible()
+    await expect(drawer.getByText('Another CSV import is running')).toHaveCount(0)
+    expect(mockApi.callsTo('GET', `${REST}/csv/csvimport`)).toHaveLength(0)
   })
 
   test('removes the extension of a user', async ({ page, mockApi }) => {
@@ -1071,6 +1133,55 @@ test.describe('users', () => {
     expect(Buffer.from(file.file, 'base64').toString()).toBe(
       '"k.lee","Kevin Lee","310","","","","","Sales|Marketing","Base"\r\n',
     )
+  })
+
+  test('reports the import failures with the rows of the chosen file', async ({
+    page,
+    mockApi,
+  }) => {
+    csvImportMock(mockApi, {
+      status: 500,
+      json: {
+        status:
+          'Something went wrong: \nError adding main extension 311 to user n.ray: busy at CSV line 2\n',
+        problems: [
+          { code: 'extension_failed', line: 2, username: 'n.ray', extension: '311' },
+          { code: 'group_name_invalid', line: 1, username: 'k.lee', group: 'Sales, North' },
+        ],
+      },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Actions', exact: true }).click()
+    await page.getByRole('menuitem', { name: 'Import users from CSV' }).click()
+
+    const drawer = page.getByRole('dialog', { name: 'Import users' })
+    await drawer.locator('input[type=file]').setInputFiles({
+      name: 'users.csv',
+      mimeType: 'text/csv',
+      buffer: Buffer.from(
+        [
+          'username,name,surname,extension',
+          'b.boone,Bob,Boone,xxx',
+          'k.lee,Kevin,Lee,310',
+          'n.ray,Nora,Ray,311',
+        ].join('\n'),
+      ),
+    })
+    await drawer.getByRole('button', { name: 'Next' }).click()
+    const modal = page
+      .getByRole('dialog', { name: 'Import users' })
+      .filter({ hasText: 'File preview' })
+    await modal.getByRole('button', { name: 'Import 2 users' }).click()
+
+    await expect(modal).toContainText(
+      'Row 4 (n.ray): extension 311 could not be assigned.',
+      IMPORT_TIMEOUT,
+    )
+    await expect(modal).toContainText(
+      'Row 3 (k.lee): group "Sales, North" has a name that is not valid or too similar to an existing group.',
+    )
+    await expect(modal).not.toContainText('CSV line')
+    await expect(modal).not.toContainText('Something went wrong')
   })
 
   test('reports the CSV rows with control characters and does not import them', async ({
@@ -1715,6 +1826,35 @@ test.describe('user accounts', () => {
     })
   })
 
+  test('limits the full name of an edited user and names the user with the new name', async ({
+    page,
+    mockApi,
+  }) => {
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    const name = drawer.getByRole('textbox', { name: 'First name', exact: true })
+    const surname = drawer.getByRole('textbox', { name: 'Last name' })
+
+    await name.fill('Anna Josephine Alexandra Margaret')
+    await surname.fill('Johnson-Whitfield')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(
+      drawer.getByText('First and last name can be at most 50 characters long in total'),
+    ).toBeVisible()
+    await expect(name).toBeFocused()
+    expect(mockApi.callsTo('PATCH', `${REST}/users/:username/account`)).toHaveLength(0)
+
+    await name.fill('Anna Maria')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    const toasts = page.getByTestId('toast-notifications')
+    await expect(toasts.getByText('User updated')).toBeVisible()
+    await expect(toasts.getByText('Anna Maria Johnson-Whitfield')).toBeVisible()
+    expect(mockApi.callsTo('PATCH', `${REST}/users/a.miller/account`)[0].body).toEqual({
+      display_name: 'Anna Maria Johnson-Whitfield',
+    })
+  })
+
   test('shows a display name refused by the server on the name field', async ({
     page,
     mockApi,
@@ -2223,6 +2363,33 @@ test.describe('user accounts', () => {
       .toBeGreaterThan(phoneReads)
   })
 
+  test('reloads the physical phones after reassigning an extension', async ({ page, mockApi }) => {
+    mockApi.on('POST', `${REST}/mainextensions/:ext/reassign`, {
+      json: { key_labels_updated: 0, key_labels_incomplete: false },
+    })
+    await page.goto('./users/users')
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit user a.miller' })
+    await expect(drawer.getByRole('button', { name: 'Add phone' })).toBeVisible()
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    await expect(drawer).toBeHidden()
+    const phoneReads = mockApi.callsTo('GET', `${TANCREDI}/phones`).length
+
+    await page.getByRole('button', { name: 'Actions for c.davis' }).click()
+    await page.getByRole('menuitem', { name: 'Reassign extension' }).click()
+    const modal = page.getByRole('dialog', { name: 'Reassign extension' })
+    await modal.getByRole('combobox', { name: 'Assign to' }).click()
+    await modal.getByRole('option', { name: /d\.jones/ }).click()
+    await modal.getByRole('button', { name: 'Reassign' }).click()
+    await expect(page.getByText('Extension reassigned')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Edit a.miller' }).click()
+    await expect(drawer.getByRole('button', { name: 'Add phone' })).toBeVisible()
+    await expect
+      .poll(() => mockApi.callsTo('GET', `${TANCREDI}/phones`).length)
+      .toBeGreaterThan(phoneReads)
+  })
+
   test('moves the focus to the missing user of a reassignment', async ({ page }) => {
     await page.goto('./users/users')
     await page.getByRole('button', { name: 'Actions for a.miller' }).click()
@@ -2443,7 +2610,17 @@ test.describe('user accounts', () => {
       }
 
       await openRowMenu(page, 'd.jones')
-      await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeEnabled()
+      await expect(page.getByTestId('account-restriction-d.jones')).toHaveText(
+        'Only the superadmin can change the password, the name or the status of a user who has no extension on this PBX, or delete it.',
+      )
+      await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
+      await page.keyboard.press('Escape')
+      await page.getByRole('button', { name: 'Edit d.jones' }).click()
+      const drawer = page.getByRole('dialog', { name: 'Edit user d.jones' })
+      for (const field of [/^First name$/, /^Last name$/, /^Email/]) {
+        await expect(drawer.getByRole('textbox', { name: field })).toBeDisabled()
+      }
+      await expect(drawer.getByRole('textbox', { name: /^Extension/ })).toBeEnabled()
     })
 
     test('shows why the server refused to change an administrator', async ({ page, mockApi }) => {

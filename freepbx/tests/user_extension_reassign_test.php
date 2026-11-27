@@ -270,5 +270,14 @@ namespace {
     $keyLabels = null;
     check(reassignMainExtension('201', 'alice', $keyLabels, $keyLabelsTancredi)[1] === 422 && $keyLabels === null, 'key labels changed by a rejected reassign');
 
+    Pbx::reset();
+    require_once __DIR__.'/../var/www/html/freepbx/rest/lib/libUsersAdmin.php';
+    $groupsClient = fn(array $groups, string $url = 'https://users-admin.example.org/api') => new UsersAdminClient($url, fn() => 'invented-token', fn($url, $payload, $token) => ['status' => 200, 'body' => json_encode(['status' => 'success', 'groups' => $groups])]);
+    check(mainExtensionReassignRefusal('201', 'carol', 'qa_helper', $groupsClient([])) === null, 'a reassign between plain users was refused');
+    check(mainExtensionReassignRefusal('201', 'carol', 'qa_helper', $groupsClient([['group' => 'domain admins', 'users' => ['alice']]])) === usersAdminError(403, 'domain_admin'), 'the extension of a domain administrator was taken');
+    check(mainExtensionReassignRefusal('201', 'carol', 'qa_helper', $groupsClient([['group' => 'Account Operators', 'users' => ['carol']]])) === usersAdminError(403, 'domain_admin'), 'an extension was given to a privileged account');
+    check(mainExtensionReassignRefusal('201', 'admin', 'qa_helper', $groupsClient([])) === usersAdminError(403, 'protected_account'), 'an extension was given to a protected account');
+    check(mainExtensionReassignRefusal('201', 'carol', 'qa_helper', $groupsClient([['group' => 'domain admins', 'users' => ['carol']]], '')) === null, 'an external domain without provider refused the reassign');
+
     echo "PASS: main extension reassign, rollback, validation and release of deleted users\n";
 }

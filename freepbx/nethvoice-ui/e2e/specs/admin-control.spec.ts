@@ -438,6 +438,20 @@ test.describe('admin control', () => {
     await expect(drawer).toBeHidden()
   })
 
+  test('asks before discarding a new user with Cancel', async ({ page }) => {
+    const drawer = await openNewUser(page)
+    await drawer.getByRole('textbox', { name: 'Username' }).fill('z.hart')
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+
+    await expect(page.getByRole('heading', { name: 'Unsaved changes' })).toBeVisible()
+    await page.getByRole('button', { name: 'Keep editing' }).click()
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toHaveValue('z.hart')
+
+    await drawer.getByRole('button', { name: 'Cancel' }).click()
+    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await expect(drawer).toBeHidden()
+  })
+
   test('fits a phone screen while creating a user', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     const drawer = await openNewUser(page)

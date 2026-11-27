@@ -60,11 +60,12 @@ $tests['reports a failure of the middleware or of the database'] = function () {
 };
 
 $tests['skips the middleware for usernames it cannot hold and fails without its settings'] = function () {
-    foreach (['bob@example.org', '-bob', 'a..b'] as $username) {
+    foreach (['-bob', 'a..b', 'bob/x'] as $username) {
         check(revokeMiddlewareUser($username) === true, "$username cannot have middleware data");
     }
     unset($_ENV['NETHVOICE_MIDDLEWARE_SUPER_ADMIN_TOKEN'], $_ENV['NETHVOICE_MIDDLEWARE_PORT']);
     check(revokeMiddlewareUser('Alice') === false, 'a missing middleware must be reported');
+    check(revokeMiddlewareUser('bob@example.org') === false, 'a username with a domain was not revoked');
 };
 
 $failures = 0;

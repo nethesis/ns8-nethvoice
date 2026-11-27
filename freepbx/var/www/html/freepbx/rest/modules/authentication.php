@@ -40,12 +40,14 @@ $app->get('/login', function (Request $request, Response $response) {
     if (!isset($_SESSION['AMP_user'])) {
         $_SESSION['AMP_user'] = new ampuser('admin');
     }
+    @session_regenerate_id(true);
     return jsonResponse($response, ['success' => true]);
 });
 
 $app->get('/logout', function (Request $request, Response $response) {
     session_start();
     unset($_SESSION['AMP_user']);
+    domainAdminsDefault()->signOut((string) $request->getAttribute(NETHVOICE_USERNAME_ATTRIBUTE, ''));
     return jsonResponse($response, ['success' => true]);
 });
 
@@ -59,6 +61,9 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
             return $response->withStatus(401);
         }
         $throttle = domainAdminsSignInThrottle();
+        if (!$throttle->available()) {
+            return jsonResponse($response, ['code' => 'throttle_unavailable', 'message' => DOMAIN_ADMINS_SIGNIN_MESSAGES['throttle_unavailable']], 503);
+        }
         $address = domainAdminsClientAddress($request);
         $account = domainAdminsAccountKey(FreePBX::Database(), $username);
         $retry = $throttle->retryAfter($address, $account);
@@ -75,6 +80,7 @@ $app->post('/testauth', function (Request $request, Response $response, $args) {
                 unset($_SESSION['AMP_user']);
                 return $response->withStatus(401);
             }
+            @session_regenerate_id(true);
             unset($no_auth);
             require(__DIR__.'/../config.inc.php');
             $secret = $config['settings']['secretkey'];

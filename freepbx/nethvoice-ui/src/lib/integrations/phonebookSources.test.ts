@@ -30,6 +30,7 @@ import {
   parsePhonebookSyncStatuses,
   getPhonebookServerText,
   parsePhonebookTestResult,
+  isSharedWithNoGroup,
   parseSharingGroups,
   PHONEBOOK_FIELD_ORDER,
   suggestMapping,
@@ -108,6 +109,7 @@ describe('parsePhonebookSources', () => {
         mapping: { full_name: 'name' },
         interval: 1440,
         groups: [],
+        sharedWithNoGroup: false,
         enabled: true,
       },
       {
@@ -125,6 +127,7 @@ describe('parsePhonebookSources', () => {
         mapping: { Name: 'name', Phone: 'workphone' },
         interval: 60,
         groups: ['Sales', 'Marketing'],
+        sharedWithNoGroup: false,
         enabled: false,
       },
     ])
@@ -162,6 +165,10 @@ describe('sharing', () => {
     expect(parseSharingGroups('group:Sales, Marketing,')).toEqual(['Sales', 'Marketing'])
     expect(parseSharingGroups('public')).toEqual([])
     expect(parseSharingGroups('')).toEqual([])
+    expect(isSharedWithNoGroup('group:')).toBe(true)
+    expect(isSharedWithNoGroup('group: , ')).toBe(true)
+    expect(isSharedWithNoGroup('group:Sales')).toBe(false)
+    expect(isSharedWithNoGroup('public')).toBe(false)
   })
 
   it('should build the access value', () => {
@@ -481,6 +488,13 @@ describe('toPhonebookSourceForm', () => {
       csvFrom: 'url',
       url: 'https://files.example.com/contacts.csv',
     })
+  })
+
+  it('should keep a source whose only group was deleted shared with groups', () => {
+    const [source] = parsePhonebookSources({ custom_8: { dbtype: 'csv', access: 'group:' } })
+
+    expect(source?.sharedWithNoGroup).toBe(true)
+    expect(toPhonebookSourceForm(source!)).toMatchObject({ sharing: 'groups', groups: [] })
   })
 
   it('should open an uploaded CSV file as an upload', () => {

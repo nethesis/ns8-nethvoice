@@ -43,7 +43,7 @@ class FreePBX {
 class TestDatabase {
     private $row = false;
     public function prepare($sql) {
-        check($sql === 'SELECT * FROM ampusers WHERE username = ?', "unexpected query: $sql");
+        check($sql === 'SELECT a.*, d.username AS nethvoice_managed, d.key_issued_at AS nethvoice_key_issued_at FROM ampusers a LEFT JOIN rest_domain_admins d ON d.username = a.username WHERE a.username = ?', "unexpected query: $sql");
         return $this;
     }
     public function execute($args) {

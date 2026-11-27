@@ -635,6 +635,14 @@ $app->get('/cti/users/groups/{id}', function (Request $request, Response $respon
 $app->post('/cti/groups', function (Request $request, Response $response, $args) {
     try {
         $data = $request->getParsedBody();
+        if (!nethvoiceRequestIsSuperadmin($request)) {
+            $name = is_array($data) ? ($data['name'] ?? null) : null;
+            $issue = ctiGroupNameIssue(FreePBX::Database()->query('SELECT `id`, `name` FROM `rest_cti_groups`')->fetchAll(PDO::FETCH_ASSOC), null, $name);
+            if ($issue !== null) {
+                return jsonResponse($response, array('message' => $issue[1]), $issue[0]);
+            }
+            $data['name'] = trim($name);
+        }
         $res = ctiCreateGroup($data['name']);
         if ($res === false) {
             throw new Exception('Error creating group');
@@ -687,6 +695,18 @@ $app->delete('/cti/groups/{id}', function (Request $request, Response $response,
         $sth = $dbh->prepare($query);
         $sth->execute(array($id));
         $group_name = $sth->fetchObject();
+        if ($group_name === false) {
+            return jsonResponse($response, array('message' => 'Group not found'), 404);
+        }
+
+        $sth = $dbh->prepare('SELECT COUNT(*) FROM rest_cti_groups WHERE id != ? AND LOWER(TRIM(name)) = LOWER(TRIM(?))');
+        $sth->execute(array($id, $group_name->name));
+        if ((int) $sth->fetchColumn() === 0) {
+            list($status, $body) = ctiDeleteGroupSharing($dbh, phonebookDatabase(), NethCTI::Database(), PHONEBOOK_SOURCES_DIR, (string) $group_name->name);
+            if ($status !== 200) {
+                return jsonResponse($response, $body, $status);
+            }
+        }
 
         $sql = 'DELETE FROM `rest_cti_groups` WHERE `id` = ?';
         $sth = $dbh->prepare($sql);

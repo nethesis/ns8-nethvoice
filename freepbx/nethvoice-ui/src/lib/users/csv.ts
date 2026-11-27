@@ -121,17 +121,34 @@ export type ImportFollowUp = {
   steps: UserSettingsStep[]
 }
 
-export type CsvImportErrorCode = 'file_too_large' | 'import_failed' | 'settings_failed'
+export type CsvImportErrorCode =
+  'file_too_large' | 'import_failed' | 'import_running' | 'settings_failed'
+
+export type CsvImportProblem = {
+  code: string
+  line?: number
+  username?: string
+  extension?: string
+  group?: string
+  profile?: string
+}
 
 export class CsvImportError extends Error {
   readonly code: CsvImportErrorCode
   readonly cause: unknown
+  readonly problems: CsvImportProblem[]
 
-  constructor(code: CsvImportErrorCode, message = '', cause: unknown = undefined) {
+  constructor(
+    code: CsvImportErrorCode,
+    message = '',
+    cause: unknown = undefined,
+    problems: CsvImportProblem[] = [],
+  ) {
     super(message)
     this.name = 'CsvImportError'
     this.code = code
     this.cause = cause
+    this.problems = problems
   }
 }
 
@@ -299,6 +316,11 @@ export const parseCsv = (text: string, trimCells = true): string[][] => {
 
 export const serializeCsv = (rows: string[][]): string =>
   rows.map((row) => row.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',') + '\r\n').join('')
+
+const SPREADSHEET_FORMULA_REGEX = /^[=+\-@\t\r]/
+
+export const escapeSpreadsheetFormula = (cell: string): string =>
+  SPREADSHEET_FORMULA_REGEX.test(cell) ? `'${cell}` : cell
 
 export const encodeBase64 = (text: string): string => {
   const bytes = new TextEncoder().encode(text)
@@ -724,7 +746,7 @@ export const convertExportedCsv = (legacyCsv: string, users: User[] = []): strin
       formatDevice(user, 'mobile'),
     ]
   })
-  return serializeCsv([CSV_EXPORT_COLUMNS, ...rows])
+  return serializeCsv([CSV_EXPORT_COLUMNS, ...rows].map((row) => row.map(escapeSpreadsheetFormula)))
 }
 
 const padDatePart = (value: number): string => String(value).padStart(2, '0')
@@ -736,34 +758,85 @@ const ProgressSchema = v.object({
   result: v.nullable(v.pipe(v.union([v.number(), v.string()]), v.transform(Number))),
 })
 
-const StatusSchema = v.object({ status: v.string() })
+const ProblemSchema = v.object({
+  code: v.string(),
+  line: v.optional(v.number()),
+  username: v.optional(v.string()),
+  extension: v.optional(v.string()),
+  group: v.optional(v.string()),
+  profile: v.optional(v.string()),
+})
+
+const StatusSchema = v.object({
+  status: v.string(),
+  problems: v.optional(v.fallback(v.array(ProblemSchema), []), []),
+})
+
+const StartedSchema = v.object({ id: v.pipe(v.string(), v.regex(/^[a-f0-9]{16}$/)) })
+
+const RefusalSchema = v.object({ code: v.string() })
+
+export type CsvImportFailure = {
+  status: string
+  problems: CsvImportProblem[]
+}
 
 export const parseCsvImportProgress = (raw: unknown): number =>
   v.parse(ProgressSchema, raw).result ?? 0
 
-export const getCsvImportFailure = (error: unknown): string | null => {
+export const getCsvImportFailure = (error: unknown): CsvImportFailure | null => {
   if (!isApiError(error) || error.status !== 500) {
     return null
   }
   const parsed = v.safeParse(StatusSchema, error.body)
-  return parsed.success ? parsed.output.status.trim() : null
+  return parsed.success
+    ? { status: parsed.output.status.trim(), problems: parsed.output.problems }
+    : null
 }
 
 export const isCsvImportNotRunning = (error: unknown): boolean =>
   isApiError(error) && error.status === 422
 
-export const postCsvImport = async (csv: string): Promise<void> => {
+const getCsvImportRefusal = (error: unknown): CsvImportErrorCode | null => {
+  if (!isApiError(error)) {
+    return null
+  }
+  const parsed = v.safeParse(RefusalSchema, error.body)
+  const code = parsed.success ? parsed.output.code : null
+
+  if (error.status === 409 && code === 'import_running') {
+    return 'import_running'
+  }
+  if (error.status === 413) {
+    return 'file_too_large'
+  }
+  return null
+}
+
+export const postCsvImport = async (csv: string): Promise<string | null> => {
   if (exceedsImportSizeLimit(csv)) {
     throw new CsvImportError('file_too_large')
   }
-  await api.POST('/csv/csvimport', {
-    body: { file: encodeBase64(csv), rfc4180: true },
-    parseAs: 'text',
-  })
+  try {
+    const { data } = await api.POST('/csv/csvimport', {
+      body: { file: encodeBase64(csv), rfc4180: true },
+    })
+    const started = v.safeParse(StartedSchema, data)
+    return started.success ? started.output.id : null
+  } catch (error) {
+    const refusal = getCsvImportRefusal(error)
+
+    if (refusal !== null) {
+      throw new CsvImportError(refusal, '', error)
+    }
+    throw error
+  }
 }
 
-export const getCsvImportProgress = async (): Promise<number> => {
-  const { data } = await api.GET('/csv/csvimport')
+export const getCsvImportProgress = async (id: string | null = null): Promise<number> => {
+  const { data } = await api.GET('/csv/csvimport', {
+    params: { query: id === null ? {} : { id } },
+  })
   return parseCsvImportProgress(data)
 }
 
@@ -777,14 +850,14 @@ export const runCsvImport = async (
   onProgress: (progress: number) => void = () => undefined,
   pollInterval = CSV_IMPORT_POLL_INTERVAL,
 ): Promise<void> => {
-  await postCsvImport(csv)
+  const id = await postCsvImport(csv)
   let startAttempts = 0
 
   for (;;) {
     await wait(pollInterval)
 
     try {
-      const progress = await getCsvImportProgress()
+      const progress = await getCsvImportProgress(id)
       onProgress(progress)
 
       if (progress >= 100) {
@@ -794,7 +867,7 @@ export const runCsvImport = async (
       const failure = getCsvImportFailure(error)
 
       if (failure !== null) {
-        throw new CsvImportError('import_failed', failure)
+        throw new CsvImportError('import_failed', failure.status, undefined, failure.problems)
       }
 
       if (!isCsvImportNotRunning(error)) {

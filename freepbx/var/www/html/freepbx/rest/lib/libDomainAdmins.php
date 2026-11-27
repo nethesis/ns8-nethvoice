@@ -21,6 +21,7 @@ const DOMAIN_ADMINS_SIGNIN_MESSAGES = [
     'account_conflict' => 'A local administrator has the same username',
     'too_many_attempts' => 'Too many failed attempts, try again later',
     'domain_unavailable' => 'The user domain is not reachable',
+    'throttle_unavailable' => 'Sign-in is temporarily unavailable, try again later',
 ];
 const DOMAIN_ADMINS_MESSAGES = [
     'invalid_request' => 'Invalid request',
@@ -39,6 +40,8 @@ const DOMAIN_ADMINS_MESSAGES = [
 ];
 const DOMAIN_ADMINS_NEW_USERNAME_PATTERN = '/^[a-z][a-z0-9._-]{0,31}$/D';
 const DOMAIN_ADMINS_DISPLAY_NAME_MAX_LENGTH = 50;
+const DOMAIN_ADMINS_KEY_RENEW_AFTER = 21600;
+const DOMAIN_ADMINS_SYNC_GRACE = 600;
 
 function domainAdminsError(int $status, string $code): array
 {
@@ -64,6 +67,15 @@ function domainAdminsAccountKey($dbh, string $username): string
     return strtolower(is_string($stored) ? $stored : $username);
 }
 
+function domainAdminsTrustedAddress(string $remote, string $forwarded): string
+{
+    $forwarded = trim($forwarded);
+    if (in_array($remote, ['127.0.0.1', '::1', '::ffff:127.0.0.1'], true) && filter_var($forwarded, FILTER_VALIDATE_IP) !== false) {
+        return $forwarded;
+    }
+    return $remote;
+}
+
 function domainAdminsSignInThrottle(string $failuresFile = DOMAIN_ADMINS_FAILURES): SignInThrottle
 {
     return new SignInThrottle($failuresFile);
@@ -78,10 +90,15 @@ class SignInThrottle
         $this->clock = $clock ?? 'time';
     }
 
+    public function available(): bool
+    {
+        return $this->update(fn($failures) => $failures) !== null;
+    }
+
     public function retryAfter(string $address, string $account): ?int
     {
         $now = ($this->clock)();
-        $failures = $this->update(fn($failures) => $failures);
+        $failures = $this->update(fn($failures) => $failures) ?? [];
         $retry = null;
         foreach ($this->keys($address, $account) as $key => $limit) {
             [$count, $first] = $failures[$key] ?? [0, $now];
@@ -122,15 +139,18 @@ class SignInThrottle
         ];
     }
 
-    private function update(callable $change): array
+    private function update(callable $change): ?array
     {
         $now = ($this->clock)();
         $handle = @fopen($this->failuresFile, 'c+');
         if ($handle === false) {
-            return [];
+            return null;
+        }
+        if (!@flock($handle, LOCK_EX)) {
+            fclose($handle);
+            return null;
         }
         try {
-            flock($handle, LOCK_EX);
             $data = json_decode((string) stream_get_contents($handle), true);
             $failures = [];
             foreach (is_array($data) ? $data : [] as $key => $value) {
@@ -169,6 +189,8 @@ class DomainAdmins
     private $portal;
     private $clock;
     private $random;
+    private $revoke = null;
+    private bool $revoked = false;
     private SignInThrottle $throttle;
 
     public function __construct(
@@ -188,6 +210,12 @@ class DomainAdmins
         $this->clock = $clock ?? 'time';
         $this->random = $random ?? fn() => bin2hex(random_bytes(20));
         $this->throttle = new SignInThrottle($failuresFile, $this->clock);
+    }
+
+    public function onRevoke(callable $revoke): static
+    {
+        $this->revoke = $revoke;
+        return $this;
     }
 
     public function groupNames(): array
@@ -223,6 +251,9 @@ class DomainAdmins
         }
         $local = $this->ampuser($username);
         $account = strtolower($local['username'] ?? $username);
+        if (!$this->throttle->available()) {
+            return domainAdminsSignInError(503, 'throttle_unavailable');
+        }
         $retry = $this->throttle->retryAfter($address, $account);
         if ($retry !== null) {
             return domainAdminsSignInError(429, 'too_many_attempts', ['Retry-After' => (string) $retry]);
@@ -264,6 +295,7 @@ class DomainAdmins
             return domainAdminsSignInError(503, 'domain_unavailable');
         }
         if (!empty($expiration['data']['expired']) || !empty($expiration['data']['must_change'])) {
+            $this->locked(fn() => $this->revokeKey($claims['uid']));
             return domainAdminsSignInError(403, 'password_expired');
         }
         $uid = $claims['uid'];
@@ -277,8 +309,9 @@ class DomainAdmins
             if ($row !== null && !$managed) {
                 return null;
             }
-            $hash = $row !== null && preg_match('/^[0-9a-f]{40}$/D', (string) $row['password_sha1']) === 1 ? (string) $row['password_sha1'] : ($this->random)();
-            $this->store($uid, $hash, domainAdminsSections($permissions), $row !== null, $managed);
+            $reuse = $row !== null && $managed && preg_match('/^[0-9a-f]{40}$/D', (string) $row['password_sha1']) === 1 && $this->keyFresh($uid);
+            $hash = $reuse ? (string) $row['password_sha1'] : ($this->random)();
+            $this->store($uid, $hash, domainAdminsSections($permissions), $row !== null, $managed, !$reuse);
             return $hash;
         });
         if ($hash === null) {
@@ -469,6 +502,8 @@ class DomainAdmins
         $local = $this->ampuser($username);
         if ($local !== null && !$this->isManaged($local['username'])) {
             $this->execute('DELETE FROM ampusers WHERE username = ?', [$local['username']]);
+            $this->revoked = true;
+            $this->notifyRevoked();
             return [204, null];
         }
         $error = $this->availabilityError();
@@ -498,6 +533,11 @@ class DomainAdmins
         });
     }
 
+    public function signOut(string $username): void
+    {
+        $this->locked(fn() => $this->revokeKey($username));
+    }
+
     public function sync(): bool
     {
         return $this->locked(function () {
@@ -509,15 +549,21 @@ class DomainAdmins
                 }
                 $rows[] = $row;
             }
-            if (!$rows || !$this->client->isConfigured()) {
+            if (!$rows) {
+                return true;
+            }
+            if (!$this->client->isConfigured()) {
+                $this->withdrawStale($rows);
                 return true;
             }
             if ($this->prefix === null) {
+                $this->withdrawStale($rows);
                 return false;
             }
             $groups = usersAdminGroups($this->client);
             $users = $groups === null ? null : $this->domainUsers();
             if ($users === null) {
+                $this->withdrawStale($rows);
                 return false;
             }
             $active = [];
@@ -744,20 +790,54 @@ class DomainAdmins
             'username' => (string) $row['username'],
             'domain' => (string) $row['domain'],
             'sections' => $row['sections'] === null ? null : (string) $row['sections'],
-        ], $this->query('SELECT d.username, d.domain, a.sections FROM rest_domain_admins d LEFT JOIN ampusers a ON a.username = d.username'));
+            'synced_at' => $row['synced_at'] === null ? null : (string) $row['synced_at'],
+        ], $this->query('SELECT d.username, d.domain, d.synced_at, a.sections FROM rest_domain_admins d LEFT JOIN ampusers a ON a.username = d.username'));
     }
 
-    private function store(string $username, string $hash, string $sections, bool $exists, bool $managed): void
+    private function store(string $username, string $hash, string $sections, bool $exists, bool $managed, bool $issued): void
     {
         if ($exists) {
-            $this->execute('UPDATE ampusers SET sections = ? WHERE username = ?', [$sections, $username]);
+            $this->execute('UPDATE ampusers SET sections = ?, password_sha1 = ? WHERE username = ?', [$sections, $hash, $username]);
         } else {
             $this->execute('INSERT INTO ampusers (username, password_sha1, sections) VALUES (?, ?, ?)', [$username, $hash, $sections]);
         }
         if ($managed) {
             $this->execute('UPDATE rest_domain_admins SET domain = ?, synced_at = ? WHERE username = ?', [$this->domain, $this->now(), $username]);
+            if ($issued) {
+                $this->execute('UPDATE rest_domain_admins SET key_issued_at = ? WHERE username = ?', [$this->now(), $username]);
+            }
         } else {
-            $this->execute('INSERT INTO rest_domain_admins (username, domain, created_at, synced_at) VALUES (?, ?, ?, ?)', [$username, $this->domain, $this->now(), $this->now()]);
+            $this->execute('INSERT INTO rest_domain_admins (username, domain, created_at, synced_at, key_issued_at) VALUES (?, ?, ?, ?, ?)', [$username, $this->domain, $this->now(), $this->now(), $this->now()]);
+        }
+    }
+
+    private function keyFresh(string $username): bool
+    {
+        $rows = $this->query('SELECT key_issued_at FROM rest_domain_admins WHERE username = ?', [$username]);
+        $issuedAt = $rows[0]['key_issued_at'] ?? null;
+        $issued = is_string($issuedAt) && $issuedAt !== '' ? strtotime($issuedAt . ' UTC') : false;
+        return $issued !== false && ($this->clock)() - $issued < DOMAIN_ADMINS_KEY_RENEW_AFTER;
+    }
+
+    private function revokeKey(string $username): void
+    {
+        $managed = $this->managedName($username);
+        if ($managed === null) {
+            return;
+        }
+        $this->execute('UPDATE ampusers SET password_sha1 = ? WHERE username = ?', [($this->random)(), $managed]);
+        $this->execute('UPDATE rest_domain_admins SET key_issued_at = NULL WHERE username = ?', [$managed]);
+    }
+
+    private function withdrawStale(array $rows): void
+    {
+        $now = ($this->clock)();
+        foreach ($rows as $row) {
+            $synced = $row['synced_at'] === null ? false : strtotime($row['synced_at'] . ' UTC');
+            if ($row['sections'] !== '' && ($synced === false || $now - $synced > DOMAIN_ADMINS_SYNC_GRACE)) {
+                $this->execute('UPDATE ampusers SET sections = ? WHERE username = ?', ['', $row['username']]);
+                $this->revoked = true;
+            }
         }
     }
 
@@ -765,6 +845,23 @@ class DomainAdmins
     {
         $this->execute('DELETE FROM ampusers WHERE username = ?', [$username]);
         $this->execute('DELETE FROM rest_domain_admins WHERE username = ?', [$username]);
+        $this->revoked = true;
+    }
+
+    private function notifyRevoked(): void
+    {
+        if (!$this->revoked) {
+            return;
+        }
+        $this->revoked = false;
+        if ($this->revoke === null) {
+            return;
+        }
+        try {
+            ($this->revoke)();
+        } catch (\Throwable $e) {
+            error_log('domain-admins: cannot rotate the administrator phone secret: ' . $e->getMessage());
+        }
     }
 
     private function now(): string
@@ -797,6 +894,7 @@ class DomainAdmins
                 flock($lock, LOCK_UN);
                 fclose($lock);
             }
+            $this->notifyRevoked();
         }
     }
 
@@ -811,7 +909,7 @@ function domainAdminsDefault(): DomainAdmins
 {
     require __DIR__ . '/../config.inc.php';
     $url = getUserPortalUrl();
-    return new DomainAdmins(
+    return (new DomainAdmins(
         FreePBX::Database(),
         (string) ($config['settings']['secretkey'] ?? ''),
         usersAdminDefaultClient(),
@@ -819,5 +917,8 @@ function domainAdminsDefault(): DomainAdmins
         usersAdminGroupPrefix(),
         (string) ($_ENV['USER_DOMAIN'] ?? getenv('USER_DOMAIN') ?: ''),
         (string) ($_ENV['NETHVOICE_HOST'] ?? getenv('NETHVOICE_HOST') ?: '')
-    );
+    ))->onRevoke(function () {
+        require_once __DIR__ . '/libAdminPhone.php';
+        adminPhoneRevoke();
+    });
 }

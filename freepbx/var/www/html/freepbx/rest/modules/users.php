@@ -25,6 +25,7 @@ include_once('lib/libMiddleware.php');
 include_once('lib/libSecurity.php');
 include_once('lib/libUsersAdmin.php');
 include_once('lib/libDomainAdmins.php');
+include_once('lib/libCsvImport.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -58,14 +59,19 @@ $app->patch('/users/{username}/account', function (Request $request, Response $r
     $result = usersAdminUpdateAccount(usersAdminDefaultClient(), (string) $args['username'], $body, usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminApplyDisplayName');
     if ($result[0] === 200 && is_array($body) && ($body['locked'] ?? null) === true) {
         domainAdminsDefault()->sync();
+        revokeMiddlewareUser((string) $args['username']);
     }
     return usersAdminResponse($response, $result);
 });
 
 $app->delete('/users/{username}/account', function (Request $request, Response $response, $args) {
-    $result = usersAdminDeleteAccount(usersAdminDefaultClient(), (string) $args['username'], usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminDeleteNethvoiceData');
+    $username = (string) $args['username'];
+    $prepared = preg_match(USERS_ADMIN_USERNAME_PATTERN, $username) === 1 && prepareUserRemoval($username);
+    $result = usersAdminDeleteAccount(usersAdminDefaultClient(), $username, usersAdminCaller($request), 'usersAdminSynchronize', 'usersAdminDeleteNethvoiceData');
     if ($result[0] === 200) {
         domainAdminsDefault()->sync();
+    } elseif ($prepared) {
+        discardUserRemoval($username);
     }
     return usersAdminResponse($response, $result);
 });
@@ -127,8 +133,9 @@ $app->get('/users/{all}', function (Request $request, Response $response, $args)
         if (!nethvoiceRequestHasSection($request, 'users')) {
             return nethvoiceForbidden($response);
         }
-        system('fwconsole userman --syncall --force > /dev/null &'); // force FreePBX user sync
-        triggerMiddlewareProfilesReloadAfterUserSync();
+        if (usersAdminStartSynchronization()) {
+            triggerMiddlewareProfilesReloadAfterUserSync();
+        }
     }
     $users = array_values(getAllUsers($all));
     if (!nethvoiceRequestIsSuperadmin($request)) {
@@ -227,8 +234,9 @@ $app->get('/users/{username}/password', function (Request $request, Response $re
 #
 
 $app->post('/users/sync', function (Request $request, Response $response, $args) {
-    system('fwconsole userman --syncall --force > /dev/null &');
-    triggerMiddlewareProfilesReloadAfterUserSync();
+    if (usersAdminStartSynchronization()) {
+        triggerMiddlewareProfilesReloadAfterUserSync();
+    }
     return $response->withStatus(200);
 });
 
@@ -239,14 +247,19 @@ $app->post('/users/sync', function (Request $request, Response $response, $args)
 $app->post('/csv/csvimport', function (Request $request, Response $response, $args) {
     try {
         $params = $request->getParsedBody();
-        $base64csv = preg_replace('/^data:[a-z\.\-\/]*;base64,/','',$params['file']);
-        $statusfile = '/var/run/nethvoice/csvimport.code';
-        if (file_exists($statusfile)) {
-            unlink($statusfile);
+        $base64csv = is_array($params) && is_string($params['file'] ?? null) ? preg_replace('/^data:[a-z\.\-\/]*;base64,/','',$params['file']) : '';
+        $options = array();
+        if (!nethvoiceRequestIsSuperadmin($request)) {
+            $options[] = '--caller=' . (string) $request->getAttribute(NETHVOICE_USERNAME_ATTRIBUTE, '');
+            $options[] = 'restricted';
         }
-        file_put_contents($statusfile, json_encode(array('progress' => 0)));
-        system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ".escapeshellarg($base64csv).(nethvoiceRequestIsSuperadmin($request) ? '' : ' restricted').(($params['rfc4180'] ?? false) === true ? ' rfc4180' : '')." > /dev/null 2>&1 &");
-        return $response->withStatus(200);
+        if (is_array($params) && ($params['rfc4180'] ?? false) === true) {
+            $options[] = 'rfc4180';
+        }
+        [$status, $payload] = csvImportStart($base64csv, $options, function ($arguments) {
+            system("/usr/local/bin/php /var/www/html/freepbx/rest/lib/csvimport.php ".$arguments." > /dev/null 2>&1 &");
+        }, '/var/run/nethvoice/csvimport.code');
+        return jsonResponse($response, $payload, $status);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -255,20 +268,9 @@ $app->post('/csv/csvimport', function (Request $request, Response $response, $ar
 
 $app->get('/csv/csvimport', function (Request $request, Response $response, $args) {
     try {
-        $statusfile = '/var/run/nethvoice/csvimport.code';
-        if (file_exists($statusfile)) {
-            $status = json_decode(file_get_contents($statusfile));
-            if (isset($status->exitcode) && $status->exitcode != 0) {
-                unlink($statusfile);
-                return jsonResponse($response, ['status' => $status->errors],500);
-            } elseif (isset($status->exitcode) && $status->exitcode == 0) {
-                unlink($statusfile);
-                return jsonResponse($response, ['result' => $status->progress],200);
-            }
-            return jsonResponse($response, ['result' => $status->progress],200);
-        } else {
-            return jsonResponse($response, ['status' => 'No csv import active'],422);
-        }
+        $id = $request->getQueryParams()['id'] ?? null;
+        [$status, $payload] = csvImportStatus($id, '/var/run/nethvoice/csvimport.code');
+        return jsonResponse($response, $payload, $status);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return $response->withStatus(500);
@@ -366,7 +368,7 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
 
         $handle = fopen('php://temp', 'r+');
         foreach ($csvarray as $row) {
-            fputcsv($handle, array_map('strval', $row), ',', '"', '', "\r\n");
+            fputcsv($handle, array_map('csvExportCell', $row), ',', '"', '', "\r\n");
         }
         rewind($handle);
         $csvstring = stream_get_contents($handle);

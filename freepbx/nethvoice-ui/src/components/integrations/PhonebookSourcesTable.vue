@@ -186,7 +186,12 @@ function describeKind(source: PhonebookSource): string {
 }
 
 function describeVisibility(source: PhonebookSource): string {
-  return source.groups.length > 0 ? source.groups.join(', ') : t('integrations.phonebook.everyone')
+  if (source.groups.length > 0) {
+    return source.groups.join(', ')
+  }
+  return source.sharedWithNoGroup
+    ? t('integrations.phonebook.no_group')
+    : t('integrations.phonebook.everyone')
 }
 
 function getLastSync(source: PhonebookSource): LastSyncDisplay {

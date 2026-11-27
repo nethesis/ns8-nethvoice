@@ -6,7 +6,7 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useMutation } from '@pinia/colada'
+import { useMutation, useQueryCache } from '@pinia/colada'
 import {
   NeCombobox,
   NeInlineNotification,
@@ -14,7 +14,7 @@ import {
   focusElement,
   type NeComboboxOption,
 } from '@nethesis/vue-components'
-import { getUserLabel } from '@/lib/phones/phones'
+import { getUserLabel, PHONES_KEY } from '@/lib/phones/phones'
 import { getReassignTargets, reassignMainExtension } from '@/lib/users/extensions'
 import type { User } from '@/lib/users/users'
 import { useInvalidateUsers } from '@/queries/users/users'
@@ -38,6 +38,7 @@ useFocusReturn(() => visible)
 const { t } = useI18n()
 const notificationsStore = useNotificationsStore()
 const invalidateUsers = useInvalidateUsers()
+const queryCache = useQueryCache()
 
 const username = ref('')
 const usernameIssue = ref('')
@@ -101,6 +102,7 @@ const { mutate, isLoading, error, reset } = useMutation({
   },
   onSettled() {
     invalidateUsers()
+    queryCache.invalidateQueries({ key: [PHONES_KEY] })
   },
 })
 

@@ -321,6 +321,28 @@ test.describe('login', () => {
     await expect.poll(() => mockApi.callsTo('GET', '/freepbx/rest/logout').length).toBe(1)
   })
 
+  test('signs out when the key of a domain administrator has expired', async ({
+    page,
+    mockApi,
+    signedIn,
+  }) => {
+    void signedIn
+    mockWizardState(mockApi, 0)
+    mockApi
+      .on('GET', '/freepbx/rest/settings/languages', {
+        status: 401,
+        json: { error: 'Unauthorized: session expired', code: 'session_expired' },
+      })
+      .on('GET', '/freepbx/rest/outboundroutes/supportedLocales', { json: ['it'] })
+      .on('GET', '/freepbx/rest/outboundroutes', { json: [] })
+
+    await page.goto('./setup/system')
+
+    await expect(page).toHaveURL(/\/nethvoice\/login/)
+    await expect(page.getByText('Session expired')).toBeVisible()
+    await expect(page.getByText('Sign in again to continue.')).toBeVisible()
+  })
+
   test('signs out the admin user when Tancredi rejects the stored secret key', async ({
     page,
     mockApi,
