@@ -477,8 +477,10 @@ function setCompUser(cu) {
 /**
  * Returns the main extension of the user that has the extension: a door
  * phone is a device (e.g. 91242) of a user whose main extension (242) is the
- * number shown and called, and the caller number of its calls. The
- * extension itself when it belongs to no user.
+ * number shown and called. The extension itself when it belongs to no
+ * user. The calls are matched with a source by the extension of the
+ * device only: the main extension can have other devices (a desk phone,
+ * the app) and other door phones.
  *
  * @method getMainExtension
  * @param {string} extenId The extension identifier
@@ -517,23 +519,6 @@ function sourceJSON(source) {
   var json = source.toJSON();
   json.mainExtension = typeof json.extension === 'string' && json.extension !== '' ? getMainExtension(json.extension) : null;
   return json;
-}
-
-/**
- * True if the source has the extension, as device or as main extension.
- *
- * @method sourceHasExten
- * @param {object} source The streaming source
- * @param {string} extenId The extension identifier
- * @return {boolean} True if the source has the extension.
- * @private
- */
-function sourceHasExten(source, extenId) {
-  var exten = source.getExtension();
-  if (typeof exten !== 'string' || exten === '') {
-    return false;
-  }
-  return exten === extenId || getMainExtension(exten) === extenId;
 }
 
 /**
@@ -1166,7 +1151,7 @@ function isExtenStreamingSource(extenId) {
     }
     var stream;
     for (stream in streamings) {
-      if (sourceHasExten(streamings[stream], extenId)) {
+      if (streamings[stream].getExtension() === extenId) {
         return true;
       }
     }
@@ -1191,7 +1176,7 @@ function getSourceJSONByExten(extenId) {
     }
     var stream;
     for (stream in streamings) {
-      if (sourceHasExten(streamings[stream], extenId)) {
+      if (streamings[stream].getExtension() === extenId) {
         return sourceJSON(streamings[stream]);
       }
     }

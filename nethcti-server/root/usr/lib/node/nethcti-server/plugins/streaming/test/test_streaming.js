@@ -326,9 +326,10 @@ async function main() {
   assert.strictEqual(src.vs_img.mainExtension, '202', 'main extension of the user of the device');
   assert.strictEqual(src.vs_old.mainExtension, '301', 'no user: the extension itself');
   assert.strictEqual(src.vs_rtsp.mainExtension, null, 'no extension');
-  assert.strictEqual(streaming.getSourceJSONByExten('202').id, 'vs_img', 'calls from the main extension');
-  assert.strictEqual(streaming.isExtenStreamingSource('202'), true);
-  assert.strictEqual(streaming.isExtenStreamingSource('203'), false);
+  // the calls are matched by the device: the main extension has other devices
+  assert.deepStrictEqual(streaming.getSourceJSONByExten('202'), {}, 'no match by main extension');
+  assert.strictEqual(streaming.isExtenStreamingSource('202'), false);
+  assert.strictEqual(streaming.isExtenStreamingSource('302'), true);
   [src.vs_img, src.vs_rtsp].forEach(function(s) { assert.notStrictEqual(s.cmdOpen, '5'); assert.notStrictEqual(s.cmdOpen, '6'); });
   assert.strictEqual(src.vs_img.type, 'image');
   assert.deepStrictEqual(src.vs_img.gates, [{ id: '1', name: 'Door', type: 'dtmf' }]);
