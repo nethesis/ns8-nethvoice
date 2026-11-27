@@ -175,6 +175,9 @@
               <span ng-if="newSource.door_phone && !newSource.onMod && !newSource.doorPhoneRegistered" class="help-block text-warning">
                 <span class="pficon pficon-warning-triangle-o"></span> {{'The door phone is not registered: type the address the PBX uses to reach it, for example rtsp://192.0.2.10:554/h264/stream.live1' | translate}}
               </span>
+              <span ng-if="doorAddressConfirmed(newSource)" class="help-block">
+                <span class="pficon pficon-ok"></span> {{'The PBX sends the door phone password to this address' | translate}}
+              </span>
               <span ng-if="newSource.reachability.reachable" class="help-block">
                 <span class="pficon pficon-ok"></span> {{(newSource.door_phone ? 'The PBX reaches the door phone at this address' : 'The PBX reaches the device at this address') | translate}}
               </span>
@@ -189,11 +192,18 @@
               </div>
             </div>
           </div>
-          <div ng-if="newSource.door_phone && showCredentials(newSource)" class="form-group">
+          <div ng-if="newSource.door_phone && (showCredentials(newSource) || doorAddressToConfirm(newSource))" class="form-group">
             <div class="col-sm-offset-3 col-sm-9">
-              <div class="alert alert-info no-margin-bottom">
+              <div ng-if="!doorAddressToConfirm(newSource)" class="alert alert-info no-margin-bottom">
                 <span class="pficon pficon-info"></span>
                 {{'The PBX sends the door phone password only to the address the door phone registers from. For another address, type the RTSP password of the door phone: you find it in the door phone settings' | translate}}
+              </div>
+              <div ng-if="doorAddressToConfirm(newSource)" class="alert alert-warning no-margin-bottom">
+                <span class="pficon pficon-warning-triangle-o"></span>
+                {{'The PBX sends the door phone password only to the address the door phone registers from. If this is the address of the door phone, for example a port forward on another public IP address of its site, confirm it' | translate}}
+                <div class="streaming-gate-detail">
+                  <button type="button" class="btn btn-default" ng-click="confirmDoorAddress(newSource)">{{'Send the door phone password to' | translate}} {{doorUrlAddress(newSource)}}</button>
+                </div>
               </div>
             </div>
           </div>

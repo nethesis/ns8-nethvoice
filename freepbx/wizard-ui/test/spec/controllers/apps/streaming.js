@@ -313,17 +313,45 @@ describe('Controller: AppsStreamingCtrl', function () {
     };
     expect(scope.showCredentials(s)).toBe(false);
     ApplicationService.checkConnectionVideoSource.and.callFake(function () {
-      return $q.reject({ status: 400, data: { status: 'the door phone password is sent only to the address the door phone registers from: type the password', field: 'secret' } });
+      return $q.reject({ status: 400, data: { status: 'the door phone password is sent only to the address the door phone registers from: confirm the address or type the password', field: 'secret' } });
     });
     scope.checkConnection(s);
     scope.$apply();
     expect(s.verified).toBe(false);
     expect(s.doorPasswordRequired).toBe(true);
-    expect(scope.showCredentials(s)).toBe(true);
+    // a registered door phone: confirm the address, no credential fields
+    expect(scope.doorAddressToConfirm(s)).toBe(true);
+    expect(scope.showCredentials(s)).toBe(false);
     // an unregistered door phone has no address the PBX trusts
     expect(scope.showCredentials({ door_phone: '0C-38-3E-32-6B-84', doorPhoneRegistered: false })).toBe(true);
     expect(scope.showCredentials({ door_phone: '0C-38-3E-32-6B-84', onMod: true })).toBe(false);
     expect(scope.showCredentials({})).toBe(true);
+  });
+
+  it('sends the door phone password to a confirmed address', function () {
+    var s = {
+      url: 'rtsp://203.0.113.9:555/h264/stream.live0', user: 'admin', secret: '', door_phone: '0C-38-3E-32-6B-84',
+      doorPhoneRegistered: true, onMod: false, gates: []
+    };
+    ApplicationService.checkConnectionVideoSource.and.callFake(function () {
+      return $q.reject({ status: 400, data: { status: 'the door phone password is sent only to the address the door phone registers from: confirm the address or type the password', field: 'secret' } });
+    });
+    scope.checkConnection(s);
+    scope.$apply();
+    expect(scope.doorAddressToConfirm(s)).toBe(true);
+    expect(scope.doorUrlAddress(s)).toBe('203.0.113.9');
+    expect(scope.sourcePayload(s).door_phone_confirm_address).toBeUndefined();
+    ApplicationService.checkConnectionVideoSource.and.callFake(function () { return resolved({ success: true }); });
+    scope.confirmDoorAddress(s);
+    var request = ApplicationService.checkConnectionVideoSource.calls.mostRecent().args[0];
+    expect(request.door_phone_confirm_address).toBe(true);
+    expect(s.doorPasswordRequired).toBe(false);
+    expect(scope.showCredentials(s)).toBe(false);
+    expect(scope.sourcePayload(s).door_phone_confirm_address).toBe(true);
+    // another device needs a new confirmation
+    s.url = 'rtsp://203.0.113.10:555/h264/stream.live0';
+    expect(scope.doorAddressConfirmed(s)).toBe(false);
+    expect(scope.sourcePayload(s).door_phone_confirm_address).toBeUndefined();
   });
 
   it('warns about credentials in clear text on http and rtsp sources', function () {

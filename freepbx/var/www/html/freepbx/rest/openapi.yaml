@@ -1891,6 +1891,14 @@ paths:
                 details:
                   type: boolean
                   description: Return a VideoSourceCheck also for HTTP sources
+                door_phone:
+                  type: string
+                  description: MAC of the door phone whose password is used
+                    when `secret` is empty, as for `POST /cti/streaming`
+                door_phone_confirm_address:
+                  type: boolean
+                  description: The administrator confirms that the host of
+                    `url` is the door phone, as for `POST /cti/streaming`
   /cti/sources/gateway:
     get:
       summary: Network facts of the video gateway for the administrator.
@@ -4441,6 +4449,13 @@ components:
             `POST /cti/streaming/doorphones/{mac}`, whose generated RTSP
             password is used when `secret` is empty and `user` is the door
             phone user name.
+        door_phone_confirm_address:
+          type: boolean
+          description: The administrator confirms that the host of `url` is
+            the door phone, for example a port forward on another public
+            address of its site. Without it, the door phone password is sent
+            only to the addresses of its SIP registration (400, field
+            `secret`).
     VideoSource:
       type: object
       properties:
