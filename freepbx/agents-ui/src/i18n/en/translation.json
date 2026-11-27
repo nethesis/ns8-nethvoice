@@ -174,9 +174,8 @@
   "kind": "Type",
   "state": "Status",
   "actions": "Actions",
-  "agentsHelp": "Configure AI voice agents and publish them to use in VisualPlan routes.",
+  "agentsHelp": "Configure AI voice agents and publish them to use in inbound routes.",
   "newAgent": "Create agent",
-  "openVisualplan": "Open VisualPlan",
   "defaultLanguage": "Default language",
   "voiceCatalogError": "Cannot load provider voices. Retry before publishing.",
   "voiceName": "Voice",
@@ -204,11 +203,11 @@
   "noResultsHelp": "Try changing your search filters.",
   "filterAgents": "Filter agents",
   "noAgents": "No agents configured",
-  "noAgentsHelp": "Create a voice agent to answer calls, then use it in a VisualPlan route.",
+  "noAgentsHelp": "Create a voice agent to answer calls, then use it in an inbound route.",
   "noTrunks": "No provider trunks configured",
   "noTrunksHelp": "Agents need a provider trunk to connect to OpenAI, Grok or CleverAI.",
   "deleteAgent": "Delete agent",
-  "deleteAgentHelp": "Agent \"{name}\" will be deleted. VisualPlan routes that use this agent will stop reaching it. Agents used by a route cannot be deleted.",
+  "deleteAgentHelp": "Agent \"{name}\" will be deleted. Inbound routes that use this agent will stop reaching it. Agents used by a route cannot be deleted.",
   "deleteTrunk": "Delete trunk",
   "openMenu": "Open menu",
   "viewActivity": "Go to Monitoring",
@@ -740,7 +739,7 @@
       "trunk": "Create a provider trunk",
       "webhook": "Configure the webhook of the provider trunk",
       "publish": "Publish an agent",
-      "route": "Use an agent in a VisualPlan route"
+      "route": "Use an agent in an inbound route"
     }
   },
   "createWizard": {
@@ -786,18 +785,12 @@
     },
     "live": {
       "backend_model": "Text model",
-      "backend_modelHelp": "Model that handles complex requests and tool calls. It doesn’t produce the voice of the call.",
       "reasoning_effort": "Reasoning effort",
-      "reasoning_effortHelp": "How much the text model reasons before answering a complex request. More reasoning gives better answers, but the caller waits longer.",
       "verbosity": "Answer detail",
-      "verbosityHelp": "How detailed the answers of the text model are. Short answers suit phone calls.",
       "service_tier": "Service tier",
-      "service_tierHelp": "Speed and cost of the text model.",
       "max_output_tokens": "Maximum answer length",
       "max_output_tokensPlaceholder": "e.g. 2048",
-      "max_output_tokensHelp": "In tokens, from 16 to 8192. Limits the length of each answer of the text model.",
-      "backend_instructions": "Text model instructions",
-      "backend_instructionsHelp": "How the text model handles complex requests and uses the tools of the agent."
+      "backend_instructions": "Text model instructions"
     },
     "liveOptions": {
       "reasoning_effort": {
@@ -823,7 +816,7 @@
         "priorityHelp": "Faster answers, at a higher cost"
       }
     },
-    "cleverAiHelp": "CleverAI manages the conversation, the tools and the monitoring. Saving makes the agent available for VisualPlan routes.",
+    "cleverAiHelp": "CleverAI manages the conversation, the tools and the monitoring. Saving makes the agent available for inbound routes.",
     "consultationConversationHelp": "Voice and instructions the assistant uses to call the colleague. It handles private consultations only, with no public destination or PBX routing tools.",
     "toolsHelp": "Actions the agent can perform during a call. Disabled tools keep their settings.",
     "troubleshooting": "Troubleshooting",
@@ -916,5 +909,6 @@
     "discard": "Discard my changes",
     "loaded": "Saved settings loaded",
     "loadedHelp": "Your changes have been discarded"
-  }
+  },
+  "goToInboundRoutes": "Go to Inbound routes"
 }

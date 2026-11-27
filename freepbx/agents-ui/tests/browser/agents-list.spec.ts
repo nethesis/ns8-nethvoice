@@ -31,19 +31,19 @@ test("setup notice lists only the missing steps with their links", async ({ page
   await expect(notice(page)).toHaveCount(0);
 });
 
-test("setup notice asks for a VisualPlan route from the in_use of the agents", async ({ page }) => {
+test("setup notice asks for an inbound route from the in_use of the agents", async ({ page }) => {
   const assistant = profile({ agent_id: "assistant", name: "Assistant", agent_type: "consultation", in_use: false });
   const mock = await mockApi(page, {
     profiles: { receptionist: profile({ workflow_version: 1, enabled: true, in_use: false }), assistant },
   });
   await page.goto("./#/agents");
   // false: the step is missing.
-  await expect(notice(page).locator("li")).toHaveText(["Use an agent in a VisualPlan route: Open VisualPlan"]);
-  await expect(notice(page).getByRole("link", { name: "Open VisualPlan" })).toHaveAttribute("href", "/freepbx/visualplan/");
+  await expect(notice(page).locator("li")).toHaveText(["Use an agent in an inbound route: Go to Inbound routes"]);
+  await expect(notice(page).getByRole("link", { name: "Go to Inbound routes" })).toHaveAttribute("href", "/freepbx/wizard/#!/routes/inbound");
   // An unpublished agent in a route does not answer calls.
   mock.profiles.night = profile({ agent_id: "night", name: "Night desk", kind: "custom", in_use: true });
   await page.reload();
-  await expect(notice(page).locator("li")).toHaveText(["Use an agent in a VisualPlan route: Open VisualPlan"]);
+  await expect(notice(page).locator("li")).toHaveText(["Use an agent in an inbound route: Go to Inbound routes"]);
   // null (unknown) for every public agent: the step is omitted.
   delete mock.profiles.night;
   mock.profiles.receptionist.in_use = null;
@@ -57,35 +57,14 @@ test("setup notice asks for a VisualPlan route from the in_use of the agents", a
   await expect(notice(page)).toHaveCount(0);
 });
 
-test("Open VisualPlan opens the FreePBX session first, so that the first click reaches VisualPlan", async ({ page, context }) => {
+test("Go to Inbound routes opens the inbound routes of the administration interface", async ({ page }) => {
   await mockApi(page, {
     profiles: { receptionist: profile({ workflow_version: 1, enabled: true, in_use: false }) },
   });
-  const order: string[] = [];
-  await context.route("**/freepbx/rest/login", async (route) => {
-    order.push("login " + route.request().headers()["user"]);
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    await route.fulfill({ json: { success: true } });
-  });
-  await context.route("**/freepbx/visualplan/", async (route) => {
-    order.push("visualplan");
-    await route.fulfill({ contentType: "text/html", body: "<title>VisualPlan</title>" });
-  });
+  await page.route("**/freepbx/wizard/**", (route) => route.fulfill({ contentType: "text/html", body: "<title>Wizard</title>" }));
   await page.goto("./#/agents");
-  for (const open of [
-    () => page.getByRole("button", { name: "Open VisualPlan", exact: true }).click(),
-    () => notice(page).getByRole("link", { name: "Open VisualPlan" }).click(),
-  ]) {
-    order.length = 0;
-    const popup = context.waitForEvent("page");
-    await open();
-    const tab = await popup;
-    await expect(tab).toHaveURL(/\/freepbx\/visualplan\/$/);
-    expect(order).toEqual(["login administrator", "visualplan"]);
-    // The new tab cannot reach the agents page.
-    expect(await tab.evaluate(() => window.opener)).toBeNull();
-    await tab.close();
-  }
+  await page.getByRole("button", { name: "Go to Inbound routes", exact: true }).click();
+  await expect(page).toHaveURL(/\/freepbx\/wizard\/#!\/routes\/inbound$/);
 });
 
 test("list shows built-in badge, filters and row menus", async ({ page }) => {

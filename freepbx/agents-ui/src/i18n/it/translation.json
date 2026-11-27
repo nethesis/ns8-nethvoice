@@ -174,9 +174,8 @@
   "kind": "Tipo",
   "state": "Stato",
   "actions": "Azioni",
-  "agentsHelp": "Configura gli agenti vocali AI e pubblicali per usarli nelle rotte di VisualPlan.",
+  "agentsHelp": "Configura gli agenti vocali AI e pubblicali per usarli nelle rotte in entrata.",
   "newAgent": "Crea agente",
-  "openVisualplan": "Apri VisualPlan",
   "defaultLanguage": "Lingua predefinita",
   "voiceCatalogError": "Impossibile caricare le voci del provider. Riprova prima di pubblicare.",
   "voiceName": "Voce",
@@ -204,11 +203,11 @@
   "noResultsHelp": "Prova a modificare i filtri di ricerca.",
   "filterAgents": "Filtra agenti",
   "noAgents": "Nessun agente configurato",
-  "noAgentsHelp": "Crea un agente vocale per rispondere alle chiamate, poi usalo in una rotta di VisualPlan.",
+  "noAgentsHelp": "Crea un agente vocale per rispondere alle chiamate, poi usalo in una rotta in entrata.",
   "noTrunks": "Nessun trunk del provider configurato",
   "noTrunksHelp": "Gli agenti hanno bisogno di un trunk del provider per collegarsi a OpenAI, Grok o CleverAI.",
   "deleteAgent": "Elimina agente",
-  "deleteAgentHelp": "L'agente \"{name}\" verrà eliminato. Le rotte di VisualPlan che lo usano non lo raggiungeranno più. Gli agenti usati da una rotta non possono essere eliminati.",
+  "deleteAgentHelp": "L'agente \"{name}\" verrà eliminato. Le rotte in entrata che lo usano non lo raggiungeranno più. Gli agenti usati da una rotta non possono essere eliminati.",
   "deleteTrunk": "Elimina trunk",
   "openMenu": "Apri menu",
   "viewActivity": "Vai a Monitoraggio",
@@ -740,7 +739,7 @@
       "trunk": "Crea un trunk del provider",
       "webhook": "Configura il webhook del trunk del provider",
       "publish": "Pubblica un agente",
-      "route": "Usa un agente in una rotta di VisualPlan"
+      "route": "Usa un agente in una rotta in entrata"
     }
   },
   "createWizard": {
@@ -786,18 +785,12 @@
     },
     "live": {
       "backend_model": "Modello di testo",
-      "backend_modelHelp": "Modello che gestisce le richieste complesse e l'uso degli strumenti. Non produce la voce della chiamata.",
       "reasoning_effort": "Livello di ragionamento",
-      "reasoning_effortHelp": "Quanto ragiona il modello di testo prima di rispondere a una richiesta complessa. Più ragionamento dà risposte migliori, ma il chiamante attende di più.",
       "verbosity": "Dettaglio delle risposte",
-      "verbosityHelp": "Quanto sono dettagliate le risposte del modello di testo. Le risposte brevi sono adatte alle telefonate.",
       "service_tier": "Livello di servizio",
-      "service_tierHelp": "Velocità e costo del modello di testo.",
       "max_output_tokens": "Lunghezza massima della risposta",
       "max_output_tokensPlaceholder": "es. 2048",
-      "max_output_tokensHelp": "In token, da 16 a 8192. Limita la lunghezza di ogni risposta del modello di testo.",
-      "backend_instructions": "Istruzioni del modello di testo",
-      "backend_instructionsHelp": "Come il modello di testo gestisce le richieste complesse e usa gli strumenti dell'agente."
+      "backend_instructions": "Istruzioni del modello di testo"
     },
     "liveOptions": {
       "reasoning_effort": {
@@ -823,7 +816,7 @@
         "priorityHelp": "Risposte più rapide, a un costo più alto"
       }
     },
-    "cleverAiHelp": "CleverAI gestisce la conversazione, gli strumenti e il monitoraggio. Il salvataggio rende l'agente disponibile per le rotte di VisualPlan.",
+    "cleverAiHelp": "CleverAI gestisce la conversazione, gli strumenti e il monitoraggio. Il salvataggio rende l'agente disponibile per le rotte in entrata.",
     "consultationConversationHelp": "Voce e istruzioni che l'assistente usa per chiamare il collega. Gestisce solo consultazioni private, senza destinazione pubblica né strumenti di instradamento PBX.",
     "toolsHelp": "Azioni che l'agente può eseguire durante una chiamata. Gli strumenti disabilitati mantengono le impostazioni.",
     "troubleshooting": "Risoluzione dei problemi",
@@ -916,5 +909,6 @@
     "discard": "Scarta le mie modifiche",
     "loaded": "Impostazioni salvate caricate",
     "loadedHelp": "Le tue modifiche sono state scartate"
-  }
+  },
+  "goToInboundRoutes": "Vai a Rotte in entrata"
 }

@@ -211,36 +211,9 @@ export function loadErrorCode(
   if (status >= 500) return "request_unavailable";
   return code;
 }
-/**
- * Opens the FreePBX session of the signed-in administrator, as the
- * administration interface does when it loads. VisualPlan needs it: without
- * it, VisualPlan sends the browser to the administration interface.
- */
-export async function openAdminSession() {
-  const identity = credentials();
-  if (!identity) throw new Error("authentication_required");
-  await axios.get("/freepbx/rest/login", {
-    timeout: 15000,
-    withCredentials: true,
-    headers: { User: identity.user, Secretkey: identity.hash },
-  });
-}
-export const visualplanUrl = "/freepbx/visualplan/";
-/**
- * Opens VisualPlan in a new tab. The tab opens at once, so that the browser
- * does not block it, and loads VisualPlan when the session is ready.
- */
-export async function openVisualplan() {
-  const tab = window.open("", "_blank");
-  if (tab) tab.opener = null;
-  try {
-    await openAdminSession();
-  } catch {
-    // VisualPlan then asks to sign in, as before.
-  }
-  if (tab) tab.location.href = visualplanUrl;
-  else window.open(visualplanUrl, "_blank", "noopener");
-}
+// The inbound routes of the administration interface, where a route can
+// send calls to an agent.
+export const inboundRoutesUrl = "/freepbx/wizard/#!/routes/inbound";
 export function signIn(keepPage = false) {
   if (keepPage) window.open("/freepbx/wizard/#!/login", "_blank", "noopener");
   else window.location.assign("/freepbx/wizard/#!/login");

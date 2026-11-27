@@ -16,7 +16,7 @@ import {
   type NeDropdownItem,
 } from "@nethesis/vue-components";
 import {
-  faArrowUpRightFromSquare,
+  faArrowRight,
   faChartLine,
   faCirclePlus,
   faPenToSquare,
@@ -25,7 +25,7 @@ import {
 import { faAiSpark } from "../aiSpark";
 import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
-import { request, queryClient, openVisualplan, visualplanUrl } from "../api";
+import { request, queryClient, inboundRoutesUrl } from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import { agentStatus } from "../agentStatus";
@@ -156,12 +156,15 @@ const setupSteps = computed<SetupStep[]>(() => {
     steps.push({
       id: "route",
       label: t("agentsList.setup.route"),
-      href: visualplanUrl,
-      link: t("openVisualplan"),
+      href: inboundRoutesUrl,
+      link: t("goToInboundRoutes"),
     });
   return steps;
 });
 
+function goToInboundRoutes() {
+  window.location.assign(inboundRoutesUrl);
+}
 const removing = ref<Agent>();
 function menu(row: JsonObject): NeDropdownItem[] {
   const agent = row as unknown as Agent;
@@ -235,12 +238,14 @@ onBeforeRouteUpdate(async (to, from) => {
 </script>
 <template>
   <PageHeader :title="t('agents')" :description="t('agentsHelp')">
-    <NeButton kind="secondary" size="lg" @click="openVisualplan"
+    <NeButton
+      kind="secondary"
+      size="lg"
+      data-testid="inbound-routes"
+      @click="goToInboundRoutes"
       ><template #prefix
-        ><FontAwesomeIcon
-          :icon="faArrowUpRightFromSquare"
-          aria-hidden="true" /></template
-      >{{ t("openVisualplan") }}</NeButton
+        ><FontAwesomeIcon :icon="faArrowRight" aria-hidden="true" /></template
+      >{{ t("goToInboundRoutes") }}</NeButton
     >
     <NeButton kind="primary" size="lg" @click="openCreate"
       ><template #prefix
@@ -265,15 +270,9 @@ onBeforeRouteUpdate(async (to, from) => {
             :to="item.to"
             class="font-medium underline"
             >{{ item.link }}</RouterLink
-          ><a
-            v-else
-            :href="item.href"
-            target="_blank"
-            rel="noopener"
-            class="font-medium underline"
-            @click.prevent="openVisualplan"
-            >{{ item.link }}</a
-          >
+          ><a v-else :href="item.href" class="font-medium underline">{{
+            item.link
+          }}</a>
         </li>
       </ol>
     </template>
