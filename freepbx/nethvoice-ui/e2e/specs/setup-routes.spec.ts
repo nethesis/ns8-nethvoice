@@ -75,7 +75,7 @@ test.describe('setup wizard: inbound routes', () => {
     await page.goto('./setup/inbound-routes')
 
     await expect(page.getByRole('heading', { name: 'Inbound routes', level: 1 })).toBeVisible()
-    await expect(page.getByText('Step 5 of 7')).toBeVisible()
+    await expect(page.getByText('Step 5/7')).toBeVisible()
     await expect(
       page.getByText('Inbound routes are created and managed using the Visual Plan.'),
     ).toBeVisible()
@@ -221,7 +221,7 @@ test.describe('setup wizard: outbound routes', () => {
 
     await page.goto('./setup/outbound-routes')
 
-    await expect(page.getByText('Step 6 of 7')).toBeVisible()
+    await expect(page.getByText('Step 6/7')).toBeVisible()
     await expect(page.getByText('Calls within the country')).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'Filter routes' })).toHaveCount(0)
     await expect(page.getByRole('button', { name: /Open the menu of route/ })).toHaveCount(0)

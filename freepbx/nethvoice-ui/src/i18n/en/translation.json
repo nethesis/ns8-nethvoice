@@ -1931,9 +1931,9 @@
       "title": "System settings",
       "description": "Configure the core system settings of your PBX. These settings are used across the system.",
       "pbx_country": "PBX country",
-      "pbx_country_helper": "Used to generate default outbound routes",
+      "pbx_country_helper": "Used to generate the default outbound routes.",
       "pbx_language": "PBX language",
-      "pbx_language_helper": "Language used by the PBX for system prompts and automated voice messages",
+      "pbx_language_helper": "Language of the system prompts and automated voice messages.",
       "country_required": "Choose a country",
       "language_required": "Choose a language",
       "cannot_load_settings": "Cannot retrieve system settings"
@@ -2007,7 +2007,8 @@
     "cannot_save_progress": "Cannot save the setup progress",
     "cannot_check_setup": "Cannot check the setup status",
     "setup_already_completed": "Setup already completed",
-    "setup_already_completed_description": "The setup was completed in another session."
+    "setup_already_completed_description": "The setup was completed in another session.",
+    "step_short": "Step {step}/{total}"
   },
   "ne_table": {
     "go_to_previous_page": "Go to previous page",

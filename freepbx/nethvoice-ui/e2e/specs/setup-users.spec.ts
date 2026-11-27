@@ -25,7 +25,7 @@ test.describe('setup: users and extensions', () => {
     mockStep(mockApi)
     await page.goto('./setup/users')
 
-    await expect(page.getByText('Step 2 of 7')).toBeVisible()
+    await expect(page.getByText('Step 2/7')).toBeVisible()
     const progressFill = page.getByRole('progressbar', { name: 'Setup progress' }).locator('div')
     await expect(progressFill).not.toHaveAttribute('style')
     expect(
@@ -576,12 +576,12 @@ test.describe('setup: Previous moves the saved progress back', () => {
 
   test('saves the previous step and resumes there after a reload', async ({ page, mockApi }) => {
     await page.goto('./setup/physical-trunks')
-    await expect(page.getByText('Step 3 of 7')).toBeVisible()
+    await expect(page.getByText('Step 3/7')).toBeVisible()
 
     await page.getByRole('button', { name: 'Previous' }).click()
 
     await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
-    await expect(page.getByText('Step 2 of 7')).toBeVisible()
+    await expect(page.getByText('Step 2/7')).toBeVisible()
     expect(mockApi.callsTo('POST', WIZARD).map((call) => call.body)).toEqual([
       { step: 1, status: 'true' },
     ])
@@ -605,7 +605,7 @@ test.describe('setup: Previous moves the saved progress back', () => {
   }) => {
     mockApi.allowUnmockedCalls()
     await page.goto('./setup/physical-trunks')
-    await expect(page.getByText('Step 3 of 7')).toBeVisible()
+    await expect(page.getByText('Step 3/7')).toBeVisible()
     mockWizardState(mockApi, 13, false)
 
     await page.getByRole('button', { name: 'Previous' }).click()
@@ -628,7 +628,7 @@ test.describe('setup: Previous moves the saved progress back', () => {
       return { status: 500, json: { message: 'boom' } }
     })
     await page.goto('./setup/physical-trunks')
-    await expect(page.getByText('Step 3 of 7')).toBeVisible()
+    await expect(page.getByText('Step 3/7')).toBeVisible()
 
     await page.getByRole('button', { name: 'Previous' }).click()
 

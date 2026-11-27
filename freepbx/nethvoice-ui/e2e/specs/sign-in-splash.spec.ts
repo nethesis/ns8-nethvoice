@@ -59,7 +59,12 @@ test.describe('sign-in splash', () => {
     await signIn(page)
 
     const splash = page.getByTestId('sign-in-splash')
-    await expect(splash.getByRole('img', { name: 'NethVoice logo' })).toBeVisible()
+    const logo = splash.getByRole('img', { name: 'NethVoice logo' })
+    await expect(logo).toBeVisible()
+    await expect(logo).toHaveCSS('animation-name', /^sign-in-splash-reveal/)
+    await expect(logo).toHaveCSS('animation-timing-function', 'ease-in-out')
+    await expect(logo).toHaveCSS('animation-duration', '0.9s')
+    await expect(splash).toHaveCSS('background-color', 'oklch(0.13 0.028 261.692)')
     await expect(splash).toHaveAttribute('aria-busy', 'true')
     await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
     await expect(page.getByRole('heading', { name: 'Dashboard', exact: true })).toBeVisible()

@@ -48,7 +48,7 @@ async function retry() {
     class="elevation-3 flex min-h-full items-stretch justify-center p-0 sm:p-6 lg:items-center lg:p-10"
   >
     <div
-      class="elevation-1 flex w-full max-w-375 overflow-hidden shadow-xl sm:rounded-3xl lg:h-[min(920px,calc(100vh-5rem))]"
+      class="elevation-1 flex w-full max-w-375 overflow-hidden shadow-xl sm:rounded-2xl lg:h-[min(920px,calc(100vh-5rem))]"
     >
       <div
         v-if="isWizardStateUnknown"

@@ -90,6 +90,59 @@ test.describe('setup wizard: welcome and system settings', () => {
     await expect(help).toHaveAttribute('rel', /noopener/)
   })
 
+  test('welcome page shows the titles in sentence case and Sign out under Need help', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('./setup')
+
+    const title = page.getByRole('heading', { level: 1 })
+    await expect(title).toHaveCSS('font-size', '24px')
+    const topic = page.getByRole('heading', { name: 'PBX settings', level: 2 })
+    await expect(topic).toHaveCSS('font-size', '16px')
+    await expect(topic).toHaveCSS('font-weight', '500')
+    await expect(topic).toHaveCSS('text-transform', 'none')
+
+    const sidebar = page.getByRole('complementary')
+    const help = sidebar.getByRole('link', { name: 'Need help? (opens in a new tab)' })
+    const signOut = sidebar.getByRole('button', { name: 'Sign out' })
+    const helpBox = await help.boundingBox()
+    const signOutBox = await signOut.boundingBox()
+    expect(signOutBox!.y).toBeGreaterThan(helpBox!.y + helpBox!.height)
+    expect(
+      Math.abs(signOutBox!.x + signOutBox!.width / 2 - (helpBox!.x + helpBox!.width / 2)),
+    ).toBeLessThanOrEqual(1)
+
+    await expect(sidebar.locator('xpath=../..')).toHaveCSS('border-radius', '16px')
+  })
+
+  test('shows the step label under the current step of the progress bar', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await page.goto('./setup/system')
+
+    const bar = await page.getByRole('progressbar', { name: 'Setup progress' }).boundingBox()
+    const label = await page.getByText('Step 1/7', { exact: true }).boundingBox()
+    expect(Math.abs(label!.x + label!.width / 2 - (bar!.x + bar!.width / 14))).toBeLessThanOrEqual(
+      1,
+    )
+    expect(label!.y).toBeGreaterThan(bar!.y + bar!.height)
+  })
+
+  test('explains what the country and the language are used for', async ({ page }) => {
+    await page.goto('./setup/system')
+
+    await expect(page.getByRole('heading', { name: 'System settings', level: 1 })).toBeVisible()
+    await expect(
+      page.getByText(
+        'Configure the core system settings of your PBX. These settings are used across the system.',
+      ),
+    ).toBeVisible()
+    await expect(page.getByText('Used to generate the default outbound routes.')).toBeVisible()
+    await expect(
+      page.getByText('Language of the system prompts and automated voice messages.'),
+    ).toBeVisible()
+  })
+
   test('welcome page stays put and reports the error when the wizard cannot start', async ({
     page,
     mockApi,
@@ -108,7 +161,7 @@ test.describe('setup wizard: welcome and system settings', () => {
     await page.goto('./setup/system')
 
     await expect(page.getByRole('heading', { name: 'System settings' })).toBeVisible()
-    await expect(page.getByText('Step 1 of 7')).toBeVisible()
+    await expect(page.getByText('Step 1/7')).toBeVisible()
     await expect(page.getByRole('progressbar', { name: 'Setup progress' })).toHaveAttribute(
       'aria-valuenow',
       '1',

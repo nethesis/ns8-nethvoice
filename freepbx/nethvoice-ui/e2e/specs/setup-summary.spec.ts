@@ -84,7 +84,7 @@ test.describe('setup wizard: summary', () => {
   test('summarizes what was configured', async ({ page }) => {
     await page.goto('./setup/summary')
 
-    await expect(page.getByText('Step 7 of 7')).toBeVisible()
+    await expect(page.getByText('Step 7/7')).toBeVisible()
     await expect(section(page, '1. System settings')).toContainText('PBX country: Italy')
     await expect(section(page, '1. System settings')).toContainText('PBX language: Italian')
     await expect(section(page, '2. Extensions')).toContainText('2 of 3 users have an extension.')

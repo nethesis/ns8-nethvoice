@@ -81,6 +81,16 @@ const PROGRESS_WIDTHS: Record<SetupStepId, string> = {
   summary: 'w-full',
 }
 
+const STEP_LABEL_COLUMNS: Record<SetupStepId, string> = {
+  system: 'col-start-1',
+  users: 'col-start-2',
+  'physical-trunks': 'col-start-3',
+  'voip-trunks': 'col-start-4',
+  'inbound-routes': 'col-start-5',
+  'outbound-routes': 'col-start-6',
+  summary: 'col-start-7',
+}
+
 onMounted(() => titleRef.value?.focus({ preventScroll: true }))
 
 function goToNextStep() {
@@ -113,7 +123,7 @@ function goToNextStep() {
       <div class="-mt-2 -mr-2 flex justify-end gap-2 sm:hidden" :inert="busy || undefined">
         <SetupHelpLinks placement="bottom" />
       </div>
-      <div class="flex flex-col items-center gap-2">
+      <div class="flex flex-col gap-2">
         <div
           class="h-2 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
           role="progressbar"
@@ -130,9 +140,16 @@ function goToNextStep() {
             ]"
           />
         </div>
-        <p class="text-secondary-neutral text-xs">
-          {{ $t('setup.step_of', { step: stepNumber, total: SETUP_STEPS.length }) }}
-        </p>
+        <div class="grid grid-cols-7">
+          <p
+            :class="[
+              'text-tertiary-neutral flex justify-center text-xs whitespace-nowrap',
+              STEP_LABEL_COLUMNS[stepId],
+            ]"
+          >
+            {{ $t('setup.step_short', { step: stepNumber, total: SETUP_STEPS.length }) }}
+          </p>
+        </div>
       </div>
       <div
         class="flex min-h-0 flex-1 flex-col gap-6 border-b border-gray-200 pb-8 dark:border-gray-700"

@@ -1921,8 +1921,8 @@
       "pbx_settings_description": "Configura i parametri di base del centralino, come paese e lingua di sistema.",
       "extensions": "Interni",
       "extensions_description": "Assegna gli interni agli utenti esistenti per abilitare le funzioni di chiamata del centralino.",
-      "trunks": "Fasci fisici e VoIP",
-      "trunks_description": "Configura fasci fisici o VoIP per collegare il centralino alla rete telefonica.",
+      "trunks": "Trunk fisici e VoIP",
+      "trunks_description": "Configura trunk fisici o VoIP per collegare il centralino alla rete telefonica.",
       "call_routing": "Instradamento delle chiamate",
       "call_routing_description": "Definisci le rotte in ingresso e in uscita per gestire le chiamate ricevute ed effettuate.",
       "start_setup": "Inizia configurazione"
@@ -1931,9 +1931,9 @@
       "title": "Impostazioni di sistema",
       "description": "Configura le impostazioni principali del centralino: saranno usate in tutto il sistema.",
       "pbx_country": "Paese del centralino",
-      "pbx_country_helper": "Usato per generare le rotte in uscita predefinite",
+      "pbx_country_helper": "Usato per generare le rotte in uscita predefinite.",
       "pbx_language": "Lingua del centralino",
-      "pbx_language_helper": "Lingua usata dal centralino per i messaggi di sistema e i messaggi vocali automatici",
+      "pbx_language_helper": "Lingua dei messaggi di sistema e dei messaggi vocali automatici.",
       "country_required": "Scegli un paese",
       "language_required": "Scegli una lingua",
       "cannot_load_settings": "Impossibile recuperare le impostazioni di sistema"
@@ -2007,7 +2007,8 @@
     "cannot_save_progress": "Impossibile salvare l'avanzamento della configurazione",
     "cannot_check_setup": "Impossibile verificare lo stato della configurazione",
     "setup_already_completed": "Configurazione già completata",
-    "setup_already_completed_description": "La configurazione è stata completata in un'altra sessione."
+    "setup_already_completed_description": "La configurazione è stata completata in un'altra sessione.",
+    "step_short": "Passo {step}/{total}"
   },
   "ne_table": {
     "go_to_previous_page": "Vai alla pagina precedente",

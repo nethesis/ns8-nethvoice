@@ -30,7 +30,7 @@ test.describe('setup: trunks', () => {
     await page.goto('./setup/physical-trunks')
 
     await expect(page.getByRole('heading', { name: 'Physical trunks', level: 1 })).toBeVisible()
-    await expect(page.getByText('Step 3 of 7')).toBeVisible()
+    await expect(page.getByText('Step 3/7')).toBeVisible()
     await expect(page.getByText('No physical trunks configured')).toBeVisible()
 
     await page.getByRole('button', { name: 'Create physical trunk' }).click()
@@ -51,7 +51,7 @@ test.describe('setup: trunks', () => {
     await page.goto('./setup/voip-trunks')
 
     await expect(page.getByRole('heading', { name: 'VoIP trunks', level: 1 })).toBeVisible()
-    await expect(page.getByText('Step 4 of 7')).toBeVisible()
+    await expect(page.getByText('Step 4/7')).toBeVisible()
     await expect(page.getByRole('row', { name: /main_trunk/ })).toContainText('TWT')
     await expect(page.getByText('Patton_0b1cdd_isdn_0')).toHaveCount(0)
 

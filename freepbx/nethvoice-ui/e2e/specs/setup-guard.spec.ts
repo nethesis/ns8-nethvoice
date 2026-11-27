@@ -58,8 +58,31 @@ test.describe('setup wizard: navigation guard', () => {
 
     await page.goto('./setup/users')
     await expect(page).toHaveURL(/\/nethvoice\/setup\/users$/)
-    await expect(page.getByText('Step 2 of 7')).toBeVisible()
+    await expect(page.getByText('Step 2/7')).toBeVisible()
   })
+
+  for (const width of [1440, 390]) {
+    test(`shows the step label under the current step at ${width} px`, async ({
+      page,
+      mockApi,
+    }) => {
+      mockWizardState(mockApi, 3)
+      await page.setViewportSize({ width, height: 844 })
+
+      await page.goto('./setup/voip-trunks')
+
+      const progress = page.getByRole('progressbar', { name: 'Setup progress' })
+      await expect(progress).toHaveAttribute('aria-valuetext', 'Step 4 of 7: VoIP trunks')
+      const bar = await progress.boundingBox()
+      const label = await page.getByText('Step 4/7', { exact: true }).boundingBox()
+      expect(Math.abs(label!.x + label!.width / 2 - (bar!.x + bar!.width / 2))).toBeLessThanOrEqual(
+        1,
+      )
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      ).toBe(true)
+    })
+  }
 
   test('resumes from the saved step when the welcome page is opened again', async ({
     page,
@@ -148,6 +171,26 @@ test.describe('setup wizard: navigation guard', () => {
     await page.getByRole('link', { name: 'Users' }).first().click()
     await expect(page).toHaveURL(/\/nethvoice\/users/)
     expect(mockApi.callsTo('POST', WIZARD)).toHaveLength(0)
+  })
+
+  test('translates the setup status warning when the status fails before the texts load', async ({
+    page,
+    mockApi,
+  }) => {
+    mockApi.on('GET', WIZARD, { status: 500, json: { message: 'db down' } })
+    await page.route('**/src/i18n/en/translation.json*', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+      await route.continue()
+    })
+
+    await page.goto('./dashboard')
+
+    await expect(page).toHaveURL(/\/nethvoice\/setup$/)
+    await expect(page.getByTestId('setup-state-error')).toContainText(
+      'Cannot check the setup status',
+    )
+    await expect(page.getByText('Cannot check the setup status')).toHaveCount(2)
+    await expect(page.getByText('setup.cannot_check_setup')).toHaveCount(0)
   })
 
   test('sends a restricted administrator to the pending page when the wizard state cannot be read', async ({

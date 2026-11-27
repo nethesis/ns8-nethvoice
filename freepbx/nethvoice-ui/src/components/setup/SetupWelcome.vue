@@ -74,15 +74,15 @@ const startErrorShown = computed(() => withoutSetupCompletedError(startError.val
       class="elevation-0 flex shrink-0 flex-col items-center justify-center gap-6 border-b border-gray-200 p-12 lg:w-100 lg:border-r lg:border-b-0 dark:border-gray-700"
     >
       <BrandLogo class="h-8.25 w-auto" />
-      <p class="text-primary-neutral text-center text-xl font-medium">
+      <p class="text-primary-neutral text-center text-lg font-medium">
         {{ $t('setup.welcome.sidebar_title') }}
       </p>
-      <p class="text-tertiary-neutral text-center text-xs">
+      <p class="text-tertiary-neutral text-center">
         {{
           $t('setup.welcome.sidebar_description', { brand: runtimeConfigStore.config.brandName })
         }}
       </p>
-      <div class="flex flex-wrap items-center justify-center gap-4">
+      <div class="flex flex-col items-center gap-4">
         <NeLink
           v-if="runtimeConfigStore.showDocs"
           :href="runtimeConfigStore.docsUrl"
@@ -103,7 +103,7 @@ const startErrorShown = computed(() => withoutSetupCompletedError(startError.val
           <h1
             ref="titleRef"
             tabindex="-1"
-            class="text-primary-neutral text-3xl font-medium text-balance focus:outline-none"
+            class="text-primary-neutral text-2xl font-medium text-balance focus:outline-none"
           >
             {{ $t('setup.welcome.title', { brand: runtimeConfigStore.config.brandName }) }}
           </h1>
@@ -124,7 +124,7 @@ const startErrorShown = computed(() => withoutSetupCompletedError(startError.val
                 class="text-primary-neutral h-6 w-6"
                 aria-hidden="true"
               />
-              <h2 class="text-primary-neutral text-lg font-medium uppercase">
+              <h2 class="text-primary-neutral text-base font-medium">
                 {{ $t(`setup.welcome.${topic.id}`) }}
               </h2>
             </div>

@@ -22,9 +22,6 @@ const LETTER_PATHS = [
   'M196.806 24.3832C195.325 25.5042 193.461 26.0656 191.214 26.0672C189.804 26.1 188.402 25.8391 187.098 25.3011C185.971 24.8173 184.969 24.0841 184.167 23.1568C183.35 22.1941 182.743 21.0715 182.384 19.8609C181.975 18.5058 181.75 17.1019 181.715 15.6869C181.699 14.2814 181.932 12.8842 182.404 11.5601C182.832 10.36 183.49 9.25425 184.339 8.30399C185.161 7.38958 186.166 6.6582 187.289 6.15727C188.464 5.63881 189.736 5.37759 191.02 5.39113C192.782 5.39113 194.243 5.75513 195.406 6.48313C196.539 7.18308 197.496 8.13364 198.204 9.26167C198.908 10.3891 199.401 11.6347 199.659 12.9382C199.92 14.1849 200.03 15.4587 199.985 16.7316H185.16C185.131 17.566 185.234 18.3997 185.466 19.2017C185.685 19.9621 186.064 20.6669 186.578 21.2688C187.113 21.8881 187.78 22.3794 188.53 22.7066C189.413 23.083 190.367 23.2662 191.326 23.2439C192.708 23.2439 193.838 22.9247 194.717 22.2862C195.596 21.6478 196.176 20.6768 196.458 19.3734H199.679C199.247 21.5889 198.289 23.2588 196.806 24.3832ZM196.023 11.6646C195.597 10.6427 194.875 9.77164 193.95 9.1638C193.024 8.55596 191.938 8.23916 190.831 8.25423C190.05 8.24223 189.274 8.39214 188.553 8.69453C187.897 8.97482 187.304 9.38523 186.812 9.90096C186.323 10.4194 185.933 11.0231 185.662 11.682C185.378 12.3719 185.21 13.1039 185.165 13.8486H196.543C196.493 13.0965 196.318 12.3582 196.023 11.6646Z',
 ]
 
-const LETTER_DELAY_MS = 400
-const LETTER_STAGGER_MS = 40
-
 const runtimeConfigStore = useRuntimeConfigStore()
 const splashStore = useSignInSplashStore()
 </script>
@@ -36,84 +33,41 @@ const splashStore = useSignInSplashStore()
   >
     <div
       v-if="splashStore.visible"
-      class="bg-elevation-1 fixed inset-0 z-115 flex items-center justify-center px-4"
+      class="elevation-0 fixed inset-0 z-115 flex items-center justify-center px-4"
       aria-busy="true"
       data-testid="sign-in-splash"
     >
       <svg
-        viewBox="-1 -1 202 29"
-        fill="none"
+        viewBox="0 0 200 27"
+        fill="currentColor"
         xmlns="http://www.w3.org/2000/svg"
         role="img"
         :aria-label="$t('shell.brand_logo', { brand: runtimeConfigStore.config.brandName })"
-        class="text-primary-active w-86 max-w-full"
+        class="sign-in-splash-logo text-primary-active w-90 max-w-full"
       >
-        <path
-          :d="MARK_PATH"
-          pathLength="1"
-          class="sign-in-splash-mark"
-          fill="currentColor"
-          stroke="currentColor"
-          stroke-width="0.5"
-          stroke-linejoin="round"
-        />
-        <path
-          v-for="(letterPath, index) in LETTER_PATHS"
-          :key="index"
-          :d="letterPath"
-          fill="currentColor"
-          class="sign-in-splash-letter"
-          :style="{ animationDelay: `${LETTER_DELAY_MS + index * LETTER_STAGGER_MS}ms` }"
-        />
+        <path :d="MARK_PATH" />
+        <path v-for="(letterPath, index) in LETTER_PATHS" :key="index" :d="letterPath" />
       </svg>
     </div>
   </Transition>
 </template>
 
 <style scoped>
-.sign-in-splash-mark {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  fill-opacity: 0;
-  animation:
-    sign-in-splash-trace 500ms cubic-bezier(0.65, 0, 0.35, 1) forwards,
-    sign-in-splash-fill 300ms ease-out 300ms forwards;
+.sign-in-splash-logo {
+  clip-path: inset(0 100% 0 0);
+  animation: sign-in-splash-reveal 900ms ease-in-out forwards;
 }
 
-.sign-in-splash-letter {
-  opacity: 0;
-  transform: translateY(4px);
-  animation: sign-in-splash-letter 250ms ease-out forwards;
-}
-
-@keyframes sign-in-splash-trace {
+@keyframes sign-in-splash-reveal {
   to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes sign-in-splash-fill {
-  to {
-    fill-opacity: 1;
-    stroke-opacity: 0;
-  }
-}
-
-@keyframes sign-in-splash-letter {
-  to {
-    opacity: 1;
-    transform: translateY(0);
+    clip-path: inset(0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sign-in-splash-mark,
-  .sign-in-splash-letter {
+  .sign-in-splash-logo {
+    clip-path: none;
     animation: none;
-    opacity: 1;
-    transform: none;
-    fill-opacity: 1;
-    stroke-opacity: 0;
   }
 }
 </style>
