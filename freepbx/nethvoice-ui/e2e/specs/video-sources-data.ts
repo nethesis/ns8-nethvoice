@@ -113,7 +113,9 @@ const DTMF = /^[0-9A-Da-d*#+]{1,30}$/
 const DOOR_DTMF = /^[0-9A-Da-d*#]{1,16}$/
 const NODE_REFUSED = 'the addresses of the PBX node are refused'
 const DOOR_SECRET_REFUSED =
-  'the door phone password is sent only to the address the door phone registers from: type the password'
+  'the door phone password is sent only to the address the door phone registers from: confirm the address or type the password'
+const DOOR_CONFIRM_REFUSED =
+  'only the superadmin can confirm the address of a door phone: type the password'
 const MAC = /^[0-9A-F]{2}(-[0-9A-F]{2}){5}$/
 const DEFAULT_PORTS: Record<string, number> = { http: 80, https: 443, rtsp: 554, rtsps: 322 }
 const RTSP_USER = 'rtsp-viewer'
@@ -284,6 +286,13 @@ export class VideoBackend {
     return this.limited && this.nodeHosts.has(host)
   }
 
+  private doorAddressConfirmed(input: Record<string, unknown>): boolean {
+    if (this.limited && input.door_phone_confirm_address) {
+      throw new Invalid('door_phone_confirm_address', DOOR_CONFIRM_REFUSED)
+    }
+    return input.door_phone_confirm_address === true
+  }
+
   private doorPhoneSecretAllowed(mac: string, url: string, current?: StoredSource) {
     const phone = this.doorPhones.find((item) => item.mac === mac)
     const host = parseUrl(url)?.host ?? ''
@@ -380,6 +389,7 @@ export class VideoBackend {
       throw new Invalid('', 'Invalid request')
     }
     const input = body as Record<string, unknown>
+    const confirmed = this.doorAddressConfirmed(input)
     const descr = text(input, 'descr', 1000).trim()
 
     if (new TextEncoder().encode(descr).length > 50) {
@@ -440,7 +450,12 @@ export class VideoBackend {
       if (!MAC.test(mac) || !this.doorPhones.some((phone) => phone.mac === mac)) {
         throw new Invalid('door_phone', 'invalid door phone')
       }
-      if (!secret && user === RTSP_USER && !this.doorPhoneSecretAllowed(mac, url, current)) {
+      if (
+        !secret &&
+        user === RTSP_USER &&
+        !confirmed &&
+        !this.doorPhoneSecretAllowed(mac, url, current)
+      ) {
         throw new Invalid('secret', DOOR_SECRET_REFUSED)
       }
       doorPhone = mac
@@ -633,6 +648,16 @@ export class VideoBackend {
     if (!parsed) {
       return { status: 400, json: { status: 'Invalid source URL' } }
     }
+    let confirmed = false
+
+    try {
+      confirmed = this.doorAddressConfirmed(body)
+    } catch (error) {
+      if (error instanceof Invalid) {
+        return { status: 400, json: { status: error.message, field: error.field } }
+      }
+      throw error
+    }
     if (body.door_phone !== undefined && !MAC.test(String(body.door_phone))) {
       return { status: 400, json: { status: 'invalid door phone', field: 'door_phone' } }
     }
@@ -640,6 +665,7 @@ export class VideoBackend {
       body.door_phone !== undefined &&
       !body.secret &&
       body.user === RTSP_USER &&
+      !confirmed &&
       !this.doorPhoneSecretAllowed(
         String(body.door_phone),
         url,

@@ -1627,7 +1627,13 @@
       "invalid_value": "Questo valore non è valido",
       "request_refused": "Il PBX ha rifiutato i dati della sorgente video. Controlla i valori e riprova.",
       "too_many_checks": "Troppi test di connessione in poco tempo. Riprova tra un minuto.",
-      "connection_failed": "Connessione non riuscita"
+      "connection_failed": "Connessione non riuscita",
+      "door_address_unknown": "Indirizzo del citofono non riconosciuto",
+      "door_address_confirm_description": "Il centralino invia la password del citofono solo all'indirizzo da cui si registra. Se {address} è il citofono, per esempio tramite l'inoltro di una porta su un altro indirizzo IP pubblico della sua sede, confermalo. Altrimenti inserisci la password del citofono.",
+      "door_address_confirm": "Invia la password a {address}",
+      "door_address_enter_password": "Inserisci la password",
+      "door_address_confirmed": "Il centralino invia la password del citofono a {address}.",
+      "door_address_superadmin_only": "Solo il superadmin può confermare un altro indirizzo del citofono: inserisci la password per usare questo indirizzo"
     },
     "param_urls": {
       "description": "Un URL parametrizzato apre una pagina web con i dati della chiamata in arrivo in {cti}.",

@@ -1627,7 +1627,13 @@
       "invalid_value": "This value is not valid",
       "request_refused": "The PBX refused the data of the video source. Check the values and try again.",
       "too_many_checks": "Too many connection tests in a short time. Try again in a minute.",
-      "connection_failed": "Connection failed"
+      "connection_failed": "Connection failed",
+      "door_address_unknown": "Unknown door phone address",
+      "door_address_confirm_description": "The PBX sends the password of the door phone only to the address it registers from. If {address} is the door phone, for example through port forwarding on another public IP address of its site, confirm it. Otherwise, enter the password of the door phone.",
+      "door_address_confirm": "Send password to {address}",
+      "door_address_enter_password": "Enter password",
+      "door_address_confirmed": "The PBX sends the password of the door phone to {address}.",
+      "door_address_superadmin_only": "Only the superadmin can confirm another address of the door phone: enter the password to use this address"
     },
     "param_urls": {
       "description": "A parameterized URL opens a web page with the data of the incoming call in {cti}.",

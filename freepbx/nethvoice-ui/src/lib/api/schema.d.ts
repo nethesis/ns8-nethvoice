@@ -3416,7 +3416,7 @@ export interface components {
       profiles?: (string | number)[]
       /** @description MAC of a door phone prepared by `POST /cti/streaming/doorphones/{mac}`, whose generated RTSP password is used when `secret` is empty and `user` is the door phone user name. */
       door_phone?: string
-      /** @description The administrator confirms that the host of `url` is the door phone, for example a port forward on another public address of its site. Without it, the door phone password is sent only to the addresses of its SIP registration (400, field `secret`). */
+      /** @description The administrator confirms that the host of `url` is the door phone, for example a port forward on another public address of its site. Without it, the door phone password is sent only to the addresses of its SIP registration (400, field `secret`). Only the superadmin can confirm the address, a limited administrator who sends it true gets 400 (field `door_phone_confirm_address`) and must type the password. */
       door_phone_confirm_address?: boolean
     }
     VideoSource: {

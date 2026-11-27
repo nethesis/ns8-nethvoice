@@ -1032,10 +1032,12 @@ test.describe('integrations: video sources', () => {
     await expect(drawer.getByText('The PBX cannot reach the device at this address')).toHaveCount(0)
   })
 
-  test('asks for the password when a door phone source points to another address', async ({
+  test('asks a limited administrator for the password when a door phone source points to another address', async ({
     page,
     mockApi,
   }) => {
+    mockPermissions(mockApi, ['integrations'], 'operator')
+    backend.limited = true
     backend.check('rtsp://192.168.9.218:554/h264/stream.live0', { success: true })
     await openTab(page)
     await page.getByRole('button', { name: 'Create from a door phone' }).click()
@@ -1059,6 +1061,8 @@ test.describe('integrations: video sources', () => {
     ).toBeVisible()
     await expect(password).toBeFocused()
     await expect(drawer.getByRole('textbox', { name: 'Username' })).toHaveValue('rtsp-viewer')
+    await expect(drawer.getByText('Unknown door phone address')).toHaveCount(0)
+    await expect(drawer.getByRole('button', { name: /^Send password to/ })).toHaveCount(0)
 
     await drawer.getByRole('button', { name: 'Next' }).click()
     await expect(drawer.getByText('Enter the password', { exact: true })).toBeVisible()
@@ -1078,6 +1082,101 @@ test.describe('integrations: video sources', () => {
     const body = mockApi.callsTo('POST', STREAMING_PATH)[0]?.body as Record<string, unknown>
     expect(body).toMatchObject({ user: 'rtsp-viewer', secret: 'Typed-1' })
     expect(body).not.toHaveProperty('door_phone')
+  })
+
+  test('lets the superadmin send the door phone password to a confirmed address', async ({
+    page,
+    mockApi,
+  }) => {
+    const forwarded = 'rtsp://203.0.113.9:555/h264/stream.live0'
+    backend.check(forwarded, { success: true })
+    await openTab(page)
+    await page.getByRole('button', { name: 'Create from a door phone' }).click()
+    await page
+      .getByRole('dialog', { name: 'Create from a door phone' })
+      .getByRole('button', { name: 'Use Courtyard' })
+      .click()
+
+    const drawer = page.getByRole('dialog', { name: 'Create video source' })
+    await drawer.getByRole('textbox', { name: 'URL' }).fill(forwarded)
+    await drawer.getByRole('button', { name: 'Next' }).click()
+
+    await expect(drawer.getByText('Unknown door phone address')).toBeVisible()
+    await expect(
+      drawer.getByText(/^The PBX sends the password of the door phone only to the address/),
+    ).toContainText('If 203.0.113.9 is the door phone')
+    await expect(drawer.getByLabel(/^Password/)).toHaveCount(0)
+    await expect(drawer.getByText('Step 1/2')).toBeVisible()
+    expect(mockApi.callsTo('POST', TEST_PATH).at(-1)?.body).not.toHaveProperty(
+      'door_phone_confirm_address',
+    )
+
+    await drawer.getByRole('button', { name: 'Send password to 203.0.113.9' }).click()
+    await expect(
+      drawer.getByText('The PBX sends the password of the door phone to 203.0.113.9.'),
+    ).toBeVisible()
+    await expect(drawer.getByText('Unknown door phone address')).toHaveCount(0)
+    expect(mockApi.callsTo('POST', TEST_PATH).at(-1)?.body).toEqual({
+      url: forwarded,
+      user: 'rtsp-viewer',
+      secret: '',
+      tls_skip_verify: false,
+      details: true,
+      door_phone: '0C-38-3E-32-7C-01',
+      door_phone_confirm_address: true,
+    })
+
+    await drawer.getByRole('button', { name: 'Next' }).click()
+    await expect(drawer.getByText('Step 2/2')).toBeVisible()
+    await drawer.getByRole('button', { name: 'Create' }).click()
+    await expect(page.getByText('Video source Courtyard has been created.')).toBeVisible()
+    expect(mockApi.callsTo('POST', STREAMING_PATH)[0]?.body).toMatchObject({
+      url: forwarded,
+      user: 'rtsp-viewer',
+      secret: '',
+      door_phone: '0C-38-3E-32-7C-01',
+      door_phone_confirm_address: true,
+    })
+  })
+
+  test('confirms only the device of the URL and lets the superadmin type the password instead', async ({
+    page,
+    mockApi,
+  }) => {
+    const forwarded = 'rtsp://203.0.113.9:555/h264/stream.live0'
+    backend.check(forwarded, { success: true })
+    await openTab(page)
+    await page.getByRole('button', { name: 'Edit Main entrance' }).click()
+    const drawer = page.getByRole('dialog', { name: 'Edit video source' })
+    const url = drawer.getByRole('textbox', { name: 'URL' })
+
+    await url.fill(forwarded)
+    await drawer.getByRole('button', { name: 'Save' }).click()
+    await expect(drawer.getByText('Unknown door phone address')).toBeVisible()
+    await expect(drawer.getByText('Cannot save the video source')).toHaveCount(0)
+    expect(mockApi.callsTo('PUT', `${STREAMING_PATH}/:descr`)).toHaveLength(0)
+
+    await url.fill('rtsp://203.0.113.10:555/h264/stream.live0')
+    await expect(drawer.getByText('Unknown door phone address')).toHaveCount(0)
+    await url.fill(forwarded)
+    await expect(drawer.getByText('Unknown door phone address')).toBeVisible()
+
+    await drawer.getByRole('button', { name: 'Enter password' }).click()
+    const password = drawer.getByRole('textbox', { name: 'Password', exact: true })
+    await expect(password).toBeFocused()
+    await expect(drawer.getByRole('textbox', { name: 'Username' })).toHaveValue('rtsp-viewer')
+    await expect(drawer.getByText('Unknown door phone address')).toHaveCount(0)
+    await password.fill('Typed-1')
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('Video source Main entrance has been updated.')).toBeVisible()
+    const body = mockApi.callsTo('PUT', `${STREAMING_PATH}/:descr`)[0]?.body as Record<
+      string,
+      unknown
+    >
+    expect(body).toMatchObject({ url: forwarded, user: 'rtsp-viewer', secret: 'Typed-1' })
+    expect(body).not.toHaveProperty('door_phone')
+    expect(body).not.toHaveProperty('door_phone_confirm_address')
   })
 
   test('suggests the public address of a door phone the PBX cannot reach', async ({

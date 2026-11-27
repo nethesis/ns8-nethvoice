@@ -18,6 +18,7 @@ import {
   detectDeviceType,
   detectQuality,
   emptyVideoSourceForm,
+  endpointHost,
   FANVIL_STREAMS,
   formatVideoInfo,
   fromDoorPhonePrefill,
@@ -25,6 +26,7 @@ import {
   gateLimit,
   getAddressIssue,
   getFailureKey,
+  isDoorAddressConfirmed,
   isDoorPasswordRequest,
   isGateCodeLocked,
   issueParams,
@@ -297,6 +299,45 @@ describe('payload mapping', () => {
     expect(buildCheckPayload({ ...doorForm, ownCredentials: true })).not.toHaveProperty(
       'door_phone',
     )
+  })
+
+  it('confirms the address of a door phone for the device of the URL only', () => {
+    const doorForm = form({
+      url: 'rtsp://203.0.113.9:555/h264/stream.live0',
+      user: 'rtsp-user',
+      doorPhone: '0C-38-3E-32-6B-84',
+    })
+    const confirmed = { ...doorForm, confirmedAddress: 'rtsp://203.0.113.9:555' }
+
+    expect(isDoorAddressConfirmed(doorForm)).toBe(false)
+    expect(buildCheckPayload(doorForm)).not.toHaveProperty('door_phone_confirm_address')
+    expect(buildVideoSourcePayload(doorForm)).not.toHaveProperty('door_phone_confirm_address')
+    expect(isDoorAddressConfirmed(confirmed)).toBe(true)
+    expect(buildCheckPayload(confirmed)).toMatchObject({
+      secret: '',
+      door_phone: '0C-38-3E-32-6B-84',
+      door_phone_confirm_address: true,
+    })
+    expect(buildVideoSourcePayload(confirmed).door_phone_confirm_address).toBe(true)
+    expect(connectionSignature(confirmed)).not.toBe(connectionSignature(doorForm))
+    expect(
+      isDoorAddressConfirmed({ ...confirmed, url: 'rtsp://203.0.113.9:555/h264/stream.live1' }),
+    ).toBe(true)
+
+    const moved = { ...confirmed, url: 'rtsp://203.0.113.10:555/h264/stream.live0' }
+    expect(isDoorAddressConfirmed(moved)).toBe(false)
+    expect(buildCheckPayload(moved)).not.toHaveProperty('door_phone_confirm_address')
+
+    const typed = { ...confirmed, ownCredentials: true, password: 'typed' }
+    expect(isDoorAddressConfirmed(typed)).toBe(false)
+    expect(buildVideoSourcePayload(typed)).not.toHaveProperty('door_phone_confirm_address')
+    expect(emptyVideoSourceForm().confirmedAddress).toBe('')
+  })
+
+  it('shows the host of a confirmed address', () => {
+    expect(endpointHost('rtsp://203.0.113.9:555')).toBe('203.0.113.9')
+    expect(endpointHost(urlEndpoint('rtsps://[2001:db8::9]/live'))).toBe('[2001:db8::9]')
+    expect(endpointHost(urlEndpoint('rtsp://door.example.test/live'))).toBe('door.example.test')
   })
 
   it('never puts a stored secret in the form or in the payloads', () => {
@@ -1023,6 +1064,28 @@ describe('mapSaveError', () => {
       password: 'integrations.video.door_phone_password_not_allowed',
     })
     expect(isDoorPasswordRequest(doorPassword.issues)).toBe(true)
+    const confirmRefused = mapSaveError(
+      apiError(400, {
+        status: 'only the superadmin can confirm the address of a door phone: type the password',
+        field: 'door_phone_confirm_address',
+      }),
+      gates,
+    )
+    expect(confirmRefused).toEqual({
+      issues: { password: 'integrations.video.door_address_superadmin_only' },
+      message: '',
+    })
+    expect(isDoorPasswordRequest(confirmRefused.issues)).toBe(true)
+    expect(
+      mapSaveError(
+        apiError(400, {
+          status:
+            'the door phone password is sent only to the address the door phone registers from: confirm the address or type the password',
+          field: 'secret',
+        }),
+        gates,
+      ).issues,
+    ).toEqual({ password: 'integrations.video.door_phone_password_not_allowed' })
     expect(
       mapSaveError(
         apiError(400, {

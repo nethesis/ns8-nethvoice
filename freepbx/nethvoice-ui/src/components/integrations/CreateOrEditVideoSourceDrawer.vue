@@ -20,7 +20,11 @@ import {
   NeTooltip,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faArrowRightArrowLeft, faCircleInfo } from '@fortawesome/free-solid-svg-icons'
+import {
+  faArrowRightArrowLeft,
+  faCircleCheck,
+  faCircleInfo,
+} from '@fortawesome/free-solid-svg-icons'
 import ProfilesMultiselect from './ProfilesMultiselect.vue'
 import VideoSourceCheckResult from './VideoSourceCheckResult.vue'
 import VideoSourceGatesEditor from './VideoSourceGatesEditor.vue'
@@ -37,11 +41,13 @@ import {
   connectionSignature,
   detectQuality,
   emptyVideoSourceForm,
+  endpointHost,
   firstGateIssueUids,
   fromDoorPhonePrefill,
   gateLimit,
   getAddressIssue,
   hasQualityChoice,
+  isDoorAddressConfirmed,
   isDoorPasswordRequest,
   isStoredPasswordKept,
   isTlsRelevant,
@@ -52,6 +58,7 @@ import {
   streamsOf,
   testVideoSource,
   toVideoSourceForm,
+  urlEndpoint,
   usesDoorPhoneCredentials,
   validateConnection,
   validateGates,
@@ -68,6 +75,7 @@ import {
   type VideoSourceForm,
 } from '@/lib/integrations/videoSources'
 import { useExtensionOptions, useProfileOptions } from '@/queries/integrations/lookups'
+import { usePermissions } from '@/queries/permissions/me'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 
@@ -100,6 +108,7 @@ const notificationsStore = useNotificationsStore()
 const runtimeConfigStore = useRuntimeConfigStore()
 const { state: profilesState } = useProfileOptions()
 const { state: extensionsState } = useExtensionOptions()
+const { isSuperadmin } = usePermissions()
 
 const form = ref<VideoSourceForm>(emptyVideoSourceForm())
 const step = ref<1 | 2>(1)
@@ -111,6 +120,7 @@ const lastCheck = ref<{ signature: string; check: VideoSourceCheck } | null>(nul
 const testOrigin = ref<'' | 'button' | 'submit'>('')
 const isShownDiscardModal = ref(false)
 const doorNotice = ref<{ registered: boolean; credentialsGenerated: boolean } | null>(null)
+const doorRefusal = ref<{ endpoint: string; user: string } | null>(null)
 let testRun = 0
 
 useFocusReturn(() => isShown)
@@ -125,6 +135,7 @@ const tlsRef = useTemplateRef<Focusable>('tlsRef')
 const gatesRef = useTemplateRef<InstanceType<typeof VideoSourceGatesEditor>>('gatesRef')
 const resultRef = useTemplateRef<HTMLElement>('resultRef')
 const step2Ref = useTemplateRef<HTMLElement>('step2Ref')
+const doorConfirmRef = useTemplateRef<HTMLElement>('doorConfirmRef')
 
 const fieldRefs: Record<string, Readonly<{ value: Focusable | null }>> = {
   name: nameRef,
@@ -198,6 +209,17 @@ const passwordHelper = computed(() => {
     ? t('integrations.password_keep_helper')
     : t('integrations.video.password_device_changed_helper')
 })
+const doorAddressToConfirm = computed(() =>
+  doorRefusal.value &&
+  usesDoorPhoneCredentials(form.value) &&
+  doorRefusal.value.endpoint === urlEndpoint(form.value.url) &&
+  !isDoorAddressConfirmed(form.value)
+    ? endpointHost(doorRefusal.value.endpoint)
+    : '',
+)
+const doorAddressConfirmed = computed(() =>
+  isDoorAddressConfirmed(form.value) ? endpointHost(form.value.confirmedAddress) : '',
+)
 const unexpectedTestError = computed(() =>
   testError.value && Object.keys(mapSaveError(testError.value, []).issues).length === 0
     ? testError.value
@@ -269,6 +291,7 @@ function initialize() {
   testOrigin.value = ''
   testRun += 1
   doorNotice.value = null
+  doorRefusal.value = null
   saveReset()
   testReset()
 
@@ -361,12 +384,50 @@ function setQuality(quality: StreamQuality) {
   }
 }
 
-function applyServerIssues(mapped: FieldIssues) {
+function applyServerIssues(mapped: FieldIssues): boolean {
+  if (
+    isSuperadmin.value &&
+    mapped.password === 'integrations.video.door_phone_password_not_allowed' &&
+    usesDoorPhoneCredentials(form.value)
+  ) {
+    const others = { ...mapped }
+
+    delete others.password
+    issues.value = { ...issues.value, ...others }
+    doorRefusal.value = { endpoint: urlEndpoint(form.value.url), user: form.value.user }
+    return true
+  }
   issues.value = { ...issues.value, ...mapped }
 
   if (isDoorPasswordRequest(mapped) && form.value.doorPhone) {
     form.value.ownCredentials = true
   }
+  return false
+}
+
+async function focusDoorConfirm() {
+  await nextTick()
+  doorConfirmRef.value?.focus()
+}
+
+async function confirmDoorAddress() {
+  if (!doorRefusal.value || busy.value) {
+    return
+  }
+  form.value.confirmedAddress = doorRefusal.value.endpoint
+  doorRefusal.value = null
+  await testButton()
+}
+
+async function enterDoorPassword() {
+  if (!doorRefusal.value || busy.value) {
+    return
+  }
+  form.value.user = doorRefusal.value.user
+  form.value.ownCredentials = true
+  doorRefusal.value = null
+  await nextTick()
+  passwordRef.value?.focus()
 }
 
 async function focusFirstIssue() {
@@ -417,8 +478,7 @@ async function runTest(origin: 'button' | 'submit'): Promise<VideoSourceCheck | 
       const mapped = mapSaveError(error, form.value.gates).issues
 
       if (Object.keys(mapped).length > 0) {
-        applyServerIssues(mapped)
-        void focusFirstIssue()
+        void (applyServerIssues(mapped) ? focusDoorConfirm() : focusFirstIssue())
       }
     }
     return null
@@ -520,7 +580,14 @@ async function save() {
   } catch (error) {
     const mapped = mapSaveError(error, sourceForm.gates)
 
-    applyServerIssues(mapped.issues)
+    if (applyServerIssues(mapped.issues)) {
+      saveReset()
+      if (!isEdit.value) {
+        step.value = 1
+      }
+      void focusDoorConfirm()
+      return
+    }
     saveMessage.value = mapped.message
 
     if (!isEdit.value && Object.keys(mapped.issues).some((key) => key in fieldRefs)) {
@@ -723,6 +790,36 @@ const saveFailed = computed(() => !!saveMessage.value || (!!saveError.value && !
             kind="info"
             :description="t('integrations.video.credentials_generated')"
           />
+          <div
+            v-if="doorAddressToConfirm"
+            ref="doorConfirmRef"
+            tabindex="-1"
+            class="outline-hidden"
+          >
+            <NeInlineNotification
+              kind="warning"
+              :title="t('integrations.video.door_address_unknown')"
+              :description="
+                t('integrations.video.door_address_confirm_description', {
+                  address: doorAddressToConfirm,
+                })
+              "
+              :primary-button-label="
+                t('integrations.video.door_address_confirm', { address: doorAddressToConfirm })
+              "
+              :secondary-button-label="t('integrations.video.door_address_enter_password')"
+              @primary-click="confirmDoorAddress"
+              @secondary-click="enterDoorPassword"
+            />
+          </div>
+          <p v-if="doorAddressConfirmed" role="status" class="flex items-center gap-2 text-sm">
+            <FontAwesomeIcon
+              :icon="faCircleCheck"
+              class="text-icon-enabled size-4"
+              aria-hidden="true"
+            />
+            {{ t('integrations.video.door_address_confirmed', { address: doorAddressConfirmed }) }}
+          </p>
         </div>
         <template v-if="showCredentials">
           <NeTextInput

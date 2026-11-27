@@ -170,6 +170,7 @@ export type VideoSourceForm = {
   tlsSkipVerify: boolean
   doorPhone: string
   ownCredentials: boolean
+  confirmedAddress: string
   gates: GateForm[]
 }
 
@@ -598,6 +599,7 @@ export const emptyVideoSourceForm = (profileIds: string[] = []): VideoSourceForm
   tlsSkipVerify: false,
   doorPhone: '',
   ownCredentials: false,
+  confirmedAddress: '',
   gates: [],
 })
 
@@ -679,6 +681,7 @@ export const toVideoSourceForm = (
     tlsSkipVerify: source.tlsSkipVerify,
     doorPhone: source.doorPhone,
     ownCredentials: false,
+    confirmedAddress: '',
     gates: syncDoorGates(
       source.gates.map((gate) => ({ ...gate, uid: newGateUid(), password: '', relay: null })),
       source.doorPhone ? (context?.relays ?? []) : [],
@@ -712,6 +715,20 @@ export const usesDoorPhoneCredentials = (
   form: Pick<VideoSourceForm, 'doorPhone' | 'ownCredentials'>,
 ): boolean => !!form.doorPhone && !form.ownCredentials
 
+export const isDoorAddressConfirmed = (
+  form: Pick<VideoSourceForm, 'doorPhone' | 'ownCredentials' | 'confirmedAddress' | 'url'>,
+): boolean =>
+  usesDoorPhoneCredentials(form) &&
+  !!form.confirmedAddress &&
+  form.confirmedAddress === urlEndpoint(form.url)
+
+export const endpointHost = (endpoint: string): string => {
+  const authority = endpoint.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+  const host = authority.slice(0, authority.lastIndexOf(':'))
+
+  return host.includes(':') ? `[${host}]` : host
+}
+
 export const gateLimit = (doorPhone: string, maxGates: number | null): number =>
   doorPhone && maxGates ? Math.min(maxGates, VIDEO_SOURCE_MAX_GATES) : VIDEO_SOURCE_MAX_GATES
 
@@ -724,6 +741,7 @@ export const connectionSignature = (form: VideoSourceForm): string => {
     doorCredentials || !form.user.trim() ? '' : form.password,
     isTlsUrl(form.url) && form.tlsSkipVerify,
     doorCredentials ? form.doorPhone : '',
+    isDoorAddressConfirmed(form),
   ])
 }
 
@@ -936,6 +954,7 @@ const credentialsPayload = (form: VideoSourceForm) => {
     user,
     secret: user && !door ? form.password : '',
     ...(door ? { door_phone: form.doorPhone } : {}),
+    ...(isDoorAddressConfirmed(form) ? { door_phone_confirm_address: true } : {}),
   }
 }
 
@@ -961,6 +980,7 @@ export type CheckPayload = {
   details: true
   descr?: string
   door_phone?: string
+  door_phone_confirm_address?: boolean
 }
 
 export const buildCheckPayload = (
@@ -1044,6 +1064,10 @@ const MESSAGE_KEYS: [RegExp, string][] = [
   ...ADDRESS_ISSUES,
   [/address is not allowed/, 'integrations.video.failure_address_not_allowed'],
   [/door phone password is sent only/, 'integrations.video.door_phone_password_not_allowed'],
+  [
+    /only the superadmin can confirm the address/,
+    'integrations.video.door_address_superadmin_only',
+  ],
   [/door phone not found|invalid door phone$/, 'integrations.video.door_phone_not_found'],
   [/invalid door phone DTMF code/, 'integrations.video.door_dtmf_invalid'],
   [/address changed: type the password again/, 'integrations.video.password_address_changed'],
@@ -1071,6 +1095,7 @@ const FIELD_NAMES: Record<string, string> = {
   profiles: 'profileIds',
   tls_skip_verify: 'tlsSkipVerify',
   gates: 'gates',
+  door_phone_confirm_address: 'password',
 }
 
 const GATE_FIELDS: Record<string, string> = {
@@ -1086,7 +1111,8 @@ const GATE_FIELDS: Record<string, string> = {
 export type SaveErrorMapping = { issues: FieldIssues; message: string }
 
 export const isDoorPasswordRequest = (issues: FieldIssues): boolean =>
-  issues.password === 'integrations.video.door_phone_password_not_allowed'
+  issues.password === 'integrations.video.door_phone_password_not_allowed' ||
+  issues.password === 'integrations.video.door_address_superadmin_only'
 
 export const mapSaveError = (error: unknown, gates: GateForm[]): SaveErrorMapping => {
   if (!isApiError(error) || error.status >= 500 || error.status === 404) {

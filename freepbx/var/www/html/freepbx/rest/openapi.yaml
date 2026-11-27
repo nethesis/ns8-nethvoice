@@ -6443,7 +6443,9 @@ components:
             the door phone, for example a port forward on another public
             address of its site. Without it, the door phone password is sent
             only to the addresses of its SIP registration (400, field
-            `secret`).
+            `secret`). Only the superadmin can confirm the address, a limited
+            administrator who sends it true gets 400 (field
+            `door_phone_confirm_address`) and must type the password.
     VideoSource:
       type: object
       properties:
