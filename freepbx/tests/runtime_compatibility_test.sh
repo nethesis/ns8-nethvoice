@@ -16,6 +16,12 @@ framework_cron_class=/var/www/html/freepbx/admin/modules/framework/amp_conf/htdo
 grep -A1 -F 'function installCrontab($arr) {' "$cron_class" | grep -Eq '^[[:space:]]*return;$'
 cmp -s "$cron_class" "$framework_cron_class"
 echo 'The no-op Cron class replaces both the live and the framework copy'
+php -r 'require "/var/www/html/freepbx/admin/libraries/Composer/vendor/autoload.php";
+    require $argv[1];
+    $cron = new FreePBX\Cron("asterisk");
+    $cron->removeAll("/nonexistent/cron-test");
+    exit($cron->remove("* * * * * /nonexistent/cron-test") === false ? 0 : 1);' "$cron_class"
+echo 'The Cron class removal methods take their lock and run'
 
 test_dir=$(mktemp -d)
 asterisk_pid=
