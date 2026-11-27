@@ -14,8 +14,10 @@ import { faCopy } from "@fortawesome/free-solid-svg-icons";
 import { useI18n } from "vue-i18n";
 import FieldCombobox from "./FieldCombobox.vue";
 import StatusBadge from "./StatusBadge.vue";
-import { errorCode, errorDetails, request, queryClient } from "../api";
+import { auth, errorCode, errorDetails, request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
+import { useSessionResume } from "../composables/useSessionResume";
+import SessionExpiredModal from "./SessionExpiredModal.vue";
 import { useUi } from "../stores/ui";
 import type { Catalog, Trunk } from "../types";
 const props = defineProps<{ isShown: boolean; trunk?: Trunk }>();
@@ -43,6 +45,13 @@ const blank = () => ({
   webhook_secret: "",
 });
 const form = ref(blank());
+// The form as it was opened: a changed form stays on the page while the
+// session is expired, and the interrupted save runs after signing in.
+const opened = ref("");
+const dirty = computed(() => JSON.stringify(form.value) !== opened.value);
+const session = useSessionResume(
+  () => (props.isShown && dirty.value) || task.pending.value,
+);
 const errors = ref<Record<string, string>>({});
 type TestResult = { ok: boolean; message: string; webhook: string };
 const testResult = ref<TestResult | null>(null);
@@ -83,6 +92,7 @@ watch(
           }
         : {}),
     };
+    opened.value = JSON.stringify(form.value);
   },
   { immediate: true },
 );
@@ -288,24 +298,34 @@ async function save() {
               : {}),
             ...(showWebhook.value ? { webhook_secret: f.webhook_secret } : {}),
           };
-  await task.run(
-    async () => {
-      const saved = await request<Trunk>(
-        editing.value ? "PUT" : "POST",
-        editing.value ? "/trunks/" + props.trunk!.binding_id : "/trunks",
+  const updated = editing.value;
+  await task.run(async () => {
+    let saved: Trunk;
+    try {
+      saved = await request<Trunk>(
+        updated ? "PUT" : "POST",
+        updated ? "/trunks/" + props.trunk!.binding_id : "/trunks",
         { trunk, expected_revision: props.trunk?.revision || 0 },
       );
-      await queryClient.invalidateQueries({ queryKey: ["trunks"] });
-      emit("saved", saved);
-      close();
-    },
-    {
-      title: t(editing.value ? "trunkUpdated" : "trunkCreated"),
-      description: t(editing.value ? "trunkUpdatedHelp" : "trunkCreatedHelp", {
-        name,
-      }),
-    },
-  );
+    } catch (failure) {
+      // A rejected session keeps the drawer and saves again after sign-in.
+      if (
+        errorCode(failure) === "authentication_required" ||
+        !auth.authorized
+      ) {
+        session.interrupted(save);
+        return;
+      }
+      throw failure;
+    }
+    await queryClient.invalidateQueries({ queryKey: ["trunks"] });
+    emit("saved", saved);
+    ui.notify(
+      t(updated ? "trunkUpdated" : "trunkCreated"),
+      t(updated ? "trunkUpdatedHelp" : "trunkCreatedHelp", { name }),
+    );
+    close();
+  }, false);
 }
 function close() {
   form.value.api_key = "";
@@ -565,4 +585,9 @@ function close() {
       </div>
     </form>
   </NeSideDrawer>
+  <SessionExpiredModal
+    :visible="session.dialog.value"
+    @cancel="session.cancel"
+    @sign-in="session.signInAgain"
+  />
 </template>

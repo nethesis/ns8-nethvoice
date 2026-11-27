@@ -189,3 +189,41 @@ test("an available integrations key shows as set", async ({ page }) => {
   await page.getByRole("button", { name: "Create trunk" }).first().click();
   await expect(page.getByRole("dialog").getByRole("radio", { name: "NethVoice integrations key" })).toHaveAccessibleName(/^NethVoice integrations key\s*Already set\. It is in/);
 });
+test("an expired session keeps the trunk drawer and saves after sign-in", async ({ page }) => {
+  const posted: { name: string; api_key: string }[] = [];
+  let rejected = false;
+  await mockTrunks(page, {
+    lab: false,
+    trunks: [],
+    handle: (path, body) => {
+      if (path !== "/trunks") return {};
+      if (!rejected) {
+        rejected = true;
+        return { status: 401, json: { error: "unauthorized" } };
+      }
+      posted.push(body.trunk);
+      return { ...body.trunk, binding_id: "kept", revision: 1 };
+    },
+  });
+  await page.goto("./#/trunks");
+  await page.getByRole("button", { name: "Create trunk" }).first().click();
+  const drawer = page.getByRole("dialog").filter({ hasText: "Create trunk" });
+  await drawer.getByLabel("Name", { exact: true }).fill("Kept trunk");
+  await drawer.getByRole("radio", { name: "Dedicated key" }).check();
+  await drawer.getByLabel("Provider API key").fill("sk-synthetic");
+  await drawer.getByRole("button", { name: "Create", exact: true }).click();
+  // The drawer and its input stay behind the Session expired dialog.
+  const expired = page.getByRole("dialog").filter({ hasText: "Session expired" });
+  await expect(expired.getByRole("button", { name: "Sign in", exact: true })).toBeVisible();
+  await expect(page.getByText("Administrator login required")).toHaveCount(0);
+  await expect(drawer.getByLabel("Name", { exact: true })).toHaveValue("Kept trunk");
+  expect(posted).toEqual([]);
+  await page.evaluate(() => {
+    localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "renewed" }));
+    window.dispatchEvent(new StorageEvent("storage", { key: "secretkey" }));
+  });
+  // The interrupted save runs again by itself, with the same input.
+  await expect.poll(() => posted.map((trunk) => [trunk.name, trunk.api_key])).toEqual([["Kept trunk", "sk-synthetic"]]);
+  await expect(drawer).toBeHidden();
+  await expect(page.getByText("Trunk Kept trunk has been created")).toBeVisible();
+});
