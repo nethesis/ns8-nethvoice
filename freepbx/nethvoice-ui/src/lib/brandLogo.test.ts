@@ -33,14 +33,40 @@ describe('customLogoUrl', () => {
 })
 
 describe('customLoginLogoUrl', () => {
-  it('should prefer the logo for dark backgrounds on the sign in panel', () => {
-    expect(
-      customLoginLogoUrl(parseRuntimeConfig({ LOGIN_LOGO_URL: ON_DARK, LOGO_LIGHT_URL: ON_LIGHT })),
-    ).toBe(ON_DARK)
+  const ON_LOGIN = 'https://cdn.acme.example/login.svg'
+
+  it('should pick the logo made for the background of the theme', () => {
+    const config = parseRuntimeConfig({ NAVBAR_LOGO_URL: ON_DARK, LOGO_LIGHT_URL: ON_LIGHT })
+
+    expect(customLoginLogoUrl(config, 'light')).toBe(ON_LIGHT)
+    expect(customLoginLogoUrl(config, 'dark')).toBe(ON_DARK)
   })
 
-  it('should fall back to the logo for light backgrounds', () => {
-    expect(customLoginLogoUrl(parseRuntimeConfig({ LOGO_LIGHT_URL: ON_LIGHT }))).toBe(ON_LIGHT)
-    expect(customLoginLogoUrl(DEFAULT_RUNTIME_CONFIG)).toBe('')
+  it('should use the single logo in both themes', () => {
+    const darkOnly = parseRuntimeConfig({ NAVBAR_LOGO_URL: ON_DARK })
+    const lightOnly = parseRuntimeConfig({ LOGO_LIGHT_URL: ON_LIGHT })
+    const loginOnly = parseRuntimeConfig({ LOGIN_LOGO_URL: ON_LOGIN })
+
+    for (const background of ['light', 'dark'] as const) {
+      expect(customLoginLogoUrl(darkOnly, background)).toBe(ON_DARK)
+      expect(customLoginLogoUrl(lightOnly, background)).toBe(ON_LIGHT)
+      expect(customLoginLogoUrl(loginOnly, background)).toBe(ON_LOGIN)
+    }
+  })
+
+  it('should prefer the sign in logo in the dark theme only', () => {
+    const config = parseRuntimeConfig({
+      NAVBAR_LOGO_URL: ON_DARK,
+      LOGO_LIGHT_URL: ON_LIGHT,
+      LOGIN_LOGO_URL: ON_LOGIN,
+    })
+
+    expect(customLoginLogoUrl(config, 'dark')).toBe(ON_LOGIN)
+    expect(customLoginLogoUrl(config, 'light')).toBe(ON_LIGHT)
+  })
+
+  it('should have no custom logo without rebranding', () => {
+    expect(customLoginLogoUrl(DEFAULT_RUNTIME_CONFIG, 'light')).toBe('')
+    expect(customLoginLogoUrl(DEFAULT_RUNTIME_CONFIG, 'dark')).toBe('')
   })
 })

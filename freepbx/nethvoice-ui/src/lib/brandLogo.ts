@@ -10,5 +10,7 @@ export const customLogoUrl = (config: RuntimeConfig, background: LogoBackground)
     ? config.logoLightUrl || config.navbarLogoUrl
     : config.navbarLogoUrl || config.logoLightUrl
 
-export const customLoginLogoUrl = (config: RuntimeConfig): string =>
-  config.loginLogoUrl || config.logoLightUrl
+export const customLoginLogoUrl = (config: RuntimeConfig, background: LogoBackground): string =>
+  background === 'light'
+    ? customLogoUrl(config, 'light') || config.loginLogoUrl
+    : config.loginLogoUrl || customLogoUrl(config, 'dark')

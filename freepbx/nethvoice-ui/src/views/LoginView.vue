@@ -5,6 +5,8 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faArrowRightToBracket } from '@fortawesome/free-solid-svg-icons'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import * as v from 'valibot'
@@ -19,11 +21,13 @@ import {
 import { useLoginStore } from '@/stores/login'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { useSignInSplashStore } from '@/stores/signInSplash'
+import { useThemeStore } from '@/stores/theme'
 import { LoginSchema, SignInError, type SignInFailure } from '@/lib/auth'
 import type { Focusable } from '@/lib/common'
 import { getInternalRedirect } from '@/lib/setup/guard'
-import { customLoginLogoUrl } from '@/lib/brandLogo'
-import LogoDark from '@/assets/logo_dark.svg'
+import BrandLogo from '@/components/shell/BrandLogo.vue'
+import LoginBackgroundLight from '@/assets/login/nethvoice-login-bg-light.webp'
+import LoginBackgroundDark from '@/assets/login/nethvoice-login-bg-dark.webp'
 
 type LoginError = '' | SignInFailure
 
@@ -33,6 +37,7 @@ const router = useRouter()
 const loginStore = useLoginStore()
 const runtimeConfigStore = useRuntimeConfigStore()
 const splashStore = useSignInSplashStore()
+const themeStore = useThemeStore()
 
 const username = ref(loginStore.rememberedUsername())
 const password = ref('')
@@ -44,18 +49,19 @@ const validationIssues = ref<Partial<Record<'username' | 'password', string>>>({
 const usernameRef = useTemplateRef<Focusable>('usernameRef')
 const passwordRef = useTemplateRef<Focusable>('passwordRef')
 
-const backgroundStyle = computed(() => {
-  const backgroundUrl = runtimeConfigStore.config.loginBackgroundUrl
-  return backgroundUrl ? { backgroundImage: `url("${backgroundUrl}")` } : {}
+const customBackgroundFailed = ref(false)
+
+const backgroundUrl = computed(() => {
+  if (!runtimeConfigStore.loaded) {
+    return ''
+  }
+  const customUrl = runtimeConfigStore.config.loginBackgroundUrl
+
+  if (customUrl && !customBackgroundFailed.value) {
+    return customUrl
+  }
+  return themeStore.isLight ? LoginBackgroundLight : LoginBackgroundDark
 })
-
-const customLogoFailed = ref(false)
-
-const customLogoUrl = computed(() =>
-  customLogoFailed.value ? '' : customLoginLogoUrl(runtimeConfigStore.config),
-)
-
-const rightPanelLogo = computed(() => customLogoUrl.value || LogoDark)
 
 const loginErrorDescription = computed(() => {
   if (loginError.value === 'too_many_attempts' && retryAfter.value !== null) {
@@ -66,9 +72,9 @@ const loginErrorDescription = computed(() => {
 })
 
 watch(
-  () => customLoginLogoUrl(runtimeConfigStore.config),
+  () => runtimeConfigStore.config.loginBackgroundUrl,
   () => {
-    customLogoFailed.value = false
+    customBackgroundFailed.value = false
   },
 )
 
@@ -126,34 +132,37 @@ async function signIn() {
 </script>
 
 <template>
-  <div class="flex min-h-full">
+  <div class="relative isolate flex min-h-full items-center justify-center px-4 py-10">
+    <img
+      v-if="backgroundUrl"
+      :src="backgroundUrl"
+      alt=""
+      class="fixed inset-0 -z-10 size-full object-cover object-center"
+      data-testid="login-background"
+      @error="customBackgroundFailed = true"
+    />
     <div
-      class="elevation-0 flex w-full flex-col items-center justify-center px-6 py-12 lg:w-9/25 lg:min-w-128"
+      class="elevation-1 flex w-full max-w-125 flex-col gap-6 rounded-xl px-6 py-14 shadow-lg sm:px-10"
+      data-testid="login-card"
     >
-      <form
-        class="elevation-1 flex w-full max-w-md flex-col gap-6 rounded-lg p-10 shadow-lg"
-        novalidate
-        @submit.prevent="signIn"
-      >
+      <div class="flex flex-col items-center gap-5">
+        <BrandLogo variant="login" class="h-10 w-auto max-w-full object-contain" />
+        <h1 class="text-primary-active text-center text-2xl">{{ $t('login.product_label') }}</h1>
+      </div>
+      <form class="flex flex-col gap-6" novalidate @submit.prevent="signIn">
+        <NeInlineNotification
+          v-if="loginStore.sessionExpired && !loginError"
+          kind="warning"
+          :title="$t('login.session_expired')"
+          :description="$t('login.session_expired_description')"
+        />
+        <NeInlineNotification
+          v-if="loginError"
+          kind="error"
+          :title="$t(`login.${loginError}`)"
+          :description="loginErrorDescription"
+        />
         <div class="flex flex-col gap-8">
-          <div class="flex flex-col gap-2">
-            <h1 class="text-primary-neutral text-xl font-medium">{{ $t('login.welcome') }}</h1>
-            <p class="text-secondary-neutral">
-              {{ $t('login.sign_in_to_brand', { brand: runtimeConfigStore.config.brandName }) }}
-            </p>
-          </div>
-          <NeInlineNotification
-            v-if="loginStore.sessionExpired && !loginError"
-            kind="warning"
-            :title="$t('login.session_expired')"
-            :description="$t('login.session_expired_description')"
-          />
-          <NeInlineNotification
-            v-if="loginError"
-            kind="error"
-            :title="$t(`login.${loginError}`)"
-            :description="loginErrorDescription"
-          />
           <NeTextInput
             id="username"
             ref="usernameRef"
@@ -165,7 +174,7 @@ async function signIn() {
             autocapitalize="none"
             spellcheck="false"
           />
-          <div class="flex flex-col gap-1">
+          <div class="flex flex-col gap-3">
             <NeTextInput
               id="password"
               ref="passwordRef"
@@ -178,7 +187,7 @@ async function signIn() {
               :disabled="loading"
               autocomplete="current-password"
             />
-            <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
               <NeCheckbox
                 id="remember-username"
                 v-model="rememberUsername"
@@ -190,33 +199,27 @@ async function signIn() {
                 :href="runtimeConfigStore.docsUrl"
                 target="_blank"
                 rel="noreferrer"
-                class="whitespace-nowrap"
+                class="ml-auto whitespace-nowrap"
               >
                 {{ $t('common.need_help') }}
               </NeLink>
             </div>
           </div>
         </div>
-        <NeButton kind="primary" size="lg" type="submit" :loading="loading" :disabled="loading">
+        <NeButton
+          kind="primary"
+          size="lg"
+          type="submit"
+          class="w-full"
+          :loading="loading"
+          :disabled="loading"
+        >
+          <template #prefix>
+            <FontAwesomeIcon :icon="faArrowRightToBracket" class="size-4" aria-hidden="true" />
+          </template>
           {{ $t('login.sign_in') }}
         </NeButton>
       </form>
-    </div>
-    <div
-      class="from-primary-800 hidden flex-1 items-center justify-center bg-linear-to-b to-gray-950 bg-cover bg-center lg:flex"
-      :style="backgroundStyle"
-      aria-hidden="true"
-    >
-      <img
-        v-if="
-          runtimeConfigStore.loaded &&
-          (!runtimeConfigStore.config.loginBackgroundUrl || customLogoUrl)
-        "
-        :src="rightPanelLogo"
-        alt=""
-        :class="['h-9 w-auto max-w-3/5', { 'brightness-0 invert': !customLogoUrl }]"
-        @error="customLogoFailed = true"
-      />
     </div>
   </div>
 </template>

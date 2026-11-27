@@ -154,7 +154,7 @@ test.describe('sign-in splash', () => {
 
   test('lands directly on the dashboard on a rebranded instance', async ({ page }) => {
     await openLogin(page, { ...DEFAULT_CONFIG, BRAND_NAME: 'Acme Voice' })
-    await expect(page.getByText('Sign in to Acme Voice')).toBeVisible()
+    await expect(page.getByText('Acme Voice', { exact: true })).toBeVisible()
     await signIn(page)
 
     await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)

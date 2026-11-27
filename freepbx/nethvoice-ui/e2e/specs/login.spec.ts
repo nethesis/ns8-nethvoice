@@ -10,14 +10,35 @@ import {
   SIGN_IN_PATH,
   test,
 } from '../fixtures/mockApi'
+import type { Page } from '@playwright/test'
 import { mockPhonesApi, TANCREDI } from './phones-data'
+
+const DEFAULT_CONFIG = {
+  BRAND_NAME: 'NethVoice',
+  BRAND_DOCS: 'https://docs.nethvoice.com/it/',
+}
+
+const openLogin = async (page: Page, config: Record<string, string> = DEFAULT_CONFIG) => {
+  await page.route('**/nethvoice/config.json', (route) => route.fulfill({ json: config }))
+  await page.goto('./login')
+  await expect(page.getByRole('img', { name: 'NethVoice logo' })).toBeVisible()
+}
+
+const box = async (page: Page, testId: string) => {
+  const rect = await page.getByTestId(testId).boundingBox()
+  expect(rect).not.toBeNull()
+  return rect ?? { x: 0, y: 0, width: 0, height: 0 }
+}
+
+const top = async (page: Page, selector: Parameters<Page['locator']>[0]) =>
+  (await page.locator(selector).first().boundingBox())?.y ?? Number.NaN
 
 test.describe('login', () => {
   test('redirects an anonymous visitor to the login page', async ({ page, mockApi }) => {
     await page.goto('./dashboard')
 
     await expect(page).toHaveURL(/\/nethvoice\/login\?redirect=\/dashboard$/)
-    await expect(page.getByRole('heading', { name: 'Welcome' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'PBX administration', level: 1 })).toBeVisible()
     expect(mockApi.calls).toEqual([])
   })
 
@@ -364,5 +385,100 @@ test.describe('login', () => {
       'Cannot check the setup status',
     )
     await expect(page.getByRole('link', { name: 'Users' })).toHaveCount(0)
+  })
+})
+
+test.describe('login: layout', () => {
+  test('centers the sign in card on the background', async ({ page, mockApi }) => {
+    void mockApi
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLogin(page)
+
+    const card = await box(page, 'login-card')
+    expect(card.width).toBe(500)
+    expect(Math.abs(card.x + card.width / 2 - 720)).toBeLessThanOrEqual(1)
+    expect(Math.abs(card.y + card.height / 2 - 450)).toBeLessThanOrEqual(1)
+    await expect(page.getByRole('heading', { name: 'Welcome' })).toHaveCount(0)
+    await expect(page.getByRole('img', { name: 'NethVoice logo' })).toHaveCount(1)
+    await expect(page.getByRole('link', { name: 'Need help?' })).toBeVisible()
+  })
+
+  for (const width of [390, 320]) {
+    test(`fits a phone ${width} pixels wide without horizontal scrolling`, async ({
+      page,
+      mockApi,
+    }) => {
+      void mockApi
+      await page.setViewportSize({ width, height: 640 })
+      await openLogin(page)
+
+      const card = await box(page, 'login-card')
+      expect(card.x).toBe(16)
+      expect(card.width).toBe(width - 32)
+      const logo = await page.getByRole('img', { name: 'NethVoice logo' }).boundingBox()
+      expect((logo?.x ?? 0) + (logo?.width ?? Infinity)).toBeLessThanOrEqual(card.x + card.width)
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+        ),
+      ).toBe(true)
+      await page.getByRole('button', { name: 'Sign in' }).scrollIntoViewIfNeeded()
+      await expect(page.getByRole('button', { name: 'Sign in' })).toBeInViewport()
+    })
+  }
+
+  test('moves the focus through the form in reading order', async ({ page, mockApi }) => {
+    void mockApi
+    await openLogin(page)
+
+    await page.getByRole('textbox', { name: 'Username' }).focus()
+    for (const control of [
+      page.getByRole('textbox', { name: 'Password' }),
+      page.getByRole('button', { name: 'Show password' }),
+      page.getByRole('checkbox', { name: 'Remember username' }),
+      page.getByRole('link', { name: 'Need help?' }),
+      page.getByRole('button', { name: 'Sign in' }),
+    ]) {
+      await page.keyboard.press('Tab')
+      await expect(control).toBeFocused()
+    }
+  })
+
+  test('does not remember the username until asked', async ({ page, mockApi }) => {
+    void mockApi
+    await openLogin(page)
+
+    await expect(page.getByRole('checkbox', { name: 'Remember username' })).not.toBeChecked()
+    await expect(page.getByRole('textbox', { name: 'Username' })).toHaveValue('')
+  })
+
+  test('shows the missing values under their fields', async ({ page, mockApi }) => {
+    void mockApi
+    await openLogin(page)
+    await page.getByRole('button', { name: 'Sign in' }).click()
+
+    const usernameMessage = await top(page, 'text=Enter your username')
+    const passwordMessage = await top(page, 'text=Enter your password')
+    expect(usernameMessage).toBeGreaterThan(await top(page, '#username'))
+    expect(usernameMessage).toBeLessThan(await top(page, '#password'))
+    expect(passwordMessage).toBeGreaterThan(await top(page, '#password'))
+    expect(passwordMessage).toBeLessThan(await top(page, '#remember-username'))
+  })
+
+  test('shows wrong credentials at the top of the form', async ({ page, mockApi }) => {
+    mockApi.on('POST', SIGN_IN_PATH, { status: 401, json: { code: 'invalid_credentials' } })
+    await openLogin(page)
+    await page.getByRole('textbox', { name: 'Username' }).fill('admin')
+    await page.getByRole('textbox', { name: 'Password' }).fill('wrong')
+    await page.getByRole('button', { name: 'Sign in' }).click()
+
+    const notification = page.locator('form').getByText('Cannot sign in', { exact: true })
+    await expect(notification).toBeVisible()
+    const notificationTop = (await notification.boundingBox())?.y ?? Number.NaN
+    expect(notificationTop).toBeGreaterThan(
+      (await page.getByRole('heading', { name: 'PBX administration' }).boundingBox())?.y ??
+        Number.NaN,
+    )
+    expect(notificationTop).toBeLessThan(await top(page, '#username'))
   })
 })

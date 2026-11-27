@@ -72,8 +72,6 @@
     "enterprise_instance": "Subscription Enterprise"
   },
   "login": {
-    "welcome": "Benvenuto",
-    "sign_in_to_brand": "Accedi a {brand}",
     "username": "Nome utente",
     "password": "Password",
     "remember_username": "Ricorda nome utente",
@@ -96,7 +94,8 @@
     "domain_unavailable": "Impossibile raggiungere il provider di account",
     "domain_unavailable_description": "Ora gli utenti del dominio non possono accedere. Riprova tra qualche minuto.",
     "storage_unavailable": "Impossibile accedere",
-    "storage_unavailable_description": "Il browser non consente a questo sito di salvare dati. Consenti cookie e dati dei siti per questo sito, poi accedi di nuovo."
+    "storage_unavailable_description": "Il browser non consente a questo sito di salvare dati. Consenti cookie e dati dei siti per questo sito, poi accedi di nuovo.",
+    "product_label": "Amministrazione PBX"
   },
   "notifications": {
     "title": "Notifiche",
@@ -1195,7 +1194,6 @@
     "tab_video_sources": "Sorgenti video",
     "tab_parameterized_urls": "URL parametrizzati",
     "tab_customer_cards": "Schede cliente",
-    "tab_external_services": "Servizi esterni",
     "name": "Nome",
     "url": "URL",
     "port": "Porta",
@@ -1775,14 +1773,6 @@
       "template_preview_failed": "Impossibile mostrare l'anteprima",
       "template_render_failed_description": "Il template non può essere elaborato con questi risultati:"
     },
-    "external": {
-      "description": "Servizi forniti da provider esterni, come trascrizione e riassunto di chiamate e casella vocale.",
-      "not_available_here": "Configurati nell'amministrazione di NethServer",
-      "not_available_here_description": "Questi servizi si abilitano, con le chiavi API dei provider, nelle impostazioni dell'applicazione NethVoice nell'amministrazione di NethServer 8.",
-      "call_transcription": "Trascrizione delle chiamate in tempo reale",
-      "voicemail_transcription": "Trascrizione della casella vocale",
-      "call_summary": "Riassunto delle chiamate"
-    },
     "password_server_changed_helper": "Inserisci di nuovo la password per connetterti a un server diverso."
   },
   "settings": {
@@ -2246,7 +2236,7 @@
     "section_description_trunks": "Fasci VoIP e fisici.",
     "section_description_routes": "Rotte in ingresso e in uscita.",
     "section_description_phones": "Telefoni fisici, modelli e impostazioni di provisioning.",
-    "section_description_integrations": "Rubrica, sorgenti video, URL parametrizzati, schede cliente e servizi esterni.",
+    "section_description_integrations": "Rubrica, sorgenti video, URL parametrizzati e schede cliente.",
     "section_description_settings": "Lingua del centralino.",
     "source_local": "Account locale",
     "source_domain": "Gruppo del dominio",

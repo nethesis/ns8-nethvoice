@@ -72,8 +72,6 @@
     "enterprise_instance": "Enterprise subscription"
   },
   "login": {
-    "welcome": "Welcome",
-    "sign_in_to_brand": "Sign in to {brand}",
     "username": "Username",
     "password": "Password",
     "remember_username": "Remember username",
@@ -96,7 +94,8 @@
     "domain_unavailable": "Cannot reach the account provider",
     "domain_unavailable_description": "Users of the domain can't sign in now. Try again in a few minutes.",
     "storage_unavailable": "Cannot sign in",
-    "storage_unavailable_description": "The browser does not let this site save data. Allow cookies and site data for this site, then sign in again."
+    "storage_unavailable_description": "The browser does not let this site save data. Allow cookies and site data for this site, then sign in again.",
+    "product_label": "PBX administration"
   },
   "notifications": {
     "title": "Notifications",
@@ -1195,7 +1194,6 @@
     "tab_video_sources": "Video sources",
     "tab_parameterized_urls": "Parameterized URLs",
     "tab_customer_cards": "Customer cards",
-    "tab_external_services": "External services",
     "name": "Name",
     "url": "URL",
     "port": "Port",
@@ -1775,14 +1773,6 @@
       "template_preview_failed": "Cannot show the preview",
       "template_render_failed_description": "The template cannot be rendered with these results:"
     },
-    "external": {
-      "description": "Services provided by external providers, such as transcription and summary of calls and voicemail.",
-      "not_available_here": "Configured in the NethServer administration",
-      "not_available_here_description": "These services are enabled, with their provider API keys, in the settings of the NethVoice application in the NethServer 8 administration.",
-      "call_transcription": "Real-time call transcription",
-      "voicemail_transcription": "Voicemail transcription",
-      "call_summary": "Call summary"
-    },
     "password_server_changed_helper": "Enter the password again to connect to a different server."
   },
   "settings": {
@@ -2246,7 +2236,7 @@
     "section_description_trunks": "VoIP and physical trunks.",
     "section_description_routes": "Inbound and outbound routes.",
     "section_description_phones": "Physical phones, models and their provisioning settings.",
-    "section_description_integrations": "Phonebook, video sources, parameterized URLs, customer cards and external services.",
+    "section_description_integrations": "Phonebook, video sources, parameterized URLs and customer cards.",
     "section_description_settings": "Language of the PBX.",
     "source_local": "Local account",
     "source_domain": "Domain group",

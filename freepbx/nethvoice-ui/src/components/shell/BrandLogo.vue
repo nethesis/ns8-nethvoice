@@ -8,8 +8,11 @@ import { computed, ref, watch } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 import { useRuntimeConfigStore } from '@/stores/runtimeConfig'
 import { customLoginLogoUrl, customLogoUrl } from '@/lib/brandLogo'
+import { isRebranded } from '@/lib/signInSplash'
 import LogoLight from '@/assets/logo_light.svg'
 import LogoDark from '@/assets/logo_dark.svg'
+
+defineOptions({ inheritAttrs: false })
 
 const { variant = 'navbar' } = defineProps<{
   variant?: 'navbar' | 'login'
@@ -20,17 +23,26 @@ const runtimeConfigStore = useRuntimeConfigStore()
 
 const customLogoFailed = ref(false)
 
-const customLogo = computed(() =>
-  variant === 'login'
-    ? customLoginLogoUrl(runtimeConfigStore.config)
-    : customLogoUrl(runtimeConfigStore.config, themeStore.isLight ? 'light' : 'dark'),
-)
+const customLogo = computed(() => {
+  const background = themeStore.isLight ? 'light' : 'dark'
+
+  return variant === 'login'
+    ? customLoginLogoUrl(runtimeConfigStore.config, background)
+    : customLogoUrl(runtimeConfigStore.config, background)
+})
+
+const stockLogo = computed(() => {
+  if (variant === 'login' && isRebranded(runtimeConfigStore.config)) {
+    return ''
+  }
+  return themeStore.isLight ? LogoLight : LogoDark
+})
 
 const logoUrl = computed(() => {
   if (customLogo.value && !customLogoFailed.value) {
     return customLogo.value
   }
-  return themeStore.isLight ? LogoLight : LogoDark
+  return stockLogo.value
 })
 
 watch(customLogo, () => {
@@ -40,9 +52,16 @@ watch(customLogo, () => {
 
 <template>
   <img
-    v-if="runtimeConfigStore.loaded"
+    v-if="runtimeConfigStore.loaded && logoUrl"
+    v-bind="$attrs"
     :src="logoUrl"
     :alt="$t('shell.brand_logo', { brand: runtimeConfigStore.config.brandName })"
     @error="customLogoFailed = true"
   />
+  <span
+    v-else-if="runtimeConfigStore.loaded"
+    class="text-primary-active max-w-full text-center text-2xl font-medium break-words"
+  >
+    {{ runtimeConfigStore.config.brandName }}
+  </span>
 </template>

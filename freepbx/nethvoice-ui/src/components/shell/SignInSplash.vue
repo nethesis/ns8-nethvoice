@@ -36,7 +36,7 @@ const splashStore = useSignInSplashStore()
   >
     <div
       v-if="splashStore.visible"
-      class="bg-elevation-1 fixed inset-0 z-115 flex items-center justify-center"
+      class="bg-elevation-1 fixed inset-0 z-115 flex items-center justify-center px-4"
       aria-busy="true"
       data-testid="sign-in-splash"
     >
@@ -46,7 +46,7 @@ const splashStore = useSignInSplashStore()
         xmlns="http://www.w3.org/2000/svg"
         role="img"
         :aria-label="$t('shell.brand_logo', { brand: runtimeConfigStore.config.brandName })"
-        class="text-primary-active w-64"
+        class="text-primary-active w-86 max-w-full"
       >
         <path
           :d="MARK_PATH"

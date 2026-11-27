@@ -9,6 +9,8 @@ const LOGO_SVG =
 
 const ON_DARK = '/brand/on-dark.svg'
 const ON_LIGHT = '/brand/on-light.svg'
+const ON_LOGIN = '/brand/on-login.svg'
+const BACKGROUND = '/brand/background.webp'
 
 const serveConfig = async (page: Page, config: Record<string, string>) => {
   await page.route('**/nethvoice/config.json', (route) => route.fulfill({ json: config }))
@@ -59,29 +61,78 @@ test.describe('rebranding: logos for light and dark backgrounds', () => {
   })
 })
 
+const STOCK_LOGO = 'img[src*="logo_light"], img[src*="logo_dark"]'
+
+const expectOnlyLogo = async (page: Page, source: string) => {
+  await expect(brandLogo(page)).toHaveAttribute('src', new RegExp(`${source}$`))
+  await expect(page.getByRole('img')).toHaveCount(1)
+  await expect(page.locator(STOCK_LOGO)).toHaveCount(0)
+}
+
 test.describe('rebranding: sign in page', () => {
   test.beforeEach(({ mockApi }) => {
     mockApi.allowUnmockedCalls()
   })
 
-  test('shows the logo for dark backgrounds on the sign in panel', async ({ page }) => {
-    await page.emulateMedia({ colorScheme: 'light' })
-    await serveConfig(page, {
-      BRAND_NAME: 'Acme Voice',
-      LOGIN_LOGO_URL: ON_DARK,
-      LOGO_LIGHT_URL: ON_LIGHT,
+  for (const { name, config, light, dark } of [
+    {
+      name: 'the logos for light and dark backgrounds',
+      config: { NAVBAR_LOGO_URL: ON_DARK, LOGO_LIGHT_URL: ON_LIGHT },
+      light: ON_LIGHT,
+      dark: ON_DARK,
+    },
+    {
+      name: 'the logo for light backgrounds only',
+      config: { LOGO_LIGHT_URL: ON_LIGHT },
+      light: ON_LIGHT,
+      dark: ON_LIGHT,
+    },
+    {
+      name: 'the logo for dark backgrounds only',
+      config: { NAVBAR_LOGO_URL: ON_DARK },
+      light: ON_DARK,
+      dark: ON_DARK,
+    },
+    {
+      name: 'the sign in logo, in the dark theme',
+      config: { LOGIN_LOGO_URL: ON_LOGIN, LOGO_LIGHT_URL: ON_LIGHT },
+      light: ON_LIGHT,
+      dark: ON_LOGIN,
+    },
+  ]) {
+    test(`shows one logo with ${name}`, async ({ page }) => {
+      await serveConfig(page, { BRAND_NAME: 'Acme Voice', ...config })
+
+      for (const [colorScheme, source] of [
+        ['light', light],
+        ['dark', dark],
+      ] as const) {
+        await page.emulateMedia({ colorScheme })
+        await page.goto('./login')
+        await expectOnlyLogo(page, source)
+        await expect(page.getByRole('heading', { name: 'PBX administration' })).toBeVisible()
+      }
     })
+  }
+
+  test('shows the brand name instead of a logo that does not load', async ({ page }) => {
+    await serveConfig(page, { BRAND_NAME: 'Acme Voice', LOGO_LIGHT_URL: '/brand/missing.svg' })
+    await page.route('**/brand/missing.svg', (route) => route.fulfill({ status: 404 }))
     await page.goto('./login')
 
-    await expect(page.locator(`img[src$="${ON_DARK}"]`)).toBeVisible()
-    await expect(page.locator(`img[src$="${ON_LIGHT}"]`)).toHaveCount(0)
+    await expect(page.getByText('Acme Voice', { exact: true })).toBeVisible()
+    await expect(page.getByRole('img')).toHaveCount(0)
+    await expect(page.locator(STOCK_LOGO)).toHaveCount(0)
   })
 
-  test('uses the logo for light backgrounds when it is the only one', async ({ page }) => {
-    await serveConfig(page, { BRAND_NAME: 'Acme Voice', LOGO_LIGHT_URL: ON_LIGHT })
+  test('shows the brand name when the brand has no logo', async ({ page }) => {
+    await serveConfig(page, { BRAND_NAME: 'Acme Voice' })
     await page.goto('./login')
 
-    await expect(page.locator(`img[src$="${ON_LIGHT}"]`)).toBeVisible()
+    await expect(page.getByText('Acme Voice', { exact: true })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'PBX administration' })).toBeVisible()
+    await expect(page.getByRole('img')).toHaveCount(0)
+    await expect(page.locator(STOCK_LOGO)).toHaveCount(0)
   })
 
   test('shows no product logo or title until the configuration is loaded', async ({ page }) => {
@@ -91,18 +142,96 @@ test.describe('rebranding: sign in page', () => {
     })
     await page.route('**/nethvoice/config.json', async (route) => {
       await gate
-      await route.fulfill({ json: { BRAND_NAME: 'Acme Voice' } })
+      await route.fulfill({ json: { BRAND_NAME: 'Acme Voice', NAVBAR_LOGO_URL: ON_DARK } })
     })
+    await page.route('**/brand/*.svg', (route) =>
+      route.fulfill({ contentType: 'image/svg+xml', body: LOGO_SVG }),
+    )
     await page.goto('./login')
 
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible()
     await expect(page).toHaveTitle('NethVoice')
-    await expect(page.locator('img[src*="logo_dark"]')).toHaveCount(0)
+    await expect(page.locator('img')).toHaveCount(0)
 
     release()
     await expect(page).toHaveTitle(/Acme Voice$/)
-    await expect(page.locator('img[src*="logo_dark"]')).toBeVisible()
+    await expectOnlyLogo(page, ON_DARK)
   })
+
+  test('uses the custom background in both themes', async ({ page }) => {
+    const backgrounds: string[] = []
+    page.on('request', (request) => {
+      if (
+        request.resourceType() === 'image' &&
+        /nethvoice-login-bg|\/brand\/background/.test(request.url())
+      ) {
+        backgrounds.push(new URL(request.url()).pathname)
+      }
+    })
+    await serveConfig(page, { BRAND_NAME: 'Acme Voice', LOGIN_BACKGROUND_URL: BACKGROUND })
+    await page.route('**/brand/background.webp', (route) =>
+      route.fulfill({ contentType: 'image/svg+xml', body: LOGO_SVG }),
+    )
+
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme })
+      await page.goto('./login')
+      const background = page.getByTestId('login-background')
+      await expect(background).toHaveAttribute('src', /\/brand\/background\.webp$/)
+      await expect(background).toHaveCSS('object-fit', 'cover')
+      await expect(background).toHaveCSS('object-position', '50% 50%')
+    }
+    expect(backgrounds.length).toBeGreaterThan(0)
+    expect(backgrounds.every((path) => path === BACKGROUND)).toBe(true)
+  })
+
+  test('falls back to the default background when the custom one does not load', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await serveConfig(page, { BRAND_NAME: 'Acme Voice', LOGIN_BACKGROUND_URL: BACKGROUND })
+    await page.route('**/brand/background.webp', (route) => route.fulfill({ status: 404 }))
+    await page.goto('./login')
+
+    await expect(page.getByTestId('login-background')).toHaveAttribute(
+      'src',
+      /nethvoice-login-bg-dark\.webp$/,
+    )
+  })
+})
+
+test.describe('sign in page: default background', () => {
+  for (const [colorScheme, other] of [
+    ['light', 'dark'],
+    ['dark', 'light'],
+  ] as const) {
+    test(`downloads only the ${colorScheme} background in the ${colorScheme} theme`, async ({
+      page,
+      mockApi,
+    }) => {
+      mockApi.allowUnmockedCalls()
+      const backgrounds: string[] = []
+      page.on('request', (request) => {
+        if (request.resourceType() === 'image' && request.url().includes('nethvoice-login-bg')) {
+          backgrounds.push(request.url())
+        }
+      })
+      await page.emulateMedia({ colorScheme })
+      await page.route('**/nethvoice/config.json', (route) => route.fulfill({ json: {} }))
+      await page.goto('./login')
+
+      const background = page.getByTestId('login-background')
+      await expect(background).toHaveAttribute(
+        'src',
+        new RegExp(`nethvoice-login-bg-${colorScheme}\\.webp$`),
+      )
+      await expect
+        .poll(() => background.evaluate((image: HTMLImageElement) => image.naturalWidth))
+        .toBeGreaterThan(0)
+      expect(backgrounds.some((url) => url.includes(`nethvoice-login-bg-${other}`))).toBe(false)
+      expect(backgrounds.length).toBeGreaterThan(0)
+    })
+  }
 })
 
 test.describe('rebranding: setup wizard', () => {
