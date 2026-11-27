@@ -119,6 +119,7 @@
   "Login": {
     "User": "Username",
     "Password": "Password",
+    "Remember username": "Remember username",
     "Sign in": "Sign in",
     "Sign in with SSO": "Sign in with SSO",
     "SSO login failed": "Single Sign-On failed. Please try again.",

@@ -467,11 +467,9 @@ html.compact {
   --density: 0.8;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --autofill-bg: #030712;
-    --autofill-text: white;
-  }
+html.dark {
+  --autofill-bg: #030712;
+  --autofill-text: white;
 }
 
 /* fix browser autofill color */

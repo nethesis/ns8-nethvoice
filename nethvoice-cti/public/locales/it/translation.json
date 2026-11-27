@@ -112,8 +112,9 @@
     "You have made login in another tab": "Hai effettuato il login in un'altra scheda"
   },
   "Login": {
-    "User": "Utente",
+    "User": "Nome utente",
     "Password": "Password",
+    "Remember username": "Ricorda nome utente",
     "Sign in": "Accedi",
     "Sign in with SSO": "Accedi con SSO",
     "SSO login failed": "Single Sign-On non riuscito. Riprova.",

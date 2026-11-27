@@ -49,7 +49,7 @@ export const SignInSplash = () => {
           xmlns='http://www.w3.org/2000/svg'
           role='img'
           aria-label={t('Common.Brand logo', { brand: getBrandName() }) || ''}
-          className='w-64 text-primary dark:text-primaryDark'
+          className='w-[343px] max-w-[calc(100%-2rem)] text-primary dark:text-primaryDark'
         >
           <path
             d={MARK_PATH}

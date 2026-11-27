@@ -2,34 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { store } from '../store'
+import { isRebranded } from './loginAppearance'
 
 export const SIGN_IN_SPLASH_MS = 1100
-
-const DEFAULT_BRAND_NAME = 'NethVoice'
-const DEFAULT_PRODUCT_NAME = 'NethVoice CTI'
-
-const CUSTOM_ASSET_KEYS = [
-  'NAVBAR_LOGO_URL',
-  'NAVBAR_LOGO_DARK_URL',
-  'LOGIN_LOGO_URL',
-  'LOGIN_LOGO_DARK_URL',
-  'LOGIN_BACKGROUND_URL',
-  'FAVICON_URL',
-]
-
-export const isRebranded = (config: Record<string, any> | undefined): boolean => {
-  if (!config) {
-    return true
-  }
-  const brandName = config.BRAND_NAME || DEFAULT_BRAND_NAME
-  const productName = config.PRODUCT_NAME || DEFAULT_PRODUCT_NAME
-
-  return (
-    brandName !== DEFAULT_BRAND_NAME ||
-    productName !== DEFAULT_PRODUCT_NAME ||
-    CUSTOM_ASSET_KEYS.some((key) => !!config[key])
-  )
-}
 
 export const shouldShowSignInSplash = (): boolean => {
   if (typeof window === 'undefined') {
