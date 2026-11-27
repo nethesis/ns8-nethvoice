@@ -1773,6 +1773,10 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         if ($parsed === null) {
             return jsonResponse($response, array('status' => 'Invalid source URL'), 400);
         }
+        if (!nethvoiceRequestIsSuperadmin($request)
+            && !streaming_rate_limit(sys_get_temp_dir() . '/nethvoice-streaming-source-test.json', STREAMING_REACHABILITY_LIMIT, STREAMING_REACHABILITY_WINDOW)) {
+            return jsonResponse($response, ['status' => 'too many source checks, try again in a minute'], 429);
+        }
         $user = isset($data['user']) && is_string($data['user']) ? $data['user'] : '';
         $secret = isset($data['secret']) && is_string($data['secret']) ? $data['secret'] : '';
         if ($parsed['has_credentials']) {

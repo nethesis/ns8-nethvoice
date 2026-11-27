@@ -252,6 +252,26 @@ $tests['video sources of limited administrators never reach the PBX node'] = fun
     }
 };
 
+$tests['source checks of limited administrators are rate limited'] = function () use ($app, $superadmin, $integrator) {
+    $file = sys_get_temp_dir() . '/nethvoice-streaming-source-test.json';
+    $saved = is_file($file) ? file_get_contents($file) : null;
+    try {
+        file_put_contents($file, json_encode(array_fill(0, STREAMING_REACHABILITY_LIMIT, time())));
+        [$status, $body] = call($app, 'POST /cti/sources/test', $integrator, ['url' => 'http://127.0.0.1:9/door.jpg', 'details' => true]);
+        check($status === 429 && json_decode($body, true) === ['status' => 'too many source checks, try again in a minute'], "a limited administrator passed the limit: $status $body");
+        [$status, $body] = call($app, 'POST /cti/sources/test', $integrator, ['url' => 'not a url']);
+        check($status === 400, "an invalid URL was counted before the validation: $status $body");
+        [$status, $body] = call($app, 'POST /cti/sources/test', $superadmin, ['url' => 'http://127.0.0.1:9/door.jpg', 'details' => true]);
+        check($status === 200 && json_decode($body, true)['reason'] === 'address_not_allowed', "the superadmin is rate limited: $status $body");
+        file_put_contents($file, json_encode(array_fill(0, STREAMING_REACHABILITY_LIMIT - 1, time())));
+        [$status, $body] = call($app, 'POST /cti/sources/test', $integrator, ['url' => 'http://127.0.0.1:9/door.jpg', 'details' => true]);
+        check($status === 200 && json_decode($body, true)['reason'] === 'address_not_allowed', "a limited administrator refused within the limit: $status $body");
+        check(count(json_decode(file_get_contents($file), true)) === STREAMING_REACHABILITY_LIMIT, 'the check was not counted');
+    } finally {
+        $saved === null ? @unlink($file) : file_put_contents($file, $saved);
+    }
+};
+
 $tests['video sources saved by limited administrators are marked for the address guard'] = function () {
     $current = ['url' => 'http://192.0.2.30/door.jpg', 'gates' => [['type' => 'url', 'url' => 'http://192.0.2.31/open']], 'guard_addresses' => '0'];
     check(ctiStreamingGuardAddresses(true, ['url' => 'http://192.0.2.32/door.jpg', 'gates' => []]) === 0, 'a source of the superadmin is guarded');

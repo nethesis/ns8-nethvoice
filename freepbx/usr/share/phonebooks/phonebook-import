@@ -16,6 +16,7 @@ ERROR_DETAILS_MAX_LENGTH = 500
 AUTH_MYSQL_ERRORS = (1044, 1045, 1698)
 AUTH_HTTP_STATUSES = (401, 403)
 CONNECT_TIMEOUT = 10
+QUERY_TIMEOUT = 300
 DOWNLOAD_TIMEOUT = 120
 DOWNLOAD_MAX_BYTES = 100 * 1024 * 1024
 NODE_ADDRESS_FILES = ('/proc/net/fib_trie', '/proc/net/if_inet6')
@@ -246,10 +247,23 @@ def signalHandler(sig, frame):
   recordError('unknown', Exception('Interrupted by ' + name), None)
   sys.exit(1)
 
+def timeLimitHandler(sig, frame):
+  logger.critical('time limit reached')
+  recordError('connection', Exception('The source did not answer within the time limit'), None)
+  sys.exit(1)
+
 signal.signal(signal.SIGINT, signalHandler)
 signal.signal(signal.SIGTERM, signalHandler)
+signal.signal(signal.SIGALRM, timeLimitHandler)
 
-def getDbConn(config):
+def guardedHost(host, port):
+  name, separator, instance = str(host).strip().partition('\\')
+  resolved = [info[4][0] for info in socket.getaddrinfo(name.strip('[]'), port, 0, socket.SOCK_STREAM)]
+  if not resolved or any(isBlockedAddress(address) for address in resolved):
+    raise forbiddenConnection()
+  return resolved[0] + separator + instance
+
+def getDbConn(config, guarded=False):
   if config['dbtype'] == 'mysql':
     port = unixSocket = None
     try:
@@ -258,7 +272,8 @@ def getDbConn(config):
       port = None
       unixSocket = config['port']
     try:
-      return mysql.connector.connect(host=config['host'], port=port, user=config['user'], password=config['password'], database=config['dbname'],charset='utf8', connection_timeout=CONNECT_TIMEOUT)
+      host = guardedHost(config['host'], port) if guarded else config['host']
+      return mysql.connector.connect(host=host, port=port, user=config['user'], password=config['password'], database=config['dbname'],charset='utf8', connection_timeout=CONNECT_TIMEOUT, read_timeout=QUERY_TIMEOUT)
     except Exception as err:
       logger.error(str(err))
       recordError(dbErrorKind(err), err, config)
@@ -267,7 +282,10 @@ def getDbConn(config):
     try:
       port = int(config['port'])
       driver = config.get('driver') or 'FreeTDS'
-      return pyodbc.connect('', driver=driver, server=config['host'], port=port, uid=config['user'], pwd=config['password'], database=config['dbname'], timeout=CONNECT_TIMEOUT)
+      host = guardedHost(config['host'], port) if guarded else config['host']
+      connection = pyodbc.connect('', driver=driver, server=host, port=port, uid=config['user'], pwd=config['password'], database=config['dbname'], timeout=CONNECT_TIMEOUT)
+      connection.timeout = QUERY_TIMEOUT
+      return connection
     except Exception as err:
       logger.error(str(err))
       recordError(dbErrorKind(err), err, config)
@@ -316,7 +334,7 @@ def syncSourceDB(path, output, deleteonly):
   with open(path, 'r') as sourceFile:
     sConfig = json.load(sourceFile)
   sid = next(iter(sConfig))
-  dbSource = getDbConn(sConfig[sid])
+  dbSource = getDbConn(sConfig[sid], guardAddresses)
   if dbSource is not None:
     logger.debug('source "' + sid + '" connection (' + sConfig[sid]['dbname'] + '): ok')
   else:
@@ -773,7 +791,7 @@ if __name__ == '__main__':
   parser.add_argument('--with-total', action='store_true', help='with --check, write {"rows": [...], "total": <rows read>} instead of the rows')
   parser.add_argument('--error-json', action='store_true', help='on failure, write {"kind": ..., "details": ...} to standard output')
   parser.add_argument('--force', action='store_true', help='import the source even when it is disabled')
-  parser.add_argument('--guard-addresses', action='store_true', help='refuse connections of CSV and Infinity sources to local addresses and to the addresses of the node, as for sources saved with "guard_addresses": true')
+  parser.add_argument('--guard-addresses', action='store_true', help='refuse connections of database, CSV and Infinity sources to local addresses and to the addresses of the node, as for sources saved with "guard_addresses": true')
   args = parser.parse_args()
   logger = logging.getLogger(__name__)
   logger.setLevel(logging.DEBUG)

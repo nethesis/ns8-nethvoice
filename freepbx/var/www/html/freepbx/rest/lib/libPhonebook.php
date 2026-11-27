@@ -13,6 +13,9 @@ const PHONEBOOK_UPLOADS_DIR = '/var/lib/nethvoice/phonebook/uploads/';
 const PHONEBOOK_CONTAINER_STARTED = '/var/run/nethvoice/freepbx-started';
 const PHONEBOOK_SOURCES_DIR = '/etc/phonebook/sources.d';
 const PHONEBOOK_SHARING_PREFIX = 'group:';
+const PHONEBOOK_TEST_TIMEOUT = 60;
+const PHONEBOOK_SYNC_TIMEOUT = 900;
+const PHONEBOOK_TIMEOUT_STATUSES = [124, 137];
 
 function phonebookDatabase(): PDO
 {
@@ -22,9 +25,14 @@ function phonebookDatabase(): PDO
         $_ENV['PHONEBOOK_DB_PASS']);
 }
 
+function phonebookTimeLimit(int $seconds): string
+{
+    return 'timeout -s ALRM -k 10 ' . $seconds . ' ';
+}
+
 function phonebookTestCommand(string $file, bool $withTotal, bool $guardAddresses = false): string
 {
-    return PHONEBOOK_IMPORTER . ' --check --error-json' . ($withTotal ? ' --with-total' : '') . ($guardAddresses ? ' --guard-addresses' : '') . ' ' . escapeshellarg($file);
+    return phonebookTimeLimit(PHONEBOOK_TEST_TIMEOUT) . PHONEBOOK_IMPORTER . ' --check --error-json' . ($withTotal ? ' --with-total' : '') . ($guardAddresses ? ' --guard-addresses' : '') . ' ' . escapeshellarg($file);
 }
 
 function phonebookGuardedSource(array $source, ?array $stored, bool $superadmin): array
@@ -35,7 +43,8 @@ function phonebookGuardedSource(array $source, ?array $stored, bool $superadmin)
     }
     $sameTarget = is_array($stored)
         && ($stored['dbtype'] ?? null) === ($source['dbtype'] ?? null)
-        && ($stored['url'] ?? null) === ($source['url'] ?? null);
+        && ($stored['url'] ?? null) === ($source['url'] ?? null)
+        && ($stored['host'] ?? null) === ($source['host'] ?? null);
     if (!$sameTarget || ($stored['guard_addresses'] ?? false) === true) {
         $source['guard_addresses'] = true;
     }
@@ -55,7 +64,7 @@ function phonebookPublicSource($source)
 
 function phonebookSyncCommand(string $id, bool $force): string
 {
-    return PHONEBOOK_IMPORTER . ' ' . ($force ? '--force ' : '') . escapeshellarg("/etc/phonebook/sources.d/$id.json");
+    return phonebookTimeLimit(PHONEBOOK_SYNC_TIMEOUT) . PHONEBOOK_IMPORTER . ' ' . ($force ? '--force ' : '') . escapeshellarg("/etc/phonebook/sources.d/$id.json");
 }
 
 function phonebookTestError(array $output): ?array
@@ -72,6 +81,9 @@ function phonebookTestResult(int $return, array $output, bool $withTotal): array
 {
     if ($return != 0) {
         $error = phonebookTestError($output);
+        if ($error === null && in_array($return, PHONEBOOK_TIMEOUT_STATUSES, true)) {
+            $error = ['kind' => 'connection', 'details' => 'The source did not answer within ' . PHONEBOOK_TEST_TIMEOUT . ' seconds'];
+        }
         return $error === null ? ['status' => false] : ['status' => false, 'error' => $error];
     }
     $res = isset($output[0]) ? json_decode($output[0]) : null;

@@ -27,10 +27,10 @@ function database(): PDO {
     return $db;
 }
 
-check(phonebookTestCommand('/tmp/a b.json', false) === "/usr/share/phonebooks/phonebook-import --check --error-json '/tmp/a b.json'", 'test command changed');
-check(phonebookTestCommand('/tmp/a.json', true) === "/usr/share/phonebooks/phonebook-import --check --error-json --with-total '/tmp/a.json'", 'total not requested');
-check(phonebookTestCommand('/tmp/a.json', false, true) === "/usr/share/phonebooks/phonebook-import --check --error-json --guard-addresses '/tmp/a.json'", 'test of a limited admin not guarded');
-check(phonebookTestCommand('/tmp/a.json', true, false) === "/usr/share/phonebooks/phonebook-import --check --error-json --with-total '/tmp/a.json'", 'test of the superadmin guarded');
+check(phonebookTestCommand('/tmp/a b.json', false) === "timeout -s ALRM -k 10 60 /usr/share/phonebooks/phonebook-import --check --error-json '/tmp/a b.json'", 'test command changed');
+check(phonebookTestCommand('/tmp/a.json', true) === "timeout -s ALRM -k 10 60 /usr/share/phonebooks/phonebook-import --check --error-json --with-total '/tmp/a.json'", 'total not requested');
+check(phonebookTestCommand('/tmp/a.json', false, true) === "timeout -s ALRM -k 10 60 /usr/share/phonebooks/phonebook-import --check --error-json --guard-addresses '/tmp/a.json'", 'test of a limited admin not guarded');
+check(phonebookTestCommand('/tmp/a.json', true, false) === "timeout -s ALRM -k 10 60 /usr/share/phonebooks/phonebook-import --check --error-json --with-total '/tmp/a.json'", 'test of the superadmin guarded');
 
 $csvSource = ['url' => 'https://node.example.org/qa.csv', 'mapping' => ['name' => 'name'], 'dbtype' => 'csv', 'type' => 'QA'];
 check(phonebookGuardedSource($csvSource, null, true) === $csvSource, 'new source of the superadmin marked');
@@ -41,14 +41,19 @@ check(phonebookGuardedSource($csvSource, $csvSource, false) === $csvSource, 'lim
 check(phonebookGuardedSource($csvSource, $csvSource + ['guard_addresses' => true], false) === $csvSource + ['guard_addresses' => true], 'limited admin edit cleared the marker');
 check(phonebookGuardedSource(['url' => 'https://other.example.org/qa.csv'] + $csvSource, $csvSource, false)['guard_addresses'] === true, 'limited admin URL change not marked');
 check(phonebookGuardedSource(['dbtype' => 'infinity'] + $csvSource, $csvSource, false)['guard_addresses'] === true, 'limited admin type change not marked');
+$dbSource = ['host' => 'crm.example.org', 'port' => '3306', 'dbname' => 'crm', 'dbtype' => 'mysql', 'type' => 'QA'];
+check(phonebookGuardedSource($dbSource, null, false)['guard_addresses'] === true, 'new database source of a limited admin not marked');
+check(phonebookGuardedSource($dbSource, $dbSource, false) === $dbSource, 'limited admin edit of a superadmin database source with the same host marked');
+check(phonebookGuardedSource(['host' => 'other.example.org'] + $dbSource, $dbSource, false)['guard_addresses'] === true, 'limited admin host change not marked');
+check(phonebookGuardedSource(['host' => 'other.example.org'] + $dbSource, $dbSource, true) === ['host' => 'other.example.org'] + $dbSource, 'host change of the superadmin marked');
 check(phonebookPublicSource((object) ($csvSource + ['guard_addresses' => true])) == (object) $csvSource, 'marker listed');
 check(phonebookPublicSource($csvSource + ['guard_addresses' => true]) === $csvSource, 'marker listed from an array');
 $stored = (object) ($csvSource + ['guard_addresses' => true]);
 phonebookPublicSource($stored);
 check($stored->guard_addresses === true, 'listing changed the stored source');
 
-check(phonebookSyncCommand('custom_1', false) === "/usr/share/phonebooks/phonebook-import '/etc/phonebook/sources.d/custom_1.json'", 'sync command of the previous wizard changed');
-check(phonebookSyncCommand('custom_1', true) === "/usr/share/phonebooks/phonebook-import --force '/etc/phonebook/sources.d/custom_1.json'", 'force not passed');
+check(phonebookSyncCommand('custom_1', false) === "timeout -s ALRM -k 10 900 /usr/share/phonebooks/phonebook-import '/etc/phonebook/sources.d/custom_1.json'", 'sync command of the previous wizard changed');
+check(phonebookSyncCommand('custom_1', true) === "timeout -s ALRM -k 10 900 /usr/share/phonebooks/phonebook-import --force '/etc/phonebook/sources.d/custom_1.json'", 'force not passed');
 
 $rows = '[{"name":"Ada","1":"x"},{"name":"Bob"},{"name":"Cy"},{"name":"Di"}]';
 check(json_encode(phonebookTestResult(0, [$rows], false)) === '[{"name":"Ada","1":"x"},{"name":"Bob"},{"name":"Cy"}]', 'rows not returned as an array of three');
@@ -64,6 +69,11 @@ check(phonebookTestResult(1, ['{"kind":"auth","details":"1045 (28000): Access de
 check(phonebookTestResult(1, ['noise', '{"kind":"query","details":"bad"}'], false)['error']['kind'] === 'query', 'cause not read from the last line');
 check(phonebookTestResult(1, ['{"kind":"disk","details":"x"}'], false) === ['status' => false], 'unknown kind accepted');
 check(phonebookTestResult(1, ['{"kind":"http"}'], false) === ['status' => false], 'cause without details accepted');
+foreach ([124, 137] as $status) {
+    check(phonebookTestResult($status, [], false) === ['status' => false, 'error' => ['kind' => 'connection', 'details' => 'The source did not answer within 60 seconds']], "time limit ($status) not reported");
+}
+check(phonebookTestResult(124, ['{"kind":"connection","details":"The source did not answer within the time limit"}'], false)['error']['details'] === 'The source did not answer within the time limit', 'cause of the importer replaced');
+check(phonebookTestResult(2, [], false) === ['status' => false], 'other failures reported as a time limit');
 check(mb_strlen(phonebookTestResult(1, [json_encode(['kind' => 'http', 'details' => str_repeat('é', 600)])], false)['error']['details']) === 500, 'details not capped');
 
 check(phonebookIsoTime('2026-11-23 08:05:09') === '2026-11-23T08:05:09Z', 'datetime not read as UTC');

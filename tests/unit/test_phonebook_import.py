@@ -124,7 +124,7 @@ STUBS = {
                 pass
 
         def connect(**options):
-            log({'connect': options.get('host'), 'connection_timeout': options.get('connection_timeout')})
+            log({'connect': options.get('host'), 'connection_timeout': options.get('connection_timeout'), 'read_timeout': options.get('read_timeout')})
             error = load().get('connect_errors', {}).get(options.get('host'))
             if error:
                 fail(error)
@@ -135,14 +135,25 @@ STUBS = {
         import signal
         from stubfixture import load, log
 
+        import mysql.connector
+
         class Error(Exception):
             pass
+
+        class Connection(mysql.connector.Connection):
+            def __setattr__(self, name, value):
+                if name == 'timeout':
+                    log({'query_timeout': value})
+                super().__setattr__(name, value)
 
         def connect(*connection, **options):
             if not connection:
                 os.kill(os.getpid(), signal.SIGSEGV)
             log({'connect': options['server'], 'timeout': options.get('timeout')})
-            raise Error(*load()['odbc_errors'][options['server']])
+            error = load().get('odbc_errors', {}).get(options['server'])
+            if error:
+                raise Error(*error)
+            return Connection(options.get('database'))
     ''',
     'pycurl.py': '''
         import collections
@@ -618,6 +629,11 @@ class PhonebookImportTest(ImporterCase):
     def test_database_connections_have_a_connect_timeout(self):
         self.run_import(self.mysql(), '--check', queries=self.rows(1))
         self.assertEqual([call['connection_timeout'] for call in self.calls() if 'connect' in call], [10])
+        self.assertEqual([call['read_timeout'] for call in self.calls() if 'connect' in call], [300])
+        mssql = dict(dbtype='mssql', host='mssql.example.org', port='1433', user='qa_reader', password='Qa-Source-Pass', dbname='crm', query=QUERY)
+        result = self.run_import(self.source(**mssql), '--check', queries=self.rows(1))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([call['query_timeout'] for call in self.calls() if 'query_timeout' in call], [300])
         mssql = dict(dbtype='mssql', host='mssql.example.org', port='1433', user='qa_reader', password='Qa-Source-Pass', dbname='crm', query=QUERY)
         self.run_import(self.source(**mssql), '--check', odbc_errors={'mssql.example.org': ['08001', '[08001] Unable to connect (0)']})
         self.assertEqual([call['timeout'] for call in self.calls() if 'connect' in call], [10])
@@ -785,6 +801,75 @@ class PhonebookImportTest(ImporterCase):
                 self.assertEqual(json.loads(stdout.strip().splitlines()[-1]), {'kind': 'unknown', 'details': 'Interrupted by ' + name})
                 self.assertEqual(self.statuses(), [['custom_7', 'running'], ['custom_7', 'failed', None, 'Interrupted by ' + name]])
                 self.assertFalse([call for call in self.queries() if call['sql'].startswith('DELETE')])
+
+    def test_time_limit_is_reported(self):
+        details = 'The source did not answer within the time limit'
+        returncode, stdout, stderr = self.interrupt(signal.SIGALRM, '--check', '--error-json')
+        self.assertEqual(returncode, 1, stderr)
+        self.assertEqual(json.loads(stdout.strip().splitlines()[-1]), {'kind': 'connection', 'details': details})
+        (self.root / 'ready').unlink()
+        returncode, stdout, stderr = self.interrupt(signal.SIGALRM, '--skip-sync-metadata-update')
+        self.assertEqual(returncode, 1, stderr)
+        self.assertEqual(self.statuses(), [['custom_7', 'running'], ['custom_7', 'failed', None, details]])
+        self.assertFalse([call for call in self.queries() if call['sql'].startswith('DELETE')])
+
+
+class DatabaseGuardTest(ImporterCase):
+    def setUp(self):
+        super().setUp()
+        with open(self.root / 'stubs' / 'sitecustomize.py', 'a') as sitecustomize:
+            sitecustomize.write(textwrap.dedent(NETWORK))
+        self.env['TEST_NETWORK'] = json.dumps({
+            'names': {'crm.example.org': '203.0.113.10', 'lan.example.org': '192.168.10.20', 'rebind.example.org': '127.0.0.1',
+                      'node.example.org': '198.51.100.20', 'v6.example.org': '::1', 'link.example.org': '169.254.169.254',
+                      'multi.example.org': ['203.0.113.10', '127.0.0.1'], 'mssql.example.org': '203.0.113.11'},
+            'routes': {},
+        })
+
+    def connects(self):
+        return [call['connect'] for call in self.calls() if 'connect' in call]
+
+    def test_guarded_sources_connect_to_the_checked_address(self):
+        for host, address in [('crm.example.org', '203.0.113.10'), ('lan.example.org', '192.168.10.20'), (' crm.example.org ', '203.0.113.10'), ('192.0.2.9', '192.0.2.9')]:
+            with self.subTest(host=host):
+                result = self.run_import(self.source(**dict(MYSQL, host=host)), '--check', '--guard-addresses', queries=self.rows(1))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(self.connects(), [address])
+        mssql = dict(dbtype='mssql', host='mssql.example.org\\SQLEXPRESS', port='1433', user='qa_reader', password='Qa-Source-Pass', dbname='crm', query=QUERY)
+        result = self.run_import(self.source(**mssql), '--check', '--guard-addresses', queries=self.rows(1))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.connects(), ['203.0.113.11\\SQLEXPRESS'])
+
+    def test_guarded_sources_never_connect_to_local_addresses(self):
+        self.node('198.51.100.0', '198.51.100.20', '198.51.100.255')
+        hosts = ['rebind.example.org', 'node.example.org', 'v6.example.org', 'link.example.org', 'multi.example.org', '127.0.0.1', 'localhost',
+                 '0x7f000001', '0x7f.1', '0177.0.0.1', '2130706433', '127.1', '::1', '::ffff:127.0.0.1', '198.51.100.20', 'rebind.example.org\\SQLEXPRESS']
+        for host in hosts:
+            with self.subTest(host=host):
+                result = self.run_import(self.source(**dict(MYSQL, host=host)), '--check', '--error-json', '--guard-addresses', queries=self.rows(1))
+                self.assertEqual(self.error_of(result), {'kind': 'connection', 'details': REFUSED})
+                self.assertEqual(self.connects(), [])
+        mssql = dict(dbtype='mssql', host='rebind.example.org', port='1433', user='qa_reader', password='Qa-Source-Pass', dbname='crm', query=QUERY)
+        result = self.run_import(self.source(**mssql), '--check', '--error-json', '--guard-addresses', queries=self.rows(1))
+        self.assertEqual(self.error_of(result), {'kind': 'connection', 'details': REFUSED})
+        self.assertEqual(self.connects(), [])
+
+    def test_marked_sources_are_guarded_at_every_sync(self):
+        result = self.run_import(self.source(**dict(MYSQL, host='rebind.example.org'), guard_addresses=True), '--skip-sync-metadata-update', queries=self.rows(2))
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(self.statuses(), [['custom_7', 'running'], ['custom_7', 'failed', None, REFUSED]])
+        self.assertEqual(self.connects(), ['phonebook.test', 'phonebook.test'])
+        result = self.run_import(self.source(**dict(MYSQL, host='crm.example.org'), guard_addresses=True), '--skip-sync-metadata-update', queries=self.rows(2))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.connects(), ['phonebook.test', '203.0.113.10', 'phonebook.test', 'phonebook.test'])
+        self.assertEqual(self.statuses()[-1], ['custom_7', 'ok', 2, None])
+
+    def test_superadmin_sources_connect_to_the_configured_host(self):
+        for host in ['rebind.example.org', '127.0.0.1', 'localhost', 'crm.example.org']:
+            with self.subTest(host=host):
+                result = self.run_import(self.source(**dict(MYSQL, host=host)), '--check', queries=self.rows(1))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(self.connects(), [host])
 
 
 class InfinityServer(http.server.BaseHTTPRequestHandler):

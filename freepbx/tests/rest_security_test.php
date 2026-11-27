@@ -66,6 +66,57 @@ foreach (nethvoiceNodeAddresses() as $address) {
     check(nethvoiceIsLocalHost($address), "$address of this node not local");
 }
 
+foreach (['0x7f000001', '0X7F000001', '0x7f.1', '0x7f.0.0.1', '0x7f.0x0.0x0.0x1', '0177.0.0.1', '0177.1', '017700000001', '2130706433', '127.1', '127.0.1', '127.0.0.1.', 'LOCALHOST.', '0', '0x', '0x0', '0.0.0.0', '0x7f000001\\SQLEXPRESS', '0xa9fea9fe',
+    '::1', '[::1]', '0:0:0:0:0:0:0:1', '::ffff:127.0.0.1', '::ffff:7f00:1', '::ffff:0x7f000001', '::127.0.0.1', '::1%lo', '[::1%1]', 'fe80::1%eth0', '::', '127.0.0.1:3306', '127.0.0.1,3306', 'db host', 'db;host', '0x7f000001@x', "127.0.0.1\n", "crm.example.org/x"] as $host) {
+    check(nethvoiceIsLocalHost($host, []), "$host not local");
+}
+foreach (['0xc6336407', '0306.063.0144.07', '3325256711', '198.51.25607', '198.0x33.100.7', '198.51.100.7.'] as $host) {
+    check(nethvoiceIsLocalHost($host, ['198.51.100.7']), "$host of the node not local");
+    check(!nethvoiceIsLocalHost($host, ['198.51.100.8']), "$host outside the node local");
+}
+foreach (['0xc0000209', '192.0.2.9', '2001:db8::9', '[2001:db8::9]', '2001:db8::9%eth0', 'crm.example.invalid', 'crm-1.example.invalid', 'db_server.example.invalid', 'crm.example.invalid\\SQLEXPRESS', '1.2.3.4.5', '256.1.1.1', '0x100000000', '99999999999999999999'] as $host) {
+    check(!nethvoiceIsLocalHost($host, []), "$host local");
+}
+check(nethvoiceNumericIpv4('0x7f.1') === '127.0.0.1' && nethvoiceNumericIpv4('0177.0.0.01') === '127.0.0.1' && nethvoiceNumericIpv4('3232235777') === '192.168.1.1', 'numeric IPv4 forms not normalized');
+check(nethvoiceNumericIpv4('256.1.1.1') === null && nethvoiceNumericIpv4('08.1.1.1') === null && nethvoiceNumericIpv4('crm') === null && nethvoiceNumericIpv4('1.2.3.4.5') === null, 'invalid numeric IPv4 accepted');
+check(nethvoiceResolveHost('0x7f000001') === ['127.0.0.1'] && nethvoiceResolveHost('fe80::1%eth0') === ['fe80::1'], 'literal hosts resolved by the DNS');
+foreach (['http://0x7f000001/', 'http://0x7f.0.0.1:8080/a.csv', 'https://0177.0.0.1/', 'http://[::1%25lo]/'] as $url) {
+    check(nethvoiceCheckFetchUrl($url) === null, "$url must not be fetched");
+}
+check(nethvoiceCheckFetchUrl('http://0xc0000209/a.csv')['addresses'] === ['192.0.2.9'], 'numeric public address refused');
+$builtin = ['id' => '2', 'host' => '0x7f000001', 'type' => 'mysql'];
+check(nethvoiceIsBuiltinDbConnection($builtin) && nethvoiceTargetsBuiltinDbConnection(['id' => '9'] + $builtin), 'numeric loopback database connection not builtin');
+check(nethvoicePhonebookDatabaseTargetStatus(['dbtype' => 'mysql', 'host' => '0x7f.1'], null) === 403, 'numeric loopback phonebook database accepted');
+check(nethvoicePhonebookDatabaseTargetStatus(['dbtype' => 'mssql', 'host' => '0x7f.1\\SQLEXPRESS'], null) === 403, 'loopback named instance accepted');
+check(nethvoicePhonebookDatabaseTargetStatus(['dbtype' => 'mysql', 'host' => '192.0.2.9'], null) === null, 'remote phonebook database refused');
+
+$masked = [
+    'https://qa_reader:Url-Pass@csv.example.org/qa.csv' => 'https://***@csv.example.org/qa.csv',
+    'https://Token-Only@csv.example.org/qa.csv?format=csv' => 'https://***@csv.example.org/qa.csv?format=***',
+    'https://a@b:c@csv.example.org/x@y.csv' => 'https://***@csv.example.org/x@y.csv',
+    'https://csv.example.org/export?token=Qa-Token&format=csv&empty=&flag#key=Qa-Frag' => 'https://csv.example.org/export?token=***&format=***&empty=&***#key=***',
+    'https://csv.example.org/export?Qa-Bare-Token' => 'https://csv.example.org/export?***',
+    'https://csv.example.org/a.csv' => 'https://csv.example.org/a.csv',
+    'https://csv.example.org/a.csv?' => 'https://csv.example.org/a.csv?',
+    'file:///var/lib/nethvoice/phonebook/uploads/a.csv' => 'file:///var/lib/nethvoice/phonebook/uploads/a.csv',
+    'erp.example.org/servlet' => 'erp.example.org/servlet',
+];
+foreach ($masked as $url => $expected) {
+    check(nethvoiceMaskedUrl($url) === $expected, "$url masked as " . nethvoiceMaskedUrl($url));
+    check(nethvoiceUnmaskedUrl($expected, $url) === $url, "$expected not restored");
+    check(nethvoiceUnmaskedUrl(" $expected ", $url) === $url, "$expected with spaces not restored");
+}
+$secretUrl = 'https://qa_reader:Url-Pass@csv.example.org/qa.csv?token=Qa-Token';
+check(nethvoiceUnmaskedUrl('https://***@other.example.org/qa.csv?token=***', $secretUrl) === 'https://***@other.example.org/qa.csv?token=***', 'stored URL sent to another host');
+check(nethvoiceUnmaskedUrl('https://new:New-Pass@csv.example.org/qa.csv?token=New', $secretUrl) === 'https://new:New-Pass@csv.example.org/qa.csv?token=New', 'typed URL replaced');
+check(nethvoiceUnmaskedUrl('https://***@csv.example.org/qa.csv?token=***', null) === 'https://***@csv.example.org/qa.csv?token=***', 'URL restored without a stored source');
+check(nethvoiceUnmaskedUrl(['x'], $secretUrl) === ['x'], 'invalid URL changed');
+$listed = ['custom_1' => (object) ['dbtype' => 'csv', 'url' => $secretUrl], 'custom_2' => ['dbtype' => 'infinity', 'url' => 'https://u:p@erp.example.org'], 'custom_3' => (object) ['dbtype' => 'mysql']];
+$public = array_map(fn($source) => nethvoiceWithMaskedUrl($source, 'url'), $listed);
+check($public['custom_1']->url === 'https://***@csv.example.org/qa.csv?token=***' && $public['custom_2']['url'] === 'https://***@erp.example.org' && $public['custom_3'] == (object) ['dbtype' => 'mysql'], 'phonebook URLs not masked');
+check($listed['custom_1']->url === $secretUrl, 'original source object changed');
+check(!preg_match('/Url-Pass|Qa-Token|qa_reader|u:p/', json_encode($public)), 'secret left in the phonebook URLs');
+
 $users = [
     ['id' => 1, 'username' => 'alice', 'password' => 'clear', 'devices' => [
         ['id' => 3, 'extension' => '91201', 'secret' => 's', 'web_user' => 'admin', 'web_password' => 'w', 'mac' => 'AA'],

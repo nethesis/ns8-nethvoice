@@ -17,6 +17,7 @@ const NETHVOICE_BUILTIN_DBCONN_IDS = ['1', '2'];
 const NETHVOICE_USERNAME_PATTERN = '/^[A-Za-z0-9._@-]+$/D';
 const NETHVOICE_PHONEBOOK_SOURCE_ID_PATTERN = '/^[A-Za-z0-9_-]+$/D';
 const NETHVOICE_CARD_TEMPLATE_PATTERN = '/^[a-z0-9]+(_custom)?$/D';
+const NETHVOICE_HOST_NAME_PATTERN = '/^[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?(\.[a-z0-9_]([a-z0-9_-]{0,61}[a-z0-9_])?)*$/D';
 const NETHVOICE_PHONEBOOK_DATABASE_TARGET_FIELDS = ['dbtype', 'host', 'port', 'dbname', 'user', 'query'];
 
 function nethvoiceIsForbiddenAddress(string $ip): bool
@@ -38,10 +39,54 @@ function nethvoiceIsForbiddenAddress(string $ip): bool
     return $first === 0 || $first === 127 || ($first === 169 && ord($packed[1]) === 254);
 }
 
+function nethvoiceNumericIpv4(string $host): ?string
+{
+    $parts = explode('.', $host);
+    if (count($parts) > 4) {
+        return null;
+    }
+    $numbers = [];
+    foreach ($parts as $part) {
+        if (preg_match('/^0x[0-9a-f]*$/iD', $part)) {
+            $numbers[] = hexdec(substr($part, 2) ?: '0');
+        } elseif (preg_match('/^0[0-7]*$/D', $part)) {
+            $numbers[] = octdec($part);
+        } elseif (preg_match('/^[1-9][0-9]*$/D', $part)) {
+            $numbers[] = (float) $part;
+        } else {
+            return null;
+        }
+    }
+    $last = array_pop($numbers);
+    $value = 0;
+    foreach ($numbers as $index => $number) {
+        if ($number > 255) {
+            return null;
+        }
+        $value += $number * (2 ** (8 * (3 - $index)));
+    }
+    if ($last >= 2 ** (8 * (4 - count($numbers)))) {
+        return null;
+    }
+
+    return long2ip((int) ($value + $last));
+}
+
+function nethvoiceScopedIpv6(string $host): ?string
+{
+    $parts = explode('%', $host, 2);
+
+    return count($parts) === 2 && $parts[1] !== '' && filter_var($parts[0], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false ? $parts[0] : null;
+}
+
 function nethvoiceResolveHost(string $host): array
 {
     if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
         return [$host];
+    }
+    $literal = nethvoiceNumericIpv4($host) ?? nethvoiceScopedIpv6($host);
+    if ($literal !== null) {
+        return [$literal];
     }
     $addresses = gethostbynamel($host) ?: [];
     $records = @dns_get_record($host, DNS_AAAA);
@@ -228,6 +273,44 @@ function nethvoiceWithoutStoredPasswords(array $items, string $field, bool $keep
     return $items;
 }
 
+function nethvoiceMaskedUrl(string $url): string
+{
+    $url = preg_replace('~^([a-z][a-z0-9+.-]*://)[^/?#]*@~i', '$1***@', $url);
+
+    return preg_replace_callback('~([?#])([^#]*)~', function ($match) {
+        $parts = array_map(function ($part) {
+            $pair = explode('=', $part, 2);
+            if (count($pair) === 2) {
+                return $pair[1] === '' ? $part : $pair[0] . '=***';
+            }
+            return $part === '' ? '' : '***';
+        }, explode('&', $match[2]));
+
+        return $match[1] . implode('&', $parts);
+    }, $url);
+}
+
+function nethvoiceUnmaskedUrl($url, $stored)
+{
+    if (is_string($url) && is_string($stored) && $url !== $stored && trim($url) === nethvoiceMaskedUrl(trim($stored))) {
+        return $stored;
+    }
+
+    return $url;
+}
+
+function nethvoiceWithMaskedUrl($item, string $field)
+{
+    if (is_object($item) && isset($item->$field) && is_string($item->$field)) {
+        $item = clone $item;
+        $item->$field = nethvoiceMaskedUrl($item->$field);
+    } elseif (is_array($item) && is_string($item[$field] ?? null)) {
+        $item[$field] = nethvoiceMaskedUrl($item[$field]);
+    }
+
+    return $item;
+}
+
 function nethvoiceStoredTargetChanged(array $data, array $stored, array $targetFields): bool
 {
     foreach ($targetFields as $field) {
@@ -316,7 +399,12 @@ function nethvoiceIsLocalHost($host, ?array $nodeAddresses = null): bool
         return false;
     }
     $host = strtolower(trim((string) $host, " \t\n\r\0\x0B[]"));
+    $host = rtrim(explode('\\', $host, 2)[0], '.');
     if ($host === '' || $host === 'localhost' || str_ends_with($host, '.localhost')) {
+        return true;
+    }
+    if (filter_var($host, FILTER_VALIDATE_IP) === false && nethvoiceNumericIpv4($host) === null
+        && nethvoiceScopedIpv6($host) === null && preg_match(NETHVOICE_HOST_NAME_PATTERN, $host) !== 1) {
         return true;
     }
     $node = null;

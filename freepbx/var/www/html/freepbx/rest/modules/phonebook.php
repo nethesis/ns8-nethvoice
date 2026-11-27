@@ -131,7 +131,12 @@ $app->get('/phonebook/config', function (Request $request, Response $response, $
             }
         }
         closedir($handle);
-        return jsonResponse($response, nethvoiceWithoutStoredPasswords($config, 'password', nethvoiceRequestIsSuperadmin($request)), 200);
+        $superadmin = nethvoiceRequestIsSuperadmin($request);
+        $config = nethvoiceWithoutStoredPasswords($config, 'password', $superadmin);
+        if (!$superadmin) {
+            $config = array_map(fn($source) => nethvoiceWithMaskedUrl($source, 'url'), $config);
+        }
+        return jsonResponse($response, $config, 200);
     } catch (Exception $e) {
         error_log($e->getMessage());
         return jsonResponse($response, array("status"=>$e->getMessage()), 500);
@@ -158,7 +163,11 @@ $app->post('/phonebook/config[/{id}]', function (Request $request, Response $res
             return jsonResponse($response, array("status"=>"Missing value: dbtype"), 400);
         }
         if (empty($new)) {
-            $data = nethvoiceKeepStoredPassword($data, phonebookStoredSource($id), 'password', phonebookTargetFields($data['dbtype'] ?? ''));
+            $stored = phonebookStoredSource($id);
+            if (!nethvoiceRequestIsSuperadmin($request) && array_key_exists('url', $data)) {
+                $data['url'] = nethvoiceUnmaskedUrl($data['url'], $stored['url'] ?? null);
+            }
+            $data = nethvoiceKeepStoredPassword($data, $stored, 'password', phonebookTargetFields($data['dbtype'] ?? ''));
             if ($data === null) {
                 return jsonResponse($response, array("status"=>PHONEBOOK_PASSWORD_REQUIRED), 400);
             }
@@ -277,6 +286,9 @@ $app->post('/phonebook/test', function (Request $request, Response $response, $a
             $stored = phonebookStoredSource($data['id']);
             if ($stored === null) {
                 return jsonResponse($response, array("status"=>"Phonebook source not found"), 404);
+            }
+            if (!nethvoiceRequestIsSuperadmin($request) && array_key_exists('url', $data)) {
+                $data['url'] = nethvoiceUnmaskedUrl($data['url'], $stored['url'] ?? null);
             }
             $data = nethvoiceKeepStoredPassword($data, $stored, 'password', phonebookTargetFields($data['dbtype'] ?? ''));
             if ($data === null) {

@@ -1017,7 +1017,7 @@ export interface paths {
     put?: never
     /**
      * Check a video source and grab a preview frame.
-     * @description RTSP(S) sources are probed with ffprobe (codecs, resolution) and one JPEG frame is grabbed with ffmpeg, always over TCP, directly from the device. HTTP(S) sources are fetched with the given credentials. With `descr` of a stored source and an empty `secret`, the stored password is used, only for the same scheme, host and port. TLS certificates of https:// and rtsps:// devices are verified (system CA store and host name) unless `tls_skip_verify`; an untrusted certificate fails with reason `tls_error`. Without `tls_skip_verify`, the value stored for `descr` is used (same scheme, host and port). RTSP sources, or `details: true`, answer with a `VideoSourceCheck` object (HTTP 200 also on failure); legacy clients (HTTP URL without `details`) get the Base64 image as a JSON string, or HTTP 500. For administrators who are not superadmin the addresses of the PBX node and of the cluster VPN networks are refused too (`address_not_allowed`).
+     * @description RTSP(S) sources are probed with ffprobe (codecs, resolution) and one JPEG frame is grabbed with ffmpeg, always over TCP, directly from the device. HTTP(S) sources are fetched with the given credentials. With `descr` of a stored source and an empty `secret`, the stored password is used, only for the same scheme, host and port. TLS certificates of https:// and rtsps:// devices are verified (system CA store and host name) unless `tls_skip_verify`; an untrusted certificate fails with reason `tls_error`. Without `tls_skip_verify`, the value stored for `descr` is used (same scheme, host and port). RTSP sources, or `details: true`, answer with a `VideoSourceCheck` object (HTTP 200 also on failure); legacy clients (HTTP URL without `details`) get the Base64 image as a JSON string, or HTTP 500. For administrators who are not superadmin the addresses of the PBX node and of the cluster VPN networks are refused too (`address_not_allowed`), and at most 30 checks per minute are allowed (429).
      */
     post: operations['post_cti_sources_test']
     delete?: never
@@ -1996,7 +1996,7 @@ export interface paths {
     }
     /**
      * List the external phonebook sources.
-     * @description The password is never returned to administrators who are not superadmin; `has_password` tells whether one is stored.
+     * @description The password is never returned to administrators who are not superadmin; `has_password` tells whether one is stored. For them the `url` is masked too (user information and query values replaced by `***`); the masked URL sent back unchanged keeps the stored one.
      */
     get: operations['get_phonebook_config']
     put?: never
@@ -2066,7 +2066,7 @@ export interface paths {
     put?: never
     /**
      * Read the first rows of a phonebook source without saving it.
-     * @description For administrators who are not superadmin, testing a mysql or mssql source follows the rules of `POST /phonebook/config/{id}` and returns 403 otherwise. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files. With `id` and an empty `password`, the stored password of that source is used, only for the same server. A source that cannot be read returns 200 with `status` false and, when known, the `error` cause; a failed read of an uploaded CSV file deletes it unless a saved source uses it.
+     * @description For administrators who are not superadmin, testing a mysql or mssql source follows the rules of `POST /phonebook/config/{id}` and returns 403 otherwise. CSV and Infinity URLs of administrators who are not superadmin must be public http or https addresses or uploaded files. With `id` and an empty `password`, the stored password of that source is used, only for the same server. A source that cannot be read returns 200 with `status` false and, when known, the `error` cause; a failed read of an uploaded CSV file deletes it unless a saved source uses it. A source that does not answer within 60 seconds fails with error `connection`. Database sources of administrators who are not superadmin never connect to the addresses of the PBX node.
      */
     post: operations['post_phonebook_test']
     delete?: never
@@ -2086,7 +2086,7 @@ export interface paths {
     put?: never
     /**
      * Import a phonebook source now (synchronous).
-     * @description A source with automatic sync disabled is not imported and returns `status` true, unless `force` is true. A source that does not exist or cannot be imported returns 500 with `status` false.
+     * @description A source with automatic sync disabled is not imported and returns `status` true, unless `force` is true. A source that does not exist, cannot be imported or does not finish within 15 minutes returns 500 with `status` false.
      */
     post: operations['post_phonebook_syncnow_id']
     delete?: never
@@ -7420,6 +7420,13 @@ export interface operations {
         content: {
           'application/json': components['schemas']['VideoSourceError']
         }
+      }
+      /** @description Too many source checks of administrators who are not superadmin in the last minute */
+      429: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Internal server error */
       500: {
