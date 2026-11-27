@@ -195,7 +195,7 @@ test.describe('rebranding: sign in page', () => {
 
     await expect(page.getByTestId('login-background')).toHaveAttribute(
       'src',
-      /nethvoice-login-bg-dark\.webp$/,
+      /nethvoice-login-bg-dark\.svg/,
     )
   })
 })
@@ -223,7 +223,7 @@ test.describe('sign in page: default background', () => {
       const background = page.getByTestId('login-background')
       await expect(background).toHaveAttribute(
         'src',
-        new RegExp(`nethvoice-login-bg-${colorScheme}\\.webp$`),
+        new RegExp(`nethvoice-login-bg-${colorScheme}\\.svg`),
       )
       await expect
         .poll(() => background.evaluate((image: HTMLImageElement) => image.naturalWidth))

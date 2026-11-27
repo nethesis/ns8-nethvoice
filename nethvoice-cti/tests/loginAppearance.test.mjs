@@ -121,8 +121,8 @@ test('custom background or favicon alone keep the stock logos', () => {
 
 test('default backgrounds follow the theme', () => {
   assert.deepEqual(getLoginBackgrounds(stockConfig), {
-    light: '/nethvoice-login-bg-light.webp',
-    dark: '/nethvoice-login-bg-dark.webp',
+    light: '/nethvoice-login-bg-light.svg',
+    dark: '/nethvoice-login-bg-dark.svg',
   })
   assert.deepEqual(getLoginBackgrounds(undefined), DEFAULT_LOGIN_BACKGROUNDS)
 })
@@ -141,5 +141,5 @@ test('returned images are copies of the defaults', () => {
   assert.equal(STOCK_LOGIN_LOGOS.light, '/login_logo.svg')
   const backgrounds = getLoginBackgrounds(stockConfig)
   backgrounds.dark = '/changed.webp'
-  assert.equal(DEFAULT_LOGIN_BACKGROUNDS.dark, '/nethvoice-login-bg-dark.webp')
+  assert.equal(DEFAULT_LOGIN_BACKGROUNDS.dark, '/nethvoice-login-bg-dark.svg')
 })

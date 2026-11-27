@@ -26,8 +26,8 @@ import { LoginSchema, SignInError, type SignInFailure } from '@/lib/auth'
 import type { Focusable } from '@/lib/common'
 import { getInternalRedirect } from '@/lib/setup/guard'
 import BrandLogo from '@/components/shell/BrandLogo.vue'
-import LoginBackgroundLight from '@/assets/login/nethvoice-login-bg-light.webp'
-import LoginBackgroundDark from '@/assets/login/nethvoice-login-bg-dark.webp'
+import LoginBackgroundLight from '@/assets/login/nethvoice-login-bg-light.svg?no-inline'
+import LoginBackgroundDark from '@/assets/login/nethvoice-login-bg-dark.svg?no-inline'
 
 type LoginError = '' | SignInFailure
 

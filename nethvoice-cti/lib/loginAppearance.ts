@@ -31,8 +31,8 @@ const CUSTOM_NAVBAR_LOGOS: ThemedImages = {
 }
 
 export const DEFAULT_LOGIN_BACKGROUNDS: ThemedImages = {
-  light: '/nethvoice-login-bg-light.webp',
-  dark: '/nethvoice-login-bg-dark.webp',
+  light: '/nethvoice-login-bg-light.svg',
+  dark: '/nethvoice-login-bg-dark.svg',
 }
 
 export const CUSTOM_LOGIN_BACKGROUND = '/login_background.svg'
