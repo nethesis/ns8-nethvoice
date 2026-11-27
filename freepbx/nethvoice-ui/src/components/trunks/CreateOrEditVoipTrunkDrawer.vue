@@ -25,6 +25,7 @@ import DiscardChangesModal from '@/components/users/DiscardChangesModal.vue'
 import {
   getAddedProviderCodecs,
   getEmptyVoipTrunkForm,
+  getSuggestedTrunkName,
   getVoipTrunkForm,
   isEmptyUpdateTrunkRequest,
   normalizePhoneNumber,
@@ -87,6 +88,7 @@ const { state: codecsState } = useTrunkCodecs()
 const form = ref<VoipTrunkForm>(getEmptyVoipTrunkForm())
 const validationIssues = ref<VoipTrunkValidationIssues>({})
 const initialSnapshot = ref('')
+const suggestedName = ref('')
 const isShownDiscardModal = ref(false)
 
 useFocusReturn(() => isShown)
@@ -170,8 +172,8 @@ const {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: t('trunks.trunk_created'),
-        description: t('trunks.trunk_created_description', { name: values.name.trim() }),
+        title: t('trunks.voip.trunk_created'),
+        description: t('trunks.voip.trunk_created_description', { name: values.name.trim() }),
       })
     }, 500)
     emit('close')
@@ -208,8 +210,8 @@ const {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: t('trunks.trunk_updated'),
-        description: t('trunks.trunk_updated_description', { name: item.name }),
+        title: t('trunks.voip.trunk_updated'),
+        description: t('trunks.voip.trunk_updated_description', { name: item.name }),
       })
     }, 500)
     emit('close')
@@ -244,6 +246,7 @@ function initForm() {
         provider: findTrunkProvider(trunk, providers.value)?.id ?? trunk.provider,
       }
     : getEmptyVoipTrunkForm()
+  suggestedName.value = ''
   initialSnapshot.value = JSON.stringify(form.value)
 }
 
@@ -280,6 +283,19 @@ watch(
   (provider, previousProvider) => {
     if (!isEditing.value && provider !== previousProvider) {
       form.value.codecs = []
+    }
+  },
+)
+
+watch(
+  () =>
+    isEditing.value || usesNameAsUsername(form.value.provider)
+      ? ''
+      : getSuggestedTrunkName(selectedProvider.value?.name ?? '', form.value.phoneNumber),
+  (suggestion) => {
+    if (isShown && form.value.name === suggestedName.value) {
+      form.value.name = suggestion
+      suggestedName.value = suggestion
     }
   },
 )

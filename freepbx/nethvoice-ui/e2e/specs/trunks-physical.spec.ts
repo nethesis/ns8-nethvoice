@@ -92,7 +92,7 @@ test.describe('trunks: physical', () => {
     mockTrunksApi(mockApi)
     await page.goto('./trunks/physical')
 
-    await page.getByRole('textbox', { name: 'Filter trunks' }).fill('02:2A')
+    await page.getByRole('textbox', { name: 'Filter physical trunks' }).fill('02:2A')
     await expect(page.getByRole('row')).toHaveCount(2)
     await expect(page.getByRole('row', { name: /HT802/ })).toBeVisible()
   })
@@ -346,7 +346,7 @@ test.describe('trunks: physical', () => {
     await page.getByText('Point-to-point', { exact: true }).click()
     await page.getByRole('button', { name: 'Save', exact: true }).click()
 
-    await expect(page.getByText('Trunk updated')).toBeVisible()
+    await expect(page.getByText('Physical trunk updated')).toBeVisible()
     const [call] = mockApi.callsTo('PUT', '/freepbx/rest/devices/gateways/:id')
     expect(call.path).toBe('/freepbx/rest/devices/gateways/3')
     expect(call.body).toMatchObject({
@@ -438,9 +438,11 @@ test.describe('trunks: physical', () => {
     await page.goto('./trunks/physical')
 
     await page.getByRole('button', { name: /Open the menu of Patton/ }).click()
-    await page.getByRole('menuitem', { name: 'Delete trunk' }).click()
+    await page.getByRole('menuitem', { name: 'Delete', exact: true }).click()
     await expect(
-      page.getByText('The physical trunk Patton TRINITY ISDN 2 Porte will be deleted.'),
+      page.getByText(
+        'Physical trunk Patton TRINITY ISDN 2 Porte will be permanently deleted. The gateway will no longer route calls to the PBX.',
+      ),
     ).toBeVisible()
     await expect(page.getByText('Its trunks are deleted too.')).toBeVisible()
     await expect(
@@ -489,7 +491,7 @@ test.describe('trunks: physical', () => {
     const afterCreate = mockApi.callsTo('GET', livePath).length
 
     await page.getByRole('button', { name: /Open the menu of Patton/ }).click()
-    await page.getByRole('menuitem', { name: 'Delete trunk' }).click()
+    await page.getByRole('menuitem', { name: 'Delete', exact: true }).click()
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
     await expect(
       page.getByText('Physical trunk Patton TRINITY ISDN 2 Porte has been deleted.'),
@@ -507,7 +509,7 @@ test.describe('trunks: physical', () => {
     await page.goto('./trunks/physical')
 
     await page.getByRole('button', { name: /Open the menu of Patton/ }).click()
-    await page.getByRole('menuitem', { name: 'Delete trunk' }).click()
+    await page.getByRole('menuitem', { name: 'Delete', exact: true }).click()
     await page.getByRole('button', { name: 'Delete', exact: true }).click()
 
     await expect(page.getByText('Cannot delete the trunk')).toBeVisible()

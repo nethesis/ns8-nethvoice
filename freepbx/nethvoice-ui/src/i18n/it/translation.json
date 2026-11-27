@@ -51,7 +51,7 @@
     "go_to_dashboard": "Vai alla Dashboard",
     "go_to_physical_phones": "Vai a @:{'phones.title'}",
     "loading": "Caricamento…",
-    "change": "Cambia"
+    "import": "Importa"
   },
   "shell": {
     "open_sidebar": "Apri barra laterale",
@@ -282,9 +282,7 @@
     "filter_any": "Qualsiasi",
     "configured_counter": "{configured} utenti su {total} configurati con un interno",
     "no_users": "Nessun utente configurato",
-    "no_users_description": "Crea gli utenti o importali da un file.",
-    "no_users_yet": "Ancora nessun utente",
-    "no_users_yet_description": "Crea gli utenti o importali da un file",
+    "no_users_description": "Crea gli utenti o importali da un file CSV.",
     "no_users_found": "Nessun utente trovato",
     "cannot_load_users": "Impossibile recuperare gli utenti",
     "user_actions": "Azioni per {name}",
@@ -351,11 +349,10 @@
     "import_skip_existing": "Salta gli utenti esistenti",
     "import_overwrite_existing": "Sovrascrivi gli utenti esistenti",
     "import_overwrite_helper": "Cellulare, gruppi e profilo degli utenti esistenti vengono aggiornati, insieme a casella vocale e dispositivi indicati nel file. I loro nomi restano invariati. Un interno diverso ricrea tutti i loro dispositivi.",
-    "import_summary": "Riepilogo dell'importazione",
-    "import_summary_detected": "Rilevati {users} e {groups}",
+    "import_summary_detected": "Rilevati {users} e {groups}.",
     "import_users_detected": "{count} utente rilevato nel file selezionato: | {count} utenti rilevati nel file selezionato:",
     "import_valid": "{count} valido | {count} validi",
-    "import_with_errors": "{count} con errori (verrà saltato) | {count} con errori (verranno saltati)",
+    "import_with_errors": "{count} con errori | {count} con errori",
     "import_existing_skipped": "{count} utente esistente (verrà saltato) | {count} utenti esistenti (verranno saltati)",
     "import_errors_title": "{count} utente contiene errori e non verrà importato: | {count} utenti contengono errori e non verranno importati:",
     "import_existing_title": "Questo utente esiste già: | Questi utenti esistono già:",
@@ -369,7 +366,6 @@
     "import_issue_duplicate_extension": "interno ripetuto nel file",
     "import_issue_extension_in_use": "interno assegnato a un altro utente",
     "import_issue_unknown_profile": "profilo inesistente",
-    "import_n_users": "Importa {count} utente | Importa {count} utenti",
     "importing_users": "Importazione degli utenti",
     "import_failed": "L'importazione è terminata con errori",
     "import_error_file_too_large": "Il file è troppo grande per essere importato in una volta: dividilo in file più piccoli.",
@@ -599,7 +595,11 @@
     "import_problem_not_instance_user": "l'utente non fa parte di questo centralino, solo il superadmin può importarlo",
     "import_problem_membership_failed": "non è stato possibile aggiungere i nuovi utenti a questo centralino, solo il superadmin può gestirli",
     "import_problem_account_created": "l'account è stato creato nel provider di account ma non configurato, completalo o eliminalo",
-    "extension_error_not_instance_user": "L'utente non fa parte di questo centralino. Solo il superadmin può assegnargli un interno."
+    "extension_error_not_instance_user": "L'utente non fa parte di questo centralino. Solo il superadmin può assegnargli un interno.",
+    "import_no_valid_rows": "Nessuna riga valida da importare",
+    "import_no_valid_rows_description": "Correggi gli errori nel file CSV e prova a caricarlo di nuovo.",
+    "import_check_format": "Assicurati che il file rispetti il formato richiesto o {link}.",
+    "download_template_file": "scarica il file modello"
   },
   "trunks": {
     "title": "Fasci",
@@ -1949,15 +1949,12 @@
       "configuring_users_description_line_1": "Il sistema sta applicando gli interni assegnati e aggiornando la configurazione del centralino.",
       "configuring_users_description_line_2": "Potrebbe richiedere qualche istante.",
       "provisioning_failed": "Impossibile configurare gli utenti",
-      "provisioning_failed_for": "Configurazione interrotta su {username}: {detail} Gli utenti precedenti sono stati configurati: controlla gli interni e riprova.",
+      "provisioning_failed_for": "Configurazione interrotta su {name}: {detail} Gli utenti precedenti sono stati configurati: controlla gli interni e riprova.",
       "users_limit_title": "Troppi utenti con un interno",
       "users_limit_description": "La versione Community consente al massimo {limit} utenti con un interno.",
       "cannot_sync_users_description": "L'elenco potrebbe non includere le ultime modifiche del provider di account.",
-      "change_extensions": "Cambia interni",
-      "changed_extension": "{name}: {from} → {to}",
       "configuring_progress": "{done} modifiche applicate su {total}",
-      "extension_change_warning_title": "I dispositivi verranno eliminati",
-      "extension_change_warning_description": "Cambiare l'interno elimina tutti i dispositivi dell'utente e lo rimuove da tutti i gruppi. Viene ricreato solo il Web phone: le app desktop e mobile vanno abilitate di nuovo e i telefoni fisici vanno assegnati di nuovo."
+      "extension_required": "Assegna almeno un interno per continuare"
     },
     "physical_trunks": {
       "title": "Fasci fisici",

@@ -6,6 +6,7 @@ import {
   filterVoipTrunks,
   getAddedProviderCodecs,
   getEmptyVoipTrunkForm,
+  getSuggestedTrunkName,
   getTrunkManagement,
   getTrunkRouteUsage,
   getVoipTrunkForm,
@@ -449,5 +450,38 @@ describe('getAddedProviderCodecs', () => {
     expect(getAddedProviderCodecs(form, ['ulaw', 'alaw', 'g729'])).toEqual(['ulaw', 'alaw'])
     expect(getAddedProviderCodecs({ ...form, forceCodec: true }, ['ulaw'])).toEqual([])
     expect(getAddedProviderCodecs({ ...form, codecs: [] }, ['ulaw'])).toEqual([])
+  })
+})
+
+describe('getSuggestedTrunkName', () => {
+  it('joins the provider name and the digits of the phone number', () => {
+    expect(getSuggestedTrunkName('TWT', '+39 02 1234-5678')).toBe('TWT-390212345678')
+  })
+
+  it('keeps only the characters allowed in a trunk name', () => {
+    expect(getSuggestedTrunkName('Open Fiber (SIP)', '021234567')).toBe('Open-Fiber-SIP-021234567')
+  })
+
+  it('uses the provider name alone without a phone number', () => {
+    expect(getSuggestedTrunkName('Vodafone', '')).toBe('Vodafone')
+  })
+
+  it('suggests nothing without a provider', () => {
+    expect(getSuggestedTrunkName('', '021234567')).toBe('')
+  })
+
+  it('never exceeds the maximum length', () => {
+    expect(getSuggestedTrunkName('A'.repeat(60), '021234567')).toHaveLength(50)
+  })
+
+  it('suggests a name that passes the validation', () => {
+    const name = getSuggestedTrunkName('Open Fiber (SIP)', '+39 02 1234567')
+
+    expect(
+      validateVoipTrunkForm(
+        { ...getEmptyVoipTrunkForm(), provider: 'openfiber', name, password: 'x' },
+        { existingNames: [] },
+      ).name,
+    ).toBeUndefined()
   })
 })

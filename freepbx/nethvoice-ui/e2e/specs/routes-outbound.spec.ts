@@ -151,9 +151,21 @@ test.describe('routes: outbound', () => {
     )
 
     await routeRow(page, 'National').getByRole('button', { name: /Edit/ }).click()
-    await expect(page.getByRole('dialog')).toContainText(
-      'All trunks are disabled: enable a trunk to add it to this route.',
-    )
+    const addTrunk = page.getByRole('dialog').getByRole('button', { name: 'Add trunk' })
+    await expect(addTrunk).toBeDisabled()
+    await addTrunk.locator('..').focus()
+    await expect(
+      page.getByRole('tooltip', {
+        name: 'All trunks are disabled: enable a trunk to add it to this route.',
+      }),
+    ).toBeVisible()
+    await page.mouse.move(0, 0)
+    await addTrunk.hover({ force: true })
+    await expect(
+      page.getByRole('tooltip', {
+        name: 'All trunks are disabled: enable a trunk to add it to this route.',
+      }),
+    ).toBeVisible()
   })
 
   test('tells apart the routes of two countries', async ({ page, mockApi }) => {
@@ -278,10 +290,12 @@ test.describe('routes: outbound', () => {
     await expect(drawer.getByRole('heading', { name: 'Edit Cellphone' })).toBeVisible()
     await expect(trunks).toHaveText([/TWT-0212345678/, /Vodafone-0698765432/])
 
-    await drawer.getByRole('button', { name: 'Move Vodafone-0698765432 up' }).click()
+    await expect(drawer.getByRole('button', { name: /^Move / })).toHaveCount(0)
+    await drawer.getByRole('button', { name: /^Reorder Vodafone-0698765432,/ }).focus()
+    await page.keyboard.press('ArrowUp')
     await expect(trunks).toHaveText([/Vodafone-0698765432/, /TWT-0212345678/])
     await expect(
-      drawer.getByRole('button', { name: 'Move Vodafone-0698765432 down' }),
+      drawer.getByRole('button', { name: /^Reorder Vodafone-0698765432, position 1 of 2/ }),
     ).toBeFocused()
 
     await drawer.getByRole('button', { name: 'Remove TWT-0212345678' }).click()
@@ -302,8 +316,23 @@ test.describe('routes: outbound', () => {
         { route_id: 8, name: 'Emergency', trunks: [VODAFONE, BACKUP] },
       ],
     })
-    await expect(page.getByText('Route updated')).toBeVisible()
-    await expect(page.getByText('Route Cellphone has been updated.')).toBeVisible()
+    await expect(page.getByText('Outbound route updated')).toBeVisible()
+    await expect(page.getByText('Outbound route Cellphone has been updated.')).toBeVisible()
+  })
+
+  test('reorders the trunks with the move buttons on a phone', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('./routes/outbound')
+    await routeRow(page, 'Cellphone').getByRole('button', { name: /Edit/ }).click()
+
+    const drawer = page.getByRole('dialog')
+    const trunks = drawer.getByRole('list', { name: 'Trunk priority' }).getByRole('listitem')
+
+    await drawer.getByRole('button', { name: 'Move Vodafone-0698765432 up' }).click()
+    await expect(trunks).toHaveText([/Vodafone-0698765432/, /TWT-0212345678/])
+    await expect(
+      drawer.getByRole('button', { name: 'Move Vodafone-0698765432 down' }),
+    ).toBeFocused()
   })
 
   test('asks before discarding the changes and keeps the drawer open while saving', async ({

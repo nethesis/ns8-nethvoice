@@ -93,8 +93,8 @@ const {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: t('routes.route_updated'),
-        description: t('routes.route_updated_description', { name: vars.title }),
+        title: t('routes.outbound_route_updated'),
+        description: t('routes.outbound_route_updated_description', { name: vars.title }),
       })
     }, 500)
     emit('close')
@@ -184,15 +184,23 @@ function removeTrunk(trunk: RouteTrunk) {
   announcement.value = t('routes.trunk_removed', { name: getTrunkLabel(trunk) })
 }
 
-async function moveTrunk(index: number, offset: -1 | 1) {
+async function moveTrunk(index: number, offset: -1 | 1, fromGrip = false) {
   const trunk = trunks.value[index]
   const target = index + offset
 
+  if (target < 0 || target >= trunks.value.length) {
+    return
+  }
   trunks.value = moveItem(trunks.value, index, target)
   announcement.value = t('routes.trunk_moved', { name: getTrunkLabel(trunk), position: target + 1 })
   await nextTick()
 
   const row = trunkListRef.value?.querySelector(`[data-trunk-id="${trunk.id}"]`)
+
+  if (fromGrip) {
+    row?.querySelector<HTMLButtonElement>('[data-move="grip"]')?.focus()
+    return
+  }
   const preferred = row?.querySelector<HTMLButtonElement>(
     `[data-move="${offset === -1 ? 'up' : 'down'}"]`,
   )
@@ -205,6 +213,14 @@ async function moveTrunk(index: number, offset: -1 | 1) {
   } else {
     fallback?.focus()
   }
+}
+
+function onGripKeydown(event: KeyboardEvent, index: number) {
+  if (saveTrunksLoading.value || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+    return
+  }
+  event.preventDefault()
+  moveTrunk(index, event.key === 'ArrowUp' ? -1 : 1, true)
 }
 
 function isDropPlaceholder(index: number): boolean {
@@ -344,11 +360,26 @@ function discardChanges() {
             @drop.prevent
             @dragend="onDragEnd"
           >
-            <FontAwesomeIcon
-              :icon="faGripVertical"
-              class="text-secondary-neutral h-4 w-4 shrink-0 cursor-grab"
-              aria-hidden="true"
-            />
+            <NeTooltip trigger-event="mouseenter focus" placement="top">
+              <template #trigger>
+                <button
+                  type="button"
+                  data-move="grip"
+                  class="text-secondary-neutral focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 flex shrink-0 cursor-grab rounded-sm focus:outline-hidden focus-visible:ring-2 active:cursor-grabbing"
+                  :aria-label="
+                    t('routes.reorder_trunk', {
+                      name: getTrunkLabel(trunk),
+                      position: index + 1,
+                      total: trunks.length,
+                    })
+                  "
+                  @keydown="onGripKeydown($event, index)"
+                >
+                  <FontAwesomeIcon :icon="faGripVertical" class="h-4 w-4" aria-hidden="true" />
+                </button>
+              </template>
+              <template #content>{{ t('routes.drag_to_reorder') }}</template>
+            </NeTooltip>
             <span class="flex min-w-0 flex-1 basis-40 items-center gap-2">
               <span class="flex min-w-6 shrink-0 justify-center">
                 <NeBadgeV2 kind="indigo" size="xs" pill>{{ index + 1 }}</NeBadgeV2>
@@ -361,42 +392,44 @@ function discardChanges() {
               </span>
             </span>
             <div class="ml-auto flex shrink-0 items-center">
-              <NeTooltip trigger-event="mouseenter focus" placement="top">
-                <template #trigger>
-                  <NeButton
-                    type="button"
-                    kind="tertiary"
-                    size="lg"
-                    data-move="up"
-                    :disabled="index === 0 || saveTrunksLoading"
-                    @click="moveTrunk(index, -1)"
-                  >
-                    <span class="sr-only">{{
-                      t('routes.move_trunk_up', { name: getTrunkLabel(trunk) })
-                    }}</span>
-                    <FontAwesomeIcon :icon="faArrowUp" class="h-4 w-4" aria-hidden="true" />
-                  </NeButton>
-                </template>
-                <template #content>{{ t('routes.move_up') }}</template>
-              </NeTooltip>
-              <NeTooltip trigger-event="mouseenter focus" placement="top">
-                <template #trigger>
-                  <NeButton
-                    type="button"
-                    kind="tertiary"
-                    size="lg"
-                    data-move="down"
-                    :disabled="index === trunks.length - 1 || saveTrunksLoading"
-                    @click="moveTrunk(index, 1)"
-                  >
-                    <span class="sr-only">{{
-                      t('routes.move_trunk_down', { name: getTrunkLabel(trunk) })
-                    }}</span>
-                    <FontAwesomeIcon :icon="faArrowDown" class="h-4 w-4" aria-hidden="true" />
-                  </NeButton>
-                </template>
-                <template #content>{{ t('routes.move_down') }}</template>
-              </NeTooltip>
+              <div class="flex items-center sm:hidden">
+                <NeTooltip trigger-event="mouseenter focus" placement="top">
+                  <template #trigger>
+                    <NeButton
+                      type="button"
+                      kind="tertiary"
+                      size="lg"
+                      data-move="up"
+                      :disabled="index === 0 || saveTrunksLoading"
+                      @click="moveTrunk(index, -1)"
+                    >
+                      <span class="sr-only">{{
+                        t('routes.move_trunk_up', { name: getTrunkLabel(trunk) })
+                      }}</span>
+                      <FontAwesomeIcon :icon="faArrowUp" class="h-4 w-4" aria-hidden="true" />
+                    </NeButton>
+                  </template>
+                  <template #content>{{ t('routes.move_up') }}</template>
+                </NeTooltip>
+                <NeTooltip trigger-event="mouseenter focus" placement="top">
+                  <template #trigger>
+                    <NeButton
+                      type="button"
+                      kind="tertiary"
+                      size="lg"
+                      data-move="down"
+                      :disabled="index === trunks.length - 1 || saveTrunksLoading"
+                      @click="moveTrunk(index, 1)"
+                    >
+                      <span class="sr-only">{{
+                        t('routes.move_trunk_down', { name: getTrunkLabel(trunk) })
+                      }}</span>
+                      <FontAwesomeIcon :icon="faArrowDown" class="h-4 w-4" aria-hidden="true" />
+                    </NeButton>
+                  </template>
+                  <template #content>{{ t('routes.move_down') }}</template>
+                </NeTooltip>
+              </div>
               <NeTooltip trigger-event="mouseenter focus" placement="top">
                 <template #trigger>
                   <NeButton
@@ -442,29 +475,37 @@ function discardChanges() {
               </span>
             </template>
           </NeDropdown>
-          <template v-else>
-            <NeButton
-              type="button"
-              kind="tertiary"
-              disabled
-              :aria-describedby="noTrunksToAddMessage ? 'no-trunks-to-add' : undefined"
-            >
-              <template #prefix>
-                <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
-              </template>
-              {{ t('routes.add_trunk') }}
-              <template #suffix>
-                <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
-              </template>
-            </NeButton>
-            <p
-              v-if="noTrunksToAddMessage"
-              id="no-trunks-to-add"
-              class="text-tertiary-neutral px-3 text-xs"
-            >
-              {{ noTrunksToAddMessage }}
-            </p>
-          </template>
+          <NeTooltip
+            v-else-if="noTrunksToAddMessage"
+            trigger-event="mouseenter focus"
+            placement="top"
+            tabindex="0"
+            aria-describedby="no-trunks-to-add"
+            class="focus-visible:ring-primary-500 dark:focus-visible:ring-primary-300 inline-flex rounded-md focus:outline-hidden focus-visible:ring-2"
+          >
+            <template #trigger>
+              <NeButton type="button" kind="tertiary" disabled tabindex="-1">
+                <template #prefix>
+                  <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+                </template>
+                {{ t('routes.add_trunk') }}
+                <template #suffix>
+                  <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
+                </template>
+              </NeButton>
+              <span id="no-trunks-to-add" class="sr-only">{{ noTrunksToAddMessage }}</span>
+            </template>
+            <template #content>{{ noTrunksToAddMessage }}</template>
+          </NeTooltip>
+          <NeButton v-else type="button" kind="tertiary" disabled>
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+            </template>
+            {{ t('routes.add_trunk') }}
+            <template #suffix>
+              <FontAwesomeIcon :icon="faChevronDown" class="size-4" aria-hidden="true" />
+            </template>
+          </NeButton>
         </div>
         <NeInlineNotification
           v-if="saveTrunksError"

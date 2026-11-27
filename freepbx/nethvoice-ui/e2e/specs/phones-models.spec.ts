@@ -582,7 +582,7 @@ test.describe('physical phones: models', () => {
       })
       await page.goto('./phones/models')
 
-      await page.getByRole('button', { name: 'Sort by', exact: true }).click()
+      await page.getByRole('button', { name: 'Sort', exact: true }).click()
       await page.getByRole('menuitem', { name: 'Last update' }).click()
       await expect(page.getByRole('row').nth(-1)).toContainText('Reception desk')
     })

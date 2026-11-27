@@ -4,11 +4,17 @@
 -->
 
 <script setup lang="ts">
+import { useTemplateRef } from 'vue'
+import { NeButton } from '@nethesis/vue-components'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faCirclePlus } from '@fortawesome/free-solid-svg-icons'
 import SetupStepLayout from './SetupStepLayout.vue'
 import VoipTrunksManager from '@/components/trunks/VoipTrunksManager.vue'
 import { useSetupNavigation } from '@/composables/useSetupNavigation'
 
 const { advancing, goToNextStep } = useSetupNavigation('voip-trunks')
+
+const manager = useTemplateRef<InstanceType<typeof VoipTrunksManager>>('manager')
 </script>
 
 <template>
@@ -24,6 +30,14 @@ const { advancing, goToNextStep } = useSetupNavigation('voip-trunks')
         <p>{{ $t('setup.voip_trunks.description_details') }}</p>
       </div>
     </template>
-    <VoipTrunksManager variant="setup" />
+    <template v-if="manager?.isCreateActionShown" #actions>
+      <NeButton kind="secondary" @click="manager.showCreateDrawer()">
+        <template #prefix>
+          <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
+        </template>
+        {{ $t('trunks.voip.add_voip_trunk') }}
+      </NeButton>
+    </template>
+    <VoipTrunksManager ref="manager" variant="setup" />
   </SetupStepLayout>
 </template>

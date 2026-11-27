@@ -11,6 +11,7 @@ import {
   formatMacAddress,
   getEmptyGatewayForm,
   getGatewayConfigFileName,
+  getGatewayDisplayName,
   getGatewayForm,
   getGatewayLabel,
   getGatewayName,
@@ -738,5 +739,23 @@ describe('getRemovedFxsExtensions', () => {
     expect(getRemovedFxsExtensions(['201'], ['201', '202'])).toEqual([])
     expect(getRemovedFxsExtensions(['', ''], ['201', ''])).toEqual([])
     expect(getRemovedFxsExtensions(['201', '202'], ['201'])).toEqual(['202'])
+  })
+})
+
+describe('getGatewayDisplayName', () => {
+  it('separates the manufacturer from the model in the saved name', () => {
+    expect(
+      getGatewayDisplayName({ name: 'Patton-TRINITY PRI 1 Port', manufacturer: 'Patton' }),
+    ).toBe('Patton TRINITY PRI 1 Port')
+  })
+
+  it('keeps a name that does not start with the manufacturer', () => {
+    expect(getGatewayDisplayName({ name: 'Office gateway', manufacturer: 'Patton' })).toBe(
+      'Office gateway',
+    )
+  })
+
+  it('falls back to the manufacturer without a name', () => {
+    expect(getGatewayDisplayName({ name: '', manufacturer: 'Grandstream' })).toBe('Grandstream')
   })
 })

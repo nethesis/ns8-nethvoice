@@ -224,6 +224,7 @@ test.describe('setup wizard: outbound routes', () => {
     await expect(page.getByText('Step 6 of 7')).toBeVisible()
     await expect(page.getByText('Calls within the country')).toBeVisible()
     await expect(page.getByRole('textbox', { name: 'Filter routes' })).toHaveCount(0)
+    await expect(page.getByRole('button', { name: /Open the menu of route/ })).toHaveCount(0)
 
     await page.getByRole('button', { name: 'Next' }).click()
 
@@ -267,6 +268,58 @@ test.describe('setup wizard: outbound routes', () => {
     expect(mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')).toHaveLength(1)
   })
 
+  test('tells that outbound calls need a VoIP trunk', async ({ page, mockApi }) => {
+    mockApi
+      .on('GET', '/freepbx/rest/trunks', { json: [] })
+      .on('GET', '/freepbx/rest/outboundroutes', {
+        json: ROUTES.map((route) => ({ ...route, trunks: [] })),
+      })
+    await setCountry(page, 'it')
+    await page.goto('./setup/outbound-routes')
+
+    await expect(page.getByText('No VoIP trunks configured')).toBeVisible()
+    await expect(
+      page.getByText(
+        'Outbound calls need at least one VoIP trunk. Create one in the VoIP trunks step.',
+      ),
+    ).toBeVisible()
+    const row = page
+      .getByRole('grid', { name: 'Outbound routes' })
+      .getByRole('row')
+      .filter({ hasText: 'International' })
+    await expect(row.getByRole('gridcell').nth(1)).toHaveText(/(^|priority)-$/)
+    await expect(row.getByRole('button', { name: /Edit/ })).toBeDisabled()
+    await expect(page.getByText('No trunks: calls cannot be placed')).toHaveCount(0)
+  })
+
+  test('reorders the trunks with the keyboard', async ({ page, mockApi }) => {
+    await setCountry(page, 'it')
+    await page.goto('./setup/outbound-routes')
+
+    await page.getByRole('button', { name: 'Edit National', exact: true }).click()
+
+    const drawer = page.getByRole('dialog')
+    const grip = drawer.getByRole('button', {
+      name: 'Reorder TWT-0212345678, position 1 of 2. Use the up and down arrow keys to move it.',
+    })
+    await grip.focus()
+    await page.keyboard.press('ArrowDown')
+    await expect(
+      drawer.getByRole('button', {
+        name: 'Reorder TWT-0212345678, position 2 of 2. Use the up and down arrow keys to move it.',
+      }),
+    ).toBeFocused()
+    await expect(drawer.getByText('TWT-0212345678 moved to position 2')).toBeAttached()
+    await drawer.getByRole('button', { name: 'Save' }).click()
+
+    await expect(page.getByText('Outbound route National has been updated.')).toBeVisible()
+    const body = mockApi.callsTo('POST', '/freepbx/rest/outboundroutes')[0].body as Record<
+      string,
+      { route_id: number; trunks: unknown[] }[]
+    >
+    expect(body.it[0].trunks).toEqual([VODAFONE, TWT])
+  })
+
   test('edits the trunks of a route from the wizard', async ({ page, mockApi }) => {
     await setCountry(page, 'it')
     await page.goto('./setup/outbound-routes')
@@ -278,6 +331,7 @@ test.describe('setup wizard: outbound routes', () => {
       .getByRole('button', { name: /Edit/ })
       .click()
 
+    await expect(page.getByText('No VoIP trunks configured')).toHaveCount(0)
     const drawer = page.getByRole('dialog')
 
     await drawer.getByRole('button', { name: 'Remove TWT-0212345678' }).click()

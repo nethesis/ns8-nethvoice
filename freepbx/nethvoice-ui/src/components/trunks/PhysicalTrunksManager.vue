@@ -149,6 +149,8 @@ const isUpdating = useUpdatingIndicator(
     (gatewaysAsyncStatus.value === 'loading' || liveAsyncStatus.value === 'loading'),
 )
 
+const isCreateActionShown = computed(() => !isNoDataEmptyStateShown.value)
+
 const currentLabel = computed(() =>
   currentGateway.value ? getGatewayLabel(currentGateway.value, models.value) : '',
 )
@@ -240,13 +242,15 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
     { id: 'divider-delete' },
     {
       id: 'deleteTrunk',
-      label: t('trunks.delete_trunk'),
+      label: t('common.delete'),
       icon: faTrash,
       danger: true,
       action: () => showDeleteModal(gateway),
     },
   ]
 }
+
+defineExpose({ showCreateDrawer, isCreateActionShown })
 </script>
 
 <template>
@@ -275,8 +279,8 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
           <NeTextInput
             v-model="textFilter"
             is-search
-            :placeholder="t('trunks.filter_trunks')"
-            :aria-label="t('trunks.filter_trunks')"
+            :placeholder="t('trunks.physical.filter_trunks')"
+            :aria-label="t('trunks.physical.filter_trunks')"
             :clear-search-label="t('ne_text_input.clear_search')"
             class="w-full max-w-xs"
             @blur="textFilter = textFilter.trim()"
@@ -290,15 +294,7 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
             {{ t('common.reset_filters') }}
           </NeButton>
         </div>
-        <div class="flex items-center gap-4">
-          <TrunksUpdatingIndicator v-if="isUpdating" />
-          <NeButton v-if="variant === 'setup'" kind="secondary" @click="showCreateDrawer">
-            <template #prefix>
-              <FontAwesomeIcon :icon="faCirclePlus" class="h-4 w-4" aria-hidden="true" />
-            </template>
-            {{ t('trunks.physical.add_physical_trunk') }}
-          </NeButton>
-        </div>
+        <TrunksUpdatingIndicator v-if="variant === 'admin' && isUpdating" />
       </div>
       <LoadError
         v-if="loadError"
@@ -319,7 +315,7 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
         :title="t('trunks.physical.no_trunks')"
         :description="emptyStateDescription"
         :icon="faEthernet"
-        class="bg-elevation-0"
+        :class="variant === 'admin' ? 'bg-elevation-0' : 'elevation-2'"
       >
         <div v-if="variant === 'admin'" class="text-tertiary-neutral -mt-4 mb-5 text-center">
           <p>{{ t('trunks.physical.empty_description_line_1') }}</p>
@@ -340,10 +336,10 @@ function getKebabMenuItems(gateway: Gateway): NeDropdownItem[] {
       </NeEmptyState>
       <NeEmptyState
         v-else-if="isNoMatchEmptyStateShown"
-        :title="t('trunks.no_trunks_found')"
+        :title="t('trunks.physical.no_trunks_found')"
         :description="t('common.try_different_words')"
         :icon="faMagnifyingGlass"
-        class="bg-elevation-0"
+        :class="variant === 'admin' ? 'bg-elevation-0' : 'elevation-2'"
       >
         <NeButton kind="tertiary" size="lg" @click="textFilter = ''">
           {{ t('common.clear_filter') }}

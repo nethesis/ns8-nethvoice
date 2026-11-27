@@ -186,7 +186,10 @@ const {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: gatewayId === undefined ? t('trunks.trunk_created') : t('trunks.trunk_updated'),
+        title:
+          gatewayId === undefined
+            ? t('trunks.physical.trunk_created')
+            : t('trunks.physical.trunk_updated'),
         description:
           gatewayId === undefined
             ? t('trunks.physical.trunk_created_description', { name })

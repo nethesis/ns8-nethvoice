@@ -10,6 +10,7 @@ import {
   NeButton,
   NeDropdown,
   NeEmptyState,
+  NeInlineNotification,
   NeSortDropdown,
   NeTable,
   NeTableBody,
@@ -47,6 +48,7 @@ import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { usePermissions } from '@/queries/permissions/me'
 import { useTrunks } from '@/queries/trunks/trunks'
 import { getTrunkLabelById } from '@/lib/trunks/providers'
+import { getTrunkManagement } from '@/lib/trunks/trunks'
 import {
   filterOutboundRoutes,
   getOutboundRouteAdvancedUrl,
@@ -126,6 +128,13 @@ function getTrunkLabel(trunk: RouteTrunk): string {
 }
 
 const loading = computed(() => busy || state.value.status === 'pending')
+
+const isNoTrunksNotificationShown = computed(
+  () =>
+    variant === 'setup' &&
+    trunksState.value.status === 'success' &&
+    trunksState.value.data.every((trunk) => getTrunkManagement(trunk) === 'voice_agents'),
+)
 
 const filteredRoutes = computed(() => {
   const activeSortKey =
@@ -244,6 +253,12 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
       :title="t('routes.cannot_load_outbound_routes')"
       @retry="refetch()"
     />
+    <NeInlineNotification
+      v-if="isNoTrunksNotificationShown"
+      kind="info"
+      :title="t('trunks.voip.no_trunks')"
+      :description="t('setup.outbound_routes.no_voip_trunks_description')"
+    />
     <NeEmptyState
       v-if="isNoDataEmptyStateShown"
       :title="t('routes.no_outbound_routes')"
@@ -311,14 +326,15 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
           </NeTableCell>
           <NeTableCell :data-label="t('routes.trunk_priority')">
             <div class="flex flex-col gap-1">
-              <ol v-if="item.trunks.length" class="list-outside list-decimal pl-5">
+              <span v-if="isNoTrunksNotificationShown && !item.trunks.length">-</span>
+              <ol v-else-if="item.trunks.length" class="list-outside list-decimal pl-5">
                 <li v-for="trunk in item.trunks" :key="trunk.id" class="break-words">
                   {{ getTrunkLabel(trunk) }}
                   <RouteTrunkBadge :state="getTrunkState(trunk)" class="ml-1" />
                 </li>
               </ol>
               <span
-                v-if="isWithoutActiveTrunks(item)"
+                v-if="!isNoTrunksNotificationShown && isWithoutActiveTrunks(item)"
                 class="inline-flex items-center gap-2 text-amber-700 dark:text-amber-500"
               >
                 <FontAwesomeIcon
@@ -336,7 +352,11 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
           </NeTableCell>
           <NeTableCell :data-label="t('common.actions')">
             <div class="-ml-2.5 flex gap-2 lg:ml-0 lg:justify-end">
-              <NeButton kind="tertiary" @click="showEditRouteDrawer(item)">
+              <NeButton
+                kind="tertiary"
+                :disabled="isNoTrunksNotificationShown"
+                @click="showEditRouteDrawer(item)"
+              >
                 <template #prefix>
                   <FontAwesomeIcon :icon="faPenToSquare" class="h-4 w-4" aria-hidden="true" />
                 </template>
@@ -344,7 +364,7 @@ function getKebabMenuItems(route: OutboundRoute): NeDropdownItem[] {
                 <span class="sr-only">{{ getRouteTitle(item) }}</span>
               </NeButton>
               <NeDropdown
-                v-if="isSuperadmin"
+                v-if="variant === 'admin' && isSuperadmin"
                 :items="getKebabMenuItems(item)"
                 :align-to-right="true"
                 :open-menu-aria-label="t('routes.open_route_menu', { name: getRouteTitle(item) })"

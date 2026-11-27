@@ -16,6 +16,7 @@ import SetupSummarySection from './SetupSummarySection.vue'
 import BrandLogo from '@/components/shell/BrandLogo.vue'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { useOutboundRouteLabels } from '@/composables/useOutboundRouteLabels'
+import { useInboundRouteLabels } from '@/composables/useInboundRouteLabels'
 import { usePbxLanguages } from '@/queries/settings/system'
 import { useUsers } from '@/queries/users/users'
 import { useTrunks } from '@/queries/trunks/trunks'
@@ -25,8 +26,13 @@ import { useOutboundRoutes } from '@/queries/routes/outbound'
 import { getCountryLabel } from '@/lib/settings/system'
 import { countConfiguredUsers } from '@/lib/users/users'
 import { getTrunkManagement, getVoipTrunks } from '@/lib/trunks/trunks'
-import { getGatewayStatus, getGatewayTrunkIds, type Gateway } from '@/lib/trunks/gateways'
-import { getInboundRouteName, sortInboundRoutes } from '@/lib/routes/inbound'
+import {
+  getGatewayDisplayName,
+  getGatewayStatus,
+  getGatewayTrunkIds,
+  type Gateway,
+} from '@/lib/trunks/gateways'
+import { sortInboundRoutes, type InboundRoute } from '@/lib/routes/inbound'
 import { getRouteTrunkState, isOutboundTrunk } from '@/lib/routes/outbound'
 import { getLanguageName, getSummaryWarnings } from '@/lib/setup/summary'
 import { LEGACY_FINAL_STEP } from '@/lib/setup/steps'
@@ -48,6 +54,7 @@ const setupStore = useSetupStore()
 const runtimeConfigStore = useRuntimeConfigStore()
 const { readSetupInProgress } = useSetupGuard()
 const { getRouteTitle } = useOutboundRouteLabels()
+const { getRouteName, describeDestination } = useInboundRouteLabels()
 
 const { state: languagesState, refetch: refetchLanguages } = usePbxLanguages()
 const { state: usersState, refetch: refetchUsers } = useUsers()
@@ -79,6 +86,11 @@ const voipTrunks = computed(() =>
 const inboundRoutes = computed(() =>
   sortInboundRoutes(inboundState.value.data ?? [], 'number', false, () => ''),
 )
+
+const describeInboundRoute = (route: InboundRoute) =>
+  [route.description ? getRouteName(route) : '', describeDestination(route.destination)]
+    .filter(Boolean)
+    .join(', ') || '-'
 
 const isGatewayDisabled = (gateway: Gateway) =>
   getGatewayStatus(gateway, trunksState.value.data, undefined) === 'disabled'
@@ -184,11 +196,13 @@ function completeSetup() {
         @retry="refetchLanguages()"
       >
         <p>
-          <span class="font-medium">{{ t('setup.system.pbx_country') }}:</span>
+          <span class="text-primary-neutral font-medium">{{ t('setup.system.pbx_country') }}:</span>
           {{ country ? getCountryLabel(country, locale) : t('setup.summary.not_set') }}
         </p>
         <p>
-          <span class="font-medium">{{ t('setup.system.pbx_language') }}:</span>
+          <span class="text-primary-neutral font-medium"
+            >{{ t('setup.system.pbx_language') }}:</span
+          >
           {{
             languagesState.data?.defaultLanguage
               ? getLanguageName(languagesState.data.defaultLanguage, locale)
@@ -228,13 +242,14 @@ function completeSetup() {
         @retry="refetchGateways()"
       >
         <ul v-if="gateways.length">
-          <li v-for="gateway in gateways" :key="gateway.id" class="flex flex-wrap gap-x-2">
-            <span class="wrap-break-word">{{
-              [gateway.name || gateway.manufacturer, gateway.ipAddress].filter(Boolean).join(' ')
+          <li v-for="gateway in gateways" :key="gateway.id" class="wrap-break-word">
+            <span class="text-primary-neutral font-medium">{{
+              getGatewayDisplayName(gateway)
+            }}</span
+            >{{ gateway.ipAddress ? ` ${gateway.ipAddress}` : ''
+            }}<span v-if="isGatewayDisabled(gateway)" class="text-tertiary-neutral">{{
+              ` (${t('common.disabled')})`
             }}</span>
-            <span v-if="isGatewayDisabled(gateway)" class="text-tertiary-neutral">
-              ({{ t('common.disabled') }})
-            </span>
           </li>
         </ul>
         <p v-else>{{ t('setup.summary.no_physical_trunks') }}</p>
@@ -248,7 +263,7 @@ function completeSetup() {
       >
         <ul v-if="voipTrunks?.length">
           <li v-for="trunk in voipTrunks" :key="trunk.id" class="flex flex-wrap gap-x-2">
-            <span class="wrap-break-word">{{ trunk.name }}</span>
+            <span class="text-primary-neutral font-medium wrap-break-word">{{ trunk.name }}</span>
             <span v-if="trunk.phoneNumber" class="wrap-break-word">{{ trunk.phoneNumber }}</span>
             <span v-if="trunk.disabled" class="text-tertiary-neutral">
               ({{ t('common.disabled') }})
@@ -266,8 +281,10 @@ function completeSetup() {
       >
         <ul v-if="inboundRoutes.length">
           <li v-for="route in inboundRoutes" :key="route.id" class="wrap-break-word">
-            <span class="font-medium">{{ getInboundRouteName(route) }}:</span>
-            {{ route.description || '-' }}
+            <span class="text-primary-neutral font-medium"
+              >{{ route.description || getRouteName(route) }}:</span
+            >
+            {{ describeInboundRoute(route) }}
           </li>
         </ul>
         <p v-else>{{ t('setup.summary.no_inbound_routes') }}</p>
@@ -281,7 +298,7 @@ function completeSetup() {
       >
         <ul v-if="outboundState.data?.length">
           <li v-for="route in outboundState.data" :key="route.id" class="wrap-break-word">
-            <span class="font-medium">{{ getRouteTitle(route) }}:</span>
+            <span class="text-primary-neutral font-medium">{{ getRouteTitle(route) }}:</span>
             {{ route.trunks.length ? '' : t('routes.no_trunks')
             }}<span v-for="(trunk, index) in route.trunks" :key="trunk.id"
               >{{ index > 0 ? ', ' : '' }}{{ trunk.name
@@ -329,7 +346,7 @@ function completeSetup() {
     >
       <NeSpinner size="8" />
       <BrandLogo class="h-12 w-auto" />
-      <p class="text-primary-neutral">
+      <p class="text-secondary-neutral text-sm">
         {{ t('setup.summary.completing', { brand: runtimeConfigStore.config.brandName }) }}
       </p>
     </div>

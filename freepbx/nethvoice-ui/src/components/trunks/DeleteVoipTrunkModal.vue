@@ -46,8 +46,8 @@ const {
     setTimeout(() => {
       notificationsStore.createNotification({
         kind: 'success',
-        title: t('trunks.trunk_deleted'),
-        description: t('trunks.trunk_deleted_description', { name: item.name }),
+        title: t('trunks.voip.trunk_deleted'),
+        description: t('trunks.voip.trunk_deleted_description', { name: item.name }),
       })
     }, 500)
     emit('close')
@@ -84,7 +84,7 @@ function confirmDelete() {
 <template>
   <DeleteObjectModal
     :visible="visible"
-    :title="t('trunks.delete_trunk')"
+    :title="t('trunks.voip.delete_trunk')"
     :primary-label="t('common.delete')"
     :deleting="deleting"
     :error-title="error ? t('trunks.cannot_delete_trunk') : ''"

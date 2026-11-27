@@ -266,6 +266,14 @@ export const getGatewayLabel = (gateway: Gateway, models: GatewayModel[]): strin
     : gateway.name || gateway.manufacturer
 }
 
+export const getGatewayDisplayName = (gateway: Pick<Gateway, 'name' | 'manufacturer'>): string => {
+  const prefix = `${gateway.manufacturer}-`
+
+  return gateway.manufacturer && gateway.name.startsWith(prefix)
+    ? `${gateway.manufacturer} ${gateway.name.slice(prefix.length)}`
+    : gateway.name || gateway.manufacturer
+}
+
 export const getGatewayName = (model: GatewayModel): string =>
   `${model.manufacturer}-${model.description}`
 

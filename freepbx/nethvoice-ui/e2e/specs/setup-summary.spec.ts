@@ -3,6 +3,7 @@
 
 import type { Page } from '@playwright/test'
 import { expect, mockWizardState, test, type MockApi } from '../fixtures/mockApi'
+import { ISDN_GATEWAY } from './trunks-data'
 
 const USERS = [
   { id: '1', username: 'a.miller', displayname: 'Anna Miller', default_extension: '300' },
@@ -93,10 +94,19 @@ test.describe('setup wizard: summary', () => {
     await expect(section(page, '4. VoIP trunks')).toContainText('TWT-0212345678')
     await expect(section(page, '4. VoIP trunks')).toContainText('+390212345678')
     await expect(section(page, '5. Inbound routes')).toContainText(
-      '+39 02 1234567: Main office number',
+      'Main office number: +39 02 1234567',
     )
     await expect(section(page, '6. Outbound routes')).toContainText('National: TWT-0212345678')
     await expect(page.getByText('Some settings may need attention')).toHaveCount(0)
+  })
+
+  test('names the physical trunks by manufacturer and model', async ({ page, mockApi }) => {
+    mockApi.on('GET', '/freepbx/rest/devices/gateways/list/all', { json: [ISDN_GATEWAY] })
+    await page.goto('./setup/summary')
+
+    const physical = section(page, '3. Physical trunks (optional)')
+    await expect(physical).toContainText('Patton TRINITY ISDN 2 Porte 192.168.10.20')
+    await expect(physical.getByText('Patton TRINITY ISDN 2 Porte')).toHaveClass(/font-medium/)
   })
 
   test('shows the country of the existing outbound routes', async ({ page }) => {
@@ -229,8 +239,8 @@ test.describe('setup wizard: summary', () => {
     await page.goto('./setup/summary')
 
     await expect(section(page, '5. Inbound routes').getByRole('listitem')).toHaveText([
-      '7777: First',
-      '0211223344: Second',
+      'First: 7777',
+      'Second: 0211223344',
     ])
   })
 
@@ -300,7 +310,7 @@ test.describe('setup wizard: summary', () => {
     const modal = page.getByRole('dialog', { name: 'Finish setup' })
     await expect(modal).toContainText('Asterisk will restart')
     await modal.getByRole('button', { name: 'Finish', exact: true }).click()
-    await expect(page.getByText('Adjusting NethVoice settings, almost there…')).toBeVisible()
+    await expect(page.getByText('Applying the configuration to NethVoice…')).toBeVisible()
     await finish.click({ force: true })
     mockApi.on('GET', '/freepbx/rest/configuration/wizard', {
       json: [{ step: 13, status: 'false' }],
@@ -342,7 +352,7 @@ test.describe('setup wizard: summary', () => {
       .click()
 
     await expect(page).toHaveURL(/\/nethvoice\/dashboard$/)
-    await expect(page.getByText('Cannot complete the setup')).toHaveCount(0)
+    await expect(page.getByText('Cannot complete setup')).toHaveCount(0)
   })
 
   test('does not restart a setup completed in another session', async ({ page, mockApi }) => {
@@ -381,7 +391,7 @@ test.describe('setup wizard: summary', () => {
       .getByRole('button', { name: 'Finish', exact: true })
       .click()
 
-    await expect(page.getByText('Cannot complete the setup')).toBeVisible()
+    await expect(page.getByText('Cannot complete setup')).toBeVisible()
     await expect(page).toHaveURL(/\/nethvoice\/setup\/summary$/)
     await expect(page.getByRole('button', { name: 'Finish setup' })).toBeEnabled()
   })

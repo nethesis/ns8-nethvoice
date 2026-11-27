@@ -51,7 +51,7 @@
     "go_to_dashboard": "Go to Dashboard",
     "go_to_physical_phones": "Go to @:{'phones.title'}",
     "loading": "Loading…",
-    "change": "Change"
+    "import": "Import"
   },
   "shell": {
     "open_sidebar": "Open sidebar",
@@ -282,9 +282,7 @@
     "filter_any": "Any",
     "configured_counter": "{configured} out of {total} users configured with an extension",
     "no_users": "No users configured",
-    "no_users_description": "Create users or import them from a file.",
-    "no_users_yet": "No users yet",
-    "no_users_yet_description": "Create users or import them from a file",
+    "no_users_description": "Create users or import them from a CSV file.",
     "no_users_found": "No users found",
     "cannot_load_users": "Cannot retrieve users",
     "user_actions": "Actions for {name}",
@@ -351,11 +349,10 @@
     "import_skip_existing": "Skip existing users",
     "import_overwrite_existing": "Overwrite existing users",
     "import_overwrite_helper": "Mobile number, groups and profile of the existing users are updated, together with the voicemail and the devices set in the file. Their names are kept. A different extension recreates all their devices.",
-    "import_summary": "Import summary",
-    "import_summary_detected": "{users} and {groups} detected",
+    "import_summary_detected": "{users} and {groups} detected.",
     "import_users_detected": "{count} user detected in the selected file: | {count} users detected in the selected file:",
     "import_valid": "{count} valid | {count} valid",
-    "import_with_errors": "{count} with errors (will be skipped) | {count} with errors (will be skipped)",
+    "import_with_errors": "{count} with errors | {count} with errors",
     "import_existing_skipped": "{count} existing user (will be skipped) | {count} existing users (will be skipped)",
     "import_errors_title": "{count} user contains errors and won't be imported: | {count} users contain errors and won't be imported:",
     "import_existing_title": "This user already exists: | These users already exist:",
@@ -369,7 +366,6 @@
     "import_issue_duplicate_extension": "extension repeated in the file",
     "import_issue_extension_in_use": "extension assigned to another user",
     "import_issue_unknown_profile": "unknown profile",
-    "import_n_users": "Import {count} user | Import {count} users",
     "importing_users": "Importing users",
     "import_failed": "The import ended with errors",
     "import_error_file_too_large": "The file is too large to be imported at once: split it into smaller files.",
@@ -599,7 +595,11 @@
     "import_problem_not_instance_user": "the user is not part of this PBX, only the superadmin can import it",
     "import_problem_membership_failed": "the new users could not be added to this PBX, only the superadmin can manage them",
     "import_problem_account_created": "the account was created in the account provider but not configured, complete it or delete it",
-    "extension_error_not_instance_user": "The user is not part of this PBX. Only the superadmin can assign an extension to this user."
+    "extension_error_not_instance_user": "The user is not part of this PBX. Only the superadmin can assign an extension to this user.",
+    "import_no_valid_rows": "No valid rows to import",
+    "import_no_valid_rows_description": "Fix the errors in the CSV file and try uploading it again.",
+    "import_check_format": "Ensure the file follows the required format or {link}.",
+    "download_template_file": "download the template file"
   },
   "trunks": {
     "title": "Trunks",
@@ -1948,16 +1948,13 @@
       "configuring_users": "Configuring users",
       "configuring_users_description_line_1": "The system is applying the assigned extensions and updating the PBX configuration.",
       "configuring_users_description_line_2": "This may take a few moments.",
-      "provisioning_failed": "Cannot configure the users",
-      "provisioning_failed_for": "Configuration stopped at {username}: {detail} The users before it have been configured, check the extensions and try again.",
+      "provisioning_failed": "Cannot configure users",
+      "provisioning_failed_for": "Configuration stopped at {name}: {detail} The users before it have been configured, check the extensions and try again.",
       "users_limit_title": "Too many users with an extension",
       "users_limit_description": "The Community version allows up to {limit} users with an extension.",
       "cannot_sync_users_description": "The list may not include the latest changes of the account provider.",
-      "change_extensions": "Change extensions",
-      "changed_extension": "{name}: {from} → {to}",
       "configuring_progress": "{done} of {total} changes applied",
-      "extension_change_warning_title": "The devices will be deleted",
-      "extension_change_warning_description": "Changing the extension deletes all the devices of the user and removes the user from all the groups. Only the Web phone is created again: the desktop and mobile apps must be enabled again and the physical phones must be assigned again."
+      "extension_required": "Assign at least one extension to continue"
     },
     "physical_trunks": {
       "title": "Physical trunks",

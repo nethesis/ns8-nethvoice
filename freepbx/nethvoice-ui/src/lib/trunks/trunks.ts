@@ -208,6 +208,20 @@ export const getVoipTrunkForm = (trunk: Trunk, defaultCodecs: string[] = []): Vo
 export const normalizePhoneNumber = (phoneNumber: string): string =>
   phoneNumber.trim().replace(PHONE_NUMBER_SEPARATORS, '')
 
+export const getSuggestedTrunkName = (providerName: string, phoneNumber: string): string => {
+  const provider = providerName
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^A-Za-z0-9_.-]/g, '')
+
+  if (!provider) {
+    return ''
+  }
+  const digits = phoneNumber.replace(/\D/g, '')
+
+  return (digits ? `${provider}-${digits}` : provider).slice(0, TRUNK_NAME_MAX_LENGTH)
+}
+
 const hasSameCodecs = (first: string[], second: string[]): boolean =>
   first.length === second.length && first.every((codec, index) => codec === second[index])
 
