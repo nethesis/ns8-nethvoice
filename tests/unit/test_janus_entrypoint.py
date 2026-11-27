@@ -32,6 +32,7 @@ class JanusEntrypointTest(unittest.TestCase):
         )
         sed.chmod(0o755)
         self.environment = dict(os.environ, LOCAL_IP="")
+        self.environment.pop("JANUS_ADMIN_SECRET", None)
         self.environment["PATH"] = self.directory.name + os.pathsep + os.environ["PATH"]
 
     def start(self, code):
