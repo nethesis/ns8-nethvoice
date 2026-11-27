@@ -21,6 +21,7 @@ import {
 import { useSelector } from 'react-redux'
 import { RootState, store } from '../../store'
 import { savePreference } from '../../lib/storage'
+import { keepAvailableGroupFilter } from '../../lib/operatorsGroupFilter'
 import { useTranslation } from 'react-i18next'
 import { customScrollbarClass } from '../../lib/utils'
 
@@ -119,6 +120,7 @@ export const Filter = forwardRef<HTMLButtonElement, FilterProps>(
     }
 
     const auth = useSelector((state: RootState) => state.authentication)
+    const isGroupsLoaded = useSelector((state: RootState) => state.operators.isGroupsLoaded)
 
     const [groupFilter, setGroupFilter] = useState({
       id: 'group',
@@ -237,6 +239,19 @@ export const Filter = forwardRef<HTMLButtonElement, FilterProps>(
       updateGroupedSort(filterValues.groupLayoutSortBy)
       updateGroupedGroupBy(filterValues.groupLayoutGroupBy)
     }, [])
+
+    useEffect(() => {
+      if (!isGroupsLoaded) {
+        return
+      }
+      const available = keepAvailableGroupFilter(group, userGroups)
+
+      if (available.join('\n') !== group.join('\n')) {
+        setGroup(available)
+        savePreference('operatorsGroupFilter', JSON.stringify(available), auth.username)
+        updateGroupFilter(available)
+      }
+    }, [isGroupsLoaded, userGroups, group])
 
     // group label
 
