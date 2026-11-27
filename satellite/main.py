@@ -1,129 +1,118 @@
+"""Satellite application: voice agents and optional transcription on one event loop."""
 import asyncio
+from contextlib import nullcontext
+import ipaddress
 import logging
 import os
 import signal
+
 from dotenv import load_dotenv
-import threading
 import uvicorn
-from api import app as api_app
-from asterisk_bridge import AsteriskBridge
-from mqtt_client import MQTTClient
-from rtp_server import RTPServer
+
+from voice_agent.drain import claim_idle
+from voice_agent.runner import TRUSTED_FORWARDERS, app_from_env, settings
 
 
-# Load environment variables
-load_dotenv(dotenv_path=".env")
+logger = logging.getLogger(__name__)
 
-# Configure logging
-log_level_str = os.getenv("LOG_LEVEL", "INFO").upper()
-log_level = getattr(logging, log_level_str, logging.INFO)
-logging.basicConfig(
-    level=log_level,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s'
-)
-logger = logging.getLogger("main")
 
-# For graceful shutdown
-shutdown_event = asyncio.Event()
+def api_server_settings():
+    host = os.getenv("HTTP_HOST", "127.0.0.1")
+    if not ipaddress.ip_address(host).is_loopback:
+        raise ValueError("loopback_bind_required")
+    return {"host": host, "port": int(os.getenv("HTTP_PORT", "8000")),
+            "log_level": os.getenv("LOG_LEVEL", "info").lower()}
 
-def signal_handler():
-    logger.info("Shutdown signal received")
-    shutdown_event.set()
 
-async def realtime_call_transcription():
-    # exit if deepgram api key is not set
-    if not os.getenv("DEEPGRAM_API_KEY"):
-        logger.error("DEEPGRAM_API_KEY is not set")
-        return
+async def run(shutdown_event=None):
+    if not claim_idle(cancel=True):
+        raise RuntimeError('Satellite work lock is busy during startup')
+    shutdown_event = shutdown_event or asyncio.Event()
+    flags = [os.getenv(name) for name in (
+        "SATELLITE_CALL_TRANSCRIPTION_ENABLED", "SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED")]
+    transcription_enabled = all(flag is None for flag in flags) or any(
+        flag is not None and flag.lower() == "true" for flag in flags)
+    servers = {}
 
-    # Set up signal handlers for graceful shutdown
+    async def serve(name, app, **config):
+        if shutdown_event.is_set():
+            return
+        server = uvicorn.Server(uvicorn.Config(
+            app, **config, lifespan="on", timeout_graceful_shutdown=10))
+        # This application owns signals for both listeners.
+        server.capture_signals = nullcontext
+        servers[name] = server
+        try:
+            await server.serve()
+        except SystemExit as error:
+            raise RuntimeError(f"HTTP server exited with status {error.code}") from error
+        finally:
+            del servers[name]
+
+    async def serve_api():
+        from api import app
+        await serve("transcription-api", app, **api_server_settings())
+
+    async def serve_voice_agents():
+        host, port = settings()
+        api_server = servers.get("transcription-api")
+        if api_server is not None and (ipaddress.ip_address(host), port) == (
+                ipaddress.ip_address(api_server.config.host), api_server.config.port):
+            raise ValueError("http_listener_collision")
+        await serve("voice-agents", app_from_env(), host=host, port=port, access_log=False,
+                    forwarded_allow_ips=TRUSTED_FORWARDERS,
+                    log_level=os.getenv("LOG_LEVEL", "info").lower())
+
+    async def run_transcription():
+        from transcription import run as transcribe
+        await transcribe(shutdown_event)
+
     loop = asyncio.get_running_loop()
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, signal_handler)
+    for signum in (signal.SIGINT, signal.SIGTERM):
+        loop.add_signal_handler(signum, shutdown_event.set)
 
-    # Check for Google Cloud credentials
-    credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-    if credentials_path and not os.path.exists(credentials_path):
-        logger.error(f"Google Cloud credentials file not found at {credentials_path}")
-        return
-
-    # Get configuration from environment variables
-    asterisk_url = os.getenv("ASTERISK_URL", "http://localhost:8088")
-    asterisk_app = os.getenv("ARI_APP", "asterisk_dialogflow")
-    asterisk_username = os.getenv("ARI_USERNAME", "asterisk")
-    asterisk_password = os.getenv("SATELLITE_ARI_PASSWORD", "asterisk")
-
-    mqtt_url = os.getenv("MQTT_URL", "mqtt://localhost:1883")
-    mqtt_topic_prefix = os.getenv("MQTT_TOPIC_PREFIX", "asterisk-dialogflow")
-    mqtt_username = os.getenv("MQTT_USERNAME")
-    mqtt_password = os.getenv("SATELLITE_MQTT_PASSWORD")
-
-    # create an RTP server instance
-    rtp_host = os.getenv("RTP_HOST", "0.0.0.0")
-    rtp_port = int(os.getenv("RTP_PORT", "10000"))
-    rtp_swap16 = os.getenv("RTP_SWAP16", "true").lower() == "true"
-    rtp_header_size = int(os.getenv("RTP_HEADER_SIZE", "12"))
-    rtp_server = RTPServer(host=rtp_host, port=rtp_port, swap16=rtp_swap16, rtp_header_size=rtp_header_size)
-    await rtp_server.start()
-
-    # Create instances
-    mqtt_client = MQTTClient(
-        url=mqtt_url,
-        topic_prefix=mqtt_topic_prefix,
-        username=mqtt_username,
-        password=mqtt_password
-    )
-    asterisk_bridge = AsteriskBridge(
-        url=asterisk_url,
-        app=asterisk_app,
-        username=asterisk_username,
-        password=asterisk_password,
-        mqtt_client=mqtt_client,
-        rtp_server=rtp_server
-    )
-
-    async def handle_mqtt_control(topic, payload):
-        """Handle transcription control commands from middleware."""
-        if not isinstance(payload, dict):
+    tasks = []
+    if transcription_enabled:
+        tasks.append(asyncio.create_task(serve_api(), name="transcription-api"))
+        tasks.append(asyncio.create_task(run_transcription(), name="transcription"))
+    if os.getenv("VOICE_AGENT_ENABLED") == "true":
+        tasks.append(asyncio.create_task(serve_voice_agents(), name="voice-agents"))
+    stopping = asyncio.create_task(shutdown_event.wait())
+    try:
+        if not tasks:
+            await stopping
             return
+        running = set(tasks)
+        while not shutdown_event.is_set():
+            done, _ = await asyncio.wait(running | {stopping}, return_when=asyncio.FIRST_COMPLETED)
+            if shutdown_event.is_set():
+                break
+            running.difference_update(done)
+            for task in done:
+                try:
+                    task.result()
+                except (Exception, asyncio.CancelledError):
+                    logger.exception("%s failed", task.get_name())
+                else:
+                    logger.error("%s stopped unexpectedly", task.get_name())
+            if not running:
+                raise RuntimeError("All configured Satellite components stopped")
+    finally:
+        shutdown_event.set()
+        for server in servers.values():
+            server.should_exit = True
+        stopping.cancel()
+        await asyncio.gather(*tasks, stopping, return_exceptions=True)
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            loop.remove_signal_handler(signum)
 
-        action = payload.get("action")
-        call_id = payload.get("linkedid") or payload.get("uniqueid")
-        if not isinstance(action, str) or not isinstance(call_id, str) or not call_id:
-            return
 
-        if action == "start":
-            await asterisk_bridge.start_transcription(call_id)
-        elif action == "stop":
-            await asterisk_bridge.stop_transcription(call_id)
+def main():
+    load_dotenv(dotenv_path=".env")
+    logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO").upper(),
+                        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    asyncio.run(run())
 
-    # Start services
-    logger.info("Starting services...")
-    mqtt_client.set_callback(handle_mqtt_control)
-    await mqtt_client.connect()
-    await mqtt_client.subscribe("transcription/control")
-    await asterisk_bridge.connect()
-    logger.info("All services started")
-
-    # Wait for shutdown signal
-    await shutdown_event.wait()
-
-    # Graceful shutdown
-    logger.info("Shutting down...")
-    # End all active Stasis sessions before disconnecting
-    await asterisk_bridge.disconnect()
-    await rtp_server.stop()
-    await mqtt_client.disconnect()
-    logger.info("Shutdown complete")
 
 if __name__ == "__main__":
-    # Start API server in a background thread
-    server_thread = threading.Thread(
-        target=uvicorn.run,
-        args=(api_app,),
-        kwargs={"host": "0.0.0.0", "port": int(os.getenv("HTTP_PORT", "8000")), "log_level": os.getenv("LOG_LEVEL", "info").lower()},
-        daemon=True
-    )
-    server_thread.start()
-    # Run the realtime call transcription pipeline
-    asyncio.run(realtime_call_transcription())
+    main()

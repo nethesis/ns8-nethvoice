@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Queue the latest desired settings. systemd also resumes interrupted applies."""
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+if os.environ.get('NETHVOICE_HOST'):
+    subprocess.run(['systemctl', '--user', 'daemon-reload'], check=True)
+    Path('satellite-apply.pending').touch(mode=0o600)
+    subprocess.run(['systemctl', '--user', 'enable', '--now', 'satellite-apply.path'],
+                   check=True, stdout=sys.stderr)

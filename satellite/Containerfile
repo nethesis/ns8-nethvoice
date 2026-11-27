@@ -1,5 +1,5 @@
 # Build stage
-FROM python:slim AS builder
+FROM docker.io/library/python:3.12.13-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36 AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -11,19 +11,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements file
 COPY requirements.txt /tmp/requirements.txt
+COPY requirements-agent.lock /tmp/requirements-agent.lock
 
 # Copy application files
 COPY *.py /tmp/
 COPY README.md /tmp/
 
 # Install dependencies
-RUN pip install --no-cache-dir --no-warn-script-location --user -r /tmp/requirements.txt
+RUN pip install --no-cache-dir --no-warn-script-location --user -r /tmp/requirements.txt -r /tmp/requirements-agent.lock
 
 # Final stage
-FROM python:slim
+FROM docker.io/library/python:3.12.13-slim@sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36
 
 # Install runtime dependencies for PyAudio
-RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     libportaudio2 \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
@@ -32,14 +33,18 @@ RUN apt-get update && apt-get -y upgrade && apt-get install -y --no-install-reco
 WORKDIR /app
 
 # Copy installed packages from builder
-COPY --from=builder /root/.local /root/.local
+COPY --from=builder /root/.local /usr/local
 
 # Copy application files
 COPY --from=builder /tmp/*.py /app/
 COPY --from=builder /tmp/README.md /app/
+COPY voice_agent /app/voice_agent
 
-# Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
+# Use an unprivileged runtime identity; NS8 supplies private credentials at startup.
+RUN groupadd --gid 65532 satellite && \
+    useradd --uid 65532 --gid 65532 --home-dir /var/lib/satellite --create-home \
+        --shell /usr/sbin/nologin satellite && \
+    mkdir -p /var/lib/voice-agent && chown satellite:satellite /var/lib/voice-agent
 
 # Set environment variables with default values (can be overridden at runtime)
 ENV ASTERISK_URL="http://127.0.0.1:8088" \
@@ -64,5 +69,7 @@ ENV ASTERISK_URL="http://127.0.0.1:8088" \
 EXPOSE ${RTP_PORT}/udp
 EXPOSE ${HTTP_PORT}
 
-# Run the application
+USER satellite
+
+# One application owns voice agents and optional transcription startup/shutdown.
 CMD ["python", "main.py"]

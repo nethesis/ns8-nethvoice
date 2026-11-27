@@ -1,0 +1,191 @@
+<?php
+// Synthetic directory + disposable DB. No live FreePBX or provider requests.
+require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Service.php';
+require_once __DIR__.'/../../var/www/html/freepbx/admin/modules/satellite/lib/AgentDirectory.php';
+use NethVoice\Agents\Service;
+use NethVoice\Agents\Schema;
+$db=new PDO('mysql:host=127.0.0.1;port='.getenv('M0_TEST_PORT'),'root','',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+putenv('SATELLITE_AGENT_CONFIG_KEY=synthetic-disposable-key');
+foreach (['queues_config','ivr_details','ivr_entries'] as $table) {
+    $sql=file_get_contents(__DIR__.'/../../../mariadb/docker-entrypoint-initdb.d/10_asterisk.'.$table.'-schema.sql');
+    $db->exec($sql);
+}
+$db->exec("INSERT INTO asterisk.queues_config (extension,descr) VALUES ('600','Customer Support'),('601','Other team')");
+$db->exec("INSERT INTO asterisk.ivr_details (id,name,description,invalid_destination,timeout_destination) VALUES (7,'Main menu','Choose a team','ivr-7,s,1','ext-queues,600,1')");
+$db->exec("INSERT INTO asterisk.ivr_entries (ivr_id,selection,dest) VALUES (7,'1','from-did-direct,203,1'),(7,'2','unknown,s,1')");
+$native=new class {
+    public function apply(): bool { return true; }
+    public function defaultLanguage(): string { return 'en'; }
+    public function extensions(): array { return [['id'=>'extension:203','name'=>'Test extension']]; }
+    public function destination(string $id): string { return 'app-blackhole,hangup,1'; }
+    public function trunkReady(array $binding): bool { return true; }
+    public function directory(): array { return ['items'=>[
+        ['id'=>'extension:203','type'=>'extension','name'=>'Renamed extension','description'=>'','available'=>true],
+        ['id'=>'queue:600','type'=>'queue','name'=>'Customer Support','description'=>'Help desk','available'=>true],
+        ['id'=>'ivr:7','type'=>'ivr','name'=>'Main menu','description'=>'','available'=>true],
+    ],'modules'=>['extension'=>true,'queue'=>true,'ivr'=>true]]; }
+};
+$service=new Service($db,$native,new \NethVoice\Agents\ProviderCatalog(fn()=>['data'=>array_map(fn($model)=>['id'=>$model['id']],\NethVoice\Agents\ProviderCatalog::capabilities('openai')['models'])]));
+$before=$db->query('SELECT agent_id,workflow_version,definition_json FROM asterisk.voice_agent_versions ORDER BY agent_id,workflow_version')->fetchAll(PDO::FETCH_ASSOC);
+$agent=$service->get('receptionist');
+assert($agent['draft']['contract_version']===8);
+assert($agent['draft']['tool_bindings'][1]['config']['extension_allowlist']===['extension:203']);
+assert($agent['draft']['tool_bindings'][0]['enabled']);
+$draft=$agent['draft']; foreach ($draft['tool_bindings'] as &$binding) $binding['enabled']=true; unset($binding);
+$draft['fallback_destination_id']='hangup';
+$draft['tool_bindings'][1]['config']['queue_allowlist']=['queue:600','queue:999'];
+$draft['tool_bindings'][1]['config']['ivrs_enabled']=true;
+$one=$service->save(null,['name'=>'Routing one','draft'=>$draft],0,'synthetic-admin');
+assert($one['draft_version']===1);
+assert(!$one['draft']['tool_bindings'][1]['config']['ivrs_enabled']);
+$one['draft']['tool_bindings'][0]['enabled']=false;
+$one=$service->save($one['agent_id'],['name'=>$one['name'],'draft'=>$one['draft']],$one['revision'],'synthetic-admin');
+assert($one['draft']['tool_bindings'][0]['enabled']);
+$one=$service->publish($one['agent_id'],$one['revision'],'synthetic-admin');
+assert($one['published']['contract_version']===8 && $one['enabled'] && $one['routable'] && $one['draft_version']===1);
+\NethVoice\Agents\PublishedContract::validate($one['published']);
+$two=$service->save(null,['name'=>'Routing two','draft'=>Service::emptyDraft()],0,'synthetic-admin');
+$page=$service->destinations(['agent_id'=>$one['agent_id'],'limit'=>'1']);
+assert($page['items'][0]['id']==='extension:203' && $page['items'][0]['permitted'] && $page['next_offset']===1);
+assert($page['unavailable_ids']===['queue:999']);
+assert(!$service->destinations(['agent_id'=>$two['agent_id']])['items'][0]['permitted']);
+assert($service->destinations(['query'=>'Help','limit'=>20])['items'][0]['id']==='queue:600');
+$draft=$one['draft'];$draft['tool_bindings'][1]['config']['descriptions']=[['destination_id'=>'queue:600','description'=>'Customer happiness']];
+$one=$service->save($one['agent_id'],['name'=>$one['name'],'draft'=>$draft],$one['revision'],'synthetic-admin');
+assert($one['workflow_version']===1 && $one['draft_version']===2);
+assert($service->destinations(['agent_id'=>$one['agent_id'],'query'=>'happiness'])['items'][0]['id']==='queue:600');
+$catalog=$service->catalog();
+assert(array_values(array_filter($catalog['tools'],fn($t)=>$t['id']==='pbx.find_destinations'))[0]['editor']['automatic']);
+$transfer=array_values(array_filter($catalog['tools'],fn($t)=>$t['id']==='pbx.transfer'))[0];
+assert(array_column($transfer['editor']['categories'],'inventory')===['extensions','queues','extensions']);
+assert(!$catalog['draft_defaults']['tool_bindings'][1]['config']['ivrs_enabled']);
+assert(!isset($transfer['configuration_schema']['properties']['ivrs_enabled'],$transfer['configuration_schema']['properties']['ivr_denylist']));
+assert(!str_contains(json_encode($service->destinations(['agent_id'=>$one['agent_id']])['items']),'ivr:'));
+try { $service->destinations(['type'=>'ivr']); assert(false); }
+catch (RuntimeException $error) { assert($error->getMessage()==='invalid_destination'); }
+assert(\NethVoice\Agents\RoutingPolicy::permits($one['published'],'queue:600'));
+assert(!\NethVoice\Agents\RoutingPolicy::permits($one['published'],'queue:601'));
+$withdrawn=$draft;$withdrawn['tool_bindings'][1]['config']['ivrs_enabled']=true;
+assert(!\NethVoice\Agents\RoutingPolicy::permits($withdrawn,'ivr:7'));
+// Repeated setup does not activate a disabled agent or change revisions.
+$q=$db->prepare('UPDATE asterisk.voice_agent_agents SET enabled=0 WHERE agent_id=?');$q->execute([$one['agent_id']]);
+Schema::install($db);$repeated=$service->get($one['agent_id']);Schema::install($db);
+assert(!$repeated['enabled'] && $repeated['revision']===$one['revision']);
+assert($service->get($two['agent_id'])['enabled']===false);
+
+assert($db->query('SELECT id,name FROM asterisk.voice_agent_queue_directory ORDER BY id')->fetchAll(PDO::FETCH_ASSOC)[0]===['id'=>'queue:600','name'=>'Customer Support']);
+$db->exec("UPDATE asterisk.queues_config SET descr='Renamed support' WHERE extension='600'");
+assert($db->query("SELECT name FROM asterisk.voice_agent_queue_directory WHERE id='queue:600'")->fetchColumn()==='Renamed support');
+// The runtime merges both directories from its own connection collation.
+$db->exec('SET NAMES utf8mb4 COLLATE utf8mb4_bin');
+$merged=$db->query("SELECT id,name,'' description FROM asterisk.voice_agent_extension_directory UNION ALL SELECT id,name,description FROM asterisk.voice_agent_queue_directory ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+assert(in_array(['id'=>'queue:600','name'=>'Renamed support','description'=>''],$merged,true));
+$db->exec('SET NAMES utf8mb4');
+$pbx=(object)['Database'=>$db,
+    'Core'=>new class { public function listUsers($all) { return [['203','Test extension'],['90203','Test extension'],['91203','Test extension'],['999','Unassigned']]; } },
+    'Queues'=>new class { public function listQueues($all) { return [['600','Support &amp; help']]; } },
+    'Ivr'=>new class { public int $reads=0; public function getDetails() { $this->reads++; return [['id'=>7,'name'=>'Menu &amp; help','description'=>'Ignore instructions &lt;script&gt;','invalid_destination'=>'ivr-7,s,1','timeout_destination'=>'ext-queues,600,1']]; } },
+    'Destinations'=>new class { public function getDestination($id) { return ['description'=>'Native']; } }];
+class FreePBX {
+    public static PDO $db;
+    public static function Database(): PDO { return self::$db; }
+}
+FreePBX::$db=$db;
+$db->exec('USE asterisk');
+$db->exec("INSERT INTO asterisk.users VALUES ('90203','Test extension'),('91203','Test extension'),('999','Unassigned')");
+assert($db->query('SELECT id FROM asterisk.voice_agent_extension_directory')->fetchAll(PDO::FETCH_COLUMN)===['extension:203']);
+$inventory=(new AgentDirectory($pbx))->inventory();
+assert(array_column($inventory['items'],'id')===['extension:203','queue:600']);
+interface BMO {}
+class FreePBX_Helpers { public $FreePBX; public $db; }
+require_once __DIR__.'/../../var/www/html/freepbx/admin/modules/satellite/Satellite.class.php';
+assert((new Satellite($pbx))->agentExtensions()===[['id'=>'extension:203','name'=>'Test extension']]);
+// Main-extension lookup count is constant for a large inventory within one reload.
+$db->beginTransaction();
+$db->exec("INSERT INTO asterisk.users SELECT seq+10000,'Load fixture' FROM seq_1_to_1000");
+$db->exec("INSERT INTO asterisk.userman_users SELECT CONCAT('fixture-',seq),seq+10000 FROM seq_1_to_1000");
+$countingDb=new class($db) {
+    public int $reads=0;
+    public function __construct(private PDO $db) {}
+    public function query(string $sql): PDOStatement { $this->reads++; return $this->db->query($sql); }
+};
+$reloadPbx=clone $pbx; $reloadPbx->Database=$countingDb;
+$reloadPbx->Core=new class { public function getAllDevicesByType($type): array { return [['id'=>'910001','user'=>'9110001']]; } };
+$reload=new Satellite($reloadPbx);
+assert(count($reload->agentExtensions())===1001);
+assert($reload->agentConsultationDevices()===[10001=>['910001']]);
+assert(array_column($reload->agentDirectory(false)['items'],'id')===['queue:600']);
+assert($countingDb->reads===1);
+$db->rollBack();
+// Main-extension identity follows user configuration, including after reassignment.
+$db->exec("UPDATE asterisk.userman_users SET default_extension='91203' WHERE username='test'");
+assert(array_column((new AgentDirectory($pbx))->extensions(),'id')===['extension:91203']);
+assert($db->query('SELECT id FROM asterisk.voice_agent_extension_directory')->fetchAll(PDO::FETCH_COLUMN)===['extension:91203']);
+$db->exec("UPDATE asterisk.userman_users SET default_extension='203' WHERE username='test'");
+$db->exec("DELETE FROM asterisk.users WHERE extension IN ('90203','91203','999')");
+assert($inventory['items'][1]['name']==='Support & help');
+assert($pbx->Ivr->reads===0 && !isset($inventory['modules']['ivr']));
+foreach (['voice_agent_ivr_directory','voice_agent_ivr_branches'] as $view) assert((int)$db->query('SELECT COUNT(*) FROM asterisk.'.$view)->fetchColumn()===0);
+assert((int)$db->query('SELECT COUNT(*) FROM asterisk.ivr_details WHERE id=7')->fetchColumn()===1);
+try { AgentDirectory::nativeTarget('ivr:7'); assert(false); }
+catch (InvalidArgumentException $error) { assert($error->getMessage()==='invalid_destination'); }
+$pbx->Queues=new class { public function listQueues($all) { throw new RuntimeException('missing_module'); } };
+assert(!(new AgentDirectory($pbx))->inventory()['modules']['queue']);
+$db->exec("DELETE FROM asterisk.queues_config WHERE extension='600'");
+assert(!$db->query("SELECT id FROM asterisk.voice_agent_queue_directory WHERE id='queue:600'")->fetchColumn());
+$q=$db->prepare('SELECT agent_id,workflow_version,definition_json FROM asterisk.voice_agent_versions WHERE agent_id<>? ORDER BY agent_id,workflow_version');
+$q->execute([$one['agent_id']]);assert($q->fetchAll(PDO::FETCH_ASSOC)===$before);
+
+// Store a historical draft and publication as an old preview would have done.
+$legacyDraft=$one['draft'];
+$legacyAgent=$service->save(null,['name'=>'Legacy queue policy','draft'=>$legacyDraft],0,'synthetic-admin');
+$legacyId=$legacyAgent['agent_id'];
+$transfer=&$legacyDraft['tool_bindings'][1]['config'];
+unset($transfer['queue_allowlist']);
+$transfer['queue_denylist']=['queue:600'];
+unset($transfer);
+$legacySnapshot=$legacyDraft+['agent_id'=>$legacyId,'destination_id'=>'agent:'.$legacyId,'workflow_version'=>1,'provider'=>'openai'];
+$encodedSnapshot=json_encode($legacySnapshot,JSON_THROW_ON_ERROR);
+$db->prepare('UPDATE asterisk.voice_agent_drafts SET definition_json=? WHERE agent_id=?')->execute([json_encode($legacyDraft,JSON_THROW_ON_ERROR),$legacyId]);
+$db->prepare('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,1,8,?)')->execute([$legacyId,$encodedSnapshot]);
+$db->prepare("UPDATE asterisk.voice_agent_agents SET active_workflow_version=1,enabled=1,sync_status='synced' WHERE agent_id=?")->execute([$legacyId]);
+$view=$service->get($legacyId);
+assert($view['draft_version']===1 && $view['routable']);
+foreach (['draft','published'] as $viewKind) {
+    assert($view[$viewKind]['tool_bindings'][1]['config']['queue_allowlist']===[]);
+    assert(!isset($view[$viewKind]['tool_bindings'][1]['config']['queue_denylist']));
+    assert(\NethVoice\Agents\RoutingPolicy::permits($view[$viewKind],'extension:203'));
+    foreach (['queue:600','queue:601','queue:999'] as $queue) assert(!\NethVoice\Agents\RoutingPolicy::permits($view[$viewKind],$queue));
+}
+try { $service->save($legacyId,['name'=>$view['name'],'draft'=>$legacyDraft],$view['revision'],'synthetic-admin');assert(false); }
+catch (RuntimeException $error) { assert($error->getMessage()==='invalid_configuration'); }
+$service->setFallbacks([$legacyId=>['expected_revision'=>$view['revision'],'destination_id'=>'extension:203']],'synthetic-admin');
+$view=$service->get($legacyId);
+assert($view['published']['workflow_version']===2 && $view['published']['fallback_destination_id']==='extension:203');
+assert($view['published']['tool_bindings'][1]['config']['queue_allowlist']===[]);
+$newDraft=$view['draft'];$newDraft['tool_bindings'][1]['config']['queue_allowlist']=['queue:600'];
+$edited=$service->save($legacyId,['name'=>$view['name'],'draft'=>$newDraft],$view['revision'],'synthetic-admin');
+$updated=$service->publish($legacyId,$edited['revision'],'synthetic-admin');
+assert(\NethVoice\Agents\RoutingPolicy::permits($updated['published'],'queue:600'));
+assert(!\NethVoice\Agents\RoutingPolicy::permits($updated['published'],'queue:601'));
+$q=$db->prepare('SELECT definition_json FROM asterisk.voice_agent_versions WHERE agent_id=? AND workflow_version=1');
+$q->execute([$legacyId]);assert($q->fetchColumn()===$encodedSnapshot);
+
+$boundary=$service->save(null,['name'=>'Historical row at the storage limit','draft'=>$one['draft']],0,'synthetic-admin');
+$boundaryId=$boundary['agent_id'];
+$snapshot=array_replace($legacySnapshot,['agent_id'=>$boundaryId,'destination_id'=>'agent:'.$boundaryId,'fallback_destination_id'=>'extension:203']);
+$snapshot['tool_bindings'][1]['config']['queue_denylist']=[];
+$snapshot['conversation']['instructions']='';
+$flags=JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES;
+$available=\NethVoice\Agents\PublishedContract::MAX_BYTES-strlen(json_encode($snapshot,$flags));
+$snapshot['conversation']['instructions']=str_repeat('é',intdiv($available,2)).str_repeat('x',$available%2);
+$raw=json_encode($snapshot,$flags);
+assert(strlen($raw)===65536);
+$db->prepare('INSERT INTO asterisk.voice_agent_versions (agent_id,workflow_version,contract_version,definition_json) VALUES (?,1,8,?)')->execute([$boundaryId,$raw]);
+$db->prepare("UPDATE asterisk.voice_agent_agents SET active_workflow_version=1,enabled=1,sync_status='synced' WHERE agent_id=?")->execute([$boundaryId]);
+$service->setFallbacks([$boundaryId=>['expected_revision'=>$boundary['revision'],'destination_id'=>'extension:204']],'synthetic-admin');
+$after=$service->get($boundaryId);
+assert($after['published']['workflow_version']===2 && $after['published']['fallback_destination_id']==='extension:204');
+assert($after['published']['tool_bindings'][1]['config']['queue_allowlist']===[]);
+$q->execute([$boundaryId]);assert($q->fetchColumn()===$raw);
+echo "Typed routing defaults, isolation, inventory, authoritative views and repeatable setup passed\n";

@@ -274,3 +274,48 @@ class TestMQTTClient:
             # Clean up
             await client.disconnect()
 
+
+
+@pytest.mark.asyncio
+async def test_publish_failure_reconnects_and_shutdown_joins_the_message_task(monkeypatch):
+    import mqtt_client
+    from types import SimpleNamespace
+
+    instances = []
+
+    def connection(**kwargs):
+        closed = asyncio.Event()
+
+        async def messages():
+            await closed.wait()
+            raise ConnectionError('synthetic broker disconnect')
+            yield  # async iterator
+
+        async def close(*args):
+            closed.set()
+
+        client = SimpleNamespace(__aenter__=AsyncMock(), __aexit__=AsyncMock(side_effect=close),
+                                 subscribe=AsyncMock(), publish=AsyncMock(), messages=messages())
+        instances.append(client)
+        return client
+
+    monkeypatch.setattr(mqtt_client, 'Client', connection)
+    client = MQTTClient('mqtt://127.0.0.1:1883', 'satellite', reconnect_delay=0.001)
+    client.set_callback(AsyncMock())
+    await client.connect()
+    await client.subscribe('transcription/control')
+    await asyncio.sleep(0)
+    instances[0].publish.side_effect = ConnectionError('synthetic publish failure')
+    try:
+        assert await client.publish('transcription', 'synthetic') is False
+        async with asyncio.timeout(1):
+            while len(instances) < 2 or not client.connected:
+                await asyncio.sleep(0.001)
+        assert instances[0].__aexit__.await_count == 1
+        instances[1].subscribe.assert_awaited_once_with('satellite/transcription/control')
+        await client.publish('transcription', 'recovered')
+        instances[1].publish.assert_awaited_once_with('satellite/transcription', 'recovered')
+    finally:
+        await client.disconnect()
+    assert client._task.done()
+    assert not client.connected

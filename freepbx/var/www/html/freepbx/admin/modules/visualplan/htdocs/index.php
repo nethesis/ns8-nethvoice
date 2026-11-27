@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__DIR__,4).'/rest/lib/agents/Preview.php';
 /*check auth*/
 include_once '/etc/freepbx.conf';
 session_start();
@@ -6,6 +7,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
     header("location: /freepbx/wizard");
     exit(1);
 }
+$_SESSION['visualplan_agent_csrf'] ??= bin2hex(random_bytes(32));
 ?>
 
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
@@ -15,7 +17,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 	<meta name="viewport" content="width=device-width, minimum-scale=1.0" />
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<!-- stylesheet include -->
-	<link type="text/css" rel="stylesheet" href="assets/css/application.css" />
+	<link type="text/css" rel="stylesheet" href="assets/css/application.css?v=agent-palette-1" />
 	<link type="text/css" rel="stylesheet" href="assets/css/spinner.css" />
 	<link type="text/css" rel="stylesheet" href="assets/css/contextmenu.css" />
 	<link type="text/css" rel="stylesheet" href="assets/css/font-awesome.css" />
@@ -58,6 +60,8 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 	<script src="app/Toolbar.js"></script>
 	<!-- widgets -->
 	<script src="app/widgets/Base.js"></script>
+	<script>window.visualplanAgentCsrf = <?php echo json_encode($_SESSION['visualplan_agent_csrf']); ?>;</script>
+	<script src="app/Agents.js"></script>
 	<script type="text/javascript">
 		/**
 		 * @method
@@ -103,6 +107,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 		$(window).load(function () {
 
 			// set widget name
+			$('#satellite-agent-destination').text(languages[browserLang]['base_agent_string']);
 			$('#incoming').text(languages[browserLang]["base_incoming_string"]);
 
 			$('#ext-group').text(languages[browserLang]["base_ext_group_string"]);
@@ -224,6 +229,7 @@ if (!isset($_SESSION['AMP_user']) || !$_SESSION['AMP_user']->checkSection('visua
 			</div>
 			<div data-shape="Base" id="app-daynight" class="palette_node_element draw2d_droppable" title="drag&amp;drop the table into the canvas..">
 			</div>
+			<?php if (\NethVoice\Agents\Preview::enabled()) { ?><div data-shape="Base" id="satellite-agent-destination" class="palette_node_element draw2d_droppable" title="Agent">Agent</div><?php } ?>
 			<!-- -->
 			<!-- Cerchio -->
 			<div data-shape="Base" data-radius="20" id="from-did-direct" class="palette_node_element draw2d_droppable endWidget" title="drag&amp;drop the table into the canvas..">

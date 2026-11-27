@@ -28,6 +28,24 @@
         "openai_api_key"
     ],
     "properties": {
+        "voice_agent_enabled": {"type": "boolean"},
+        "satellite_apply_status": {"enum": ["applied", "pending", "failed"]},
+        "satellite_apply_error": {"enum": [null, "apply_failed", "port_allocation_failed", "unsupported_development_database",
+                                           "runtime_initialization_failed", "voice_agent_runtime_not_ready"]},
+        "inherited_agents": {"type": ["array", "null"], "items": {"type": "string"}},
+        "voice_agent_preview_impact": {
+            "type": ["array", "null"],
+            "items": {
+                "type": "object",
+                "required": ["agent_id", "name", "fallback_destination_id"],
+                "properties": {
+                    "agent_id": {"type": "string"},
+                    "name": {"type": "string"},
+                    "fallback_destination_id": {"type": "string"}
+                },
+                "additionalProperties": false
+            }
+        },
         "satellite_call_transcription_enabled": {
             "description": "Enable real-time call transcription",
             "type": "boolean"

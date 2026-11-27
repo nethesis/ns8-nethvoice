@@ -5,6 +5,7 @@
     "description": "Set nethvoice integrations",
     "type": "object",
     "properties": {
+        "voice_agent_enabled": {"type": "boolean"},
         "satellite_call_transcription_enabled": {
             "description": "Enable real-time call transcription",
             "type": "boolean"

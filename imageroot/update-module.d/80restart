@@ -7,7 +7,7 @@ umask 077
 
 systemctl --user daemon-reload
 # Keep consumers stopped until the new schema AND FreePBX modules are ready.
-services=(watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus mediamtx nethcti-server satellite-mqtt satellite-pgsql nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite)
+services=(voice-agent watcher.path phonebook-update.timer nethvoice-hotel-alarms.timer nethvoice-calendar-sync.timer nethvoice-restore-background freepbx janus mediamtx nethcti-server satellite-mqtt satellite-pgsql nethcti-middleware nethcti-ui phonebook reports-api reports-redis reports-ui tancredi satellite)
 active=()
 for service in "${services[@]}"; do
     # Enabled units come back too: a failed upgrade leaves them stopped, and
@@ -42,12 +42,15 @@ runagent mysql-update-postprocess --migrate
 # Rewrite saved bindings offline; never generate a v16 dialplan for Asterisk 22.
 runagent prepare-asterisk-config
 systemctl --user restart mariadb
+if [[ " ${active[*]} " == *' voice-agent '* ]]; then
+    systemctl --user disable voice-agent.service
+fi
 if [[ " ${active[*]} " == *' freepbx '* ]]; then
     # ExecStartPost waits for freepbx-ready and fails on freepbx-failed.
     systemctl --user start freepbx
 fi
 for service in "${active[@]}"; do
-    [[ $service == freepbx ]] || systemctl --user start "$service"
+    [[ $service == freepbx || $service == satellite || $service == voice-agent ]] || systemctl --user start "$service"
 done
 touch "$backup/succeeded"
 echo "Upgrade recovery snapshot retained in $backup" >&2

@@ -9,6 +9,7 @@ StartLimitBurst=60
 Environment=PODMAN_SYSTEMD_UNIT=%n
 EnvironmentFile=%E/state/environment
 EnvironmentFile=%E/state/passwords.env
+EnvironmentFile=-%E/state/voice-preview/effective.env
 WorkingDirectory=%E/state
 Restart=always
 RestartSec=10s
@@ -37,6 +38,10 @@ ExecStart=/usr/bin/podman run \
     --env=CHAT_UPLOAD_URL=http://127.0.0.1:${CHAT_HTTP_PORT}/upload \
     --env=CHAT_EJABBERD_API=unix:/ejabberd-api/api.sock \
     --env=CHAT_DATA_DIR=/data \
+    --env=CHAT_CONSULTATION_LISTEN \
+    --env=VOICE_AGENT_CHAT_TOKEN \
+    --env=VOICE_AGENT_RECIPIENT_URL=http://127.0.0.1:${NETHVOICE_RECIPIENT_SERVICE_PORT} \
+    --env=VOICE_AGENT_RECIPIENT_TOKEN \
     --env=CHAT_RETENTION_DAYS \
     --env=CHAT_CTI_CONFIG=/nethcti \
     --network=host \

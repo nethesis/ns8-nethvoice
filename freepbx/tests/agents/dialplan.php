@@ -1,0 +1,165 @@
+<?php
+putenv('VOICE_AGENT_ENABLED=true');
+// Exercise the real FreePBX extension classes with synthetic destinations only.
+require_once getenv('VOICE_AGENT_EXTENSIONS_FILE') ?: '/var/www/html/freepbx/admin/libraries/extensions.class.php';
+require_once __DIR__.'/../../var/www/html/freepbx/admin/modules/satellite/functions.inc.php';
+require_once __DIR__.'/../../var/www/html/freepbx/rest/lib/agents/Native.php';
+class FreePBX {
+    public static bool $broken = false;
+    public static int $agentReads = 0;
+    public static array $nativeDestinations = [];
+    public static function Destinations() { return new class {
+        public function getAllInUseDestinations() { return FreePBX::$nativeDestinations; }
+        public function getDestination($key) { return $key==='ext-queues,600,1'?['description'=>'Synthetic queue']:null; }
+    }; }
+    public static function Satellite() { return new class {
+        public function agentConsultationDevices() {return ['203'=>['203','91203']];}
+        public function agentPublishedVersions() { return [
+            ['agent_id'=>'receptionist','workflow_version'=>1,'fallback_destination_id'=>'extension:203'],
+            ['agent_id'=>'custom_disabled','workflow_version'=>1,'fallback_destination_id'=>'extension:203'],
+            ['agent_id'=>'sip_lab_off','workflow_version'=>1,'fallback_destination_id'=>'native:ext-queues,600,1'],
+        ]; }
+        public function cleverAiTransport($id) { return $id==='clever_test'?['trunk_name'=>'VoiceAgentTrunk_99','project_id'=>'proj_external']:null; }
+        public function agentDirectory() { return ['items'=>[
+            ['id'=>'queue:600','available'=>true,'native_destination'=>'ext-queues,600,1'],
+            ['id'=>'ivr:7','available'=>true,'native_destination'=>'ivr-7,s,1'],
+            ['id'=>'ivr:8','available'=>false,'native_destination'=>'ivr-8,s,1']]]; }
+        public function agentExtensions() { return [['id'=>'extension:203','name'=>'Synthetic']]; }
+        public function agentDestinations() { FreePBX::$agentReads++; if (FreePBX::$broken) throw new RuntimeException('corrupt_agent'); return [
+            ['agent_id'=>'receptionist','enabled'=>true,'routable'=>true,'name'=>'<script>test</script>','published'=>['fallback_destination_id'=>'extension:203']],
+            ['agent_id'=>'custom_disabled','enabled'=>false,'routable'=>false,'name'=>'Disabled custom','published'=>['fallback_destination_id'=>'extension:203']],
+            ['agent_id'=>'clever_test','agent_type'=>'cleverai','enabled'=>true,'routable'=>true,'name'=>'CleverAI','published'=>null,'draft'=>['fallback_destination_id'=>'extension:203']],
+            ['agent_id'=>'clever_hangup','agent_type'=>'cleverai','enabled'=>true,'routable'=>false,'name'=>'CleverAI not ready','published'=>null,'draft'=>['fallback_destination_id'=>'hangup']],
+            ['agent_id'=>'draft_test','enabled'=>false,'routable'=>false,'name'=>'Draft','published'=>null],
+            ['agent_id'=>'sip_lab_off','enabled'=>true,'routable'=>false,'name'=>'SIP lab off','published'=>['fallback_destination_id'=>'native:ext-queues,600,1']],
+        ]; }
+    }; }
+}
+$amp_conf=['ASTETCDIR'=>sys_get_temp_dir().'/agent-dialplan-'.bin2hex(random_bytes(8))];
+mkdir($amp_conf['ASTETCDIR'],0700);
+$ext=new class {
+    public array $lines=[];
+    public function add($context,$extension,$label,$object) { $this->lines[$context][$extension][]=[$label,$object->output()]; }
+};
+satellite_get_config_late('asterisk'); // transcription is disabled; agents remain available.
+$render=fn($context,$extension='s')=>array_column($ext->lines[$context][$extension],1);
+assert(in_array('Stasis(voice-agent,caller,receptionist)',$render('voice-agent-receptionist')));
+assert(in_array('Set(TIMEOUT(absolute)=35)',$render('voice-agent-receptionist')));
+assert($render('voice-agent-receptionist','T')===['Set(TIMEOUT(absolute)=0)','Goto(${VOICE_AGENT_FALLBACK},s,1)']);
+assert(in_array('Goto(from-did-direct,203,1)',$render(satellite_agent_fallback_context('receptionist','extension:203'))));
+assert($render(satellite_agent_fallback_context('receptionist','extension:203'))===['Set(TIMEOUT(absolute)=0)','StopMusicOnHold()','Goto(from-did-direct,203,1)']);
+assert(in_array('Goto(${VOICE_AGENT_FALLBACK},s,1)',$render('voice-agent-receptionist')));
+assert(!in_array('Stasis(voice-agent,caller,custom_disabled)',$render('voice-agent-custom_disabled')));
+assert(in_array('Goto(${VOICE_AGENT_FALLBACK},s,1)',$render('voice-agent-custom_disabled')));
+// A published SIP agent can be enabled while the lab gate makes it unroutable.
+$sipFallback=satellite_agent_fallback_context('sip_lab_off','native:ext-queues,600,1');
+assert($render('voice-agent-sip_lab_off')===['Noop(Voice agent)','Set(__VOICE_AGENT_FALLBACK='.$sipFallback.')','Set(TIMEOUT(absolute)=0)','Goto(${VOICE_AGENT_FALLBACK},s,1)']);
+assert($render($sipFallback)===['Set(TIMEOUT(absolute)=0)','StopMusicOnHold()','Goto(ext-queues,600,1)']);
+// Existing route references must remain safe when publications are cleared.
+assert($render('voice-agent-draft_test')===['Hangup()']);
+assert(array_column(satellite_destinations(),'destination')===['voice-agent-receptionist,s,1','voice-agent-clever_test,s,1']);
+assert($render('voice-agent-transfer','203')===['Goto(voice-agent-transfer-extension,203,1)']);
+$transfer=$render('voice-agent-transfer-extension','_X!');
+assert(str_contains($transfer[0],'DIALPLAN_EXISTS(voice-agent-transfer,${EXTEN},1)'));
+assert($transfer[1]==='Set(TIMEOUT(absolute)=0)');
+assert($transfer[2]==='UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:${EXTEN})');
+assert($transfer[3]==='Goto(from-did-direct,${EXTEN},1)' && $transfer[4]==='Hangup(1)');
+assert(!isset($ext->lines['voice-agent-transfer']['999']));
+assert(count($render('voice-agent-headers'))===5);
+// isTrunk marks an RTP-only destination in the NethVoice proxy, disabling SRTP.
+assert(!str_contains(implode('\n',$render('voice-agent-headers')),'isTrunk'));
+assert(str_contains($render('voice-agent-provider','_!')[0],'PJSIP/${AGENT_PROVIDER_TRUNK}/sip:${AGENT_PROVIDER_USER}@${AGENT_PROVIDER_HOST}:5061'));
+assert($render('voice-agent-provider','h')===['Hangup()']);
+assert(satellite_destinations()[0]['description']==='Agent: &lt;script&gt;test&lt;/script&gt;');
+assert(satellite_getdestinfo('voice-agent-receptionist,s,1')['description']==='Agent: &lt;script&gt;test&lt;/script&gt;');
+assert(satellite_check_destinations()[0]['description']==='Agent: &lt;script&gt;test&lt;/script&gt; fallback');
+assert($render('voice-agent-transfer-queue','600')===['Set(TIMEOUT(absolute)=0)','UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:queue:600)','Goto(ext-queues,600,1)']);
+assert(!isset($ext->lines['voice-agent-transfer-ivr']));
+$consult=$render('voice-agent-consult','203');
+assert(str_contains($consult[0],'DB(DND/203)') && str_contains($consult[0],'DB(CF/203)'));
+assert($consult[1]==='Dial(${PJSIP_DIAL_CONTACTS(203)}&${PJSIP_DIAL_CONTACTS(91203)},20,i)');
+assert($consult[2]==='Hangup()');
+assert(!preg_match('/from-internal|from-did-direct|[Vv]oice[Mm]ail/',implode("\n",$consult)));
+assert($render('voice-agent-voicemail','203')===['Goto(voice-agent-voicemail-extension,203,1)']);
+$voicemail=$render('voice-agent-voicemail-extension','_X!');
+assert(str_contains($voicemail[0],'DIALPLAN_EXISTS(voice-agent-voicemail,${EXTEN},1)'));
+assert(str_contains($voicemail[1],'DB(AMPUSER/${EXTEN}/voicemail)'));
+assert(str_contains($voicemail[2],'VM_INFO(${EXTEN}@${VOICE_AGENT_MAILBOX_CONTEXT},exists)'));
+assert(str_contains($voicemail[2],'DIALPLAN_EXISTS(ext-local,vmu${EXTEN},1)'));
+assert($voicemail[4]==='StopMusicOnHold()');
+assert($voicemail[5]==='UserEvent(VoiceAgentTransfer,token:${VOICE_AGENT_TRANSFER_TOKEN},destination_id:extension:${EXTEN},mode:voicemail)');
+assert($voicemail[6]==='Goto(ext-local,vmu${EXTEN},1)');
+assert(str_contains($voicemail[8],'Stasis(voice-agent,voicemail_failed,'));
+assert(end($voicemail)==='Hangup(1)');
+assert(!preg_match('/Dial\(|from-internal|from-did-direct/',implode("\n",$voicemail)));
+$handoff=$render('voice-agent-handoff');
+assert(in_array('Set(TIMEOUT(absolute)=0)',$handoff));
+assert(in_array('Bridge(${VOICE_AGENT_HANDOFF_PEER},x)',$handoff));
+assert(str_contains($handoff[2],'IMPORT(${VOICE_AGENT_HANDOFF_PEER},VOICE_AGENT_HANDOFF_TOKEN)'));
+assert(str_contains($handoff[2],'VOICE_AGENT_HANDOFF_PEER_ID'));
+assert(in_array('Wait(10)',$render('voice-agent-handoff-wait')));
+assert(in_array('Stasis(voice-agent,handoff_failed,${AGENT_SESSION_ID},${VOICE_AGENT_HANDOFF_TOKEN})',$handoff));
+
+$clever=$render('voice-agent-clever_test');
+assert(!str_contains(implode("\n",$clever),'Stasis('));
+assert(!str_contains(implode("\n",$clever),'Answer('));
+assert(!str_contains(implode("\n",$clever),'UserEvent('));
+assert(in_array('Set(__CLEVERAI_IDENTITY=agent:clever_test)',$clever));
+assert(in_array('Set(__CLEVERAI_CALLER=${FILTER(\\x20-\\x7e\\x80-\\xff,${CALLERID(num)})})',$clever));
+assert(in_array('Set(__CLEVERAI_CALLER_NAME=${FILTER(\\x20-\\x7e\\x80-\\xff,${CALLERID(name)})})',$clever));
+assert(in_array('Set(__CLEVERAI_DID=${FILTER(0-9+*#a-zA-Z_:-,${FROM_DID})})',$clever));
+assert(in_array('ExecIf($["${CLEVERAI_DID}" = ""]?Set(__CLEVERAI_DID=${CLEVERAI_IDENTITY}))',$clever));
+assert(in_array('Dial(PJSIP/VoiceAgentTrunk_99/sip:proj_external@sip.api.openai.com:5061\\;transport=tls,20,b(voice-agent-cleverai-headers^s^1))',$clever));
+assert($render('voice-agent-cleverai-headers')===['Set(PJSIP_HEADER(add,X-OS-Caller)=${CLEVERAI_CALLER})','Set(PJSIP_HEADER(add,X-OS-Caller-Name)=${CLEVERAI_CALLER_NAME})','Set(PJSIP_HEADER(add,X-OS-DID)=${CLEVERAI_DID})','Set(PJSIP_HEADER(add,X-OS-Extension)=${CLEVERAI_IDENTITY})','Return()']);
+$guard=array_search('GotoIf($["${DIALSTATUS}" = "ANSWER" | "${DIALSTATUS}" = "CANCEL"]?finished)',$clever,true);
+assert($guard!==false && $clever[$guard+1]==='Set(TIMEOUT(absolute)=0)' && $clever[$guard+2]==='Goto(${CLEVERAI_FALLBACK})');
+assert(end($clever)==='Hangup()');
+assert(array_column($ext->lines['voice-agent-clever_test']['s'],0)[count($clever)-1]==='finished');
+assert(!str_contains(implode("\n",$render('voice-agent-clever_hangup')),'Dial('));
+assert(in_array('Set(__CLEVERAI_FALLBACK=app-blackhole,hangup,1)',$render('voice-agent-clever_hangup')));
+assert(in_array('Set(__CLEVERAI_FALLBACK=from-did-direct,203,1)',$clever));
+assert(satellite_check_destinations()[2]['description']==='Agent: CleverAI fallback');
+
+FreePBX::$broken=true;
+$ext->lines=['ordinary-route'=>['s'=>[['','Hangup()']]]];
+satellite_get_config_late('asterisk');
+assert($render('ordinary-route')===['Hangup()']);
+assert(!isset($ext->lines['voice-agent-provider']));
+assert($render('voice-agent-receptionist')===['Goto(from-did-direct,203,1)']);
+assert(satellite_destinations()===[]);
+assert($render(satellite_agent_fallback_context('receptionist','extension:203'))===['Set(TIMEOUT(absolute)=0)','StopMusicOnHold()','Goto(from-did-direct,203,1)']);
+putenv('VOICE_AGENT_ENABLED=false');
+$agentReads=FreePBX::$agentReads;
+FreePBX::$nativeDestinations=['miscapps'=>[
+    ['dest'=>'voice-agent-receptionist,s,1'],
+    ['dest'=>'voice-agent-orphan,s,1'],
+    ['dest'=>'voice-agent-not_agent,200,1'],
+    ['dest'=>'from-did-direct,203,1'],
+], 'ivr'=>[['dest'=>'voice-agent-orphan,s,1']]];
+assert(satellite_getdestinfo('voice-agent-receptionist,s,1')===['description'=>'Agent: receptionist']);
+assert(satellite_getdestinfo('voice-agent-orphan,s,1')===['description'=>'Agent: orphan']);
+assert(satellite_getdestinfo('voice-agent-never_configured,s,1')===[]);
+assert(satellite_getdestinfo('from-did-direct,203,1')===false);
+assert(satellite_destinations()===[]);
+$ext->lines=[];
+satellite_get_config_late('asterisk');
+assert($render('voice-agent-receptionist')===['Goto(from-did-direct,203,1)']);
+assert($render('voice-agent-sip_lab_off')===['Goto(ext-queues,600,1)']);
+assert($render('voice-agent-orphan')===['Hangup(1)']);
+assert(!isset($ext->lines['voice-agent-not_agent']) && !isset($ext->lines['from-did-direct']));
+assert(!isset($ext->lines['voice-agent-provider']));
+unlink($amp_conf['ASTETCDIR'].'/voice-agent-fallbacks.json');
+
+$ext->lines=[];
+satellite_get_config_late('asterisk');
+assert($render('voice-agent-orphan')===['Hangup(1)']);
+
+// A fresh default-off instance needs neither a cache nor the Agents schema.
+putenv('VOICE_AGENT_ENABLED');
+FreePBX::$nativeDestinations=[];
+$ext->lines=[];
+satellite_get_config_late('asterisk');
+assert($ext->lines===[]);
+assert(FreePBX::$agentReads===$agentReads);
+rmdir($amp_conf['ASTETCDIR']);
+echo "Native routing, isolated reload failure and saved fallback passed\n";

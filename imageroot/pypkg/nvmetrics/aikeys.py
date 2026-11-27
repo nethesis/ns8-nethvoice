@@ -11,7 +11,7 @@ Used by the NethVoiceAIKeyInvalid alert (etc/metrics/alert-rules/nethvoice-ai.ym
   rejects it (HTTP status in INVALID_STATUS; for OpenAI only with the error
   code invalid_api_key)
 
-Checked only when call or voicemail transcription is on and the key is set.
+Checked for transcription providers and for the configured OpenAI key when Agents is enabled.
 A provider that does not answer, or answers with another status, is not
 exported: an unreachable provider is "check unavailable", not an invalid key.
 The keys never leave the request header: they are not logged, nor exported.
@@ -199,8 +199,13 @@ def transcription_enabled(env=os.environ):
 
 
 def enabled(env=os.environ, keys=read_keys):
-    return transcription_enabled(env) and any(keys().values())
+    if transcription_enabled(env):
+        return any(keys().values())
+    return env.get("VOICE_AGENT_ENABLED", "").lower() == "true" and bool(keys().get("OPENAI_API_KEY"))
 
 
 def collect(keys=read_keys, http=http_status):
-    return render(keys(), http)
+    values = keys()
+    if not transcription_enabled() and os.getenv("VOICE_AGENT_ENABLED", "").lower() == "true":
+        values = {"OPENAI_API_KEY": values.get("OPENAI_API_KEY", "")}
+    return render(values, http)

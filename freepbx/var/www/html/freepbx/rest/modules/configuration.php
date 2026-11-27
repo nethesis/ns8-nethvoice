@@ -43,7 +43,8 @@ $app->get('/configuration/userprovider', function (Request $request, Response $r
     $domain = str_replace(',', '', $domain_raw);
 
     # Return user provider object
-    return jsonResponse($response, json_decode('{ "configured":1, "type":"ldap", "local":1, "domain": "'.$domain.'" }'), 200);
+    return jsonResponse($response, ['configured'=>1, 'type'=>'ldap', 'local'=>1, 'domain'=>$domain,
+                                    'voice_agent_enabled'=>is_file('/run/nethvoice-preview/enabled')], 200);
 });
 
 # get enabled mode

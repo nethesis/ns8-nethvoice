@@ -2,7 +2,56 @@
 
 Satellite is a Python application that creates a bridge between Asterisk PBX and Deepgram speech recognition services. It connects to Asterisk ARI (Asterisk REST Interface) and waits for channels to enter stasis. When a channel enters stasis with the application name "satellite", it creates a snoop channel and sends external media to its RTP server address. The RTP server distinguishes various channels from the UDP source port, captures the audio, and forwards it to Deepgram for real-time speech-to-text transcription. Transcription results are then published to an MQTT broker for further processing. If OpenAI API key is provided, it will be used to generate a summary of the transcriptions.
 
-https://github.com/nethesis/satellite
+The original project documentation is in [README.upstream.md](README.upstream.md).
+
+## Shared voice-agent runtime
+
+The NethVoice Satellite image runs `python main.py` in the existing
+`satellite.service` container. One event loop owns startup, signals and shutdown.
+The unit enables the voice-agent listener with `VOICE_AGENT_ENABLED=true`.
+Voice-agent routing stays in `voice_agent/`; optional transcription stays in
+`transcription.py`, `asterisk_bridge.py`, `mqtt_client.py` and `api.py`.
+Transcription and its HTTP API start when
+`SATELLITE_CALL_TRANSCRIPTION_ENABLED` or
+`SATELLITE_VOICEMAIL_TRANSCRIPTION_ENABLED` is `True` (case insensitive).
+Standalone deployments that omit both flags also start transcription and its API.
+
+The two HTTP apps keep their existing loopback ports and authentication. Only
+exact signed webhook paths on the voice-agent listener are forwarded publicly;
+transcription endpoints are not mounted on that listener. Each component retains
+its own ARI connection and Stasis application (`voice-agent` versus `ARI_APP`).
+Transcription startup and MQTT/ARI reconnection failures recover locally without
+restarting agent calls. Shutdown stops both listeners, cancels transcription
+connection/connector tasks, closes RTP streams and terminates/reaps per-request
+transcription workers. PostgreSQL startup work runs outside the shared event loop.
+The process no longer supervises or restarts component subprocesses. A fatal
+process failure still affects both components; systemd restarts the application.
+
+From the module root, run `BUILD_IMAGES=satellite bash build-images.sh` to build
+`nethvoice-satellite` from this directory. The module build and CI use the same
+checkout for Satellite and the FreePBX contracts. The published image follows the
+NethVoice module tag. The application runs as UID/GID 65532 with the existing
+service credentials and event volume.
+
+Satellite stays enabled for agent webhooks and readiness even when no agent is
+enabled. An inactive built-in agent never admits a call. Keeping the listener
+available allows PHP-owned publication and enablement without giving PHP host
+service-management privileges. MQTT, recordings cleanup and transcription itself
+remain conditional on the transcription flags; PostgreSQL stays available for
+historical reads after transcription is disabled.
+
+The `configure-module/94voice_agents` and `set-integrations/50manage_service`
+action steps compare the unit, selected environment, filtered credentials and
+image identity before making changes. An unchanged settings save leaves the
+service and calls untouched. A changed configuration waits for no active calls;
+an unavailable Asterisk query refuses the restart. FreePBX restarts do not stop
+Satellite, which reconnects through ARI. Runtime account provisioning runs on
+configuration changes instead of every Satellite start.
+
+Upgrades disable and remove the former `voice-agent` container while retaining
+its event volume. The `:U` mount repairs legacy volume ownership for UID 65532;
+`:Z` preserves its private SELinux label. Credentials are filtered into
+`satellite.env`, without unrelated module secrets.
 
 ## Voicemail transcription
 
@@ -117,3 +166,10 @@ export $(grep SATELLITE_MQTT_PASSWORD passwords.env); podman exec -it satellite-
 ```
 export $(grep SATELLITE_API_TOKEN passwords.env);curl "http://127.0.0.1:${SATELLITE_HTTP_PORT}/api/get_transcription" --show-error --request POST --form "multichannel=false" --form "encoding=linear16" --form "sample_rate=8000" --form "channels=1" --form "persist=false" --form "summary=false" --header "Authorization: Bearer ${SATELLITE_API_TOKEN}" --form "file=@test.wav;type=audio/wav"
 ```
+
+## Voice agents alpha
+
+Use the matching v8 runtime and fresh database baseline. See the maintained
+[voice agents guide](../docs/voice-agents.md). Configuration and tool permissions
+belong to each agent. Publishing activates the saved configuration. CI tests
+Satellite and the FreePBX contracts from the same checkout.

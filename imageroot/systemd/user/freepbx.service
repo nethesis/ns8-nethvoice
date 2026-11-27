@@ -18,6 +18,7 @@ TimeoutStartSec=600
 ExecStartPre=/bin/rm -f %t/freepbx.pid %t/freepbx.ctr-id
 ExecStartPre=-runagent install-certificate freepbx
 ExecStartPre=-runagent discover-smarthost
+ExecStartPre=/usr/bin/mkdir -p %E/state/voice-preview
 ExecStartPre=runagent ensure-prometheus-password
 ExecStart=runagent /usr/bin/podman run \
     --detach \
@@ -37,6 +38,7 @@ ExecStart=runagent /usr/bin/podman run \
     --volume=pbooksources:/etc/phonebook/sources.d/:z \
     --volume=scripts:/usr/share/phonebooks/scripts/:z \
     --volume=post_scripts:/usr/share/phonebooks/post_scripts/:z \
+    --volume=./voice-preview:/run/nethvoice-preview:ro,z \
     --volume=./notify:/notify:z \
     --volume=freepbx-cert:/etc/asterisk/keys:z \
     --volume=reports_config:/opt/nethvoice-report:z \
@@ -45,6 +47,7 @@ ExecStart=runagent /usr/bin/podman run \
     --volume=phonebookcsv:/var/lib/nethvoice/phonebook/uploads/:z \
     --volume=/dev/log:/dev/log \
     --volume=./freepbx_custom_modules:/freepbx_custom_modules:z \
+    --env=VOICE_AGENT_MONITORING_RETENTION_DAYS=${VOICE_AGENT_MONITORING_RETENTION_DAYS} \
     --env-file=%E/state/passwords.env \
     --env=NETHVOICE* \
     --env=FREEPBX_LOG_LEVEL \

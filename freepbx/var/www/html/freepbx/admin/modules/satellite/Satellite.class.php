@@ -30,12 +30,104 @@ class Satellite extends \FreePBX_Helpers implements \BMO
     }
 
     public function install() {
+        // Agent migrations run through the separate preview setup action.
     }
     public function uninstall() {
     }
     public function backup() {
     }
     public function restore($backup) {
+    }
+
+    private ?\AgentDirectory $agentInventory = null;
+
+    private function directory(): \AgentDirectory {
+        require_once __DIR__ . '/lib/AgentDirectory.php';
+        return $this->agentInventory ??= new \AgentDirectory($this->FreePBX);
+    }
+
+    /** Native extension inventory; callers never provide dialplan strings. */
+    public function agentExtensions(): array {
+        return $this->directory()->extensions();
+    }
+
+    /** Native extensions and queues; optional missing modules are unavailable. */
+    public function agentDirectory(bool $includeExtensions=true): array {
+        return $this->directory()->inventory($includeExtensions);
+    }
+
+    /** Native internal PJSIP devices belonging to each configured main extension. */
+    public function agentConsultationDevices(): array {
+        $main=array_fill_keys(array_column($this->agentExtensions(),'id'),true); $result=[];
+        foreach ($this->FreePBX->Core->getAllDevicesByType('pjsip') as $device) {
+            $id=(string)($device['id']??''); $user=(string)($device['user']??'');
+            if (!preg_match('/^[0-9]{1,20}$/D',$id) || !preg_match('/^[0-9]{1,20}$/D',$user)) continue;
+            $extension=isset($main['extension:'.$user])?$user:substr($user,2);
+            if (isset($main['extension:'.$extension])) $result[$extension][]=$id;
+        }
+        return $result;
+    }
+
+    public function agentTrunk(string $operation, array $binding, ?array $previous): int {
+        require_once __DIR__ . '/lib/AgentTrunkProvisioner.php';
+        $native = new \AgentTrunkProvisioner($this->FreePBX->Core);
+        if ($operation === 'delete') { $native->deleteManagedTrunk($binding); return 0; }
+        if ($operation === 'update' && !empty($binding['freepbx_trunk_id'])) {
+            return (int) $native->updateManagedTrunk($binding, $previous);
+        }
+        return (int) $native->createManagedTrunk($binding);
+    }
+
+    public function applyAgentDialplan(): bool {
+        needreload();
+        // PBX-wide reloads are queued by the shared helper, without completion reporting.
+        // From a root CLI, run it as asterisk: a root-owned lock would make the
+        // web-owned helper reload forever.
+        $user = posix_geteuid() === 0 ? 'runuser -u asterisk -- ' : '';
+        system($user . '/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
+        return true;
+    }
+
+    public function agentTrunkExists(array $binding): bool {
+        require_once __DIR__ . '/lib/AgentTrunkProvisioner.php';
+        return (new \AgentTrunkProvisioner($this->FreePBX->Core))->managedTrunkExists($binding);
+    }
+
+    public function agentTrunkReady(array $binding): bool {
+        if (!$this->agentTrunkExists($binding)) return false;
+        $name='VoiceAgentTrunk_'.(int)$binding['id'];
+        $response=$this->FreePBX->astman->Command('pjsip show endpoint '.$name);
+        $output=is_array($response)?($response['data']??$response['Output']??''):'';
+        return preg_match('/Endpoint:\s+'.preg_quote($name,'/').'(?:[\/\s])/',$output)===1;
+    }
+
+    public function agentPublishedVersions(): array {
+        require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';
+        return (new \NethVoice\Agents\Service($this->db))->nativeVersions();
+    }
+
+    /** Library reads remain usable without booting the HTTP router. */
+    public function agentDestinations(): array {
+        require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';
+        return array_values(array_filter((new \NethVoice\Agents\Service($this->db))->all(),fn($agent)=>$agent['agent_type']!=='consultation'));
+    }
+
+    public function cleverAiTransport(string $id): ?array {
+        require_once dirname(__DIR__, 3) . '/rest/lib/agents/Service.php';
+        return (new \NethVoice\Agents\Service($this->db))->cleverAiTransport($id);
+    }
+
+    public function agentDestinationInUse(string $id): bool {
+        // REST loads the BMO class lazily, without the module's destination hooks.
+        require_once __DIR__ . '/functions.inc.php';
+        $dest = satellite_agent_destination_key($id);
+        // FreePBX's destination hooks are authoritative, including routes/IVRs.
+        return !empty($this->FreePBX->Destinations->destinationUsageArray($dest));
+    }
+
+    public function referencedAgentIds(): array {
+        require_once __DIR__ . '/functions.inc.php';
+        return satellite_referenced_agent_ids(true, true);
     }
 
     public function get_available_voices() {

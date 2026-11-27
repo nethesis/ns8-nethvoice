@@ -1,4 +1,5 @@
 {
+  "Voice agents": "Agenti vocali",
   "First name": "Nome",
   "Last name": "Cognome",
   "Job": "Mansione",
@@ -353,6 +354,7 @@
   "Show secret": "Mostra secret",
   "Apps": "Applicazioni",
   "Customer Card": "Scheda cliente",
+  "Agents": "Agenti",
   "Customer cards": "Schede cliente",
   "Customer cards configuration": "Configurazione Schede Cliente",
   "Source saved": "Sorgente salvata",

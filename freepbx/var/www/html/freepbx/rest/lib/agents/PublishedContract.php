@@ -1,0 +1,124 @@
+<?php
+// SPDX-License-Identifier: GPL-3.0-or-later
+namespace NethVoice\Agents;
+require_once __DIR__.'/ProviderCatalog.php';
+
+final class InvalidSnapshotField extends \InvalidArgumentException
+{
+    public function __construct(public readonly string $field) { parent::__construct('invalid_snapshot'); }
+}
+
+/** Standalone validator for the supported JSON Schema vocabulary. */
+final class PublishedContract
+{
+    public const MAX_BYTES=65536;
+    public static function validate(array $snapshot,bool $allowHistoricalQueues=false): array
+    {
+        $version=$snapshot['contract_version']??0;
+        if (!in_array($version,[8,9],true)) throw new \InvalidArgumentException('invalid_snapshot');
+        $schema = json_decode(file_get_contents(__DIR__ . '/contracts/published-v'.$version.'.schema.json'), true, 512, JSON_THROW_ON_ERROR);
+        if (strlen(json_encode($snapshot, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) > self::MAX_BYTES) {
+            throw new \InvalidArgumentException('invalid_snapshot');
+        }
+        if ($allowHistoricalQueues) $snapshot=self::effectiveLegacyQueues($snapshot);
+        if (!self::matches($snapshot,$schema)) throw new InvalidSnapshotField(self::mismatchedField($snapshot,$schema,'draft'));
+        if ($snapshot['destination_id'] !== 'agent:' . $snapshot['agent_id']) throw new \InvalidArgumentException('invalid_snapshot');
+        $ids=array_column($snapshot['tool_bindings'],'tool_id');
+        if ($version===9) {
+            $config=$snapshot['consultation'];
+            if ($snapshot['role']==='public' && $snapshot['chat_model']!==null) throw new \InvalidArgumentException('invalid_snapshot');
+            if ($snapshot['role']==='consultation') {
+                if ($config['mode']!=='direct' || $config['phone'] || $config['chat'] || $config['assistant_id']!==null || $snapshot['fallback_destination_id']!=='hangup' || array_filter($snapshot['tool_bindings'],fn($b)=>$b['enabled'])) throw new \InvalidArgumentException('invalid_snapshot');
+            } elseif ($config['mode']==='attended') {
+                if ((!$config['phone'] && !$config['chat']) || !$config['assistant_id'] || $config['assistant_id']===$snapshot['agent_id']) throw new \InvalidArgumentException('invalid_snapshot');
+            } elseif ($config['assistant_id']!==null || $config['phone'] || $config['chat']) throw new \InvalidArgumentException('invalid_snapshot');
+        }
+        if (count($ids)!==count(array_unique($ids))) throw new \InvalidArgumentException('invalid_snapshot');
+        foreach ($snapshot['tool_bindings'] as $binding) if (!is_int($binding['tool_version'])) throw new \InvalidArgumentException('invalid_snapshot');
+        if ($snapshot['debug']['transcription_enabled'] && $snapshot['provider']!=='openai') throw new \InvalidArgumentException('invalid_snapshot');
+        ProviderCatalog::validateConversation($snapshot['provider'],$snapshot['conversation']);
+        foreach ($snapshot['tool_bindings'] as $binding) {
+            $descriptions=$binding['config']['descriptions']??[];
+            if (count(array_column($descriptions,'destination_id'))!==count(array_unique(array_column($descriptions,'destination_id')))) throw new \InvalidArgumentException('invalid_snapshot');
+        }
+        return $snapshot;
+    }
+
+    /** Present historical queue policy safely when reading an existing row. */
+    public static function effectiveLegacyQueues(array $definition): array
+    {
+        foreach ($definition['tool_bindings']??[] as $index=>$binding) {
+            if (($binding['tool_id']??null)!=='pbx.transfer' || !is_array($binding['config']??null)
+                || !array_key_exists('queue_denylist',$binding['config'])) continue;
+            $config=$binding['config'];
+            $expectedVersion=[8=>2,9=>3][$definition['contract_version']??0]??null;
+            $legacyList=['type'=>'array','maxItems'=>100,'uniqueItems'=>true,
+                'items'=>['type'=>'string','pattern'=>'^queue:[0-9]{1,20}$']];
+            if ($expectedVersion===null || ($binding['tool_version']??null)!==$expectedVersion
+                || array_key_exists('queue_allowlist',$config) || !self::matches($config['queue_denylist'],$legacyList)) {
+                throw new InvalidSnapshotField('draft.tool_bindings');
+            }
+            unset($config['queue_denylist']);
+            // A historical exception list grants no queue under explicit selection.
+            $config['queue_allowlist']=[];
+            $definition['tool_bindings'][$index]['config']=$config;
+        }
+        return $definition;
+    }
+
+    /** Field paths come from the schema, never from submitted property names. */
+    private static function mismatchedField($value,array $schema,string $path): string
+    {
+        if (($schema['type']??null)!=='object' || !is_array($value) || array_is_list($value)) return $path;
+        foreach ($schema['required']??[] as $key) if (!array_key_exists($key,$value)) return $path.'.'.$key;
+        foreach ($schema['properties']??[] as $key=>$definition) {
+            if (array_key_exists($key,$value) && !self::matches($value[$key],$definition)) return self::mismatchedField($value[$key],$definition,$path.'.'.$key);
+        }
+        return $path;
+    }
+
+    public static function matches($value, array $schema): bool
+    {
+        if (isset($schema['oneOf'])) {
+            $matched=0;
+            foreach ($schema['oneOf'] as $alternative) if (self::matches($value,$alternative)) $matched++;
+            if ($matched!==1) return false;
+        }
+        if (isset($schema['const']) && $value !== $schema['const']) return false;
+        if (isset($schema['enum']) && !in_array($value, $schema['enum'], true)) return false;
+        switch ($schema['type'] ?? '') {
+            case 'object':
+                if (!is_array($value) || array_is_list($value)) return false;
+                foreach ($schema['required']??[] as $key) if (!array_key_exists($key, $value)) return false;
+                foreach ($value as $key => $child) {
+                    if (!isset($schema['properties'][$key]) || !self::matches($child, $schema['properties'][$key])) return false;
+                }
+                break;
+            case 'array':
+                if (!is_array($value) || !array_is_list($value) || count($value) > ($schema['maxItems']??PHP_INT_MAX) || count($value)<($schema['minItems']??0)) return false;
+                if (($schema['uniqueItems']??false) && count(array_unique($value, SORT_REGULAR)) !== count($value)) return false;
+                foreach ($value as $child) if (!self::matches($child, $schema['items'])) return false;
+                break;
+            case 'string':
+                if (!is_string($value)) return false;
+                if (isset($schema['minLength']) && mb_strlen($value, 'UTF-8') < $schema['minLength']) return false;
+                if (isset($schema['maxLength']) && mb_strlen($value, 'UTF-8') > $schema['maxLength']) return false;
+                if (isset($schema['pattern']) && preg_match('~' . $schema['pattern'] . '~D', $value) !== 1) return false;
+                break;
+            case 'integer':
+                if (!is_int($value) || $value < $schema['minimum'] || $value > $schema['maximum']) return false;
+                break;
+            case 'boolean':
+                if (!is_bool($value)) return false;
+                break;
+            case 'null':
+                if ($value !== null) return false;
+                break;
+            case '':
+                break;
+            default:
+                return false;
+        }
+        return true;
+    }
+}

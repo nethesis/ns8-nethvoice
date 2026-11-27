@@ -87,6 +87,8 @@ changed = render() or os.getenv('CHAT_FORCE_RESTART') == '1'
 systemctl('daemon-reload')
 # Restart only on changes: a restart drops every chat session.
 for unit in UNITS:
+    if unit == 'chat-gateway.service' and os.getenv('CHAT_DEFER_GATEWAY') == '1':
+        continue
     systemctl('enable', unit)
     if changed or not systemctl('is-active', '--quiet', unit):
         if not systemctl('restart', unit):

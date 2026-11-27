@@ -1,3 +1,12 @@
+# Build the standalone Agents UI; the final image receives compiled assets only.
+FROM docker.io/library/node:24.15.0-slim AS agents-ui-builder
+WORKDIR /build/agents-ui
+COPY agents-ui/package.json agents-ui/package-lock.json ./
+RUN npm ci
+COPY agents-ui/index.html agents-ui/tsconfig.json agents-ui/vite.config.ts ./
+COPY agents-ui/src ./src
+RUN npm run build
+
 # Stage 1: Build Asterisk
 FROM docker.io/debian:trixie@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6 as builder
 
@@ -75,6 +84,7 @@ RUN cd /usr/src/asterisk && \
 	cd asterisk-${ASTERISK_VERSION} && \
 	patch --batch --fuzz=0 -p1 < ../asterisk-22-lazymembers.patch && \
 	patch --batch --fuzz=0 -p1 < ../asterisk-22-mp3.patch && \
+	patch --batch --fuzz=0 -p1 < ../asterisk-22-ari-inhibit-state.patch && \
 	sed -i '/#include "asterisk.h"/i#define ASTMM_LIBC ASTMM_REDIRECT' addons/mp3/interface.c && \
 	cd .. && \
 	rm -f asterisk-${ASTERISK_VERSION}.tar.gz && \
@@ -187,6 +197,11 @@ RUN cd /usr/src/asterisk && \
 	tar xzf codec_siren14-22.0_1.0.7-x86_64.tar.gz --strip-components=1 && \
 	cp *.so ${BUILDROOT}${LIBDIR}/asterisk/modules/ && \
 	cp codec_opus_config-en_US.xml ${BUILDROOT}${DATADIR}/asterisk/documentation/thirdparty/
+
+# /var/run is a symlink to /run in the runtime image. Asterisk stages only
+# empty runtime directories there; omit them from the root filesystem copy.
+RUN test -z "$(find ${BUILDROOT}/var/run -type f -print -quit)" && \
+    rm -rf ${BUILDROOT}/var/run
 
 # Build G.729 against the same Asterisk headers as the server. The old bundled
 # Asterisk 18 binary has an incompatible ABI and requests an executable stack.
@@ -349,6 +364,7 @@ COPY --from=builder /usr/src/asterisk/build/./ /
 COPY --from=ffmpeg_builder /usr/local/bin/ffmpeg /usr/local/bin/ffprobe /usr/local/bin/
 COPY check-asterisk-libraries.py /tmp/check-asterisk-libraries.py
 RUN ldconfig && python3 /tmp/check-asterisk-libraries.py && rm /tmp/check-asterisk-libraries.py
+RUN mkdir -p /var/run/asterisk
 COPY remote-artifacts.sha256 /tmp/remote-artifacts.sha256
 COPY fetch-remote-artifact /usr/local/bin/fetch-remote-artifact
 
@@ -507,6 +523,7 @@ RUN for core_patch in /tmp/nethvoice-core-patches/freepbx-core-821*.patch; do \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/paging < /tmp/nethvoice-core-patches/freepbx-paging-transfers.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/recordings < /tmp/nethvoice-core-patches/freepbx-recordings-italian-placeholders.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/userman < /tmp/nethvoice-core-patches/freepbx-userman-sync-status.patch && \
+    patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/cdr < /tmp/nethvoice-core-patches/freepbx-cdr-record-link.patch && \
     patch --batch --fuzz=0 -p1 -d /var/www/html/freepbx/admin/modules/voicemail < /tmp/nethvoice-core-patches/freepbx-voicemail-primary-mailbox.patch && \
     rm -rf /tmp/nethvoice-core-patches
 
@@ -680,6 +697,7 @@ RUN docker-php-source extract && \
 	docker-php-source delete
 
 # Install nethvoice-wizard-restapi and nethvoice-wizard-ui
+COPY --from=agents-ui-builder --chown=asterisk:asterisk /build/agents-ui/dist /var/www/html/freepbx/agents-ui
 COPY var/www/html/freepbx/rest /var/www/html/freepbx/rest
 COPY wizard-ui /tmp/wizard
 RUN --mount=type=cache,id=nethvoice-freepbx-composer,target=/var/cache/composer \
@@ -787,7 +805,9 @@ COPY initdb.d/update.php /initdb.d/
 COPY initdb.d/slow_database_updates.php /initdb.d/
 COPY usr/src/nethvoice/samples/* /usr/src/nethvoice/samples/
 COPY configure_users.php /
+COPY usr/local/bin/configure-agent-recipient /usr/local/bin/configure-agent-recipient
 COPY entrypoint.sh /entrypoint
+COPY usr/libexec/voice-agent-recipient.php /usr/libexec/voice-agent-recipient.php
 COPY usr/share/neth-hotel-fias /usr/share/neth-hotel-fias
 CMD ["/usr/bin/supervisord"]
 ENTRYPOINT ["/entrypoint"]

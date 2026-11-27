@@ -288,3 +288,11 @@ class HttpStatusTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_agents_only_checks_openai():
+    with mock.patch.dict("os.environ", {"VOICE_AGENT_ENABLED": "true"}, clear=True):
+        assert aikeys.enabled(keys=lambda: KEYS)
+        http = fake_http({OPENAI_URL: 200})
+        assert 'provider="openai"' in aikeys.collect(lambda: KEYS, http)
+        assert http.calls == [(OPENAI_URL, "Bearer " + OPENAI_KEY)]

@@ -221,3 +221,7 @@ if ((int) ($res['required_tables'] ?? 0) === 2) {
 	// Two statements: read every result set, or the next query fails
 	while ($stmt->nextRowset()) {}
 }
+
+// Release any pending result sets from the core multi-statement update.
+$stmt->closeCursor();
+// The NS8 preview setup action owns the optional Agents schema and accounts.

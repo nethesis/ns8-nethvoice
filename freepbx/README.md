@@ -156,6 +156,8 @@ podman exec freepbx sh -lc "sed -n '1,20p' /var/www/html/freepbx/wizard/scripts/
 
 The wizard is publicly reachable both from `/freepbx/wizard/#!/` and from the shorter `#!/` path because Apache forwards non-`/freepbx` requests to the wizard application.
 
+The Agents UI reuses the Wizard navbar branding through `/freepbx/wizard/branding.json`, generated at the same startup step from the resolved Wizard brand name and navbar logo URL. This public file contains only `BRAND_NAME` and `NAVBAR_LOGO_URL`; it excludes the authentication configuration in `scripts/custom.js`. The default image is the Wizard's existing `images/brandDark.svg`. Wizard-specific overrides, legacy fallback and explicit empty overrides therefore apply to both interfaces without rebuilding the Agents UI. In local development, set `AGENTS_PBX_URL` to proxy the actual Wizard branding; otherwise Vite serves the default metadata and the original Wizard SVG without adding them to the production bundle.
+
 ## Phone RPS reset helper
 
 `/var/www/html/freepbx/rest/lib/phonesRpsResetHelper.php` renews phone provisioning tokens in Tancredi and updates the corresponding RPS provisioning URLs in Falconieri. It accepts one argument:
@@ -260,7 +262,7 @@ Its filename must be the name of the module .tar.gz. For instance, for installin
 
 ## Call transcription
 
-Call transcriptio uses https://github.com/nethesis/satellite to transcribe and summarize calls in real time using Deepgram and OpenAI APIs.
+Call transcription uses the [bundled Satellite component](../satellite/README.md) to transcribe and summarize calls in real time using Deepgram and OpenAI APIs.
 
 To enable call transcription, you need to set the following settings on nethserver UI:
 
