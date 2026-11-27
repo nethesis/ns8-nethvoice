@@ -18,7 +18,13 @@ import {
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
-import { request, queryClient, auth, errorCode } from "../api";
+import {
+  request,
+  queryClient,
+  auth,
+  errorCode,
+  draftRecoveryKey,
+} from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import { agentStatus } from "../agentStatus";
@@ -113,13 +119,17 @@ function transferMode(mode: string) {
 }
 const snapshot = () =>
   JSON.stringify({ name: name.value, draft: configuration.value });
+if (creating.value) baseline.value = snapshot();
 const dirty = computed(() => !!baseline.value && snapshot() !== baseline.value);
 const conflict = ref<Agent>();
-const editKey = "nethvoice.agents.edit";
-function rememberDraft() {
+const createUncertain = ref(false);
+let creatingRequest = false;
+function rememberDraft(event: Event) {
+  const rejected = (event as CustomEvent<{ createRejected: boolean }>).detail
+    ?.createRejected;
   if (dirty.value)
     sessionStorage.setItem(
-      editKey,
+      draftRecoveryKey,
       JSON.stringify({
         user: auth.user,
         path: route.path,
@@ -127,25 +137,28 @@ function rememberDraft() {
         type: agentType.value,
         name: name.value,
         draft: configuration.value,
+        createUncertain:
+          createUncertain.value || (creatingRequest && !rejected),
       }),
     );
 }
 function recoverDraft() {
-  const raw = sessionStorage.getItem(editKey);
+  const raw = sessionStorage.getItem(draftRecoveryKey);
   if (!raw) return;
   let saved;
   try {
     saved = JSON.parse(raw);
   } catch {
-    sessionStorage.removeItem(editKey);
+    sessionStorage.removeItem(draftRecoveryKey);
     return;
   }
   if (saved.user !== auth.user) {
-    sessionStorage.removeItem(editKey);
+    sessionStorage.removeItem(draftRecoveryKey);
     return;
   }
   if (saved.path !== route.path) return;
-  sessionStorage.removeItem(editKey);
+  sessionStorage.removeItem(draftRecoveryKey);
+  createUncertain.value = saved.createUncertain === true;
   if (record.value && record.value.revision !== saved.revision)
     conflict.value = record.value;
   agentType.value = saved.type;
@@ -275,7 +288,6 @@ watch(
   },
   { immediate: true },
 );
-if (creating.value) baseline.value = snapshot();
 const confirmNavigation = () => (dirty.value ? ui.confirmLeave() : true);
 onBeforeRouteLeave(confirmNavigation);
 onBeforeRouteUpdate((to, from) => to.path === from.path || confirmNavigation());
@@ -337,9 +349,6 @@ function validate(publishing: boolean) {
   if (publishing && !configuration.value.provider_binding_id)
     next.trunk = t("agentForm.selectTrunk");
   if (!external.value) {
-    const duration = draft.value.max_call_duration_seconds;
-    if (!Number.isInteger(duration) || duration < 30 || duration > 3600)
-      next.duration = t("durationRange");
     if (publishing && !draft.value.conversation.instructions.trim())
       next.instructions = t("requiredField");
     if (publishing && !draft.value.conversation.voice)
@@ -354,19 +363,6 @@ function validate(publishing: boolean) {
       next.max_output_tokens = t("wholeNumberRange", { min: 16, max: 8192 });
     if (!String(options?.backend_instructions ?? "").trim())
       next.backend_instructions = t("requiredField");
-  }
-  for (const tool of draft.value.tool_bindings) {
-    for (const [key, max] of [
-      ["recent_caller_lookback_days", 90],
-      ["playback_timeout_seconds", 10],
-    ] as const) {
-      const value = tool.config[key];
-      if (
-        value !== undefined &&
-        (!Number.isInteger(value) || Number(value) < 1 || Number(value) > max)
-      )
-        next[key] = t("wholeNumberRange", { min: 1, max });
-    }
   }
   const retention = draft.value.debug.retention_hours;
   if (
@@ -401,11 +397,11 @@ function validate(publishing: boolean) {
   return !Object.keys(next).length;
 }
 const saving = ref<"" | "draft" | "publish">("");
-const createUncertain = ref(false);
 async function persist(): Promise<Agent> {
   if (conflict.value) throw new Error("revision_conflict");
   const wasCreating = creating.value;
   let value: Agent;
+  creatingRequest = wasCreating;
   try {
     value = await request<Agent>(
       wasCreating ? "POST" : "PUT",
@@ -417,15 +413,17 @@ async function persist(): Promise<Agent> {
         expected_revision: record.value?.revision || 0,
       },
     );
-  } catch (failure) {
-    if (wasCreating && errorCode(failure) === "request_uncertain")
+  } catch (error) {
+    if (wasCreating && errorCode(error) === "request_uncertain")
       createUncertain.value = true;
-    if (errorCode(failure) === "revision_conflict" && agentId.value)
+    if (errorCode(error) === "revision_conflict" && agentId.value)
       conflict.value = await request<Agent>(
         "GET",
         "/profiles/" + encodeURIComponent(agentId.value),
       );
-    throw failure;
+    throw error;
+  } finally {
+    creatingRequest = false;
   }
   accept(value);
   if (wasCreating) {

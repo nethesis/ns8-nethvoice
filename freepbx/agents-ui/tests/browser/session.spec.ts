@@ -31,7 +31,10 @@ async function editor(page: Page, rejectFirstSave: boolean) {
       record.draft = request.postDataJSON().profile.draft;
       record.revision++;
     }
-    await route.fulfill({json: path === "/access" ? {csrf: "synthetic-csrf"} : path === "/catalog" ? {tools: read("tools-v5.json"), default_language: "en", extensions: [], languages: [{id: "en", label: "English"}]} : path === "/trunks" ? {items: []} : path === "/destinations" ? {items: [], next_offset: null, modules: {}, unavailable_ids: []} : record});
+    const profile = request.headers().user === "other-admin"
+      ? {...record, draft: {...record.draft, conversation: {...record.draft.conversation, greeting: "Current saved greeting"}}}
+      : record;
+    await route.fulfill({json: path === "/access" ? {csrf: "synthetic-csrf"} : path === "/catalog" ? {tools: read("tools-v5.json"), default_language: "en", extensions: [], languages: [{id: "en", label: "English"}]} : path === "/trunks" ? {items: []} : path === "/destinations" ? {items: [], next_offset: null, modules: {}, unavailable_ids: []} : profile});
   });
   await page.goto("./#/agents/receptionist");
   await page.getByLabel("Greeting", {exact: true}).fill("Unsaved greeting");
@@ -52,6 +55,45 @@ test("an expired session keeps the editor and resumes after signing in elsewhere
   await expect(page.getByLabel("Greeting", {exact: true})).toHaveValue("Unsaved greeting");
   await page.getByRole("button", {name: "Save draft", exact: true}).click();
   await expect.poll(() => saved).toEqual(["Unsaved greeting"]);
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem("nethvoice.agents.edit"))).toBeNull();
+});
+
+test("a different administrator gets the saved draft after sign-in", async ({page}) => {
+  await editor(page, true);
+  await page.getByRole("button", {name: "Save draft", exact: true}).click();
+  await expect(page.getByText("Administrator login required")).toBeVisible();
+  await page.evaluate(() => {
+    localStorage.setItem("secretkey", JSON.stringify({user: "other-admin", hash: "renewed"}));
+    window.dispatchEvent(new StorageEvent("storage", {key: "secretkey"}));
+  });
+  await expect(page.getByLabel("Greeting", {exact: true})).toBeVisible();
+  await expect(page.getByLabel("Greeting", {exact: true})).toHaveValue("Current saved greeting");
+});
+
+test("an earlier administrator's pending save cannot replace the current draft", async ({page}) => {
+  await editor(page, false);
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
+  await page.route("**/freepbx/rest/agents/profiles/receptionist", async route => {
+    const request = route.request();
+    if (request.method() !== "PUT") return route.fallback();
+    await held;
+    const profile = request.postDataJSON().profile;
+    await route.fulfill({json: {...profile, agent_id: "receptionist", kind: "builtin", revision: 10, sync_status: "synced"}});
+  });
+  const sent = page.waitForRequest(request => request.method() === "PUT");
+  await page.getByRole("button", {name: "Save draft", exact: true}).click();
+  await sent;
+  await page.evaluate(() => {
+    localStorage.setItem("secretkey", JSON.stringify({user: "other-admin", hash: "renewed"}));
+    window.dispatchEvent(new StorageEvent("storage", {key: "secretkey"}));
+  });
+  await expect(page.getByLabel("Greeting", {exact: true})).toHaveValue("Current saved greeting");
+  const returned = page.waitForResponse(response => response.request().method() === "PUT");
+  release();
+  await (await returned).finished();
+  await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
+  await expect(page.getByLabel("Greeting", {exact: true})).toHaveValue("Current saved greeting");
 });
 
 test("closing the editor with unsaved changes asks for confirmation", async ({page}) => {

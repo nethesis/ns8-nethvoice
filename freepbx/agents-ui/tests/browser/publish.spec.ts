@@ -52,12 +52,18 @@ test("a rejected first publication keeps the created agent and retries on it", a
       await route.fulfill({json: models});
       return;
     }
+    if (path === "/trunks/trunk_test/voices") {
+      await route.fulfill({json: {items: [{id: "marin", label: "Marin"}]}});
+      return;
+    }
     await route.fulfill({json: path === "/access" ? {csrf: "synthetic-csrf"} : path === "/catalog" ? {tools, draft_defaults: draft(), extensions: [], default_language: "en", languages: [{id: "en", label: "English"}]} : path === "/trunks" ? {items: [trunk]} : path === "/destinations" ? {items: [], next_offset: null, modules: {}, unavailable_ids: []} : {items: record ? [record] : []}});
   });
   await page.goto("./#/agents/new");
   await page.getByLabel("Name", {exact: true}).fill("Night desk");
   await page.getByRole("combobox", {name: "Provider trunk", exact: true}).click();
   await page.getByRole("option", {name: /Shared OpenAI/}).click();
+  await page.getByRole("combobox", {name: "Voice", exact: true}).click();
+  await page.getByRole("option", {name: "Marin", exact: true}).click();
   await page.getByRole("button", {name: "Publish", exact: true}).click();
   await expect(page.getByText("Voice and instructions are required.")).toBeVisible();
   await expect(page.getByRole("textbox", {name: "Agent type"})).toHaveValue("Basic voice");
@@ -156,19 +162,36 @@ for (const expired of [false, true]) test(`a create with an unknown result block
     localStorage.setItem("nethvoice.agents.language", "en");
   });
   let creates = 0;
+  let release!: () => void;
+  const held = new Promise<void>(resolve => { release = resolve; });
   await page.route("**/freepbx/rest/agents/**", async route => {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace("/freepbx/rest/agents", "");
     if (path === "/profiles" && request.method() === "POST") {
       creates++;
-      await route.abort("connectionreset");
+      if (expired) {
+        await held;
+        await route.fulfill({json: {agent_id: "possibly_created", revision: 1, ...request.postDataJSON().profile}});
+      } else {
+        await route.abort("connectionreset");
+      }
       return;
     }
     await route.fulfill({json: path === "/access" ? {csrf: "synthetic-csrf"} : path === "/catalog" ? {tools, draft_defaults: draft(), extensions: [], default_language: "en", languages: [{id: "en", label: "English"}]} : path === "/trunks" ? {items: [trunk]} : path === "/destinations" ? {items: [], next_offset: null, modules: {}, unavailable_ids: []} : {items: []}});
   });
   await page.goto("./#/agents/new");
   await page.getByLabel("Name", {exact: true}).fill("Night desk");
+  const sent = page.waitForRequest(request => request.method() === "POST");
   await page.getByRole("button", {name: "Save draft", exact: true}).click();
+  await sent;
+  if (expired) {
+    await page.evaluate(() => {
+      localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "renewed"}));
+      window.dispatchEvent(new StorageEvent("storage", {key: "secretkey"}));
+    });
+    release();
+    await expect(page.getByLabel("Name", {exact: true})).toHaveValue("Night desk");
+  }
   await expect(page.getByText(/The connection ended before the result was received/)).toBeVisible();
   await expect(page.getByRole("button", {name: "Save draft", exact: true})).toBeDisabled();
   await expect(page.getByRole("button", {name: "Publish", exact: true})).toBeDisabled();

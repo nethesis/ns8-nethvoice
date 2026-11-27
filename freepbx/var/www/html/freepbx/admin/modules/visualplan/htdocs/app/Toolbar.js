@@ -281,7 +281,7 @@ example.Toolbar = Class.extend({
 						};
 						var detail = languages[browserLang][reasons[code] || 'agent_error_' + code] || languages[browserLang]["toolbar_not_save_log_string"];
 						$('#errorer').children().eq(0).html("&nbsp;&nbsp;" + languages[browserLang]["toolbar_not_save_string"]);
-						$('#errorer').children().eq(1).text(detail);
+						$('#errorer').children().eq(1).text("  " + detail);
 						$('#errorer').fadeIn("slow");
 						setTimeout(function () {
 							$('#errorer').fadeOut("slow");

@@ -216,32 +216,6 @@ const en = {
   saveExternal: "Save",
   cleverAiAgentHelp:
     "CleverAI manages conversations, tools and monitoring. Save requests the PBX reload and makes this destination available when ready. Configure fallback in VisualPlan. Transfers back to NethVoice are not supported yet.",
-  recentCallbacksHelp:
-    "Recent contacts require Transfer and Recent contacts to be enabled. Include people who called the caller and people they spoke with when they called in, within the configured lookback. Verified history can authorize a transfer even when direct transfer to that extension is off. The caller confirms or chooses a contact. Save and publish to activate draft changes.",
-  routingPolicyHelp:
-    "Enable a category, then choose its permitted destinations. Enabled extensions and queues can have an additional description for routing by purpose. Discovery is automatic.",
-  searchDestinations: "Search destinations by name, number or purpose",
-  destinationModuleUnavailable: "This PBX module is unavailable",
-  additionalDescription: "Additional description (optional)",
-  noMatchingDestinations: "No matching destinations",
-  destinationSearch: {
-    extensions: "Search extensions by name, number or purpose",
-    queues: "Search queues by name, number or purpose",
-  },
-  toolSettings: {
-    recent_callers_enabled: "Recent contacts",
-    recent_caller_lookback_days: "Recent-call lookback (days)",
-    recent_caller_denylist: "Eligible contact extensions",
-    max_results: "Maximum search results",
-    extensions_enabled: "Direct extensions",
-    extension_allowlist: "Approved extensions",
-    queues_enabled: "Queues",
-    queue_allowlist: "Queues",
-    descriptions: "Routing descriptions",
-    playback_timeout_seconds: "Maximum goodbye playback (seconds)",
-  },
-  toolConfigHelp:
-    "Settings apply only to this agent. Disabled tools keep their settings but cannot be used.",
   agents: "Agents",
   tools: "Tools",
   activity: "Monitoring",
@@ -335,16 +309,9 @@ const en = {
   unsavedHint: "Unsaved changes",
   expand: "Expand",
   destinationPicker: {
-    extension_allowlist: "Allowed extensions",
-    queue_allowlist: "Permitted queues",
     recent_caller_denylist: "Excluded callback extensions",
   },
   destinationScope: {
-    queue_allowlist: {
-      label: "Reachable queues",
-      all: "All queues",
-      except: "All queues except the selected ones",
-    },
     recent_caller_denylist: {
       label: "Extensions that can be called back",
       all: "All extensions",
@@ -352,11 +319,6 @@ const en = {
     },
   },
   destinationPickerPlaceholder: "Search by name, number or purpose",
-  destinationPickerLimited: "Refine the search to see more results",
-  categoryHelp: {
-    extensions_enabled: "Transfer callers to the extensions you allow.",
-    queues_enabled: "Transfer callers to the selected queues.",
-  },
   status: {
     published: "Published",
     ready: "Ready",
@@ -383,7 +345,6 @@ const en = {
     enabled: "Enabled",
     pending: "Pending",
     synced: "Synchronized",
-    sync_failed: "Synchronization failed",
     error: "Synchronization failed",
     transferred: "Transferred",
     ended_by_agent: "Ended by agent",
@@ -565,7 +526,6 @@ const en = {
   },
   sync: {
     pending: "Synchronization pending",
-    sync_failed: "Synchronization failed",
     error: "Synchronization failed",
     synced: "Synchronized",
   },
@@ -649,7 +609,6 @@ const en = {
     custom: "Custom dates",
     from: "From",
     to: "Through",
-    all: "All",
     unknown: "Unavailable",
     adapter: "Adapter",
     liveSip: "GPT-Live (SIP history)",
@@ -1082,32 +1041,6 @@ const it: typeof en = {
   saveExternal: "Salva",
   cleverAiAgentHelp:
     "CleverAI gestisce conversazioni, strumenti e monitoraggio. Salva richiede il reload del PBX e rende disponibile la destinazione quando pronta. Configurare la destinazione alternativa in VisualPlan. I trasferimenti verso NethVoice non sono ancora supportati.",
-  recentCallbacksHelp:
-    "I contatti recenti richiedono Trasferimento e Contatti recenti abilitati. Includono chi ha chiamato il chiamante e le persone con cui ha parlato chiamando lui, entro il periodo configurato. Lo storico verificato può autorizzare il trasferimento anche se quello diretto all'interno è disabilitato. Il chiamante conferma o sceglie un contatto. Salva e pubblica per attivare le modifiche.",
-  routingPolicyHelp:
-    "Abilita una categoria e scegli le destinazioni consentite. Per gli interni e le code abilitati puoi aggiungere una descrizione utile all’instradamento. La ricerca è automatica.",
-  searchDestinations: "Cerca destinazioni per nome, numero o funzione",
-  destinationModuleUnavailable: "Modulo PBX non disponibile",
-  additionalDescription: "Descrizione aggiuntiva (opzionale)",
-  noMatchingDestinations: "Nessuna destinazione corrispondente",
-  destinationSearch: {
-    extensions: "Cerca interni per nome, numero o funzione",
-    queues: "Cerca code per nome, numero o funzione",
-  },
-  toolSettings: {
-    recent_callers_enabled: "Contatti recenti",
-    recent_caller_lookback_days: "Periodo di ricerca (giorni)",
-    recent_caller_denylist: "Interni abilitati ai contatti recenti",
-    max_results: "Numero massimo di risultati",
-    extensions_enabled: "Interni diretti",
-    extension_allowlist: "Interni autorizzati",
-    queues_enabled: "Code",
-    queue_allowlist: "Code",
-    descriptions: "Descrizioni di instradamento",
-    playback_timeout_seconds: "Attesa massima per il saluto finale (secondi)",
-  },
-  toolConfigHelp:
-    "Le impostazioni valgono solo per questo agente. Gli strumenti disabilitati conservano le impostazioni ma non possono essere usati.",
   agents: "Agenti",
   tools: "Strumenti",
   activity: "Monitoraggio",
@@ -1202,16 +1135,9 @@ const it: typeof en = {
   unsavedHint: "Modifiche non salvate",
   expand: "Espandi",
   destinationPicker: {
-    extension_allowlist: "Interni consentiti",
-    queue_allowlist: "Code consentite",
     recent_caller_denylist: "Interni esclusi dalle richiamate",
   },
   destinationScope: {
-    queue_allowlist: {
-      label: "Code raggiungibili",
-      all: "Tutte le code",
-      except: "Tutte le code tranne quelle selezionate",
-    },
     recent_caller_denylist: {
       label: "Interni richiamabili",
       all: "Tutti gli interni",
@@ -1219,11 +1145,6 @@ const it: typeof en = {
     },
   },
   destinationPickerPlaceholder: "Cerca per nome, numero o funzione",
-  destinationPickerLimited: "Affina la ricerca per vedere altri risultati",
-  categoryHelp: {
-    extensions_enabled: "Trasferisci le chiamate agli interni che consenti.",
-    queues_enabled: "Trasferisci le chiamate alle code selezionate.",
-  },
   status: {
     published: "Pubblicato",
     ready: "Pronto",
@@ -1244,7 +1165,6 @@ const it: typeof en = {
     queued: "In coda",
     processing: "In elaborazione",
     refresh_failed: "Aggiornamento fallito",
-    sync_failed: "Sincronizzazione non riuscita",
     indexed: "Indicizzato",
     needs_verification: "Da verificare",
     revoked: "Revocato",
@@ -1432,7 +1352,6 @@ const it: typeof en = {
   },
   sync: {
     pending: "Sincronizzazione in attesa",
-    sync_failed: "Sincronizzazione fallita",
     error: "Sincronizzazione non riuscita",
     synced: "Sincronizzato",
   },
@@ -1516,7 +1435,6 @@ const it: typeof en = {
     custom: "Date personalizzate",
     from: "Da",
     to: "Fino a",
-    all: "Tutti",
     unknown: "Non disponibile",
     adapter: "Adattatore",
     liveSip: "GPT-Live (storico SIP)",

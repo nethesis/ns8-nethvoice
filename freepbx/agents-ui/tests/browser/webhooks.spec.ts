@@ -129,7 +129,7 @@ test("trunk credentials and webhook action follow the real trunk state", async (
   ];
   await page.route("**/freepbx/rest/agents/**", async route => {
     const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
-    await route.fulfill({ json: path === "/access" ? { csrf: "synthetic-csrf" } : path === "/trunks" ? { items: trunks } : { items: [] } });
+    await route.fulfill({ json: path === "/access" ? { csrf: "synthetic-csrf" } : path === "/catalog" ? { sip_lab_enabled: true } : path === "/trunks" ? { items: trunks } : { items: [] } });
   });
   await page.goto("./#/trunks");
   const row = (name: string) => page.getByRole("row").filter({ hasText: name });
