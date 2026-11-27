@@ -162,10 +162,11 @@ class Nethcti3 extends \FreePBX_Helpers implements \BMO
         try {
             include_once '/var/www/html/freepbx/rest/lib/libExtensions.php';
             $data = is_array($data) ? $data : array();
-            if (!userRemovalPrepared($id, isset($data['username']) ? trim((string) $data['username']) : '')) {
+            $prepared = userRemovalPrepared($id, isset($data['username']) ? trim((string) $data['username']) : '');
+            if (!$prepared && !hasMainExtension($data)) {
                 return true;
             }
-            orphanUserExtensions($id, $data);
+            orphanUserExtensions($id, $data, $prepared);
             $this->scheduleReload();
             return true;
         } catch (\Throwable $e) {

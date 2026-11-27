@@ -724,7 +724,7 @@ function setUserPortalCurlDefaults($ch, $headers) {}
 function generateRandomPassword() { return "Generated-42!"; }
 function triggerMiddlewareProfilesReload() {}
 function userExists($username, $token) { $GLOBALS["events"][] = ["userExists", $username]; return in_array($username, explode(",", (string) getenv("QA_EXISTING")), true); }
-function usersAdminSynchronize() { $GLOBALS["events"][] = ["sync"]; return getenv("QA_SYNC_FAILS") !== "1"; }
+function usersAdminSynchronize() { $GLOBALS["events"][] = ["sync"]; if (getenv("QA_SYNC_FAILS") === "kill") { exit(9); } return getenv("QA_SYNC_FAILS") !== "1"; }
 function usersAdminDefaultClient() { return "client"; }
 function usersAdminTargetError($username, $caller, $selfAllowed) { return $username === "admin" ? [403, ["code" => "protected_account"]] : null; }
 function usersAdminProtectedTargetError($client, $username, $caller) { $GLOBALS["events"][] = ["protected", $username, $caller]; return in_array($username, explode(",", (string) getenv("QA_PROTECTED")), true) ? [403, ["code" => "domain_admin"]] : null; }
@@ -734,12 +734,41 @@ function getUserID($username) { $GLOBALS["events"][] = ["getUserID", $username];
 function createMainExtensionForUser($username, $extension) { $GLOBALS["events"][] = ["createMainExtensionForUser", $username, $extension]; return true; }
 function fake_curl_init($url) { return ["url" => $url]; }
 function fake_curl_setopt(&$ch, $option, $value) { $ch["body"] = json_decode($value, true); }
-function fake_curl_exec($ch) { $GLOBALS["events"][] = ["post", basename($ch["url"]), $ch["body"]]; return json_encode(["status" => "success"]); }
+function fake_curl_exec($ch) {
+    $GLOBALS["events"][] = ["post", basename($ch["url"]), $ch["body"]];
+    if (in_array($ch["body"]["user"] ?? "", explode(",", (string) getenv("QA_ADD_WEAK")), true)) { return json_encode(["status" => "failure", "message" => "error_password_complexity"]); }
+    if (in_array($ch["body"]["user"] ?? "", explode(",", (string) getenv("QA_ADD_FAILS")), true)) { return json_encode(["status" => "failure", "error" => [["error" => "unexpected"]]]); }
+    return json_encode(["status" => "success"]);
+}
+function usersAdminAssignmentError($username, $caller, $client = null) { return in_array($username, explode(",", (string) getenv("QA_NONMEMBERS")), true) ? [403, ["code" => "not_instance_user"]] : null; }
+function usersAdminAddMembers($client, $usernames) { $GLOBALS["events"][] = ["members", $usernames]; return getenv("QA_MEMBERS_FAIL") !== "1"; }
+function usersAdminPasswordPolicy($client) { return getenv("QA_POLICY") === "1" ? ["strength" => ["enforced" => true, "password_min_length" => 8, "complexity_check" => true]] : null; }
+function usersAdminRemoveCreatedAccount($client, $username) { $GLOBALS["events"][] = ["removeCreated", $username]; return getenv("QA_REMOVE_FAILS") === "1" ? false : true; }
+function usersAdminAccountError($client, $username) { return getenv("QA_LEFT") === "1" ? null : [404, ["code" => "user_not_found"]]; }
 function fake_curl_error($ch) { return ""; }
 function fake_curl_getinfo($ch, $info) { return 200; }
 function fake_curl_close($ch) {}
 class FakeImportStatement { public function execute($params) { $GLOBALS["events"][] = ["sql", $params]; return true; } }
-class FreePBX { public static function Database() { return new class { public function prepare($sql) { return new FakeImportStatement(); } public function query($sql) { return new class { public function fetchAll($mode = null) { return [["id" => 1, "name" => "Sales"]]; } }; } }; } }
+function qaPairs($name) { $pairs = []; foreach (array_filter(explode(",", (string) getenv($name))) as $pair) { [$key, $value] = array_pad(explode("=", $pair, 2), 2, ""); $pairs[$key] = $value; } return $pairs; }
+function getUserMainExtension($username) { return qaPairs("QA_MAIN")[$username] ?? null; }
+function getWebRTCExtension($main) { return qaPairs("QA_DEVICES")["webrtc"] ?? null; }
+function getWebRTCMobileExtension($main) { return qaPairs("QA_DEVICES")["webrtc_mobile"] ?? null; }
+function getNethLinkExtension($main) { return qaPairs("QA_DEVICES")["nethlink"] ?? null; }
+function getNethLinkMobileExtension($main) { return qaPairs("QA_DEVICES")["nethlink_mobile"] ?? null; }
+function createExtension($main, $delete) { $GLOBALS["events"][] = ["createExtension", $main]; return "95" . $main; }
+function useExtensionAsWebRTC($extension) { $GLOBALS["events"][] = ["webrtc", $extension]; return true; }
+function useExtensionAsNethLink($extension) { $GLOBALS["events"][] = ["nethlink", $extension]; return true; }
+function deleteExtension($extension) { $GLOBALS["events"][] = ["deleteExtension", $extension]; return true; }
+function setCTIUserProfile($uid, $profile) { $GLOBALS["events"][] = ["profile", $uid, $profile]; return true; }
+class FakeImportVoicemail {
+    public function getMailbox($extension) { return getenv("QA_MAILBOX") === "1" ? ["mailbox" => $extension] : false; }
+    public function processQuickCreate($tech, $extension, $data) { $GLOBALS["events"][] = ["voicemail", $extension]; }
+    public function delMailbox($extension) { $GLOBALS["events"][] = ["delMailbox", $extension]; }
+}
+class FreePBX {
+    public static function Database() { return new class { public function prepare($sql) { return new FakeImportStatement(); } public function query($sql) { return new class { public function fetchAll($mode = null) { return [["id" => 1, "name" => "Sales"]]; } }; } }; }
+    public static function create() { return new class { public $Voicemail; public function __construct() { $this->Voicemail = new FakeImportVoicemail(); } }; }
+}
 ');
 $import = function ($csv, $restricted = true, $rfc4180 = false) use ($importer, $importLog, $importStatus) {
     @unlink($importLog);
@@ -762,6 +791,7 @@ check($events === [
     ['userExists', 'alice'], ['post', 'add-user', ['user' => 'alice', 'display_name' => 'Alice Example', 'password' => 'Invented-Pass-1!', 'locked' => false, 'groups' => []]],
     ['userExists', 'bob'], ['post', 'add-user', ['user' => 'bob', 'display_name' => 'Zoë Müller-Ça', 'password' => 'p"a s#s&ö', 'locked' => false, 'groups' => []]],
     ['userExists', 'carol'], ['post', 'add-user', ['user' => 'carol', 'display_name' => 'Anna O\'Brien "R&D" #2 / 50%', 'password' => 'Generated-42!', 'locked' => false, 'groups' => []]],
+    ['members', ['alice', 'bob', 'carol']],
     ['sync'],
     ['getUserID', 'alice'], ['createMainExtensionForUser', 'alice', '201'],
     ['getUserID', 'bob'], ['createMainExtensionForUser', 'bob', '202'], ['sql', ['00393330000000', 'bob', '00393330000000']],
@@ -884,7 +914,53 @@ check($exitCode === 0 && $status['id'] === '0123456789abcdef' && is_int($status[
 check(!file_exists($payload), 'the CSV payload file was not removed');
 file_put_contents($payload, base64_encode(serializeRows([$validRows[0]])));
 [$exitCode, $status, $events] = $importWith(["--file=$payload", '--id=0123456789abcdef'], ['QA_SYNC_FAILS' => '1']);
-check($exitCode === 1 && $status['problems'] === [['code' => 'sync_failed']] && !in_array(['getUserID', 'alice'], $events, true), 'a failed user synchronization was not reported: ' . json_encode([$status, $events]));
+check($exitCode === 1 && $status['problems'] === [['code' => 'sync_failed'], ['code' => 'account_created', 'line' => 1, 'username' => 'alice']] && !in_array(['getUserID', 'alice'], $events, true), 'a failed user synchronization was not reported with the accounts it created: ' . json_encode([$status, $events]));
+file_put_contents($payload, base64_encode(serializeRows([$validRows[0], ['qa_old', 'Old Example', '210']])));
+[$exitCode, $status, $events] = $importWith(["--file=$payload", '--id=0123456789abcdef'], ['QA_SYNC_FAILS' => 'kill', 'QA_EXISTING' => 'qa_old']);
+check(!isset($status['exitcode']) && $status['created'] === [['line' => 1, 'username' => 'alice']], 'a CSV import stopped after creating accounts did not record them: ' . json_encode($status));
+check(csvImportStopped($status)['problems'] === [['code' => 'stopped'], ['code' => 'account_created', 'line' => 1, 'username' => 'alice']], 'a stopped CSV import did not report the accounts it created: ' . json_encode(csvImportStopped($status)));
+check(csvImportStopped(['id' => '0123456789abcdef', 'created' => [['line' => '1', 'username' => 'alice'], ['username' => ['x']], 'bad']])['problems'] === [['code' => 'stopped']], 'malformed created accounts were reported');
+
+$problemsOf = function (array $rows, array $environment, bool $restricted = true) use ($importWith) {
+    [$exitCode, $status, $events] = $importWith(array_merge([base64_encode(serializeRows($rows))], $restricted ? ['--caller=qa_helper', 'restricted'] : []), $environment);
+    return [$exitCode, $status['problems'] ?? [], $events];
+};
+foreach ([true, false] as $restricted) {
+    [$exitCode, $problems, $events] = $problemsOf([['qa_weak', 'Weak Example', '211', 'weakpass'], ['qa_ok', 'Ok Example', '212', 'Strong-Pass-1']], ['QA_POLICY' => '1'], $restricted);
+    $posted = array_column(array_filter($events, fn($event) => $event[0] === 'post'), 2);
+    check($exitCode === 1 && $problems === [['code' => 'weak_password', 'line' => 1, 'username' => 'qa_weak']] && array_column($posted, 'user') === ['qa_ok'], 'a password against the domain policy reached the user domain: ' . json_encode([$problems, $events]));
+}
+[$exitCode, $problems, $events] = $problemsOf([['qa_weak', 'Weak Example', '211', 'weakpass']], []);
+check($exitCode === 0 && $problems === [], 'without a readable policy the user domain must decide: ' . json_encode($problems));
+[$exitCode, $problems, $events] = $problemsOf([['qa_bad', 'Bad Example', '213', 'Rejected-Pass-1']], ['QA_ADD_WEAK' => 'qa_bad']);
+check($exitCode === 1 && $problems === [['code' => 'weak_password', 'line' => 1, 'username' => 'qa_bad']] && in_array(['removeCreated', 'qa_bad'], $events, true) && !in_array(['getUserID', 'qa_bad'], $events, true), 'an account refused for its password was left in the user domain: ' . json_encode([$problems, $events]));
+[$exitCode, $problems] = $problemsOf([['qa_bad', 'Bad Example', '213', 'Rejected-Pass-1']], ['QA_ADD_WEAK' => 'qa_bad', 'QA_REMOVE_FAILS' => '1']);
+check($problems === [['code' => 'account_created', 'line' => 1, 'username' => 'qa_bad'], ['code' => 'weak_password', 'line' => 1, 'username' => 'qa_bad']], 'an account that could not be removed was not reported: ' . json_encode($problems));
+[$exitCode, $problems, $events] = $problemsOf([['qa_gen', 'Gen Example', '214']], ['QA_ADD_FAILS' => 'qa_gen', 'QA_LEFT' => '1']);
+check($problems === [['code' => 'account_created', 'line' => 1, 'username' => 'qa_gen'], ['code' => 'create_failed', 'line' => 1, 'username' => 'qa_gen']] && !in_array(['removeCreated', 'qa_gen'], $events, true), 'an account left by a failed creation was removed or not reported: ' . json_encode([$problems, $events]));
+[$exitCode, $problems, $events] = $problemsOf([['qa_out', 'Out Example', '215'], ['qa_in', 'In Example', '216']], ['QA_EXISTING' => 'qa_out,qa_in', 'QA_NONMEMBERS' => 'qa_out']);
+check($exitCode === 1 && $problems === [['code' => 'not_instance_user', 'line' => 1, 'username' => 'qa_out']] && !in_array(['getUserID', 'qa_out'], $events, true) && in_array(['getUserID', 'qa_in'], $events, true), 'a limited administrator imported a user who is not a member: ' . json_encode([$problems, $events]));
+[$exitCode, $problems, $events] = $problemsOf([['qa_out', 'Out Example', '215'], ['qa_none', 'None Example', '']], ['QA_EXISTING' => 'qa_out,qa_none', 'QA_NONMEMBERS' => 'qa_out'], false);
+check($exitCode === 0 && in_array(['members', ['qa_out']], $events, true), 'the superadmin import did not make the users with an extension members: ' . json_encode([$problems, $events]));
+[$exitCode, $problems, $events] = $problemsOf([['qa_new', 'New Example', '217']], ['QA_MEMBERS_FAIL' => '1']);
+check($exitCode === 1 && $problems === [['code' => 'membership_failed']] && in_array(['getUserID', 'qa_new'], $events, true), 'a new account left out of the members was not reported: ' . json_encode([$problems, $events]));
+[$exitCode, $problems] = $problemsOf([['qa_old', 'Old Example', '218']], ['QA_EXISTING' => 'qa_old', 'QA_MEMBERS_FAIL' => '1'], false);
+check($exitCode === 0 && $problems === [], 'the superadmin import of existing users failed for the members group: ' . json_encode($problems));
+check(csvImportWeakPassword('Abcdef1!', ['strength' => ['enforced' => true, 'password_min_length' => 8, 'complexity_check' => true]]) === false && csvImportWeakPassword('abcdefg1', ['strength' => ['enforced' => true, 'password_min_length' => 8, 'complexity_check' => true]]) === true && csvImportWeakPassword('Abc1!', ['strength' => ['enforced' => true, 'password_min_length' => 8, 'complexity_check' => false]]) === true && csvImportWeakPassword('abc', ['strength' => ['enforced' => false, 'password_min_length' => 8]]) === false && csvImportWeakPassword('abc', null) === false, 'the password policy is not applied as the user domain does');
+check(csvImportAddUserProblem('{"status":"failure","message":"error_password_history"}') === 'weak_password' && csvImportAddUserProblem('{"status":"failure","error":[{"field":"password","error":"x"}]}') === 'weak_password' && csvImportAddUserProblem('{"status":"failure","error":[{"field":"password"},{"error":"user_already_exists"}]}') === 'create_failed' && csvImportAddUserProblem(false) === 'create_failed' && csvImportAddUserProblem('<html>') === 'create_failed', 'the add-user failures are not classified');
+
+$deviceEvents = fn($events) => array_values(array_filter($events, fn($event) => in_array($event[0], ['createMainExtensionForUser', 'createExtension', 'webrtc', 'nethlink', 'deleteExtension', 'voicemail', 'delMailbox'], true)));
+foreach ([true, false] as $restricted) {
+    $arguments = array_merge([base64_encode(serializeRows([['alice', 'Alice Example', '201', '', '', 'TRUE', 'TRUE', '', '', 'TRUE']]))], $restricted ? ['--caller=qa_helper', 'restricted'] : []);
+    [$exitCode, $status, $events] = $importWith($arguments, ['QA_EXISTING' => 'alice', 'QA_MAIN' => 'alice=201', 'QA_DEVICES' => 'webrtc=92201,nethlink=93201', 'QA_MAILBOX' => '1']);
+    check($exitCode === 0 && $deviceEvents($events) === [], 'importing an existing user with the same extension changed the extension, its devices or its voicemail: ' . json_encode([$status, $events]));
+    $arguments[0] = base64_encode(serializeRows([['alice', 'Alice Example', '201', '', '', 'TRUE', 'FALSE', '', '', 'TRUE']]));
+    [$exitCode, $status, $events] = $importWith($arguments, ['QA_EXISTING' => 'alice', 'QA_MAIN' => 'alice=201', 'QA_DEVICES' => 'webrtc=92201,webrtc_mobile=94201', 'QA_MAILBOX' => '0']);
+    check($exitCode === 0 && $deviceEvents($events) === [['voicemail', '201'], ['deleteExtension', '92201'], ['deleteExtension', '94201'], ['createExtension', '201'], ['nethlink', '95201']], 'importing an existing user with the same extension did not change only the devices whose flag changed: ' . json_encode([$status, $events]));
+    $arguments[0] = base64_encode(serializeRows([['alice', 'Alice Example', '205', '', '', 'TRUE', 'TRUE']]));
+    [$exitCode, $status, $events] = $importWith($arguments, ['QA_EXISTING' => 'alice', 'QA_MAIN' => 'alice=201', 'QA_MAILBOX' => '1']);
+    check($exitCode === 0 && $deviceEvents($events) === [['createMainExtensionForUser', 'alice', '205'], ['voicemail', '205'], ['createExtension', '205'], ['webrtc', '95205']], 'importing an existing user with a new extension did not recreate it: ' . json_encode([$status, $events]));
+}
 $protectedRows = serializeRows([['qa_boss', 'Boss Example', '205'], ['qa_plain', 'Plain Example', '206'], ['admin', 'Admin', '207'], ['qa_new', 'New Example', '208']]);
 foreach ([true, false] as $restricted) {
     file_put_contents($payload, base64_encode($protectedRows));
@@ -910,6 +986,25 @@ foreach ([true, false] as $restricted) {
 }
 [$exitCode, $status] = $import("\"bad\",\"\"\r\n");
 check($exitCode === 1 && $status['problems'] === [['code' => 'missing_name', 'line' => 1]] && !isset($status['id']), 'a legacy CSV import did not report the row: ' . json_encode($status));
+$caller = ['superadmin'];
+resetFakes();
+FreePBX::$instance->Userman = new class {
+    public function getAllUsers() { return [['id' => '7', 'username' => 'alice', 'displayname' => 'Alice Example', 'default_extension' => '201'], ['id' => '8', 'username' => 'bob', 'displayname' => 'Bob Example', 'default_extension' => '202']]; }
+};
+FreePBX::$db = new class extends RecordingDatabase {
+    public function sql($sql, $type = 'query', $mode = null) {
+        $this->log[] = ['sql', $sql, null];
+        return str_contains($sql, 'rest_users.mobile') ? [['mobile' => '00393330000000', 'username' => 'alice', 'id' => 7]] : [];
+    }
+};
+FreePBX::$db->rows = fn($sql, $params) => [];
+[$status, $body] = call($app, 'GET', '/csv/csvexport');
+$exported = base64_decode((string) json_decode($body, true));
+check($status === 200 && $exported === "alice,\"Alice Example\",201,,00393330000000,FALSE,FALSE,,\r\nbob,\"Bob Example\",202,,,FALSE,FALSE,,\r\n", 'the CSV export did not include the mobile of its user: ' . json_encode([$status, $exported]));
+resetFakes();
+[$exitCode, $status, $events] = $importWith([base64_encode($exported)], ['QA_EXISTING' => 'alice,bob', 'QA_MAIN' => 'alice=201,bob=202']);
+check($exitCode === 0 && in_array(['sql', ['00393330000000', 'alice', '00393330000000']], $events, true) && in_array(['sql', [null, 'bob', null]], $events, true), 'an exported mobile did not import back unchanged: ' . json_encode([$status, $events]));
+
 $caller = ['users', 'trunks', 'routes', 'phones', 'integrations', 'settings'];
 
 echo "PASS: invalid extensions, MACs, ring times, template names, CTI profile names and control characters in bulk, trunk, route, language, display name and gateway values never reach SQL, AMI or FreePBX; valid values reach them unchanged\n";

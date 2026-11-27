@@ -42,9 +42,30 @@ if (file_exists('/var/www/html/freepbx/rest/lib/libMigration.php')) {
 $err = '';
 $problems = array();
 $progress = 0;
+$created = array();
 
 function csvImportProblem($code, array $details = array()) {
     $GLOBALS['problems'][] = array('code' => $code) + $details;
+}
+
+function csvImportAddUserFailed($k, $username, $message, $response) {
+    $GLOBALS['result'] += 1;
+    $GLOBALS['err'] .= "Error creating user ".$username.": ".$message."\n";
+    $GLOBALS['usersAdmin'] = $GLOBALS['usersAdmin'] ?? usersAdminDefaultClient();
+    $code = csvImportAddUserProblem($response);
+    $left = $code === 'weak_password' ? usersAdminRemoveCreatedAccount($GLOBALS['usersAdmin'], $username) === false : usersAdminAccountError($GLOBALS['usersAdmin'], $username) === null;
+    if ($left) {
+        csvImportProblem('account_created', array('line' => $k + 1, 'username' => $username));
+    }
+    csvImportProblem($code, array('line' => $k + 1, 'username' => $username));
+}
+
+function csvImportCreated() {
+    $accounts = array();
+    foreach ($GLOBALS['created'] as $username => $line) {
+        $accounts[] = array('line' => $line, 'username' => (string) $username);
+    }
+    return $accounts === array() ? array() : array('created' => $accounts);
 }
 
 function csvImportGroupIssue($name) {
@@ -84,13 +105,14 @@ try {
     if ($numusers === 0) {
         throw new InvalidArgumentException('CSV input has no rows');
     }
+    $passwordPolicy = false;
     $step = 100/$numusers/2; //use /2 because we use 2 for cicle
     $progress = -$step; //start with negative progress because
     $token = getToken();
 
     foreach ($csv as $k => $row) {
         $progress += $step;
-        csvImportWriteStatus($statusfile, $statusBase + array('progress'=>round($progress)));
+        csvImportWriteStatus($statusfile, $statusBase + array('progress'=>round($progress)) + csvImportCreated());
         # Skip comments
         if (isset($row[0]) && substr($row[0],0,1) === '#') {
             unset($csv[$k]);
@@ -141,6 +163,13 @@ try {
                 unset($csv[$k]);
                 continue;
             }
+            if (usersAdminAssignmentError($row[0], $caller, $usersAdmin) !== null) {
+                $result += 1;
+                $err .= "Error importing user ".$row[0].": the user is not a member of this NethVoice\n";
+                csvImportProblem('not_instance_user', array('line' => $k + 1, 'username' => $row[0]));
+                unset($csv[$k]);
+                continue;
+            }
         }
 
         # create user
@@ -152,6 +181,18 @@ try {
             # Set password
             if ( ! isset($row[3]) || empty($row[3]) ){
                 $row[3] = generateRandomPassword();
+            } else {
+                if ($passwordPolicy === false) {
+                    $usersAdmin = $usersAdmin ?? usersAdminDefaultClient();
+                    $passwordPolicy = usersAdminPasswordPolicy($usersAdmin);
+                }
+                if (csvImportWeakPassword($row[3], $passwordPolicy)) {
+                    $result += 1;
+                    $err .= "Error creating user ".$row[0].": the password does not meet the rules of the user domain\n";
+                    csvImportProblem('weak_password', array('line' => $k + 1, 'username' => $row[0]));
+                    unset($csv[$k]);
+                    continue;
+                }
             }
 
             $post = [
@@ -175,33 +216,45 @@ try {
             curl_close($ch);
 
             if ($response === false || $httpCode < 200 || $httpCode >= 300) {
-                $result += 1;
-                $message = $curlError !== '' ? $curlError : 'HTTP '.$httpCode;
-                $err .= "Error creating user ".$row[0].": ".$message."\n";
-                csvImportProblem('create_failed', array('line' => $k + 1, 'username' => $row[0]));
+                csvImportAddUserFailed($k, $row[0], $curlError !== '' ? $curlError : 'HTTP '.$httpCode, $response);
                 unset($csv[$k]);
                 continue;
             }
 
             $resJSON = json_decode($response);
             if (!is_object($resJSON)) {
-                $result += 1;
-                $err .= "Error creating user ".$row[0].": invalid user portal response\n";
-                csvImportProblem('create_failed', array('line' => $k + 1, 'username' => $row[0]));
+                csvImportAddUserFailed($k, $row[0], 'invalid user portal response', $response);
                 unset($csv[$k]);
                 continue;
             }
             if (($resJSON->status ?? 'failure') != "success") {
-                $result += 1;
-                $message = $resJSON->error[0]->error ?? 'unknown user portal error';
-                $err .= "Error creating user ".$row[0].": ".$message."\n";
-                csvImportProblem('create_failed', array('line' => $k + 1, 'username' => $row[0]));
+                csvImportAddUserFailed($k, $row[0], $resJSON->error[0]->error ?? 'unknown user portal error', $response);
                 unset($csv[$k]);
                 continue;
             }
+            $created[$row[0]] = $k + 1;
         }
         $csv[$k] = $row;
     }
+
+    $members = array_keys($created);
+    foreach ($restricted ? array() : $csv as $row) {
+        if (isset($row[2]) && preg_match('/^[0-9]+$/', $row[2])) {
+            $members[] = $row[0];
+        }
+    }
+    if ($members !== array()) {
+        $usersAdmin = $usersAdmin ?? usersAdminDefaultClient();
+        if (!usersAdminAddMembers($usersAdmin, array_values(array_unique($members)))) {
+            error_log('Cannot add the imported users to the members of this NethVoice');
+            if ($created !== array()) {
+                $result += 1;
+                $err .= "Error adding the imported users to the members of this NethVoice\n";
+                csvImportProblem('membership_failed');
+            }
+        }
+    }
+    csvImportWriteStatus($statusfile, $statusBase + array('progress'=>round($progress)) + csvImportCreated());
 
     # sync users
     if (!usersAdminSynchronize()) {
@@ -212,7 +265,7 @@ try {
     foreach ($csv as $k => $row) {
         $progress += $step;
         if (round($progress)>99) $progress = 99;
-        csvImportWriteStatus($statusfile, $statusBase + array('progress'=>round($progress)));
+        csvImportWriteStatus($statusfile, $statusBase + array('progress'=>round($progress)) + csvImportCreated());
 
         $user_id = getUserID($row[0]);
         $username = $row[0];
@@ -222,11 +275,14 @@ try {
             $result += 1;
             $err .= "Error retrieving user ID for ".$username."\n";
             csvImportProblem('user_not_found', array('line' => $k + 1, 'username' => $username));
+            unset($created[$username]);
             continue;
         }
 
+        $keepExtension = $hasExtension && getUserMainExtension($username) === (string) $mainextension;
+
         # create extension
-        if ($hasExtension) {
+        if ($hasExtension && !$keepExtension) {
             $create = createMainExtensionForUser($username,$mainextension);
             if ($create !== true) {
                 $result += 1;
@@ -281,12 +337,14 @@ try {
                     if (!$hasExtension) {
                         throw new Exception('A numeric extension is required');
                     }
-                    $data = array();
-                    $data['name'] = $row[1];
-                    $data['vmpwd'] = rand(0, 9).rand(0, 9).rand(0, 9).rand(0, 9);
-                    $data['email'] = '';
-                    $data['vm'] = 'yes';
-                    FreePBX::create()->Voicemail->processQuickCreate('pjsip', $mainextension, $data);
+                    if (!$keepExtension || !is_array(FreePBX::create()->Voicemail->getMailbox($mainextension))) {
+                        $data = array();
+                        $data['name'] = $row[1];
+                        $data['vmpwd'] = rand(0, 9).rand(0, 9).rand(0, 9).rand(0, 9);
+                        $data['email'] = '';
+                        $data['vm'] = 'yes';
+                        FreePBX::create()->Voicemail->processQuickCreate('pjsip', $mainextension, $data);
+                    }
                 } elseif ($hasExtension) {
                     FreePBX::create()->Voicemail->delMailbox($mainextension);
                 }
@@ -308,13 +366,15 @@ try {
                         throw new Exception('A numeric extension is required');
                     }
                     # enable WebRTC
-                    $extension = createExtension($mainextension,false);
-                    if ($extension === false ) {
-                        throw new Exception('Error creating extension');
-                    }
+                    if (empty(getWebRTCExtension($mainextension))) {
+                        $extension = createExtension($mainextension,false);
+                        if ($extension === false ) {
+                            throw new Exception('Error creating extension');
+                        }
 
-                    if (useExtensionAsWebRTC($extension) === false) {
-                        throw new Exception('Error associating webrtc extension');
+                        if (useExtensionAsWebRTC($extension) === false) {
+                            throw new Exception('Error associating webrtc extension');
+                        }
                     }
 
                 } elseif ($hasExtension) {
@@ -400,13 +460,15 @@ try {
                         throw new Exception('A numeric extension is required');
                     }
                     # enable NethLink
-                    $extension = createExtension($mainextension,false);
-                    if ($extension === false ) {
-                        throw new Exception('Error creating extension');
-                    }
+                    if (empty(getNethLinkExtension($mainextension))) {
+                        $extension = createExtension($mainextension,false);
+                        if ($extension === false ) {
+                            throw new Exception('Error creating extension');
+                        }
 
-                    if (useExtensionAsNethLink($extension) === false) {
-                        throw new Exception('Error associating nethlink extension');
+                        if (useExtensionAsNethLink($extension) === false) {
+                            throw new Exception('Error associating nethlink extension');
+                        }
                     }
 
                 } elseif ($hasExtension) {
@@ -428,6 +490,7 @@ try {
             $err .= $error;
             csvImportProblem('nethlink_failed', array('line' => $k + 1, 'username' => $username));
         }
+        unset($created[$username]);
     }
 
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
@@ -444,6 +507,9 @@ try {
     }
     if ($problems === array()) {
         csvImportProblem($e instanceof InvalidArgumentException ? 'invalid_input' : 'import_failed');
+    }
+    foreach (csvImportCreated()['created'] ?? array() as $account) {
+        csvImportProblem('account_created', $account);
     }
     csvImportWriteStatus($statusfile, $statusBase + array('exitcode'=>1,'errors'=>$err,'progress'=>-1,'problems'=>$problems));
     exit (1);

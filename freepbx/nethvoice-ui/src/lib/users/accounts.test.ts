@@ -62,6 +62,7 @@ describe('parseUserAccounts', () => {
         locked: true,
         domainAdmin: false,
         adminAccess: null,
+        member: null,
       },
       {
         username: 'c.davis',
@@ -70,6 +71,7 @@ describe('parseUserAccounts', () => {
         locked: null,
         domainAdmin: null,
         adminAccess: null,
+        member: null,
       },
     ])
   })
@@ -84,6 +86,17 @@ describe('parseUserAccounts', () => {
     ]).map((account) => account.adminAccess)
 
     expect(accesses).toEqual(['superadmin', 'sections', 'other_instance', null, null])
+  })
+
+  it('reads whether the account is a member of this instance', () => {
+    expect(
+      parseUserAccounts([
+        { username: 'a.miller', member: true },
+        { username: 'b.smith', member: false },
+        { username: 'c.davis', member: null },
+        { username: 'd.jones' },
+      ]).map((account) => account.member),
+    ).toEqual([true, false, null, null])
   })
 
   it('rejects accounts without username', () => {
@@ -163,6 +176,7 @@ describe('getAccountRestriction', () => {
     locked: false,
     domainAdmin: true,
     adminAccess: 'superadmin' as const,
+    member: true,
   }
 
   it('protects the own account from everyone', () => {
@@ -251,6 +265,31 @@ describe('getAccountRestriction for users of other applications', () => {
         mainExtension: '',
       }),
     ).toBe('own_account')
+  })
+
+  it('uses the members of this instance when the user domain tells them', () => {
+    const account = {
+      username: 'c.davis',
+      displayName: 'Carl Davis',
+      mail: '',
+      locked: false,
+      domainAdmin: false,
+      adminAccess: null,
+    }
+    const restriction = (member: boolean | null, mainExtension: string, isSuperadmin = false) =>
+      getAccountRestriction({
+        ...base,
+        isSuperadmin,
+        accountsLoaded: true,
+        account: { ...account, member },
+        mainExtension,
+      })
+
+    expect(restriction(false, '201')).toBe('not_instance_user')
+    expect(restriction(true, '')).toBeNull()
+    expect(restriction(null, '')).toBe('not_instance_user')
+    expect(restriction(null, '201')).toBeNull()
+    expect(restriction(false, '201', true)).toBeNull()
   })
 })
 

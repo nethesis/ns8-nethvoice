@@ -11,6 +11,7 @@ import {
   USERNAME_REGEX,
 } from '@/lib/users/csv'
 import { isValidExtension } from '@/lib/users/extensions'
+import { isValidPassword } from '@/lib/users/password'
 import {
   applyUserSettingsSteps,
   planUserSettingsUpdate,
@@ -24,20 +25,12 @@ import {
   type User,
 } from '@/lib/users/users'
 
-export const PASSWORD_MIN_LENGTH = 8
-
-export type PasswordRuleKey = 'min_length' | 'uppercase' | 'lowercase' | 'number' | 'special'
-
-export const PASSWORD_RULES: { key: PasswordRuleKey; validate: (password: string) => boolean }[] = [
-  { key: 'min_length', validate: (password) => password.length >= PASSWORD_MIN_LENGTH },
-  { key: 'uppercase', validate: (password) => /[A-Z]/.test(password) },
-  { key: 'lowercase', validate: (password) => /[a-z]/.test(password) },
-  { key: 'number', validate: (password) => /[0-9]/.test(password) },
-  { key: 'special', validate: (password) => /[^A-Za-z0-9\s]/.test(password) },
-]
-
-export const isValidPassword = (password: string): boolean =>
-  PASSWORD_RULES.every((rule) => rule.validate(password))
+export {
+  isValidPassword,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_RULES,
+  type PasswordRuleKey,
+} from '@/lib/users/password'
 
 const MOBILE_NUMBER_REGEX = /^\+?[0-9 ().-]*$/
 

@@ -152,6 +152,16 @@ describe('getExtensionErrorKind', () => {
   it('maps the status codes of POST /mainextensions', () => {
     expect(getExtensionErrorKind(apiError(422))).toBe('in_use')
     expect(getExtensionErrorKind(apiError(403))).toBe('users_limit')
+    expect(
+      getExtensionErrorKind(
+        new ApiError({
+          status: 403,
+          method: 'POST',
+          url: '/freepbx/rest/mainextensions',
+          body: { code: 'not_instance_user', message: 'Not a member' },
+        }),
+      ),
+    ).toBe('not_instance_user')
     expect(getExtensionErrorKind(apiError(404))).toBe('user_not_found')
     expect(getExtensionErrorKind(apiError(500))).toBe('unknown')
     expect(getExtensionErrorKind(new Error('offline'))).toBe('unknown')

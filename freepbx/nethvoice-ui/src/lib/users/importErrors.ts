@@ -24,6 +24,10 @@ export const KNOWN_IMPORT_PROBLEMS = [
   'nethlink_failed',
   'invalid_input',
   'stopped',
+  'weak_password',
+  'not_instance_user',
+  'membership_failed',
+  'account_created',
 ] as const
 
 type Translate = (key: string, values?: Record<string, unknown>) => string

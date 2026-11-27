@@ -57,6 +57,7 @@ const account = (username: string, overrides: Partial<UserAccount> = {}): UserAc
   locked: false,
   domainAdmin: false,
   adminAccess: null,
+  member: null,
   ...overrides,
 })
 

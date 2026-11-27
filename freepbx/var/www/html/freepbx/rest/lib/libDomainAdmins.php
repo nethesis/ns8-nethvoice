@@ -485,6 +485,9 @@ class DomainAdmins
                 $removed = usersAdminSucceeded($this->client->call('remove-user', ['user' => $username]));
                 return domainAdminsError(502, $removed ? 'provider_error' : 'account_created');
             }
+            if (!usersAdminAddMembers($this->client, [$username])) {
+                error_log('domain-admins: cannot add ' . $username . ' to the members of this NethVoice');
+            }
             $own = array_values(array_intersect_key($this->groupNames(), array_flip($permissions)));
             return [201, $this->entry($username, $account['display_name'], 'domain', $permissions, $own, false, true, true, null)];
         });

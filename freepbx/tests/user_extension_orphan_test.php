@@ -463,6 +463,19 @@ namespace {
     check(json_decode(Pbx::$orphans[0]['cti_groups'], true) === [10, 20], 'groups captured before the removal were not recorded on the orphan');
     check(userRemovalPrepared(1, 'alice') === false, 'the mark of a removal was not consumed');
 
+    Pbx::reset();
+    check(orphanUserExtensions(1, Pbx::removeUser(1), false) === true, 'a user removed outside the admin interface was not kept as orphan');
+    check($currentSecrets() === $aliceSecrets && json_decode(Pbx::$orphans[0]['secrets'], true) === $aliceSecrets, 'a removal outside the admin interface changed the secrets');
+    check(Pbx::$extensions === ['201', '91201', '92201', '93201', '202', '91202'] && $userDevices(1) === ['92201', '91201', '93201'] && Pbx::$devices[1]['secret'] === 's2', 'a removal outside the admin interface changed extensions or devices');
+    check(count(listOrphanExtensions()) === 1 && listOrphanExtensions()[0]['extension'] === '201', 'the orphan of a removal outside the admin interface is not listed');
+    $alice = Pbx::addUser(7, 'alice', 'Alice Rossi');
+    check(reattachOrphanExtension($alice) === '201' && Pbx::$users[7]['default_extension'] === '201' && $userDevices(7) === ['92201', '91201', '93201'], 'the same username did not get the extension back');
+    check($currentSecrets() === $aliceSecrets && Pbx::$orphans === [], 'the restored orphan changed the secrets or was kept');
+
+    Pbx::reset();
+    orphanUserExtensions(1, Pbx::removeUser(1), false);
+    check(releaseOrphanExtensions(['201']) === true && Pbx::$extensions === ['202', '91202'] && Pbx::$orphans === [], 'the orphan of a removal outside the admin interface was not released');
+
     unlink(NETHVOICE_REMOVED_USER_GROUPS);
     rmdir($pendingDirectory);
 

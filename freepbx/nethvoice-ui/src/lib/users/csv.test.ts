@@ -318,7 +318,7 @@ describe('analyzeImport', () => {
         'o.dean,Omar,Dean,308,"Pass\u007fword"',
         'p.hill,Pia,Hill,309,,"333\u001b000"',
         'r.west,Rita,West,310,,,"Sales|Sup\rport"',
-        's.moss,"Zoë ""Q"" O\'Brien",Müller-Ça,311,"p""a s#s&ö",+39 333 000,R&D #2',
+        's.moss,"Zoë ""Q"" O\'Brien",Müller-Ça,311,"P""a s#s&ö1",+39 333 000,R&D #2',
         't.ford,Tom\t,Ford,312',
       ].join('\n'),
     )
@@ -342,7 +342,7 @@ describe('analyzeImport', () => {
       {
         username: 's.moss',
         fullName: 'Zoë "Q" O\'Brien Müller-Ça',
-        password: 'p"a s#s&ö',
+        password: 'P"a s#s&ö1',
         mobile: '+39 333 000',
         groups: ['R&D #2'],
       },
@@ -370,6 +370,24 @@ describe('analyzeImport', () => {
       ['n.ray', 'Sec ret,123\\'],
       ['o.dean', ''],
     ])
+  })
+
+  it('reports the passwords of new accounts that the create form would refuse', () => {
+    const rows = parseImportFile(
+      [
+        'username,name,surname,extension,password',
+        'k.lee,Kevin,Lee,305,weakpass',
+        'm.cole,Mia,Cole,306,Strong-Pass-1',
+        'o.dean,Omar,Dean,308,',
+        'a.miller,Anna,Miller,,weakpass',
+      ].join('\n'),
+    )
+    const analysis = analyzeImport(rows, USERS, DIRECTORY, 'overwrite')
+
+    expect(analysis.errors.map(({ row, issues }) => [row.username, issues])).toEqual([
+      ['k.lee', [{ issue: 'weak_password' }]],
+    ])
+    expect(analysis.valid.map(({ username }) => username)).toEqual(['m.cole', 'o.dean', 'a.miller'])
   })
 
   it('imports the existing users in overwrite mode', () => {

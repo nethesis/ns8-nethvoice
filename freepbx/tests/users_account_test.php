@@ -436,9 +436,9 @@ $tests['lists the accounts defensively'] = function () {
     [$status, $accounts] = usersAdminListAccounts($provider->client());
     check($status === 200, 'list must succeed');
     check($accounts === [
-        ['username' => 'alice', 'display_name' => 'Alice White', 'mail' => 'alice@example.org', 'locked' => false, 'domain_admin' => false, 'admin_access' => null],
-        ['username' => 'bob', 'display_name' => 'Bob Black', 'mail' => '', 'locked' => true, 'domain_admin' => true, 'admin_access' => 'superadmin'],
-        ['username' => 'carol', 'display_name' => '', 'mail' => '', 'locked' => null, 'domain_admin' => false, 'admin_access' => null],
+        ['username' => 'alice', 'display_name' => 'Alice White', 'mail' => 'alice@example.org', 'locked' => false, 'domain_admin' => false, 'admin_access' => null, 'member' => null],
+        ['username' => 'bob', 'display_name' => 'Bob Black', 'mail' => '', 'locked' => true, 'domain_admin' => true, 'admin_access' => 'superadmin', 'member' => null],
+        ['username' => 'carol', 'display_name' => '', 'mail' => '', 'locked' => null, 'domain_admin' => false, 'admin_access' => null, 'member' => null],
     ], 'unexpected accounts: ' . json_encode($accounts));
 
     $provider = new FakeProvider();
@@ -451,6 +451,55 @@ $tests['lists the accounts defensively'] = function () {
         $provider = new FakeProvider();
         $provider->responses['list-users'] = $response;
         check(usersAdminListAccounts($provider->client()) === usersAdminError(502, 'provider_error'), 'a bad list must be a provider error: ' . json_encode($response));
+    }
+};
+
+$tests['the members group of this NethVoice decides which users limited administrators manage'] = function () {
+    $_ENV['NETHVOICE_ADMIN_GROUP_PREFIX'] = 'nethvoice3';
+    $_ENV['NETHVOICE_HOST'] = 'voice.example.org';
+    $lock = tempnam(sys_get_temp_dir(), 'users-members');
+    try {
+        $members = fn(array $users) => ['group' => 'nethvoice3-members', 'description' => '', 'users' => $users];
+        $provider = new FakeProvider();
+        $provider->responses['list-users'] = reply(200, ['status' => 'success', 'users' => array_map(fn($user) => ['user' => $user], ['alice', 'Bob', 'carol', 'helpdesk', 'nora', 'admin'])]);
+        $provider->responses['list-groups'] = [groups([['group' => 'nethvoice3-users', 'users' => ['helpdesk']]]), groups([['group' => 'nethvoice3-users', 'users' => ['helpdesk']]]), groups([['group' => 'nethvoice3-users', 'users' => ['helpdesk']], $members(['alice', 'Bob', 'carol', 'helpdesk'])])];
+        [$status, $accounts] = usersAdminListAccounts($provider->client());
+        $created = array_values(array_filter($provider->calls, fn($call) => $call[0] === 'add-group'));
+        check($status === 200 && count($created) === 1 && $created[0][1] === ['group' => 'nethvoice3-members', 'description' => 'NethVoice voice.example.org: users', 'users' => ['alice', 'Bob', 'carol', 'helpdesk']], 'the members group was not created with the users that have an extension: ' . json_encode($provider->calls));
+        check(array_column($accounts, 'member', 'username') === ['alice' => true, 'Bob' => true, 'carol' => true, 'helpdesk' => true, 'nora' => false, 'admin' => false], 'unexpected members: ' . json_encode($accounts));
+
+        $provider = new FakeProvider();
+        $provider->responses['list-groups'] = groups([$members(['alice', 'helpdesk', 'nora'])]);
+        $provider->responses['list-users'] = reply(200, ['status' => 'success', 'users' => array_map(fn($user) => ['user' => $user], ['alice', 'Bob', 'helpdesk', 'nora'])]);
+        check(usersAdminChangePassword($provider->client(), 'Bob', ['password' => PASSWORD], LIMITED) === usersAdminError(403, 'not_instance_user'), 'a user with an extension who is not a member was managed by a limited administrator');
+        check(usersAdminDeleteAccount($provider->client(), 'Bob', LIMITED, fn() => true) === usersAdminError(403, 'not_instance_user') && $provider->writes() === [], 'a non member was deleted by a limited administrator');
+        check(usersAdminChangePassword($provider->client(), 'nora', ['password' => PASSWORD], LIMITED) === [204, null], 'a member without extension was not managed by a limited administrator');
+        check(usersAdminChangePassword($provider->client(), 'Bob', ['password' => PASSWORD], SUPERADMIN) === [204, null], 'the superadmin must still change every account');
+        check(usersAdminAssignmentError('Bob', LIMITED, $provider->client()) === usersAdminError(403, 'not_instance_user') && usersAdminAssignmentError('NORA', LIMITED, $provider->client()) === null, 'the extension assignment of limited administrators is not limited to members');
+        $before = count($provider->calls);
+        check(usersAdminAssignmentError('Bob', SUPERADMIN, $provider->client()) === null && count($provider->calls) === $before, 'the superadmin assignment was checked');
+
+        $provider = new FakeProvider();
+        $provider->responses['list-groups'] = groups([$members(['alice'])]);
+        check(usersAdminAddMembers($provider->client(), ['ALICE', 'nora', 'admin'], null, $lock) === true, 'members were not added');
+        check($provider->writes() === ['alter-group'] && end($provider->calls)[1] === ['group' => 'nethvoice3-members', 'users' => ['alice', 'nora']], 'unexpected members change: ' . json_encode($provider->calls));
+        $provider = new FakeProvider();
+        $provider->responses['list-groups'] = groups([$members(['alice'])]);
+        check(usersAdminAddMembers($provider->client(), ['alice'], null, $lock) === true && $provider->writes() === [], 'an existing member was added again');
+
+        $provider = new FakeProvider();
+        $provider->responses['list-groups'] = groups([$members(['alice', 'Bob'])]);
+        $provider->responses['list-users'] = reply(200, ['status' => 'success', 'users' => [['user' => 'Bob']]]);
+        check(usersAdminDeleteAccount($provider->client(), 'bob', SUPERADMIN, fn() => true)[0] === 200, 'the removal failed');
+        check($provider->writes() === ['remove-user', 'alter-group'] && end($provider->calls)[1] === ['group' => 'nethvoice3-members', 'users' => ['alice']], 'the removed user is still a member: ' . json_encode($provider->calls));
+
+        $provider = new FakeProvider();
+        $provider->responses['list-groups'] = reply(500, '');
+        check(usersAdminChangePassword($provider->client(), 'nora', ['password' => PASSWORD], LIMITED) === usersAdminError(403, 'not_instance_user'), 'without the groups the extension rule must apply');
+        check(usersAdminAssignmentError('nora', LIMITED, $provider->client('')) === null && usersAdminAddMembers($provider->client(''), ['nora'], null, $lock) === true && $provider->writes() === [], 'an external domain must keep the extension rule');
+    } finally {
+        unset($_ENV['NETHVOICE_ADMIN_GROUP_PREFIX'], $_ENV['NETHVOICE_HOST']);
+        @unlink($lock);
     }
 };
 

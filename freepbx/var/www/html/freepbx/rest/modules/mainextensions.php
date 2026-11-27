@@ -23,6 +23,7 @@ include_once('lib/libExtensions.php');
 include_once('lib/libUsers.php');
 include_once('lib/libMiddleware.php');
 include_once('lib/libCTI.php');
+include_once('lib/libUsersAdmin.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -59,6 +60,13 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     if (!nethvoiceRequestIsSuperadmin($request) && !empty($mainextension) && $mainextension != 'none' && !isExtensionNumber($mainextension)) {
         return jsonResponse($response, array('message' => 'Invalid extension'), 400);
     }
+    $assigning = !empty($mainextension) && $mainextension != 'none';
+    if ($assigning && !nethvoiceRequestIsSuperadmin($request)) {
+        $refusal = usersAdminAssignmentError((string) $username, array('superadmin' => false));
+        if ($refusal !== null) {
+            return jsonResponse($response, $refusal[1], $refusal[0]);
+        }
+    }
 
     if (
         configuredUsersCountExcept(getAllUsers(), $username) >= communityUsersLimit() && // check if there are more configured users than the allowed limit
@@ -72,6 +80,9 @@ $app->post('/mainextensions', function (Request $request, Response $response, $a
     system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');
 
     if ($ret === true) {
+        if ($assigning && nethvoiceRequestIsSuperadmin($request) && !usersAdminAddMembers(usersAdminDefaultClient(), array((string) $username))) {
+            error_log('Cannot add '.$username.' to the members of this NethVoice');
+        }
         return $response->withStatus(201);
     }
     return jsonResponse($response, $ret[0],$ret[1]);
@@ -95,6 +106,9 @@ $app->post('/mainextensions/{extension:[0-9]+}/reassign', function (Request $req
         $ret = reassignMainExtension($extension, $username, $keyLabels);
         if ($ret !== true) {
             return jsonResponse($response, $ret[0], $ret[1]);
+        }
+        if (nethvoiceRequestIsSuperadmin($request) && !usersAdminAddMembers(usersAdminDefaultClient(), array($username))) {
+            error_log('Cannot add '.$username.' to the members of this NethVoice');
         }
         triggerMiddlewareProfilesReloadAfterUserSync();
         system('/var/www/html/freepbx/rest/lib/retrieveHelper.sh > /dev/null &');

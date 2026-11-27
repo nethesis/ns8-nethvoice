@@ -7,6 +7,7 @@ import { isApiError } from '@/lib/api/errors'
 import { buildGroupFormSchema } from '@/lib/groups/groups'
 import type { UsersDirectory } from '@/lib/users/directory'
 import { isValidExtension } from '@/lib/users/extensions'
+import { isValidPassword } from '@/lib/users/password'
 import { applyUserSettingsSteps, type UserSettingsStep } from '@/lib/users/userSettings'
 import {
   findUserByUsername,
@@ -89,6 +90,7 @@ export type ImportIssue =
   | 'invalid_flag'
   | 'control_characters'
   | 'password_whitespace'
+  | 'weak_password'
 
 export type ImportRowIssue = {
   issue: ImportIssue
@@ -509,6 +511,13 @@ const findRowIssues = (
 
   if (hasSurroundingWhitespace(row.password)) {
     issues.push('password_whitespace')
+  } else if (
+    row.password !== '' &&
+    !issues.includes('control_characters') &&
+    !isValidPassword(row.password) &&
+    !findUserByUsername(users, row.username)
+  ) {
+    issues.push('weak_password')
   }
 
   if (row.extension !== '' && !validExtension) {

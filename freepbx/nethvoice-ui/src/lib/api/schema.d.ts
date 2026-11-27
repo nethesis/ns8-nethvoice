@@ -1367,7 +1367,7 @@ export interface paths {
     put?: never
     /**
      * Assign, change or remove the main extension of a user.
-     * @description Body: `{ "username": "", "extension": "", "outboundcid": "" }`. Enforces community license user limits and triggers a reload.
+     * @description Body: `{ "username": "", "extension": "", "outboundcid": "" }`. Enforces community license user limits and triggers a reload. When the user keeps the same extension number, the extension and its devices are recreated; CTI group memberships are kept when the extension changes. An extension assigned by the superadmin makes the user a member of this NethVoice.
      */
     post: operations['post_mainextensions']
     delete?: never
@@ -1422,7 +1422,7 @@ export interface paths {
     }
     /**
      * List the main extensions of users removed from the account provider.
-     * @description When the account provider removes a user, the main extension, the devices, the physical phones and the voicemail box are kept and the SIP credentials of every extension of the user are replaced, so the devices cannot register or call. A user created later with the same username gets everything back, with the original credentials, group memberships and CTI profile.
+     * @description When the account provider removes a user, the main extension, the devices, the physical phones and the voicemail box are kept. When the user is deleted from this interface the SIP credentials of every extension of the user are replaced, so the devices cannot register or call; when the user is removed elsewhere (for example from the user domain page) the credentials are kept and the devices keep working. A user created later with the same username gets everything back, with the original credentials, group memberships and CTI profile.
      */
     get: operations['get_mainextensions_orphans']
     put?: never
@@ -4512,6 +4512,8 @@ export interface components {
        * @enum {string|null}
        */
       admin_access?: 'superadmin' | 'sections' | 'other_instance' | null
+      /** @description Member of the `<prefix>-members` group of this NethVoice, which is created on first use with the users that have a main extension; null when the group cannot be used (no prefix, external or read-only user domain, groups not readable), and then a user of this NethVoice is a user with a main extension. */
+      member?: boolean | null
     }
     UsersAccountUpdate: {
       display_name?: string
@@ -4591,6 +4593,10 @@ export interface components {
         | 'invalid_input'
         | 'import_failed'
         | 'stopped'
+        | 'weak_password'
+        | 'not_instance_user'
+        | 'membership_failed'
+        | 'account_created'
       /** @description Row of the imported CSV, starting from 1. */
       line?: number
       username?: string
@@ -4963,7 +4969,7 @@ export interface operations {
       }
     }
     responses: {
-      /** @description Account created with its permissions */
+      /** @description Account created with its permissions, made a member of this NethVoice and synchronized with the PBX users */
       201: {
         headers: {
           [name: string]: unknown
@@ -8214,13 +8220,14 @@ export interface operations {
           'application/json': components['schemas']['UsersMessage']
         }
       }
-      /** @description Community version limited to 8 configured users. The community limit does not count the current extension of the user being changed. */
+      /** @description Community version limited to 8 configured users. The community limit does not count the current extension of the user being changed. Or `not_instance_user`, an administrator who is not superadmin assigning an extension to a user who is not a member of this NethVoice. */
       403: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          'application/json': components['schemas']['UsersStatusMessage']
+          'application/json':
+            components['schemas']['UsersStatusMessage'] | components['schemas']['UsersAccountError']
         }
       }
       /** @description User not found */
@@ -8307,7 +8314,7 @@ export interface operations {
           'application/json': components['schemas']['UsersMessage']
         }
       }
-      /** @description For administrators who are not superadmin, the current owner or the new user is a protected account (`protected_account`, `domain_admin`, `superadmin_account` or `nethvoice_admin`) */
+      /** @description For administrators who are not superadmin, the current owner or the new user is a protected account (`protected_account`, `domain_admin`, `superadmin_account` or `nethvoice_admin`), or the new user is not a member of this NethVoice (`not_instance_user`) */
       403: {
         headers: {
           [name: string]: unknown
@@ -12167,7 +12174,7 @@ export interface operations {
           'application/json': components['schemas']['UsersAccountError']
         }
       }
-      /** @description Missing permission, or `protected_account`, `own_account` (locking the caller's account), `domain_admin` (a limited administrator locking a domain administrator), `superadmin_account` (locking another superadmin or an administrator of another NethVoice), `nethvoice_admin` (a limited administrator locking an administrator) or `not_instance_user` (a limited administrator changing a user without an extension of this NethVoice) */
+      /** @description Missing permission, or `protected_account`, `own_account` (locking the caller's account), `domain_admin` (a limited administrator locking a domain administrator), `superadmin_account` (locking another superadmin or an administrator of another NethVoice), `nethvoice_admin` (a limited administrator locking an administrator) or `not_instance_user` (a limited administrator changing a user who is not a member of this NethVoice, that is not in the `<prefix>-members` group, or without an extension when the user domain has no such group) */
       403: {
         headers: {
           [name: string]: unknown

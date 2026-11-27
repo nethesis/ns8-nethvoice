@@ -47,13 +47,16 @@ $tests['deletes the settings, the NethLink state and the tokens of the user'] = 
         ['DELETE FROM user_settings WHERE username = ?', ['qa_user']],
         ['DELETE FROM user_nethlink WHERE user = ?', ['qa_user']],
         ['DELETE FROM auth WHERE user = ? OR user LIKE ?', ['qa_user', 'qa\_user\_phone-island\_%']],
+        ["DELETE FROM cti_phonebook WHERE owner_id = ? AND type IN ('private', 'speeddial')", ['qa_user']],
+        ['DELETE FROM postit WHERE recipient = ?', ['qa_user']],
+        ['DELETE FROM caller_note WHERE creator = ? AND public = 0', ['qa_user']],
     ], 'unexpected statements: ' . json_encode($db->executed));
 };
 
 $tests['reports a failure of the middleware or of the database'] = function () {
     $db = new FakeCtiDatabase();
     check(deleteCtiUserData('alice', $db, fn() => false) === false, 'a failed revocation must be reported');
-    check(count($db->executed) === 3, 'a failed revocation must not keep the data');
+    check(count($db->executed) === 6, 'a failed revocation must not keep the data');
 
     $db = new FakeCtiDatabase('user_nethlink');
     check(deleteCtiUserData('alice', $db, fn() => true) === false, 'a database error must be reported');

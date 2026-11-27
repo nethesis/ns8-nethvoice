@@ -37,6 +37,7 @@ import {
   faGears,
   faHeadset,
   faKey,
+  faEllipsisVertical,
   faMagnifyingGlass,
   faPenToSquare,
   faRightLeft,
@@ -840,6 +841,15 @@ const filterLabels = computed(() => ({
                   :align-to-right="true"
                   :open-menu-aria-label="t('users.user_actions', { name: row.username })"
                 >
+                  <template #button>
+                    <NeButton kind="tertiary" class="py-2" tabindex="-1" aria-hidden="true">
+                      <FontAwesomeIcon
+                        :icon="faEllipsisVertical"
+                        class="size-5 shrink-0"
+                        aria-hidden="true"
+                      />
+                    </NeButton>
+                  </template>
                   <template v-if="accountsManageable && restrictionOf(row)" #menuHeader>
                     <p
                       class="text-secondary-neutral max-w-xs px-4 py-2 text-sm"

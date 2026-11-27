@@ -46,7 +46,8 @@ import { PASSWORD_MIN_LENGTH } from '@/lib/users/createUser'
 import { DISPLAY_NAME_MAX_LENGTH, USERNAME_MAX_LENGTH } from '@/lib/users/csv'
 import { useFocusReturn } from '@/composables/useFocusReturn'
 import { useInvalidateAdmins } from '@/queries/admins/admins'
-import { useUserAccounts, useUsersDomain } from '@/queries/users/accounts'
+import { useInvalidateAccounts, useUserAccounts, useUsersDomain } from '@/queries/users/accounts'
+import { useInvalidateUsers } from '@/queries/users/users'
 import { useLoginStore } from '@/stores/login'
 import { describeError, useNotificationsStore } from '@/stores/notifications'
 
@@ -94,6 +95,8 @@ const { t } = useI18n()
 const loginStore = useLoginStore()
 const notificationsStore = useNotificationsStore()
 const invalidateAdmins = useInvalidateAdmins()
+const invalidateUsers = useInvalidateUsers()
+const invalidateAccounts = useInvalidateAccounts()
 const { state: accountsState } = useUserAccounts()
 const { state: domainState } = useUsersDomain()
 
@@ -292,7 +295,13 @@ const { mutate, isLoading, error, reset } = useMutation({
       focusAfterSave.value = issue.field
     }
   },
-  onSettled: () => invalidateAdmins(),
+  onSettled: (_data, _error, request) => {
+    if (request.kind === 'new') {
+      void invalidateUsers()
+      void invalidateAccounts()
+    }
+    return invalidateAdmins()
+  },
 })
 
 const isErrorShown = computed(

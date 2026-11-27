@@ -463,6 +463,22 @@ $tests['Admin control creates an account without an extension and grants its per
     $f->cleanup();
 };
 
+$tests['Admin control makes a new account a member of this NethVoice'] = function () {
+    $f = new Fixture();
+    $_ENV['NETHVOICE_ADMIN_GROUP_PREFIX'] = 'nethvoice3';
+    try {
+        $f->responses['list-groups'] = groups([
+            ['group' => 'nethvoice3-trunks', 'description' => '', 'users' => ['alice']],
+            ['group' => 'nethvoice3-members', 'description' => '', 'users' => ['alice']],
+        ]);
+        $result = $f->admins()->create(newAdmin(['permissions' => ['users']]), 'admin');
+        check($result[0] === 201 && end($f->calls) === ['alter-group', ['group' => 'nethvoice3-members', 'users' => ['alice', 'zoe']]], 'the new account is not a member: ' . json_encode($f->calls));
+    } finally {
+        unset($_ENV['NETHVOICE_ADMIN_GROUP_PREFIX']);
+        $f->cleanup();
+    }
+};
+
 $tests['Admin control refuses to create invalid, taken or protected accounts without writing'] = function () {
     $f = new Fixture();
     $bodies = [

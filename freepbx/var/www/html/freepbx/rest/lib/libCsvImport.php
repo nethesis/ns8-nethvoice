@@ -28,6 +28,42 @@ function csvImportCell($value): string
     return preg_match('/^\'[=+\-@\t\r]/', $value) === 1 ? substr($value, 1) : $value;
 }
 
+function csvImportWeakPassword(string $password, $policy): bool
+{
+    $strength = is_array($policy) && is_array($policy['strength'] ?? null) ? $policy['strength'] : null;
+    if ($strength === null || ($strength['enforced'] ?? null) !== true) {
+        return false;
+    }
+    if (is_int($strength['password_min_length'] ?? null) && mb_strlen($password, 'UTF-8') < $strength['password_min_length']) {
+        return true;
+    }
+    if (($strength['complexity_check'] ?? null) !== true) {
+        return false;
+    }
+    $classes = 0;
+    foreach (['/[A-Z]/', '/[a-z]/', '/[0-9]/', '/[^A-Za-z0-9]/'] as $class) {
+        $classes += preg_match($class, $password);
+    }
+    return $classes < 3;
+}
+
+function csvImportAddUserProblem($response): string
+{
+    $data = is_string($response) ? json_decode($response, true) : null;
+    if (!is_array($data)) {
+        return 'create_failed';
+    }
+    $errors = is_array($data['error'] ?? null) ? array_filter($data['error'], 'is_array') : [];
+    $message = $data['message'] ?? null;
+    if (in_array('user_already_exists', array_column($errors, 'error'), true)) {
+        return 'create_failed';
+    }
+    if (in_array('password', array_column($errors, 'field'), true) || (is_string($message) && str_starts_with($message, 'error_password'))) {
+        return 'weak_password';
+    }
+    return 'create_failed';
+}
+
 function csvImportProcessAlive(int $pid): bool
 {
     return $pid > 0 && is_dir('/proc/' . $pid);
@@ -89,7 +125,13 @@ function csvImportRunning(array $status, callable $alive, int $now): bool
 
 function csvImportStopped(array $status): array
 {
-    return ['exitcode' => 1, 'errors' => CSV_IMPORT_STOPPED, 'progress' => -1, 'problems' => [['code' => 'stopped']]]
+    $problems = [['code' => 'stopped']];
+    foreach (is_array($status['created'] ?? null) ? $status['created'] : [] as $account) {
+        if (is_array($account) && is_int($account['line'] ?? null) && is_string($account['username'] ?? null)) {
+            $problems[] = ['code' => 'account_created', 'line' => $account['line'], 'username' => $account['username']];
+        }
+    }
+    return ['exitcode' => 1, 'errors' => CSV_IMPORT_STOPPED, 'progress' => -1, 'problems' => $problems]
         + array_intersect_key($status, ['id' => true]);
 }
 

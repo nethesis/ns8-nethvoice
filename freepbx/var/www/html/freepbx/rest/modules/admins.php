@@ -7,6 +7,7 @@
 
 include_once('lib/libUsers.php');
 include_once('lib/libDomainAdmins.php');
+include_once('lib/libMiddleware.php');
 
 use \Psr\Http\Message\ServerRequestInterface as Request;
 use \Psr\Http\Message\ResponseInterface as Response;
@@ -38,7 +39,11 @@ $app->get('/admins', function (Request $request, Response $response) {
 });
 
 $app->post('/admins', function (Request $request, Response $response) {
-    return domainAdminsResponse($response, domainAdminsDefault()->create(nethvoiceRequestBody($request), domainAdminsCaller($request)));
+    $result = domainAdminsDefault()->create(nethvoiceRequestBody($request), domainAdminsCaller($request));
+    if ($result[0] === 201 && !usersAdminSynchronize()) {
+        error_log('domain-admins: the new administrator ' . ($result[1]['username'] ?? '') . ' is not synchronized with the PBX users yet');
+    }
+    return domainAdminsResponse($response, $result);
 });
 
 $app->put('/admins/{username}', function (Request $request, Response $response, $args) {

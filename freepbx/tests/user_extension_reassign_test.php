@@ -116,6 +116,27 @@ namespace {
                         if ($d['user_id'] === $args[0] && !empty($d['extension'])) $this->result[] = ['extension' => $d['extension']];
                     }
                     break;
+                case 'SELECT default_extension FROM userman_users WHERE username = ?':
+                    $user = Pbx::userBy('username', $args[0]);
+                    $this->result = $user ? [['default_extension' => $user['default_extension']]] : [];
+                    break;
+                case 'SELECT group_id FROM rest_cti_users_groups WHERE user_id = ?':
+                    foreach (Pbx::$groups as $g) {
+                        if ($g[0] === $args[0]) $this->result[] = ['group_id' => $g[1]];
+                    }
+                    break;
+                case 'INSERT IGNORE INTO rest_cti_users_groups (user_id, group_id) VALUES (?, ?)':
+                    if (!in_array([$args[0], $args[1]], Pbx::$groups, true)) Pbx::$groups[] = [$args[0], $args[1]];
+                    break;
+                case 'SELECT * FROM sip WHERE id= ?':
+                    $this->result = in_array($args[0], Pbx::$extensions, true) ? [['id' => $args[0]]] : [];
+                    break;
+                case 'SELECT * FROM ringgroups WHERE grpnum= ?':
+                case 'SELECT * FROM featurecodes WHERE customcode = ?':
+                case 'SHOW TABLES LIKE ?':
+                case 'SELECT * FROM queues_details WHERE id = ?':
+                case 'SELECT * FROM trunks WHERE channelid = ?':
+                    break;
                 default:
                     throw new RuntimeException('Unexpected query: '.$sql);
             }
@@ -141,6 +162,10 @@ namespace {
             unset(Pbx::$mailboxes[$extension]);
         }
         public function delDevice($extension) {}
+        public function processQuickCreate($tech, $extension, $data) {
+            Pbx::$extensions[] = (string) $extension;
+            return ['status' => true];
+        }
     }
 
     class FakeUserman {
@@ -165,6 +190,7 @@ namespace {
     class FakeAstman {
         public function database_get($family, $key) { return Pbx::$astdb[$family.'/'.$key] ?? false; }
         public function database_put($family, $key, $value) { Pbx::$astdb[$family.'/'.$key] = $value; return true; }
+        public function database_del($family, $key) { unset(Pbx::$astdb[$family.'/'.$key]); return true; }
     }
 
     class FreePBX {
@@ -235,6 +261,23 @@ namespace {
     check(count($freed) === 1 && $freed[0]['user_id'] === null && $freed[0]['extension'] === null && $freed[0]['secret'] === null, 'physical phone not freed');
     check($userGroups(1) === [] && $userGroups(4) === [10], 'group memberships not cleaned');
     check($userDevices(4) === ['91202'], 'another user lost devices');
+
+    Pbx::reset();
+    check(createMainExtensionForUser('alice', '205') === true, 'extension change failed');
+    check(Pbx::$users[1]['default_extension'] === '205' && in_array('205', Pbx::$extensions, true) && !in_array('201', Pbx::$extensions, true), 'extension not changed');
+    check($userGroups(1) === [10] && $userGroups(2) === [20] && $userGroups(4) === [10], 'CTI groups not kept across an extension change');
+
+    Pbx::reset();
+    check(createMainExtensionForUser('alice', 'none')[1] === 200 && Pbx::$users[1]['default_extension'] === 'none' && $userGroups(1) === [], 'removing the extension changed as before');
+
+    Pbx::reset();
+    check(createMainExtensionForUser('bob', '202')[1] === 422 && Pbx::$users[2]['default_extension'] === 'none' && $userGroups(2) === [20], 'an extension in use was assigned');
+
+    Pbx::reset();
+    unset(Pbx::$users[1]);
+    check(createMainExtensionForUser('bob', '201')[1] === 422, 'an extension kept for a removed user was assigned');
+    releaseUserExtensions(1, '201');
+    check(createMainExtensionForUser('bob', '201') === true && Pbx::$users[2]['default_extension'] === '201' && $userGroups(2) === [20], 'a released extension could not be assigned again');
 
     Pbx::reset();
     releaseUserExtensions(3, 'none');

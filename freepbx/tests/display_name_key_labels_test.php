@@ -173,13 +173,16 @@ unlink($log);
 $removals = [];
 $orphaned = [];
 function userRemovalPrepared($uid, $username) { return in_array([$uid, $username], $GLOBALS['removals'], true); }
-function orphanUserExtensions($uid, $user) { $GLOBALS['orphaned'][] = [$uid, $user['username'] ?? null]; return true; }
+function orphanUserExtensions($uid, $user, $lock = true) { $GLOBALS['orphaned'][] = [$uid, $user['username'] ?? null, $lock]; return true; }
+function hasMainExtension($user) { return is_array($user) && !empty($user['default_extension']) && $user['default_extension'] !== 'none'; }
 $display = ini_set('display_errors', '0');
 $hook = new TestNethcti3($freepbx, null);
-check($hook->usermanDelUser(7, 'userman', ['username' => 'qa_alice', 'default_extension' => '201']) === true && $orphaned === [], 'a user removed outside the admin interface lost the extensions');
+check($hook->usermanDelUser(7, 'userman', ['username' => 'qa_alice', 'default_extension' => '201']) === true && $orphaned === [[7, 'qa_alice', false]], 'a user removed outside the admin interface did not keep the extension as an unlocked orphan: ' . json_encode($orphaned));
+$orphaned = [];
+check($hook->usermanDelUser(9, 'userman', ['username' => 'qa_bob', 'default_extension' => 'none']) === true && $hook->usermanDelUser(9, 'userman', ['username' => 'qa_bob']) === true && $orphaned === [], 'a user without extension removed outside the admin interface was changed');
 $removals[] = [7, 'qa_alice'];
 check($hook->usermanDelUser(8, 'userman', ['username' => 'qa_alice']) === true && $orphaned === [], 'the removal mark of another user was used');
-check($hook->usermanDelUser(7, 'userman', ['username' => 'qa_alice', 'default_extension' => '201']) === true && $orphaned === [[7, 'qa_alice']], 'a user removed from the admin interface kept the extensions');
+check($hook->usermanDelUser(7, 'userman', ['username' => 'qa_alice', 'default_extension' => '201']) === true && $orphaned === [[7, 'qa_alice', true]], 'a user removed from the admin interface kept the extensions');
 ini_set('display_errors', (string) $display);
 
 echo "PASS: display name changes update the phone key labels of the main extension\n";

@@ -2611,7 +2611,7 @@ test.describe('user accounts', () => {
 
       await openRowMenu(page, 'd.jones')
       await expect(page.getByTestId('account-restriction-d.jones')).toHaveText(
-        'Only the superadmin can change the password, the name or the status of a user who has no extension on this PBX, or delete it.',
+        'Only the superadmin can change the password, the name or the status of a user who is not part of this PBX, or delete it.',
       )
       await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
       await page.keyboard.press('Escape')
@@ -2621,6 +2621,25 @@ test.describe('user accounts', () => {
         await expect(drawer.getByRole('textbox', { name: field })).toBeDisabled()
       }
       await expect(drawer.getByRole('textbox', { name: /^Extension/ })).toBeEnabled()
+    })
+
+    test('leaves the users who are not part of this PBX to the superadmin', async ({
+      page,
+      mockApi,
+    }) => {
+      mockApi.on('GET', `${REST}/users/domain/accounts`, {
+        json: ACCOUNTS.map((account) => ({ ...account, member: account.username !== 'a.miller' })),
+      })
+      await page.goto('./users/users')
+      await openRowMenu(page, 'a.miller')
+      await expect(page.getByTestId('account-restriction-a.miller')).toHaveText(
+        'Only the superadmin can change the password, the name or the status of a user who is not part of this PBX, or delete it.',
+      )
+      await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeDisabled()
+      await page.keyboard.press('Escape')
+      await openRowMenu(page, 'd.jones')
+      await expect(page.getByTestId('account-restriction-d.jones')).toHaveCount(0)
+      await expect(page.getByRole('menuitem', { name: 'Delete' })).toBeEnabled()
     })
 
     test('shows why the server refused to change an administrator', async ({ page, mockApi }) => {

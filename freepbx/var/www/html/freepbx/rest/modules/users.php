@@ -329,7 +329,7 @@ $app->get('/csv/csvexport', function (Request $request, Response $response, $arg
             // mobile cellphone
             $mobile = NULL;
             foreach ($mobiles as $m) {
-                if ($m['id'] === $u['id']) {
+                if ((string) $m['id'] === (string) $u['id']) {
                     $mobile = $m['mobile'];
                     break;
                 }

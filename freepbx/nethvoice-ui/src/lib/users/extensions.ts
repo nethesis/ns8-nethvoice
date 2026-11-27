@@ -28,7 +28,8 @@ export type ExtensionStep = {
   extension: string
 }
 
-export type ExtensionErrorKind = 'in_use' | 'users_limit' | 'user_not_found' | 'unknown'
+export type ExtensionErrorKind =
+  'in_use' | 'users_limit' | 'not_instance_user' | 'user_not_found' | 'unknown'
 
 const LimitSchema = v.pipe(
   v.union([v.number(), v.boolean(), v.null()]),
@@ -194,7 +195,11 @@ export const getExtensionErrorKind = (error: unknown): ExtensionErrorKind => {
     case 422:
       return 'in_use'
     case 403:
-      return 'users_limit'
+      return typeof error.body === 'object' &&
+        error.body !== null &&
+        (error.body as { code?: unknown }).code === 'not_instance_user'
+        ? 'not_instance_user'
+        : 'users_limit'
     case 404:
       return 'user_not_found'
     default:

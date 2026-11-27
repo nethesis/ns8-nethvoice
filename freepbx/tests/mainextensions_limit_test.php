@@ -57,10 +57,12 @@ namespace {
         return true;
     }
     function jsonResponse($response, $body, $status) { return $response->withStatus($status); }
+    $nonMembers = [];
+    function usersAdminAssignmentError($username, $caller) { return in_array($username, $GLOBALS['nonMembers'], true) && empty($caller['superadmin']) ? [403, ['code' => 'not_instance_user']] : null; }
 
     $stubs = sys_get_temp_dir().'/mainextensions_limit_test_'.getmypid();
     @mkdir($stubs.'/lib', 0700, true);
-    foreach (['libExtensions.php', 'libUsers.php', 'libMiddleware.php', 'libCTI.php'] as $lib) {
+    foreach (['libExtensions.php', 'libUsers.php', 'libMiddleware.php', 'libCTI.php', 'libUsersAdmin.php'] as $lib) {
         file_put_contents("$stubs/lib/$lib", '<?php');
     }
     set_include_path($stubs);
@@ -100,6 +102,12 @@ namespace {
     $_ENV['SUBSCRIPTION_SECRET'] = 'secret';
     check($post('newcomer', '309') !== 403, 'an enterprise system was limited');
     unset($_ENV['SUBSCRIPTION_SYSTEMID'], $_ENV['SUBSCRIPTION_SECRET']);
+
+    Pbx::reset(1);
+    $nonMembers = ['newcomer'];
+    check($post('newcomer', '305') === 403 && Pbx::$created === [], 'a limited administrator assigned an extension to a user who is not a member');
+    check($post('newcomer', '') !== 403 && $post('user1', '306') !== 403, 'a limited administrator was refused a change that is not an assignment to a non member');
+    $nonMembers = [];
 
     echo "PASS: community users limit counts the other configured users only\n";
 }

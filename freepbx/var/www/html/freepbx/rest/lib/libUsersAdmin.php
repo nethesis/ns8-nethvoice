@@ -15,6 +15,7 @@ const USERS_ADMIN_STATUS_CACHE_SECONDS = 30;
 const USERS_ADMIN_TOKEN_CACHE = '/var/run/nethvoice/users-admin-token.json';
 const USERS_ADMIN_TOKEN_CACHE_SECONDS = 300;
 const USERS_ADMIN_SYNC_LOCK = '/var/run/nethvoice/users-sync.lock';
+const USERS_ADMIN_MEMBERS_LOCK = '/var/run/nethvoice/users-members.lock';
 const USERS_ADMIN_SYNC_WAIT_MICROSECONDS = 6000000;
 const USERS_ADMIN_SYNC_STEP_MICROSECONDS = 250000;
 const USERS_ADMIN_DISPLAY_NAME_MAX_LENGTH = 50;
@@ -44,7 +45,7 @@ const USERS_ADMIN_MESSAGES = [
     'invalid_display_name' => 'The display name contains control characters',
     'user_not_found' => 'The user does not exist in the user domain',
     'display_name_too_long' => 'The display name is too long',
-    'not_instance_user' => 'Only the superadmin can change the account of a user without an extension of this NethVoice',
+    'not_instance_user' => 'Only the superadmin can manage a user who is not a member of this NethVoice',
 ];
 
 class UsersAdminTokenCache
@@ -413,6 +414,7 @@ function usersAdminListAccounts(UsersAdminClient $client): array
     }
     $groups = usersAdminGroups($client);
     $roles = $groups === null ? null : usersAdminRoles($groups, usersAdminGroupPrefix());
+    $members = $groups === null ? null : usersAdminInstanceMembers($client, true, $groups);
     $accounts = [];
     foreach ($result['data']['users'] as $user) {
         if (!is_array($user) || !is_string($user['user'] ?? null) || $user['user'] === '') {
@@ -425,6 +427,7 @@ function usersAdminListAccounts(UsersAdminClient $client): array
             'locked' => is_bool($user['locked'] ?? null) ? $user['locked'] : null,
             'domain_admin' => $roles === null ? null : isset($roles['domain'][strtolower($user['user'])]),
             'admin_access' => $roles === null ? null : usersAdminAccess($roles, $user['user']),
+            'member' => $members === null ? null : isset($members[strtolower($user['user'])]),
         ];
     }
     return [200, $accounts];
@@ -481,7 +484,7 @@ function usersAdminProtectedTargetError(UsersAdminClient $client, string $userna
     return null;
 }
 
-function usersAdminIsInstanceUser(string $username): bool
+function usersAdminHasExtension(string $username): bool
 {
     $stmt = FreePBX::Database()->prepare('SELECT default_extension FROM userman_users WHERE LOWER(username) = LOWER(?)');
     $stmt->execute([$username]);
@@ -494,12 +497,178 @@ function usersAdminIsInstanceUser(string $username): bool
     return false;
 }
 
-function usersAdminInstanceError(string $username, array $caller, ?callable $isInstanceUser): ?array
+function usersAdminExtensionUsers(): array
+{
+    $stmt = FreePBX::Database()->prepare("SELECT username FROM userman_users WHERE default_extension IS NOT NULL AND default_extension != '' AND default_extension != 'none'");
+    $stmt->execute([]);
+    return array_values(array_map('strval', $stmt->fetchAll(\PDO::FETCH_COLUMN)));
+}
+
+function usersAdminMembersGroup(): ?string
+{
+    $prefix = usersAdminGroupPrefix();
+    return $prefix === null ? null : $prefix . '-members';
+}
+
+function usersAdminMembersOf(array $groups): ?array
+{
+    $name = usersAdminMembersGroup();
+    foreach ($name === null ? [] : $groups as $group) {
+        if (strcasecmp($group['group'], $name) === 0) {
+            return array_fill_keys(array_map('strtolower', $group['users']), true);
+        }
+    }
+    return null;
+}
+
+function usersAdminWithMembersLock(string $lockFile, callable $work)
+{
+    $lock = @fopen($lockFile, 'c');
+    if ($lock !== false && !@flock($lock, LOCK_EX)) {
+        fclose($lock);
+        $lock = false;
+    }
+    try {
+        return $work();
+    } finally {
+        if ($lock !== false) {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+}
+
+function usersAdminAddMembers(UsersAdminClient $client, array $usernames, ?callable $extensionUsers = null, string $lockFile = USERS_ADMIN_MEMBERS_LOCK): bool
+{
+    $name = usersAdminMembersGroup();
+    if ($name === null || !$client->isConfigured()) {
+        return true;
+    }
+    $usernames = array_values(array_filter($usernames, fn($username) => is_string($username) && $username !== '' && !in_array(strtolower($username), USERS_ADMIN_PROTECTED_ACCOUNTS, true)));
+    return (bool) usersAdminWithMembersLock($lockFile, function () use ($client, $name, $usernames, $extensionUsers) {
+        $groups = usersAdminGroups($client);
+        if ($groups === null) {
+            return false;
+        }
+        foreach ($groups as $group) {
+            if (strcasecmp($group['group'], $name) !== 0) {
+                continue;
+            }
+            $members = $group['users'];
+            $known = array_fill_keys(array_map('strtolower', $members), true);
+            foreach ($usernames as $username) {
+                if (!isset($known[strtolower($username)])) {
+                    $known[strtolower($username)] = true;
+                    $members[] = $username;
+                }
+            }
+            if (count($members) === count($group['users'])) {
+                return true;
+            }
+            return usersAdminSucceeded($client->call('alter-group', ['group' => $group['group'], 'users' => $members]));
+        }
+        $result = $client->call('list-users');
+        if (!usersAdminSucceeded($result) || !is_array($result['data']['users'] ?? null)) {
+            return false;
+        }
+        $domain = [];
+        foreach ($result['data']['users'] as $user) {
+            if (is_array($user) && is_string($user['user'] ?? null) && $user['user'] !== '') {
+                $domain[strtolower($user['user'])] = $user['user'];
+            }
+        }
+        $members = [];
+        foreach (array_merge(($extensionUsers ?? 'usersAdminExtensionUsers')(), $usernames) as $username) {
+            $key = strtolower((string) $username);
+            if (isset($domain[$key]) && !in_array($key, USERS_ADMIN_PROTECTED_ACCOUNTS, true)) {
+                $members[$key] = $domain[$key];
+            }
+        }
+        $host = trim('NethVoice ' . (string) ($_ENV['NETHVOICE_HOST'] ?? getenv('NETHVOICE_HOST') ?: ''));
+        return usersAdminSucceeded($client->call('add-group', ['group' => $name, 'description' => $host . ': users', 'users' => array_values($members)]));
+    });
+}
+
+function usersAdminPasswordPolicy(UsersAdminClient $client): ?array
+{
+    if (!$client->isConfigured()) {
+        return null;
+    }
+    $result = $client->call('get-password-policy');
+    return usersAdminSucceeded($result) && is_array($result['data']['policy'] ?? null) ? $result['data']['policy'] : null;
+}
+
+function usersAdminRemoveCreatedAccount(UsersAdminClient $client, string $username): ?bool
+{
+    $result = $client->call('list-users');
+    if (!usersAdminSucceeded($result) || !is_array($result['data']['users'] ?? null)) {
+        return null;
+    }
+    foreach ($result['data']['users'] as $user) {
+        if (is_array($user) && is_string($user['user'] ?? null) && strcasecmp($user['user'], $username) === 0) {
+            return usersAdminSucceeded($client->call('remove-user', ['user' => $user['user']]));
+        }
+    }
+    return true;
+}
+
+function usersAdminRemoveMember(UsersAdminClient $client, string $username, string $lockFile = USERS_ADMIN_MEMBERS_LOCK): bool
+{
+    $name = usersAdminMembersGroup();
+    if ($name === null || !$client->isConfigured()) {
+        return true;
+    }
+    return (bool) usersAdminWithMembersLock($lockFile, function () use ($client, $name, $username) {
+        $groups = usersAdminGroups($client);
+        if ($groups === null) {
+            return false;
+        }
+        foreach ($groups as $group) {
+            if (strcasecmp($group['group'], $name) !== 0) {
+                continue;
+            }
+            $others = array_values(array_filter($group['users'], fn($member) => strcasecmp($member, $username) !== 0));
+            return count($others) === count($group['users']) || usersAdminSucceeded($client->call('alter-group', ['group' => $group['group'], 'users' => $others]));
+        }
+        return true;
+    });
+}
+
+function usersAdminInstanceMembers(UsersAdminClient $client, bool $create = false, ?array $groups = null): ?array
+{
+    if (usersAdminMembersGroup() === null || !$client->isConfigured()) {
+        return null;
+    }
+    $groups = $groups ?? usersAdminGroups($client);
+    $members = $groups === null ? null : usersAdminMembersOf($groups);
+    if ($create && $groups !== null && $members === null && usersAdminAddMembers($client, [])) {
+        $groups = usersAdminGroups($client);
+        $members = $groups === null ? null : usersAdminMembersOf($groups);
+    }
+    return $members;
+}
+
+function usersAdminIsInstanceUser(string $username, ?UsersAdminClient $client = null): bool
+{
+    $members = usersAdminInstanceMembers($client ?? usersAdminDefaultClient());
+    return $members === null ? usersAdminHasExtension($username) : isset($members[strtolower($username)]);
+}
+
+function usersAdminInstanceError(string $username, array $caller, ?callable $isInstanceUser, ?UsersAdminClient $client = null): ?array
 {
     if (!empty($caller['superadmin']) || strcasecmp($username, (string) ($caller['username'] ?? '')) === 0) {
         return null;
     }
-    return ($isInstanceUser ?? 'usersAdminIsInstanceUser')($username) ? null : usersAdminError(403, 'not_instance_user');
+    return ($isInstanceUser ?? 'usersAdminIsInstanceUser')($username, $client) ? null : usersAdminError(403, 'not_instance_user');
+}
+
+function usersAdminAssignmentError(string $username, array $caller, ?UsersAdminClient $client = null): ?array
+{
+    if (!empty($caller['superadmin'])) {
+        return null;
+    }
+    $members = usersAdminInstanceMembers($client ?? usersAdminDefaultClient(), true);
+    return $members === null || isset($members[strtolower($username)]) ? null : usersAdminError(403, 'not_instance_user');
 }
 
 function usersAdminChangePassword(UsersAdminClient $client, string $username, $body, array $caller, ?callable $isInstanceUser = null): array
@@ -509,7 +678,7 @@ function usersAdminChangePassword(UsersAdminClient $client, string $username, $b
         return usersAdminError(400, 'invalid_request');
     }
     $error = usersAdminTargetError($username, $caller, false)
-        ?? usersAdminInstanceError($username, $caller, $isInstanceUser)
+        ?? usersAdminInstanceError($username, $caller, $isInstanceUser, $client)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
         ?? usersAdminProtectedTargetError($client, $username, $caller);
@@ -575,7 +744,7 @@ function usersAdminUpdateAccount(UsersAdminClient $client, string $username, $bo
     }
     $locking = array_key_exists('locked', $changes);
     $error = usersAdminTargetError($username, $caller, !$locking)
-        ?? usersAdminInstanceError($username, $caller, $isInstanceUser)
+        ?? usersAdminInstanceError($username, $caller, $isInstanceUser, $client)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
         ?? usersAdminProtectedTargetError($client, $username, $caller);
@@ -603,7 +772,7 @@ function usersAdminUpdateAccount(UsersAdminClient $client, string $username, $bo
 function usersAdminDeleteAccount(UsersAdminClient $client, string $username, array $caller, callable $synchronize, ?callable $cleanup = null, ?callable $isInstanceUser = null): array
 {
     $error = usersAdminTargetError($username, $caller, false)
-        ?? usersAdminInstanceError($username, $caller, $isInstanceUser)
+        ?? usersAdminInstanceError($username, $caller, $isInstanceUser, $client)
         ?? usersAdminAvailabilityError($client)
         ?? usersAdminAccountError($client, $username)
         ?? usersAdminProtectedTargetError($client, $username, $caller);
@@ -612,6 +781,9 @@ function usersAdminDeleteAccount(UsersAdminClient $client, string $username, arr
     }
     if (!usersAdminSucceeded($client->call('remove-user', ['user' => $username]))) {
         return usersAdminError(502, 'provider_error');
+    }
+    if (!usersAdminRemoveMember($client, $username)) {
+        error_log('users-admin: cannot remove ' . $username . ' from the members of this NethVoice');
     }
     $synchronized = (bool) $synchronize();
     if ($cleanup === null) {

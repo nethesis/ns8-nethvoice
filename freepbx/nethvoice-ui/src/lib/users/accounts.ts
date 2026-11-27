@@ -26,6 +26,7 @@ export type UserAccount = {
   locked: boolean | null
   domainAdmin: boolean | null
   adminAccess: AdminAccess | null
+  member: boolean | null
 }
 
 export type AccountChanges = {
@@ -85,6 +86,7 @@ const AccountsSchema = v.array(
       v.fallback(v.nullable(v.picklist(['superadmin', 'sections', 'other_instance'])), null),
       null,
     ),
+    member: v.optional(v.nullable(v.boolean()), null),
   }),
 )
 
@@ -105,6 +107,7 @@ export const parseUserAccounts = (raw: unknown): UserAccount[] =>
     locked: account.locked,
     domainAdmin: account.domain_admin,
     adminAccess: account.admin_access,
+    member: account.member,
   }))
 
 export const parseSyncResult = (raw: unknown): boolean | null => {
@@ -201,7 +204,7 @@ export const getAccountRestriction = ({
   if (!isSuperadmin && account?.adminAccess === 'sections') {
     return 'nethvoice_admin'
   }
-  if (!isSuperadmin && mainExtension === '') {
+  if (!isSuperadmin && (account?.member === false || (!account?.member && mainExtension === ''))) {
     return 'not_instance_user'
   }
   return null

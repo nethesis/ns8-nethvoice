@@ -435,17 +435,23 @@ $app->post('/cti/profiles/{id}', function (Request $request, Response $response,
         if (!file_exists(dirname($sharedLock)) || !is_writable(dirname($sharedLock))) {
             throw new Exception('Can\'t acquire lock');
         }
+        $locked = array('message' => 'Another profile change is in progress, retry in a few seconds');
         if (file_exists($sharedLock) && filemtime($sharedLock) > time()-$timeoutSeconds) {
-            return jsonResponse($response, array('message' => 'Another profile change is in progress, retry in a few seconds'), 423);
+            return jsonResponse($response, $locked, 423);
         }
-        if (!touch($sharedLock)) {
-            throw new Exception('Can\'t acquire lock');
+        if (file_exists($sharedLock)) {
+            @unlink($sharedLock);
         }
+        $handle = @fopen($sharedLock, 'x');
+        if ($handle === false) {
+            return jsonResponse($response, $locked, 423);
+        }
+        fclose($handle);
 
         try {
             $res = postCTIProfile($profile,$id);
         } finally {
-            unlink($sharedLock);
+            @unlink($sharedLock);
         }
 
         if ($res) {

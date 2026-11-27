@@ -170,6 +170,9 @@ function deleteCtiUserData($username, $db = null, $revoke = 'revokeMiddlewareUse
             'DELETE FROM user_settings WHERE username = ?' => array($username),
             'DELETE FROM user_nethlink WHERE user = ?' => array($username),
             'DELETE FROM auth WHERE user = ? OR user LIKE ?' => array($username, addcslashes((string) $username, '\\%_') . '\_phone-island\_%'),
+            'DELETE FROM cti_phonebook WHERE owner_id = ? AND type IN (\'private\', \'speeddial\')' => array($username),
+            'DELETE FROM postit WHERE recipient = ?' => array($username),
+            'DELETE FROM caller_note WHERE creator = ? AND public = 0' => array($username),
         );
         foreach ($statements as $sql => $args) {
             $db->prepare($sql)->execute($args);

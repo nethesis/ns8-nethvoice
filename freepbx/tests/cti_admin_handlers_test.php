@@ -344,6 +344,23 @@ $tests['POST /cti/profiles/{id} checks the profile only for limited administrato
     } finally {
         unlink($lock);
     }
+    touch($lock, time() - 60);
+    $created = [];
+    [$status, $body] = call($app, 'POST /cti/profiles/{id}', $userer, ['name' => 'Base'], ['id' => '1']);
+    check($status === 200 && $created === [['name' => 'Base']] && !file_exists($lock), "a stale profile lock must be replaced and released: $status $body");
+    foreach (['directory', 'dangling link'] as $kind) {
+        $kind === 'directory' ? mkdir($lock) : symlink("$lock.missing/contextLock", $lock);
+        if ($kind === 'directory') {
+            touch($lock, time() - 60);
+        }
+        try {
+            $created = [];
+            [$status, $body] = call($app, 'POST /cti/profiles/{id}', $superadmin, ['name' => 'Base'], ['id' => '1']);
+            check($status === 423 && $created === [], "a profile lock ($kind) that cannot be taken must answer 423: $status $body");
+        } finally {
+            $kind === 'directory' ? rmdir($lock) : unlink($lock);
+        }
+    }
 };
 
 $tests['video sources of limited administrators never reach the PBX node'] = function () use ($app, $superadmin, $integrator) {

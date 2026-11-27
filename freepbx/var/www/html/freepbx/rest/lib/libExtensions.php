@@ -851,6 +851,11 @@ function hasMainExtension($user) {
     return is_array($user) && !empty($user['default_extension']) && $user['default_extension'] !== 'none';
 }
 
+function getUserMainExtension($username) {
+    $user = FreePBX::create()->Userman->getUserByUsername($username);
+    return hasMainExtension($user) ? (string) $user['default_extension'] : null;
+}
+
 function mainExtensionReassignRefusal($mainextension, $username, $caller, $client = null) {
     include_once __DIR__ . '/libUsersAdmin.php';
     $caller = array('username' => (string) $caller, 'superadmin' => false);
@@ -866,7 +871,7 @@ function mainExtensionReassignRefusal($mainextension, $username, $caller, $clien
             return $error;
         }
     }
-    return null;
+    return usersAdminAssignmentError((string) $username, $caller, $client);
 }
 
 function reassignMainExtension($mainextension, $username, &$keyLabels = null, $tancredi = null) {
@@ -1047,7 +1052,7 @@ function takeRemovedUserGroups($uid, $username) {
     return is_array($groups) ? $groups : array();
 }
 
-function orphanUserExtensions($uid, $user) {
+function orphanUserExtensions($uid, $user, $lock = true) {
     $dbh = FreePBX::Database();
     $uid = (int) $uid;
     $username = is_array($user) && isset($user['username']) ? trim((string) $user['username']) : '';
@@ -1111,8 +1116,10 @@ function orphanUserExtensions($uid, $user) {
             throw new \RuntimeException('Cannot record the extensions of removed user '.$username);
         }
 
-        foreach (array_keys($secrets) as $extension) {
-            setSipData($extension, 'secret', bin2hex(random_bytes(16)));
+        if ($lock) {
+            foreach (array_keys($secrets) as $extension) {
+                setSipData($extension, 'secret', bin2hex(random_bytes(16)));
+            }
         }
 
         $stmt = $dbh->prepare('DELETE FROM rest_cti_users_groups WHERE user_id = ?');
@@ -1264,7 +1271,11 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
             return [array('message'=>$free ), 422];
         }
     }
+    $groups = array();
     if (is_array($res) && !empty($res['default_extension'])) {
+        $stmt = $dbh->prepare('SELECT group_id FROM rest_cti_users_groups WHERE user_id = ?');
+        $stmt->execute(array($uid));
+        $groups = $stmt->fetchAll(\PDO::FETCH_COLUMN);
         releaseUserExtensions($uid, $res['default_extension']);
         $status = updateUsermanUser($username);
     }
@@ -1309,6 +1320,10 @@ function createMainExtensionForUser($username,$mainextension,$outboundcid='') {
         $fpbx->Core->delDevice($extension);
 
         return [array('message'=>$res['message']), 500];
+    }
+    $stmt = $dbh->prepare('INSERT IGNORE INTO rest_cti_users_groups (user_id, group_id) VALUES (?, ?)');
+    foreach ($groups as $group) {
+        $stmt->execute(array($uid, (int) $group));
     }
     return true;
 }
