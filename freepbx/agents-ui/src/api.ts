@@ -193,6 +193,12 @@ export function errorCode(error: unknown): string {
     ? error.message
     : "request_failed";
 }
+export function errorDetails(error: unknown): {
+  field?: string;
+  current_revision?: number;
+} {
+  return axios.isAxiosError(error) ? error.response?.data || {} : {};
+}
 export function loadErrorCode(
   error: unknown,
   known: (code: string) => boolean = () => false,

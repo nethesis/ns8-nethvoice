@@ -273,6 +273,7 @@ function number(key: string, value: string) {
           min="1"
           max="90"
           :invalid-message="errors?.lookback"
+          :aria-invalid="errors?.lookback ? true : undefined"
           @update:model-value="number('recent_caller_lookback_days', $event)"
         />
       </div>
@@ -331,6 +332,7 @@ function number(key: string, value: string) {
           min="1"
           max="10"
           :invalid-message="errors?.goodbye"
+          :aria-invalid="errors?.goodbye ? true : undefined"
           @update:model-value="number('playback_timeout_seconds', $event)"
         />
       </div>

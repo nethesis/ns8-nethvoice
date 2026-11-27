@@ -26,7 +26,12 @@ import PageHeader from "../components/PageHeader.vue";
 import CounterCard from "../components/CounterCard.vue";
 import AppEmptyState from "../components/AppEmptyState.vue";
 import StatusBadge from "../components/StatusBadge.vue";
-import { duration, formatDateTime, formatDay } from "../monitoring";
+import {
+  duration,
+  formatDateTime,
+  formatDay,
+  runErrorText,
+} from "../monitoring";
 import type {
   Run,
   MonitoringSummary,
@@ -576,23 +581,6 @@ function refresh() {
         />
       </section>
       <section>
-        <NeHeading tag="h5">{{ t("monitoring.performance") }}</NeHeading>
-        <p class="text-muted mt-1 mb-3 max-w-2xl">
-          {{ t("monitoring.percentiles") }}
-        </p>
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-          <CounterCard
-            v-for="metric in performance"
-            :key="metric.id"
-            :title="metric.label"
-            :value="metric.value"
-            :icon="metric.icon"
-            :note="metric.note"
-            :tooltip="metric.tooltip"
-          />
-        </div>
-      </section>
-      <section>
         <NeHeading tag="h5" class="mb-3">{{ t("monitoring.daily") }}</NeHeading>
         <AppEmptyState v-if="!days.length" :title="t('noResults')" />
         <NeTable
@@ -635,48 +623,75 @@ function refresh() {
           </NeTableBody>
         </NeTable>
       </section>
-      <div class="grid grid-cols-1 gap-6 2xl:grid-cols-2">
-        <section
-          v-for="table in performanceTables"
-          :key="table.id"
-          class="min-w-0"
-        >
-          <NeHeading tag="h5" class="mb-3">{{ table.title }}</NeHeading>
-          <AppEmptyState v-if="!table.rows.length" :title="t('noResults')" />
-          <NeTable v-else :aria-label="table.title" card-breakpoint="xl">
-            <NeTableHead>
-              <NeTableHeadCell>{{ t("name") }}</NeTableHeadCell>
-              <NeTableHeadCell>{{ table.countLabel }}</NeTableHeadCell>
-              <NeTableHeadCell>{{
-                t("monitoring.columns.failed")
-              }}</NeTableHeadCell>
-              <NeTableHeadCell>p50</NeTableHeadCell>
-              <NeTableHeadCell>p95</NeTableHeadCell>
-            </NeTableHead>
-            <NeTableBody>
-              <NeTableRow v-for="row in table.rows" :key="row.id">
-                <NeTableCell :data-label="t('name')"
-                  ><span class="text-primary-neutral">{{
-                    row.name
-                  }}</span></NeTableCell
-                >
-                <NeTableCell :data-label="table.countLabel">{{
-                  row.count
-                }}</NeTableCell>
-                <NeTableCell :data-label="t('monitoring.columns.failed')"
-                  ><StatusBadge
-                    v-if="row.failed"
-                    status="failed"
-                    :label="String(row.failed)"
-                  /><template v-else>0</template></NeTableCell
-                >
-                <NeTableCell data-label="p50">{{ row.p50 }}</NeTableCell>
-                <NeTableCell data-label="p95">{{ row.p95 }}</NeTableCell>
-              </NeTableRow>
-            </NeTableBody>
-          </NeTable>
-        </section>
-      </div>
+      <details class="border-divider rounded-lg border p-4">
+        <summary class="cursor-pointer font-medium">
+          {{ t("monitoring.performanceDiagnostics") }}
+        </summary>
+        <div class="mt-4 grid gap-6">
+          <section>
+            <NeHeading tag="h5">{{ t("monitoring.performance") }}</NeHeading>
+            <p class="text-muted mt-1 mb-3 max-w-2xl">
+              {{ t("monitoring.percentiles") }}
+            </p>
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+              <CounterCard
+                v-for="metric in performance"
+                :key="metric.id"
+                :title="metric.label"
+                :value="metric.value"
+                :icon="metric.icon"
+                :note="metric.note"
+                :tooltip="metric.tooltip"
+              />
+            </div>
+          </section>
+          <div class="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+            <section
+              v-for="table in performanceTables"
+              :key="table.id"
+              class="min-w-0"
+            >
+              <NeHeading tag="h5" class="mb-3">{{ table.title }}</NeHeading>
+              <AppEmptyState
+                v-if="!table.rows.length"
+                :title="t('noResults')"
+              />
+              <NeTable v-else :aria-label="table.title" card-breakpoint="xl">
+                <NeTableHead>
+                  <NeTableHeadCell>{{ t("name") }}</NeTableHeadCell>
+                  <NeTableHeadCell>{{ table.countLabel }}</NeTableHeadCell>
+                  <NeTableHeadCell>{{
+                    t("monitoring.columns.failed")
+                  }}</NeTableHeadCell>
+                  <NeTableHeadCell>p50</NeTableHeadCell>
+                  <NeTableHeadCell>p95</NeTableHeadCell>
+                </NeTableHead>
+                <NeTableBody>
+                  <NeTableRow v-for="row in table.rows" :key="row.id">
+                    <NeTableCell :data-label="t('name')"
+                      ><span class="text-primary-neutral">{{
+                        row.name
+                      }}</span></NeTableCell
+                    >
+                    <NeTableCell :data-label="table.countLabel">{{
+                      row.count
+                    }}</NeTableCell>
+                    <NeTableCell :data-label="t('monitoring.columns.failed')"
+                      ><StatusBadge
+                        v-if="row.failed"
+                        status="failed"
+                        :label="String(row.failed)"
+                      /><template v-else>0</template></NeTableCell
+                    >
+                    <NeTableCell data-label="p50">{{ row.p50 }}</NeTableCell>
+                    <NeTableCell data-label="p95">{{ row.p95 }}</NeTableCell>
+                  </NeTableRow>
+                </NeTableBody>
+              </NeTable>
+            </section>
+          </div>
+        </div>
+      </details>
     </template>
     <section>
       <NeHeading tag="h5" class="mb-3">{{ t("monitoring.runs") }}</NeHeading>
@@ -713,13 +728,15 @@ function refresh() {
         v-else
         :aria-label="t('monitoring.runs')"
         :loading="runs.isLoading.value"
-        :skeleton-columns="5"
+        :skeleton-columns="7"
         :skeleton-rows="5"
         card-breakpoint="xl"
       >
         <NeTableHead>
           <NeTableHeadCell>{{ t("agentColumn") }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t("startedAt") }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ t("monitoring.callerNumber") }}</NeTableHeadCell>
+          <NeTableHeadCell>{{ t("monitoring.calledNumber") }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t("outcome") }}</NeTableHeadCell>
           <NeTableHeadCell>{{ t("monitoring.duration") }}</NeTableHeadCell>
           <NeTableHeadCell />
@@ -739,11 +756,17 @@ function refresh() {
                 formatDateTime(run.started_at, String(locale))
               }}</span></NeTableCell
             >
+            <NeTableCell :data-label="t('monitoring.callerNumber')"
+              ><span>{{ run.caller_number || "—" }}</span></NeTableCell
+            >
+            <NeTableCell :data-label="t('monitoring.calledNumber')"
+              ><span>{{ run.called_number || "—" }}</span></NeTableCell
+            >
             <NeTableCell :data-label="t('outcome')"
               ><div class="flex flex-wrap items-center gap-2">
                 <StatusBadge :status="run.outcome" /><span
                   v-if="run.error_code"
-                  >{{ run.error_code }}</span
+                  >{{ runErrorText(run.error_code, t, te, false) }}</span
                 ><NeBadgeV2 v-if="run.incomplete" kind="amber" size="xs">{{
                   t("monitoring.incomplete")
                 }}</NeBadgeV2>

@@ -46,7 +46,7 @@ test("routing editor uses permitted destinations, routing descriptions and publi
       const items=[{id:"extension:203",type:"extension",name:"Alice",available:true,permitted:false}, {id:"queue:600",type:"queue",name:"Customer Support",available:true,permitted:false},{id:"ivr:7",type:"ivr",name:"Main menu",available:true,permitted:false}].filter(row=>!type||row.type===type);
       await route.fulfill({json:{items,next_offset:null,total:items.length,modules:{extension:true,queue:true,ivr:true},unavailable_ids:[]}});return;
     }
-    await route.fulfill({json:path==="/access"?{csrf:"synthetic-csrf"}:path==="/catalog"?catalog:path==="/trunks"?{items:[]}:agent});
+    await route.fulfill({json:path==="/access"?{csrf:"synthetic-csrf"}:path==="/catalog"?catalog:path==="/trunks"?{items:[]}:path==="/profiles"?{items:[agent]}:agent});
   });
   await page.goto("./#/agents/receptionist");
   const save=page.getByRole("button",{name:"Save draft",exact:true});
@@ -85,6 +85,8 @@ test("routing editor uses permitted destinations, routing descriptions and publi
   expect(config.descriptions).toEqual([{destination_id:"extension:203",description:"He is a very cool guy"},{destination_id:"queue:600",description:"Technical support team"}]);
   await page.screenshot({path:"/tmp/voice-agent-routing-editor.png",fullPage:true});
   await publish.click();
+  await expect(page).toHaveURL(/#\/agents$/);
+  await page.getByRole("link",{name:"Receptionist",exact:true}).click();
   await expect(page.getByText("Published version 5",{exact:true})).toBeVisible();
   await expect(publish).toBeDisabled();
   await page.getByLabel("Name",{exact:true}).fill("Receptionist changed");

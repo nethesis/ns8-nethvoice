@@ -47,6 +47,16 @@ const en = {
     },
   },
   trunkForm: {
+    projectOptional: "GPT-Live can run without a project ID.",
+    integrationKeyMissing: "Configure the API key in NethVoice integrations.",
+    verificationIncomplete: "Credential verification incomplete",
+    verificationUnavailable:
+      "The provider check did not complete. Retry the check or save without verification.",
+    verificationRestricted:
+      "This API key lacks permission to read the provider catalog. Update its permissions or save without verification.",
+    retryCredentialCheck: "Retry credential check",
+    saveWithoutVerification: "Save without verification",
+    credentialCheckPassed: "Credential verified.",
     providerLocked:
       "The provider cannot be changed after the trunk is created.",
     cleverAiTitle: "Webhook configured in OpenAI",
@@ -113,6 +123,19 @@ const en = {
       "In seconds. Time allowed for the goodbye message before the call ends.",
   },
   agentForm: {
+    createSteps: "Agent creation steps",
+    stepGeneral: "General",
+    stepConversation: "Conversation",
+    nextStep: "Next",
+    previousStep: "Back",
+    keepEditing: "Keep editing",
+    discardChanges: "Discard changes",
+    unsavedCreateHelp:
+      "Save a draft to continue later, or discard your changes.",
+    conflictHelp:
+      "Save your edits on top of the latest settings, or discard them and open the saved version.",
+    saveMyChanges: "Save my changes",
+    discardMyChanges: "Discard my changes",
     createHelp:
       "Configure the agent, save it as a draft and publish it. Then choose when to call the agent in VisualPlan.",
     published: "Version {published} is published.",
@@ -243,10 +266,24 @@ const en = {
   kind: "Type",
   state: "Status",
   actions: "Actions",
-  agentsHelp:
-    "Configure AI voice agents and publish them to use in VisualPlan routes.",
+  agentsHelp: "Configure and publish AI voice agents to answer inbound calls.",
   newAgent: "Create agent",
-  openVisualplan: "Open VisualPlan",
+  inboundRoutes: "Inbound routes",
+  agentSetup: {
+    title: "Set up inbound calls",
+    trunk: "Create a provider trunk to connect the agent.",
+    selectTrunk: "Select a provider trunk for {name}.",
+    trunkReady: "Check the status of the provider trunk for {name}.",
+    credentials: "Add the provider credentials for {name}.",
+    webhook: "Configure the provider webhook for {name}.",
+    agent: "Create an agent to answer inbound calls.",
+    publish: "Complete and publish {name}.",
+    agentReady: "Check the publication status of {name}.",
+    webhookCall:
+      "Add {name} to an inbound route and place a call to verify the webhook.",
+    route: "Add {name} to an inbound route.",
+    routeUnknown: "Could not check whether {name} is used in an inbound route.",
+  },
   defaultLanguage: "Default language",
   voiceCatalogError: "Cannot load provider voices. Retry before publishing.",
   voiceName: "Voice",
@@ -353,6 +390,8 @@ const en = {
     modified: "Modified",
   },
   error: {
+    provider_project_unverified:
+      "Check the OpenAI project ID and make sure the API key can access it.",
     provider_catalog_unavailable:
       "The provider is unavailable. Retry the credential test.",
     provider_permission_denied: "This key lacks permission to list models.",
@@ -494,6 +533,19 @@ const en = {
   retrySync: "Retry synchronization",
   maxDuration: "Maximum call duration",
   greeting: "Greeting",
+  advancedOptions: "Advanced",
+  invalidAgentField: "Check this value",
+  modelOptionLabels: {
+    none: "None",
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    xhigh: "Very high",
+    auto: "Automatic",
+    default: "Default",
+    flex: "Flex",
+    priority: "Priority",
+  },
   toolGrantsHelp:
     "Actions the agent can perform during a call. Each agent has its own tools. Disabled tools keep their settings.",
   trunks: "Provider trunks",
@@ -626,7 +678,12 @@ const en = {
     deliveryWarning:
       "The runtime reported a monitoring problem or a PBX disconnection. Some calls may have incomplete traces.",
     performance: "Call performance",
-    duration: "Duration",
+    duration: "Call duration",
+    callerNumber: "Caller number",
+    calledNumber: "Called number",
+    unknownCallError: "The call reported an error",
+    runId: "Run ID",
+    performanceDiagnostics: "Performance diagnostics",
     phases: "Call phases",
     tools: "Tool performance",
     samples: "Samples",
@@ -634,10 +691,10 @@ const en = {
     delivery: "Monitoring delivery",
     healthKeys: {
       active_calls: "Active calls",
-      spool_writable: "Spool",
+      spool_writable: "Write queue",
       queue_depth: "Pending events",
       oldest_pending_seconds: "Oldest pending event",
-      dropped: "Dropped observations",
+      dropped: "Lost events",
       retries: "Write retries",
       last_write_at: "Last successful write",
     },
@@ -648,7 +705,7 @@ const en = {
       "Provider output is a reported signal; it does not confirm that audio reached the caller.",
     daily: "Daily outcomes",
     runs: "Runs",
-    search: "Filter by agent or run ID",
+    search: "Search by phone number, agent or run ID",
     timeline: "Call timeline",
     loadMore: "Load more events",
     partialTrace: "Incomplete trace",
@@ -660,12 +717,12 @@ const en = {
     usageUnavailable: "Usage was not reported or is unavailable.",
     usagePartial: "Partial usage: final provider accounting was not confirmed.",
     metrics: {
-      run_duration: "Runtime duration",
+      run_duration: "Call duration",
       setup_duration: "Time to media connection",
       first_output: "Time to provider output",
     },
     runMetrics: {
-      duration_ms: "Runtime duration",
+      duration_ms: "Call duration",
       setup_duration_ms: "Time to media connection",
       first_output_ms: "Time to provider output",
     },
@@ -869,6 +926,17 @@ const it: typeof en = {
     },
   },
   trunkForm: {
+    projectOptional: "GPT-Live può funzionare senza un ID progetto.",
+    integrationKeyMissing:
+      "Configura la chiave API nelle integrazioni NethVoice.",
+    verificationIncomplete: "Verifica della credenziale incompleta",
+    verificationUnavailable:
+      "Non è stato possibile completare la verifica con il provider. Riprova o salva senza verifica.",
+    verificationRestricted:
+      "La chiave API non ha i permessi per leggere il catalogo del provider. Aggiorna i permessi o salva senza verifica.",
+    retryCredentialCheck: "Riprova la verifica",
+    saveWithoutVerification: "Salva senza verifica",
+    credentialCheckPassed: "Credenziale verificata.",
     providerLocked:
       "Il provider non può essere modificato dopo la creazione del trunk.",
     cleverAiTitle: "Webhook configurato in OpenAI",
@@ -935,6 +1003,19 @@ const it: typeof en = {
       "In secondi. Tempo concesso al messaggio di congedo prima che la chiamata termini.",
   },
   agentForm: {
+    createSteps: "Passaggi per la creazione dell’agente",
+    stepGeneral: "Generale",
+    stepConversation: "Conversazione",
+    nextStep: "Avanti",
+    previousStep: "Indietro",
+    keepEditing: "Continua a modificare",
+    discardChanges: "Scarta modifiche",
+    unsavedCreateHelp:
+      "Salva una bozza per continuare in seguito oppure scarta le modifiche.",
+    conflictHelp:
+      "Salva le tue modifiche applicandole alle ultime impostazioni oppure scartale e apri la versione salvata.",
+    saveMyChanges: "Salva le mie modifiche",
+    discardMyChanges: "Scarta le mie modifiche",
     createHelp:
       "Configura l'agente, salvalo come bozza e pubblicalo. Poi scegli quando chiamarlo in VisualPlan.",
     published: "La versione {published} è pubblicata.",
@@ -1069,16 +1150,32 @@ const it: typeof en = {
   state: "Stato",
   actions: "Azioni",
   agentsHelp:
-    "Configura gli agenti vocali AI e pubblicali per usarli nelle rotte di VisualPlan.",
+    "Configura e pubblica gli agenti vocali AI per rispondere alle chiamate in entrata.",
   newAgent: "Crea agente",
-  openVisualplan: "Apri VisualPlan",
+  inboundRoutes: "Rotte in entrata",
+  agentSetup: {
+    title: "Configura le chiamate in entrata",
+    trunk: "Crea un trunk del provider per collegare l’agente.",
+    selectTrunk: "Seleziona un trunk del provider per {name}.",
+    trunkReady: "Controlla lo stato del trunk del provider per {name}.",
+    credentials: "Aggiungi le credenziali del provider per {name}.",
+    webhook: "Configura il webhook del provider per {name}.",
+    agent: "Crea un agente per rispondere alle chiamate in entrata.",
+    publish: "Completa e pubblica {name}.",
+    agentReady: "Controlla lo stato di pubblicazione di {name}.",
+    webhookCall:
+      "Aggiungi {name} a una rotta in entrata ed effettua una chiamata per verificare il webhook.",
+    route: "Aggiungi {name} a una rotta in entrata.",
+    routeUnknown:
+      "Impossibile verificare se {name} è usato in una rotta in entrata.",
+  },
   defaultLanguage: "Lingua predefinita",
   voiceCatalogError:
     "Impossibile caricare le voci del provider. Riprova prima di pubblicare.",
   voiceName: "Voce",
   provider: "Provider vocale",
-  instructions: "Istruzioni di conversazione",
-  fallback: "Destinazione alternativa",
+  instructions: "Istruzioni per la conversazione",
+  fallback: "Destinazione di riserva",
   catalog: "Apri catalogo",
   version: "Versione pubblicata",
   draft: "Bozza",
@@ -1155,7 +1252,7 @@ const it: typeof en = {
     unconfigured: "Da configurare",
     completed: "Completata",
     handed_off: "Trasferita",
-    fallback: "Destinazione alternativa",
+    fallback: "Destinazione di riserva",
     failed: "Fallita",
     interrupted: "Interrotta",
     unknown: "Sconosciuta",
@@ -1179,6 +1276,8 @@ const it: typeof en = {
     modified: "Modificato",
   },
   error: {
+    provider_project_unverified:
+      "Controlla l’ID progetto OpenAI e verifica che la chiave API possa accedervi.",
     provider_catalog_unavailable:
       "Il provider non è disponibile. Riprova a verificare la credenziale.",
     provider_permission_denied:
@@ -1320,6 +1419,19 @@ const it: typeof en = {
   retrySync: "Riprova sincronizzazione",
   maxDuration: "Durata massima chiamata",
   greeting: "Saluto iniziale",
+  advancedOptions: "Avanzate",
+  invalidAgentField: "Controlla questo valore",
+  modelOptionLabels: {
+    none: "Nessuno",
+    low: "Basso",
+    medium: "Medio",
+    high: "Alto",
+    xhigh: "Molto alto",
+    auto: "Automatico",
+    default: "Predefinito",
+    flex: "Flex",
+    priority: "Prioritario",
+  },
   toolGrantsHelp:
     "Azioni che l'agente può eseguire durante una chiamata. Ogni agente ha i propri strumenti. Gli strumenti disattivati mantengono le impostazioni.",
   trunks: "Trunk dei provider",
@@ -1358,7 +1470,7 @@ const it: typeof en = {
   runOutcomes: {
     running: "In corso",
     completed: "Completata",
-    fallback: "Destinazione alternativa",
+    fallback: "Destinazione di riserva",
     failed: "Fallita",
     interrupted: "Interrotta",
     transferred: "Trasferita",
@@ -1384,7 +1496,7 @@ const it: typeof en = {
     media_connected: "Audio connesso",
     response_completed: "Risposta completata",
     completed: "Chiamata completata",
-    fallback: "Fallback eseguito",
+    fallback: "Inoltrata alla destinazione di riserva",
     failed: "Chiamata fallita",
     interrupted: "Chiamata interrotta",
     tool_denied: "Strumento negato",
@@ -1420,7 +1532,7 @@ const it: typeof en = {
     columns: {
       completed: "Completate",
       transferred: "Trasferite",
-      fallback: "Destinazione alternativa",
+      fallback: "Destinazione di riserva",
       interrupted: "Interrotte",
       ended_by_agent: "Terminate dall'agente",
       failed: "Fallite",
@@ -1452,7 +1564,12 @@ const it: typeof en = {
     deliveryWarning:
       "Il servizio degli agenti ha segnalato un problema di monitoraggio o una disconnessione dal PBX. Alcune chiamate potrebbero avere tracce incomplete.",
     performance: "Prestazioni delle chiamate",
-    duration: "Durata",
+    duration: "Durata della chiamata",
+    callerNumber: "Numero chiamante",
+    calledNumber: "Numero chiamato",
+    unknownCallError: "Si è verificato un errore durante la chiamata",
+    runId: "ID esecuzione",
+    performanceDiagnostics: "Diagnostica delle prestazioni",
     phases: "Fasi della chiamata",
     tools: "Prestazioni degli strumenti",
     samples: "Campioni",
@@ -1460,10 +1577,10 @@ const it: typeof en = {
     delivery: "Consegna dati di monitoraggio",
     healthKeys: {
       active_calls: "Chiamate attive",
-      spool_writable: "Spool",
+      spool_writable: "Coda di scrittura",
       queue_depth: "Eventi in attesa",
       oldest_pending_seconds: "Evento in attesa più vecchio",
-      dropped: "Misure perse",
+      dropped: "Eventi persi",
       retries: "Tentativi di scrittura",
       last_write_at: "Ultima scrittura riuscita",
     },
@@ -1474,7 +1591,7 @@ const it: typeof en = {
       "L'uscita audio del provider è un segnale riportato; non conferma che l'audio sia arrivato al chiamante.",
     daily: "Esiti giornalieri",
     runs: "Esecuzioni",
-    search: "Filtra per agente o ID esecuzione",
+    search: "Cerca per numero di telefono, agente o ID esecuzione",
     timeline: "Cronologia della chiamata",
     loadMore: "Carica altri eventi",
     partialTrace: "Traccia incompleta",
@@ -1504,7 +1621,7 @@ const it: typeof en = {
       webhook_wait: "Attesa webhook provider",
       routing_context: "Preparazione contesto instradamento",
       provider_accept: "Accettazione provider",
-      provider_sideband: "Connessione di controllo del provider",
+      provider_sideband: "Connessione di controllo al provider",
       provider_answer: "Risposta provider",
       media_bridge: "Connessione bridge audio",
       media_prepare: "Preparazione audio WebSocket",
@@ -1515,7 +1632,7 @@ const it: typeof en = {
       response: "Risposta del provider",
       tool: "Esecuzione strumento",
       transfer: "Trasferimento nativo",
-      fallback: "Destinazione alternativa",
+      fallback: "Destinazione di riserva",
       cleanup: "Pulizia",
     },
     runErrors: {

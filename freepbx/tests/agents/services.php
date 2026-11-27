@@ -136,6 +136,14 @@ $retried=$service->get('receptionist');
 check($retried['routable'],'retry_routable');
 check($retried['enabled'],'published_stays_active');
 check($db->query("SELECT COUNT(*) FROM asterisk.voice_agent_audit WHERE action='native_sync_failed'")->fetchColumn()===1,'retry_audited');
+// A native sync audit at the same revision does not turn a route-only save into a conflict.
+try {
+    $service->save('receptionist',['name'=>$published['name'],'draft'=>$published['draft']],$published['revision'],'test-admin');
+    check(false,'stale_route_revision_rejected');
+} catch (\NethVoice\Agents\FieldError $error) {
+    check($error->getMessage()==='revision_conflict' && $error->field==='draft.fallback_destination_id' &&
+        $error->currentRevision===$retried['revision'],'route_only_revision_identified');
+}
 $agent=$service->get('receptionist');
 $originalInstructions=$agent['published']['conversation']['instructions'];
 $unpublished=$agent['draft'];$unpublished['conversation']['instructions']='Do not publish this draft from VisualPlan';
@@ -145,6 +153,13 @@ $agent=$service->get('receptionist');
 check($agent['published']['fallback_destination_id']==='native:ivr-7,s,1','native_fallback_published');
 check($agent['published']['conversation']['instructions']===$originalInstructions,'fallback_does_not_publish_draft');
 check($agent['draft']['conversation']['instructions']===$unpublished['conversation']['instructions'],'draft_preserved');
+try {
+    $service->publish('receptionist',$retried['revision'],'test-admin');
+    check(false,'mixed_revision_rejected');
+} catch (\RuntimeException $error) {
+    check($error->getMessage()==='revision_conflict' && !$error instanceof \NethVoice\Agents\FieldError,'mixed_revision_requires_confirmation');
+}
+
 $native->exists=false;
 check(!$service->get('receptionist')['routable'],'native_drift_not_routable');
 check($service->trunks()[0]['sync_status']==='synced','native_drift_does_not_report_reload_failure');

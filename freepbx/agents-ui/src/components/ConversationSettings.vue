@@ -18,8 +18,9 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{
   "update:modelValue": [value: Draft["conversation"]];
+  defaultModel: [value: Draft["conversation"]];
 }>();
-const { t } = useI18n();
+const { t, te } = useI18n();
 const models = useQuery({
   queryKey: [
     "conversation-models",
@@ -112,17 +113,19 @@ const voiceHelper = computed(() =>
       })
     : "",
 );
-function chooseModel(value: string) {
+function chooseModel(value: string, defaultModel = false) {
   const item = models.data.value?.items.find((item) => item.id === value);
   if (!item || value === props.modelValue.model) return;
-  emit("update:modelValue", {
+  const conversation = {
     ...props.modelValue,
     model: value,
     options: JSON.parse(JSON.stringify(item.defaults)),
     voice: item.voices.some((item) => item.id === props.modelValue.voice)
       ? props.modelValue.voice
       : "",
-  });
+  };
+  if (defaultModel) emit("defaultModel", conversation);
+  else emit("update:modelValue", conversation);
 }
 watch(
   () => models.data.value,
@@ -133,7 +136,7 @@ watch(
       props.modelValue.model === null &&
       value.items.some((item) => item.id === value.default_model)
     )
-      chooseModel(value.default_model);
+      chooseModel(value.default_model, true);
   },
   { immediate: true },
 );
@@ -161,7 +164,12 @@ function choices(key: string, values: string[]) {
   const available =
     key === "backend_model"
       ? models.data.value?.backend_models || []
-      : values.map((id) => ({ id, label: id }));
+      : values.map((id) => ({
+          id,
+          label: te("modelOptionLabels." + id)
+            ? t("modelOptionLabels." + id)
+            : id,
+        }));
   const saved = props.modelValue.options?.[key];
   return [
     ...available,
@@ -250,60 +258,75 @@ function choices(key: string, values: string[]) {
       kind="error"
       :title="t('voiceCatalogError')"
     />
-    <div
+    <details
       v-if="selected?.adapter === 'live' || selected?.options_schema.properties"
-      class="border-divider bg-elevation-1 grid grid-cols-1 gap-6 rounded-lg border p-4 lg:col-span-2 lg:grid-cols-2"
+      :open="
+        errors?.backend_model ||
+        Object.keys(advancedFields).some((key) => errors?.[key])
+          ? true
+          : undefined
+      "
+      class="border-divider rounded-lg border p-4 lg:col-span-2"
     >
-      <FieldCombobox
-        v-if="selected?.adapter === 'live'"
-        class="lg:col-span-2"
-        :model-value="String(modelValue.options?.backend_model ?? '')"
-        :label="t('backendModel')"
-        :options="
-          choices(
-            'backend_model',
-            selected.options_schema.properties?.backend_model?.enum || [],
-          )
-        "
-        :helper-text="t('companionModelHelp')"
-        @update:model-value="setOption('backend_model', $event)"
-      />
-      <template v-if="selected?.options_schema.properties">
-        <p class="text-muted lg:col-span-2">
-          {{ t("liveBackendHelp") }}
-        </p>
-        <div
-          v-for="(field, key) in advancedFields"
-          :key="key"
-          :class="{ 'lg:col-span-2': field['x-control'] === 'textarea' }"
-        >
-          <FieldCombobox
-            v-if="field.enum"
-            :model-value="String(modelValue.options?.[key] ?? '')"
-            :label="t(field.title)"
-            :options="choices(String(key), field.enum)"
-            @update:model-value="setOption(String(key), $event)"
-          />
-          <NeTextArea
-            v-else-if="field['x-control'] === 'textarea'"
-            :model-value="String(modelValue.options?.[key] ?? '')"
-            :label="t(field.title)"
-            :maxlength="field.maxLength"
-            :invalid-message="errors?.[key]"
-            @update:model-value="setOption(String(key), $event)"
-          />
-          <NeTextInput
-            v-else-if="field.type === 'integer'"
-            :model-value="String(modelValue.options?.[key] ?? '')"
-            :label="t(field.title)"
-            type="number"
-            :min="field.minimum"
-            :invalid-message="errors?.[key]"
-            :max="field.maximum"
-            @update:model-value="setOption(String(key), Number($event))"
-          />
-        </div>
-      </template>
-    </div>
+      <summary class="cursor-pointer font-medium">
+        {{ t("advancedOptions") }}
+      </summary>
+      <div class="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <FieldCombobox
+          v-if="selected?.adapter === 'live'"
+          class="lg:col-span-2"
+          :model-value="String(modelValue.options?.backend_model ?? '')"
+          :label="t('backendModel')"
+          :options="
+            choices(
+              'backend_model',
+              selected.options_schema.properties?.backend_model?.enum || [],
+            )
+          "
+          :helper-text="t('companionModelHelp')"
+          :invalid-message="errors?.backend_model"
+          @update:model-value="setOption('backend_model', $event)"
+        />
+        <template v-if="selected?.options_schema.properties">
+          <p class="text-muted lg:col-span-2">
+            {{ t("liveBackendHelp") }}
+          </p>
+          <div
+            v-for="(field, key) in advancedFields"
+            :key="key"
+            :class="{ 'lg:col-span-2': field['x-control'] === 'textarea' }"
+          >
+            <FieldCombobox
+              v-if="field.enum"
+              :model-value="String(modelValue.options?.[key] ?? '')"
+              :label="t(field.title)"
+              :options="choices(String(key), field.enum)"
+              :invalid-message="errors?.[key]"
+              @update:model-value="setOption(String(key), $event)"
+            />
+            <NeTextArea
+              v-else-if="field['x-control'] === 'textarea'"
+              :model-value="String(modelValue.options?.[key] ?? '')"
+              :label="t(field.title)"
+              :maxlength="field.maxLength"
+              :invalid-message="errors?.[key]"
+              :aria-invalid="errors?.[key] ? true : undefined"
+              @update:model-value="setOption(String(key), $event)"
+            />
+            <NeTextInput
+              v-else-if="field.type === 'integer'"
+              :model-value="String(modelValue.options?.[key] ?? '')"
+              :label="t(field.title)"
+              type="number"
+              :min="field.minimum"
+              :invalid-message="errors?.[key]"
+              :aria-invalid="errors?.[key] ? true : undefined"
+              :max="field.maximum"
+              @update:model-value="setOption(String(key), Number($event))"
+            />
+          </div>
+        </template>
+      </div>
+    </details>
   </div>
 </template>

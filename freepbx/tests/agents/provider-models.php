@@ -19,6 +19,20 @@ ensure($fallback['source']==='adapter_catalog' && $fallback['discovery_error']==
 ensure(!str_contains(json_encode($fallback),'sensitive'),'safe_failure');
 $managed=$catalog->models('grok','synthetic-key');
 ensure($managed['selection']==='provider_managed' && array_column($managed['items'],'id')===['provider-default'],'sip_model_is_provider_managed');
+ensure(!isset($managed['credential_verified']),'static_model_list_does_not_verify_grok_key');
+try { $catalog->models('grok','',true); throw new LogicException('missing_grok_credentials_accepted'); }
+catch (RuntimeException $error) { ensure($error->getMessage()==='provider_credentials_unavailable','fresh_grok_check_requires_key'); }
+$decodeGrok = new ReflectionMethod(ProviderCatalog::class, 'grokVoicesResponse');
+foreach ([
+    [false,401,'provider_catalog_unavailable'],
+    [true,401,'provider_credentials_rejected'],
+    [true,403,'provider_permission_denied'],
+    [true,503,'provider_catalog_unavailable'],
+] as [$received,$status,$reason]) {
+    try { $decodeGrok->invoke(null,$received,$status,''); throw new LogicException('failed_response_accepted'); }
+    catch (RuntimeException $error) { ensure($error->getMessage()===$reason,'grok_credential_check_reason'); }
+}
+ensure($decodeGrok->invoke(null,true,200,'{"voices":[{"voice_id":"eve","name":"Eve"}]}')['items']===[['id'=>'eve','label'=>'Eve']],'authenticated_grok_voice_catalog');
 $rejected=new ProviderCatalog(fn()=>throw new RuntimeException('provider_credentials_rejected',422));
 try { $rejected->models('openai','synthetic-key');throw new LogicException('credentials_accepted'); }
 catch (RuntimeException $error) { ensure($error->getMessage()==='provider_credentials_rejected','rejected_credentials_are_not_fallback'); }
@@ -55,7 +69,8 @@ $checked=new ProviderCatalog(function($provider,$key,$project) {
     ensure($provider==='openai' && $key==='synthetic-key' && $project==='proj_verified','project_forwarded');
     return ['data'=>[]];
 });
-ensure($checked->models('openai','synthetic-key',true,'proj_verified')['project_checked']===true,'scoped_request_succeeded');
+$testResult=$checked->models('openai','synthetic-key',true,'proj_verified');
+ensure($testResult['project_checked']===true && $testResult['credential_verified']===true,'catalog_access_verified_without_selectable_models');
 try { $checked->models('openai','synthetic-key',true,"proj_invalid\r\nheader"); assert(false); }
 catch (RuntimeException $error) { ensure($error->getMessage()==='invalid_provider_configuration','invalid_project_rejected_before_request'); }
 echo "Provider model catalogs passed\n";

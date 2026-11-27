@@ -40,6 +40,7 @@ export interface Agent extends JsonObject {
   draft_version: number | null;
   sync_status: string;
   routable: boolean;
+  inbound_route_in_use?: boolean | null;
   draft: Draft | CleverAiConfiguration;
   published: (Draft & { workflow_version: number }) | null;
 }
@@ -49,6 +50,7 @@ export interface Trunk extends JsonObject {
   provider: string;
   revision: number;
   sync_status: string;
+  native_ready?: boolean;
   openai_project_id?: string;
   grok_phone_number?: string;
   sip_auth_mode?: string;
@@ -56,6 +58,7 @@ export interface Trunk extends JsonObject {
   api_key_configured: boolean;
   api_key_source: "stored" | "environment" | "missing";
   webhook_secret_configured: boolean;
+  webhook_verified?: boolean;
   webhook_status?: string;
 }
 export interface Catalog {
@@ -111,6 +114,8 @@ export interface ModelCatalog {
 }
 export interface Run extends JsonObject {
   published_by?: string | null;
+  caller_number?: string | null;
+  called_number?: string | null;
   call_record_url?: string | null;
   run_id: string;
   parent_run_id?: string | null;

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, onUnmounted } from "vue";
+import { computed, nextTick, ref, watch, onMounted, onUnmounted } from "vue";
 import {
   useRoute,
   useRouter,
@@ -15,6 +15,8 @@ import {
   NeSkeleton,
   NeToggle,
   NeBadgeV2,
+  NeModal,
+  NeSideDrawer,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
 import { useLoadError } from "../composables/useLoadError";
@@ -23,10 +25,12 @@ import {
   queryClient,
   auth,
   errorCode,
+  errorDetails,
   draftRecoveryKey,
 } from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
+import { mergeAgentEdits, type AgentEdits } from "../agentEdits";
 import { agentStatus } from "../agentStatus";
 import PageHeader from "../components/PageHeader.vue";
 import SettingsSection from "../components/SettingsSection.vue";
@@ -42,7 +46,7 @@ import type {
   Trunk,
   CleverAiConfiguration,
 } from "../types";
-const { t } = useI18n();
+const { t, te } = useI18n();
 const loadError = useLoadError();
 const route = useRoute(),
   router = useRouter(),
@@ -52,10 +56,26 @@ const id = computed(() => String(route.params.id || ""));
 const record = ref<Agent>();
 const agentId = computed(() => id.value || record.value?.agent_id || "");
 const creating = computed(() => !agentId.value);
+const step = ref(0);
+const cancelDialog = ref(false);
 const name = ref("");
 const agentType = ref("basic_voice");
 const external = computed(() => agentType.value === "cleverai");
 const internal = computed(() => agentType.value === "consultation");
+const stepped = computed(
+  () => creating.value && !external.value && !internal.value,
+);
+const steps = ["agentForm.stepGeneral", "agentForm.stepConversation", "tools"];
+const drawerProps = computed(() =>
+  stepped.value
+    ? {
+        isShown: true,
+        title: t("newAgent"),
+        closeAriaLabel: t("closeDrawer"),
+        closeOnClickOutside: false,
+      }
+    : {},
+);
 const externalConfig = ref<CleverAiConfiguration>({
   execution: "cleverai",
   provider_binding_id: null,
@@ -134,6 +154,8 @@ function rememberDraft(event: Event) {
         user: auth.user,
         path: route.path,
         revision: record.value?.revision ?? 0,
+        baseline: baseline.value,
+        step: step.value,
         type: agentType.value,
         name: name.value,
         draft: configuration.value,
@@ -158,9 +180,16 @@ function recoverDraft() {
   }
   if (saved.path !== route.path) return;
   sessionStorage.removeItem(draftRecoveryKey);
+  bindingTouched.value = true;
+  step.value =
+    Number.isInteger(saved.step) && saved.step >= 0 && saved.step < steps.length
+      ? saved.step
+      : 0;
   createUncertain.value = saved.createUncertain === true;
-  if (record.value && record.value.revision !== saved.revision)
+  if (record.value && record.value.revision !== saved.revision) {
     conflict.value = record.value;
+    if (typeof saved.baseline === "string") baseline.value = saved.baseline;
+  }
   agentType.value = saved.type;
   name.value = saved.name;
   if (external.value) externalConfig.value = saved.draft;
@@ -181,6 +210,7 @@ onUnmounted(() => {
   window.removeEventListener("beforeunload", warnUnload);
 });
 const errors = ref<Record<string, string>>({});
+const bindingTouched = ref(false);
 const agent = useQuery({
   queryKey: ["agent", id],
   enabled: computed(() => !!id.value),
@@ -247,6 +277,7 @@ const selectedTrunk = computed(() =>
   ),
 );
 function changeBinding(value: string) {
+  bindingTouched.value = true;
   errors.value.trunk = "";
   const binding = value || null;
   if (external.value) {
@@ -258,6 +289,37 @@ function changeBinding(value: string) {
   draft.value.conversation.model = null;
   draft.value.conversation.options = null;
   draft.value.conversation.voice = "";
+}
+watch(
+  [() => catalog.data.value, compatibleTrunks, stepped],
+  () => {
+    if (
+      !stepped.value ||
+      !catalog.data.value ||
+      bindingTouched.value ||
+      !trunks.data.value
+    )
+      return;
+    const ready = compatibleTrunks.value.filter(
+      (trunk) =>
+        trunk.sync_status === "synced" &&
+        trunk.native_ready !== false &&
+        (trunk.api_key_configured ||
+          catalog.data.value?.provider_credentials?.[trunk.provider]
+            ?.environment_available),
+    );
+    if (ready.length !== 1 || draft.value.provider_binding_id) return;
+    const original = JSON.parse(baseline.value) as AgentEdits;
+    changeBinding(ready[0].binding_id);
+    original.draft.provider_binding_id = ready[0].binding_id;
+    baseline.value = JSON.stringify(original);
+  },
+  { immediate: true },
+);
+function applyDefaultModel(value: Draft["conversation"]) {
+  const pristine = stepped.value && !dirty.value;
+  draft.value.conversation = value;
+  if (pristine) baseline.value = snapshot();
 }
 const trunkDrawer = ref(false);
 function trunkCreated(trunk: Trunk) {
@@ -343,11 +405,26 @@ watch(
   },
   { deep: true },
 );
-function validate(publishing: boolean) {
+function validate(publishing: boolean, currentStep?: number) {
   const next: Record<string, string> = {};
   if (!name.value.trim()) next.name = t("agentForm.enterName");
   if (publishing && !configuration.value.provider_binding_id)
     next.trunk = t("agentForm.selectTrunk");
+  else if (publishing && stepped.value && trunks.isSuccess.value) {
+    const trunk = selectedTrunk.value;
+    if (
+      !trunk ||
+      trunk.sync_status !== "synced" ||
+      trunk.native_ready === false
+    )
+      next.trunk = t("error.trunk_not_ready");
+    else if (
+      !trunk.api_key_configured &&
+      !catalog.data.value?.provider_credentials?.[trunk.provider]
+        ?.environment_available
+    )
+      next.trunk = t("error.provider_credentials_unavailable");
+  }
   if (!external.value) {
     if (publishing && !draft.value.conversation.instructions.trim())
       next.instructions = t("requiredField");
@@ -393,34 +470,141 @@ function validate(publishing: boolean) {
     for (const [key, message] of Object.entries(checks))
       if (message) next[key] = message;
   }
-  errors.value = next;
-  return !Object.keys(next).length;
+  errors.value = Object.fromEntries(
+    Object.entries(next).filter(
+      ([field]) =>
+        currentStep === undefined || fieldStep(field) === currentStep,
+    ),
+  );
+  if (Object.keys(errors.value).length) {
+    revealErrors();
+    return false;
+  }
+  return true;
+}
+function fieldStep(field: string) {
+  if (["name", "trunk", "language", "duration"].includes(field)) return 0;
+  if (["lookback", "goodbye", "assistant", "chatModel"].includes(field))
+    return 2;
+  return 1;
+}
+function revealErrors() {
+  if (stepped.value) {
+    const first = Math.min(...Object.keys(errors.value).map(fieldStep));
+    step.value = first;
+  }
+  void nextTick(() => {
+    const first = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        "#agent-editor :is(input[aria-invalid='true'], textarea[aria-invalid='true'], [data-invalid-combobox] input)",
+      ),
+    ).find(
+      (element) =>
+        element.getClientRects().length && !element.matches(":disabled"),
+    );
+    first?.focus();
+  });
+}
+const fields: Record<string, string> = {
+  name: "name",
+  "draft.provider_binding_id": "trunk",
+  "draft.conversation.language": "language",
+  "draft.conversation.model": "model",
+  "draft.conversation.voice": "voice",
+  "draft.conversation.instructions": "instructions",
+  "draft.conversation.greeting": "greeting",
+  "draft.consultation.assistant_id": "assistant",
+  "draft.chat_model": "chatModel",
+  "draft.max_call_duration_seconds": "duration",
+  "draft.debug.retention_hours": "retention",
+};
+const optionFields = [
+  "backend_model",
+  "backend_instructions",
+  "reasoning_effort",
+  "verbosity",
+  "service_tier",
+  "max_output_tokens",
+];
+function showFieldError(error: unknown) {
+  const { field } = errorDetails(error);
+  const code = errorCode(error);
+  if (typeof field !== "string" || code === "revision_conflict") return;
+  const option = field.replace(/^draft\.conversation\.options\./, "");
+  const control =
+    fields[field] ||
+    (field !== option && optionFields.includes(option) ? option : "");
+  if (!control) return;
+  errors.value = {
+    [control]: te("error." + code)
+      ? t("error." + code)
+      : t("invalidAgentField"),
+  };
+  task.error.value = "";
+  revealErrors();
+}
+function continueStep() {
+  task.error.value = "";
+  if (validate(true, step.value)) step.value++;
 }
 const saving = ref<"" | "draft" | "publish">("");
+function mergeWith(latest: Agent) {
+  const merged = mergeAgentEdits(
+    JSON.parse(baseline.value) as AgentEdits,
+    JSON.parse(snapshot()) as AgentEdits,
+    latest,
+  );
+  accept(latest);
+  name.value = merged.name;
+  if ("execution" in merged.draft) externalConfig.value = merged.draft;
+  else draft.value = merged.draft;
+}
+async function withRevision(
+  operation: () => Promise<Agent>,
+  retry = true,
+): Promise<Agent> {
+  try {
+    return await operation();
+  } catch (error) {
+    if (errorCode(error) !== "revision_conflict" || !agentId.value) throw error;
+    const latest = await request<Agent>(
+      "GET",
+      "/profiles/" + encodeURIComponent(agentId.value),
+    );
+    const details = errorDetails(error);
+    if (
+      retry &&
+      details.current_revision === latest.revision &&
+      details.field === "draft.fallback_destination_id"
+    ) {
+      mergeWith(latest);
+      return withRevision(operation, false);
+    }
+    conflict.value = latest;
+    throw error;
+  }
+}
 async function persist(): Promise<Agent> {
   if (conflict.value) throw new Error("revision_conflict");
   const wasCreating = creating.value;
   let value: Agent;
   creatingRequest = wasCreating;
   try {
-    value = await request<Agent>(
-      wasCreating ? "POST" : "PUT",
-      wasCreating
-        ? "/profiles"
-        : "/profiles/" + encodeURIComponent(agentId.value),
-      {
-        profile: { name: name.value.trim(), draft: configuration.value },
-        expected_revision: record.value?.revision || 0,
-      },
+    value = await withRevision(() =>
+      request<Agent>(
+        wasCreating ? "POST" : "PUT",
+        wasCreating
+          ? "/profiles"
+          : "/profiles/" + encodeURIComponent(agentId.value),
+        {
+          profile: { name: name.value.trim(), draft: configuration.value },
+          expected_revision: record.value?.revision || 0,
+        },
+      ),
     );
   } catch (error) {
     if (wasCreating && errorCode(error) === "request_uncertain")
       createUncertain.value = true;
-    if (errorCode(error) === "revision_conflict" && agentId.value)
-      conflict.value = await request<Agent>(
-        "GET",
-        "/profiles/" + encodeURIComponent(agentId.value),
-      );
     throw error;
   } finally {
     creatingRequest = false;
@@ -437,13 +621,25 @@ async function refreshLists() {
   await queryClient.invalidateQueries({ queryKey: ["agents"] });
 }
 async function save() {
-  if (createUncertain.value || !validate(false)) return;
+  if (
+    saving.value ||
+    createUncertain.value ||
+    conflict.value ||
+    !validate(false)
+  )
+    return;
   const wasCreating = creating.value;
   saving.value = "draft";
+  let failure: unknown;
   await task.run(
     async () => {
-      await persist();
-      await refreshLists();
+      try {
+        await persist();
+        await refreshLists();
+      } catch (error) {
+        failure = error;
+        throw error;
+      }
     },
     {
       title: t(
@@ -464,48 +660,74 @@ async function save() {
     },
   );
   saving.value = "";
+  showFieldError(failure);
 }
 async function publish() {
-  if (createUncertain.value || !canPublish.value || !validate(true)) return;
+  if (
+    saving.value ||
+    createUncertain.value ||
+    conflict.value ||
+    !canPublish.value ||
+    !validate(true)
+  )
+    return;
   saving.value = "publish";
-  await task.run(
-    async () => {
-      let value = record.value;
-      if (dirty.value || !value) value = await persist();
-      try {
-        value = await request<Agent>(
+  let failure: unknown;
+  const value = await task.run(async () => {
+    try {
+      if (dirty.value || !record.value) await persist();
+      const publishedAgent = await withRevision(() =>
+        request<Agent>(
           "POST",
-          "/profiles/" + encodeURIComponent(value.agent_id) + "/publish",
-          { expected_revision: value.revision },
-        );
-      } catch (failure) {
-        if (errorCode(failure) === "revision_conflict")
-          conflict.value = await request<Agent>(
-            "GET",
-            "/profiles/" + value.agent_id,
-          );
-        throw failure;
-      }
-      accept(value);
+          "/profiles/" + encodeURIComponent(agentId.value) + "/publish",
+          {
+            expected_revision: record.value!.revision,
+          },
+        ),
+      );
+      accept(publishedAgent);
       await refreshLists();
-    },
-    {
-      title: t("agentPublished"),
-      description: t("agentPublishedHelp", { name: name.value.trim() }),
-    },
-  );
-  saving.value = "";
-}
-async function reload() {
-  await task.run(async () => {
-    conflict.value = undefined;
-    accept(
-      await request<Agent>(
-        "GET",
-        "/profiles/" + encodeURIComponent(agentId.value),
-      ),
-    );
+      return publishedAgent;
+    } catch (error) {
+      failure = error;
+      throw error;
+    }
   }, false);
+  saving.value = "";
+  showFieldError(failure);
+  if (!value || value.sync_status !== "synced") return;
+  ui.notify(t("agentPublished"), t("agentPublishedHelp", { name: value.name }));
+  await router.push("/agents");
+}
+async function saveMyChanges() {
+  const latest = conflict.value;
+  if (!latest || saving.value) return;
+  mergeWith(latest);
+  conflict.value = undefined;
+  if (dirty.value) await save();
+  else task.error.value = "";
+}
+function discardMyChanges() {
+  if (!conflict.value) return;
+  accept(conflict.value);
+  conflict.value = undefined;
+  errors.value = {};
+  task.error.value = "";
+}
+function cancel() {
+  if (saving.value) return;
+  if (stepped.value && dirty.value && !createUncertain.value)
+    cancelDialog.value = true;
+  else void router.push("/agents");
+}
+function discardCreate() {
+  cancelDialog.value = false;
+  baseline.value = snapshot();
+  void router.push("/agents");
+}
+async function saveFromCancel() {
+  cancelDialog.value = false;
+  await save();
 }
 async function synchronize() {
   await task.run(async () => {
@@ -522,6 +744,7 @@ async function synchronize() {
 <template>
   <div class="pb-24">
     <PageHeader
+      v-if="!stepped"
       :title="creating ? t('newAgent') : name"
       :description="subtitle"
       back="/agents"
@@ -556,343 +779,398 @@ async function synchronize() {
       "
       class="mb-6"
     />
-    <form
-      v-if="creating || record"
-      class="flex max-w-2xl flex-col gap-10"
-      novalidate
-      @submit.prevent="save"
+    <component
+      :is="stepped ? NeSideDrawer : 'div'"
+      v-bind="drawerProps"
+      @close="cancel"
     >
-      <section v-if="conflict" class="grid gap-3">
-        <h3>{{ t("compareRevisions") }}</h3>
-        <details>
-          <summary>{{ t("savedRevision") }} {{ conflict.revision }}</summary>
-          <pre class="overflow-auto whitespace-pre-wrap">{{
-            JSON.stringify(
-              { name: conflict.name, draft: conflict.draft },
-              null,
-              2,
-            )
-          }}</pre>
-        </details>
-        <details>
-          <summary>{{ t("yourEdits") }}</summary>
-          <pre class="overflow-auto whitespace-pre-wrap">{{
-            JSON.stringify({ name, draft: configuration }, null, 2)
-          }}</pre>
-        </details>
-        <NeButton
-          kind="secondary"
-          @click="
-            record = conflict;
-            conflict = undefined;
+      <form
+        v-if="creating || record"
+        id="agent-editor"
+        class="flex max-w-2xl flex-col gap-10"
+        novalidate
+        @submit.prevent="
+          stepped ? (step < 2 ? continueStep() : publish()) : save()
+        "
+      >
+        <NeInlineNotification
+          v-if="conflict"
+          kind="warning"
+          :title="t('error.revision_conflict')"
+          :description="t('agentForm.conflictHelp')"
+          :primary-button-label="t('agentForm.saveMyChanges')"
+          :secondary-button-label="t('agentForm.discardMyChanges')"
+          @primary-click="saveMyChanges"
+          @secondary-click="discardMyChanges"
+        />
+        <nav v-if="stepped" :aria-label="t('agentForm.createSteps')">
+          <ol class="flex flex-wrap gap-3 text-sm">
+            <li
+              v-for="(title, index) in steps"
+              :key="title"
+              :aria-current="step === index ? 'step' : undefined"
+              :class="step === index ? 'font-medium' : 'text-muted'"
+            >
+              {{ t(title) }}
+            </li>
+          </ol>
+        </nav>
+        <NeInlineNotification
+          v-if="
+            stepped &&
+            trunks.isSuccess.value &&
+            !compatibleTrunks.length &&
+            step === 0
           "
-          >{{ t("keepEdits") }}</NeButton
+          kind="info"
+          :title="t('agentForm.noTrunks')"
+          :description="t('agentForm.noTrunksHelp')"
+          :primary-button-label="t('newTrunk')"
+          @primary-click="trunkDrawer = true"
+        />
+        <NeInlineNotification
+          v-if="(!conflict && task.error.value) || createUncertain"
+          kind="error"
+          :title="task.error.value || t('error.request_uncertain')"
+          :description="
+            creating && createUncertain
+              ? t('agentForm.createUncertainHelp')
+              : undefined
+          "
+          :primary-button-label="
+            creating && createUncertain ? t('agentForm.openAgents') : undefined
+          "
+          @primary-click="router.push('/agents')"
+        />
+        <NeInlineNotification
+          v-if="
+            record &&
+            record.sync_status !== 'synced' &&
+            (record.workflow_version || external)
+          "
+          :kind="record.sync_status === 'error' ? 'error' : 'warning'"
+          :title="t('sync.' + record.sync_status)"
+          ><template #description
+            ><NeButton
+              kind="tertiary"
+              size="sm"
+              class="-ml-2.5"
+              :loading="task.pending.value"
+              @click="synchronize"
+              >{{ t("retrySync") }}</NeButton
+            ></template
+          ></NeInlineNotification
         >
-      </section>
-      <section
-        v-if="!external && !record?.published"
-        class="grid gap-1"
-        :aria-label="t('publishReadiness')"
-      >
-        <h3>{{ t("publishReadiness") }}</h3>
-        <ul class="list-inside list-disc">
-          <li
-            v-for="item in [
-              [t('trunk'), !!draft.provider_binding_id],
-              [t('voiceModel'), !!draft.conversation.model],
-              [t('voiceName'), !!draft.conversation.voice],
-              [t('instructions'), !!draft.conversation.instructions.trim()],
-            ]"
-            :key="String(item[0])"
+        <NeInlineNotification
+          v-if="status === 'modified'"
+          kind="info"
+          :title="t('agentForm.draftNotPublished')"
+          :description="
+            t('agentForm.draftNotPublishedHelp', { published: published })
+          "
+        />
+        <fieldset :disabled="!!saving" class="contents">
+          <SettingsSection
+            v-show="!stepped || step === 0"
+            :title="t('generalSettings')"
+            :description="t('generalSettingsHelp')"
           >
-            {{ item[0] }} · {{ t(item[1] ? "status.ready" : "requiredField") }}
-          </li>
-        </ul>
-      </section>
-      <NeInlineNotification
-        v-if="task.error.value || createUncertain"
-        kind="error"
-        :title="task.error.value || t('error.request_uncertain')"
-        :description="
-          creating && createUncertain
-            ? t('agentForm.createUncertainHelp')
-            : undefined
-        "
-        :primary-button-label="
-          creating && createUncertain ? t('agentForm.openAgents') : undefined
-        "
-        @primary-click="router.push('/agents')"
-        ><template v-if="!creating" #description
-          ><NeButton
-            kind="tertiary"
-            size="sm"
-            class="-ml-2.5"
-            @click="reload"
-            >{{ t("reloadSaved") }}</NeButton
-          ></template
-        ></NeInlineNotification
-      >
-      <NeInlineNotification
-        v-if="
-          record &&
-          record.sync_status !== 'synced' &&
-          (record.workflow_version || external)
-        "
-        :kind="record.sync_status === 'error' ? 'error' : 'warning'"
-        :title="t('sync.' + record.sync_status)"
-        ><template #description
-          ><NeButton
-            kind="tertiary"
-            size="sm"
-            class="-ml-2.5"
-            :loading="task.pending.value"
-            @click="synchronize"
-            >{{ t("retrySync") }}</NeButton
-          ></template
-        ></NeInlineNotification
-      >
-      <NeInlineNotification
-        v-if="status === 'modified'"
-        kind="info"
-        :title="t('agentForm.draftNotPublished')"
-        :description="
-          t('agentForm.draftNotPublishedHelp', { published: published })
-        "
-      />
-      <SettingsSection
-        :title="t('generalSettings')"
-        :description="t('generalSettingsHelp')"
-      >
-        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div class="grid grid-cols-1 gap-6 lg:col-span-2 lg:grid-cols-2">
-            <FieldCombobox
-              v-if="creating"
-              :model-value="agentType"
-              :label="t('agentType')"
-              :options="[
-                { id: 'basic_voice', label: t('agentTypes.basic_voice') },
-                { id: 'consultation', label: t('internalAssistant') },
-                ...(catalog.data.value?.sip_lab_enabled
-                  ? [{ id: 'cleverai', label: t('agentTypes.cleverai') }]
-                  : []),
-              ]"
-              @update:model-value="agentType = $event || agentType"
-            />
-            <NeTextInput
-              v-else
-              :label="t('agentType')"
-              :model-value="t('agentTypes.' + agentType)"
-              readonly
-              :helper-text="t('agentForm.typeLocked')"
-            />
-          </div>
-          <NeTextInput
-            v-model="name"
-            :label="t('name')"
-            :placeholder="t('agentForm.namePlaceholder')"
-            maxlength="100"
-            :invalid-message="errors.name"
-            @update:model-value="errors.name = ''"
-          />
-          <FieldCombobox
-            :model-value="configuration.provider_binding_id || ''"
-            :label="t('trunk')"
-            :options="trunkOptions"
-            :placeholder="t('agentForm.trunkPlaceholder')"
-            :disabled="!compatibleTrunks.length"
-            :helper-text="t('agentForm.trunkHelp')"
-            :invalid-message="errors.trunk"
-            @update:model-value="changeBinding"
-          />
-          <template v-if="!external">
-            <FieldCombobox
-              v-model="draft.conversation.language"
-              :label="t('defaultLanguage')"
-              :options="languageOptions"
-              :helper-text="t('agentForm.languageHelp')"
-            />
-            <NeTextInput
-              :model-value="String(draft.max_call_duration_seconds)"
-              :label="t('maxDuration')"
-              :helper-text="t('agentForm.durationHelp')"
-              type="number"
-              min="30"
-              max="3600"
-              :invalid-message="errors.duration"
-              @update:model-value="
-                draft.max_call_duration_seconds = Number($event);
-                errors.duration = '';
-              "
-            />
-          </template>
-        </div>
-      </SettingsSection>
-      <template v-if="!external">
-        <SettingsSection
-          divider
-          :title="t('conversationSettings')"
-          :description="t('conversationSettingsHelp')"
-        >
-          <div class="grid grid-cols-1 gap-6">
-            <ConversationSettings
-              v-model="draft.conversation"
-              :binding="selectedTrunk"
-              :errors="errors"
-            />
-            <NeTextArea
-              v-model="draft.conversation.greeting"
-              :label="t('greeting')"
-              :helper-text="t('agentForm.greetingHelp')"
-              :rows="3"
-              maxlength="4096"
-            />
-            <NeTextArea
-              v-model="draft.conversation.instructions"
-              :invalid-message="errors.instructions"
-              :label="t('instructions')"
-              :helper-text="t('agentForm.instructionsHelp')"
-              :rows="8"
-              maxlength="32768"
-            />
-          </div>
-        </SettingsSection>
-        <SettingsSection
-          v-if="!internal"
-          divider
-          :title="t('consultationSettings')"
-          :description="t('consultationHelp')"
-        >
-          <div class="flex flex-col gap-6">
-            <FieldCombobox
-              :model-value="draft.consultation?.mode || 'direct'"
-              :label="t('peopleTransferMode')"
-              :options="[
-                { id: 'direct', label: t('directTransfer') },
-                { id: 'attended', label: t('attendedTransfer') },
-              ]"
-              @update:model-value="transferMode"
-            />
-            <template v-if="draft.consultation?.mode === 'attended'">
-              <NeToggle
-                v-model="draft.consultation.phone"
-                :label="t('allowPhoneConsultation')"
-              />
-              <NeToggle
-                v-model="draft.consultation.chat"
-                :label="t('allowChatConsultation')"
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+              <div class="grid grid-cols-1 gap-6 lg:col-span-2 lg:grid-cols-2">
+                <FieldCombobox
+                  v-if="creating"
+                  :model-value="agentType"
+                  :label="t('agentType')"
+                  :options="[
+                    { id: 'basic_voice', label: t('agentTypes.basic_voice') },
+                    { id: 'consultation', label: t('internalAssistant') },
+                    ...(catalog.data.value?.sip_lab_enabled
+                      ? [{ id: 'cleverai', label: t('agentTypes.cleverai') }]
+                      : []),
+                  ]"
+                  @update:model-value="agentType = $event || agentType"
+                />
+                <NeTextInput
+                  v-else
+                  :label="t('agentType')"
+                  :model-value="t('agentTypes.' + agentType)"
+                  readonly
+                  :helper-text="t('agentForm.typeLocked')"
+                />
+              </div>
+              <NeTextInput
+                v-model="name"
+                :label="t('name')"
+                :placeholder="t('agentForm.namePlaceholder')"
+                maxlength="100"
+                :invalid-message="errors.name"
+                :aria-invalid="errors.name ? true : undefined"
+                @update:model-value="errors.name = ''"
               />
               <FieldCombobox
-                :model-value="draft.consultation.assistant_id || ''"
-                :label="t('internalAssistant')"
-                :options="[
-                  { id: '', label: t('choose') },
-                  ...(catalog.data.value?.consultation_assistants || []).map(
-                    (a) => ({ id: a.agent_id, label: a.name }),
-                  ),
-                ]"
-                @update:model-value="
-                  draft.consultation.assistant_id = $event || null
-                "
+                :model-value="configuration.provider_binding_id || ''"
+                :label="t('trunk')"
+                :options="trunkOptions"
+                :placeholder="t('agentForm.trunkPlaceholder')"
+                :disabled="!compatibleTrunks.length"
+                :helper-text="t('agentForm.trunkHelp')"
+                :invalid-message="errors.trunk"
+                @update:model-value="changeBinding"
               />
-            </template>
-          </div>
-        </SettingsSection>
-        <SettingsSection
-          v-else
-          divider
-          :title="t('internalAssistant')"
-          :description="t('internalAssistantHelp')"
-        >
-          <NeTextInput
-            :model-value="draft.chat_model || ''"
-            :label="t('consultationChatModel')"
-            maxlength="128"
-            @update:model-value="
-              draft.chat_model = String($event).trim() || null
-            "
-          />
-          <p class="text-muted">{{ t("consultationChatModelHelp") }}</p>
-        </SettingsSection>
-        <SettingsSection
-          v-if="!internal"
-          divider
-          :title="t('tools')"
-          :description="t('toolGrantsHelp')"
-        >
-          <AgentTools v-model="draft.tool_bindings" :errors="errors" />
-        </SettingsSection>
-        <SettingsSection
-          divider
-          :title="t('debugSettings')"
-          :description="t('agentForm.debugHelp')"
-        >
-          <div class="flex flex-col gap-4">
-            <div>
-              <NeToggle
-                v-model="draft.debug.transcription_enabled"
-                :label="t('debugTranscription')"
-              />
-              <p class="text-muted mt-1 ml-14">
-                {{ t("debugTranscriptionHelp") }}
-              </p>
+              <template v-if="!external">
+                <FieldCombobox
+                  v-model="draft.conversation.language"
+                  :label="t('defaultLanguage')"
+                  :options="languageOptions"
+                  :invalid-message="errors.language"
+                  :helper-text="t('agentForm.languageHelp')"
+                />
+                <NeTextInput
+                  :model-value="String(draft.max_call_duration_seconds)"
+                  :label="t('maxDuration')"
+                  :helper-text="t('agentForm.durationHelp')"
+                  type="number"
+                  min="30"
+                  max="3600"
+                  :invalid-message="errors.duration"
+                  :aria-invalid="errors.duration ? true : undefined"
+                  @update:model-value="
+                    draft.max_call_duration_seconds = Number($event);
+                    errors.duration = '';
+                  "
+                />
+              </template>
             </div>
-            <div
-              v-if="draft.debug.transcription_enabled"
-              class="ml-14 max-w-xs"
+          </SettingsSection>
+          <template v-if="!external">
+            <SettingsSection
+              v-show="!stepped || step === 1"
+              divider
+              :title="t('conversationSettings')"
+              :description="t('conversationSettingsHelp')"
+            >
+              <div class="grid grid-cols-1 gap-6">
+                <ConversationSettings
+                  v-model="draft.conversation"
+                  :binding="selectedTrunk"
+                  :errors="errors"
+                  @default-model="applyDefaultModel"
+                />
+                <NeTextArea
+                  v-model="draft.conversation.greeting"
+                  :label="t('greeting')"
+                  optional
+                  :optional-label="t('optional')"
+                  :invalid-message="errors.greeting"
+                  :aria-invalid="errors.greeting ? true : undefined"
+                  :helper-text="t('agentForm.greetingHelp')"
+                  :rows="3"
+                  maxlength="4096"
+                />
+                <NeTextArea
+                  v-model="draft.conversation.instructions"
+                  :invalid-message="errors.instructions"
+                  :aria-invalid="errors.instructions ? true : undefined"
+                  :label="t('instructions')"
+                  :helper-text="t('agentForm.instructionsHelp')"
+                  :rows="8"
+                  maxlength="32768"
+                />
+              </div>
+            </SettingsSection>
+            <SettingsSection
+              v-if="!internal"
+              v-show="!stepped || step === 2"
+              divider
+              :title="t('consultationSettings')"
+              :description="t('consultationHelp')"
+            >
+              <div class="flex flex-col gap-6">
+                <FieldCombobox
+                  :model-value="draft.consultation?.mode || 'direct'"
+                  :label="t('peopleTransferMode')"
+                  :options="[
+                    { id: 'direct', label: t('directTransfer') },
+                    { id: 'attended', label: t('attendedTransfer') },
+                  ]"
+                  @update:model-value="transferMode"
+                />
+                <template v-if="draft.consultation?.mode === 'attended'">
+                  <NeToggle
+                    v-model="draft.consultation.phone"
+                    :label="t('allowPhoneConsultation')"
+                  />
+                  <NeToggle
+                    v-model="draft.consultation.chat"
+                    :label="t('allowChatConsultation')"
+                  />
+                  <FieldCombobox
+                    :model-value="draft.consultation.assistant_id || ''"
+                    :label="t('internalAssistant')"
+                    :invalid-message="errors.assistant"
+                    :options="[
+                      { id: '', label: t('choose') },
+                      ...(
+                        catalog.data.value?.consultation_assistants || []
+                      ).map((a) => ({ id: a.agent_id, label: a.name })),
+                    ]"
+                    @update:model-value="
+                      draft.consultation.assistant_id = $event || null
+                    "
+                  />
+                </template>
+              </div>
+            </SettingsSection>
+            <SettingsSection
+              v-else
+              divider
+              :title="t('internalAssistant')"
+              :description="t('internalAssistantHelp')"
             >
               <NeTextInput
-                :model-value="String(draft.debug.retention_hours)"
-                :label="t('transcriptRetention')"
-                :helper-text="t('agentForm.retentionHelp')"
-                type="number"
-                min="1"
-                max="24"
-                :invalid-message="errors.retention"
+                :model-value="draft.chat_model || ''"
+                :label="t('consultationChatModel')"
+                :invalid-message="errors.chatModel"
+                :aria-invalid="errors.chatModel ? true : undefined"
+                maxlength="128"
                 @update:model-value="
-                  draft.debug.retention_hours = Number($event);
-                  errors.retention = '';
+                  draft.chat_model = String($event).trim() || null
                 "
               />
+              <p class="text-muted">{{ t("consultationChatModelHelp") }}</p>
+            </SettingsSection>
+            <SettingsSection
+              v-if="!internal"
+              v-show="!stepped || step === 2"
+              divider
+              :title="t('tools')"
+              :description="t('toolGrantsHelp')"
+            >
+              <AgentTools v-model="draft.tool_bindings" :errors="errors" />
+            </SettingsSection>
+            <details
+              v-if="!stepped"
+              :open="errors.retention ? true : undefined"
+              class="border-divider rounded-lg border p-4"
+            >
+              <summary class="cursor-pointer font-medium">
+                {{ t("debugSettings") }}
+              </summary>
+              <p class="text-muted my-3">{{ t("agentForm.debugHelp") }}</p>
+              <div class="flex flex-col gap-4">
+                <div>
+                  <NeToggle
+                    v-model="draft.debug.transcription_enabled"
+                    :label="t('debugTranscription')"
+                  />
+                  <p class="text-muted mt-1 ml-14">
+                    {{ t("debugTranscriptionHelp") }}
+                  </p>
+                </div>
+                <div
+                  v-if="draft.debug.transcription_enabled"
+                  class="ml-14 max-w-xs"
+                >
+                  <NeTextInput
+                    :model-value="String(draft.debug.retention_hours)"
+                    :label="t('transcriptRetention')"
+                    :helper-text="t('agentForm.retentionHelp')"
+                    type="number"
+                    min="1"
+                    max="24"
+                    :invalid-message="errors.retention"
+                    :aria-invalid="errors.retention ? true : undefined"
+                    @update:model-value="
+                      draft.debug.retention_hours = Number($event);
+                      errors.retention = '';
+                    "
+                  />
+                </div>
+              </div>
+            </details>
+          </template>
+        </fieldset>
+        <div
+          v-if="!stepped"
+          class="bg-elevation-0 border-divider fixed right-0 bottom-0 left-0 z-10 border-t px-4 py-4 sm:px-8 lg:left-75"
+        >
+          <div
+            class="flex max-w-2xl flex-wrap items-center justify-between gap-4"
+          >
+            <span class="text-muted">{{ footer }}</span>
+            <div class="flex flex-wrap gap-3">
+              <NeButton kind="tertiary" @click="cancel">{{
+                t("cancel")
+              }}</NeButton>
+              <NeButton
+                type="submit"
+                :kind="external ? 'primary' : 'secondary'"
+                :loading="saving === 'draft'"
+                :disabled="
+                  !!saving ||
+                  !!conflict ||
+                  createUncertain ||
+                  (!dirty && !creating)
+                "
+                ><template #prefix
+                  ><FontAwesomeIcon
+                    :icon="external ? 'check' : 'floppy-disk'"
+                    aria-hidden="true" /></template
+                >{{ t(external ? "saveExternal" : "saveDraft") }}</NeButton
+              >
+              <NeButton
+                v-if="!external"
+                kind="primary"
+                :loading="saving === 'publish'"
+                :disabled="
+                  !!saving || !!conflict || createUncertain || !canPublish
+                "
+                @click="publish"
+                ><template #prefix
+                  ><FontAwesomeIcon icon="check" aria-hidden="true" /></template
+                >{{ t("publish") }}</NeButton
+              >
             </div>
           </div>
-        </SettingsSection>
-      </template>
-      <div
-        class="bg-elevation-0 border-divider fixed right-0 bottom-0 left-0 z-10 border-t px-4 py-4 sm:px-8 lg:left-75"
-      >
-        <div
-          class="flex max-w-2xl flex-wrap items-center justify-between gap-4"
-        >
-          <span class="text-muted">{{ footer }}</span>
-          <div class="flex flex-wrap gap-3">
-            <NeButton kind="tertiary" @click="router.push('/agents')">{{
-              t("cancel")
-            }}</NeButton>
-            <NeButton
-              type="submit"
-              :kind="external ? 'primary' : 'secondary'"
-              :loading="saving === 'draft'"
-              :disabled="!!saving || createUncertain || (!dirty && !creating)"
-              ><template #prefix
-                ><FontAwesomeIcon
-                  :icon="external ? 'check' : 'floppy-disk'"
-                  aria-hidden="true" /></template
-              >{{ t(external ? "saveExternal" : "saveDraft") }}</NeButton
-            >
-            <NeButton
-              v-if="!external"
-              kind="primary"
-              :loading="saving === 'publish'"
-              :disabled="!!saving || createUncertain || !canPublish"
-              @click="publish"
-              ><template #prefix
-                ><FontAwesomeIcon icon="check" aria-hidden="true" /></template
-              >{{ t("publish") }}</NeButton
-            >
-          </div>
         </div>
-      </div>
-    </form>
+        <div
+          v-else
+          class="border-divider flex flex-wrap justify-end gap-3 border-t pt-6"
+        >
+          <NeButton kind="tertiary" :disabled="!!saving" @click="cancel">{{
+            t("cancel")
+          }}</NeButton>
+          <NeButton
+            v-if="step > 0"
+            kind="secondary"
+            :disabled="!!saving"
+            @click="step--"
+            >{{ t("agentForm.previousStep") }}</NeButton
+          >
+          <NeButton
+            type="submit"
+            kind="primary"
+            :loading="saving === 'publish'"
+            :disabled="!!saving || createUncertain"
+            >{{ t(step < 2 ? "agentForm.nextStep" : "publish") }}</NeButton
+          >
+        </div>
+      </form>
+    </component>
+    <NeModal
+      v-if="cancelDialog"
+      visible
+      kind="warning"
+      :title="t('unsavedHint')"
+      :primary-label="t('saveDraft')"
+      :secondary-label="t('agentForm.discardChanges')"
+      :cancel-label="t('agentForm.keepEditing')"
+      :close-aria-label="t('close')"
+      @primary-click="saveFromCancel"
+      @secondary-click="discardCreate"
+      @close="cancelDialog = false"
+      ><p>{{ t("agentForm.unsavedCreateHelp") }}</p></NeModal
+    >
     <TrunkDrawer
       :is-shown="trunkDrawer"
       @close="trunkDrawer = false"

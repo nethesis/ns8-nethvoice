@@ -41,10 +41,11 @@ test('agent owns model, Live voice and advanced settings across save/reload/publ
   await choose(page,'Voice model','GPT Live 1 gpt-live-1');
   await expect(page.getByText(/GPT-Live is experimental/)).toBeVisible();
   await choose(page,'Voice','Quartz');
+  await page.getByText('Advanced',{exact:true}).click();
   await choose(page,'GPT-Live companion model','GPT-6 Sol');
-  await choose(page,'Backend reasoning effort','high');
-  await choose(page,'Backend response detail','medium');
-  await choose(page,'Backend service tier','priority');
+  await choose(page,'Backend reasoning effort','High');
+  await choose(page,'Backend response detail','Medium');
+  await choose(page,'Backend service tier','Priority');
   await page.getByLabel('Maximum backend output tokens',{exact:true}).fill('4096');
   await page.getByLabel('Backend-task instructions',{exact:true}).fill('Use only approved routing tools.');
   await page.getByRole('button',{name:'Save draft',exact:true}).click();
@@ -52,6 +53,7 @@ test('agent owns model, Live voice and advanced settings across save/reload/publ
   expect(profiles.second.draft.conversation.model).toBe('gpt-realtime-2.1');
   await page.reload();
   await expect(field(page,'Voice model')).toHaveValue(/GPT Live 1/);
+  await page.getByText('Advanced',{exact:true}).click();
   await expect(page.getByLabel('Maximum backend output tokens',{exact:true})).toHaveValue('4096');
   await page.getByRole('button',{name:'Publish',exact:true}).click();
   expect(profiles.receptionist.published).toMatchObject({contract_version:8,conversation:{model:'gpt-live-1',voice:'quartz'}});
@@ -125,6 +127,7 @@ test('voice and companion models have separate dropdowns',async({page})=>{
   const list=page.getByRole('listbox');
   await expect(list.getByRole('option',{name:/GPT-6/})).toHaveCount(0);
   await list.getByRole('option',{name:'GPT Live 1 gpt-live-1',exact:true}).click();
+  await page.getByText('Advanced',{exact:true}).click();
   await expect(field(page,'GPT-Live companion model')).toHaveValue(/GPT-6 Luna/);
   await choose(page,'GPT-Live companion model','GPT-6 Sol');
   await choose(page,'Voice model','GPT Realtime 2 gpt-realtime-2');

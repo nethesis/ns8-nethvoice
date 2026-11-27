@@ -37,7 +37,7 @@ test("a rejected first publication keeps the created agent and retries on it", a
       publishes++;
       expect(request.postDataJSON().expected_revision).toBe(1);
       if (publishes === 1) {
-        await route.fulfill({status: 422, json: {error: "conversation_required"}});
+        await route.fulfill({status: 422, json: {error: "conversation_required", field: "draft.conversation.instructions"}});
         return;
       }
       record = {...record!, revision: 2, workflow_version: 1, enabled: true, routable: true, published: (record as {draft: unknown}).draft};
@@ -60,20 +60,22 @@ test("a rejected first publication keeps the created agent and retries on it", a
   });
   await page.goto("./#/agents/new");
   await page.getByLabel("Name", {exact: true}).fill("Night desk");
-  await page.getByRole("combobox", {name: "Provider trunk", exact: true}).click();
-  await page.getByRole("option", {name: /Shared OpenAI/}).click();
+  await expect(page.getByRole("combobox", {name: "Provider trunk", exact: true})).toHaveValue(/Shared OpenAI/);
+  await page.getByRole("button", {name: "Next", exact: true}).click();
   await page.getByRole("combobox", {name: "Voice", exact: true}).click();
   await page.getByRole("option", {name: "Marin", exact: true}).click();
+  await page.getByRole("button", {name: "Next", exact: true}).click();
   await page.getByRole("button", {name: "Publish", exact: true}).click();
   await expect(page.getByText("Voice and instructions are required.")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: "Conversation instructions" })).toBeFocused();
   await expect(page.getByRole("textbox", {name: "Agent type"})).toHaveValue("Basic voice");
   expect(creates).toBe(1);
   await expect(page).toHaveURL(/#\/agents\/agent_new$/);
   await page.reload();
   await expect(page.getByLabel("Name", {exact: true})).toHaveValue("Night desk");
   await page.getByRole("button", {name: "Publish", exact: true}).click();
-  await expect(page).toHaveURL(/#\/agents\/agent_new$/);
-  await expect(page.getByText("Version 1 is published.")).toBeVisible();
+  await expect(page).toHaveURL(/#\/agents$/);
+  await expect(page.getByText("Agent published", {exact: true})).toBeVisible();
   expect(creates).toBe(1);
   expect(publishes).toBe(2);
 });
@@ -108,7 +110,7 @@ test("a rejected first publication stays in the same editor until the request se
     if (path === "/profiles/agent_new/publish") {
       if (calls.length === 2) {
         await held;
-        await route.fulfill({status: 422, json: {error: "conversation_required"}});
+        await route.fulfill({status: 422, json: {error: "conversation_required", field: "draft.conversation.instructions"}});
         return;
       }
       expect(request.postDataJSON().expected_revision).toBe(2);
@@ -132,27 +134,25 @@ test("a rejected first publication stays in the same editor until the request se
   });
   await page.goto("./#/agents/new");
   await page.getByLabel("Name", {exact: true}).fill("Night desk");
-  await page.getByRole("combobox", {name: "Provider trunk", exact: true}).click();
-  await page.getByRole("option", {name: /Shared OpenAI/}).click();
+  await expect(page.getByRole("combobox", {name: "Provider trunk", exact: true})).toHaveValue(/Shared OpenAI/);
+  await page.getByRole("button", {name: "Next", exact: true}).click();
   await page.getByRole("combobox", {name: "Voice", exact: true}).click();
   await page.getByRole("option", {name: "Marin", exact: true}).click();
-  await page.locator("form").evaluate(form => form.setAttribute("data-editor", "first"));
+  await page.getByRole("button", {name: "Next", exact: true}).click();
   const publishing = page.waitForRequest(request => request.url().endsWith("/profiles/agent_new/publish"));
   await page.getByRole("button", {name: "Publish", exact: true}).click();
   await publishing;
   await expect(page).toHaveURL(/#\/agents\/agent_new$/);
-  await expect(page.locator("form")).toHaveAttribute("data-editor", "first");
   await expect(page.getByRole("button", {name: "Save draft", exact: true})).toBeDisabled();
   await expect(page.getByRole("button", {name: "Publish", exact: true})).toBeDisabled();
   await page.getByLabel("Name", {exact: true}).press("Enter");
   release();
   await expect(page.getByText("Voice and instructions are required.", {exact: true})).toBeVisible();
-  await expect(page.locator("form")).toHaveAttribute("data-editor", "first");
   await expect(page).toHaveURL(/#\/agents\/agent_new$/);
   expect(calls).toEqual(["POST /profiles", "POST /profiles/agent_new/publish"]);
-  await page.getByLabel("Greeting", {exact: true}).fill("Good evening.");
+  await page.getByLabel(/^Greeting/).fill("Good evening.");
   await page.getByRole("button", {name: "Publish", exact: true}).click();
-  await expect(page.getByText("Version 2 is published.")).toBeVisible();
+  await expect(page).toHaveURL(/#\/agents$/);
   expect(calls).toEqual(["POST /profiles", "POST /profiles/agent_new/publish", "PUT /profiles/agent_new", "POST /profiles/agent_new/publish"]);
 });
 
@@ -181,7 +181,8 @@ for (const expired of [false, true]) test(`a create with an unknown result block
   });
   await page.goto("./#/agents/new");
   await page.getByLabel("Name", {exact: true}).fill("Night desk");
-  const sent = page.waitForRequest(request => request.method() === "POST");
+  const sent = page.waitForRequest(request => request.method() === "POST" && request.url().endsWith("/profiles"));
+  await page.getByRole("button", {name: "Cancel", exact: true}).click();
   await page.getByRole("button", {name: "Save draft", exact: true}).click();
   await sent;
   if (expired) {
@@ -193,8 +194,7 @@ for (const expired of [false, true]) test(`a create with an unknown result block
     await expect(page.getByLabel("Name", {exact: true})).toHaveValue("Night desk");
   }
   await expect(page.getByText(/The connection ended before the result was received/)).toBeVisible();
-  await expect(page.getByRole("button", {name: "Save draft", exact: true})).toBeDisabled();
-  await expect(page.getByRole("button", {name: "Publish", exact: true})).toBeDisabled();
+  await expect(page.getByRole("button", {name: "Next", exact: true})).toBeDisabled();
   await page.getByLabel("Name", {exact: true}).press("Enter");
   expect(creates).toBe(1);
   await expect(page.getByText("The agent may have been created anyway. Check the Agents list before creating it again.", {exact: true})).toBeVisible();

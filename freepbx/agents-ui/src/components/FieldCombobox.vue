@@ -37,6 +37,7 @@ function update(value: unknown) {
     :disabled="disabled"
     :helper-text="helperText"
     :invalid-message="invalidMessage"
+    :data-invalid-combobox="invalidMessage ? true : undefined"
     :selected-label="t('selectedOption')"
     :no-results-label="t('noResults')"
     :limited-options-label="t('moreOptions')"

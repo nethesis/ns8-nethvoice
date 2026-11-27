@@ -22,7 +22,7 @@ import CatalogTable from "../components/CatalogTable.vue";
 import AppEmptyState from "../components/AppEmptyState.vue";
 import { menuIcon } from "../menuIcon";
 import StatusBadge from "../components/StatusBadge.vue";
-import type { Agent, JsonObject, Trunk } from "../types";
+import type { Agent, Catalog, JsonObject, Trunk } from "../types";
 const { t } = useI18n();
 const loadError = useLoadError();
 const router = useRouter(),
@@ -30,10 +30,122 @@ const router = useRouter(),
 const query = useQuery({
   queryKey: ["agents"],
   queryFn: () => request<{ items: Agent[] }>("GET", "/profiles"),
+  refetchOnWindowFocus: "always",
 });
 const trunks = useQuery({
   queryKey: ["trunks"],
   queryFn: () => request<{ items: Trunk[] }>("GET", "/trunks"),
+});
+const catalog = useQuery({
+  queryKey: ["catalog"],
+  queryFn: () => request<Catalog>("GET", "/catalog"),
+});
+function retrySetup() {
+  void trunks.refetch();
+  void catalog.refetch();
+}
+const setupSteps = [
+  "trunk",
+  "selectTrunk",
+  "trunkReady",
+  "credentials",
+  "webhook",
+  "agent",
+  "publish",
+  "agentReady",
+  "webhookCall",
+  "route",
+  "routeUnknown",
+  "done",
+] as const;
+type SetupStep = (typeof setupSteps)[number];
+
+function agentSetupStep(agent: Agent, availableTrunks: Trunk[]): SetupStep {
+  const configuration = agent.published ?? agent.draft;
+  const trunk = availableTrunks.find(
+    (item) => item.binding_id === configuration.provider_binding_id,
+  );
+  if (!trunk) {
+    const compatible = availableTrunks.some(
+      (item) =>
+        (item.provider === "cleverai") === (agent.agent_type === "cleverai"),
+    );
+    return compatible ? "selectTrunk" : "trunk";
+  }
+  if (trunk.sync_status !== "synced" || trunk.native_ready === false)
+    return "trunkReady";
+  if (trunk.provider !== "cleverai" && !trunk.api_key_configured)
+    return "credentials";
+  const model =
+    "conversation" in configuration ? configuration.conversation.model : null;
+  const needsWebhook =
+    trunk.provider === "grok" ||
+    (trunk.provider === "openai" && !!model && model !== "gpt-live-1");
+  const webhookStatus =
+    trunk.webhook_status ??
+    (trunk.webhook_secret_configured ? "manual" : "not_configured");
+  if (
+    needsWebhook &&
+    !["manual", "configured", "verified"].includes(webhookStatus)
+  )
+    return "webhook";
+  if (!agent.published && agent.agent_type !== "cleverai") return "publish";
+  if (!agent.routable) return "agentReady";
+  if (agent.inbound_route_in_use === true) return "done";
+  if (agent.inbound_route_in_use == null) return "routeUnknown";
+  if (needsWebhook && !(trunk.webhook_verified ?? webhookStatus === "verified"))
+    return "webhookCall";
+  return "route";
+}
+const setup = computed(() => {
+  const profiles = query.data.value?.items;
+  const providerTrunks = trunks.data.value?.items;
+  const providers = catalog.data.value?.providers;
+  if (!profiles || !providerTrunks || !providers) return;
+  const availableTrunks = providerTrunks.filter((trunk) =>
+    providers.includes(trunk.provider),
+  );
+  const candidates = profiles
+    .filter((agent) => agent.agent_type !== "consultation")
+    .map((agent) => ({ agent, step: agentSetupStep(agent, availableTrunks) }));
+  const closest = candidates.sort(
+    (a, b) => setupSteps.indexOf(b.step) - setupSteps.indexOf(a.step),
+  )[0];
+  if (closest?.step === "done") return;
+  if (closest) return closest;
+  return {
+    agent: undefined,
+    step: availableTrunks.length ? "agent" : "trunk",
+  } as const;
+});
+const setupAction = computed(() => {
+  const current = setup.value;
+  switch (current?.step) {
+    case "trunk":
+    case "trunkReady":
+    case "credentials":
+    case "webhook":
+      return { label: t("trunks"), run: () => void router.push("/trunks") };
+    case "selectTrunk":
+    case "publish":
+    case "agentReady":
+      return {
+        label: t("edit"),
+        run: () => void router.push("/agents/" + current.agent.agent_id),
+      };
+    case "agent":
+      return {
+        label: t("newAgent"),
+        run: () => void router.push("/agents/new"),
+      };
+    case "webhookCall":
+    case "route":
+      return { label: t("inboundRoutes"), run: openInboundRoutes };
+    case "routeUnknown":
+      return { label: t("retry"), run: () => void query.refetch() };
+    default:
+      return undefined;
+  }
 });
 const rows = computed(() =>
   (query.data.value?.items || []).map((a) => ({
@@ -41,7 +153,7 @@ const rows = computed(() =>
     type: a.agent_type || "basic_voice",
     typeLabel: t("agentTypes." + (a.agent_type || "basic_voice")),
     trunk:
-      trunks.data.value?.items.find(
+      trunks.data.value?.items?.find(
         (item) => item.binding_id === a.draft.provider_binding_id,
       )?.name || "",
     status: agentStatus(a),
@@ -69,8 +181,8 @@ const filters = computed(() => [
     ].map((id) => ({ id, label: t("status." + id) })),
   },
 ]);
-function openVisualplan() {
-  window.open("/freepbx/visualplan/", "_blank", "noopener");
+function openInboundRoutes() {
+  window.open("/freepbx/wizard/#!/routes/inbound", "_blank", "noopener");
 }
 const removing = ref<Agent>();
 function menu(row: JsonObject): NeDropdownItem[] {
@@ -120,12 +232,12 @@ async function remove() {
 </script>
 <template>
   <PageHeader :title="t('agents')" :description="t('agentsHelp')">
-    <NeButton kind="secondary" size="lg" @click="openVisualplan"
+    <NeButton kind="secondary" size="lg" @click="openInboundRoutes"
       ><template #prefix
         ><FontAwesomeIcon
           icon="arrow-up-right-from-square"
           aria-hidden="true" /></template
-      >{{ t("openVisualplan") }}</NeButton
+      >{{ t("inboundRoutes") }}</NeButton
     >
     <NeButton kind="primary" size="lg" @click="router.push('/agents/new')"
       ><template #prefix
@@ -138,6 +250,23 @@ async function remove() {
     kind="error"
     :title="loadError(query.error.value)"
     class="mb-6"
+  />
+  <NeInlineNotification
+    v-else-if="trunks.isError.value || catalog.isError.value"
+    kind="error"
+    :title="loadError(trunks.error.value, catalog.error.value)"
+    :primary-button-label="t('retry')"
+    class="mb-6"
+    @primary-click="retrySetup"
+  />
+  <NeInlineNotification
+    v-else-if="setup"
+    kind="info"
+    :title="t('agentSetup.title')"
+    :description="t('agentSetup.' + setup.step, { name: setup.agent?.name })"
+    :primary-button-label="setupAction?.label"
+    class="mb-6"
+    @primary-click="setupAction?.run()"
   />
   <CatalogTable
     :rows="rows"

@@ -78,6 +78,7 @@ $agentsRoute = function (string $method, string $path, callable $operation) use 
             $body=['error'=>$code];
             if ($error instanceof \NethVoice\Agents\FieldError) {
                 $body['field']=$error->field;
+                if ($error->currentRevision!==null) $body['current_revision']=$error->currentRevision;
                 if ($error->webhookCheck!==null) $body['webhook_check']=$error->webhookCheck;
             }
             return jsonResponse($response,$body,$status)->withHeader('Cache-Control','no-store');

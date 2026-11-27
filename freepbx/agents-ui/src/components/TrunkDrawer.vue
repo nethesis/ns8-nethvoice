@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, useTemplateRef, watch } from "vue";
+import { isAxiosError } from "axios";
 import { useQuery } from "@tanstack/vue-query";
 import {
   NeButton,
@@ -9,16 +10,17 @@ import {
   NeSideDrawer,
   NeTextInput,
   NeTooltip,
+  focusElement,
 } from "@nethesis/vue-components";
 import { useI18n } from "vue-i18n";
 import FieldCombobox from "./FieldCombobox.vue";
-import { request, queryClient } from "../api";
+import { errorCode, request, queryClient } from "../api";
 import { useTask } from "../composables/useTask";
 import { useUi } from "../stores/ui";
 import type { Catalog, Trunk } from "../types";
 const props = defineProps<{ isShown: boolean; trunk?: Trunk }>();
 const emit = defineEmits<{ close: []; saved: [trunk: Trunk] }>();
-const { t } = useI18n(),
+const { t, te } = useI18n(),
   task = useTask(),
   ui = useUi();
 const catalog = useQuery({
@@ -40,10 +42,22 @@ const blank = () => ({
 const form = ref(blank());
 const errors = ref<Record<string, string>>({});
 const credentialChecked = ref(false);
+const verificationIssue = ref("");
+const projectInput = useTemplateRef<{ focus: () => void }>("projectInput");
+const keyInput = useTemplateRef<{ focus: () => void }>("keyInput");
+const keySource = useTemplateRef<{ focus: () => void }>("keySource");
 watch(
-  () => [form.value.credential_mode, form.value.api_key, form.value.provider],
+  () => [
+    form.value.credential_mode,
+    form.value.api_key,
+    form.value.provider,
+    form.value.openai_project_id,
+  ],
   () => {
     credentialChecked.value = false;
+    verificationIssue.value = "";
+    errors.value.api_key = "";
+    errors.value.openai_project_id = "";
   },
 );
 const editing = computed(() => !!props.trunk);
@@ -52,6 +66,7 @@ watch(
   (shown) => {
     if (!shown) return;
     credentialChecked.value = false;
+    verificationIssue.value = "";
     task.error.value = "";
     errors.value = {};
     const trunk = props.trunk;
@@ -123,7 +138,7 @@ function validate() {
     create = !editing.value,
     next: Record<string, string> = {};
   if (!f.name.trim()) next.name = t("trunkForm.enterName");
-  if (f.provider !== "grok" && !f.openai_project_id.trim())
+  if (f.provider === "cleverai" && !f.openai_project_id.trim())
     next.openai_project_id = t("trunkForm.enterProject");
   if (f.provider === "grok") {
     if (!f.grok_phone_number.trim())
@@ -139,34 +154,99 @@ function validate() {
       ? !f.api_key && props.trunk?.api_key_source !== "stored"
       : !environmentKey.value)
   )
-    next.api_key = t("trunkForm.enterApiKey");
+    next.api_key = t(
+      f.credential_mode === "dedicated"
+        ? "trunkForm.enterApiKey"
+        : "trunkForm.integrationKeyMissing",
+    );
   if (f.provider === "grok" && create && !f.webhook_secret)
     next.webhook_secret = t("trunkForm.enterSecret");
   errors.value = next;
   return !Object.keys(next).length;
 }
-async function testCredential() {
+const credentialChanged = computed(() => {
+  const f = form.value;
+  const trunk = props.trunk;
+  if (f.provider === "cleverai") return false;
+  return (
+    !trunk ||
+    (f.credential_mode === "dedicated"
+      ? Boolean(f.api_key)
+      : trunk.api_key_source !== "environment") ||
+    (f.provider === "openai" &&
+      f.openai_project_id !== (trunk.openai_project_id || ""))
+  );
+});
+function showCredentialError(failure: unknown) {
+  const code = errorCode(failure);
+  const field = isAxiosError(failure) ? failure.response?.data?.field : null;
+  if (field !== "openai_project_id" && field !== "api_key") return false;
+  errors.value[field] = t(
+    te("error." + code) ? "error." + code : "error.request_failed",
+  );
+  return true;
+}
+function focusCredentialError() {
+  if (errors.value.openai_project_id) focusElement(projectInput);
+  else if (errors.value.api_key) {
+    focusElement(
+      form.value.credential_mode === "dedicated" ? keyInput : keySource,
+    );
+  }
+}
+async function checkCredential() {
+  const f = form.value;
   credentialChecked.value = false;
-  await task.run(async () => {
-    const result = await request<{ items: unknown[] }>(
+  verificationIssue.value = "";
+  errors.value.api_key = "";
+  errors.value.openai_project_id = "";
+  try {
+    const result = await request<{ credential_verified?: boolean }>(
       "POST",
       "/trunks/models",
       {
-        provider: form.value.provider,
-        credential_mode: form.value.credential_mode,
+        provider: f.provider,
+        credential_mode: f.credential_mode,
         test: true,
-        api_key:
-          form.value.credential_mode === "dedicated" ? form.value.api_key : "",
+        api_key: f.credential_mode === "dedicated" ? f.api_key : "",
+        ...(f.provider === "openai"
+          ? { openai_project_id: f.openai_project_id }
+          : {}),
         ...(props.trunk ? { binding_id: props.trunk.binding_id } : {}),
       },
     );
-    credentialChecked.value = result.items.length > 0;
+    credentialChecked.value = result.credential_verified === true;
     if (!credentialChecked.value)
-      errors.value.api_key = t("error.provider_model_unavailable");
-  }, false);
+      verificationIssue.value = "trunkForm.verificationUnavailable";
+  } catch (failure) {
+    const code = errorCode(failure);
+    if (code === "provider_permission_denied") {
+      verificationIssue.value = "trunkForm.verificationRestricted";
+    } else if (
+      [
+        "provider_catalog_unavailable",
+        "request_uncertain",
+        "request_unavailable",
+      ].includes(code)
+    ) {
+      verificationIssue.value = "trunkForm.verificationUnavailable";
+    } else if (!showCredentialError(failure)) {
+      throw failure;
+    }
+  }
+  return credentialChecked.value;
 }
-async function save() {
-  if (!validate()) return;
+async function testCredential() {
+  await task.run(checkCredential, false);
+  focusCredentialError();
+}
+async function save(withoutVerification = false) {
+  if (
+    task.pending.value ||
+    (withoutVerification && !verificationIssue.value) ||
+    !validate()
+  )
+    return;
   const f = form.value;
   const name = f.name.trim();
   const trunk =
@@ -178,26 +258,54 @@ async function save() {
           name,
           ...(f.provider === "openai" ? { sip_auth_mode: "none" } : {}),
         };
-  await task.run(
-    async () => {
-      const saved = await request<Trunk>(
+  const saved = await task.run(async () => {
+    if (
+      credentialChanged.value &&
+      !credentialChecked.value &&
+      !withoutVerification &&
+      !(await checkCredential())
+    )
+      return;
+    try {
+      return await request<Trunk>(
         editing.value ? "PUT" : "POST",
         editing.value ? "/trunks/" + props.trunk!.binding_id : "/trunks",
         { trunk, expected_revision: props.trunk?.revision || 0 },
       );
-      await queryClient.invalidateQueries({ queryKey: ["trunks"] });
-      emit("saved", saved);
-      close();
-    },
+    } catch (failure) {
+      if (!showCredentialError(failure)) throw failure;
+      // A rejected save needs a fresh check before submitting this combination again.
+      credentialChecked.value = false;
+      verificationIssue.value = "";
+    }
+  }, false);
+  if (!saved) {
+    focusCredentialError();
+    return;
+  }
+  const description = t(
+    editing.value ? "trunkUpdatedHelp" : "trunkCreatedHelp",
     {
-      title: t(editing.value ? "trunkUpdated" : "trunkCreated"),
-      description: t(editing.value ? "trunkUpdatedHelp" : "trunkCreatedHelp", {
-        name,
-      }),
+      name,
     },
   );
+  const verified =
+    credentialChecked.value &&
+    !["unavailable", "scope_unavailable"].includes(
+      String(saved.project_validation),
+    );
+  emit("saved", saved);
+  close();
+  ui.notify(
+    t(editing.value ? "trunkUpdated" : "trunkCreated"),
+    verified
+      ? description + ". " + t("trunkForm.credentialCheckPassed")
+      : description,
+  );
+  void queryClient.invalidateQueries({ queryKey: ["trunks"] });
 }
 function close() {
+  if (task.pending.value) return;
   form.value.api_key = "";
   form.value.webhook_secret = "";
   form.value.sip_password = "";
@@ -211,12 +319,12 @@ function close() {
     :close-aria-label="t('closeDrawer')"
     @close="close"
   >
-    <form class="flex flex-col gap-6" novalidate @submit.prevent="save">
+    <form class="flex flex-col gap-6" novalidate @submit.prevent="save()">
       <FieldCombobox
         :model-value="provider"
         :label="t('provider')"
         :options="providers"
-        :disabled="editing"
+        :disabled="editing || task.pending.value"
         :helper-text="editing ? t('trunkForm.providerLocked') : ''"
         @update:model-value="provider = $event || provider"
       />
@@ -231,17 +339,24 @@ function close() {
         :label="t('name')"
         :placeholder="t('trunkForm.namePlaceholder')"
         maxlength="100"
+        :disabled="task.pending.value"
         :invalid-message="errors.name"
         @update:model-value="errors.name = ''"
       />
       <NeTextInput
         v-if="form.provider !== 'grok'"
+        ref="projectInput"
         v-model="form.openai_project_id"
         :label="t('openaiProject')"
         :helper-text="
           t('openaiProjectHint') +
-          (form.provider === 'openai' ? ' ' + t('webhook.projectHelp') : '')
+          (form.provider === 'openai'
+            ? ' ' + t('trunkForm.projectOptional')
+            : '')
         "
+        :optional="form.provider === 'openai'"
+        :optional-label="t('optional')"
+        :disabled="task.pending.value"
         placeholder="proj_A1b2C3d4"
         maxlength="128"
         :invalid-message="errors.openai_project_id"
@@ -252,6 +367,7 @@ function close() {
           v-model="form.grok_phone_number"
           :label="t('grokNumber')"
           maxlength="32"
+          :disabled="task.pending.value"
           :invalid-message="errors.grok_phone_number"
           @update:model-value="errors.grok_phone_number = ''"
         />
@@ -259,6 +375,7 @@ function close() {
           v-model="form.sip_auth_mode"
           :label="t('sipAuthentication')"
           name="sipAuth"
+          :disabled="task.pending.value"
           :options="[
             { id: 'none', label: t('sipAllowedAddresses') },
             { id: 'digest', label: 'Digest' },
@@ -270,6 +387,7 @@ function close() {
             :label="t('sipUsername')"
             maxlength="128"
             autocomplete="off"
+            :disabled="task.pending.value"
             :invalid-message="errors.sip_auth_username"
             @update:model-value="errors.sip_auth_username = ''"
           />
@@ -281,6 +399,7 @@ function close() {
             :hide-password-label="t('hidePassword')"
             maxlength="4096"
             autocomplete="new-password"
+            :disabled="task.pending.value"
             :helper-text="editing ? t('trunkForm.keepPassword') : ''"
             :invalid-message="errors.sip_password"
             @update:model-value="errors.sip_password = ''"
@@ -289,9 +408,14 @@ function close() {
       </template>
       <template v-if="form.provider !== 'cleverai'">
         <NeRadioSelection
+          ref="keySource"
           v-model="form.credential_mode"
           name="credential-mode"
           :label="t('apiKeySource')"
+          :disabled="task.pending.value"
+          :invalid-message="
+            form.credential_mode === 'inherit' ? errors.api_key : ''
+          "
           :options="[
             { id: 'inherit', label: t('integrationKey') },
             { id: 'dedicated', label: t('dedicatedKey') },
@@ -299,6 +423,7 @@ function close() {
         />
         <NeTextInput
           v-if="form.credential_mode === 'dedicated'"
+          ref="keyInput"
           v-model="form.api_key"
           :label="t('providerApiKey')"
           is-password
@@ -309,21 +434,27 @@ function close() {
           :helper-text="apiKeyHelper"
           maxlength="4096"
           autocomplete="new-password"
+          :disabled="task.pending.value"
           :invalid-message="errors.api_key"
           @update:model-value="errors.api_key = ''"
         />
-        <p
-          v-if="form.credential_mode === 'inherit' && errors.api_key"
-          role="alert"
-        >
-          {{ errors.api_key }}
-        </p>
+        <NeInlineNotification
+          v-if="verificationIssue"
+          kind="warning"
+          :title="t('trunkForm.verificationIncomplete')"
+          :description="t(verificationIssue)"
+        />
         <NeButton
-          v-if="form.provider === 'openai'"
           kind="secondary"
           :loading="task.pending.value"
           @click="testCredential"
-          >{{ t("testCredential") }}</NeButton
+          >{{
+            t(
+              verificationIssue
+                ? "trunkForm.retryCredentialCheck"
+                : "testCredential",
+            )
+          }}</NeButton
         >
         <p v-if="credentialChecked" role="status">{{ t("credentialValid") }}</p>
         <NeTextInput
@@ -346,6 +477,7 @@ function close() {
           "
           maxlength="4096"
           autocomplete="new-password"
+          :disabled="task.pending.value"
           :invalid-message="errors.webhook_secret"
           @update:model-value="errors.webhook_secret = ''"
         />
@@ -391,12 +523,20 @@ function close() {
         kind="error"
         :title="task.error.value"
       />
-      <div class="border-divider flex justify-end gap-4 border-t pt-6">
+      <div
+        class="border-divider flex flex-wrap justify-end gap-4 border-t pt-6"
+      >
         <NeButton
           kind="tertiary"
           :disabled="task.pending.value"
           @click="close"
           >{{ t("cancel") }}</NeButton
+        ><NeButton
+          v-if="verificationIssue"
+          kind="secondary"
+          :disabled="task.pending.value"
+          @click="save(true)"
+          >{{ t("trunkForm.saveWithoutVerification") }}</NeButton
         ><NeButton type="submit" kind="primary" :loading="task.pending.value">{{
           t(editing ? "saveAction" : "create")
         }}</NeButton>

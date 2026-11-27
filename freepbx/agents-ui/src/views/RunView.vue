@@ -3,7 +3,6 @@ import { computed, ref } from "vue";
 import { useRoute } from "vue-router";
 import { useQuery, useInfiniteQuery } from "@tanstack/vue-query";
 import {
-  NeBadgeV2,
   NeButton,
   NeCard,
   NeHeading,
@@ -130,6 +129,16 @@ const summary = computed(() => {
   return [
     { id: "agent", label: t("agentColumn"), value: "" },
     {
+      id: "callerNumber",
+      label: t("monitoring.callerNumber"),
+      value: value.caller_number || "—",
+    },
+    {
+      id: "calledNumber",
+      label: t("monitoring.calledNumber"),
+      value: value.called_number || "—",
+    },
+    {
       id: "version",
       label: t("publishedVersion"),
       value: String(value.workflow_version),
@@ -156,11 +165,6 @@ const summary = computed(() => {
       label: t("provider"),
       value: providers[value.provider || ""] || value.provider || "—",
     },
-    {
-      id: "adapter",
-      label: t("monitoring.adapter"),
-      value: adapters.value[value.adapter || ""] || value.adapter || "—",
-    },
     { id: "model", label: t("voiceModel"), value: value.model || "—" },
     {
       id: "duration",
@@ -176,7 +180,7 @@ const summary = computed(() => {
                 ? "endReason"
                 : "errorCode",
             ),
-            value: runErrorText(value.error_code, t, te),
+            value: runErrorText(value.error_code, t, te, false),
           },
         ]
       : []),
@@ -241,13 +245,9 @@ const partial = computed(
     "
     back="/activity"
   >
-    <template v-if="run" #badges
-      ><StatusBadge :status="run.outcome" /><NeBadgeV2
-        v-if="partial"
-        kind="amber"
-        >{{ t("monitoring.incomplete") }}</NeBadgeV2
-      ></template
-    >
+    <template v-if="run" #badges>
+      <StatusBadge :status="run.outcome" />
+    </template>
     <NeButton
       kind="secondary"
       size="lg"
@@ -296,191 +296,222 @@ const partial = computed(
         >{{ t("callRecord") }}</a
       >
     </NeCard>
-    <section>
-      <NeHeading tag="h5" class="mb-3">{{
-        t("monitoring.performance")
-      }}</NeHeading>
-      <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
-        <CounterCard
-          v-for="metric in performance"
-          :key="metric.id"
-          :title="metric.label"
-          :value="metric.value"
-          :icon="metric.icon"
-          :tooltip="metric.tooltip"
-        />
-      </div>
-    </section>
-    <section>
-      <NeHeading tag="h5">{{ t("monitoring.timeline") }}</NeHeading>
-      <p class="text-muted mt-1 mb-3 max-w-2xl">
-        {{ t("monitoring.timelineHelp") }}
-      </p>
-      <NeInlineNotification
-        v-if="partial"
-        data-testid="trace-partial"
-        class="mb-3"
-        kind="warning"
-        :title="t('monitoring.partialTrace')"
-        :description="t('monitoring.partialHelp')"
-      />
-      <NeInlineNotification
-        v-if="traceQuery.isError.value"
-        class="mb-3"
-        kind="error"
-        :title="loadError(traceQuery.error.value)"
-      />
-      <div data-testid="trace-timeline">
-        <NeTable
-          :aria-label="t('monitoring.timeline')"
-          :loading="traceQuery.isLoading.value"
-          :skeleton-columns="5"
-          :skeleton-rows="6"
-          card-breakpoint="xl"
-        >
-          <NeTableHead>
-            <NeTableHeadCell class="w-px pr-0!"
-              ><span class="sr-only">{{ t("expand") }}</span></NeTableHeadCell
-            >
-            <NeTableHeadCell>{{ t("monitoring.phase") }}</NeTableHeadCell>
-            <NeTableHeadCell>{{ t("monitoring.start") }}</NeTableHeadCell>
-            <NeTableHeadCell>{{ t("monitoring.duration") }}</NeTableHeadCell>
-            <NeTableHeadCell>{{ t("state") }}</NeTableHeadCell>
-          </NeTableHead>
-          <NeTableBody>
-            <template v-for="phase in phases" :key="phase.event.event_id">
-              <NeTableRow>
-                <NeTableCell data-label="" class="w-px pr-0!">
-                  <button
-                    v-if="phase.children.length"
-                    type="button"
-                    class="text-tertiary-neutral hover:text-primary-neutral flex size-6 cursor-pointer items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-primary-500"
-                    :aria-expanded="
-                      expanded.includes(phase.event.event_id) ? 'true' : 'false'
-                    "
-                    :aria-label="
-                      t(
-                        expanded.includes(phase.event.event_id)
-                          ? 'collapseItem'
-                          : 'expandItem',
-                        { name: name(phase.event) },
-                      )
-                    "
-                    @click="toggle(phase.event.event_id)"
-                  >
-                    <FontAwesomeIcon
-                      :icon="
-                        expanded.includes(phase.event.event_id)
-                          ? 'chevron-up'
-                          : 'chevron-down'
-                      "
-                      class="size-4"
-                      aria-hidden="true"
-                    />
-                  </button>
-                </NeTableCell>
-                <NeTableCell :data-label="t('monitoring.phase')">
-                  <p class="text-primary-neutral">
-                    {{ name(phase.event) }}
-                  </p>
-                  <p
-                    v-for="line in details(phase.event)"
-                    :key="line"
-                    class="text-muted wrap-break-word"
-                  >
-                    {{ line }}
-                  </p>
-                </NeTableCell>
-                <NeTableCell :data-label="t('monitoring.start')">{{
-                  start(phase.event)
-                }}</NeTableCell>
-                <NeTableCell :data-label="t('monitoring.duration')">{{
-                  phase.event.duration_ms != null
-                    ? duration(phase.event.duration_ms)
-                    : "-"
-                }}</NeTableCell>
-                <NeTableCell :data-label="t('state')"
-                  ><StatusBadge
-                    v-if="phase.event.status"
-                    :status="phase.event.status"
-                  /><template v-else>-</template></NeTableCell
-                >
-              </NeTableRow>
-              <template v-if="expanded.includes(phase.event.event_id)">
-                <NeTableRow
-                  v-for="child in phase.children"
-                  :key="child.event_id"
-                >
-                  <NeTableCell data-label="" class="w-px pr-0!" />
-                  <NeTableCell :data-label="t('monitoring.phase')">
-                    <p class="text-primary-neutral">{{ name(child) }}</p>
-                    <p
-                      v-for="line in details(child)"
-                      :key="line"
-                      class="text-muted wrap-break-word"
-                    >
-                      {{ line }}
-                    </p>
-                  </NeTableCell>
-                  <NeTableCell :data-label="t('monitoring.start')">{{
-                    start(child)
-                  }}</NeTableCell>
-                  <NeTableCell :data-label="t('monitoring.duration')">{{
-                    child.duration_ms != null
-                      ? duration(child.duration_ms)
-                      : "-"
-                  }}</NeTableCell>
-                  <NeTableCell :data-label="t('state')"
-                    ><StatusBadge v-if="child.status" :status="child.status"
-                  /></NeTableCell>
-                </NeTableRow>
-              </template>
-            </template>
-            <NeTableRow v-if="!traceQuery.isLoading.value && !phases.length">
-              <NeTableCell data-label="" />
-              <NeTableCell :data-label="t('monitoring.phase')"
-                ><span class="text-muted">{{
-                  t("noResults")
-                }}</span></NeTableCell
-              >
-            </NeTableRow>
-          </NeTableBody>
-        </NeTable>
-      </div>
-      <NeButton
-        v-if="traceQuery.hasNextPage.value"
-        kind="tertiary"
-        class="mt-3"
-        :loading="traceQuery.isFetchingNextPage.value"
-        @click="traceQuery.fetchNextPage()"
-        >{{ t("monitoring.loadMore") }}</NeButton
-      >
-    </section>
-    <section data-testid="trace-usage">
-      <NeHeading tag="h5">{{ t("monitoring.usage") }}</NeHeading>
-      <p class="text-muted mt-1 mb-3 max-w-2xl">
-        {{ t("monitoring.usageHelp") }}
-      </p>
-      <p v-if="!run.usage" class="text-muted">
-        {{ t("monitoring.usageUnavailable") }}
-      </p>
-      <template v-else>
-        <p v-if="!run.usage_complete" class="text-muted mb-3">
-          {{ t("monitoring.usagePartial") }}
-        </p>
-        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          <CounterCard
-            v-for="(value, key) in run.usage"
-            :key="key"
-            :title="t('monitoring.usageKeys.' + key)"
-            :value="
-              value.toLocaleString(String(locale)) +
-              (key === 'live_seconds' ? ' s' : '')
-            "
+    <details class="border-divider rounded-lg border p-4">
+      <summary class="cursor-pointer font-medium">
+        {{ t("diagnostics") }}
+      </summary>
+      <div class="mt-4 flex flex-col gap-6">
+        <dl class="grid grid-cols-1 gap-4 break-all sm:grid-cols-3">
+          <div>
+            <dt class="text-muted">{{ t("monitoring.runId") }}</dt>
+            <dd>{{ run.run_id }}</dd>
+          </div>
+          <div>
+            <dt class="text-muted">{{ t("monitoring.adapter") }}</dt>
+            <dd>{{ adapters[run.adapter || ""] || run.adapter || "—" }}</dd>
+          </div>
+          <div v-if="run.error_code">
+            <dt class="text-muted">{{ t("errorCode") }}</dt>
+            <dd>{{ run.error_code }}</dd>
+          </div>
+        </dl>
+        <section>
+          <NeHeading tag="h5" class="mb-3">{{
+            t("monitoring.performance")
+          }}</NeHeading>
+          <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <CounterCard
+              v-for="metric in performance"
+              :key="metric.id"
+              :title="metric.label"
+              :value="metric.value"
+              :icon="metric.icon"
+              :tooltip="metric.tooltip"
+            />
+          </div>
+        </section>
+        <section>
+          <NeHeading tag="h5">{{ t("monitoring.timeline") }}</NeHeading>
+          <p class="text-muted mt-1 mb-3 max-w-2xl">
+            {{ t("monitoring.timelineHelp") }}
+          </p>
+          <NeInlineNotification
+            v-if="partial"
+            data-testid="trace-partial"
+            class="mb-3"
+            kind="warning"
+            :title="t('monitoring.partialTrace')"
+            :description="t('monitoring.partialHelp')"
           />
-        </div>
-      </template>
-    </section>
+          <NeInlineNotification
+            v-if="traceQuery.isError.value"
+            class="mb-3"
+            kind="error"
+            :title="loadError(traceQuery.error.value)"
+          />
+          <div data-testid="trace-timeline">
+            <NeTable
+              :aria-label="t('monitoring.timeline')"
+              :loading="traceQuery.isLoading.value"
+              :skeleton-columns="5"
+              :skeleton-rows="6"
+              card-breakpoint="xl"
+            >
+              <NeTableHead>
+                <NeTableHeadCell class="w-px pr-0!"
+                  ><span class="sr-only">{{
+                    t("expand")
+                  }}</span></NeTableHeadCell
+                >
+                <NeTableHeadCell>{{ t("monitoring.phase") }}</NeTableHeadCell>
+                <NeTableHeadCell>{{ t("monitoring.start") }}</NeTableHeadCell>
+                <NeTableHeadCell>{{
+                  t("monitoring.duration")
+                }}</NeTableHeadCell>
+                <NeTableHeadCell>{{ t("state") }}</NeTableHeadCell>
+              </NeTableHead>
+              <NeTableBody>
+                <template v-for="phase in phases" :key="phase.event.event_id">
+                  <NeTableRow>
+                    <NeTableCell data-label="" class="w-px pr-0!">
+                      <button
+                        v-if="phase.children.length"
+                        type="button"
+                        class="text-tertiary-neutral hover:text-primary-neutral flex size-6 cursor-pointer items-center justify-center rounded-sm focus-visible:outline-2 focus-visible:outline-primary-500"
+                        :aria-expanded="
+                          expanded.includes(phase.event.event_id)
+                            ? 'true'
+                            : 'false'
+                        "
+                        :aria-label="
+                          t(
+                            expanded.includes(phase.event.event_id)
+                              ? 'collapseItem'
+                              : 'expandItem',
+                            { name: name(phase.event) },
+                          )
+                        "
+                        @click="toggle(phase.event.event_id)"
+                      >
+                        <FontAwesomeIcon
+                          :icon="
+                            expanded.includes(phase.event.event_id)
+                              ? 'chevron-up'
+                              : 'chevron-down'
+                          "
+                          class="size-4"
+                          aria-hidden="true"
+                        />
+                      </button>
+                    </NeTableCell>
+                    <NeTableCell :data-label="t('monitoring.phase')">
+                      <p class="text-primary-neutral">
+                        {{ name(phase.event) }}
+                      </p>
+                      <p
+                        v-for="line in details(phase.event)"
+                        :key="line"
+                        class="text-muted wrap-break-word"
+                      >
+                        {{ line }}
+                      </p>
+                    </NeTableCell>
+                    <NeTableCell :data-label="t('monitoring.start')">{{
+                      start(phase.event)
+                    }}</NeTableCell>
+                    <NeTableCell :data-label="t('monitoring.duration')">{{
+                      phase.event.duration_ms != null
+                        ? duration(phase.event.duration_ms)
+                        : "-"
+                    }}</NeTableCell>
+                    <NeTableCell :data-label="t('state')"
+                      ><StatusBadge
+                        v-if="phase.event.status"
+                        :status="phase.event.status"
+                      /><template v-else>-</template></NeTableCell
+                    >
+                  </NeTableRow>
+                  <template v-if="expanded.includes(phase.event.event_id)">
+                    <NeTableRow
+                      v-for="child in phase.children"
+                      :key="child.event_id"
+                    >
+                      <NeTableCell data-label="" class="w-px pr-0!" />
+                      <NeTableCell :data-label="t('monitoring.phase')">
+                        <p class="text-primary-neutral">{{ name(child) }}</p>
+                        <p
+                          v-for="line in details(child)"
+                          :key="line"
+                          class="text-muted wrap-break-word"
+                        >
+                          {{ line }}
+                        </p>
+                      </NeTableCell>
+                      <NeTableCell :data-label="t('monitoring.start')">{{
+                        start(child)
+                      }}</NeTableCell>
+                      <NeTableCell :data-label="t('monitoring.duration')">{{
+                        child.duration_ms != null
+                          ? duration(child.duration_ms)
+                          : "-"
+                      }}</NeTableCell>
+                      <NeTableCell :data-label="t('state')"
+                        ><StatusBadge
+                          v-if="child.status"
+                          :status="child.status"
+                      /></NeTableCell>
+                    </NeTableRow>
+                  </template>
+                </template>
+                <NeTableRow
+                  v-if="!traceQuery.isLoading.value && !phases.length"
+                >
+                  <NeTableCell data-label="" />
+                  <NeTableCell :data-label="t('monitoring.phase')"
+                    ><span class="text-muted">{{
+                      t("noResults")
+                    }}</span></NeTableCell
+                  >
+                </NeTableRow>
+              </NeTableBody>
+            </NeTable>
+          </div>
+          <NeButton
+            v-if="traceQuery.hasNextPage.value"
+            kind="tertiary"
+            class="mt-3"
+            :loading="traceQuery.isFetchingNextPage.value"
+            @click="traceQuery.fetchNextPage()"
+            >{{ t("monitoring.loadMore") }}</NeButton
+          >
+        </section>
+        <section data-testid="trace-usage">
+          <NeHeading tag="h5">{{ t("monitoring.usage") }}</NeHeading>
+          <p class="text-muted mt-1 mb-3 max-w-2xl">
+            {{ t("monitoring.usageHelp") }}
+          </p>
+          <p v-if="!run.usage" class="text-muted">
+            {{ t("monitoring.usageUnavailable") }}
+          </p>
+          <template v-else>
+            <p v-if="!run.usage_complete" class="text-muted mb-3">
+              {{ t("monitoring.usagePartial") }}
+            </p>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+              <CounterCard
+                v-for="(value, key) in run.usage"
+                :key="key"
+                :title="t('monitoring.usageKeys.' + key)"
+                :value="
+                  value.toLocaleString(String(locale)) +
+                  (key === 'live_seconds' ? ' s' : '')
+                "
+              />
+            </div>
+          </template>
+        </section>
+      </div>
+    </details>
     <section>
       <NeHeading tag="h5">{{ t("debugTranscription") }}</NeHeading>
       <p class="text-muted mt-1 mb-3 max-w-2xl">

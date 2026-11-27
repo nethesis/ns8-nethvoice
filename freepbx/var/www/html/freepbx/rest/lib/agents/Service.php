@@ -12,7 +12,7 @@ require_once __DIR__ . '/Monitoring.php';
 
 final class FieldError extends \RuntimeException
 {
-    public function __construct(string $reason,int $status,public readonly string $field,public readonly ?string $webhookCheck=null)
+    public function __construct(string $reason,int $status,public readonly string $field,public readonly ?string $webhookCheck=null,public readonly ?int $currentRevision=null)
     { parent::__construct($reason,$status); }
 }
 
@@ -62,6 +62,23 @@ final class Service
     }
     private static function revision(array $row, int $revision): void
     { if ($revision < 1 || (int)$row['revision'] !== $revision) self::fail('revision_conflict', 409); }
+    private function editorRevision(array $row, int $revision): void
+    {
+        $current=$row['revision'];
+        if ($revision>0 && $revision<$current) {
+            // Require an audit record for every intervening revision. Unknown changes need confirmation.
+            $history=$this->query("SELECT revision,action FROM asterisk.voice_agent_audit WHERE agent_id=? AND revision>? AND revision<=? AND action NOT IN ('native_synced','native_sync_failed') ORDER BY revision",[$row['agent_id'],$revision,$current])->fetchAll(\PDO::FETCH_ASSOC);
+            $expected=$revision+1;
+            foreach ($history as $change) {
+                if ((int)$change['revision']!==$expected || $change['action']!=='fallback_saved') break;
+                $expected++;
+            }
+            if ($expected===$current+1 && count($history)===$current-$revision) {
+                throw new FieldError('revision_conflict',409,'draft.fallback_destination_id',currentRevision:$current);
+            }
+        }
+        self::revision($row,$revision);
+    }
     private function audit(string $id, string $actor, string $action, int $revision, bool $binding = false): void
     {
         $table = $binding ? 'voice_agent_binding_audit' : 'voice_agent_audit';
@@ -148,11 +165,17 @@ final class Service
     {
         try { $referenced=$this->native->referencedAgentIds(); }
         catch (\Throwable $error) { $referenced=null; }
-        return array_map(static fn($agent)=>$agent+['in_use'=>match (true) {
+        try { $inbound=$this->native->inboundRouteAgentIds(); }
+        catch (\Throwable $error) { $inbound=null; }
+        $usage=static fn($agent,$ids)=>match (true) {
             $agent['agent_type']==='consultation' => false,
-            $referenced===null => null,
-            default => isset($referenced[$agent['agent_id']]),
-        }],$this->all());
+            $ids===null => null,
+            default => isset($ids[$agent['agent_id']]),
+        };
+        return array_map(static fn($agent)=>$agent+[
+            'in_use'=>$usage($agent,$referenced),
+            'inbound_route_in_use'=>$usage($agent,$inbound),
+        ],$this->all());
     }
     public function get(string $id): array
     {
@@ -189,7 +212,7 @@ final class Service
     public static function emptyDraft(): array
     {
         return ['contract_version'=>8,'provider_binding_id'=>null,'conversation'=>['language'=>'en','voice'=>'','greeting'=>'','instructions'=>'','model'=>null,'options'=>null],
-            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>$tool['id']!=='telephony.hangup','config'=>$tool['defaults']],json_decode(file_get_contents(__DIR__.'/contracts/tools-v5.json'),true,512,JSON_THROW_ON_ERROR)),
+            'tool_bindings'=>array_map(fn($tool)=>['tool_id'=>$tool['id'],'tool_version'=>$tool['version'],'enabled'=>$tool['id']!=='telephony.hangup','config'=>$tool['id']==='pbx.transfer'?array_replace($tool['defaults'],['queues_enabled'=>false]):$tool['defaults']],json_decode(file_get_contents(__DIR__.'/contracts/tools-v5.json'),true,512,JSON_THROW_ON_ERROR)),
             'fallback_destination_id'=>'hangup','max_call_duration_seconds'=>600,'debug'=>['transcription_enabled'=>false,'retention_hours'=>24]];
     }
     public static function receptionistDraft(): array
@@ -219,7 +242,7 @@ PROMPT;
         if (($draft['execution']??null)==='cleverai') {
             self::fields($draft,['execution','provider_binding_id','fallback_destination_id']);
             $id=self::text($draft['provider_binding_id']??null,48,true,'draft.provider_binding_id');
-            if ($this->safeBinding($this->binding($id))['provider']!=='cleverai') self::fail('incompatible_trunk');
+            if ($this->safeBinding($this->binding($id))['provider']!=='cleverai') self::fail('incompatible_trunk',field:'draft.provider_binding_id');
             $this->destination($draft['fallback_destination_id']);
             return $draft;
         }
@@ -234,7 +257,7 @@ PROMPT;
         // Validate the same contract with placeholders for optional incomplete draft fields.
         if ($draft['provider_binding_id']!==null && !is_string($draft['provider_binding_id'])) self::fail('invalid_configuration',field:'draft.provider_binding_id');
         $provider=$draft['provider_binding_id']!==null?$this->safeBinding($this->binding($draft['provider_binding_id']))['provider']:'openai';
-        if ($provider==='cleverai') self::fail('incompatible_trunk');
+        if ($provider==='cleverai') self::fail('incompatible_trunk',field:'draft.provider_binding_id');
         $snapshot = $draft + ['contract_version'=>$version,'agent_id'=>'validation','destination_id'=>'agent:validation','workflow_version'=>1,'provider'=>$provider];
         if ($snapshot['conversation']['model']===null) {
             if ($snapshot['conversation']['options']!==null) self::fail('invalid_model_options',field:'draft.conversation.options');
@@ -285,7 +308,7 @@ PROMPT;
             $creating=$id===null;
             $current=$creating?null:$this->get($id);
             if ($creating && $revision!==0) self::fail('revision_conflict',409);
-            if (!$creating) self::revision($current,$revision);
+            if (!$creating) $this->editorRevision($current,$revision);
             $external=($input['draft']['execution']??null)==='cleverai';
             if ($external && !Preview::sipEnabled()) self::fail('sip_lab_required',409);
             if (!$creating && ($current['agent_type']==='cleverai')!==$external) self::fail('invalid_agent_type',field:'draft.execution');
@@ -311,7 +334,7 @@ PROMPT;
     public function publish(string $id, int $revision, string $actor): array
     {
         return $this->locked(function() use ($id,$revision,$actor) {
-            $agent=$this->get($id); self::revision($agent,$revision);
+            $agent=$this->get($id); $this->editorRevision($agent,$revision);
             if ($agent['agent_type']==='cleverai') self::fail('external_agent_not_publishable');
             $draft=$this->validateDraft($agent['draft'],true);
             if (($draft['consultation']['mode']??null)==='attended') {
@@ -329,14 +352,14 @@ PROMPT;
                 if (($secrets['openai_webhook']['state']??null)==='recovery') self::fail('webhook_secret_recovery_required',409);
                 if (empty($secrets['webhook_secret'])) self::fail('webhook_not_configured',field:'draft.provider_binding_id');
             }
-            if ($binding['sync_status']!=='synced' || !$this->nativeTrunkReady($binding)) self::fail('trunk_not_ready',409);
+            if ($binding['sync_status']!=='synced' || !$this->nativeTrunkReady($binding)) self::fail('trunk_not_ready',409,'draft.provider_binding_id');
             if (trim($draft['conversation']['voice'])==='') self::fail('conversation_required',field:'draft.conversation.voice');
             if (trim($draft['conversation']['instructions'])==='') self::fail('conversation_required',field:'draft.conversation.instructions');
             $version=(int)$this->query('SELECT COALESCE(MAX(workflow_version),0)+1 FROM asterisk.voice_agent_versions WHERE agent_id=?',[$id])->fetchColumn();
             if ($draft['debug']['transcription_enabled'] && $binding['provider']!=='openai') self::fail('transcription_provider_unsupported');
             $snapshot=$draft+['contract_version'=>$draft['contract_version'],'agent_id'=>$id,'destination_id'=>'agent:'.$id,'workflow_version'=>$version,'provider'=>$binding['provider']];
             if ($draft['conversation']['model']===null) self::fail('model_required',field:'draft.conversation.model');
-            if ($binding['provider']==='grok' && !in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice');
+            if ($binding['provider']==='grok' && !in_array($draft['conversation']['voice'],array_column($this->voices($binding['binding_id'])['items'],'id'),true)) self::fail('invalid_voice',field:'draft.conversation.voice');
             PublishedContract::validate($snapshot);
             $changed=!$agent['enabled'] || !$agent['published'] || $agent['published']['fallback_destination_id']!==$snapshot['fallback_destination_id'] || $agent['published']['provider_binding_id']!==$snapshot['provider_binding_id'];
             $this->db->beginTransaction();
@@ -418,11 +441,13 @@ PROMPT;
                 'api_key_configured'=>false,'api_key_source'=>'missing','webhook_secret_configured'=>false];
         }
         $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
-        $source=!empty($secrets['api_key'])?'stored':(ProviderCatalog::environmentKey($row['provider'])!==''?'environment':'missing');
+        $inheritedKey=ProviderCatalog::environmentKey($row['provider']);
+        $source=!empty($secrets['api_key'])?'stored':($inheritedKey!==''?'environment':'missing');
         return $settings+[
             'binding_id'=>$row['binding_id'],'name'=>$row['name'],'provider'=>$row['provider'],'runtime_owner'=>'builtin',
             'revision'=>(int)$row['revision'],'sync_status'=>$row['sync_status'],'freepbx_trunk_id'=>$row['freepbx_trunk_id']?(int)$row['freepbx_trunk_id']:null,
             'api_key_configured'=>$source!=='missing','api_key_source'=>$source,'webhook_secret_configured'=>!empty($secrets['webhook_secret']),
+            'webhook_verified'=>$this->webhookKeyVerified($row,$secrets['api_key']??$inheritedKey),
             'webhook_status'=>$this->webhookStatus($row,$settings,$secrets)];
     }
     private function webhookStatus(array $row,array $settings,array $secrets): string
@@ -597,7 +622,13 @@ PROMPT;
         });
     }
     public function trunks(): array
-    { return array_map(fn($row)=>$this->safeBinding($row),$this->query('SELECT * FROM asterisk.voice_agent_bindings WHERE removed=0 ORDER BY name')->fetchAll(\PDO::FETCH_ASSOC)); }
+    {
+        return array_map(function ($row) {
+            try { $ready=$row['sync_status']==='synced' && $this->nativeTrunkReady($row); }
+            catch (\Throwable $error) { $ready=false; }
+            return $this->safeBinding($row)+['native_ready'=>$ready];
+        },$this->query('SELECT * FROM asterisk.voice_agent_bindings WHERE removed=0 ORDER BY name')->fetchAll(\PDO::FETCH_ASSOC));
+    }
     private function nativeBinding(array $row): array
     {
         $settings=json_decode($row['settings_json'],true,512,JSON_THROW_ON_ERROR);
@@ -627,7 +658,7 @@ PROMPT;
     public function voices(string $id): array
     {
         $row=$this->binding($id);
-        if ($this->safeBinding($row)['provider']==='cleverai') self::fail('incompatible_trunk');
+        if ($this->safeBinding($row)['provider']==='cleverai') self::fail('incompatible_trunk',field:'draft.provider_binding_id');
         $secrets=json_decode($this->crypto->decryptSecret($row['secrets_encrypted']),true,512,JSON_THROW_ON_ERROR);
         return ProviderCatalog::voices($row['provider'],$secrets['api_key']??ProviderCatalog::environmentKey($row['provider']));
     }
@@ -646,8 +677,8 @@ PROMPT;
         $project=$input['openai_project_id']??null;
         $webhook=$input['webhook_secret']??'';
         if ($webhook!=='' && !OpenAiWebhook::validSecret($webhook)) self::fail('invalid_secret',field:'webhook_secret');
-        $key=isset($input['api_key'])?self::text($input['api_key'],4096):'';
-        if ($key!=='' && preg_match('/[\r\n\x00]/',$key)) self::fail('invalid_secret');
+        $key=isset($input['api_key'])?self::text($input['api_key'],4096,false,'api_key'):'';
+        if ($key!=='' && preg_match('/[\r\n\x00]/',$key)) self::fail('invalid_secret',field:'api_key');
         if (isset($input['binding_id'])) {
             $row=$this->binding(self::text($input['binding_id'],48,true));
             $binding=$this->safeBinding($row);
@@ -678,8 +709,8 @@ PROMPT;
         try { $result=$this->providerCatalog->models($provider,$key,$test,$project?:null); }
         catch (\RuntimeException $error) {
             $reason=$error->getMessage();
-            if ($webhookCheck!==null && in_array($reason,['provider_project_unverified','provider_credentials_unavailable','provider_credentials_rejected','provider_permission_denied'],true)) {
-                throw new FieldError($reason,422,$reason==='provider_project_unverified'?'openai_project_id':'api_key',$webhookCheck);
+            if ($test && in_array($reason,['provider_project_unverified','provider_credentials_unavailable','provider_credentials_rejected','provider_permission_denied','provider_catalog_unavailable'],true)) {
+                throw new FieldError($reason,$reason==='provider_catalog_unavailable'?503:422,$reason==='provider_project_unverified'?'openai_project_id':'api_key',$webhookCheck);
             }
             throw $error;
         }
@@ -860,6 +891,7 @@ PROMPT;
                         else $projectValidation=['project_validation'=>'unavailable'];
                     } catch (\RuntimeException $error) {
                         if ($error->getMessage()==='provider_project_unverified') self::fail('provider_project_unverified',422,'openai_project_id');
+                        if ($error->getMessage()==='provider_credentials_rejected') self::fail('provider_credentials_rejected',422,'api_key');
                         if ($error->getMessage()!=='provider_permission_denied') throw $error;
                         $projectValidation=['project_validation'=>'scope_unavailable'];
                     }

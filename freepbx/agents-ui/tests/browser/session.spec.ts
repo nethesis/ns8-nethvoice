@@ -37,7 +37,7 @@ async function editor(page: Page, rejectFirstSave: boolean) {
     await route.fulfill({json: path === "/access" ? {csrf: "synthetic-csrf"} : path === "/catalog" ? {tools: read("tools-v5.json"), default_language: "en", extensions: [], languages: [{id: "en", label: "English"}]} : path === "/trunks" ? {items: []} : path === "/destinations" ? {items: [], next_offset: null, modules: {}, unavailable_ids: []} : profile});
   });
   await page.goto("./#/agents/receptionist");
-  await page.getByLabel("Greeting", {exact: true}).fill("Unsaved greeting");
+  await page.getByLabel(/^Greeting/).fill("Unsaved greeting");
   return saved;
 }
 
@@ -46,13 +46,13 @@ test("an expired session keeps the editor and resumes after signing in elsewhere
   await page.getByRole("button", {name: "Save draft", exact: true}).click();
   await expect(page.getByText("Administrator login required")).toBeVisible();
   await expect(page.getByText(/keeps your unsaved changes/)).toBeVisible();
-  await expect(page.getByLabel("Greeting", {exact: true})).toBeHidden();
+  await expect(page.getByLabel(/^Greeting/)).toBeHidden();
   const popup = context.waitForEvent("page");
   await page.getByRole("button", {name: "Sign in through Wizard", exact: true}).click();
   const login = await popup;
   expect(login.url()).toContain("/freepbx/wizard/#!/login");
   await login.evaluate(() => localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "renewed"})));
-  await expect(page.getByLabel("Greeting", {exact: true})).toHaveValue("Unsaved greeting");
+  await expect(page.getByLabel(/^Greeting/)).toHaveValue("Unsaved greeting");
   await page.getByRole("button", {name: "Save draft", exact: true}).click();
   await expect.poll(() => saved).toEqual(["Unsaved greeting"]);
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem("nethvoice.agents.edit"))).toBeNull();
@@ -66,8 +66,8 @@ test("a different administrator gets the saved draft after sign-in", async ({pag
     localStorage.setItem("secretkey", JSON.stringify({user: "other-admin", hash: "renewed"}));
     window.dispatchEvent(new StorageEvent("storage", {key: "secretkey"}));
   });
-  await expect(page.getByLabel("Greeting", {exact: true})).toBeVisible();
-  await expect(page.getByLabel("Greeting", {exact: true})).toHaveValue("Current saved greeting");
+  await expect(page.getByLabel(/^Greeting/)).toBeVisible();
+  await expect(page.getByLabel(/^Greeting/)).toHaveValue("Current saved greeting");
 });
 
 test("an earlier administrator's pending save cannot replace the current draft", async ({page}) => {
@@ -88,12 +88,12 @@ test("an earlier administrator's pending save cannot replace the current draft",
     localStorage.setItem("secretkey", JSON.stringify({user: "other-admin", hash: "renewed"}));
     window.dispatchEvent(new StorageEvent("storage", {key: "secretkey"}));
   });
-  await expect(page.getByLabel("Greeting", {exact: true})).toHaveValue("Current saved greeting");
+  await expect(page.getByLabel(/^Greeting/)).toHaveValue("Current saved greeting");
   const returned = page.waitForResponse(response => response.request().method() === "PUT");
   release();
   await (await returned).finished();
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())));
-  await expect(page.getByLabel("Greeting", {exact: true})).toHaveValue("Current saved greeting");
+  await expect(page.getByLabel(/^Greeting/)).toHaveValue("Current saved greeting");
 });
 
 test("closing the editor with unsaved changes asks for confirmation", async ({page}) => {

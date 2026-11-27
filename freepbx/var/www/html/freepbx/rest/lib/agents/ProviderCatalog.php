@@ -44,8 +44,12 @@ final class ProviderCatalog
             throw new \RuntimeException('invalid_provider_configuration',422);
         }
         $base=['selection'=>$capabilities['selection'],'default_model'=>$capabilities['default'],'capability_version'=>2];
-        // xAI explicitly ignores the model query parameter for SIP call_id sessions.
-        if ($capabilities['selection']==='provider_managed') return $base+['items'=>$capabilities['models'],'backend_models'=>[],'source'=>'provider_managed'];
+        // xAI ignores model selection in SIP sessions. Check credentials against its voice catalog.
+        if ($capabilities['selection']==='provider_managed') {
+            if ($fresh && $provider==='grok') self::voices($provider,$key,true);
+            return $base+['items'=>$capabilities['models'],'backend_models'=>[],'source'=>'provider_managed']
+                +($fresh && $provider==='grok'?['credential_verified'=>true]:[]);
+        }
         if ($key==='' || preg_match('/[\r\n\x00]/',$key)) throw new \RuntimeException('provider_credentials_unavailable',422);
         $cacheKey='voice_agent_models_v2_'.hash('sha256',$provider.$key);
         if (!$fresh && $project===null && !$this->fetchModels && function_exists('apcu_fetch')) {
@@ -65,7 +69,8 @@ final class ProviderCatalog
             $items=array_values(array_filter($capabilities['models'],fn($model)=>isset($available[$model['id']])));
             $result=['items'=>$items,'backend_models'=>array_values(array_filter($capabilities['backend_models'],fn($model)=>isset($available[$model['id']])))];
             if ($project===null && !$this->fetchModels && function_exists('apcu_store')) apcu_store($cacheKey,$result,300);
-            return $base+$result+['source'=>'provider_api']+($project===null?[]:['project_checked'=>true]);
+            return $base+$result+['source'=>'provider_api']+($project===null?[]:['project_checked'=>true])
+                +($fresh?['credential_verified'=>true]:[]);
         } catch (\Throwable $error) {
             if ($error instanceof \RuntimeException && in_array($error->getMessage(),['provider_credentials_rejected','provider_permission_denied','provider_project_unverified'],true)) throw $error;
             return $base+['items'=>$capabilities['models'],'backend_models'=>$capabilities['backend_models'],'source'=>'adapter_catalog','discovery_error'=>'provider_catalog_unavailable'];
@@ -118,14 +123,16 @@ final class ProviderCatalog
             ['it','en','es','fr','de','pt','ar','bn','zh','hi','id','ja','ko','ru','tr','vi','nl','pl','uk','sv'],
             ['Italiano','English','Español','Français','Deutsch','Português','العربية','বাংলা','中文','हिन्दी','Bahasa Indonesia','日本語','한국어','Русский','Türkçe','Tiếng Việt','Nederlands','Polski','Українська','Svenska']);
     }
-    public static function voices(string $provider,string $key): array
+    public static function voices(string $provider,string $key,bool $fresh=false): array
     {
         // OpenAI documents a Realtime enumeration, not a builtin voice-list endpoint.
         if ($provider==='openai') return ['items'=>array_map(fn($id)=>['id'=>$id,'label'=>$id],
             ['alloy','ash','ballad','coral','echo','sage','shimmer','verse','marin','cedar']), 'source'=>'provider_documentation'];
-        if ($provider!=='grok' || $key==='') throw new \RuntimeException('provider_credentials_unavailable',422);
+        if ($provider!=='grok' || $key==='' || preg_match('/[\r\n\x00]/',$key)) {
+            throw new \RuntimeException('provider_credentials_unavailable',422);
+        }
         $cacheKey='voice_agent_voices_'.hash('sha256',$provider.$key);
-        if (function_exists('apcu_fetch')) { $cached=apcu_fetch($cacheKey); if (is_array($cached)) return $cached; }
+        if (!$fresh && function_exists('apcu_fetch')) { $cached=apcu_fetch($cacheKey); if (is_array($cached)) return $cached; }
         $body=''; $curl=curl_init('https://api.x.ai/v1/tts/voices');
         curl_setopt_array($curl,[CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$key,'Accept: application/json'],
             CURLOPT_CONNECTTIMEOUT=>3,CURLOPT_TIMEOUT=>5,CURLOPT_FOLLOWLOCATION=>false,
@@ -134,17 +141,28 @@ final class ProviderCatalog
                 $body.=$chunk;return strlen($chunk);
             }]);
         $ok=curl_exec($curl);$status=curl_getinfo($curl,CURLINFO_HTTP_CODE);curl_close($curl);
-        $rows=json_decode($body,true)['voices']??null;
-        if (!$ok || $status!==200 || !is_array($rows) || count($rows)>200) throw new \RuntimeException('provider_catalog_unavailable',503);
+        $result=self::grokVoicesResponse($ok!==false,$status,$body);
+        if (function_exists('apcu_store')) apcu_store($cacheKey,$result,300);
+        return $result;
+    }
+
+    private static function grokVoicesResponse(bool $received,int $status,string $body): array
+    {
+        if (!$received) throw new \RuntimeException('provider_catalog_unavailable',503);
+        if ($status===401) throw new \RuntimeException('provider_credentials_rejected',422);
+        if ($status===403) throw new \RuntimeException('provider_permission_denied',422);
+        $rows=json_decode($body,true,32)['voices']??null;
+        if ($status!==200 || !is_array($rows) || !array_is_list($rows) || count($rows)>200) {
+            throw new \RuntimeException('provider_catalog_unavailable',503);
+        }
         $items=[];
         foreach ($rows as $row) {
+            if (!is_array($row)) continue;
             $id=$row['voice_id']??null;$label=$row['name']??$id;
             if (!is_string($id) || !preg_match('/^[a-z0-9_-]{1,128}$/D',$id) || !is_string($label) || mb_strlen($label)>100) continue;
             $items[$id]=['id'=>$id,'label'=>$label];
         }
         if (!$items) throw new \RuntimeException('provider_catalog_unavailable',503);
-        $result=['items'=>array_values($items),'source'=>'provider_api'];
-        if (function_exists('apcu_store')) apcu_store($cacheKey,$result,300);
-        return $result;
+        return ['items'=>array_values($items),'source'=>'provider_api'];
     }
 }

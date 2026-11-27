@@ -10,10 +10,23 @@ $db->exec('CREATE TABLE IF NOT EXISTS ampusers (username VARCHAR(100) PRIMARY KE
 $q=$db->prepare('INSERT INTO ampusers VALUES (?,?,?) ON DUPLICATE KEY UPDATE password_sha1=VALUES(password_sha1),sections=VALUES(sections)');
 $q->execute(['http-admin','synthetic-password-hash','*']);
 $q->execute(['http-viewer','synthetic-viewer-hash','devices']);
+$db->exec('CREATE TEMPORARY TABLE timeconditions (timeconditions_id INT, truegoto VARCHAR(100), falsegoto VARCHAR(100))');
+$db->exec("INSERT INTO timeconditions VALUES (5,'ivr-1,s,1','voice-agent-consultation_assistant,s,1')");
+$db->exec('CREATE TEMPORARY TABLE ivr_details (id INT, invalid_destination VARCHAR(100), timeout_destination VARCHAR(100))');
+$db->exec("INSERT INTO ivr_details VALUES (1,'app-blackhole,hangup,1','timeconditions,5,1')");
+$db->exec('CREATE TEMPORARY TABLE ivr_entries (ivr_id INT, dest VARCHAR(100))');
+$db->exec("INSERT INTO ivr_entries VALUES (1,'voice-agent-receptionist,s,1')");
 class FreePBX {
     public static ?array $referencedAgentIds=['receptionist'=>true,'consultation_assistant'=>true];
+    public static ?array $inboundRoutes=[];
     public static int $routeInventoryReads=0;
     public static function Database() { return $GLOBALS['db']; }
+    public static function Core() { return new class {
+        public function getAllDIDs($sort): array {
+            assert($sort==='extension');
+            return FreePBX::$inboundRoutes ?? throw new RuntimeException('fixture_inbound_unavailable');
+        }
+    }; }
     public static function Satellite() { return new class {
         public function agentDirectory() { return ['items'=>[['id'=>'extension:203','type'=>'extension','name'=>'Test extension','description'=>'','available'=>true,'native_destination'=>'from-did-direct,203,1']],'modules'=>['extension'=>true,'queue'=>false,'ivr'=>false]]; }
         public function agentExtensions() { return [['id'=>'extension:203','name'=>'Test extension']]; }
@@ -81,9 +94,19 @@ try { api('POST','/profiles/receptionist/enabled',['expected_revision'=>1,'enabl
 [$status,$profiles]=api('GET','/profiles'); assert($status===200 && count($profiles['items'])>=2);
 $usage=array_column($profiles['items'],'in_use','agent_id');
 assert($usage['receptionist']===true && $usage['consultation_assistant']===false && FreePBX::$routeInventoryReads===1);
+assert(array_column($profiles['items'],'inbound_route_in_use','agent_id')['receptionist']===false);
 FreePBX::$referencedAgentIds=[];
+foreach (['voice-agent-receptionist,s,1','timeconditions,5,1'] as $destination) {
+    FreePBX::$inboundRoutes=[['destination'=>$destination]];
+    [$status,$profiles]=api('GET','/profiles');
+    $usage=array_column($profiles['items'],'inbound_route_in_use','agent_id');
+    assert($status===200 && $usage['receptionist']===true && $usage['consultation_assistant']===false);
+}
+FreePBX::$inboundRoutes=null;
 [$status,$profiles]=api('GET','/profiles');
 assert($status===200 && array_column($profiles['items'],'in_use','agent_id')['receptionist']===false);
+assert(array_column($profiles['items'],'inbound_route_in_use','agent_id')['receptionist']===null);
+FreePBX::$inboundRoutes=[];
 FreePBX::$referencedAgentIds=null;
 [$status,$profiles]=api('GET','/profiles');
 assert($status===200 && array_column($profiles['items'],'in_use','agent_id')['receptionist']===null);

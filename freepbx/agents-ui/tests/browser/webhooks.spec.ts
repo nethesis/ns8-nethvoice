@@ -66,6 +66,17 @@ test("OpenAI creation needs a key and project but no signing secret; manual inpu
   await page.route("**/freepbx/rest/agents/**", async route => {
     const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
     if (route.request().method() !== "GET") {
+      if (path === "/trunks/models") {
+        expect(route.request().postDataJSON()).toEqual({
+          provider: "openai",
+          credential_mode: "dedicated",
+          api_key: "synthetic-provider-key",
+          openai_project_id: "proj_explicit",
+          test: true,
+        });
+        await route.fulfill({ json: { credential_verified: true } });
+        return;
+      }
       expect(path).toBe("/trunks");
       const data = route.request().postDataJSON();
       expect(data.trunk.api_key).toBe("synthetic-provider-key");
@@ -83,7 +94,7 @@ test("OpenAI creation needs a key and project but no signing secret; manual inpu
   await page.goto("./#/trunks");
   await page.getByRole("button", { name: "Create trunk", exact: true }).click();
   await page.getByLabel("Name", { exact: true }).fill("OpenAI SIP");
-  await page.getByLabel("OpenAI project ID", { exact: true }).fill("proj_explicit");
+  await page.getByLabel(/^OpenAI project ID/).fill("proj_explicit");
   await page.getByText("Dedicated key", { exact: true }).click();
   await expect(page.getByRole("group", { name: "API key source", exact: true })).toBeVisible();
   await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
@@ -175,3 +186,79 @@ test("a dedicated key is required unless the trunk already stores one", async ({
   await expect(page.getByText("Leave empty to keep the stored API key.", { exact: true })).toBeVisible();
   await expect(page.getByText(/NethVoice Integrations settings/)).toHaveCount(0);
 });
+
+for (const failure of [
+  {
+    provider: "openai",
+    status: 422,
+    code: "provider_permission_denied",
+    message: /lacks permission to read the provider catalog/,
+    canSave: true,
+  },
+  {
+    provider: "openai",
+    status: 503,
+    code: "provider_catalog_unavailable",
+    message: /provider check did not complete/,
+    canSave: true,
+  },
+  {
+    provider: "grok",
+    status: 422,
+    code: "provider_credentials_rejected",
+    message: /provider rejected these API credentials/,
+    canSave: false,
+  },
+]) {
+  test(`credential feedback when saving a trunk: ${failure.code}`, async ({ page }) => {
+    await login(page);
+    const trunk = { ...initial, provider: failure.provider, name: "Checked trunk" };
+    let checks = 0, saves = 0;
+    await page.route("**/freepbx/rest/agents/**", async route => {
+      const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");
+      if (path === "/trunks/models") {
+        checks++;
+        const input = route.request().postDataJSON();
+        expect(input).toMatchObject({ provider: failure.provider, api_key: "synthetic-provider-key", test: true });
+        expect(input).not.toHaveProperty("webhook_secret");
+        await route.fulfill({ status: failure.status, json: { error: failure.code, field: "api_key" } });
+      } else if (path === "/trunks" && route.request().method() === "POST") {
+        saves++;
+        const input = route.request().postDataJSON();
+        expect(input.trunk.api_key).toBe("synthetic-provider-key");
+        await route.fulfill({ json: trunk });
+      } else {
+        await route.fulfill({ json: path === "/access" ? { csrf: "synthetic-csrf" }
+          : path === "/catalog" ? { sip_lab_enabled: true, provider_credentials: {} }
+          : { items: path === "/trunks" && saves ? [trunk] : [] } });
+      }
+    });
+    await page.goto("./#/trunks");
+    await page.getByRole("button", { name: "Create trunk", exact: true }).click();
+    if (failure.provider === "grok") {
+      await page.getByRole("combobox", { name: /provider/i }).click();
+      await page.getByRole("option", { name: "Grok", exact: true }).click();
+      await page.getByLabel("Grok Direct SIP number").fill("+15550109999");
+      await page.getByLabel(/^Webhook signing secret/).fill("whsec_c3ludGhldGljLXNpZ25pbmctc2VjcmV0");
+    }
+    await page.getByLabel("Name", { exact: true }).fill("Checked trunk");
+    await page.getByText("Dedicated key", { exact: true }).click();
+    const key = page.getByLabel(/^Provider API key/);
+    await key.fill("synthetic-provider-key");
+    await page.getByRole("button", { name: "Create", exact: true }).click();
+    await expect(page.getByText(failure.message)).toBeVisible();
+    expect(checks).toBe(1);
+    expect(saves).toBe(0);
+    const skip = page.getByRole("button", { name: "Save without verification", exact: true });
+    if (failure.canSave) {
+      await expect(page.getByRole("button", { name: "Retry credential check" })).toBeVisible();
+      await skip.click();
+      await expect(page.getByRole("row").filter({ hasText: "Checked trunk" })).toBeVisible();
+      expect(checks).toBe(1);
+      expect(saves).toBe(1);
+    } else {
+      await expect(skip).toHaveCount(0);
+      await expect(key).toBeFocused();
+    }
+  });
+}

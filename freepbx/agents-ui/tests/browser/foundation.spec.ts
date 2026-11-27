@@ -60,6 +60,8 @@ test("built-in agents render with v0.1 navigation and independent tool editing",
   await page.getByRole("button",{name:"Save",exact:true}).click();
   await expect(page.getByText("Test extension (203)",{exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Publish",exact:true}).click();
+  await expect(page).toHaveURL(/#\/agents$/);
+  await page.getByRole("link",{name:"Receptionist test agent",exact:true}).click();
   await expect(page.getByText("Published version 1",{exact:true})).toBeVisible();
   await expect(page.getByRole("button",{name:"Save draft",exact:true})).toBeDisabled();
   await expect(page.getByRole("button",{name:"Publish",exact:true})).toBeDisabled();
@@ -79,7 +81,7 @@ test("provider credentials are write-only and cleared after saving", async ({pag
   await page.route("**/freepbx/rest/agents/**", async route => {
     const path=new URL(route.request().url()).pathname;
     if(path.endsWith('/trunks/models')) {
-      await route.fulfill({json:{items:[{id:'gpt-realtime-2.1',label:'GPT Realtime 2.1'}],default_model:'gpt-realtime-2.1',source:'provider_api',selection:'selectable'}}); return;
+      await route.fulfill({json:{items:[{id:'gpt-realtime-2.1',label:'GPT Realtime 2.1'}],default_model:'gpt-realtime-2.1',source:'provider_api',selection:'selectable',credential_verified:true}}); return;
     }
     if(route.request().method()==="POST") {
       const input=route.request().postDataJSON();
@@ -93,7 +95,7 @@ test("provider credentials are write-only and cleared after saving", async ({pag
   await page.goto("./#/trunks");
   await page.getByRole("button",{name:"Create trunk",exact:true}).click();
   await page.getByLabel("Name",{exact:true}).fill("Test provider");
-  await page.getByLabel("OpenAI project ID",{exact:true}).fill("proj_test");
+  await page.getByLabel(/^OpenAI project ID/).fill("proj_test");
   await page.getByText("Dedicated key",{exact:true}).click();
   await page.getByLabel(/^Provider API key/).fill("synthetic-provider-key");
   await page.getByLabel(/^Webhook signing secret/).fill("whsec_c3ludGhldGljLXNpZ25pbmctc2VjcmV0");
@@ -137,27 +139,28 @@ test("new Basic Voice draft saves, conflicts preserve edits, and runs show bound
   });
   await page.goto("./#/agents/new");
   await expect(toggle(page,"Find permitted PBX destinations")).toHaveCount(0);
-  await expect(toggle(page,"Transfer calls")).not.toBeChecked();
   await expect(page.getByRole("combobox",{name:"Default language"})).toHaveValue("Italiano (it)");
-  await expect(toggle(page,"Call transcription")).not.toBeChecked();
-  await toggle(page,"Call transcription").locator("..").click();
-  await page.getByLabel("Transcript retention",{exact:true}).fill("2");
+  await expect(toggle(page,"Call transcription")).toHaveCount(0);
+  await page.getByRole("button",{name:"Next",exact:true}).click();
+  await expect(page.getByText("Enter a name")).toBeVisible();
   await page.getByLabel("Name",{exact:true}).fill("Basic test");
-  await page.getByRole("button",{name:"Save draft",exact:true}).click();
+  await page.getByRole("button",{name:"Cancel",exact:true}).click();
+  await page.getByRole("dialog", {name:"Unsaved changes"}).getByRole("button",{name:"Save draft",exact:true}).click();
   await expect(page).toHaveURL(/#\/agents\/agent_test$/);
-  expect(profile.draft.debug.retention_hours).toBe(2);
+  expect(profile.draft.debug.retention_hours).toBe(24);
   conflict=true;
   await page.getByLabel("Name",{exact:true}).fill("Unsaved conflict");
   await page.getByRole("button",{name:"Save draft",exact:true}).click();
-  await expect(page.getByRole("button",{name:"Reload saved settings",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Discard my changes",exact:true})).toBeVisible();
   await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Unsaved conflict");
-  await page.getByRole("button",{name:"Reload saved settings",exact:true}).click();
+  await page.getByRole("button",{name:"Discard my changes",exact:true}).click();
   await expect(page.getByLabel("Name",{exact:true})).toHaveValue("Basic test");
   await page.getByRole("button",{name:"Back",exact:true}).click();
   await page.getByRole("button",{name:"Open menu",exact:true}).click();
   await page.getByRole("menuitem",{name:"View monitoring",exact:true}).click();
   await expect(page).toHaveURL(/agent_id=agent_test/);
   await page.getByRole("button",{name:"Details",exact:true}).click();
+  await page.getByText("Diagnostics",{exact:true}).click();
   await expect(page.getByText("Transfer to a permitted PBX destination",{exact:false})).toBeVisible();
   await expect(page.getByText("extension:203",{exact:false})).toBeVisible();
   await expect(page.getByText("Approved directory matches: 0",{exact:true})).toBeVisible();
@@ -190,6 +193,7 @@ test("failed first publication keeps one draft and sign-in restores its edits", 
   });
   await page.goto("./#/agents/new");
   await page.getByLabel("Name", {exact:true}).fill("Saved draft");
+  for(let step=0;step<2;step++) await page.getByRole("button", {name:"Next",exact:true}).click();
   await page.getByRole("button", {name:"Publish",exact:true}).click();
   await expect(page).toHaveURL(/#\/agents\/agent_saved$/);
   await expect(page.getByLabel("Name", {exact:true})).toHaveValue("Saved draft");
