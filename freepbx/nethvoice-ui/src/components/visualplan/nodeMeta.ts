@@ -29,69 +29,69 @@ export type NodeMeta = { icon: IconDefinition; tone: string }
 export const NODE_META: Record<NodeType, NodeMeta> = {
   inboundRoute: {
     icon: faPhoneVolume,
-    tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-700 dark:text-emerald-50',
+    tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-800 dark:text-emerald-50',
   },
-  extension: { icon: faUser, tone: 'bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-50' },
+  extension: { icon: faUser, tone: 'bg-blue-100 text-blue-700 dark:bg-blue-800 dark:text-blue-50' },
   voicemail: {
     icon: faVoicemail,
-    tone: 'bg-sky-100 text-sky-700 dark:bg-sky-700 dark:text-sky-50',
+    tone: 'bg-sky-100 text-sky-700 dark:bg-sky-800 dark:text-sky-50',
   },
   conference: {
     icon: faPeopleGroup,
-    tone: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-700 dark:text-indigo-50',
+    tone: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-800 dark:text-indigo-50',
   },
   hangup: {
     icon: faPhoneSlash,
-    tone: 'bg-rose-100 text-rose-700 dark:bg-rose-700 dark:text-rose-50',
+    tone: 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-50',
   },
   ringGroup: {
     icon: faUsersRays,
-    tone: 'bg-teal-100 text-teal-700 dark:bg-teal-700 dark:text-teal-50',
+    tone: 'bg-teal-100 text-teal-700 dark:bg-teal-800 dark:text-teal-50',
   },
-  queue: { icon: faUsers, tone: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-700 dark:text-cyan-50' },
+  queue: { icon: faUsers, tone: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-50' },
   ivr: {
     icon: faListOl,
-    tone: 'bg-violet-100 text-violet-700 dark:bg-violet-700 dark:text-violet-50',
+    tone: 'bg-violet-100 text-violet-700 dark:bg-violet-800 dark:text-violet-50',
   },
   cqr: {
     icon: faDatabase,
-    tone: 'bg-purple-100 text-purple-700 dark:bg-purple-700 dark:text-purple-50',
+    tone: 'bg-purple-100 text-purple-700 dark:bg-purple-800 dark:text-purple-50',
   },
   announcement: {
     icon: faBullhorn,
-    tone: 'bg-orange-100 text-orange-700 dark:bg-orange-700 dark:text-orange-50',
+    tone: 'bg-orange-100 text-orange-700 dark:bg-orange-800 dark:text-orange-50',
   },
   timeCondition: {
     icon: faClock,
-    tone: 'bg-pink-100 text-pink-700 dark:bg-pink-700 dark:text-pink-50',
+    tone: 'bg-pink-100 text-pink-700 dark:bg-pink-800 dark:text-pink-50',
   },
   callFlowControl: {
     icon: faToggleOn,
-    tone: 'bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-50',
+    tone: 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-50',
   },
   setCallerId: {
     icon: faIdCard,
-    tone: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-50',
+    tone: 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-800 dark:text-fuchsia-50',
   },
   directDid: {
     icon: faHashtag,
-    tone: 'bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-50',
+    tone: 'bg-lime-100 text-lime-700 dark:bg-lime-800 dark:text-lime-50',
   },
   queueExit: {
     icon: faDoorOpen,
-    tone: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-700 dark:text-cyan-50',
+    tone: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-50',
   },
   queueOptions: {
     icon: faListCheck,
-    tone: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-700 dark:text-cyan-50',
+    tone: 'bg-stone-100 text-stone-700 dark:bg-stone-600 dark:text-stone-50',
   },
   queuePriority: {
     icon: faArrowUpWideShort,
-    tone: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-700 dark:text-cyan-50',
+    tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-500 dark:text-zinc-50',
   },
   other: {
     icon: faCircleNodes,
-    tone: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-50',
+    tone: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-50',
   },
 }
 

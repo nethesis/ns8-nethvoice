@@ -59,11 +59,12 @@ test.describe('routes: inbound', () => {
     const rows = page.getByRole('grid', { name: 'Inbound routes' }).getByRole('row')
 
     await expect(rows).toHaveCount(3)
-    await expect(rows.nth(1)).toContainText('123 / 345')
-    await expect(rows.nth(1)).toContainText('Queue: Customer service (400)')
-    await expect(rows.nth(2)).toContainText('0212345670')
-    await expect(rows.nth(2)).toContainText('Main office number')
-    await expect(rows.nth(2)).toContainText('IVR: Main menu')
+    await expect(rows.nth(1)).toContainText('Main office number')
+    await expect(rows.nth(1)).toContainText('0212345670')
+    await expect(rows.nth(1)).toContainText('IVR: Main menu')
+    await expect(rows.nth(2)).toContainText('Test')
+    await expect(rows.nth(2)).toContainText('123 from 345')
+    await expect(rows.nth(2)).toContainText('Queue: Customer service (400)')
   })
 
   test('names the routes without a DID and flags the missing destinations', async ({
@@ -79,23 +80,23 @@ test.describe('routes: inbound', () => {
 
     await expect(rows.nth(1)).toContainText('Any DID')
     await expect(rows.nth(1)).toContainText('IVR: Main menu')
-    await expect(rows.nth(2)).toContainText('Any DID / 0612345678')
+    await expect(rows.nth(2)).toContainText('Any DID from 0612345678')
     await expect(rows.nth(2)).toContainText('Invalid destination')
     await expect(rows.nth(2)).not.toContainText('ext-queues')
 
     await page.getByRole('textbox', { name: 'Filter routes' }).fill('queues')
     await expect(page.getByText('No routes found')).toBeVisible()
-    await expect(page.getByText('Try different or fewer words.')).toBeVisible()
-    await page.getByRole('button', { name: 'Clear filter' }).click()
+    await expect(page.getByText('Try changing your search filters.')).toBeVisible()
+    await page.getByRole('button', { name: 'Reset filters' }).last().click()
     await expect(page.getByRole('textbox', { name: 'Filter routes' })).toHaveValue('')
 
-    await page.getByRole('button', { name: 'Open the menu of route Any DID / 0612345678' }).click()
-    await page.getByRole('menuitem', { name: 'Delete route' }).click()
+    await page.getByRole('button', { name: 'Open the menu of route VIP' }).click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
     await expect(page.getByRole('dialog')).toContainText(
-      'Route Any DID / 0612345678 will be permanently deleted.',
+      'Inbound route VIP will be permanently deleted.',
     )
     await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
-    await expect(page.getByText('Route Any DID / 0612345678 has been deleted.')).toBeVisible()
+    await expect(page.getByText('Inbound route VIP has been deleted.')).toBeVisible()
   })
 
   test('filters the routes and clears the filters', async ({ page }) => {
@@ -105,14 +106,14 @@ test.describe('routes: inbound', () => {
 
     await page.getByRole('textbox', { name: 'Filter routes' }).fill('queue')
     await expect(rows).toHaveCount(2)
-    await expect(rows.nth(1)).toContainText('123 / 345')
+    await expect(rows.nth(1)).toContainText('123 from 345')
 
     await page.getByRole('textbox', { name: 'Filter routes' }).fill('nothing matches')
     await expect(page.getByText('No routes found')).toBeVisible()
 
     await page.getByRole('button', { name: 'Reset filters' }).first().click()
     await expect(rows).toHaveCount(3)
-    await expect(rows.nth(1)).toContainText('123 / 345')
+    await expect(rows.nth(2)).toContainText('123 from 345')
   })
 
   test('shows an empty state', async ({ page, mockApi }) => {
@@ -122,7 +123,9 @@ test.describe('routes: inbound', () => {
 
     await expect(page.getByText('No inbound routes configured')).toBeVisible()
     await expect(
-      page.getByText('Define how incoming calls are routed to internal destinations.'),
+      page.getByText(
+        'Define how incoming calls are routed to internal destinations, by number dialed, caller and time.',
+      ),
     ).toBeVisible()
     await expect(page.getByRole('grid')).toHaveCount(0)
     await expect(page.getByRole('textbox', { name: 'Filter routes' })).toHaveCount(0)
@@ -153,7 +156,7 @@ test.describe('routes: inbound', () => {
     await expect(page).toHaveURL(/\/routes\/visual-plan$/)
 
     await page.goto('./routes/inbound')
-    await page.getByRole('button', { name: /route 123 \/ 345 in the Visual Plan/ }).click()
+    await page.getByRole('button', { name: /route Test in the Visual Plan/ }).click()
     await expect(page).toHaveURL(/\/routes\/visual-plan\?route=123(%2F|\/)345$/)
   })
 
@@ -161,12 +164,12 @@ test.describe('routes: inbound', () => {
     mockApi.on('POST', '/freepbx/rest/inboundroutes/delete', { status: 200 })
 
     await page.goto('./routes/inbound')
-    await page.getByRole('button', { name: 'Open the menu of route 123 / 345' }).click()
-    await page.getByRole('menuitem', { name: 'Delete route' }).click()
+    await page.getByRole('button', { name: 'Open the menu of route Test' }).click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
 
     const modal = page.getByRole('dialog')
 
-    await expect(modal).toContainText('Route 123 / 345 will be permanently deleted.')
+    await expect(modal).toContainText('Inbound route Test will be permanently deleted.')
     const listCalls = mockApi.callsTo('GET', '/freepbx/rest/inboundroutes').length
 
     await modal.getByRole('button', { name: 'Delete' }).click()
@@ -179,7 +182,7 @@ test.describe('routes: inbound', () => {
     await expect
       .poll(() => mockApi.callsTo('GET', '/freepbx/rest/inboundroutes').length)
       .toBeGreaterThan(listCalls)
-    await expect(page.getByText('Route deleted')).toBeVisible()
+    await expect(page.getByText('Inbound route deleted')).toBeVisible()
   })
 
   test('keeps the modal open while deleting', async ({ page, mockApi }) => {
@@ -194,14 +197,14 @@ test.describe('routes: inbound', () => {
     })
 
     await page.goto('./routes/inbound')
-    await page.getByRole('button', { name: 'Open the menu of route 123 / 345' }).click()
-    await page.getByRole('menuitem', { name: 'Delete route' }).click()
+    await page.getByRole('button', { name: 'Open the menu of route Test' }).click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
 
     const modal = page.getByRole('dialog')
 
     await modal.getByRole('button', { name: 'Delete' }).click()
     await page.keyboard.press('Escape')
-    await expect(modal.getByRole('heading', { name: 'Delete route' })).toBeVisible()
+    await expect(modal.getByRole('heading', { name: 'Delete inbound route' })).toBeVisible()
 
     release()
     await expect(modal).toBeHidden()
@@ -211,8 +214,8 @@ test.describe('routes: inbound', () => {
     mockApi.on('POST', '/freepbx/rest/inboundroutes/delete', { status: 404 })
 
     await page.goto('./routes/inbound')
-    await page.getByRole('button', { name: 'Open the menu of route 0212345670' }).click()
-    await page.getByRole('menuitem', { name: 'Delete route' }).click()
+    await page.getByRole('button', { name: 'Open the menu of route Main office number' }).click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
     await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
 
     await expect(page.getByRole('dialog')).toBeHidden()
@@ -229,8 +232,8 @@ test.describe('routes: inbound', () => {
     })
 
     await page.goto('./routes/inbound')
-    await page.getByRole('button', { name: 'Open the menu of route 0212345670' }).click()
-    await page.getByRole('menuitem', { name: 'Delete route' }).click()
+    await page.getByRole('button', { name: 'Open the menu of route Main office number' }).click()
+    await page.getByRole('menuitem', { name: 'Delete' }).click()
     await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
 
     await expect(page.getByRole('dialog')).toContainText('Cannot delete route')

@@ -8,18 +8,14 @@ import { computed, nextTick, useTemplateRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NeButton,
-  NeDropdown,
   NeEmptyState,
+  NeHeading,
   NeInlineNotification,
   NeTooltip,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import {
-  faCircleMinus,
-  faCrosshairs,
-  faDiagramProject,
-  faXmark,
-} from '@fortawesome/free-solid-svg-icons'
+import { faCrosshairs, faDiagramProject, faTrash, faXmark } from '@fortawesome/free-solid-svg-icons'
+import { routesReaching } from '@/lib/visualplan/graph'
 import { getOutputs } from '@/lib/visualplan/model'
 import { useVisualPlanStore } from '@/stores/visualPlan'
 import { useVisualPlanLabels } from '@/composables/useVisualPlanLabels'
@@ -33,7 +29,7 @@ const emit = defineEmits<{ center: [id: string] }>()
 
 const { t } = useI18n()
 const store = useVisualPlanStore()
-const { typeLabel, nodeTitle, issueText } = useVisualPlanLabels()
+const { typeLabel, nodeTitle, issueText, routeName } = useVisualPlanLabels()
 
 const node = computed(() => store.selectedNode)
 const meta = computed(() => (node.value ? NODE_META[node.value.type] : null))
@@ -45,17 +41,25 @@ const generalIssues = computed(() =>
   }),
 )
 
-const issueGroups = computed(() => {
+// Errors that no field of the panel shows; warnings are on the card and in the bottom bar.
+const otherErrors = computed(() => {
   const current = node.value
   if (!current) return []
-  return (['error', 'warning'] as const)
-    .map((level) => ({
-      level,
-      texts: generalIssues.value
-        .filter((issue) => issue.level === level)
-        .map((issue) => issueText(current, issue)),
-    }))
-    .filter((group) => group.texts.length)
+  return generalIssues.value
+    .filter((issue) => issue.level === 'error')
+    .map((issue) => issueText(current, issue))
+})
+
+// An existing item changes for every inbound route that uses it.
+const sharedWith = computed(() => {
+  const current = node.value
+  if (!current || current.isNew || isRoot.value || !store.data) return []
+  return routesReaching(
+    store.catalog,
+    store.data.inboundRoutes,
+    current.id,
+    store.originalRouteKey,
+  ).map((route) => routeName(route))
 })
 
 const form = useTemplateRef<HTMLElement>('form')
@@ -78,67 +82,65 @@ watch(
 )
 const hasOutputs = computed(() => (node.value ? getOutputs(node.value).length > 0 : false))
 const hasEntries = computed(() => node.value?.type === 'ivr' || node.value?.type === 'cqr')
-
-const menuItems = computed(() => {
-  const current = node.value
-  if (!current) return []
-  return [
-    {
-      id: 'center',
-      label: t('visual_plan.show_on_canvas'),
-      icon: faCrosshairs,
-      action: () => emit('center', current.id),
-    },
-    ...(isRoot.value || store.readOnly
-      ? []
-      : [
-          {
-            id: 'remove',
-            label: t('visual_plan.remove_from_flow'),
-            icon: faCircleMinus,
-            danger: true,
-            action: () => store.removeNode(current.id),
-          },
-        ]),
-  ]
-})
 </script>
 
 <template>
   <div class="flex h-full flex-col">
     <template v-if="node && meta">
-      <div
-        :class="[
-          'flex items-start gap-3 border-b border-gray-200 dark:border-gray-700',
-          inDrawer ? 'pb-4' : 'p-4',
-        ]"
-      >
-        <div :class="['flex size-10 shrink-0 items-center justify-center rounded-md', meta.tone]">
-          <FontAwesomeIcon :icon="meta.icon" class="size-5" aria-hidden="true" />
+      <div :class="inDrawer ? 'pb-4' : 'px-6 pt-6'">
+        <div class="flex items-center gap-3">
+          <span :class="['flex size-9 shrink-0 items-center justify-center rounded-md', meta.tone]">
+            <FontAwesomeIcon :icon="meta.icon" class="size-4" aria-hidden="true" />
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-xs text-gray-600 dark:text-gray-400">
+              {{ typeLabel(node.type) }}
+            </p>
+            <NeHeading tag="h2" class="truncate text-base!">
+              {{ nodeTitle(node) || t('visual_plan.untitled') }}
+            </NeHeading>
+          </div>
+          <NeTooltip v-if="!inDrawer" trigger-event="mouseenter focus" placement="bottom">
+            <template #trigger>
+              <NeButton
+                kind="tertiary"
+                class="text-gray-900! dark:text-gray-50!"
+                @click="store.selectedId = null"
+              >
+                <FontAwesomeIcon :icon="faXmark" class="size-4" aria-hidden="true" />
+                <span class="sr-only">{{ t('visual_plan.close_inspector') }}</span>
+              </NeButton>
+            </template>
+            <template #content>{{ t('visual_plan.close_inspector') }}</template>
+          </NeTooltip>
         </div>
-        <div class="min-w-0 flex-1">
-          <p class="text-tertiary-neutral text-xs">{{ typeLabel(node.type) }}</p>
-          <h2 class="text-primary-neutral truncate text-base font-medium">
-            {{ nodeTitle(node) || t('visual_plan.untitled') }}
-          </h2>
+        <div class="mt-4 -ml-2.5 flex flex-wrap items-center gap-1">
+          <NeButton kind="tertiary" size="sm" @click="emit('center', node.id)">
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCrosshairs" class="size-4" aria-hidden="true" />
+            </template>
+            {{ t('visual_plan.show_on_canvas') }}
+          </NeButton>
+          <NeButton
+            v-if="!isRoot && !store.readOnly"
+            kind="tertiary"
+            size="sm"
+            @click="store.removeNode(node.id)"
+          >
+            <template #prefix>
+              <FontAwesomeIcon :icon="faTrash" class="size-4" aria-hidden="true" />
+            </template>
+            {{ t('visual_plan.remove_from_flow') }}
+          </NeButton>
         </div>
-        <NeDropdown :items="menuItems" align-to-right :open-menu-aria-label="t('common.actions')" />
-        <NeTooltip v-if="!inDrawer" trigger-event="mouseenter focus" placement="bottom">
-          <template #trigger>
-            <NeButton kind="tertiary" class="py-2" @click="store.selectedId = null">
-              <FontAwesomeIcon :icon="faXmark" class="h-5 w-5 shrink-0" aria-hidden="true" />
-              <span class="sr-only">{{ t('visual_plan.close_inspector') }}</span>
-            </NeButton>
-          </template>
-          <template #content>{{ t('visual_plan.close_inspector') }}</template>
-        </NeTooltip>
+        <hr class="mt-4 border-gray-200 dark:border-gray-700" />
       </div>
       <div
         ref="form"
         data-visual-plan-form
         :class="[
-          'scrollbar-thin-neutral min-h-0 flex-1 space-y-8 overflow-y-auto',
-          inDrawer ? 'pt-6' : 'p-4',
+          'scrollbar-thin-neutral min-h-0 flex-1 space-y-6 overflow-y-auto',
+          inDrawer ? 'pt-6' : 'px-6 py-6',
         ]"
       >
         <NeInlineNotification
@@ -147,19 +149,21 @@ const menuItems = computed(() => {
           :title="t('visual_plan.read_only_title')"
           :description="t('visual_plan.read_only_description')"
         />
-        <template v-for="group in issueGroups" :key="group.level">
-          <NeInlineNotification
-            :kind="group.level"
-            :title="t(`visual_plan.inspector_${group.level}s`)"
-          >
-            <template #description>
-              <p v-if="group.texts.length === 1">{{ group.texts[0] }}</p>
-              <ul v-else class="list-disc space-y-1 pl-4">
-                <li v-for="(text, index) in group.texts" :key="index">{{ text }}</li>
-              </ul>
-            </template>
-          </NeInlineNotification>
-        </template>
+        <p v-if="sharedWith.length" class="text-sm text-gray-600 dark:text-gray-400">
+          {{ t('visual_plan.shared_with', { routes: sharedWith.join(', ') }, sharedWith.length) }}
+        </p>
+        <NeInlineNotification
+          v-if="otherErrors.length"
+          kind="error"
+          :title="t('visual_plan.inspector_errors')"
+        >
+          <template #description>
+            <p v-if="otherErrors.length === 1">{{ otherErrors[0] }}</p>
+            <ul v-else class="list-disc space-y-1 pl-4">
+              <li v-for="(text, index) in otherErrors" :key="index">{{ text }}</li>
+            </ul>
+          </template>
+        </NeInlineNotification>
         <NodeFields :key="node.id" :node="node" />
         <NodeOutputs v-if="hasOutputs || hasEntries" :key="`${node.id}-outputs`" :node="node" />
       </div>

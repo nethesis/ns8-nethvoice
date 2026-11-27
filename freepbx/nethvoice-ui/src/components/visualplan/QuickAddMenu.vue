@@ -116,12 +116,14 @@ function onKeydown(event: KeyboardEvent) {
     ref="panel"
     role="dialog"
     :aria-label="t('visual_plan.quick_add')"
-    class="bg-elevation-0 fixed z-50 flex w-72 flex-col rounded-md py-2 text-sm shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-500/50"
+    class="nodrag nowheel fixed z-50 flex w-72 flex-col rounded-md bg-white py-2 text-sm shadow-lg ring-1 ring-gray-200 dark:bg-gray-950 dark:ring-gray-700"
     :style="position"
     @keydown="onKeydown"
   >
-    <p class="text-tertiary-neutral px-4 pb-2 text-xs">{{ t('visual_plan.quick_add') }}</p>
-    <div class="px-3 pb-2">
+    <p class="px-4 pb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
+      {{ t('visual_plan.quick_add') }}
+    </p>
+    <div class="px-4 pb-2">
       <input
         ref="input"
         v-model="filter"
@@ -145,7 +147,7 @@ function onKeydown(event: KeyboardEvent) {
       id="visual-plan-quick-add-list"
       role="listbox"
       :aria-label="t('visual_plan.quick_add')"
-      class="scrollbar-thin-neutral max-h-80 overflow-y-auto"
+      class="scrollbar-thin-neutral max-h-72 overflow-y-auto"
     >
       <li
         v-if="existingOptions.length"
@@ -171,7 +173,9 @@ function onKeydown(event: KeyboardEvent) {
             :aria-selected="index === active"
             :class="[
               'flex w-full items-center gap-3 px-4 py-2 text-left',
-              index === active ? 'bg-gray-100 dark:bg-gray-800' : '',
+              index === active
+                ? 'bg-gray-200 text-gray-900 dark:bg-gray-700 dark:text-gray-50'
+                : 'text-gray-700 dark:text-gray-50',
             ]"
             @mouseenter="active = index"
             @click="choose(option)"
@@ -189,7 +193,7 @@ function onKeydown(event: KeyboardEvent) {
               />
             </span>
             <span class="min-w-0">
-              <span class="text-primary-neutral block truncate">{{ option.label }}</span>
+              <span class="block truncate">{{ option.label }}</span>
               <span v-if="option.description" class="text-tertiary-neutral block truncate text-xs">
                 {{ option.description }}
               </span>

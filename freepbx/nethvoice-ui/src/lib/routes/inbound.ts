@@ -8,7 +8,7 @@ import { compareNatural, matchesText } from '@/lib/common'
 
 export const INBOUND_ROUTES_KEY = 'inboundRoutes'
 
-export const INBOUND_ROUTE_SORT_KEYS = ['number', 'description', 'destination'] as const
+export const INBOUND_ROUTE_SORT_KEYS = ['name', 'number', 'destination'] as const
 
 export type InboundRouteSortKey = (typeof INBOUND_ROUTE_SORT_KEYS)[number]
 
@@ -249,7 +249,7 @@ export const sortInboundRoutes = (
   describeDestination: (destination: RouteDestination) => string,
 ): InboundRoute[] => {
   const valueOf = (route: InboundRoute) => {
-    if (sortKey === 'description') {
+    if (sortKey === 'name') {
       return route.description
     }
     return sortKey === 'destination'

@@ -15,6 +15,7 @@ import {
   NEW_REF_PREFIX,
   type FlowNode,
   type NodeType,
+  type OutputDef,
 } from '@/lib/visualplan/model'
 
 export type IssueLevel = 'error' | 'warning'
@@ -69,10 +70,33 @@ const DESTINATION_LIMITS: Partial<Record<NodeType, Record<string, number>>> = {
 
 const ERROR_OUTPUT_TYPES: NodeType[] = ['inboundRoute', 'queuePriority']
 
+// Exits without a destination: an error where the call has nowhere to go, otherwise a warning
+// that says what happens to the calls. Queues and queue exits accept free exits.
+const missingDestination = (node: FlowNode, output: OutputDef): Issue | null => {
+  if (
+    ERROR_OUTPUT_TYPES.includes(node.type) ||
+    output.id.startsWith('entry:') ||
+    (node.type === 'timeCondition' && output.id === 'trueDestination')
+  ) {
+    return { level: 'error', code: 'destination_required', output: output.id }
+  }
+  if (node.type === 'queue' || node.type === 'queueExit') return null
+  if (node.type === 'queueOptions' && output.id === 'failoverDestination') return null
+  const code =
+    node.type === 'announcement'
+      ? 'no_destination_after_recording'
+      : node.type === 'ringGroup'
+        ? 'no_destination_unanswered'
+        : 'no_destination'
+  return { level: 'warning', code, output: output.id }
+}
+
 const error = (code: string, field?: string): Issue => ({ level: 'error', code, field })
 
-const required = (value: string, field: string): Issue[] =>
-  value.trim() ? [] : [error('required', field)]
+const required = (value: string, field: string, code = 'required'): Issue[] =>
+  value.trim() ? [] : [error(code, field)]
+
+const named = (value: string, field: string): Issue[] => required(value, field, 'name_required')
 
 const between = (value: number, min: number, max: number, field: string): Issue[] =>
   Number.isInteger(value) && value >= min && value <= max
@@ -139,7 +163,7 @@ const numberIssues = (ctx: Context, node: FlowNode, id: string): Issue[] => {
     return []
   }
   if (!DIGITS.test(id)) {
-    return [error(id ? 'invalid' : 'required', 'id')]
+    return [error(id ? 'number_digits' : 'number_required', 'id')]
   }
   if (ctx.used.has(id) || (ctx.newNumbers.get(id) ?? 0) > 1) {
     return [error('number_in_use', 'id')]
@@ -151,8 +175,20 @@ const fieldIssues = (ctx: Context, node: FlowNode): Issue[] => {
   switch (node.type) {
     case 'inboundRoute': {
       const issues: Issue[] = []
+      const name = node.data.description.trim().toLowerCase()
+      if (!name) {
+        issues.push(error('name_required', 'description'))
+      } else if (
+        ctx.data.inboundRoutes.some(
+          (route) =>
+            inboundRouteKey(route) !== ctx.originalRouteKey &&
+            route.description.trim().toLowerCase() === name,
+        )
+      ) {
+        issues.push(error('route_name_exists', 'description'))
+      }
       if (!DID_PATTERN.test(node.data.extension) || node.data.extension.length > 50) {
-        issues.push(error('invalid', 'extension'))
+        issues.push(error('did_invalid', 'extension'))
       }
       if (node.data.description.length > 100) issues.push(error('too_long', 'description'))
       if (!DID_PATTERN.test(node.data.cidnum)) issues.push(error('invalid', 'cidnum'))
@@ -166,11 +202,11 @@ const fieldIssues = (ctx: Context, node: FlowNode): Issue[] => {
       return issues
     }
     case 'conference':
-      return [...numberIssues(ctx, node, node.data.id), ...required(node.data.name, 'name')]
+      return [...numberIssues(ctx, node, node.data.id), ...named(node.data.name, 'name')]
     case 'ringGroup':
       return [
         ...numberIssues(ctx, node, node.data.id),
-        ...required(node.data.description, 'description'),
+        ...named(node.data.description, 'description'),
         ...(node.data.members.length
           ? memberIssues(node.data.members, RING_MEMBER, 'members')
           : [error('members_required', 'members')]),
@@ -179,7 +215,7 @@ const fieldIssues = (ctx: Context, node: FlowNode): Issue[] => {
     case 'queue':
       return [
         ...numberIssues(ctx, node, node.data.id),
-        ...required(node.data.name, 'name'),
+        ...named(node.data.name, 'name'),
         ...memberIssues(
           node.data.staticMembers.map((member) => member.extension),
           QUEUE_MEMBER,
@@ -200,34 +236,34 @@ const fieldIssues = (ctx: Context, node: FlowNode): Issue[] => {
       ]
     case 'ivr':
     case 'cqr': {
-      const issues = required(node.data.name, 'name')
+      const issues = named(node.data.name, 'name')
       const dup = duplicates(node.data.entries.map((entry) => entry.value))
       node.data.entries.forEach((entry, index) => {
         const field = `entry:${entry.id}`
         if (!entry.value.trim()) {
-          issues.push(error('required', field))
+          issues.push(error(node.type === 'ivr' ? 'digit_required' : 'required', field))
         } else if (node.type === 'ivr' && !MENU_SELECTION.test(entry.value.trim())) {
           issues.push(error('invalid_selection', field))
         } else if (dup.has(index)) {
-          issues.push(error('duplicate', field))
+          issues.push(error(node.type === 'ivr' ? 'digit_in_use' : 'duplicate', field))
         }
       })
       return issues
     }
     case 'announcement':
       return [
-        ...required(node.data.description, 'description'),
-        ...(node.data.recording === null ? [error('required', 'recording')] : []),
+        ...named(node.data.description, 'description'),
+        ...(node.data.recording === null ? [error('recording_required', 'recording')] : []),
       ]
     case 'timeCondition':
       return [
-        ...required(node.data.name, 'name'),
+        ...named(node.data.name, 'name'),
         ...(node.data.timeGroup === null && !node.data.timeGroupRef
-          ? [error('required', 'timeGroup')]
+          ? [error('time_group_required', 'timeGroup')]
           : []),
       ]
     case 'callFlowControl': {
-      const issues = required(node.data.name, 'name')
+      const issues = named(node.data.name, 'name')
       if (node.isNew) {
         if (!ctx.data.availableCallFlowCodes.includes(node.data.id)) {
           issues.push(error(node.data.id ? 'number_in_use' : 'required', 'id'))
@@ -241,9 +277,18 @@ const fieldIssues = (ctx: Context, node: FlowNode): Issue[] => {
     case 'voicemail':
       return ctx.data.extensions.some((item) => item.extension === node.data.extension)
         ? []
-        : [error(node.data.extension ? 'not_found' : 'required', 'extension')]
+        : [
+            error(
+              node.data.extension
+                ? 'not_found'
+                : node.type === 'voicemail'
+                  ? 'mailbox_required'
+                  : 'extension_required',
+              'extension',
+            ),
+          ]
     case 'setCallerId':
-      return required(node.data.description, 'description')
+      return named(node.data.description, 'description')
     case 'directDid':
       return [
         ...(/^\d{0,3}$/.test(node.data.prefix) ? [] : [error('invalid', 'prefix')]),
@@ -256,16 +301,16 @@ const fieldIssues = (ctx: Context, node: FlowNode): Issue[] => {
         ...between(node.data.timeout, 1, 600, 'timeout'),
       ]
     case 'queueExit':
-      return required(node.data.name, 'name')
+      return named(node.data.name, 'name')
     case 'queueOptions':
       return [
-        ...required(node.data.name, 'name'),
+        ...named(node.data.name, 'name'),
         ...(node.data.positionEnabled ? between(node.data.position, 1, 1000, 'position') : []),
         ...(node.data.maxWaitEnabled ? between(node.data.maxWait, 0, 86400, 'maxWait') : []),
       ]
     case 'queuePriority':
       return [
-        ...required(node.data.description, 'description'),
+        ...named(node.data.description, 'description'),
         ...between(node.data.priority, 0, 20, 'priority'),
       ]
     case 'other':
@@ -323,16 +368,9 @@ export const validateFlow = (
 
     for (const output of getOutputs(node)) {
       const destination = destinations[output.id] ?? ''
-      if (!destination && output.required) {
-        list.push({
-          level:
-            ERROR_OUTPUT_TYPES.includes(node.type) ||
-            (node.type === 'ivr' && output.id.startsWith('entry:'))
-              ? 'error'
-              : 'warning',
-          code: 'output_not_connected',
-          output: output.id,
-        })
+      if (!destination) {
+        const issue = missingDestination(node, output)
+        if (issue) list.push(issue)
       } else if (
         destination &&
         !destination.startsWith(NEW_REF_PREFIX) &&

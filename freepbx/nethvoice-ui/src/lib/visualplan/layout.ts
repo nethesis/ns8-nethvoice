@@ -5,12 +5,15 @@ import dagre from '@dagrejs/dagre'
 import type { FlowState } from '@/lib/visualplan/graph'
 import { getOutputs, type FlowNode, type Position } from '@/lib/visualplan/model'
 
-export const NODE_WIDTH = 240
-const HEADER_HEIGHT = 76
-const OUTPUT_HEIGHT = 32
+export const NODE_WIDTH = 256
+const HEADER_HEIGHT = 62
+const OUTPUT_HEIGHT = 28
+const OUTPUTS_PADDING = 9
 
-export const nodeHeight = (node: FlowNode): number =>
-  HEADER_HEIGHT + getOutputs(node).length * OUTPUT_HEIGHT
+export const nodeHeight = (node: FlowNode): number => {
+  const count = getOutputs(node).length
+  return HEADER_HEIGHT + (count ? count * OUTPUT_HEIGHT + OUTPUTS_PADDING : 0)
+}
 
 export type NodeSize = { width: number; height: number }
 

@@ -43,18 +43,19 @@ const selected = computed({
 </script>
 
 <template>
-  <div class="space-y-2">
+  <div>
     <SelectField
       v-model="selected"
       :label="label"
       :options="options"
+      :placeholder="t('visual_plan.fields.choose_recording')"
       :invalid-message="invalidMessage"
       :optional="optional"
       :disabled="disabled"
     />
-    <NeButton v-if="!disabled" kind="tertiary" size="sm" @click="uploadShown = true">
+    <NeButton v-if="!disabled" kind="tertiary" class="mt-2 -ml-2.5" @click="uploadShown = true">
       <template #prefix>
-        <FontAwesomeIcon :icon="faCircleArrowUp" aria-hidden="true" />
+        <FontAwesomeIcon :icon="faCircleArrowUp" class="size-4" aria-hidden="true" />
       </template>
       {{ t('visual_plan.upload_recording') }}
     </NeButton>

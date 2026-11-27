@@ -4,11 +4,17 @@
 -->
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NeButton, NeTextInput } from '@nethesis/vue-components'
+import {
+  NeButton,
+  NeFormItemLabel,
+  NeHeading,
+  NeTextInput,
+  NeTooltip,
+} from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faCircleMinus, faPlus } from '@fortawesome/free-solid-svg-icons'
+import { faCirclePlus, faTrash } from '@fortawesome/free-solid-svg-icons'
 import { NODE_WIDTH } from '@/lib/visualplan/layout'
 import { entryOutputId, EXISTING_TYPES, getOutputs, type FlowNode } from '@/lib/visualplan/model'
 import { useVisualPlanStore } from '@/stores/visualPlan'
@@ -29,7 +35,11 @@ const fixedOutputs = computed(() =>
   outputs.value.filter((output) => !output.id.startsWith('entry:')),
 )
 
+const isIvr = computed(() => props.node.type === 'ivr')
+
 const CATALOG_PREFIX = 'catalog:'
+
+const headingId = `destinations-${useId()}`
 
 const byLabel = (a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label)
 
@@ -42,7 +52,7 @@ const targetOptions = computed(() => {
         node.id === props.node.id
           ? `${nodeTitle(node) || t('visual_plan.untitled')} (${t('visual_plan.this_item')})`
           : nodeTitle(node) || t('visual_plan.untitled'),
-      description: `${typeLabel(node.type)} · ${t('visual_plan.in_flow')}`,
+      description: typeLabel(node.type),
     }))
     .sort(byLabel)
   const others = [...store.catalog.values()]
@@ -94,10 +104,13 @@ const outputError = (outputId: string): string => {
     (item) => item.level === 'error' && item.output === outputId,
   )
   if (!issue) return ''
-  return issue.code === 'output_not_connected'
-    ? t('visual_plan.issues.required')
-    : issueMessage(issue)
+  return issueMessage(issue)
 }
+
+const removeLabel = (value: string) =>
+  isIvr.value
+    ? t('visual_plan.remove_option', { value })
+    : t('visual_plan.remove_condition', { value })
 
 const updateEntry = (entryId: string, value: string) => {
   if (!entries.value) return
@@ -113,48 +126,74 @@ const updateEntry = (entryId: string, value: string) => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <h3 class="text-primary-neutral text-sm font-medium">{{ t('visual_plan.destinations') }}</h3>
-    <div v-if="entries" class="space-y-4">
-      <div v-for="entry in entries" :key="entry.id" class="flex items-start gap-2">
-        <NeTextInput
-          :model-value="entry.value"
-          :label="
-            node.type === 'ivr' ? t('visual_plan.fields.digit') : t('visual_plan.fields.condition')
-          "
-          :invalid-message="entryError(entry.id)"
-          :disabled="store.readOnly"
-          class="w-28 shrink-0"
-          @update:model-value="updateEntry(entry.id, $event)"
-        />
-        <SelectField
-          :model-value="targetOf(entryOutputId(entry))"
-          :label="t('visual_plan.fields.goes_to')"
-          :options="targetOptions"
-          :invalid-message="outputError(entryOutputId(entry))"
-          :disabled="store.readOnly"
-          class="min-w-0 flex-1"
-          options-width="22rem"
-          @update:model-value="setTarget(entryOutputId(entry), $event)"
-        />
-        <NeButton
-          v-if="!store.readOnly"
-          kind="tertiary"
-          size="sm"
-          class="mt-7 shrink-0"
-          @click="store.removeEntry(node.id, entry.id)"
-        >
-          <FontAwesomeIcon :icon="faCircleMinus" aria-hidden="true" />
-          <span class="sr-only">{{ t('visual_plan.remove_option', { value: entry.value }) }}</span>
-        </NeButton>
-      </div>
-      <NeButton v-if="!store.readOnly" kind="secondary" size="sm" @click="store.addEntry(node.id)">
-        <template #prefix>
-          <FontAwesomeIcon :icon="faPlus" aria-hidden="true" />
-        </template>
-        {{ t('visual_plan.add_option') }}
-      </NeButton>
+  <section
+    v-if="entries"
+    class="space-y-2"
+    :aria-label="isIvr ? t('visual_plan.options') : t('visual_plan.conditions')"
+  >
+    <NeFormItemLabel class="mb-0!">
+      {{ isIvr ? t('visual_plan.options') : t('visual_plan.conditions') }}
+    </NeFormItemLabel>
+    <div v-if="entries.length" class="flex gap-3" aria-hidden="true">
+      <NeFormItemLabel class="mb-0! w-20 shrink-0">
+        {{ isIvr ? t('visual_plan.fields.digit') : t('visual_plan.fields.condition') }}
+      </NeFormItemLabel>
+      <NeFormItemLabel class="mb-0! min-w-0 flex-1">
+        {{ t('visual_plan.fields.goes_to') }}
+      </NeFormItemLabel>
+      <span v-if="!store.readOnly" class="w-9 shrink-0" />
     </div>
+    <div v-for="entry in entries" :key="entry.id" class="flex items-start gap-3">
+      <NeTextInput
+        :model-value="entry.value"
+        :label="isIvr ? t('visual_plan.fields.digit') : t('visual_plan.fields.condition')"
+        :invalid-message="entryError(entry.id)"
+        :disabled="store.readOnly"
+        class="w-20 shrink-0 [&_label]:sr-only"
+        @update:model-value="updateEntry(entry.id, $event)"
+      />
+      <SelectField
+        :model-value="targetOf(entryOutputId(entry))"
+        :label="t('visual_plan.fields.goes_to')"
+        :options="targetOptions"
+        :invalid-message="outputError(entryOutputId(entry))"
+        :disabled="store.readOnly"
+        searchable
+        class="min-w-0 flex-1 [&_label]:sr-only"
+        options-width="22rem"
+        @update:model-value="setTarget(entryOutputId(entry), $event)"
+      />
+      <NeTooltip v-if="!store.readOnly" trigger-event="mouseenter focus" placement="top">
+        <template #trigger>
+          <NeButton
+            kind="tertiary"
+            :disabled="isIvr && entries.length < 2"
+            class="shrink-0"
+            @click="store.removeEntry(node.id, entry.id)"
+          >
+            <FontAwesomeIcon :icon="faTrash" class="size-4" aria-hidden="true" />
+            <span class="sr-only">{{ removeLabel(entry.value) }}</span>
+          </NeButton>
+        </template>
+        <template #content>{{ removeLabel(entry.value) }}</template>
+      </NeTooltip>
+    </div>
+    <NeButton
+      v-if="!store.readOnly"
+      kind="tertiary"
+      class="-ml-2.5"
+      @click="store.addEntry(node.id)"
+    >
+      <template #prefix>
+        <FontAwesomeIcon :icon="faCirclePlus" class="size-4" aria-hidden="true" />
+      </template>
+      {{ isIvr ? t('visual_plan.add_option') : t('visual_plan.add_condition') }}
+    </NeButton>
+  </section>
+  <section v-if="fixedOutputs.length" class="space-y-6" :aria-labelledby="headingId">
+    <NeHeading :id="headingId" tag="h3" class="pt-2 text-sm!">
+      {{ t('visual_plan.destinations') }}
+    </NeHeading>
     <SelectField
       v-for="output in fixedOutputs"
       :key="output.id"
@@ -163,9 +202,9 @@ const updateEntry = (entryId: string, value: string) => {
       :options="targetOptions"
       :invalid-message="outputError(output.id)"
       :disabled="store.readOnly"
+      searchable
       options-width="22rem"
       @update:model-value="setTarget(output.id, $event)"
     />
-    <p class="text-tertiary-neutral text-xs">{{ t('visual_plan.destinations_helper') }}</p>
   </section>
 </template>

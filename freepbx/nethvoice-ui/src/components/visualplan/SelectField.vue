@@ -6,16 +6,19 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useEventListener } from '@vueuse/core'
-import { NeCombobox, type NeComboboxOption } from '@nethesis/vue-components'
+import { NeCombobox, NeListbox, type NeComboboxOption } from '@nethesis/vue-components'
 
+// A fixed list of choices uses a listbox; a long list to search in (`searchable`) a combobox.
 defineProps<{
-  label: string
+  label?: string
   options: NeComboboxOption[]
   helperText?: string
   invalidMessage?: string
   disabled?: boolean
   optional?: boolean
   optionsWidth?: string
+  placeholder?: string
+  searchable?: boolean
 }>()
 
 const model = defineModel<string>({ required: true })
@@ -53,10 +56,11 @@ function select(value: string) {
 
 <template>
   <NeCombobox
+    v-if="searchable"
     :model-value="model"
     :label="label"
     :options="options"
-    :placeholder="t('ne_combobox.choose')"
+    :placeholder="placeholder || t('ne_combobox.choose')"
     :helper-text="helperText ?? ''"
     :invalid-message="invalidMessage ?? ''"
     :disabled="disabled"
@@ -69,5 +73,19 @@ function select(value: string) {
     :optional-label="t('common.optional')"
     :custom-options-width="optionsWidth"
     @update:model-value="select"
+  />
+  <NeListbox
+    v-else
+    :model-value="model"
+    :label="label"
+    :options="options"
+    :placeholder="placeholder || t('ne_combobox.choose')"
+    :helper-text="helperText ?? ''"
+    :invalid-message="invalidMessage ?? ''"
+    :disabled="disabled"
+    :optional="optional"
+    :no-options-label="t('ne_combobox.no_options_label')"
+    :optional-label="t('common.optional')"
+    @update:model-value="model = $event"
   />
 </template>

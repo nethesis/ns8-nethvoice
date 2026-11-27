@@ -31,7 +31,7 @@ const props = defineProps<{
   targetPosition: Position
   selected?: boolean
   markerEnd?: string
-  data: { removable: boolean; active?: boolean; preview?: boolean; picked?: boolean }
+  data: { removable: boolean; picked?: boolean }
 }>()
 
 const emit = defineEmits<{ remove: [id: string] }>()
@@ -82,17 +82,7 @@ const buttonTransform = computed(
 </script>
 
 <template>
-  <BaseEdge
-    :id="id"
-    :path="path[0]"
-    :marker-end="markerEnd"
-    :class="[
-      'fill-none! stroke-2!',
-      data.picked || data.active || data.preview
-        ? 'stroke-primary-active!'
-        : 'stroke-gray-400! dark:stroke-gray-500!',
-    ]"
-  />
+  <BaseEdge :id="id" :path="path[0]" :marker-end="markerEnd" />
   <EdgeLabelRenderer v-if="data.picked && data.removable">
     <div class="nodrag nopan pointer-events-auto absolute" :style="{ transform: buttonTransform }">
       <NeTooltip trigger-event="mouseenter focus" placement="top">

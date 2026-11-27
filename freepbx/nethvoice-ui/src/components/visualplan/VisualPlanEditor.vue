@@ -26,7 +26,6 @@ import * as v from 'valibot'
 import { cloneDeep } from 'lodash'
 import { useElementSize, useMediaQuery } from '@vueuse/core'
 import {
-  MarkerType,
   Panel,
   SelectionMode,
   VueFlow,
@@ -44,10 +43,11 @@ import {
 import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
 import {
-  NeBadgeV2,
   NeButton,
   NeDropdown,
+  NeHeading,
   NeInlineNotification,
+  NeLink,
   NeModal,
   NeSideDrawer,
   NeTooltip,
@@ -55,13 +55,13 @@ import {
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { faSidebarLeft } from '@nethesis/nethesis-solid-svg-icons'
 import {
-  faArrowLeft,
   faArrowPointer,
+  faChevronDown,
+  faChevronRight,
   faCircleArrowDown,
   faCircleXmark,
   faCirclePlus,
   faExpand,
-  faFloppyDisk,
   faHand,
   faMagnifyingGlassMinus,
   faMagnifyingGlassPlus,
@@ -101,11 +101,15 @@ import FlowSearch from '@/components/visualplan/FlowSearch.vue'
 import QuickAddMenu from '@/components/visualplan/QuickAddMenu.vue'
 import SimulationPanel from '@/components/visualplan/SimulationPanel.vue'
 import SelectionPanel from '@/components/visualplan/SelectionPanel.vue'
+import IconButton from '@/components/visualplan/IconButton.vue'
 
 const props = defineProps<{ readOnly: boolean; reloading?: boolean }>()
 
+export type SaveOutcome = { created: boolean; name: string }
+
 const emit = defineEmits<{
-  saved: [routeKey: string | null, refs: Record<string, string>]
+  saved: [routeKey: string | null, refs: Record<string, string>, outcome: SaveOutcome]
+  done: [outcome: SaveOutcome]
   reload: []
 }>()
 
@@ -114,7 +118,7 @@ const router = useRouter()
 const store = useVisualPlanStore()
 const notificationsStore = useNotificationsStore()
 const queryCache = useQueryCache()
-const { nodeTitle, typeLabel, outputLabel, issueText, issueMessage, fieldLabel } =
+const { nodeTitle, typeLabel, outputLabel, issueLine, issueMessage, fieldLabel } =
   useVisualPlanLabels()
 const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
 const motion = (duration: number) => (reducedMotion.value ? 0 : duration)
@@ -174,28 +178,61 @@ const visibleErrorCount = computed(
       .filter((issue) => issue.level === 'error').length,
 )
 
-const blockedCount = ref(0)
-
-const issueItems = computed(() =>
+const issueItemsOf = (level: 'error' | 'warning') =>
   Object.entries(store.issues).flatMap(([id, list]) => {
     const node = store.flow.nodes[id]
     if (!node) return []
-    return list.map((issue, index) => ({
-      id: `${id}-${index}`,
-      label: `${nodeTitle(node) || typeLabel(node.type)}: ${issueText(node, issue)}`,
-      icon: issue.level === 'error' ? faCircleXmark : faTriangleExclamation,
-      danger: issue.level === 'error',
-      action: () => focusNode(id),
-    }))
-  }),
-)
+    return list.flatMap((issue, index) =>
+      issue.level === level
+        ? [
+            {
+              id: `${id}-${index}`,
+              label: issueLine(node, issue).replace(/\.$/, ''),
+              icon: level === 'error' ? faCircleXmark : faTriangleExclamation,
+              action: () => {
+                store.simulation = null
+                focusNode(id)
+              },
+            },
+          ]
+        : [],
+    )
+  })
 
-const warningCount = computed(
-  () =>
-    Object.values(store.issues)
-      .flat()
-      .filter((issue) => issue.level === 'warning').length,
-)
+const errorItems = computed(() => issueItemsOf('error'))
+const warningItems = computed(() => issueItemsOf('warning'))
+
+const issueGroups = computed(() => [
+  ...(errorItems.value.length
+    ? [
+        {
+          level: 'error' as const,
+          items: errorItems.value,
+          label: t(
+            'visual_plan.errors_count',
+            { count: errorItems.value.length },
+            errorItems.value.length,
+          ),
+          ariaLabel: t('visual_plan.show_errors'),
+        },
+      ]
+    : []),
+  ...(warningItems.value.length
+    ? [
+        {
+          level: 'warning' as const,
+          items: warningItems.value,
+          label: t(
+            'visual_plan.warnings_count',
+            { count: warningItems.value.length },
+            warningItems.value.length,
+          ),
+          ariaLabel: t('visual_plan.show_warnings'),
+        },
+      ]
+    : []),
+])
+
 const unavailable = computed(() => store.data?.unavailable ?? [])
 
 const UNAVAILABLE_TYPES: Record<string, NodeType> = {
@@ -229,6 +266,12 @@ const rootTitle = computed(() => {
   const root = store.flow.nodes[store.flow.rootId]
   return root ? nodeTitle(root) : ''
 })
+
+const isCreate = computed(() => store.originalRouteKey === null)
+const pageTitle = computed(() => (isCreate.value ? t('visual_plan.create_title') : rootTitle.value))
+
+// A new route counts as changed only once something was done to it.
+const hasChanges = computed(() => store.isDirty && (!isCreate.value || store.canUndo))
 
 const flowNodes = computed<Node[]>(() =>
   store.nodes
@@ -269,42 +312,15 @@ const edgeLabel = (sourceId: string, outputId: string, targetId: string): string
   })
 }
 
-const activeEdgeIds = computed(() => {
-  const active = new Set<string>()
-  const steps = store.simulationResult?.steps
-  if (steps) {
-    for (const step of steps) {
-      if (step.output) {
-        active.add(edgeId(step.nodeId, step.output))
-      }
-    }
-    return active
-  }
-  const start = store.selectedId
-  if (!start) {
-    return active
-  }
-  const seen = new Set([start])
-  const queue = [start]
-  while (queue.length) {
-    const id = queue.shift()
-    for (const edge of store.flow.edges) {
-      if (edge.source === id) {
-        active.add(edgeId(edge.source, edge.output))
-        if (!seen.has(edge.target)) {
-          seen.add(edge.target)
-          queue.push(edge.target)
-        }
-      }
-    }
-  }
-  for (const edge of store.flow.edges) {
-    if (edge.target === start) {
-      active.add(edgeId(edge.source, edge.output))
-    }
-  }
-  return active
-})
+// Links followed by the simulated call.
+const simulatedEdgeIds = computed(
+  () =>
+    new Set(
+      (store.simulationResult?.steps ?? []).flatMap((step) =>
+        step.output ? [edgeId(step.nodeId, step.output)] : [],
+      ),
+    ),
+)
 
 watch(
   () => store.revision,
@@ -323,7 +339,7 @@ const flowEdges = computed<Edge[]>(() => {
   )
   const edges: Edge[] = visibleEdges.map((edge) => {
     const id = edgeId(edge.source, edge.output)
-    const active = activeEdgeIds.value.has(id)
+    const simulated = simulatedEdgeIds.value.has(id)
     return {
       id,
       source: edge.source,
@@ -331,15 +347,12 @@ const flowEdges = computed<Edge[]>(() => {
       target: edge.target,
       targetHandle: 'in',
       type: 'flow',
-      animated: (active || id === insertId) && !reducedMotion.value,
+      class: simulated ? 'sim' : id === insertId ? 'traced' : undefined,
       selected: id === selectedEdgeId.value,
       ariaLabel: edgeLabel(edge.source, edge.output, edge.target),
       domAttributes: { 'aria-roledescription': t('visual_plan.link_role') },
-      markerEnd: MarkerType.ArrowClosed,
       data: {
         removable: !store.readOnly,
-        active,
-        preview: id === insertId,
         picked: id === selectedEdgeId.value,
       },
     }
@@ -352,10 +365,9 @@ const flowEdges = computed<Edge[]>(() => {
       target: snap.value.target,
       targetHandle: 'in',
       type: 'flow',
-      animated: true,
+      class: 'traced',
       selectable: false,
-      markerEnd: MarkerType.ArrowClosed,
-      data: { removable: false, active: false, preview: true },
+      data: { removable: false },
     })
   }
   return edges
@@ -374,14 +386,7 @@ const {
   onSuccess({ refs, routeKey }) {
     leaveConfirmed = true
     queryCache.invalidateQueries({ key: [INBOUND_ROUTES_KEY] })
-    setTimeout(() => {
-      notificationsStore.createNotification({
-        kind: 'success',
-        title: t('visual_plan.saved'),
-        description: t('visual_plan.saved_description', { name: rootTitle.value }),
-      })
-    }, 500)
-    emit('saved', routeKey, refs)
+    emit('saved', routeKey, refs, { created: isCreate.value, name: rootTitle.value })
   },
   onError(error) {
     if (error instanceof VisualPlanValidationError) {
@@ -402,13 +407,8 @@ const { mutate: saveLayout, isLoading: savingLayout } = useMutation({
   },
   onSuccess(sent) {
     store.markLayoutSaved(sent)
-    setTimeout(() => {
-      notificationsStore.createNotification({
-        kind: 'success',
-        title: t('visual_plan.layout_saved'),
-        description: t('visual_plan.layout_saved_description'),
-      })
-    }, 500)
+    leaveConfirmed = true
+    emit('done', { created: false, name: rootTitle.value })
   },
   onError(error) {
     notificationsStore.createNotification({
@@ -437,9 +437,6 @@ watch(
     if (saveError.value) {
       resetSave()
     }
-    if (blockedCount.value) {
-      blockedCount.value = store.errorNodeIds.length
-    }
   },
 )
 
@@ -466,21 +463,27 @@ function requestSave() {
     savingLayout.value ||
     props.reloading ||
     props.readOnly ||
-    !store.isDirty ||
     unavailable.value.length
   ) {
     return
   }
+  // Nothing to save: back to the list, as after a save.
+  if (!store.isDirty) {
+    if (!isCreate.value) {
+      leaveConfirmed = true
+      emit('done', { created: false, name: rootTitle.value })
+    }
+    return
+  }
   if (hasErrors(store.allIssues)) {
     store.revealErrors = true
-    blockedCount.value = store.errorNodeIds.length
+    store.simulation = null
     const first = store.errorNodeIds[0]
     if (first) {
       focusNode(first)
     }
     return
   }
-  blockedCount.value = 0
   resetSave()
   if (store.changes.length) {
     save({ changes: cloneDeep(store.changes), routeKey: store.savedRouteKey })
@@ -618,11 +621,26 @@ function withAnimation(action: () => void): Record<string, XYPosition> {
   return after
 }
 
+// A clicked item is linked to the first free exit of the selected item, a dropped one is not.
+function freeExitOfSelection(): { source: string; output: string } | undefined {
+  const selected = store.selectedNode
+  if (!selected) return undefined
+  const output = getOutputs(selected).find(
+    (item) =>
+      !store.flow.edges.some((edge) => edge.source === selected.id && edge.output === item.id),
+  )
+  return output ? { source: selected.id, output: output.id } : undefined
+}
+
 function addFromPalette(item: PaletteItem, position?: { x: number; y: number }) {
   const at = position ?? store.placementFor(viewportCenter())
-  const id = item.kind === 'new' ? store.addNode(item.type, at) : store.addExisting(item.id, at)
+  const present = item.kind === 'existing' && Boolean(store.flow.nodes[item.id])
+  const from = position || present ? undefined : freeExitOfSelection()
+  const id =
+    item.kind === 'new' ? store.addNode(item.type, at, from) : store.addExisting(item.id, at, from)
   paletteDrawerShown.value = false
-  if (id) ensureVisible(id)
+  if (id && present) centerOn(id)
+  else if (id) ensureVisible(id)
 }
 
 function onDrop(event: DragEvent) {
@@ -913,8 +931,23 @@ const guideStyle = computed(() => ({
 
 function startSimulation() {
   store.selectedIds = []
-  store.simulation = { date: new Date(), callFlowStates: {}, menuChoices: {}, answered: {} }
-  ensureVisible(store.flow.rootId)
+  if (!store.simulation) {
+    store.simulation = { date: new Date(), callFlowStates: {}, menuChoices: {}, answered: {} }
+  }
+  nextTick(() =>
+    window.setTimeout(() => {
+      const ids = new Set(store.simulationResult?.steps.map((step) => step.nodeId))
+      const nodes = getNodes.value.filter((node) => ids.has(node.id))
+      if (nodes.length) {
+        fitView({
+          nodes: nodes.map((node) => node.id),
+          padding: 0.3,
+          maxZoom: 1,
+          duration: motion(300),
+        })
+      }
+    }, 80),
+  )
 }
 
 const exporting = ref(false)
@@ -959,10 +992,18 @@ async function exportImage() {
         transform: `translate(${padding - bounds.x}px, ${padding - bounds.y}px) scale(1)`,
       },
     })
+    const root = store.flow.nodes[store.flow.rootId]
+    const did = root?.type === 'inboundRoute' ? root.data.extension : ''
+    const fileName = `inbound-route-${(did || 'any-did').replace(/[^\w-]+/g, '_')}.png`
     const link = document.createElement('a')
-    link.download = `visual-plan-${(rootTitle.value || 'flow').replace(/[^\w-]+/g, '_')}.png`
+    link.download = fileName
     link.href = url
     link.click()
+    notificationsStore.createNotification({
+      kind: 'success',
+      title: t('visual_plan.export.downloaded'),
+      description: t('visual_plan.export.downloaded_description', { name: fileName }),
+    })
   } catch (error) {
     notificationsStore.createNotification({
       kind: 'error',
@@ -991,6 +1032,11 @@ function removeEdge(id: string) {
     store.connect(source, output, '')
   }
   selectedEdgeId.value = null
+}
+
+function focusFromDrawer(id: string) {
+  paletteDrawerShown.value = false
+  pickSearchResult(id)
 }
 
 function pickSearchResult(id: string) {
@@ -1057,6 +1103,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 function onBeforeUnload(event: BeforeUnloadEvent) {
+  if (!hasChanges.value) return
   if (store.isDirty && !leaveConfirmed) {
     event.preventDefault()
   }
@@ -1217,7 +1264,7 @@ const canvasControls = computed(() => [
         {
           id: 'minimap',
           icon: faMap,
-          label: t('visual_plan.toggle_minimap'),
+          label: showMinimap.value ? t('visual_plan.hide_minimap') : t('visual_plan.show_minimap'),
           pressed: showMinimap.value,
           action: () => (showMinimap.value = !showMinimap.value),
         },
@@ -1243,7 +1290,7 @@ function onNodeClick(id: string) {
 }
 
 const guardNavigation = (to: RouteLocationRaw) => {
-  if (!store.isDirty || leaveConfirmed) {
+  if (!hasChanges.value || leaveConfirmed) {
     return true
   }
   pendingLocation.value = to
@@ -1272,166 +1319,84 @@ function closePanel() {
   }
 }
 
+const routesHref = computed(
+  () => router.resolve({ name: 'routes', params: { tab: 'inbound' } }).href,
+)
+
 function goBack() {
   router.push({ name: 'routes', params: { tab: 'inbound' } })
 }
 </script>
 
 <template>
-  <div ref="editor" class="bg-elevation-1 flex h-full flex-col">
+  <div ref="editor" class="flex h-full flex-col bg-gray-50 dark:bg-gray-900">
     <header
-      class="bg-elevation-0 flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-gray-200 px-4 py-3 dark:border-gray-700"
+      class="shrink-0 border-b border-gray-200 px-4 pt-5 pb-4 sm:px-6 lg:px-8 dark:border-gray-700"
     >
-      <NeTooltip v-if="isLarge && !readOnly" trigger-event="mouseenter focus" placement="bottom">
-        <template #trigger>
-          <NeButton
-            kind="tertiary"
-            size="sm"
-            :aria-pressed="paletteOpen"
-            @click="paletteOpen = !paletteOpen"
-          >
-            <FontAwesomeIcon :icon="faSidebarLeft" aria-hidden="true" />
-            <span class="sr-only">{{ t('visual_plan.toggle_palette') }}</span>
-          </NeButton>
-        </template>
-        <template #content>{{ t('visual_plan.toggle_palette') }}</template>
-      </NeTooltip>
-      <NeButton kind="tertiary" size="sm" @click="goBack">
-        <template #prefix>
-          <FontAwesomeIcon :icon="faArrowLeft" aria-hidden="true" />
-        </template>
-        {{ t('visual_plan.back_to_routes') }}
-      </NeButton>
-      <div class="min-w-32 flex-1">
-        <p class="text-tertiary-neutral text-xs">{{ t('visual_plan.title') }}</p>
-        <h1 class="text-primary-neutral truncate text-base font-medium" :title="rootTitle">
-          {{ rootTitle }}
-        </h1>
-      </div>
-      <div class="flex items-center gap-2">
-        <NeDropdown
-          v-if="issueItems.length"
-          :items="issueItems"
-          align-to-right
-          :open-menu-aria-label="t('visual_plan.issues_list')"
-        >
-          <template #button>
-            <span
-              :class="[
-                'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium',
-                visibleErrorCount
-                  ? 'bg-rose-100 text-rose-800 dark:bg-rose-700 dark:text-rose-50'
-                  : 'bg-amber-100 text-amber-800 dark:bg-amber-700 dark:text-amber-50',
-              ]"
-            >
-              <FontAwesomeIcon
-                :icon="visibleErrorCount ? faCircleXmark : faTriangleExclamation"
-                aria-hidden="true"
-              />
-              {{
-                visibleErrorCount
-                  ? t('visual_plan.errors_count', { count: visibleErrorCount }, visibleErrorCount)
-                  : t('visual_plan.warnings_count', { count: warningCount }, warningCount)
-              }}
-            </span>
-          </template>
-        </NeDropdown>
-        <NeBadgeV2 v-if="store.isDirty" kind="indigo" size="sm">
-          {{ t('common.unsaved_changes') }}
-        </NeBadgeV2>
-      </div>
-      <FlowSearch class="sm:w-56" @pick="pickSearchResult" />
-      <NeButton
-        kind="secondary"
-        size="sm"
-        :disabled="Boolean(store.simulation)"
-        @click="startSimulation"
-      >
-        <template #prefix>
-          <FontAwesomeIcon :icon="faPlay" aria-hidden="true" />
-        </template>
-        {{ t('visual_plan.simulation.start') }}
-      </NeButton>
-      <div class="flex items-center gap-1">
-        <template v-if="!readOnly">
-          <NeTooltip trigger-event="mouseenter focus" placement="bottom">
-            <template #trigger>
-              <NeButton
-                kind="tertiary"
-                size="sm"
-                :disabled="!store.canUndo"
-                @click="withAnimation(() => store.undo())"
-              >
-                <FontAwesomeIcon :icon="faRotateLeft" aria-hidden="true" />
-                <span class="sr-only">{{ t('visual_plan.undo') }}</span>
-              </NeButton>
-            </template>
-            <template #content>{{ t('visual_plan.undo') }}</template>
-          </NeTooltip>
-          <NeTooltip trigger-event="mouseenter focus" placement="bottom">
-            <template #trigger>
-              <NeButton
-                kind="tertiary"
-                size="sm"
-                :disabled="!store.canRedo"
-                @click="withAnimation(() => store.redo())"
-              >
-                <FontAwesomeIcon :icon="faRotateRight" aria-hidden="true" />
-                <span class="sr-only">{{ t('visual_plan.redo') }}</span>
-              </NeButton>
-            </template>
-            <template #content>{{ t('visual_plan.redo') }}</template>
-          </NeTooltip>
-          <NeTooltip trigger-event="mouseenter focus" placement="bottom">
-            <template #trigger>
-              <NeButton kind="tertiary" size="sm" @click="arrangeAll">
-                <FontAwesomeIcon :icon="faSitemap" aria-hidden="true" />
-                <span class="sr-only">{{ t('visual_plan.auto_layout') }}</span>
-              </NeButton>
-            </template>
-            <template #content>{{ t('visual_plan.auto_layout') }}</template>
-          </NeTooltip>
-        </template>
-        <NeTooltip trigger-event="mouseenter focus" placement="bottom">
-          <template #trigger>
-            <NeButton kind="tertiary" size="sm" :loading="exporting" @click="exportImage()">
+      <nav :aria-label="t('visual_plan.breadcrumb')" class="mb-2">
+        <ol class="flex items-center gap-2 text-sm">
+          <li>
+            <NeLink :href="routesHref" @click.prevent="goBack">{{ t('routes.title') }}</NeLink>
+          </li>
+          <li class="flex items-center gap-2">
+            <FontAwesomeIcon
+              :icon="faChevronRight"
+              class="size-3 text-gray-500 dark:text-gray-400"
+              aria-hidden="true"
+            />
+            <NeLink :href="routesHref" @click.prevent="goBack">
+              {{ t('routes.inbound_routes') }}
+            </NeLink>
+          </li>
+        </ol>
+      </nav>
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <NeHeading tag="h1" class="min-w-0 flex-1 truncate text-2xl!" :title="pageTitle">
+          {{ pageTitle }}
+        </NeHeading>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <NeButton kind="tertiary" size="lg" :loading="exporting" @click="exportImage()">
+            <template #prefix>
               <FontAwesomeIcon :icon="faCircleArrowDown" aria-hidden="true" />
-              <span class="sr-only">{{ t('visual_plan.export.download_image') }}</span>
-            </NeButton>
-          </template>
-          <template #content>{{ t('visual_plan.export.download_image') }}</template>
-        </NeTooltip>
-        <NeButton
-          v-if="!isLarge && !readOnly"
-          kind="secondary"
-          size="sm"
-          @click="paletteDrawerShown = true"
-        >
-          <template #prefix>
-            <FontAwesomeIcon :icon="faCirclePlus" aria-hidden="true" />
-          </template>
-          {{ t('visual_plan.add_node') }}
-        </NeButton>
-        <NeButton
-          v-if="!readOnly"
-          kind="primary"
-          size="sm"
-          :disabled="!store.isDirty || unavailable.length > 0 || saving || reloading"
-          :loading="saving || savingLayout"
-          class="ml-2"
-          @click="requestSave"
-        >
-          <template #prefix>
-            <FontAwesomeIcon :icon="faFloppyDisk" aria-hidden="true" />
-          </template>
-          {{ t('common.save') }}
-        </NeButton>
+            </template>
+            {{ t('visual_plan.export.download_image') }}
+          </NeButton>
+          <NeButton
+            v-if="!isLarge && !readOnly"
+            kind="secondary"
+            size="lg"
+            @click="paletteDrawerShown = true"
+          >
+            <template #prefix>
+              <FontAwesomeIcon :icon="faCirclePlus" aria-hidden="true" />
+            </template>
+            {{ t('visual_plan.add_node') }}
+          </NeButton>
+          <NeTooltip v-if="visibleErrorCount" trigger-event="mouseenter focus" placement="bottom">
+            <template #trigger>
+              <NeButton kind="secondary" size="lg" disabled>
+                <template #prefix>
+                  <FontAwesomeIcon :icon="faPlay" aria-hidden="true" />
+                </template>
+                {{ t('visual_plan.simulation.start') }}
+              </NeButton>
+            </template>
+            <template #content>{{ t('visual_plan.simulation.fix_errors') }}</template>
+          </NeTooltip>
+          <NeButton v-else kind="secondary" size="lg" @click="startSimulation">
+            <template #prefix>
+              <FontAwesomeIcon :icon="faPlay" aria-hidden="true" />
+            </template>
+            {{ t('visual_plan.simulation.start') }}
+          </NeButton>
+        </div>
       </div>
+      <FlowSearch class="mt-4 sm:max-w-sm" @pick="pickSearchResult" />
     </header>
 
     <div
-      v-if="unavailable.length || saveError || blockedCount || readOnly"
-      class="space-y-2 px-4 pt-3"
+      v-if="unavailable.length || saveError || readOnly"
+      class="space-y-2 px-4 pt-3 sm:px-6 lg:px-8"
       role="alert"
     >
       <NeInlineNotification
@@ -1449,12 +1414,6 @@ function goBack() {
         @primary-click="emit('reload')"
       />
       <NeInlineNotification
-        v-if="blockedCount"
-        kind="error"
-        :title="t('visual_plan.errors_to_fix', { count: blockedCount }, blockedCount)"
-        :description="t('visual_plan.save_validation_failed')"
-      />
-      <NeInlineNotification
         v-if="saveError"
         kind="error"
         :title="t('visual_plan.cannot_save')"
@@ -1463,13 +1422,34 @@ function goBack() {
     </div>
 
     <div class="flex min-h-0 flex-1">
-      <aside
-        v-if="isLarge && !readOnly && paletteOpen"
-        class="bg-elevation-0 w-64 shrink-0 border-r border-gray-200 dark:border-gray-700"
-        :aria-label="t('visual_plan.palette.title')"
-      >
-        <NodePalette @add="addFromPalette" />
-      </aside>
+      <template v-if="isLarge && !readOnly">
+        <aside
+          v-if="paletteOpen"
+          class="flex w-72 shrink-0 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+          :aria-label="t('visual_plan.palette.title')"
+        >
+          <NodePalette
+            collapsible
+            @add="addFromPalette"
+            @focus="pickSearchResult"
+            @collapse="paletteOpen = false"
+          />
+        </aside>
+        <div
+          v-else
+          class="flex w-14 shrink-0 flex-col items-center border-r border-gray-200 bg-gray-50 pt-3 dark:border-gray-700 dark:bg-gray-900"
+        >
+          <div class="flex h-13.5 items-center">
+            <IconButton
+              :icon="faSidebarLeft"
+              :label="t('visual_plan.palette.show')"
+              placement="right"
+              tool
+              @click="paletteOpen = true"
+            />
+          </div>
+        </div>
+      </template>
 
       <div
         ref="canvas"
@@ -1485,7 +1465,7 @@ function goBack() {
           :nodes="flowNodes"
           :edges="flowEdges"
           :min-zoom="0.2"
-          :max-zoom="1.5"
+          :max-zoom="2"
           :delete-key-code="null"
           :nodes-connectable="!readOnly"
           :elements-selectable="true"
@@ -1498,8 +1478,6 @@ function goBack() {
           :multi-selection-key-code="['Meta', 'Control']"
           :selection-mode="SelectionMode.Partial"
           :pan-on-drag="selectMode ? [1, 2] : true"
-          :pan-on-scroll="true"
-          :zoom-activation-key-code="['Meta', 'Control']"
           @nodes-change="onNodesChange"
           @selection-end="canvasRef?.focus({ preventScroll: true })"
           @connect="onConnect"
@@ -1528,59 +1506,34 @@ function goBack() {
           />
           <Panel position="bottom-left">
             <div
-              class="bg-elevation-0 flex items-center gap-1 rounded-lg p-1 shadow-sm ring-1 ring-gray-200 dark:ring-gray-700"
+              class="flex items-center gap-1 rounded-lg border border-gray-300 bg-white p-1 shadow-sm dark:border-gray-600 dark:bg-gray-950"
+              role="toolbar"
+              :aria-label="t('visual_plan.tools.title')"
             >
-              <div
-                v-if="!isTouch"
-                class="flex items-center gap-0.5 border-r border-gray-200 pr-1 dark:border-gray-700"
-                role="group"
-                :aria-label="t('visual_plan.tools.title')"
-              >
-                <NeTooltip
+              <template v-if="!isTouch">
+                <IconButton
                   v-for="item in TOOLS"
                   :key="item.id"
-                  trigger-event="mouseenter focus"
-                  placement="top"
-                >
-                  <template #trigger>
-                    <button
-                      type="button"
-                      :aria-pressed="tool === item.id"
-                      :aria-keyshortcuts="item.key"
-                      :class="[
-                        'focus-visible:ring-primary-focus flex size-8 items-center justify-center rounded-md text-sm transition-colors duration-(--duration-small) focus:outline-hidden focus-visible:ring-2',
-                        tool === item.id
-                          ? 'text-primary-active bg-gray-100 dark:bg-gray-800'
-                          : 'text-secondary-neutral hover:bg-gray-100 dark:hover:bg-gray-800',
-                      ]"
-                      @click="tool = item.id"
-                    >
-                      <FontAwesomeIcon :icon="item.icon" class="size-4" aria-hidden="true" />
-                      <span class="sr-only">{{ t(`visual_plan.tools.${item.id}`) }}</span>
-                    </button>
-                  </template>
-                  <template #content>{{ t(`visual_plan.tools.${item.id}`) }}</template>
-                </NeTooltip>
-              </div>
-              <NeTooltip
+                  :icon="item.icon"
+                  :label="t(`visual_plan.tools.${item.id}`)"
+                  :aria-keyshortcuts="item.key"
+                  tool
+                  :pressed="tool === item.id"
+                  icon-class="h-6 w-4"
+                  @click="tool = item.id"
+                />
+                <span class="mx-1 h-6 w-px bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
+              </template>
+              <IconButton
                 v-for="control in canvasControls"
                 :key="control.id"
-                trigger-event="mouseenter focus"
-                placement="top"
-              >
-                <template #trigger>
-                  <NeButton
-                    kind="tertiary"
-                    size="sm"
-                    :aria-pressed="control.pressed"
-                    @click="control.action"
-                  >
-                    <FontAwesomeIcon :icon="control.icon" aria-hidden="true" />
-                    <span class="sr-only">{{ control.label }}</span>
-                  </NeButton>
-                </template>
-                <template #content>{{ control.label }}</template>
-              </NeTooltip>
+                :icon="control.icon"
+                :label="control.label"
+                tool
+                :pressed="control.pressed"
+                icon-class="h-6 w-4"
+                @click="control.action"
+              />
             </div>
           </Panel>
         </VueFlow>
@@ -1609,7 +1562,7 @@ function goBack() {
 
       <aside
         v-if="isLarge && panelMode"
-        class="bg-elevation-0 w-96 shrink-0 border-l border-gray-200 dark:border-gray-700"
+        class="flex w-96 shrink-0 flex-col border-l border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
         :aria-label="
           panelMode === 'simulation'
             ? t('visual_plan.simulation.title')
@@ -1646,21 +1599,105 @@ function goBack() {
       :close-aria-label="t('shell.close_side_drawer')"
       @close="paletteDrawerShown = false"
     >
-      <NodePalette @add="addFromPalette" />
+      <NodePalette @add="addFromPalette" @focus="focusFromDrawer" />
     </NeSideDrawer>
+
+    <footer
+      class="flex shrink-0 flex-wrap items-center gap-2 border-t border-gray-200 bg-white px-4 py-3 sm:px-6 dark:border-gray-700 dark:bg-gray-950"
+    >
+      <template v-if="!readOnly">
+        <IconButton
+          :icon="faRotateLeft"
+          :label="t('visual_plan.undo')"
+          tool
+          :disabled="!store.canUndo"
+          @click="withAnimation(() => store.undo())"
+        />
+        <IconButton
+          :icon="faRotateRight"
+          :label="t('visual_plan.redo')"
+          tool
+          :disabled="!store.canRedo"
+          @click="withAnimation(() => store.redo())"
+        />
+        <IconButton
+          :icon="faSitemap"
+          :label="t('visual_plan.auto_layout')"
+          tool
+          @click="arrangeAll"
+        />
+      </template>
+      <span
+        v-if="!readOnly && (errorItems.length || warningItems.length || (!isCreate && hasChanges))"
+        class="mx-2 h-6 w-px bg-gray-200 dark:bg-gray-700"
+        aria-hidden="true"
+      />
+      <NeDropdown
+        v-for="group in issueGroups"
+        :key="group.level"
+        :items="group.items"
+        menu-classes="max-w-md -translate-y-full -mt-11!"
+        :open-menu-aria-label="group.ariaLabel"
+      >
+        <template #button>
+          <span
+            class="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200/70 hover:text-gray-900 dark:text-gray-200 dark:hover:bg-gray-600/30 dark:hover:text-gray-50"
+          >
+            <FontAwesomeIcon
+              :icon="group.level === 'error' ? faCircleXmark : faTriangleExclamation"
+              :class="[
+                'size-4',
+                group.level === 'error'
+                  ? 'text-rose-700 dark:text-rose-500'
+                  : 'text-amber-700 dark:text-amber-500',
+              ]"
+              aria-hidden="true"
+            />
+            {{ group.label }}
+            <FontAwesomeIcon :icon="faChevronDown" class="size-3" aria-hidden="true" />
+          </span>
+        </template>
+      </NeDropdown>
+      <span
+        v-if="!isCreate && hasChanges"
+        role="status"
+        class="px-2 text-sm text-gray-600 dark:text-gray-400"
+      >
+        {{ t('common.unsaved_changes') }}
+      </span>
+      <div class="ml-auto flex items-center gap-6">
+        <NeButton kind="tertiary" size="lg" @click="goBack">{{ t('common.cancel') }}</NeButton>
+        <NeButton
+          v-if="!readOnly"
+          kind="primary"
+          size="lg"
+          :disabled="unavailable.length > 0 || saving || reloading"
+          :loading="saving || savingLayout"
+          @click="requestSave"
+        >
+          {{ isCreate ? t('common.create') : t('common.save') }}
+        </NeButton>
+      </div>
+    </footer>
 
     <NeModal
       :visible="unsavedModalShown"
-      :title="t('common.unsaved_changes')"
+      :title="t('visual_plan.discard_title')"
       kind="warning"
-      :primary-label="t('common.discard_changes')"
-      primary-button-kind="danger"
-      :cancel-label="t('common.keep_editing')"
+      :primary-label="t('visual_plan.discard')"
+      primary-button-kind="primary"
+      :cancel-label="t('common.cancel')"
       :close-aria-label="t('common.close')"
       @close="unsavedModalShown = false"
       @primary-click="confirmLeave"
     >
-      <p>{{ t('visual_plan.unsaved_leave_description') }}</p>
+      <p>
+        {{
+          isCreate
+            ? t('visual_plan.discard_create_description')
+            : t('visual_plan.discard_edit_description', { name: rootTitle })
+        }}
+      </p>
     </NeModal>
   </div>
 </template>

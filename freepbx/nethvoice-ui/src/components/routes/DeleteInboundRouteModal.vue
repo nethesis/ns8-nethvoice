@@ -23,7 +23,7 @@ const emit = defineEmits<{ close: [] }>()
 const { t } = useI18n()
 const queryCache = useQueryCache()
 const notificationsStore = useNotificationsStore()
-const { getRouteName } = useInboundRouteLabels()
+const { getDisplayName } = useInboundRouteLabels()
 
 const {
   mutate: deleteRouteMutate,
@@ -33,7 +33,7 @@ const {
 } = useMutation({
   mutation: (routeToDelete: InboundRoute) => deleteInboundRoute(routeToDelete),
   onSuccess(result, routeToDelete) {
-    const name = getRouteName(routeToDelete)
+    const name = getDisplayName(routeToDelete)
 
     setTimeout(() => {
       notificationsStore.createNotification(
@@ -77,11 +77,11 @@ function deleteRoute() {
 <template>
   <DeleteObjectModal
     :visible="visible"
-    :title="t('routes.delete_route')"
+    :title="t('routes.delete_inbound_route')"
     :primary-label="t('common.delete')"
     :deleting="deleteRouteLoading"
     :confirmation-message="
-      t('routes.delete_route_confirmation', { name: route ? getRouteName(route) : '' })
+      t('routes.delete_route_confirmation', { name: route ? getDisplayName(route) : '' })
     "
     :error-title="deleteRouteError ? t('routes.cannot_delete_route') : ''"
     :error-description="describeError(deleteRouteError)"

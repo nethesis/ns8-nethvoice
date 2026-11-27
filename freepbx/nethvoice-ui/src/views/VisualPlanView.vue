@@ -20,7 +20,7 @@ import { useVisualPlanData } from '@/queries/visualplan/visualPlan'
 import { usePermissions } from '@/queries/permissions/me'
 import { useVisualPlanStore } from '@/stores/visualPlan'
 import LoadError from '@/components/common/LoadError.vue'
-import VisualPlanEditor from '@/components/visualplan/VisualPlanEditor.vue'
+import VisualPlanEditor, { type SaveOutcome } from '@/components/visualplan/VisualPlanEditor.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -99,7 +99,11 @@ async function reloadData() {
   }
 }
 
-async function onSaved(savedKey: string | null, refs: Record<string, string>) {
+async function onSaved(
+  savedKey: string | null,
+  refs: Record<string, string>,
+  outcome: SaveOutcome,
+) {
   if (savedKey === null) {
     return
   }
@@ -110,6 +114,21 @@ async function onSaved(savedKey: string | null, refs: Record<string, string>) {
     await router.replace({ name: 'visual-plan', query: { route: savedKey } })
   }
   await reload()
+  finish(outcome)
+}
+
+// Back to the inbound routes, once the call flow and its layout are saved.
+function finish(outcome: SaveOutcome) {
+  router.push({ name: 'routes', params: { tab: 'inbound' } })
+  setTimeout(() => {
+    notificationsStore.createNotification({
+      kind: 'success',
+      title: outcome.created ? t('routes.inbound_created') : t('routes.inbound_updated'),
+      description: outcome.created
+        ? t('routes.inbound_created_description', { name: outcome.name })
+        : t('routes.inbound_updated_description', { name: outcome.name }),
+    })
+  }, 500)
 }
 
 function goBack() {
@@ -132,13 +151,16 @@ function goBack() {
       v-else-if="!fresh || !state.data || (!notFound && loadedKey === undefined)"
       class="flex h-full flex-col"
     >
-      <div class="bg-elevation-0 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+      <div class="border-b border-gray-200 px-4 pt-5 pb-4 sm:px-6 lg:px-8 dark:border-gray-700">
         <NeSkeleton :lines="2" class="max-w-sm" />
       </div>
       <div class="flex min-h-0 flex-1 gap-6 p-6">
-        <NeSkeleton :lines="12" class="hidden w-56 lg:block" />
+        <NeSkeleton :lines="12" class="hidden w-60 lg:block" />
         <NeSkeleton :lines="6" class="flex-1" />
       </div>
+      <div
+        class="h-16 shrink-0 border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-950"
+      />
     </div>
     <div v-else-if="notFound" class="p-6">
       <NeEmptyState
@@ -156,6 +178,7 @@ function goBack() {
       :read-only="!isSuperadmin"
       :reloading="reloading"
       @saved="onSaved"
+      @done="finish"
       @reload="reloadData"
     />
   </div>

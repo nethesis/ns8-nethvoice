@@ -249,12 +249,13 @@ describe('validateFlow', () => {
     const issues = validateFlow(state, DATA, null)
 
     expect(issues[state.rootId]).toEqual([
-      { level: 'error', code: 'output_not_connected', output: 'destination' },
+      { level: 'error', code: 'name_required', field: 'description' },
+      { level: 'error', code: 'destination_required', output: 'destination' },
       { level: 'warning', code: 'catch_all' },
     ])
     expect(issues['queue:new-2']).toEqual([
       { level: 'warning', code: 'number_in_use', field: 'id' },
-      { level: 'warning', code: 'required', field: 'name' },
+      { level: 'warning', code: 'name_required', field: 'name' },
       { level: 'warning', code: 'not_in_flow_new' },
     ])
     expect(hasErrors(issues)).toBe(true)
@@ -262,7 +263,7 @@ describe('validateFlow', () => {
     connect(state, state.rootId, 'destination', 'queue:new-2')
     expect(validateFlow(state, DATA, null)['queue:new-2']).toEqual([
       { level: 'error', code: 'number_in_use', field: 'id' },
-      { level: 'error', code: 'required', field: 'name' },
+      { level: 'error', code: 'name_required', field: 'name' },
     ])
   })
 

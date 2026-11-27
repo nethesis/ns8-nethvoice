@@ -329,7 +329,7 @@ describe('sortInboundRoutes', () => {
     destination: { target, kind: null, category: '', description: target },
   })
   const routes = [route('20', 'b', 'x'), route('3', 'c', 'z'), route('100', 'a', 'y')]
-  const sort = (key: 'number' | 'description' | 'destination', descending = false) =>
+  const sort = (key: 'number' | 'name' | 'destination', descending = false) =>
     sortInboundRoutes(routes, key, descending, describeDestination).map((item) => item.number)
 
   it('should sort numbers naturally', () => {
@@ -337,8 +337,8 @@ describe('sortInboundRoutes', () => {
     expect(sort('number', true)).toEqual(['100', '20', '3'])
   })
 
-  it('should sort by description and destination', () => {
-    expect(sort('description')).toEqual(['100', '20', '3'])
+  it('should sort by name and destination', () => {
+    expect(sort('name')).toEqual(['100', '20', '3'])
     expect(sort('destination')).toEqual(['20', '100', '3'])
   })
 

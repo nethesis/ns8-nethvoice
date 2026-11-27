@@ -150,8 +150,8 @@ export const CREATABLE_TYPES: NodeType[] = [
   'announcement',
   'timeCondition',
   'callFlowControl',
-  'conference',
   'voicemail',
+  'conference',
   'hangup',
   'setCallerId',
   'directDid',
@@ -207,7 +207,7 @@ export const getOutputs = (node: FlowNode): OutputDef[] => {
       return [output('destination', true)]
     case 'ringGroup':
     case 'queue':
-      return [output('destination')]
+      return [{ ...output('destination'), labelKey: 'visual_plan.outputs.no_answer' }]
     case 'queueOptions':
       return [output('destination', true), output('failoverDestination')]
     case 'timeCondition':

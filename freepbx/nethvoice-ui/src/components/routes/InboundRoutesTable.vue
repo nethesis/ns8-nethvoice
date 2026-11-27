@@ -46,13 +46,14 @@ import {
 } from '@/lib/routes/inbound'
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES, paginate } from '@/lib/common'
 
-const DEFAULT_SORT_KEY: InboundRouteSortKey = 'number'
+const DEFAULT_SORT_KEY: InboundRouteSortKey = 'name'
 
 const { t } = useI18n()
 const router = useRouter()
 const { state, asyncStatus, refetch } = useInboundRoutes()
 const { isSuperadmin } = usePermissions()
-const { getRouteName, describeDestination, isInvalidDestination } = useInboundRouteLabels()
+const { getRouteName, getDisplayName, describeDestination, isInvalidDestination } =
+  useInboundRouteLabels()
 
 const textFilter = ref('')
 const sortKey = ref<string | undefined>(DEFAULT_SORT_KEY)
@@ -63,8 +64,8 @@ const currentRoute = ref<InboundRoute | undefined>()
 const isShownDeleteRouteModal = ref(false)
 
 const sortOptions = computed(() => [
+  { id: 'name', label: t('routes.name') },
   { id: 'number', label: t('routes.route') },
-  { id: 'description', label: t('routes.description') },
   { id: 'destination', label: t('routes.destination') },
 ])
 
@@ -84,9 +85,7 @@ const filteredRoutes = computed(() => {
 
 const routesPage = computed(() => paginate(filteredRoutes.value, pageNum.value, pageSize.value))
 
-const areDefaultFiltersApplied = computed(
-  () => !textFilter.value.trim() && sortKey.value === DEFAULT_SORT_KEY && !sortDescending.value,
-)
+const isFiltered = computed(() => Boolean(textFilter.value.trim()))
 
 const isNoDataEmptyStateShown = computed(
   () => state.value.status === 'success' && routes.value.length === 0,
@@ -124,8 +123,6 @@ watch(
 
 function clearFilters() {
   textFilter.value = ''
-  sortKey.value = DEFAULT_SORT_KEY
-  sortDescending.value = false
 }
 
 function editRoute(route: InboundRoute) {
@@ -141,7 +138,7 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
   return [
     {
       id: 'deleteRoute',
-      label: t('routes.delete_route'),
+      label: t('common.delete'),
       icon: faTrash,
       danger: true,
       action: () => showDeleteRouteModal(route),
@@ -159,21 +156,23 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
         :placeholder="t('routes.filter_routes')"
         :aria-label="t('routes.filter_routes')"
         :clear-search-label="t('ne_text_input.clear_search')"
-        class="w-full max-w-xs"
+        class="w-full sm:w-80"
+        :disabled="state.status === 'pending'"
         @blur="textFilter = textFilter.trim()"
       />
       <NeSortDropdown
         v-model:sort-key="sortKey"
         v-model:sort-descending="sortDescending"
-        :label="t('sort.sort_by')"
+        :label="t('sort.sort')"
         :options="sortOptions"
-        :open-menu-aria-label="t('ne_dropdown.open_menu')"
+        :disabled="state.status === 'pending'"
+        :open-menu-aria-label="t('sort.open_sort_menu')"
         :sort-by-label="t('sort.sort_by')"
-        :sort-direction-label="t('sort.direction')"
+        :sort-direction-label="t('sort.sort_direction')"
         :ascending-label="t('sort.ascending')"
         :descending-label="t('sort.descending')"
       />
-      <NeButton kind="tertiary" :disabled="areDefaultFiltersApplied" @click="clearFilters">
+      <NeButton kind="tertiary" :disabled="!isFiltered" @click="clearFilters">
         {{ t('common.reset_filters') }}
       </NeButton>
       <TrunksUpdatingIndicator v-if="isUpdating" class="ml-auto" />
@@ -189,19 +188,19 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
       :title="t('routes.no_inbound_routes')"
       :description="t('routes.no_inbound_routes_description')"
       :icon="faRoute"
-      class="bg-elevation-0"
+      class="text-center"
     >
       <slot name="empty-state-action" />
     </NeEmptyState>
     <NeEmptyState
       v-else-if="isNoMatchEmptyStateShown"
       :title="t('routes.no_routes_found')"
-      :description="t('common.try_different_words')"
+      :description="t('routes.try_changing_filters')"
       :icon="faMagnifyingGlass"
-      class="bg-elevation-0"
+      class="text-center"
     >
       <NeButton kind="tertiary" size="lg" @click="textFilter = ''">
-        {{ t('common.clear_filter') }}
+        {{ t('common.reset_filters') }}
       </NeButton>
     </NeEmptyState>
     <NeTable
@@ -210,11 +209,11 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
       card-breakpoint="lg"
       :loading="state.status === 'pending'"
       :skeleton-columns="4"
-      :skeleton-rows="5"
+      :skeleton-rows="3"
     >
       <NeTableHead>
+        <NeTableHeadCell>{{ t('routes.name') }}</NeTableHeadCell>
         <NeTableHeadCell>{{ t('routes.route') }}</NeTableHeadCell>
-        <NeTableHeadCell>{{ t('routes.description') }}</NeTableHeadCell>
         <NeTableHeadCell>{{ t('routes.destination') }}</NeTableHeadCell>
         <NeTableHeadCell>
           <span class="sr-only">{{ t('common.actions') }}</span>
@@ -222,11 +221,11 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
       </NeTableHead>
       <NeTableBody>
         <NeTableRow v-for="item in routesPage" :key="item.id">
+          <NeTableCell :data-label="t('routes.name')">
+            <span class="wrap-anywhere">{{ item.description || '-' }}</span>
+          </NeTableCell>
           <NeTableCell :data-label="t('routes.route')">
             <span class="wrap-anywhere">{{ getRouteName(item) }}</span>
-          </NeTableCell>
-          <NeTableCell :data-label="t('routes.description')">
-            <span class="wrap-anywhere">{{ item.description || '-' }}</span>
           </NeTableCell>
           <NeTableCell :data-label="t('routes.destination')">
             <span
@@ -252,13 +251,13 @@ function getKebabMenuItems(route: InboundRoute): NeDropdownItem[] {
                 </template>
                 {{ t('common.edit') }}
                 <span class="sr-only">
-                  {{ t('routes.edit_route_in_visual_plan', { name: getRouteName(item) }) }}
+                  {{ t('routes.edit_route_in_visual_plan', { name: getDisplayName(item) }) }}
                 </span>
               </NeButton>
               <NeDropdown
                 :items="getKebabMenuItems(item)"
                 :align-to-right="true"
-                :open-menu-aria-label="t('routes.open_route_menu', { name: getRouteName(item) })"
+                :open-menu-aria-label="t('routes.open_route_menu', { name: getDisplayName(item) })"
               />
             </div>
           </NeTableCell>

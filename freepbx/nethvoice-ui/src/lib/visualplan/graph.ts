@@ -8,6 +8,7 @@ import {
   destinationOfNode,
   entryOutputId,
   getOutputs,
+  inboundRouteKey,
   nodeIdOf,
   parseDestination,
   parseVoicemailKey,
@@ -423,3 +424,32 @@ export const pruneOrphanOutputs = (state: FlowState, node: FlowNode): void => {
   const valid = new Set(getOutputs(node).map((item) => item.id))
   state.edges = state.edges.filter((edge) => edge.source !== node.id || valid.has(edge.output))
 }
+
+/** The other inbound routes whose calls can reach an existing item. */
+export const routesReaching = <T extends { extension: string; cidnum: string }>(
+  catalog: Map<string, CatalogObject>,
+  routes: T[],
+  targetId: string,
+  exceptKey: string | null,
+): T[] =>
+  routes.filter((route) => {
+    const key = inboundRouteKey(route)
+    if (key === exceptKey) return false
+    const start = nodeIdOf('inboundRoute', key)
+    const seen = new Set([start])
+    const queue = [start]
+    while (queue.length) {
+      const id = queue.shift()!
+      for (const destination of Object.values(catalog.get(id)?.destinations ?? {})) {
+        const parsed = parseDestination(destination)
+        if (!parsed) continue
+        const next = nodeIdOf(parsed.type, parsed.key)
+        if (next === targetId) return true
+        if (!seen.has(next) && catalog.has(next)) {
+          seen.add(next)
+          queue.push(next)
+        }
+      }
+    }
+    return false
+  })

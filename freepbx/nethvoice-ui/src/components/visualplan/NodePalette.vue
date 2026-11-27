@@ -7,11 +7,14 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMediaQuery } from '@vueuse/core'
-import { NeTabs, NeTextInput } from '@nethesis/vue-components'
+import { NeEmptyState, NeTabs, NeTextInput } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { faDiagramProject, faMagnifyingGlass } from '@fortawesome/free-solid-svg-icons'
+import { faSidebarLeft } from '@nethesis/nethesis-solid-svg-icons'
+import IconButton from '@/components/visualplan/IconButton.vue'
 import { matchesText } from '@/lib/common'
 import { vKeyboardTabs } from '@/lib/keyboardTabs'
-import { EXISTING_TYPES, type FlowNode } from '@/lib/visualplan/model'
+import type { FlowNode, NodeType } from '@/lib/visualplan/model'
 import { useVisualPlanStore } from '@/stores/visualPlan'
 import { useVisualPlanLabels } from '@/composables/useVisualPlanLabels'
 import {
@@ -21,14 +24,14 @@ import {
   type PaletteItem,
 } from '@/components/visualplan/nodeMeta'
 
-const emit = defineEmits<{ add: [item: PaletteItem] }>()
+const { collapsible = false } = defineProps<{ collapsible?: boolean }>()
+
+const emit = defineEmits<{ add: [item: PaletteItem]; focus: [id: string]; collapse: [] }>()
 
 const { t } = useI18n()
 const isTouch = useMediaQuery('(pointer: coarse)')
 const store = useVisualPlanStore()
 const { typeLabel, nodeTitle, nodeSubtitle } = useVisualPlanLabels()
-
-const MAX_EXISTING = 60
 
 const tab = ref<'new' | 'existing'>('new')
 const filter = ref('')
@@ -38,25 +41,24 @@ const tabs = computed(() => [
   { name: 'existing', label: t('visual_plan.palette.existing') },
 ])
 
-const existing = computed(() => {
-  const items: FlowNode[] = []
-  for (const entry of store.catalog.values()) {
-    const node = entry.node
-    if (
-      EXISTING_TYPES.includes(node.type) &&
-      matchesText(filter.value, nodeTitle(node), nodeSubtitle(node), typeLabel(node.type))
-    ) {
-      items.push(node)
-    }
-  }
-  return items
-})
+// The items on the canvas, to find them again.
+const inFlow = computed(() => store.nodes.filter((node) => node.id !== store.flow.rootId))
+
+const existing = computed(() =>
+  inFlow.value.filter((node) =>
+    matchesText(filter.value, nodeTitle(node), nodeSubtitle(node), typeLabel(node.type)),
+  ),
+)
 
 const existingGroups = computed(() =>
-  EXISTING_TYPES.map((type) => ({
-    type,
-    items: existing.value.filter((node) => node.type === type).slice(0, MAX_EXISTING),
-  })).filter((group) => group.items.length),
+  (Object.keys(NODE_META) as NodeType[])
+    .map((type) => ({
+      type,
+      items: existing.value
+        .filter((node: FlowNode) => node.type === type)
+        .sort((a, b) => nodeTitle(a).localeCompare(nodeTitle(b))),
+    }))
+    .filter((group) => group.items.length),
 )
 
 function onDragStart(event: DragEvent, item: PaletteItem) {
@@ -72,32 +74,51 @@ function selectTab(name: string) {
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
-    <div class="px-4 pt-3">
+  <div class="flex h-full min-h-0 flex-col">
+    <div class="flex items-center gap-2 px-4 pt-3 sm:px-6 lg:px-8">
       <NeTabs
         v-keyboard-tabs
         :tabs="tabs"
         :selected="tab"
-        :sr-tabs-label="t('ne_tabs.tabs')"
+        :sr-tabs-label="t('visual_plan.palette.title')"
         :sr-select-tab-label="t('ne_tabs.select_a_tab')"
+        class="min-w-0 flex-1"
         @select-tab="selectTab"
       />
+      <IconButton
+        v-if="collapsible"
+        :icon="faSidebarLeft"
+        :label="t('visual_plan.palette.hide')"
+        placement="right"
+        tool
+        @click="emit('collapse')"
+      />
     </div>
-    <div class="scrollbar-thin-neutral min-h-0 flex-1 overflow-y-auto px-3 py-4">
+    <div
+      class="scrollbar-thin-neutral min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-6 sm:px-6 lg:px-8"
+    >
       <template v-if="tab === 'new'">
-        <p class="text-tertiary-neutral mb-4 px-1 text-xs">
+        <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
           {{ isTouch ? t('visual_plan.palette.tap_helper') : t('visual_plan.palette.new_helper') }}
         </p>
-        <div v-for="group in PALETTE_GROUPS" :key="group.labelKey" class="mb-5">
-          <p class="text-tertiary-neutral mb-1 px-1 text-xs font-medium tracking-wide uppercase">
+        <section
+          v-for="group in PALETTE_GROUPS"
+          :key="group.labelKey"
+          :aria-labelledby="`palette-${group.labelKey}`"
+          class="mb-5"
+        >
+          <h3
+            :id="`palette-${group.labelKey}`"
+            class="mb-1 text-xs font-medium tracking-wide text-gray-600 uppercase dark:text-gray-400"
+          >
             {{ t(group.labelKey) }}
-          </p>
-          <ul>
+          </h3>
+          <ul class="-mx-2">
             <li v-for="type in group.types" :key="type">
               <button
                 type="button"
                 draggable="true"
-                class="text-secondary-neutral focus-visible:ring-primary-focus flex w-full cursor-grab items-center gap-3 rounded-md px-1 py-1.5 text-left text-sm hover:bg-gray-100 focus:outline-none focus-visible:ring-2 active:cursor-grabbing dark:hover:bg-gray-800"
+                class="focus:ring-primary-500 dark:focus:ring-primary-200 flex w-full cursor-grab items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100 focus:ring-2 focus:outline-hidden active:cursor-grabbing dark:text-gray-200 dark:hover:bg-gray-800"
                 @dragstart="onDragStart($event, { kind: 'new', type })"
                 @click="emit('add', { kind: 'new', type })"
               >
@@ -117,10 +138,14 @@ function selectTab(name: string) {
               </button>
             </li>
           </ul>
-        </div>
+        </section>
       </template>
       <template v-else>
+        <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          {{ t('visual_plan.palette.existing_helper') }}
+        </p>
         <NeTextInput
+          v-if="inFlow.length"
           v-model="filter"
           is-search
           :placeholder="t('visual_plan.palette.search_existing')"
@@ -128,21 +153,38 @@ function selectTab(name: string) {
           :clear-search-label="t('ne_text_input.clear_search')"
           class="mb-4"
         />
-        <p v-if="!existingGroups.length" class="text-tertiary-neutral px-1 text-sm">
-          {{ t('visual_plan.palette.no_existing') }}
-        </p>
-        <div v-for="group in existingGroups" :key="group.type" class="mb-5">
-          <p class="text-tertiary-neutral mb-1 px-1 text-xs font-medium tracking-wide uppercase">
+        <NeEmptyState
+          v-if="!inFlow.length"
+          :title="t('visual_plan.palette.no_items_in_flow')"
+          :description="t('visual_plan.palette.no_items_in_flow_description')"
+          :icon="faDiagramProject"
+          class="text-center"
+        />
+        <NeEmptyState
+          v-else-if="!existingGroups.length"
+          :title="t('visual_plan.palette.no_existing')"
+          :description="t('visual_plan.palette.no_existing_description')"
+          :icon="faMagnifyingGlass"
+          class="text-center"
+        />
+        <section
+          v-for="group in existingGroups"
+          :key="group.type"
+          :aria-labelledby="`existing-${group.type}`"
+          class="mb-5"
+        >
+          <h3
+            :id="`existing-${group.type}`"
+            class="mb-1 text-xs font-medium tracking-wide text-gray-600 uppercase dark:text-gray-400"
+          >
             {{ typeLabel(group.type) }}
-          </p>
-          <ul>
+          </h3>
+          <ul class="-mx-2">
             <li v-for="node in group.items" :key="node.id">
               <button
                 type="button"
-                draggable="true"
-                class="focus-visible:ring-primary-focus flex w-full cursor-grab items-center gap-3 rounded-md px-1 py-1.5 text-left hover:bg-gray-100 focus:outline-none focus-visible:ring-2 active:cursor-grabbing dark:hover:bg-gray-800"
-                @dragstart="onDragStart($event, { kind: 'existing', id: node.id })"
-                @click="emit('add', { kind: 'existing', id: node.id })"
+                class="focus:ring-primary-500 dark:focus:ring-primary-200 flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm text-gray-700 hover:bg-gray-100 focus:ring-2 focus:outline-hidden dark:text-gray-200 dark:hover:bg-gray-800"
+                @click="emit('focus', node.id)"
               >
                 <span
                   :class="[
@@ -156,21 +198,13 @@ function selectTab(name: string) {
                     aria-hidden="true"
                   />
                 </span>
-                <span class="min-w-0">
-                  <span class="text-secondary-neutral block truncate text-sm">
-                    {{ nodeTitle(node) || t('visual_plan.untitled') }}
-                  </span>
-                  <span
-                    v-if="store.flow.nodes[node.id]"
-                    class="text-tertiary-neutral block truncate text-xs"
-                  >
-                    {{ t('visual_plan.palette.already_in_flow') }}
-                  </span>
+                <span class="min-w-0 flex-1 truncate">
+                  {{ nodeTitle(node) || t('visual_plan.untitled') }}
                 </span>
               </button>
             </li>
           </ul>
-        </div>
+        </section>
       </template>
     </div>
   </div>

@@ -12,9 +12,10 @@ import {
   NeTextArea,
   NeTextInput,
   NeToggle,
+  NeTooltip,
 } from '@nethesis/vue-components'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { faCirclePlus, faPenToSquare } from '@fortawesome/free-solid-svg-icons'
+import { faCircleInfo, faCirclePlus, faPenToSquare } from '@fortawesome/free-solid-svg-icons'
 import type { TimeGroupData } from '@/lib/visualplan/api'
 import { QUEUE_STRATEGIES, RING_STRATEGIES } from '@/lib/visualplan/defaults'
 import { VOICEMAIL_MODES, type FlowNode } from '@/lib/visualplan/model'
@@ -23,6 +24,7 @@ import { useVisualPlanStore } from '@/stores/visualPlan'
 import SelectField from '@/components/visualplan/SelectField.vue'
 import RecordingField from '@/components/visualplan/RecordingField.vue'
 import TimeGroupDrawer from '@/components/visualplan/TimeGroupDrawer.vue'
+import MembersField from '@/components/visualplan/MembersField.vue'
 
 const props = defineProps<{ node: FlowNode }>()
 
@@ -145,35 +147,48 @@ function selectExtension(extension: string) {
 
 const queueStaticMembers = computed(() =>
   props.node.type === 'queue'
-    ? props.node.data.staticMembers
-        .map((member) =>
-          member.penalty ? `${member.extension},${member.penalty}` : member.extension,
-        )
-        .join('\n')
-    : '',
+    ? props.node.data.staticMembers.map((member) => member.extension)
+    : [],
 )
 
-function setStaticMembers(value: string) {
+// Members keep the penalty they already have.
+function setStaticMembers(extensions: string[]) {
+  if (props.node.type !== 'queue') return
+  const current = props.node.data.staticMembers
   set(
     'staticMembers',
-    lines(value).map((line) => {
-      const [extension = '', penalty = '0'] = line.split(',')
-      const value = penalty.trim()
-      return {
-        extension: extension.trim(),
-        penalty: /^\d+$/.test(value) ? Number(value) : Number.NaN,
-      }
-    }),
+    extensions.map((extension) => ({
+      extension,
+      penalty: current.find((member) => member.extension === extension)?.penalty ?? 0,
+    })),
   )
 }
+
+// The voicemail box is created when the extension has none.
+const mailboxMissing = computed(() => {
+  const node = props.node
+  if (node.type !== 'voicemail' || !node.data.extension) return false
+  const extension = store.data?.extensions.find((item) => item.extension === node.data.extension)
+  return extension?.voicemail === false
+})
 </script>
 
 <template>
   <div class="space-y-6">
     <template v-if="node.type === 'inboundRoute'">
       <NeTextInput
+        :model-value="node.data.description"
+        :label="t('visual_plan.fields.route_name')"
+        :placeholder="t('visual_plan.fields.route_name_placeholder')"
+        :helper-text="t('visual_plan.fields.route_name_helper')"
+        :invalid-message="err('description')"
+        :disabled="disabled"
+        @update:model-value="set('description', $event)"
+      />
+      <NeTextInput
         :model-value="node.data.extension"
         :label="t('visual_plan.fields.did')"
+        :placeholder="t('visual_plan.fields.did_placeholder')"
         :helper-text="t('visual_plan.fields.did_helper')"
         :invalid-message="err('extension')"
         :disabled="disabled"
@@ -182,19 +197,11 @@ function setStaticMembers(value: string) {
       <NeTextInput
         :model-value="node.data.cidnum"
         :label="t('visual_plan.fields.cid')"
+        :placeholder="t('visual_plan.fields.cid_placeholder')"
         :helper-text="t('visual_plan.fields.cid_helper')"
         :invalid-message="err('cidnum')"
         :disabled="disabled"
         @update:model-value="set('cidnum', $event)"
-      />
-      <NeTextInput
-        :model-value="node.data.description"
-        :label="t('visual_plan.fields.description')"
-        :disabled="disabled"
-        optional
-        :optional-label="t('common.optional')"
-        :invalid-message="err('description')"
-        @update:model-value="set('description', $event)"
       />
       <NeTextInput
         :model-value="node.data.alertinfo"
@@ -209,6 +216,7 @@ function setStaticMembers(value: string) {
       <NeTextInput
         :model-value="node.data.grppre"
         :label="t('visual_plan.fields.cid_prefix')"
+        :placeholder="t('visual_plan.fields.cid_prefix_placeholder')"
         :helper-text="t('visual_plan.fields.cid_prefix_helper')"
         :disabled="disabled"
         optional
@@ -223,6 +231,8 @@ function setStaticMembers(value: string) {
         :model-value="node.data.extension"
         :label="t('visual_plan.fields.extension')"
         :options="extensionOptions"
+        :placeholder="t('visual_plan.fields.choose_extension')"
+        searchable
         :disabled="disabled"
         :invalid-message="err('extension')"
         @update:model-value="selectExtension"
@@ -234,7 +244,9 @@ function setStaticMembers(value: string) {
         :model-value="node.data.extension"
         :label="t('visual_plan.fields.mailbox')"
         :options="extensionOptions"
-        :helper-text="t('visual_plan.fields.mailbox_helper')"
+        :placeholder="t('visual_plan.fields.choose_extension')"
+        searchable
+        :helper-text="mailboxMissing ? t('visual_plan.fields.mailbox_helper') : ''"
         :invalid-message="err('extension')"
         :disabled="disabled"
         @update:model-value="set('extension', $event)"
@@ -242,6 +254,7 @@ function setStaticMembers(value: string) {
       <SelectField
         :model-value="node.data.mode"
         :label="t('visual_plan.fields.voicemail_message')"
+        :helper-text="t('visual_plan.fields.voicemail_message_helper')"
         :options="voicemailModeOptions"
         :disabled="disabled"
         :invalid-message="err('mode')"
@@ -262,44 +275,50 @@ function setStaticMembers(value: string) {
 
     <template v-else-if="node.type === 'conference'">
       <NeTextInput
-        :model-value="node.data.id"
-        :label="t('visual_plan.fields.number')"
-        :invalid-message="err('id')"
-        :disabled="disabled || !node.isNew"
-        @update:model-value="set('id', $event)"
-      />
-      <NeTextInput
         :model-value="node.data.name"
         :label="t('visual_plan.fields.name')"
+        :placeholder="t('visual_plan.fields.conference_name_placeholder')"
         :invalid-message="err('name')"
         :disabled="disabled"
         @update:model-value="set('name', $event)"
+      />
+      <NeTextInput
+        :model-value="node.data.id"
+        :label="t('visual_plan.fields.number')"
+        :placeholder="t('visual_plan.fields.conference_number_placeholder')"
+        :helper-text="t('visual_plan.fields.number_helper')"
+        :invalid-message="err('id')"
+        :disabled="disabled || !node.isNew"
+        @update:model-value="set('id', $event)"
       />
     </template>
 
     <template v-else-if="node.type === 'ringGroup'">
       <NeTextInput
-        :model-value="node.data.id"
-        :label="t('visual_plan.fields.number')"
-        :invalid-message="err('id')"
-        :disabled="disabled || !node.isNew"
-        @update:model-value="set('id', $event)"
-      />
-      <NeTextInput
         :model-value="node.data.description"
         :label="t('visual_plan.fields.name')"
+        :placeholder="t('visual_plan.fields.ring_group_name_placeholder')"
         :invalid-message="err('description')"
         :disabled="disabled"
         @update:model-value="set('description', $event)"
       />
-      <NeTextArea
-        :model-value="node.data.members.join('\n')"
+      <NeTextInput
+        :model-value="node.data.id"
+        :label="t('visual_plan.fields.number')"
+        :placeholder="t('visual_plan.fields.ring_group_number_placeholder')"
+        :helper-text="t('visual_plan.fields.number_helper')"
+        :invalid-message="err('id')"
+        :disabled="disabled || !node.isNew"
+        @update:model-value="set('id', $event)"
+      />
+      <MembersField
+        :model-value="node.data.members"
         :label="t('visual_plan.fields.members')"
         :helper-text="t('visual_plan.fields.ring_group_members_helper')"
         :invalid-message="err('members')"
-        :rows="4"
+        accept-user-input
         :disabled="disabled"
-        @update:model-value="set('members', lines($event))"
+        @update:model-value="set('members', $event)"
       />
       <SelectField
         :model-value="node.data.strategy"
@@ -313,7 +332,7 @@ function setStaticMembers(value: string) {
         :model-value="numberText(node.data.ringTime)"
         type="number"
         :label="t('visual_plan.fields.ring_time')"
-        :helper-text="t('visual_plan.fields.ring_time_helper')"
+        :helper-text="t('visual_plan.fields.ring_time_no_answer_helper')"
         :invalid-message="err('ringTime')"
         :disabled="disabled"
         @update:model-value="set('ringTime', toInt($event))"
@@ -322,27 +341,28 @@ function setStaticMembers(value: string) {
 
     <template v-else-if="node.type === 'queue'">
       <NeTextInput
-        :model-value="node.data.id"
-        :label="t('visual_plan.fields.number')"
-        :invalid-message="err('id')"
-        :disabled="disabled || !node.isNew"
-        @update:model-value="set('id', $event)"
-      />
-      <NeTextInput
         :model-value="node.data.name"
         :label="t('visual_plan.fields.name')"
+        :placeholder="t('visual_plan.fields.queue_name_placeholder')"
         :invalid-message="err('name')"
         :disabled="disabled"
         @update:model-value="set('name', $event)"
       />
-      <NeTextArea
+      <NeTextInput
+        :model-value="node.data.id"
+        :label="t('visual_plan.fields.number')"
+        :placeholder="t('visual_plan.fields.queue_number_placeholder')"
+        :helper-text="t('visual_plan.fields.number_helper')"
+        :invalid-message="err('id')"
+        :disabled="disabled || !node.isNew"
+        @update:model-value="set('id', $event)"
+      />
+      <MembersField
         :model-value="queueStaticMembers"
-        :label="t('visual_plan.fields.static_members')"
+        :label="t('visual_plan.fields.members')"
         :helper-text="t('visual_plan.fields.static_members_helper')"
-        :rows="3"
-        :disabled="disabled"
         optional
-        :optional-label="t('common.optional')"
+        :disabled="disabled"
         :invalid-message="err('staticMembers')"
         @update:model-value="setStaticMembers($event)"
       />
@@ -365,26 +385,27 @@ function setStaticMembers(value: string) {
         :invalid-message="err('strategy')"
         @update:model-value="set('strategy', $event)"
       />
-      <div class="grid grid-cols-2 gap-4">
-        <NeTextInput
-          :model-value="numberText(node.data.agentTimeout)"
-          type="number"
-          :label="t('visual_plan.fields.agent_timeout')"
-          :helper-text="t('visual_plan.fields.agent_timeout_helper')"
-          :invalid-message="err('agentTimeout')"
-          :disabled="disabled"
-          @update:model-value="set('agentTimeout', toInt($event))"
-        />
-        <NeTextInput
-          :model-value="numberText(node.data.maxWait)"
-          type="number"
-          :label="t('visual_plan.fields.max_wait')"
-          :helper-text="t('visual_plan.fields.max_wait_helper')"
-          :invalid-message="err('maxWait')"
-          :disabled="disabled"
-          @update:model-value="set('maxWait', toInt($event))"
-        />
-      </div>
+      <NeTextInput
+        :model-value="numberText(node.data.agentTimeout)"
+        type="number"
+        :label="t('visual_plan.fields.agent_timeout')"
+        :helper-text="t('visual_plan.fields.agent_timeout_helper')"
+        :invalid-message="err('agentTimeout')"
+        :disabled="disabled"
+        @update:model-value="set('agentTimeout', toInt($event))"
+      />
+      <NeTextInput
+        :model-value="node.data.maxWait ? numberText(node.data.maxWait) : ''"
+        type="number"
+        :label="t('visual_plan.fields.max_wait')"
+        :placeholder="t('visual_plan.fields.max_wait_placeholder')"
+        :helper-text="t('visual_plan.fields.max_wait_no_answer_helper')"
+        optional
+        :optional-label="t('common.optional')"
+        :invalid-message="err('maxWait')"
+        :disabled="disabled"
+        @update:model-value="set('maxWait', $event.trim() === '' ? 0 : toInt($event))"
+      />
       <h3 class="text-primary-neutral text-sm font-medium">
         {{ t('visual_plan.caller_experience') }}
       </h3>
@@ -459,6 +480,7 @@ function setStaticMembers(value: string) {
       <NeTextInput
         :model-value="node.data.name"
         :label="t('visual_plan.fields.name')"
+        :placeholder="node.type === 'ivr' ? t('visual_plan.fields.ivr_name_placeholder') : ''"
         :invalid-message="err('name')"
         :disabled="disabled"
         @update:model-value="set('name', $event)"
@@ -488,13 +510,29 @@ function setStaticMembers(value: string) {
         :disabled="disabled"
         :invalid-message="err('directDial')"
         @update:model-value="set('directDial', $event)"
-      />
+      >
+        <template #topTooltip>
+          <NeTooltip trigger-event="mouseenter focus" class="inline-block align-middle">
+            <template #trigger>
+              <button type="button" class="flex" :aria-label="t('visual_plan.more_information')">
+                <FontAwesomeIcon
+                  :icon="faCircleInfo"
+                  class="size-4 text-indigo-800 dark:text-indigo-300"
+                  aria-hidden="true"
+                />
+              </button>
+            </template>
+            <template #content>{{ t('visual_plan.fields.direct_dial_helper') }}</template>
+          </NeTooltip>
+        </template>
+      </NeToggle>
     </template>
 
     <template v-else-if="node.type === 'announcement'">
       <NeTextInput
         :model-value="node.data.description"
         :label="t('visual_plan.fields.name')"
+        :placeholder="t('visual_plan.fields.announcement_name_placeholder')"
         :invalid-message="err('description')"
         :disabled="disabled"
         @update:model-value="set('description', $event)"
@@ -512,6 +550,7 @@ function setStaticMembers(value: string) {
       <NeTextInput
         :model-value="node.data.name"
         :label="t('visual_plan.fields.name')"
+        :placeholder="t('visual_plan.fields.time_condition_name_placeholder')"
         :invalid-message="err('name')"
         :disabled="disabled"
         @update:model-value="set('name', $event)"
@@ -519,12 +558,14 @@ function setStaticMembers(value: string) {
       <SelectField
         :model-value="selectedTimeGroupRef"
         :label="t('visual_plan.fields.time_group')"
+        :placeholder="t('visual_plan.fields.choose_time_group')"
+        :helper-text="t('visual_plan.fields.time_group_helper')"
         :options="timeGroupOptions"
         :invalid-message="err('timeGroup')"
         :disabled="disabled"
         @update:model-value="selectTimeGroup($event)"
       />
-      <div v-if="!disabled" class="flex flex-wrap gap-2">
+      <div v-if="!disabled" class="-mt-4 -ml-2.5 flex flex-wrap gap-1">
         <NeButton kind="tertiary" size="sm" @click="openTimeGroup(true)">
           <template #prefix>
             <FontAwesomeIcon :icon="faCirclePlus" aria-hidden="true" />

@@ -11,6 +11,8 @@ import { useInboundRoutes } from '@/queries/routes/inbound'
 
 const { state } = useInboundRoutes()
 
+const isLoading = computed(() => state.value.status === 'pending')
+
 const isEmpty = computed(
   () => state.value.status === 'success' && (state.value.data ?? []).length === 0,
 )
@@ -18,12 +20,11 @@ const isEmpty = computed(
 
 <template>
   <div>
-    <div class="mb-8 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-      <p class="text-secondary-neutral max-w-2xl">
-        {{ $t('routes.inbound_description_line_1') }}<br />
-        {{ $t('routes.inbound_description_line_2') }}
+    <div v-if="!isEmpty" class="mb-6 grid gap-x-4 gap-y-2 sm:grid-cols-[1fr_auto] sm:items-center">
+      <p class="max-w-2xl text-gray-600 dark:text-gray-400">
+        {{ $t('routes.inbound_description') }}
       </p>
-      <CreateInboundRouteButton v-if="!isEmpty" size="lg" />
+      <CreateInboundRouteButton size="lg" class="justify-self-start" :disabled="isLoading" />
     </div>
     <InboundRoutesTable>
       <template #empty-state-action>

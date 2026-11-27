@@ -99,7 +99,7 @@ describe('visual plan store', () => {
       output: expect.stringMatching(/^entry:/),
     })
     expect(store.generalErrors).toEqual([{ ref: '', type: '', field: '', message: 'invalid' }])
-    expect(store.issues['inboundRoute:100/']).toBeUndefined()
+    expect(store.issues['inboundRoute:100/']?.some((issue) => issue.level === 'error')).toBeFalsy()
 
     store.moveNode('ivr:3', { x: 1, y: 1 })
     expect(store.issues['announcement:3']).toHaveLength(1)
@@ -190,7 +190,7 @@ describe('visual plan store', () => {
     expect(store.allIssues[id]).toBeUndefined()
   })
 
-  it('shows errors of new items only after a field was edited or a save was tried', () => {
+  it('shows errors only after a save was tried', () => {
     const store = useVisualPlanStore()
     store.load(DATA, '100/')
     const id = store.addNode('announcement', { x: 0, y: 0 })
@@ -200,15 +200,16 @@ describe('visual plan store', () => {
     expect(store.allIssues[id]?.some((issue) => issue.level === 'error')).toBe(true)
     expect(store.issues[id]?.some((issue) => issue.level === 'error')).toBeFalsy()
     store.patchNode(id, { description: '' })
-    expect(store.issues[id]).toContainEqual({
-      level: 'error',
-      code: 'required',
-      field: 'description',
-    })
+    expect(store.issues[id]?.some((issue) => issue.level === 'error')).toBeFalsy()
     store.revealErrors = true
     expect(store.issues[id]).toContainEqual({
       level: 'error',
-      code: 'required',
+      code: 'name_required',
+      field: 'description',
+    })
+    expect(store.issues[id]).toContainEqual({
+      level: 'error',
+      code: 'recording_required',
       field: 'recording',
     })
   })

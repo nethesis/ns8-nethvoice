@@ -318,17 +318,13 @@ export const useVisualPlanStore = defineStore('visualPlan', () => {
     return result
   })
 
-  const isVisible = (id: string, issue: Issue): boolean => {
-    if (issue.level === 'warning' || revealErrors.value) return true
-    const node = flow.value.nodes[id]
-    if (!node?.isNew) return true
-    return Boolean(issue.field && touched.value.has(`${id}:${issue.field}`))
-  }
+  // Errors show once a save was tried, so a new flow is not covered in red while it is built.
+  const isVisible = (issue: Issue): boolean => issue.level === 'warning' || revealErrors.value
 
   const issues = computed(() => {
     const result: Record<string, Issue[]> = {}
     for (const [id, list] of Object.entries(allIssues.value)) {
-      const visible = list.filter((issue) => isVisible(id, issue))
+      const visible = list.filter((issue) => isVisible(issue))
       if (visible.length) result[id] = visible
     }
     return result
@@ -559,12 +555,15 @@ export const useVisualPlanStore = defineStore('visualPlan', () => {
       return
     }
     commit(() => {
-      const values = new Set(node.data.entries.map((entry) => entry.value))
-      let next = node.data.entries.length + 1
-      while (node.type === 'ivr' && values.has(String(next))) {
-        next += 1
-      }
-      node.data.entries.push({ id: newEntryId(), value: node.type === 'ivr' ? String(next) : '' })
+      // the first digit not used yet, in keypad order
+      const values = new Set(node.data.entries.map((entry) => entry.value.trim()))
+      const next =
+        node.type === 'ivr'
+          ? (['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'].find(
+              (digit) => !values.has(digit),
+            ) ?? '')
+          : ''
+      node.data.entries.push({ id: newEntryId(), value: next })
     })
   }
 

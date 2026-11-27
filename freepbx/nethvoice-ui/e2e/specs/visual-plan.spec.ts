@@ -23,11 +23,37 @@ test.describe('visual plan', () => {
     await expect(canvas.getByText('Support (600)')).toBeVisible()
     await expect(canvas.getByText('Alice Fox (201)')).toBeVisible()
     await expect(canvas.locator('.vue-flow__edge')).toHaveCount(8)
-    await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Save' })).toBeEnabled()
+  })
+
+  test('goes back to the list when saving without changes', async ({ page, mockApi }) => {
+    mockApi.on('GET', `${REST}/inboundroutes`, { json: { destinations: {}, routes: [] } })
+    await page.goto('./routes/visual-plan?route=0721405516%2F')
+    await expect(page.locator('.vue-flow').getByText('Main menu')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByText('Inbound route updated')).toBeVisible()
+    await expect(page).toHaveURL(/\/routes\/inbound$/)
+    expect(mockApi.callsTo('POST', `${REST}/visualplan`)).toHaveLength(0)
+  })
+
+  test('lists the items of the flow in the Existing tab', async ({ page }) => {
+    await page.goto('./routes/visual-plan?route=0721405516%2F')
+    const palette = page.getByRole('complementary', { name: 'Items' })
+    await palette.getByRole('link', { name: 'Existing' }).click()
+
+    await expect(palette.getByRole('button', { name: 'Main menu' })).toBeVisible()
+    await expect(palette.getByRole('button', { name: 'Sales (401)' })).toBeVisible()
+    await expect(palette.getByRole('button', { name: 'Main number' })).toHaveCount(0)
+
+    await palette.getByRole('button', { name: 'Sales (401)' }).click()
+    const inspector = page.getByRole('complementary', { name: 'Properties' })
+    await expect(inspector.getByRole('heading', { name: 'Sales (401)' })).toBeVisible()
   })
 
   test('edits a node and saves only what changed', async ({ page, mockApi }) => {
     mockApi.on('POST', `${REST}/visualplan`, { json: { refs: { '4': '4' } } })
+    mockApi.on('GET', `${REST}/inboundroutes`, { json: { destinations: {}, routes: [] } })
     await page.goto('./routes/visual-plan?route=0721405516%2F')
 
     await page.locator('.vue-flow').getByText('Main menu').click()
@@ -36,7 +62,8 @@ test.describe('visual plan', () => {
     await expect(page.getByText('Unsaved changes')).toBeVisible()
 
     await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByText('Call flow saved')).toBeVisible()
+    await expect(page.getByText('Inbound route updated')).toBeVisible()
+    await expect(page).toHaveURL(/\/routes\/inbound$/)
 
     const [call] = mockApi.callsTo('POST', `${REST}/visualplan`)
     expect(call?.body).toEqual({
@@ -67,27 +94,31 @@ test.describe('visual plan', () => {
     mockApi.on('POST', `${REST}/visualplan`, {
       json: { refs: { 'new-1': '0721999/', 'new-2': '9' } },
     })
+    mockApi.on('GET', `${REST}/inboundroutes`, { json: { destinations: {}, routes: [] } })
     await page.goto('./routes/visual-plan')
+    await expect(page.getByRole('heading', { name: 'Create inbound route' })).toBeVisible()
 
     const inspector = page.getByRole('complementary', { name: 'Properties' })
     await expect(inspector.getByText('Inbound route')).toBeVisible()
+    await inspector.getByLabel('Name', { exact: true }).fill('Holiday line')
     await inspector.getByLabel('DID number').fill('0721999')
 
     await page
-      .getByRole('complementary', { name: 'Add to flow' })
+      .getByRole('complementary', { name: 'Items' })
       .getByRole('button', { name: 'Announcement' })
       .click()
     await inspector.getByLabel('Name', { exact: true }).fill('Holiday')
-    await inspector.getByRole('combobox', { name: 'Recording' }).click()
+    await inspector.getByRole('button', { name: /^Recording/ }).click()
     await page.getByRole('option', { name: /closed/ }).click()
 
     await page.getByRole('button', { name: 'Fit to screen' }).click()
-    await page.locator('.vue-flow').getByText('0721999').click()
+    await page.locator('.vue-flow').getByText('Holiday line').click()
     await inspector.getByRole('combobox', { name: 'Next' }).click()
     await page.getByRole('option', { name: /Holiday/ }).click()
 
     await expect(page.getByText(/error/)).toHaveCount(0)
-    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByRole('button', { name: 'Create' }).click()
+    await expect(page.getByText('Inbound route created')).toBeVisible()
 
     const [call] = mockApi.callsTo('POST', `${REST}/visualplan`)
     expect(call?.body).toEqual({
@@ -99,7 +130,7 @@ test.describe('visual plan', () => {
           data: {
             extension: '0721999',
             cidnum: '',
-            description: '',
+            description: 'Holiday line',
             alertinfo: '',
             grppre: '',
             destination: 'new:new-2',
@@ -156,7 +187,7 @@ test.describe('visual plan', () => {
     if (!box) throw new Error('missing handle')
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
     await page.mouse.down()
-    await page.mouse.move(box.x + 160, box.y + 140, { steps: 10 })
+    await page.mouse.move(box.x - 300, box.y + 170, { steps: 10 })
     await page.mouse.up()
 
     await page
@@ -177,7 +208,7 @@ test.describe('visual plan', () => {
     const canvas = page.locator('.vue-flow')
 
     await page
-      .getByRole('complementary', { name: 'Add to flow' })
+      .getByRole('complementary', { name: 'Items' })
       .getByRole('button', { name: 'Conference' })
       .click()
     await page.keyboard.press('Escape')
@@ -314,21 +345,24 @@ test.describe('visual plan', () => {
     await page.getByRole('button', { name: 'Simulate call' }).click()
 
     const panel = page.getByRole('complementary', { name: 'Call simulation' })
-    await panel.getByLabel('Call date and time').fill('2026-11-18T10:30')
+    await panel.getByLabel('Date').fill('18/11/2026')
+    await panel.getByLabel('Time', { exact: true }).fill('10:30')
     await expect(panel.getByText('The time matches the time group')).toBeVisible()
 
-    await panel.getByRole('combobox', { name: 'Digit pressed' }).click()
+    await panel.getByRole('button', { name: /^Digit pressed/ }).click()
     await page.getByRole('option', { name: 'Digit 1' }).click()
-    await panel.getByRole('heading', { name: 'Call path' }).click()
     await expect(panel.getByText('Call answered')).toBeVisible()
-    await expect(panel.getByText('The call is answered by Sales (401).')).toBeVisible()
+    await expect(panel.getByText('The call is answered by Queue Sales (401).')).toBeVisible()
 
-    await panel.getByText('Someone answers', { exact: true }).click()
-    await expect(panel.getByText('The call ends at Alice Fox (201).')).toBeVisible()
+    await panel.getByRole('button', { name: /^Call result/ }).click()
+    await page.getByRole('option', { name: 'No answer' }).click()
+    await expect(
+      panel.getByText('The caller leaves a message in the voicemail box of Alice Fox (201).'),
+    ).toBeVisible()
 
-    await panel.getByLabel('Call date and time').fill('2026-11-21T10:30')
-    await expect(panel.getByText('The time does not match the time group')).toBeVisible()
-    await expect(panel.getByText('The call ends at Hang up.')).toBeVisible()
+    await panel.getByLabel('Date').fill('21/11/2026')
+    await expect(panel.getByText("The time doesn't match the time group")).toBeVisible()
+    await expect(panel.getByText('Terminate call Hang up ends the call.')).toBeVisible()
 
     await panel.getByRole('heading', { name: 'Call path' }).click()
     await page.keyboard.press('Escape')
@@ -341,7 +375,8 @@ test.describe('visual plan', () => {
 
     const download = page.waitForEvent('download')
     await page.getByRole('button', { name: 'Download image' }).click()
-    expect((await download).suggestedFilename()).toBe('visual-plan-0721405516.png')
+    expect((await download).suggestedFilename()).toBe('inbound-route-0721405516.png')
+    await expect(page.getByText('Image downloaded')).toBeVisible()
   })
 
   test('asks before leaving with unsaved changes', async ({ page, mockApi }) => {
@@ -353,13 +388,14 @@ test.describe('visual plan', () => {
       .getByLabel('Name', { exact: true })
       .fill('X')
 
-    await page.getByRole('button', { name: 'Back' }).click()
-    await expect(page.getByText('Your changes to the call flow will be lost')).toBeVisible()
-    await page.getByRole('button', { name: 'Keep editing' }).click()
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    const modal = page.getByRole('dialog', { name: 'Discard changes' })
+    await expect(modal.getByText(/The changes to inbound route .* will be lost/)).toBeVisible()
+    await modal.getByRole('button', { name: 'Cancel' }).click()
     await expect(page).toHaveURL(/visual-plan/)
 
-    await page.getByRole('button', { name: 'Back' }).click()
-    await page.getByRole('button', { name: 'Discard changes' }).click()
+    await page.getByRole('link', { name: 'Inbound routes' }).click()
+    await page.getByRole('button', { name: 'Discard', exact: true }).click()
     await expect(page).toHaveURL(/\/routes\/inbound$/)
   })
 
@@ -372,6 +408,7 @@ test.describe('visual plan', () => {
       await pending
       return { json: { refs: { '4': '4' } } }
     })
+    mockApi.on('GET', `${REST}/inboundroutes`, { json: { destinations: {}, routes: [] } })
     await page.goto('./routes/visual-plan?route=0721405516%2F')
     await page.locator('.vue-flow').getByText('Main menu').click()
     await page
@@ -382,7 +419,7 @@ test.describe('visual plan', () => {
     await page.keyboard.press('Control+s')
     await page.keyboard.press('Control+s')
     release()
-    await expect(page.getByText('Call flow saved')).toBeVisible()
+    await expect(page.getByText('Inbound route updated')).toBeVisible()
     expect(mockApi.callsTo('POST', `${REST}/visualplan`)).toHaveLength(1)
   })
 
@@ -447,7 +484,7 @@ test.describe('visual plan', () => {
     await expect(modal.getByLabel('Recording name')).toHaveValue('holiday')
     await modal.getByRole('button', { name: 'Upload' }).click()
 
-    await expect(inspector.getByRole('combobox', { name: 'Recording' })).toHaveValue('holiday')
+    await expect(inspector.getByRole('button', { name: /^Recording/ })).toContainText('holiday')
     expect(mockApi.callsTo('POST', `${REST}/visualplan/recordings`)).toHaveLength(1)
   })
 
@@ -457,7 +494,7 @@ test.describe('visual plan', () => {
     await expect(canvas.locator('.vue-flow__edge')).toHaveCount(8)
 
     await page
-      .getByRole('complementary', { name: 'Add to flow' })
+      .getByRole('complementary', { name: 'Items' })
       .getByRole('button', { name: 'Set caller ID' })
       .click()
     await page.keyboard.press('Escape')
@@ -490,14 +527,16 @@ test.describe('visual plan', () => {
   test('guides to the errors when saving', async ({ page, mockApi }) => {
     await page.goto('./routes/visual-plan')
     await expect(page.getByRole('complementary', { name: 'Properties' })).toBeVisible()
-    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByRole('button', { name: /error/ })).toHaveCount(0)
+    await page.getByRole('button', { name: 'Create' }).click()
 
-    await expect(page.getByText('Fix 1 item before saving')).toBeVisible()
-    await expect(page.getByRole('button', { name: /1 error/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /2 errors/ })).toBeVisible()
+    await expect(page.getByText('Enter a name')).toBeVisible()
     expect(mockApi.callsTo('POST', `${REST}/visualplan`)).toHaveLength(0)
   })
 
   test('saves only the layout when only positions changed', async ({ page, mockApi }) => {
+    mockApi.on('GET', `${REST}/inboundroutes`, { json: { destinations: {}, routes: [] } })
     await page.goto('./routes/visual-plan?route=0721405516%2F')
     const card = await page.locator('.vue-flow__node').filter({ hasText: 'Closed' }).boundingBox()
     if (!card) throw new Error('missing node')
@@ -507,11 +546,10 @@ test.describe('visual plan', () => {
     await page.mouse.up()
 
     await page.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByText('Layout saved')).toBeVisible()
+    await expect(page.getByText('Inbound route updated')).toBeVisible()
     expect(mockApi.callsTo('POST', `${REST}/visualplan`)).toHaveLength(0)
     const [call] = mockApi.callsTo('POST', `${REST}/visualplan/layout`)
     expect(call?.body).toMatchObject({ route: '0721405516/', positions: expect.any(Object) })
-    await expect(page.getByText('Unsaved changes')).toHaveCount(0)
   })
 
   test('sends a destination to an existing item that is not in the flow', async ({
@@ -568,7 +606,7 @@ test.describe('visual plan', () => {
 
     await expect(page.locator('.vue-flow').getByText('Main menu')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Save' })).toHaveCount(0)
-    await expect(page.getByRole('complementary', { name: 'Add to flow' })).toHaveCount(0)
+    await expect(page.getByRole('complementary', { name: 'Items' })).toHaveCount(0)
     await expect(page.getByText('Read-only access')).toBeVisible()
   })
 

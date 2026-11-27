@@ -4,10 +4,43 @@
 import { useI18n } from 'vue-i18n'
 import { getOutputs, type FlowNode, type NodeType, type OutputDef } from '@/lib/visualplan/model'
 import type { Issue } from '@/lib/visualplan/validation'
+import type { SimulationResult } from '@/lib/visualplan/simulation'
 import { useVisualPlanStore } from '@/stores/visualPlan'
 
 const withNumber = (name: string, number: string): string =>
   name && number ? `${name} (${number})` : name || number
+
+export type SimulationOutcome = {
+  kind: 'success' | 'info' | 'warning'
+  title: string
+  description: string
+}
+
+// Codes whose message already says what is wrong, without the name of the field or exit.
+const SELF_EXPLAINING = new Set([
+  'name_required',
+  'route_name_exists',
+  'did_invalid',
+  'route_exists',
+  'digit_required',
+  'digit_in_use',
+  'recording_required',
+  'time_group_required',
+  'number_required',
+  'number_digits',
+  'number_in_use',
+  'members_required',
+  'extension_required',
+  'mailbox_required',
+  'destination_required',
+  'no_destination',
+  'no_destination_after_recording',
+  'no_destination_unanswered',
+  'not_in_flow',
+  'not_in_flow_new',
+  'catch_all',
+  'unknown_destination',
+])
 
 export const useVisualPlanLabels = () => {
   const { t, te } = useI18n()
@@ -31,16 +64,34 @@ export const useVisualPlanLabels = () => {
   const otherDestination = (destination: string) =>
     store.data?.destinations.find((item) => item.destination === destination)
 
+  /** The number and caller an inbound route answers, e.g. "0721405500 from 3351234567". */
+  const routeLabel = (route: { extension: string; cidnum: string }): string => {
+    if (route.extension) {
+      return route.cidnum
+        ? t('visual_plan.route_from', { did: route.extension, cid: route.cidnum })
+        : route.extension
+    }
+    return route.cidnum
+      ? t('visual_plan.any_did_from', { cid: route.cidnum })
+      : t('visual_plan.any_did')
+  }
+
+  /** The name of an inbound route, or what it answers when it has none. */
+  const routeName = (route: { extension: string; cidnum: string; description: string }): string =>
+    route.description.trim() || routeLabel(route)
+
   const nodeTitle = (node: FlowNode): string => {
     switch (node.type) {
-      case 'inboundRoute': {
-        const number = node.data.extension || t('visual_plan.any_did')
-        return node.data.cidnum ? `${number} / ${node.data.cidnum}` : number
-      }
+      case 'inboundRoute':
+        return routeName(node.data)
       case 'extension':
-        return withNumber(node.data.name, node.data.extension)
+        return node.data.extension
+          ? withNumber(node.data.name, node.data.extension)
+          : t('visual_plan.no_extension_selected')
       case 'voicemail':
-        return withNumber(extensionName(node.data.extension), node.data.extension)
+        return node.data.extension
+          ? withNumber(extensionName(node.data.extension), node.data.extension)
+          : t('visual_plan.no_mailbox_selected')
       case 'conference':
         return withNumber(node.data.name, node.data.id)
       case 'ringGroup':
@@ -108,8 +159,12 @@ export const useVisualPlanLabels = () => {
     }
   }
 
-  const outputLabel = (output: OutputDef): string =>
-    output.label !== undefined ? t(output.labelKey, { value: output.label }) : t(output.labelKey)
+  const outputLabel = (output: OutputDef): string => {
+    if (output.label === undefined) return t(output.labelKey)
+    return output.label.trim()
+      ? t(output.labelKey, { value: output.label })
+      : t('visual_plan.outputs.entry_not_set')
+  }
 
   const outputLabelById = (node: FlowNode, outputId: string): string => {
     const output = getOutputs(node).find((item) => item.id === outputId)
@@ -171,12 +226,13 @@ export const useVisualPlanLabels = () => {
   }
 
   const issueText = (node: FlowNode, issue: Issue): string => {
-    const text = issueMessage(issue)
-    if (issue.output && issue.code === 'output_not_connected') {
-      return t('visual_plan.issues.output_not_connected', {
-        output: outputLabelById(node, issue.output),
+    if (SELF_EXPLAINING.has(issue.code)) {
+      return t(`visual_plan.issues.${issue.code}`, {
+        ...(issue.params ?? {}),
+        output: issue.output ? outputLabelById(node, issue.output) : '',
       })
     }
+    const text = issueMessage(issue)
     if (issue.output) {
       return `${outputLabelById(node, issue.output)}: ${text}`
     }
@@ -184,7 +240,93 @@ export const useVisualPlanLabels = () => {
     return label ? `${label}: ${text}` : text
   }
 
+  /** An issue with the item it belongs to, e.g. "IVR Main menu: Enter a name". */
+  const issueLine = (node: FlowNode, issue: Issue): string =>
+    `${itemName(node)}: ${issueText(node, issue)}`
+
+  /** The type and the title of an item, e.g. "Queue Sales (402)". */
+  const itemName = (node: FlowNode): string =>
+    `${typeLabel(node.type)} ${nodeTitle(node) || t('visual_plan.untitled')}`
+
+  /** How a simulated call ends, as a notification. */
+  const simulationOutcome = (result: SimulationResult | null): SimulationOutcome | null => {
+    const last = result?.steps.at(-1)
+    const node = last ? store.flow.nodes[last.nodeId] : undefined
+    if (!result || !last || !node) return null
+    const key = 'visual_plan.simulation.ends'
+    const title = nodeTitle(node) || t('visual_plan.untitled')
+    switch (result.end) {
+      case 'answered':
+        return {
+          kind: 'success',
+          title: t(`${key}.answered`),
+          description: t(`${key}.answered_description`, {
+            name: node.type === 'extension' ? title : itemName(node),
+          }),
+        }
+      case 'ended':
+        if (node.type === 'voicemail') {
+          return {
+            kind: 'success',
+            title: t(`${key}.message_left`),
+            description: t(`${key}.message_left_description`, { name: title }),
+          }
+        }
+        if (node.type === 'conference') {
+          return {
+            kind: 'success',
+            title: t(`${key}.conference`),
+            description: t(`${key}.conference_description`, { name: title }),
+          }
+        }
+        return {
+          kind: 'info',
+          title: t(`${key}.ended`),
+          description: t(`${key}.ended_description`, { name: itemName(node) }),
+        }
+      case 'not_connected':
+        return {
+          kind: 'warning',
+          title: t(`${key}.not_connected`),
+          description: t(`${key}.not_connected_description`, {
+            name: itemName(node),
+            output: last.output ? outputLabelById(node, last.output) : '',
+          }),
+        }
+      case 'loop': {
+        const edge = store.flow.edges.find(
+          (item) => item.source === node.id && item.output === last.output,
+        )
+        const target = edge ? store.flow.nodes[edge.target] : undefined
+        return {
+          kind: 'warning',
+          title: t(`${key}.loop`),
+          description: t(`${key}.loop_description`, {
+            name: target ? itemName(target) : itemName(node),
+          }),
+        }
+      }
+      case 'menu_repeats':
+        return {
+          kind: 'info',
+          title: t(`${key}.menu_repeats`),
+          description: t(`${key}.menu_repeats_description`, { name: title }),
+        }
+      case 'too_long':
+        return {
+          kind: 'warning',
+          title: t(`${key}.too_long`),
+          description: t(`${key}.too_long_description`, { name: itemName(node) }),
+        }
+    }
+  }
+
   return {
+    routeLabel,
+    routeName,
+    issueLine,
+    itemName,
+    simulationOutcome,
     typeLabel,
     nodeTitle,
     nodeSubtitle,
