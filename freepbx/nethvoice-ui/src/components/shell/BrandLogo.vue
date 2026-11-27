@@ -32,7 +32,7 @@ const customLogo = computed(() => {
 })
 
 const stockLogo = computed(() => {
-  if (variant === 'login' && isRebranded(runtimeConfigStore.config)) {
+  if (isRebranded(runtimeConfigStore.config)) {
     return ''
   }
   return themeStore.isLight ? LogoLight : LogoDark
@@ -59,9 +59,16 @@ watch(customLogo, () => {
     @error="customLogoFailed = true"
   />
   <span
-    v-else-if="runtimeConfigStore.loaded"
+    v-else-if="runtimeConfigStore.loaded && variant === 'login'"
     class="text-primary-active max-w-full text-center text-2xl font-medium break-words"
   >
     {{ runtimeConfigStore.config.brandName }}
+  </span>
+  <span
+    v-else-if="runtimeConfigStore.loaded"
+    v-bind="$attrs"
+    class="text-primary-active flex max-w-full min-w-0 items-center text-xl font-medium"
+  >
+    <span class="min-w-0 truncate">{{ runtimeConfigStore.config.brandName }}</span>
   </span>
 </template>

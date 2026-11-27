@@ -234,6 +234,67 @@ test.describe('sign in page: default background', () => {
   }
 })
 
+test.describe('rebranding: navigation sidebar', () => {
+  test.beforeEach(({ signedIn }) => {
+    void signedIn
+  })
+
+  const expectBrandName = async (page: Page) => {
+    const brandName = page
+      .locator('div.h-12\\.5')
+      .filter({ visible: true })
+      .getByText('Acme Voice', { exact: true })
+    await expect(brandName).toHaveCount(1)
+    await expect(page.locator(STOCK_LOGO)).toHaveCount(0)
+    await expect(page.getByRole('img', { name: /logo$/ })).toHaveCount(0)
+    await expect
+      .poll(() =>
+        brandName.evaluate((element) => {
+          const slot = element.closest('.h-12\\.5')?.getBoundingClientRect()
+          const box = element.getBoundingClientRect()
+          return (
+            !!slot &&
+            box.height > 0 &&
+            box.top >= slot.top &&
+            box.bottom <= slot.bottom &&
+            box.right <= slot.right
+          )
+        }),
+      )
+      .toBe(true)
+  }
+
+  for (const { name, config } of [
+    { name: 'the brand has no logo', config: { BRAND_NAME: 'Acme Voice' } },
+    {
+      name: 'the logo does not load',
+      config: { BRAND_NAME: 'Acme Voice', NAVBAR_LOGO_URL: '/brand/missing.svg' },
+    },
+  ]) {
+    test(`shows the brand name instead of the NethVoice logo when ${name}`, async ({
+      page,
+      mockApi,
+    }) => {
+      mockApi.allowUnmockedCalls()
+      await serveConfig(page, config)
+      await page.route('**/brand/missing.svg', (route) => route.fulfill({ status: 404 }))
+
+      for (const colorScheme of ['light', 'dark'] as const) {
+        await page.emulateMedia({ colorScheme })
+        await page.setViewportSize({ width: 1600, height: 900 })
+        await page.goto('./dashboard')
+        await expect(page.getByRole('navigation').first()).toBeVisible()
+        await expectBrandName(page)
+
+        await page.setViewportSize({ width: 390, height: 844 })
+        await page.getByRole('button', { name: 'Open sidebar' }).click()
+        await expect(page.getByRole('button', { name: 'Close sidebar' })).toBeVisible()
+        await expectBrandName(page)
+      }
+    })
+  }
+})
+
 test.describe('rebranding: setup wizard', () => {
   test.beforeEach(({ signedIn, mockApi }) => {
     void signedIn

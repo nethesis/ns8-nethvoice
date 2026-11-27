@@ -195,7 +195,7 @@ test.describe('shell', () => {
     expect(await spacing()).toBe('0.25rem')
   })
 
-  test('falls back to the default logo when the custom one cannot be loaded', async ({ page }) => {
+  test('shows the brand name when the custom logo cannot be loaded', async ({ page }) => {
     await page.route('**/nethvoice/config.json*', (route) =>
       route.fulfill({
         status: 200,
@@ -206,9 +206,9 @@ test.describe('shell', () => {
     await page.route('**/missing-logo.svg', (route) => route.fulfill({ status: 404 }))
     await page.goto('./dashboard')
 
-    const logo = page.getByRole('img', { name: 'NethVoice logo' }).first()
-    await expect(logo).toBeVisible()
-    await expect(logo).not.toHaveAttribute('src', /missing-logo/)
-    expect(await logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0)
+    await expect(
+      page.getByText('NethVoice', { exact: true }).filter({ visible: true }),
+    ).toBeVisible()
+    await expect(page.getByRole('img', { name: 'NethVoice logo' })).toHaveCount(0)
   })
 })
