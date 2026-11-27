@@ -74,7 +74,7 @@ export const VideoSourceActions: React.FC<VideoSourceActionsProps> = ({
       ref={barRef}
       className='absolute bottom-0 left-0 right-0 bg-black/30 p-4 translate-y-full group-hover:translate-y-0 group-focus-within:translate-y-0 has-[[data-open]]:translate-y-0 [@media(hover:none)]:translate-y-0 transition-transform duration-200 ease-in-out flex justify-center gap-3'
     >
-      {source.extension && (
+      {source.mainExtension && (
         <>
           <Button
             variant='call'

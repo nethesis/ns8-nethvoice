@@ -403,6 +403,15 @@ var compAstProxy;
 var compAuthorization;
 
 /**
+ * The user architect component, for the main extension of a source.
+ *
+ * @property compUser
+ * @type object
+ * @private
+ */
+var compUser;
+
+/**
  * The event emitter.
  *
  * @property emitter
@@ -447,6 +456,84 @@ function setCompAstProxy(ap) {
   } catch (err) {
     logger.log.error(IDLOG, err.stack);
   }
+}
+
+/**
+ * Set the user architect component used for the main extension of the
+ * sources.
+ *
+ * @method setCompUser
+ * @param {object} cu The user architect component.
+ */
+function setCompUser(cu) {
+  try {
+    compUser = cu;
+    logger.log.info(IDLOG, 'set user architect component');
+  } catch (err) {
+    logger.log.error(IDLOG, err.stack);
+  }
+}
+
+/**
+ * Returns the main extension of the user that has the extension: a door
+ * phone is a device (e.g. 91242) of a user whose main extension (242) is the
+ * number shown and called, and the caller number of its calls. The
+ * extension itself when it belongs to no user.
+ *
+ * @method getMainExtension
+ * @param {string} extenId The extension identifier
+ * @return {string} The main extension.
+ * @private
+ */
+function getMainExtension(extenId) {
+  try {
+    if (typeof extenId !== 'string' || extenId === '' || !compAstProxy || !compUser) {
+      return extenId;
+    }
+    var username = compAstProxy.getUsernameByExtension(extenId);
+    if (typeof username !== 'string' || username === '') {
+      return extenId;
+    }
+    var main = compUser.getEndpointMainExtension(username);
+    var id = main && typeof main.getId === 'function' ? main.getId() : null;
+    return typeof id === 'string' && id !== '' ? id : extenId;
+  } catch (err) {
+    logger.log.error(IDLOG, err.stack);
+    return extenId;
+  }
+}
+
+/**
+ * Returns the source in JSON format for the clients, with the main
+ * extension ("mainExtension", see getMainExtension) next to the extension
+ * of the device ("extension").
+ *
+ * @method sourceJSON
+ * @param {object} source The streaming source
+ * @return {object} The streaming source in JSON format.
+ * @private
+ */
+function sourceJSON(source) {
+  var json = source.toJSON();
+  json.mainExtension = typeof json.extension === 'string' && json.extension !== '' ? getMainExtension(json.extension) : null;
+  return json;
+}
+
+/**
+ * True if the source has the extension, as device or as main extension.
+ *
+ * @method sourceHasExten
+ * @param {object} source The streaming source
+ * @param {string} extenId The extension identifier
+ * @return {boolean} True if the source has the extension.
+ * @private
+ */
+function sourceHasExten(source, extenId) {
+  var exten = source.getExtension();
+  if (typeof exten !== 'string' || exten === '') {
+    return false;
+  }
+  return exten === extenId || getMainExtension(exten) === extenId;
 }
 
 /**
@@ -627,7 +714,7 @@ function getAllStreamingSources(username, cb) {
     var results = {};
     for (i in streamings) {
       if (permissions.indexOf(i) >= 0) {
-        results[i] = streamings[i].toJSON();
+        results[i] = sourceJSON(streamings[i]);
       }
     }
     cb(null, results);
@@ -1079,7 +1166,7 @@ function isExtenStreamingSource(extenId) {
     }
     var stream;
     for (stream in streamings) {
-      if (streamings[stream].getExtension() === extenId) {
+      if (sourceHasExten(streamings[stream], extenId)) {
         return true;
       }
     }
@@ -1104,8 +1191,8 @@ function getSourceJSONByExten(extenId) {
     }
     var stream;
     for (stream in streamings) {
-      if (streamings[stream].getExtension() === extenId) {
-        return streamings[stream].toJSON();
+      if (sourceHasExten(streamings[stream], extenId)) {
+        return sourceJSON(streamings[stream]);
       }
     }
     return {};
@@ -1772,6 +1859,7 @@ exports.setLogger = setLogger;
 exports.getVideoSample = getVideoSample;
 exports.setCompAstProxy = setCompAstProxy;
 exports.setCompAuthorization = setCompAuthorization;
+exports.setCompUser = setCompUser;
 exports.getAllStreamingSources = getAllStreamingSources;
 exports.subscribeSource = subscribeSource;
 exports.unsubscribeSource = unsubscribeSource;

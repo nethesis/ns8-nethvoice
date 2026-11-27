@@ -79,6 +79,8 @@ function fakeConv(exten, status, incoming) {
 }
 var fakeAstProxy = {
   isExten: function(exten) { return exten === '301' || exten === '302'; },
+  // 302 is a device of the user "door", main extension 202
+  getUsernameByExtension: function(exten) { return exten === '302' ? 'door' : undefined; },
   getJSONExtension: function(exten) {
     return { exten: exten, conversations: extenConvs[exten] || {} };
   },
@@ -89,6 +91,11 @@ var fakeAstProxy = {
 };
 streaming.setCompAuthorization(fakeAuthorization);
 streaming.setCompAstProxy(fakeAstProxy);
+streaming.setCompUser({
+  getEndpointMainExtension: function(username) {
+    return username === 'door' ? { getId: function() { return '202'; } } : {};
+  }
+});
 // no sampling until the sampler test
 streaming.setSubscribersChecker(function() { return false; });
 assert.strictEqual(authListeners.length, 1, 'listens to the authorization reload');
@@ -298,7 +305,7 @@ async function main() {
   assert.strictEqual(all[0], null);
   var src = all[1];
   assert.deepStrictEqual(Object.keys(src).sort(), ['vs_img', 'vs_old', 'vs_rtsp', 'vs_rtsp2']);
-  var keys = ['id', 'url', 'user', 'cmdOpen', 'password', 'frameRate', 'extension', 'description', 'type', 'whep', 'gates'];
+  var keys = ['id', 'url', 'user', 'cmdOpen', 'password', 'frameRate', 'extension', 'description', 'type', 'whep', 'gates', 'mainExtension'];
   Object.keys(src).forEach(function(k) {
     assert.deepStrictEqual(Object.keys(src[k]), keys, 'same keys for ' + k);
     assert.strictEqual(src[k].url, '');
@@ -314,6 +321,14 @@ async function main() {
   assert.strictEqual(src.vs_rtsp.cmdOpen, '*');
   assert.strictEqual(src.vs_rtsp2.cmdOpen, '', 'no gates: no open door button');
   assert.strictEqual(streaming.getSourceJSONByExten('302').cmdOpen, '*');
+  // a device of a user: shown and called by the main extension of the user
+  assert.strictEqual(src.vs_img.extension, '302');
+  assert.strictEqual(src.vs_img.mainExtension, '202', 'main extension of the user of the device');
+  assert.strictEqual(src.vs_old.mainExtension, '301', 'no user: the extension itself');
+  assert.strictEqual(src.vs_rtsp.mainExtension, null, 'no extension');
+  assert.strictEqual(streaming.getSourceJSONByExten('202').id, 'vs_img', 'calls from the main extension');
+  assert.strictEqual(streaming.isExtenStreamingSource('202'), true);
+  assert.strictEqual(streaming.isExtenStreamingSource('203'), false);
   [src.vs_img, src.vs_rtsp].forEach(function(s) { assert.notStrictEqual(s.cmdOpen, '5'); assert.notStrictEqual(s.cmdOpen, '6'); });
   assert.strictEqual(src.vs_img.type, 'image');
   assert.deepStrictEqual(src.vs_img.gates, [{ id: '1', name: 'Door', type: 'dtmf' }]);

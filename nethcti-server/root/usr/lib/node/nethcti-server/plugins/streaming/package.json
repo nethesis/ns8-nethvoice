@@ -6,7 +6,8 @@
     "consumes": [
       "logger",
       "astProxy",
-      "authorization"
+      "authorization",
+      "user"
     ],
     "provides": [
       "streaming"
