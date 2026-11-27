@@ -1270,7 +1270,7 @@ $app->put('/cti/streaming/{descr}', function (Request $request, Response $respon
 
 /*
  * POST /cti/streaming
- * { descr, url, user, secret, exten, frame-rate, open, gates: [{ name, type, code | url, method, username, password }], tls_skip_verify, profiles, door_phone }
+ * { descr, url, user, secret, exten, frame-rate, open, gates: [{ name, type, code | url, method, username, password }], tls_skip_verify, profiles, door_phone, door_phone_confirm_address }
  * "door_phone" (MAC of a door phone, see POST /cti/streaming/doorphones/:mac)
  * without "secret" and with the door phone user name uses its stored password,
  * only when the URL host is an address the door phone registers from (400,
@@ -1310,7 +1310,7 @@ $app->post('/cti/streaming', function (Request $request, Response $response, $ar
 });
 
 /*
- * POST /cti/sources/test { url, user, secret, descr, tls_skip_verify, details, door_phone }
+ * POST /cti/sources/test { url, user, secret, descr, tls_skip_verify, details, door_phone, door_phone_confirm_address }
  *
  * Check a video source and return a preview. "descr" is the name of a stored
  * source: when "secret" is empty its stored password is used, and when
@@ -1366,7 +1366,7 @@ $app->post('/cti/sources/test', function (Request $request, Response $response, 
         // A source created from (or linked to) a door phone: its generated
         // password, only for the address of the door phone
         try {
-            $doorSecret = door_phone_request_secret(['door_phone' => $data['door_phone'] ?? null, 'user' => $user, 'secret' => $secret], $parsed['url'], $stored);
+            $doorSecret = door_phone_request_secret(['door_phone' => $data['door_phone'] ?? null, 'door_phone_confirm_address' => $data['door_phone_confirm_address'] ?? false, 'user' => $user, 'secret' => $secret], $parsed['url'], $stored);
         } catch (StreamingValidationException $e) {
             return jsonResponse($response, ['status' => $e->getMessage(), 'field' => $e->getField()], 400);
         }

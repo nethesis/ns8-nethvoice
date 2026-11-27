@@ -1,0 +1,16 @@
+--- a/Dialplan/macroUserCallerid.php
++++ b/Dialplan/macroUserCallerid.php
+@@ -95,12 +95,12 @@
+     $ext->add($context, $exten, '', new \ext_gotoif('$["${CALLERID(name)}" = ""]', 'cnum'));
+     $ext->add($context, $exten, '', new \ext_set('CDR(cnam)','${CALLERID(name)}'));
+     $ext->add($context, $exten, 'cnum', new \ext_set('CDR(cnum)','${CALLERID(num)}'));
+-	$ext->add($context, $exten, 'return', new \ext_return());
+     // CHANNEL(language) does not get inherited (which seems like an Asterisk bug as musicclass does)
+     // so if whe have MASTER_CHANNEL() available to us let's rectify that
+     //
+     $ext->add($context, $exten, '', new \ext_set('CHANNEL(language)', '${MASTER_CHANNEL(CHANNEL(language))}'));
++    $ext->add($context, $exten, 'return', new \ext_return());
+     $ext->add($context, $exten, '', new \ext_noop_trace('Using CallerID ${CALLERID(all)}'));
+     $ext->add($context, 'h', '', new \ext_macro('hangupcall'));
+ 
+     $lang = 'en'; //English
