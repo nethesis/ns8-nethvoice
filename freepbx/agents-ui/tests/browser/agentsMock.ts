@@ -136,7 +136,7 @@ export async function mockApi(
       "secretkey",
       JSON.stringify({ user: "administrator", hash: "synthetic" }),
     );
-    localStorage.setItem("nethvoice.agents.language", language);
+    localStorage.setItem("preferredLanguage", JSON.stringify(language));
   }, language);
   let created = 0;
   await page.route("**/freepbx/rest/agents/**", async (route) => {

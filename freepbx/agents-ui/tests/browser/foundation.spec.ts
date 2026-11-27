@@ -14,7 +14,7 @@ async function login(page: Page) {
   page.on("pageerror", error => { throw error; });
   await page.addInitScript(() => {
     localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic-test" }));
-    localStorage.setItem("nethvoice.agents.language", "en");
+    localStorage.setItem("preferredLanguage", JSON.stringify("en"));
   });
 }
 tools[1].editor={categories:[{enabled_field:"extensions_enabled",destinations_field:"extension_allowlist",inventory:"extensions",selection:"allowlist"}]};
@@ -110,7 +110,7 @@ test("provider credentials are write-only and cleared after saving", async ({pag
 
 test("unsigned visitors use Wizard sign-in and send no API request", async ({ page }) => {
   let calls = 0;
-  await page.addInitScript(() => { localStorage.clear(); localStorage.setItem("nethvoice.agents.language", "en"); });
+  await page.addInitScript(() => { localStorage.clear(); localStorage.setItem("preferredLanguage", JSON.stringify("en")); });
   await page.route("**/freepbx/rest/agents/**", () => { calls++; });
   await page.goto("./");
   await expect(page.getByText("Administrator login required")).toBeVisible();

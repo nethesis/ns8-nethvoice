@@ -69,7 +69,7 @@ async function fixture(page: Page) {
       "secretkey",
       JSON.stringify({ user: "administrator", hash: "synthetic" }),
     );
-    localStorage.setItem("nethvoice.agents.language", "en");
+    localStorage.setItem("preferredLanguage", JSON.stringify("en"));
   });
   await page.route("**/freepbx/rest/agents/**", async (route) => {
     const req = route.request(),

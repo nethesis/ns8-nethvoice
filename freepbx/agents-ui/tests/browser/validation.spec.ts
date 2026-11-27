@@ -14,7 +14,7 @@ for (const language of ["en", "it"]) {
     let writes = 0;
     await page.addInitScript(language => {
       localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "synthetic"}));
-      localStorage.setItem("nethvoice.agents.language", language);
+      localStorage.setItem("preferredLanguage", JSON.stringify(language));
     }, language);
     await page.route("**/freepbx/rest/agents/**", async route => {
       const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");

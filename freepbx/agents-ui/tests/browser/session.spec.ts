@@ -14,7 +14,7 @@ async function editor(page: Page, rejectFirstSave: boolean) {
   await page.addInitScript(() => {
     if (!sessionStorage.getItem("seeded")) {
       localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "synthetic"}));
-      localStorage.setItem("nethvoice.agents.language", "en");
+      localStorage.setItem("preferredLanguage", JSON.stringify("en"));
       sessionStorage.setItem("seeded", "1");
     }
   });
@@ -114,7 +114,7 @@ async function monitoring(page: Page, expireOnce: (path: string) => boolean) {
   page.on("pageerror", error => unhandled.push(error.message));
   await page.addInitScript(() => {
     localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "synthetic"}));
-    localStorage.setItem("nethvoice.agents.language", "en");
+    localStorage.setItem("preferredLanguage", JSON.stringify("en"));
   });
   await page.route("**/freepbx/rest/agents/**", async route => {
     const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");

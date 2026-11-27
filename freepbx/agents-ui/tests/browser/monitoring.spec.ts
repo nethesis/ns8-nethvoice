@@ -23,7 +23,7 @@ async function mock(page: Page, language: string, options: {timezoneUnavailable?
   page.on('pageerror', error => {throw error;});
   await page.addInitScript(language => {
     localStorage.setItem('secretkey', JSON.stringify({user:'administrator',hash:'synthetic'}));
-    localStorage.setItem('nethvoice.agents.language',language);
+    localStorage.setItem('preferredLanguage', JSON.stringify(language));
   }, language);
   const seen: Seen = {summary: [], runs: [], searches: []};
   await page.route('**/freepbx/rest/agents/**', async route => {
@@ -148,7 +148,7 @@ test('daily outcomes fall back to UTC when the server cannot use the time zone',
 test('unavailable metrics show errors rather than fabricated zero counts', async ({page}) => {
   await page.addInitScript(()=> {
     localStorage.setItem('secretkey',JSON.stringify({user:'administrator',hash:'synthetic'}));
-    localStorage.setItem('nethvoice.agents.language','en');
+    localStorage.setItem('preferredLanguage', JSON.stringify('en'));
   });
   await page.route('**/freepbx/rest/agents/**', async route=> {
     const path=new URL(route.request().url()).pathname;

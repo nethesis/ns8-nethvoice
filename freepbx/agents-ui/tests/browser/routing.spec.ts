@@ -20,7 +20,7 @@ async function login(page: Page) {
   page.on("pageerror",e=>{throw e;});
   await page.addInitScript(() => {
     localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic" }));
-    localStorage.setItem("nethvoice.agents.language", "en");
+    localStorage.setItem("preferredLanguage", JSON.stringify("en"));
   });
 }
 const toggle=(page:Page,name:string)=>page.getByRole("checkbox",{name,exact:true});

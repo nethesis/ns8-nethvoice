@@ -9,7 +9,7 @@ for (const language of ["en", "it"]) {
         "secretkey",
         JSON.stringify({ user: "administrator", hash: "synthetic" }),
       );
-      localStorage.setItem("nethvoice.agents.language", language);
+      localStorage.setItem("preferredLanguage", JSON.stringify(language));
       localStorage.setItem("nethvoice.agents.theme", "light");
     }, language);
     await page.route("**/freepbx/rest/agents/**", async (route) => {

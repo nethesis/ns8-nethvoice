@@ -12,7 +12,7 @@ for (const branded of [false, true]) {
       await page.setViewportSize({ width: mobile ? 375 : 1440, height: mobile ? 812 : 1024 });
       await page.addInitScript(() => {
         localStorage.clear();
-        localStorage.setItem("nethvoice.agents.language", "en");
+        localStorage.setItem("preferredLanguage", JSON.stringify("en"));
       });
       let legacyScriptRequests = 0;
       await page.route("**/freepbx/wizard/scripts/custom.js", async route => {

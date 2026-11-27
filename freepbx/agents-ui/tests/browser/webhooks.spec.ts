@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 async function login(page: Page, language = "en", theme = "light") {
   await page.addInitScript(({ language, theme }) => {
     localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic-test" }));
-    localStorage.setItem("nethvoice.agents.language", language);
+    localStorage.setItem("preferredLanguage", JSON.stringify(language));
     localStorage.setItem("nethvoice.agents.theme", theme);
   }, { language, theme });
 }

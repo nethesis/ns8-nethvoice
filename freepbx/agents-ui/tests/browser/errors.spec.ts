@@ -7,7 +7,7 @@ for (const [title, path, response, message] of [
   test(`loading ${title} explains the cause`, async ({page}) => {
     await page.addInitScript(() => {
       localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "synthetic"}));
-      localStorage.setItem("nethvoice.agents.language", "en");
+      localStorage.setItem("preferredLanguage", JSON.stringify("en"));
     });
     await page.route("**/freepbx/rest/agents/**", async route => {
       const url = new URL(route.request().url()).pathname;

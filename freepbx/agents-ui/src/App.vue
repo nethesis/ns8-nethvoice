@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from "vue";
+import { computed, ref, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import {
@@ -25,6 +25,7 @@ import { access, auth, signIn, signOut } from "./api";
 import { useUi } from "./stores/ui";
 import { DEFAULT_BRANDING, loadWizardBranding } from "./branding";
 import { i18n } from "./i18n";
+import { WIZARD_LANGUAGE_KEY, wizardLanguage } from "./language";
 import { menuIcon } from "./menuIcon";
 import NavIcon from "./components/NavIcon.vue";
 import AppEmptyState from "./components/AppEmptyState.vue";
@@ -76,8 +77,23 @@ watch(
   },
   { immediate: true },
 );
+watch(
+  locale,
+  (value) => {
+    document.documentElement.lang = String(value);
+  },
+  { immediate: true },
+);
+// A language changed in the wizard, also in another tab, applies here.
+function followWizardLanguage(event: StorageEvent) {
+  if (event.key === WIZARD_LANGUAGE_KEY || event.key === null)
+    locale.value = wizardLanguage(
+      event.key === null ? undefined : event.newValue,
+    );
+}
+onMounted(() => window.addEventListener("storage", followWizardLanguage));
+onUnmounted(() => window.removeEventListener("storage", followWizardLanguage));
 onMounted(() => {
-  document.documentElement.lang = String(locale.value);
   void loadWizardBranding().then((value) => {
     branding.value = value;
     // Texts name the administration interface after the brand.

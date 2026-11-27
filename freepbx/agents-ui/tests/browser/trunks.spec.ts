@@ -12,7 +12,7 @@ export async function mockTrunks(page: Page, options: { language?: string; lab: 
   page.on("pageerror", error => { throw error; });
   await page.addInitScript(language => {
     localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic" }));
-    localStorage.setItem("nethvoice.agents.language", language);
+    localStorage.setItem("preferredLanguage", JSON.stringify(language));
   }, options.language || "en");
   await page.route("**/freepbx/rest/agents/**", async route => {
     const path = new URL(route.request().url()).pathname.replace("/freepbx/rest/agents", "");

@@ -10,7 +10,7 @@ const trunks=[{binding_id:'trunk_test',provider:'openai',name:'Shared OpenAI',re
 function agent(id='receptionist') {return {agent_id:id,name:id==='receptionist'?'Receptionist':'Second agent',kind:id==='receptionist'?'builtin':'custom',destination_id:'agent:'+id,enabled:false,revision:1,workflow_version:null as number|null,sync_status:'synced',routable:false,published:null as unknown,draft:{contract_version:8,provider_binding_id:'trunk_test',conversation:{language:'en',voice:'marin',greeting:'Hello',instructions:'Speak briefly.',model:'gpt-realtime-2.1',options:null as Record<string,string|number>|null},tool_bindings:tools.map((t:any)=>({tool_id:t.id,tool_version:t.version,enabled:false,config:t.defaults})),fallback_destination_id:'hangup',max_call_duration_seconds:600,debug:{transcription_enabled:false,retention_hours:24}}};}
 async function setup(page:Page,discovery?: (input:any,route:any)=>Promise<void>) {
   page.on('pageerror',error=>{throw error;});
-  await page.addInitScript(()=>{localStorage.setItem('secretkey',JSON.stringify({user:'administrator',hash:'synthetic'}));localStorage.setItem('nethvoice.agents.language','en');});
+  await page.addInitScript(()=>{localStorage.setItem('secretkey',JSON.stringify({user:'administrator',hash:'synthetic'}));localStorage.setItem('preferredLanguage', JSON.stringify('en'));});
   const profiles:Record<string,ReturnType<typeof agent>>={receptionist:agent(),second:agent('second')};
   await page.route('**/freepbx/rest/agents/**',async route=>{
     const path=new URL(route.request().url()).pathname.replace('/freepbx/rest/agents','');

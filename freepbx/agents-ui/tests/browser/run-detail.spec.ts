@@ -23,7 +23,7 @@ async function open(page: Page, language: string, run: Record<string, unknown>) 
   page.on('pageerror', error => {throw error;});
   await page.addInitScript(language => {
     localStorage.setItem('secretkey', JSON.stringify({user:'administrator',hash:'synthetic'}));
-    localStorage.setItem('nethvoice.agents.language',language);
+    localStorage.setItem('preferredLanguage', JSON.stringify(language));
   }, language);
   await page.route('**/freepbx/rest/agents/**', async route => {
     const path=new URL(route.request().url()).pathname.replace('/freepbx/rest/agents','');
@@ -79,7 +79,7 @@ test('failed and completed calls use the backend outcome', async ({page}) => {
   let run: Record<string, unknown> = {...base, outcome:'failed', error_code:'destination_denied', transcripts:[], call_record_url:null, caller_number:null, called_number:null};
   await page.addInitScript(() => {
     localStorage.setItem('secretkey', JSON.stringify({user:'administrator',hash:'synthetic'}));
-    localStorage.setItem('nethvoice.agents.language','en');
+    localStorage.setItem('preferredLanguage', JSON.stringify('en'));
   });
   await page.route('**/freepbx/rest/agents/**', async route => {
     const path=new URL(route.request().url()).pathname.replace('/freepbx/rest/agents','');

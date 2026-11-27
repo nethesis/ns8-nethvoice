@@ -1,4 +1,5 @@
 import { createI18n } from "vue-i18n";
+import { wizardLanguage } from "./language";
 
 const en = {
   // Name of the administration interface; brand comes from its branding.
@@ -2397,9 +2398,7 @@ const it: typeof en = {
 
 export const i18n = createI18n({
   legacy: false,
-  locale:
-    localStorage.getItem("nethvoice.agents.language") ||
-    (navigator.language.startsWith("it") ? "it" : "en"),
+  locale: wizardLanguage(),
   fallbackLocale: "en",
   messages: { en, it },
 });

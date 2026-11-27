@@ -8,7 +8,7 @@ test.use({timezoneId: "Europe/Rome"});
 test("monitoring shows local times and sends local day boundaries", async ({page}) => {
   await page.addInitScript(() => {
     localStorage.setItem("secretkey", JSON.stringify({user: "administrator", hash: "synthetic"}));
-    localStorage.setItem("nethvoice.agents.language", "en");
+    localStorage.setItem("preferredLanguage", JSON.stringify("en"));
   });
   const ranges: string[] = [];
   await page.route("**/freepbx/rest/agents/**", async route => {

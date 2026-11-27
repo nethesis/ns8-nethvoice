@@ -8,7 +8,7 @@ for (const layout of [
     await page.setViewportSize({ width: layout.width, height: layout.height });
     await page.addInitScript(({ language }) => {
       localStorage.setItem("secretkey", JSON.stringify({ user: "administrator", hash: "synthetic-test" }));
-      localStorage.setItem("nethvoice.agents.language", language);
+      localStorage.setItem("preferredLanguage", JSON.stringify(language));
     }, layout);
     await page.route("**/freepbx/rest/agents/**", async route => {
       const path = new URL(route.request().url()).pathname;

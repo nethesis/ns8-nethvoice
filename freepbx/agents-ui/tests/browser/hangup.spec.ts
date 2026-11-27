@@ -40,7 +40,7 @@ test("hangup starts disabled and is enabled and saved per agent", async ({
       "secretkey",
       JSON.stringify({ user: "administrator", hash: "synthetic" }),
     );
-    localStorage.setItem("nethvoice.agents.language", "en");
+    localStorage.setItem("preferredLanguage", JSON.stringify("en"));
   });
   await page.route("**/freepbx/rest/agents/**", async (route) => {
     const path = new URL(route.request().url()).pathname.split("/agents")[1];

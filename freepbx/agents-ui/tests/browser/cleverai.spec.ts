@@ -6,7 +6,7 @@ async function login(page: Page) {
       "secretkey",
       JSON.stringify({ user: "administrator", hash: "synthetic-test" }),
     );
-    localStorage.setItem("nethvoice.agents.language", "en");
+    localStorage.setItem("preferredLanguage", JSON.stringify("en"));
   });
 }
 const externalTrunk = {
