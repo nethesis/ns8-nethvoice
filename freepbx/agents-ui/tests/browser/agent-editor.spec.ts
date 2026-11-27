@@ -38,7 +38,7 @@ test("SIP lab off: no SIP Realtime model is offered and a saved one asks for GPT
   record.draft.conversation = { ...record.draft.conversation, model: "gpt-realtime-2.1", options: null };
   await mockApi(page, { profiles: { receptionist: record } });
   await page.goto("./#/agents/receptionist");
-  await expect(page.getByText(/The saved model needs the SIP media lab/)).toBeVisible();
+  await expect(page.getByText(/The saved model is an experimental SIP Realtime model/)).toBeVisible();
   await page.getByRole("combobox", { name: "Voice model" }).click();
   await expect(page.getByRole("option", { name: /GPT Realtime 2\.1 Mini/ })).toHaveCount(0);
   await expect(page.getByRole("option", { name: /GPT Live 1/ })).toBeVisible();

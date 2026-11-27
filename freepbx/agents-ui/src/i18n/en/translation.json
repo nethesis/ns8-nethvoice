@@ -273,7 +273,7 @@
   "error": {
     "provider_catalog_unavailable": "The provider is unavailable. Retry the credential test.",
     "provider_permission_denied": "This key lacks permission to list models.",
-    "sip_lab_required": "SIP Realtime is available only in the media lab. Choose GPT-Live.",
+    "sip_lab_required": "SIP Realtime models are experimental and not enabled on this system. Select GPT Live 1.",
     "consultation_assistant_unavailable": "Publish an available internal consultation assistant first.",
     "consultation_chat_model_required": "Set a text model on the internal assistant before enabling chat consultation.",
     "internal_agent_not_public": "Internal consultation assistants cannot be public destinations.",
@@ -292,7 +292,7 @@
     "provider_credentials_unavailable": "Save a project API key on the trunk or configure the OpenAI integration key, then retry.",
     "model_required": "Select a conversation model on the agent page.",
     "invalid_model_options": "Check the options supported by the selected model.",
-    "backend_model_unavailable": "The selected backend model is unavailable with these credentials.",
+    "backend_model_unavailable": "The selected text model is unavailable with these credentials.",
     "invalid_voice": "Choose a voice compatible with the selected model.",
     "invalid_provider_model": "Choose a model supported by this provider connection.",
     "provider_model_unavailable": "The selected model is unavailable with these credentials. Refresh the model list.",
@@ -430,7 +430,7 @@
     "transcription_failed": "Debug transcription unavailable",
     "trace_gap": "Monitoring gap",
     "usage_snapshot": "Usage snapshot",
-    "provider_output": "Provider output observed",
+    "provider_output": "Provider response received",
     "trace_started": "Phase started",
     "trace_finished": "Phase ended"
   },
@@ -578,7 +578,7 @@
     "delivery": "Monitoring delivery",
     "healthKeys": {
       "active_calls": "Active calls",
-      "spool_writable": "Spool",
+      "spool_writable": "Monitoring spool",
       "queue_depth": "Pending events",
       "oldest_pending_seconds": "Oldest pending event",
       "dropped": "Dropped observations",
@@ -591,14 +591,14 @@
     "partialTrace": "Incomplete trace",
     "partialHelp": "Some observations were lost, truncated or interrupted. The call outcome is reported separately.",
     "usage": "Provider-reported usage",
-    "usageHelp": "Response tokens, Live session seconds and delegated backend tokens have different scopes. These values are not a billing statement.",
+    "usageHelp": "Response tokens, Live session seconds and text model tokens are measured differently. These values are not a billing statement.",
     "usageUnavailable": "Usage was not reported or is unavailable.",
     "usagePartial": "Partial usage: final provider accounting was not confirmed.",
     "phasesMap": {
       "snapshot": "Load configuration",
-      "binding": "Load provider binding",
+      "binding": "Load the provider trunk",
       "admission": "Call admission",
-      "origination": "Originate provider leg",
+      "origination": "Start the call to the provider",
       "webhook_wait": "Wait for provider webhook",
       "routing_context": "Prepare routing context",
       "provider_accept": "Provider acceptance",
@@ -717,10 +717,10 @@
       "response_input_tokens": "Response input tokens",
       "response_output_tokens": "Response output tokens",
       "response_total_tokens": "Response total tokens",
-      "live_seconds": "Live session",
-      "backend_input_tokens": "Backend input tokens",
-      "backend_output_tokens": "Backend output tokens",
-      "backend_total_tokens": "Backend total tokens"
+      "live_seconds": "Live session duration",
+      "backend_input_tokens": "Text model input tokens",
+      "backend_output_tokens": "Text model output tokens",
+      "backend_total_tokens": "Text model total tokens"
     },
     "spoolWritable": "Writable",
     "spoolNotWritable": "Not writable",
@@ -774,7 +774,7 @@
     "selectTrunkTitle": "Select a provider trunk",
     "selectTrunkHelp": "Voice models and voices depend on the provider trunk. Select it in @:{'generalSettings'}.",
     "liveExperimental": "Experimental: calls use the WebSocket connection of the agent service.",
-    "sipModelUnavailable": "The saved model needs the SIP media lab, which is off. Select GPT Live 1 to publish the agent.",
+    "sipModelUnavailable": "The saved model is an experimental SIP Realtime model, not enabled on this system. Select GPT Live 1 to publish the agent.",
     "advancedSettingsOf": "Advanced settings of {model}",
     "modelHints": {
       "gpt_realtime_2_1": "Best quality, highest cost",
@@ -888,7 +888,7 @@
       "conversation_required_voice": "Select a voice",
       "conversation_required_instructions": "Enter the conversation instructions",
       "model_required": "Select a voice model",
-      "sip_lab_required": "SIP Realtime models need the SIP media lab. Select GPT Live 1."
+      "sip_lab_required": "SIP Realtime models are experimental and not enabled on this system. Select GPT Live 1."
     },
     "serverErrors": {
       "fallback_managed_by_visualplan": "The fallback destination is managed in VisualPlan.",
