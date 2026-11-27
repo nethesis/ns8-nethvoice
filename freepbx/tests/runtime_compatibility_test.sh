@@ -11,6 +11,12 @@ env -i PATH=/usr/bin:/bin /usr/bin/env php -r 'exit(PHP_MAJOR_VERSION === 8 ? 0 
 /usr/bin/php -r 'exit(PHP_MAJOR_VERSION === 8 ? 0 : 1);'
 echo 'PHP works with the user-cron PATH and the legacy absolute path'
 
+cron_class=/var/www/html/freepbx/admin/libraries/BMO/Cron.class.php
+framework_cron_class=/var/www/html/freepbx/admin/modules/framework/amp_conf/htdocs/admin/libraries/BMO/Cron.class.php
+grep -A1 -F 'function installCrontab($arr) {' "$cron_class" | grep -Eq '^[[:space:]]*return;$'
+cmp -s "$cron_class" "$framework_cron_class"
+echo 'The no-op Cron class replaces both the live and the framework copy'
+
 test_dir=$(mktemp -d)
 asterisk_pid=
 cleanup() {
