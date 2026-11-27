@@ -1,7 +1,9 @@
 @import "@fortawesome/fontawesome-svg-core/styles.css" layer(vendor);
 @import "tailwindcss";
-@import "@fontsource/poppins/400.css";
-@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/latin-400.css";
+@import "@fontsource/poppins/latin-ext-400.css";
+@import "@fontsource/poppins/latin-500.css";
+@import "@fontsource/poppins/latin-ext-500.css";
 @import "@nethesis/vue-components/theme.css";
 @source '../../node_modules/@nethesis/vue-components';
 @custom-variant dark (&:where(.dark, .dark *));
