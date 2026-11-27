@@ -13,6 +13,7 @@ import {
 } from "@nethesis/vue-components";
 import {
   faArrowRightFromBracket,
+  faArrowUpRightFromSquare,
   faBars,
   faCircleInfo,
   faLock,
@@ -208,9 +209,15 @@ watch(
         <div class="flex items-center gap-6">
           <a
             href="/freepbx/wizard/"
-            class="text-secondary-neutral hover:text-primary-neutral focus-visible:outline-primary-500 rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+            target="_blank"
+            rel="noopener"
+            class="text-primary-700 dark:text-primary-500 focus-visible:outline-primary-500 inline-flex items-center gap-2 rounded-sm font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
             data-testid="wizard-link"
-            >{{ t("adminInterface") }}</a
+            ><FontAwesomeIcon
+              :icon="faArrowUpRightFromSquare"
+              class="size-4"
+              aria-hidden="true"
+            />{{ t("adminInterface") }}</a
           >
           <NeTooltip trigger-event="mouseenter focus" placement="bottom">
             <template #trigger>
