@@ -147,8 +147,18 @@ test.describe('integrations: customer cards', () => {
       'Video sources',
       'Phonebook',
       'Parameterized URLs',
-      'External services',
     ])
+    await expect(
+      page.locator('a[aria-current="page"]', { hasText: 'Customer cards' }),
+    ).toBeVisible()
+    await expect(page.getByText(CARDS_DESCRIPTION)).toBeVisible()
+  })
+
+  test('redirects the removed external services link to the first tab', async ({ page }) => {
+    await page.goto('./integrations/external-services')
+
+    await expect(page).toHaveURL(/\/integrations\/customer-cards$/)
+    await expect(page.getByRole('heading', { name: 'Integrations', level: 1 })).toBeVisible()
     await expect(
       page.locator('a[aria-current="page"]', { hasText: 'Customer cards' }),
     ).toBeVisible()

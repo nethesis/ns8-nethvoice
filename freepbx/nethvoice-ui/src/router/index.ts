@@ -87,8 +87,9 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/PhonesView.vue'),
     meta: { titleKey: 'phones.title', section: 'phones' },
   },
+  { path: '/integrations/external-services', redirect: { name: 'integrations' } },
   {
-    path: '/integrations/:tab(phonebook|video-sources|parameterized-urls|customer-cards|external-services)?',
+    path: '/integrations/:tab(phonebook|video-sources|parameterized-urls|customer-cards)?',
     name: 'integrations',
     component: () => import('@/views/IntegrationsView.vue'),
     meta: { titleKey: 'integrations.title', section: 'integrations' },

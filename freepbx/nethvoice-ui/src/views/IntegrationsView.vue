@@ -13,15 +13,8 @@ import PhonebookSourcesPanel from '@/components/integrations/PhonebookSourcesPan
 import VideoSourcesPanel from '@/components/integrations/VideoSourcesPanel.vue'
 import ParameterizedUrlsPanel from '@/components/integrations/ParameterizedUrlsPanel.vue'
 import CustomerCardsPanel from '@/components/integrations/CustomerCardsPanel.vue'
-import ExternalServicesPanel from '@/components/integrations/ExternalServicesPanel.vue'
 
-const TAB_NAMES = [
-  'customer-cards',
-  'video-sources',
-  'phonebook',
-  'parameterized-urls',
-  'external-services',
-] as const
+const TAB_NAMES = ['customer-cards', 'video-sources', 'phonebook', 'parameterized-urls'] as const
 
 const { t } = useI18n()
 const { selectedTab } = useRouteTab(TAB_NAMES)
@@ -31,7 +24,6 @@ const tabs = computed(() => [
   { name: 'video-sources', label: t('integrations.tab_video_sources') },
   { name: 'phonebook', label: t('integrations.tab_phonebook') },
   { name: 'parameterized-urls', label: t('integrations.tab_parameterized_urls') },
-  { name: 'external-services', label: t('integrations.tab_external_services') },
 ])
 
 function selectTab(tabName: string) {
@@ -61,6 +53,5 @@ function selectTab(tabName: string) {
     <VideoSourcesPanel v-else-if="selectedTab === 'video-sources'" />
     <PhonebookSourcesPanel v-else-if="selectedTab === 'phonebook'" />
     <ParameterizedUrlsPanel v-else-if="selectedTab === 'parameterized-urls'" />
-    <ExternalServicesPanel v-else-if="selectedTab === 'external-services'" />
   </div>
 </template>
