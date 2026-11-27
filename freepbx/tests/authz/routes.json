@@ -620,6 +620,26 @@
       "callers": ["ui:routes", "legacy"],
       "reason": "Deletes an inbound route from the routes screen."
     },
+    "GET /visualplan": {
+      "intent": "routes",
+      "callers": ["ui:routes"],
+      "reason": "Reads the call flow objects shown by the visual plan of an inbound route."
+    },
+    "POST /visualplan": {
+      "intent": "superadmin",
+      "callers": ["ui:routes"],
+      "reason": "Creates and changes queues, IVRs, time conditions and other call flow objects, then reloads the dialplan; the visual plan is editable only by a superadmin."
+    },
+    "POST /visualplan/layout": {
+      "intent": "superadmin",
+      "callers": ["ui:routes"],
+      "reason": "Saves the canvas layout of an inbound route, only from the editable visual plan."
+    },
+    "POST /visualplan/recordings": {
+      "intent": "superadmin",
+      "callers": ["ui:routes"],
+      "reason": "Uploads a system recording from the editable visual plan."
+    },
     "GET /outboundroutes/count": {
       "intent": "lookup",
       "callers": ["ui:dashboard", "legacy", "mcp"],

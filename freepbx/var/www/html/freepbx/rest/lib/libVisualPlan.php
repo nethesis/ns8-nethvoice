@@ -346,12 +346,24 @@ function visualplan_read_inbound_routes(): array
     return $routes;
 }
 
+// The extension of the administrator phone is not a destination for calls.
+function visualplan_admin_phone_extension(): ?string
+{
+    try {
+        include_once __DIR__ . '/libAdminPhone.php';
+        return function_exists('adminPhoneStoredExtension') ? adminPhoneStoredExtension() : null;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
 function visualplan_read_extensions(): array
 {
     $extensions = [];
+    $adminPhone = visualplan_admin_phone_extension();
     foreach (visualplan_rows(FreePBX::Core()->listUsers(true)) as $row) {
         $extension = visualplan_string($row[0] ?? '');
-        if ($extension === '' || preg_match('/^9\d{4,}$/', $extension)) {
+        if ($extension === '' || $extension === $adminPhone || preg_match('/^9\d{4,}$/', $extension)) {
             continue;
         }
         $mailbox = strtolower(trim(visualplan_string($row[2] ?? '')));

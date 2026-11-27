@@ -117,9 +117,9 @@ $expected = [
     'GET /outboundroutes/defaults' => 'routes',
     'POST /outboundroutes' => 'routes',
     'GET /visualplan' => 'routes',
-    'POST /visualplan' => 'routes',
-    'POST /visualplan/recordings' => 'routes',
-    'POST /visualplan/layout' => 'routes',
+    'POST /visualplan' => 'superadmin',
+    'POST /visualplan/recordings' => 'superadmin',
+    'POST /visualplan/layout' => 'superadmin',
     'GET /phonebook/config' => 'integrations',
     'POST /cti/sources/test' => 'integrations',
     'PUT /cti/streaming/{descr}' => 'integrations',
@@ -217,6 +217,9 @@ $expectedSuperadminOnly = [
     'POST /migration/trunksroutesassignements',
     'POST /testauth',
     'POST /users/{username}/password',
+    'POST /visualplan',
+    'POST /visualplan/layout',
+    'POST /visualplan/recordings',
 ];
 check($superadminOnly === $expectedSuperadminOnly, "superadmin-only routes changed:\n" . implode("\n", array_diff($superadminOnly, $expectedSuperadminOnly)) . "\n--\n" . implode("\n", array_diff($expectedSuperadminOnly, $superadminOnly)));
 
