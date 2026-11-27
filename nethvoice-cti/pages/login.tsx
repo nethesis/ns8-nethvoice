@@ -658,7 +658,7 @@ export default function Login() {
       data-tooltip-content={passwordToggleLabel}
       className='flex items-center justify-center rounded text-inputIcon focus:outline-none focus-visible:ring-2 focus-visible:ring-primaryLight dark:text-inputIconDark dark:focus-visible:ring-primaryDark'
     >
-      <FontAwesomeIcon icon={pwdVisible ? faEye : faEyeSlash} className='h-4 w-4' aria-hidden='true' />
+      <FontAwesomeIcon icon={pwdVisible ? faEyeSlash : faEye} className='h-4 w-4' aria-hidden='true' />
     </button>
   )
 
@@ -786,7 +786,7 @@ export default function Login() {
         <title>{productTabTitle}</title>
       </Head>
       <div className='flex min-h-full items-center justify-center p-4'>
-        <main className='w-full max-w-[31.25rem] rounded-lg bg-gray-50 px-6 py-14 shadow-lg dark:bg-gray-900 sm:px-10'>
+        <main className='w-full max-w-[31.25rem] rounded-xl bg-gray-50 px-6 py-14 shadow-lg dark:bg-gray-900 sm:px-10'>
           {productHeader()}
           {showOTPVerification
             ? otpVerificationTemplate()
