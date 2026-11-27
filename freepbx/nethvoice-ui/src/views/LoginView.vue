@@ -186,6 +186,7 @@ async function signIn() {
               :invalid-message="validationIssues.password ? $t(validationIssues.password) : ''"
               :disabled="loading"
               autocomplete="current-password"
+              class="[&_button]:focus:ring-primary-500 dark:[&_button]:focus:ring-primary-300 [&_button]:self-stretch [&_button]:rounded-r-md [&_button]:focus:ring-2 [&_button]:focus:outline-hidden [&_button]:focus:ring-inset"
             />
             <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
               <NeCheckbox id="remember-username" v-model="rememberUsername" :disabled="loading">
@@ -196,7 +197,7 @@ async function signIn() {
                 :href="runtimeConfigStore.docsUrl"
                 target="_blank"
                 rel="noreferrer"
-                class="ml-auto whitespace-nowrap"
+                class="focus:ring-primary-500 dark:focus:ring-primary-300 dark:focus:ring-offset-primary-950 ml-auto rounded-sm whitespace-nowrap focus:ring-2 focus:ring-offset-2 focus:ring-offset-white focus:outline-hidden"
               >
                 {{ $t('common.need_help') }}
               </NeLink>

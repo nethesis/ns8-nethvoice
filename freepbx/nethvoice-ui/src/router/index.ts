@@ -149,6 +149,11 @@ router.beforeEach(async (to) => {
   }
   const [permissions, wizardState] = await Promise.all([loadPermissions(), loadWizardState()])
 
+  if (!loginStore.isAuthenticated) {
+    const requested = to.fullPath === '/' ? null : getInternalRedirect(to.fullPath)
+    return { name: 'login', query: requested ? { redirect: requested } : {} }
+  }
+
   const redirect = getAccessRedirect(to.name, to.meta.section, permissions, wizardState)
 
   if (redirect && isDeniedSectionRedirect(to.name, to.meta.section, permissions, wizardState)) {

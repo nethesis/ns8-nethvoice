@@ -2,6 +2,7 @@
 //  SPDX-License-Identifier: GPL-3.0-or-later
 
 import {
+  E2E_CREDENTIALS,
   E2E_SIGN_IN_KEY,
   expect,
   mockPermissions,
@@ -50,6 +51,54 @@ test.describe('login', () => {
     await expect(page.getByText('Enter your password')).toBeVisible()
     expect(mockApi.callsTo('POST', SIGN_IN_PATH)).toHaveLength(0)
   })
+
+  for (const colorScheme of ['light', 'dark'] as const) {
+    test(`shows the focus ring on the password toggle and the help link (${colorScheme})`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme })
+      await openLogin(page)
+      const password = page.getByRole('textbox', { name: 'Password' })
+      const toggle = page.getByRole('button', { name: 'Show password' })
+      const help = page.getByRole('link', { name: 'Need help?' })
+      const passwordBefore = await password.boundingBox()
+      const iconBefore = await toggle.locator('svg').boundingBox()
+
+      const style = (element: Element) => {
+        const computed = getComputedStyle(element)
+        return {
+          outline: computed.outlineStyle === 'none' ? 'none' : computed.outlineColor,
+          ring: computed.boxShadow,
+        }
+      }
+
+      await password.focus()
+      await page.keyboard.press('Tab')
+      await expect(toggle).toBeFocused()
+      const toggleStyle = await toggle.evaluate(style)
+      expect(toggleStyle.outline).toMatch(/^(none|rgba\(0, 0, 0, 0\))$/)
+      expect(toggleStyle.ring).toMatch(/0px 0px 0px 2px/)
+
+      const toggleBox = await toggle.boundingBox()
+      expect(toggleBox?.width).toBeGreaterThanOrEqual(24)
+      expect(toggleBox?.height).toBeGreaterThanOrEqual(24)
+      expect(await toggle.locator('svg').boundingBox()).toMatchObject({
+        width: iconBefore?.width,
+        height: iconBefore?.height,
+      })
+      expect(await password.boundingBox()).toEqual(passwordBefore)
+
+      await page.keyboard.press('Tab')
+      await page.keyboard.press('Tab')
+      await expect(help).toBeFocused()
+      const helpStyle = await help.evaluate(style)
+      expect(helpStyle.outline).toMatch(/^(none|rgba\(0, 0, 0, 0\))$/)
+      expect(helpStyle.ring).toMatch(/0px 0px 0px 4px/)
+      const ringColor = (ring: string) => ring.match(/oklch\([^)]*\)/g)?.at(-1)
+      expect(ringColor(toggleStyle.ring)).toBeDefined()
+      expect(ringColor(toggleStyle.ring)).toBe(ringColor(helpStyle.ring))
+    })
+  }
 
   test('signs in, stores the secret key and opens the dashboard', async ({ page, mockApi }) => {
     mockApi.allowUnmockedCalls()
@@ -342,6 +391,62 @@ test.describe('login', () => {
     await expect(page.getByText('Session expired')).toBeVisible()
     await expect(page.getByText('Sign in again to continue.')).toBeVisible()
   })
+
+  for (const { name, status, json, path } of [
+    {
+      name: 'an expired key',
+      status: 401,
+      json: { error: 'Unauthorized: session expired', code: 'session_expired' },
+      path: '/trunks',
+    },
+    {
+      name: 'an expired key',
+      status: 401,
+      json: { error: 'Unauthorized: session expired', code: 'session_expired' },
+      path: '/routes',
+    },
+    {
+      name: 'a wrong key',
+      status: 403,
+      json: { error: 'Forbidden: wrong secret key' },
+      path: '/trunks',
+    },
+  ]) {
+    test(`returns to ${path} after signing in again with ${name} on a full page load`, async ({
+      page,
+      mockApi,
+    }) => {
+      mockApi.allowUnmockedCalls()
+      await page.addInitScript((credentials) => {
+        if (!sessionStorage.getItem('e2e-seeded')) {
+          sessionStorage.setItem('e2e-seeded', 'true')
+          localStorage.setItem('secretkey', JSON.stringify(credentials))
+        }
+      }, E2E_CREDENTIALS)
+      let rejected = true
+      mockApi.on('GET', '/freepbx/rest/me', () =>
+        rejected
+          ? { status, json }
+          : { json: { username: E2E_CREDENTIALS.user, permissions: ['superadmin'] } },
+      )
+      mockApi.on('GET', '/freepbx/rest/configuration/wizard', () =>
+        rejected ? { status, json } : { json: [{ step: 13, status: 'false' }] },
+      )
+
+      await page.goto(`.${path}`)
+
+      await expect(page).toHaveURL(new RegExp(`/nethvoice/login\\?redirect=${path}$`))
+      await expect(page.getByText('Session expired')).toBeVisible()
+      expect(await page.evaluate(() => localStorage.getItem('secretkey'))).toBeNull()
+
+      rejected = false
+      await page.getByRole('textbox', { name: 'Username' }).fill('admin')
+      await page.getByRole('textbox', { name: 'Password' }).fill('correct-password')
+      await page.getByRole('button', { name: 'Sign in' }).click()
+
+      await expect(page).toHaveURL(new RegExp(`/nethvoice${path}`))
+    })
+  }
 
   test('signs out the admin user when Tancredi rejects the stored secret key', async ({
     page,
